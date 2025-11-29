@@ -3,9 +3,13 @@
  * 
  * Manages TTS voice switching between Jack Bogle and Peter Lynch.
  * Uses Cartesia's API to switch voices mid-session.
+ * 
+ * Features:
+ * - DynamicTTS class that switches voices based on current agent
+ * - Automatic voice switching on handoff events
  */
 
-import { log } from '@livekit/agents';
+import { log, tts } from '@livekit/agents';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { PETER_LYNCH_VOICE_ID, JACK_BOGLE_VOICE_ID } from '../agents/peter-lynch.js';
 import { handoffEvents, getCurrentAgent } from '../tools/handoff.js';
@@ -153,6 +157,87 @@ export function getVoiceManager(): VoiceManager {
 
 export function resetVoiceManager(): void {
   voiceManagerInstance = null;
+}
+
+// ============================================================================
+// DYNAMIC TTS - Switches voices based on current agent
+// ============================================================================
+
+/**
+ * DynamicTTS wraps Cartesia TTS and switches voices dynamically
+ * based on the current agent (Jack or Peter).
+ * 
+ * This implements the TTS interface so it can be used directly
+ * with LiveKit's AgentSession.
+ */
+export class DynamicTTS extends tts.TTS {
+  readonly label = 'dynamic-cartesia-tts';
+  
+  private jackTTS: cartesia.TTS;
+  private peterTTS: cartesia.TTS;
+  private voiceManager: VoiceManager;
+
+  constructor() {
+    // Call parent with sample rate and channels
+    super(44100, 1, { streaming: true });
+    
+    // Create TTS instances for both voices
+    this.jackTTS = new cartesia.TTS({
+      model: VOICES.jack.model,
+      voice: VOICES.jack.id,
+    });
+    
+    this.peterTTS = new cartesia.TTS({
+      model: VOICES.peter.model,
+      voice: VOICES.peter.id,
+    });
+    
+    this.voiceManager = getVoiceManager();
+    
+    getLogger().info('DynamicTTS initialized with Jack and Peter voices');
+  }
+
+  /**
+   * Get the TTS instance for the current agent
+   */
+  private getCurrentTTS(): cartesia.TTS {
+    const currentAgent = getCurrentAgent();
+    const currentTTS = currentAgent === 'peter' ? this.peterTTS : this.jackTTS;
+    
+    getLogger().debug({ 
+      agent: currentAgent, 
+      voice: currentAgent === 'peter' ? VOICES.peter.name : VOICES.jack.name 
+    }, 'Using TTS voice');
+    
+    return currentTTS;
+  }
+
+  /**
+   * Synthesize text to speech using the current agent's voice
+   */
+  synthesize(text: string): tts.ChunkedStream {
+    const currentAgent = getCurrentAgent();
+    console.log(`🎤 [TTS] Speaking as ${currentAgent === 'peter' ? 'Peter Lynch' : 'Jack Bogle'}`);
+    
+    return this.getCurrentTTS().synthesize(text);
+  }
+
+  /**
+   * Stream synthesis for the current agent's voice
+   */
+  stream(): tts.SynthesizeStream {
+    const currentAgent = getCurrentAgent();
+    getLogger().debug({ agent: currentAgent }, 'Starting TTS stream');
+    
+    return this.getCurrentTTS().stream();
+  }
+}
+
+/**
+ * Create a DynamicTTS instance for use with AgentSession
+ */
+export function createDynamicTTS(): DynamicTTS {
+  return new DynamicTTS();
 }
 
 export default getVoiceManager;

@@ -92,7 +92,7 @@ import { getHumorEngine } from '../personality/humor-engine.js';
 import { createEssentialTools } from '../tools/index.js';
 
 // Voice Manager for Jack/Peter voice switching
-import { getVoiceManager, VOICES } from '../speech/voice-manager.js';
+import { getVoiceManager, VOICES, createDynamicTTS } from '../speech/voice-manager.js';
 
 // Peter Lynch persona for handoff
 import { PETER_LYNCH_PERSONA } from './peter-lynch.js';
@@ -3543,6 +3543,10 @@ export default defineAgent({
     voiceManager.initialize();
     console.log('  - Voice Manager: initialized (Jack + Peter voices)');
     
+    // Create DynamicTTS that switches voices based on current agent
+    const dynamicTTS = createDynamicTTS();
+    console.log('  - DynamicTTS: ready (auto-switches Jack ↔ Peter)');
+    
     const sessionStartTime = Date.now();
     const session = new voice.AgentSession({
       vad: vad as silero.VAD,
@@ -3555,14 +3559,14 @@ export default defineAgent({
         // Enable server-side turn detection for better transcription
         // Note: This may affect onUserTurnCompleted timing
       }),
-      tts: voiceManager.getCurrentTTS(), // Use voice manager's TTS for Jack
+      tts: dynamicTTS, // DynamicTTS auto-switches between Jack and Peter voices!
       userData,
     });
     
-    // Listen for voice switch events to log (full TTS swap requires session restart)
+    // Listen for voice switch events
     handoffEvents.on('voiceSwitch', (data: { newAgent: 'jack' | 'peter'; voiceId: string }) => {
       console.log(`\n🎤 [VOICE SWITCH] Now speaking as: ${data.newAgent === 'peter' ? 'Peter Lynch' : 'Jack Bogle'}`);
-      logger.info({ newAgent: data.newAgent, voiceId: data.voiceId }, 'Voice switch - persona changed');
+      logger.info({ newAgent: data.newAgent, voiceId: data.voiceId }, 'Voice switched - next speech will use new voice');
     });
     console.log(`AgentSession created in ${Date.now() - sessionStartTime}ms`);
     console.log('--- STEP 5 COMPLETE ---');
