@@ -2,21 +2,22 @@
 /**
  * Spotify OAuth Helper
  * 
- * Gets a Spotify refresh token for Jack using manual code entry.
+ * Gets a Spotify refresh token for Jack.
  * 
  * SETUP:
  * 1. Go to https://developer.spotify.com/dashboard
- * 2. Create an app (or use existing)
- * 3. Add redirect URI: https://localhost:8888/callback
- *    (Spotify requires HTTPS, but we'll extract the code manually)
+ * 2. Create an app
+ * 3. Add this EXACT redirect URI: https://example.com/callback
  * 4. Copy your Client ID and Client Secret
- * 5. Run this script: node scripts/spotify-auth.js
+ * 5. Run: node scripts/spotify-auth.js
  */
 
 import * as readline from 'readline';
 
-// Config
-const REDIRECT_URI = 'https://localhost:8888/callback';
+// Use example.com - Spotify will redirect there and show an error page,
+// but the authorization code will be in the URL!
+const REDIRECT_URI = 'https://example.com/callback';
+
 const SCOPES = [
   'user-read-playback-state',
   'user-modify-playback-state', 
@@ -66,11 +67,24 @@ async function getTokens(code, clientId, clientSecret) {
 
 // Main
 async function main() {
-  console.log('🎵 Spotify OAuth Helper for Jack Bogle\n');
-  console.log('This will get you a refresh token for Spotify integration.\n');
-  console.log('=' .repeat(60));
+  console.log('');
+  console.log('🎵 Spotify OAuth Helper for Jack Bogle');
+  console.log('='.repeat(50));
+  console.log('');
+  console.log('⚠️  IMPORTANT: In Spotify Dashboard, set Redirect URI to:');
+  console.log('');
+  console.log('   https://example.com/callback');
+  console.log('');
+  console.log('='.repeat(50));
   
+  const ready = await prompt('\nHave you added this redirect URI to Spotify? (y/n): ');
+  if (ready.toLowerCase() !== 'y') {
+    console.log('\nPlease add the redirect URI first, then run this script again.');
+    process.exit(0);
+  }
+
   // Get credentials
+  console.log('');
   const clientId = await prompt('Enter your Spotify Client ID: ');
   const clientSecret = await prompt('Enter your Spotify Client Secret: ');
 
@@ -87,65 +101,79 @@ async function main() {
   authUrl.searchParams.set('scope', SCOPES);
   authUrl.searchParams.set('show_dialog', 'true');
 
-  console.log('\n' + '='.repeat(60));
-  console.log('📋 STEP 1: Open this URL in your browser:\n');
+  console.log('');
+  console.log('='.repeat(50));
+  console.log('STEP 1: Open this URL in your browser:');
+  console.log('='.repeat(50));
+  console.log('');
   console.log(authUrl.toString());
-  console.log('\n' + '='.repeat(60));
-  console.log('\n📋 STEP 2: Log in to Spotify and click "Agree"');
-  console.log('\n📋 STEP 3: You\'ll be redirected to a page that won\'t load.');
-  console.log('           That\'s OK! Look at the URL bar.\n');
-  console.log('   It will look like:');
-  console.log('   https://localhost:8888/callback?code=AQD...longcode...\n');
-  console.log('='.repeat(60));
+  console.log('');
+  console.log('='.repeat(50));
+  console.log('STEP 2: Log in and click "Agree"');
+  console.log('='.repeat(50));
+  console.log('');
+  console.log('STEP 3: You\'ll see an example.com error page.');
+  console.log('        That\'s EXPECTED! Look at the URL bar.');
+  console.log('');
+  console.log('        The URL will look like:');
+  console.log('        https://example.com/callback?code=AQBx...');
+  console.log('');
+  console.log('='.repeat(50));
   
-  const callbackUrl = await prompt('\n📋 STEP 4: Paste the ENTIRE URL from your browser here:\n> ');
+  const callbackUrl = await prompt('STEP 4: Paste the FULL URL from your browser:\n> ');
 
   // Extract code from URL
   let code;
   try {
-    const url = new URL(callbackUrl);
-    code = url.searchParams.get('code');
+    // Handle if they paste the full URL
+    if (callbackUrl.includes('?code=')) {
+      const url = new URL(callbackUrl);
+      code = url.searchParams.get('code');
+    } 
+    // Handle if they paste just the code
+    else if (callbackUrl.length > 50) {
+      code = callbackUrl;
+    }
     
     if (!code) {
-      // Maybe they just pasted the code
-      if (callbackUrl.startsWith('AQ') && callbackUrl.length > 100) {
-        code = callbackUrl;
-      } else {
-        throw new Error('No code found in URL');
-      }
+      throw new Error('No code found');
     }
   } catch {
-    // Try treating input as raw code
-    if (callbackUrl.startsWith('AQ') && callbackUrl.length > 100) {
-      code = callbackUrl;
-    } else {
-      console.error('\n❌ Could not extract authorization code from URL.');
-      console.error('Make sure you copied the entire URL including "https://localhost:8888/callback?code=..."');
-      process.exit(1);
-    }
+    console.error('');
+    console.error('❌ Could not find authorization code.');
+    console.error('Make sure you copied the entire URL from the browser.');
+    process.exit(1);
   }
 
-  console.log('\n🔑 Got authorization code! Exchanging for tokens...');
+  console.log('');
+  console.log('🔑 Got code! Exchanging for tokens...');
 
   try {
     const tokens = await getTokens(code, clientId, clientSecret);
 
-    console.log('\n' + '='.repeat(60));
+    console.log('');
+    console.log('='.repeat(50));
     console.log('✅ SUCCESS! Add these to your .env file:');
-    console.log('='.repeat(60));
-    console.log(`\nSPOTIFY_CLIENT_ID=${clientId}`);
+    console.log('='.repeat(50));
+    console.log('');
+    console.log(`SPOTIFY_CLIENT_ID=${clientId}`);
     console.log(`SPOTIFY_CLIENT_SECRET=${clientSecret}`);
     console.log(`SPOTIFY_REFRESH_TOKEN=${tokens.refresh_token}`);
-    console.log('\n' + '='.repeat(60));
-    console.log('\n🎵 Jack can now play music from Spotify!');
-    console.log('Try: "Hey Jack, play some jazz"\n');
+    console.log('');
+    console.log('='.repeat(50));
+    console.log('');
+    console.log('🎵 Jack can now play music!');
+    console.log('   Try: "Hey Jack, play some jazz"');
+    console.log('');
     
   } catch (err) {
-    console.error('\n❌ Token exchange failed:', err.message);
-    console.error('\nMake sure:');
-    console.error('1. The redirect URI in Spotify Dashboard matches exactly: https://localhost:8888/callback');
-    console.error('2. Your Client ID and Secret are correct');
-    console.error('3. You pasted the full callback URL');
+    console.error('');
+    console.error('❌ Token exchange failed:', err.message);
+    console.error('');
+    console.error('Check that:');
+    console.error('1. Redirect URI is exactly: https://example.com/callback');
+    console.error('2. Client ID and Secret are correct');
+    console.error('3. You pasted the complete URL');
     process.exit(1);
   }
 }
