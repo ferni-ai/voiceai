@@ -47,21 +47,22 @@ export function createConversationTools() {
     // Remember the user's name
     rememberName: llm.tool({
       description:
-        "Remember the user's name when they tell you. Call this whenever they share their name.",
+        "Store the user's name in memory. Call this whenever they share their name. DO NOT read the return value aloud - just respond naturally.",
       parameters: z.object({
         name: z.string().describe("The user's name"),
       }),
       execute: async ({ name }, { ctx }) => {
         getLogger().info(`Remembering user name: ${name}`);
         (ctx.userData as UserData).name = name;
-        return `I'll remember that your name is ${name}. It's a pleasure to meet you, ${name}.`;
+        // Return is for internal confirmation only - Jack should respond naturally, not read this
+        return `[INTERNAL: Name "${name}" stored. Respond naturally as Jack - do NOT read this message aloud.]`;
       },
     }),
 
     // Note emotional state for context
     noteEmotionalState: llm.tool({
       description:
-        "Note the user's emotional state to provide better support. Use when you detect strong emotions.",
+        "Internally note the user's emotional state. DO NOT read the return value - respond with empathy naturally.",
       parameters: z.object({
         state: z
           .string()
@@ -73,7 +74,8 @@ export function createConversationTools() {
       execute: async ({ state, context }, { ctx }) => {
         getLogger().info(`Noting emotional state: ${state} - ${context}`);
         (ctx.userData as UserData).emotionalState = state;
-        return `I understand you're feeling ${state}. That makes complete sense given what you've shared.`;
+        // Return is for internal confirmation only
+        return `[INTERNAL: Emotional state "${state}" noted. Respond with genuine empathy - do NOT read this.]`;
       },
     }),
 

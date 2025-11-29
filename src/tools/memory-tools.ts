@@ -35,7 +35,7 @@ export function createMemoryTools() {
     // Remember something important about the user
     rememberAboutUser: llm.tool({
       description:
-        'Remember an important fact about the user that Jack should recall in future conversations. Use when they share something personal, important, or defining about themselves.',
+        'Store an important fact about the user for future recall. DO NOT read tool output verbatim - respond naturally.',
       parameters: z.object({
         fact: z
           .string()

@@ -2138,8 +2138,14 @@ class BogleAgent extends voice.Agent<UserData> {
     const self = this;
     const prosodyAnalyzer = getAudioProsodyAnalyzer();
     
+    console.log('🎤 [STT] sttNode called - audio stream active');
+    this.logger.info('sttNode started - listening for audio');
+    
     // Create a tee to process audio for both STT and prosody analysis
     const [audioForSTT, audioForProsody] = audio.tee();
+    
+    let audioFrameCount = 0;
+    let lastAudioLogTime = Date.now();
     
     // Process audio for prosody analysis in the background
     (async () => {
@@ -2147,7 +2153,18 @@ class BogleAgent extends voice.Agent<UserData> {
       try {
         while (true) {
           const { value: frame, done } = await reader.read();
-          if (done) break;
+          if (done) {
+            console.log('🎤 [STT] Audio stream ended after', audioFrameCount, 'frames');
+            break;
+          }
+          
+          audioFrameCount++;
+          // Log audio activity every 5 seconds
+          const now = Date.now();
+          if (now - lastAudioLogTime > 5000) {
+            console.log(`🎤 [STT] Audio active: ${audioFrameCount} frames received`);
+            lastAudioLogTime = now;
+          }
           
           // Feed audio frames to prosody analyzer
           if (frame && frame.data && frame.data.length > 0) {
@@ -2214,12 +2231,17 @@ class BogleAgent extends voice.Agent<UserData> {
     newMessage: llm.ChatMessage,
   ): Promise<void> {
     // IMMEDIATE logging to debug hangs
+    console.log('========================================');
+    console.log('👂 [USER TURN COMPLETED]');
+    console.log('========================================');
     this.logger.info('=== onUserTurnCompleted CALLED ===');
     
     const userText = newMessage.textContent;
+    console.log('User said:', userText?.slice(0, 100) || '(empty)');
     this.logger.info({ userText: userText?.slice(0, 50), hasText: !!userText }, 'User text check');
     
     if (!userText || userText.trim().length === 0) {
+      console.log('⚠️  Empty user text, returning early');
       this.logger.info('Empty user text, returning early');
       return;
     }
@@ -2228,6 +2250,7 @@ class BogleAgent extends voice.Agent<UserData> {
     const contextBuildStart = Date.now();
     const MAX_CONTEXT_BUILD_TIME = 2000; // 2 seconds max for all context building
 
+    console.log(`🧠 [PROCESSING] "${userText.slice(0, 80)}..."`);
     this.logger.info(`Processing user turn: "${userText.slice(0, 80)}..."`);
 
     // Try to get session services (may be set up in entry)
@@ -3603,8 +3626,8 @@ export default defineAgent({
     console.log(`AgentSession created in ${Date.now() - sessionStartTime}ms`);
     console.log('--- STEP 5 COMPLETE ---');
     console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
-
-    //  voice: '204beeaf-85e6-4292-8e63-e9e6670e8a2a', 
+    // voice: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc'
+    //  voice: '204beeaf-85e6-4292-8e63-e9e6670e8a2a' 
     // ===============================================
     // 5. INTELLIGENT EVENT LISTENERS
     // ===============================================
@@ -4057,10 +4080,44 @@ const initTimeout = parseInt(process.env.AGENT_INIT_TIMEOUT || '120000', 10);
 console.log('=== STARTING WORKER ===');
 console.log('Init timeout:', initTimeout);
 
+// Global error handlers for debugging
+process.on('uncaughtException', (error) => {
+  console.log('========================================');
+  console.log('💥 [UNCAUGHT EXCEPTION]');
+  console.log('========================================');
+  console.log('Error:', error.message);
+  console.log('Stack:', error.stack);
+  console.log('========================================');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.log('========================================');
+  console.log('💥 [UNHANDLED REJECTION]');
+  console.log('========================================');
+  console.log('Reason:', reason);
+  console.log('Promise:', promise);
+  console.log('========================================');
+});
+
 // Run the agent - accept jobs for john-bogle-agent
 cli.runApp(new WorkerOptions({ 
   agent: fileURLToPath(import.meta.url),
   agentName: 'john-bogle-agent',  // Must match dispatch agent name
+  requestFunc: async (request: { room?: { name?: string }; participant?: { identity?: string }; agentName?: string; job?: { id?: string }; accept: () => Promise<void> }) => {
+    console.log('========================================');
+    console.log('🎫 [JOB REQUEST RECEIVED]');
+    console.log('========================================');
+    console.log('Room:', request.room?.name);
+    console.log('Participant:', request.participant?.identity);
+    console.log('Agent Name:', request.agentName);
+    console.log('Job ID:', request.job?.id);
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('========================================');
+    
+    // Accept all jobs
+    await request.accept();
+    console.log('✅ [JOB ACCEPTED]');
+  },
 }));
 
 console.log('=== CLI.RUNAPP CALLED ===');

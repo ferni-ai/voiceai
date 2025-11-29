@@ -138,7 +138,7 @@ export const PETER_TO_JACK_HANDOFF = [
  * - "a0e99841-438c-4a64-b679-ae501e7d6091" - Barbershop Man (conversational)
  * - "bd9120b6-7761-47a6-a446-77ca49132781" - Midwestern Man (friendly)
  */
-export const PETER_LYNCH_VOICE_ID = '79a125e8-cd45-4c13-8a67-188112f4dd22'; // Marcus - energetic
+export const PETER_LYNCH_VOICE_ID = 'dbaa36ed-1b01-4db4-874d-33b6491a4905'; // Custom Peter Lynch voice
 
 /**
  * Jack Bogle Voice ID (for reference/switching back)

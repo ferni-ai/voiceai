@@ -124,6 +124,9 @@ export { createHandoffTools } from './handoff.js';
 export { createTelephonyTools } from './telephony.js';
 export { createPeterLynchTools } from './peter-lynch-tools.js';
 
+// Entertainment domain
+export { createSpotifyTools } from './spotify.js';
+
 // ============================================================================
 // COMBINED TOOLS
 // ============================================================================
@@ -169,6 +172,9 @@ export function createAllTools() {
   const telephony = createTelephonyTools();
   const peterLynch = createPeterLynchTools();
 
+  // Entertainment domain
+  const spotify = createSpotifyTools();
+
   const allTools = {
     // === FINANCIAL ===
     ...marketData, // getStockQuote, getMarketSummary, getCurrentDateTime
@@ -204,10 +210,13 @@ export function createAllTools() {
     ...handoff, // handoffToPeter, handoffToJack
     ...telephony, // callUser, scheduleCallback
     ...peterLynch, // analyzeStock, findStockCategory, calculatePEGRatio, findTenBaggers, explainStockCategory
+
+    // === ENTERTAINMENT ===
+    ...spotify, // playMusic, searchMusic, pauseMusic, resumeMusic, skipSong, whatsPlaying, setMusicVolume, suggestMusic
   };
 
   const toolCount = Object.keys(allTools).length;
-  getLogger().info(`Created ${toolCount} tools across 20 domains`);
+  getLogger().info(`Created ${toolCount} tools across 21 domains`);
 
   return allTools;
 }
@@ -345,6 +354,18 @@ export function getToolCategories() {
       'findTenBaggers',
       'explainStockCategory',
     ],
+
+    // Entertainment
+    spotify: [
+      'playMusic',
+      'searchMusic',
+      'pauseMusic',
+      'resumeMusic',
+      'skipSong',
+      'whatsPlaying',
+      'setMusicVolume',
+      'suggestMusic',
+    ],
   };
 }
 
@@ -424,6 +445,17 @@ export function getToolDocumentation(): string {
   // Agent (Handoff, Telephony, Peter Lynch)
   const agentCategories = ['handoff', 'telephony', 'peterLynch'];
   for (const cat of agentCategories) {
+    const tools = categories[cat as keyof typeof categories];
+    sections.push(`### ${cat} (${tools.length})`);
+    sections.push(tools.map((t) => `- ${t}`).join('\n'));
+    sections.push('');
+  }
+
+  sections.push('## Entertainment Domain', '');
+
+  // Entertainment (Spotify)
+  const entertainmentCategories = ['spotify'];
+  for (const cat of entertainmentCategories) {
     const tools = categories[cat as keyof typeof categories];
     sections.push(`### ${cat} (${tools.length})`);
     sections.push(tools.map((t) => `- ${t}`).join('\n'));
@@ -552,6 +584,29 @@ import { searchWeb, searchWikipedia } from './search.js';
 /**
  * Consolidated News Tool - handles financial, general, tech, stock news
  */
+/**
+ * Helper: Wrap async function with timeout to prevent hangs
+ */
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => {
+      console.log(`⏰ [TIMEOUT] Operation timed out after ${timeoutMs}ms`);
+      resolve(fallback);
+    }, timeoutMs);
+  });
+  
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutId!);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId!);
+    throw error;
+  }
+}
+
 function createConsolidatedNewseTool() {
   return llm.tool({
     description: `Get news headlines. Handles ALL news types:
@@ -569,25 +624,31 @@ Just ask naturally: "What's in the news?", "Any news about Apple?", "Market news
       getLogger().info({ query, startTime }, '>>> TOOL: getNews STARTED');
       
       const q = query.toLowerCase();
-      let result: string;
-      let newsType: string;
+      const TOOL_TIMEOUT = 12000; // 12 second max for news tools
+      const TIMEOUT_FALLBACK = "I'm having a bit of trouble reaching my news sources right now. You know, the internet can be like that sometimes. What else can I help you with?";
       
       try {
+        let resultPromise: Promise<string>;
+        let newsType: string;
+        
         // Route to appropriate news function
         if (q.includes('stock ') || /^[A-Z]{1,5}$/.test(query)) {
           const symbol = q.replace('stock ', '').toUpperCase();
           newsType = `stock:${symbol}`;
-          result = await getStockNews(symbol);
+          resultPromise = getStockNews(symbol);
         } else if (q.includes('financial') || q.includes('market') || q.includes('investing')) {
           newsType = 'financial';
-          result = await getFinancialNews('general');
+          resultPromise = getFinancialNews('general');
         } else if (q.includes('tech') || q.includes('technology')) {
           newsType = 'tech';
-          result = await getTechNews();
+          resultPromise = getTechNews();
         } else {
           newsType = 'general';
-          result = await getGeneralNews();
+          resultPromise = getGeneralNews();
         }
+        
+        // Wrap with timeout to prevent hangs
+        const result = await withTimeout(resultPromise, TOOL_TIMEOUT, TIMEOUT_FALLBACK);
         
         const elapsed = Date.now() - startTime;
         console.log(`✅ [TOOL DONE] getNews("${query}") completed in ${elapsed}ms - ${result.slice(0, 100)}...`);
@@ -597,7 +658,8 @@ Just ask naturally: "What's in the news?", "Any news about Apple?", "Market news
         const elapsed = Date.now() - startTime;
         console.log(`❌ [TOOL ERROR] getNews("${query}") failed after ${elapsed}ms: ${error}`);
         getLogger().error({ query, elapsed, error }, '<<< TOOL: getNews FAILED');
-        return `I had trouble getting the news: ${error}`;
+        // Return graceful error instead of throwing
+        return "I had some trouble getting the news just now. Maybe we can try again in a moment, or I can help you with something else?";
       }
     },
   });
@@ -623,8 +685,10 @@ Just ask naturally: "How did the Eagles do?", "Phillies score?", "Did the Sixers
       console.log(`\n🔧 [TOOL START] getSportsScore("${team}") at ${new Date().toISOString()}`);
       getLogger().info({ team, startTime }, '>>> TOOL: getSportsScore STARTED');
       
+      const TIMEOUT_FALLBACK = `I'm having trouble getting the score for the ${team} right now. The sports data might be slow. Want me to try something else?`;
+      
       try {
-        const result = await getTeamScore(team);
+        const result = await withTimeout(getTeamScore(team), 10000, TIMEOUT_FALLBACK);
         const elapsed = Date.now() - startTime;
         console.log(`✅ [TOOL DONE] getSportsScore("${team}") completed in ${elapsed}ms`);
         getLogger().info({ team, elapsed }, '<<< TOOL: getSportsScore COMPLETED');
@@ -633,7 +697,7 @@ Just ask naturally: "How did the Eagles do?", "Phillies score?", "Did the Sixers
         const elapsed = Date.now() - startTime;
         console.log(`❌ [TOOL ERROR] getSportsScore("${team}") failed after ${elapsed}ms: ${error}`);
         getLogger().error({ team, elapsed, error }, '<<< TOOL: getSportsScore FAILED');
-        return `I had trouble getting scores for ${team}: ${error}`;
+        return `I had trouble getting scores for the ${team}. Maybe we can try again in a moment?`;
       }
     },
   });
@@ -658,17 +722,20 @@ Just ask naturally: "What's the weather?", "Will it rain tomorrow?", "Weather in
       console.log(`\n🔧 [TOOL START] getWeather("${location}", forecast=${forecast}) at ${new Date().toISOString()}`);
       getLogger().info({ location, forecast, startTime }, '>>> TOOL: getWeather STARTED');
       
+      const TIMEOUT_FALLBACK = `I'm having trouble reaching the weather service right now. Give me a moment and I can try again, or we can talk about something else.`;
+      
       try {
-        let result: string;
+        let resultPromise: Promise<string>;
         if (forecast) {
-          const [current, forecastData] = await Promise.all([
+          resultPromise = Promise.all([
             getCurrentWeather(location),
             getWeatherForecast(location, 5),
-          ]);
-          result = `${current}\n\n${forecastData}`;
+          ]).then(([current, forecastData]) => `${current}\n\n${forecastData}`);
         } else {
-          result = await getCurrentWeather(location);
+          resultPromise = getCurrentWeather(location);
         }
+        
+        const result = await withTimeout(resultPromise, 10000, TIMEOUT_FALLBACK);
         
         const elapsed = Date.now() - startTime;
         console.log(`✅ [TOOL DONE] getWeather("${location}") completed in ${elapsed}ms`);
@@ -678,7 +745,7 @@ Just ask naturally: "What's the weather?", "Will it rain tomorrow?", "Weather in
         const elapsed = Date.now() - startTime;
         console.log(`❌ [TOOL ERROR] getWeather("${location}") failed after ${elapsed}ms: ${error}`);
         getLogger().error({ location, elapsed, error }, '<<< TOOL: getWeather FAILED');
-        return `I had trouble getting the weather for ${location}: ${error}`;
+        return `I had trouble getting the weather for ${location}. Want to try again in a moment?`;
       }
     },
   });
@@ -699,22 +766,40 @@ Just ask anything you're curious about.`,
       query: z.string().describe('What to search for'),
     }),
     execute: async ({ query }: { query: string }) => {
-      getLogger().info(`Searching: ${query}`);
+      const startTime = Date.now();
+      console.log(`\n🔧 [TOOL START] search("${query}") at ${new Date().toISOString()}`);
+      getLogger().info({ query, startTime }, '>>> TOOL: search STARTED');
       
-      // Try Wikipedia first for factual questions
-      const q = query.toLowerCase();
-      if (q.startsWith('who is') || q.startsWith('what is') || q.startsWith('when was') || q.startsWith('define')) {
-        try {
-          const wikiResult = await searchWikipedia(query);
-          if (wikiResult && !wikiResult.includes("couldn't find")) {
-            return wikiResult;
-          }
-        } catch {
-          // Fall through to web search
+      const TIMEOUT_FALLBACK = `I'm having trouble searching for that right now. Let me share what I know from my own experience instead, or we can try again in a moment.`;
+      
+      try {
+        // Try Wikipedia first for factual questions
+        const q = query.toLowerCase();
+        let resultPromise: Promise<string>;
+        
+        if (q.startsWith('who is') || q.startsWith('what is') || q.startsWith('when was') || q.startsWith('define')) {
+          resultPromise = searchWikipedia(query).then(wikiResult => {
+            if (wikiResult && !wikiResult.includes("couldn't find")) {
+              return wikiResult;
+            }
+            return searchWeb(query);
+          }).catch(() => searchWeb(query));
+        } else {
+          resultPromise = searchWeb(query);
         }
+        
+        const result = await withTimeout(resultPromise, 10000, TIMEOUT_FALLBACK);
+        
+        const elapsed = Date.now() - startTime;
+        console.log(`✅ [TOOL DONE] search("${query}") completed in ${elapsed}ms`);
+        getLogger().info({ query, elapsed }, '<<< TOOL: search COMPLETED');
+        return result;
+      } catch (error) {
+        const elapsed = Date.now() - startTime;
+        console.log(`❌ [TOOL ERROR] search("${query}") failed after ${elapsed}ms: ${error}`);
+        getLogger().error({ query, elapsed, error }, '<<< TOOL: search FAILED');
+        return `I had trouble searching for that. Want me to share what I know from experience instead?`;
       }
-      
-      return searchWeb(query);
     },
   });
 }

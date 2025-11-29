@@ -10,7 +10,7 @@ import path from 'path';
 import fs from 'fs';
 import { AccessToken, RoomServiceClient, AgentDispatchClient } from 'livekit-server-sdk';
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
