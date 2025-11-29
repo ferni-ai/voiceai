@@ -58,6 +58,9 @@ import { createMemoryTools } from './memory-tools.js';
 import { createProactiveTools } from './proactive.js';
 import { createAwarenessTools } from './awareness.js';
 
+// Communication domain (NEW)
+import { createCommunicationTools } from './communication.js';
+
 const getLogger = () => log();
 
 // ============================================================================
@@ -87,6 +90,9 @@ export { createConversationTools } from './conversation.js';
 export { createMemoryTools } from './memory-tools.js';
 export { createProactiveTools } from './proactive.js';
 export { createAwarenessTools } from './awareness.js';
+
+// Communication domain
+export { createCommunicationTools } from './communication.js';
 
 // ============================================================================
 // COMBINED TOOLS
@@ -331,6 +337,9 @@ export function createEssentialTools() {
   const calculators = createCalculatorTools();
   const wisdom = createWisdomTools();
 
+  // Communication domain (NEW)
+  const communication = createCommunicationTools();
+
   // Consolidated information tools (created inline for simplicity)
   const consolidatedNews = createConsolidatedNewseTool();
   const consolidatedSports = createConsolidatedSportsTool();
@@ -355,6 +364,12 @@ export function createEssentialTools() {
     getSportsScore: consolidatedSports, // All sports in one
     getWeather: consolidatedWeather, // Weather + forecast in one
     search: consolidatedSearch, // Web + Wikipedia in one
+
+    // === COMMUNICATION (4 tools - NEW) ===
+    sendEmail: communication.sendEmail,
+    sendSMS: communication.sendSMS,
+    scheduleReminder: communication.scheduleReminder,
+    scheduleEvent: communication.scheduleEvent,
 
     // === WISDOM (2 tools) ===
     getWisdomQuote: wisdom.getWisdomQuote,
@@ -392,22 +407,41 @@ Just ask naturally: "What's in the news?", "Any news about Apple?", "Market news
       query: z.string().describe('What kind of news: "financial", "stock AAPL", "general", "tech", or a topic'),
     }),
     execute: async ({ query }: { query: string }) => {
-      getLogger().info(`Getting news: ${query}`);
-      const q = query.toLowerCase();
+      const startTime = Date.now();
+      console.log(`\n🔧 [TOOL START] getNews("${query}") at ${new Date().toISOString()}`);
+      getLogger().info({ query, startTime }, '>>> TOOL: getNews STARTED');
       
-      // Route to appropriate news function
-      if (q.includes('stock ') || /^[A-Z]{1,5}$/.test(query)) {
-        const symbol = q.replace('stock ', '').toUpperCase();
-        return getStockNews(symbol);
+      const q = query.toLowerCase();
+      let result: string;
+      let newsType: string;
+      
+      try {
+        // Route to appropriate news function
+        if (q.includes('stock ') || /^[A-Z]{1,5}$/.test(query)) {
+          const symbol = q.replace('stock ', '').toUpperCase();
+          newsType = `stock:${symbol}`;
+          result = await getStockNews(symbol);
+        } else if (q.includes('financial') || q.includes('market') || q.includes('investing')) {
+          newsType = 'financial';
+          result = await getFinancialNews('general');
+        } else if (q.includes('tech') || q.includes('technology')) {
+          newsType = 'tech';
+          result = await getTechNews();
+        } else {
+          newsType = 'general';
+          result = await getGeneralNews();
+        }
+        
+        const elapsed = Date.now() - startTime;
+        console.log(`✅ [TOOL DONE] getNews("${query}") completed in ${elapsed}ms - ${result.slice(0, 100)}...`);
+        getLogger().info({ query, newsType, elapsed, resultLength: result.length }, '<<< TOOL: getNews COMPLETED');
+        return result;
+      } catch (error) {
+        const elapsed = Date.now() - startTime;
+        console.log(`❌ [TOOL ERROR] getNews("${query}") failed after ${elapsed}ms: ${error}`);
+        getLogger().error({ query, elapsed, error }, '<<< TOOL: getNews FAILED');
+        return `I had trouble getting the news: ${error}`;
       }
-      if (q.includes('financial') || q.includes('market') || q.includes('investing')) {
-        return getFinancialNews('general');
-      }
-      if (q.includes('tech') || q.includes('technology')) {
-        return getTechNews();
-      }
-      // Default to general news
-      return getGeneralNews();
     },
   });
 }
@@ -428,8 +462,22 @@ Just ask naturally: "How did the Eagles do?", "Phillies score?", "Did the Sixers
       team: z.string().describe('Team name (e.g., "Eagles", "Phillies", "Lakers", "Liverpool")'),
     }),
     execute: async ({ team }: { team: string }) => {
-      getLogger().info(`Getting sports score: ${team}`);
-      return getTeamScore(team);
+      const startTime = Date.now();
+      console.log(`\n🔧 [TOOL START] getSportsScore("${team}") at ${new Date().toISOString()}`);
+      getLogger().info({ team, startTime }, '>>> TOOL: getSportsScore STARTED');
+      
+      try {
+        const result = await getTeamScore(team);
+        const elapsed = Date.now() - startTime;
+        console.log(`✅ [TOOL DONE] getSportsScore("${team}") completed in ${elapsed}ms`);
+        getLogger().info({ team, elapsed }, '<<< TOOL: getSportsScore COMPLETED');
+        return result;
+      } catch (error) {
+        const elapsed = Date.now() - startTime;
+        console.log(`❌ [TOOL ERROR] getSportsScore("${team}") failed after ${elapsed}ms: ${error}`);
+        getLogger().error({ team, elapsed, error }, '<<< TOOL: getSportsScore FAILED');
+        return `I had trouble getting scores for ${team}: ${error}`;
+      }
     },
   });
 }
@@ -449,18 +497,32 @@ Just ask naturally: "What's the weather?", "Will it rain tomorrow?", "Weather in
       forecast: z.boolean().optional().describe('If true, include 5-day forecast'),
     }),
     execute: async ({ location, forecast }: { location: string; forecast?: boolean }) => {
-      getLogger().info(`Getting weather: ${location}, forecast: ${forecast}`);
+      const startTime = Date.now();
+      console.log(`\n🔧 [TOOL START] getWeather("${location}", forecast=${forecast}) at ${new Date().toISOString()}`);
+      getLogger().info({ location, forecast, startTime }, '>>> TOOL: getWeather STARTED');
       
-      if (forecast) {
-        // Get both current and forecast
-        const [current, forecastData] = await Promise.all([
-          getCurrentWeather(location),
-          getWeatherForecast(location, 5),
-        ]);
-        return `${current}\n\n${forecastData}`;
+      try {
+        let result: string;
+        if (forecast) {
+          const [current, forecastData] = await Promise.all([
+            getCurrentWeather(location),
+            getWeatherForecast(location, 5),
+          ]);
+          result = `${current}\n\n${forecastData}`;
+        } else {
+          result = await getCurrentWeather(location);
+        }
+        
+        const elapsed = Date.now() - startTime;
+        console.log(`✅ [TOOL DONE] getWeather("${location}") completed in ${elapsed}ms`);
+        getLogger().info({ location, elapsed }, '<<< TOOL: getWeather COMPLETED');
+        return result;
+      } catch (error) {
+        const elapsed = Date.now() - startTime;
+        console.log(`❌ [TOOL ERROR] getWeather("${location}") failed after ${elapsed}ms: ${error}`);
+        getLogger().error({ location, elapsed, error }, '<<< TOOL: getWeather FAILED');
+        return `I had trouble getting the weather for ${location}: ${error}`;
       }
-      
-      return getCurrentWeather(location);
     },
   });
 }

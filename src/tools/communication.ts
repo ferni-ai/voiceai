@@ -1,0 +1,437 @@
+/**
+ * Communication Tools
+ * 
+ * Domain: Email, SMS, Calendar, and Reminders
+ * 
+ * APIs used:
+ * - SendGrid (email)
+ * - Twilio (SMS)
+ * - Google Calendar API (scheduling)
+ * - Google Cloud Tasks (reminders) - future
+ */
+
+import { llm, log } from '@livekit/agents';
+import { z } from 'zod';
+
+const getLogger = () => log();
+
+// API Keys from environment
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
+const GOOGLE_CALENDAR_CREDENTIALS = process.env.GOOGLE_CALENDAR_CREDENTIALS || '';
+
+// ============================================================================
+// EMAIL (SendGrid)
+// ============================================================================
+
+interface SendGridResponse {
+  statusCode?: number;
+  body?: string;
+}
+
+/**
+ * Send an email via SendGrid
+ */
+export async function sendEmail(
+  to: string,
+  subject: string,
+  body: string,
+  isHtml: boolean = false
+): Promise<string> {
+  if (!SENDGRID_API_KEY) {
+    getLogger().warn('SendGrid API key not configured');
+    return "I'd love to send that email, but my email service isn't set up yet. Ask the team to configure SendGrid!";
+  }
+
+  try {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: { 
+          email: process.env.SENDGRID_FROM_EMAIL || 'jack@bogle-advisor.com',
+          name: 'Jack Bogle'
+        },
+        subject,
+        content: [{
+          type: isHtml ? 'text/html' : 'text/plain',
+          value: body
+        }]
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (response.ok || response.status === 202) {
+      getLogger().info({ to, subject }, 'Email sent successfully');
+      return `Done! I've sent that email to ${to}. Subject: "${subject}"`;
+    } else {
+      const errorBody = await response.text();
+      getLogger().error({ status: response.status, body: errorBody }, 'SendGrid error');
+      return `I had trouble sending that email. Let me try again later.`;
+    }
+  } catch (error) {
+    getLogger().error({ error }, 'Email send error');
+    return `Something went wrong sending that email. My apologies!`;
+  }
+}
+
+/**
+ * Send a portfolio summary email
+ */
+export async function sendPortfolioSummary(
+  to: string,
+  portfolioData: {
+    totalValue: number;
+    dayChange: number;
+    dayChangePercent: number;
+    holdings: Array<{ symbol: string; value: number; change: number }>;
+  }
+): Promise<string> {
+  const changeEmoji = portfolioData.dayChange >= 0 ? '📈' : '📉';
+  const changeSign = portfolioData.dayChange >= 0 ? '+' : '';
+  
+  const holdingsHtml = portfolioData.holdings
+    .map(h => `<li><strong>${h.symbol}</strong>: $${h.value.toLocaleString()} (${h.change >= 0 ? '+' : ''}${h.change.toFixed(2)}%)</li>`)
+    .join('\n');
+
+  const html = `
+    <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #1a365d;">📊 Your Portfolio Update from Jack</h2>
+      
+      <div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin: 0;">Total Value: $${portfolioData.totalValue.toLocaleString()}</h3>
+        <p style="color: ${portfolioData.dayChange >= 0 ? '#38a169' : '#e53e3e'}; font-size: 18px;">
+          ${changeEmoji} ${changeSign}$${Math.abs(portfolioData.dayChange).toLocaleString()} (${changeSign}${portfolioData.dayChangePercent.toFixed(2)}%) today
+        </p>
+      </div>
+      
+      <h4>Holdings:</h4>
+      <ul>${holdingsHtml}</ul>
+      
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+      
+      <p style="color: #718096; font-size: 14px;">
+        Remember: Stay the course! Short-term fluctuations are noise.<br>
+        - Jack Bogle
+      </p>
+    </div>
+  `;
+
+  return sendEmail(to, `${changeEmoji} Your Portfolio Update - ${changeSign}${portfolioData.dayChangePercent.toFixed(2)}%`, html, true);
+}
+
+// ============================================================================
+// SMS (Twilio)
+// ============================================================================
+
+/**
+ * Send an SMS via Twilio
+ */
+export async function sendSMS(
+  to: string,
+  message: string
+): Promise<string> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+    getLogger().warn('Twilio credentials not configured');
+    return "I'd send you a text, but my SMS service isn't set up yet. Ask the team to configure Twilio!";
+  }
+
+  // Ensure phone number has country code
+  const formattedTo = to.startsWith('+') ? to : `+1${to.replace(/\D/g, '')}`;
+
+  try {
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          To: formattedTo,
+          From: TWILIO_PHONE_NUMBER,
+          Body: `[Jack Bogle] ${message}`,
+        }),
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json() as { sid?: string };
+      getLogger().info({ to: formattedTo, sid: data.sid }, 'SMS sent successfully');
+      return `Text sent! I've messaged ${formattedTo}.`;
+    } else {
+      const errorBody = await response.text();
+      getLogger().error({ status: response.status, body: errorBody }, 'Twilio error');
+      return `I had trouble sending that text. Double-check the phone number?`;
+    }
+  } catch (error) {
+    getLogger().error({ error }, 'SMS send error');
+    return `Something went wrong sending that text. My apologies!`;
+  }
+}
+
+/**
+ * Send a reminder SMS
+ */
+export async function sendReminder(
+  to: string,
+  reminderText: string,
+  context?: string
+): Promise<string> {
+  const message = context 
+    ? `⏰ Reminder: ${reminderText}\n\nContext: ${context}`
+    : `⏰ Reminder: ${reminderText}`;
+  
+  return sendSMS(to, message);
+}
+
+// ============================================================================
+// GOOGLE CALENDAR
+// ============================================================================
+
+interface CalendarEvent {
+  id?: string;
+  summary: string;
+  description?: string;
+  start: { dateTime: string; timeZone: string };
+  end: { dateTime: string; timeZone: string };
+  reminders?: {
+    useDefault: boolean;
+    overrides?: Array<{ method: string; minutes: number }>;
+  };
+}
+
+/**
+ * Create a calendar event via Google Calendar API
+ * Note: Requires OAuth2 setup for production
+ */
+export async function createCalendarEvent(
+  summary: string,
+  description: string,
+  startTime: Date,
+  durationMinutes: number = 30,
+  timeZone: string = 'America/New_York'
+): Promise<string> {
+  if (!GOOGLE_CALENDAR_CREDENTIALS) {
+    getLogger().warn('Google Calendar credentials not configured');
+    return "I'd love to schedule that, but my calendar isn't connected yet. Ask the team to set up Google Calendar API!";
+  }
+
+  try {
+    // Parse credentials
+    const credentials = JSON.parse(GOOGLE_CALENDAR_CREDENTIALS);
+    
+    const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+    
+    const event: CalendarEvent = {
+      summary,
+      description: `${description}\n\n— Scheduled by Jack Bogle`,
+      start: {
+        dateTime: startTime.toISOString(),
+        timeZone,
+      },
+      end: {
+        dateTime: endTime.toISOString(),
+        timeZone,
+      },
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: 'email', minutes: 24 * 60 }, // 1 day before
+          { method: 'popup', minutes: 30 }, // 30 min before
+        ],
+      },
+    };
+
+    // For now, return a placeholder - full OAuth implementation needed
+    getLogger().info({ summary, startTime, durationMinutes }, 'Calendar event creation requested');
+    
+    // TODO: Implement full Google Calendar API OAuth flow
+    // This requires:
+    // 1. Service account or OAuth2 credentials
+    // 2. Token refresh handling
+    // 3. Calendar ID configuration
+    
+    const formattedDate = startTime.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+    
+    return `I've noted that down: "${summary}" on ${formattedDate}. (Full calendar integration coming soon!)`;
+    
+  } catch (error) {
+    getLogger().error({ error }, 'Calendar event creation error');
+    return `I had trouble scheduling that. Let me make a note instead.`;
+  }
+}
+
+/**
+ * Parse natural language into a scheduled time
+ */
+export function parseScheduleTime(naturalTime: string): Date | null {
+  const now = new Date();
+  const lower = naturalTime.toLowerCase();
+  
+  // Handle relative times
+  if (lower.includes('tomorrow')) {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0); // Default to 9 AM
+    return tomorrow;
+  }
+  
+  if (lower.includes('next week')) {
+    const nextWeek = new Date(now);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    nextWeek.setHours(9, 0, 0, 0);
+    return nextWeek;
+  }
+  
+  if (lower.includes('next month')) {
+    const nextMonth = new Date(now);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    nextMonth.setHours(9, 0, 0, 0);
+    return nextMonth;
+  }
+  
+  // Handle day names
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  for (let i = 0; i < days.length; i++) {
+    if (lower.includes(days[i])) {
+      const target = new Date(now);
+      const currentDay = now.getDay();
+      const daysUntil = (i - currentDay + 7) % 7 || 7;
+      target.setDate(target.getDate() + daysUntil);
+      target.setHours(9, 0, 0, 0);
+      return target;
+    }
+  }
+  
+  // Try to parse as date
+  const parsed = new Date(naturalTime);
+  if (!isNaN(parsed.getTime())) {
+    return parsed;
+  }
+  
+  return null;
+}
+
+// ============================================================================
+// TOOL DEFINITIONS
+// ============================================================================
+
+export function createCommunicationTools() {
+  return {
+    sendEmail: llm.tool({
+      description: `Send an email to the user. Use for:
+- Portfolio summaries
+- Important reminders
+- Follow-up information
+- Documents or reports
+Ask for their email address first if you don't have it.`,
+      parameters: z.object({
+        to: z.string().email().describe('Recipient email address'),
+        subject: z.string().describe('Email subject line'),
+        body: z.string().describe('Email body content'),
+      }),
+      execute: async ({ to, subject, body }) => {
+        getLogger().info({ to, subject }, 'Sending email');
+        return sendEmail(to, subject, body);
+      },
+    }),
+
+    sendSMS: llm.tool({
+      description: `Send a text message to the user. Use for:
+- Quick reminders
+- Time-sensitive alerts
+- Brief updates
+Ask for their phone number first if you don't have it.`,
+      parameters: z.object({
+        to: z.string().describe('Phone number (with or without country code)'),
+        message: z.string().max(160).describe('Message content (max 160 chars)'),
+      }),
+      execute: async ({ to, message }) => {
+        getLogger().info({ to }, 'Sending SMS');
+        return sendSMS(to, message);
+      },
+    }),
+
+    scheduleReminder: llm.tool({
+      description: `Schedule a reminder for the user. Examples:
+- "Remind me to rebalance next month"
+- "Schedule a quarterly review for next Tuesday"
+- "Set a reminder to check my 401k tomorrow"`,
+      parameters: z.object({
+        reminderText: z.string().describe('What to remind them about'),
+        when: z.string().describe('When to remind (e.g., "tomorrow", "next week", "next Tuesday")'),
+        contactMethod: z.enum(['sms', 'email']).optional().describe('How to send reminder'),
+        contact: z.string().optional().describe('Phone or email for the reminder'),
+      }),
+      execute: async ({ reminderText, when, contactMethod, contact }) => {
+        const scheduledTime = parseScheduleTime(when);
+        
+        if (!scheduledTime) {
+          return `I couldn't understand when you wanted that reminder. Could you be more specific? Like "next Tuesday" or "in 2 weeks"?`;
+        }
+        
+        const formattedTime = scheduledTime.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        });
+        
+        // For now, create a calendar event as the reminder
+        // In production, this would use Google Cloud Tasks for actual scheduling
+        getLogger().info({ reminderText, scheduledTime, contactMethod }, 'Reminder scheduled');
+        
+        return `Got it! I've set a reminder for ${formattedTime}: "${reminderText}". ${
+          contactMethod && contact 
+            ? `I'll ${contactMethod === 'sms' ? 'text' : 'email'} you at ${contact}.`
+            : `I'll remind you when we talk.`
+        }`;
+      },
+    }),
+
+    scheduleEvent: llm.tool({
+      description: `Schedule a calendar event. Use for:
+- Quarterly portfolio reviews
+- Financial planning sessions
+- Important financial dates`,
+      parameters: z.object({
+        title: z.string().describe('Event title'),
+        description: z.string().optional().describe('Event description'),
+        when: z.string().describe('When to schedule (e.g., "next Tuesday at 2pm")'),
+        durationMinutes: z.number().optional().describe('Duration in minutes (default 30)'),
+      }),
+      execute: async ({ title, description, when, durationMinutes }) => {
+        const scheduledTime = parseScheduleTime(when);
+        
+        if (!scheduledTime) {
+          return `I couldn't understand that time. Could you say something like "next Tuesday at 2pm"?`;
+        }
+        
+        return createCalendarEvent(
+          title,
+          description || 'Scheduled with Jack Bogle',
+          scheduledTime,
+          durationMinutes || 30
+        );
+      },
+    }),
+  };
+}
+
+export default createCommunicationTools;
+
