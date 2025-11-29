@@ -83,11 +83,20 @@ Keep responses energetic, story-driven, and full of real-world examples!
 `;
 
 export const PETER_LYNCH_GREETING = `
-Well hello there! <break time="200ms"/>
-Peter Lynch here. <break time="300ms"/>
-Jack told me you might want to talk about picking some stocks? <break time="200ms"/>
-<emotion value="excited">Now THIS is what I live for!</emotion>
+<emotion value="excited">Whoa whoa whoa!</emotion> <break time="200ms"/>
+Hold on there, Jack! <break time="300ms"/>
+<prosody rate="fast">Peter Lynch here, let me take it from here!</prosody> <break time="400ms"/>
+<emotion value="enthusiastic">Stock picking? NOW we're talking!</emotion> <break time="200ms"/>
+Jack's a good man, but this? <break time="200ms"/> This is MY territory!
 `;
+
+export const PETER_LYNCH_TAKEOVER_LINES = [
+  `<emotion value="excited">Whoa whoa whoa!</emotion> <break time="200ms"/> Hold on Jack! <break time="300ms"/> Peter Lynch here - I got this one!`,
+  `<prosody rate="fast">Wait wait wait!</prosody> <break time="200ms"/> Did someone say stock picking? <break time="300ms"/> Step aside Jack, let the master work!`,
+  `<emotion value="enthusiastic">Hold everything!</emotion> <break time="200ms"/> Jack, I'll take it from here. <break time="300ms"/> This is what I was BORN to do!`,
+  `Excuse me, excuse me! <break time="200ms"/> Peter Lynch cutting in! <break time="300ms"/> Jack, go get yourself some coffee - <prosody rate="fast">this is gonna be good!</prosody>`,
+  `<emotion value="excited">Oooh!</emotion> <break time="200ms"/> Stock talk? <break time="300ms"/> Jack, buddy, take five. <break time="200ms"/> Let me show 'em how it's done!`,
+];
 
 export const PETER_LYNCH_HANDOFF_PHRASES = [
   "Alright, alright, Jack can have you back. But remember - ten-baggers are out there waiting!",

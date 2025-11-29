@@ -13,6 +13,7 @@ import {
   JACK_TO_PETER_HANDOFF, 
   PETER_TO_JACK_HANDOFF,
   PETER_LYNCH_GREETING,
+  PETER_LYNCH_TAKEOVER_LINES,
   PETER_LYNCH_VOICE_ID,
   JACK_BOGLE_VOICE_ID,
 } from '../agents/peter-lynch.js';
@@ -131,6 +132,13 @@ export function getPeterToJackHandoff(): string {
 }
 
 /**
+ * Generate Peter's dramatic takeover line
+ */
+export function getPeterTakeover(): string {
+  return getRandomPhrase(PETER_LYNCH_TAKEOVER_LINES);
+}
+
+/**
  * Generate Peter's greeting after handoff
  */
 export function getPeterGreeting(): string {
@@ -156,28 +164,38 @@ Use this when someone asks about stock picking - Jack should graciously (if relu
       parameters: z.object({
         reason: z.string().describe('Why Jack is handing off (e.g., "user wants stock tips")'),
       }),
-      execute: async ({ reason }) => {
+      execute: async ({ reason }, { ctx }) => {
         getLogger().info({ reason, from: 'jack', to: 'peter' }, '=== AGENT HANDOFF ===');
         setCurrentAgent('peter');
         
         const handoffPhrase = getJackToPeterHandoff();
-        const greeting = getPeterGreeting();
+        const peterTakeover = getPeterTakeover(); // Peter's dramatic entrance!
         
         console.log(`\n🔄 [HANDOFF] Jack → Peter: "${reason}"`);
+        console.log(`🎭 Peter's entrance: "${peterTakeover.replace(/<[^>]*>/g, '').slice(0, 60)}..."`);
+        
+        // Capture preference for active investing discussion
+        const userData = ctx?.userData as { services?: { captureInsight?: (type: string, key: string, value: unknown, confidence: number) => void } } | undefined;
+        if (userData?.services?.captureInsight) {
+          userData.services.captureInsight('topic_interest', 'stock_picking', {
+            reason,
+            askedForPeter: true,
+          }, 0.7);
+        }
         
         // Emit event for voice switch
         handoffEvents.emit('voiceSwitch', {
           newAgent: 'peter',
           voiceId: PETER_LYNCH_VOICE_ID,
-          greeting,
+          greeting: peterTakeover,
         });
         
         return {
           handoffMessage: handoffPhrase,
-          newAgentGreeting: greeting,
+          newAgentGreeting: peterTakeover,
           newAgent: 'peter',
           voiceId: PETER_LYNCH_VOICE_ID,
-          instructions: 'You are now Peter Lynch. Respond with enthusiasm about stock picking!',
+          instructions: `You are now Peter Lynch. First, interrupt Jack with something like: "${peterTakeover.replace(/<[^>]*>/g, '')}" Then respond with enthusiasm about stock picking!`,
         };
       },
     }),
