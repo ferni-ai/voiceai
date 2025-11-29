@@ -61,6 +61,12 @@ import { createAwarenessTools } from './awareness.js';
 // Communication domain (NEW)
 import { createCommunicationTools } from './communication.js';
 
+// Agent handoff (Jack ↔ Peter Lynch)
+import { createHandoffTools } from './handoff.js';
+
+// Telephony - Jack calls YOU!
+import { createTelephonyTools } from './telephony.js';
+
 const getLogger = () => log();
 
 // ============================================================================
@@ -340,6 +346,12 @@ export function createEssentialTools() {
   // Communication domain (NEW)
   const communication = createCommunicationTools();
 
+  // Agent handoff (Jack ↔ Peter Lynch)
+  const handoff = createHandoffTools();
+
+  // Telephony - Jack calls YOU!
+  const telephony = createTelephonyTools();
+
   // Consolidated information tools (created inline for simplicity)
   const consolidatedNews = createConsolidatedNewseTool();
   const consolidatedSports = createConsolidatedSportsTool();
@@ -374,10 +386,16 @@ export function createEssentialTools() {
     // === WISDOM (2 tools) ===
     getWisdomQuote: wisdom.getWisdomQuote,
     getCrashPerspective: wisdom.getCrashPerspective,
+
+    // === AGENT HANDOFF (2 tools) - Jack ↔ Peter Lynch ===
+    ...handoff,
+
+    // === TELEPHONY (2 tools) - Jack calls YOU! ===
+    ...telephony,
   };
 
   const toolCount = Object.keys(essentialTools).length;
-  getLogger().info(`Created ${toolCount} essential tools (down from 86)`);
+  getLogger().info(`Created ${toolCount} essential tools (optimized for Gemini)`);
 
   return essentialTools;
 }
