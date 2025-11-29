@@ -2,34 +2,21 @@
 /**
  * Spotify OAuth Helper
  * 
- * This script helps you get a Spotify refresh token for Jack.
+ * Gets a Spotify refresh token for Jack using manual code entry.
  * 
  * SETUP:
  * 1. Go to https://developer.spotify.com/dashboard
  * 2. Create an app (or use existing)
- * 3. Add redirect URI: http://localhost:8888/callback
+ * 3. Add redirect URI: https://localhost:8888/callback
+ *    (Spotify requires HTTPS, but we'll extract the code manually)
  * 4. Copy your Client ID and Client Secret
  * 5. Run this script: node scripts/spotify-auth.js
- * 
- * The script will:
- * - Start a local server on port 8888
- * - Open your browser to Spotify login
- * - Capture the auth code
- * - Exchange it for tokens
- * - Print your refresh token to add to .env
  */
 
-import { createServer } from 'http';
-import { URL } from 'url';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import * as readline from 'readline';
 
-const execAsync = promisify(exec);
-
 // Config
-const PORT = 8888;
-const REDIRECT_URI = `http://localhost:${PORT}/callback`;
+const REDIRECT_URI = 'https://localhost:8888/callback';
 const SCOPES = [
   'user-read-playback-state',
   'user-modify-playback-state', 
@@ -52,25 +39,6 @@ function prompt(question) {
       resolve(answer.trim());
     });
   });
-}
-
-// Open URL in browser
-async function openBrowser(url) {
-  const platform = process.platform;
-  
-  try {
-    if (platform === 'darwin') {
-      await execAsync(`open "${url}"`);
-    } else if (platform === 'win32') {
-      await execAsync(`start "${url}"`);
-    } else {
-      await execAsync(`xdg-open "${url}"`);
-    }
-  } catch {
-    console.log('\n⚠️  Could not open browser automatically.');
-    console.log('Please open this URL manually:');
-    console.log(url);
-  }
 }
 
 // Exchange auth code for tokens
@@ -100,6 +68,7 @@ async function getTokens(code, clientId, clientSecret) {
 async function main() {
   console.log('🎵 Spotify OAuth Helper for Jack Bogle\n');
   console.log('This will get you a refresh token for Spotify integration.\n');
+  console.log('=' .repeat(60));
   
   // Get credentials
   const clientId = await prompt('Enter your Spotify Client ID: ');
@@ -118,91 +87,67 @@ async function main() {
   authUrl.searchParams.set('scope', SCOPES);
   authUrl.searchParams.set('show_dialog', 'true');
 
-  console.log('\n📡 Starting local server on port', PORT);
+  console.log('\n' + '='.repeat(60));
+  console.log('📋 STEP 1: Open this URL in your browser:\n');
+  console.log(authUrl.toString());
+  console.log('\n' + '='.repeat(60));
+  console.log('\n📋 STEP 2: Log in to Spotify and click "Agree"');
+  console.log('\n📋 STEP 3: You\'ll be redirected to a page that won\'t load.');
+  console.log('           That\'s OK! Look at the URL bar.\n');
+  console.log('   It will look like:');
+  console.log('   https://localhost:8888/callback?code=AQD...longcode...\n');
+  console.log('='.repeat(60));
   
-  // Create server to capture callback
-  return new Promise((resolve) => {
-    const server = createServer(async (req, res) => {
-      const url = new URL(req.url, `http://localhost:${PORT}`);
-      
-      if (url.pathname === '/callback') {
-        const code = url.searchParams.get('code');
-        const error = url.searchParams.get('error');
+  const callbackUrl = await prompt('\n📋 STEP 4: Paste the ENTIRE URL from your browser here:\n> ');
 
-        if (error) {
-          res.writeHead(400, { 'Content-Type': 'text/html' });
-          res.end(`
-            <html>
-              <body style="font-family: sans-serif; padding: 40px; text-align: center;">
-                <h1>❌ Authorization Failed</h1>
-                <p>${error}</p>
-              </body>
-            </html>
-          `);
-          console.error('\n❌ Authorization failed:', error);
-          server.close();
-          resolve();
-          return;
-        }
-
-        if (code) {
-          try {
-            console.log('\n🔑 Got authorization code, exchanging for tokens...');
-            
-            const tokens = await getTokens(code, clientId, clientSecret);
-            
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(`
-              <html>
-                <body style="font-family: sans-serif; padding: 40px; text-align: center; background: #1DB954; color: white;">
-                  <h1>✅ Success!</h1>
-                  <p>You can close this window and check your terminal.</p>
-                </body>
-              </html>
-            `);
-
-            console.log('\n' + '='.repeat(60));
-            console.log('✅ SUCCESS! Add these to your .env file:');
-            console.log('='.repeat(60));
-            console.log(`\nSPOTIFY_CLIENT_ID=${clientId}`);
-            console.log(`SPOTIFY_CLIENT_SECRET=${clientSecret}`);
-            console.log(`SPOTIFY_REFRESH_TOKEN=${tokens.refresh_token}`);
-            console.log('\n' + '='.repeat(60));
-            console.log('\n🎵 Jack can now play music from Spotify!');
-            console.log('Try: "Hey Jack, play some jazz"');
-            
-          } catch (err) {
-            res.writeHead(500, { 'Content-Type': 'text/html' });
-            res.end(`
-              <html>
-                <body style="font-family: sans-serif; padding: 40px; text-align: center;">
-                  <h1>❌ Token Exchange Failed</h1>
-                  <p>${err.message}</p>
-                </body>
-              </html>
-            `);
-            console.error('\n❌ Token exchange failed:', err.message);
-          }
-          
-          server.close();
-          resolve();
-          return;
-        }
+  // Extract code from URL
+  let code;
+  try {
+    const url = new URL(callbackUrl);
+    code = url.searchParams.get('code');
+    
+    if (!code) {
+      // Maybe they just pasted the code
+      if (callbackUrl.startsWith('AQ') && callbackUrl.length > 100) {
+        code = callbackUrl;
+      } else {
+        throw new Error('No code found in URL');
       }
+    }
+  } catch {
+    // Try treating input as raw code
+    if (callbackUrl.startsWith('AQ') && callbackUrl.length > 100) {
+      code = callbackUrl;
+    } else {
+      console.error('\n❌ Could not extract authorization code from URL.');
+      console.error('Make sure you copied the entire URL including "https://localhost:8888/callback?code=..."');
+      process.exit(1);
+    }
+  }
 
-      // Default response for other paths
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('Waiting for Spotify callback...');
-    });
+  console.log('\n🔑 Got authorization code! Exchanging for tokens...');
 
-    server.listen(PORT, async () => {
-      console.log('✅ Server ready!\n');
-      console.log('🌐 Opening Spotify login in your browser...');
-      await openBrowser(authUrl.toString());
-      console.log('\n⏳ Waiting for you to authorize...');
-    });
-  });
+  try {
+    const tokens = await getTokens(code, clientId, clientSecret);
+
+    console.log('\n' + '='.repeat(60));
+    console.log('✅ SUCCESS! Add these to your .env file:');
+    console.log('='.repeat(60));
+    console.log(`\nSPOTIFY_CLIENT_ID=${clientId}`);
+    console.log(`SPOTIFY_CLIENT_SECRET=${clientSecret}`);
+    console.log(`SPOTIFY_REFRESH_TOKEN=${tokens.refresh_token}`);
+    console.log('\n' + '='.repeat(60));
+    console.log('\n🎵 Jack can now play music from Spotify!');
+    console.log('Try: "Hey Jack, play some jazz"\n');
+    
+  } catch (err) {
+    console.error('\n❌ Token exchange failed:', err.message);
+    console.error('\nMake sure:');
+    console.error('1. The redirect URI in Spotify Dashboard matches exactly: https://localhost:8888/callback');
+    console.error('2. Your Client ID and Secret are correct');
+    console.error('3. You pasted the full callback URL');
+    process.exit(1);
+  }
 }
 
 main().catch(console.error);
-
