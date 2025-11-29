@@ -28,12 +28,12 @@ export const handoffEvents = new EventEmitter();
 
 /**
  * Sound effects for handoff transitions
- * These can be played by the frontend when it receives the handoff event
+ * These files are in the frontend/ directory
  */
 export const HANDOFF_SOUNDS = {
-  jackToPeter: 'handoff-to-peter.mp3', // Upbeat, energetic transition
-  peterToJack: 'handoff-to-jack.mp3', // Calm, settling transition
-  dramatic: 'dramatic-transition.mp3', // WWE-style entrance music (joke option)
+  jackToPeter: 'handoff-to-peter.mp3',   // Energetic rising whoosh
+  peterToJack: 'handoff-to-jack.mp3',    // Calm settling sound  
+  dramatic: 'dramatic-entrance.mp3',      // Musical sting (A-C#-E fanfare)
 };
 
 const getLogger = () => log();
