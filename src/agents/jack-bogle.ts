@@ -3571,8 +3571,6 @@ export default defineAgent({
         temperature: 0.8,
         language: 'en-US', // Force English transcription
         instructions: BOGLE_PERSONA,
-        // Enable server-side turn detection for better transcription
-        // Note: This may affect onUserTurnCompleted timing
       }),
       tts: dynamicTTS, // DynamicTTS auto-switches between Jack and Peter voices!
       userData,
@@ -3634,35 +3632,108 @@ export default defineAgent({
       );
     });
 
-    // Track tool/function executions
+    // ===============================================
+    // DIAGNOSTIC TRACKING - Find where Jack gets stuck
+    // ===============================================
+    let lastStateChangeTime = Date.now();
+    let lastUserInputTime = Date.now();
+    let toolCallStartTime: number | null = null;
+    let thinkingStartTime: number | null = null;
+    let sessionDiagnostics = {
+      toolCalls: 0,
+      toolErrors: 0,
+      totalToolTime: 0,
+      maxToolTime: 0,
+      stateChanges: 0,
+      errors: 0,
+      longestThinkingTime: 0,
+    };
+    
+    // Health check - warn if agent seems stuck
+    const healthCheckInterval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceStateChange = now - lastStateChangeTime;
+      const timeSinceUserInput = now - lastUserInputTime;
+      
+      if (timeSinceStateChange > 15000) {
+        console.log(`\n⚠️  [HEALTH] No state change in ${(timeSinceStateChange/1000).toFixed(1)}s`);
+        logger.warn({ timeSinceStateChange, timeSinceUserInput }, 'Agent may be stuck');
+      }
+      
+      if (thinkingStartTime && (now - thinkingStartTime) > 10000) {
+        console.log(`\n🐌 [SLOW] Agent thinking for ${((now - thinkingStartTime)/1000).toFixed(1)}s`);
+        logger.warn({ thinkingTime: now - thinkingStartTime }, 'Agent taking long to respond');
+      }
+      
+      if (toolCallStartTime && (now - toolCallStartTime) > 8000) {
+        console.log(`\n🐌 [SLOW TOOL] Tool executing for ${((now - toolCallStartTime)/1000).toFixed(1)}s`);
+        logger.warn({ toolTime: now - toolCallStartTime }, 'Tool taking too long');
+      }
+    }, 5000);
+    
+    // Cleanup interval on disconnect
+    ctx.room.on('disconnected', () => {
+      clearInterval(healthCheckInterval);
+      console.log('\n📊 [SESSION DIAGNOSTICS]');
+      console.log(`   Tool calls: ${sessionDiagnostics.toolCalls}`);
+      console.log(`   Tool errors: ${sessionDiagnostics.toolErrors}`);
+      console.log(`   Total tool time: ${sessionDiagnostics.totalToolTime}ms`);
+      console.log(`   Max tool time: ${sessionDiagnostics.maxToolTime}ms`);
+      console.log(`   State changes: ${sessionDiagnostics.stateChanges}`);
+      console.log(`   Errors: ${sessionDiagnostics.errors}`);
+      console.log(`   Longest thinking: ${sessionDiagnostics.longestThinkingTime}ms`);
+    });
+
+    // Track tool/function executions WITH TIMING
     session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
+      const toolExecutionTime = toolCallStartTime ? Date.now() - toolCallStartTime : 0;
+      toolCallStartTime = null;
+      
+      sessionDiagnostics.toolCalls++;
+      sessionDiagnostics.totalToolTime += toolExecutionTime;
+      sessionDiagnostics.maxToolTime = Math.max(sessionDiagnostics.maxToolTime, toolExecutionTime);
+      
       const toolNames = event.functionCalls?.map((fc: { name?: string }) => fc.name).join(', ') || 'unknown';
       const toolDetails = event.functionCalls?.map((fc: { name?: string; arguments?: unknown; result?: unknown }) => ({
         name: fc.name,
         args: JSON.stringify(fc.arguments).slice(0, 200),
         result: typeof fc.result === 'string' ? fc.result.slice(0, 100) : JSON.stringify(fc.result).slice(0, 100),
       }));
+      
+      const timeEmoji = toolExecutionTime > 3000 ? '🐌' : toolExecutionTime > 1000 ? '⏱️' : '⚡';
+      console.log(`\n${timeEmoji} [TOOL] ${toolNames} completed in ${toolExecutionTime}ms`);
+      if (toolDetails) {
+        toolDetails.forEach((d: { name?: string; args: string; result: string }) => {
+          console.log(`   📥 ${d.name}: args=${d.args.slice(0, 80)}...`);
+          console.log(`   📤 result=${d.result.slice(0, 100)}...`);
+        });
+      }
+      
       logger.info(
         { 
           toolNames,
           callCount: event.functionCalls?.length || 0,
+          executionTime: toolExecutionTime,
           details: toolDetails,
         },
         '=== TOOL EXECUTED ===',
       );
-      console.log(`\n🔧 [TOOL EVENT] ${toolNames}`);
-      console.log(`   Details: ${JSON.stringify(toolDetails, null, 2)}`);
     });
 
     // Track errors
     session.on(voice.AgentSessionEventTypes.Error, (event) => {
+      sessionDiagnostics.errors++;
       console.log(`\n❌ [SESSION ERROR] ${JSON.stringify(event)}`);
-      logger.error({ event }, '=== SESSION ERROR ===');
+      logger.error({ event, sessionDiagnostics }, '=== SESSION ERROR ===');
     });
 
     // Track metrics
     session.on(voice.AgentSessionEventTypes.MetricsCollected, (event) => {
-      console.log(`📊 [METRICS] ${JSON.stringify(event).slice(0, 300)}`);
+      // Only log interesting metrics
+      const metrics = event as Record<string, unknown>;
+      if (metrics.llmFirstTokenMs || metrics.ttsFirstAudioMs) {
+        console.log(`📊 [PERF] LLM: ${metrics.llmFirstTokenMs}ms, TTS: ${metrics.ttsFirstAudioMs}ms`);
+      }
     });
 
     // ===============================================
@@ -3676,10 +3747,31 @@ export default defineAgent({
     session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
       const oldState = event.oldState;
       const newState = event.newState;
+      const now = Date.now();
+      const timeSinceLastChange = now - lastStateChangeTime;
+      lastStateChangeTime = now;
+      sessionDiagnostics.stateChanges++;
 
       // Verbose state logging to understand pauses
-      console.log(`\n🤖 [AGENT STATE] ${oldState} → ${newState} at ${new Date().toISOString()}`);
-      logger.info({ oldState, newState }, '=== AGENT STATE CHANGED ===');
+      const stateEmoji = newState === 'speaking' ? '🗣️' : newState === 'listening' ? '👂' : newState === 'thinking' ? '🧠' : '❓';
+      console.log(`\n${stateEmoji} [STATE] ${oldState} → ${newState} (after ${timeSinceLastChange}ms)`);
+      logger.info({ oldState, newState, timeSinceLastChange }, '=== AGENT STATE CHANGED ===');
+      
+      // Track thinking time (when Jack is processing)
+      if (newState === 'thinking') {
+        thinkingStartTime = now;
+        console.log('   🧠 Jack is thinking...');
+      }
+      
+      if (oldState === 'thinking' && thinkingStartTime) {
+        const thinkingDuration = now - thinkingStartTime;
+        sessionDiagnostics.longestThinkingTime = Math.max(sessionDiagnostics.longestThinkingTime, thinkingDuration);
+        thinkingStartTime = null;
+        
+        if (thinkingDuration > 3000) {
+          console.log(`   ⚠️  Jack thought for ${(thinkingDuration/1000).toFixed(1)}s (long!)`);
+        }
+      }
 
       // Track when Jack starts speaking
       if (newState === 'speaking') {
@@ -3763,11 +3855,14 @@ export default defineAgent({
     let lastTranscriptTime = Date.now();
     session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (event) => {
       // LOG ALL TRANSCRIPTS - even partial ones
-      console.log(`\n🎤 [USER INPUT] "${event.transcript}" (isFinal=${event.isFinal}) at ${new Date().toISOString()}`);
+      const timestamp = new Date().toISOString().split('T')[1].split('.')[0]; // HH:MM:SS
+      console.log(`\n🎤 [${timestamp}] USER: "${event.transcript}" ${event.isFinal ? '✓' : '...'}`);
       logger.info({ transcript: event.transcript, isFinal: event.isFinal }, '>>> USER TRANSCRIPT <<<');
       
       if (event.isFinal && event.transcript) {
         userData.turnCount = (userData.turnCount || 0) + 1;
+        lastUserInputTime = Date.now();
+        toolCallStartTime = Date.now(); // Start timing potential tool calls
         
         // Track WPM for adaptive speech
         const now = Date.now();
