@@ -31,7 +31,8 @@
  * - Memory: Persistent memory tools
  */
 
-import { log } from '@livekit/agents';
+import { llm, log } from '@livekit/agents';
+import { z } from 'zod';
 
 // Financial domain
 import { createMarketDataTools } from './market-data.js';
@@ -309,8 +310,199 @@ export function getToolDocumentation(): string {
   return sections.join('\n');
 }
 
+// ============================================================================
+// ESSENTIAL TOOLS (Optimized for Gemini Realtime - ~25 tools max)
+// ============================================================================
+
+/**
+ * Create essential tools only - optimized for LLM performance
+ * 
+ * PHILOSOPHY: The LLM should only see tools for USER-FACING actions.
+ * Internal operations (memory, awareness, conversation management)
+ * are handled by the intelligence layer programmatically.
+ * 
+ * TARGET: ~15-20 tools max for optimal Gemini Realtime performance
+ */
+export function createEssentialTools() {
+  getLogger().info('Creating essential tools (optimized for Gemini)...');
+
+  // Financial domain
+  const marketData = createMarketDataTools();
+  const calculators = createCalculatorTools();
+  const wisdom = createWisdomTools();
+
+  // Consolidated information tools (created inline for simplicity)
+  const consolidatedNews = createConsolidatedNewseTool();
+  const consolidatedSports = createConsolidatedSportsTool();
+  const consolidatedWeather = createConsolidatedWeatherTool();
+  const consolidatedSearch = createConsolidatedSearchTool();
+
+  const essentialTools = {
+    // === MARKET DATA (3 tools) ===
+    getStockQuote: marketData.getStockQuote,
+    getMarketSummary: marketData.getMarketSummary,
+    getCurrentDateTime: marketData.getCurrentDateTime,
+
+    // === CALCULATORS (5 tools - core financial calculations) ===
+    calculateCompoundGrowth: calculators.calculateCompoundGrowth,
+    calculateFeeImpact: calculators.calculateFeeImpact,
+    calculateRetirementProjection: calculators.calculateRetirementProjection,
+    calculateMortgage: calculators.calculateMortgage,
+    explainPrinciple: calculators.explainPrinciple,
+
+    // === INFORMATION (4 consolidated tools) ===
+    getNews: consolidatedNews, // All news types in one
+    getSportsScore: consolidatedSports, // All sports in one
+    getWeather: consolidatedWeather, // Weather + forecast in one
+    search: consolidatedSearch, // Web + Wikipedia in one
+
+    // === WISDOM (2 tools) ===
+    getWisdomQuote: wisdom.getWisdomQuote,
+    getCrashPerspective: wisdom.getCrashPerspective,
+  };
+
+  const toolCount = Object.keys(essentialTools).length;
+  getLogger().info(`Created ${toolCount} essential tools (down from 86)`);
+
+  return essentialTools;
+}
+
+// ============================================================================
+// CONSOLIDATED TOOLS (Single tool per domain)
+// ============================================================================
+
+// Import the underlying functions directly
+import { getFinancialNews, getStockNews, getGeneralNews, getTechNews } from './news.js';
+import { getTeamScore } from './sports.js';
+import { getCurrentWeather, getWeatherForecast } from './weather.js';
+import { searchWeb, searchWikipedia } from './search.js';
+
+/**
+ * Consolidated News Tool - handles financial, general, tech, stock news
+ */
+function createConsolidatedNewseTool() {
+  return llm.tool({
+    description: `Get news headlines. Handles ALL news types:
+- "financial" or "market": Market and investing news
+- "stock SYMBOL": News about a specific stock (e.g., "stock AAPL")  
+- "general" or "world": Top world news
+- "tech": Technology news
+Just ask naturally: "What's in the news?", "Any news about Apple?", "Market news today?"`,
+    parameters: z.object({
+      query: z.string().describe('What kind of news: "financial", "stock AAPL", "general", "tech", or a topic'),
+    }),
+    execute: async ({ query }: { query: string }) => {
+      getLogger().info(`Getting news: ${query}`);
+      const q = query.toLowerCase();
+      
+      // Route to appropriate news function
+      if (q.includes('stock ') || /^[A-Z]{1,5}$/.test(query)) {
+        const symbol = q.replace('stock ', '').toUpperCase();
+        return getStockNews(symbol);
+      }
+      if (q.includes('financial') || q.includes('market') || q.includes('investing')) {
+        return getFinancialNews('general');
+      }
+      if (q.includes('tech') || q.includes('technology')) {
+        return getTechNews();
+      }
+      // Default to general news
+      return getGeneralNews();
+    },
+  });
+}
+
+/**
+ * Consolidated Sports Tool - handles any team/sport
+ */
+function createConsolidatedSportsTool() {
+  return llm.tool({
+    description: `Get live sports scores and results. Works for ANY team or sport:
+- NFL: "Eagles score", "Chiefs game"
+- MLB: "Phillies score", "Yankees game"  
+- NBA: "76ers score", "Lakers game"
+- NHL: "Flyers score", "Rangers game"
+- Soccer: "Liverpool score", "Barcelona game"
+Just ask naturally: "How did the Eagles do?", "Phillies score?", "Did the Sixers win?"`,
+    parameters: z.object({
+      team: z.string().describe('Team name (e.g., "Eagles", "Phillies", "Lakers", "Liverpool")'),
+    }),
+    execute: async ({ team }: { team: string }) => {
+      getLogger().info(`Getting sports score: ${team}`);
+      return getTeamScore(team);
+    },
+  });
+}
+
+/**
+ * Consolidated Weather Tool - handles current weather and forecasts
+ */
+function createConsolidatedWeatherTool() {
+  return llm.tool({
+    description: `Get weather for any location. Handles:
+- Current conditions: "weather in Philadelphia"
+- Forecasts: "forecast for Denver", "weekend weather NYC"
+- Any city worldwide: "weather Tokyo", "Paris weather"
+Just ask naturally: "What's the weather?", "Will it rain tomorrow?", "Weather in Boston?"`,
+    parameters: z.object({
+      location: z.string().describe('City name (e.g., "Philadelphia", "New York", "London")'),
+      forecast: z.boolean().optional().describe('If true, include 5-day forecast'),
+    }),
+    execute: async ({ location, forecast }: { location: string; forecast?: boolean }) => {
+      getLogger().info(`Getting weather: ${location}, forecast: ${forecast}`);
+      
+      if (forecast) {
+        // Get both current and forecast
+        const [current, forecastData] = await Promise.all([
+          getCurrentWeather(location),
+          getWeatherForecast(location, 5),
+        ]);
+        return `${current}\n\n${forecastData}`;
+      }
+      
+      return getCurrentWeather(location);
+    },
+  });
+}
+
+/**
+ * Consolidated Search Tool - handles web search, Wikipedia, definitions
+ */
+function createConsolidatedSearchTool() {
+  return llm.tool({
+    description: `Search for information. Handles:
+- General questions: "Who is Warren Buffett?"
+- Definitions: "What is a 401k?"
+- Facts: "When was Vanguard founded?"
+- Current info: "What's the S&P 500 all-time high?"
+Just ask anything you're curious about.`,
+    parameters: z.object({
+      query: z.string().describe('What to search for'),
+    }),
+    execute: async ({ query }: { query: string }) => {
+      getLogger().info(`Searching: ${query}`);
+      
+      // Try Wikipedia first for factual questions
+      const q = query.toLowerCase();
+      if (q.startsWith('who is') || q.startsWith('what is') || q.startsWith('when was') || q.startsWith('define')) {
+        try {
+          const wikiResult = await searchWikipedia(query);
+          if (wikiResult && !wikiResult.includes("couldn't find")) {
+            return wikiResult;
+          }
+        } catch {
+          // Fall through to web search
+        }
+      }
+      
+      return searchWeb(query);
+    },
+  });
+}
+
 export default {
   createAllTools,
+  createEssentialTools,
   getToolCategories,
   getToolDocumentation,
 };

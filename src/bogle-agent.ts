@@ -88,8 +88,8 @@ import { getPersonalizer } from './services/profile-personalizer.js';
 // ============================================================================
 import { getHumorEngine } from './personality/humor-engine.js';
 
-// Import organized tools modules (35 consolidated tools)
-import { createAllTools } from './tools/index.js';
+// Import organized tools modules - using essential tools for LLM performance
+import { createEssentialTools } from './tools/index.js';
 
 // Audio prosody analysis for voice emotion detection
 import { getAudioProsodyAnalyzer, type VoiceEmotionResult } from './speech/audio-prosody.js';
@@ -2019,15 +2019,16 @@ class BogleAgent extends voice.Agent<UserData> {
   static create(): BogleAgent {
     const logger = log();
     
-    // Get all 35 consolidated tools from tools module
-    const allTools = createAllTools();
-    logger.info(`Loaded ${Object.keys(allTools).length} consolidated tools`);
+    // Get essential tools only (optimized for Gemini Realtime performance)
+    // Internal tools (memory, awareness, proactive) are handled by intelligence layer
+    const essentialTools = createEssentialTools();
+    logger.info(`Loaded ${Object.keys(essentialTools).length} essential tools (optimized)`);
     
     // Use the comprehensive BOGLE_PERSONA from persona/index.ts
     // This includes all 15 dimensions of Jack's character
     return new BogleAgent({
       instructions: BOGLE_PERSONA,
-      tools: allTools,
+      tools: essentialTools,
     });
   }
 
@@ -3465,14 +3466,10 @@ export default defineAgent({
         model: 'gemini-2.0-flash-exp',
         modalities: [Modality.TEXT],
         temperature: 0.8,
+        language: 'en-US', // Force English transcription
         instructions: BOGLE_PERSONA,
-        // CRITICAL: Disable server-side turn detection to enable onUserTurnCompleted hook
-        // This allows our intelligence layer (emotion, memory, context injection) to work!
-        realtimeInputConfig: {
-          automaticActivityDetection: {
-            disabled: true, // Use client-side VAD instead of server-side
-          },
-        },
+        // Enable server-side turn detection for better transcription
+        // Note: This may affect onUserTurnCompleted timing
       }),
       tts: new cartesia.TTS({
         model: 'sonic-3',
