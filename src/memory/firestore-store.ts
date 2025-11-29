@@ -1,0 +1,505 @@
+/**
+ * Google Cloud Firestore Memory Store
+ *
+ * Production-grade persistent storage using Google Cloud Firestore.
+ *
+ * Requires: npm install @google-cloud/firestore
+ *
+ * Environment:
+ * - GOOGLE_CLOUD_PROJECT: Your GCP project ID
+ * - GOOGLE_APPLICATION_CREDENTIALS: Path to service account JSON
+ */
+
+import { log } from '@livekit/agents';
+import { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
+import type {
+  UserProfile,
+  ConversationSummary,
+  KeyMoment,
+  FinancialGoal,
+} from '../types/user-profile.js';
+
+const getLogger = () => log();
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface FirestoreConfig {
+  projectId?: string;
+  databaseId?: string;
+  credentials?: {
+    client_email: string;
+    private_key: string;
+  };
+}
+
+interface Firestore {
+  collection: (path: string) => CollectionReference;
+  terminate: () => Promise<void>;
+}
+
+interface CollectionReference {
+  doc: (id: string) => DocumentReference;
+  orderBy: (field: string, direction?: 'asc' | 'desc') => Query;
+  limit: (n: number) => Query;
+  where: (field: string, op: string, value: unknown) => Query;
+  get: () => Promise<QuerySnapshot>;
+}
+
+interface DocumentReference {
+  id: string;
+  set: (data: unknown, options?: { merge?: boolean }) => Promise<unknown>;
+  get: () => Promise<DocumentSnapshot>;
+  delete: () => Promise<unknown>;
+  collection: (name: string) => CollectionReference;
+}
+
+interface DocumentSnapshot {
+  exists: boolean;
+  data: () => Record<string, unknown> | undefined;
+  id: string;
+}
+
+interface QuerySnapshot {
+  empty: boolean;
+  docs: DocumentSnapshot[];
+  size: number;
+}
+
+interface Query {
+  orderBy: (field: string, direction?: 'asc' | 'desc') => Query;
+  limit: (n: number) => Query;
+  offset: (n: number) => Query;
+  where: (field: string, op: string, value: unknown) => Query;
+  get: () => Promise<QuerySnapshot>;
+}
+
+// ============================================================================
+// FIRESTORE STORE
+// ============================================================================
+
+export class FirestoreStore extends MemoryStore {
+  private db: Firestore | null = null;
+  private config: FirestoreConfig;
+  private readonly USERS_COLLECTION = 'bogle_users';
+
+  constructor(config?: FirestoreConfig) {
+    super();
+    // Merge provided config with defaults
+    const defaults: FirestoreConfig = {
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    };
+    this.config = { ...defaults, ...config };
+  }
+
+  async initialize(): Promise<void> {
+    if (this._initialized) return;
+
+    try {
+      const { Firestore } = await import('@google-cloud/firestore');
+
+      this.db = new Firestore({
+        projectId: this.config.projectId,
+        databaseId: this.config.databaseId,
+        ...(this.config.credentials && { credentials: this.config.credentials }),
+      }) as unknown as Firestore;
+
+      this._initialized = true;
+      getLogger().info(`Firestore store initialized (project: ${this.config.projectId})`);
+    } catch (error) {
+      getLogger().error(`Firestore initialization failed: ${error}`);
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // USER PROFILE OPERATIONS
+  // ============================================================================
+
+  async getProfile(userId: string): Promise<UserProfile | null> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const docRef = this.db.collection(this.USERS_COLLECTION).doc(userId);
+      const doc = await docRef.get();
+
+      if (!doc.exists) return null;
+
+      const data = doc.data();
+      return data ? this.hydrateData<UserProfile>(data as unknown as UserProfile) : null;
+    } catch (error) {
+      getLogger().error(`getProfile error: ${error}`);
+      return null;
+    }
+  }
+
+  async saveProfile(profile: UserProfile): Promise<void> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const docRef = this.db.collection(this.USERS_COLLECTION).doc(profile.id);
+      const serialized = this.serializeForFirestore(profile);
+
+      await docRef.set(serialized, { merge: true });
+      getLogger().debug(`Saved profile: ${profile.id}`);
+    } catch (error) {
+      getLogger().error(`saveProfile error: ${error}`);
+      throw error;
+    }
+  }
+
+  async deleteProfile(userId: string): Promise<boolean> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const docRef = this.db.collection(this.USERS_COLLECTION).doc(userId);
+      await docRef.delete();
+      return true;
+    } catch (error) {
+      getLogger().error(`deleteProfile error: ${error}`);
+      return false;
+    }
+  }
+
+  async hasProfile(userId: string): Promise<boolean> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const docRef = this.db.collection(this.USERS_COLLECTION).doc(userId);
+      const doc = await docRef.get();
+      return doc.exists;
+    } catch (error) {
+      getLogger().error(`hasProfile error: ${error}`);
+      return false;
+    }
+  }
+
+  async listProfiles(options?: QueryOptions): Promise<UserProfile[]> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const limit = options?.limit || 100;
+      let query: Query = this.db
+        .collection(this.USERS_COLLECTION)
+        .orderBy(options?.sortBy || 'updatedAt', options?.sortOrder || 'desc');
+
+      query = query.limit(limit);
+
+      if (options?.offset) {
+        query = query.offset(options.offset);
+      }
+
+      const snapshot = await query.get();
+      return snapshot.docs
+        .map((doc) => doc.data())
+        .filter((data): data is Record<string, unknown> => !!data)
+        .map((data) => this.hydrateData<UserProfile>(data as unknown as UserProfile));
+    } catch (error) {
+      getLogger().error(`listProfiles error: ${error}`);
+      return [];
+    }
+  }
+
+  // ============================================================================
+  // CONVERSATION SUMMARY OPERATIONS
+  // ============================================================================
+
+  async saveSummary(userId: string, summary: ConversationSummary): Promise<void> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const summaryRef = this.db
+        .collection(this.USERS_COLLECTION)
+        .doc(userId)
+        .collection('summaries')
+        .doc(summary.id);
+
+      await summaryRef.set(this.serializeForFirestore(summary));
+      getLogger().debug(`Saved summary: ${summary.id}`);
+    } catch (error) {
+      getLogger().error(`saveSummary error: ${error}`);
+      throw error;
+    }
+  }
+
+  async getSummaries(userId: string, options?: QueryOptions): Promise<ConversationSummary[]> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const limit = options?.limit || 10;
+
+      let query: Query = this.db
+        .collection(this.USERS_COLLECTION)
+        .doc(userId)
+        .collection('summaries')
+        .orderBy('timestamp', 'desc')
+        .limit(limit);
+
+      if (options?.offset) {
+        query = query.offset(options.offset);
+      }
+
+      const snapshot = await query.get();
+
+      if (snapshot.empty) return [];
+
+      return snapshot.docs
+        .map((doc) => doc.data())
+        .filter((data): data is Record<string, unknown> => !!data)
+        .map((data) =>
+          this.hydrateData<ConversationSummary>(data as unknown as ConversationSummary)
+        );
+    } catch (error) {
+      getLogger().error(`getSummaries error: ${error}`);
+      return [];
+    }
+  }
+
+  // ============================================================================
+  // KEY MOMENT OPERATIONS
+  // ============================================================================
+
+  async addKeyMoment(userId: string, moment: KeyMoment): Promise<void> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const momentId = moment.id || `moment_${Date.now()}`;
+      const momentRef = this.db
+        .collection(this.USERS_COLLECTION)
+        .doc(userId)
+        .collection('moments')
+        .doc(momentId);
+
+      await momentRef.set(this.serializeForFirestore({ ...moment, id: momentId }));
+      getLogger().debug(`Added key moment for user: ${userId}`);
+    } catch (error) {
+      getLogger().error(`addKeyMoment error: ${error}`);
+      throw error;
+    }
+  }
+
+  async getKeyMoments(userId: string, options?: QueryOptions): Promise<KeyMoment[]> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const limit = options?.limit || 50;
+
+      const query: Query = this.db
+        .collection(this.USERS_COLLECTION)
+        .doc(userId)
+        .collection('moments')
+        .orderBy('timestamp', 'desc')
+        .limit(limit);
+
+      const snapshot = await query.get();
+
+      if (snapshot.empty) return [];
+
+      return snapshot.docs
+        .map((doc) => doc.data())
+        .filter((data): data is Record<string, unknown> => !!data)
+        .map((data) => this.hydrateData<KeyMoment>(data as unknown as KeyMoment));
+    } catch (error) {
+      getLogger().error(`getKeyMoments error: ${error}`);
+      return [];
+    }
+  }
+
+  // ============================================================================
+  // GOAL OPERATIONS
+  // ============================================================================
+
+  async saveGoal(userId: string, goal: FinancialGoal): Promise<void> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const goalRef = this.db
+        .collection(this.USERS_COLLECTION)
+        .doc(userId)
+        .collection('goals')
+        .doc(goal.id);
+
+      await goalRef.set(this.serializeForFirestore(goal), { merge: true });
+      getLogger().debug(`Saved goal: ${goal.id}`);
+    } catch (error) {
+      getLogger().error(`saveGoal error: ${error}`);
+      throw error;
+    }
+  }
+
+  async getGoals(userId: string): Promise<FinancialGoal[]> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const snapshot = await this.db
+        .collection(this.USERS_COLLECTION)
+        .doc(userId)
+        .collection('goals')
+        .get();
+
+      if (snapshot.empty) return [];
+
+      return snapshot.docs
+        .map((doc) => doc.data())
+        .filter((data): data is Record<string, unknown> => !!data)
+        .map((data) => this.hydrateData<FinancialGoal>(data as unknown as FinancialGoal));
+    } catch (error) {
+      getLogger().error(`getGoals error: ${error}`);
+      return [];
+    }
+  }
+
+  async deleteGoal(userId: string, goalId: string): Promise<boolean> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      await this.db
+        .collection(this.USERS_COLLECTION)
+        .doc(userId)
+        .collection('goals')
+        .doc(goalId)
+        .delete();
+      return true;
+    } catch (error) {
+      getLogger().error(`deleteGoal error: ${error}`);
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // SEARCH OPERATIONS
+  // ============================================================================
+
+  async searchProfiles(
+    query: string,
+    options?: QueryOptions
+  ): Promise<SearchResult<UserProfile>[]> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    try {
+      const limit = options?.limit || 10;
+      const queryLower = query.toLowerCase();
+
+      const q: Query = this.db
+        .collection(this.USERS_COLLECTION)
+        .where('nameLower', '>=', queryLower)
+        .where('nameLower', '<=', queryLower + '\uf8ff')
+        .limit(limit);
+
+      const snapshot = await q.get();
+
+      return snapshot.docs
+        .map((doc) => doc.data())
+        .filter((data): data is Record<string, unknown> => !!data)
+        .map((data) => ({
+          item: this.hydrateData<UserProfile>(data as unknown as UserProfile),
+          score: 1.0,
+        }));
+    } catch (error) {
+      getLogger().error(`searchProfiles error: ${error}`);
+      return [];
+    }
+  }
+
+  // ============================================================================
+  // CLOSE
+  // ============================================================================
+
+  async close(): Promise<void> {
+    if (this.db) {
+      await this.db.terminate();
+      this.db = null;
+      this._initialized = false;
+      getLogger().info('Firestore connection closed');
+    }
+  }
+
+  // ============================================================================
+  // PRIVATE HELPERS
+  // ============================================================================
+
+  private serializeForFirestore(data: unknown): Record<string, unknown> {
+    const serialized = JSON.parse(
+      JSON.stringify(data, (key, value) => {
+        if (value === undefined) return null;
+        if (value instanceof Date) return value.toISOString();
+        return value;
+      })
+    );
+
+    if (serialized.name) {
+      serialized.nameLower = serialized.name.toLowerCase();
+    }
+
+    return serialized;
+  }
+
+  private hydrateData<T>(data: T): T {
+    const dateFields = [
+      'firstContact',
+      'lastContact',
+      'createdAt',
+      'updatedAt',
+      'timestamp',
+      'sharedAt',
+      'targetDate',
+      'assessedAt',
+      'followUpDate',
+    ];
+
+    const hydrated = JSON.parse(JSON.stringify(data));
+
+    const hydrateObject = (obj: Record<string, unknown>): void => {
+      for (const [key, value] of Object.entries(obj)) {
+        // Handle Firestore Timestamp objects
+        if (value && typeof value === 'object' && '_seconds' in value) {
+          const ts = value as { _seconds: number; _nanoseconds: number };
+          obj[key] = new Date(ts._seconds * 1000 + ts._nanoseconds / 1000000);
+        }
+        // Handle ISO string dates
+        else if (dateFields.includes(key) && typeof value === 'string') {
+          obj[key] = new Date(value);
+        }
+        // Recursively handle arrays
+        else if (Array.isArray(value)) {
+          for (const item of value) {
+            if (typeof item === 'object' && item !== null) {
+              hydrateObject(item as Record<string, unknown>);
+            }
+          }
+        }
+        // Recursively handle nested objects
+        else if (value && typeof value === 'object') {
+          hydrateObject(value as Record<string, unknown>);
+        }
+      }
+    };
+
+    hydrateObject(hydrated as Record<string, unknown>);
+    return hydrated as T;
+  }
+}
+
+// ============================================================================
+// FACTORY
+// ============================================================================
+
+let firestoreInstance: FirestoreStore | null = null;
+
+export function getFirestoreStore(config?: FirestoreConfig): FirestoreStore {
+  if (!firestoreInstance) {
+    firestoreInstance = new FirestoreStore(config);
+  }
+  return firestoreInstance;
+}
+
+export async function resetFirestoreStore(): Promise<void> {
+  if (firestoreInstance) {
+    await firestoreInstance.close();
+    firestoreInstance = null;
+  }
+}
+
+export default FirestoreStore;

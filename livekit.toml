@@ -1,0 +1,6 @@
+[project]
+  subdomain = "test-rvg91u1z"
+
+[agent]
+  id = "CA_Vn2jscE47zvR"
+  name = "john-bogle-agent"

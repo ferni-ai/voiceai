@@ -1,0 +1,13 @@
+node_modules
+dist
+*.log
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.cursor
+reference/
+frontend/
+*.md
+

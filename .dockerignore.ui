@@ -1,0 +1,14 @@
+# Exclude everything except what we need for UI
+node_modules
+dist
+src
+*.log
+*.md
+.git
+.env
+*.sh
+cloudbuild*.yaml
+Dockerfile
+deploy*.sh
+reference
+KMS
