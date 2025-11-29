@@ -13,7 +13,7 @@ import {
   JACK_TO_PETER_HANDOFF, 
   PETER_TO_JACK_HANDOFF,
   PETER_LYNCH_GREETING,
-} from '../persona/peter-lynch.js';
+} from '../agents/peter-lynch.js';
 
 const getLogger = () => log();
 
