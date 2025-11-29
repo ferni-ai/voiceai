@@ -19,11 +19,16 @@ import {
   removeHistoryTracker,
   ragLookup as semanticRagLookup,
   summarizeConversation,
+  indexConversationSummary,
+  semanticSearch,
   type MemoryStore,
   type VectorStore,
   type ConversationHistoryTracker,
   type ConversationTurn,
 } from '../memory/index.js';
+
+// Key Moment Retrieval integration (now exported from memory/index.ts)
+import { setCurrentSessionMomentsGetter, clearCurrentSessionMomentsGetter } from '../memory/index.js';
 
 // User Identification
 export {
@@ -44,11 +49,19 @@ import {
   getEmotionDetector,
   getTopicTracker,
   getStateMachine,
+  getLearningEngine,
+  resetLearningEngine,
+  UserLearningEngine,
   type ConversationAnalysis,
   type EmotionResult,
   type IntentResult,
   type ConversationState,
+  type DynamicUserContext,
+  type ConversationLearningData,
 } from '../intelligence/index.js';
+
+// Profile Personalizer
+import { getPersonalizer } from './profile-personalizer.js';
 
 // Context
 import {
@@ -89,14 +102,20 @@ export interface SessionServices {
   userProfile: UserProfile | null;
   historyTracker: ConversationHistoryTracker;
   contextManager: ContextManager;
+  learningEngine: UserLearningEngine;
 
   // Methods
   analyze: (message: string) => ConversationAnalysis;
   addTurn: (role: 'user' | 'assistant', content: string, durationMs?: number) => void;
   getPromptContext: () => PromptContext;
+  getDynamicContext: () => DynamicUserContext;
+  getEnhancedPromptContext: () => string;
   getSpeechContext: (text?: string) => SpeechContext;
   tagWithSsml: (text: string) => string;
   searchKnowledge: (query: string) => Promise<string | null>;
+  searchPastConversations: (query: string) => Promise<string | null>;
+  trackResponseQuality: (response: string, userReaction: 'positive' | 'neutral' | 'negative') => void;
+  captureInsight: (type: string, key: string, value: unknown, confidence: number) => void;
   saveProfile: () => Promise<void>;
   endSession: () => Promise<void>;
 }
@@ -220,6 +239,10 @@ export async function createSessionServices(
   // Reset intelligence and tasks for new session
   resetIntelligence(isReturningUser);
   resetWPMTracker();
+  resetLearningEngine();
+
+  // Get learning engine for this session
+  const learningEngine = getLearningEngine();
 
   // Reset task manager
   const { resetTaskManager } = await import('../tasks/task-manager.js');
@@ -227,6 +250,12 @@ export async function createSessionServices(
 
   // Get state machine with returning user flag
   const stateMachine = getStateMachine(isReturningUser);
+
+  // Get personalizer for profile-based enhancements
+  const personalizer = getPersonalizer();
+
+  // Wire up real-time key moment retrieval from current session
+  setCurrentSessionMomentsGetter(() => learningEngine.getCurrentSessionKeyMoments());
 
   // Create session services object
   const services: SessionServices = {
@@ -236,15 +265,25 @@ export async function createSessionServices(
     userProfile,
     historyTracker,
     contextManager,
+    learningEngine,
 
     /**
-     * Analyze a user message
+     * Analyze a user message AND feed the learning engine
      */
     analyze: (message: string) => {
-      return analyzeMessage(message, {
+      const analysis = analyzeMessage(message, {
         userName: userProfile?.name,
         isReturningUser,
       });
+
+      // Feed learning engine with analysis
+      learningEngine.processUserTurn(message, {
+        emotion: analysis.emotion,
+        intent: analysis.intent,
+        state: analysis.state,
+      }, userProfile);
+
+      return analysis;
     },
 
     /**
@@ -266,6 +305,8 @@ export async function createSessionServices(
         }
       } else {
         historyTracker.addAssistantTurn(content);
+        // Feed learning engine for assistant turns too (for context)
+        learningEngine.processAssistantTurn(content);
       }
 
       // Add to context manager
@@ -284,15 +325,72 @@ export async function createSessionServices(
     },
 
     /**
+     * Get dynamic context from learning engine
+     * This includes learned preferences, key moments, and insights
+     */
+    getDynamicContext: () => {
+      return learningEngine.buildDynamicContext(userProfile);
+    },
+
+    /**
+     * Get enhanced prompt context combining all sources
+     * This is the PRIMARY context injection method for making Jack smarter
+     */
+    getEnhancedPromptContext: () => {
+      const sections: string[] = [];
+
+      // 1. Base prompt context (phase, relationship, emotional)
+      const baseContext = contextManager.buildPromptContext(
+        stateMachine.getState(),
+        stateMachine.getGuidance(),
+        getEmotionDetector().detect('')
+      );
+      if (baseContext.formattedForPrompt) {
+        sections.push(baseContext.formattedForPrompt);
+      }
+
+      // 2. Dynamic learning context (preferences, key moments, insights)
+      const dynamicContext = learningEngine.buildDynamicContext(userProfile);
+      if (dynamicContext.formattedForPrompt) {
+        sections.push(dynamicContext.formattedForPrompt);
+      }
+
+      // 3. Profile-based personalization (goals, concerns, communication style)
+      if (userProfile) {
+        const personalizedGuidance = personalizer.enhancePromptWithPersonalization('', userProfile);
+        if (personalizedGuidance.trim()) {
+          sections.push(personalizedGuidance);
+        }
+      }
+
+      return sections.join('\n\n');
+    },
+
+    /**
      * Get speech context for SSML
+     * Now blends current session WPM with learned profile preferences
      */
     getSpeechContext: (text?: string) => {
       const state = stateMachine.getState();
       const emotion = text ? getEmotionDetector().detect(text) : undefined;
       const topics = text ? getTopicTracker().extract(text).detected : undefined;
 
+      // Get current session WPM
+      const currentWPM = getWPMTracker().getAverageWPM();
+      
+      // Blend with profile's learned preferences if available
+      let effectiveWPM = currentWPM;
+      if (userProfile?.averageWPM) {
+        // Blend: 70% current session, 30% historical for personalization
+        effectiveWPM = Math.round(currentWPM * 0.7 + userProfile.averageWPM * 0.3);
+      } else if (userProfile?.speakingPace) {
+        // Use pace hint if no WPM stored yet
+        const paceToWPM = { slow: 110, moderate: 150, fast: 180 };
+        effectiveWPM = Math.round(currentWPM * 0.7 + paceToWPM[userProfile.speakingPace] * 0.3);
+      }
+
       return buildSpeechContext({
-        userWPM: getWPMTracker().getAverageWPM(),
+        userWPM: effectiveWPM,
         userText: text,
         emotion,
         phase: state.phase,
@@ -348,6 +446,84 @@ export async function createSessionServices(
     },
 
     /**
+     * Search past conversations for this user
+     * Returns relevant past discussion snippets
+     */
+    searchPastConversations: async (query: string) => {
+      if (!userId) return null;
+      
+      try {
+        const results = await semanticSearch(query, {
+          topK: 3,
+          sources: ['conversation'],
+          userId,
+          minScore: 0.4,
+        });
+        
+        if (results.length === 0) return null;
+        
+        // Format as natural reference
+        const snippets = results
+          .map(r => r.content.slice(0, 200))
+          .join(' | ');
+        
+        return `From previous conversations: ${snippets}`;
+      } catch {
+        return null;
+      }
+    },
+
+    /**
+     * Track response quality for learning what works
+     * Called when we detect user reaction to Jack's response
+     */
+    trackResponseQuality: (response: string, userReaction: 'positive' | 'neutral' | 'negative') => {
+      // Track in learning engine for session-level patterns
+      const responseStyle = {
+        length: response.length,
+        hasStory: /\b(i remember|back in|when i was)\b/i.test(response),
+        hasAdvice: /\b(should|recommend|consider|try)\b/i.test(response),
+        hasQuestion: response.includes('?'),
+        hasHumor: /\b(haha|joke|kidding|funny)\b/i.test(response),
+      };
+      
+      // Store quality signal in insights
+      if (userReaction === 'positive') {
+        learningEngine.captureExternalInsight({
+          type: 'preference',
+          key: 'response_style_positive',
+          value: responseStyle,
+          confidence: 0.6,
+          source: 'inferred',
+        });
+        getLogger().debug({ responseStyle, reaction: userReaction }, 'Positive response quality signal');
+      } else if (userReaction === 'negative') {
+        learningEngine.captureExternalInsight({
+          type: 'preference',
+          key: 'response_style_negative',
+          value: responseStyle,
+          confidence: 0.6,
+          source: 'inferred',
+        });
+        getLogger().debug({ responseStyle, reaction: userReaction }, 'Negative response quality signal');
+      }
+    },
+
+    /**
+     * Capture an insight from external sources (tasks, conversation manager, etc.)
+     * This feeds the learning engine from other modules
+     */
+    captureInsight: (type: string, key: string, value: unknown, confidence: number) => {
+      learningEngine.captureExternalInsight({
+        type: type as 'preference' | 'concern' | 'goal' | 'relationship' | 'communication_style' | 'topic_interest' | 'emotional_pattern',
+        key,
+        value,
+        confidence,
+        source: 'inferred',
+      });
+    },
+
+    /**
      * Save user profile
      */
     saveProfile: async () => {
@@ -371,6 +547,19 @@ export async function createSessionServices(
           sessionDurationMinutes: Math.floor(historyTracker.getDurationSeconds() / 60),
         });
 
+        // Update learned speaking pace from this session
+        const sessionWPM = getWPMTracker().getAverageWPM();
+        if (sessionWPM > 0) {
+          // Blend with existing or set new
+          if (updated.averageWPM) {
+            updated.averageWPM = Math.round(updated.averageWPM * 0.7 + sessionWPM * 0.3);
+          } else {
+            updated.averageWPM = sessionWPM;
+          }
+          // Update pace category
+          updated.speakingPace = sessionWPM < 120 ? 'slow' : sessionWPM > 180 ? 'fast' : 'moderate';
+        }
+
         await global.store.saveProfile(updated);
         services.userProfile = updated;
 
@@ -389,21 +578,69 @@ export async function createSessionServices(
         try {
           const turns = historyTracker.getSimpleTurns();
           if (turns.length > 0) {
+            // 1. Generate conversation summary
             const summary = await summarizeConversation(sessionId, turns);
             await global.store.saveSummary(userId, summary);
 
-            // Update profile with last summary
-            userProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
+            // 2. Index conversation for semantic retrieval in future sessions
+            try {
+              const summaryText = [
+                ...summary.mainTopics,
+                ...summary.keyPoints,
+                summary.emotionalArc,
+              ].join(' ');
+              
+              await indexConversationSummary(userId, {
+                id: summary.id,
+                text: summaryText,
+                topics: summary.mainTopics,
+                timestamp: summary.timestamp,
+                embedding: summary.embedding,
+              });
+              
+              getLogger().info('Indexed conversation for future retrieval');
+            } catch (indexError) {
+              getLogger().warn(`Failed to index conversation (non-blocking): ${indexError}`);
+            }
+
+            // 3. Finalize learning and apply to profile
+            const learningData = learningEngine.finalizeSession(userProfile);
+            const stats = learningEngine.getSessionStats();
+
+            getLogger().info({
+              keyMoments: stats.keyMoments,
+              insights: stats.insights,
+              detailsCaptured: stats.detailsCaptured,
+              topicsDiscussed: stats.topicsDiscussed,
+            }, 'Session learning stats');
+
+            // 4. Apply learning to profile
+            const updatedProfile = UserLearningEngine.applyLearningToProfile(userProfile, learningData);
+
+            // 5. Also apply basic summary
+            updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
+
+            // 6. Save updated profile
+            services.userProfile = updatedProfile;
             await services.saveProfile();
+
+            getLogger().info({
+              userId,
+              newKeyMoments: learningData.keyMoments.length,
+              newInsights: learningData.insights.length,
+              followUps: learningData.followUps.length,
+            }, 'Applied learning to user profile');
           }
         } catch (error) {
-          getLogger().warn(`Failed to save conversation summary: ${error}`);
+          getLogger().warn(`Failed to save conversation summary/learning: ${error}`);
         }
       }
 
       // Cleanup
       removeHistoryTracker(sessionId);
       removeContextManager(sessionId);
+      resetLearningEngine();
+      clearCurrentSessionMomentsGetter();
       activeSessions.delete(sessionId);
 
       getLogger().info(`Session ${sessionId} ended and cleaned up`);

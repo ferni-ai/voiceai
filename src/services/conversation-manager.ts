@@ -53,6 +53,23 @@ export class ConversationManager {
   private agentCurrentlySpeaking = false;
   private currentAgentUtterance = '';
   private userSpeakingStartTime: number | null = null;
+  
+  // Callback for feeding insights to the learning engine
+  private insightCallback: ((type: string, key: string, value: unknown, confidence: number) => void) | null = null;
+
+  /**
+   * Set the callback for capturing conversation insights
+   * Called by services/index.ts during session setup
+   */
+  setInsightCallback(callback: (type: string, key: string, value: unknown, confidence: number) => void): void {
+    this.insightCallback = callback;
+  }
+
+  private captureInsight(type: string, key: string, value: unknown, confidence: number): void {
+    if (this.insightCallback) {
+      this.insightCallback(type, key, value, confidence);
+    }
+  }
 
   /**
    * Handle user starting to speak
@@ -71,6 +88,12 @@ export class ConversationManager {
         getLogger().info('User interrupted Jack', {
           utterance: this.currentAgentUtterance.substring(0, 50),
         });
+
+        // Capture interruption pattern for learning
+        this.captureInsight('communication_style', 'interruption_pattern', {
+          utteranceLength: this.currentAgentUtterance.length,
+          topic: this.topicDetector.getCurrentTopic(),
+        }, 0.6);
 
         // Stop agent speech immediately (handled by LiveKit)
         this.agentCurrentlySpeaking = false;
@@ -151,6 +174,14 @@ export class ConversationManager {
       enhancements.metaGuidance.push(
         `Topic changed: ${topicChange.previousTopic} → ${topicChange.newTopic}`
       );
+      
+      // Capture topic interest for learning
+      if (topicChange.newTopic) {
+        this.captureInsight('topic_interest', topicChange.newTopic, {
+          previousTopic: topicChange.previousTopic,
+          userInitiated: true,
+        }, 0.7);
+      }
     }
 
     // 4. Check for backchanneling need
@@ -225,6 +256,7 @@ export class ConversationManager {
     this.agentCurrentlySpeaking = false;
     this.currentAgentUtterance = '';
     this.userSpeakingStartTime = null;
+    this.insightCallback = null;
   }
 
   /**

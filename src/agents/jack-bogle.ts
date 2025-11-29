@@ -3563,10 +3563,29 @@ export default defineAgent({
       userData,
     });
     
-    // Listen for voice switch events
-    handoffEvents.on('voiceSwitch', (data: { newAgent: 'jack' | 'peter'; voiceId: string }) => {
+    // Listen for voice switch events and notify frontend
+    handoffEvents.on('voiceSwitch', async (data: { newAgent: 'jack' | 'peter'; voiceId: string }) => {
       console.log(`\n🎤 [VOICE SWITCH] Now speaking as: ${data.newAgent === 'peter' ? 'Peter Lynch' : 'Jack Bogle'}`);
       logger.info({ newAgent: data.newAgent, voiceId: data.voiceId }, 'Voice switched - next speech will use new voice');
+      
+      // Notify frontend for UI update and sound effect
+      try {
+        const handoffMessage = JSON.stringify({
+          type: 'handoff',
+          newAgent: data.newAgent,
+          direction: data.newAgent === 'peter' ? 'jack-to-peter' : 'peter-to-jack',
+          timestamp: Date.now(),
+        });
+        
+        await ctx.room.localParticipant?.publishData(
+          new TextEncoder().encode(handoffMessage),
+          { reliable: true }
+        );
+        
+        console.log('📨 Sent handoff notification to frontend');
+      } catch (err) {
+        logger.warn({ error: err }, 'Failed to send handoff notification');
+      }
     });
     console.log(`AgentSession created in ${Date.now() - sessionStartTime}ms`);
     console.log('--- STEP 5 COMPLETE ---');

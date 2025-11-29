@@ -58,14 +58,20 @@ import { createMemoryTools } from './memory-tools.js';
 import { createProactiveTools } from './proactive.js';
 import { createAwarenessTools } from './awareness.js';
 
-// Communication domain (NEW)
+// Communication domain
 import { createCommunicationTools } from './communication.js';
+
+// Banking domain (Plaid)
+import { createPlaidTools } from './plaid.js';
 
 // Agent handoff (Jack ↔ Peter Lynch)
 import { createHandoffTools } from './handoff.js';
 
 // Telephony - Jack calls YOU!
 import { createTelephonyTools } from './telephony.js';
+
+// Peter Lynch's stock picking tools
+import { createPeterLynchTools } from './peter-lynch-tools.js';
 
 const getLogger = () => log();
 
@@ -99,6 +105,9 @@ export { createAwarenessTools } from './awareness.js';
 
 // Communication domain
 export { createCommunicationTools } from './communication.js';
+
+// Banking domain (Plaid)
+export { createPlaidTools } from './plaid.js';
 
 // ============================================================================
 // COMBINED TOOLS
@@ -134,6 +143,9 @@ export function createAllTools() {
   const proactive = createProactiveTools();
   const awareness = createAwarenessTools();
 
+  // Banking domain (Plaid)
+  const plaid = createPlaidTools();
+
   const allTools = {
     // === FINANCIAL ===
     ...marketData, // getStockQuote, getMarketSummary, getCurrentDateTime
@@ -158,10 +170,13 @@ export function createAllTools() {
     ...memory, // rememberAboutUser, recallFromMemory, recallPreviousConversation, rememberImportantFact, getRelationshipSummary
     ...proactive, // scheduleFollowUp, setGoal, checkGoalProgress, updateGoalProgress, suggestCheckIn, triggerCircleBack
     ...awareness, // detectConversationDrift, suggestRelevantTopic, assessEmotionalState, suggestCircleBack, getConversationSummary, identifyUserNeeds
+
+    // === BANKING (PLAID) ===
+    ...plaid, // linkBankAccount, getAccountBalances, getSpendingAnalysis, getRecentTransactions, checkFinancialHealth
   };
 
   const toolCount = Object.keys(allTools).length;
-  getLogger().info(`Created ${toolCount} tools across 16 domains`);
+  getLogger().info(`Created ${toolCount} tools across 17 domains`);
 
   return allTools;
 }
@@ -263,6 +278,17 @@ export function getToolCategories() {
       'getConversationSummary',
       'identifyUserNeeds',
     ],
+
+    // Banking
+    plaid: [
+      'checkBankLinkStatus',
+      'linkBankAccount',
+      'unlinkBankAccount',
+      'getAccountBalances',
+      'getSpendingAnalysis',
+      'getRecentTransactions',
+      'checkFinancialHealth',
+    ],
   };
 }
 
@@ -315,6 +341,17 @@ export function getToolDocumentation(): string {
     sections.push('');
   }
 
+  sections.push('## Banking Domain', '');
+
+  // Banking (Plaid)
+  const bankingCategories = ['plaid'];
+  for (const cat of bankingCategories) {
+    const tools = categories[cat as keyof typeof categories];
+    sections.push(`### ${cat} (${tools.length})`);
+    sections.push(tools.map((t) => `- ${t}`).join('\n'));
+    sections.push('');
+  }
+
   const totalTools = Object.values(categories).flat().length;
   sections.push(`---`);
   sections.push(`Total: ${totalTools} tools across ${Object.keys(categories).length} domains`);
@@ -343,14 +380,20 @@ export function createEssentialTools() {
   const calculators = createCalculatorTools();
   const wisdom = createWisdomTools();
 
-  // Communication domain (NEW)
+  // Communication domain
   const communication = createCommunicationTools();
+
+  // Banking domain (Plaid)
+  const plaid = createPlaidTools();
 
   // Agent handoff (Jack ↔ Peter Lynch)
   const handoff = createHandoffTools();
 
   // Telephony - Jack calls YOU!
   const telephony = createTelephonyTools();
+
+  // Peter Lynch's stock picking tools (for when Peter takes over!)
+  const peterLynch = createPeterLynchTools();
 
   // Consolidated information tools (created inline for simplicity)
   const consolidatedNews = createConsolidatedNewseTool();
@@ -377,11 +420,20 @@ export function createEssentialTools() {
     getWeather: consolidatedWeather, // Weather + forecast in one
     search: consolidatedSearch, // Web + Wikipedia in one
 
-    // === COMMUNICATION (4 tools - NEW) ===
+    // === COMMUNICATION (4 tools) ===
     sendEmail: communication.sendEmail,
     sendSMS: communication.sendSMS,
     scheduleReminder: communication.scheduleReminder,
     scheduleEvent: communication.scheduleEvent,
+
+    // === BANKING / PLAID (7 tools) ===
+    checkBankLinkStatus: plaid.checkBankLinkStatus,
+    linkBankAccount: plaid.linkBankAccount,
+    unlinkBankAccount: plaid.unlinkBankAccount,
+    getAccountBalances: plaid.getAccountBalances,
+    getSpendingAnalysis: plaid.getSpendingAnalysis,
+    getRecentTransactions: plaid.getRecentTransactions,
+    checkFinancialHealth: plaid.checkFinancialHealth,
 
     // === WISDOM (2 tools) ===
     getWisdomQuote: wisdom.getWisdomQuote,
@@ -392,6 +444,9 @@ export function createEssentialTools() {
 
     // === TELEPHONY (2 tools) - Jack calls YOU! ===
     ...telephony,
+
+    // === PETER LYNCH (5 tools) - Stock picking when Peter takes over ===
+    ...peterLynch,
   };
 
   const toolCount = Object.keys(essentialTools).length;

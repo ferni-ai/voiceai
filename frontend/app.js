@@ -12,10 +12,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const helper = document.getElementById('helper');
     const connectSound = document.getElementById('connectSound');
     const disconnectSound = document.getElementById('disconnectSound');
+    
+    // Handoff sound effects
+    const handoffSounds = {
+        'jack-to-peter': new Audio('/handoff-to-peter.mp3'),
+        'peter-to-jack': new Audio('/handoff-to-jack.mp3'),
+        'dramatic': new Audio('/dramatic-entrance.mp3'),
+    };
+    
+    // Preload handoff sounds
+    Object.values(handoffSounds).forEach(sound => {
+        sound.load();
+        sound.volume = 0.7;
+    });
 
     // State
     let room = null;
     let isConnecting = false;
+    let currentAgent = 'jack'; // Track who's speaking: 'jack' or 'peter'
 
     // Config
     const TOKEN_SERVER_URL = '/token';
@@ -187,8 +201,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 .on(LiveKit.RoomEvent.TrackSubscribed, onTrackSubscribed)
                 .on(LiveKit.RoomEvent.ActiveSpeakersChanged, onSpeakersChanged)
                 .on(LiveKit.RoomEvent.Disconnected, onDisconnected)
+                .on(LiveKit.RoomEvent.DataReceived, onDataReceived)
                 .on(LiveKit.RoomEvent.ParticipantConnected, (p) => {
                     if (!p.isLocal) {
+                        currentAgent = 'jack'; // Reset to Jack on new connection
                         showMessage('Jack joined');
                         setTimeout(() => showMessage('Listening...'), 1500);
                     }
@@ -258,15 +274,88 @@ document.addEventListener('DOMContentLoaded', () => {
         const agentSpeaking = speakers.some(s => !s.isLocal);
         const userSpeaking = speakers.some(s => s.isLocal);
 
+        const agentName = currentAgent === 'peter' ? 'Peter' : 'Jack';
+
         if (agentSpeaking) {
             setState('connected speaking');
-            showMessage('Jack is speaking...');
+            showMessage(`${agentName} is speaking...`);
         } else if (userSpeaking) {
             setState('connected listening');
             showMessage('Listening to you...');
         } else {
             setState('connected listening');
             showMessage('Listening...');
+        }
+    }
+    
+    // ============================================================================
+    // AGENT HANDOFF - Jack ↔ Peter Lynch
+    // ============================================================================
+    
+    /**
+     * Handle agent handoff (Jack to Peter or Peter to Jack)
+     */
+    function handleHandoff(data) {
+        const { newAgent, direction } = data;
+        const oldAgent = currentAgent;
+        currentAgent = newAgent;
+        
+        console.log(`🔄 [HANDOFF] ${oldAgent} → ${newAgent}`);
+        
+        // Play transition sound
+        const soundKey = direction || `${oldAgent}-to-${newAgent}`;
+        const sound = handoffSounds[soundKey];
+        if (sound) {
+            sound.currentTime = 0;
+            sound.play().catch(e => console.log('Sound blocked:', e.message));
+        }
+        
+        // Update UI with agent name
+        const agentName = newAgent === 'peter' ? 'Peter Lynch' : 'Jack Bogle';
+        showMessage(`${agentName} is here!`);
+        
+        // Visual feedback - flash the orb
+        app.classList.add('handoff-flash');
+        setTimeout(() => app.classList.remove('handoff-flash'), 500);
+        
+        // Update helper text
+        helper.textContent = newAgent === 'peter' 
+            ? "🎯 Peter Lynch - Stock Picker"
+            : "📊 Jack Bogle - Index Investor";
+    }
+    
+    /**
+     * Handle data messages from the agent
+     */
+    function onDataReceived(payload, participant) {
+        if (participant.isLocal) return;
+        
+        try {
+            const data = JSON.parse(new TextDecoder().decode(payload));
+            console.log('📨 Data from agent:', data);
+            
+            switch (data.type) {
+                case 'handoff':
+                    handleHandoff(data);
+                    break;
+                case 'agent_state':
+                    if (data.agent && data.agent !== currentAgent) {
+                        handleHandoff({ newAgent: data.agent });
+                    }
+                    break;
+                case 'user_name':
+                    // Jack learned user's name - save it
+                    if (data.name) {
+                        setStoredName(data.name);
+                        console.log('👤 Jack learned name:', data.name);
+                    }
+                    break;
+                default:
+                    console.log('Unknown data type:', data.type);
+            }
+        } catch (e) {
+            // Not JSON, might be raw text
+            console.log('Raw data:', new TextDecoder().decode(payload));
         }
     }
 

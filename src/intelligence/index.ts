@@ -85,6 +85,16 @@ export {
   type GracefulError,
 } from './conversation-quality.js';
 
+// User Learning Engine - Makes Jack smarter over time
+export {
+  UserLearningEngine,
+  getLearningEngine,
+  resetLearningEngine,
+  type LearningInsight,
+  type ConversationLearningData,
+  type DynamicUserContext,
+} from './user-learning-engine.js';
+
 // ============================================================================
 // COMBINED ANALYSIS
 // ============================================================================

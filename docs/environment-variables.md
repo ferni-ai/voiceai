@@ -52,6 +52,35 @@ DATABASE_URL=postgresql://user:pass@host:5432/bogle
 REDIS_URL=redis://localhost:6379
 ```
 
+## Communication Services
+
+```bash
+# SendGrid (Email)
+SENDGRID_API_KEY=your-sendgrid-api-key
+SENDGRID_FROM_EMAIL=jack@bogle-advisor.com
+
+# Twilio (SMS)
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=+15551234567
+
+# Google Calendar API
+GOOGLE_CALENDAR_CREDENTIALS={"client_id":"...","client_secret":"...","refresh_token":"..."}
+GOOGLE_CALENDAR_ID=primary
+```
+
+## Banking (Plaid)
+
+```bash
+# Plaid API credentials
+PLAID_CLIENT_ID=your-plaid-client-id
+PLAID_SECRET=your-plaid-secret
+PLAID_ENV=sandbox  # sandbox, development, or production
+
+# URL to your hosted Plaid Link page (for voice flow - link sent via SMS/email)
+PLAID_LINK_BASE_URL=https://your-app.com/link-account
+```
+
 ## Agent Configuration
 
 ```bash
@@ -113,4 +142,10 @@ LOG_LEVEL=info
    - Database connection (`DATABASE_URL`)
    - Vector store (`PINECONE_API_KEY` or similar)
    - Redis for caching (`REDIS_URL`)
+
+5. Optional services (features degrade gracefully if not configured):
+   - **Email**: `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`
+   - **SMS**: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+   - **Calendar**: `GOOGLE_CALENDAR_CREDENTIALS`, `GOOGLE_CALENDAR_ID`
+   - **Banking**: `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`
 

@@ -1,25 +1,28 @@
-# UI Server Dockerfile
+# UI Server for Jack Bogle Voice AI
 FROM node:20-slim
 
 WORKDIR /app
 
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install production dependencies
 RUN npm ci --only=production
 
-# Copy UI server and frontend files
+# Copy UI server and frontend
 COPY ui-server.js ./
 COPY frontend/ ./frontend/
 
-# Set environment variables
+# Set environment
 ENV NODE_ENV=production
 ENV PORT=8080
 
-# Expose port
 EXPOSE 8080
 
-# Run the UI server
+# Run UI server
 CMD ["node", "ui-server.js"]
-

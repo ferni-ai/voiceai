@@ -81,6 +81,15 @@ export {
   type SessionHistory,
 } from './history.js';
 
+// Key Moment Retrieval
+export {
+  KeyMomentRetrieval,
+  getKeyMomentRetrieval,
+  setCurrentSessionMomentsGetter,
+  clearCurrentSessionMomentsGetter,
+  type KeyMomentMatch,
+} from './key-moment-retrieval.js';
+
 // ============================================================================
 // STORE TYPE DETECTION
 // ============================================================================

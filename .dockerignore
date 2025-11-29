@@ -8,6 +8,5 @@ dist
 .gitignore
 .cursor
 reference/
-frontend/
 *.md
 

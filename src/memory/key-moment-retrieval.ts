@@ -3,6 +3,8 @@
  *
  * Surfaces relevant key moments from past conversations
  * to create emotional continuity and build relationship depth.
+ * 
+ * Now integrates with UserLearningEngine to include current session moments.
  */
 
 import type { UserProfile, KeyMoment } from '../types/user-profile.js';
@@ -10,6 +12,24 @@ import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import { log } from '@livekit/agents';
 
 const getLogger = () => log();
+
+// Optional integration with learning engine for current session
+let currentSessionMomentsGetter: (() => KeyMoment[]) | null = null;
+
+/**
+ * Set the function to get current session moments from learning engine
+ * Called by services/index.ts during session setup
+ */
+export function setCurrentSessionMomentsGetter(getter: () => KeyMoment[]): void {
+  currentSessionMomentsGetter = getter;
+}
+
+/**
+ * Clear the getter (on session end)
+ */
+export function clearCurrentSessionMomentsGetter(): void {
+  currentSessionMomentsGetter = null;
+}
 
 // ============================================================================
 // TYPES
@@ -28,6 +48,7 @@ export interface KeyMomentMatch {
 export class KeyMomentRetrieval {
   /**
    * Find relevant key moments based on current context
+   * Now includes current session moments from learning engine
    */
   async findRelevantMoments(
     profile: UserProfile,
@@ -37,13 +58,18 @@ export class KeyMomentRetrieval {
       turnCount: number;
     }
   ): Promise<KeyMomentMatch | null> {
-    if (!profile.keyMoments || profile.keyMoments.length === 0) {
+    // Combine profile moments with current session moments
+    const profileMoments = profile.keyMoments || [];
+    const sessionMoments = currentSessionMomentsGetter ? currentSessionMomentsGetter() : [];
+    const allMoments = [...profileMoments, ...sessionMoments];
+
+    if (allMoments.length === 0) {
       return null;
     }
 
     const matches: KeyMomentMatch[] = [];
 
-    for (const moment of profile.keyMoments) {
+    for (const moment of allMoments) {
       const score = this.calculateRelevance(moment, context);
       if (score > 0.3) {
         matches.push({
@@ -64,6 +90,7 @@ export class KeyMomentRetrieval {
       type: topMatch.moment.type,
       score: topMatch.relevanceScore,
       reason: topMatch.reason,
+      source: sessionMoments.includes(topMatch.moment) ? 'current_session' : 'profile',
     });
 
     return topMatch;

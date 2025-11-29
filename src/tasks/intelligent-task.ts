@@ -134,6 +134,14 @@ export abstract class IntelligentTask<TResult> extends AgentTask<TResult> {
       if (analysis.emotion.distressLevel > this._emotionThreshold && !this._inSupportMode) {
         this._inSupportMode = true;
         getLogger().info('IntelligentTask: Entering support mode due to distress');
+        
+        // Capture this significant moment in the learning engine
+        this._context.services.captureInsight(
+          'emotional_pattern',
+          'distress_during_task',
+          { taskType: this.constructor.name, distressLevel: analysis.emotion.distressLevel },
+          0.8
+        );
       }
 
       return analysis;
@@ -143,11 +151,25 @@ export abstract class IntelligentTask<TResult> extends AgentTask<TResult> {
 
   /**
    * Remember something important about the user
+   * Now actually captures to the learning engine
    */
   protected async remember(fact: string, category: string): Promise<void> {
-    if (this._context.services?.userProfile) {
+    if (this._context.services) {
       getLogger().info(`Remembering: [${category}] ${fact}`);
-      // This will be saved at session end
+      
+      // Map category to learning insight type
+      const typeMap: Record<string, string> = {
+        'personal': 'preference',
+        'family': 'relationship',
+        'goal': 'goal',
+        'concern': 'concern',
+        'topic': 'topic_interest',
+        'emotion': 'emotional_pattern',
+        'communication': 'communication_style',
+      };
+      
+      const insightType = typeMap[category.toLowerCase()] || 'preference';
+      this._context.services.captureInsight(insightType, `task_${category}`, fact, 0.7);
     }
   }
 

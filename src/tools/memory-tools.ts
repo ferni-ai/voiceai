@@ -52,16 +52,28 @@ export function createMemoryTools() {
 
         const userData = ctx.userData as UserData;
 
-        // Store in keyMoments for this session
+        // Store in keyMoments for this session (for awareness tools)
         if (!userData.keyMoments) {
           userData.keyMoments = [];
         }
         userData.keyMoments.push(`[${category}] ${fact}`);
 
-        // If services available, persist to user profile
+        // Feed to learning engine for persistence
         const services = userData.services;
-        if (services?.userProfile) {
-          getLogger().info('Will persist to user profile at session end');
+        if (services?.captureInsight) {
+          // Map category to insight type
+          const typeMap: Record<string, string> = {
+            personal: 'relationship',
+            financial: 'concern',
+            emotional: 'emotional_pattern',
+            goal: 'goal',
+            preference: 'preference',
+          };
+          const insightType = typeMap[category] || 'preference';
+          const confidence = importance === 'high' ? 0.9 : importance === 'medium' ? 0.7 : 0.5;
+          
+          services.captureInsight(insightType, `explicit_memory_${category}`, fact, confidence);
+          getLogger().info('Fact captured to learning engine for persistence');
         }
 
         const acknowledgments = [
@@ -170,15 +182,31 @@ export function createMemoryTools() {
         const userData = ctx.userData as UserData;
         const services = userData.services;
 
-        // Store in session
+        // Store in session for awareness tools
         if (!userData.keyMoments) {
           userData.keyMoments = [];
         }
         userData.keyMoments.push(`[${type}/${emotionalWeight}] ${fact}`);
 
-        // If we have services, this will be persisted at session end
-        if (services?.userProfile) {
-          getLogger().info('Important fact will be persisted to profile');
+        // Capture as key moment to learning engine for ACTUAL persistence
+        if (services?.learningEngine) {
+          const keyMomentType = type === 'life_event' ? 'milestone' : 
+                                type === 'decision' ? 'decision' :
+                                type === 'breakthrough' ? 'breakthrough' :
+                                type === 'milestone' ? 'celebration' : 'concern';
+          
+          services.learningEngine.captureExternalKeyMoment({
+            id: `explicit_${Date.now()}`,
+            timestamp: new Date(),
+            type: keyMomentType as 'breakthrough' | 'milestone' | 'concern' | 'celebration' | 'decision' | 'shared_vulnerability',
+            summary: fact,
+            emotionalWeight: emotionalWeight as 'light' | 'medium' | 'heavy',
+            topics: userData.topics || [],
+          });
+          getLogger().info('Important fact captured as key moment for persistence');
+        } else if (services?.captureInsight) {
+          // Fallback to insight capture
+          services.captureInsight('emotional_pattern', `key_${type}`, fact, emotionalWeight === 'heavy' ? 0.9 : 0.7);
         }
 
         const responses: Record<string, string[]> = {

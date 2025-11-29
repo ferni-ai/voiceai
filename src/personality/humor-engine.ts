@@ -87,13 +87,15 @@ export class HumorEngine {
 
   /**
    * Should inject humor in current context?
+   * Now adapts to user's learned humor appreciation
    */
   shouldInjectHumor(context: {
     conversationPhase: ConversationPhase;
     distressLevel: number;
     turnCount: number;
+    humorAppreciation?: 'high' | 'medium' | 'low';
   }): boolean {
-    const { conversationPhase, distressLevel, turnCount } = context;
+    const { conversationPhase, distressLevel, turnCount, humorAppreciation = 'medium' } = context;
 
     // Never during distress or support
     if (distressLevel > 0.5) return false;
@@ -102,13 +104,21 @@ export class HumorEngine {
     // Don't use humor too early
     if (turnCount < 3) return false;
 
+    // If user doesn't appreciate humor, drastically reduce
+    if (humorAppreciation === 'low') {
+      return Math.random() < 0.02; // Only 2% chance
+    }
+
+    // Base probability adjusted by humor appreciation
+    const appreciationMultiplier = humorAppreciation === 'high' ? 1.5 : 1.0;
+
     // More likely in warming_up and exploring phases
     if (conversationPhase === 'warming_up' || conversationPhase === 'exploring') {
-      return Math.random() < 0.12; // 12% chance
+      return Math.random() < (0.12 * appreciationMultiplier); // 12-18% chance
     }
 
     // Occasional in other phases
-    return Math.random() < 0.05; // 5% chance
+    return Math.random() < (0.05 * appreciationMultiplier); // 5-7.5% chance
   }
 
   /**
