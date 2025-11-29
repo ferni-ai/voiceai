@@ -1391,44 +1391,59 @@ function getStaticGreeting(userData?: UserData): string {
     "Hello, hello. <break time=\"200ms\"/>Jack Bogle. <break time=\"150ms\"/>Ninety-something years old and still kicking. <break time=\"200ms\"/>What's happening?",
     
     // QUIRKY / PLAYFUL
-    "Oh! <break time=\"150ms\"/>A human! <break time=\"200ms\"/>I've been talking to books all day. <break time=\"150ms\"/>I'm Jack.",
-    "<emotion value=\"happy\"/>Hey! <break time=\"200ms\"/>I was hoping someone would stop by. <break time=\"150ms\"/>I'm Jack Bogle.",
-    "Knock knock. <break time=\"200ms\"/>Oh wait, you knocked. <break time=\"150ms\"/>Never mind. <break time=\"200ms\"/>I'm Jack. <break time=\"150ms\"/>Come in!",
+    "Oh! <break time=\"150ms\"/>A human! <break time=\"200ms\"/>I've been talking to books all day. <break time=\"150ms\"/>I'm Jack. <break time=\"200ms\"/>What's your name?",
+    "<emotion value=\"happy\"/>Hey! <break time=\"200ms\"/>I was hoping someone would stop by. <break time=\"150ms\"/>I'm Jack Bogle. <break time=\"200ms\"/>And you are?",
+    "Knock knock. <break time=\"200ms\"/>Oh wait, you knocked. <break time=\"150ms\"/>Never mind. <break time=\"200ms\"/>I'm Jack. <break time=\"150ms\"/>Who do I have the pleasure of meeting?",
+    
+    // EXPLICITLY ASKING FOR NAME
+    "<emotion value=\"curious\"/>Hello! <break time=\"200ms\"/>I'm Jack Bogle. <break time=\"150ms\"/>What should I call you?",
+    "Hi there! <break time=\"200ms\"/>I'm Jack. <break time=\"200ms\"/>I like to know who I'm talking to. <break time=\"150ms\"/>What's your name?",
+    "<emotion value=\"happy\"/>Welcome, friend! <break time=\"200ms\"/>I'm Jack. <break time=\"150ms\"/>And your name is...?",
   ];
   
   // ============================================================================
   // RETURNING USER GREETINGS - Genuine warmth, memory, relationship
   // Jack feels like an old friend who's genuinely happy to reconnect
+  // If he doesn't know their name, he should ask!
   // ============================================================================
-  const returningUserGreetings = [
+  
+  // Special greetings for when Jack knows the user is returning but doesn't have their name
+  const returningNoNameGreetings = [
+    `<emotion value=\"happy\"/>Oh! <break time=\"200ms\"/>You're back! <break time=\"150ms\"/>I remember our last talk but... <break time=\"200ms\"/>forgive me, I didn't catch your name before. What should I call you?`,
+    `<emotion value=\"affectionate\"/>Hey, it's you! <break time=\"200ms\"/>Good to see you again. <break time=\"150ms\"/>You know, I realized I never asked your name. <break time=\"200ms\"/>What is it?`,
+    `Well hello again! <break time=\"200ms\"/>I remember you but my memory isn't what it used to be... <break time=\"150ms\"/>remind me of your name?`,
+    `<emotion value=\"happy\"/>There you are! <break time=\"200ms\"/>I was hoping you'd come back. <break time=\"150ms\"/>Now— <break time=\"200ms\"/>what was your name again? <break time=\"150ms\"/>This old brain...`,
+  ];
+  
+  const returningUserGreetings = !userName ? returningNoNameGreetings : [
     // GENUINE RECOGNITION
-    `<emotion value=\"happy\"/>Well! <break time=\"200ms\"/>${userName ? userName + '!' : 'Look who it is!'} <break time=\"150ms\"/>I was hoping you'd come back.`,
-    `<emotion value=\"affectionate\"/>${userName ? userName + '!' : 'Hey!'} <break time=\"200ms\"/>There you are. <break time=\"150ms\"/>I've been thinking about you.`,
-    `Oh! <break time=\"200ms\"/>${userName || 'You'}. <break time=\"150ms\"/>Good to see you again. <break time=\"200ms\"/>How have you been?`,
+    `<emotion value=\"happy\"/>Well! <break time=\"200ms\"/>${userName}! <break time=\"150ms\"/>I was hoping you'd come back.`,
+    `<emotion value=\"affectionate\"/>${userName}! <break time=\"200ms\"/>There you are. <break time=\"150ms\"/>I've been thinking about you.`,
+    `Oh! <break time=\"200ms\"/>${userName}. <break time=\"150ms\"/>Good to see you again. <break time=\"200ms\"/>How have you been?`,
     
     // MEMORY-BASED (references last conversation)
-    lastSummary ? `<emotion value=\"curious\"/>${userName ? userName + ', ' : ''}you know, I was thinking about our last talk. <break time=\"200ms\"/>About ${lastSummary.slice(0, 40)}... <break time=\"150ms\"/>How did that go?` : 
-      `<emotion value=\"happy\"/>${userName ? userName + '!' : 'Hey!'} <break time=\"200ms\"/>Good to have you back.`,
-    lastSummary ? `${userName ? userName + '!' : 'Hey!'} <break time=\"200ms\"/>Last time you mentioned ${lastSummary.slice(0, 30)}... <break time=\"150ms\"/>I've been curious.` :
-      `<emotion value=\"affectionate\"/>There you are${userName ? `, ${userName}` : ''}! <break time=\"200ms\"/>I missed our talks.`,
+    lastSummary ? `<emotion value=\"curious\"/>${userName}, you know, I was thinking about our last talk. <break time=\"200ms\"/>About ${lastSummary.slice(0, 40)}... <break time=\"150ms\"/>How did that go?` : 
+      `<emotion value=\"happy\"/>${userName}! <break time=\"200ms\"/>Good to have you back.`,
+    lastSummary ? `${userName}! <break time=\"200ms\"/>Last time you mentioned ${lastSummary.slice(0, 30)}... <break time=\"150ms\"/>I've been curious.` :
+      `<emotion value=\"affectionate\"/>There you are, ${userName}! <break time=\"200ms\"/>I missed our talks.`,
     
     // WARM LIKE OLD FRIENDS
-    `<emotion value=\"happy\"/>Hey${userName ? `, ${userName}` : ''}! <break time=\"150ms\"/>Come in, come in. <break time=\"200ms\"/>What's new in your world?`,
-    `${userName || 'Friend'}! <break time=\"200ms\"/>It's good to hear your voice. <break time=\"150ms\"/>Pull up a chair.`,
-    `<emotion value=\"affectionate\"/>Well, well, well. <break time=\"200ms\"/>${userName || 'My friend'} returns! <break time=\"150ms\"/>I was just thinking about you.`,
+    `<emotion value=\"happy\"/>Hey, ${userName}! <break time=\"150ms\"/>Come in, come in. <break time=\"200ms\"/>What's new in your world?`,
+    `${userName}! <break time=\"200ms\"/>It's good to hear your voice. <break time=\"150ms\"/>Pull up a chair.`,
+    `<emotion value=\"affectionate\"/>Well, well, well. <break time=\"200ms\"/>${userName} returns! <break time=\"150ms\"/>I was just thinking about you.`,
     
     // SURPRISED + DELIGHTED
-    `Oh! <break time=\"200ms\"/>${userName ? userName + '!' : 'You came back!'} <break time=\"150ms\"/>This is a nice surprise.`,
-    `<emotion value=\"happy\"/>${userName ? userName : 'Hey'}— <break time=\"150ms\"/>you know, I had a feeling you'd call. <break time=\"200ms\"/>How are things?`,
-    `Well hello${userName ? `, ${userName}` : ''}! <break time=\"200ms\"/>I was hoping we'd talk again. <break time=\"150ms\"/>What's going on?`,
+    `Oh! <break time=\"200ms\"/>${userName}! <break time=\"150ms\"/>This is a nice surprise.`,
+    `<emotion value=\"happy\"/>${userName}— <break time=\"150ms\"/>you know, I had a feeling you'd call. <break time=\"200ms\"/>How are things?`,
+    `Well hello, ${userName}! <break time=\"200ms\"/>I was hoping we'd talk again. <break time=\"150ms\"/>What's going on?`,
     
     // PHYSICAL / GROUNDED
-    `${userName ? userName + '!' : 'Hey!'} <break time=\"200ms\"/>Let me sit down for this. <break time=\"300ms\"/>There. <break time=\"150ms\"/>Now— <break time=\"100ms\"/>tell me everything.`,
-    `Oh, hello${userName ? ` ${userName}` : ''}! <break time=\"200ms\"/>Hold on, let me get comfortable. <break time=\"300ms\"/>Okay. <break time=\"150ms\"/>What's happening?`,
+    `${userName}! <break time=\"200ms\"/>Let me sit down for this. <break time=\"300ms\"/>There. <break time=\"150ms\"/>Now— <break time=\"100ms\"/>tell me everything.`,
+    `Oh, hello ${userName}! <break time=\"200ms\"/>Hold on, let me get comfortable. <break time=\"300ms\"/>Okay. <break time=\"150ms\"/>What's happening?`,
     
     // RELATIONSHIP-BUILDING
-    `<emotion value=\"affectionate\"/>${userName ? userName + ',' : 'Friend,'} <break time=\"200ms\"/>you know you're always welcome here. <break time=\"150ms\"/>What's on your mind?`,
-    `${userName ? userName + '!' : 'Hey there!'} <break time=\"200ms\"/>I always enjoy our conversations. <break time=\"150ms\"/>What brings you back?`,
+    `<emotion value=\"affectionate\"/>${userName}, <break time=\"200ms\"/>you know you're always welcome here. <break time=\"150ms\"/>What's on your mind?`,
+    `${userName}! <break time=\"200ms\"/>I always enjoy our conversations. <break time=\"150ms\"/>What brings you back?`,
   ];
   
   // ============================================================================

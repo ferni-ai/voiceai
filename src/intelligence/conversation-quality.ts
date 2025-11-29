@@ -225,7 +225,7 @@ function buildRelationshipNotes(
 // ============================================================================
 
 export interface SmallDetail {
-  type: 'person_name' | 'pet_name' | 'place' | 'company' | 'date' | 'amount' | 'other';
+  type: 'user_name' | 'person_name' | 'pet_name' | 'place' | 'company' | 'date' | 'amount' | 'other';
   value: string;
   context: string;
   extractedAt: Date;
@@ -237,6 +237,40 @@ export interface SmallDetail {
 export function extractSmallDetails(text: string): SmallDetail[] {
   const details: SmallDetail[] = [];
   const now = new Date();
+  
+  // USER'S OWN NAME - "My name is Seth", "I'm Seth", "Call me Seth"
+  const userNamePatterns = [
+    /my name(?:'s| is)\s+([A-Z][a-z]+)/gi,           // "my name is Seth", "my name's Seth"
+    /(?:^|\s)I'm\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "I'm Seth" (not "I'm happy")
+    /call me\s+([A-Z][a-z]+)/gi,                      // "call me Seth"
+    /(?:^|\s)(?:I am|name's)\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "I am Seth"
+    /^([A-Z][a-z]+)\s+here(?:\s|,|\.|\!|$)/gi,       // "Seth here"
+    /this is\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi,     // "this is Seth"
+    /(?:^|\s)it's\s+([A-Z][a-z]+)(?:\s|,|\.|\!|$)/gi, // "it's Seth" (intro style)
+  ];
+  
+  // Filter out common words that aren't names
+  const notNames = new Set([
+    'Good', 'Fine', 'Great', 'Happy', 'Sad', 'Worried', 'Excited', 'Tired',
+    'Sorry', 'Sure', 'Thanks', 'Hello', 'Hey', 'Hi', 'Well', 'Just', 'Really',
+    'Going', 'Looking', 'Thinking', 'Wondering', 'Calling', 'Speaking', 'Here',
+    'Ready', 'Done', 'Back', 'New', 'Young', 'Old', 'Busy', 'Free',
+  ]);
+  
+  for (const pattern of userNamePatterns) {
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      const name = match[1];
+      if (name && !notNames.has(name) && name.length >= 2 && name.length <= 15) {
+        details.push({
+          type: 'user_name',
+          value: name,
+          context: match[0].trim(),
+          extractedAt: now,
+        });
+      }
+    }
+  }
   
   // Pet names - "my dog Max", "my cat Luna"
   const petPatterns = [

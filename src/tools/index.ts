@@ -108,6 +108,18 @@ export { createCommunicationTools } from './communication.js';
 
 // Banking domain (Plaid)
 export { createPlaidTools } from './plaid.js';
+export { 
+  storeAccessToken, 
+  getStoredAccessToken, 
+  hasLinkedAccounts, 
+  getTokenData, 
+  removeAccessToken 
+} from './plaid-store.js';
+
+// Agent domain
+export { createHandoffTools } from './handoff.js';
+export { createTelephonyTools } from './telephony.js';
+export { createPeterLynchTools } from './peter-lynch-tools.js';
 
 // ============================================================================
 // COMBINED TOOLS
@@ -146,6 +158,14 @@ export function createAllTools() {
   // Banking domain (Plaid)
   const plaid = createPlaidTools();
 
+  // Communication domain
+  const communication = createCommunicationTools();
+
+  // Agent domain
+  const handoff = createHandoffTools();
+  const telephony = createTelephonyTools();
+  const peterLynch = createPeterLynchTools();
+
   const allTools = {
     // === FINANCIAL ===
     ...marketData, // getStockQuote, getMarketSummary, getCurrentDateTime
@@ -172,11 +192,19 @@ export function createAllTools() {
     ...awareness, // detectConversationDrift, suggestRelevantTopic, assessEmotionalState, suggestCircleBack, getConversationSummary, identifyUserNeeds
 
     // === BANKING (PLAID) ===
-    ...plaid, // linkBankAccount, getAccountBalances, getSpendingAnalysis, getRecentTransactions, checkFinancialHealth
+    ...plaid, // checkBankLinkStatus, linkBankAccount, unlinkBankAccount, getAccountBalances, getSpendingAnalysis, getRecentTransactions, checkFinancialHealth
+
+    // === COMMUNICATION ===
+    ...communication, // sendEmail, sendSMS, scheduleReminder, scheduleEvent
+
+    // === AGENT ===
+    ...handoff, // handoffToPeter, handoffToJack
+    ...telephony, // callUser, scheduleCallback
+    ...peterLynch, // analyzeStock, findStockCategory, calculatePEGRatio, findTenBaggers, explainStockCategory
   };
 
   const toolCount = Object.keys(allTools).length;
-  getLogger().info(`Created ${toolCount} tools across 17 domains`);
+  getLogger().info(`Created ${toolCount} tools across 20 domains`);
 
   return allTools;
 }
@@ -289,6 +317,31 @@ export function getToolCategories() {
       'getRecentTransactions',
       'checkFinancialHealth',
     ],
+
+    // Communication
+    communication: [
+      'sendEmail',
+      'sendSMS',
+      'scheduleReminder',
+      'scheduleEvent',
+    ],
+
+    // Agent
+    handoff: [
+      'handoffToPeter',
+      'handoffToJack',
+    ],
+    telephony: [
+      'callUser',
+      'scheduleCallback',
+    ],
+    peterLynch: [
+      'analyzeStock',
+      'findStockCategory',
+      'calculatePEGRatio',
+      'findTenBaggers',
+      'explainStockCategory',
+    ],
   };
 }
 
@@ -346,6 +399,28 @@ export function getToolDocumentation(): string {
   // Banking (Plaid)
   const bankingCategories = ['plaid'];
   for (const cat of bankingCategories) {
+    const tools = categories[cat as keyof typeof categories];
+    sections.push(`### ${cat} (${tools.length})`);
+    sections.push(tools.map((t) => `- ${t}`).join('\n'));
+    sections.push('');
+  }
+
+  sections.push('## Communication Domain', '');
+
+  // Communication
+  const commCategories = ['communication'];
+  for (const cat of commCategories) {
+    const tools = categories[cat as keyof typeof categories];
+    sections.push(`### ${cat} (${tools.length})`);
+    sections.push(tools.map((t) => `- ${t}`).join('\n'));
+    sections.push('');
+  }
+
+  sections.push('## Agent Domain', '');
+
+  // Agent (Handoff, Telephony, Peter Lynch)
+  const agentCategories = ['handoff', 'telephony', 'peterLynch'];
+  for (const cat of agentCategories) {
     const tools = categories[cat as keyof typeof categories];
     sections.push(`### ${cat} (${tools.length})`);
     sections.push(tools.map((t) => `- ${t}`).join('\n'));

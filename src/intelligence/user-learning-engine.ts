@@ -118,6 +118,13 @@ export class UserLearningEngine {
     // 1. Extract small details (names, places, amounts)
     const details = extractSmallDetails(message);
     this.sessionSmallDetails.push(...details);
+    
+    // 1b. If we found the user's name, save it to their profile!
+    const userNameDetail = details.find(d => d.type === 'user_name');
+    if (userNameDetail && profile && !profile.name) {
+      profile.name = userNameDetail.value;
+      getLogger().info({ name: userNameDetail.value, context: userNameDetail.context }, '🎉 Learned user name!');
+    }
 
     // 2. Track emotional patterns
     if (analysis.emotion.intensity > 0.5) {
