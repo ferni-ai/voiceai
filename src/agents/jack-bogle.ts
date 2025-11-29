@@ -91,6 +91,15 @@ import { getHumorEngine } from '../personality/humor-engine.js';
 // Import organized tools modules - using essential tools for LLM performance
 import { createEssentialTools } from '../tools/index.js';
 
+// Voice Manager for Jack/Peter voice switching
+import { getVoiceManager, VOICES } from '../speech/voice-manager.js';
+
+// Peter Lynch persona for handoff
+import { PETER_LYNCH_PERSONA } from './peter-lynch.js';
+
+// Handoff events for voice switching
+import { handoffEvents, getCurrentAgent } from '../tools/handoff.js';
+
 // Audio prosody analysis for voice emotion detection
 import { getAudioProsodyAnalyzer, type VoiceEmotionResult } from '../speech/audio-prosody.js';
 
@@ -3525,9 +3534,14 @@ export default defineAgent({
     console.log('Creating voice.AgentSession with:');
     console.log('  - VAD: Silero');
     console.log('  - LLM: Gemini 2.0 Flash');
-    console.log('  - TTS: Cartesia sonic-3');
+    console.log('  - TTS: Cartesia sonic-3 (with voice switching)');
     console.log('  - Google API Key present:', !!process.env.GOOGLE_API_KEY);
     console.log('  - Cartesia API Key present:', !!process.env.CARTESIA_API_KEY);
+    
+    // Initialize voice manager for Jack/Peter switching
+    const voiceManager = getVoiceManager();
+    voiceManager.initialize();
+    console.log('  - Voice Manager: initialized (Jack + Peter voices)');
     
     const sessionStartTime = Date.now();
     const session = new voice.AgentSession({
@@ -3541,11 +3555,14 @@ export default defineAgent({
         // Enable server-side turn detection for better transcription
         // Note: This may affect onUserTurnCompleted timing
       }),
-      tts: new cartesia.TTS({
-        model: 'sonic-3',
-        voice: '9c10dc48-8799-42f9-a72a-0c7dfe13a06d', // John Bogle voice
-      }),
+      tts: voiceManager.getCurrentTTS(), // Use voice manager's TTS for Jack
       userData,
+    });
+    
+    // Listen for voice switch events to log (full TTS swap requires session restart)
+    handoffEvents.on('voiceSwitch', (data: { newAgent: 'jack' | 'peter'; voiceId: string }) => {
+      console.log(`\n🎤 [VOICE SWITCH] Now speaking as: ${data.newAgent === 'peter' ? 'Peter Lynch' : 'Jack Bogle'}`);
+      logger.info({ newAgent: data.newAgent, voiceId: data.voiceId }, 'Voice switch - persona changed');
     });
     console.log(`AgentSession created in ${Date.now() - sessionStartTime}ms`);
     console.log('--- STEP 5 COMPLETE ---');

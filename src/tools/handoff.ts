@@ -13,7 +13,13 @@ import {
   JACK_TO_PETER_HANDOFF, 
   PETER_TO_JACK_HANDOFF,
   PETER_LYNCH_GREETING,
+  PETER_LYNCH_VOICE_ID,
+  JACK_BOGLE_VOICE_ID,
 } from '../agents/peter-lynch.js';
+import { EventEmitter } from 'events';
+
+// Global event emitter for agent handoff events
+export const handoffEvents = new EventEmitter();
 
 const getLogger = () => log();
 
@@ -159,10 +165,18 @@ Use this when someone asks about stock picking - Jack should graciously (if relu
         
         console.log(`\n🔄 [HANDOFF] Jack → Peter: "${reason}"`);
         
+        // Emit event for voice switch
+        handoffEvents.emit('voiceSwitch', {
+          newAgent: 'peter',
+          voiceId: PETER_LYNCH_VOICE_ID,
+          greeting,
+        });
+        
         return {
           handoffMessage: handoffPhrase,
           newAgentGreeting: greeting,
           newAgent: 'peter',
+          voiceId: PETER_LYNCH_VOICE_ID,
           instructions: 'You are now Peter Lynch. Respond with enthusiasm about stock picking!',
         };
       },
@@ -189,9 +203,16 @@ Use this when someone asks about index funds or passive investing while talking 
         
         console.log(`\n🔄 [HANDOFF] Peter → Jack: "${reason}"`);
         
+        // Emit event for voice switch
+        handoffEvents.emit('voiceSwitch', {
+          newAgent: 'jack',
+          voiceId: JACK_BOGLE_VOICE_ID,
+        });
+        
         return {
           handoffMessage: handoffPhrase,
           newAgent: 'jack',
+          voiceId: JACK_BOGLE_VOICE_ID,
           instructions: 'You are now Jack Bogle. Respond with your usual wisdom about staying the course!',
         };
       },

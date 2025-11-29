@@ -110,5 +110,30 @@ export const PETER_TO_JACK_HANDOFF = [
   "Fair enough - if you want to own <emphasis>everything</emphasis> instead of finding winners, that's Jack's world.",
 ];
 
+// ============================================================================
+// PETER LYNCH VOICE CONFIGURATION
+// ============================================================================
+
+/**
+ * Peter Lynch Voice ID for Cartesia TTS
+ * 
+ * Characteristics we want:
+ * - Energetic, animated
+ * - Slightly higher pitch than Jack
+ * - Boston-ish accent if possible
+ * - Enthusiastic, storyteller quality
+ * 
+ * Good Cartesia options:
+ * - "79a125e8-cd45-4c13-8a67-188112f4dd22" - Marcus (energetic male)
+ * - "a0e99841-438c-4a64-b679-ae501e7d6091" - Barbershop Man (conversational)
+ * - "bd9120b6-7761-47a6-a446-77ca49132781" - Midwestern Man (friendly)
+ */
+export const PETER_LYNCH_VOICE_ID = '79a125e8-cd45-4c13-8a67-188112f4dd22'; // Marcus - energetic
+
+/**
+ * Jack Bogle Voice ID (for reference/switching back)
+ */
+export const JACK_BOGLE_VOICE_ID = '9c10dc48-8799-42f9-a72a-0c7dfe13a06d';
+
 export default PETER_LYNCH_PERSONA;
 
