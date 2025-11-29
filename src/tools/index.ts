@@ -73,6 +73,9 @@ import { createTelephonyTools } from './telephony.js';
 // Peter Lynch's stock picking tools
 import { createPeterLynchTools } from './peter-lynch-tools.js';
 
+// Spotify music integration
+import { createSpotifyTools } from './spotify.js';
+
 const getLogger = () => log();
 
 // ============================================================================
@@ -470,6 +473,9 @@ export function createEssentialTools() {
   // Peter Lynch's stock picking tools (for when Peter takes over!)
   const peterLynch = createPeterLynchTools();
 
+  // Spotify music integration
+  const spotify = createSpotifyTools();
+
   // Consolidated information tools (created inline for simplicity)
   const consolidatedNews = createConsolidatedNewseTool();
   const consolidatedSports = createConsolidatedSportsTool();
@@ -522,6 +528,9 @@ export function createEssentialTools() {
 
     // === PETER LYNCH (5 tools) - Stock picking when Peter takes over ===
     ...peterLynch,
+
+    // === SPOTIFY (8 tools) - Music playback and control ===
+    ...spotify,
   };
 
   const toolCount = Object.keys(essentialTools).length;
