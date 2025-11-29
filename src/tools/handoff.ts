@@ -22,6 +22,20 @@ import { EventEmitter } from 'events';
 // Global event emitter for agent handoff events
 export const handoffEvents = new EventEmitter();
 
+// ============================================================================
+// HANDOFF SOUND EFFECTS
+// ============================================================================
+
+/**
+ * Sound effects for handoff transitions
+ * These can be played by the frontend when it receives the handoff event
+ */
+export const HANDOFF_SOUNDS = {
+  jackToPeter: 'handoff-to-peter.mp3', // Upbeat, energetic transition
+  peterToJack: 'handoff-to-jack.mp3', // Calm, settling transition
+  dramatic: 'dramatic-transition.mp3', // WWE-style entrance music (joke option)
+};
+
 const getLogger = () => log();
 
 // Track current active agent
@@ -183,11 +197,18 @@ Use this when someone asks about stock picking - Jack should graciously (if relu
           }, 0.7);
         }
         
-        // Emit event for voice switch
+        // Emit event for voice switch AND sound effect
         handoffEvents.emit('voiceSwitch', {
           newAgent: 'peter',
           voiceId: PETER_LYNCH_VOICE_ID,
           greeting: peterTakeover,
+          playSound: HANDOFF_SOUNDS.jackToPeter,
+        });
+        
+        // Also emit a separate sound event for easier frontend handling
+        handoffEvents.emit('playSound', {
+          sound: 'handoff',
+          direction: 'jack-to-peter',
         });
         
         return {
@@ -220,18 +241,26 @@ Use this when someone asks about index funds or passive investing while talking 
         const handoffPhrase = getPeterToJackHandoff();
         
         console.log(`\n🔄 [HANDOFF] Peter → Jack: "${reason}"`);
+        console.log(`🎭 Peter's exit: "${handoffPhrase.replace(/<[^>]*>/g, '').slice(0, 60)}..."`);
         
-        // Emit event for voice switch
+        // Emit event for voice switch AND sound effect
         handoffEvents.emit('voiceSwitch', {
           newAgent: 'jack',
           voiceId: JACK_BOGLE_VOICE_ID,
+          playSound: HANDOFF_SOUNDS.peterToJack,
+        });
+        
+        // Also emit a separate sound event
+        handoffEvents.emit('playSound', {
+          sound: 'handoff',
+          direction: 'peter-to-jack',
         });
         
         return {
           handoffMessage: handoffPhrase,
           newAgent: 'jack',
           voiceId: JACK_BOGLE_VOICE_ID,
-          instructions: 'You are now Jack Bogle. Respond with your usual wisdom about staying the course!',
+          instructions: `You are now Jack Bogle. Peter just said: "${handoffPhrase.replace(/<[^>]*>/g, '')}" - respond with your usual wisdom about staying the course!`,
         };
       },
     }),

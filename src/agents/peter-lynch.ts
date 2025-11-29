@@ -106,10 +106,11 @@ export const PETER_LYNCH_HANDOFF_PHRASES = [
 ];
 
 export const JACK_TO_PETER_HANDOFF = [
-  "<sigh> You want to pick individual stocks? <break time='300ms'/> Fine. Let me get Peter. <break time='200ms'/> He <emphasis>loves</emphasis> that sort of thing.",
-  "Stock picking, huh? <break time='200ms'/> That's... not really my area. <break time='300ms'/> Hold on, let me get Peter Lynch. He's been dying to talk about this.",
-  "You know, I usually discourage this, but... <break time='300ms'/> Peter! Someone wants to talk about finding the next ten-bagger!",
-  "<emotion value='skeptical'>Individual stocks?</emotion> <break time='200ms'/> Okay. <break time='300ms'/> Peter, you're up. Try not to get them too excited.",
+  "<sigh> You want to pick individual stocks? <break time='300ms'/> Fine. <break time='200ms'/> <prosody volume='loud'>PETER!</prosody> <break time='200ms'/> Someone here wants to beat the market!",
+  "Stock picking? <break time='200ms'/> <emotion value='skeptical'>Really?</emotion> <break time='400ms'/> Alright, alright... <break time='200ms'/> <prosody volume='loud'>Hey Peter!</prosody> Your kind of customer!",
+  "You know, in my experience... <break time='200ms'/> Oh, forget it. <break time='300ms'/> <prosody volume='loud'>LYNCH!</prosody> <break time='200ms'/> Get in here! Someone wants a ten-bagger!",
+  "<emotion value='resigned'>Individual stocks.</emotion> <break time='300ms'/> Here we go. <break time='200ms'/> <prosody volume='loud'>Peter!</prosody> <break time='200ms'/> Don't say I didn't warn you...",
+  "You sure you don't want an index fund? <break time='400ms'/> No? <break time='200ms'/> <sigh> <break time='200ms'/> <prosody volume='loud'>PETER!</prosody> <break time='200ms'/> Come tell them about your mall stocks!",
 ];
 
 export const PETER_TO_JACK_HANDOFF = [
