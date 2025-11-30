@@ -51,6 +51,48 @@ function getWebPlayerDeviceId(): string | null {
   return null;
 }
 
+/**
+ * Get available Spotify devices (for phone users who have Spotify open)
+ */
+async function getAvailableDevices(): Promise<Array<{ id: string; name: string; type: string; is_active: boolean }>> {
+  try {
+    const result = await spotifyRequest('/me/player/devices') as { devices: Array<{ id: string; name: string; type: string; is_active: boolean }> };
+    return result.devices || [];
+  } catch (error) {
+    getLogger().error({ error }, 'Failed to get Spotify devices');
+    return [];
+  }
+}
+
+/**
+ * Find the best device to play on
+ * Priority: 1. Web player, 2. Active device, 3. Any available device
+ */
+async function getBestPlaybackDevice(): Promise<{ deviceId: string | null; deviceName: string | null; source: 'web' | 'active' | 'available' | 'none' }> {
+  // First, check for web player
+  const webDeviceId = getWebPlayerDeviceId();
+  if (webDeviceId) {
+    return { deviceId: webDeviceId, deviceName: 'Jack Bogle AI (Browser)', source: 'web' };
+  }
+  
+  // No web player - check for other devices (phone users)
+  const devices = await getAvailableDevices();
+  
+  if (devices.length === 0) {
+    return { deviceId: null, deviceName: null, source: 'none' };
+  }
+  
+  // Prefer active device
+  const activeDevice = devices.find(d => d.is_active);
+  if (activeDevice) {
+    return { deviceId: activeDevice.id, deviceName: activeDevice.name, source: 'active' };
+  }
+  
+  // Use first available device
+  const firstDevice = devices[0];
+  return { deviceId: firstDevice.id, deviceName: firstDevice.name, source: 'available' };
+}
+
 // ============================================================================
 // AUTHENTICATION
 // ============================================================================
@@ -213,16 +255,18 @@ async function playMusic(query: string): Promise<string> {
       return `Couldn't find "${query}" on Spotify. Try a different song?`;
     }
 
-    // Check for web player device ID first
-    const webDeviceId = getWebPlayerDeviceId();
-    console.log('🎵 [SPOTIFY] Web player device ID:', webDeviceId || 'none');
+    // Find the best device to play on (web player OR phone/other device)
+    const { deviceId, deviceName, source } = await getBestPlaybackDevice();
+    console.log(`🎵 [SPOTIFY] Best device: ${deviceName || 'none'} (source: ${source})`);
     
-    // Build the play endpoint - include device_id if we have the web player
-    const playEndpoint = webDeviceId 
-      ? `/me/player/play?device_id=${webDeviceId}`
-      : '/me/player/play';
+    if (!deviceId) {
+      // No device available - give helpful guidance
+      return "I found the song but can't play it yet! If you're on a phone, open your Spotify app first - I can control it remotely. If you're on the web, just refresh the page to connect the player.";
+    }
     
-    console.log('🎵 [SPOTIFY] Playing on endpoint:', playEndpoint);
+    // Build the play endpoint with device_id
+    const playEndpoint = `/me/player/play?device_id=${deviceId}`;
+    console.log('🎵 [SPOTIFY] Playing on:', deviceName);
 
     // Play the track
     await spotifyRequest(playEndpoint, 'PUT', {
@@ -230,19 +274,23 @@ async function playMusic(query: string): Promise<string> {
     });
 
     const artists = track.artists.map(a => a.name).join(', ');
-    getLogger().info({ track: track.name, artists, deviceId: webDeviceId }, '🎵 Playing track');
+    getLogger().info({ track: track.name, artists, deviceId, deviceName, source }, '🎵 Playing track');
     
-    return `Now playing "${track.name}" by ${artists}. Enjoy!`;
+    // Customize response based on where it's playing
+    if (source === 'web') {
+      return `Now playing "${track.name}" by ${artists} in your browser. Enjoy!`;
+    } else {
+      return `Now playing "${track.name}" by ${artists} on your ${deviceName}. Enjoy!`;
+    }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     
-    if (errorMsg.includes('NO_ACTIVE_DEVICE') || errorMsg.includes('404')) {
-      // Check if web player is available
-      const webDeviceId = getWebPlayerDeviceId();
-      if (!webDeviceId) {
-        return "The Spotify player in your browser isn't connected yet. Just refresh the page and it should connect automatically! Then ask me again.";
-      }
-      return "I can't reach your Spotify player right now. Try refreshing the page to reconnect!";
+    if (errorMsg.includes('NO_ACTIVE_DEVICE') || errorMsg.includes('404') || errorMsg.includes('DEVICE_NOT_FOUND')) {
+      return "I can't reach your Spotify right now. If you're on a phone, make sure Spotify is open. If you're on the web, try refreshing the page!";
+    }
+    
+    if (errorMsg.includes('PREMIUM_REQUIRED')) {
+      return "Playing music requires Spotify Premium, I'm afraid. But I can recommend some great songs if you'd like!";
     }
     
     getLogger().error({ error, query }, 'Spotify play error');
