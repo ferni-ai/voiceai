@@ -16,6 +16,9 @@ import { z } from 'zod';
 
 const getLogger = () => log();
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 // Spotify API credentials
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
@@ -29,6 +32,25 @@ const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 let accessToken: string | null = null;
 let tokenExpiry: number = 0;
 
+// Web player device ID (set by frontend via ui-server)
+let webPlayerDeviceId: string | null = null;
+
+/**
+ * Get the web player device ID from the shared file
+ */
+function getWebPlayerDeviceId(): string | null {
+  try {
+    const deviceFile = path.join(process.cwd(), '.spotify-device.json');
+    if (fs.existsSync(deviceFile)) {
+      const data = JSON.parse(fs.readFileSync(deviceFile, 'utf8'));
+      return data.device_id || null;
+    }
+  } catch {
+    // File doesn't exist or can't be read
+  }
+  return null;
+}
+
 // ============================================================================
 // AUTHENTICATION
 // ============================================================================
@@ -37,15 +59,21 @@ let tokenExpiry: number = 0;
  * Get a fresh access token using the refresh token
  */
 async function getAccessToken(): Promise<string | null> {
+  console.log('🎵 [SPOTIFY] Getting access token...');
+  
   // Return cached token if still valid
   if (accessToken && Date.now() < tokenExpiry - 60000) {
+    console.log('🎵 [SPOTIFY] Using cached token');
     return accessToken;
   }
 
   if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_REFRESH_TOKEN) {
+    console.log('❌ [SPOTIFY] Missing credentials!');
     getLogger().warn('Spotify credentials not configured');
     return null;
   }
+  
+  console.log('🎵 [SPOTIFY] Refreshing token...');
 
   try {
     const response = await fetch(SPOTIFY_TOKEN_URL, {
@@ -169,11 +197,15 @@ async function searchTracks(query: string, limit: number = 5): Promise<string> {
  * Play a track, album, or playlist
  */
 async function playMusic(query: string): Promise<string> {
+  console.log(`\n🎵 [SPOTIFY] playMusic called with: "${query}"`);
+  
   try {
+    console.log('🎵 [SPOTIFY] Searching for track...');
     // First search for the track
     const searchResult = await spotifyRequest(
       `/search?q=${encodeURIComponent(query)}&type=track&limit=1`
     ) as SpotifySearchResult;
+    console.log('🎵 [SPOTIFY] Search result:', searchResult.tracks?.items?.[0]?.name || 'no results');
 
     const track = searchResult.tracks?.items?.[0];
     
@@ -181,24 +213,40 @@ async function playMusic(query: string): Promise<string> {
       return `Couldn't find "${query}" on Spotify. Try a different song?`;
     }
 
+    // Check for web player device ID first
+    const webDeviceId = getWebPlayerDeviceId();
+    console.log('🎵 [SPOTIFY] Web player device ID:', webDeviceId || 'none');
+    
+    // Build the play endpoint - include device_id if we have the web player
+    const playEndpoint = webDeviceId 
+      ? `/me/player/play?device_id=${webDeviceId}`
+      : '/me/player/play';
+    
+    console.log('🎵 [SPOTIFY] Playing on endpoint:', playEndpoint);
+
     // Play the track
-    await spotifyRequest('/me/player/play', 'PUT', {
+    await spotifyRequest(playEndpoint, 'PUT', {
       uris: [track.uri],
     });
 
     const artists = track.artists.map(a => a.name).join(', ');
-    getLogger().info({ track: track.name, artists }, '🎵 Playing track');
+    getLogger().info({ track: track.name, artists, deviceId: webDeviceId }, '🎵 Playing track');
     
-    return `Now playing "${track.name}" by ${artists}. Enjoy! 🎵`;
+    return `Now playing "${track.name}" by ${artists}. Enjoy!`;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     
-    if (errorMsg.includes('NO_ACTIVE_DEVICE')) {
-      return "I can't play music right now - you need to have Spotify open on a device. Open Spotify on your phone or computer and try again!";
+    if (errorMsg.includes('NO_ACTIVE_DEVICE') || errorMsg.includes('404')) {
+      // Check if web player is available
+      const webDeviceId = getWebPlayerDeviceId();
+      if (!webDeviceId) {
+        return "The Spotify player in your browser isn't connected yet. Just refresh the page and it should connect automatically! Then ask me again.";
+      }
+      return "I can't reach your Spotify player right now. Try refreshing the page to reconnect!";
     }
     
     getLogger().error({ error, query }, 'Spotify play error');
-    return "I'm having trouble playing that. Make sure Spotify is open on one of your devices!";
+    return "I'm having trouble playing that. Let me know if you want to try a different song!";
   }
 }
 
@@ -355,16 +403,20 @@ export function createSpotifyTools() {
     playMusic: llm.tool({
       description: `Play a song, artist, or album on the user's Spotify. 
 Examples: "play some jazz", "play Fly Me to the Moon", "play Frank Sinatra"
-Use when user asks to play music or hear a song.`,
+Use when user asks to play music or hear a song. DO NOT read return value aloud.`,
       parameters: z.object({
         query: z.string().describe('Song name, artist, or search query'),
       }),
       execute: async ({ query }) => {
+        console.log(`\n🎵 [SPOTIFY TOOL] playMusic called! query="${query}"`);
         if (!isConfigured) {
-          return "I'd love to play some music, but Spotify isn't connected yet. Ask the team to set up Spotify integration!";
+          console.log('❌ [SPOTIFY TOOL] Not configured!');
+          return "[INTERNAL: Spotify not connected] I'd love to play some music, but my Spotify isn't connected yet.";
         }
         getLogger().info({ query }, '🎵 Playing music');
-        return playMusic(query);
+        const result = await playMusic(query);
+        console.log(`🎵 [SPOTIFY TOOL] Result: ${result}`);
+        return result;
       },
     }),
 

@@ -215,6 +215,20 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Mark that user has talked to Jack (for returning user detection)
             localStorage.setItem('jack_bogle_has_talked', 'true');
+            
+            // Initialize Spotify Web Player (if SDK is loaded)
+            if (typeof Spotify !== 'undefined' && typeof initializeSpotifyPlayer === 'function') {
+                console.log('🎵 Initializing Spotify Web Player...');
+                initializeSpotifyPlayer().then(success => {
+                    if (success) {
+                        console.log('🎵 Spotify Web Player ready - Jack can play music!');
+                    } else {
+                        console.log('🎵 Spotify not available (Premium required or not configured)');
+                    }
+                }).catch(err => {
+                    console.warn('🎵 Spotify init error:', err);
+                });
+            }
 
             // Enable mic (with graceful error handling)
             try {

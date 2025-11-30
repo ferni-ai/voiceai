@@ -25,6 +25,16 @@ const PLAID_BASE_URL = {
   production: 'https://production.plaid.com',
 }[PLAID_ENV] || 'https://sandbox.plaid.com';
 
+// Spotify configuration
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
+const SPOTIFY_REFRESH_TOKEN = process.env.SPOTIFY_REFRESH_TOKEN || '';
+
+// Spotify state - device ID from web player
+let spotifyWebDeviceId = null;
+let spotifyAccessToken = null;
+let spotifyTokenExpiry = 0;
+
 // In-memory token storage (production would use database)
 // This is shared between server and agent via file or Redis
 const plaidAccessTokens = new Map();
@@ -279,6 +289,93 @@ const server = http.createServer((req, res) => {
       linked: !!tokenData,
       institution: tokenData?.institution?.name,
       linked_at: tokenData?.linked_at,
+    }));
+    return;
+  }
+  
+  // ============================================================================
+  // SPOTIFY ROUTES - Web Playback SDK support
+  // ============================================================================
+  
+  // Get Spotify access token for Web Playback SDK
+  if (pathname === '/spotify/token') {
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_REFRESH_TOKEN) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Spotify not configured' }));
+      return;
+    }
+    
+    // Return cached token if still valid
+    if (spotifyAccessToken && Date.now() < spotifyTokenExpiry - 60000) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ access_token: spotifyAccessToken }));
+      return;
+    }
+    
+    // Refresh the token
+    try {
+      const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Basic ' + Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64'),
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: SPOTIFY_REFRESH_TOKEN,
+        }),
+      });
+      
+      if (!tokenResponse.ok) {
+        throw new Error(`Spotify token refresh failed: ${tokenResponse.status}`);
+      }
+      
+      const data = await tokenResponse.json();
+      spotifyAccessToken = data.access_token;
+      spotifyTokenExpiry = Date.now() + (data.expires_in * 1000);
+      
+      console.log('🎵 Spotify access token refreshed');
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ access_token: spotifyAccessToken }));
+    } catch (err) {
+      console.error('❌ Spotify token error:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to get Spotify token' }));
+    }
+    return;
+  }
+  
+  // Register Web Playback SDK device
+  if (pathname === '/spotify/device' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { device_id } = JSON.parse(body);
+        spotifyWebDeviceId = device_id;
+        console.log(`🎵 Spotify Web Player device registered: ${device_id}`);
+        
+        // Write to a file so the agent can read it
+        const deviceFile = path.join(process.cwd(), '.spotify-device.json');
+        fs.writeFileSync(deviceFile, JSON.stringify({ device_id, registered_at: new Date().toISOString() }));
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, device_id }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid request' }));
+      }
+    });
+    return;
+  }
+  
+  // Get current Spotify device (for agent to use)
+  if (pathname === '/spotify/device' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      device_id: spotifyWebDeviceId,
+      has_device: !!spotifyWebDeviceId,
     }));
     return;
   }
