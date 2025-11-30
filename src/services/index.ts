@@ -468,7 +468,8 @@ export async function createSessionServices(
           .join(' | ');
         
         return `From previous conversations: ${snippets}`;
-      } catch {
+      } catch (error) {
+        getLogger().debug({ error, userId }, 'Failed to search past conversations');
         return null;
       }
     },
@@ -689,10 +690,77 @@ export {
   buildSpeechContext,
 };
 
+// ============================================================================
+// SHUTDOWN
+// ============================================================================
+
+/**
+ * Gracefully shut down all services
+ * Call this on process exit to clean up resources
+ */
+export async function shutdownServices(): Promise<void> {
+  getLogger().info('Shutting down services...');
+
+  // Clear active sessions
+  const sessionCount = activeSessions.size;
+  activeSessions.clear();
+  getLogger().info({ sessionCount }, 'Cleared active sessions');
+
+  // Clear context managers
+  try {
+    const { clearAllContextManagers } = await import('../context/context-manager.js');
+    clearAllContextManagers();
+    getLogger().info('Cleared context managers');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error clearing context managers');
+  }
+
+  // Clear history trackers
+  try {
+    const { clearAllHistoryTrackers } = await import('../memory/history.js');
+    clearAllHistoryTrackers();
+    getLogger().info('Cleared history trackers');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error clearing history trackers');
+  }
+
+  // Reset rate limiters
+  try {
+    const { resetAllRateLimiters } = await import('../tools/rate-limiter.js');
+    resetAllRateLimiters();
+    getLogger().info('Reset rate limiters');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error resetting rate limiters');
+  }
+
+  // Shutdown memory system
+  try {
+    const { shutdownMemorySystem } = await import('../memory/index.js');
+    await shutdownMemorySystem();
+  } catch (error) {
+    getLogger().warn({ error }, 'Error shutting down memory system');
+  }
+
+  // Shutdown tools (Spotify, etc.)
+  try {
+    const { shutdownTools } = await import('../tools/index.js');
+    await shutdownTools();
+  } catch (error) {
+    getLogger().warn({ error }, 'Error shutting down tools');
+  }
+
+  // Reset global state
+  globalServices = null;
+  personaIndexed = false;
+
+  getLogger().info('Services shut down complete');
+}
+
 export default {
   initializeServices,
   getGlobalServices,
   createSessionServices,
   getSessionServices,
   getActiveSessionIds,
+  shutdownServices,
 };

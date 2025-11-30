@@ -352,6 +352,87 @@
             50% { transform: scaleY(1.4); }
         }
 
+        /* ============================================
+           MUSIC PLAYING STATE - Spotify vibes!
+           ============================================ */
+        
+        /* Spotify green accent when music plays */
+        .app.music-playing {
+            --music-green: #1ed760;
+            --music-glow: rgba(30, 215, 96, 0.4);
+        }
+        
+        /* Avatar ring pulses green with music */
+        .app.music-playing .avatar-ring {
+            background: conic-gradient(from 0deg, var(--music-green), transparent 50%, var(--music-green));
+            animation: musicRingPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes musicRingPulse {
+            0%, 100% { 
+                transform: scale(1) rotate(0deg);
+                filter: drop-shadow(0 0 8px var(--music-glow));
+            }
+            50% { 
+                transform: scale(1.05) rotate(180deg);
+                filter: drop-shadow(0 0 20px var(--music-glow));
+            }
+        }
+        
+        /* Status indicator glows green */
+        .app.music-playing .status-indicator {
+            background: var(--music-green);
+            box-shadow: 0 0 16px var(--music-glow);
+            animation: musicPulse 0.8s ease-in-out infinite;
+        }
+        
+        @keyframes musicPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 8px var(--music-glow); }
+            50% { transform: scale(1.2); box-shadow: 0 0 20px var(--music-glow); }
+        }
+        
+        /* Waveform dances to the music */
+        .app.music-playing .bar {
+            background: linear-gradient(to top, var(--music-green), #4ade80);
+            animation: musicBounce 0.4s ease-in-out infinite;
+        }
+        
+        .app.music-playing .bar:nth-child(1) { animation-delay: 0s; animation-duration: 0.35s; }
+        .app.music-playing .bar:nth-child(2) { animation-delay: 0.05s; animation-duration: 0.4s; }
+        .app.music-playing .bar:nth-child(3) { animation-delay: 0.1s; animation-duration: 0.45s; }
+        .app.music-playing .bar:nth-child(4) { animation-delay: 0.15s; animation-duration: 0.5s; }
+        .app.music-playing .bar:nth-child(5) { animation-delay: 0.1s; animation-duration: 0.45s; }
+        .app.music-playing .bar:nth-child(6) { animation-delay: 0.05s; animation-duration: 0.4s; }
+        .app.music-playing .bar:nth-child(7) { animation-delay: 0s; animation-duration: 0.35s; }
+        
+        @keyframes musicBounce {
+            0%, 100% { 
+                transform: scaleY(0.3);
+                filter: brightness(1);
+            }
+            25% { 
+                transform: scaleY(1.5);
+                filter: brightness(1.2);
+            }
+            50% { 
+                transform: scaleY(0.6);
+                filter: brightness(1);
+            }
+            75% { 
+                transform: scaleY(1.2);
+                filter: brightness(1.1);
+            }
+        }
+        
+        /* Ambient orbs get Spotify green tint */
+        .app.music-playing .ambient-orb.top {
+            background: radial-gradient(circle, var(--music-glow) 0%, transparent 70%);
+        }
+        
+        .app.music-playing .ambient-orb.bottom {
+            background: radial-gradient(ellipse, rgba(30, 215, 96, 0.15) 0%, transparent 60%);
+        }
+
         /* Message */
         .message {
             margin-top: 28px;
@@ -608,7 +689,7 @@
             window.LiveKit = LivekitClient;
         }
     </script>
-    <script src="spotify-player.js?v=1"></script>
-    <script src="app.js?v=12"></script>
+    <script src="spotify-player.js?v=3"></script>
+    <script src="app.js?v=14"></script>
 </body>
 </html>

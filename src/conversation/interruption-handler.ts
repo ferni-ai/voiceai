@@ -158,13 +158,82 @@ export class InterruptionHandler {
   }
 
   /**
-   * Estimate audio energy from frame
-   * (Simple placeholder - real implementation would analyze samples)
+   * Estimate audio energy from frame using RMS (Root Mean Square)
+   * Returns normalized energy level from 0.0 (silence) to 1.0 (max)
    */
   private estimateEnergy(frame: AudioFrame): number {
-    // In production, analyze frame.data buffer for RMS energy
-    // For now, return moderate energy
-    return 0.6 + Math.random() * 0.3;
+    try {
+      // Get audio data buffer
+      const data = frame.data;
+      if (!data || data.length === 0) {
+        return 0;
+      }
+
+      const samplesPerChannel = frame.samplesPerChannel;
+      const channels = frame.channels || 1;
+      const totalSamples = samplesPerChannel * channels;
+
+      // For 16-bit PCM audio (most common), samples are Int16
+      // Each sample is 2 bytes, values range from -32768 to 32767
+      const bytesPerSample = 2;
+      const numSamples = Math.min(totalSamples, Math.floor(data.length / bytesPerSample));
+
+      if (numSamples === 0) {
+        return 0;
+      }
+
+      // Calculate RMS energy
+      let sumSquares = 0;
+      for (let i = 0; i < numSamples; i++) {
+        const offset = i * bytesPerSample;
+        // Read signed 16-bit little-endian sample
+        const sample = (data[offset + 1] << 8) | data[offset];
+        // Convert to signed value
+        const signedSample = sample > 32767 ? sample - 65536 : sample;
+        // Normalize to -1.0 to 1.0 range
+        const normalized = signedSample / 32768;
+        sumSquares += normalized * normalized;
+      }
+
+      // RMS = sqrt(sum of squares / n)
+      const rms = Math.sqrt(sumSquares / numSamples);
+
+      // RMS typically ranges 0-1, but speech usually peaks around 0.1-0.4
+      // Normalize to make speech register around 0.5-0.8
+      const normalized = Math.min(1.0, rms * 3);
+
+      return normalized;
+    } catch (error) {
+      log().warn({ error }, 'Error estimating audio energy');
+      // Fallback to moderate energy on error
+      return 0.5;
+    }
+  }
+
+  /**
+   * Check if audio level indicates speech (above silence threshold)
+   */
+  isSpeechDetected(frame: AudioFrame, silenceThreshold: number = 0.15): boolean {
+    const energy = this.estimateEnergy(frame);
+    return energy > silenceThreshold;
+  }
+
+  /**
+   * Get detailed energy analysis for debugging/logging
+   */
+  analyzeAudio(frame: AudioFrame): {
+    energy: number;
+    isSpeech: boolean;
+    isLoud: boolean;
+    isSilence: boolean;
+  } {
+    const energy = this.estimateEnergy(frame);
+    return {
+      energy,
+      isSpeech: energy > 0.15,
+      isLoud: energy > 0.6,
+      isSilence: energy < 0.05,
+    };
   }
 }
 

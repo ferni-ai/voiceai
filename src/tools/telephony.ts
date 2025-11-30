@@ -21,7 +21,7 @@ const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 const SIP_TRUNK_ID = process.env.SIP_TRUNK_ID || '';
-const CALLER_ID = process.env.CALLER_ID || '+15551234567';
+const CALLER_ID = process.env.CALLER_ID || ''; // Must be configured in .env
 
 // ============================================================================
 // CALL ANNOUNCEMENT MESSAGES
@@ -100,9 +100,7 @@ async function createOutboundCall(
     
     // Simulate the call for testing
     const announcement = customMessage || getAnnouncement(reason);
-    console.log(`\n📞 [SIMULATED CALL] To: ${e164Number}`);
-    console.log(`   Reason: ${reason}`);
-    console.log(`   Message: ${announcement}`);
+    getLogger().info({ to: e164Number, reason, announcement }, 'Simulated outbound call');
     
     return {
       success: true,
@@ -173,7 +171,7 @@ IMPORTANT: Only use this if the user has given you their phone number.`,
         const result = await createOutboundCall(phoneNumber, reason, customMessage);
         
         if (result.success) {
-          console.log(`\n📞 [CALL INITIATED] ${phoneNumber} - ${reason}`);
+          getLogger().info({ phoneNumber, reason }, 'Call initiated');
         }
         
         return result.message;
@@ -198,10 +196,7 @@ IMPORTANT: Only use this if the user has given you their phone number.`,
         // 2. Store in a database or use Google Cloud Scheduler
         // 3. Trigger the call at the scheduled time
         
-        console.log(`\n📅 [CALLBACK SCHEDULED]`);
-        console.log(`   To: ${phoneNumber}`);
-        console.log(`   When: ${when}`);
-        console.log(`   Reason: ${reason}`);
+        getLogger().info({ phoneNumber, when, reason }, 'Callback scheduled');
         
         return `Got it! I'll give you a call ${when} about ${reason}. Make sure your phone is nearby!`;
       },

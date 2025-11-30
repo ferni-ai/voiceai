@@ -137,7 +137,8 @@ export async function getGeneralNews(): Promise<string> {
             return `Here's what's happening in the world (via ${source.name}): ${headlines.join('. ')}`;
           }
         }
-      } catch {
+      } catch (error) {
+        getLogger().debug({ source: source.name, error }, 'News source failed, trying next');
         continue; // Try next source
       }
     }
@@ -180,7 +181,8 @@ export async function getTechNews(): Promise<string> {
             return `Tech news (via ${source.name}): ${headlines.join('. ')}`;
           }
         }
-      } catch {
+      } catch (error) {
+        getLogger().debug({ source: source.name, error }, 'Tech news source failed, trying next');
         continue;
       }
     }

@@ -11,6 +11,7 @@
 
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
+import { validateStockSymbol } from './validation.js';
 
 const getLogger = () => log();
 const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_API_KEY || 'demo';
@@ -133,7 +134,13 @@ async function getAlphaVantageQuote(symbol: string): Promise<{
  * Get stock quote with fallback between providers
  */
 export async function getStockQuote(symbol: string): Promise<string> {
-  const upperSymbol = symbol.toUpperCase();
+  // Validate stock symbol
+  const symbolValidation = validateStockSymbol(symbol);
+  if (!symbolValidation.valid) {
+    getLogger().warn({ symbol, error: symbolValidation.error }, 'Invalid stock symbol');
+    return `That doesn't look like a valid stock symbol. Try something like AAPL, VTI, or SPY.`;
+  }
+  const upperSymbol = symbolValidation.sanitized as string;
 
   // Try Alpha Vantage first (more detailed), fall back to Yahoo
   let quote = await getAlphaVantageQuote(upperSymbol);
@@ -191,19 +198,29 @@ export async function getMarketOverview(): Promise<string> {
 
 /**
  * Get current market status (open/closed)
+ * Uses America/New_York timezone for accurate market hours
  */
 export function getMarketStatus(): { isOpen: boolean; message: string } {
   const now = new Date();
-  const hour = now.getHours();
-  const day = now.getDay();
+  
+  // Get current time in Eastern timezone
+  const easternTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const hour = easternTime.getHours();
+  const minute = easternTime.getMinutes();
+  const day = easternTime.getDay();
+  
   const isWeekend = day === 0 || day === 6;
-  const isMarketHours = !isWeekend && hour >= 9 && hour < 16;
+  
+  // Market hours: 9:30 AM - 4:00 PM Eastern
+  const afterOpen = hour > 9 || (hour === 9 && minute >= 30);
+  const beforeClose = hour < 16;
+  const isMarketHours = !isWeekend && afterOpen && beforeClose;
 
   if (isWeekend) {
     return { isOpen: false, message: 'Markets are closed for the weekend.' };
   } else if (isMarketHours) {
     return { isOpen: true, message: 'US markets are currently open.' };
-  } else if (hour < 9) {
+  } else if (hour < 9 || (hour === 9 && minute < 30)) {
     return { isOpen: false, message: 'US markets open at 9:30 AM Eastern.' };
   } else {
     return { isOpen: false, message: 'US markets are closed for the day.' };

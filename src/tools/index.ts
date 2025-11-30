@@ -509,7 +509,7 @@ export function createEssentialTools() {
   const spotify = createSpotifyTools();
 
   // Consolidated information tools (created inline for simplicity)
-  const consolidatedNews = createConsolidatedNewseTool();
+  const consolidatedNews = createConsolidatedNewsTool();
   const consolidatedSports = createConsolidatedSportsTool();
   const consolidatedWeather = createConsolidatedWeatherTool();
   const consolidatedSearch = createConsolidatedSearchTool();
@@ -592,7 +592,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: 
   
   const timeoutPromise = new Promise<T>((resolve) => {
     timeoutId = setTimeout(() => {
-      console.log(`⏰ [TIMEOUT] Operation timed out after ${timeoutMs}ms`);
+      getLogger().warn({ timeoutMs }, 'Operation timed out');
       resolve(fallback);
     }, timeoutMs);
   });
@@ -607,7 +607,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: 
   }
 }
 
-function createConsolidatedNewseTool() {
+function createConsolidatedNewsTool() {
   return llm.tool({
     description: `Get news headlines. Handles ALL news types:
 - "financial" or "market": Market and investing news
@@ -620,8 +620,7 @@ Just ask naturally: "What's in the news?", "Any news about Apple?", "Market news
     }),
     execute: async ({ query }: { query: string }) => {
       const startTime = Date.now();
-      console.log(`\n🔧 [TOOL START] getNews("${query}") at ${new Date().toISOString()}`);
-      getLogger().info({ query, startTime }, '>>> TOOL: getNews STARTED');
+      getLogger().info({ query, startTime }, 'TOOL: getNews STARTED');
       
       const q = query.toLowerCase();
       const TOOL_TIMEOUT = 12000; // 12 second max for news tools
@@ -651,13 +650,11 @@ Just ask naturally: "What's in the news?", "Any news about Apple?", "Market news
         const result = await withTimeout(resultPromise, TOOL_TIMEOUT, TIMEOUT_FALLBACK);
         
         const elapsed = Date.now() - startTime;
-        console.log(`✅ [TOOL DONE] getNews("${query}") completed in ${elapsed}ms - ${result.slice(0, 100)}...`);
-        getLogger().info({ query, newsType, elapsed, resultLength: result.length }, '<<< TOOL: getNews COMPLETED');
+        getLogger().info({ query, newsType, elapsed, resultLength: result.length }, 'TOOL: getNews COMPLETED');
         return result;
       } catch (error) {
         const elapsed = Date.now() - startTime;
-        console.log(`❌ [TOOL ERROR] getNews("${query}") failed after ${elapsed}ms: ${error}`);
-        getLogger().error({ query, elapsed, error }, '<<< TOOL: getNews FAILED');
+        getLogger().error({ query, elapsed, error }, 'TOOL: getNews FAILED');
         // Return graceful error instead of throwing
         return "I had some trouble getting the news just now. Maybe we can try again in a moment, or I can help you with something else?";
       }
@@ -682,21 +679,18 @@ Just ask naturally: "How did the Eagles do?", "Phillies score?", "Did the Sixers
     }),
     execute: async ({ team }: { team: string }) => {
       const startTime = Date.now();
-      console.log(`\n🔧 [TOOL START] getSportsScore("${team}") at ${new Date().toISOString()}`);
-      getLogger().info({ team, startTime }, '>>> TOOL: getSportsScore STARTED');
+      getLogger().info({ team, startTime }, 'TOOL: getSportsScore STARTED');
       
       const TIMEOUT_FALLBACK = `I'm having trouble getting the score for the ${team} right now. The sports data might be slow. Want me to try something else?`;
       
       try {
         const result = await withTimeout(getTeamScore(team), 10000, TIMEOUT_FALLBACK);
         const elapsed = Date.now() - startTime;
-        console.log(`✅ [TOOL DONE] getSportsScore("${team}") completed in ${elapsed}ms`);
-        getLogger().info({ team, elapsed }, '<<< TOOL: getSportsScore COMPLETED');
+        getLogger().info({ team, elapsed }, 'TOOL: getSportsScore COMPLETED');
         return result;
       } catch (error) {
         const elapsed = Date.now() - startTime;
-        console.log(`❌ [TOOL ERROR] getSportsScore("${team}") failed after ${elapsed}ms: ${error}`);
-        getLogger().error({ team, elapsed, error }, '<<< TOOL: getSportsScore FAILED');
+        getLogger().error({ team, elapsed, error }, 'TOOL: getSportsScore FAILED');
         return `I had trouble getting scores for the ${team}. Maybe we can try again in a moment?`;
       }
     },
@@ -719,8 +713,7 @@ Just ask naturally: "What's the weather?", "Will it rain tomorrow?", "Weather in
     }),
     execute: async ({ location, forecast }: { location: string; forecast?: boolean }) => {
       const startTime = Date.now();
-      console.log(`\n🔧 [TOOL START] getWeather("${location}", forecast=${forecast}) at ${new Date().toISOString()}`);
-      getLogger().info({ location, forecast, startTime }, '>>> TOOL: getWeather STARTED');
+      getLogger().info({ location, forecast, startTime }, 'TOOL: getWeather STARTED');
       
       const TIMEOUT_FALLBACK = `I'm having trouble reaching the weather service right now. Give me a moment and I can try again, or we can talk about something else.`;
       
@@ -738,13 +731,11 @@ Just ask naturally: "What's the weather?", "Will it rain tomorrow?", "Weather in
         const result = await withTimeout(resultPromise, 10000, TIMEOUT_FALLBACK);
         
         const elapsed = Date.now() - startTime;
-        console.log(`✅ [TOOL DONE] getWeather("${location}") completed in ${elapsed}ms`);
-        getLogger().info({ location, elapsed }, '<<< TOOL: getWeather COMPLETED');
+        getLogger().info({ location, elapsed }, 'TOOL: getWeather COMPLETED');
         return result;
       } catch (error) {
         const elapsed = Date.now() - startTime;
-        console.log(`❌ [TOOL ERROR] getWeather("${location}") failed after ${elapsed}ms: ${error}`);
-        getLogger().error({ location, elapsed, error }, '<<< TOOL: getWeather FAILED');
+        getLogger().error({ location, elapsed, error }, 'TOOL: getWeather FAILED');
         return `I had trouble getting the weather for ${location}. Want to try again in a moment?`;
       }
     },
@@ -767,8 +758,7 @@ Just ask anything you're curious about.`,
     }),
     execute: async ({ query }: { query: string }) => {
       const startTime = Date.now();
-      console.log(`\n🔧 [TOOL START] search("${query}") at ${new Date().toISOString()}`);
-      getLogger().info({ query, startTime }, '>>> TOOL: search STARTED');
+      getLogger().info({ query, startTime }, 'TOOL: search STARTED');
       
       const TIMEOUT_FALLBACK = `I'm having trouble searching for that right now. Let me share what I know from my own experience instead, or we can try again in a moment.`;
       
@@ -791,17 +781,29 @@ Just ask anything you're curious about.`,
         const result = await withTimeout(resultPromise, 10000, TIMEOUT_FALLBACK);
         
         const elapsed = Date.now() - startTime;
-        console.log(`✅ [TOOL DONE] search("${query}") completed in ${elapsed}ms`);
-        getLogger().info({ query, elapsed }, '<<< TOOL: search COMPLETED');
+        getLogger().info({ query, elapsed }, 'TOOL: search COMPLETED');
         return result;
       } catch (error) {
         const elapsed = Date.now() - startTime;
-        console.log(`❌ [TOOL ERROR] search("${query}") failed after ${elapsed}ms: ${error}`);
-        getLogger().error({ query, elapsed, error }, '<<< TOOL: search FAILED');
+        getLogger().error({ query, elapsed, error }, 'TOOL: search FAILED');
         return `I had trouble searching for that. Want me to share what I know from experience instead?`;
       }
     },
   });
+}
+
+/**
+ * Gracefully shut down all tool services
+ */
+export async function shutdownTools(): Promise<void> {
+  try {
+    // Stop Spotify auto-refresh
+    const { shutdownSpotify } = await import('./spotify.js');
+    shutdownSpotify();
+  } catch (error) {
+    getLogger().warn({ error }, 'Error shutting down tools');
+  }
+  getLogger().info('Tool services shut down');
 }
 
 export default {
@@ -809,4 +811,5 @@ export default {
   createEssentialTools,
   getToolCategories,
   getToolDocumentation,
+  shutdownTools,
 };

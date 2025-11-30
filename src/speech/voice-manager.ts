@@ -115,7 +115,7 @@ class VoiceManager {
       voiceId: VOICES[agent].id,
     }, '🎤 Voice switched');
 
-    console.log(`\n🎤 [VOICE SWITCH] ${VOICES[oldVoice].name} → ${VOICES[agent].name}`);
+    getLogger().info({ from: VOICES[oldVoice].name, to: VOICES[agent].name }, 'Voice switched');
   }
 
   /**
@@ -217,7 +217,7 @@ export class DynamicTTS extends tts.TTS {
    */
   synthesize(text: string): tts.ChunkedStream {
     const currentAgent = getCurrentAgent();
-    console.log(`🎤 [TTS] Speaking as ${currentAgent === 'peter' ? 'Peter Lynch' : 'Jack Bogle'}`);
+    getLogger().debug({ agent: currentAgent === 'peter' ? 'Peter Lynch' : 'Jack Bogle' }, 'TTS speaking');
     
     return this.getCurrentTTS().synthesize(text);
   }

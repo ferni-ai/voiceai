@@ -349,6 +349,7 @@ interface UserProfileWithLinks extends UserProfile {
 
 /**
  * Find profile by phone number
+ * Searches direct phone-based IDs and linked identifiers
  */
 async function findProfileByPhone(normalizedPhone: string): Promise<UserProfile | null> {
   const store = getDefaultStore();
@@ -359,9 +360,24 @@ async function findProfileByPhone(normalizedPhone: string): Promise<UserProfile 
     return directProfile;
   }
   
-  // TODO: Implement search across profiles with linked identifiers
-  // This would require a database index on linkedIdentifiers
-  // For now, we rely on the phone-based user ID convention
+  // Search across profiles with linked identifiers
+  // For production, this should use a database index on linkedIdentifiers
+  try {
+    const profiles = await store.listProfiles({ limit: 1000 });
+    
+    for (const profile of profiles) {
+      const linked = (profile as UserProfileWithLinks).linkedIdentifiers || [];
+      
+      // Check if this phone is linked to this profile
+      if (linked.includes(`phone:${normalizedPhone}`) || 
+          linked.includes(normalizedPhone)) {
+        getLogger().debug({ userId: profile.id, phone: normalizedPhone }, 'Found profile via linked identifier');
+        return profile;
+      }
+    }
+  } catch (error) {
+    getLogger().warn({ error, phone: normalizedPhone }, 'Error searching profiles by linked identifier');
+  }
   
   return null;
 }

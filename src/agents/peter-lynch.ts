@@ -121,7 +121,7 @@ export const PETER_TO_JACK_HANDOFF = [
 ];
 
 // ============================================================================
-// PETER LYNCH VOICE CONFIGURATION
+// VOICE CONFIGURATION
 // ============================================================================
 
 /**
@@ -133,17 +133,16 @@ export const PETER_TO_JACK_HANDOFF = [
  * - Boston-ish accent if possible
  * - Enthusiastic, storyteller quality
  * 
- * Good Cartesia options:
- * - "79a125e8-cd45-4c13-8a67-188112f4dd22" - Marcus (energetic male)
- * - "a0e99841-438c-4a64-b679-ae501e7d6091" - Barbershop Man (conversational)
- * - "bd9120b6-7761-47a6-a446-77ca49132781" - Midwestern Man (friendly)
+ * Configure via PETER_LYNCH_VOICE_ID in .env
+ * Default uses a suitable energetic male voice
  */
-export const PETER_LYNCH_VOICE_ID = 'dbaa36ed-1b01-4db4-874d-33b6491a4905'; // Custom Peter Lynch voice
+export const PETER_LYNCH_VOICE_ID = process.env.PETER_LYNCH_VOICE_ID || 'dbaa36ed-1b01-4db4-874d-33b6491a4905';
 
 /**
- * Jack Bogle Voice ID (for reference/switching back)
+ * Jack Bogle Voice ID for Cartesia TTS
+ * Configure via JACK_BOGLE_VOICE_ID in .env
  */
-export const JACK_BOGLE_VOICE_ID = '9c10dc48-8799-42f9-a72a-0c7dfe13a06d';
+export const JACK_BOGLE_VOICE_ID = process.env.JACK_BOGLE_VOICE_ID || '9c10dc48-8799-42f9-a72a-0c7dfe13a06d';
 
 export default PETER_LYNCH_PERSONA;
 

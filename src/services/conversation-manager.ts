@@ -156,7 +156,7 @@ export class ConversationManager {
       enhancements.shouldInviteToSpeak = true;
       enhancements.metaGuidance.push('Jack is dominating. MUST invite user to speak.');
       enhancements.lengthGuidance = 'brief';
-    } else if (this.turnMonitor.shouldKeeResponseBrief()) {
+    } else if (this.turnMonitor.shouldKeepResponseBrief()) {
       enhancements.lengthGuidance = 'brief';
       enhancements.metaGuidance.push('Keep response brief. User wants more space.');
     }

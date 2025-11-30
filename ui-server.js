@@ -28,12 +28,128 @@ const PLAID_BASE_URL = {
 // Spotify configuration
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
-const SPOTIFY_REFRESH_TOKEN = process.env.SPOTIFY_REFRESH_TOKEN || '';
+const SPOTIFY_TOKENS_FILE = path.join(process.cwd(), '.spotify-tokens.json');
 
 // Spotify state - device ID from web player
 let spotifyWebDeviceId = null;
 let spotifyAccessToken = null;
 let spotifyTokenExpiry = 0;
+
+// Get Spotify refresh token from file or .env
+function getSpotifyRefreshToken() {
+  // Try file first (new system)
+  try {
+    if (fs.existsSync(SPOTIFY_TOKENS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SPOTIFY_TOKENS_FILE, 'utf8'));
+      if (data.refresh_token) {
+        console.log('🎵 Using refresh token from .spotify-tokens.json');
+        return data.refresh_token;
+      }
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not read Spotify tokens file:', err.message);
+  }
+  
+  // Fall back to .env (old system)
+  const envToken = process.env.SPOTIFY_REFRESH_TOKEN;
+  if (envToken) {
+    console.log('🎵 Using refresh token from .env (consider running scripts/spotify-auth.js)');
+    return envToken;
+  }
+  
+  return null;
+}
+
+// Save updated tokens to file
+function saveSpotifyTokens(accessToken, refreshToken, expiresIn) {
+  try {
+    const data = {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_at: Date.now() + (expiresIn * 1000),
+      token_type: 'Bearer',
+      scope: '',
+    };
+    fs.writeFileSync(SPOTIFY_TOKENS_FILE, JSON.stringify(data, null, 2));
+    console.log('🎵 Saved updated tokens to .spotify-tokens.json');
+  } catch (err) {
+    console.warn('⚠️ Could not save Spotify tokens:', err.message);
+  }
+}
+
+// Get token expiry time from file
+function getSpotifyTokenExpiry() {
+  try {
+    if (fs.existsSync(SPOTIFY_TOKENS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SPOTIFY_TOKENS_FILE, 'utf8'));
+      return data.expires_at || 0;
+    }
+  } catch {
+    return 0;
+  }
+  return 0;
+}
+
+// Proactive token refresh - runs in background
+async function refreshSpotifyTokenIfNeeded() {
+  const refreshToken = getSpotifyRefreshToken();
+  if (!refreshToken || !SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+    return; // Not configured
+  }
+  
+  const expiresAt = getSpotifyTokenExpiry();
+  const now = Date.now();
+  const minutesUntilExpiry = Math.round((expiresAt - now) / 60000);
+  
+  // Refresh if less than 10 minutes remaining
+  if (expiresAt > 0 && minutesUntilExpiry > 10) {
+    console.log(`🎵 Spotify token valid for ${minutesUntilExpiry} more minutes`);
+    return;
+  }
+  
+  console.log(`🎵 Spotify token ${expiresAt === 0 ? 'not cached' : `expiring in ${minutesUntilExpiry} min`} - refreshing...`);
+  
+  try {
+    const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64'),
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      }),
+    });
+    
+    if (!tokenResponse.ok) {
+      console.error('❌ Auto-refresh failed:', tokenResponse.status);
+      return;
+    }
+    
+    const data = await tokenResponse.json();
+    spotifyAccessToken = data.access_token;
+    spotifyTokenExpiry = Date.now() + (data.expires_in * 1000);
+    
+    // Save to file
+    saveSpotifyTokens(data.access_token, data.refresh_token || refreshToken, data.expires_in);
+    
+    const newMinutes = Math.round(data.expires_in / 60);
+    console.log(`✅ Spotify token auto-refreshed! Valid for ${newMinutes} minutes`);
+  } catch (err) {
+    console.error('❌ Auto-refresh error:', err.message);
+  }
+}
+
+// Start background refresh checker (every 5 minutes)
+function startSpotifyAutoRefresh() {
+  // Check immediately on startup
+  refreshSpotifyTokenIfNeeded();
+  
+  // Then check every 5 minutes
+  setInterval(refreshSpotifyTokenIfNeeded, 5 * 60 * 1000);
+  console.log('🎵 Spotify auto-refresh enabled (checks every 5 min)');
+}
 
 // In-memory token storage (production would use database)
 // This is shared between server and agent via file or Redis
@@ -299,9 +415,14 @@ const server = http.createServer(async (req, res) => {
   
   // Get Spotify access token for Web Playback SDK
   if (pathname === '/spotify/token') {
-    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_REFRESH_TOKEN) {
+    const refreshToken = getSpotifyRefreshToken();
+    
+    if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !refreshToken) {
       res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Spotify not configured' }));
+      res.end(JSON.stringify({ 
+        error: 'Spotify not configured',
+        help: 'Run: node scripts/spotify-auth.js'
+      }));
       return;
     }
     
@@ -322,17 +443,22 @@ const server = http.createServer(async (req, res) => {
         },
         body: new URLSearchParams({
           grant_type: 'refresh_token',
-          refresh_token: SPOTIFY_REFRESH_TOKEN,
+          refresh_token: refreshToken,
         }),
       });
       
       if (!tokenResponse.ok) {
-        throw new Error(`Spotify token refresh failed: ${tokenResponse.status}`);
+        const errorText = await tokenResponse.text();
+        console.error('❌ Spotify API error:', errorText);
+        throw new Error(`Spotify token refresh failed: ${tokenResponse.status} - ${errorText}`);
       }
       
       const data = await tokenResponse.json();
       spotifyAccessToken = data.access_token;
       spotifyTokenExpiry = Date.now() + (data.expires_in * 1000);
+      
+      // Save updated tokens (Spotify may return new refresh token)
+      saveSpotifyTokens(data.access_token, data.refresh_token || refreshToken, data.expires_in);
       
       console.log('🎵 Spotify access token refreshed');
       
@@ -341,7 +467,10 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error('❌ Spotify token error:', err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Failed to get Spotify token' }));
+      res.end(JSON.stringify({ 
+        error: 'Failed to get Spotify token',
+        help: 'Your refresh token may have expired. Run: node scripts/spotify-auth.js'
+      }));
     }
     return;
   }
@@ -453,5 +582,8 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`  🔗 LiveKit: ${LIVEKIT_URL}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
+  
+  // Start Spotify token auto-refresh
+  startSpotifyAutoRefresh();
 });
 

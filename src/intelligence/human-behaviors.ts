@@ -386,7 +386,7 @@ export function getSpontaneousThought(): SpontaneousThought | null {
       trigger: 'market'
     },
     {
-      thought: "I saw a headline this morning that made me chuckle. 'Experts predict...' They always do.",
+      thought: "I saw a headline this morning—'Experts predict...' Ha! They always do.",
       trigger: 'market'
     }
   ];

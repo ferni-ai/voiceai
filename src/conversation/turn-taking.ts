@@ -90,7 +90,7 @@ export class TurnTakingMonitor {
   /**
    * Should Jack keep his next response brief?
    */
-  shouldKeeResponseBrief(): boolean {
+  shouldKeepResponseBrief(): boolean {
     const totalTime = this.jackSpeakingTime + this.userSpeakingTime;
     if (totalTime === 0) return false;
 
@@ -170,7 +170,7 @@ export class TurnTakingMonitor {
       return "CRITICAL: Invite user to speak. Jack is dominating.";
     }
 
-    if (this.shouldKeeResponseBrief()) {
+    if (this.shouldKeepResponseBrief()) {
       return "Keep response brief. Give user more space to talk.";
     }
 

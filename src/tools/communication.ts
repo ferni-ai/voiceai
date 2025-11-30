@@ -12,6 +12,13 @@
 
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
+import { 
+  validateEmail, 
+  validatePhone, 
+  sanitizePlainText,
+  sanitizeEmailForLog,
+  sanitizePhoneForLog 
+} from './validation.js';
 
 const getLogger = () => log();
 
@@ -40,6 +47,18 @@ export async function sendEmail(
   body: string,
   isHtml: boolean = false
 ): Promise<string> {
+  // Validate email address
+  const emailValidation = validateEmail(to);
+  if (!emailValidation.valid) {
+    getLogger().warn({ to: sanitizeEmailForLog(to), error: emailValidation.error }, 'Invalid email address');
+    return `That email address doesn't look quite right. Could you double-check it?`;
+  }
+  const validatedEmail = emailValidation.sanitized as string;
+
+  // Sanitize subject and body
+  const sanitizedSubject = sanitizePlainText(subject, 200);
+  const sanitizedBody = isHtml ? body : sanitizePlainText(body, 10000);
+
   if (!SENDGRID_API_KEY) {
     getLogger().warn('SendGrid API key not configured');
     return "I'd love to send that email, but my email service isn't set up yet. Ask the team to configure SendGrid!";
@@ -53,23 +72,23 @@ export async function sendEmail(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }] }],
+        personalizations: [{ to: [{ email: validatedEmail }] }],
         from: { 
-          email: process.env.SENDGRID_FROM_EMAIL || 'jack@bogle-advisor.com',
+          email: process.env.SENDGRID_FROM_EMAIL || '',
           name: 'Jack Bogle'
         },
-        subject,
+        subject: sanitizedSubject,
         content: [{
           type: isHtml ? 'text/html' : 'text/plain',
-          value: body
+          value: sanitizedBody
         }]
       }),
       signal: AbortSignal.timeout(10000),
     });
 
     if (response.ok || response.status === 202) {
-      getLogger().info({ to, subject }, 'Email sent successfully');
-      return `Done! I've sent that email to ${to}. Subject: "${subject}"`;
+      getLogger().info({ to: sanitizeEmailForLog(validatedEmail), subject: sanitizedSubject }, 'Email sent successfully');
+      return `Done! I've sent that email to ${validatedEmail}. Subject: "${sanitizedSubject}"`;
     } else {
       const errorBody = await response.text();
       getLogger().error({ status: response.status, body: errorBody }, 'SendGrid error');
@@ -137,13 +156,21 @@ export async function sendSMS(
   to: string,
   message: string
 ): Promise<string> {
+  // Validate phone number
+  const phoneValidation = validatePhone(to);
+  if (!phoneValidation.valid) {
+    getLogger().warn({ to: sanitizePhoneForLog(to), error: phoneValidation.error }, 'Invalid phone number');
+    return `That phone number doesn't look quite right. Could you double-check it? It should be a valid US or international number.`;
+  }
+  const validatedPhone = phoneValidation.sanitized as string;
+
+  // Sanitize message
+  const sanitizedMessage = sanitizePlainText(message, 1600); // SMS max is 1600 chars
+
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     getLogger().warn('Twilio credentials not configured');
     return "I'd send you a text, but my SMS service isn't set up yet. Ask the team to configure Twilio!";
   }
-
-  // Ensure phone number has country code
-  const formattedTo = to.startsWith('+') ? to : `+1${to.replace(/\D/g, '')}`;
 
   try {
     const response = await fetch(
@@ -155,9 +182,9 @@ export async function sendSMS(
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          To: formattedTo,
+          To: validatedPhone,
           From: TWILIO_PHONE_NUMBER,
-          Body: `[Jack Bogle] ${message}`,
+          Body: `[Jack Bogle] ${sanitizedMessage}`,
         }),
         signal: AbortSignal.timeout(10000),
       }
@@ -165,8 +192,8 @@ export async function sendSMS(
 
     if (response.ok) {
       const data = await response.json() as { sid?: string };
-      getLogger().info({ to: formattedTo, sid: data.sid }, 'SMS sent successfully');
-      return `Text sent! I've messaged ${formattedTo}.`;
+      getLogger().info({ to: sanitizePhoneForLog(validatedPhone), sid: data.sid }, 'SMS sent successfully');
+      return `Text sent! I've messaged ${sanitizePhoneForLog(validatedPhone)}.`;
     } else {
       const errorBody = await response.text();
       getLogger().error({ status: response.status, body: errorBody }, 'Twilio error');

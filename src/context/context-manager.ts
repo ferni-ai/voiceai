@@ -449,4 +449,11 @@ export function removeContextManager(sessionId: string): void {
   contextManagers.delete(sessionId);
 }
 
+/**
+ * Clear all context managers (for shutdown)
+ */
+export function clearAllContextManagers(): void {
+  contextManagers.clear();
+}
+
 export default ContextManager;

@@ -66,8 +66,7 @@ export class CallMusicPlayer {
    * which can be added when telephony is fully configured.
    */
   async playFromUrl(url: string, track: MusicTrack): Promise<boolean> {
-    console.log(`\n🎵 [MUSIC] Playing from URL: ${url}`);
-    console.log(`🎵 [MUSIC] Track: "${track.name}" by ${track.artist}`);
+    getLogger().info({ url, track: track.name, artist: track.artist }, 'Playing from URL');
     
     try {
       // Stop any current playback
@@ -77,8 +76,6 @@ export class CallMusicPlayer {
       this.state.isPlaying = true;
       
       // Log that we're "playing" (actual audio streaming would happen here)
-      console.log(`🎵 [MUSIC] ▶️ Now playing: ${track.name} by ${track.artist}`);
-      console.log(`🎵 [MUSIC] Preview URL: ${url}`);
       getLogger().info({ track: track.name, artist: track.artist, url }, 'Music playback started');
       
       // Simulate 30-second preview duration
@@ -89,7 +86,6 @@ export class CallMusicPlayer {
       
       return true;
     } catch (error) {
-      console.error('🎵 [MUSIC] Playback error:', error);
       getLogger().error({ error }, 'Music playback failed');
       return false;
     }
@@ -99,7 +95,7 @@ export class CallMusicPlayer {
    * Called when current track ends
    */
   private onTrackEnded(): void {
-    console.log('🎵 [MUSIC] Track ended');
+    getLogger().debug('Track ended');
     
     if (this.state.queue.length > 0) {
       // Play next in queue
@@ -111,7 +107,7 @@ export class CallMusicPlayer {
       // No more tracks
       this.state.isPlaying = false;
       this.state.currentTrack = null;
-      console.log('🎵 [MUSIC] Queue empty - playback complete');
+      getLogger().debug('Queue empty - playback complete');
     }
   }
   
@@ -120,7 +116,7 @@ export class CallMusicPlayer {
    */
   pause(): void {
     this.state.isPlaying = false;
-    console.log('🎵 [MUSIC] ⏸️ Paused');
+    getLogger().debug('Music paused');
   }
   
   /**
@@ -129,7 +125,7 @@ export class CallMusicPlayer {
   resume(): void {
     if (this.state.currentTrack) {
       this.state.isPlaying = true;
-      console.log('🎵 [MUSIC] ▶️ Resumed');
+      getLogger().debug('Music resumed');
     }
   }
   
@@ -145,7 +141,7 @@ export class CallMusicPlayer {
       this.playbackTimeout = null;
     }
     
-    console.log('🎵 [MUSIC] ⏹️ Stopped');
+    getLogger().debug('Music stopped');
   }
   
   /**
@@ -160,7 +156,7 @@ export class CallMusicPlayer {
    */
   addToQueue(track: MusicTrack): void {
     this.state.queue.push(track);
-    console.log(`🎵 [MUSIC] Added to queue: ${track.name}`);
+    getLogger().debug({ track: track.name }, 'Added to queue');
   }
   
   /**
@@ -169,7 +165,7 @@ export class CallMusicPlayer {
   duck(): void {
     if (!this.state.isDucked) {
       this.state.isDucked = true;
-      console.log('🎵 [MUSIC] Ducking (Jack speaking)');
+      getLogger().debug('Ducking (agent speaking)');
     }
   }
   
@@ -179,7 +175,7 @@ export class CallMusicPlayer {
   unduck(): void {
     if (this.state.isDucked) {
       this.state.isDucked = false;
-      console.log('🎵 [MUSIC] Unducking (Jack finished)');
+      getLogger().debug('Unducking (agent finished)');
     }
   }
   
@@ -188,7 +184,7 @@ export class CallMusicPlayer {
    */
   setVolume(volume: number): void {
     this.state.volume = Math.max(0, Math.min(1, volume));
-    console.log(`🎵 [MUSIC] Volume set to ${Math.round(this.state.volume * 100)}%`);
+    getLogger().debug({ volume: Math.round(this.state.volume * 100) }, 'Volume set');
   }
   
   /**
@@ -218,7 +214,7 @@ export class CallMusicPlayer {
   dispose(): void {
     this.stop();
     this.state.queue = [];
-    console.log('🎵 [MUSIC] Disposed');
+    getLogger().debug('Music player disposed');
   }
 }
 

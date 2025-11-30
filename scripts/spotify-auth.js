@@ -13,6 +13,8 @@
  */
 
 import * as readline from 'readline';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Use example.com - Spotify will redirect there and show an error page,
 // but the authorization code will be in the URL!
@@ -22,7 +24,8 @@ const SCOPES = [
   'user-read-playback-state',
   'user-modify-playback-state', 
   'user-read-currently-playing',
-  'streaming',
+  'user-read-private',           // For Premium status check
+  'streaming',                    // For Web Playback SDK
   'playlist-read-private',
   'playlist-read-collaborative',
 ].join(' ');
@@ -151,14 +154,28 @@ async function main() {
   try {
     const tokens = await getTokens(code, clientId, clientSecret);
 
+    // Save tokens to file (auto-refresh system will use this)
+    const tokenFile = path.join(process.cwd(), '.spotify-tokens.json');
+    const tokenData = {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: Date.now() + (tokens.expires_in * 1000),
+      token_type: tokens.token_type || 'Bearer',
+      scope: tokens.scope || '',
+    };
+    fs.writeFileSync(tokenFile, JSON.stringify(tokenData, null, 2));
+
     console.log('');
     console.log('='.repeat(50));
-    console.log('✅ SUCCESS! Add these to your .env file:');
+    console.log('✅ SUCCESS! Tokens saved automatically!');
     console.log('='.repeat(50));
     console.log('');
+    console.log(`📁 Tokens saved to: ${tokenFile}`);
+    console.log('   (Jack will auto-refresh these - no manual updates needed!)');
+    console.log('');
+    console.log('Make sure your .env has:');
     console.log(`SPOTIFY_CLIENT_ID=${clientId}`);
     console.log(`SPOTIFY_CLIENT_SECRET=${clientSecret}`);
-    console.log(`SPOTIFY_REFRESH_TOKEN=${tokens.refresh_token}`);
     console.log('');
     console.log('='.repeat(50));
     console.log('');

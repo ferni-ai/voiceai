@@ -327,9 +327,17 @@ export function getActiveSessionIds(): string[] {
   return Array.from(activeTrackers.keys());
 }
 
+/**
+ * Clear all history trackers (for shutdown)
+ */
+export function clearAllHistoryTrackers(): void {
+  activeTrackers.clear();
+}
+
 export default {
   ConversationHistoryTracker,
   getHistoryTracker,
   removeHistoryTracker,
   getActiveSessionIds,
+  clearAllHistoryTrackers,
 };

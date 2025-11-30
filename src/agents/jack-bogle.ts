@@ -7,15 +7,19 @@
  */
 
 // CRITICAL: Log immediately on module load to debug Cloud startup
-console.log('=== BOGLE-AGENT MODULE LOADING ===');
-console.log('Node version:', process.version);
-console.log('ENV vars present:', {
-  LIVEKIT_URL: !!process.env.LIVEKIT_URL,
-  LIVEKIT_API_KEY: !!process.env.LIVEKIT_API_KEY,
-  LIVEKIT_API_SECRET: !!process.env.LIVEKIT_API_SECRET,
-  GOOGLE_API_KEY: !!process.env.GOOGLE_API_KEY,
-  CARTESIA_API_KEY: !!process.env.CARTESIA_API_KEY,
-});
+// Note: These must be console.log (not imported logger) because they run before imports
+const DEBUG_STARTUP = process.env.DEBUG_AGENT === 'true' || process.env.NODE_ENV !== 'production';
+if (DEBUG_STARTUP) {
+  console.log('=== BOGLE-AGENT MODULE LOADING ===');
+  console.log('Node version:', process.version);
+  console.log('ENV vars present:', {
+    LIVEKIT_URL: !!process.env.LIVEKIT_URL,
+    LIVEKIT_API_KEY: !!process.env.LIVEKIT_API_KEY,
+    LIVEKIT_API_SECRET: !!process.env.LIVEKIT_API_SECRET,
+    GOOGLE_API_KEY: !!process.env.GOOGLE_API_KEY,
+    CARTESIA_API_KEY: !!process.env.CARTESIA_API_KEY,
+  });
+}
 
 import 'dotenv/config';
 import {
@@ -130,6 +134,9 @@ import {
   type SmallDetail,
   type SessionRecoveryState,
 } from '../intelligence/conversation-quality.js';
+
+// Diagnostic logger for structured logging
+import { diag } from '../services/diagnostic-logger.js';
 
 // AudioFrame type for sttNode override
 import type { AudioFrame } from '@livekit/rtc-node';
@@ -1554,13 +1561,14 @@ function startHealthCheckServer(): void {
   });
 
   server.listen(port, '0.0.0.0', () => {
-    console.log(`Health check server listening on port ${port}`);
+    // Use console here since diag may not be imported yet
+    if (DEBUG_STARTUP) console.log(`Health check server listening on port ${port}`);
   });
 
   server.on('error', (err: Error) => {
     // If port is already in use, LiveKit's server is running - that's fine
     if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') {
-      console.error('Health check server error:', err);
+      console.error('Health check server error:', err); // Keep console.error for critical errors
     }
   });
 }
@@ -2138,7 +2146,7 @@ class BogleAgent extends voice.Agent<UserData> {
     const self = this;
     const prosodyAnalyzer = getAudioProsodyAnalyzer();
     
-    console.log('🎤 [STT] sttNode called - audio stream active');
+    diag.stt('sttNode called - audio stream active');
     this.logger.info('sttNode started - listening for audio');
     
     // Create a tee to process audio for both STT and prosody analysis
@@ -2154,7 +2162,7 @@ class BogleAgent extends voice.Agent<UserData> {
         while (true) {
           const { value: frame, done } = await reader.read();
           if (done) {
-            console.log('🎤 [STT] Audio stream ended after', audioFrameCount, 'frames');
+            diag.stt('Audio stream ended', { frames: audioFrameCount });
             break;
           }
           
@@ -2162,7 +2170,7 @@ class BogleAgent extends voice.Agent<UserData> {
           // Log audio activity every 5 seconds
           const now = Date.now();
           if (now - lastAudioLogTime > 5000) {
-            console.log(`🎤 [STT] Audio active: ${audioFrameCount} frames received`);
+            diag.stt('Audio active', { frames: audioFrameCount });
             lastAudioLogTime = now;
           }
           
@@ -2231,18 +2239,13 @@ class BogleAgent extends voice.Agent<UserData> {
     newMessage: llm.ChatMessage,
   ): Promise<void> {
     // IMMEDIATE logging to debug hangs
-    console.log('========================================');
-    console.log('👂 [USER TURN COMPLETED]');
-    console.log('========================================');
-    this.logger.info('=== onUserTurnCompleted CALLED ===');
+    diag.user('User turn completed', { preview: newMessage.textContent?.slice(0, 100) || '(empty)' });
     
     const userText = newMessage.textContent;
-    console.log('User said:', userText?.slice(0, 100) || '(empty)');
     this.logger.info({ userText: userText?.slice(0, 50), hasText: !!userText }, 'User text check');
     
     if (!userText || userText.trim().length === 0) {
-      console.log('⚠️  Empty user text, returning early');
-      this.logger.info('Empty user text, returning early');
+      diag.warn('Empty user text, returning early');
       return;
     }
 
@@ -2250,8 +2253,7 @@ class BogleAgent extends voice.Agent<UserData> {
     const contextBuildStart = Date.now();
     const MAX_CONTEXT_BUILD_TIME = 2000; // 2 seconds max for all context building
 
-    console.log(`🧠 [PROCESSING] "${userText.slice(0, 80)}..."`);
-    this.logger.info(`Processing user turn: "${userText.slice(0, 80)}..."`);
+    diag.memory('Processing user turn', { preview: userText.slice(0, 80) });
 
     // Try to get session services (may be set up in entry)
     const services = globalSessionServices;
@@ -3373,75 +3375,56 @@ let globalSessionServices: SessionServices | undefined;
 
 export default defineAgent({
   prewarm: async (proc: JobProcess) => {
-    const logger = log();
     const startTime = Date.now();
-    console.log('========================================');
-    console.log('=== PREWARM CALLED ===');
-    console.log('========================================');
-    console.log('Process ID:', process.pid);
-    console.log('Memory usage:', JSON.stringify(process.memoryUsage()));
-    console.log('Uptime:', process.uptime(), 'seconds');
-    logger.info({ pid: process.pid }, 'Prewarm starting...');
+    diag.section('PREWARM CALLED');
+    diag.prewarm('Starting prewarm', { 
+      pid: process.pid, 
+      memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      uptimeSeconds: Math.round(process.uptime()),
+    });
     
     // Initialize services (memory, intelligence, vector store with embeddings)
     // This indexes persona content for semantic RAG - critical for knowledge retrieval
     try {
-      console.log('Initializing services and indexing persona content...');
-      const servicesStart = Date.now();
+      diag.prewarm('Initializing services and indexing persona content...');
+      const done = diag.time('prewarm', 'Services initialization');
       await initializeServices();
-      console.log(`Services initialized in ${Date.now() - servicesStart}ms`);
-      logger.info({ elapsed: Date.now() - servicesStart }, 'Services initialized (with persona indexing)');
+      done();
     } catch (error) {
-      console.log('Services initialization failed (will retry on first connection):', error);
-      logger.warn({ error }, 'Services initialization failed in prewarm');
+      diag.error('Services initialization failed (will retry on first connection)', { error: String(error) });
     }
     
     // Mark VAD as not loaded - will load on first connection
     proc.userData.vadLoaded = false;
     
-    const elapsed = Date.now() - startTime;
-    logger.info({ elapsed }, 'Prewarm complete');
-    console.log('=== PREWARM DONE - READY FOR JOBS ===');
-    console.log('========================================');
+    diag.prewarm('Prewarm complete', { elapsed: Date.now() - startTime });
+    diag.section('PREWARM DONE - READY FOR JOBS');
   },
   
   entry: async (ctx: JobContext) => {
-    const logger = log();
     const entryStartTime = Date.now();
+    const logger = log(); // Initialize logger for this entry function
     
     // COMPREHENSIVE LOGGING - Log everything about the job context
-    console.log('========================================');
-    console.log('=== ENTRY FUNCTION CALLED ===');
-    console.log('========================================');
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('Process ID:', process.pid);
-    console.log('Job ID:', ctx.job.id);
-    console.log('Job Type:', ctx.job.type);
-    console.log('Room Name:', ctx.room?.name);
-    console.log('Room available:', !!ctx.room);
-    console.log('Agent Name from Job:', ctx.job.agentName);
-    console.log('Metadata:', ctx.job.metadata);
-    console.log('Dispatch ID:', ctx.job.dispatchId);
-    console.log('Memory usage:', JSON.stringify(process.memoryUsage()));
-    
-    logger.info({
+    diag.section('ENTRY FUNCTION CALLED');
+    diag.entry('Job received', {
       jobId: ctx.job.id,
       jobType: ctx.job.type,
       roomName: ctx.room?.name,
-      roomAvailable: !!ctx.room,
       agentName: ctx.job.agentName,
       dispatchId: ctx.job.dispatchId,
-      metadata: ctx.job.metadata,
-    }, '=== ENTRY FUNCTION CALLED - FULL JOB CONTEXT ===');
+      pid: process.pid,
+      memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+    });
     
     const sessionId = ctx.room?.name || `session-${Date.now()}`;
-    console.log('Session ID:', sessionId);
+    diag.session('Session ID assigned', { sessionId });
     
     try {
       // ===============================================
       // STEP 1: IDENTIFY USER (Phone, Web Auth, or Anonymous)
       // ===============================================
-      console.log('--- STEP 1: Identifying user ---');
+      diag.user('Step 1: Identifying user');
       let userId: string | undefined;
       let userName: string | undefined;
       let userContext: string | undefined;
@@ -3449,9 +3432,8 @@ export default defineAgent({
       
       try {
         if (ctx.job.metadata) {
-          console.log('Raw metadata:', ctx.job.metadata);
           const metadata = JSON.parse(ctx.job.metadata);
-          console.log('Parsed metadata:', JSON.stringify(metadata));
+          diag.debug('Parsed metadata', { metadata: JSON.stringify(metadata).slice(0, 200) });
           
           // Use intelligent user identification service
           const { identifyFromMetadata } = await import('../services/user-identification.js');
@@ -3464,76 +3446,57 @@ export default defineAgent({
           userName = metadata.user_name || metadata.userName || identification.profile?.name;
           userContext = metadata.context;
           
-          logger.info({ 
+          diag.user('User identified', { 
             userId, 
             userName, 
             source: identificationSource,
             isNew: identification.isNew,
             isReturning: identification.isReturning,
-          }, 'User identified');
-          
-          console.log('Identified user:', {
-            userId,
-            userName,
-            source: identificationSource,
-            isNew: identification.isNew,
-            isReturning: identification.isReturning,
           });
         } else {
-          console.log('No metadata in job - anonymous session');
+          diag.user('No metadata - anonymous session');
         }
       } catch (e) {
-        console.log('User identification error:', e);
-        logger.debug('User identification failed, using anonymous');
+        diag.warn('User identification failed, using anonymous', { error: String(e) });
       }
-      console.log('--- STEP 1 COMPLETE ---');
-      console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
+      diag.perf('Step 1 complete', { elapsed: Date.now() - entryStartTime });
       
       // ===============================================
       // STEP 2: Room info only (connect happens AFTER session.start per official example)
       // ===============================================
-      console.log('--- STEP 2: Room info ---');
-      console.log('Room object exists:', !!ctx.room);
-      console.log('Room name:', ctx.room?.name);
-      logger.info({ roomName: ctx.room?.name }, 'Room info');
-      console.log('--- STEP 2 COMPLETE ---');
-      console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
+      diag.session('Step 2: Room info', { roomName: ctx.room?.name, roomExists: !!ctx.room });
+      diag.perf('Step 2 complete', { elapsed: Date.now() - entryStartTime });
       
       // ===============================================
       // STEP 3: CREATE SESSION SERVICES (INTELLIGENCE LAYER)
       // ===============================================
-      console.log('--- STEP 3: Creating session services ---');
-      logger.info({ sessionId, userId }, 'Creating session services');
+      diag.session('Step 3: Creating session services', { sessionId, userId });
       
-      const servicesStartTime = Date.now();
+      const doneServices = diag.time('session', 'Session services creation');
       const services = await createSessionServices(sessionId, userId);
-      const servicesElapsed = Date.now() - servicesStartTime;
-      
-      console.log(`Session services created in ${servicesElapsed}ms`);
-      logger.info({ elapsed: servicesElapsed }, 'Session services created');
+      doneServices();
     
     // Set global reference for agent hooks to access
     globalSessionServices = services;
     
     const isReturningUser = services.userProfile !== null && (services.userProfile.totalConversations || 0) > 0;
-    console.log('Is returning user:', isReturningUser);
     
     if (isReturningUser) {
-      console.log('Returning user profile:', JSON.stringify(services.userProfile, null, 2));
-      logger.info({
+      diag.user('Returning user detected', {
         userId: services.userProfile?.id,
         name: services.userProfile?.name,
         totalConversations: services.userProfile?.totalConversations,
         lastSummary: services.userProfile?.lastConversationSummary?.slice(0, 100),
-      }, 'Returning user detected');
+      });
+    } else {
+      diag.user('New user', { userId });
     }
-    console.log('--- STEP 3 COMPLETE ---');
-    console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
+    diag.perf('Step 3 complete', { elapsed: Date.now() - entryStartTime });
 
     // ===============================================
     // STEP 4: INITIALIZE ENHANCED USER DATA
     // ===============================================
-    console.log('--- STEP 4: Initializing user data ---');
+    diag.user('Step 4: Initializing user data');
     const userData: UserData = {
       name: userName || services.userProfile?.name,
       userId,
@@ -3541,49 +3504,42 @@ export default defineAgent({
       services, // Attach intelligence services
       turnCount: 0,
     };
-    console.log('User data initialized:', JSON.stringify({ name: userData.name, userId: userData.userId, isReturningUser: userData.isReturningUser }));
-    console.log('--- STEP 4 COMPLETE ---');
-    console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
+    diag.perf('Step 4 complete', { elapsed: Date.now() - entryStartTime, name: userData.name, isReturningUser });
 
     // ===============================================
     // STEP 5: LOAD VAD AND CREATE SESSION
     // ===============================================
-    console.log('--- STEP 5: Loading VAD ---');
+    diag.session('Step 5: Loading VAD', { vadCached: !!ctx.proc.userData.vad });
+    
     // Load VAD on first connection (deferred from prewarm to avoid timeout)
     let vad = ctx.proc.userData.vad;
-    console.log('VAD already loaded in proc?', !!vad);
     
     if (!vad) {
-      const vadStartTime = Date.now();
-      console.log('Loading Silero VAD from scratch...');
-      logger.info('Loading Silero VAD...');
+      const doneVad = diag.time('session', 'Silero VAD load');
       vad = await silero.VAD.load();
       ctx.proc.userData.vad = vad;
-      const vadElapsed = Date.now() - vadStartTime;
-      console.log(`VAD loaded in ${vadElapsed}ms`);
-      logger.info({ elapsed: vadElapsed }, 'VAD loaded successfully');
+      doneVad();
     } else {
-      console.log('Reusing cached VAD');
+      diag.debug('Reusing cached VAD');
     }
-    console.log('--- STEP 5a COMPLETE - VAD ready ---');
-    console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
+    diag.perf('Step 5a complete - VAD ready', { elapsed: Date.now() - entryStartTime });
     
-    console.log('--- STEP 5b: Creating AgentSession ---');
-    console.log('Creating voice.AgentSession with:');
-    console.log('  - VAD: Silero');
-    console.log('  - LLM: Gemini 2.0 Flash');
-    console.log('  - TTS: Cartesia sonic-3 (with voice switching)');
-    console.log('  - Google API Key present:', !!process.env.GOOGLE_API_KEY);
-    console.log('  - Cartesia API Key present:', !!process.env.CARTESIA_API_KEY);
+    diag.session('Step 5b: Creating AgentSession', {
+      vad: 'Silero',
+      llm: 'Gemini 2.0 Flash',
+      tts: 'Cartesia sonic-3 (dynamic)',
+      googleApiKey: !!process.env.GOOGLE_API_KEY,
+      cartesiaApiKey: !!process.env.CARTESIA_API_KEY,
+    });
     
     // Initialize voice manager for Jack/Peter switching
     const voiceManager = getVoiceManager();
     voiceManager.initialize();
-    console.log('  - Voice Manager: initialized (Jack + Peter voices)');
+    diag.tts('Voice Manager initialized (Jack + Peter voices)');
     
     // Create DynamicTTS that switches voices based on current agent
     const dynamicTTS = createDynamicTTS();
-    console.log('  - DynamicTTS: ready (auto-switches Jack ↔ Peter)');
+    diag.tts('DynamicTTS ready (auto-switches Jack ↔ Peter)');
     
     const sessionStartTime = Date.now();
     const session = new voice.AgentSession({
@@ -3601,8 +3557,11 @@ export default defineAgent({
     
     // Listen for voice switch events and notify frontend
     handoffEvents.on('voiceSwitch', async (data: { newAgent: 'jack' | 'peter'; voiceId: string }) => {
-      console.log(`\n🎤 [VOICE SWITCH] Now speaking as: ${data.newAgent === 'peter' ? 'Peter Lynch' : 'Jack Bogle'}`);
-      logger.info({ newAgent: data.newAgent, voiceId: data.voiceId }, 'Voice switched - next speech will use new voice');
+      diag.handoff('Voice switched', { 
+        newAgent: data.newAgent, 
+        voiceName: data.newAgent === 'peter' ? 'Peter Lynch' : 'Jack Bogle',
+        voiceId: data.voiceId,
+      });
       
       // Notify frontend for UI update and sound effect
       try {
@@ -3618,14 +3577,12 @@ export default defineAgent({
           { reliable: true }
         );
         
-        console.log('📨 Sent handoff notification to frontend');
+        diag.handoff('Handoff notification sent to frontend');
       } catch (err) {
-        logger.warn({ error: err }, 'Failed to send handoff notification');
+        diag.error('Failed to send handoff notification', { error: String(err) });
       }
     });
-    console.log(`AgentSession created in ${Date.now() - sessionStartTime}ms`);
-    console.log('--- STEP 5 COMPLETE ---');
-    console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
+    diag.perf('Step 5 complete - AgentSession created', { elapsed: Date.now() - entryStartTime });
     // voice: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc'
     //  voice: '204beeaf-85e6-4292-8e63-e9e6670e8a2a' 
     // ===============================================
@@ -3636,23 +3593,16 @@ export default defineAgent({
       if (typeof rawContent === 'string') {
         const preview = rawContent.slice(0, 200);
         const hasTags = hasSsmlTags(rawContent);
-        logger.info(
-          {
-            role: event.item?.role,
-            preview,
-            hasSsmlTags: hasTags,
-            createdAt: event.createdAt,
-          },
-          '=== CONVERSATION ITEM ===',
-        );
+        diag.debug('Conversation item added', {
+          role: event.item?.role,
+          preview,
+          hasSsmlTags: hasTags,
+        });
       }
     });
 
     session.on(voice.AgentSessionEventTypes.SpeechCreated, (event) => {
-      logger.info(
-        { userInitiated: event.userInitiated, source: event.source, createdAt: event.createdAt },
-        '=== SPEECH CREATED ===',
-      );
+      diag.tts('Speech created', { userInitiated: event.userInitiated, source: event.source });
     });
 
     // ===============================================
@@ -3679,32 +3629,22 @@ export default defineAgent({
       const timeSinceUserInput = now - lastUserInputTime;
       
       if (timeSinceStateChange > 15000) {
-        console.log(`\n⚠️  [HEALTH] No state change in ${(timeSinceStateChange/1000).toFixed(1)}s`);
-        logger.warn({ timeSinceStateChange, timeSinceUserInput }, 'Agent may be stuck');
+        diag.health('No state change - agent may be stuck', { timeSinceStateChange, timeSinceUserInput });
       }
       
       if (thinkingStartTime && (now - thinkingStartTime) > 10000) {
-        console.log(`\n🐌 [SLOW] Agent thinking for ${((now - thinkingStartTime)/1000).toFixed(1)}s`);
-        logger.warn({ thinkingTime: now - thinkingStartTime }, 'Agent taking long to respond');
+        diag.health('Agent thinking for too long', { thinkingTime: now - thinkingStartTime });
       }
       
       if (toolCallStartTime && (now - toolCallStartTime) > 8000) {
-        console.log(`\n🐌 [SLOW TOOL] Tool executing for ${((now - toolCallStartTime)/1000).toFixed(1)}s`);
-        logger.warn({ toolTime: now - toolCallStartTime }, 'Tool taking too long');
+        diag.health('Tool executing for too long', { toolTime: now - toolCallStartTime });
       }
     }, 5000);
     
     // Cleanup interval on disconnect
     ctx.room.on('disconnected', () => {
       clearInterval(healthCheckInterval);
-      console.log('\n📊 [SESSION DIAGNOSTICS]');
-      console.log(`   Tool calls: ${sessionDiagnostics.toolCalls}`);
-      console.log(`   Tool errors: ${sessionDiagnostics.toolErrors}`);
-      console.log(`   Total tool time: ${sessionDiagnostics.totalToolTime}ms`);
-      console.log(`   Max tool time: ${sessionDiagnostics.maxToolTime}ms`);
-      console.log(`   State changes: ${sessionDiagnostics.stateChanges}`);
-      console.log(`   Errors: ${sessionDiagnostics.errors}`);
-      console.log(`   Longest thinking: ${sessionDiagnostics.longestThinkingTime}ms`);
+      diag.session('Session diagnostics', sessionDiagnostics);
     });
 
     // Track tool/function executions WITH TIMING
@@ -3723,14 +3663,8 @@ export default defineAgent({
         result: typeof fc.result === 'string' ? fc.result.slice(0, 100) : JSON.stringify(fc.result).slice(0, 100),
       }));
       
-      const timeEmoji = toolExecutionTime > 3000 ? '🐌' : toolExecutionTime > 1000 ? '⏱️' : '⚡';
-      console.log(`\n${timeEmoji} [TOOL] ${toolNames} completed in ${toolExecutionTime}ms`);
-      if (toolDetails) {
-        toolDetails.forEach((d: { name?: string; args: string; result: string }) => {
-          console.log(`   📥 ${d.name}: args=${d.args.slice(0, 80)}...`);
-          console.log(`   📤 result=${d.result.slice(0, 100)}...`);
-        });
-      }
+      const slow = toolExecutionTime > 3000 ? 'very_slow' : toolExecutionTime > 1000 ? 'slow' : 'fast';
+      diag.tool('Tool executed', { toolNames, executionTime: toolExecutionTime, speed: slow, details: toolDetails });
       
       logger.info(
         { 
@@ -3746,8 +3680,7 @@ export default defineAgent({
     // Track errors
     session.on(voice.AgentSessionEventTypes.Error, (event) => {
       sessionDiagnostics.errors++;
-      console.log(`\n❌ [SESSION ERROR] ${JSON.stringify(event)}`);
-      logger.error({ event, sessionDiagnostics }, '=== SESSION ERROR ===');
+      diag.error('Session error', { event, sessionDiagnostics });
     });
 
     // Track metrics
@@ -3755,7 +3688,7 @@ export default defineAgent({
       // Only log interesting metrics
       const metrics = event as Record<string, unknown>;
       if (metrics.llmFirstTokenMs || metrics.ttsFirstAudioMs) {
-        console.log(`📊 [PERF] LLM: ${metrics.llmFirstTokenMs}ms, TTS: ${metrics.ttsFirstAudioMs}ms`);
+        diag.perf('LLM/TTS metrics', { llmFirstTokenMs: metrics.llmFirstTokenMs, ttsFirstAudioMs: metrics.ttsFirstAudioMs });
       }
     });
 
@@ -3775,15 +3708,12 @@ export default defineAgent({
       lastStateChangeTime = now;
       sessionDiagnostics.stateChanges++;
 
-      // Verbose state logging to understand pauses
-      const stateEmoji = newState === 'speaking' ? '🗣️' : newState === 'listening' ? '👂' : newState === 'thinking' ? '🧠' : '❓';
-      console.log(`\n${stateEmoji} [STATE] ${oldState} → ${newState} (after ${timeSinceLastChange}ms)`);
-      logger.info({ oldState, newState, timeSinceLastChange }, '=== AGENT STATE CHANGED ===');
+      // State logging
+      diag.state('Agent state changed', { oldState, newState, timeSinceLastChange });
       
       // Track thinking time (when Jack is processing)
       if (newState === 'thinking') {
         thinkingStartTime = now;
-        console.log('   🧠 Jack is thinking...');
       }
       
       if (oldState === 'thinking' && thinkingStartTime) {
@@ -3792,7 +3722,7 @@ export default defineAgent({
         thinkingStartTime = null;
         
         if (thinkingDuration > 3000) {
-          console.log(`   ⚠️  Jack thought for ${(thinkingDuration/1000).toFixed(1)}s (long!)`);
+          diag.health('Jack thought for long time', { thinkingDuration });
         }
       }
 
@@ -3877,10 +3807,8 @@ export default defineAgent({
     // Enhanced user input tracking with WPM estimation
     let lastTranscriptTime = Date.now();
     session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (event) => {
-      // LOG ALL TRANSCRIPTS - even partial ones
-      const timestamp = new Date().toISOString().split('T')[1].split('.')[0]; // HH:MM:SS
-      console.log(`\n🎤 [${timestamp}] USER: "${event.transcript}" ${event.isFinal ? '✓' : '...'}`);
-      logger.info({ transcript: event.transcript, isFinal: event.isFinal }, '>>> USER TRANSCRIPT <<<');
+      // Log transcripts with appropriate level
+      diag.stt('User transcript', { transcript: event.transcript?.slice(0, 100), isFinal: event.isFinal });
       
       if (event.isFinal && event.transcript) {
         userData.turnCount = (userData.turnCount || 0) + 1;
@@ -3924,19 +3852,15 @@ export default defineAgent({
     // ===============================================
     // STEP 6: CREATE INTELLIGENT BOGLE AGENT
     // ===============================================
-    console.log('--- STEP 6: Creating BogleAgent ---');
-    const agentCreateStart = Date.now();
+    diag.entry('Step 6: Creating BogleAgent');
+    const doneAgent = diag.time('entry', 'BogleAgent creation');
     const bogleAgent = BogleAgent.create();
-    console.log(`BogleAgent created in ${Date.now() - agentCreateStart}ms`);
+    doneAgent();
     
     // Wire session reference for context access
     bogleAgent.setSession(session);
-    console.log('Session wired to agent');
-    
-    console.log('Jack Bogle agent ready with all capabilities');
-    logger.info('Jack Bogle agent ready with full intelligence stack');
-    console.log('--- STEP 6 COMPLETE ---');
-    console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
+    diag.entry('Jack Bogle agent ready with full intelligence stack');
+    diag.perf('Step 6 complete', { elapsed: Date.now() - entryStartTime });
 
     // ===============================================
     // STEP 7: WAIT FOR PARTICIPANT FIRST (this was working!)
@@ -3945,34 +3869,28 @@ export default defineAgent({
     // ===============================================
     // STEP 7a: CONNECT AGENT TO ROOM FIRST
     // ===============================================
-    console.log('--- STEP 7a: Connecting agent to room ---');
-    const connectStart = Date.now();
+    diag.session('Step 7a: Connecting agent to room');
+    const doneConnect = diag.time('session', 'Room connection');
     await ctx.connect();
-    console.log(`ctx.connect() completed in ${Date.now() - connectStart}ms`);
-    console.log('Room connected successfully');
-    logger.info({ elapsed: Date.now() - connectStart }, 'Agent connected to room');
-    console.log('--- STEP 7a COMPLETE ---');
+    doneConnect();
     
     // ===============================================
     // STEP 7b: WAIT FOR HUMAN PARTICIPANT
     // ===============================================
-    console.log('--- STEP 7b: Waiting for participant ---');
-    const waitStart = Date.now();
+    diag.session('Step 7b: Waiting for participant');
+    const doneWait = diag.time('session', 'Participant wait');
     const participant = await ctx.waitForParticipant();
-    console.log(`Participant joined after ${Date.now() - waitStart}ms`);
-    console.log('Participant identity:', participant.identity);
-    logger.info({ identity: participant.identity }, 'Participant joined');
-    console.log('--- STEP 7b COMPLETE ---');
+    doneWait();
+    diag.user('Participant joined', { identity: participant.identity });
     
     // Small delay to ensure audio channel is ready (this was in the working code)
     await new Promise(resolve => setTimeout(resolve, 500));
-    console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
 
     // ===============================================
     // STEP 8: NOW START SESSION (after participant is ready)
     // ===============================================
-    console.log('--- STEP 8: Starting session ---');
-    const sessionStartStart = Date.now();
+    diag.session('Step 8: Starting session');
+    const doneSessionStart = diag.time('session', 'session.start()');
     
     await session.start({
       agent: bogleAgent,
@@ -3981,94 +3899,65 @@ export default defineAgent({
         noiseCancellation: TelephonyBackgroundVoiceCancellation(),
       },
     });
-    
-    console.log(`session.start() completed in ${Date.now() - sessionStartStart}ms`);
-    console.log('--- STEP 8 COMPLETE ---');
-    console.log('Time elapsed:', Date.now() - entryStartTime, 'ms');
+    doneSessionStart();
+    diag.perf('Step 8 complete', { elapsed: Date.now() - entryStartTime });
     
     // ===============================================
     // STEP 9: GENERATE AND SAY GREETING (async with Gemini dynamic option)
     // ===============================================
-    console.log('--- STEP 9: Generating greeting (async) ---');
-    const greetingStart = Date.now();
+    diag.session('Step 9: Generating greeting');
+    const doneGreeting = diag.time('session', 'Greeting generation');
     const greeting = await generateGreeting(userData);
-    console.log(`Generated greeting in ${Date.now() - greetingStart}ms:`, greeting.slice(0, 100) + '...');
-    logger.info({ greeting: greeting.slice(0, 100), latencyMs: Date.now() - greetingStart }, `Generated ${isReturningUser ? 'returning user' : 'new user'} greeting`);
+    doneGreeting();
+    diag.tts('Greeting generated', { preview: greeting.slice(0, 100), isReturning: isReturningUser });
     
     // Apply adaptive SSML to greeting
-    // Note: greeting already contains emotion tags, don't wrap it again
-    console.log('Applying adaptive SSML...');
     const speechContext = services.getSpeechContext(greeting);
     const enhancedGreeting = tagGreeting(greeting, speechContext);
-    console.log('Enhanced greeting (first 150 chars):', enhancedGreeting.slice(0, 150));
     
     // Say the greeting
-    console.log('Calling session.say()...');
     try {
       session.say(enhancedGreeting);
-      console.log('✅ session.say() called successfully');
+      diag.tts('Greeting spoken successfully');
     } catch (sayError) {
-      console.log('❌ session.say() FAILED:', sayError);
-      logger.error({ error: sayError }, 'session.say() failed');
+      diag.error('session.say() failed', { error: String(sayError) });
     }
 
     // Track greeting in conversation history
     services.addTurn('assistant', greeting);
-    console.log('--- STEP 9 COMPLETE ---');
-    console.log('Total time elapsed:', Date.now() - entryStartTime, 'ms');
     
     // Log session summary
-    console.log('========================================');
-    console.log('=== SESSION FULLY INITIALIZED ===');
-    console.log('========================================');
-    console.log('Session ID:', sessionId);
-    console.log('User ID:', userId);
-    console.log('User Name:', userData.name);
-    console.log('Is Returning User:', isReturningUser);
-    console.log('Total initialization time:', Date.now() - entryStartTime, 'ms');
-    console.log('========================================');
-    
-    logger.info({
+    diag.section('SESSION FULLY INITIALIZED');
+    diag.session('Session ready', {
       sessionId,
       userId,
       userName: userData.name,
       isReturningUser,
-      servicesActive: !!services,
       totalInitTime: Date.now() - entryStartTime,
-    }, '=== SESSION FULLY INITIALIZED ===');
+    });
     
     // ===============================================
     // STEP 10: SESSION CLEANUP ON DISCONNECT
     // ===============================================
     ctx.room.on('disconnected', async () => {
-      console.log('=== ROOM DISCONNECTED ===');
-      console.log('Session ID:', sessionId);
-      logger.info({ sessionId }, 'Session ending');
+      diag.session('Room disconnected', { sessionId });
       try {
         await services.endSession();
         globalSessionServices = undefined;
-        console.log('Session cleanup complete');
-        logger.info('Session cleanup complete');
+        diag.session('Session cleanup complete');
       } catch (error) {
-        console.log('Session cleanup error:', error);
-        logger.warn(`Session cleanup error: ${error}`);
+        diag.error('Session cleanup error', { error: String(error) });
       }
     });
     
     } catch (entryError) {
       // CRITICAL: Catch and log any errors in entry function
-      console.log('========================================');
-      console.log('=== ENTRY FUNCTION FAILED ===');
-      console.log('========================================');
-      console.log('Error type:', (entryError as Error).constructor.name);
-      console.log('Error message:', (entryError as Error).message);
-      console.log('Error stack:', (entryError as Error).stack);
-      console.log('========================================');
-      logger.error({ 
-        error: (entryError as Error).message,
+      diag.section('ENTRY FUNCTION FAILED');
+      diag.error('Entry function failed', { 
         errorType: (entryError as Error).constructor.name,
+        errorMessage: (entryError as Error).message,
         stack: (entryError as Error).stack,
-      }, '=== ENTRY FUNCTION FAILED ===');
+      });
       throw entryError; // Re-throw to let LiveKit handle
     }
   },
@@ -4077,26 +3966,22 @@ export default defineAgent({
 // Get timeout from env or use default
 const initTimeout = parseInt(process.env.AGENT_INIT_TIMEOUT || '120000', 10);
 
-console.log('=== STARTING WORKER ===');
-console.log('Init timeout:', initTimeout);
+// Worker startup logging
+diag.section('STARTING WORKER');
+diag.info('Worker configuration', { initTimeout });
 
 // Global error handlers for debugging
+// Note: Keep console for these since they're last-resort handlers and diag may have failed
 process.on('uncaughtException', (error) => {
-  console.log('========================================');
-  console.log('💥 [UNCAUGHT EXCEPTION]');
-  console.log('========================================');
-  console.log('Error:', error.message);
-  console.log('Stack:', error.stack);
-  console.log('========================================');
+  diag.error('Uncaught exception', { message: error.message, stack: error.stack });
+  // Also console as fallback
+  if (DEBUG_STARTUP) console.error('💥 [UNCAUGHT EXCEPTION]', error.message);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.log('========================================');
-  console.log('💥 [UNHANDLED REJECTION]');
-  console.log('========================================');
-  console.log('Reason:', reason);
-  console.log('Promise:', promise);
-  console.log('========================================');
+  diag.error('Unhandled rejection', { reason: String(reason), promise: String(promise) });
+  // Also console as fallback
+  if (DEBUG_STARTUP) console.error('💥 [UNHANDLED REJECTION]', reason);
 });
 
 // Run the agent - accept jobs for john-bogle-agent
@@ -4104,21 +3989,18 @@ cli.runApp(new WorkerOptions({
   agent: fileURLToPath(import.meta.url),
   agentName: 'john-bogle-agent',  // Must match dispatch agent name
   requestFunc: async (request: { room?: { name?: string }; participant?: { identity?: string }; agentName?: string; job?: { id?: string }; accept: () => Promise<void> }) => {
-    console.log('========================================');
-    console.log('🎫 [JOB REQUEST RECEIVED]');
-    console.log('========================================');
-    console.log('Room:', request.room?.name);
-    console.log('Participant:', request.participant?.identity);
-    console.log('Agent Name:', request.agentName);
-    console.log('Job ID:', request.job?.id);
-    console.log('Timestamp:', new Date().toISOString());
-    console.log('========================================');
+    diag.entry('Job request received', {
+      room: request.room?.name,
+      participant: request.participant?.identity,
+      agentName: request.agentName,
+      jobId: request.job?.id,
+    });
     
     // Accept all jobs
     await request.accept();
-    console.log('✅ [JOB ACCEPTED]');
+    diag.entry('Job accepted', { jobId: request.job?.id });
   },
 }));
 
-console.log('=== CLI.RUNAPP CALLED ===');
+diag.info('CLI.runApp called - worker running');
 

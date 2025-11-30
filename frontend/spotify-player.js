@@ -15,6 +15,11 @@ window.SpotifyPlayer = {
     isPlaying: false,
     currentTrack: null,
     accessToken: null,
+    // Auto-ducking state
+    normalVolume: 0.5,
+    duckedVolume: 0.15,  // 15% when user speaks
+    isDucked: false,
+    duckingTimeout: null,
 };
 
 // Called when the Spotify SDK is ready
@@ -69,8 +74,11 @@ async function initializeSpotifyPlayer() {
     });
     
     player.addListener('account_error', ({ message }) => {
-        console.error('🎵 Spotify account error (Premium required?):', message);
-        showSpotifyStatus('Spotify Premium required', 'error');
+        console.error('🎵 Spotify account error:', message);
+        // This usually means no Premium
+        window.SpotifyPlayer.premiumRequired = true;
+        showSpotifyStatus('Opens in Spotify app', 'info');
+        console.log('🎵 No Premium - music will play through your Spotify app instead');
     });
     
     player.addListener('playback_error', ({ message }) => {
@@ -155,7 +163,7 @@ async function registerSpotifyDevice(deviceId) {
 }
 
 /**
- * Show Spotify status in the UI
+ * Show Spotify status in the UI - positioned at top to not cover buttons
  */
 function showSpotifyStatus(message, status) {
     // Find or create status element
@@ -165,40 +173,217 @@ function showSpotifyStatus(message, status) {
         statusEl.id = 'spotify-status';
         statusEl.style.cssText = `
             position: fixed;
-            bottom: 100px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 13px;
             font-weight: 500;
             z-index: 1000;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         `;
         document.body.appendChild(statusEl);
     }
     
     // Style based on status
     const colors = {
-        ready: { bg: 'rgba(30, 215, 96, 0.2)', color: '#1ed760', border: '1px solid rgba(30, 215, 96, 0.3)' },
-        playing: { bg: 'rgba(30, 215, 96, 0.3)', color: '#1ed760', border: '1px solid rgba(30, 215, 96, 0.5)' },
-        error: { bg: 'rgba(255, 100, 100, 0.2)', color: '#ff6464', border: '1px solid rgba(255, 100, 100, 0.3)' },
-        offline: { bg: 'rgba(150, 150, 150, 0.2)', color: '#999', border: '1px solid rgba(150, 150, 150, 0.3)' },
+        ready: { bg: 'rgba(30, 215, 96, 0.15)', color: '#1ed760', border: '1px solid rgba(30, 215, 96, 0.3)', icon: '🎵' },
+        playing: { bg: 'rgba(30, 215, 96, 0.25)', color: '#1ed760', border: '1px solid rgba(30, 215, 96, 0.5)', icon: '▶️' },
+        info: { bg: 'rgba(100, 150, 255, 0.15)', color: '#88aaff', border: '1px solid rgba(100, 150, 255, 0.3)', icon: '💡' },
+        error: { bg: 'rgba(255, 100, 100, 0.15)', color: '#ff6464', border: '1px solid rgba(255, 100, 100, 0.3)', icon: '⚠️' },
+        offline: { bg: 'rgba(150, 150, 150, 0.15)', color: '#999', border: '1px solid rgba(150, 150, 150, 0.3)', icon: '🔇' },
     };
     
     const style = colors[status] || colors.offline;
     statusEl.style.backgroundColor = style.bg;
     statusEl.style.color = style.color;
     statusEl.style.border = style.border;
-    statusEl.textContent = message;
+    statusEl.innerHTML = `<span>${style.icon}</span><span>${message}</span>`;
+    statusEl.style.opacity = '1';
+    
+    // Update app state for CSS animations
+    const app = document.getElementById('app');
+    if (app) {
+        if (status === 'playing') {
+            app.classList.add('music-playing');
+        } else {
+            app.classList.remove('music-playing');
+        }
+    }
     
     // Auto-hide after delay (except for 'playing')
     if (status !== 'playing') {
         setTimeout(() => {
             statusEl.style.opacity = '0';
-            setTimeout(() => statusEl.remove(), 300);
+            setTimeout(() => {
+                if (statusEl.style.opacity === '0') {
+                    statusEl.remove();
+                }
+            }, 300);
         }, 3000);
+    }
+}
+
+/**
+ * Hide Spotify status
+ */
+function hideSpotifyStatus() {
+    const statusEl = document.getElementById('spotify-status');
+    if (statusEl) {
+        statusEl.style.opacity = '0';
+        setTimeout(() => statusEl.remove(), 300);
+    }
+    const app = document.getElementById('app');
+    if (app) {
+        app.classList.remove('music-playing');
+    }
+}
+
+/**
+ * Stop Spotify playback (for disconnect)
+ */
+async function stopSpotifyPlayback() {
+    if (!window.SpotifyPlayer.isReady || !window.SpotifyPlayer.player) {
+        return;
+    }
+    
+    try {
+        await window.SpotifyPlayer.player.pause();
+        console.log('🎵 Spotify paused on disconnect');
+        hideSpotifyStatus();
+    } catch (e) {
+        console.log('Could not pause Spotify:', e);
+    }
+}
+
+// ============================================================================
+// AUTO-DUCKING - Music fades when you speak!
+// ============================================================================
+
+/**
+ * Duck the music (lower volume) when user starts speaking
+ * This is called by the LiveKit VAD (Voice Activity Detection)
+ */
+function duckMusic() {
+    if (!window.SpotifyPlayer.isPlaying || window.SpotifyPlayer.isDucked) {
+        return;
+    }
+    
+    window.SpotifyPlayer.isDucked = true;
+    console.log('🎵 Ducking music for speech...');
+    
+    // Smooth fade to ducked volume
+    smoothVolumeChange(window.SpotifyPlayer.duckedVolume, 300);
+    
+    // Clear any pending unduck
+    if (window.SpotifyPlayer.duckingTimeout) {
+        clearTimeout(window.SpotifyPlayer.duckingTimeout);
+    }
+}
+
+/**
+ * Unduck the music (restore volume) when user stops speaking
+ */
+function unduckMusic() {
+    if (!window.SpotifyPlayer.isDucked) {
+        return;
+    }
+    
+    // Delay the unduck slightly to avoid rapid duck/unduck
+    window.SpotifyPlayer.duckingTimeout = setTimeout(() => {
+        if (!window.SpotifyPlayer.isDucked) return;
+        
+        console.log('🎵 Restoring music volume');
+        window.SpotifyPlayer.isDucked = false;
+        
+        // Smooth fade back to normal
+        smoothVolumeChange(window.SpotifyPlayer.normalVolume, 500);
+    }, 800); // Wait 800ms after speech ends
+}
+
+/**
+ * Smoothly change volume over time
+ */
+function smoothVolumeChange(targetVolume, durationMs) {
+    if (!window.SpotifyPlayer.player) return;
+    
+    const startVolume = window.SpotifyPlayer.player._options?.volume || 0.5;
+    const startTime = Date.now();
+    const volumeDiff = targetVolume - startVolume;
+    
+    function animate() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        
+        // Ease-out curve for natural feel
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const currentVolume = startVolume + (volumeDiff * eased);
+        
+        if (window.SpotifyPlayer.player) {
+            window.SpotifyPlayer.player.setVolume(currentVolume).catch(() => {});
+        }
+        
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        }
+    }
+    
+    requestAnimationFrame(animate);
+}
+
+/**
+ * Set the normal (non-ducked) volume
+ */
+function setMusicVolume(volume) {
+    // Clamp between 0 and 1
+    volume = Math.max(0, Math.min(1, volume));
+    window.SpotifyPlayer.normalVolume = volume;
+    
+    // If not ducked, apply immediately
+    if (!window.SpotifyPlayer.isDucked && window.SpotifyPlayer.player) {
+        smoothVolumeChange(volume, 300);
+    }
+    
+    console.log('🎵 Music volume set to', Math.round(volume * 100) + '%');
+}
+
+/**
+ * Quick pause for "stop" / "pause" commands
+ */
+async function quickPause() {
+    if (!window.SpotifyPlayer.player) return;
+    
+    try {
+        // Fade out quickly then pause
+        smoothVolumeChange(0, 200);
+        setTimeout(async () => {
+            await window.SpotifyPlayer.player.pause();
+            window.SpotifyPlayer.isPlaying = false;
+            hideSpotifyStatus();
+            console.log('🎵 Music paused');
+        }, 250);
+    } catch (e) {
+        console.log('Pause error:', e);
+    }
+}
+
+/**
+ * Resume playback
+ */
+async function resumeMusic() {
+    if (!window.SpotifyPlayer.player) return;
+    
+    try {
+        await window.SpotifyPlayer.player.resume();
+        smoothVolumeChange(window.SpotifyPlayer.normalVolume, 500);
+        console.log('🎵 Music resumed');
+    } catch (e) {
+        console.log('Resume error:', e);
     }
 }
 
@@ -239,6 +424,15 @@ async function playOnWebPlayer(spotifyUri) {
 // Export for use in other scripts
 window.initializeSpotifyPlayer = initializeSpotifyPlayer;
 window.playOnWebPlayer = playOnWebPlayer;
+window.stopSpotifyPlayback = stopSpotifyPlayback;
+window.hideSpotifyStatus = hideSpotifyStatus;
+
+// Auto-ducking controls
+window.duckMusic = duckMusic;
+window.unduckMusic = unduckMusic;
+window.setMusicVolume = setMusicVolume;
+window.quickPause = quickPause;
+window.resumeMusic = resumeMusic;
 
 // Auto-initialize when page loads (after a short delay)
 document.addEventListener('DOMContentLoaded', () => {

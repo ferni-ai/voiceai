@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Handle speaker changes
+    // Handle speaker changes - with auto-ducking for music!
     function onSpeakersChanged(speakers) {
         const agentSpeaking = speakers.some(s => !s.isLocal);
         const userSpeaking = speakers.some(s => s.isLocal);
@@ -293,12 +293,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (agentSpeaking) {
             setState('connected speaking');
             showMessage(`${agentName} is speaking...`);
+            // Duck music when Jack speaks too!
+            if (typeof duckMusic === 'function') duckMusic();
         } else if (userSpeaking) {
             setState('connected listening');
             showMessage('Listening to you...');
+            // Duck music when user speaks
+            if (typeof duckMusic === 'function') duckMusic();
         } else {
             setState('connected listening');
             showMessage('Listening...');
+            // Restore music volume when nobody is speaking
+            if (typeof unduckMusic === 'function') unduckMusic();
         }
     }
     
@@ -382,12 +388,22 @@ document.addEventListener('DOMContentLoaded', () => {
             disconnectSound.play();
         } catch (e) {}
 
+        // Stop Spotify playback when disconnecting
+        if (typeof stopSpotifyPlayback === 'function') {
+            stopSpotifyPlayback();
+        }
+
         room = null;
         setConnected(false);
     }
 
     // Disconnect
     function disconnect() {
+        // Stop Spotify first
+        if (typeof stopSpotifyPlayback === 'function') {
+            stopSpotifyPlayback();
+        }
+        
         if (room) {
             room.disconnect();
         }

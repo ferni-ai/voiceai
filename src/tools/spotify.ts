@@ -16,24 +16,15 @@ import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getMusicPlayer, type MusicTrack } from '../audio/index.js';
+import { getSpotifyAccessToken, isSpotifyConfigured, startAutoRefresh, stopAutoRefresh, getSpotifyTokenStatus } from '../services/spotify-auth.js';
 
 const getLogger = () => log();
 
 // Flag to control playback mode
 let streamIntoCall = false; // If true, stream music INTO the call (phone users)
 
-// Spotify API credentials
-const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
-const SPOTIFY_REFRESH_TOKEN = process.env.SPOTIFY_REFRESH_TOKEN || '';
-
 // API endpoints
-const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
-
-// Cache access token
-let accessToken: string | null = null;
-let tokenExpiry: number = 0;
 
 // Web player device ID (set by frontend via ui-server)
 let webPlayerDeviceId: string | null = null;
@@ -48,8 +39,9 @@ function getWebPlayerDeviceId(): string | null {
       const data = JSON.parse(fs.readFileSync(deviceFile, 'utf8'));
       return data.device_id || null;
     }
-  } catch {
-    // File doesn't exist or can't be read
+  } catch (error) {
+    // File doesn't exist or can't be read - this is expected on first run
+    getLogger().debug({ error }, 'Could not read Spotify device file');
   }
   return null;
 }
@@ -67,33 +59,58 @@ async function getAvailableDevices(): Promise<Array<{ id: string; name: string; 
   }
 }
 
+// Check if user has Spotify Premium (required for Web Playback SDK)
+let hasPremium: boolean | null = null;
+
+async function checkPremiumStatus(): Promise<boolean> {
+  if (hasPremium !== null) return hasPremium;
+  
+  try {
+    const user = await spotifyRequest('/me') as { product?: string };
+    hasPremium = user.product === 'premium';
+    if (!hasPremium) {
+      getLogger().info('Spotify account is not Premium - Web Playback SDK will not work');
+    }
+    return hasPremium;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Find the best device to play on
- * Priority: 1. Web player, 2. Active device, 3. Any available device
+ * Priority: 1. Active device, 2. Web player (if Premium), 3. Any available device
+ * Note: Web Playback SDK requires Spotify Premium!
  */
 async function getBestPlaybackDevice(): Promise<{ deviceId: string | null; deviceName: string | null; source: 'web' | 'active' | 'available' | 'none' }> {
-  // First, check for web player
-  const webDeviceId = getWebPlayerDeviceId();
-  if (webDeviceId) {
-    return { deviceId: webDeviceId, deviceName: 'Jack Bogle AI (Browser)', source: 'web' };
-  }
-  
-  // No web player - check for other devices (phone users)
+  // Get available devices from Spotify
   const devices = await getAvailableDevices();
   
-  if (devices.length === 0) {
-    return { deviceId: null, deviceName: null, source: 'none' };
-  }
-  
-  // Prefer active device
+  // First, prefer an active device (user's phone/computer)
+  // This works for all accounts (not just Premium)
   const activeDevice = devices.find(d => d.is_active);
   if (activeDevice) {
     return { deviceId: activeDevice.id, deviceName: activeDevice.name, source: 'active' };
   }
   
-  // Use first available device
-  const firstDevice = devices[0];
-  return { deviceId: firstDevice.id, deviceName: firstDevice.name, source: 'available' };
+  // Check for web player - but only use if Premium
+  const webDeviceId = getWebPlayerDeviceId();
+  if (webDeviceId) {
+    const isPremium = await checkPremiumStatus();
+    if (isPremium) {
+      return { deviceId: webDeviceId, deviceName: 'Jack Bogle AI (Browser)', source: 'web' };
+    } else {
+      getLogger().debug('Web player registered but account is not Premium - skipping');
+    }
+  }
+  
+  // Fall back to any available device
+  if (devices.length > 0) {
+    const firstDevice = devices[0];
+    return { deviceId: firstDevice.id, deviceName: firstDevice.name, source: 'available' };
+  }
+  
+  return { deviceId: null, deviceName: null, source: 'none' };
 }
 
 // ============================================================================
@@ -101,53 +118,20 @@ async function getBestPlaybackDevice(): Promise<{ deviceId: string | null; devic
 // ============================================================================
 
 /**
- * Get a fresh access token using the refresh token
+ * Get a fresh access token (uses auto-refresh token manager)
  */
 async function getAccessToken(): Promise<string | null> {
-  console.log('🎵 [SPOTIFY] Getting access token...');
+  getLogger().debug('Getting Spotify access token...');
   
-  // Return cached token if still valid
-  if (accessToken && Date.now() < tokenExpiry - 60000) {
-    console.log('🎵 [SPOTIFY] Using cached token');
-    return accessToken;
-  }
-
-  if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_REFRESH_TOKEN) {
-    console.log('❌ [SPOTIFY] Missing credentials!');
-    getLogger().warn('Spotify credentials not configured');
+  // Use the new token manager that auto-refreshes
+  const token = await getSpotifyAccessToken();
+  
+  if (!token) {
+    getLogger().warn('Spotify token not available - run scripts/spotify-auth.js');
     return null;
   }
   
-  console.log('🎵 [SPOTIFY] Refreshing token...');
-
-  try {
-    const response = await fetch(SPOTIFY_TOKEN_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64'),
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: SPOTIFY_REFRESH_TOKEN,
-      }),
-    });
-
-    if (!response.ok) {
-      getLogger().error({ status: response.status }, 'Spotify token refresh failed');
-      return null;
-    }
-
-    const data = await response.json() as { access_token: string; expires_in: number };
-    accessToken = data.access_token;
-    tokenExpiry = Date.now() + (data.expires_in * 1000);
-    
-    getLogger().info('Spotify access token refreshed');
-    return accessToken;
-  } catch (error) {
-    getLogger().error({ error }, 'Spotify auth error');
-    return null;
-  }
+  return token;
 }
 
 /**
@@ -245,16 +229,16 @@ async function searchTracks(query: string, limit: number = 5): Promise<string> {
  * 2. Stream into call - Play 30-second preview directly into the call
  */
 async function playMusic(query: string, streamIntoCallOverride?: boolean): Promise<string> {
-  console.log(`\n🎵 [SPOTIFY] playMusic called with: "${query}"`);
+  getLogger().info({ query }, 'playMusic called');
   const shouldStreamIntoCall = streamIntoCallOverride ?? streamIntoCall;
   
   try {
-    console.log('🎵 [SPOTIFY] Searching for track...');
+    getLogger().debug('Searching for track...');
     // First search for the track
     const searchResult = await spotifyRequest(
       `/search?q=${encodeURIComponent(query)}&type=track&limit=1`
     ) as SpotifySearchResult;
-    console.log('🎵 [SPOTIFY] Search result:', searchResult.tracks?.items?.[0]?.name || 'no results');
+    getLogger().debug({ result: searchResult.tracks?.items?.[0]?.name || 'no results' }, 'Spotify search result');
 
     const track = searchResult.tracks?.items?.[0];
     
@@ -272,7 +256,7 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
         return `I found "${track.name}" by ${artists}, but it doesn't have a preview available. Want me to play it on your Spotify instead?`;
       }
       
-      console.log('🎵 [SPOTIFY] Streaming preview into call...');
+      getLogger().info('Streaming preview into call...');
       const musicPlayer = getMusicPlayer();
       
       const musicTrack: MusicTrack = {
@@ -295,14 +279,14 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
     
     // MODE 2: Spotify Connect - Control user's device
     const { deviceId, deviceName, source } = await getBestPlaybackDevice();
-    console.log(`🎵 [SPOTIFY] Best device: ${deviceName || 'none'} (source: ${source})`);
+    getLogger().debug({ deviceName: deviceName || 'none', source }, 'Best playback device');
     
     if (!deviceId) {
       // No device available - try streaming preview instead
       const previewUrl = (track as SpotifyTrack & { preview_url?: string }).preview_url;
       
       if (previewUrl) {
-        console.log('🎵 [SPOTIFY] No device - falling back to preview stream');
+        getLogger().info('No device - falling back to preview stream');
         const musicPlayer = getMusicPlayer();
         const musicTrack: MusicTrack = {
           name: track.name,
@@ -318,12 +302,17 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
         }
       }
       
+      // No device available - give helpful guidance
+      const isPremium = await checkPremiumStatus();
+      if (!isPremium) {
+        return "I found the song! To play it, open your Spotify app on your phone or computer and start playing any song briefly. Then ask me again and I'll take over from there!";
+      }
       return "I found the song but can't play it yet! If you're on a phone, open your Spotify app first. If you're on the web, refresh the page to connect the player.";
     }
     
     // Build the play endpoint with device_id
     const playEndpoint = `/me/player/play?device_id=${deviceId}`;
-    console.log('🎵 [SPOTIFY] Playing on:', deviceName);
+    getLogger().info({ deviceName }, 'Playing on device');
 
     // Play the track
     await spotifyRequest(playEndpoint, 'PUT', {
@@ -359,7 +348,7 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
  */
 export function setStreamIntoCall(enabled: boolean): void {
   streamIntoCall = enabled;
-  console.log(`🎵 [SPOTIFY] Stream into call: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+  getLogger().info({ enabled }, 'Stream into call mode updated');
 }
 
 /**
@@ -505,29 +494,40 @@ function getJackMusicSuggestion(mood: string): string {
 // ============================================================================
 
 export function createSpotifyTools() {
-  const isConfigured = !!(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET && SPOTIFY_REFRESH_TOKEN);
+  // Use the new token manager to check if Spotify is configured
+  const isConfigured = isSpotifyConfigured();
   
   if (!isConfigured) {
-    getLogger().warn('Spotify not configured - tools will return setup instructions');
+    getLogger().warn('Spotify not configured - run: node scripts/spotify-auth.js');
+  } else {
+    // Start auto-refresh for token freshness
+    startAutoRefresh();
+    
+    // Log current token status
+    const status = getSpotifyTokenStatus();
+    if (status.valid) {
+      getLogger().info({ minutesRemaining: status.minutesRemaining }, 'Spotify token status');
+    }
   }
 
   return {
     playMusic: llm.tool({
-      description: `Play a song, artist, or album on the user's Spotify. 
-Examples: "play some jazz", "play Fly Me to the Moon", "play Frank Sinatra"
-Use when user asks to play music or hear a song. DO NOT read return value aloud.`,
+      description: `Play music on the user's Spotify. Jack loves music and enjoys sharing it!
+TRIGGER PHRASES: "play music", "play some", "put on", "let's hear", "play me", "can you play"
+Examples: "play some jazz", "play Fly Me to the Moon", "play classical music", "put on some Sinatra"
+Jack especially loves classical music (Beethoven!) and jazz. Always use this tool when music is requested.
+DO NOT read return value aloud - just acknowledge what's playing.`,
       parameters: z.object({
         query: z.string().describe('Song name, artist, or search query'),
       }),
       execute: async ({ query }) => {
-        console.log(`\n🎵 [SPOTIFY TOOL] playMusic called! query="${query}"`);
+        getLogger().info({ query }, 'playMusic tool called');
         if (!isConfigured) {
-          console.log('❌ [SPOTIFY TOOL] Not configured!');
+          getLogger().warn('Spotify not configured');
           return "[INTERNAL: Spotify not connected] I'd love to play some music, but my Spotify isn't connected yet.";
         }
-        getLogger().info({ query }, '🎵 Playing music');
         const result = await playMusic(query);
-        console.log(`🎵 [SPOTIFY TOOL] Result: ${result}`);
+        getLogger().debug({ result: result.slice(0, 100) }, 'playMusic result');
         return result;
       },
     }),
@@ -631,7 +631,7 @@ Great for: "play that in the call", "let me hear it", "play a sample"`,
       }),
       execute: async ({ query }) => {
         if (!isConfigured) return "Spotify isn't connected for previews.";
-        console.log(`🎵 [SPOTIFY] Playing preview in call: "${query}"`);
+        getLogger().info({ query }, 'Playing preview in call');
         return playMusic(query, true); // Force stream into call mode
       },
     }),
@@ -682,6 +682,15 @@ Use when user says "make it quieter", "turn up the background music"`,
       },
     }),
   };
+}
+
+/**
+ * Stop Spotify auto-refresh (call on shutdown)
+ */
+export function shutdownSpotify(): void {
+  stopAutoRefresh();
+  webPlayerDeviceId = null;
+  getLogger().info('Spotify services shut down');
 }
 
 export default createSpotifyTools;

@@ -481,8 +481,8 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
           return linkToken; // Error message
         }
 
-        // Generate the secure link URL (this would be your hosted Plaid Link page)
-        const PLAID_LINK_BASE_URL = process.env.PLAID_LINK_BASE_URL || 'https://your-app.com/link-account';
+        // Generate the secure link URL (configured via PLAID_LINK_BASE_URL in .env)
+        const PLAID_LINK_BASE_URL = process.env.PLAID_LINK_BASE_URL || '';
         const secureLink = `${PLAID_LINK_BASE_URL}?token=${linkToken}&user=${userId}`;
 
         // Send via chosen method
@@ -517,7 +517,8 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
               }
             );
             sendResult = response.ok ? 'sent' : 'failed';
-          } catch {
+          } catch (error) {
+            getLogger().error({ error }, 'Failed to send Twilio SMS notification');
             sendResult = 'failed';
           }
         } else {
@@ -538,8 +539,8 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
               body: JSON.stringify({
                 personalizations: [{ to: [{ email: contact }] }],
                 from: { 
-                  email: process.env.SENDGRID_FROM_EMAIL || 'jack@bogle-advisor.com',
-                  name: 'Jack Bogle'
+                  email: process.env.SENDGRID_FROM_EMAIL || '',
+                  name: process.env.SENDGRID_FROM_NAME || 'Jack Bogle'
                 },
                 subject: '🔐 Securely Link Your Bank Account',
                 content: [{
@@ -563,7 +564,8 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
               signal: AbortSignal.timeout(10000),
             });
             sendResult = (response.ok || response.status === 202) ? 'sent' : 'failed';
-          } catch {
+          } catch (error) {
+            getLogger().error({ error }, 'Failed to send SendGrid email notification');
             sendResult = 'failed';
           }
         }

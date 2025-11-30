@@ -928,11 +928,198 @@ function breakTag(time: string): string {
 }
 
 /**
- * Generate SSML emotion tag
- * Supported: angry, sad, surprised, curious, affectionate
+ * Cartesia Sonic-3 Full Emotion Vocabulary (62 emotions!)
+ * @see https://docs.cartesia.ai/build-with-cartesia/sonic-3/volume-speed-emotion
+ * 
+ * Primary emotions (best quality): neutral, angry, excited, content, sad, scared
+ * 
+ * Full list organized by category:
+ */
+const CARTESIA_EMOTIONS = {
+  // Joy/Excitement
+  happy: 'happy',
+  excited: 'excited',
+  enthusiastic: 'enthusiastic',
+  elated: 'elated',
+  euphoric: 'euphoric',
+  triumphant: 'triumphant',
+  
+  // Surprise/Wonder
+  amazed: 'amazed',
+  surprised: 'surprised',
+  curious: 'curious',
+  
+  // Playful
+  flirtatious: 'flirtatious',
+  joking: 'joking/comedic',
+  sarcastic: 'sarcastic',
+  ironic: 'ironic',
+  
+  // Calm/Content
+  content: 'content',
+  peaceful: 'peaceful',
+  serene: 'serene',
+  calm: 'calm',
+  neutral: 'neutral',
+  
+  // Warmth/Connection
+  grateful: 'grateful',
+  affectionate: 'affectionate',
+  trust: 'trust',
+  sympathetic: 'sympathetic',
+  
+  // Anticipation/Mystery
+  anticipation: 'anticipation',
+  mysterious: 'mysterious',
+  
+  // Anger/Frustration
+  angry: 'angry',
+  mad: 'mad',
+  outraged: 'outraged',
+  frustrated: 'frustrated',
+  agitated: 'agitated',
+  threatened: 'threatened',
+  disgusted: 'disgusted',
+  contempt: 'contempt',
+  envious: 'envious',
+  
+  // Sadness
+  sad: 'sad',
+  dejected: 'dejected',
+  melancholic: 'melancholic',
+  disappointed: 'disappointed',
+  hurt: 'hurt',
+  guilty: 'guilty',
+  rejected: 'rejected',
+  
+  // Nostalgia/Reflection
+  nostalgic: 'nostalgic',
+  wistful: 'wistful',
+  contemplative: 'contemplative',
+  
+  // Low Energy
+  bored: 'bored',
+  tired: 'tired',
+  resigned: 'resigned',
+  
+  // Uncertainty/Anxiety
+  apologetic: 'apologetic',
+  hesitant: 'hesitant',
+  insecure: 'insecure',
+  confused: 'confused',
+  anxious: 'anxious',
+  panicked: 'panicked',
+  alarmed: 'alarmed',
+  scared: 'scared',
+  
+  // Confidence
+  proud: 'proud',
+  confident: 'confident',
+  determined: 'determined',
+  
+  // Distance
+  distant: 'distant',
+  skeptical: 'skeptical',
+} as const;
+
+type CartesiaEmotion = typeof CARTESIA_EMOTIONS[keyof typeof CARTESIA_EMOTIONS];
+
+/**
+ * Map detected emotion to best Cartesia emotion for Jack Bogle's character
+ */
+function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
+  const emotionMap: Record<string, CartesiaEmotion> = {
+    // Our emotion detector outputs → Cartesia emotions
+    'neutral': 'neutral',
+    'happy': 'content',  // Jack is warm, not overly peppy
+    'sad': 'sympathetic', // Jack empathizes rather than being sad himself
+    'angry': 'frustrated', // Jack gets frustrated at Wall Street, not angry
+    'fearful': 'calm', // Jack stays calm in scary markets
+    'surprised': 'curious', // Jack is more curious than shocked
+    'disgusted': 'skeptical', // Jack is skeptical of high fees
+    'anticipation': 'anticipation',
+    
+    // Context-specific mappings for Jack
+    'curious': 'curious',
+    'affectionate': 'affectionate',
+    'nostalgic': 'nostalgic',
+    'wistful': 'wistful',
+    'grateful': 'grateful',
+    'proud': 'proud',
+    'contemplative': 'contemplative',
+    'determined': 'determined',
+    'sympathetic': 'sympathetic',
+    'calm': 'calm',
+    'peaceful': 'peaceful',
+    'content': 'content',
+    'enthusiastic': 'enthusiastic',
+    'amazed': 'amazed',
+    'hesitant': 'hesitant',
+    'apologetic': 'apologetic',
+    'disappointed': 'disappointed',
+    'resigned': 'resigned',
+    'confident': 'confident',
+    'skeptical': 'skeptical',
+  };
+  
+  return emotionMap[detected.toLowerCase()] || 'neutral';
+}
+
+/**
+ * Get contextual emotion based on content analysis
+ */
+function getContextualEmotion(text: string, baseEmotion: string): CartesiaEmotion {
+  const lower = text.toLowerCase();
+  
+  // Wisdom/teaching moments → contemplative + warm
+  if (/\b(let me tell you|the key is|what matters is|remember this|here'?s the thing)\b/i.test(lower)) {
+    return 'contemplative';
+  }
+  
+  // Nostalgia → wistful or nostalgic
+  if (/\b(back in|those days|i remember when|years ago|used to be)\b/i.test(lower)) {
+    return 'nostalgic';
+  }
+  
+  // Encouraging → warm and confident
+  if (/\b(you can do this|you'?re on the right track|that'?s smart|good thinking)\b/i.test(lower)) {
+    return 'affectionate';
+  }
+  
+  // Frustration at Wall Street → skeptical
+  if (/\b(wall street|high fees|active managers|market timing|speculation)\b/i.test(lower)) {
+    return 'skeptical';
+  }
+  
+  // Humor/wit → joking
+  if (/\b(ha!|heh|ha ha|\[laughter\])\b/i.test(lower)) {
+    return 'joking/comedic';
+  }
+  
+  // Sympathy for user struggles
+  if (/\b(i understand|that'?s hard|i'?m sorry|must be difficult)\b/i.test(lower)) {
+    return 'sympathetic';
+  }
+  
+  // Gratitude
+  if (/\b(thank you|grateful|appreciate|means a lot)\b/i.test(lower)) {
+    return 'grateful';
+  }
+  
+  // Pride in principles
+  if (/\b(vanguard|index fund|low cost|stay the course)\b/i.test(lower)) {
+    return 'proud';
+  }
+  
+  return mapToCartesiaEmotion(baseEmotion);
+}
+
+/**
+ * Generate SSML emotion tag using Cartesia's vocabulary
  */
 function emotionTag(emotion: string): string {
-  return `<emotion value="${emotion}"/>`;
+  const cartesiaEmotion = mapToCartesiaEmotion(emotion);
+  return `<emotion value="${cartesiaEmotion}"/>`;
 }
 
 /**
@@ -1089,8 +1276,23 @@ function sanitizeSsml(text: string): string {
   // Remove asterisk actions: *sighs*, *takes a breath*, *chuckles*
   result = result.replace(/\*[^*]*(?:sigh|breath|pause|laugh|chuckle|smile|nod|think|clear|cough)[^*]*\*/gi, '');
   
-  // Remove common standalone stage directions
+  // Remove common standalone stage directions (non-audio)
   result = result.replace(/\b(deep breath|long pause|brief pause|sighs heavily|clears throat)\b/gi, '');
+  
+  // CONVERT laugh/chuckle stage directions to Cartesia [laughter] tag
+  // Cartesia Sonic-3 supports [laughter] for actual laugh sounds!
+  // Pattern: "*chuckles*", "(laughs)", "chuckles softly", "he chuckles", etc.
+  result = result.replace(/\*[^*]*(?:chuckle|laugh)[^*]*\*/gi, '[laughter]');
+  result = result.replace(/\([^)]*(?:chuckle|laugh)[^)]*\)/gi, '[laughter]');
+  result = result.replace(/\b(chuckles?|laughs?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi, '[laughter] ');
+  result = result.replace(/\b(he|she|jack|i)\s+(chuckles?|laughs?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi, '[laughter] ');
+  
+  // Clean up multiple [laughter] tags in a row
+  result = result.replace(/(\[laughter\]\s*){2,}/gi, '[laughter] ');
+  
+  // Remove other non-audio action verbs (smiles, nods, etc. can't be voiced)
+  result = result.replace(/\b(sighs?|smiles?|grins?|nods?|pauses?|winks?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi, '');
+  result = result.replace(/\b(he|she|jack|i)\s+(sighs?|smiles?|grins?|pauses?|nods?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi, '');
 
   // ================================================
   // THEN: Fix malformed SSML tags

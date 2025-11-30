@@ -81,6 +81,31 @@ PLAID_ENV=sandbox  # sandbox, development, or production
 PLAID_LINK_BASE_URL=https://your-app.com/link-account
 ```
 
+## Spotify Integration
+
+```bash
+# Spotify API credentials (for music playback)
+SPOTIFY_CLIENT_ID=your-spotify-client-id
+SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
+# Note: SPOTIFY_REFRESH_TOKEN is managed automatically via .spotify-tokens.json
+```
+
+## Telephony (Outbound Calls)
+
+```bash
+# LiveKit SIP integration for outbound calls
+SIP_TRUNK_ID=your-livekit-sip-trunk-id
+CALLER_ID=+15551234567  # Your outbound caller ID (must be verified)
+```
+
+## Voice Configuration
+
+```bash
+# Cartesia voice IDs (optional - defaults provided)
+JACK_BOGLE_VOICE_ID=9c10dc48-8799-42f9-a72a-0c7dfe13a06d
+PETER_LYNCH_VOICE_ID=dbaa36ed-1b01-4db4-874d-33b6491a4905
+```
+
 ## Agent Configuration
 
 ```bash
@@ -147,5 +172,8 @@ LOG_LEVEL=info
    - **Email**: `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`
    - **SMS**: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
    - **Calendar**: `GOOGLE_CALENDAR_CREDENTIALS`, `GOOGLE_CALENDAR_ID`
-   - **Banking**: `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`
+   - **Banking**: `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, `PLAID_LINK_BASE_URL`
+   - **Music**: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`
+   - **Outbound Calls**: `SIP_TRUNK_ID`, `CALLER_ID`
+   - **Custom Voices**: `JACK_BOGLE_VOICE_ID`, `PETER_LYNCH_VOICE_ID`
 

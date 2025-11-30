@@ -203,12 +203,27 @@ export const TASK_TRANSITIONS = {
 /**
  * Get a random transition phrase from a category
  */
+// All valid transition keys
+export type TransitionKey =
+  | keyof typeof TOPIC_ENTRY_TRANSITIONS
+  | keyof typeof TOPIC_EXIT_TRANSITIONS
+  | keyof typeof EMOTIONAL_TRANSITIONS
+  | keyof typeof TASK_TRANSITIONS;
+
+/**
+ * Check if a string is a valid transition key
+ */
+export function isValidTransitionKey(key: string): key is TransitionKey {
+  return (
+    key in TOPIC_ENTRY_TRANSITIONS ||
+    key in TOPIC_EXIT_TRANSITIONS ||
+    key in EMOTIONAL_TRANSITIONS ||
+    key in TASK_TRANSITIONS
+  );
+}
+
 export function getTransition(
-  category:
-    | keyof typeof TOPIC_ENTRY_TRANSITIONS
-    | keyof typeof TOPIC_EXIT_TRANSITIONS
-    | keyof typeof EMOTIONAL_TRANSITIONS
-    | keyof typeof TASK_TRANSITIONS
+  category: TransitionKey
 ): string {
   // Check each object for the category
   if (category in TOPIC_ENTRY_TRANSITIONS) {
@@ -244,28 +259,28 @@ export function getContextualTransition(context: {
   // If transitioning moods
   if (context.fromMood && context.toMood && context.fromMood !== context.toMood) {
     const key =
-      `${context.fromMood}To${context.toMood.charAt(0).toUpperCase() + context.toMood.slice(1)}` as keyof typeof EMOTIONAL_TRANSITIONS;
-    if (key in EMOTIONAL_TRANSITIONS) {
-      return getTransition(key as any);
+      `${context.fromMood}To${context.toMood.charAt(0).toUpperCase() + context.toMood.slice(1)}`;
+    if (isValidTransitionKey(key)) {
+      return getTransition(key);
     }
   }
 
   // If going to a specific task
   if (context.toTask) {
     const key =
-      `to${context.toTask.charAt(0).toUpperCase() + context.toTask.slice(1)}` as keyof typeof TASK_TRANSITIONS;
-    if (key in TASK_TRANSITIONS) {
-      return getTransition(key as any);
+      `to${context.toTask.charAt(0).toUpperCase() + context.toTask.slice(1)}`;
+    if (isValidTransitionKey(key)) {
+      return getTransition(key);
     }
   }
 
   // If returning to a topic
   if (context.topicMentioned) {
-    return `${getTransition('returning' as any)} ${context.topicMentioned}...`;
+    return `${getTransition('returning')} ${context.topicMentioned}...`;
   }
 
   // Default to gentle entry
-  return getTransition('gentle' as any);
+  return getTransition('gentle');
 }
 
 /**
@@ -280,13 +295,13 @@ export function wrapWithTransitions(
 ): string {
   let result = message;
 
-  if (options?.entry) {
-    const entry = getTransition(options.entry as any);
+  if (options?.entry && isValidTransitionKey(options.entry)) {
+    const entry = getTransition(options.entry);
     result = `${entry} ${result}`;
   }
 
-  if (options?.exit) {
-    const exit = getTransition(options.exit as any);
+  if (options?.exit && isValidTransitionKey(options.exit)) {
+    const exit = getTransition(options.exit);
     result = `${result} ${exit}`;
   }
 
