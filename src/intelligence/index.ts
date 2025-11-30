@@ -95,6 +95,79 @@ export {
   type DynamicUserContext,
 } from './user-learning-engine.js';
 
+// Response Quality Tracker - Learn what responses work
+export {
+  ResponseQualityTracker,
+  getResponseQualityTracker,
+  removeResponseQualityTracker,
+  type ResponseType,
+  type UserReaction,
+  type ResponseSignal,
+  type LearnedResponsePreferences,
+  type UserResponseQuality,
+} from './response-quality-tracker.js';
+
+// Conversation Pattern Analyzer - Learn user habits
+export {
+  ConversationPatternAnalyzer,
+  getConversationPatternAnalyzer,
+  removeConversationPatternAnalyzer,
+  type TimeOfDay,
+  type DayOfWeek,
+  type DurationBucket,
+  type OpeningStyle,
+  type ConversationSession,
+  type LearnedConversationPatterns,
+  type ConversationPrediction,
+} from './conversation-pattern-analyzer.js';
+
+// Proactive Insight Engine - Generate suggestions
+export {
+  ProactiveInsightEngine,
+  getProactiveInsightEngine,
+  removeProactiveInsightEngine,
+  type InsightType,
+  type InsightPriority,
+  type ProactiveInsight,
+  type InsightGenerationResult,
+} from './proactive-insight-engine.js';
+
+// Financial Journey Tracker - Track long-term progress
+export {
+  FinancialJourneyTracker,
+  getFinancialJourneyTracker,
+  removeFinancialJourneyTracker,
+  type FinancialSnapshot,
+  type JourneyMilestone,
+  type ProgressTrend,
+  type FinancialJourney,
+} from './financial-journey-tracker.js';
+
+// Cross-Session Threader - Continue topics across sessions
+export {
+  CrossSessionThreader,
+  getCrossSessionThreader,
+  removeCrossSessionThreader,
+  type ThreadOpenReason,
+  type ThreadPriority,
+  type OpenThread,
+  type PromisedFollowUp,
+  type SessionEndContext,
+} from './cross-session-threader.js';
+
+// Voice Pace Adapter - Match user's rhythm
+export {
+  VoicePaceAdapter,
+  getVoicePaceAdapter,
+  removeVoicePaceAdapter,
+  type PaceCategory,
+  type EnergyLevel,
+  type ConversationTempo,
+  type PaceObservation,
+  type LearnedPacePreferences,
+  type CurrentPaceState,
+} from './voice-pace-adapter.js';
+
 // ============================================================================
 // COMBINED ANALYSIS
 // ============================================================================

@@ -13,11 +13,14 @@
 
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
+import * as fs from 'fs';
+import * as path from 'path';
+import { getMusicPlayer, type MusicTrack } from '../audio/index.js';
 
 const getLogger = () => log();
 
-import * as fs from 'fs';
-import * as path from 'path';
+// Flag to control playback mode
+let streamIntoCall = false; // If true, stream music INTO the call (phone users)
 
 // Spotify API credentials
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
@@ -237,9 +240,13 @@ async function searchTracks(query: string, limit: number = 5): Promise<string> {
 
 /**
  * Play a track, album, or playlist
+ * Supports two modes:
+ * 1. Spotify Connect - Control user's Spotify app/device
+ * 2. Stream into call - Play 30-second preview directly into the call
  */
-async function playMusic(query: string): Promise<string> {
+async function playMusic(query: string, streamIntoCallOverride?: boolean): Promise<string> {
   console.log(`\n🎵 [SPOTIFY] playMusic called with: "${query}"`);
+  const shouldStreamIntoCall = streamIntoCallOverride ?? streamIntoCall;
   
   try {
     console.log('🎵 [SPOTIFY] Searching for track...');
@@ -255,13 +262,63 @@ async function playMusic(query: string): Promise<string> {
       return `Couldn't find "${query}" on Spotify. Try a different song?`;
     }
 
-    // Find the best device to play on (web player OR phone/other device)
+    const artists = track.artists.map(a => a.name).join(', ');
+    
+    // MODE 1: Stream preview directly into the call
+    if (shouldStreamIntoCall) {
+      const previewUrl = (track as SpotifyTrack & { preview_url?: string }).preview_url;
+      
+      if (!previewUrl) {
+        return `I found "${track.name}" by ${artists}, but it doesn't have a preview available. Want me to play it on your Spotify instead?`;
+      }
+      
+      console.log('🎵 [SPOTIFY] Streaming preview into call...');
+      const musicPlayer = getMusicPlayer();
+      
+      const musicTrack: MusicTrack = {
+        name: track.name,
+        artist: artists,
+        uri: track.uri,
+        previewUrl: previewUrl,
+        duration: track.duration_ms,
+      };
+      
+      const success = await musicPlayer.playFromUrl(previewUrl, musicTrack);
+      
+      if (success) {
+        getLogger().info({ track: track.name, artists, mode: 'stream' }, '🎵 Streaming track into call');
+        return `Here's a preview of "${track.name}" by ${artists}. I'll play it softly so we can still chat!`;
+      } else {
+        return `I had trouble streaming that. Let me try playing it on your Spotify instead.`;
+      }
+    }
+    
+    // MODE 2: Spotify Connect - Control user's device
     const { deviceId, deviceName, source } = await getBestPlaybackDevice();
     console.log(`🎵 [SPOTIFY] Best device: ${deviceName || 'none'} (source: ${source})`);
     
     if (!deviceId) {
-      // No device available - give helpful guidance
-      return "I found the song but can't play it yet! If you're on a phone, open your Spotify app first - I can control it remotely. If you're on the web, just refresh the page to connect the player.";
+      // No device available - try streaming preview instead
+      const previewUrl = (track as SpotifyTrack & { preview_url?: string }).preview_url;
+      
+      if (previewUrl) {
+        console.log('🎵 [SPOTIFY] No device - falling back to preview stream');
+        const musicPlayer = getMusicPlayer();
+        const musicTrack: MusicTrack = {
+          name: track.name,
+          artist: artists,
+          uri: track.uri,
+          previewUrl: previewUrl,
+          duration: track.duration_ms,
+        };
+        
+        const success = await musicPlayer.playFromUrl(previewUrl, musicTrack);
+        if (success) {
+          return `I'll play a preview of "${track.name}" by ${artists} right here in our call!`;
+        }
+      }
+      
+      return "I found the song but can't play it yet! If you're on a phone, open your Spotify app first. If you're on the web, refresh the page to connect the player.";
     }
     
     // Build the play endpoint with device_id
@@ -273,7 +330,6 @@ async function playMusic(query: string): Promise<string> {
       uris: [track.uri],
     });
 
-    const artists = track.artists.map(a => a.name).join(', ');
     getLogger().info({ track: track.name, artists, deviceId, deviceName, source }, '🎵 Playing track');
     
     // Customize response based on where it's playing
@@ -296,6 +352,14 @@ async function playMusic(query: string): Promise<string> {
     getLogger().error({ error, query }, 'Spotify play error');
     return "I'm having trouble playing that. Let me know if you want to try a different song!";
   }
+}
+
+/**
+ * Enable/disable streaming music into the call
+ */
+export function setStreamIntoCall(enabled: boolean): void {
+  streamIntoCall = enabled;
+  console.log(`🎵 [SPOTIFY] Stream into call: ${enabled ? 'ENABLED' : 'DISABLED'}`);
 }
 
 /**
@@ -551,6 +615,70 @@ Use when user says "put on some music" without specifics, or asks for recommenda
         // Actually play the suggestion
         const result = await playMusic(suggestion);
         return `For ${mood}? Let me put on something good... ${result}`;
+      },
+    }),
+    
+    // ========================================
+    // IN-CALL MUSIC CONTROLS (Preview streaming)
+    // ========================================
+    
+    playPreview: llm.tool({
+      description: `Play a song preview DIRECTLY into the call (30 seconds). 
+Use when user is on a phone call and wants to hear music through the call itself.
+Great for: "play that in the call", "let me hear it", "play a sample"`,
+      parameters: z.object({
+        query: z.string().describe('Song name, artist, or search query'),
+      }),
+      execute: async ({ query }) => {
+        if (!isConfigured) return "Spotify isn't connected for previews.";
+        console.log(`🎵 [SPOTIFY] Playing preview in call: "${query}"`);
+        return playMusic(query, true); // Force stream into call mode
+      },
+    }),
+    
+    pauseCallMusic: llm.tool({
+      description: `Pause background music playing in the call.
+Use when user says "pause the music", "stop playing", "quiet please"`,
+      parameters: z.object({}),
+      execute: async () => {
+        const musicPlayer = getMusicPlayer();
+        musicPlayer.pause();
+        return "Music paused. Let me know when you want me to continue!";
+      },
+    }),
+    
+    resumeCallMusic: llm.tool({
+      description: `Resume background music in the call.
+Use when user says "play the music again", "continue the song", "unpause"`,
+      parameters: z.object({}),
+      execute: async () => {
+        const musicPlayer = getMusicPlayer();
+        musicPlayer.resume();
+        return "Music resumed!";
+      },
+    }),
+    
+    stopCallMusic: llm.tool({
+      description: `Stop background music completely.
+Use when user says "stop the music", "turn it off", "no more music"`,
+      parameters: z.object({}),
+      execute: async () => {
+        const musicPlayer = getMusicPlayer();
+        musicPlayer.stop();
+        return "Music stopped. Our call just got a lot quieter!";
+      },
+    }),
+    
+    setCallMusicVolume: llm.tool({
+      description: `Adjust the volume of background music in the call.
+Use when user says "make it quieter", "turn up the background music"`,
+      parameters: z.object({
+        volume: z.number().min(0).max(100).describe('Volume percentage (0-100). 20-30% is good for background.'),
+      }),
+      execute: async ({ volume }) => {
+        const musicPlayer = getMusicPlayer();
+        musicPlayer.setVolume(volume / 100);
+        return `Background music volume set to ${volume}%`;
       },
     }),
   };

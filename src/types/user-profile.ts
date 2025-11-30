@@ -296,6 +296,126 @@ export interface UserProfile {
   currentMood?: string;
   currentEnergyLevel?: 'low' | 'medium' | 'high';
 
+  // ============================================================================
+  // ADVANCED INTELLIGENCE DATA
+  // ============================================================================
+  
+  // Response Quality - What kind of responses work with this user
+  responseQuality?: {
+    signals: Array<{
+      id: string;
+      timestamp: Date;
+      responseType: string;
+      responseLength: string;
+      topic: string;
+      userReaction: string;
+      engagementScore: number;
+    }>;
+    preferences?: {
+      likesStories: boolean;
+      likesHumor: boolean;
+      likesQuestions: boolean;
+      prefersDirectAdvice: boolean;
+      preferredResponseLength: 'brief' | 'moderate' | 'lengthy';
+      highEngagementTopics: string[];
+      lowEngagementTopics: string[];
+    };
+  };
+  
+  // Conversation Patterns - When/how they like to chat
+  conversationPatterns?: {
+    sessions: Array<{
+      id: string;
+      startedAt: Date;
+      endedAt: Date;
+      dayOfWeek: string;
+      timeOfDay: string;
+      durationMinutes: number;
+      openingStyle: string;
+      topicSequence: string[];
+    }>;
+    preferences?: {
+      preferredTimes: string[];
+      preferredDays: string[];
+      avgDuration: number;
+      likesSmallTalkFirst: boolean;
+      prefersQuickConversations: boolean;
+    };
+  };
+  
+  // Proactive Insights - Generated insights for this user
+  proactiveInsights?: Array<{
+    id: string;
+    type: string;
+    priority: string;
+    title: string;
+    message: string;
+    generatedAt: Date;
+    delivered: boolean;
+    deliveredAt?: Date;
+    userReaction?: string;
+  }>;
+  
+  // Financial Journey - Long-term progress tracking
+  financialJourney?: {
+    startedAt: Date;
+    snapshots: Array<{
+      id: string;
+      date: Date;
+      type: string;
+      emergencyFundStatus: string;
+      hasDebt: boolean;
+      hasInvestments: boolean;
+      goalsAchieved: number;
+      financialConfidence: string;
+    }>;
+    milestones: Array<{
+      id: string;
+      date: Date;
+      type: string;
+      title: string;
+      description: string;
+      celebrationGiven: boolean;
+    }>;
+  };
+  
+  // Cross-Session Threads - Topics to continue
+  openThreads?: Array<{
+    id: string;
+    topic: string;
+    reason: string;
+    priority: string;
+    suggestedResumption: string;
+    status: 'open' | 'resumed' | 'closed';
+    createdAt: Date;
+  }>;
+  
+  // Promised Follow-ups - Things Jack said he'd do
+  promisedFollowUps?: Array<{
+    id: string;
+    type: string;
+    description: string;
+    delivered: boolean;
+    createdAt: Date;
+  }>;
+  
+  // Voice Pace - Speaking rhythm preferences
+  voicePace?: {
+    observations: Array<{
+      timestamp: Date;
+      userWPM: number;
+      userMessageLength: number;
+      userResponseTime: number;
+    }>;
+    preferences?: {
+      avgWPM: number;
+      preferredPauseLength: number;
+      preferredTempo: string;
+      recommendedJackWPM: number;
+      recommendedResponseLength: 'brief' | 'moderate' | 'detailed';
+    };
+  };
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;
