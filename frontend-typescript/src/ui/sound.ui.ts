@@ -1,0 +1,322 @@
+/**
+ * Sound UI - Satisfying audio feedback
+ * 
+ * Subtle, pleasing sounds for:
+ * - Connect/disconnect
+ * - Persona switch
+ * - Button clicks
+ * - Achievements
+ */
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+type SoundName = 
+  | 'connect'
+  | 'disconnect'
+  | 'click'
+  | 'hover'
+  | 'switch'
+  | 'success'
+  | 'celebrate'
+  | 'thinking'
+  | 'message';
+
+interface SoundConfig {
+  frequency?: number;
+  duration?: number;
+  type?: OscillatorType;
+  volume?: number;
+  attack?: number;
+  decay?: number;
+  frequencies?: number[];  // For multi-tone sounds
+  delays?: number[];       // Delays between frequencies
+}
+
+// ============================================================================
+// STATE
+// ============================================================================
+
+let audioContext: AudioContext | null = null;
+let masterGain: GainNode | null = null;
+let isMuted = false;
+let isInitialized = false;
+
+// Sound configurations - musical, satisfying tones
+const SOUNDS: Record<SoundName, SoundConfig> = {
+  connect: {
+    frequencies: [523.25, 659.25, 783.99], // C5, E5, G5 (C major chord ascending)
+    delays: [0, 0.08, 0.16],
+    duration: 0.15,
+    type: 'sine',
+    volume: 0.12,
+    attack: 0.01,
+    decay: 0.12,
+  },
+  disconnect: {
+    frequencies: [783.99, 659.25, 523.25], // G5, E5, C5 (descending)
+    delays: [0, 0.06, 0.12],
+    duration: 0.12,
+    type: 'sine',
+    volume: 0.1,
+    attack: 0.01,
+    decay: 0.1,
+  },
+  click: {
+    frequency: 1200,
+    duration: 0.04,
+    type: 'sine',
+    volume: 0.06,
+    attack: 0.001,
+    decay: 0.035,
+  },
+  hover: {
+    frequency: 800,
+    duration: 0.025,
+    type: 'sine',
+    volume: 0.03,
+    attack: 0.001,
+    decay: 0.02,
+  },
+  switch: {
+    frequencies: [440, 554.37], // A4, C#5 (major third)
+    delays: [0, 0.05],
+    duration: 0.1,
+    type: 'sine',
+    volume: 0.08,
+    attack: 0.01,
+    decay: 0.08,
+  },
+  success: {
+    frequencies: [523.25, 659.25, 783.99, 1046.5], // C major arpeggio
+    delays: [0, 0.1, 0.2, 0.3],
+    duration: 0.2,
+    type: 'sine',
+    volume: 0.1,
+    attack: 0.01,
+    decay: 0.18,
+  },
+  celebrate: {
+    frequencies: [523.25, 659.25, 783.99, 1046.5, 1318.5], // Extended arpeggio
+    delays: [0, 0.08, 0.16, 0.24, 0.32],
+    duration: 0.25,
+    type: 'triangle',
+    volume: 0.12,
+    attack: 0.01,
+    decay: 0.22,
+  },
+  thinking: {
+    frequencies: [350, 370],
+    delays: [0, 0.3],
+    duration: 0.15,
+    type: 'sine',
+    volume: 0.04,
+    attack: 0.05,
+    decay: 0.1,
+  },
+  message: {
+    frequency: 880,
+    duration: 0.08,
+    type: 'sine',
+    volume: 0.06,
+    attack: 0.01,
+    decay: 0.06,
+  },
+};
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+export function initSoundUI(): void {
+  // Create audio context on first user interaction
+  const initOnInteraction = () => {
+    if (isInitialized) return;
+    
+    try {
+      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      masterGain = audioContext.createGain();
+      masterGain.connect(audioContext.destination);
+      masterGain.gain.value = 1;
+      isInitialized = true;
+      
+      console.log('🔊 Sound UI initialized');
+    } catch (e) {
+      console.warn('Audio not supported');
+    }
+    
+    // Remove listeners after init
+    document.removeEventListener('click', initOnInteraction);
+    document.removeEventListener('touchstart', initOnInteraction);
+    document.removeEventListener('keydown', initOnInteraction);
+  };
+  
+  // Initialize on first interaction (browser requirement)
+  document.addEventListener('click', initOnInteraction, { once: true });
+  document.addEventListener('touchstart', initOnInteraction, { once: true });
+  document.addEventListener('keydown', initOnInteraction, { once: true });
+  
+  // Set up hover sounds for interactive elements
+  setupHoverSounds();
+  
+  console.log('🔊 Sound UI ready (waiting for interaction)');
+}
+
+// ============================================================================
+// SOUND PLAYBACK
+// ============================================================================
+
+export function play(name: SoundName): void {
+  if (isMuted || !isInitialized || !audioContext || !masterGain) return;
+  
+  const config = SOUNDS[name];
+  if (!config) return;
+  
+  // Resume context if suspended
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+  
+  // Play single or multi-tone sound
+  if (config.frequencies && config.delays) {
+    config.frequencies.forEach((freq, i) => {
+      setTimeout(() => {
+        playTone({
+          ...config,
+          frequency: freq,
+        });
+      }, (config.delays![i] || 0) * 1000);
+    });
+  } else if (config.frequency) {
+    playTone(config);
+  }
+}
+
+function playTone(config: SoundConfig): void {
+  if (!audioContext || !masterGain) return;
+  
+  const now = audioContext.currentTime;
+  
+  // Create oscillator
+  const oscillator = audioContext.createOscillator();
+  oscillator.type = config.type || 'sine';
+  oscillator.frequency.value = config.frequency || 440;
+  
+  // Create gain for envelope
+  const gainNode = audioContext.createGain();
+  gainNode.gain.setValueAtTime(0, now);
+  
+  // Attack
+  gainNode.gain.linearRampToValueAtTime(
+    config.volume || 0.1,
+    now + (config.attack || 0.01)
+  );
+  
+  // Decay
+  gainNode.gain.exponentialRampToValueAtTime(
+    0.001,
+    now + (config.duration || 0.1)
+  );
+  
+  // Connect and play
+  oscillator.connect(gainNode);
+  gainNode.connect(masterGain);
+  
+  oscillator.start(now);
+  oscillator.stop(now + (config.duration || 0.1) + 0.01);
+}
+
+// ============================================================================
+// HOVER SOUNDS
+// ============================================================================
+
+function setupHoverSounds(): void {
+  // Debounce to prevent spam
+  let lastHoverTime = 0;
+  const HOVER_DEBOUNCE = 50;
+  
+  document.addEventListener('mouseenter', (e) => {
+    const target = e.target;
+    
+    // Ensure target is an Element (not a Text node or other)
+    if (!(target instanceof Element)) return;
+    
+    // Only for interactive elements
+    if (
+      target.matches('button, .btn, .team-member, .footer-link, a') &&
+      !target.matches(':disabled')
+    ) {
+      const now = Date.now();
+      if (now - lastHoverTime > HOVER_DEBOUNCE) {
+        play('hover');
+        lastHoverTime = now;
+      }
+    }
+  }, true);
+}
+
+// ============================================================================
+// CONTROLS
+// ============================================================================
+
+export function setMuted(muted: boolean): void {
+  isMuted = muted;
+  
+  if (masterGain) {
+    masterGain.gain.value = muted ? 0 : 1;
+  }
+}
+
+export function toggleMute(): boolean {
+  setMuted(!isMuted);
+  return isMuted;
+}
+
+export function getMuted(): boolean {
+  return isMuted;
+}
+
+// ============================================================================
+// CONVENIENCE METHODS
+// ============================================================================
+
+export function playConnect(): void { play('connect'); }
+export function playDisconnect(): void { play('disconnect'); }
+export function playClick(): void { play('click'); }
+export function playSwitch(): void { play('switch'); }
+export function playSuccess(): void { play('success'); }
+export function playCelebrate(): void { play('celebrate'); }
+
+// ============================================================================
+// CLEANUP
+// ============================================================================
+
+export function dispose(): void {
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
+  masterGain = null;
+  isInitialized = false;
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export const soundUI = {
+  init: initSoundUI,
+  play,
+  setMuted,
+  toggleMute,
+  getMuted,
+  playConnect,
+  playDisconnect,
+  playClick,
+  playSwitch,
+  playSuccess,
+  playCelebrate,
+  dispose,
+};
+

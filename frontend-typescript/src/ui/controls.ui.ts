@@ -1,0 +1,235 @@
+/**
+ * Controls UI Component
+ * 
+ * Manages the connect/disconnect buttons and main interaction controls.
+ */
+
+import type { ConnectionState } from '../types/events.js';
+import { appState } from '../state/app.state.js';
+import {
+  getElementById,
+  addClass,
+  removeClass,
+  addListener,
+  show,
+  hide,
+} from '../utils/dom.js';
+
+// Note: addClass/removeClass kept for future mute button styling
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface ControlCallbacks {
+  onConnect: () => void;
+  onDisconnect: () => void;
+  onMuteToggle: () => void;
+}
+
+// ============================================================================
+// ELEMENT REFERENCES
+// ============================================================================
+
+interface ControlElements {
+  controlsContainer: HTMLElement | null;
+  connectBtn: HTMLButtonElement;
+  disconnectBtn: HTMLButtonElement;
+  muteBtn: HTMLButtonElement | null;
+}
+
+let elements: ControlElements | null = null;
+let callbacks: ControlCallbacks | null = null;
+const cleanupFunctions: (() => void)[] = [];
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+/**
+ * Initialize the controls UI component.
+ * Must be called after DOM is ready.
+ */
+export function initControlsUI(controlCallbacks: ControlCallbacks): void {
+  try {
+    console.log('🎛️ Controls UI: Starting initialization...');
+    callbacks = controlCallbacks;
+    console.log('🎛️ Controls UI: Callbacks set:', !!callbacks);
+
+    elements = {
+      controlsContainer: document.querySelector('.controls'),
+      connectBtn: getElementById('connectBtn'),
+      disconnectBtn: getElementById('disconnectBtn'),
+      muteBtn: document.getElementById('muteBtn') as HTMLButtonElement | null,
+    };
+    console.log('🎛️ Controls UI: Elements found:', {
+      container: !!elements.controlsContainer,
+      connectBtn: !!elements.connectBtn,
+      disconnectBtn: !!elements.disconnectBtn,
+    });
+
+    // Set up click handlers
+    setupClickHandlers();
+    console.log('🎛️ Controls UI: Click handlers set up');
+
+    // Set up state subscriptions
+    setupSubscriptions();
+
+    // Initial state
+    updateButtonVisibility(appState.get('connection'));
+
+    console.log('✅ Controls UI initialized');
+  } catch (error) {
+    console.error('❌ Failed to initialize Controls UI:', error);
+  }
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+function setupClickHandlers(): void {
+  if (!elements || !callbacks) return;
+
+  // Simple click handlers - matches working frontend
+  // iOS handles click events on buttons correctly
+  const connectCleanup = addListener(elements.connectBtn, 'click', () => {
+    console.log('🔘 Connect button clicked');
+    callbacks?.onConnect();
+  });
+  cleanupFunctions.push(connectCleanup);
+
+  // Disconnect button
+  const disconnectCleanup = addListener(elements.disconnectBtn, 'click', () => {
+    console.log('🔘 Disconnect button clicked');
+    callbacks?.onDisconnect();
+  });
+  cleanupFunctions.push(disconnectCleanup);
+
+  // Mute button (optional)
+  if (elements.muteBtn) {
+    const muteCleanup = addListener(elements.muteBtn, 'click', () => {
+      callbacks?.onMuteToggle();
+    });
+    cleanupFunctions.push(muteCleanup);
+  }
+}
+
+// ============================================================================
+// STATE SUBSCRIPTIONS
+// ============================================================================
+
+function setupSubscriptions(): void {
+  // Connection state changes
+  appState.subscribe('connection', (state) => {
+    updateButtonVisibility(state);
+  });
+
+  // Mute state changes
+  appState.subscribe('isMuted', (muted) => {
+    updateMuteButton(muted);
+  });
+}
+
+// ============================================================================
+// UPDATE FUNCTIONS
+// ============================================================================
+
+/**
+ * Update button visibility based on connection state.
+ */
+function updateButtonVisibility(state: ConnectionState): void {
+  if (!elements) return;
+
+  switch (state) {
+    case 'disconnected':
+      show(elements.connectBtn, 'flex');
+      hide(elements.disconnectBtn);
+      elements.connectBtn.disabled = false;
+      // Reset disconnect button to default styling
+      removeClass(elements.disconnectBtn, 'btn-primary');
+      removeClass(elements.disconnectBtn, 'btn-magnetic');
+      addClass(elements.disconnectBtn, 'btn-secondary');
+      break;
+
+    case 'connecting':
+    case 'reconnecting':
+      show(elements.connectBtn, 'flex');
+      hide(elements.disconnectBtn);
+      elements.connectBtn.disabled = true;
+      break;
+
+    case 'connected':
+      hide(elements.connectBtn);
+      show(elements.disconnectBtn, 'flex');
+      elements.disconnectBtn.disabled = false;
+      // Make disconnect button match persona colors!
+      removeClass(elements.disconnectBtn, 'btn-secondary');
+      addClass(elements.disconnectBtn, 'btn-primary');
+      addClass(elements.disconnectBtn, 'btn-magnetic');
+      break;
+
+    case 'error':
+      show(elements.connectBtn, 'flex');
+      hide(elements.disconnectBtn);
+      elements.connectBtn.disabled = false;
+      break;
+  }
+}
+
+/**
+ * Update mute button state.
+ */
+function updateMuteButton(muted: boolean): void {
+  if (!elements?.muteBtn) return;
+
+  if (muted) {
+    addClass(elements.muteBtn, 'muted');
+    elements.muteBtn.setAttribute('aria-pressed', 'true');
+  } else {
+    removeClass(elements.muteBtn, 'muted');
+    elements.muteBtn.setAttribute('aria-pressed', 'false');
+  }
+}
+
+/**
+ * Set loading state on connect button.
+ */
+export function setConnecting(isConnecting: boolean): void {
+  if (!elements) return;
+
+  if (isConnecting) {
+    elements.connectBtn.disabled = true;
+    addClass(elements.connectBtn, 'loading');
+  } else {
+    elements.connectBtn.disabled = false;
+    removeClass(elements.connectBtn, 'loading');
+  }
+}
+
+// ============================================================================
+// CLEANUP
+// ============================================================================
+
+/**
+ * Clean up resources.
+ */
+export function dispose(): void {
+  for (const fn of cleanupFunctions) {
+    fn();
+  }
+  cleanupFunctions.length = 0;
+  elements = null;
+  callbacks = null;
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export const controlsUI = {
+  init: initControlsUI,
+  setConnecting,
+  dispose,
+};
+

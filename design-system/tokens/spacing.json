@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "VoiceAI Spacing & Layout Design Tokens",
+
+  "spacing": {
+    "0": "0",
+    "px": "1px",
+    "0.5": "0.125rem",
+    "1": "0.25rem",
+    "1.5": "0.375rem",
+    "2": "0.5rem",
+    "2.5": "0.625rem",
+    "3": "0.75rem",
+    "3.5": "0.875rem",
+    "4": "1rem",
+    "5": "1.25rem",
+    "6": "1.5rem",
+    "7": "1.75rem",
+    "8": "2rem",
+    "9": "2.25rem",
+    "10": "2.5rem",
+    "11": "2.75rem",
+    "12": "3rem",
+    "14": "3.5rem",
+    "16": "4rem",
+    "20": "5rem",
+    "24": "6rem",
+    "28": "7rem",
+    "32": "8rem",
+    "36": "9rem",
+    "40": "10rem",
+    "44": "11rem",
+    "48": "12rem",
+    "52": "13rem",
+    "56": "14rem",
+    "60": "15rem",
+    "64": "16rem",
+    "72": "18rem",
+    "80": "20rem",
+    "96": "24rem"
+  },
+
+  "semanticSpacing": {
+    "2xs": "0.125rem",
+    "xs": "0.25rem",
+    "sm": "0.5rem",
+    "md": "1rem",
+    "lg": "1.5rem",
+    "xl": "2rem",
+    "2xl": "3rem",
+    "3xl": "4rem",
+    "4xl": "6rem"
+  },
+
+  "borderRadius": {
+    "none": "0",
+    "xs": "0.125rem",
+    "sm": "0.25rem",
+    "md": "0.375rem",
+    "lg": "0.5rem",
+    "xl": "0.75rem",
+    "2xl": "1rem",
+    "3xl": "1.5rem",
+    "full": "9999px"
+  },
+
+  "borderWidth": {
+    "0": "0",
+    "1": "1px",
+    "2": "2px",
+    "4": "4px",
+    "8": "8px"
+  },
+
+  "shadows": {
+    "midnight": {
+      "xs": "0 1px 2px rgba(0, 0, 0, 0.5)",
+      "sm": "0 2px 4px rgba(0, 0, 0, 0.4)",
+      "md": "0 4px 8px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.3)",
+      "lg": "0 8px 16px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.25)",
+      "xl": "0 16px 32px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(0, 0, 0, 0.2)",
+      "2xl": "0 24px 48px rgba(0, 0, 0, 0.3), 0 12px 24px rgba(0, 0, 0, 0.2)",
+      "glow": "0 0 20px var(--color-accent-glow)",
+      "inner": "inset 0 2px 4px rgba(0, 0, 0, 0.4)"
+    },
+    "zen": {
+      "xs": "0 1px 2px rgba(0, 0, 0, 0.04)",
+      "sm": "0 2px 4px rgba(0, 0, 0, 0.06)",
+      "md": "0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04)",
+      "lg": "0 8px 16px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04)",
+      "xl": "0 16px 32px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05)",
+      "2xl": "0 24px 48px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.06)",
+      "glow": "0 0 20px var(--color-accent-glow)",
+      "inner": "inset 0 2px 4px rgba(0, 0, 0, 0.04)"
+    }
+  },
+
+  "zIndex": {
+    "hide": -1,
+    "auto": "auto",
+    "base": 0,
+    "docked": 10,
+    "dropdown": 1000,
+    "sticky": 1100,
+    "banner": 1200,
+    "overlay": 1300,
+    "modal": 1400,
+    "popover": 1500,
+    "skipLink": 1600,
+    "toast": 1700,
+    "tooltip": 1800
+  },
+
+  "breakpoints": {
+    "xs": "375px",
+    "sm": "640px",
+    "md": "768px",
+    "lg": "1024px",
+    "xl": "1280px",
+    "2xl": "1536px"
+  },
+
+  "containers": {
+    "xs": "20rem",
+    "sm": "24rem",
+    "md": "28rem",
+    "lg": "32rem",
+    "xl": "36rem",
+    "2xl": "42rem",
+    "3xl": "48rem",
+    "4xl": "56rem",
+    "5xl": "64rem",
+    "6xl": "72rem",
+    "7xl": "80rem",
+    "full": "100%"
+  }
+}

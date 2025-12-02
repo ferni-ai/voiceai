@@ -61,17 +61,26 @@ function getSpotifyRefreshToken() {
 }
 
 // Save updated tokens to file
-function saveSpotifyTokens(accessToken, refreshToken, expiresIn) {
+function saveSpotifyTokens(accessToken, refreshToken, expiresIn, scope = '') {
   try {
+    // Preserve existing scope if not provided
+    let existingScope = scope;
+    if (!scope && fs.existsSync(SPOTIFY_TOKENS_FILE)) {
+      try {
+        const existing = JSON.parse(fs.readFileSync(SPOTIFY_TOKENS_FILE, 'utf8'));
+        existingScope = existing.scope || '';
+      } catch {}
+    }
+    
     const data = {
       access_token: accessToken,
       refresh_token: refreshToken,
       expires_at: Date.now() + (expiresIn * 1000),
       token_type: 'Bearer',
-      scope: '',
+      scope: existingScope,
     };
     fs.writeFileSync(SPOTIFY_TOKENS_FILE, JSON.stringify(data, null, 2));
-    console.log('🎵 Saved updated tokens to .spotify-tokens.json');
+    console.log('🎵 Saved updated tokens to .spotify-tokens.json (scope:', existingScope.slice(0, 50) + '...)');
   } catch (err) {
     console.warn('⚠️ Could not save Spotify tokens:', err.message);
   }
@@ -205,11 +214,13 @@ if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
   process.exit(1);
 }
 
-// Agent dispatch client for dispatching John Bogle agent to rooms
+// Agent dispatch client for dispatching agents to rooms
 const agentDispatch = new AgentDispatchClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
 const roomService = new RoomServiceClient(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
 
-const AGENT_NAME = 'john-bogle-agent';  // Must match livekit.toml agent name
+// Default agent name - must match livekit.toml agent name
+// The persona is passed via metadata, not separate agents
+const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
 
 /**
  * Generate LiveKit access token
@@ -257,14 +268,14 @@ function getMimeType(filePath) {
 }
 
 /**
- * Serve static files from frontend directory
+ * Serve static files from frontend-typescript/dist directory
  */
 function serveStaticFile(filePath, res) {
-  const fullPath = path.join(process.cwd(), 'frontend', filePath);
-  
+  const fullPath = path.join(process.cwd(), 'frontend-typescript', 'dist', filePath);
+
   // Security: prevent directory traversal
   const resolvedPath = path.resolve(fullPath);
-  const frontendDir = path.resolve(process.cwd(), 'frontend');
+  const frontendDir = path.resolve(process.cwd(), 'frontend-typescript', 'dist');
   if (!resolvedPath.startsWith(frontendDir)) {
     res.writeHead(403);
     res.end('Forbidden');
@@ -415,9 +426,16 @@ const server = http.createServer(async (req, res) => {
   
   // Get Spotify access token for Web Playback SDK
   if (pathname === '/spotify/token') {
+    const forceRefresh = parsedUrl.query.force === '1';
+    console.log('🎵 /spotify/token requested', forceRefresh ? '(force refresh)' : '');
     const refreshToken = getSpotifyRefreshToken();
     
     if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !refreshToken) {
+      console.error('❌ Spotify not configured:', {
+        hasClientId: !!SPOTIFY_CLIENT_ID,
+        hasClientSecret: !!SPOTIFY_CLIENT_SECRET,
+        hasRefreshToken: !!refreshToken
+      });
       res.writeHead(503, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ 
         error: 'Spotify not configured',
@@ -426,14 +444,29 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     
-    // Return cached token if still valid
-    if (spotifyAccessToken && Date.now() < spotifyTokenExpiry - 60000) {
+    // Get scope from tokens file
+    let tokenScope = '';
+    try {
+      if (fs.existsSync(SPOTIFY_TOKENS_FILE)) {
+        const existing = JSON.parse(fs.readFileSync(SPOTIFY_TOKENS_FILE, 'utf8'));
+        tokenScope = existing.scope || '';
+      }
+    } catch {}
+    
+    // Return cached token if still valid (unless force refresh)
+    if (!forceRefresh && spotifyAccessToken && Date.now() < spotifyTokenExpiry - 60000) {
+      console.log('🎵 Returning cached token (valid for', Math.round((spotifyTokenExpiry - Date.now()) / 60000), 'min)');
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ access_token: spotifyAccessToken }));
+      res.end(JSON.stringify({ 
+        access_token: spotifyAccessToken,
+        scope: tokenScope,
+        expires_in: Math.round((spotifyTokenExpiry - Date.now()) / 1000)
+      }));
       return;
     }
     
     // Refresh the token
+    console.log('🎵 Refreshing Spotify token...');
     try {
       const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
@@ -449,7 +482,7 @@ const server = http.createServer(async (req, res) => {
       
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
-        console.error('❌ Spotify API error:', errorText);
+        console.error('❌ Spotify API error:', tokenResponse.status, errorText);
         throw new Error(`Spotify token refresh failed: ${tokenResponse.status} - ${errorText}`);
       }
       
@@ -457,18 +490,28 @@ const server = http.createServer(async (req, res) => {
       spotifyAccessToken = data.access_token;
       spotifyTokenExpiry = Date.now() + (data.expires_in * 1000);
       
-      // Save updated tokens (Spotify may return new refresh token)
-      saveSpotifyTokens(data.access_token, data.refresh_token || refreshToken, data.expires_in);
+      // Scope comes from the refresh response or keep existing
+      const newScope = data.scope || tokenScope;
       
-      console.log('🎵 Spotify access token refreshed');
+      // Save updated tokens (Spotify may return new refresh token)
+      saveSpotifyTokens(data.access_token, data.refresh_token || refreshToken, data.expires_in, newScope);
+      
+      console.log('🎵 Spotify token refreshed successfully');
+      console.log('   Scope:', newScope || '(none)');
+      console.log('   Expires in:', Math.round(data.expires_in / 60), 'minutes');
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ access_token: spotifyAccessToken }));
+      res.end(JSON.stringify({ 
+        access_token: spotifyAccessToken,
+        scope: newScope,
+        expires_in: data.expires_in
+      }));
     } catch (err) {
-      console.error('❌ Spotify token error:', err);
+      console.error('❌ Spotify token error:', err.message);
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ 
         error: 'Failed to get Spotify token',
+        message: err.message,
         help: 'Your refresh token may have expired. Run: node scripts/spotify-auth.js'
       }));
     }
@@ -515,7 +558,7 @@ const server = http.createServer(async (req, res) => {
 
   // Token generation endpoint
   if (pathname === '/token') {
-    const { room, username, device_id } = parsedUrl.query;
+    const { room, username, device_id, persona_id } = parsedUrl.query;
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -525,22 +568,26 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Default to jack-b persona if not specified
+    const selectedPersona = persona_id || 'jack-b';
+
     createToken(room, username)
       .then(async token => {
-        console.log(`✅ Generated token for user "${username}" in room "${room}"${device_id ? ` (device: ${device_id})` : ''}`);
+        console.log(`✅ Generated token for user "${username}" in room "${room}" (persona: ${selectedPersona})${device_id ? ` (device: ${device_id})` : ''}`);
         
-        // Dispatch the John Bogle agent to the room
-        // Include device_id for cross-session user recognition!
+        // Dispatch the agent to the room with persona metadata
+        // The agent will read persona_id from metadata and load the appropriate persona
         try {
           const agentMetadata = {
             user_name: username,
             device_id: device_id || undefined,  // Pass device ID for user identification
+            persona_id: selectedPersona,         // Pass persona selection!
             source: 'web',  // Mark as web connection
           };
           await agentDispatch.createDispatch(room, AGENT_NAME, {
             metadata: JSON.stringify(agentMetadata)
           });
-          console.log(`✅ Dispatched agent "${AGENT_NAME}" to room "${room}" with metadata:`, agentMetadata);
+          console.log(`✅ Dispatched agent "${AGENT_NAME}" to room "${room}" with persona: ${selectedPersona}`, agentMetadata);
         } catch (dispatchError) {
           // Agent might already be dispatched, or room doesn't exist yet - that's ok
           console.log(`ℹ️ Agent dispatch note: ${dispatchError.message}`);
@@ -553,6 +600,7 @@ const server = http.createServer(async (req, res) => {
           room,
           username,
           device_id,
+          persona_id: selectedPersona,
         }));
       })
       .catch(error => {

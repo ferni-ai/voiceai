@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "VoiceAI Typography Design Tokens",
+
+  "fontFamilies": {
+    "display": {
+      "midnight": "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "zen": "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    },
+    "body": {
+      "midnight": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "zen": "'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    },
+    "mono": "'SF Mono', 'Fira Code', 'Consolas', monospace"
+  },
+
+  "fontWeights": {
+    "light": 300,
+    "regular": 400,
+    "medium": 500,
+    "semibold": 600,
+    "bold": 700,
+    "extrabold": 800
+  },
+
+  "fontSizes": {
+    "2xs": "0.625rem",
+    "xs": "0.75rem",
+    "sm": "0.8125rem",
+    "base": "0.9375rem",
+    "lg": "1.0625rem",
+    "xl": "1.25rem",
+    "2xl": "1.5rem",
+    "3xl": "1.875rem",
+    "4xl": "2.25rem",
+    "5xl": "3rem",
+    "6xl": "3.75rem"
+  },
+
+  "lineHeights": {
+    "none": 1,
+    "tight": 1.15,
+    "snug": 1.3,
+    "normal": 1.5,
+    "relaxed": 1.625,
+    "loose": 1.8
+  },
+
+  "letterSpacing": {
+    "tighter": "-0.03em",
+    "tight": "-0.015em",
+    "normal": "0",
+    "wide": "0.015em",
+    "wider": "0.05em",
+    "widest": "0.1em"
+  },
+
+  "textStyles": {
+    "heroDisplay": {
+      "fontSize": "3.75rem",
+      "fontWeight": 800,
+      "lineHeight": 1,
+      "letterSpacing": "-0.03em",
+      "fontFamily": "display"
+    },
+    "pageTitle": {
+      "fontSize": "2.25rem",
+      "fontWeight": 700,
+      "lineHeight": 1.15,
+      "letterSpacing": "-0.015em",
+      "fontFamily": "display"
+    },
+    "sectionTitle": {
+      "fontSize": "1.5rem",
+      "fontWeight": 600,
+      "lineHeight": 1.3,
+      "letterSpacing": "-0.015em",
+      "fontFamily": "display"
+    },
+    "cardTitle": {
+      "fontSize": "1.0625rem",
+      "fontWeight": 600,
+      "lineHeight": 1.3,
+      "letterSpacing": "0",
+      "fontFamily": "body"
+    },
+    "bodyLarge": {
+      "fontSize": "1.0625rem",
+      "fontWeight": 400,
+      "lineHeight": 1.625,
+      "letterSpacing": "0",
+      "fontFamily": "body"
+    },
+    "body": {
+      "fontSize": "0.9375rem",
+      "fontWeight": 400,
+      "lineHeight": 1.5,
+      "letterSpacing": "0",
+      "fontFamily": "body"
+    },
+    "bodySmall": {
+      "fontSize": "0.8125rem",
+      "fontWeight": 400,
+      "lineHeight": 1.5,
+      "letterSpacing": "0",
+      "fontFamily": "body"
+    },
+    "caption": {
+      "fontSize": "0.75rem",
+      "fontWeight": 500,
+      "lineHeight": 1.3,
+      "letterSpacing": "0.015em",
+      "fontFamily": "body"
+    },
+    "label": {
+      "fontSize": "0.6875rem",
+      "fontWeight": 600,
+      "lineHeight": 1.3,
+      "letterSpacing": "0.05em",
+      "textTransform": "uppercase",
+      "fontFamily": "body"
+    },
+    "buttonLarge": {
+      "fontSize": "1rem",
+      "fontWeight": 600,
+      "lineHeight": 1,
+      "letterSpacing": "-0.01em",
+      "fontFamily": "body"
+    },
+    "button": {
+      "fontSize": "0.875rem",
+      "fontWeight": 600,
+      "lineHeight": 1,
+      "letterSpacing": "-0.01em",
+      "fontFamily": "body"
+    },
+    "buttonSmall": {
+      "fontSize": "0.75rem",
+      "fontWeight": 600,
+      "lineHeight": 1,
+      "letterSpacing": "0",
+      "fontFamily": "body"
+    }
+  }
+}

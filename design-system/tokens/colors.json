@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "VoiceAI Color Design Tokens",
+
+  "themes": {
+    "midnight": {
+      "meta": {
+        "name": "Midnight Gold",
+        "description": "Rich dark theme with warm gold accents - current default",
+        "mode": "dark"
+      },
+      "background": {
+        "primary": "#08080c",
+        "secondary": "#0f0f14",
+        "tertiary": "#16161d",
+        "elevated": "#1c1c26",
+        "glass": "rgba(255, 255, 255, 0.03)",
+        "overlay": "rgba(0, 0, 0, 0.7)"
+      },
+      "text": {
+        "primary": "#fafafa",
+        "secondary": "#9ca3af",
+        "muted": "#52525b",
+        "dimmed": "#3f3f46",
+        "inverse": "#08080c"
+      },
+      "border": {
+        "subtle": "rgba(255, 255, 255, 0.06)",
+        "medium": "rgba(255, 255, 255, 0.1)",
+        "strong": "rgba(255, 255, 255, 0.2)"
+      },
+      "accent": {
+        "primary": "#c8a45c",
+        "hover": "#d4b56e",
+        "pressed": "#b8944c",
+        "glow": "rgba(200, 164, 92, 0.24)",
+        "subtle": "rgba(200, 164, 92, 0.08)"
+      },
+      "semantic": {
+        "success": "#10b981",
+        "successGlow": "rgba(16, 185, 129, 0.25)",
+        "error": "#f43f5e",
+        "errorGlow": "rgba(244, 63, 94, 0.25)",
+        "warning": "#f59e0b",
+        "warningGlow": "rgba(245, 158, 11, 0.25)",
+        "info": "#6366f1",
+        "infoGlow": "rgba(99, 102, 241, 0.25)"
+      }
+    },
+
+    "zen": {
+      "meta": {
+        "name": "Zen Garden",
+        "description": "Apple.com meets Fidelity meets Claude.ai meets Japan - clean, natural, serene",
+        "mode": "light"
+      },
+      "background": {
+        "primary": "#fafaf9",
+        "secondary": "#f5f5f4",
+        "tertiary": "#e7e5e4",
+        "elevated": "#ffffff",
+        "glass": "rgba(0, 0, 0, 0.02)",
+        "overlay": "rgba(255, 255, 255, 0.9)"
+      },
+      "text": {
+        "primary": "#1c1917",
+        "secondary": "#57534e",
+        "muted": "#a8a29e",
+        "dimmed": "#d6d3d1",
+        "inverse": "#fafaf9"
+      },
+      "border": {
+        "subtle": "rgba(0, 0, 0, 0.04)",
+        "medium": "rgba(0, 0, 0, 0.08)",
+        "strong": "rgba(0, 0, 0, 0.15)"
+      },
+      "accent": {
+        "primary": "#166534",
+        "hover": "#15803d",
+        "pressed": "#14532d",
+        "glow": "rgba(22, 101, 52, 0.12)",
+        "subtle": "rgba(22, 101, 52, 0.04)"
+      },
+      "semantic": {
+        "success": "#16a34a",
+        "successGlow": "rgba(22, 163, 74, 0.15)",
+        "error": "#dc2626",
+        "errorGlow": "rgba(220, 38, 38, 0.15)",
+        "warning": "#ca8a04",
+        "warningGlow": "rgba(202, 138, 4, 0.15)",
+        "info": "#2563eb",
+        "infoGlow": "rgba(37, 99, 235, 0.15)"
+      },
+      "natural": {
+        "wood": "#a8896c",
+        "woodLight": "#d4c4b0",
+        "bamboo": "#8b9a6b",
+        "stone": "#78716c",
+        "sand": "#e7e5e4",
+        "moss": "#4d7c0f"
+      }
+    }
+  },
+
+  "personas": {
+    "ferni": {
+      "primary": "#8b5cf6",
+      "secondary": "#6366f1",
+      "glow": "rgba(139, 92, 246, 0.25)",
+      "tint": "rgba(139, 92, 246, 0.04)"
+    },
+    "jack-bogle": {
+      "primary": "#c8a45c",
+      "secondary": "#a88932",
+      "glow": "rgba(200, 164, 92, 0.25)",
+      "tint": "rgba(200, 164, 92, 0.04)"
+    },
+    "peter-lynch": {
+      "primary": "#22c55e",
+      "secondary": "#16a34a",
+      "glow": "rgba(34, 197, 94, 0.25)",
+      "tint": "rgba(34, 197, 94, 0.04)"
+    },
+    "alex-chen": {
+      "primary": "#3b82f6",
+      "secondary": "#2563eb",
+      "glow": "rgba(59, 130, 246, 0.25)",
+      "tint": "rgba(59, 130, 246, 0.04)"
+    },
+    "maya-santos": {
+      "primary": "#f472b6",
+      "secondary": "#ec4899",
+      "glow": "rgba(244, 114, 182, 0.25)",
+      "tint": "rgba(244, 114, 182, 0.04)"
+    },
+    "jordan-taylor": {
+      "primary": "#fb923c",
+      "secondary": "#f97316",
+      "glow": "rgba(251, 146, 60, 0.25)",
+      "tint": "rgba(251, 146, 60, 0.04)"
+    }
+  }
+}
