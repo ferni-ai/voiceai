@@ -246,6 +246,375 @@
     }
 
     /* ========================================================================
+       ZEN THEME - Light mode with natural, serene aesthetic
+       Apple.com meets Japanese minimalism
+       ======================================================================== */
+    [data-theme="zen"] {
+      /* Override gradients for light backgrounds */
+      --gradient-radial: radial-gradient(ellipse 80% 50% at 50% -10%, var(--persona-glow) 0%, transparent 60%);
+      --gradient-surface: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0) 100%);
+      --gradient-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, transparent 50%, rgba(255, 255, 255, 0.4) 100%);
+
+      /* Light-mode shadows - softer, more diffuse */
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+      --shadow-md:
+        0 4px 6px -1px rgba(0, 0, 0, 0.06),
+        0 2px 4px -2px rgba(0, 0, 0, 0.04);
+      --shadow-lg:
+        0 10px 15px -3px rgba(0, 0, 0, 0.08),
+        0 4px 6px -4px rgba(0, 0, 0, 0.04);
+      --shadow-xl:
+        0 20px 25px -5px rgba(0, 0, 0, 0.1),
+        0 8px 10px -6px rgba(0, 0, 0, 0.06);
+      --shadow-glow: 0 0 40px -10px var(--color-accent-glow);
+      --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+      /* Zen-specific accent adjustments for better contrast */
+      --shadow-card:
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.03),
+        0 0 0 1px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Zen theme body and app overrides */
+    [data-theme="zen"] body {
+      background: linear-gradient(180deg, #fafaf9 0%, #f5f5f4 100%);
+    }
+
+    [data-theme="zen"] #app {
+      background: linear-gradient(180deg, #fafaf9 0%, #f5f5f4 100%);
+      filter: none; /* Remove sepia filter in light mode */
+    }
+
+    /* Light mode layered background - subtle warmth */
+    [data-theme="zen"] #app::before {
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, var(--persona-glow) 0%, transparent 50%),
+        radial-gradient(ellipse 100% 80% at 50% 100%, rgba(0, 0, 0, 0.02) 0%, transparent 50%),
+        linear-gradient(180deg, var(--persona-bg-tint) 0%, transparent 30%);
+      opacity: 0.6;
+    }
+
+    /* Lighter noise texture */
+    [data-theme="zen"] #app::after {
+      opacity: 0.008;
+    }
+
+    /* Zen ambient orbs - softer, more diffuse */
+    [data-theme="zen"] .ambient-orb {
+      opacity: 0.15;
+      filter: blur(100px);
+    }
+
+    [data-theme="zen"] .ambient-orb--primary {
+      background: var(--persona-primary);
+    }
+
+    [data-theme="zen"] .ambient-orb--secondary {
+      background: var(--persona-secondary);
+    }
+
+    /* Zen header styling */
+    [data-theme="zen"] .header {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    /* Zen avatar styling */
+    [data-theme="zen"] #coachAvatar {
+      background: linear-gradient(145deg, #ffffff 0%, #f5f5f4 100%);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    [data-theme="zen"] #avatarRing {
+      background: conic-gradient(
+        from 0deg,
+        var(--persona-primary),
+        var(--persona-secondary),
+        var(--persona-primary)
+      );
+      opacity: 0.8;
+    }
+
+    /* Zen button styling - elegant, tactile */
+    [data-theme="zen"] .btn-primary {
+      background: var(--gradient-orb);
+      color: white;
+      box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.08),
+        0 8px 16px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    [data-theme="zen"] .btn-primary:hover:not(:disabled) {
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.08),
+        0 8px 16px rgba(0, 0, 0, 0.08),
+        0 16px 32px rgba(0, 0, 0, 0.06),
+        0 0 40px -8px var(--persona-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    [data-theme="zen"] .btn-primary::after {
+      background: var(--persona-primary);
+      filter: blur(16px);
+    }
+
+    [data-theme="zen"] .btn-secondary {
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--color-text-secondary);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      backdrop-filter: blur(12px);
+      box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+
+    [data-theme="zen"] .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: rgba(0, 0, 0, 0.1);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+    }
+
+    /* Zen waveform styling */
+    [data-theme="zen"] .waveform-glow {
+      background: radial-gradient(
+        ellipse 60% 40% at 50% 50%,
+        var(--persona-glow) 0%,
+        transparent 70%
+      );
+      opacity: 0.4;
+    }
+
+    [data-theme="zen"] .waveform-bar {
+      background: linear-gradient(
+        180deg,
+        var(--persona-primary) 0%,
+        var(--persona-secondary) 100%
+      );
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Zen team roster */
+    [data-theme="zen"] .team-member {
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    [data-theme="zen"] .team-member:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    [data-theme="zen"] .team-member.active {
+      background: rgba(255, 255, 255, 0.95);
+      border-color: var(--persona-primary);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.06),
+        0 0 0 2px var(--persona-glow);
+    }
+
+    /* Zen cards and elevated surfaces */
+    [data-theme="zen"] .card,
+    [data-theme="zen"] .message-container,
+    [data-theme="zen"] .toast {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(12px);
+    }
+
+    /* Zen toast messages */
+    [data-theme="zen"] .toast-success {
+      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+      border-color: rgba(22, 163, 74, 0.2);
+    }
+
+    [data-theme="zen"] .toast-error {
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+      border-color: rgba(220, 38, 38, 0.2);
+    }
+
+    [data-theme="zen"] .toast-info {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      border-color: rgba(37, 99, 235, 0.2);
+    }
+
+    /* Zen selection color */
+    [data-theme="zen"] ::selection {
+      background: var(--persona-primary);
+      color: white;
+    }
+
+    /* Zen theme toggle button */
+    [data-theme="zen"] .theme-toggle {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(0, 0, 0, 0.06);
+      box-shadow: var(--shadow-md);
+    }
+
+    [data-theme="zen"] .theme-toggle:hover {
+      background: rgba(255, 255, 255, 1);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Zen footer */
+    [data-theme="zen"] .footer {
+      background: rgba(255, 255, 255, 0.7);
+      border-top: 1px solid rgba(0, 0, 0, 0.04);
+      backdrop-filter: blur(20px);
+    }
+
+    /* Zen status indicator */
+    [data-theme="zen"] .status-connected {
+      background: #16a34a;
+      box-shadow: 0 0 12px rgba(22, 163, 74, 0.4);
+    }
+
+    /* Zen thinking dots */
+    [data-theme="zen"] .thinking-dot {
+      background: var(--persona-primary);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Zen transcript panel */
+    [data-theme="zen"] .transcript-panel {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      box-shadow: var(--shadow-xl);
+    }
+
+    /* Zen celebration effects - softer */
+    [data-theme="zen"] .sparkle {
+      filter: brightness(0.9);
+    }
+
+    /* Zen persona-specific button gradients */
+    [data-theme="zen"][data-persona="jack-b"] .btn-primary {
+      background: linear-gradient(145deg, #7c3aed 0%, #6366f1 100%);
+    }
+    [data-theme="zen"][data-persona="jack-bogle"] .btn-primary {
+      background: linear-gradient(145deg, #c8a45c 0%, #a88932 100%);
+    }
+    [data-theme="zen"][data-persona="peter-lynch"] .btn-primary {
+      background: linear-gradient(145deg, #16a34a 0%, #15803d 100%);
+    }
+    [data-theme="zen"][data-persona="comm-specialist"] .btn-primary {
+      background: linear-gradient(145deg, #0891b2 0%, #0e7490 100%);
+    }
+    [data-theme="zen"][data-persona="spend-save"] .btn-primary {
+      background: linear-gradient(145deg, #8b5cf6 0%, #7c3aed 100%);
+    }
+    [data-theme="zen"][data-persona="event-planner"] .btn-primary {
+      background: linear-gradient(145deg, #ec4899 0%, #db2777 100%);
+    }
+
+    /* ========================================================================
+       ZEN THEME ANIMATIONS - Refined for light backgrounds
+       ======================================================================== */
+
+    /* Zen breathing button glow - softer */
+    [data-theme="zen"] .btn-primary:not(:disabled) {
+      animation: zenBtnBreath 4s ease-in-out infinite;
+    }
+
+    @keyframes zenBtnBreath {
+      0%, 100% {
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.1),
+          0 4px 8px rgba(0, 0, 0, 0.08),
+          0 8px 16px rgba(0, 0, 0, 0.06),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      }
+      50% {
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.1),
+          0 4px 8px rgba(0, 0, 0, 0.08),
+          0 8px 16px rgba(0, 0, 0, 0.06),
+          0 0 30px -6px var(--persona-glow),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      }
+    }
+
+    /* Zen ambient orb float - gentler motion */
+    [data-theme="zen"] .ambient-orb--primary {
+      animation: zenOrbFloat 25s ease-in-out infinite;
+    }
+
+    [data-theme="zen"] .ambient-orb--secondary {
+      animation: zenOrbFloat 30s ease-in-out infinite reverse;
+    }
+
+    @keyframes zenOrbFloat {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.12;
+      }
+      33% {
+        transform: translate(-45%, -55%) scale(1.1);
+        opacity: 0.18;
+      }
+      66% {
+        transform: translate(-55%, -45%) scale(0.95);
+        opacity: 0.1;
+      }
+    }
+
+    /* Zen avatar pulse - subtle */
+    [data-theme="zen"] .avatar-connected-pulse {
+      animation: zenAvatarPulse 2s var(--ease-out-expo);
+    }
+
+    @keyframes zenAvatarPulse {
+      0% {
+        box-shadow:
+          0 4px 12px rgba(0, 0, 0, 0.08),
+          0 0 0 0 var(--persona-glow);
+      }
+      50% {
+        box-shadow:
+          0 4px 12px rgba(0, 0, 0, 0.08),
+          0 0 0 20px transparent;
+      }
+      100% {
+        box-shadow:
+          0 4px 12px rgba(0, 0, 0, 0.08),
+          0 0 0 0 transparent;
+      }
+    }
+
+    /* ========================================================================
+       THEME TRANSITIONS - Smooth, delightful theme switching
+       ======================================================================== */
+    html {
+      /* Smooth color transitions when theme changes */
+      transition:
+        color 0.4s var(--ease-out-expo),
+        background-color 0.4s var(--ease-out-expo);
+    }
+
+    html.theme-transitioning,
+    html.theme-transitioning *,
+    html.theme-transitioning *::before,
+    html.theme-transitioning *::after {
+      transition:
+        color 0.4s var(--ease-out-expo),
+        background-color 0.4s var(--ease-out-expo),
+        border-color 0.4s var(--ease-out-expo),
+        box-shadow 0.4s var(--ease-out-expo),
+        opacity 0.4s var(--ease-out-expo) !important;
+    }
+
+    /* ========================================================================
        RESET & BASE
        ======================================================================== */
     *, *::before, *::after {

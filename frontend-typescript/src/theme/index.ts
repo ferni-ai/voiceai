@@ -49,13 +49,30 @@ const STORAGE_KEY = 'voiceai-theme';
 // ============================================================================
 
 /**
- * Set the active theme
+ * Set the active theme with smooth transition animation
  */
-export function setTheme(theme: ThemeName): void {
-  document.documentElement.setAttribute('data-theme', theme);
+export function setTheme(theme: ThemeName, animate = true): void {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme');
+
+  // Skip if already on this theme
+  if (currentTheme === theme) return;
+
+  // Add transitioning class for smooth animation
+  if (animate && currentTheme) {
+    html.classList.add('theme-transitioning');
+
+    // Remove transitioning class after animation completes
+    setTimeout(() => {
+      html.classList.remove('theme-transitioning');
+    }, 450); // Slightly longer than CSS transition (400ms)
+  }
+
+  // Apply the theme
+  html.setAttribute('data-theme', theme);
   localStorage.setItem(STORAGE_KEY, theme);
 
-  // Update meta theme color
+  // Update meta theme color for iOS Safari
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) {
     metaTheme.setAttribute(
@@ -63,6 +80,10 @@ export function setTheme(theme: ThemeName): void {
       theme === 'zen' ? '#fafaf9' : '#08080c'
     );
   }
+
+  // Update body background for iOS Safari address bar
+  document.body.style.backgroundColor =
+    theme === 'zen' ? '#fafaf9' : '#08080c';
 
   // Dispatch custom event for listeners
   window.dispatchEvent(
@@ -92,11 +113,12 @@ export function toggleTheme(): ThemeName {
 
 /**
  * Initialize theme from localStorage or system preference
+ * No animation on initial load for instant appearance
  */
 export function initTheme(): ThemeName {
   const stored = localStorage.getItem(STORAGE_KEY) as ThemeName | null;
   if (stored && THEMES[stored]) {
-    setTheme(stored);
+    setTheme(stored, false); // No animation on init
     return stored;
   }
 
@@ -105,7 +127,7 @@ export function initTheme(): ThemeName {
     '(prefers-color-scheme: dark)'
   ).matches;
   const theme: ThemeName = prefersDark ? 'midnight' : 'zen';
-  setTheme(theme);
+  setTheme(theme, false); // No animation on init
   return theme;
 }
 
