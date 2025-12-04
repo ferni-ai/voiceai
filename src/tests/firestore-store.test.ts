@@ -7,7 +7,13 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { FirestoreStore } from '../memory/firestore-store.js';
-import { createUserProfile, type UserProfile, type ConversationSummary, type KeyMoment, type FinancialGoal } from '../types/user-profile.js';
+import {
+  createUserProfile,
+  type UserProfile,
+  type ConversationSummary,
+  type KeyMoment,
+  type FinancialGoal,
+} from '../types/user-profile.js';
 
 describe('Firestore Memory Store', () => {
   let store: FirestoreStore;
@@ -138,7 +144,9 @@ describe('Firestore Memory Store', () => {
     it('should throw if not initialized when deleting profile', async () => {
       store['db'] = null;
 
-      await expect(store.deleteProfile('test-user')).rejects.toThrow('FirestoreStore not initialized');
+      await expect(store.deleteProfile('test-user')).rejects.toThrow(
+        'FirestoreStore not initialized'
+      );
     });
 
     it('should throw if not initialized when checking profile', async () => {
@@ -189,7 +197,9 @@ describe('Firestore Memory Store', () => {
     it('should throw if not initialized when getting summaries', async () => {
       store['db'] = null;
 
-      await expect(store.getSummaries('test-user')).rejects.toThrow('FirestoreStore not initialized');
+      await expect(store.getSummaries('test-user')).rejects.toThrow(
+        'FirestoreStore not initialized'
+      );
     });
   });
 
@@ -230,7 +240,9 @@ describe('Firestore Memory Store', () => {
     it('should throw if not initialized when getting moments', async () => {
       store['db'] = null;
 
-      await expect(store.getKeyMoments('test-user')).rejects.toThrow('FirestoreStore not initialized');
+      await expect(store.getKeyMoments('test-user')).rejects.toThrow(
+        'FirestoreStore not initialized'
+      );
     });
   });
 
@@ -273,7 +285,9 @@ describe('Firestore Memory Store', () => {
         updatedAt: new Date(),
       };
 
-      await expect(store.saveGoal('test-user', goal)).rejects.toThrow('FirestoreStore not initialized');
+      await expect(store.saveGoal('test-user', goal)).rejects.toThrow(
+        'FirestoreStore not initialized'
+      );
     });
 
     it('should throw if not initialized when getting goals', async () => {
@@ -357,7 +371,8 @@ describe('Firestore Memory Store', () => {
 
   describe('Factory Functions', () => {
     it('should create singleton instance', async () => {
-      const { getFirestoreStore, resetFirestoreStore } = await import('../memory/firestore-store.js');
+      const { getFirestoreStore, resetFirestoreStore } =
+        await import('../memory/firestore-store.js');
 
       const instance1 = getFirestoreStore();
       const instance2 = getFirestoreStore();
@@ -368,7 +383,8 @@ describe('Firestore Memory Store', () => {
     });
 
     it('should reset singleton instance', async () => {
-      const { getFirestoreStore, resetFirestoreStore } = await import('../memory/firestore-store.js');
+      const { getFirestoreStore, resetFirestoreStore } =
+        await import('../memory/firestore-store.js');
 
       const instance1 = getFirestoreStore();
       await resetFirestoreStore();

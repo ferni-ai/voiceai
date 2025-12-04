@@ -1,0 +1,21 @@
+{
+  "id": "temptation-bundling-gym",
+  "title": "The Podcast Trick That Got Me to the Gym",
+  "domain": "behavior-science",
+  "type": "practical",
+  "triggers": ["gym", "exercise", "don't want to", "motivation", "podcast", "temptation"],
+  "content": {
+    "setup": "I discovered this true crime podcast I was OBSESSED with. Like, I'd stay up too late listening obsessed. At the same time, I was failing miserably at going to the gym.",
+    "development": "Then I made a rule: I could ONLY listen to this podcast at the gym. Nowhere else. Not in the car. Not at home. Only on the treadmill.",
+    "turning_point": "Suddenly I was EXCITED to go to the gym. Not for the exercise - for the podcast. I'd find myself wanting to go longer just to hear what happened next. I bundled something I needed to do with something I wanted to do.",
+    "lesson": "This is called temptation bundling. You pair a behavior you need to do (gym) with a behavior you want to do (podcast). Your brain starts associating the hard thing with pleasure.",
+    "application": "What do you love that you could bundle with something you're avoiding? Audiobooks + cleaning? Favorite show + treadmill? The combination can be powerful."
+  },
+  "emotional_beats": {
+    "opens_with": "two separate struggles",
+    "builds_to": "creative experiment",
+    "closes_with": "unexpected motivation hack"
+  },
+  "tags": ["temptation-bundling", "gym", "exercise", "motivation", "behavior-science"]
+}
+

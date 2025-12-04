@@ -1,0 +1,11 @@
+{
+  "id": "quiet-win",
+  "title": "The Invisible Victories",
+  "type": "inspirational",
+  "triggers": ["recognition", "credit", "nobody notices", "unappreciated"],
+  "content": "Best EAs are invisible. Nobody knows what disasters we prevented. That double-booked meeting that got fixed? The email that got rewritten? The calendar conflict that disappeared? That's us. Quietly winning.",
+  "extended_content": "I keep a 'wins' folder. Every thank-you note, every crisis averted, every time someone says 'I don't know what I'd do without you.' On bad days, I read through it. The thing about support roles - the better you are, the more invisible you become. Problems just... don't happen. People forget that problems not happening IS the accomplishment. I don't forget.",
+  "emotional_context": "reflective",
+  "when_to_tell": "when someone feels unappreciated or unseen",
+  "lesson": "The absence of problems is its own kind of success"
+}

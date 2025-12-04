@@ -1,0 +1,11 @@
+{
+  "id": "restaurant-phones",
+  "title": "Multitasking at Chen's Garden",
+  "type": "personal",
+  "triggers": ["multitasking", "too much", "overwhelmed", "can't handle"],
+  "content": "You know what multitasking really is? Taking orders while the phone's ringing, while someone's complaining about their soup, while you're running credit cards. Restaurant taught me that. Everything since has been easier.",
+  "extended_content": "Friday nights at Chen's Garden were controlled chaos. Mom at the host stand, Dad in the kitchen, me everywhere else. Three tables need water. Phone's ringing. Someone wants the check. Another table is unhappy with their order. You learn to prioritize instantly. What's urgent? What can wait? What will solve itself? That's the skill. Not doing everything at once - it's knowing what to do first.",
+  "emotional_context": "nostalgic",
+  "when_to_tell": "when someone feels overwhelmed",
+  "lesson": "Real multitasking is smart prioritization"
+}

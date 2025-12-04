@@ -21,11 +21,17 @@ import * as path from 'path';
 const REDIRECT_URI = 'https://example.com/callback';
 
 const SCOPES = [
+  // Web Playback SDK (REQUIRED for browser player)
+  'streaming',                    // Core streaming permission
+  'user-read-email',              // Required by Web Playback SDK
+  'user-read-private',            // For Premium status check
+  
+  // Playback control
   'user-read-playback-state',
   'user-modify-playback-state', 
   'user-read-currently-playing',
-  'user-read-private',           // For Premium status check
-  'streaming',                    // For Web Playback SDK
+  
+  // Playlists
   'playlist-read-private',
   'playlist-read-collaborative',
 ].join(' ');

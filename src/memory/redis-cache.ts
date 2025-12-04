@@ -4,6 +4,10 @@
  * Fast, ephemeral caching for session data using Redis.
  * Works with Google Cloud Memorystore for Redis in production.
  *
+ * GRACEFUL DEGRADATION:
+ * All cache operations fail silently and return sensible defaults when Redis
+ * is unavailable. This ensures the application continues working without cache.
+ *
  * Requires: npm install ioredis
  *
  * Environment:
@@ -16,6 +20,13 @@
 import { log } from '@livekit/agents';
 
 const getLogger = () => log();
+
+/**
+ * Session cache data structure
+ */
+interface SessionCacheData {
+  [key: string]: unknown;
+}
 
 // ============================================================================
 // TYPES
@@ -144,57 +155,105 @@ export class RedisCache {
 
   /**
    * Store session data
+   * Fails silently if Redis unavailable - cache is optional
    */
   async setSession(
     sessionId: string,
-    data: Record<string, unknown>,
+    data: SessionCacheData,
     ttlSeconds?: number
-  ): Promise<void> {
-    if (!this.client) throw new Error('Redis not initialized');
+  ): Promise<boolean> {
+    if (!this.client) {
+      getLogger().debug('Redis unavailable, skipping session cache');
+      return false;
+    }
 
-    const key = `session:${sessionId}`;
-    const value = JSON.stringify(data);
+    try {
+      const key = `session:${sessionId}`;
+      const value = JSON.stringify(data);
 
-    await this.client.setex(key, ttlSeconds || this.SESSION_TTL, value);
-    getLogger().debug(`Cached session: ${sessionId}`);
+      await this.client.setex(key, ttlSeconds || this.SESSION_TTL, value);
+      getLogger().debug(`Cached session: ${sessionId}`);
+      return true;
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), sessionId },
+        'Failed to cache session (non-blocking)'
+      );
+      return false;
+    }
   }
 
   /**
    * Get session data
+   * Returns null if Redis unavailable or error - caller handles cache miss
    */
-  async getSession(sessionId: string): Promise<Record<string, unknown> | null> {
-    if (!this.client) throw new Error('Redis not initialized');
+  async getSession(sessionId: string): Promise<SessionCacheData | null> {
+    if (!this.client) {
+      return null;
+    }
 
-    const key = `session:${sessionId}`;
-    const value = await this.client.get(key);
+    try {
+      const key = `session:${sessionId}`;
+      const value = await this.client.get(key);
 
-    if (!value) return null;
+      if (!value) return null;
 
-    return JSON.parse(value);
+      return JSON.parse(value);
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), sessionId },
+        'Failed to get cached session (non-blocking)'
+      );
+      return null;
+    }
   }
 
   /**
    * Delete session data
+   * Fails silently if Redis unavailable
    */
-  async deleteSession(sessionId: string): Promise<void> {
-    if (!this.client) throw new Error('Redis not initialized');
-
-    const keys = await this.client.keys(`session:${sessionId}*`);
-    if (keys.length > 0) {
-      await this.client.del(keys);
+  async deleteSession(sessionId: string): Promise<boolean> {
+    if (!this.client) {
+      return false;
     }
 
-    getLogger().debug(`Deleted session: ${sessionId}`);
+    try {
+      const keys = await this.client.keys(`session:${sessionId}*`);
+      if (keys.length > 0) {
+        await this.client.del(keys);
+      }
+
+      getLogger().debug(`Deleted session: ${sessionId}`);
+      return true;
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), sessionId },
+        'Failed to delete session (non-blocking)'
+      );
+      return false;
+    }
   }
 
   /**
    * Extend session TTL
+   * Fails silently if Redis unavailable
    */
-  async extendSession(sessionId: string, ttlSeconds?: number): Promise<void> {
-    if (!this.client) throw new Error('Redis not initialized');
+  async extendSession(sessionId: string, ttlSeconds?: number): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
 
-    const key = `session:${sessionId}`;
-    await this.client.expire(key, ttlSeconds || this.SESSION_TTL);
+    try {
+      const key = `session:${sessionId}`;
+      await this.client.expire(key, ttlSeconds || this.SESSION_TTL);
+      return true;
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), sessionId },
+        'Failed to extend session TTL (non-blocking)'
+      );
+      return false;
+    }
   }
 
   // ============================================================================
@@ -203,49 +262,83 @@ export class RedisCache {
 
   /**
    * Add a conversation turn
+   * Fails silently if Redis unavailable
    */
   async addTurn(
     sessionId: string,
     turn: { role: string; content: string; timestamp: Date }
-  ): Promise<void> {
-    if (!this.client) throw new Error('Redis not initialized');
+  ): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
 
-    const key = `session:${sessionId}:turns`;
-    await this.client.rpush(key, JSON.stringify(turn));
-    await this.client.expire(key, this.SESSION_TTL);
+    try {
+      const key = `session:${sessionId}:turns`;
+      await this.client.rpush(key, JSON.stringify(turn));
+      await this.client.expire(key, this.SESSION_TTL);
 
-    // Keep only last 100 turns
-    await this.client.ltrim(key, -100, -1);
+      // Keep only last 100 turns
+      await this.client.ltrim(key, -100, -1);
+      return true;
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), sessionId },
+        'Failed to add turn to cache (non-blocking)'
+      );
+      return false;
+    }
   }
 
   /**
    * Get recent turns
+   * Returns empty array if Redis unavailable
    */
   async getRecentTurns(
     sessionId: string,
     count: number = 20
   ): Promise<Array<{ role: string; content: string; timestamp: Date }>> {
-    if (!this.client) throw new Error('Redis not initialized');
+    if (!this.client) {
+      return [];
+    }
 
-    const key = `session:${sessionId}:turns`;
-    const turns = await this.client.lrange(key, -count, -1);
+    try {
+      const key = `session:${sessionId}:turns`;
+      const turns = await this.client.lrange(key, -count, -1);
 
-    return turns.map((t) => {
-      const parsed = JSON.parse(t);
-      parsed.timestamp = new Date(parsed.timestamp);
-      return parsed;
-    });
+      return turns.map((t) => {
+        const parsed = JSON.parse(t);
+        parsed.timestamp = new Date(parsed.timestamp);
+        return parsed;
+      });
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), sessionId },
+        'Failed to get cached turns (non-blocking)'
+      );
+      return [];
+    }
   }
 
   /**
    * Get turn count
+   * Returns 0 if Redis unavailable
    */
   async getTurnCount(sessionId: string): Promise<number> {
-    if (!this.client) throw new Error('Redis not initialized');
+    if (!this.client) {
+      return 0;
+    }
 
-    const key = `session:${sessionId}:turns`;
-    const turns = await this.client.lrange(key, 0, -1);
-    return turns.length;
+    try {
+      const key = `session:${sessionId}:turns`;
+      const turns = await this.client.lrange(key, 0, -1);
+      return turns.length;
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), sessionId },
+        'Failed to get turn count (non-blocking)'
+      );
+      return 0;
+    }
   }
 
   // ============================================================================
@@ -254,25 +347,48 @@ export class RedisCache {
 
   /**
    * Cache analysis results
+   * Fails silently if Redis unavailable
    */
-  async cacheAnalysis(sessionId: string, analysis: Record<string, unknown>): Promise<void> {
-    if (!this.client) throw new Error('Redis not initialized');
+  async cacheAnalysis(sessionId: string, analysis: Record<string, unknown>): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
 
-    const key = `session:${sessionId}:analysis`;
-    await this.client.setex(key, this.ANALYSIS_TTL, JSON.stringify(analysis));
+    try {
+      const key = `session:${sessionId}:analysis`;
+      await this.client.setex(key, this.ANALYSIS_TTL, JSON.stringify(analysis));
+      return true;
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), sessionId },
+        'Failed to cache analysis (non-blocking)'
+      );
+      return false;
+    }
   }
 
   /**
    * Get cached analysis
+   * Returns null if Redis unavailable
    */
   async getCachedAnalysis(sessionId: string): Promise<Record<string, unknown> | null> {
-    if (!this.client) throw new Error('Redis not initialized');
+    if (!this.client) {
+      return null;
+    }
 
-    const key = `session:${sessionId}:analysis`;
-    const value = await this.client.get(key);
+    try {
+      const key = `session:${sessionId}:analysis`;
+      const value = await this.client.get(key);
 
-    if (!value) return null;
-    return JSON.parse(value);
+      if (!value) return null;
+      return JSON.parse(value);
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), sessionId },
+        'Failed to get cached analysis (non-blocking)'
+      );
+      return null;
+    }
   }
 
   // ============================================================================
@@ -281,22 +397,45 @@ export class RedisCache {
 
   /**
    * Map user to current session
+   * Fails silently if Redis unavailable
    */
-  async setUserSession(userId: string, sessionId: string): Promise<void> {
-    if (!this.client) throw new Error('Redis not initialized');
+  async setUserSession(userId: string, sessionId: string): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
 
-    const key = `user:${userId}:session`;
-    await this.client.setex(key, this.SESSION_TTL, sessionId);
+    try {
+      const key = `user:${userId}:session`;
+      await this.client.setex(key, this.SESSION_TTL, sessionId);
+      return true;
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), userId },
+        'Failed to set user session (non-blocking)'
+      );
+      return false;
+    }
   }
 
   /**
    * Get user's current session
+   * Returns null if Redis unavailable
    */
   async getUserSession(userId: string): Promise<string | null> {
-    if (!this.client) throw new Error('Redis not initialized');
+    if (!this.client) {
+      return null;
+    }
 
-    const key = `user:${userId}:session`;
-    return await this.client.get(key);
+    try {
+      const key = `user:${userId}:session`;
+      return await this.client.get(key);
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), userId },
+        'Failed to get user session (non-blocking)'
+      );
+      return null;
+    }
   }
 
   // ============================================================================
@@ -305,81 +444,127 @@ export class RedisCache {
 
   /**
    * Increment rate counter and check limit
+   * Returns allowed=true if Redis unavailable (fail-open for availability)
    */
   async checkRateLimit(
     userId: string,
     limit: number = 60
   ): Promise<{ allowed: boolean; current: number; remaining: number }> {
-    if (!this.client) throw new Error('Redis not initialized');
-
-    const key = `rate:${userId}`;
-    const current = await this.client.incr(key);
-
-    // Set TTL on first increment
-    if (current === 1) {
-      await this.client.expire(key, this.RATE_TTL);
+    if (!this.client) {
+      // Fail open - allow request when cache unavailable
+      return { allowed: true, current: 0, remaining: limit };
     }
 
-    return {
-      allowed: current <= limit,
-      current,
-      remaining: Math.max(0, limit - current),
-    };
+    try {
+      const key = `rate:${userId}`;
+      const current = await this.client.incr(key);
+
+      // Set TTL on first increment
+      if (current === 1) {
+        await this.client.expire(key, this.RATE_TTL);
+      }
+
+      return {
+        allowed: current <= limit,
+        current,
+        remaining: Math.max(0, limit - current),
+      };
+    } catch (error) {
+      getLogger().warn({ error: String(error), userId }, 'Rate limit check failed (fail-open)');
+      // Fail open - allow request when cache unavailable
+      return { allowed: true, current: 0, remaining: limit };
+    }
   }
 
   // ============================================================================
-  // GENERIC OPERATIONS
+  // GENERIC OPERATIONS (all fail silently for graceful degradation)
   // ============================================================================
 
   /**
    * Set a value with optional TTL
+   * Fails silently if Redis unavailable
    */
-  async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
-    if (!this.client) throw new Error('Redis not initialized');
+  async set(key: string, value: unknown, ttlSeconds?: number): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
 
-    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+    try {
+      const serialized = typeof value === 'string' ? value : JSON.stringify(value);
 
-    if (ttlSeconds) {
-      await this.client.setex(key, ttlSeconds, serialized);
-    } else {
-      await this.client.set(key, serialized);
+      if (ttlSeconds) {
+        await this.client.setex(key, ttlSeconds, serialized);
+      } else {
+        await this.client.set(key, serialized);
+      }
+      return true;
+    } catch (error) {
+      getLogger().warn({ error: String(error), key }, 'Failed to set cache value (non-blocking)');
+      return false;
     }
   }
 
   /**
    * Get a value
+   * Returns null if Redis unavailable
    */
   async get<T = unknown>(key: string): Promise<T | null> {
-    if (!this.client) throw new Error('Redis not initialized');
-
-    const value = await this.client.get(key);
-    if (!value) return null;
+    if (!this.client) {
+      return null;
+    }
 
     try {
-      return JSON.parse(value) as T;
-    } catch {
-      return value as unknown as T;
+      const value = await this.client.get(key);
+      if (!value) return null;
+
+      try {
+        return JSON.parse(value) as T;
+      } catch {
+        return value as unknown as T;
+      }
+    } catch (error) {
+      getLogger().warn({ error: String(error), key }, 'Failed to get cache value (non-blocking)');
+      return null;
     }
   }
 
   /**
    * Delete a key
+   * Fails silently if Redis unavailable
    */
   async delete(key: string): Promise<boolean> {
-    if (!this.client) throw new Error('Redis not initialized');
+    if (!this.client) {
+      return false;
+    }
 
-    const result = await this.client.del(key);
-    return result > 0;
+    try {
+      const result = await this.client.del(key);
+      return result > 0;
+    } catch (error) {
+      getLogger().warn({ error: String(error), key }, 'Failed to delete cache key (non-blocking)');
+      return false;
+    }
   }
 
   /**
    * Check if key exists
+   * Returns false if Redis unavailable
    */
   async exists(key: string): Promise<boolean> {
-    if (!this.client) throw new Error('Redis not initialized');
+    if (!this.client) {
+      return false;
+    }
 
-    const result = await this.client.exists(key);
-    return result > 0;
+    try {
+      const result = await this.client.exists(key);
+      return result > 0;
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), key },
+        'Failed to check cache key existence (non-blocking)'
+      );
+      return false;
+    }
   }
 
   /**

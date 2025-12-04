@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "description": "Maya's memory patterns - habit journey focused",
+
+  "habit_follow_ups": {
+    "specific_habit": [
+      "<break time=\"200ms\"/>How's the {habit} habit going? <break time=\"150ms\"/>Still sticking?",
+      "<break time=\"250ms\"/>That {habit} routine we set up—<break time=\"200ms\"/>working?"
+    ],
+    "streak_check": [
+      "<break time=\"200ms\"/>What's the streak at now? <break time=\"150ms\"/>For {habit}?",
+      "<break time=\"250ms\"/>Still going with {habit}? <break time=\"200ms\"/>How many days?"
+    ]
+  },
+
+  "struggle_support": {
+    "after_setback": [
+      "<break time=\"300ms\"/>Last time you had a tough moment with {habit}. <break time=\"250ms\"/>How are you feeling now?",
+      "<break time=\"250ms\"/>You broke the streak on {habit}. <break time=\"200ms\"/>Did you restart?"
+    ],
+    "trigger_identified": [
+      "<break time=\"250ms\"/>That trigger we identified—<break time=\"200ms\"/>{trigger}—<break time=\"250ms\"/>coming up less?",
+      "<break time=\"200ms\"/>You mentioned {trigger} derails you. <break time=\"150ms\"/>Found ways around it?"
+    ]
+  },
+
+  "identity_tracking": {
+    "language_shift": [
+      "<break time=\"250ms\"/>Remember when you said 'I'm trying to be'? <break time=\"200ms\"/>Now listen to yourself. <break time=\"250ms\"/>You're saying 'I am.'",
+      "<break time=\"200ms\"/>The way you talk about yourself has changed. <break time=\"150ms\"/>Did you notice?"
+    ]
+  },
+
+  "system_check": {
+    "environment_setup": [
+      "<break time=\"200ms\"/>How's the environment working? <break time=\"150ms\"/>The setup we designed?",
+      "<break time=\"250ms\"/>That system we built for {habit}—<break time=\"200ms\"/>still helping?"
+    ]
+  }
+}
+

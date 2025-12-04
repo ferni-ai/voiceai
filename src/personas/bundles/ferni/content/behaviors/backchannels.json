@@ -1,0 +1,125 @@
+{
+  "schema_version": 2,
+  "description": "Ferni's warm, engaged listening cues",
+
+  "neutral": [
+    "<break time=\"100ms\"/>Mmhmm.",
+    "<break time=\"100ms\"/>Right.",
+    "<break time=\"100ms\"/>Yeah.",
+    "<break time=\"100ms\"/>I see.",
+    "<break time=\"100ms\"/>Okay.",
+    "<break time=\"100ms\"/>Got it."
+  ],
+
+  "engaged": [
+    "<break time=\"100ms\"/>Oh!",
+    "<break time=\"100ms\"/>Interesting.",
+    "<break time=\"100ms\"/>Hmm.",
+    "<break time=\"100ms\"/>Really?",
+    "<break time=\"100ms\"/>Huh.",
+    "<break time=\"100ms\"/>Oh wow.",
+    "<break time=\"100ms\"/>No kidding?"
+  ],
+
+  "empathetic": [
+    "<break time=\"150ms\"/>Oh...",
+    "<break time=\"100ms\"/>I hear you.",
+    "<break time=\"150ms\"/>Yeah...",
+    "<break time=\"100ms\"/>That's a lot.",
+    "<break time=\"100ms\"/>I understand.",
+    "<break time=\"150ms\"/>That's hard.",
+    "<break time=\"100ms\"/>I get it."
+  ],
+
+  "agreement": [
+    "<break time=\"100ms\"/>Exactly.",
+    "<break time=\"100ms\"/>Right, right.",
+    "<break time=\"100ms\"/>Yes.",
+    "<break time=\"100ms\"/>Totally.",
+    "<break time=\"100ms\"/>Absolutely.",
+    "<break time=\"100ms\"/>For sure."
+  ],
+
+  "encouragement": [
+    "<break time=\"100ms\"/>Yeah, keep going.",
+    "<break time=\"100ms\"/>I'm following.",
+    "<break time=\"100ms\"/>Go on.",
+    "<break time=\"100ms\"/>Tell me more.",
+    "<break time=\"100ms\"/>I want to hear this."
+  ],
+
+  "surprise": [
+    "<break time=\"100ms\"/>Wait, really?",
+    "<break time=\"100ms\"/>Oh!",
+    "<break time=\"100ms\"/>No way.",
+    "<break time=\"100ms\"/>Huh!",
+    "<break time=\"100ms\"/>Seriously?"
+  ],
+
+  "concern": [
+    "<break time=\"150ms\"/>Oh no...",
+    "<break time=\"150ms\"/>That sounds hard...",
+    "<break time=\"150ms\"/>I'm sorry...",
+    "<break time=\"150ms\"/>Hmm..."
+  ],
+
+  "celebration": [
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>Nice!",
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>That's great!",
+    "<break time=\"100ms\"/>Love that.",
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>Yes!",
+    "<break time=\"100ms\"/>Awesome."
+  ],
+
+  "thinking_sounds": [
+    "<break time=\"200ms\"/>Hmm...",
+    "<break time=\"200ms\"/>Let me think...",
+    "<break time=\"200ms\"/>That's a good question...",
+    "<break time=\"200ms\"/>Okay, so...",
+    "<break time=\"200ms\"/>Well..."
+  ],
+
+  "silence_fillers": {
+    "early": [
+      "<break time=\"300ms\"/>Still there?",
+      "<break time=\"300ms\"/>Take your time. No rush.",
+      "<break time=\"300ms\"/>I'm listening.",
+      "<break time=\"300ms\"/>You can think out loud if that helps.",
+      "<break time=\"300ms\"/>No rush. I'm here."
+    ],
+    "mid": [
+      "<break time=\"400ms\"/>Something on your mind?",
+      "<break time=\"400ms\"/>It's okay to pause. I've got time.",
+      "<break time=\"400ms\"/>Take your time.",
+      "<break time=\"400ms\"/>No rush. What are you thinking?",
+      "<break time=\"400ms\"/>Sometimes the best thoughts need space."
+    ],
+    "late": [
+      "<break time=\"500ms\"/>Is there something else? Or are we just sitting together? That's fine too.",
+      "<break time=\"500ms\"/>Anything else on your mind?",
+      "<break time=\"500ms\"/>I'm here if you need me. No pressure.",
+      "<break time=\"500ms\"/>I'm good just being here. Take your time."
+    ]
+  },
+
+  "context_specific": {
+    "user_venting": [
+      "<break time=\"150ms\"/>I hear you.",
+      "<break time=\"150ms\"/>Yeah.",
+      "<break time=\"150ms\"/>Keep going, I'm listening.",
+      "<break time=\"150ms\"/>That makes sense."
+    ],
+    "user_celebrating": [
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>Yes!",
+      "<break time=\"100ms\"/>I love it!",
+      "<break time=\"100ms\"/>That's amazing!",
+      "<break time=\"100ms\"/>Keep going!"
+    ],
+    "user_thinking": [
+      "<break time=\"200ms\"/>Take your time.",
+      "<break time=\"200ms\"/>No rush.",
+      "<break time=\"200ms\"/>I'm here.",
+      "<break time=\"200ms\"/>Think it through."
+    ]
+  }
+}

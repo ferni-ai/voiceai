@@ -1,0 +1,179 @@
+/**
+ * Voice IDs - SINGLE SOURCE OF TRUTH
+ *
+ * ⚠️ Voice IDs are now read from bundle manifests!
+ *
+ * To change a voice ID:
+ * 1. Update the voice_id in the bundle's persona.manifest.json
+ * 2. That's it. No other files need to change.
+ *
+ * The VOICE_IDS object below is kept for backwards compatibility
+ * with code that hasn't been migrated to the unified registry yet.
+ *
+ * Environment variables can OVERRIDE these defaults:
+ *   JACK_B_VOICE_ID, PETER_JOHN_VOICE_ID, NAYAN_VOICE_ID, etc.
+ *
+ * To find voice IDs: https://play.cartesia.ai/library
+ *
+ * @deprecated Use AgentRegistry.getVoiceId() instead
+ */
+
+// =============================================================================
+// CANONICAL VOICE IDS - DEPRECATED (use bundle manifests instead)
+// =============================================================================
+
+/**
+ * @deprecated Voice IDs are now stored in bundle manifests.
+ * Use `AgentRegistry.getVoiceId(personaId)` instead.
+ *
+ * These are kept for backwards compatibility but should not be updated.
+ * Update the persona.manifest.json in the bundle instead.
+ */
+export const VOICE_IDS = {
+  // Ferni (life coach) - Dec 2024
+  FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+
+  // Peter John (stock storyteller) - Updated Dec 2024
+  PETER_JOHN: '9c44c765-7edc-4bf4-9f5b-8adc0aed2c8c',
+
+  // Alex Chen (communications specialist) - Verified Dec 2024
+  ALEX_CHEN: '81c164d9-7baa-419d-9f9a-6b18100a01ee',
+
+  // Maya Santos (spend & save coach) - Updated Dec 2024
+  MAYA_SANTOS: '9329fbdb-e285-4fba-95ec-592e15f14476',
+
+  // Jordan Taylor (event planner) - Verified Dec 2024
+  JORDAN_TAYLOR: 'b2d14370-c56b-4bdd-a6a3-71abe1b6e345',
+
+  // Nayan Patel (lifetime advisor / sage) - Dec 2024
+  NAYAN_PATEL: '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
+
+  // Generic advisor fallback
+  GENERIC: '79a125e8-cd45-4c13-8a67-188112f4dd22',
+} as const;
+
+// =============================================================================
+// PERSONA TO VOICE MAPPING
+// =============================================================================
+
+/**
+ * Map canonical persona IDs to their voice IDs.
+ * Environment variables can override these.
+ *
+ * @deprecated Use AgentRegistry.getVoiceId() instead for async bundle-based lookup.
+ * This function is kept for backwards compatibility with synchronous code.
+ */
+export function getVoiceIdForPersona(personaId: string): string {
+  const normalized = personaId.toLowerCase();
+
+  // Check environment variable override first
+  const envOverrides: Record<string, string | undefined> = {
+    ferni: process.env.JACK_B_VOICE_ID,
+    'jack-b': process.env.JACK_B_VOICE_ID,
+    'peter-john': process.env.PETER_JOHN_VOICE_ID,
+    'alex-chen': process.env.COMM_SPECIALIST_VOICE_ID,
+    'maya-santos': process.env.SPEND_SAVE_VOICE_ID,
+    'jordan-taylor': process.env.EVENT_PLANNER_VOICE_ID,
+    'nayan-patel': process.env.NAYAN_VOICE_ID,
+    'generic-advisor': process.env.GENERIC_ADVISOR_VOICE_ID,
+  };
+
+  const envOverride = envOverrides[normalized];
+  if (envOverride) {
+    return envOverride;
+  }
+
+  // Use hardcoded defaults (for backwards compatibility)
+  // New agents should use bundle manifests instead
+  const defaults: Record<string, string> = {
+    // Ferni aliases
+    ferni: VOICE_IDS.FERNI,
+    'jack-b': VOICE_IDS.FERNI,
+    coach: VOICE_IDS.FERNI,
+    'life-coach': VOICE_IDS.FERNI,
+
+    // Peter John aliases
+    'peter-john': VOICE_IDS.PETER_JOHN,
+    peter: VOICE_IDS.PETER_JOHN,
+    john: VOICE_IDS.PETER_JOHN,
+
+    // Alex Chen aliases
+    'alex-chen': VOICE_IDS.ALEX_CHEN,
+    alex: VOICE_IDS.ALEX_CHEN,
+    'comm-specialist': VOICE_IDS.ALEX_CHEN,
+
+    // Maya Santos aliases
+    'maya-santos': VOICE_IDS.MAYA_SANTOS,
+    maya: VOICE_IDS.MAYA_SANTOS,
+    'spend-save': VOICE_IDS.MAYA_SANTOS,
+
+    // Jordan Taylor aliases
+    'jordan-taylor': VOICE_IDS.JORDAN_TAYLOR,
+    jordan: VOICE_IDS.JORDAN_TAYLOR,
+    'event-planner': VOICE_IDS.JORDAN_TAYLOR,
+
+    // Nayan Patel aliases
+    'nayan-patel': VOICE_IDS.NAYAN_PATEL,
+    nayan: VOICE_IDS.NAYAN_PATEL,
+    patel: VOICE_IDS.NAYAN_PATEL,
+    guru: VOICE_IDS.NAYAN_PATEL,
+    mystic: VOICE_IDS.NAYAN_PATEL,
+    'lifetime-advisor': VOICE_IDS.NAYAN_PATEL,
+
+    // Generic
+    'generic-advisor': VOICE_IDS.GENERIC,
+  };
+
+  return defaults[normalized] || VOICE_IDS.FERNI;
+}
+
+// =============================================================================
+// NEW: ASYNC VOICE ID LOOKUP (uses unified registry)
+// =============================================================================
+
+/**
+ * Get voice ID from bundle manifest (async, preferred method)
+ * Falls back to legacy VOICE_IDS if agent not found
+ */
+export async function getVoiceIdFromManifest(personaId: string): Promise<string> {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { AgentRegistry } = await import('../personas/registry/unified-registry.js');
+    return await AgentRegistry.getVoiceId(personaId);
+  } catch {
+    // Fall back to synchronous lookup if registry fails
+    console.warn(`Failed to get voice ID from registry for ${personaId}, using legacy lookup`);
+    return getVoiceIdForPersona(personaId);
+  }
+}
+
+// =============================================================================
+// VALIDATION
+// =============================================================================
+
+/**
+ * Validate a voice ID format (UUID v4)
+ */
+export function isValidVoiceId(voiceId: string): boolean {
+  if (!voiceId || typeof voiceId !== 'string') return false;
+  // Cartesia uses UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(voiceId);
+}
+
+/**
+ * Log voice ID assignments for debugging
+ */
+export function logVoiceIdAssignments(): void {
+  console.log('\n=== Voice ID Assignments ===');
+  const personas = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+  
+  for (const persona of personas) {
+    const voiceId = getVoiceIdForPersona(persona);
+    const isValid = isValidVoiceId(voiceId);
+    const status = isValid ? '✅' : '❌';
+    console.log(`${status} ${persona}: ${voiceId}`);
+  }
+  console.log('=============================\n');
+}
+

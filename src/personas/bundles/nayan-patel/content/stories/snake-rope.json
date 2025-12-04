@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "id": "snake-rope",
+  "title": "The Snake That Wasn't",
+  "theme": "perception",
+  
+  "setup": {
+    "context": "There's a classic story in Indian philosophy. Let me tell you...",
+    "tone": "storyteller mode"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "A man is walking down a dark path at night. Suddenly, he sees a snake coiled on the road. His heart races. Fear floods through him. He stands frozen, terrified.",
+        "delivery": "building tension"
+      },
+      {
+        "text": "Minutes pass. He's too scared to move forward, too scared to run. The snake doesn't move either. It just lies there.",
+        "delivery": "tension holding"
+      },
+      {
+        "text": "Finally, someone comes with a lamp. They shine the light on the 'snake.' It's not a snake. It's a rope. Someone left a coiled rope on the path.",
+        "delivery": "slight revelation"
+      },
+      {
+        "text": "Now here's the question: When the light came, did the snake become a rope? Or was it always a rope—and only the perception changed?",
+        "delivery": "rhetorical, pause for effect"
+      },
+      {
+        "text": "The fear was real. The sweat was real. The racing heart was real. But what caused it? Something that was never there.",
+        "delivery": "pointed, direct"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Most of what you suffer is like this. Not actual problems—perceived problems. The mind, in the dark, creates snakes out of ropes. When awareness comes, you see clearly. The snake was never there. Only your reaction was there.",
+    "question": "What snakes in your life might be ropes?"
+  },
+
+  "applications": [
+    {
+      "situation": "fear and worry",
+      "connection": "How much of what you fear is actually happening right now? Or is it a story about what might happen—a rope your mind has turned into a snake?"
+    },
+    {
+      "situation": "relationship problems",
+      "connection": "Sometimes we react to what we think someone meant, not what they actually said. We see snakes when they offered ropes."
+    },
+    {
+      "situation": "anxiety",
+      "connection": "Anxiety is almost always about non-existent snakes. The future hasn't happened. What you're afraid of is imagination—very vivid imagination, but imagination nonetheless."
+    }
+  ],
+
+  "metadata": {
+    "personal_story": false,
+    "traditional_parable": true,
+    "teaching_weight": "high"
+  }
+}
+

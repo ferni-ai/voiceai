@@ -1,13 +1,15 @@
 /**
  * Spotify UI Component
  * 
- * Displays Spotify status and currently playing track info.
+ * Displays Spotify status, currently playing track info,
+ * and provides a link/unlink option for users.
  */
 
 import type { SpotifyState } from '../types/events.js';
 import type { TrackInfo } from '../services/spotify.service.js';
 import { spotifyService } from '../services/spotify.service.js';
 import { getElementByIdOrNull, setText, addClass, removeClass, setClasses } from '../utils/dom.js';
+import { getDeviceId } from '../state/app.state.js';
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -15,6 +17,11 @@ import { getElementByIdOrNull, setText, addClass, removeClass, setClasses } from
 
 let statusContainer: HTMLElement | null = null;
 let statusText: HTMLElement | null = null;
+let linkButton: HTMLElement | null = null;
+
+// Store link status
+let isSpotifyLinked = false;
+let spotifyConfigured = false;
 
 // ============================================================================
 // INITIALIZATION
@@ -26,6 +33,7 @@ let statusText: HTMLElement | null = null;
 export function initSpotifyUI(): void {
   statusContainer = getElementByIdOrNull('spotifyStatus');
   statusText = getElementByIdOrNull('spotifyStatusText');
+  linkButton = getElementByIdOrNull('spotifyLinkButton');
 
   if (!statusContainer || !statusText) {
     console.warn('Spotify UI elements not found');
@@ -35,7 +43,114 @@ export function initSpotifyUI(): void {
   // Subscribe to Spotify state changes
   spotifyService.onStateChange(handleStateChange);
 
-  console.log('✅ Spotify UI initialized');
+  // Check Spotify link status on init
+  checkSpotifyStatus();
+
+  // Handle URL parameters (after OAuth callback)
+  handleOAuthCallback();
+
+  // Set up link button click handler
+  if (linkButton) {
+    linkButton.addEventListener('click', handleLinkClick);
+  }
+}
+
+/**
+ * Check Spotify link status for current device.
+ */
+async function checkSpotifyStatus(): Promise<void> {
+  const deviceId = getDeviceId();
+  if (!deviceId) return;
+
+  try {
+    const response = await fetch(`/spotify/status?device_id=${encodeURIComponent(deviceId)}`);
+    if (response.ok) {
+      const data = await response.json();
+      spotifyConfigured = data.spotify_configured;
+      isSpotifyLinked = data.linked;
+      updateLinkButton();
+    }
+  } catch (e) {
+    console.warn('Could not check Spotify status:', e);
+  }
+}
+
+/**
+ * Handle OAuth callback URL parameters.
+ */
+function handleOAuthCallback(): void {
+  const params = new URLSearchParams(window.location.search);
+  
+  if (params.get('spotify_linked') === 'true') {
+    isSpotifyLinked = true;
+    updateLinkButton();
+    showSpotifyStatus('Spotify connected — full songs unlocked', 'ready');
+    
+    // Clear URL params
+    window.history.replaceState({}, '', window.location.pathname);
+    
+    // Hide after a few seconds
+    setTimeout(() => hideSpotifyStatus(), 4000);
+  }
+
+  if (params.has('spotify_error')) {
+    const error = params.get('spotify_error');
+    console.error('Spotify OAuth error:', error);
+    showSpotifyStatus('Could not connect to Spotify', 'error');
+    
+    // Clear URL params
+    window.history.replaceState({}, '', window.location.pathname);
+    
+    // Hide after a few seconds
+    setTimeout(() => hideSpotifyStatus(), 4000);
+  }
+}
+
+/**
+ * Handle link/unlink button click.
+ */
+async function handleLinkClick(): Promise<void> {
+  const deviceId = getDeviceId();
+  if (!deviceId) return;
+
+  if (isSpotifyLinked) {
+    // Unlink
+    try {
+      await fetch(`/spotify/unlink?device_id=${encodeURIComponent(deviceId)}`);
+      isSpotifyLinked = false;
+      updateLinkButton();
+      showSpotifyStatus('Spotify disconnected', 'info');
+      setTimeout(() => hideSpotifyStatus(), 2500);
+    } catch (e) {
+      console.error('Could not unlink Spotify:', e);
+    }
+  } else {
+    // Redirect to OAuth
+    const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
+    window.location.href = `/spotify/login?device_id=${encodeURIComponent(deviceId)}&return_url=${returnUrl}`;
+  }
+}
+
+/**
+ * Update the link button text and visibility.
+ */
+function updateLinkButton(): void {
+  if (!linkButton) return;
+
+  if (!spotifyConfigured) {
+    addClass(linkButton, 'hidden');
+    return;
+  }
+
+  removeClass(linkButton, 'hidden');
+  
+  // Update the text span (keep the SVG icon intact)
+  const textSpan = linkButton.querySelector('.spotify-button-text');
+  if (textSpan) {
+    textSpan.textContent = isSpotifyLinked ? 'Spotify Connected' : 'Link Spotify';
+  }
+  
+  linkButton.classList.toggle('linked', isSpotifyLinked);
 }
 
 // ============================================================================

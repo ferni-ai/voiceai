@@ -35,12 +35,18 @@ RUN npm ci --only=production
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
+# Copy persona bundles from builder (JSON, MD files needed at runtime)
+# These are NOT compiled by TypeScript but loaded dynamically
+# The bundles were already copied to src/ in the builder stage
+COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
+
 # Set environment variables
 ENV NODE_ENV=production
+# Default to joel-dickson persona (can be overridden)
+ENV PERSONA_ID=joel-dickson
 
 # Expose port for LiveKit agent health checks
 EXPOSE 8080
 
-# Run the main Bogle agent
-CMD ["node", "dist/bogle-agent.js", "start"]
-
+# Run the voice agent (persona determined by PERSONA_ID env var)
+CMD ["node", "dist/agent.js", "start"]

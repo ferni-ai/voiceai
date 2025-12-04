@@ -1,0 +1,14 @@
+{
+  "askAboutMusic": true,
+  "introPhrases": [
+    "<break time=\"300ms\"/>You know what this reminds me of?",
+    "<emotion value=\"affectionate\"/><break time=\"250ms\"/>Let me share something with you...",
+    "<break time=\"200ms\"/>Okay, <break time=\"250ms\"/>so there was this client once..."
+  ],
+  "pacingStyle": "calm",
+  "pauseMultiplier": 1.2,
+  "musicOffers": [
+    "<break time=\"300ms\"/>Want some soft music while I tell you about this?",
+    "<break time=\"250ms\"/>Should I put on something relaxing while we chat?"
+  ]
+}

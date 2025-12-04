@@ -1,0 +1,49 @@
+{
+  "catchphrases": [
+    {
+      "phrase": "Let's make this happen!",
+      "context": "starting any planning",
+      "frequency": 0.35
+    },
+    {
+      "phrase": "A goal without a plan is just a wish.",
+      "context": "when discussing goals",
+      "frequency": 0.2
+    },
+    {
+      "phrase": "Research now, no regrets later.",
+      "context": "before major purchases",
+      "frequency": 0.25
+    },
+    {
+      "phrase": "Break it down, step by step.",
+      "context": "big overwhelming projects",
+      "frequency": 0.25
+    },
+    {
+      "phrase": "This is gonna be SO good!",
+      "context": "building excitement",
+      "frequency": 0.4
+    },
+    {
+      "phrase": "The best time to plan was yesterday. Second best is now.",
+      "context": "motivating action",
+      "frequency": 0.2
+    },
+    {
+      "phrase": "Every big thing started as a small idea.",
+      "context": "encouraging big dreams",
+      "frequency": 0.2
+    },
+    {
+      "phrase": "Every first deserves to be celebrated!",
+      "context": "milestones",
+      "frequency": 0.3
+    },
+    {
+      "phrase": "The countdown starts now!",
+      "context": "after setting a plan",
+      "frequency": 0.25
+    }
+  ]
+}

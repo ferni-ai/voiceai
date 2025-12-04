@@ -76,7 +76,7 @@ const EMOTION_KEYWORDS: Record<PrimaryEmotion, { words: string[]; weight: number
     { words: ['hopeless', 'helpless', 'empty', 'lonely', 'alone'], weight: 1.0 },
     { words: ['regret', 'remorse', 'sorry', 'wish'], weight: 0.8 },
     { words: ['lost everything', 'ruined', 'destroyed', 'passed away'], weight: 1.0 },
-    { words: ['father', 'mother', 'parent', 'spouse', 'died', 'death'], weight: 0.8 },  // Bereavement context
+    { words: ['father', 'mother', 'parent', 'spouse', 'died', 'death'], weight: 0.8 }, // Bereavement context
   ],
   anger: [
     { words: ['angry', 'furious', 'enraged', 'livid', 'outraged'], weight: 1.0 },
@@ -475,6 +475,124 @@ export class EmotionDetector {
    */
   clearHistory(): void {
     this.emotionHistory = [];
+  }
+
+  /**
+   * Enhance detection with LLM inference for ambiguous cases
+   * 
+   * This is an optional enhancement that:
+   * 1. Uses keyword detection first (fast, reliable)
+   * 2. Falls back to LLM only when confidence is low
+   * 3. Never blocks on LLM failure
+   * 
+   * @param text - The user message to analyze
+   * @param llmCall - Optional async function to call LLM
+   * @returns Enhanced emotion result with potentially higher confidence
+   */
+  async detectWithLLM(
+    text: string,
+    llmCall?: (prompt: string) => Promise<string>
+  ): Promise<EmotionResult> {
+    // Get keyword-based detection first (always works)
+    const keywordResult = this.detect(text);
+
+    // If confident enough, use it directly
+    if (keywordResult.confidence >= 0.7) {
+      return keywordResult;
+    }
+
+    // If no LLM available, use keyword result
+    if (!llmCall) {
+      return keywordResult;
+    }
+
+    // For low-confidence results, enhance with LLM
+    try {
+      const prompt = `Analyze the emotional content of this message. Be concise.
+
+Message: "${text.slice(0, 500)}"
+
+Return ONLY valid JSON with no other text:
+{
+  "primary": "one of: joy, sadness, anger, fear, surprise, trust, anticipation, anxiety, neutral",
+  "intensity": 0.0 to 1.0,
+  "distressLevel": 0.0 to 1.0 (urgency of emotional support needed),
+  "valence": "positive, negative, or neutral"
+}`;
+
+      const response = await llmCall(prompt);
+      
+      // Extract JSON from response
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        getLogger().debug('LLM emotion response did not contain JSON, using keyword result');
+        return keywordResult;
+      }
+
+      const llmEmotion = JSON.parse(jsonMatch[0]) as {
+        primary: string;
+        intensity?: number;
+        distressLevel?: number;
+        valence?: string;
+      };
+
+      // Validate primary emotion
+      const validEmotions: PrimaryEmotion[] = [
+        'joy', 'sadness', 'anger', 'fear', 'surprise', 
+        'disgust', 'trust', 'anticipation', 'anxiety', 'regret', 'neutral'
+      ];
+      
+      if (!validEmotions.includes(llmEmotion.primary as PrimaryEmotion)) {
+        getLogger().debug(`LLM returned invalid emotion: ${llmEmotion.primary}, using keyword result`);
+        return keywordResult;
+      }
+
+      // Merge LLM result with keyword result
+      const mergedResult: EmotionResult = {
+        primary: llmEmotion.primary as PrimaryEmotion,
+        secondary: keywordResult.secondary,
+        intensity: llmEmotion.intensity ?? keywordResult.intensity,
+        valence: this.parseValence(llmEmotion.valence) ?? keywordResult.valence,
+        distressLevel: llmEmotion.distressLevel ?? keywordResult.distressLevel,
+        confidence: 0.85, // LLM-enhanced confidence
+        markers: [...keywordResult.markers, '[llm-enhanced]'],
+        suggestedTone: this.getSuggestedTone(
+          llmEmotion.primary as PrimaryEmotion,
+          llmEmotion.distressLevel ?? keywordResult.distressLevel,
+          llmEmotion.intensity ?? keywordResult.intensity
+        ),
+      };
+
+      // Track in history
+      this.emotionHistory.push(mergedResult);
+      if (this.emotionHistory.length > 20) {
+        this.emotionHistory.shift();
+      }
+
+      getLogger().debug({
+        keyword: keywordResult.primary,
+        llm: mergedResult.primary,
+        keywordConfidence: keywordResult.confidence.toFixed(2),
+      }, 'LLM-enhanced emotion detection');
+
+      return mergedResult;
+    } catch (error) {
+      // LLM failed - use keyword result (fail-safe)
+      getLogger().debug(`LLM emotion detection failed: ${error}, using keyword result`);
+      return keywordResult;
+    }
+  }
+
+  /**
+   * Parse valence string to Valence type
+   */
+  private parseValence(valence: string | undefined): Valence | null {
+    if (!valence) return null;
+    const normalized = valence.toLowerCase().trim();
+    if (['positive', 'negative', 'neutral'].includes(normalized)) {
+      return normalized as Valence;
+    }
+    return null;
   }
 }
 

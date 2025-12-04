@@ -1,28 +1,66 @@
-# UI Server for Jack Bogle Voice AI
-FROM node:20-slim
+# UI Server for Ferni Voice AI
+# Multi-stage build: Build frontend, then serve with Node.js
+
+# ============================================================================
+# Stage 1: Build the frontend-typescript app
+# ============================================================================
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /app
+
+# Copy design-system dist (needed for @design-system imports)
+COPY design-system/dist ./design-system/dist/
+
+# Copy frontend package files
+COPY frontend-typescript/package*.json ./frontend-typescript/
+
+WORKDIR /app/frontend-typescript
+
+# Install frontend dependencies
+RUN npm ci
+
+# Copy frontend source
+COPY frontend-typescript/ ./
+
+# Build the frontend (outputs to dist/)
+RUN npm run build
+
+# ============================================================================
+# Stage 2: Production server
+# ============================================================================
+FROM node:20-slim AS production
 
 WORKDIR /app
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
+    ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
+# Copy root package files (for ui-server.js dependencies)
 COPY package*.json ./
 
-# Install production dependencies
-RUN npm ci --only=production
+# Install production dependencies only
+RUN npm ci --omit=dev
 
-# Copy UI server and frontend
+# Copy UI server
 COPY ui-server.js ./
-COPY frontend/ ./frontend/
+
+# Create frontend-typescript/dist directory structure
+RUN mkdir -p frontend-typescript/dist
+
+# Copy built frontend from builder stage
+COPY --from=frontend-builder /app/frontend-typescript/dist ./frontend-typescript/dist/
 
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=8080
 
 EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
 
 # Run UI server
 CMD ["node", "ui-server.js"]

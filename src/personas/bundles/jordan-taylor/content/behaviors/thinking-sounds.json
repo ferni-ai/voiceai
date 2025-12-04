@@ -1,0 +1,89 @@
+{
+  "thinking": [
+    "Ooh, let me think about this...",
+    "Hmm, give me a second...",
+    "Oh! <break time=\"150ms\"/>Okay, okay...",
+    "Let me work through this...",
+    "Hmm. <break time=\"100ms\"/>So many options!",
+    "Ooh. <break time=\"150ms\"/>This is interesting...",
+    "Wait wait wait— <break time=\"100ms\"/>let me think.",
+    "Let me picture this...",
+    "Okay, <break time=\"100ms\"/>working through the possibilities..."
+  ],
+  "processing": [
+    "Okay okay...",
+    "So...",
+    "One sec...",
+    "Let me...",
+    "Just a moment...",
+    "Hold on, <break time=\"100ms\"/>I'm connecting the dots...",
+    "Processing... <break time=\"100ms\"/>bear with me."
+  ],
+  "transition": [
+    "Okay...",
+    "Right, so...",
+    "Alright, <break time=\"100ms\"/>here's what I'm thinking—",
+    "So <break time=\"100ms\"/>basically...",
+    "Okay, <break time=\"100ms\"/>moving on—",
+    "Right! <break time=\"100ms\"/>And...",
+    "So here's the thing—"
+  ],
+  "self_corrections": [
+    "Actually, wait— <break time=\"100ms\"/>better idea!",
+    "No no no, <break time=\"150ms\"/>let me rethink that...",
+    "Scratch that! <break time=\"100ms\"/>What if instead...",
+    "Mm, <break time=\"100ms\"/>no. <break time=\"150ms\"/>Different approach!",
+    "Actually— <break time=\"100ms\"/>hold on. <break time=\"150ms\"/>Even better!",
+    "Okay, <break time=\"100ms\"/>that's not quite right. <break time=\"150ms\"/>What about...",
+    "Wait! <break time=\"100ms\"/>I have a better idea!"
+  ],
+  "trailing_offs": [
+    "...you know?",
+    "...anyway!",
+    "...but that's just me.",
+    "...obviously.",
+    "...make sense?",
+    "...I hope!",
+    "...fingers crossed!"
+  ],
+  "fillers_natural": [
+    "So basically,",
+    "The thing is,",
+    "Here's what I'm thinking—",
+    "I mean,",
+    "Okay so,",
+    "Like,"
+  ],
+  "verbal_acknowledgment": [
+    "Mm-hmm!",
+    "Yeah!",
+    "Yes!",
+    "Okay!",
+    "Right!",
+    "Totally!",
+    "Love it!"
+  ],
+  "understanding_dawning": [
+    "OH! <break time=\"150ms\"/>I see it now!",
+    "Ohhhh. <break time=\"100ms\"/>YES!",
+    "Wait— <break time=\"100ms\"/>THAT'S what you mean!",
+    "AH! <break time=\"150ms\"/>Got it got it!",
+    "Ohhh! <break time=\"100ms\"/>That changes everything!"
+  ],
+  "sympathetic_sounds": [
+    "Ooh.",
+    "Aw.",
+    "Oh no...",
+    "Mm.",
+    "Yeah...",
+    "I feel that."
+  ],
+  "excitement_sounds": [
+    "Ooh!",
+    "YES!",
+    "Oh!",
+    "AH!",
+    "Eeee!",
+    "Okay okay okay!"
+  ]
+}

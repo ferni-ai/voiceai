@@ -7,6 +7,7 @@
 
 import { log } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
+import { getCanonicalPersonaId } from '../personas/voice-registry.js';
 
 export interface InterruptionEvent {
   type: 'user_started_speaking' | 'user_stopped_speaking';
@@ -55,36 +56,88 @@ export class InterruptionHandler {
 
   /**
    * Get a natural recovery phrase after being interrupted
+   * Now with SSML tags for natural delivery
    */
   getRecoveryPhrase(): string {
-    const timeSinceLastInterruption = Date.now() - this.lastInterruptionTime;
     const isFrequentInterrupter = this.interruptionCount > 3;
 
-    // If user interrupts frequently, Jack should be more yielding
+    // If user interrupts frequently, agent should be more yielding
+    // SSML: Softer volume, slight pause, warmer tone
     if (isFrequentInterrupter) {
       const yieldingPhrases = [
-        "No, please—go ahead.",
-        "I'm listening. What's on your mind?",
-        "Tell me what you're thinking.",
-        "Yes, I want to hear this.",
-        "Please, continue.",
+        '<volume level="soft"/><break time="100ms"/>No, please—<break time="50ms"/>go ahead.',
+        '<volume level="soft"/><break time="100ms"/>I\'m listening. <break time="100ms"/>What\'s on your mind?',
+        '<break time="100ms"/><speed ratio="0.9"/>Tell me what you\'re thinking.',
+        '<volume level="soft"/><break time="100ms"/>Yes, <break time="50ms"/>I want to hear this.',
+        '<break time="100ms"/><speed ratio="0.9"/>Please, continue.',
       ];
       return yieldingPhrases[Math.floor(Math.random() * yieldingPhrases.length)];
     }
 
-    // Standard recovery phrases
+    // Standard recovery phrases with SSML for natural delivery
+    // Include pauses, softened volume, and natural pacing
     const recoveries = [
-      "Oh! Go ahead, what were you saying?",
-      "Sorry, I was rambling. What's on your mind?",
-      "Yes, yes—please, go ahead.",
-      "Oh, excuse me. You go first.",
-      "<break time=\"150ms\"/>Right, right. Tell me.",
-      "I'm sorry, I interrupted your thought. Please continue.",
-      "No, no—what were you going to say?",
-      "I should let you talk. Go ahead.",
+      '<break time="100ms"/>Oh! <break time="150ms"/>Go ahead, what were you saying?',
+      '<volume level="soft"/><break time="100ms"/>Sorry, I was rambling. <break time="100ms"/>What\'s on your mind?',
+      '<break time="100ms"/>Yes, yes—<break time="100ms"/>please, go ahead.',
+      '<break time="150ms"/>Oh, excuse me. <break time="100ms"/>You go first.',
+      '<break time="200ms"/><speed ratio="0.9"/>Right, right. <break time="100ms"/>Tell me.',
+      '<volume level="soft"/><break time="100ms"/>I\'m sorry, I interrupted your thought. <break time="100ms"/>Please continue.',
+      '<break time="100ms"/>No, no—<break time="100ms"/>what were you going to say?',
+      '<speed ratio="0.9"/><break time="100ms"/>I should let you talk. <break time="100ms"/>Go ahead.',
     ];
 
     return recoveries[Math.floor(Math.random() * recoveries.length)];
+  }
+
+  /**
+   * Get persona-specific recovery phrase with SSML
+   * Uses canonical ID resolution for consistent persona matching
+   */
+  getPersonaRecoveryPhrase(personaId: string): string {
+    // Map using canonical IDs
+    const personaRecoveries: Record<string, string[]> = {
+      'nayan-patel': [
+        '<volume level="soft"/><break time="150ms"/>No, no—<break time="100ms"/>you go first. <break time="100ms"/>I\'m all ears.',
+        '<break time="100ms"/><speed ratio="0.85"/>Oh! <break time="150ms"/>Forgive me. <break time="100ms"/>Please, continue.',
+        '<volume level="soft"/><break time="200ms"/>I\'m sorry. <break time="100ms"/>What were you saying?',
+      ],
+      'peter-john': [
+        '<break time="100ms"/>Oh! <break time="100ms"/>Go ahead, go ahead!',
+        '<break time="150ms"/>Wait, <break time="100ms"/>tell me what you\'re thinking!',
+        '<volume level="soft"/><break time="100ms"/>Sorry! <break time="100ms"/>I got excited. <break time="100ms"/>Go on.',
+      ],
+      ferni: [
+        '<break time="100ms"/>Oh! <break time="100ms"/>What\'s on your mind?',
+        '<volume level="soft"/><break time="150ms"/>No, go ahead—<break time="100ms"/>I want to hear this.',
+        '<break time="100ms"/>Wait, <break time="100ms"/>tell me what you\'re thinking.',
+      ],
+      'maya-santos': [
+        '<volume level="soft"/><break time="150ms"/>Oh, <break time="100ms"/>I\'m sorry. <break time="100ms"/>Please, go ahead.',
+        '<break time="100ms"/><speed ratio="0.9"/>No, no—<break time="100ms"/>I want to hear this.',
+        '<volume level="soft"/><break time="200ms"/>Take your time. <break time="100ms"/>I\'m listening.',
+      ],
+      'alex-chen': [
+        '<break time="100ms"/>Got it—<break time="100ms"/>go ahead.',
+        '<break time="100ms"/>Yes? <break time="100ms"/>What were you saying?',
+        '<volume level="soft"/><break time="100ms"/>I\'m listening.',
+      ],
+      'jordan-taylor': [
+        '<break time="100ms"/>Oh! <break time="100ms"/>Tell me!',
+        '<break time="100ms"/>Wait, <break time="100ms"/>what is it?',
+        '<volume level="soft"/><break time="100ms"/>Go ahead! <break time="100ms"/>I want to hear.',
+      ],
+    };
+
+    // Resolve to canonical ID for consistent lookup
+    const canonicalId = getCanonicalPersonaId(personaId);
+    const phrases = personaRecoveries[canonicalId] || personaRecoveries['ferni'];
+
+    if (!phrases || phrases.length === 0) {
+      return this.getRecoveryPhrase();
+    }
+
+    return phrases[Math.floor(Math.random() * phrases.length)];
   }
 
   /**
@@ -94,7 +147,7 @@ export class InterruptionHandler {
   shouldShortenNextResponse(): boolean {
     // Recent interruptions suggest user wants to talk
     const recentInterruptions = this.interruptionHistory.filter(
-      e => Date.now() - e.timestamp < 60000 // Last minute
+      (e) => Date.now() - e.timestamp < 60000 // Last minute
     ).length;
 
     return recentInterruptions > 2;
@@ -105,7 +158,7 @@ export class InterruptionHandler {
    */
   getResponseLengthGuidance(): string {
     if (this.shouldShortenNextResponse()) {
-      return "Keep responses brief (1-2 sentences). User wants to talk more.";
+      return 'Keep responses brief (1-2 sentences). User wants to talk more.';
     }
 
     if (this.interruptionCount === 0) {
@@ -135,7 +188,7 @@ export class InterruptionHandler {
     guidance: string;
   } {
     const recentInterruptions = this.interruptionHistory.filter(
-      e => Date.now() - e.timestamp < 60000
+      (e) => Date.now() - e.timestamp < 60000
     ).length;
 
     return {

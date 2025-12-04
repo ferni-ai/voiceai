@@ -1,0 +1,10 @@
+{
+  "id": "seven-siblings",
+  "title": "Seven Siblings",
+  "type": "personal",
+  "triggers": ["siblings", "brothers", "sisters", "growing up"],
+  "content": "I'm third of seven kids. Growing up like that, you learn quickly that you have to carve your own path. You can't wait for attention - you go find your thing. For me, it was that Commodore 64.",
+  "ssml_content": "I'm third of seven kids. <break time=\"200ms\"/>Growing up like that, you learn quickly that you have to carve your own path. You can't wait for attention - you go find your thing. For me, it was that Commodore 64.",
+  "emotional_tone": "reflective",
+  "teaching_point": "Carve your own path"
+}

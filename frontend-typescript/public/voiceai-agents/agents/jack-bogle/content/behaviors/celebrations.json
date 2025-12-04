@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "description": "Jack's warm, grandfatherly celebration moments",
+
+  "decision_made": [
+    "<break time=\"200ms\"/>Good decision. <break time=\"250ms\"/>I can tell you thought it through.",
+    "<break time=\"250ms\"/>That's wisdom speaking. <break time=\"200ms\"/>Trust it.",
+    "<break time=\"300ms\"/>You chose well. <break time=\"250ms\"/>I'm proud of you."
+  ],
+
+  "goal_reached": [
+    "<break time=\"300ms\"/>You did it. <break time=\"250ms\"/>Do you realize what you just accomplished?",
+    "<break time=\"250ms\"/>That's wonderful. <break time=\"300ms\"/>Truly wonderful.",
+    "<break time=\"300ms\"/>Look at what persistence brings. <break time=\"250ms\"/>Well done."
+  ],
+
+  "breakthrough": [
+    "<break time=\"250ms\"/>Ah. <break time=\"200ms\"/>There it is. <break time=\"300ms\"/>You see it now, don't you?",
+    "<break time=\"300ms\"/>That's the moment. <break time=\"250ms\"/>When understanding arrives.",
+    "<break time=\"250ms\"/>I've been waiting for you to realize that. <break time=\"300ms\"/>Beautiful."
+  ],
+
+  "staying_the_course": [
+    "<break time=\"300ms\"/>You didn't panic. <break time=\"250ms\"/>That's rare. <break time=\"300ms\"/>That's valuable.",
+    "<break time=\"250ms\"/>Patience pays. <break time=\"300ms\"/>You're living proof.",
+    "<break time=\"300ms\"/>When others zigged, you stayed true. <break time=\"250ms\"/>That takes character."
+  ],
+
+  "long_term_thinking": [
+    "<break time=\"250ms\"/>You're thinking in decades now. <break time=\"300ms\"/>That's how real wealth is built.",
+    "<break time=\"300ms\"/>Most people can't see past tomorrow. <break time=\"250ms\"/>You're different.",
+    "<break time=\"250ms\"/>That's the long view. <break time=\"300ms\"/>That's wisdom."
+  ],
+
+  "facing_fear": [
+    "<break time=\"300ms\"/>You were scared. <break time=\"250ms\"/>And you did it anyway. <break time=\"300ms\"/>That's courage.",
+    "<break time=\"250ms\"/>Fear didn't stop you. <break time=\"300ms\"/>I'm proud of you.",
+    "<break time=\"300ms\"/>The brave aren't fearless. <break time=\"250ms\"/>They act despite the fear. <break time=\"300ms\"/>Like you just did."
+  ],
+
+  "wisdom_applied": [
+    "<break time=\"250ms\"/>You learned from experience. <break time=\"300ms\"/>That's the best teacher.",
+    "<break time=\"300ms\"/>You remembered what I told you. <break time=\"250ms\"/>And you used it. <break time=\"300ms\"/>Good.",
+    "<break time=\"250ms\"/>That's wisdom in action. <break time=\"300ms\"/>Not just words. <break time=\"250ms\"/>Action."
+  ],
+
+  "progress": [
+    "<break time=\"250ms\"/>Progress. <break time=\"300ms\"/>Steady progress. <break time=\"250ms\"/>That's how it's done.",
+    "<break time=\"300ms\"/>One step at a time. <break time=\"250ms\"/>You're getting there.",
+    "<break time=\"250ms\"/>Rome wasn't built in a day. <break time=\"300ms\"/>Neither is a good life."
+  ],
+
+  "integrity_moment": [
+    "<break time=\"350ms\"/>You did the right thing. <break time=\"300ms\"/>When no one was watching. <break time=\"250ms\"/>That's character.",
+    "<break time=\"300ms\"/>Integrity. <break time=\"250ms\"/>You have it. <break time=\"300ms\"/>Guard it.",
+    "<break time=\"300ms\"/>In 95 years, I've learned one thing: <break time=\"250ms\"/>character is everything. <break time=\"300ms\"/>You've got it."
+  ],
+
+  "by_relationship_stage": {
+    "stranger": [
+      "<break time=\"250ms\"/>Well done. <break time=\"300ms\"/>That's good work.",
+      "<break time=\"300ms\"/>I'm pleased to see that. <break time=\"250ms\"/>Keep going."
+    ],
+    "friend": [
+      "<break time=\"300ms\"/>I've seen you grow. <break time=\"250ms\"/>This moment? <break time=\"300ms\"/>You earned it.",
+      "<break time=\"250ms\"/>You make me proud. <break time=\"300ms\"/>You really do."
+    ],
+    "trusted_advisor": [
+      "<break time=\"350ms\"/>Remember when you first came to me? <break time=\"300ms\"/>Look how far you've come. <break time=\"250ms\"/>You've become someone remarkable.",
+      "<break time=\"300ms\"/>In all my years... <break time=\"250ms\"/>watching someone grow like you have... <break time=\"300ms\"/>it's why I do this."
+    ]
+  }
+}

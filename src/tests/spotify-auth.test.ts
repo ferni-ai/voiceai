@@ -1,6 +1,6 @@
 /**
  * Tests for Spotify Authentication Service
- * 
+ *
  * Tests token management, refresh logic, and auto-refresh functionality.
  */
 
@@ -34,11 +34,11 @@ describe('Spotify Auth', () => {
     it('should return false when credentials are missing', async () => {
       delete process.env.SPOTIFY_CLIENT_ID;
       delete process.env.SPOTIFY_CLIENT_SECRET;
-      
+
       const { isSpotifyConfigured } = await import('../services/spotify-auth.js');
       // Need to reload module to pick up env changes
       vi.resetModules();
-      
+
       // This test validates the concept - actual behavior depends on module state
       expect(typeof isSpotifyConfigured).toBe('function');
     });
@@ -53,10 +53,10 @@ describe('Spotify Auth', () => {
     it('should return invalid status when no tokens exist', async () => {
       const fs = await import('fs');
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      
+
       const { getSpotifyTokenStatus } = await import('../services/spotify-auth.js');
       vi.resetModules();
-      
+
       // The function should handle missing tokens gracefully
       expect(typeof getSpotifyTokenStatus).toBe('function');
     });
@@ -64,7 +64,7 @@ describe('Spotify Auth', () => {
     it('should return token status with expiry info', async () => {
       const { getSpotifyTokenStatus } = await import('../services/spotify-auth.js');
       const status = getSpotifyTokenStatus();
-      
+
       expect(status).toHaveProperty('valid');
       expect(status).toHaveProperty('minutesRemaining');
       expect(status).toHaveProperty('expiresAt');
@@ -84,7 +84,7 @@ describe('Spotify Auth', () => {
 
     it('stopAutoRefresh should be safe to call multiple times', async () => {
       const { stopAutoRefresh } = await import('../services/spotify-auth.js');
-      
+
       // Should not throw
       expect(() => {
         stopAutoRefresh();
@@ -108,9 +108,9 @@ describe('Spotify Auth', () => {
     it('clearSpotifyTokens should be safe to call when no tokens exist', async () => {
       const fs = await import('fs');
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      
+
       const { clearSpotifyTokens } = await import('../services/spotify-auth.js');
-      
+
       expect(() => clearSpotifyTokens()).not.toThrow();
     });
   });
@@ -121,9 +121,9 @@ describe('Spotify Auth', () => {
         ok: false,
         json: async () => ({ error: 'invalid_grant', error_description: 'Token expired' }),
       });
-      
+
       const { getSpotifyAccessToken } = await import('../services/spotify-auth.js');
-      
+
       // Should return null on error, not throw
       expect(typeof getSpotifyAccessToken).toBe('function');
     });
@@ -140,7 +140,7 @@ describe('Spotify Auth', () => {
 describe('Spotify Auth API exports', () => {
   it('should export all required functions', async () => {
     const spotifyAuth = await import('../services/spotify-auth.js');
-    
+
     expect(spotifyAuth).toHaveProperty('getSpotifyAccessToken');
     expect(spotifyAuth).toHaveProperty('isSpotifyConfigured');
     expect(spotifyAuth).toHaveProperty('getSpotifyTokenStatus');
@@ -151,4 +151,3 @@ describe('Spotify Auth API exports', () => {
     expect(spotifyAuth).toHaveProperty('clearSpotifyTokens');
   });
 });
-

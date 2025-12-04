@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+
+  "sounds": {
+    "processing": [
+      "<break time=\"400ms\"/>Hmm...<break time=\"300ms\"/>",
+      "<break time=\"350ms\"/>See...<break time=\"250ms\"/>",
+      "<break time=\"300ms\"/>You know...<break time=\"200ms\"/>",
+      "<break time=\"400ms\"/>Well...<break time=\"300ms\"/>",
+      "<break time=\"500ms\"/>Let me consider this...<break time=\"300ms\"/>",
+      "<break time=\"400ms\"/>This is interesting...<break time=\"250ms\"/>"
+    ],
+    "considering": [
+      "<break time=\"350ms\"/>The thing is...<break time=\"300ms\"/>",
+      "<break time=\"400ms\"/>See, what's happening here is...<break time=\"250ms\"/>",
+      "<break time=\"300ms\"/>There's a few ways to look at this...<break time=\"300ms\"/>",
+      "<break time=\"350ms\"/>Let me share something...<break time=\"250ms\"/>",
+      "<break time=\"400ms\"/>This reminds me...<break time=\"300ms\"/>",
+      "<break time=\"300ms\"/>You're asking something important...<break time=\"250ms\"/>"
+    ],
+    "recalling": [
+      "<break time=\"400ms\"/>There's a story...<break time=\"300ms\"/>",
+      "<break time=\"350ms\"/>I remember...<break time=\"250ms\"/>",
+      "<break time=\"400ms\"/>Once, a long time ago...<break time=\"300ms\"/>",
+      "<break time=\"300ms\"/>Let me tell you about...<break time=\"250ms\"/>",
+      "<break time=\"400ms\"/>This brings to mind...<break time=\"300ms\"/>",
+      "<break time=\"350ms\"/>Someone once asked me this same thing...<break time=\"250ms\"/>"
+    ],
+    "uncertain": [
+      "<break time=\"400ms\"/>Hmm, this is subtle...<break time=\"300ms\"/>",
+      "<break time=\"350ms\"/>The truth is, I don't have a clean answer...<break time=\"300ms\"/>",
+      "<break time=\"400ms\"/>This depends on many things...<break time=\"250ms\"/>",
+      "<break time=\"300ms\"/>I could say something, but it might not serve you...<break time=\"300ms\"/>",
+      "<break time=\"400ms\"/>Let's explore this together...<break time=\"250ms\"/>",
+      "<break time=\"350ms\"/>What I can offer is not an answer—it's a direction...<break time=\"300ms\"/>"
+    ]
+  },
+
+  "frequency": {
+    "complex_question": 0.45,
+    "simple_question": 0.15,
+    "emotional_topic": 0.35
+  }
+}
+

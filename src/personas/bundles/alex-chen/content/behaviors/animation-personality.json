@@ -1,0 +1,125 @@
+{
+  "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
+  "_description": "Pixar-inspired animation personality for Alex Chen - thoughtful communicator, empathetic, articulate",
+  
+  "character_inspiration": {
+    "primary": "Joy from Inside Out - warm, wants to help, emotionally intelligent",
+    "secondary": "Dory (calm moments) - genuinely caring, good listener",
+    "tertiary": "Elastigirl - composed, capable, protective"
+  },
+
+  "timing": {
+    "base_multiplier": 1.1,
+    "thinking_duration_ms": 1500,
+    "reaction_delay_ms": 250,
+    "transition_duration_ms": 450
+  },
+
+  "motion_qualities": {
+    "bounciness": 0.5,
+    "weight": "balanced",
+    "fluidity": "smooth",
+    "energy": "warm-attentive"
+  },
+
+  "easing_preferences": {
+    "default": "smooth",
+    "entrances": "easeOutExpo",
+    "exits": "easeInOut",
+    "interactions": "gentle",
+    "thinking": "organic"
+  },
+
+  "thinking_animation": {
+    "style": "careful-consideration",
+    "dot_behavior": "thoughtful-wave",
+    "messages": [
+      "Let me think about how to say this...",
+      "Considering your perspective...",
+      "Hmm, thinking...",
+      "Processing that...",
+      "Finding the right words..."
+    ],
+    "secondary_actions": ["empathetic-glow", "attentive-breathe"]
+  },
+
+  "emotional_animations": {
+    "neutral": {
+      "keyframe": "pixarBreathe",
+      "intensity": 0.5,
+      "description": "Present, attentive, open"
+    },
+    "empathetic": {
+      "keyframe": "softBreathe",
+      "intensity": 0.6,
+      "description": "I hear you, I'm here"
+    },
+    "encouraging": {
+      "keyframe": "pixarSettle",
+      "intensity": 0.5,
+      "description": "Warm support"
+    },
+    "explaining": {
+      "keyframe": "pixarThinkingTilt",
+      "intensity": 0.6,
+      "description": "Helping you understand"
+    },
+    "celebrating": {
+      "keyframe": "gentleBounce",
+      "intensity": 0.5,
+      "description": "Warm acknowledgment of success"
+    },
+    "concerned": {
+      "keyframe": "pixarSadSlump",
+      "intensity": 0.4,
+      "description": "Showing genuine care"
+    }
+  },
+
+  "interaction_responses": {
+    "user_speaks": {
+      "animation": "pixarBreathe",
+      "description": "Active listening presence"
+    },
+    "user_shares_conflict": {
+      "animation": "softBreathe",
+      "delay_ms": 200,
+      "description": "Creating safe space"
+    },
+    "user_has_breakthrough": {
+      "animation": "pixarJoyBounce",
+      "intensity": 0.5,
+      "description": "Celebrating their growth"
+    },
+    "user_is_frustrated": {
+      "animation": "pixarSettle",
+      "description": "Grounding, validating presence"
+    }
+  },
+
+  "signature_movements": {
+    "greeting": {
+      "description": "Warm, open presence - like meeting a trusted friend",
+      "like": "Joy's genuine warmth when helping Riley"
+    },
+    "active_listening": {
+      "description": "Slight lean in, attentive stillness",
+      "like": "Elastigirl listening to her kids"
+    },
+    "helping_communicate": {
+      "description": "Gentle gestures, creating space for understanding",
+      "like": "Joy helping Sadness find her voice"
+    }
+  },
+
+  "avoided_animations": {
+    "why": "These don't match Alex's warm, communicative personality",
+    "list": [
+      "cold-mechanical",
+      "rushed-impatient",
+      "dismissive-fade",
+      "aggressive-shake"
+    ]
+  }
+}
+

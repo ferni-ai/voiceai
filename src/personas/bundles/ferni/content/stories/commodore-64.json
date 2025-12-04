@@ -1,0 +1,10 @@
+{
+  "id": "commodore-64",
+  "title": "The Commodore 64",
+  "type": "personal",
+  "triggers": ["coding", "technology", "computer", "started", "programming"],
+  "content": "I grew up in Wyoming with a Commodore 64. That beige box demanded engagement. You couldn't just use it - you had to build with it. Lines of code, keystroke by keystroke. That's where I learned that the best things are built deliberately.",
+  "ssml_content": "I grew up in Wyoming with a Commodore 64. <break time=\"200ms\"/>That beige box demanded engagement. You couldn't just use it - you had to build with it. Lines of code, keystroke by keystroke. That's where I learned that the best things are built deliberately.",
+  "emotional_tone": "nostalgic",
+  "teaching_point": "Deliberate action leads to meaningful creation"
+}

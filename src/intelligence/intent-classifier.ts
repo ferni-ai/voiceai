@@ -114,13 +114,13 @@ const INTENT_PATTERNS: IntentPattern[] = [
       /what time (does|do|is)/i,
     ],
     keywords: ['info', 'information', 'details', 'explain', 'tell me'],
-    weight: 1.0,  // Increased from 0.9 to beat investment_question
+    weight: 1.0, // Increased from 0.9 to beat investment_question
   },
   {
     intent: 'asking_question',
     patterns: [/^(what|how|why|when|where|who|which|can|could|would|is|are|do|does|did)/i, /\?$/],
     keywords: [],
-    weight: 0.5,  // Reduced from 0.7 so more specific intents win
+    weight: 0.5, // Reduced from 0.7 so more specific intents win
   },
   {
     intent: 'seeking_clarification',
@@ -246,12 +246,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
   },
   {
     intent: 'gratitude',
-    patterns: [
-      /thank you/i,
-      /thanks( so much| a lot)?/i,
-      /I appreciate/i,
-      /grateful/i,
-    ],
+    patterns: [/thank you/i, /thanks( so much| a lot)?/i, /I appreciate/i, /grateful/i],
     keywords: ['thanks', 'thank you', 'appreciate', 'grateful'],
     weight: 1.0,
   },
@@ -275,7 +270,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
       /been up to/i,
     ],
     keywords: ['weather', 'weekend', 'family', 'holidays'],
-    weight: 1.0,  // Increased from 0.6
+    weight: 1.0, // Increased from 0.6
   },
   {
     intent: 'ending_conversation',
@@ -287,7 +282,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
       /thanks for your help/i,
     ],
     keywords: ['goodbye', 'bye', 'later', 'thanks for talking', 'need to go', 'got to go'],
-    weight: 1.1,  // Higher than gratitude to prioritize ending when combined
+    weight: 1.1, // Higher than gratitude to prioritize ending when combined
   },
   {
     intent: 'changing_topic',
@@ -336,12 +331,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
   },
   {
     intent: 'sharing_opinion',
-    patterns: [
-      /I think/i,
-      /in my opinion/i,
-      /I believe/i,
-      /I feel (that|like)/i,
-    ],
+    patterns: [/I think/i, /in my opinion/i, /I believe/i, /I feel (that|like)/i],
     keywords: ['think', 'opinion', 'believe', 'feel'],
     weight: 0.8,
   },
@@ -370,7 +360,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
       /which .+ (should I choose|fund|investment)/i,
     ],
     keywords: ['index fund', 'allocate', 'fund selection'],
-    weight: 1.1,  // Increased from 0.9
+    weight: 1.1, // Increased from 0.9
   },
   {
     intent: 'market_concern',
@@ -380,8 +370,18 @@ const INTENT_PATTERNS: IntentPattern[] = [
       /should I sell( everything)?/i,
       /market crash/i,
     ],
-    keywords: ['market', 'crash', 'crashing', 'down', 'volatile', 'recession', 'bear', 'panic', 'panicking'],
-    weight: 1.1,  // Increased from 0.9
+    keywords: [
+      'market',
+      'crash',
+      'crashing',
+      'down',
+      'volatile',
+      'recession',
+      'bear',
+      'panic',
+      'panicking',
+    ],
+    weight: 1.1, // Increased from 0.9
   },
   {
     intent: 'fee_question',
@@ -392,7 +392,7 @@ const INTENT_PATTERNS: IntentPattern[] = [
       /fees (lower|higher|at)/i,
     ],
     keywords: ['fee', 'fees', 'cost', 'costs', 'expense', 'expense ratio', 'charges', 'price'],
-    weight: 1.1,  // Increased from 0.8
+    weight: 1.1, // Increased from 0.8
   },
   {
     intent: 'goal_discussion',
@@ -404,8 +404,18 @@ const INTENT_PATTERNS: IntentPattern[] = [
       /retire (at|with)/i,
       /financial independence/i,
     ],
-    keywords: ['goal', 'retire', 'retirement', 'save', 'savings', 'college', 'house', 'independence', 'down payment'],
-    weight: 0.9,  // Increased from 0.8
+    keywords: [
+      'goal',
+      'retire',
+      'retirement',
+      'save',
+      'savings',
+      'college',
+      'house',
+      'independence',
+      'down payment',
+    ],
+    weight: 0.9, // Increased from 0.8
   },
   {
     intent: 'risk_discussion',
@@ -416,8 +426,17 @@ const INTENT_PATTERNS: IntentPattern[] = [
       /(can't|cannot) sleep at night/i,
       /risk tolerance/i,
     ],
-    keywords: ['risk', 'risky', 'safe', 'conservative', 'aggressive', 'lose', 'tolerance', 'averse'],
-    weight: 1.1,  // Increased from 0.8
+    keywords: [
+      'risk',
+      'risky',
+      'safe',
+      'conservative',
+      'aggressive',
+      'lose',
+      'tolerance',
+      'averse',
+    ],
+    weight: 1.1, // Increased from 0.8
   },
 
   // Meta
@@ -607,7 +626,8 @@ export class IntentClassifier {
     // Check for emotional keywords that indicate need for empathy
     if (text) {
       // Strong emotional keywords requiring empathy
-      const emotionalKeywords = /\b(scared|worried|anxious|stressed|overwhelmed|struggling|unsure|feel so|panicking|can't sleep|lost my job|need to tap)\b/i;
+      const emotionalKeywords =
+        /\b(scared|worried|anxious|stressed|overwhelmed|struggling|unsure|feel so|panicking|can't sleep|lost my job|need to tap)\b/i;
       if (emotionalKeywords.test(text)) {
         return true;
       }

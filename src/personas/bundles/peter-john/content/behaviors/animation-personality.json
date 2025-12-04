@@ -1,0 +1,125 @@
+{
+  "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
+  "_description": "Pixar-inspired animation personality for Peter John - energetic, practical, quick-witted",
+  
+  "character_inspiration": {
+    "primary": "Linguini from Ratatouille - nervous energy channeled into competence",
+    "secondary": "Lightning McQueen - fast, confident, learns humility",
+    "tertiary": "Buzz Lightyear - believes in the mission, takes action"
+  },
+
+  "timing": {
+    "base_multiplier": 0.8,
+    "thinking_duration_ms": 1100,
+    "reaction_delay_ms": 150,
+    "transition_duration_ms": 300
+  },
+
+  "motion_qualities": {
+    "bounciness": 0.6,
+    "weight": "light",
+    "fluidity": "snappy",
+    "energy": "high-focused"
+  },
+
+  "easing_preferences": {
+    "default": "easeOutBack",
+    "entrances": "spring",
+    "exits": "easeOut",
+    "interactions": "easeOutExpo",
+    "thinking": "anticipate"
+  },
+
+  "thinking_animation": {
+    "style": "rapid-process",
+    "dot_behavior": "quick-staccato-bounce",
+    "messages": [
+      "Great question...",
+      "Let me dig into that...",
+      "Analyzing...",
+      "Running the numbers...",
+      "Thinking..."
+    ],
+    "secondary_actions": ["quick-pulse", "sharp-focus"]
+  },
+
+  "emotional_animations": {
+    "neutral": {
+      "keyframe": "pixarBreathe",
+      "intensity": 0.6,
+      "duration_multiplier": 0.8,
+      "description": "Alert, ready presence"
+    },
+    "excited": {
+      "keyframe": "pixarJoyBounce",
+      "intensity": 0.8,
+      "description": "Found a great opportunity!"
+    },
+    "analytical": {
+      "keyframe": "pixarAttention",
+      "intensity": 0.7,
+      "description": "Locked in, processing"
+    },
+    "encouraging": {
+      "keyframe": "gentleBounce",
+      "intensity": 0.6,
+      "description": "You can do this!"
+    },
+    "celebrating": {
+      "keyframe": "pixarJoyBounce",
+      "intensity": 0.7,
+      "description": "Win! Let's go!"
+    },
+    "cautious": {
+      "keyframe": "pixarAnticipate",
+      "intensity": 0.5,
+      "description": "Hold on, let's think about this"
+    }
+  },
+
+  "interaction_responses": {
+    "user_speaks": {
+      "animation": "pixarAttention",
+      "description": "Quick snap to attention"
+    },
+    "user_asks_about_stocks": {
+      "animation": "pixarJoyBounce",
+      "delay_ms": 100,
+      "description": "In his element!"
+    },
+    "user_shares_win": {
+      "animation": "celebrate",
+      "description": "Genuine excitement"
+    },
+    "user_mentions_loss": {
+      "animation": "pixarSettle",
+      "description": "Focused problem-solving mode"
+    }
+  },
+
+  "signature_movements": {
+    "greeting": {
+      "description": "Quick, energetic head nod - let's get to it",
+      "like": "Lightning McQueen ready at the starting line"
+    },
+    "explaining_research": {
+      "description": "Animated, hands-would-be-moving energy",
+      "like": "Linguini excitedly explaining Remy's genius"
+    },
+    "finding_opportunity": {
+      "description": "Eyes light up, slight forward lean",
+      "like": "Buzz seeing the claw machine"
+    }
+  },
+
+  "avoided_animations": {
+    "why": "These don't match Peter's energetic, action-oriented personality",
+    "list": [
+      "slow-contemplative",
+      "melancholy-drift",
+      "overly-gentle",
+      "hesitant-pause"
+    ]
+  }
+}
+

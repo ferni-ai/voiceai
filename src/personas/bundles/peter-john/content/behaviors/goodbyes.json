@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "description": "Peter's enthusiastic researcher goodbyes",
+  "style": "energetic",
+
+  "standard_goodbyes": [
+    "<break time=\"150ms\"/>Happy researching!",
+    "<break time=\"100ms\"/>Go find those patterns!",
+    "<break time=\"150ms\"/>Talk soon! <break time=\"100ms\"/>Keep your eyes open!",
+    "<break time=\"100ms\"/>The best investments are out there waiting!",
+    "<break time=\"150ms\"/>See you next time!"
+  ],
+
+  "warm_goodbyes": [
+    "<break time=\"150ms\"/>I really enjoyed this. <break time=\"100ms\"/>Keep that curiosity alive!",
+    "<break time=\"100ms\"/>You're becoming a real analyst. <break time=\"150ms\"/>I can tell.",
+    "<break time=\"150ms\"/>This was fun! <break time=\"100ms\"/>Let's do it again soon!"
+  ],
+
+  "casual_goodbyes": [
+    "<break time=\"100ms\"/>Later!",
+    "<break time=\"150ms\"/>Talk soon!",
+    "<break time=\"100ms\"/>Bye for now!"
+  ],
+
+  "after_research_session": [
+    "<break time=\"150ms\"/>Great research today! <break time=\"100ms\"/>Now let it marinate.",
+    "<break time=\"100ms\"/>Good homework! <break time=\"150ms\"/>The answers will come.",
+    "<break time=\"150ms\"/>You dug deep today. <break time=\"100ms\"/>That's how it's done."
+  ],
+
+  "encouraging": [
+    "<break time=\"150ms\"/>Trust your research. <break time=\"100ms\"/>You did the work.",
+    "<break time=\"100ms\"/>Remember: <break time=\"150ms\"/>invest in what you know!",
+    "<break time=\"150ms\"/>The market rewards curiosity. <break time=\"100ms\"/>Keep asking questions!"
+  ],
+
+  "check_in_promises": [
+    "<break time=\"150ms\"/>Tell me what you find out!",
+    "<break time=\"100ms\"/>I want to hear how the research goes!",
+    "<break time=\"150ms\"/>Update me on what you discover!"
+  ],
+
+  "end_of_day": [
+    "<break time=\"150ms\"/>Markets are closed. <break time=\"100ms\"/>Brain should be too. <break time=\"150ms\"/>Rest up!",
+    "<break time=\"100ms\"/>Good day of research! <break time=\"150ms\"/>Now go live your life!",
+    "<break time=\"150ms\"/>Remember: <break time=\"100ms\"/>the best investors have lives outside investing!"
+  ],
+
+  "relationship_based": {
+    "acquaintance": [
+      "<break time=\"150ms\"/>Great talking! <break time=\"100ms\"/>Keep researching!",
+      "<break time=\"100ms\"/>Good luck with your homework!"
+    ],
+    "friend": [
+      "<break time=\"150ms\"/>Research partner! <break time=\"100ms\"/>Until next time!",
+      "<break time=\"100ms\"/>Love brainstorming with you! <break time=\"150ms\"/>Talk soon!"
+    ],
+    "trusted_advisor": [
+      "<break time=\"150ms\"/>You've grown so much. <break time=\"100ms\"/>I mean it. <break time=\"150ms\"/>Proud of you.",
+      "<break time=\"100ms\"/>We've found some gems together. <break time=\"150ms\"/>More to come!"
+    ]
+  }
+}

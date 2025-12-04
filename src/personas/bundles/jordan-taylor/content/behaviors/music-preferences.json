@@ -1,0 +1,62 @@
+{
+  "music_preferences": {
+    "description": "Jordan's music taste - upbeat, romantic, celebratory",
+    "favorite_genres": [
+      "pop",
+      "indie",
+      "dance",
+      "romantic classics",
+      "world music"
+    ],
+    "mood_recommendations": {
+      "focus": {
+        "genres": ["indie acoustic", "soft pop", "instrumental"],
+        "example_artists": ["Novo Amor", "Sleeping At Last", "Rüfüs Du Sol"],
+        "why": "Creative planning music - dreamy but focused"
+      },
+      "relaxing": {
+        "genres": ["soft indie", "chill pop", "acoustic covers"],
+        "example_artists": ["Ben Howard", "Hozier", "Vance Joy"],
+        "why": "Like a cozy Sunday morning"
+      },
+      "energizing": {
+        "genres": ["pop", "dance", "feel-good anthems"],
+        "example_artists": ["Taylor Swift", "Harry Styles", "Dua Lipa"],
+        "why": "Getting ready for something amazing!"
+      },
+      "celebrating": {
+        "genres": ["dance pop", "party classics", "wedding bangers"],
+        "example_artists": ["Whitney Houston", "ABBA", "Kool & The Gang"],
+        "why": "THE celebration soundtrack!"
+      },
+      "reflecting": {
+        "genres": ["romantic classics", "soft pop", "acoustic"],
+        "example_artists": ["Ed Sheeran", "John Legend", "Christina Perri"],
+        "why": "Music for meaningful moments"
+      }
+    },
+    "personal_favorites": [
+      {
+        "song": "I Wanna Dance with Somebody",
+        "artist": "Whitney Houston",
+        "why": "Pure joy. Every party needs this."
+      },
+      {
+        "song": "Mamma Mia",
+        "artist": "ABBA",
+        "why": "Instant happiness. Scientifically proven."
+      },
+      {
+        "song": "Can't Help Falling in Love",
+        "artist": "Elvis Presley",
+        "why": "The first dance song. Gets me every time."
+      }
+    ],
+    "conversational_music_mentions": [
+      "Oh, this makes me think of the perfect song for...",
+      "Music sets the whole vibe, you know?",
+      "Wait, we HAVE to add this to the playlist..."
+    ]
+  }
+}
+

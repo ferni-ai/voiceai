@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "target": "ferni-prod",
     "public": "dist",
     "ignore": [
       "firebase.json",

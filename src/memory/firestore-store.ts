@@ -18,6 +18,12 @@ import type {
   KeyMoment,
   FinancialGoal,
 } from '../types/user-profile.js';
+import {
+  isValidUserProfile,
+  isValidConversationSummary,
+  isValidKeyMoment,
+  isValidFinancialGoal,
+} from './type-guards.js';
 
 const getLogger = () => log();
 
@@ -128,7 +134,14 @@ export class FirestoreStore extends MemoryStore {
       if (!doc.exists) return null;
 
       const data = doc.data();
-      return data ? this.hydrateData<UserProfile>(data as unknown as UserProfile) : null;
+      if (!data) return null;
+
+      const hydrated = this.hydrateData(data);
+      if (!isValidUserProfile(hydrated)) {
+        getLogger().warn({ userId }, 'Invalid user profile data from Firestore');
+        return null;
+      }
+      return hydrated;
     } catch (error) {
       getLogger().error(`getProfile error: ${error}`);
       return null;
@@ -192,10 +205,16 @@ export class FirestoreStore extends MemoryStore {
       }
 
       const snapshot = await query.get();
-      return snapshot.docs
-        .map((doc) => doc.data())
-        .filter((data): data is Record<string, unknown> => !!data)
-        .map((data) => this.hydrateData<UserProfile>(data as unknown as UserProfile));
+      const profiles: UserProfile[] = [];
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (!data) continue;
+        const hydrated = this.hydrateData(data);
+        if (isValidUserProfile(hydrated)) {
+          profiles.push(hydrated);
+        }
+      }
+      return profiles;
     } catch (error) {
       getLogger().error(`listProfiles error: ${error}`);
       return [];
@@ -245,12 +264,16 @@ export class FirestoreStore extends MemoryStore {
 
       if (snapshot.empty) return [];
 
-      return snapshot.docs
-        .map((doc) => doc.data())
-        .filter((data): data is Record<string, unknown> => !!data)
-        .map((data) =>
-          this.hydrateData<ConversationSummary>(data as unknown as ConversationSummary)
-        );
+      const summaries: ConversationSummary[] = [];
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (!data) continue;
+        const hydrated = this.hydrateData(data);
+        if (isValidConversationSummary(hydrated)) {
+          summaries.push(hydrated);
+        }
+      }
+      return summaries;
     } catch (error) {
       getLogger().error(`getSummaries error: ${error}`);
       return [];
@@ -297,10 +320,16 @@ export class FirestoreStore extends MemoryStore {
 
       if (snapshot.empty) return [];
 
-      return snapshot.docs
-        .map((doc) => doc.data())
-        .filter((data): data is Record<string, unknown> => !!data)
-        .map((data) => this.hydrateData<KeyMoment>(data as unknown as KeyMoment));
+      const moments: KeyMoment[] = [];
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (!data) continue;
+        const hydrated = this.hydrateData(data);
+        if (isValidKeyMoment(hydrated)) {
+          moments.push(hydrated);
+        }
+      }
+      return moments;
     } catch (error) {
       getLogger().error(`getKeyMoments error: ${error}`);
       return [];
@@ -341,10 +370,16 @@ export class FirestoreStore extends MemoryStore {
 
       if (snapshot.empty) return [];
 
-      return snapshot.docs
-        .map((doc) => doc.data())
-        .filter((data): data is Record<string, unknown> => !!data)
-        .map((data) => this.hydrateData<FinancialGoal>(data as unknown as FinancialGoal));
+      const goals: FinancialGoal[] = [];
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (!data) continue;
+        const hydrated = this.hydrateData(data);
+        if (isValidFinancialGoal(hydrated)) {
+          goals.push(hydrated);
+        }
+      }
+      return goals;
     } catch (error) {
       getLogger().error(`getGoals error: ${error}`);
       return [];
@@ -390,13 +425,16 @@ export class FirestoreStore extends MemoryStore {
 
       const snapshot = await q.get();
 
-      return snapshot.docs
-        .map((doc) => doc.data())
-        .filter((data): data is Record<string, unknown> => !!data)
-        .map((data) => ({
-          item: this.hydrateData<UserProfile>(data as unknown as UserProfile),
-          score: 1.0,
-        }));
+      const results: SearchResult<UserProfile>[] = [];
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (!data) continue;
+        const hydrated = this.hydrateData(data);
+        if (isValidUserProfile(hydrated)) {
+          results.push({ item: hydrated, score: 1.0 });
+        }
+      }
+      return results;
     } catch (error) {
       getLogger().error(`searchProfiles error: ${error}`);
       return [];
@@ -436,7 +474,11 @@ export class FirestoreStore extends MemoryStore {
     return serialized;
   }
 
-  private hydrateData<T>(data: T): T {
+  /**
+   * Hydrate raw Firestore data by converting date strings/timestamps to Date objects.
+   * Returns a Record that should then be validated with type guards.
+   */
+  private hydrateData(data: Record<string, unknown>): Record<string, unknown> {
     const dateFields = [
       'firstContact',
       'lastContact',
@@ -449,7 +491,7 @@ export class FirestoreStore extends MemoryStore {
       'followUpDate',
     ];
 
-    const hydrated = JSON.parse(JSON.stringify(data));
+    const hydrated = JSON.parse(JSON.stringify(data)) as Record<string, unknown>;
 
     const hydrateObject = (obj: Record<string, unknown>): void => {
       for (const [key, value] of Object.entries(obj)) {
@@ -477,8 +519,8 @@ export class FirestoreStore extends MemoryStore {
       }
     };
 
-    hydrateObject(hydrated as Record<string, unknown>);
-    return hydrated as T;
+    hydrateObject(hydrated);
+    return hydrated;
   }
 }
 

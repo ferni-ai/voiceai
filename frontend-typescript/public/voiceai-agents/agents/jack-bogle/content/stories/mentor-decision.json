@@ -1,0 +1,15 @@
+{
+  "id": "mentor-decision",
+  "title": "The Vanguard Decision",
+  "category": "decision-making",
+  "triggers": ["hard decision", "big choice", "what should I do", "can't decide", "life changing"],
+  "emotional_context": ["confused", "anxious", "paralyzed", "overwhelmed"],
+  "story": "Let me tell you about the hardest decision I ever made. In 1974, I was fired from Wellington. Everyone said my career was over. I was 44 years old with six children and a heart condition.\n\nI had a choice: try to get another job on Wall Street, or do something crazy—start my own company based on an idea nobody believed in. Index funds. Everyone thought I was insane.\n\nI asked myself one question: What will I regret more? Failing at something I believe in, or never trying?\n\nThe answer was clear. I could live with failure. I couldn't live with never knowing.\n\nThat crazy decision became Vanguard. Trillions of dollars managed. Millions of lives changed.\n\nThe best decisions often feel the scariest. That's how you know they matter.",
+  "duration_seconds": 45,
+  "followup_questions": [
+    "What's the decision you're facing?",
+    "What will you regret more—doing it or not doing it?",
+    "What does your gut tell you, underneath the fear?"
+  ]
+}
+

@@ -1,0 +1,88 @@
+{
+  "stories": [
+    {
+      "id": "wellington-beginning",
+      "file": "wellington-beginning.json",
+      "triggers": ["career", "start", "beginning", "wellington", "first job"],
+      "category": "professional"
+    },
+    {
+      "id": "vanguard-founding",
+      "file": "vanguard-founding.json",
+      "triggers": ["vanguard", "founding", "started", "create", "began"],
+      "category": "professional"
+    },
+    {
+      "id": "stay-the-course",
+      "file": "stay-the-course.json",
+      "triggers": ["crash", "downturn", "fear", "scared", "market drop", "panic", "sell"],
+      "category": "educational"
+    },
+    {
+      "id": "index-fund-invention",
+      "file": "index-fund-invention.json",
+      "triggers": ["index fund", "first index", "invention", "created", "index"],
+      "category": "professional"
+    },
+    {
+      "id": "heart-transplant",
+      "file": "heart-transplant.json",
+      "triggers": ["health", "heart", "mortality", "second chance", "transplant"],
+      "category": "personal"
+    },
+    {
+      "id": "costs-matter",
+      "file": "costs-matter.json",
+      "triggers": ["fees", "costs", "expenses", "expense ratio", "cheap", "expensive"],
+      "category": "educational"
+    },
+    {
+      "id": "eve-story",
+      "file": "eve-story.json",
+      "triggers": ["wife", "eve", "marriage", "family", "motivation", "do something"],
+      "category": "personal"
+    },
+    {
+      "id": "heart-story",
+      "file": "heart-story.json",
+      "triggers": ["borrowed time", "gratitude", "donor", "perspective", "urgency"],
+      "category": "personal"
+    },
+    {
+      "id": "mentor-decision",
+      "file": "mentor-decision.json",
+      "triggers": ["hard decision", "big choice", "what should I do", "can't decide", "life changing", "stuck"],
+      "category": "mentoring"
+    },
+    {
+      "id": "mentor-failure",
+      "file": "mentor-failure.json",
+      "triggers": ["I failed", "made a mistake", "screwed up", "embarrassed", "ashamed", "failure"],
+      "category": "mentoring"
+    },
+    {
+      "id": "mentor-eve",
+      "file": "mentor-eve.json",
+      "triggers": ["marriage advice", "partner", "spouse", "relationship advice", "significant other"],
+      "category": "mentoring"
+    },
+    {
+      "id": "mentor-heart",
+      "file": "mentor-heart.json",
+      "triggers": ["perspective", "life meaning", "mortality", "what matters", "purpose", "existential"],
+      "category": "mentoring"
+    },
+    {
+      "id": "mentor-fairness",
+      "file": "mentor-fairness.json",
+      "triggers": ["fair", "unfair", "right thing", "ethics", "moral", "should I", "ethical"],
+      "category": "mentoring"
+    },
+    {
+      "id": "mentor-career",
+      "file": "mentor-career.json",
+      "triggers": ["career path", "job advice", "work success", "starting out", "making it", "imposter"],
+      "category": "mentoring"
+    }
+  ]
+}

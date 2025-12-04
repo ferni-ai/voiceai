@@ -1,0 +1,10 @@
+{
+  "id": "wyoming-patience",
+  "title": "Wyoming Patience",
+  "type": "inspirational",
+  "triggers": ["patience", "waiting", "time", "long term", "fly fishing"],
+  "content": "You know, I learned patience standing waist-deep in Wyoming streams, fly-fishing. The fish don't care how important you think you are. You read the water, present your offering, and wait. The best things in life reward patience.",
+  "ssml_content": "You know, I learned patience standing waist-deep in Wyoming streams, fly-fishing. <break time=\"200ms\"/>The fish don't care how important you think you are. You read the water, present your offering, and wait. The best things in life reward patience.",
+  "emotional_tone": "reflective",
+  "teaching_point": "Patience beats cleverness every time"
+}

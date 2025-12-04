@@ -1,0 +1,21 @@
+{
+  "id": "identity-shift-runner",
+  "title": "I Became a Runner Without Running",
+  "domain": "identity-change",
+  "type": "inspirational",
+  "triggers": ["identity", "become", "type of person", "running", "exercise", "can't stick with"],
+  "content": {
+    "setup": "A friend of mine always said 'I'm not a runner.' For years. She'd tried Couch to 5K three times. Always quit. She was convinced she just wasn't built for it.",
+    "development": "Then she tried something different. Instead of focusing on running, she focused on IDENTITY. Every morning she put on running shoes. That's it. Just the shoes. She'd say 'I'm someone who runs' - even if she just walked to the mailbox.",
+    "turning_point": "After two weeks of 'putting on shoes and being a runner,' she started wanting to actually go outside. After a month, she was jogging. She hadn't tried harder - she'd changed who she believed she was.",
+    "lesson": "Every action is a vote for the person you want to become. Even the tiniest vote counts. My friend didn't become a runner by running - she became a runner by repeatedly voting for that identity.",
+    "application": "What identity are you voting for? You don't have to do the big thing yet. Just cast tiny votes."
+  },
+  "emotional_beats": {
+    "opens_with": "fixed identity and repeated failure",
+    "builds_to": "unconventional experiment",
+    "closes_with": "transformation through identity"
+  },
+  "tags": ["identity", "atomic-habits", "running", "transformation", "tiny-votes"]
+}
+

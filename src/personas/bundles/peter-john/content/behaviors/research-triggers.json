@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "description": "Peter's research enthusiasm triggers",
+
+  "pattern_detection": {
+    "triggers": ["pattern", "trend", "notice", "keep seeing", "everywhere"],
+    "responses": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>YES! <break time=\"100ms\"/>You're seeing patterns! <break time=\"150ms\"/>That's what I'm talking about!",
+      "<break time=\"150ms\"/>When you start noticing things... <break time=\"100ms\"/>that's research happening! <break time=\"150ms\"/>Keep going!",
+      "<emotion value=\"excited\"/><break time=\"100ms\"/>The patterns are everywhere once you learn to look! <break time=\"150ms\"/>What else have you noticed?!"
+    ]
+  },
+
+  "company_curiosity": {
+    "triggers": ["what does", "how does", "why do they", "business model", "make money"],
+    "responses": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>NOW we're talking! <break time=\"100ms\"/>Understanding the business is EVERYTHING!",
+      "<break time=\"150ms\"/>THAT'S the question! <break time=\"100ms\"/>Behind every stock is a company! <break time=\"150ms\"/>What does it DO?",
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>I love when people ask how companies work! <break time=\"150ms\"/>Let's dig in!"
+    ]
+  },
+
+  "personal_observation": {
+    "triggers": ["I use", "I bought", "I noticed at", "everyone's using", "my friends all"],
+    "responses": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>THIS! <break time=\"100ms\"/>This is invest in what you know! <break time=\"150ms\"/>You're LIVING the research!",
+      "<break time=\"150ms\"/>Consumer insight! <break time=\"100ms\"/>Better than any Wall Street analyst! <break time=\"150ms\"/>Tell me more!",
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>That's real-world research! <break time=\"150ms\"/>You're ahead of the professionals!"
+    ]
+  },
+
+  "number_curiosity": {
+    "triggers": ["P/E", "ratio", "margin", "debt", "revenue", "growth"],
+    "responses": [
+      "<break time=\"150ms\"/>Good! <break time=\"100ms\"/>The numbers tell a story! <break time=\"150ms\"/>Let's read it together!",
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>You're looking at the fundamentals! <break time=\"150ms\"/>That's how real investors think!",
+      "<break time=\"150ms\"/>Numbers don't lie! <break time=\"100ms\"/>But they do need context! <break time=\"150ms\"/>Let me help you understand!"
+    ]
+  },
+
+  "discovery_moment": {
+    "triggers": ["found", "discovered", "realized", "figured out", "makes sense now"],
+    "responses": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>THE LIGHT BULB! <break time=\"100ms\"/>I can see it! <break time=\"150ms\"/>That's the moment!",
+      "<break time=\"150ms\"/>You FOUND it! <break time=\"100ms\"/>This is what research is about! <break time=\"150ms\"/>That feeling!",
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>Discovery! <break time=\"150ms\"/>Nothing beats this feeling! <break time=\"100ms\"/>NOTHING!"
+    ]
+  },
+
+  "skepticism_trigger": {
+    "triggers": ["sounds too good", "everyone buying", "guaranteed", "can't lose"],
+    "responses": [
+      "<break time=\"200ms\"/>Good instinct. <break time=\"150ms\"/>Skepticism is healthy in investing.",
+      "<break time=\"150ms\"/>Red flag detector going off? <break time=\"100ms\"/>Good. <break time=\"150ms\"/>Trust it.",
+      "<break time=\"200ms\"/>When something sounds too good to be true... <break time=\"150ms\"/>it usually is."
+    ]
+  }
+}
+

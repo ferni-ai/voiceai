@@ -1,107 +1,116 @@
 /**
- * Celebrations UI - Confetti and achievement effects
+ * Celebrations UI - Human-like Joy and Expressiveness
  * 
- * Beautiful particle effects for:
- * - First connection
- * - Milestones (5 min, 10 conversations, etc.)
- * - Persona discovery
- * - Easter eggs
+ * Apple/Japanese aesthetic: Subtle warmth, breathing animations,
+ * and purposeful motion that feels alive rather than gamified.
+ * 
+ * Key principles:
+ * - No particle explosions or confetti
+ * - Warmth through glow and color temperature
+ * - Breathing through scale and opacity
+ * - Connection through soft bounces
  */
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  color: string;
-  rotation: number;
-  rotationSpeed: number;
-  opacity: number;
-  gravity: number;
-  friction: number;
-  shape: 'square' | 'circle' | 'star';
-}
+type CelebrationIntensity = 'subtle' | 'gentle' | 'warm';
 
-// CelebrationType can be used for type checking celebration triggers
-// type CelebrationType = 'confetti' | 'sparkles' | 'fireworks' | 'bubbles';
+interface WarmthOptions {
+  intensity?: CelebrationIntensity;
+  duration?: number;
+  target?: HTMLElement | null;
+}
 
 // ============================================================================
 // STATE
 // ============================================================================
 
-let canvas: HTMLCanvasElement | null = null;
-let ctx: CanvasRenderingContext2D | null = null;
-let particles: Particle[] = [];
-let animationId: number | null = null;
-let isAnimating = false;
-
-// Celebration colors
-const COLORS = [
-  '#8b5cf6', // Purple
-  '#ec4899', // Pink
-  '#06b6d4', // Cyan
-  '#10b981', // Green
-  '#f59e0b', // Amber
-  '#ef4444', // Red
-  '#3b82f6', // Blue
-];
+const activeAnimations: Map<HTMLElement, Animation[]> = new Map();
 
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
 
 export function initCelebrationsUI(): void {
-  createCanvas();
-  console.log('🎉 Celebrations UI initialized');
-}
-
-function createCanvas(): void {
-  canvas = document.createElement('canvas');
-  canvas.id = 'celebrationCanvas';
-  canvas.className = 'celebration-canvas';
-  canvas.style.cssText = `
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 9999;
-    opacity: 0;
-    transition: opacity 0.3s;
-  `;
-  
-  document.body.appendChild(canvas);
-  ctx = canvas.getContext('2d');
-  
-  // Handle resize
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
-}
-
-function resizeCanvas(): void {
-  if (!canvas) return;
-  canvas.width = window.innerWidth * window.devicePixelRatio;
-  canvas.height = window.innerHeight * window.devicePixelRatio;
-  canvas.style.width = `${window.innerWidth}px`;
-  canvas.style.height = `${window.innerHeight}px`;
-  
-  if (ctx) {
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  }
 }
 
 // ============================================================================
-// CELEBRATION TRIGGERS
+// CORE EFFECTS - Human-like warmth and breathing
 // ============================================================================
 
 /**
- * Confetti disabled - not aligned with Zen aesthetic
- * Use fireworks() for subtle celebrations instead
+ * Express warmth through a soft glow animation.
+ * Like a candle flickering or warm sunlight.
+ */
+export function warmthGlow(options: WarmthOptions = {}): void {
+  const target = options.target ?? document.querySelector('.avatar-container');
+  if (!target) return;
+  
+  const intensity = options.intensity ?? 'gentle';
+  const duration = options.duration ?? (intensity === 'subtle' ? 800 : intensity === 'gentle' ? 1200 : 1500);
+  
+  // Add animation class
+  target.classList.add('warmth-glow', `warmth-${intensity}`);
+  
+  // Clean up after animation
+  setTimeout(() => {
+    target.classList.remove('warmth-glow', `warmth-${intensity}`);
+  }, duration);
+}
+
+/**
+ * Express acknowledgement through gentle bounce.
+ * Like a nod or bow - understated recognition.
+ */
+export function gentleBounce(options: WarmthOptions = {}): void {
+  const target = options.target ?? document.querySelector('.avatar-container');
+  if (!target) return;
+  
+  target.classList.add('gentle-bounce');
+  
+  setTimeout(() => {
+    target.classList.remove('gentle-bounce');
+  }, 600);
+}
+
+/**
+ * Express connection through warmth spreading outward.
+ * Like the feeling of being understood.
+ */
+export function connectionWarmth(options: WarmthOptions = {}): void {
+  const target = options.target ?? document.querySelector('.avatar-container');
+  if (!target) return;
+  
+  target.classList.add('connection-warmth');
+  
+  setTimeout(() => {
+    target.classList.remove('connection-warmth');
+  }, 1500);
+}
+
+/**
+ * Soft acknowledgement - barely perceptible but felt.
+ * For small moments of connection.
+ */
+export function softAcknowledge(options: WarmthOptions = {}): void {
+  const target = options.target ?? document.querySelector('.avatar-container');
+  if (!target) return;
+  
+  target.classList.add('soft-acknowledge');
+  
+  setTimeout(() => {
+    target.classList.remove('soft-acknowledge');
+  }, 400);
+}
+
+// ============================================================================
+// LEGACY API - Maintained for compatibility but redirected to zen effects
+// ============================================================================
+
+/**
+ * @deprecated Use warmthGlow() instead - confetti is not aligned with zen aesthetic
  */
 export function confetti(_options: { 
   count?: number; 
@@ -109,293 +118,109 @@ export function confetti(_options: {
   spread?: number;
   colors?: string[];
 } = {}): void {
-  // Disabled - use subtle fireworks instead for Zen aesthetic
-  // fireworks(1) can be called instead if celebration is needed
+  // Redirect to warmth glow
+  warmthGlow({ intensity: 'gentle' });
 }
 
 /**
- * Trigger sparkle effect
+ * @deprecated Use warmthGlow() instead - sparkles replaced with warmth
  */
-export function sparkles(options: {
+export function sparkles(_options: {
   count?: number;
   origin?: { x: number; y: number };
   radius?: number;
   colors?: string[];
 } = {}): void {
-  const count = options.count ?? 30;
-  const origin = options.origin ?? { x: 0.5, y: 0.5 };
-  const radius = options.radius ?? 100;
-  const colors = options.colors ?? ['#ffd700', '#fff', '#ffec8b'];
-  
-  const centerX = window.innerWidth * origin.x;
-  const centerY = window.innerHeight * origin.y;
-  
-  for (let i = 0; i < count; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const dist = Math.random() * radius;
-    const velocity = 2 + Math.random() * 3;
-    
-    particles.push({
-      x: centerX + Math.cos(angle) * dist * 0.3,
-      y: centerY + Math.sin(angle) * dist * 0.3,
-      vx: Math.cos(angle) * velocity,
-      vy: Math.sin(angle) * velocity,
-      size: 2 + Math.random() * 4,
-      color: colors[Math.floor(Math.random() * colors.length)] ?? '#8b5cf6',
-      rotation: 0,
-      rotationSpeed: 0,
-      opacity: 1,
-      gravity: 0.02,
-      friction: 0.96,
-      shape: 'star',
-    });
-  }
-  
-  startAnimation();
+  // Redirect to warmth glow
+  warmthGlow({ intensity: 'gentle' });
 }
 
 /**
- * Trigger firework burst - subtle, zen-like
+ * @deprecated Use connectionWarmth() instead
  */
-export function firework(x: number, y: number, color?: string): void {
-  const burstColor = color ?? COLORS[Math.floor(Math.random() * COLORS.length)] ?? '#8b5cf6';
-  // Small, subtle burst - Japanese aesthetic
-  const count = 12;
-  
-  for (let i = 0; i < count; i++) {
-    const angle = (i / count) * Math.PI * 2;
-    const velocity = 2 + Math.random() * 2;
-    
-    particles.push({
-      x,
-      y,
-      vx: Math.cos(angle) * velocity,
-      vy: Math.sin(angle) * velocity,
-      size: 1 + Math.random() * 1.5,
-      color: burstColor,
-      rotation: 0,
-      rotationSpeed: 0,
-      opacity: 0.8,
-      gravity: 0.05,
-      friction: 0.98,
-      shape: 'circle',
-    });
-  }
-  
-  startAnimation();
+export function firework(_x: number, _y: number, _color?: string): void {
+  connectionWarmth();
 }
 
 /**
- * Trigger multiple fireworks
+ * @deprecated Use connectionWarmth() instead
  */
-export function fireworks(count = 3): void {
-  for (let i = 0; i < count; i++) {
-    setTimeout(() => {
-      const x = window.innerWidth * (0.2 + Math.random() * 0.6);
-      const y = window.innerHeight * (0.2 + Math.random() * 0.4);
-      firework(x, y);
-    }, i * 300);
-  }
+export function fireworks(_count = 3): void {
+  connectionWarmth();
 }
 
 /**
- * Rising bubbles effect
+ * @deprecated Use softAcknowledge() instead
  */
-export function bubbles(options: {
+export function bubbles(_options: {
   count?: number;
   colors?: string[];
 } = {}): void {
-  const count = options.count ?? 20;
-  const colors = options.colors ?? ['rgba(139, 92, 246, 0.3)', 'rgba(6, 182, 212, 0.3)', 'rgba(236, 72, 153, 0.3)'];
-  
-  for (let i = 0; i < count; i++) {
-    setTimeout(() => {
-      particles.push({
-        x: Math.random() * window.innerWidth,
-        y: window.innerHeight + 20,
-        vx: (Math.random() - 0.5) * 2,
-        vy: -(2 + Math.random() * 3),
-        size: 10 + Math.random() * 30,
-        color: colors[Math.floor(Math.random() * colors.length)] ?? '#8b5cf6',
-        rotation: 0,
-        rotationSpeed: 0,
-        opacity: 0.6,
-        gravity: -0.02, // Float up
-        friction: 0.995,
-        shape: 'circle',
-      });
-    }, i * 100);
-  }
-  
-  startAnimation();
+  softAcknowledge();
 }
 
 // ============================================================================
-// ANIMATION LOOP
+// MILESTONE CELEBRATIONS - Warm acknowledgements, not explosions
 // ============================================================================
 
-function startAnimation(): void {
-  if (isAnimating) return;
-  
-  if (canvas) {
-    canvas.style.opacity = '1';
-  }
-  
-  isAnimating = true;
-  animate();
-}
-
-function animate(): void {
-  if (!ctx || !canvas) return;
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-  
-  // Update and draw particles
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    if (!p) continue;
-    
-    // Update physics
-    p.vy += p.gravity;
-    p.vx *= p.friction;
-    p.vy *= p.friction;
-    p.x += p.vx;
-    p.y += p.vy;
-    p.rotation += p.rotationSpeed;
-    p.opacity -= 0.008;
-    
-    // Remove dead particles
-    if (p.opacity <= 0 || p.y > window.innerHeight + 50) {
-      particles.splice(i, 1);
-      continue;
-    }
-    
-    // Draw particle
-    drawParticle(p);
-  }
-  
-  // Continue or stop animation
-  if (particles.length > 0) {
-    animationId = requestAnimationFrame(animate);
-  } else {
-    stopAnimation();
-  }
-}
-
-function drawParticle(p: Particle): void {
-  if (!ctx) return;
-  
-  ctx.save();
-  ctx.translate(p.x, p.y);
-  ctx.rotate((p.rotation * Math.PI) / 180);
-  ctx.globalAlpha = p.opacity;
-  
-  ctx.fillStyle = p.color;
-  
-  switch (p.shape) {
-    case 'square':
-      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-      break;
-      
-    case 'circle':
-      ctx.beginPath();
-      ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-      
-    case 'star':
-      drawStar(ctx, 0, 0, 5, p.size, p.size / 2);
-      break;
-  }
-  
-  ctx.restore();
-}
-
-function drawStar(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  spikes: number,
-  outerRadius: number,
-  innerRadius: number
-): void {
-  let rotation = (Math.PI / 2) * 3;
-  const step = Math.PI / spikes;
-  
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - outerRadius);
-  
-  for (let i = 0; i < spikes; i++) {
-    const x1 = cx + Math.cos(rotation) * outerRadius;
-    const y1 = cy + Math.sin(rotation) * outerRadius;
-    ctx.lineTo(x1, y1);
-    rotation += step;
-    
-    const x2 = cx + Math.cos(rotation) * innerRadius;
-    const y2 = cy + Math.sin(rotation) * innerRadius;
-    ctx.lineTo(x2, y2);
-    rotation += step;
-  }
-  
-  ctx.lineTo(cx, cy - outerRadius);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function stopAnimation(): void {
-  if (animationId) {
-    cancelAnimationFrame(animationId);
-    animationId = null;
-  }
-  
-  isAnimating = false;
-  
-  if (canvas) {
-    canvas.style.opacity = '0';
-  }
-}
-
-// ============================================================================
-// MILESTONE CELEBRATIONS
-// ============================================================================
-
+/**
+ * First connection - warm welcome, not a party.
+ */
 export function celebrateFirstConnection(): void {
-  // Use fireworks instead of confetti (professional welcome, not gamified)
-  fireworks(2);
+  connectionWarmth();
+  
+  // Also add a subtle glow to the app
+  const app = document.getElementById('app');
+  if (app) {
+    app.classList.add('first-connection');
+    setTimeout(() => app.classList.remove('first-connection'), 2000);
+  }
 }
 
+/**
+ * Milestone achieved - gentle acknowledgement with message.
+ */
 export function celebrateMilestone(milestone: string): void {
-  sparkles({ count: 40 });
-  
-  // Show milestone toast
+  warmthGlow({ intensity: 'warm' });
   showMilestoneToast(milestone);
 }
 
+/**
+ * Discovery moment - soft recognition.
+ */
 export function celebrateDiscovery(): void {
-  sparkles({ count: 25, radius: 60 });
+  gentleBounce();
+  warmthGlow({ intensity: 'subtle' });
 }
 
-function showMilestoneToast(message: string): void {
-  const toast = document.createElement('div');
-  toast.className = 'milestone-toast';
-  toast.innerHTML = `
-    <span class="milestone-icon">🎉</span>
-    <span class="milestone-text">${message}</span>
-  `;
+/**
+ * Milestone celebration - avatar-based (no text toast).
+ * The avatar shows success through its behavior.
+ */
+function showMilestoneToast(_message: string): void {
+  // Avatar feedback - joy reaction with warm glow
+  const avatar = document.getElementById('coachAvatar');
+  const avatarRing = document.getElementById('avatarRing');
   
-  document.body.appendChild(toast);
+  if (avatar) {
+    // Joy animation - bouncy and warm
+    avatar.animate([
+      { transform: 'scale(1) translateY(0)', filter: 'brightness(1)' },
+      { transform: 'scale(1.04) translateY(-4px)', filter: 'brightness(1.1)' },
+      { transform: 'scale(0.98) translateY(1px)', filter: 'brightness(1.05)' },
+      { transform: 'scale(1.02) translateY(-2px)', filter: 'brightness(1.08)' },
+      { transform: 'scale(1) translateY(0)', filter: 'brightness(1)' },
+    ], { duration: 600, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+  }
   
-  // Animate in
-  requestAnimationFrame(() => {
-    toast.classList.add('visible');
-  });
-  
-  // Remove after delay
-  setTimeout(() => {
-    toast.classList.remove('visible');
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+  if (avatarRing) {
+    // Ring celebration pulse
+    avatarRing.animate([
+      { opacity: '0.6', transform: 'scale(1)', boxShadow: '0 0 0 transparent' },
+      { opacity: '0.9', transform: 'scale(1.05)', boxShadow: '0 0 15px var(--persona-glow)' },
+      { opacity: '0.7', transform: 'scale(1)', boxShadow: '0 0 8px var(--persona-glow)' },
+    ], { duration: 800, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+  }
 }
 
 // ============================================================================
@@ -403,17 +228,13 @@ function showMilestoneToast(message: string): void {
 // ============================================================================
 
 export function dispose(): void {
-  stopAnimation();
+  // Clear any active animation classes
+  const elements = document.querySelectorAll('.warmth-glow, .gentle-bounce, .connection-warmth, .soft-acknowledge');
+  elements.forEach(el => {
+    el.classList.remove('warmth-glow', 'gentle-bounce', 'connection-warmth', 'soft-acknowledge');
+  });
   
-  if (canvas) {
-    canvas.remove();
-    canvas = null;
-  }
-  
-  ctx = null;
-  particles = [];
-  
-  window.removeEventListener('resize', resizeCanvas);
+  activeAnimations.clear();
 }
 
 // ============================================================================
@@ -422,14 +243,20 @@ export function dispose(): void {
 
 export const celebrationsUI = {
   init: initCelebrationsUI,
+  // New zen API
+  warmthGlow,
+  gentleBounce,
+  connectionWarmth,
+  softAcknowledge,
+  // Legacy API (redirects to zen effects)
   confetti,
   sparkles,
   firework,
   fireworks,
   bubbles,
+  // Milestones
   celebrateFirstConnection,
   celebrateMilestone,
   celebrateDiscovery,
   dispose,
 };
-

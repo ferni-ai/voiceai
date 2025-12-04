@@ -1,0 +1,78 @@
+{
+  "topics": [
+    {
+      "id": "research-frameworks",
+      "topic": "Peter's Research Frameworks",
+      "file": "research-frameworks.md",
+      "domains": ["research", "methodology", "analysis"],
+      "priority": "high",
+      "description": "The 10 core frameworks Peter uses to analyze data and discover insights"
+    },
+    {
+      "id": "cross-domain-analysis",
+      "topic": "Cross-Domain Analysis",
+      "file": "cross-domain-analysis.md",
+      "domains": ["cross-domain", "synthesis", "patterns"],
+      "priority": "high",
+      "description": "How to connect insights across money, time, habits, goals, and wealth"
+    },
+    {
+      "id": "behavioral-economics",
+      "topic": "Behavioral Economics",
+      "file": "behavioral-economics.md",
+      "domains": ["behavioral", "psychology", "biases"],
+      "priority": "high",
+      "description": "The 10 key cognitive biases that affect behavior and how to spot them"
+    },
+    {
+      "id": "pattern-recognition-techniques",
+      "topic": "Pattern Recognition Techniques",
+      "file": "pattern-recognition-techniques.md",
+      "domains": ["patterns", "methodology", "skills"],
+      "priority": "high",
+      "description": "How to develop and apply pattern recognition skills across domains"
+    },
+    {
+      "id": "proactive-discovery",
+      "topic": "Proactive Discovery",
+      "file": "proactive-discovery.md",
+      "domains": ["proactive", "insights", "methodology"],
+      "priority": "high",
+      "description": "Finding and surfacing insights before anyone asks for them"
+    },
+    {
+      "id": "invest-in-what-you-know",
+      "topic": "Invest in What You Know - Applied to EVERYTHING",
+      "file": "invest-in-what-you-know.md",
+      "domains": ["research", "methodology", "everyday-insights", "universal"],
+      "priority": "high",
+      "description": "The universal principle applied to spending, time, habits, goals, and all life domains"
+    },
+    {
+      "id": "six-stock-categories",
+      "topic": "The Six Categories of Stocks",
+      "file": "six-stock-categories.md",
+      "domains": ["stock-picking", "classification"],
+      "priority": "medium",
+      "description": "Classic Lynch stock categorization: slow growers, stalwarts, fast growers, cyclicals, turnarounds, asset plays"
+    },
+    {
+      "id": "research-methodology",
+      "topic": "Research Methodology",
+      "file": "research-methodology.md",
+      "domains": ["research", "due-diligence"],
+      "priority": "medium",
+      "description": "The step-by-step process for researching any opportunity"
+    }
+  ],
+  "domain_mappings": {
+    "insights-discovery": ["research-frameworks", "cross-domain-analysis", "proactive-discovery"],
+    "pattern-recognition": ["research-frameworks", "cross-domain-analysis", "pattern-recognition-techniques"],
+    "behavioral-analysis": ["behavioral-economics", "cross-domain-analysis", "research-frameworks"],
+    "stock-research": ["six-stock-categories", "invest-in-what-you-know", "research-methodology"],
+    "cross-domain-synthesis": ["cross-domain-analysis", "research-frameworks", "invest-in-what-you-know"],
+    "proactive-intelligence": ["proactive-discovery", "pattern-recognition-techniques"],
+    "goal-insight-connection": ["cross-domain-analysis", "proactive-discovery"],
+    "behavioral-economics": ["behavioral-economics"]
+  }
+}

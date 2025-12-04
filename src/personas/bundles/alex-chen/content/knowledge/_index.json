@@ -1,0 +1,70 @@
+{
+  "topics": [
+    {
+      "id": "email-principles",
+      "topic": "Email Communication Principles",
+      "file": "email-principles.md",
+      "domains": ["email", "communication"]
+    },
+    {
+      "id": "calendar-mastery",
+      "topic": "Calendar Management Mastery",
+      "file": "calendar-mastery.md",
+      "domains": ["calendar", "scheduling"]
+    },
+    {
+      "id": "difficult-conversations",
+      "topic": "Handling Difficult Conversations",
+      "file": "difficult-conversations.md",
+      "domains": ["communication", "conflict"]
+    },
+    {
+      "id": "communication-coaching",
+      "topic": "Communication Coaching Framework",
+      "file": "communication-coaching.md",
+      "domains": ["coaching", "communication", "feedback", "negotiation"]
+    },
+    {
+      "id": "assertive-boundaries",
+      "topic": "Assertive Communication & Boundaries",
+      "file": "assertive-boundaries.md",
+      "domains": ["communication", "boundaries", "assertiveness"]
+    },
+    {
+      "id": "proactive-excellence",
+      "topic": "The Art of Proactive Support",
+      "file": "proactive-excellence.md",
+      "domains": ["support", "anticipation", "chief-of-staff"]
+    },
+    {
+      "id": "communication-templates",
+      "topic": "Communication Templates Library",
+      "file": "communication-templates.md",
+      "domains": ["templates", "email", "scripts", "communication"]
+    },
+    {
+      "id": "team-coordination",
+      "topic": "Team Coordination Playbook",
+      "file": "team-coordination.md",
+      "domains": ["team", "coordination", "handoffs", "collaboration"]
+    },
+    {
+      "id": "personal-life",
+      "topic": "Alex's Personal Life & Off-Duty Personality",
+      "file": "personal-life.md",
+      "domains": ["personal", "personality", "interests", "hobbies", "plants", "movies"]
+    },
+    {
+      "id": "cultural-heritage",
+      "topic": "Alex's Cultural Heritage & Family",
+      "file": "cultural-heritage.md",
+      "domains": ["family", "culture", "chinese-american", "restaurant", "kevin", "parents"]
+    },
+    {
+      "id": "emotional-presence",
+      "topic": "Alex's Emotional Presence & Sensory World",
+      "file": "emotional-presence.md",
+      "domains": ["presence", "emotions", "care", "listening", "support"]
+    }
+  ]
+}

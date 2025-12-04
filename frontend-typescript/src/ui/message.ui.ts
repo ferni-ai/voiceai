@@ -1,28 +1,33 @@
 /**
  * Message UI Component
- * 
- * Minimal status messages only - no quotes clutter.
- * Shows brief status updates that auto-clear.
+ *
+ * Now delegates to the new world-class toast.ui.ts system.
+ * This file provides backward compatibility with the old API.
  */
 
 import type { MessageType } from '../types/events.js';
 import type { PersonaConfig } from '../types/persona.js';
 import { appState, setMessage } from '../state/app.state.js';
 import { TIMING } from '../config/index.js';
-import { getElementById, setText, setClasses, addClass, removeClass, show, hide } from '../utils/dom.js';
+import { getElementById, setText } from '../utils/dom.js';
+import {
+  initToastUI,
+  toastSuccess,
+  toastError,
+  toastInfo,
+  dismiss,
+} from './toast.ui.js';
 
 // ============================================================================
-// ELEMENT REFERENCES
+// ELEMENT REFERENCES (Helper text only - toasts handled by toast.ui.ts)
 // ============================================================================
 
 interface MessageElements {
-  container: HTMLElement;
-  text: HTMLElement;
   helper: HTMLElement;
 }
 
 let elements: MessageElements | null = null;
-let messageTimeout: ReturnType<typeof setTimeout> | null = null;
+let currentToastId: string | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -34,19 +39,16 @@ let messageTimeout: ReturnType<typeof setTimeout> | null = null;
  */
 export function initMessageUI(): void {
   try {
+    // Initialize the new toast system
+    initToastUI();
+
     elements = {
-      container: getElementById('messageContainer'),
-      text: getElementById('messageText'),
       helper: getElementById('helperText'),
     };
 
     // Set up state subscriptions
     setupSubscriptions();
 
-    // Start hidden - only show on status updates
-    hide(elements.container);
-
-    console.log('✅ Message UI initialized');
   } catch (error) {
     console.error('Failed to initialize Message UI:', error);
   }
@@ -62,87 +64,66 @@ function setupSubscriptions(): void {
     updateHelperText(persona);
   });
 
-  // Connection state changes - brief status only
+  // Connection state changes - avatar feedback (no text)
+  // The toast functions now route through avatarFeedback
   appState.subscribe('connection', (state) => {
-    if (state === 'connected') {
-      showMessage('Connected!', 'success', 1500);
-    } else if (state === 'connecting') {
-      showMessage('Connecting...', 'info', 0);
-    } else if (state === 'error') {
-      showMessage('Connection error', 'error', 3000);
-    } else if (state === 'disconnected') {
-      clearMessage();
+    // Dismiss any previous toast
+    if (currentToastId) {
+      dismiss(currentToastId);
+      currentToastId = null;
     }
+
+    // Avatar communicates state through behavior, not text
+    if (state === 'connected') {
+      currentToastId = toastSuccess('', { duration: 2000 });
+    } else if (state === 'connecting') {
+      currentToastId = toastInfo('', { duration: 0 });
+    } else if (state === 'error') {
+      currentToastId = toastError('', { duration: 5000 });
+    }
+    // No feedback for disconnected - avatar handles it
   });
 }
 
 // ============================================================================
-// MESSAGE DISPLAY
+// MESSAGE DISPLAY - Delegates to toast.ui.ts
 // ============================================================================
 
 /**
  * Show a brief status message.
+ * Now uses the new world-class toast system.
  */
 export function showMessage(
   text: string,
   type: MessageType = 'info',
   duration: number = TIMING.MESSAGE_DURATION
 ): void {
-  if (!elements) return;
-
-  // Clear any existing timeout
-  if (messageTimeout) {
-    clearTimeout(messageTimeout);
-    messageTimeout = null;
+  // Dismiss previous message toast
+  if (currentToastId) {
+    dismiss(currentToastId);
   }
 
-  // Update text
-  setText(elements.text, text);
+  // Map to new toast API
+  if (type === 'success') {
+    currentToastId = toastSuccess(text, { duration });
+  } else if (type === 'error') {
+    currentToastId = toastError(text, { duration: duration || 5000 });
+  } else {
+    currentToastId = toastInfo(text, { duration });
+  }
 
-  // Update type classes
-  setClasses(elements.container, {
-    'message-info': type === 'info',
-    'message-error': type === 'error',
-    'message-success': type === 'success',
-    'hidden': false,
-  });
-
-  // Show container
-  show(elements.container);
-
-  // Add entrance animation
-  removeClass(elements.container, 'message-exit');
-  addClass(elements.container, 'message-enter');
-
-  // Update state
+  // Update state for backward compatibility
   setMessage(text);
-
-  // Auto-clear after duration (unless 0)
-  if (duration > 0) {
-    messageTimeout = setTimeout(() => {
-      clearMessage();
-    }, duration);
-  }
 }
 
 /**
  * Clear the current message.
  */
 export function clearMessage(): void {
-  if (!elements) return;
-
-  // Exit animation
-  removeClass(elements.container, 'message-enter');
-  addClass(elements.container, 'message-exit');
-
-  // Hide after animation
-  setTimeout(() => {
-    if (elements) {
-      hide(elements.container);
-    }
-  }, 300);
-
-  // Clear state
+  if (currentToastId) {
+    dismiss(currentToastId);
+    currentToastId = null;
+  }
   setMessage(null);
 }
 
@@ -174,9 +155,9 @@ export function setHelperText(text: string): void {
  * Clean up resources.
  */
 export function dispose(): void {
-  if (messageTimeout) {
-    clearTimeout(messageTimeout);
-    messageTimeout = null;
+  if (currentToastId) {
+    dismiss(currentToastId);
+    currentToastId = null;
   }
 }
 

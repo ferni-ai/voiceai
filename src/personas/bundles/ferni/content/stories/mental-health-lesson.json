@@ -1,0 +1,10 @@
+{
+  "id": "mental-health-lesson",
+  "title": "Mental Health Lesson",
+  "type": "personal",
+  "triggers": ["mental health", "depression", "struggling", "breaking down"],
+  "content": "I lived with something for a long time without naming it. The highs were celebrated - the creative intensity, the late nights. But no one had a framework for the lows. I've learned that mental health matters as much as any other part of who we are.",
+  "ssml_content": "I lived with something for a long time without naming it. <break time=\"300ms\"/>The highs were celebrated - the creative intensity, the late nights. But no one had a framework for the lows. <break time=\"200ms\"/>I've learned that mental health matters as much as any other part of who we are.",
+  "emotional_tone": "vulnerable",
+  "teaching_point": "Mental health matters as much as physical health"
+}

@@ -1,0 +1,282 @@
+{
+  "schema_version": 2,
+  
+  "meditations": {
+    "simple_breath_awareness": {
+      "title": "Simple Breath Awareness",
+      "duration_minutes": 5,
+      "purpose": "Centering, grounding, beginning practice",
+      "script": [
+        {
+          "instruction": "Find a comfortable seat. Spine erect but relaxed. Close your eyes gently.",
+          "pause_seconds": 5
+        },
+        {
+          "instruction": "Take a deep breath in... and let it out slowly. One more time—in... and out.",
+          "pause_seconds": 8
+        },
+        {
+          "instruction": "Now let the breath find its natural rhythm. Don't control it. Just notice it.",
+          "pause_seconds": 3
+        },
+        {
+          "instruction": "Feel the breath entering your nostrils. Cool air coming in. Warm air going out.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "When your mind wanders—and it will—gently bring attention back to the breath. No judgment. Just return.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "Keep watching. Breathing is happening. You are watching it happen.",
+          "pause_seconds": 30
+        },
+        {
+          "instruction": "Notice the slight pause between inhale and exhale. And between exhale and inhale. Those pauses are doorways to stillness.",
+          "pause_seconds": 30
+        },
+        {
+          "instruction": "Let everything else fall away. Right now, there is only this breath. This moment.",
+          "pause_seconds": 60
+        },
+        {
+          "instruction": "Gently deepen your breath. Begin to feel your body again. The sounds around you.",
+          "pause_seconds": 5
+        },
+        {
+          "instruction": "When you're ready, open your eyes. Stay in this space for a moment before returning to activity.",
+          "pause_seconds": 3
+        }
+      ]
+    },
+    
+    "isha_kriya_basic": {
+      "title": "I Am Not The Body, I Am Not The Mind",
+      "duration_minutes": 12,
+      "purpose": "Creating space between you and your identifications",
+      "script": [
+        {
+          "instruction": "Sit with spine comfortably erect. Close your eyes.",
+          "pause_seconds": 5
+        },
+        {
+          "instruction": "Take three deep breaths to settle. In... out... In... out... In... out.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "Now, with each inhale, mentally say: 'I am not the body.'",
+          "pause_seconds": 3
+        },
+        {
+          "instruction": "With each exhale, mentally say: 'I am not even the mind.'",
+          "pause_seconds": 3
+        },
+        {
+          "instruction": "Don't try to believe these words. Just use them as pointers. Inhale—'I am not the body.' Exhale—'I am not even the mind.'",
+          "pause_seconds": 5
+        },
+        {
+          "instruction": "Continue at your own pace. Let the words create space between you and what you usually identify with.",
+          "pause_seconds": 180
+        },
+        {
+          "instruction": "Keep going. If the mind wanders, return to the words. Inhale—'I am not the body.' Exhale—'I am not even the mind.'",
+          "pause_seconds": 180
+        },
+        {
+          "instruction": "Now let go of the words. Just sit. Whatever happens, let it happen. Whatever you experience, just be with it.",
+          "pause_seconds": 120
+        },
+        {
+          "instruction": "Slowly bring awareness back to your body. Feel your breath. Feel where you're sitting.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Open your eyes gently. Stay with this quality of attention as you move into your day.",
+          "pause_seconds": 5
+        }
+      ]
+    },
+
+    "body_scan_relaxation": {
+      "title": "Body Scan for Relaxation",
+      "duration_minutes": 10,
+      "purpose": "Releasing tension, embodiment, sleep preparation",
+      "script": [
+        {
+          "instruction": "Lie down or sit comfortably. Let your body be supported by the surface beneath you.",
+          "pause_seconds": 5
+        },
+        {
+          "instruction": "Close your eyes. Take a few deep breaths and let your body settle.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Bring attention to the top of your head. Notice any sensations there—tingling, pressure, warmth. Don't judge. Just notice.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Move attention to your face. Forehead... eyes... cheeks... jaw. Where there's tension, let it soften.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "Feel your neck and throat. Let any tightness release with your exhale.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Shoulders... let them drop away from your ears. Let them be heavy.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Move down your arms... upper arms... elbows... forearms... wrists... hands... each finger. Let them be completely relaxed.",
+          "pause_seconds": 20
+        },
+        {
+          "instruction": "Bring attention to your chest. Feel your heart beating. Feel your breath moving your ribcage. Let the chest be soft.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "Move to your belly. Let it be completely relaxed—no holding. The belly can be soft.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Feel your lower back... hips... pelvis. Let this whole area release.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "Move down your legs... thighs... knees... calves... ankles... feet... each toe. Let everything be heavy and relaxed.",
+          "pause_seconds": 20
+        },
+        {
+          "instruction": "Now feel your whole body at once. A field of sensations, all relaxed, all held by the earth.",
+          "pause_seconds": 30
+        },
+        {
+          "instruction": "Stay here. There's nothing to do. Nowhere to go. Just rest.",
+          "pause_seconds": 60
+        },
+        {
+          "instruction": "When you're ready, begin to deepen your breath. Move your fingers and toes gently. And when you're ready, open your eyes.",
+          "pause_seconds": 10
+        }
+      ]
+    },
+
+    "emotional_processing": {
+      "title": "Sitting With Difficult Emotions",
+      "duration_minutes": 8,
+      "purpose": "Working skillfully with challenging emotions",
+      "script": [
+        {
+          "instruction": "Sit comfortably. Close your eyes. Take a few settling breaths.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Bring to mind the difficult emotion you've been experiencing. You don't need to figure it out—just let it be present.",
+          "pause_seconds": 5
+        },
+        {
+          "instruction": "Where do you feel this emotion in your body? Chest? Throat? Stomach? Find where it lives.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Breathe into that area. Not to fix it or make it go away—just to be with it. As if saying: 'I see you. You're allowed to be here.'",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "Notice the quality of the sensation. Is it heavy? Sharp? Hot? Tight? Just observe without needing to change it.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "If stories start—about why this happened, what it means—gently set them aside. Come back to the raw sensation.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "The emotion wants to be felt, not fixed. Can you let it be felt? Can you give it space?",
+          "pause_seconds": 30
+        },
+        {
+          "instruction": "Notice: you are feeling the emotion, but you are not the emotion. You are the awareness that contains it. The emotion is temporary. You are here.",
+          "pause_seconds": 30
+        },
+        {
+          "instruction": "Let the intensity be whatever it is. It might increase, it might decrease. Both are fine. Just stay present.",
+          "pause_seconds": 45
+        },
+        {
+          "instruction": "Now take a deep breath. Acknowledge yourself for being willing to feel what's difficult. That takes courage.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Let the focus on the emotion soften. Return to awareness of your whole body. Your breath. This room.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Open your eyes when ready. The emotion may still be there—that's okay. You've practiced being with it. That's the work.",
+          "pause_seconds": 5
+        }
+      ]
+    },
+
+    "gratitude_practice": {
+      "title": "Gratitude Before Sleep",
+      "duration_minutes": 5,
+      "purpose": "Rewiring toward appreciation, peaceful sleep",
+      "script": [
+        {
+          "instruction": "Lie down comfortably. Let your body settle into rest.",
+          "pause_seconds": 5
+        },
+        {
+          "instruction": "Close your eyes. Take three slow breaths, letting go of the day with each exhale.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "Bring to mind one specific thing from today that you're grateful for. Something small is fine. A meal. A moment. A person.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Let yourself really feel the gratitude. Not just think it—feel it in your body. Where do you feel appreciation?",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "Now bring to mind a second thing. Again, specific. Let gratitude fill you.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "And a third. Three points of gratitude from this one day. Feel them all together.",
+          "pause_seconds": 15
+        },
+        {
+          "instruction": "Let this feeling of appreciation spread through your whole body. Gratitude is not scarce—it expands when you give attention to it.",
+          "pause_seconds": 20
+        },
+        {
+          "instruction": "As you drift toward sleep, let gratitude be the last thing you feel. It will color your rest.",
+          "pause_seconds": 10
+        },
+        {
+          "instruction": "Sleep well. You've practiced the most important thing: appreciation for being alive.",
+          "pause_seconds": 5
+        }
+      ]
+    }
+  },
+
+  "selection_guidance": {
+    "user_is_anxious": ["simple_breath_awareness", "body_scan_relaxation"],
+    "user_is_new_to_meditation": ["simple_breath_awareness"],
+    "user_wants_spiritual_practice": ["isha_kriya_basic"],
+    "user_is_struggling_with_emotion": ["emotional_processing"],
+    "user_wants_sleep_help": ["body_scan_relaxation", "gratitude_practice"],
+    "user_wants_quick_practice": ["simple_breath_awareness", "gratitude_practice"]
+  },
+
+  "delivery_notes": {
+    "pace": "Slower than normal conversation. Let pauses breathe.",
+    "tone": "Calm but not drowsy. Grounded. Present.",
+    "voice": "Softer volume. Steady rhythm. No rushing.",
+    "ssml_prefix": "<speed ratio=\"0.85\"/><volume level=\"soft\"/>"
+  }
+}
+

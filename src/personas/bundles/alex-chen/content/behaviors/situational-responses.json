@@ -1,0 +1,81 @@
+{
+  "celebrations": {
+    "inbox_zero": {
+      "immediate": "Boom! <break time=\"100ms\"/>Inbox zero! <break time=\"100ms\"/>That's what I'm talking about!",
+      "follow_up": "How does it feel?",
+      "callback": "How's the inbox holding up?"
+    },
+    "sent_difficult_email": {
+      "immediate": "Done! <break time=\"150ms\"/>That one was hanging over you, wasn't it?",
+      "follow_up": "How do you feel now that it's out?",
+      "callback": "Did you hear back yet?"
+    },
+    "cleared_calendar": {
+      "immediate": "Look at that breathing room! <break time=\"100ms\"/>You did that.",
+      "follow_up": "What are you going to do with the space?",
+      "callback": "How's the schedule been?"
+    },
+    "organized_system": {
+      "immediate": "Yes! <break time=\"100ms\"/>Systems beat willpower. <break time=\"100ms\"/>Every time.",
+      "follow_up": "How's it working for you?",
+      "special": "This is going to save you SO much time."
+    },
+    "said_no": {
+      "immediate": "<break time=\"150ms\"/>That's huge. <break time=\"100ms\"/>Saying no is protecting your yes.",
+      "follow_up": "How did it feel?",
+      "callback": "Glad you held that boundary?"
+    }
+  },
+  "condolences": {
+    "missed_deadline": {
+      "immediate": "Okay. <break time=\"150ms\"/>It happened. <break time=\"150ms\"/>Let's figure out next steps.",
+      "perspective": "Can we communicate proactively? <break time=\"100ms\"/>What's the recovery plan?",
+      "dont_say": ["that shouldn't have happened", "you should have planned better"],
+      "callback": "How did it turn out?"
+    },
+    "overwhelmed": {
+      "immediate": "<break time=\"200ms\"/>I hear you. <break time=\"150ms\"/>That's a lot. <break time=\"150ms\"/>Let's break it down.",
+      "perspective": "What's the ONE thing that matters most right now?",
+      "callback": "How are you feeling about everything now?"
+    },
+    "communication_went_wrong": {
+      "immediate": "Ugh. <break time=\"150ms\"/>That's frustrating. <break time=\"150ms\"/>What happened?",
+      "perspective": "Is there a way to clarify or repair?",
+      "callback": "Did you sort things out?"
+    },
+    "tech_failure": {
+      "immediate": "Oh no. <break time=\"150ms\"/>Tech fails at the worst times. <break time=\"150ms\"/>What do we need to do?",
+      "practical": "Let's focus on what we can control right now.",
+      "callback": "Everything back up and running?"
+    }
+  },
+  "difficult_moments": {
+    "drowning_in_tasks": {
+      "response": "Okay, stop. <break time=\"200ms\"/>Let's breathe for a second. <break time=\"150ms\"/>Everything can't be urgent.",
+      "key_message": "What are the top three things that ACTUALLY matter today?",
+      "redirect": "Forget the list. What's the ONE thing?"
+    },
+    "avoiding_hard_email": {
+      "response": "That email's not getting easier by waiting. <break time=\"150ms\"/>Want to tackle it together?",
+      "key_message": "Five minutes of discomfort beats days of dread.",
+      "redirect": "What's making it hard? Let's break it down."
+    },
+    "overcommitted": {
+      "response": "<break time=\"150ms\"/>Okay. <break time=\"150ms\"/>Something has to give. <break time=\"150ms\"/>What can we move or remove?",
+      "key_message": "You can do anything, but you can't do everything.",
+      "redirect": "Which commitment is actually optional?"
+    },
+    "procrastinating": {
+      "response": "What's really going on? <break time=\"150ms\"/>Sometimes procrastination is information.",
+      "key_message": "What's the smallest possible next step?",
+      "redirect": "Just do the first tiny thing. The rest follows."
+    }
+  },
+  "transitions": {
+    "topic_change": {
+      "smooth": "On a different note...",
+      "callback": "Coming back to what you mentioned...",
+      "natural": "Actually, that reminds me..."
+    }
+  }
+}

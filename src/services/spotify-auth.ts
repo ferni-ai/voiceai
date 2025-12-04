@@ -1,11 +1,13 @@
 /**
  * Spotify Token Manager
- * 
+ *
  * Automatically manages Spotify OAuth tokens:
  * - Stores tokens in a JSON file (not .env)
  * - Auto-refreshes when expired
  * - Persists across restarts
- * 
+ * - Thread-safe with mutex for concurrent requests
+ * - Circuit breaker for repeated failures
+ *
  * This eliminates the need to manually update .env when tokens expire!
  */
 
@@ -36,6 +38,58 @@ interface TokenData {
 
 let cachedTokens: TokenData | null = null;
 
+// ============================================================================
+// MUTEX FOR THREAD-SAFE TOKEN REFRESH
+// ============================================================================
+
+let refreshInProgress: Promise<TokenData | null> | null = null;
+
+// ============================================================================
+// CIRCUIT BREAKER FOR REPEATED FAILURES
+// ============================================================================
+
+interface CircuitBreakerState {
+  failures: number;
+  lastFailure: number;
+  isOpen: boolean;
+}
+
+const circuitBreaker: CircuitBreakerState = {
+  failures: 0,
+  lastFailure: 0,
+  isOpen: false,
+};
+
+const CIRCUIT_BREAKER_THRESHOLD = 3; // Open after 3 failures
+const CIRCUIT_BREAKER_RESET_MS = 60 * 1000; // Reset after 1 minute
+
+function checkCircuitBreaker(): boolean {
+  // Reset circuit if enough time has passed
+  if (circuitBreaker.isOpen && Date.now() - circuitBreaker.lastFailure > CIRCUIT_BREAKER_RESET_MS) {
+    getLogger().info('🔌 Spotify circuit breaker reset - retrying');
+    circuitBreaker.isOpen = false;
+    circuitBreaker.failures = 0;
+  }
+  return !circuitBreaker.isOpen;
+}
+
+function recordFailure(): void {
+  circuitBreaker.failures++;
+  circuitBreaker.lastFailure = Date.now();
+  if (circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
+    circuitBreaker.isOpen = true;
+    getLogger().warn(
+      { failures: circuitBreaker.failures },
+      '🔌 Spotify circuit breaker OPEN - pausing requests for 1 minute'
+    );
+  }
+}
+
+function recordSuccess(): void {
+  circuitBreaker.failures = 0;
+  circuitBreaker.isOpen = false;
+}
+
 /**
  * Load tokens from file
  */
@@ -49,7 +103,7 @@ function loadTokens(): TokenData | null {
   } catch (error) {
     getLogger().error({ error }, 'Failed to load Spotify tokens');
   }
-  
+
   // Fall back to .env refresh token for initial setup
   const envRefreshToken = process.env.SPOTIFY_REFRESH_TOKEN;
   if (envRefreshToken) {
@@ -62,7 +116,7 @@ function loadTokens(): TokenData | null {
       scope: '',
     };
   }
-  
+
   return null;
 }
 
@@ -83,7 +137,7 @@ function saveTokens(tokens: TokenData): void {
  */
 function isTokenExpired(tokens: TokenData): boolean {
   const bufferMs = 5 * 60 * 1000; // 5 minutes
-  return Date.now() >= (tokens.expires_at - bufferMs);
+  return Date.now() >= tokens.expires_at - bufferMs;
 }
 
 /**
@@ -94,51 +148,54 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
     getLogger().error('Missing SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_SECRET in .env');
     return null;
   }
-  
+
   getLogger().debug('Refreshing Spotify access token...');
-  
+
   try {
     const response = await fetch(SPOTIFY_TOKEN_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64'),
+        Authorization: 'Basic ' + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64'),
       },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
       }),
     });
-    
+
     if (!response.ok) {
-      const errorData = await response.json() as { error: string; error_description?: string };
-      getLogger().error({ error: errorData.error, description: errorData.error_description }, 'Spotify token refresh failed');
+      const errorData = (await response.json()) as { error: string; error_description?: string };
+      getLogger().error(
+        { error: errorData.error, description: errorData.error_description },
+        'Spotify token refresh failed'
+      );
       return null;
     }
-    
-    const data = await response.json() as {
+
+    const data = (await response.json()) as {
       access_token: string;
       refresh_token?: string;
       expires_in: number;
       token_type: string;
       scope?: string;
     };
-    
+
     const tokens: TokenData = {
       access_token: data.access_token,
       // Spotify may return a new refresh token, or we keep the old one
       refresh_token: data.refresh_token || refreshToken,
-      expires_at: Date.now() + (data.expires_in * 1000),
+      expires_at: Date.now() + data.expires_in * 1000,
       token_type: data.token_type,
       scope: data.scope || '',
     };
-    
+
     // Save to file for persistence
     saveTokens(tokens);
     cachedTokens = tokens;
-    
+
     getLogger().info('Spotify token refreshed successfully');
-    
+
     return tokens;
   } catch (error) {
     getLogger().error({ error }, 'Spotify token refresh error');
@@ -148,29 +205,64 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
 
 /**
  * Get a valid access token (auto-refreshes if needed)
- * 
+ *
  * This is the main function to call - it handles everything automatically!
+ * Thread-safe: Uses mutex to prevent multiple simultaneous refresh attempts.
+ * 
+ * @param forceRefresh - Force a token refresh even if current token appears valid
  */
-export async function getSpotifyAccessToken(): Promise<string | null> {
+export async function getSpotifyAccessToken(forceRefresh = false): Promise<string | null> {
+  // Check circuit breaker first
+  if (!checkCircuitBreaker()) {
+    getLogger().warn('🎵 Spotify circuit breaker is OPEN - skipping request');
+    return null;
+  }
+
   // Load from cache or file
   if (!cachedTokens) {
     cachedTokens = loadTokens();
   }
-  
+
   if (!cachedTokens) {
-    getLogger().warn('No Spotify tokens available. Run: node scripts/spotify-auth.js');
+    getLogger().warn(
+      '🎵 No Spotify tokens available.\n' +
+      '   To set up Spotify:\n' +
+      '   1. Run: node scripts/spotify-auth.js\n' +
+      '   2. Follow the prompts to authenticate\n' +
+      '   3. Restart the agent'
+    );
     return null;
   }
-  
-  // Check if we need to refresh
-  if (!cachedTokens.access_token || isTokenExpired(cachedTokens)) {
-    const newTokens = await refreshAccessToken(cachedTokens.refresh_token);
-    if (!newTokens) {
-      return null;
+
+  // Check if we need to refresh (or forced)
+  if (forceRefresh || !cachedTokens.access_token || isTokenExpired(cachedTokens)) {
+    // Use mutex to prevent multiple simultaneous refreshes
+    if (refreshInProgress) {
+      getLogger().debug('🎵 Token refresh already in progress, waiting...');
+      const result = await refreshInProgress;
+      return result?.access_token || null;
     }
-    cachedTokens = newTokens;
+
+    if (forceRefresh) {
+      getLogger().info('🎵 Force refreshing Spotify token...');
+    }
+
+    // Start refresh with mutex
+    refreshInProgress = refreshAccessToken(cachedTokens.refresh_token);
+    
+    try {
+      const newTokens = await refreshInProgress;
+      if (!newTokens) {
+        recordFailure();
+        return null;
+      }
+      cachedTokens = newTokens;
+      recordSuccess();
+    } finally {
+      refreshInProgress = null;
+    }
   }
-  
+
   return cachedTokens.access_token;
 }
 
@@ -181,24 +273,28 @@ export function isSpotifyConfigured(): boolean {
   if (!CLIENT_ID || !CLIENT_SECRET) {
     return false;
   }
-  
+
   // Check for tokens in file or .env
   if (fs.existsSync(TOKEN_FILE)) {
     return true;
   }
-  
+
   return !!process.env.SPOTIFY_REFRESH_TOKEN;
 }
 
 /**
  * Get token expiry info for monitoring
  */
-export function getSpotifyTokenStatus(): { valid: boolean; minutesRemaining: number; expiresAt: Date | null } {
+export function getSpotifyTokenStatus(): {
+  valid: boolean;
+  minutesRemaining: number;
+  expiresAt: Date | null;
+} {
   const tokens = loadTokens();
   if (!tokens || !tokens.expires_at) {
     return { valid: false, minutesRemaining: 0, expiresAt: null };
   }
-  
+
   const minutesRemaining = Math.round((tokens.expires_at - Date.now()) / 60000);
   return {
     valid: minutesRemaining > 0,
@@ -213,14 +309,17 @@ export function getSpotifyTokenStatus(): { valid: boolean; minutesRemaining: num
  */
 export async function ensureTokenFresh(): Promise<boolean> {
   const status = getSpotifyTokenStatus();
-  
+
   if (status.minutesRemaining > 10) {
     // Token is still fresh, no need to refresh
     return true;
   }
-  
-  getLogger().info({ valid: status.valid, minutesRemaining: status.minutesRemaining }, 'Token expiring - proactively refreshing');
-  
+
+  getLogger().info(
+    { valid: status.valid, minutesRemaining: status.minutesRemaining },
+    'Token expiring - proactively refreshing'
+  );
+
   const token = await getSpotifyAccessToken();
   return !!token;
 }
@@ -235,15 +334,18 @@ export function startAutoRefresh(): void {
   if (refreshInterval) {
     return; // Already running
   }
-  
+
   // Check immediately
   ensureTokenFresh();
-  
+
   // Then check every 5 minutes
-  refreshInterval = setInterval(async () => {
-    await ensureTokenFresh();
-  }, 5 * 60 * 1000);
-  
+  refreshInterval = setInterval(
+    async () => {
+      await ensureTokenFresh();
+    },
+    5 * 60 * 1000
+  );
+
   getLogger().info('Spotify auto-refresh started (checks every 5 min)');
 }
 
@@ -261,18 +363,22 @@ export function stopAutoRefresh(): void {
 /**
  * Store new tokens (called after OAuth flow)
  */
-export function storeSpotifyTokens(accessToken: string, refreshToken: string, expiresIn: number): void {
+export function storeSpotifyTokens(
+  accessToken: string,
+  refreshToken: string,
+  expiresIn: number
+): void {
   const tokens: TokenData = {
     access_token: accessToken,
     refresh_token: refreshToken,
-    expires_at: Date.now() + (expiresIn * 1000),
+    expires_at: Date.now() + expiresIn * 1000,
     token_type: 'Bearer',
     scope: '',
   };
-  
+
   saveTokens(tokens);
   cachedTokens = tokens;
-  
+
   getLogger().info('New Spotify tokens stored');
 }
 
@@ -281,7 +387,7 @@ export function storeSpotifyTokens(accessToken: string, refreshToken: string, ex
  */
 export function clearSpotifyTokens(): void {
   cachedTokens = null;
-  
+
   try {
     if (fs.existsSync(TOKEN_FILE)) {
       fs.unlinkSync(TOKEN_FILE);
@@ -292,3 +398,111 @@ export function clearSpotifyTokens(): void {
   }
 }
 
+// ============================================================================
+// HEALTH CHECK & DIAGNOSTICS
+// ============================================================================
+
+export interface SpotifyHealthStatus {
+  configured: boolean;
+  hasClientId: boolean;
+  hasClientSecret: boolean;
+  hasTokenFile: boolean;
+  hasRefreshToken: boolean;
+  tokenValid: boolean;
+  tokenMinutesRemaining: number;
+  circuitBreakerOpen: boolean;
+  circuitBreakerFailures: number;
+  lastError: string | null;
+}
+
+let lastError: string | null = null;
+
+/**
+ * Record the last error for diagnostics
+ */
+export function recordSpotifyError(error: string): void {
+  lastError = error;
+  getLogger().error({ error }, '🎵 Spotify error recorded');
+}
+
+/**
+ * Get comprehensive health status for Spotify integration.
+ * Use this to diagnose issues.
+ */
+export function getSpotifyHealthStatus(): SpotifyHealthStatus {
+  const hasClientId = !!CLIENT_ID;
+  const hasClientSecret = !!CLIENT_SECRET;
+  const hasTokenFile = fs.existsSync(TOKEN_FILE);
+  const hasRefreshToken = hasTokenFile || !!process.env.SPOTIFY_REFRESH_TOKEN;
+  
+  const tokenStatus = getSpotifyTokenStatus();
+  
+  return {
+    configured: isSpotifyConfigured(),
+    hasClientId,
+    hasClientSecret,
+    hasTokenFile,
+    hasRefreshToken,
+    tokenValid: tokenStatus.valid,
+    tokenMinutesRemaining: tokenStatus.minutesRemaining,
+    circuitBreakerOpen: circuitBreaker.isOpen,
+    circuitBreakerFailures: circuitBreaker.failures,
+    lastError,
+  };
+}
+
+/**
+ * Log detailed diagnostics for debugging Spotify issues
+ */
+export function logSpotifyDiagnostics(): void {
+  const status = getSpotifyHealthStatus();
+  
+  getLogger().info(
+    {
+      configured: status.configured,
+      hasClientId: status.hasClientId,
+      hasClientSecret: status.hasClientSecret,
+      hasTokenFile: status.hasTokenFile,
+      hasRefreshToken: status.hasRefreshToken,
+      tokenValid: status.tokenValid,
+      tokenMinutesRemaining: status.tokenMinutesRemaining,
+      circuitBreakerOpen: status.circuitBreakerOpen,
+      lastError: status.lastError,
+    },
+    '🎵 SPOTIFY DIAGNOSTICS'
+  );
+  
+  // Log actionable steps if there are issues
+  if (!status.configured) {
+    if (!status.hasClientId || !status.hasClientSecret) {
+      getLogger().warn(
+        '🎵 Missing Spotify credentials. Add to .env:\n' +
+        '   SPOTIFY_CLIENT_ID=your_client_id\n' +
+        '   SPOTIFY_CLIENT_SECRET=your_client_secret'
+      );
+    }
+    if (!status.hasRefreshToken) {
+      getLogger().warn(
+        '🎵 No refresh token. Run: node scripts/spotify-auth.js'
+      );
+    }
+  }
+  
+  if (status.circuitBreakerOpen) {
+    getLogger().warn(
+      `🎵 Circuit breaker OPEN after ${status.circuitBreakerFailures} failures. ` +
+      'Will retry in 1 minute.'
+    );
+  }
+}
+
+/**
+ * Reset the circuit breaker manually (for testing/recovery)
+ */
+export function resetSpotifyCircuitBreaker(): void {
+  circuitBreaker.failures = 0;
+  circuitBreaker.isOpen = false;
+  circuitBreaker.lastFailure = 0;
+  lastError = null;
+  getLogger().info('🎵 Spotify circuit breaker reset manually');
+}

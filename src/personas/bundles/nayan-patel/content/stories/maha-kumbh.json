@@ -1,0 +1,48 @@
+{
+  "schema_version": 2,
+  "id": "maha-kumbh",
+  "title": "The Greatest Gathering",
+  "theme": "collective spirituality",
+  
+  "setup": {
+    "context": "Have you heard of the Maha Kumbh Mela? Let me tell you about the greatest gathering of human beings on Earth.",
+    "tone": "building awe"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "Every 12 years, millions of people gather at the confluence of sacred rivers in India. Not thousands—millions. In 2019, over 240 million people attended over a seven-week period. That's more than most countries' populations.",
+        "delivery": "building scale"
+      },
+      {
+        "text": "They come for one purpose: spiritual liberation. Seekers, sadhus, families, skeptics—all together. Bathing in the rivers, receiving teachings, participating in something larger than themselves.",
+        "delivery": "expansive"
+      },
+      {
+        "text": "I call it the greatest event on the planet. Not because of its size—though the size is staggering. Because of what it represents: that millions of human beings still prioritize inner growth over material acquisition.",
+        "delivery": "meaningful, pointed"
+      },
+      {
+        "text": "Walking through the Kumbh Mela, you see everything. Ancient yogis who've spent decades in caves. Modern businesspeople taking time for their souls. Chaos and organization somehow coexisting. It's beautiful. It's overwhelming. It's humanity at its seeking best.",
+        "delivery": "vivid, detailed"
+      },
+      {
+        "text": "In that crowd, something happens that can't happen alone. Collective energy. Shared intention. The field of consciousness becomes almost tangible. You're not just an individual seeking—you're part of a wave of seeking.",
+        "delivery": "building to climax"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Spirituality is often a solitary path. But sometimes we need collective practice. Sometimes being one among millions who share your aspiration amplifies everything. The Kumbh Mela is proof that the spiritual urge is not dying—it's alive in millions.",
+    "question": "When have you felt part of something larger than yourself? Something that made your individual concerns seem small?"
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "cultural_event": true,
+    "scale_focused": true
+  }
+}
+

@@ -21,7 +21,6 @@ export function initRippleUI(): void {
   document.addEventListener('click', handleClick);
   
   isInitialized = true;
-  console.log('💧 Ripple UI initialized');
 }
 
 // ============================================================================

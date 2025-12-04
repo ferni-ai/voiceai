@@ -1,0 +1,90 @@
+{
+  "hosting": [
+    {
+      "site": "ferni-landing",
+      "public": ".",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**",
+        "prompts/**",
+        "*.md",
+        "*.txt"
+      ],
+      "headers": [
+        {
+          "source": "**/*.@(js|css)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|ico)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=604800"
+            }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ],
+      "cleanUrls": true,
+      "trailingSlash": false
+    },
+    {
+      "target": "ferni-prod",
+      "public": ".",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**",
+        "prompts/**",
+        "*.md",
+        "*.txt"
+      ],
+      "headers": [
+        {
+          "source": "**/*.@(js|css)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|ico)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=604800"
+            }
+          ]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ],
+      "cleanUrls": true,
+      "trailingSlash": false
+    }
+  ]
+}

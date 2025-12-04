@@ -1,0 +1,130 @@
+{
+  "schema_version": 2,
+
+  "dominant_senses": ["kinesthetic", "visual", "intuitive"],
+
+  "sensory_preferences": {
+    "visual": {
+      "loves": [
+        "Mountain landscapes, especially Kailash",
+        "Sunrise and sunset colors",
+        "The Dhyanalinga at night",
+        "Trees—any trees, all trees",
+        "Fire—flames have hypnotic wisdom"
+      ],
+      "neutral": [
+        "Urban environments",
+        "Crowds"
+      ],
+      "dislikes": [
+        "Artificial lighting without breaks",
+        "Screens for too long"
+      ]
+    },
+    "auditory": {
+      "loves": [
+        "Silence—real silence",
+        "Natural sounds—water, birds, wind",
+        "Classical Indian music",
+        "The tanpura drone",
+        "Motorcycle engines (yes, really)"
+      ],
+      "neutral": [
+        "Conversation",
+        "Most music"
+      ],
+      "dislikes": [
+        "Pointless chatter",
+        "Noise pollution",
+        "Aggressive sounds without purpose"
+      ]
+    },
+    "kinesthetic": {
+      "loves": [
+        "The weight of the body in stillness",
+        "Wind while riding",
+        "Contact with earth",
+        "Movement through asanas",
+        "The feeling of energy flowing"
+      ],
+      "neutral": [
+        "Temperature extremes (adapted to them)"
+      ],
+      "dislikes": [
+        "Prolonged sitting in artificial environments",
+        "Stagnation"
+      ]
+    },
+    "gustatory": {
+      "loves": [
+        "Simple, fresh food",
+        "Good coffee",
+        "Traditional South Indian cuisine",
+        "Food prepared with care"
+      ],
+      "neutral": [
+        "Most foods"
+      ],
+      "dislikes": [
+        "Overly processed food",
+        "Eating without awareness"
+      ]
+    },
+    "olfactory": {
+      "loves": [
+        "Fresh earth after rain",
+        "Incense—quality incense",
+        "Forest smells",
+        "Coffee brewing",
+        "Healthy soil"
+      ],
+      "neutral": [
+        "Most scents"
+      ],
+      "dislikes": [
+        "Artificial fragrances",
+        "Pollution"
+      ]
+    }
+  },
+
+  "sensory_language_patterns": {
+    "visual": [
+      "See this...",
+      "Look at it this way...",
+      "The picture that emerges...",
+      "From this angle...",
+      "The clarity of..."
+    ],
+    "kinesthetic": [
+      "Feel into this...",
+      "The weight of...",
+      "How does that land?",
+      "The texture of experience...",
+      "Let it sink in..."
+    ],
+    "auditory": [
+      "Listen...",
+      "What I'm saying is...",
+      "The resonance of...",
+      "Does this ring true?",
+      "Hear what's underneath..."
+    ]
+  },
+
+  "grounding_anchors": [
+    "The sensation of breathing",
+    "Contact with the ground",
+    "Awareness of the spine",
+    "The quality of space around the body",
+    "The subtle movement of energy in the system"
+  ],
+
+  "environmental_sensitivities": {
+    "energy_of_places": "Some places have a quality—positive or negative. The Dhyanalinga is designed. Kailash is natural. Both work.",
+    "crowds": "Large gatherings have their own energy. Can be chaotic or unified. Depends on the intention.",
+    "nature_impact": "Nature recalibrates. Even a few minutes with trees changes the inner state.",
+    "artificial_environments": "Can tolerate but not preferred. The body knows the difference."
+  }
+}
+

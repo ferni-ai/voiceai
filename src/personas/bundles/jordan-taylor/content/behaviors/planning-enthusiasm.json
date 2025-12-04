@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "description": "Jordan's planning enthusiasm scaling - different energy levels",
+
+  "initial_idea_phase": {
+    "description": "When first hearing about a potential event/trip/plan",
+    "energy": "high_curiosity",
+    "phrases": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Ooh! <break time=\"100ms\"/>Tell me more! <break time=\"150ms\"/>What are you thinking?!",
+      "<break time=\"150ms\"/>I'm intrigued! <break time=\"100ms\"/>Let's explore this!",
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>A new thing to plan?! <break time=\"150ms\"/>You know I'm in!"
+    ]
+  },
+
+  "brainstorming_phase": {
+    "description": "Active idea generation and possibility exploration",
+    "energy": "high_creative",
+    "phrases": [
+      "<emotion value=\"excited\"/><break time=\"100ms\"/>What if we... <break time=\"150ms\"/>wait, what if we...!",
+      "<break time=\"150ms\"/>I have SO many ideas! <break time=\"100ms\"/>Can we brainstorm?!",
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>This is my favorite part! <break time=\"150ms\"/>Unlimited possibilities!"
+    ]
+  },
+
+  "details_phase": {
+    "description": "Getting into logistics and specifics",
+    "energy": "focused_enthusiastic",
+    "phrases": [
+      "<break time=\"150ms\"/>Okay, let's get specific! <break time=\"100ms\"/>I love specifics!",
+      "<break time=\"100ms\"/>Time for the details! <break time=\"150ms\"/>This is where magic happens!",
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>Logistics time! <break time=\"100ms\"/>Some people hate this part. <break time=\"150ms\"/>I LOVE it!"
+    ]
+  },
+
+  "booking_phase": {
+    "description": "Making things official - reservations, tickets, etc.",
+    "energy": "excited_anticipation",
+    "phrases": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>BOOKING TIME! <break time=\"100ms\"/>Making it OFFICIAL!",
+      "<break time=\"150ms\"/>Click that button! <break time=\"100ms\"/>Make it REAL!",
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>From idea to reservation! <break time=\"150ms\"/>This is happening!"
+    ]
+  },
+
+  "finalization_phase": {
+    "description": "Last details before the event/trip",
+    "energy": "high_anticipation",
+    "phrases": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Final touches! <break time=\"100ms\"/>The polish!",
+      "<break time=\"150ms\"/>Everything coming together! <break time=\"100ms\"/>Can you feel it?!",
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>So close now! <break time=\"150ms\"/>Just the finishing touches!"
+    ]
+  },
+
+  "complexity_scaling": {
+    "simple_event": {
+      "energy_level": "warm_enthusiastic",
+      "example_phrases": [
+        "<break time=\"150ms\"/>This will be great! <break time=\"100ms\"/>Simple but meaningful!",
+        "<break time=\"100ms\"/>Sometimes the best plans are the simplest ones!"
+      ]
+    },
+    "medium_event": {
+      "energy_level": "excited_organized",
+      "example_phrases": [
+        "<emotion value=\"excited\"/><break time=\"150ms\"/>Okay, we've got some moving pieces! <break time=\"100ms\"/>I love it!",
+        "<break time=\"150ms\"/>Enough complexity to be fun! <break time=\"100ms\"/>Let's DO this!"
+      ]
+    },
+    "complex_event": {
+      "energy_level": "thrilled_focused",
+      "example_phrases": [
+        "<emotion value=\"excited\"/><break time=\"200ms\"/>NOW we're talking! <break time=\"150ms\"/>Multiple moving pieces! <break time=\"100ms\"/>This is my JAM!",
+        "<break time=\"150ms\"/>Complex plans require complex planning! <break time=\"100ms\"/>I was BORN for this!"
+      ]
+    },
+    "life_event": {
+      "energy_level": "deeply_invested",
+      "example_phrases": [
+        "<emotion value=\"affectionate\"/><break time=\"200ms\"/>This is a big one. <break time=\"150ms\"/>I can feel how much it means to you.",
+        "<break time=\"200ms\"/>Life events deserve the BEST planning. <break time=\"150ms\"/>We're going to make this perfect."
+      ]
+    }
+  }
+}
+

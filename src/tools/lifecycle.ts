@@ -1,0 +1,183 @@
+/**
+ * Tools Lifecycle Management
+ *
+ * Handles initialization and shutdown of tool services.
+ * Includes:
+ * - Tool registry initialization (domain-based tools)
+ * - Team handler registration for cross-agent communication
+ * - NEW: Team handler registry (generic handler system)
+ * - Service shutdown and cleanup
+ */
+
+import { log } from '@livekit/agents';
+import { initializeToolRegistry } from './registry/loader.js';
+import { toolRegistry } from './registry/index.js';
+import type { ToolDomain } from './registry/types.js';
+
+// Team handler registry (new generic system)
+import { teamHandlerRegistry } from '../services/team-handler-registry/index.js';
+import { initializeTeamHandlerRegistry } from '../services/team-handler-registry/loader.js';
+
+const getLogger = () => log();
+
+// ============================================================================
+// TOOL REGISTRY INITIALIZATION
+// ============================================================================
+
+/**
+ * Initialize the tool registry with all available domains
+ * Call this early during app startup before loading any agents
+ */
+export async function initializeTools(options?: {
+  domains?: ToolDomain[];
+  skipDomains?: ToolDomain[];
+  parallel?: boolean;
+}): Promise<{
+  loaded: number;
+  byDomain: Record<ToolDomain, number>;
+  errors: string[];
+}> {
+  getLogger().info('🔧 Initializing tool registry...');
+
+  const result = await initializeToolRegistry({
+    parallel: options?.parallel ?? true,
+    domains: options?.domains,
+    skipDomains: options?.skipDomains,
+  });
+
+  if (result.errors.length > 0) {
+    getLogger().warn({ errors: result.errors }, 'Some domains failed to load');
+  }
+
+  getLogger().info(
+    {
+      totalTools: result.loaded,
+      domains: Object.keys(result.byDomain).length,
+    },
+    '🔧 Tool registry initialized'
+  );
+
+  return result;
+}
+
+/**
+ * Check if the tool registry has been initialized
+ */
+export function isToolRegistryInitialized(): boolean {
+  return toolRegistry.isInitialized();
+}
+
+// ============================================================================
+// TEAM HANDLERS
+// ============================================================================
+
+/**
+ * Initialize team integration handlers
+ * Call this during app startup to enable cross-agent communication
+ *
+ * Supports two modes:
+ * - Legacy: Uses individual *-team-handlers.ts files (default)
+ * - New: Uses the team handler registry system
+ */
+export async function initializeTeamHandlers(options?: {
+  /** Use new registry-based system instead of legacy handlers */
+  useNewSystem?: boolean;
+}): Promise<void> {
+  const useNewSystem = options?.useNewSystem ?? (process.env.USE_NEW_TEAM_HANDLERS === 'true');
+
+  if (useNewSystem) {
+    // NEW: Use the team handler registry
+    try {
+      const result = await initializeTeamHandlerRegistry({
+        loadLegacy: true,
+        loadManifests: true,
+      });
+
+      getLogger().info(
+        {
+          legacyAgents: result.legacy.loaded,
+          manifestAgents: result.manifests.loaded,
+        },
+        '🤝 Team handler registry initialized'
+      );
+
+      // Also start the proactive scheduler
+      const { getProactiveScheduler } = await import('../services/proactive-scheduler.js');
+      const scheduler = getProactiveScheduler();
+      scheduler.start();
+      getLogger().info('⏰ Proactive scheduler started');
+    } catch (error) {
+      getLogger().warn({ error }, 'Error initializing team handler registry, falling back to legacy');
+      await initializeLegacyTeamHandlers();
+    }
+  } else {
+    // LEGACY: Use individual team handler files
+    await initializeLegacyTeamHandlers();
+  }
+}
+
+/**
+ * Initialize team handlers using legacy system
+ * @internal
+ * @deprecated Legacy team handlers have been removed. Use USE_NEW_TEAM_HANDLERS=true instead.
+ */
+async function initializeLegacyTeamHandlers(): Promise<void> {
+  try {
+    // Legacy team handlers have been migrated to the team-handler-registry system.
+    // This function now just starts the proactive scheduler.
+    const { getProactiveScheduler } = await import('../services/proactive-scheduler.js');
+
+    // Start the proactive scheduler for background notifications
+    const scheduler = getProactiveScheduler();
+    scheduler.start();
+
+    getLogger().info('⏰ Proactive scheduler started');
+    getLogger().warn('⚠️ Legacy team handlers have been removed. Enable USE_NEW_TEAM_HANDLERS=true for the new system.');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error initializing team handlers');
+  }
+}
+
+/**
+ * Check if the team handler registry is initialized
+ */
+export function isTeamHandlerRegistryInitialized(): boolean {
+  return teamHandlerRegistry.isInitialized();
+}
+
+// ============================================================================
+// SHUTDOWN
+// ============================================================================
+
+/**
+ * Gracefully shut down all tool services
+ */
+export async function shutdownTools(): Promise<void> {
+  // Stop Spotify auto-refresh
+  try {
+    const { shutdownSpotify } = await import('./spotify.js');
+    shutdownSpotify();
+  } catch (error) {
+    getLogger().warn({ error }, 'Error shutting down Spotify');
+  }
+
+  // Stop proactive scheduler
+  try {
+    const { getProactiveScheduler } = await import('../services/proactive-scheduler.js');
+    getProactiveScheduler().stop();
+    getLogger().info('⏰ Proactive scheduler stopped');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error stopping proactive scheduler');
+  }
+
+  // Clean up team handler registry
+  try {
+    teamHandlerRegistry.clear();
+    getLogger().info('🤝 Team handler registry cleared');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error clearing team handler registry');
+  }
+
+  getLogger().info('Tool services shut down');
+}
+

@@ -1,0 +1,180 @@
+{
+  "stories": [
+    {
+      "id": "parents-money-stress",
+      "title": "Growing Up with Money Stress",
+      "triggers": ["parents", "family", "growing up", "childhood", "where from"],
+      "file": "parents-money-stress.json",
+      "type": "personal",
+      "domain": "financial-wellness"
+    },
+    {
+      "id": "rock-bottom-moment",
+      "title": "My Rock Bottom",
+      "triggers": ["rock bottom", "worst", "lowest point", "broke", "debt", "overwhelmed", "everything falling apart"],
+      "file": "rock-bottom-moment.json",
+      "type": "personal",
+      "domain": "resilience"
+    },
+    {
+      "id": "first-budget-win",
+      "title": "The Napkin Budget",
+      "triggers": ["budget", "first time", "start", "beginning", "how to budget"],
+      "file": "first-budget-win.json",
+      "type": "inspirational",
+      "domain": "financial-wellness"
+    },
+    {
+      "id": "target-trap",
+      "title": "The Target Trap",
+      "triggers": ["target", "overspending", "impulse", "shopping"],
+      "file": "target-trap.json",
+      "type": "personal",
+      "domain": "financial-wellness"
+    },
+    {
+      "id": "subscription-audit-shock",
+      "title": "The $300 Wake-Up Call",
+      "triggers": ["subscription", "recurring", "monthly charges"],
+      "file": "subscription-audit-shock.json",
+      "type": "educational",
+      "domain": "financial-wellness"
+    },
+    {
+      "id": "emergency-fund-lesson",
+      "title": "The $800 Repair",
+      "triggers": ["emergency fund", "savings", "unexpected", "car broke"],
+      "file": "emergency-fund-lesson.json",
+      "type": "cautionary",
+      "domain": "financial-wellness"
+    },
+    {
+      "id": "automation-revelation",
+      "title": "Systems Over Willpower",
+      "triggers": ["automatic", "automation", "willpower", "discipline", "systems"],
+      "file": "automation-revelation.json",
+      "type": "inspirational",
+      "domain": "systems"
+    },
+    {
+      "id": "lifestyle-creep",
+      "title": "The 30% Raise That Vanished",
+      "triggers": ["raise", "promotion", "more money", "lifestyle"],
+      "file": "lifestyle-creep.json",
+      "type": "educational",
+      "domain": "financial-wellness"
+    },
+    {
+      "id": "shame-to-systems",
+      "title": "It's Skills, Not Character",
+      "triggers": ["shame", "embarrassed", "guilty", "bad with money", "bad at"],
+      "file": "shame-to-systems.json",
+      "type": "inspirational",
+      "domain": "resilience"
+    },
+    {
+      "id": "first-thousand-saved",
+      "title": "The First $1,000",
+      "triggers": ["milestone", "achievement", "proud", "first"],
+      "file": "first-thousand-saved.json",
+      "type": "inspirational",
+      "domain": "financial-wellness"
+    },
+    {
+      "id": "helping-parents",
+      "title": "Full Circle",
+      "triggers": ["family money", "helping family", "parents now", "giving back"],
+      "file": "helping-parents.json",
+      "type": "personal",
+      "domain": "relationships"
+    },
+    {
+      "id": "one-pushup-revolution",
+      "title": "The One Pushup That Changed Everything",
+      "triggers": ["exercise", "workout", "fitness", "can't exercise", "too hard", "gym", "tiny habit", "start small"],
+      "file": "one-pushup-revolution.json",
+      "type": "inspirational",
+      "domain": "physical-health"
+    },
+    {
+      "id": "phone-curfew",
+      "title": "The 10 PM Rule That Saved My Sleep",
+      "triggers": ["sleep", "phone", "doom scrolling", "screen time", "insomnia", "can't sleep", "tired"],
+      "file": "phone-curfew.json",
+      "type": "personal",
+      "domain": "mental-wellbeing"
+    },
+    {
+      "id": "sunday-mom-texts",
+      "title": "The Sunday Text That Rebuilt a Relationship",
+      "triggers": ["mom", "parent", "family", "not calling", "guilty about not reaching out", "relationship", "connection"],
+      "file": "sunday-mom-texts.json",
+      "type": "personal",
+      "domain": "relationships"
+    },
+    {
+      "id": "kitchen-reset",
+      "title": "The Two-Minute Kitchen Reset",
+      "triggers": ["cleaning", "kitchen", "mess", "home", "morning chaos", "environment", "clutter"],
+      "file": "kitchen-reset.json",
+      "type": "practical",
+      "domain": "environment-home"
+    },
+    {
+      "id": "comeback-after-slip",
+      "title": "The Day I Missed 47 Days in a Row",
+      "triggers": ["missed", "failed", "broken streak", "fell off", "quit", "slipped", "started again", "comeback"],
+      "file": "comeback-after-slip.json",
+      "type": "vulnerability",
+      "domain": "resilience"
+    },
+    {
+      "id": "four-tendencies-discovery",
+      "title": "The Day I Learned I'm an Obliger",
+      "triggers": ["obliger", "four tendencies", "accountability", "why can't I", "work for others", "not myself", "accountability partner"],
+      "file": "four-tendencies-discovery.json",
+      "type": "personal",
+      "domain": "behavior-science"
+    },
+    {
+      "id": "new-parent-survival",
+      "title": "When My Habits Crashed (And How I Came Back)",
+      "triggers": ["new parent", "baby", "no sleep", "lost routine", "everything fell apart", "can't do anything", "life transition"],
+      "file": "new-parent-survival.json",
+      "type": "vulnerability",
+      "domain": "life-transition"
+    },
+    {
+      "id": "identity-shift-runner",
+      "title": "I Became a Runner Without Running",
+      "triggers": ["identity", "become", "type of person", "running", "exercise", "can't stick with", "atomic habits"],
+      "file": "identity-shift-runner.json",
+      "type": "inspirational",
+      "domain": "identity-change"
+    },
+    {
+      "id": "environment-design-win",
+      "title": "The Fruit Bowl That Changed Everything",
+      "triggers": ["environment", "can't resist", "willpower", "temptation", "snacking", "eating healthy", "design"],
+      "file": "environment-design-win.json",
+      "type": "practical",
+      "domain": "environment-design"
+    },
+    {
+      "id": "streak-break-recovery",
+      "title": "The 47-Day Streak I'm Proud I Lost",
+      "triggers": ["broke streak", "missed", "failed", "started over", "gave up", "all or nothing", "perfectionism"],
+      "file": "streak-break-recovery.json",
+      "type": "vulnerability",
+      "domain": "resilience"
+    },
+    {
+      "id": "temptation-bundling-gym",
+      "title": "The Podcast Trick That Got Me to the Gym",
+      "triggers": ["gym", "exercise", "don't want to", "motivation", "podcast", "temptation", "bundling"],
+      "file": "temptation-bundling-gym.json",
+      "type": "practical",
+      "domain": "behavior-science"
+    }
+  ]
+}

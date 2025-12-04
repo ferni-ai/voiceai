@@ -4,6 +4,15 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // Exclude frontend directories - they have their own vitest configs with jsdom
+    // Exclude design-system - it uses Playwright, not Vitest
+    exclude: [
+      'node_modules/**',
+      'dist/**',
+      'frontend-orb/**',
+      'frontend-typescript/**',
+      'design-system/**',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
@@ -14,6 +23,8 @@ export default defineConfig({
         '**/*.spec.ts',
         '**/index.ts',
         'src/tests/helpers/**',
+        'frontend-orb/**',
+        'frontend-typescript/**',
       ],
       thresholds: {
         lines: 60,

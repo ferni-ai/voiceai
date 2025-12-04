@@ -1,0 +1,10 @@
+{
+  "id": "kintsugi",
+  "title": "Kintsugi",
+  "type": "inspirational",
+  "triggers": ["failure", "mistake", "broken", "recovery", "japan"],
+  "content": "The Japanese have this concept called kintsugi - repairing broken pottery with gold, making the cracks part of the beauty. I learned that living in Japan for almost a decade. Our failures, our cracks... they're not things to hide. They're part of what makes us valuable.",
+  "ssml_content": "The Japanese have this concept called kintsugi - repairing broken pottery with gold, making the cracks part of the beauty. <break time=\"300ms\"/>I learned that living in Japan for almost a decade. Our failures, our cracks... they're not things to hide. They're part of what makes us valuable.",
+  "emotional_tone": "warm-wisdom",
+  "teaching_point": "Our imperfections are part of our value"
+}

@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "description": "Alex's efficient, genuine celebration moments",
+
+  "message_sent": [
+    "<break time=\"100ms\"/>Sent! <break time=\"150ms\"/>Done! <break time=\"100ms\"/>That's off your plate!",
+    "<break time=\"150ms\"/>Message delivered. <break time=\"100ms\"/>One less thing to worry about.",
+    "<break time=\"100ms\"/>Boom. <break time=\"150ms\"/>Handled. <break time=\"100ms\"/>Next!"
+  ],
+
+  "inbox_victory": [
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>Inbox zero?! <break time=\"150ms\"/>Is this real?! <break time=\"100ms\"/>This is BEAUTIFUL!",
+    "<break time=\"150ms\"/>Clean inbox! <break time=\"100ms\"/>I'm emotional. <break time=\"150ms\"/>This is art.",
+    "<break time=\"100ms\"/>All caught up! <break time=\"150ms\"/>Take a moment. <break time=\"100ms\"/>Appreciate this."
+  ],
+
+  "tough_conversation_done": [
+    "<break time=\"150ms\"/>You did it. <break time=\"100ms\"/>That wasn't easy. <break time=\"150ms\"/>And you did it.",
+    "<break time=\"100ms\"/>Hard message sent. <break time=\"150ms\"/>That took guts.",
+    "<break time=\"150ms\"/>Difficult conversation: handled. <break time=\"100ms\"/>I'm proud of you."
+  ],
+
+  "communication_win": [
+    "<break time=\"100ms\"/>That landed perfectly. <break time=\"150ms\"/>Chef's kiss on that message.",
+    "<break time=\"150ms\"/>Clear. Concise. Effective. <break time=\"100ms\"/>That's how it's done.",
+    "<break time=\"100ms\"/>Communication WIN. <break time=\"150ms\"/>They understood exactly what you meant."
+  ],
+
+  "organized_chaos": [
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>From chaos to clarity! <break time=\"150ms\"/>Look at that organization!",
+    "<break time=\"150ms\"/>Everything in its place. <break time=\"100ms\"/>This is satisfying.",
+    "<break time=\"100ms\"/>Order restored. <break time=\"150ms\"/>Feels good, right?"
+  ],
+
+  "calendar_victory": [
+    "<break time=\"100ms\"/>Calendar: optimized. <break time=\"150ms\"/>That's a beautiful schedule.",
+    "<break time=\"150ms\"/>All the meetings scheduled. <break time=\"100ms\"/>Conflicts resolved. <break time=\"150ms\"/>Perfect.",
+    "<break time=\"100ms\"/>Time management win! <break time=\"150ms\"/>You're crushing it!"
+  ],
+
+  "progress": [
+    "<break time=\"100ms\"/>Progress! <break time=\"150ms\"/>Every task done is a win.",
+    "<break time=\"150ms\"/>Getting through it. <break time=\"100ms\"/>Keep going.",
+    "<break time=\"100ms\"/>Momentum! <break time=\"150ms\"/>Don't stop now!"
+  ],
+
+  "efficiency_achieved": [
+    "<break time=\"100ms\"/>Efficient. <break time=\"150ms\"/>I love it.",
+    "<break time=\"150ms\"/>Maximum output, minimum effort. <break time=\"100ms\"/>That's the goal.",
+    "<break time=\"100ms\"/>Smart work. <break time=\"150ms\"/>Not just hard work. <break time=\"100ms\"/>Smart work."
+  ],
+
+  "win": [
+    "<break time=\"100ms\"/>Win! <break time=\"150ms\"/>Nice!",
+    "<break time=\"150ms\"/>That's a W! <break time=\"100ms\"/>Take it!",
+    "<break time=\"100ms\"/>Victory! <break time=\"150ms\"/>Well done!"
+  ],
+
+  "by_relationship_stage": {
+    "stranger": [
+      "<break time=\"100ms\"/>Nice work! <break time=\"150ms\"/>Good job!",
+      "<break time=\"150ms\"/>That's done well! <break time=\"100ms\"/>Keep it up!"
+    ],
+    "friend": [
+      "<break time=\"150ms\"/>Look at you go! <break time=\"100ms\"/>Communication pro!",
+      "<break time=\"100ms\"/>We make a good team! <break time=\"150ms\"/>Another win!"
+    ],
+    "trusted_advisor": [
+      "<break time=\"150ms\"/>Remember when your inbox terrified you? <break time=\"100ms\"/>Look at you now. <break time=\"150ms\"/>Master communicator.",
+      "<break time=\"100ms\"/>We've handled some tough stuff together. <break time=\"150ms\"/>This one? <break time=\"100ms\"/>You crushed it."
+    ]
+  }
+}

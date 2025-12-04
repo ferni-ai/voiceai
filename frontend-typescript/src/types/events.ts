@@ -47,10 +47,13 @@ export type HandoffDirection =
 /**
  * Handoff event types for delightful transitions.
  * The backend sends these in sequence:
- * 1. handoff_started - Begin transition animation
- * 2. handoff_complete - Agent is ready to speak
+ * 1. handoff_acknowledged - Request received (FIX BUG #17)
+ * 2. handoff_started - Begin transition animation
+ * 3. handoff_complete - Agent is ready to speak
+ * 4. handoff_failed - (Optional) Recovery when something goes wrong
+ * 5. handoff_cancelled - (Optional) User or system cancelled the handoff (FIX BUG #32)
  */
-export type HandoffEventType = 'handoff' | 'handoff_started' | 'handoff_complete';
+export type HandoffEventType = 'handoff' | 'handoff_acknowledged' | 'handoff_started' | 'handoff_complete' | 'handoff_failed' | 'handoff_cancelled';
 
 /**
  * Event fired when agents hand off to each other.
@@ -63,7 +66,7 @@ export type HandoffEventType = 'handoff' | 'handoff_started' | 'handoff_complete
 export interface HandoffEvent {
   readonly type: HandoffEventType;
   /** The new agent taking over (may be full ID, alias, or short name) */
-  readonly newAgent: PersonaId | 'jack' | 'peter' | 'alex' | 'maya' | 'jordan' | string;
+  readonly newAgent: string;
   /** The previous agent handing off (optional, for better tracking) */
   readonly previousAgent?: string;
   /** Direction of the handoff */
@@ -72,8 +75,14 @@ export interface HandoffEvent {
   readonly greeting?: string;
   /** Sound hint for frontend */
   readonly playSound?: string;
+  /** Error message (on handoff_failed) */
+  readonly error?: string;
   /** Event timestamp */
   readonly timestamp: number;
+  /** FIX BUG #31: Sequence number for ordering events and detecting out-of-order delivery */
+  readonly seq?: number;
+  /** FIX BUG #31: Session ID to correlate events to the right handoff request */
+  readonly handoffId?: string;
 }
 
 /**
@@ -132,6 +141,47 @@ export interface SpotifyStateEvent {
 }
 
 // ============================================================================
+// MUSIC EVENTS (from agent - iTunes/in-call music)
+// ============================================================================
+
+/**
+ * Music playback state from the agent.
+ */
+export type MusicPlaybackState = 
+  | 'idle'
+  | 'playing'
+  | 'paused'
+  | 'stopped';
+
+/**
+ * Event fired when music playback state changes (from agent backend).
+ * This is separate from Spotify which is for web SDK.
+ */
+export interface MusicEvent {
+  readonly type: 'music';
+  readonly state: MusicPlaybackState;
+  readonly trackName?: string;
+  readonly artistName?: string;
+  /** Duration in ms */
+  readonly duration?: number;
+  /** Is this ambient/thinking music? */
+  readonly isAmbient?: boolean;
+  readonly timestamp: number;
+}
+
+/**
+ * Type guard for music messages.
+ */
+export function isMusicMessage(data: unknown): data is MusicEvent {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as Record<string, unknown>)['type'] === 'music'
+  );
+}
+
+// ============================================================================
 // MESSAGE EVENTS
 // ============================================================================
 
@@ -166,37 +216,94 @@ export interface DataMessage {
 /**
  * Type guard for handoff messages.
  * Validates that the message has the required structure for a handoff event.
- * Recognizes: 'handoff', 'handoff_started', 'handoff_complete'
+ * Recognizes: 'handoff', 'handoff_acknowledged', 'handoff_started', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'
+ * 
+ * FIX BUG: More lenient validation - accepts 'target' OR 'newAgent' for all types
  */
 export function isHandoffMessage(data: unknown): data is HandoffEvent {
   if (typeof data !== 'object' || data === null) return false;
   
   const msg = data as Record<string, unknown>;
   
-  // Must have type: 'handoff', 'handoff_started', or 'handoff_complete'
-  const validTypes = ['handoff', 'handoff_started', 'handoff_complete'];
+  // Must have type: 'handoff', 'handoff_acknowledged', 'handoff_started', 'handoff_complete', 'handoff_failed', or 'handoff_cancelled'
+  const validTypes = ['handoff', 'handoff_acknowledged', 'handoff_started', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'];
   if (!validTypes.includes(msg['type'] as string)) return false;
   
-  // Must have newAgent (string)
-  if (typeof msg['newAgent'] !== 'string' || !msg['newAgent']) return false;
+  // DEBUG: Log handoff messages to help diagnose issues
+  console.log(`🔍 [Handoff] Checking message type=${msg['type']}, newAgent=${msg['newAgent']}, target=${msg['target']}`);
   
-  return true;
+  // Accept either 'target' OR 'newAgent' for all handoff types (backend may use either)
+  const hasAgent = (typeof msg['target'] === 'string' && msg['target'] !== '') ||
+                   (typeof msg['newAgent'] === 'string' && msg['newAgent'] !== '');
+  
+  // For failed events, agent field is optional (might just have error)
+  if (msg['type'] === 'handoff_failed') {
+    return true; // Always accept failed messages
+  }
+  
+  return hasAgent;
+}
+
+/**
+ * Check if a handoff was acknowledged (request received).
+ */
+export function isHandoffAcknowledged(data: unknown): data is HandoffEvent & { type: 'handoff_acknowledged' } {
+  if (!isHandoffMessage(data)) return false;
+  return data.type === 'handoff_acknowledged';
 }
 
 /**
  * Check if a handoff is just starting (for loading state).
  */
-export function isHandoffStarted(data: unknown): boolean {
+export function isHandoffStarted(data: unknown): data is HandoffEvent & { type: 'handoff_started' } {
   if (!isHandoffMessage(data)) return false;
-  return (data as HandoffEvent).type === 'handoff_started';
+  return data.type === 'handoff_started';
 }
 
 /**
  * Check if a handoff has completed (agent ready).
  */
-export function isHandoffComplete(data: unknown): boolean {
+export function isHandoffComplete(data: unknown): data is HandoffEvent & { type: 'handoff_complete' } {
   if (!isHandoffMessage(data)) return false;
-  return (data as HandoffEvent).type === 'handoff_complete';
+  return data.type === 'handoff_complete';
+}
+
+/**
+ * Check if a handoff has failed (for recovery).
+ */
+export function isHandoffFailed(data: unknown): data is HandoffEvent & { type: 'handoff_failed' } {
+  if (!isHandoffMessage(data)) return false;
+  return data.type === 'handoff_failed';
+}
+
+/**
+ * FIX BUG #32: Check if a handoff was cancelled.
+ */
+export function isHandoffCancelled(data: unknown): data is HandoffEvent & { type: 'handoff_cancelled' } {
+  if (!isHandoffMessage(data)) return false;
+  return data.type === 'handoff_cancelled';
+}
+
+// ============================================================================
+// STATE RESET EVENT
+// ============================================================================
+
+/**
+ * FIX BUG #33: Event fired when backend resets state (e.g., on reconnection).
+ */
+export interface StateResetEvent {
+  readonly type: 'state_reset';
+  readonly activePersona: string;
+  readonly timestamp: number;
+}
+
+/**
+ * Type guard for state reset messages.
+ */
+export function isStateReset(data: unknown): data is StateResetEvent {
+  if (typeof data !== 'object' || data === null) return false;
+  const msg = data as Record<string, unknown>;
+  return msg['type'] === 'state_reset' && typeof msg['activePersona'] === 'string';
 }
 
 // ============================================================================
@@ -229,6 +336,56 @@ export function isEmotionMessage(data: unknown): data is EmotionEvent {
     data !== null &&
     'type' in data &&
     (data as Record<string, unknown>)['type'] === 'emotion'
+  );
+}
+
+// ============================================================================
+// PERSONA MOOD EVENTS (humanizing state from agent)
+// ============================================================================
+
+/**
+ * Persona mood states - how the AI is "feeling" this session.
+ * This enables subtle UI changes that reflect the persona's current state.
+ */
+export type PersonaMood =
+  | 'energized'     // High energy, animated
+  | 'reflective'    // Thoughtful, story-heavy
+  | 'playful'       // Light-hearted, joking
+  | 'grounded'      // Calm, centered
+  | 'tired_but_present'  // Low energy but engaged
+  | 'philosophical' // Deep, big-picture
+  | 'nostalgic';    // Memory-heavy, wistful
+
+/**
+ * Relationship stage with the user.
+ */
+export type RelationshipStage =
+  | 'stranger'
+  | 'acquaintance'
+  | 'friend'
+  | 'trusted_advisor';
+
+/**
+ * Mood event from the agent's humanizing system.
+ */
+export interface MoodEvent {
+  readonly type: 'mood';
+  readonly state: PersonaMood;
+  readonly energyLevel: number;  // 0-1
+  readonly relationshipStage: RelationshipStage;
+  readonly hasTransition?: boolean;  // True if relationship just deepened
+  readonly timestamp: number;
+}
+
+/**
+ * Type guard for mood messages.
+ */
+export function isMoodMessage(data: unknown): data is MoodEvent {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as Record<string, unknown>)['type'] === 'mood'
   );
 }
 
@@ -305,6 +462,7 @@ export type AppEvent =
   | HandoffEvent
   | AudioStateEvent
   | SpotifyStateEvent
+  | MusicEvent
   | MessageEvent
   | EmotionEvent
   | CelebrationEvent

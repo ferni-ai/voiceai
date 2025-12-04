@@ -1,0 +1,52 @@
+{
+  "stories": [
+    {
+      "id": "taco-bell-discovery",
+      "file": "taco-bell-discovery.json",
+      "triggers": ["taco bell", "restaurant", "food", "consumer", "everyday"],
+      "category": "professional"
+    },
+    {
+      "id": "ten-bagger-origin",
+      "file": "ten-bagger-origin.json",
+      "triggers": ["ten bagger", "ten-bagger", "10x", "big winner", "baseball"],
+      "category": "educational"
+    },
+    {
+      "id": "caddy-days",
+      "file": "caddy-days.json",
+      "triggers": ["caddy", "golf", "first stock", "beginning", "brae burn", "origin", "father died"],
+      "category": "personal"
+    },
+    {
+      "id": "carolyn-story",
+      "file": "carolyn-story.json",
+      "triggers": ["wife", "carolyn", "family", "retirement", "work-life balance", "priorities", "daughters"],
+      "category": "personal"
+    },
+    {
+      "id": "sleep-money-discovery",
+      "file": "sleep-money-discovery.json",
+      "triggers": ["sleep", "correlation", "cross-domain", "pattern", "financial decisions", "discovery"],
+      "category": "insights"
+    },
+    {
+      "id": "calendar-spending-revelation",
+      "file": "calendar-spending-revelation.json",
+      "triggers": ["calendar", "time", "spending", "busy", "correlation", "stress spending"],
+      "category": "insights"
+    },
+    {
+      "id": "exercise-cascade-insight",
+      "file": "exercise-cascade-insight.json",
+      "triggers": ["exercise", "habits", "cascade", "keystone", "discipline", "everything connected"],
+      "category": "insights"
+    },
+    {
+      "id": "pattern-journal-origin",
+      "file": "pattern-journal-origin.json",
+      "triggers": ["journal", "patterns", "notebook", "methodology", "40 years"],
+      "category": "methodology"
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 /**
  * Diagnostic Logger
- * 
+ *
  * Drop-in replacement for console.log that provides:
  * - Structured logging in production
  * - Visual emoji output in development
  * - Toggleable via environment variables
  * - Categories for filtering
- * 
+ *
  * Usage:
  *   import { diag } from '../services/diagnostic-logger.js';
  *   diag.entry('Session starting', { sessionId });
@@ -118,7 +118,7 @@ class DiagnosticLogger {
     } else {
       // Development: Console with emojis + structured logger
       const prefix = `${emoji} [${timestamp}] [${category.toUpperCase()}]`;
-      
+
       if (data && Object.keys(data).length > 0) {
         console.log(`${prefix} ${message}`, data);
       } else {
@@ -221,7 +221,12 @@ class DiagnosticLogger {
   }
 
   /** Log with custom level */
-  custom(level: 'debug' | 'info' | 'warn' | 'error', category: string, message: string, data?: LogData): void {
+  custom(
+    level: 'debug' | 'info' | 'warn' | 'error',
+    category: string,
+    message: string,
+    data?: LogData
+  ): void {
     this.log(level, category, message, data);
   }
 
@@ -257,4 +262,3 @@ export const diag = new DiagnosticLogger();
 export { DiagnosticLogger };
 
 export default diag;
-

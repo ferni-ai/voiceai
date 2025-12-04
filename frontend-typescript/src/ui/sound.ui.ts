@@ -43,6 +43,54 @@ let masterGain: GainNode | null = null;
 let isMuted = false;
 let isInitialized = false;
 
+// ============================================================================
+// DEBOUNCING - Prevents "casino effect" from multiple rapid sounds
+// ============================================================================
+
+/** Last time any sound was played (global cooldown) */
+let lastSoundTime = 0;
+
+/** Last time each specific sound was played */
+const lastPlayTimes: Map<SoundName, number> = new Map();
+
+/** Global minimum gap between any sounds (ms) */
+const GLOBAL_SOUND_COOLDOWN = 100;
+
+/** Per-sound cooldown to prevent same sound spam (ms) */
+const SAME_SOUND_COOLDOWN: Partial<Record<SoundName, number>> = {
+  success: 2000,    // Success shouldn't repeat quickly
+  celebrate: 2000,  // Same for celebrate
+  connect: 1000,    // Connection sounds need gap
+  disconnect: 1000,
+  switch: 300,      // Switch can be slightly more frequent
+};
+
+/** Check if a sound can play (debounce logic) */
+function canPlaySound(name: SoundName): boolean {
+  const now = Date.now();
+  
+  // Check global cooldown
+  if (now - lastSoundTime < GLOBAL_SOUND_COOLDOWN) {
+    return false;
+  }
+  
+  // Check per-sound cooldown
+  const lastPlay = lastPlayTimes.get(name) ?? 0;
+  const cooldown = SAME_SOUND_COOLDOWN[name] ?? 150;
+  if (now - lastPlay < cooldown) {
+    return false;
+  }
+  
+  return true;
+}
+
+/** Record that a sound was played */
+function recordSoundPlay(name: SoundName): void {
+  const now = Date.now();
+  lastSoundTime = now;
+  lastPlayTimes.set(name, now);
+}
+
 // Sound configurations - musical, satisfying tones
 const SOUNDS: Record<SoundName, SoundConfig> = {
   connect: {
@@ -135,13 +183,13 @@ export function initSoundUI(): void {
     if (isInitialized) return;
     
     try {
-      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      audioContext = new (window.AudioContext ?? (window as any).webkitAudioContext)();
       masterGain = audioContext.createGain();
       masterGain.connect(audioContext.destination);
       masterGain.gain.value = 1;
       isInitialized = true;
       
-      console.log('🔊 Sound UI initialized');
     } catch (e) {
       console.warn('Audio not supported');
     }
@@ -160,7 +208,6 @@ export function initSoundUI(): void {
   // Set up hover sounds for interactive elements
   setupHoverSounds();
   
-  console.log('🔊 Sound UI ready (waiting for interaction)');
 }
 
 // ============================================================================
@@ -170,12 +217,21 @@ export function initSoundUI(): void {
 export function play(name: SoundName): void {
   if (isMuted || !isInitialized || !audioContext || !masterGain) return;
   
+  // MOBILE FIX: Debounce sounds to prevent "casino effect"
+  if (!canPlaySound(name)) {
+    console.debug(`Sound debounced: ${name}`);
+    return;
+  }
+  
   const config = SOUNDS[name];
   if (!config) return;
   
+  // Record this play for debouncing
+  recordSoundPlay(name);
+  
   // Resume context if suspended
   if (audioContext.state === 'suspended') {
-    audioContext.resume();
+    void audioContext.resume();
   }
   
   // Play single or multi-tone sound
@@ -186,7 +242,7 @@ export function play(name: SoundName): void {
           ...config,
           frequency: freq,
         });
-      }, (config.delays![i] || 0) * 1000);
+      }, (config.delays?.[i] ?? 0) * 1000);
     });
   } else if (config.frequency) {
     playTone(config);
@@ -200,8 +256,8 @@ function playTone(config: SoundConfig): void {
   
   // Create oscillator
   const oscillator = audioContext.createOscillator();
-  oscillator.type = config.type || 'sine';
-  oscillator.frequency.value = config.frequency || 440;
+  oscillator.type = config.type ?? 'sine';
+  oscillator.frequency.value = config.frequency ?? 440;
   
   // Create gain for envelope
   const gainNode = audioContext.createGain();
@@ -209,14 +265,14 @@ function playTone(config: SoundConfig): void {
   
   // Attack
   gainNode.gain.linearRampToValueAtTime(
-    config.volume || 0.1,
-    now + (config.attack || 0.01)
+    config.volume ?? 0.1,
+    now + (config.attack ?? 0.01)
   );
   
   // Decay
   gainNode.gain.exponentialRampToValueAtTime(
     0.001,
-    now + (config.duration || 0.1)
+    now + (config.duration ?? 0.1)
   );
   
   // Connect and play
@@ -224,7 +280,7 @@ function playTone(config: SoundConfig): void {
   gainNode.connect(masterGain);
   
   oscillator.start(now);
-  oscillator.stop(now + (config.duration || 0.1) + 0.01);
+  oscillator.stop(now + (config.duration ?? 0.1) + 0.01);
 }
 
 // ============================================================================
@@ -294,7 +350,7 @@ export function playCelebrate(): void { play('celebrate'); }
 
 export function dispose(): void {
   if (audioContext) {
-    audioContext.close();
+    void audioContext.close();
     audioContext = null;
   }
   masterGain = null;

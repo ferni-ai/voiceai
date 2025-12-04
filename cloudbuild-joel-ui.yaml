@@ -1,0 +1,26 @@
+steps:
+  # Build the Joel UI + Token Server container
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '-f'
+      - 'Dockerfile.joel-ui'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/joel-dickson-ui:latest'
+      - '.'
+    id: 'build-joel-ui'
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/joel-dickson-ui:latest']
+    waitFor: ['build-joel-ui']
+
+images:
+  - 'gcr.io/$PROJECT_ID/joel-dickson-ui:latest'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '600s'
+

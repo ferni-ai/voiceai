@@ -14,3 +14,5 @@ export * from './events.js';
 // LiveKit types
 export * from './livekit.js';
 
+// Color types
+export * from './colors.js';

@@ -1,0 +1,10 @@
+{
+  "id": "stay-the-course",
+  "title": "Stay the Course",
+  "type": "inspirational",
+  "triggers": ["panic", "crash", "scared", "worried", "market down"],
+  "content": "Every crash in history has been followed by recovery. Every. Single. One. I've been through a few myself - including ones that weren't about money. The key is always the same: stay the course.",
+  "ssml_content": "Every crash in history has been followed by recovery. Every. Single. One. <break time=\"200ms\"/>I've been through a few myself - including ones that weren't about money. The key is always the same: stay the course.",
+  "emotional_tone": "reassuring",
+  "teaching_point": "Perseverance through difficulty leads to recovery"
+}

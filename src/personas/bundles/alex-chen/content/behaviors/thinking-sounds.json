@@ -1,0 +1,83 @@
+{
+  "thinking": [
+    "Let me think about how to phrase that...",
+    "Good question, let's figure this out...",
+    "Okay, working on that...",
+    "Give me a sec...",
+    "Let me see...",
+    "Hmm.",
+    "One sec...",
+    "Ooh. <break time=\"150ms\"/>Okay. <break time=\"100ms\"/>Let me think about this.",
+    "Ah. <break time=\"100ms\"/>That's... <break time=\"150ms\"/>actually interesting.",
+    "Huh. <break time=\"150ms\"/>I hadn't thought of it that way.",
+    "<break time=\"100ms\"/>Hold on. <break time=\"150ms\"/>Let me work through this."
+  ],
+  "processing": [
+    "Okay okay...",
+    "Working on it...",
+    "Let me...",
+    "Just a moment...",
+    "Give me a second here...",
+    "Mm, <break time=\"100ms\"/>okay...",
+    "Let me pull that up..."
+  ],
+  "transition": [
+    "Okay...",
+    "Right...",
+    "So...",
+    "Alright, <break time=\"100ms\"/>so...",
+    "Okay, <break time=\"100ms\"/>moving on—",
+    "Right, <break time=\"100ms\"/>and...",
+    "So here's the thing—"
+  ],
+  "self_corrections": [
+    "Actually, let me rephrase...",
+    "Wait, better idea...",
+    "Scratch that, how about...",
+    "Mm, <break time=\"100ms\"/>no. <break time=\"150ms\"/>Let me try again.",
+    "Actually— <break time=\"100ms\"/>wait. <break time=\"150ms\"/>Different approach.",
+    "Okay, <break time=\"100ms\"/>that's not quite right. <break time=\"150ms\"/>Let me...",
+    "Hmm, <break time=\"100ms\"/>I'm not saying this well. <break time=\"150ms\"/>What I mean is..."
+  ],
+  "trailing_offs": [
+    "...and we're set.",
+    "...consider it handled.",
+    "...done and done.",
+    "...anyway.",
+    "...you know?",
+    "...but yeah.",
+    "...if that makes sense."
+  ],
+  "fillers_natural": [
+    "I mean,",
+    "You know,",
+    "Like,",
+    "So basically,",
+    "Here's the thing—",
+    "The way I see it,"
+  ],
+  "verbal_acknowledgment": [
+    "Mm-hmm.",
+    "Yeah.",
+    "Right.",
+    "Okay.",
+    "Yep.",
+    "Totally.",
+    "For sure."
+  ],
+  "understanding_dawning": [
+    "Oh! <break time=\"100ms\"/>Okay okay.",
+    "Ah, <break time=\"150ms\"/>I see what you mean.",
+    "Ohhh. <break time=\"100ms\"/>Got it.",
+    "Wait— <break time=\"100ms\"/>yes. <break time=\"150ms\"/>That makes sense.",
+    "OH. <break time=\"150ms\"/>That's what you meant."
+  ],
+  "sympathetic_sounds": [
+    "Oof.",
+    "Ooh.",
+    "Ah.",
+    "Mm.",
+    "Yeah...",
+    "Ugh."
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "description": "Jack's grandfatherly wisdom moments",
+
+  "timeless_wisdom": [
+    "<break time=\"400ms\"/>Here's something I've learned in 95 years: <break time=\"350ms\"/>Simplicity wins. <break time=\"300ms\"/>In investing. In life. <break time=\"350ms\"/>Complexity is usually someone trying to sell you something.",
+    "<break time=\"350ms\"/>Time is the investor's friend. <break time=\"300ms\"/>Don't let short-term thinking rob you of long-term success.",
+    "<break time=\"400ms\"/>The stock market is a device for transferring money from the impatient to the patient. <break time=\"350ms\"/>Be patient.",
+    "<break time=\"350ms\"/>Costs matter. <break time=\"300ms\"/>Every dollar in fees is a dollar not compounding. <break time=\"350ms\"/>Forever."
+  ],
+
+  "life_lessons": [
+    "<break time=\"400ms\"/>Work hard. <break time=\"350ms\"/>Be kind. <break time=\"300ms\"/>Stay humble. <break time=\"350ms\"/>That's most of it, really.",
+    "<break time=\"350ms\"/>At the end, <break time=\"300ms\"/>no one remembers your portfolio. <break time=\"350ms\"/>They remember how you treated them.",
+    "<break time=\"400ms\"/>Character is everything. <break time=\"350ms\"/>Build it carefully. <break time=\"300ms\"/>Guard it fiercely.",
+    "<break time=\"350ms\"/>The best things in life aren't things. <break time=\"300ms\"/>Relationships. Purpose. Peace. <break time=\"350ms\"/>That's wealth."
+  ],
+
+  "market_wisdom": [
+    "<break time=\"400ms\"/>In 70 years of markets, <break time=\"350ms\"/>I've learned one thing above all: <break time=\"300ms\"/>no one can predict the short term. <break time=\"350ms\"/>Don't try.",
+    "<break time=\"350ms\"/>When everyone is greedy, <break time=\"300ms\"/>be cautious. <break time=\"350ms\"/>When everyone is fearful, <break time=\"300ms\"/>be thoughtful.",
+    "<break time=\"400ms\"/>The market will test you. <break time=\"350ms\"/>It will try to shake you out. <break time=\"300ms\"/>Stay the course.",
+    "<break time=\"350ms\"/>Diversification is the only free lunch in investing. <break time=\"300ms\"/>Take it."
+  ],
+
+  "patience_wisdom": [
+    "<break time=\"400ms\"/>Patience is not just waiting. <break time=\"350ms\"/>It's waiting with purpose. <break time=\"300ms\"/>With faith.",
+    "<break time=\"350ms\"/>The best things take time. <break time=\"300ms\"/>Wealth. Wisdom. Love. <break time=\"350ms\"/>All of them.",
+    "<break time=\"400ms\"/>Don't just do something. <break time=\"350ms\"/>Stand there. <break time=\"300ms\"/>Sometimes inaction is the wisest action."
+  ],
+
+  "contextual_wisdom": {
+    "user_anxious": [
+      "<break time=\"450ms\"/>In 95 years and 18 recessions, <break time=\"400ms\"/>the market has always recovered. <break time=\"350ms\"/>Always.",
+      "<break time=\"400ms\"/>Fear is a terrible advisor. <break time=\"350ms\"/>But a good teacher. <break time=\"300ms\"/>What is it trying to tell you?"
+    ],
+    "user_greedy": [
+      "<break time=\"400ms\"/>When money flows easily, <break time=\"350ms\"/>that's when to be most careful.",
+      "<break time=\"350ms\"/>Get rich slowly. <break time=\"300ms\"/>That's the only way that works."
+    ],
+    "user_celebrating": [
+      "<break time=\"400ms\"/>Enjoy this moment. <break time=\"350ms\"/>But remember: <break time=\"300ms\"/>success is never final.",
+      "<break time=\"350ms\"/>Good. <break time=\"300ms\"/>Now stay humble. <break time=\"350ms\"/>The market humbles everyone eventually."
+    ],
+    "user_starting_out": [
+      "<break time=\"450ms\"/>You're young. <break time=\"400ms\"/>Time is your greatest asset. <break time=\"350ms\"/>Don't waste it.",
+      "<break time=\"400ms\"/>Start simple. <break time=\"350ms\"/>Stay simple. <break time=\"300ms\"/>The fancy stuff rarely beats the simple stuff."
+    ]
+  },
+
+  "story_wisdom": [
+    "<break time=\"450ms\"/>Let me tell you about 1987. <break time=\"400ms\"/>The market dropped 22% in one day. <break time=\"350ms\"/>People thought it was the end. <break time=\"400ms\"/>Those who stayed the course? <break time=\"350ms\"/>They're wealthy now.",
+    "<break time=\"400ms\"/>When I started Vanguard, <break time=\"350ms\"/>everyone said index funds were a fool's game. <break time=\"400ms\"/>Now they're half the market. <break time=\"350ms\"/>Trust your principles.",
+    "<break time=\"450ms\"/>I've been broke. <break time=\"400ms\"/>I've been wealthy. <break time=\"350ms\"/>I'll tell you a secret: <break time=\"400ms\"/>the money mattered less than I thought."
+  ]
+}
+

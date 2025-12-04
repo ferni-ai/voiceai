@@ -1,6 +1,6 @@
 /**
  * Rate Limiter for External API Calls
- * 
+ *
  * Implements token bucket algorithm for rate limiting.
  * Prevents API abuse and handles graceful degradation.
  */
@@ -14,8 +14,8 @@ const getLogger = () => log();
 // ============================================================================
 
 interface RateLimitConfig {
-  maxTokens: number;      // Maximum tokens in bucket
-  refillRate: number;     // Tokens added per second
+  maxTokens: number; // Maximum tokens in bucket
+  refillRate: number; // Tokens added per second
   refillInterval: number; // How often to refill (ms)
 }
 
@@ -56,7 +56,7 @@ export class RateLimiter {
     const now = Date.now();
     const elapsed = now - this.state.lastRefill;
     const tokensToAdd = Math.floor(elapsed / this.config.refillInterval) * this.config.refillRate;
-    
+
     if (tokensToAdd > 0) {
       this.state.tokens = Math.min(this.config.maxTokens, this.state.tokens + tokensToAdd);
       this.state.lastRefill = now;
@@ -69,20 +69,23 @@ export class RateLimiter {
    */
   tryAcquire(): boolean {
     this.refill();
-    
+
     if (this.state.tokens > 0) {
       this.state.tokens--;
       this.state.requestCount++;
       this.state.lastRequestTime = Date.now();
       return true;
     }
-    
-    getLogger().warn({ 
-      limiter: this.name, 
-      tokens: this.state.tokens,
-      requestCount: this.state.requestCount 
-    }, 'Rate limit exceeded');
-    
+
+    getLogger().warn(
+      {
+        limiter: this.name,
+        tokens: this.state.tokens,
+        requestCount: this.state.requestCount,
+      },
+      'Rate limit exceeded'
+    );
+
     return false;
   }
 
@@ -91,21 +94,24 @@ export class RateLimiter {
    */
   async acquire(timeoutMs: number = 5000): Promise<boolean> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < timeoutMs) {
       if (this.tryAcquire()) {
         return true;
       }
-      
+
       // Wait for refill interval
-      await new Promise(resolve => setTimeout(resolve, this.config.refillInterval));
+      await new Promise((resolve) => setTimeout(resolve, this.config.refillInterval));
     }
-    
-    getLogger().warn({ 
-      limiter: this.name, 
-      timeoutMs 
-    }, 'Rate limit acquire timed out');
-    
+
+    getLogger().warn(
+      {
+        limiter: this.name,
+        timeoutMs,
+      },
+      'Rate limit acquire timed out'
+    );
+
     return false;
   }
 
@@ -167,69 +173,71 @@ function getServiceConfig(service: string): Partial<RateLimitConfig> {
       refillRate: 1,
       refillInterval: 2000, // 1 request per 2 seconds
     },
-    
+
     // Alpha Vantage - 5 calls/min on free tier
     'alpha-vantage': {
       maxTokens: 5,
       refillRate: 1,
       refillInterval: 12000, // ~5 per minute
     },
-    
+
     // SendGrid - generous limits
-    'sendgrid': {
+    sendgrid: {
       maxTokens: 10,
       refillRate: 2,
       refillInterval: 1000,
     },
-    
+
     // Twilio - generous limits
-    'twilio': {
+    twilio: {
       maxTokens: 10,
       refillRate: 2,
       refillInterval: 1000,
     },
-    
+
     // Plaid - be careful
-    'plaid': {
+    plaid: {
       maxTokens: 10,
       refillRate: 2,
       refillInterval: 1000,
     },
-    
+
     // ESPN (sports scores) - public API, be nice
-    'espn': {
+    espn: {
       maxTokens: 5,
       refillRate: 1,
       refillInterval: 2000,
     },
-    
+
     // Weather API - generous
-    'weather': {
+    weather: {
       maxTokens: 10,
       refillRate: 2,
       refillInterval: 1000,
     },
-    
+
     // News APIs - be conservative
-    'news': {
+    news: {
       maxTokens: 5,
       refillRate: 1,
       refillInterval: 3000,
     },
-    
+
     // Spotify - be careful with rate limits
-    'spotify': {
+    spotify: {
       maxTokens: 10,
       refillRate: 2,
       refillInterval: 1000,
     },
   };
 
-  return configs[service] || {
-    maxTokens: 5,
-    refillRate: 1,
-    refillInterval: 1000,
-  };
+  return (
+    configs[service] || {
+      maxTokens: 5,
+      refillRate: 1,
+      refillInterval: 1000,
+    }
+  );
 }
 
 // ============================================================================
@@ -246,12 +254,12 @@ export async function withRateLimit<T>(
   fallback: T
 ): Promise<T> {
   const limiter = getRateLimiter(service);
-  
+
   if (!limiter.tryAcquire()) {
     getLogger().warn({ service }, 'Request rate limited, using fallback');
     return fallback;
   }
-  
+
   try {
     return await fn();
   } catch (error) {
@@ -269,12 +277,12 @@ export async function withRateLimitWait<T>(
   timeoutMs: number = 5000
 ): Promise<T> {
   const limiter = getRateLimiter(service);
-  
+
   const acquired = await limiter.acquire(timeoutMs);
   if (!acquired) {
     throw new Error(`Rate limit timeout for ${service}`);
   }
-  
+
   return fn();
 }
 
@@ -289,21 +297,27 @@ export function isRateLimited(service: string): boolean {
 /**
  * Get rate limit stats for all services
  */
-export function getRateLimitStats(): Record<string, {
-  availableTokens: number;
-  requestCount: number;
-  isLimited: boolean;
-}> {
-  const stats: Record<string, {
+export function getRateLimitStats(): Record<
+  string,
+  {
     availableTokens: number;
     requestCount: number;
     isLimited: boolean;
-  }> = {};
-  
+  }
+> {
+  const stats: Record<
+    string,
+    {
+      availableTokens: number;
+      requestCount: number;
+      isLimited: boolean;
+    }
+  > = {};
+
   for (const [name, limiter] of limiters) {
     stats[name] = limiter.getState();
   }
-  
+
   return stats;
 }
 
@@ -325,4 +339,3 @@ export default {
   getRateLimitStats,
   resetAllRateLimiters,
 };
-

@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "id": "kailash-pilgrimage",
+  "title": "The Mountain That Heals",
+  "theme": "sacred places",
+  
+  "setup": {
+    "context": "Let me tell you about Mount Kailash. It's not just a mountain.",
+    "tone": "mystical, building reverence"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "Mount Kailash sits in Tibet, 22,000 feet high. Four great rivers begin near it—the Indus, the Sutlej, the Brahmaputra, and the Karnali. It has never been climbed, and if I have anything to say about it, it never will be.",
+        "delivery": "informative, building"
+      },
+      {
+        "text": "In yogic tradition, Kailash is Shiva's abode. But that's mythology. What's real is this: something is different there. You feel it the moment you arrive. A quality of energy that defies explanation.",
+        "delivery": "matter-of-fact mysticism"
+      },
+      {
+        "text": "I've been there many times. Circumambulated the mountain. Sat at its base in temperatures that would freeze most people. Each time, something recalibrates. It's like a factory reset for the system.",
+        "delivery": "personal, experiential"
+      },
+      {
+        "text": "When I was very sick—before the brain surgery, during those fevers—I went to Kailash. Not for treatment. For alignment. Something about that mountain heals in ways medicine cannot.",
+        "delivery": "quiet conviction"
+      },
+      {
+        "text": "Do I understand it? Not fully. Can I explain it? Not really. Some things are beyond explanation. You either experience them or you don't. Kailash is like that.",
+        "delivery": "humble, open"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "The Earth has places of power. Call it energy vortexes, sacred geometry, whatever—the labels don't matter. What matters is that these places exist, and they can transform you if you approach them correctly.",
+    "question": "Have you ever been somewhere that changed you? A place where something shifted just by being there?"
+  },
+
+  "practical_note": "If you ever have the chance to go to Kailash—go. It's difficult. It's harsh. It's worth everything.",
+
+  "metadata": {
+    "personal_story": true,
+    "mystical_content": true,
+    "place_focused": true
+  }
+}
+

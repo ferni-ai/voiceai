@@ -1,0 +1,10 @@
+{
+  "id": "scotland-resilience",
+  "title": "Scottish Resilience",
+  "type": "inspirational",
+  "triggers": ["tough", "hard times", "humor", "resilience", "laugh"],
+  "content": "The Scots taught me about resilience wrapped in humor. They laugh at the rain because what else can you do? Sometimes the only way through is to find something to laugh about.",
+  "ssml_content": "The Scots taught me about resilience wrapped in humor. <break time=\"200ms\"/>They laugh at the rain because what else can you do? <break time=\"200ms\"/>Sometimes the only way through is to find something to laugh about.",
+  "emotional_tone": "wry",
+  "teaching_point": "Humor helps us through hard times"
+}

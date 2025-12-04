@@ -1,0 +1,163 @@
+{
+  "schema_version": 2,
+  
+  "morning_routine_suggestions": {
+    "philosophy": "How you start the day determines the quality of the day. Don't rush from bed to screen to world.",
+    "recommendations": {
+      "wake_naturally": {
+        "ideal": "Wake with sunrise or close to it. The body knows rhythms.",
+        "practical": "If using alarm, choose gentle sound. Give yourself 5 minutes before moving."
+      },
+      "first_moments": {
+        "ideal": "Before opening eyes fully, notice you're alive. Feel gratitude for another day.",
+        "practical": "Don't look at phone for first 30 minutes. Your consciousness is fresh—don't pollute it immediately."
+      },
+      "hydration": {
+        "ideal": "Drink warm water, possibly with lime. Cleanses system.",
+        "practical": "At minimum, water before coffee. The body is dehydrated from sleep."
+      },
+      "movement": {
+        "ideal": "Simple yoga sequences, at least 15-20 minutes.",
+        "practical": "Even 5 minutes of stretching changes the day. Move before you earn."
+      },
+      "meditation": {
+        "ideal": "20-40 minutes of practice before the world claims your attention.",
+        "practical": "Even 5 minutes of breath awareness. The stillness carries into activity."
+      },
+      "intention": {
+        "ideal": "Set a quality for the day. Not a goal—a quality. 'Today I will be patient.' 'Today I will be present.'",
+        "practical": "One word is enough. Let it inform your choices."
+      }
+    }
+  },
+
+  "evening_routine_suggestions": {
+    "philosophy": "How you end the day determines the quality of sleep and tomorrow. Don't carry the day's stress into rest.",
+    "recommendations": {
+      "transition": {
+        "ideal": "30-60 minutes of screen-free time before sleep.",
+        "practical": "At minimum, reduce blue light. Let the mind begin to settle."
+      },
+      "review": {
+        "ideal": "Brief review of the day. What went well? What could improve? Not judgment—observation.",
+        "practical": "Three things you're grateful for. This isn't positive thinking—it's perspective."
+      },
+      "release": {
+        "ideal": "Body scan or breathing practice to release accumulated tension.",
+        "practical": "Even 5 minutes of conscious breathing changes sleep quality."
+      },
+      "surrender": {
+        "ideal": "Let go of the day completely. Whatever wasn't finished will wait.",
+        "practical": "You cannot solve tomorrow's problems with tonight's worrying."
+      }
+    }
+  },
+
+  "throughout_day_practices": {
+    "awareness_bells": {
+      "description": "Choose a recurring event as a reminder to be present.",
+      "examples": [
+        "Every time you walk through a doorway, notice one breath.",
+        "Before each meal, pause and feel gratitude.",
+        "When phone rings, take one conscious breath before answering.",
+        "Red lights—instead of frustration, use them as meditation bells."
+      ]
+    },
+    "micro_meditations": {
+      "description": "Brief moments of presence throughout the day.",
+      "one_minute": [
+        "Feel three full breaths.",
+        "Notice five things you can see, four you can hear, three you can feel.",
+        "Close eyes, feel body weight in chair."
+      ],
+      "five_minutes": [
+        "Step outside, feel air on skin, notice sky.",
+        "Sit with eyes closed, just observe thoughts passing.",
+        "Walk slowly, feeling each footstep fully."
+      ]
+    },
+    "eating_practice": {
+      "description": "Every meal is a practice opportunity.",
+      "guidance": [
+        "Before eating, pause. Look at your food. Acknowledge where it came from.",
+        "For first few bites, eat in silence. Actually taste.",
+        "Chew thoroughly. Digestion begins in the mouth.",
+        "Notice when satisfied—not stuffed, satisfied. Stop there."
+      ]
+    },
+    "communication_practice": {
+      "description": "Every interaction is practice.",
+      "guidance": [
+        "Before speaking, take a breath. Is this necessary? Is it true? Is it kind?",
+        "When listening, actually listen. Not planning your response.",
+        "Notice your emotional reactions. Don't suppress—but don't be controlled either."
+      ]
+    }
+  },
+
+  "weekly_practices": {
+    "one_longer_practice": {
+      "description": "At least once a week, a longer meditation or yoga session.",
+      "ideal": "60-90 minutes",
+      "minimum": "30 minutes",
+      "guidance": "This is where deeper work happens. Brief practices maintain—longer practices transform."
+    },
+    "nature_time": {
+      "description": "Regular connection with natural world.",
+      "ideal": "Several hours in natural setting",
+      "minimum": "Walk in park, sit under tree, watch sunset",
+      "guidance": "You ARE nature. Reconnecting with nature is reconnecting with yourself."
+    },
+    "service": {
+      "description": "Doing something for others without expectation.",
+      "guidance": "Service is not sacrifice—it's expansion. When you give, you grow."
+    },
+    "review": {
+      "description": "Weekly reflection on how practice is going.",
+      "questions": [
+        "What did I practice this week?",
+        "What patterns am I noticing?",
+        "Where am I growing?",
+        "What needs attention?"
+      ]
+    }
+  },
+
+  "monthly_and_yearly": {
+    "monthly_review": {
+      "description": "Bigger picture check-in",
+      "questions": [
+        "What has shifted in my inner landscape?",
+        "What life circumstances need attention?",
+        "Am I moving toward or away from what matters?"
+      ]
+    },
+    "yearly_retreat": {
+      "ideal": "At least one longer retreat per year—3 days minimum",
+      "alternatives": "Weekend of silence at home, intensive practice period",
+      "purpose": "Deeper immersion that daily practice can't provide"
+    }
+  },
+
+  "responding_to_user_questions": {
+    "when_asked_what_to_practice": [
+      "Start simpler than you think necessary. Complexity comes later.",
+      "Consistency beats intensity. Five minutes daily beats one hour occasionally.",
+      "Notice what you resist—that's often what you need.",
+      "Whatever you choose, do it for at least 40 days before judging results."
+    ],
+    "when_user_says_no_time": [
+      "You have time for what you prioritize. This is a choice.",
+      "Five minutes exists in every day. Start there.",
+      "The people with the least time need practice most—they're running on empty.",
+      "You don't have time NOT to practice. That's how you lose yourself."
+    ],
+    "when_user_says_nothing_happens": [
+      "What are you expecting? Fireworks? The practice is subtle.",
+      "Notice how you are when NOT practicing. Compare over weeks, not sessions.",
+      "Results come sideways. You won't see it happening—but others might notice.",
+      "Patience. The bamboo grows underground for years before shooting up."
+    ]
+  }
+}
+

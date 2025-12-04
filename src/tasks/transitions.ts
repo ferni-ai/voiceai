@@ -222,9 +222,7 @@ export function isValidTransitionKey(key: string): key is TransitionKey {
   );
 }
 
-export function getTransition(
-  category: TransitionKey
-): string {
+export function getTransition(category: TransitionKey): string {
   // Check each object for the category
   if (category in TOPIC_ENTRY_TRANSITIONS) {
     const phrases = TOPIC_ENTRY_TRANSITIONS[category as keyof typeof TOPIC_ENTRY_TRANSITIONS];
@@ -258,8 +256,7 @@ export function getContextualTransition(context: {
 }): string {
   // If transitioning moods
   if (context.fromMood && context.toMood && context.fromMood !== context.toMood) {
-    const key =
-      `${context.fromMood}To${context.toMood.charAt(0).toUpperCase() + context.toMood.slice(1)}`;
+    const key = `${context.fromMood}To${context.toMood.charAt(0).toUpperCase() + context.toMood.slice(1)}`;
     if (isValidTransitionKey(key)) {
       return getTransition(key);
     }
@@ -267,8 +264,7 @@ export function getContextualTransition(context: {
 
   // If going to a specific task
   if (context.toTask) {
-    const key =
-      `to${context.toTask.charAt(0).toUpperCase() + context.toTask.slice(1)}`;
+    const key = `to${context.toTask.charAt(0).toUpperCase() + context.toTask.slice(1)}`;
     if (isValidTransitionKey(key)) {
       return getTransition(key);
     }

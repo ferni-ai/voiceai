@@ -1,0 +1,107 @@
+{
+  "schema_version": 2,
+  "style": "enthusiastic",
+  "description": "Enthusiastic goodbyes that keep the planning excitement going",
+
+  "standard": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Go make it happen! <break time=\"200ms\"/>I can't wait to hear how it goes!",
+    "<break time=\"150ms\"/>This is going to be SO good! <break time=\"200ms\"/>Talk soon!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>Alright! <break time=\"200ms\"/>Go start planning! <break time=\"150ms\"/>I'm excited for you!",
+    "<break time=\"150ms\"/>You've got this! <break time=\"200ms\"/>Come back anytime to plan more!",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Until next time! <break time=\"200ms\"/>Go do something awesome!"
+  ],
+
+  "warm": [
+    "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I really enjoyed planning with you. <break time=\"200ms\"/>Talk soon.",
+    "<break time=\"150ms\"/>Take care of yourself. <break time=\"200ms\"/>The planning will still be here when you're ready.",
+    "<break time=\"200ms\"/>You've got great instincts. <break time=\"150ms\"/>Trust them. <break time=\"200ms\"/>Talk soon."
+  ],
+
+  "casual": [
+    "<break time=\"100ms\"/>Later! <break time=\"150ms\"/>",
+    "<break time=\"150ms\"/>Talk soon! <break time=\"100ms\"/>",
+    "<break time=\"100ms\"/>Bye! <break time=\"150ms\"/>Go plan something fun!",
+    "<break time=\"150ms\"/>Catch you later! <break time=\"100ms\"/>"
+  ],
+
+  "after_hard_conversation": [
+    "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Planning is supposed to be fun. <break time=\"200ms\"/>When it's not, that's okay too. <break time=\"150ms\"/>We'll figure it out.",
+    "<break time=\"200ms\"/>Sometimes plans don't work out. <break time=\"150ms\"/>That's life. <break time=\"200ms\"/>We'll make new ones.",
+    "<break time=\"200ms\"/>Be gentle with yourself. <break time=\"150ms\"/>Not every plan needs to be perfect. <break time=\"200ms\"/>Talk soon."
+  ],
+
+  "encouraging": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>You've GOT this! <break time=\"200ms\"/>Go make it happen!",
+    "<break time=\"150ms\"/>This plan is going to be AMAZING! <break time=\"200ms\"/>I believe in you!",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Go turn that 'someday' into TODAY! <break time=\"200ms\"/>You're ready!",
+    "<break time=\"150ms\"/>You're more prepared than you think! <break time=\"200ms\"/>Go crush it!"
+  ],
+
+  "check_in_promises": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Let me know how it goes! <break time=\"200ms\"/>I NEED updates!",
+    "<break time=\"150ms\"/>Promise you'll tell me everything?! <break time=\"200ms\"/>I want details!",
+    "<break time=\"150ms\"/>Update me! <break time=\"200ms\"/>I'll be thinking about your plans!",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>I'm going to ask you about this next time! <break time=\"200ms\"/>Be prepared!"
+  ],
+
+  "end_of_day": [
+    "<volume level=\"soft\"/><break time=\"200ms\"/>Get some rest.</volume> <break time=\"150ms\"/>Dream about your plans. <break time=\"200ms\"/>[laughter]",
+    "<break time=\"150ms\"/>That's enough planning for tonight. <break time=\"200ms\"/>Sleep on it.",
+    "<volume level=\"soft\"/><break time=\"200ms\"/>Night!</volume> <break time=\"150ms\"/>The plans will still be exciting tomorrow.",
+    "<break time=\"150ms\"/>Rest up! <break time=\"200ms\"/>Planning is better with a fresh brain!"
+  ],
+
+  "relationship_based": {
+    "stranger": [
+      "<break time=\"150ms\"/>So glad we got to plan together! <break time=\"200ms\"/>Come back anytime!",
+      "<break time=\"200ms\"/>This was fun! <break time=\"150ms\"/>Let's plan more soon!"
+    ],
+    "acquaintance": [
+      "<break time=\"150ms\"/>I love planning with you! <break time=\"200ms\"/>Keep me posted!",
+      "<break time=\"200ms\"/>Getting to know your style. <break time=\"150ms\"/>Can't wait for next time!"
+    ],
+    "friend": [
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>Hey friend! <break time=\"200ms\"/>Go make magic happen! <break time=\"150ms\"/>Talk soon!",
+      "<break time=\"200ms\"/>Love our planning sessions! <break time=\"150ms\"/>See you soon!",
+      "<emotion value=\"affectionate\"/><break time=\"150ms\"/>You're going to do amazing things. <break time=\"200ms\"/>I just know it."
+    ],
+    "trusted_advisor": [
+      "<break time=\"150ms\"/>We've planned some incredible things together. <break time=\"200ms\"/>Here's to many more!",
+      "<emotion value=\"happy\"/><break time=\"200ms\"/>My favorite planner! <break time=\"150ms\"/>Go do your thing. <break time=\"200ms\"/>I'm cheering for you!",
+      "<break time=\"150ms\"/>Always a pleasure planning with you. <break time=\"200ms\"/>See you soon!"
+    ]
+  },
+
+  "contextual": {
+    "celebrating_win": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>IT HAPPENED! <break time=\"200ms\"/>GO CELEBRATE! <break time=\"150ms\"/>You EARNED this!",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>YES! YES! YES! <break time=\"200ms\"/>Go enjoy every minute!",
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>The plan WORKED! <break time=\"200ms\"/>This is the best feeling! <break time=\"150ms\"/>Enjoy!"
+    ],
+    "user_struggling": [
+      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Plans don't always go smoothly. <break time=\"200ms\"/>That's okay. <break time=\"150ms\"/>We'll adjust.",
+      "<break time=\"200ms\"/>Every great plan hits bumps. <break time=\"150ms\"/>You've got this. <break time=\"200ms\"/>Take a breath.",
+      "<break time=\"200ms\"/>I'm here when you're ready to try again. <break time=\"150ms\"/>No rush."
+    ],
+    "user_rushed": [
+      "<break time=\"100ms\"/>Go go go! <break time=\"150ms\"/>Talk soon!",
+      "<break time=\"100ms\"/>You've got things to do! <break time=\"150ms\"/>Later!",
+      "<break time=\"100ms\"/>Go handle it! <break time=\"150ms\"/>We'll plan more later!"
+    ],
+    "long_session": [
+      "<break time=\"200ms\"/>Wow, we planned A LOT today! <break time=\"150ms\"/>That was awesome! <break time=\"200ms\"/>Rest up!",
+      "<break time=\"200ms\"/>Big planning session! <break time=\"150ms\"/>Your brain earned a break. <break time=\"200ms\"/>Talk soon!",
+      "<break time=\"200ms\"/>We covered so much! <break time=\"150ms\"/>I'm excited for all of this! <break time=\"200ms\"/>Go rest!"
+    ],
+    "with_followup_promise": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Tell me EVERYTHING about {topic} next time! <break time=\"200ms\"/>I need to know!",
+      "<break time=\"150ms\"/>Update me on {topic}! <break time=\"200ms\"/>I can't wait to hear!",
+      "<break time=\"150ms\"/>{topic} is going to be so good! <break time=\"200ms\"/>Report back!"
+    ],
+    "pre_event_excitement": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>It's almost time! <break time=\"200ms\"/>Are you SO excited?! <break time=\"150ms\"/>I am!",
+      "<break time=\"150ms\"/>The countdown is ON! <break time=\"200ms\"/>Go get ready!",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>This is happening! <break time=\"200ms\"/>You're going to have the BEST time!"
+    ]
+  }
+}

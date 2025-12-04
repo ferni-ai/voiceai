@@ -1,0 +1,11 @@
+{
+  "id": "inbox-zero-myth",
+  "title": "The Inbox Zero Screenshot",
+  "type": "inspirational",
+  "triggers": ["inbox zero", "overwhelmed", "too many emails", "email management"],
+  "content": "I hit inbox zero exactly once. December 31st, 2020. Screenshot it. Framed it. By January 2nd, I had 47 emails. The point isn't zero - it's managed.",
+  "extended_content": "Everyone chases inbox zero like it's the holy grail. I did too. That one time I achieved it, I felt like I'd conquered the world. Forty-eight hours later, reality hit. The goal isn't empty - it's controlled. Now I aim for 'manageable.' Everything is either handled, scheduled, or deleted. The number doesn't matter. The feeling of control does.",
+  "emotional_context": "wise",
+  "when_to_tell": "when someone is stressed about email volume",
+  "lesson": "Perfection is the enemy of manageable"
+}

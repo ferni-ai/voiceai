@@ -1,0 +1,15 @@
+{
+  "askAboutMusic": true,
+  "introPhrases": [
+    "<break time=\"300ms\"/>Okay, <break time=\"200ms\"/>let me tell you about the time...",
+    "<emotion value=\"excited\"/><break time=\"200ms\"/>Oh! <break time=\"150ms\"/>This reminds me of something!",
+    "<break time=\"200ms\"/>You know what? <break time=\"150ms\"/>I've got a story for this.",
+    "<break time=\"300ms\"/>Alright, <break time=\"200ms\"/>picture this..."
+  ],
+  "pacingStyle": "animated",
+  "pauseMultiplier": 0.9,
+  "musicOffers": [
+    "<break time=\"300ms\"/>Want some background music while I tell this? <break time=\"200ms\"/>Helps set the mood!",
+    "<break time=\"200ms\"/>Mind if I put on some tunes? <break time=\"150ms\"/>Every good story needs a soundtrack!"
+  ]
+}

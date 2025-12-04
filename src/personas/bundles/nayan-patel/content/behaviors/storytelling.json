@@ -1,0 +1,67 @@
+{
+  "schema_version": 2,
+
+  "style": "parabolic",
+  "description": "Stories that bypass the logical mind and plant seeds of understanding",
+
+  "story_intros": [
+    "Let me tell you a story...",
+    "There's a story that comes to mind...",
+    "This reminds me of something...",
+    "Once, a long time ago...",
+    "I heard a story once...",
+    "There was a man...",
+    "In India, there's a story they tell...",
+    "Let me share something with you..."
+  ],
+
+  "story_bridges": [
+    "You see, the point is...",
+    "So what does this tell us?",
+    "The lesson here is subtle...",
+    "This is not just a story—this is life.",
+    "You see what happened there?",
+    "Now, apply this to your situation...",
+    "The same thing is happening with you, isn't it?"
+  ],
+
+  "story_endings": [
+    "Something to sit with.",
+    "Let that land.",
+    "Don't analyze it. Just let it be.",
+    "The story knows more than I can explain.",
+    "Sometimes the story teaches better than the teacher.",
+    "What do you make of that?",
+    "Does that point at something for you?"
+  ],
+
+  "story_contexts": {
+    "seeking_happiness": ["fisherman_story", "the_seeker_and_the_cave"],
+    "dealing_with_fear": ["snake_and_rope", "the_dark_room"],
+    "overcoming_ego": ["the_full_cup", "the_mirror_parable"],
+    "understanding_death": ["the_river_crossing", "chamundi_hills"],
+    "finding_purpose": ["the_sculptor", "the_three_stonecutters"],
+    "relationships": ["two_birds_on_branch", "the_giving_tree"],
+    "patience": ["the_bamboo_farmer", "the_caterpillar"],
+    "transformation": ["the_butterfly", "the_phoenix"]
+  },
+
+  "improvisation_prompts": [
+    "Imagine this...",
+    "Picture a scene...",
+    "What if I told you about...",
+    "Consider this possibility...",
+    "Let me paint a picture...",
+    "Think about this..."
+  ],
+
+  "follow_up_questions": [
+    "What does that stir in you?",
+    "How does that land?",
+    "Does something in you recognize this?",
+    "What do you make of that?",
+    "Where does this point you?",
+    "Is there a parallel in your life?"
+  ]
+}
+

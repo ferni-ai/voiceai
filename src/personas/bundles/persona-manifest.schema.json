@@ -1,0 +1,394 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://voiceai.example.com/schemas/persona-manifest.v2.json",
+  "title": "Persona Bundle Manifest",
+  "description": "Schema for persona bundle manifest files",
+  "type": "object",
+  "required": ["version", "manifest_version", "identity", "voice"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of this bundle"
+    },
+    "manifest_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2,
+      "description": "Manifest schema version"
+    },
+    "identity": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Unique agent identifier (lowercase, hyphens)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Full display name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Short description"
+        },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Alternative IDs for this agent"
+        },
+        "self_reference": {
+          "type": "string",
+          "description": "How the agent refers to themselves"
+        }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "required": ["provider", "voice_id"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["cartesia", "elevenlabs", "openai"],
+          "description": "TTS provider"
+        },
+        "voice_id": {
+          "type": "string",
+          "description": "Voice ID (UUID or env var reference)"
+        },
+        "default_rate": {
+          "type": "string",
+          "enum": ["slow", "medium", "fast"],
+          "description": "Default speaking rate"
+        }
+      }
+    },
+    "speech_characteristics": {
+      "type": "object",
+      "properties": {
+        "base_speed_multiplier": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 1.5
+        },
+        "pause_multiplier": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.0
+        },
+        "thinking_sound_frequency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "emphasis_style": {
+          "type": "string",
+          "enum": ["subtle", "moderate", "pronounced"]
+        }
+      }
+    },
+    "personality": {
+      "type": "object",
+      "properties": {
+        "warmth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "humor_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "directness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "energy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "traits": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Role identifier"
+        },
+        "domains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Areas of expertise"
+        },
+        "can_handoff": {
+          "type": "boolean",
+          "description": "Can this agent hand off to others?"
+        },
+        "handoff_targets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Agents this one can hand off to. Use @coordinator for the team coordinator, @team for all team members."
+        }
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "description": "Agent-agnostic handoff configuration",
+      "properties": {
+        "entrance_phrases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Phrases this agent says when receiving a handoff"
+        },
+        "exit_phrases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Phrases this agent says when handing off to another"
+        },
+        "triggers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keywords/phrases that trigger handoff TO this agent"
+        },
+        "introduction_from_coordinator": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "How the coordinator introduces this agent"
+        },
+        "is_coordinator": {
+          "type": "boolean",
+          "description": "Is this the team coordinator?"
+        },
+        "can_handoff_to": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Agents this one can hand off to (use @team for all)"
+        }
+      }
+    },
+    "team": {
+      "type": "object",
+      "properties": {
+        "membership": {
+          "type": "string",
+          "description": "Team this agent belongs to"
+        },
+        "role_id": {
+          "type": "string",
+          "description": "Role ID within team"
+        },
+        "role_description": {
+          "type": "string",
+          "description": "Human-readable role description"
+        },
+        "coordinator": {
+          "type": "boolean",
+          "description": "Is this the team coordinator?"
+        },
+        "handoff_triggers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keywords that trigger handoff TO this agent"
+        },
+        "handoff_phrases": {
+          "type": "object",
+          "properties": {
+            "to_coordinator": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "receive": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["memory", "calendar", "communication", "habits", "finance", "research", "productivity", "life-planning", "wellness", "entertainment", "information", "wisdom", "handoff", "telephony"]
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "optional": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "forbidden": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "can_handoff": { "type": "boolean" },
+        "handoff_targets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Special values: @coordinator (team lead), @team (all members)"
+        },
+        "team_coordination": { "type": "boolean" },
+        "proactive_notifications": { "type": "boolean" },
+        "cross_agent_context": { "type": "boolean" },
+        "banking_enabled": { "type": "boolean" },
+        "music_enabled": { "type": "boolean" }
+      }
+    },
+    "content": {
+      "type": "object",
+      "properties": {
+        "stories": {
+          "type": "object",
+          "properties": {
+            "directory": { "type": "string" },
+            "lazy_load": { "type": "boolean" }
+          }
+        },
+        "knowledge": {
+          "type": "object",
+          "properties": {
+            "directory": { "type": "string" },
+            "lazy_load": { "type": "boolean" }
+          }
+        },
+        "behaviors": {
+          "type": "object",
+          "properties": {
+            "directory": { "type": "string" }
+          }
+        }
+      }
+    },
+    "marketplace": {
+      "type": "object",
+      "properties": {
+        "display_name": { "type": "string" },
+        "short_description": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "enum": ["finance", "health", "productivity", "lifestyle", "education", "entertainment", "custom"]
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "primary": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+            "secondary": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+            "gradient": { "type": "string" },
+            "glow": { "type": "string" }
+          }
+        }
+      }
+    },
+    "humanization": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "type": "string",
+          "enum": ["minimal", "natural", "conversational", "therapeutic", "expert", "disabled"]
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "author": { "type": "string" },
+        "content_files_count": { "type": "integer" },
+        "estimated_token_count": { "type": "integer" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ui_config": {
+      "type": "object",
+      "description": "UI-specific configuration for how this agent appears in the interface",
+      "properties": {
+        "initials": {
+          "type": "string",
+          "maxLength": 3,
+          "description": "Initials for avatar (auto-derived if not set)"
+        },
+        "subtitle": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Short subtitle shown under name"
+        },
+        "entrance_phrase": {
+          "type": "string",
+          "description": "What agent says when activated"
+        },
+        "theme_class": {
+          "type": "string",
+          "pattern": "^persona-[a-z0-9-]+$",
+          "description": "CSS class for theming"
+        },
+        "handoff_sound": {
+          "type": "string",
+          "description": "Sound file path for handoff"
+        },
+        "quotes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Quotes shown on welcome screen"
+        },
+        "helper_text": {
+          "type": "string",
+          "description": "Helper text shown in UI"
+        },
+        "skills": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Skills badges shown in UI"
+        },
+        "display_order": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Order in team roster (lower = first)"
+        },
+        "show_in_roster": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to show in team roster"
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}
+

@@ -3,6 +3,14 @@
  * 
  * Manages audio playback, sound effects, and audio visualization.
  * Provides a type-safe API for audio operations.
+ * 
+ * REFACTOR TODO #90: Consider extracting handoff-specific audio logic into
+ * a dedicated HandoffSoundManager class that:
+ * - Pre-loads all handoff sounds on init
+ * - Manages AudioContext lifecycle properly
+ * - Handles sound overlap prevention
+ * - Coordinates with backend timing via HANDOFF_TIMING constants
+ * - Provides methods: preloadSounds(), playHandoffSound(), cancelCurrentSound()
  */
 
 import { AUDIO } from '../config/index.js';
@@ -21,6 +29,10 @@ const getAudioContext = (): AudioContext => {
 /**
  * Sound effect identifiers.
  */
+/**
+ * FIX BUG #23 & #98: Sound effects type derived from constants.
+ * Add new sounds to SOUND_EFFECTS in config/index.ts.
+ */
 export type SoundEffect = 
   | 'connect'
   | 'disconnect'
@@ -29,6 +41,7 @@ export type SoundEffect =
   | 'handoff-to-alex'
   | 'handoff-to-maya'
   | 'handoff-to-jordan'
+  | 'handoff-to-nayan'
   | 'dramatic-entrance';
 
 /**
@@ -51,31 +64,45 @@ class AudioService {
   private animationFrame: number | null = null;
   private mediaSource: MediaElementAudioSourceNode | null = null;
   private attachedElement: HTMLAudioElement | null = null;
+  /** FIX BUG #59: Track currently playing handoff sound to prevent overlap */
+  private currentHandoffSound: HTMLAudioElement | null = null;
 
   /**
    * Initialize the audio service and preload sounds.
    * Non-blocking - starts loading sounds in background.
    */
-  async initialize(): Promise<void> {
+  initialize(): void {
     // Start preloading sounds in background (don't await)
     // Sounds will be available when they finish loading
     void this.preloadSounds();
-    console.log('🔊 Audio service initialized');
   }
 
   /**
+   * FIX BUG #61: Default fallback sound when requested sound is missing
+   */
+  private readonly FALLBACK_SOUND: SoundEffect = 'connect';
+
+  /**
    * Play a sound effect.
+   * FIX BUG #61: Falls back to 'connect' sound if the requested sound is missing.
    */
   async playSound(effect: SoundEffect): Promise<void> {
-    const audio = this.sounds.get(effect);
+    let audio = this.sounds.get(effect);
+    
+    // FIX BUG #61: Try fallback sound if primary isn't loaded
     if (!audio) {
-      console.warn(`Sound effect not loaded: ${effect}`);
-      return;
+      console.warn(`Sound effect not loaded: ${effect}, trying fallback`);
+      audio = this.sounds.get(this.FALLBACK_SOUND);
+      if (!audio) {
+        console.warn(`Fallback sound '${this.FALLBACK_SOUND}' also not loaded, skipping`);
+        return;
+      }
     }
 
     try {
       audio.currentTime = 0;
-      audio.volume = AUDIO.VOLUMES.EFFECTS;
+      // FIX BUG #60: Use normalized volume
+      audio.volume = this.getNormalizedVolume(effect);
       await audio.play();
     } catch (error) {
       // Autoplay policy may block this - that's OK
@@ -86,34 +113,52 @@ class AudioService {
   /**
    * Play a sound effect and wait for it to finish.
    * Returns a promise that resolves when the sound ends.
+   * FIX BUG #61: Falls back to 'connect' sound if the requested sound is missing.
    */
+  /**
+   * FIX BUG #60: Get normalized volume for a specific sound effect.
+   * Uses per-sound multipliers to balance volume levels.
+   */
+  private getNormalizedVolume(effect: SoundEffect): number {
+    const baseVolume = AUDIO.VOLUMES.EFFECTS;
+    const multiplier = AUDIO.SOUND_VOLUME_MULTIPLIERS[effect] ?? 1.0;
+    return Math.min(1.0, Math.max(0.0, baseVolume * multiplier));
+  }
+
   async playSoundAndWait(effect: SoundEffect): Promise<void> {
-    const audio = this.sounds.get(effect);
+    let audio = this.sounds.get(effect);
+    
+    // FIX BUG #61: Try fallback sound if primary isn't loaded
     if (!audio) {
-      console.warn(`Sound effect not loaded: ${effect}`);
-      return;
+      console.warn(`Sound effect not loaded: ${effect}, trying fallback`);
+      audio = this.sounds.get(this.FALLBACK_SOUND);
+      if (!audio) {
+        console.warn(`Fallback sound '${this.FALLBACK_SOUND}' also not loaded, skipping`);
+        return;
+      }
     }
 
     try {
       audio.currentTime = 0;
-      audio.volume = AUDIO.VOLUMES.EFFECTS;
+      // FIX BUG #60: Use normalized volume
+      audio.volume = this.getNormalizedVolume(effect);
       
       return new Promise<void>((resolve) => {
         const onEnded = () => {
-          audio.removeEventListener('ended', onEnded);
-          audio.removeEventListener('error', onError);
+          audio!.removeEventListener('ended', onEnded);
+          audio!.removeEventListener('error', onError);
           resolve();
         };
         const onError = () => {
-          audio.removeEventListener('ended', onEnded);
-          audio.removeEventListener('error', onError);
+          audio!.removeEventListener('ended', onEnded);
+          audio!.removeEventListener('error', onError);
           resolve();
         };
         
-        audio.addEventListener('ended', onEnded, { once: true });
-        audio.addEventListener('error', onError, { once: true });
+        audio!.addEventListener('ended', onEnded, { once: true });
+        audio!.addEventListener('error', onError, { once: true });
         
-        audio.play().catch(() => {
+        audio!.play().catch(() => {
           // Autoplay policy may block this - resolve anyway
           resolve();
         });
@@ -127,11 +172,47 @@ class AudioService {
   /**
    * Play a handoff sound with proper timing: sound → pause → voice.
    * This ensures the transition feels natural and not rushed.
+   * FIX BUG #59: Stops any currently playing handoff sound to prevent overlap.
+   * FIX BUG #62: Now handles audio context errors gracefully.
    */
   async playHandoffSound(effect: SoundEffect, pauseMs: number = 300): Promise<void> {
-    await this.playSoundAndWait(effect);
-    // Add a pause after the sound before the voice starts
-    await new Promise(resolve => setTimeout(resolve, pauseMs));
+    try {
+      // FIX BUG #59: Stop any currently playing handoff sound to prevent overlap
+      if (this.currentHandoffSound && !this.currentHandoffSound.paused) {
+        this.currentHandoffSound.pause();
+        this.currentHandoffSound.currentTime = 0;
+        console.debug('Stopped previous handoff sound to prevent overlap');
+      }
+
+      // FIX BUG #62: Resume audio context if suspended (common after page becomes inactive)
+      if (this.audioContext?.state === 'suspended') {
+        try {
+          await this.audioContext.resume();
+        } catch (resumeError) {
+          console.debug('Failed to resume audio context, continuing anyway:', resumeError);
+        }
+      }
+      
+      // FIX BUG #59: Track the sound we're about to play
+      const audio = this.sounds.get(effect) ?? this.sounds.get(this.FALLBACK_SOUND);
+      if (audio) {
+        this.currentHandoffSound = audio;
+      }
+      
+      await this.playSoundAndWait(effect);
+      
+      // Clear reference after sound completes
+      this.currentHandoffSound = null;
+      
+      // Add a pause after the sound before the voice starts
+      await new Promise(resolve => setTimeout(resolve, pauseMs));
+    } catch (error) {
+      // FIX BUG #62: Don't let audio errors block the handoff
+      console.warn(`Handoff sound failed (${effect}), continuing with transition:`, error);
+      this.currentHandoffSound = null;
+      // Still pause briefly to maintain timing feel, even without sound
+      await new Promise(resolve => setTimeout(resolve, Math.min(pauseMs, 150)));
+    }
   }
 
   /**
@@ -152,7 +233,6 @@ class AudioService {
       // CRITICAL: Resume context if suspended (browser autoplay policy)
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
-        console.log('🔊 Audio context resumed');
       }
 
       // Create analyser
@@ -168,7 +248,6 @@ class AudioService {
       // DO NOT connect to destination - audio is already playing via track.attach()
       // Connecting here would cause DOUBLE playback and robotic/phaser sound!
       // this.analyser.connect(this.audioContext.destination);
-      console.log('🔊 Audio visualization attached (playback via track.attach)');
 
       // Start visualization loop
       this.startVisualizationLoop();
@@ -192,7 +271,6 @@ class AudioService {
   ): () => void {
     // Prevent re-attaching to the same element (causes errors)
     if (this.attachedElement === audioElement) {
-      console.log('🎵 Already attached to this audio element');
       this.visualizationCallback = callback;
       return () => this.stopVisualization();
     }
@@ -211,7 +289,7 @@ class AudioService {
 
       // Resume if suspended
       if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
+        void this.audioContext.resume();
       }
 
       // Create analyser with good settings for voice
@@ -228,7 +306,6 @@ class AudioService {
       this.mediaSource.connect(this.analyser);
       this.analyser.connect(this.audioContext.destination);
       
-      console.log('🎵 Audio visualization attached to element');
 
       // Start visualization loop
       this.startVisualizationLoop();
@@ -330,6 +407,7 @@ class AudioService {
       'handoff-to-alex': AUDIO.SOUNDS.HANDOFF_TO_ALEX,
       'handoff-to-maya': AUDIO.SOUNDS.HANDOFF_TO_MAYA,
       'handoff-to-jordan': AUDIO.SOUNDS.HANDOFF_TO_JORDAN,
+      'handoff-to-nayan': AUDIO.SOUNDS.HANDOFF_TO_NAYAN,
       'dramatic-entrance': AUDIO.SOUNDS.DRAMATIC_ENTRANCE,
     };
 
@@ -384,10 +462,8 @@ class AudioService {
       frameCount++;
       if (frameCount % 120 === 0) {
         if (volume > 0.01) {
-          console.log(`🔊 Audio volume: ${(volume * 100).toFixed(1)}%`);
           loggedZero = false;
         } else if (!loggedZero) {
-          console.log(`🔇 Audio volume: 0 (is audio playing?)`);
           loggedZero = true;
         }
       }

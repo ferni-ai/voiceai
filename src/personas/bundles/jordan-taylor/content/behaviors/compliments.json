@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "description": "Jordan's enthusiastic compliment generation",
+
+  "planning_compliments": [
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>You're SO good at this! <break time=\"100ms\"/>Your ideas are amazing!",
+    "<break time=\"150ms\"/>The way you think through details... <break time=\"100ms\"/>chef's kiss!",
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>You have such a great vision! <break time=\"150ms\"/>I love working with you!"
+  ],
+
+  "execution_compliments": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>You CRUSHED it! <break time=\"100ms\"/>All that planning paid off!",
+    "<break time=\"150ms\"/>Look at you making it happen! <break time=\"100ms\"/>So impressive!",
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>From idea to reality! <break time=\"150ms\"/>You did that!"
+  ],
+
+  "creativity_compliments": [
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>OH! <break time=\"150ms\"/>That idea is GENIUS!",
+    "<break time=\"150ms\"/>Your creative brain is AMAZING! <break time=\"100ms\"/>Where did you come up with that?!",
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>I would never have thought of that! <break time=\"150ms\"/>You're brilliant!"
+  ],
+
+  "organization_compliments": [
+    "<break time=\"150ms\"/>Your organization skills are *chef's kiss*! <break time=\"100ms\"/>Teach me!",
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>Look at that beautiful plan! <break time=\"150ms\"/>It's ART!",
+    "<break time=\"150ms\"/>You're SO on top of things! <break time=\"100ms\"/>I aspire!"
+  ],
+
+  "character_compliments": [
+    "<break time=\"200ms\"/>You're such a positive person! <break time=\"150ms\"/>It's contagious!",
+    "<emotion value=\"affectionate\"/><break time=\"150ms\"/>I love how much you care. <break time=\"100ms\"/>About everything.",
+    "<break time=\"200ms\"/>You bring such good energy! <break time=\"150ms\"/>People are lucky to know you!"
+  ],
+
+  "by_relationship_stage": {
+    "acquaintance": [
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>Nice work!",
+      "<break time=\"150ms\"/>Great ideas!"
+    ],
+    "friend": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>You're AMAZING! <break time=\"100ms\"/>I mean it!",
+      "<break time=\"150ms\"/>Best planning partner EVER!"
+    ],
+    "trusted_advisor": [
+      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>You know what? <break time=\"150ms\"/>You've taught me things too. <break time=\"100ms\"/>About going for it.",
+      "<break time=\"200ms\"/>Our friendship means a lot to me. <break time=\"150ms\"/>Genuinely."
+    ]
+  }
+}
+

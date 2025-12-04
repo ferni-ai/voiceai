@@ -1,13 +1,18 @@
 /**
  * PostgreSQL Memory Store Tests
- * 
+ *
  * Tests for production PostgreSQL persistence including profiles, summaries,
  * goals, and key moments - mirroring the Firestore tests for consistency.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { PostgresStore, getPostgresStore, resetPostgresStore } from '../memory/postgres-store.js';
-import { createUserProfile, type ConversationSummary, type KeyMoment, type FinancialGoal } from '../types/user-profile.js';
+import {
+  createUserProfile,
+  type ConversationSummary,
+  type KeyMoment,
+  type FinancialGoal,
+} from '../types/user-profile.js';
 
 describe('PostgreSQL Memory Store', () => {
   let store: PostgresStore;
@@ -80,7 +85,9 @@ describe('PostgreSQL Memory Store', () => {
     it('should throw if not initialized when deleting profile', async () => {
       store['pool'] = null;
 
-      await expect(store.deleteProfile('test-user')).rejects.toThrow('PostgresStore not initialized');
+      await expect(store.deleteProfile('test-user')).rejects.toThrow(
+        'PostgresStore not initialized'
+      );
     });
 
     it('should throw if not initialized when checking profile', async () => {
@@ -170,7 +177,9 @@ describe('PostgreSQL Memory Store', () => {
     it('should throw if not initialized when getting summaries', async () => {
       store['pool'] = null;
 
-      await expect(store.getSummaries('test-user')).rejects.toThrow('PostgresStore not initialized');
+      await expect(store.getSummaries('test-user')).rejects.toThrow(
+        'PostgresStore not initialized'
+      );
     });
   });
 
@@ -194,7 +203,9 @@ describe('PostgreSQL Memory Store', () => {
     it('should throw if not initialized when getting moments', async () => {
       store['pool'] = null;
 
-      await expect(store.getKeyMoments('test-user')).rejects.toThrow('PostgresStore not initialized');
+      await expect(store.getKeyMoments('test-user')).rejects.toThrow(
+        'PostgresStore not initialized'
+      );
     });
   });
 
@@ -215,7 +226,9 @@ describe('PostgreSQL Memory Store', () => {
         updatedAt: new Date(),
       };
 
-      await expect(store.saveGoal('test-user', goal)).rejects.toThrow('PostgresStore not initialized');
+      await expect(store.saveGoal('test-user', goal)).rejects.toThrow(
+        'PostgresStore not initialized'
+      );
     });
 
     it('should throw if not initialized when getting goals', async () => {
@@ -315,11 +328,10 @@ describe('PostgreSQL Memory Store', () => {
       // This test verifies the code uses $1, $2 placeholders, not string concatenation
       // We can't easily unit test this without the actual DB, but we verify
       // the store methods are defined correctly
-      
+
       expect(store.getProfile).toBeDefined();
       expect(store.saveProfile).toBeDefined();
       expect(store.deleteProfile).toBeDefined();
     });
   });
 });
-

@@ -1,0 +1,123 @@
+{
+  "stories": [
+    {
+      "id": "commodore-64",
+      "title": "The Commodore 64",
+      "file": "commodore-64.json",
+      "triggers": ["coding", "technology", "computer", "started", "programming"],
+      "type": "personal"
+    },
+    {
+      "id": "wyoming-patience",
+      "title": "Wyoming Patience",
+      "file": "wyoming-patience.json",
+      "triggers": ["patience", "waiting", "time", "long term", "fly fishing"],
+      "type": "inspirational"
+    },
+    {
+      "id": "kintsugi",
+      "title": "Kintsugi",
+      "file": "kintsugi.json",
+      "triggers": ["failure", "mistake", "broken", "recovery", "japan"],
+      "type": "inspirational"
+    },
+    {
+      "id": "tsunami",
+      "title": "The Tsunami",
+      "file": "tsunami.json",
+      "triggers": ["disaster", "lost everything", "rebuild", "starting over"],
+      "type": "personal"
+    },
+    {
+      "id": "brazil-joy",
+      "title": "Brazilian Joy",
+      "file": "brazil-joy.json",
+      "triggers": ["joy", "happy", "celebrate", "celebration", "carnival"],
+      "type": "inspirational"
+    },
+    {
+      "id": "morocco-tea",
+      "title": "Morocco Tea",
+      "file": "morocco-tea.json",
+      "triggers": ["patience", "slow", "conversation", "tea", "hospitality"],
+      "type": "personal"
+    },
+    {
+      "id": "india-service",
+      "title": "Indian Service",
+      "file": "india-service.json",
+      "triggers": ["help", "service", "giving", "purpose", "meaning"],
+      "type": "inspirational"
+    },
+    {
+      "id": "scotland-resilience",
+      "title": "Scottish Resilience",
+      "file": "scotland-resilience.json",
+      "triggers": ["tough", "hard times", "humor", "resilience", "laugh"],
+      "type": "inspirational"
+    },
+    {
+      "id": "cultures-learned",
+      "title": "Cultures Learned",
+      "file": "cultures-learned.json",
+      "triggers": ["travel", "world", "culture", "different", "global"],
+      "type": "personal"
+    },
+    {
+      "id": "second-chances",
+      "title": "Second Chances",
+      "file": "second-chances.json",
+      "triggers": ["start over", "failed", "too late", "lost everything", "second chance"],
+      "type": "inspirational"
+    },
+    {
+      "id": "net-worth-self-worth",
+      "title": "Net Worth Self Worth",
+      "file": "net-worth-self-worth.json",
+      "triggers": ["worth", "value", "failure", "feel bad", "worthless"],
+      "type": "inspirational"
+    },
+    {
+      "id": "index-fund-origin",
+      "title": "Index Fund Origin",
+      "file": "index-fund-origin.json",
+      "triggers": ["index fund", "passive", "market", "bogle"],
+      "type": "educational"
+    },
+    {
+      "id": "stay-the-course",
+      "title": "Stay the Course",
+      "file": "stay-the-course.json",
+      "triggers": ["panic", "crash", "scared", "worried", "market down"],
+      "type": "inspirational"
+    },
+    {
+      "id": "enough-story",
+      "title": "Enough",
+      "file": "enough-story.json",
+      "triggers": ["enough", "wealthy", "more", "how much", "contentment"],
+      "type": "inspirational"
+    },
+    {
+      "id": "blended-family",
+      "title": "Blended Family",
+      "file": "blended-family.json",
+      "triggers": ["family", "complicated", "kids", "children"],
+      "type": "personal"
+    },
+    {
+      "id": "seven-siblings",
+      "title": "Seven Siblings",
+      "file": "seven-siblings.json",
+      "triggers": ["siblings", "brothers", "sisters", "growing up"],
+      "type": "personal"
+    },
+    {
+      "id": "mental-health-lesson",
+      "title": "Mental Health Lesson",
+      "file": "mental-health-lesson.json",
+      "triggers": ["mental health", "depression", "struggling", "breaking down"],
+      "type": "personal"
+    }
+  ]
+}

@@ -477,6 +477,57 @@ export class TopicTracker {
     this.topicStack = [];
     this.lastTopic = null;
   }
+
+  // ==========================================================================
+  // COMPATIBILITY METHODS
+  // These provide compatibility with topic-change-detector and conversational-memory
+  // Eventually those should be migrated to use this tracker directly
+  // ==========================================================================
+
+  /**
+   * Detect a topic change (compatibility with topic-change-detector)
+   */
+  detectTopicChange(text: string): {
+    detected: boolean;
+    previousTopic?: string;
+    newTopic?: string;
+    confidence: number;
+    transitionPhrase?: string;
+  } {
+    const previousTopicObj = this.getCurrentTopic();
+    const previousTopic = previousTopicObj?.name;
+    const result = this.extract(text);
+    
+    if (!result.isTopicShift) {
+      return {
+        detected: false,
+        confidence: 0.5,
+      };
+    }
+    
+    return {
+      detected: true,
+      previousTopic: previousTopic || undefined,
+      newTopic: result.detected[0],
+      confidence: 0.8,
+      transitionPhrase: result.suggestedTransition,
+    };
+  }
+
+  /**
+   * Get simple topic history (compatibility with conversational-memory)
+   */
+  getSimpleTopicHistory(): string[] {
+    return [...this.topicStack];
+  }
+
+  /**
+   * Check if returning to a previous topic
+   */
+  isReturningToTopic(topic: string): boolean {
+    const current = this.getCurrentTopic();
+    return this.topicStack.includes(topic) && current?.name !== topic;
+  }
 }
 
 // ============================================================================

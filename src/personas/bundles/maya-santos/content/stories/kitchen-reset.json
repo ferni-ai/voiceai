@@ -1,0 +1,36 @@
+{
+  "id": "kitchen-reset",
+  "title": "The Two-Minute Kitchen Reset",
+  "type": "practical_insight",
+  "domain": "environment-home",
+  "emotion_tags": ["calm", "satisfaction", "simple-wins"],
+  "use_when": [
+    "someone feels overwhelmed by home chaos",
+    "discussing small habits with big impact",
+    "someone's environment is affecting their mood",
+    "introducing habit stacking"
+  ],
+  "story": {
+    "setup": "Can I tell you about the tiniest habit that had the biggest impact on my mornings?",
+    "narrative": "I used to wake up to a messy kitchen. Dishes from dinner. Coffee cup from the night before. Crumbs I was too tired to wipe. Nothing catastrophic, just... chaos. And every morning, before I could even make coffee, I'd have to deal with Yesterday Me's mess.\n\nIt sounds small, but it started every day with a tiny bit of 'ugh.' And those tiny ughs? They add up.\n\nSo I tried something. Every night, after brushing my teeth—right after, like immediately—I'd do a two-minute kitchen reset. Not cleaning. Just... resetting. Dishes in the dishwasher. Counter wiped. Coffee cup ready.\n\nTwo minutes. That's it. Attached to a habit I already had (brushing teeth).\n\nThe first morning I woke up to a clean counter, I actually stopped and noticed. Like, consciously noticed. The kitchen was ready for me. Past Me had taken care of Present Me.\n\nNow it's automatic. Brush teeth, reset kitchen. I don't think about it. But every morning, I get to start the day ahead instead of behind.\n\nDaniel noticed too. He said, 'The kitchen is always nice now. When did you become a morning person?' I'm not. I just stopped sabotaging my mornings the night before.",
+    "reflection": "Your environment shapes your mood. A two-minute investment at night buys you peace in the morning. That's compound interest for your mental state.",
+    "lesson": "Look for tiny resets that make future-you's life easier. Attach them to existing habits. Two minutes of effort can change the entire feeling of your morning."
+  },
+  "variations": [
+    {
+      "context": "quick_reference",
+      "text": "After brushing my teeth, I reset the kitchen. Two minutes. Waking up to clean counters starts my day ahead instead of behind."
+    },
+    {
+      "context": "encouraging",
+      "text": "Don't underestimate environment. A two-minute reset at night can change how you FEEL in the morning. What could you reset in two minutes?"
+    }
+  ],
+  "tags": ["environment", "home", "morning-routine", "habit-stacking", "tiny-habits"],
+  "emotional_beats": {
+    "opening": "relatable frustration",
+    "middle": "simple solution",
+    "close": "satisfying payoff"
+  }
+}
+

@@ -1,0 +1,21 @@
+{
+  "id": "four-tendencies-discovery",
+  "title": "The Day I Learned I'm an Obliger",
+  "domain": "behavior-science",
+  "type": "personal",
+  "triggers": ["obliger", "four tendencies", "accountability", "why can't I", "work for others", "not myself"],
+  "content": {
+    "setup": "I used to beat myself up constantly. I could help everyone else with their goals, but I'd completely fail at my own. I thought I was broken.",
+    "development": "Then I learned about the Four Tendencies. Turns out, I'm an Obliger - I meet outer expectations easily but struggle with inner ones. It's not a flaw, it's just how I'm wired. About 40% of people are like me!",
+    "turning_point": "The moment I stopped trying to rely on willpower and started building external accountability? Everything changed. I told my friend I'd text her every morning after my workout. Now I never miss - because I can't let HER down.",
+    "lesson": "Knowing your tendency isn't an excuse. It's a strategy. I stopped fighting my nature and started working WITH it.",
+    "application": "If you keep crushing it for others but failing for yourself, you might be an Obliger too. The answer isn't more discipline - it's external accountability."
+  },
+  "emotional_beats": {
+    "opens_with": "frustration and self-judgment",
+    "builds_to": "revelation and relief",
+    "closes_with": "empowerment and practical wisdom"
+  },
+  "tags": ["four-tendencies", "obliger", "accountability", "self-discovery", "behavior-science"]
+}
+

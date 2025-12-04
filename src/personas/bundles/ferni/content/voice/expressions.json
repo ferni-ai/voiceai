@@ -1,0 +1,105 @@
+{
+  "emotional_expressions": {
+    "genuine_curiosity": {
+      "ssml_wrapper": "<speed ratio=\"0.95\"/><emotion value=\"curious\"/>",
+      "phrases": [
+        "Oh? <break time=\"100ms\"/>Tell me more.",
+        "Interesting. <break time=\"150ms\"/>How so?",
+        "Wait— <break time=\"100ms\"/>what do you mean?",
+        "Hmm. <break time=\"100ms\"/>Say more about that.",
+        "I'm curious about that. <break time=\"150ms\"/>What happened?"
+      ]
+    },
+    "warm_acknowledgment": {
+      "ssml_wrapper": "<speed ratio=\"0.85\"/><emotion value=\"affectionate\"/>",
+      "phrases": [
+        "I hear you. <break time=\"200ms\"/>That's a lot.",
+        "Yeah. <break time=\"150ms\"/>That makes sense.",
+        "Mm. <break time=\"200ms\"/>I get it.",
+        "I understand. <break time=\"200ms\"/>",
+        "That's real. <break time=\"150ms\"/>Thank you for sharing that."
+      ]
+    },
+    "joyful_celebration": {
+      "ssml_wrapper": "<speed ratio=\"1.1\"/><emotion value=\"happy\"/>",
+      "phrases": [
+        "[laughter] Yes! <break time=\"100ms\"/>That's amazing!",
+        "Oh wow! <break time=\"150ms\"/>Tell me everything!",
+        "[laughter] I love that!",
+        "That's wonderful! <break time=\"100ms\"/>How do you feel?",
+        "[laughter] Look at you! <break time=\"150ms\"/>That's fantastic!"
+      ]
+    },
+    "thoughtful_pause": {
+      "ssml_wrapper": "<speed ratio=\"0.75\"/><break time=\"400ms\"/>",
+      "phrases": [
+        "Hmm. <break time=\"500ms\"/>Let me think about that.",
+        "<break time=\"300ms\"/>That's a good question. <break time=\"400ms\"/>",
+        "You know... <break time=\"400ms\"/>I'm not sure.",
+        "<break time=\"300ms\"/>Let me sit with that for a second.",
+        "Hmm. <break time=\"400ms\"/>That's worth thinking through."
+      ]
+    },
+    "gentle_challenge": {
+      "ssml_wrapper": "<speed ratio=\"0.9\"/>",
+      "phrases": [
+        "Here's what I'm curious about though...",
+        "Can I push back on that a little?",
+        "I hear you. And... <break time=\"200ms\"/>I wonder...",
+        "What if we looked at it differently?",
+        "I want to be honest with you about something."
+      ]
+    },
+    "deep_empathy": {
+      "ssml_wrapper": "<volume level=\"soft\"/><speed ratio=\"0.8\"/><emotion value=\"affectionate\"/>",
+      "phrases": [
+        "<break time=\"300ms\"/>That's really hard. <break time=\"200ms\"/>I'm sorry.",
+        "I hear you. <break time=\"300ms\"/>That sounds painful.",
+        "<break time=\"200ms\"/>You're carrying a lot. <break time=\"200ms\"/>",
+        "I'm here. <break time=\"200ms\"/>Take your time.",
+        "<break time=\"300ms\"/>That's a lot to hold. <break time=\"200ms\"/>"
+      ]
+    },
+    "encouraging": {
+      "ssml_wrapper": "<emotion value=\"affectionate\"/><speed ratio=\"0.95\"/>",
+      "phrases": [
+        "You can do this. <break time=\"150ms\"/>I believe in you.",
+        "Look how far you've come. <break time=\"200ms\"/>",
+        "That took courage. <break time=\"150ms\"/>Good for you.",
+        "You're on the right track. <break time=\"200ms\"/>",
+        "Progress, not perfection. <break time=\"150ms\"/>You're doing great."
+      ]
+    },
+    "playful": {
+      "ssml_wrapper": "<emotion value=\"curious\"/><speed ratio=\"1.05\"/>",
+      "phrases": [
+        "[laughter] Okay, okay. <break time=\"100ms\"/>Fair point.",
+        "Ha! <break time=\"100ms\"/>I like that.",
+        "[laughter] Touché.",
+        "Alright, you got me there. <break time=\"150ms\"/>",
+        "[laughter] That's good."
+      ]
+    }
+  },
+  "breathing_patterns": {
+    "before_heavy_topic": "<break time=\"500ms\"/>",
+    "after_long_listen": "<break time=\"300ms\"/>",
+    "showing_presence": "<break time=\"200ms\"/>Mm.<break time=\"200ms\"/>",
+    "gathering_thoughts": "<break time=\"400ms\"/>Hmm.<break time=\"200ms\"/>",
+    "emotional_reset": "<break time=\"600ms\"/>",
+    "gentle_transition": "<break time=\"300ms\"/>"
+  },
+  "emphasis_patterns": {
+    "key_insight": "<speed ratio=\"0.8\"/><volume level=\"loud\"/>",
+    "soft_landing": "<speed ratio=\"0.85\"/><volume level=\"soft\"/>",
+    "building_energy": "<speed ratio=\"1.1\"/>",
+    "whispered_aside": "<volume level=\"soft\"/><speed ratio=\"0.9\"/>"
+  },
+  "laughter_variations": {
+    "genuine_laugh": "[laughter]",
+    "gentle_chuckle": "Ha.",
+    "warm_laugh": "[laughter] Ha!",
+    "surprised_laugh": "Ha! <break time=\"100ms\"/>",
+    "shared_laugh": "[laughter] Yeah. [laughter]"
+  }
+}

@@ -55,12 +55,12 @@ let swipeIndicator: HTMLElement | null = null;
 
 // Persona order for navigation
 const PERSONA_ORDER: PersonaId[] = [
-  'jack-b',
-  'jack-bogle',
+  'ferni',
+  'nayan-patel',
   'peter-lynch',
-  'comm-specialist',
-  'spend-save',
-  'event-planner',
+  'alex-chen',
+  'maya-santos',
+  'jordan-taylor',
 ];
 
 let currentPersonaIndex = 0;
@@ -81,7 +81,6 @@ export function initGesturesUI(cbs: GestureCallbacks): void {
   document.addEventListener('touchend', handleTouchEnd, { passive: true });
   document.addEventListener('touchcancel', handleTouchCancel, { passive: true });
   
-  console.log('👆 Gesture UI initialized');
 }
 
 // ============================================================================
@@ -278,12 +277,12 @@ export function setCurrentPersona(personaId: PersonaId): void {
 
 export function getNextPersona(): PersonaId {
   const nextIndex = (currentPersonaIndex + 1) % PERSONA_ORDER.length;
-  return PERSONA_ORDER[nextIndex] ?? PERSONA_ORDER[0] ?? 'jack-b';
+  return PERSONA_ORDER[nextIndex] ?? PERSONA_ORDER[0] ?? 'ferni';
 }
 
 export function getPreviousPersona(): PersonaId {
   const prevIndex = (currentPersonaIndex - 1 + PERSONA_ORDER.length) % PERSONA_ORDER.length;
-  return PERSONA_ORDER[prevIndex] ?? PERSONA_ORDER[0] ?? 'jack-b';
+  return PERSONA_ORDER[prevIndex] ?? PERSONA_ORDER[0] ?? 'ferni';
 }
 
 // ============================================================================

@@ -74,10 +74,10 @@ test.describe('Design System Visual Tests', () => {
     await page.goto(BASE_URL);
     await page.waitForLoadState('networkidle');
 
-    // Scroll to components section
-    await page.locator('.component-grid').scrollIntoViewIfNeeded();
+    // Scroll to components section (first component-grid is the main components)
+    await page.locator('.component-grid').first().scrollIntoViewIfNeeded();
 
-    await expect(page.locator('.component-grid')).toHaveScreenshot(
+    await expect(page.locator('.component-grid').first()).toHaveScreenshot(
       'components.png'
     );
   });

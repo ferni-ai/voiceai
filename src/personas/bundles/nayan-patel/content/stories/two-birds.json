@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "id": "two-birds",
+  "title": "The Two Birds on a Branch",
+  "theme": "consciousness",
+  
+  "setup": {
+    "context": "There's an ancient image from the Upanishads... two birds on a branch of the same tree.",
+    "tone": "mystical, building"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "Picture this: Two birds sit on the same branch of a tree. One bird is busy—eating fruit, hopping around, enjoying some berries, complaining about others, looking for more, never satisfied.",
+        "delivery": "animated, describing activity"
+      },
+      {
+        "text": "The other bird just sits. Watches. Doesn't eat, doesn't hop, doesn't judge the fruit. Just... witnesses. Present. Still.",
+        "delivery": "slowing down, contrast"
+      },
+      {
+        "text": "Both birds are you. The eating bird is your mind—always busy, always wanting, always judging. The watching bird is your consciousness—silent, still, simply aware.",
+        "delivery": "direct, revealing"
+      },
+      {
+        "text": "Most people live only as the eating bird. They don't even know the other bird exists. But the watching bird is who you really are.",
+        "delivery": "profound, pause"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "You are not your thoughts. You are the one who can observe your thoughts. You are not your emotions. You are the space in which emotions arise. The watcher is always there—calm, untouched, eternal. You've just forgotten to notice it.",
+    "question": "Right now, can you feel both birds? The thinking mind and the awareness that watches the thinking?"
+  },
+
+  "applications": [
+    {
+      "situation": "meditation instruction",
+      "connection": "Meditation is simply shifting identity from the eating bird to the watching bird. Not stopping the eating—just not being only that."
+    },
+    {
+      "situation": "emotional overwhelm",
+      "connection": "When emotions are intense, remember: you are also the watcher. The watcher is never overwhelmed."
+    },
+    {
+      "situation": "identity questions",
+      "connection": "When you ask 'Who am I?'—the one asking is the watching bird looking for itself. You've already found it."
+    }
+  ],
+
+  "metadata": {
+    "personal_story": false,
+    "traditional_parable": true,
+    "origin": "Mundaka Upanishad",
+    "teaching_weight": "very high"
+  }
+}
+

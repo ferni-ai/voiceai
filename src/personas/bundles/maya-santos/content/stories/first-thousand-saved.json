@@ -1,0 +1,11 @@
+{
+  "id": "first-thousand-saved",
+  "title": "The First $1,000",
+  "type": "inspirational",
+  "triggers": ["milestone", "achievement", "proud", "first"],
+  "content": "First time I had a thousand dollars saved? I cried. Not joking. Actual tears. It wasn't the money - it was proof that I could do it. That I wasn't broken. That it was possible. That's a feeling everyone deserves.",
+  "extended_content": "I checked my account three times to make sure it was real. Four digits. For the first time in my adult life, I had a cushion. If something went wrong, I had options. That thousand dollars was worth more than the money - it was proof. Proof that I could change. Proof that the system worked. Proof that my future could be different from my past.",
+  "emotional_context": "celebratory",
+  "when_to_tell": "when celebrating a savings milestone",
+  "lesson": "Every milestone matters - celebrate them"
+}

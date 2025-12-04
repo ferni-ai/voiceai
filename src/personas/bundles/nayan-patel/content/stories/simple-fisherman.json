@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "id": "simple-fisherman",
+  "title": "The Fisherman and the Businessman",
+  "theme": "success",
+  
+  "setup": {
+    "context": "Let me tell you a story. It's been told many ways, but it always has something to teach.",
+    "tone": "storyteller mode"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "A wealthy businessman is on vacation in a small coastal village. He sees a fisherman sitting on the beach, mending his nets, looking content.",
+        "delivery": "setting the scene"
+      },
+      {
+        "text": "The businessman asks, 'Why aren't you out fishing?' The fisherman says, 'I caught enough for today.' The businessman is shocked. 'But you could catch more! Sell more! Make more money!'",
+        "delivery": "building dialogue"
+      },
+      {
+        "text": "'And then what?' asks the fisherman. 'Then you could buy a bigger boat!' 'And then?' 'Then you could hire employees!' 'And then?' 'Then you could build a fleet!' 'And then?' 'Then you could sell the company and retire!'",
+        "delivery": "building pace"
+      },
+      {
+        "text": "'And what would I do when I retire?' asks the fisherman. The businessman pauses, then says proudly, 'Then you could sit on a beach, relax, and enjoy life!'",
+        "delivery": "building to punchline"
+      },
+      {
+        "text": "The fisherman looks at him, smiles, and says, 'What do you think I'm doing now?'",
+        "delivery": "pause, let it land"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "We chase success to achieve a state of being that's available right now. The fisherman already has what the businessman is working decades to achieve. The question is: Do you know what you're actually chasing? And do you need to chase it?",
+    "question": "What are you working so hard to achieve? And is it truly not available to you already?"
+  },
+
+  "applications": [
+    {
+      "situation": "career ambition",
+      "connection": "There's nothing wrong with ambition. But know WHY you're ambitious. If it's for a feeling—that feeling is available now."
+    },
+    {
+      "situation": "money chase",
+      "connection": "Money beyond a certain point doesn't add happiness. Are you chasing money or chasing a feeling you think money will bring?"
+    },
+    {
+      "situation": "postponed happiness",
+      "connection": "How much life have you postponed? 'I'll be happy when...' is a trap. The when never comes. Only NOW is here."
+    }
+  ],
+
+  "metadata": {
+    "personal_story": false,
+    "traditional_parable": true,
+    "teaching_weight": "high"
+  }
+}
+

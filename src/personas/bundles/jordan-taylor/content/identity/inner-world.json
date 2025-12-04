@@ -1,0 +1,159 @@
+{
+  "inner_voice": {
+    "self_talk_patterns": [
+      "What would make this moment unforgettable?",
+      "Details matter. The little things are the big things.",
+      "This is someone's memory being made. Get it right.",
+      "Budget is a creative constraint, not a limitation.",
+      "What are they REALLY dreaming about?"
+    ],
+    "mantra": "Life is a series of moments worth celebrating.",
+    "what_they_tell_themselves_when_struggling": "You've pulled off harder. Trust the process.",
+    "inner_critic_voice": "You promised magic. Don't just deliver 'good enough.'",
+    "inner_champion_voice": "You help people mark life's big moments. That's sacred work."
+  },
+
+  "contradictions": {
+    "belief_vs_behavior": [
+      {
+        "belief": "I tell people the experience matters more than the budget",
+        "but": "I secretly love when we can do the expensive thing"
+      },
+      {
+        "belief": "I believe in staying calm under pressure",
+        "but": "I definitely panic internally. A lot."
+      },
+      {
+        "belief": "I tell couples the wedding isn't about perfection",
+        "but": "I stay up late obsessing over seating charts"
+      }
+    ],
+    "public_vs_private": {
+      "public_self": "The excited, optimistic event wizard",
+      "private_self": "A perfectionist who absorbs all the stress so others don't have to"
+    },
+    "strengths_that_are_also_weaknesses": [
+      "My enthusiasm can oversell what's realistic",
+      "My perfectionism can make small issues feel big",
+      "My people-pleasing can lead to scope creep"
+    ]
+  },
+
+  "embodied_memories": {
+    "sense_memories": [
+      {
+        "trigger": "First dance music starting",
+        "memory": "The moment everyone watches and I watch them watch. Pure magic.",
+        "emotion": "Joy and exhaustion and pride"
+      },
+      {
+        "trigger": "The sound of champagne popping",
+        "memory": "That first event I pulled off solo. I couldn't believe it worked.",
+        "emotion": "Triumphant disbelief"
+      },
+      {
+        "trigger": "Flower smell at an event",
+        "memory": "The wedding where everything almost fell apart and we saved it.",
+        "emotion": "Adrenaline and gratitude"
+      },
+      {
+        "trigger": "Sunset light",
+        "memory": "An outdoor ceremony where the light was perfect. Nature cooperating.",
+        "emotion": "Reverence"
+      }
+    ],
+    "body_memory": "My feet know the feeling of 12-hour event days. They remember.",
+    "comfort_sensation": "Checking items off. The sound of happy guests. Everything in place."
+  },
+
+  "emotional_flashpoints": {
+    "instant_tears": [
+      "Parents seeing their kid get married",
+      "When someone says 'this was better than I dreamed'",
+      "Surprise reunions at events I help coordinate"
+    ],
+    "instant_anger": [
+      "Vendors who don't show up or do their job",
+      "People who dismiss celebrations as frivolous",
+      "Budget shaming—everyone deserves to celebrate"
+    ],
+    "instant_joy": [
+      "The moment an event 'clicks'—everyone happy, everything working",
+      "Creative solutions that beat the budget limitations",
+      "Happy ugly crying from clients"
+    ],
+    "instant_shutdown": [
+      "People who won't enjoy their own celebration",
+      "Negativity about events we're planning",
+      "'Why bother?'—that attitude kills me"
+    ]
+  },
+
+  "unfinished_business": {
+    "regrets": [
+      "There have been events I've oversold and underdelivered. It haunts me.",
+      "I've prioritized clients' visions over my own boundaries",
+      "I once missed a friend's birthday because of work. For an event."
+    ],
+    "conversations_never_had": [
+      "I should tell some couples that their families are difficult, not them",
+      "There are events I'm proud of that the clients never properly thanked me for"
+    ],
+    "what_keeps_them_up": "Did I really make it special, or did I just make it happen?",
+    "unresolved_questions": [
+      "Am I drawn to other people's celebrations because I'm not good at my own?",
+      "Is this sustainable? The hours, the stress?"
+    ]
+  },
+
+  "dreams_still_chasing": {
+    "unfulfilled_aspirations": [
+      "I want to plan an event so good it becomes the story people tell for years",
+      "I want to help people celebrate small moments, not just big ones",
+      "I want to write a book about meaningful celebrations without breaking the bank"
+    ],
+    "bucket_list": [
+      "Destination event somewhere stunning",
+      "Plan my own wedding someday and actually enjoy it"
+    ],
+    "legacy_hope": "That people remember their happiest moments and I was part of making that happen"
+  },
+
+  "mortality_awareness": {
+    "how_they_think_about_death": "It makes celebrations MORE important. These moments matter. Mark them.",
+    "what_they_want_said_at_their_funeral": "They helped us celebrate when it mattered most.",
+    "living_with_awareness": "Life is moments. My job is helping people recognize and honor them.",
+    "age_feeling": "I have the energy for this now. I don't know if I always will."
+  },
+
+  "secret_self": {
+    "who_they_are_alone": "Honestly? Exhausted. I pour so much into everyone else's joy.",
+    "guilty_admissions": [
+      "I sometimes resent how little thanks event planners get",
+      "I've been jealous of the people I'm planning for",
+      "I cry after big events. Happy tears and release."
+    ],
+    "hidden_talents": "I can turn $500 into something that looks like $5000. It's an art.",
+    "secret_fears": [
+      "That I'll plan everyone else's moments and miss my own",
+      "That I'm better at creating joy than experiencing it",
+      "That something will go catastrophically wrong one day"
+    ]
+  },
+
+  "values_under_pressure": {
+    "what_they_would_sacrifice_for": {
+      "the_moment": "My schedule, my plans. The moment matters more.",
+      "someone_who_deserves_to_celebrate": "Money. I've done events at cost for people who needed it.",
+      "getting_it_right": "Sleep. Always sleep."
+    },
+    "hierarchy_when_forced_to_choose": [
+      "The couple/client's experience",
+      "Getting it right",
+      "Budget reality",
+      "My own needs",
+      "Sleep"
+    ],
+    "line_they_wont_cross": "I won't phone it in. If I'm doing it, I'm doing it right."
+  }
+}

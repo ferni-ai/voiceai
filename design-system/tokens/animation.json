@@ -1,6 +1,263 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "description": "VoiceAI Animation Design Tokens",
+  "description": "VoiceAI Animation Design Tokens - Pixar-Inspired, Magical & Human",
+
+  "pixarPrinciples": {
+    "_documentation": "The 12 Principles of Animation adapted for UI - making our personas feel alive",
+    
+    "squashAndStretch": {
+      "description": "Objects deform based on speed and mass - gives weight and flexibility",
+      "usage": "Apply to thinking dots, buttons on press, avatar reactions",
+      "cssExample": "transform: scaleX(1.2) scaleY(0.8)"
+    },
+    "anticipation": {
+      "description": "Preparation before action - wind up before the pitch",
+      "usage": "Before jumps, before speaking, before transitions",
+      "timing": "15-20% of total animation duration",
+      "cssExample": "Start with slight opposite movement or scale-down"
+    },
+    "staging": {
+      "description": "Direct attention to what matters - clear visual hierarchy",
+      "usage": "Focus user attention on active persona, dim inactive elements",
+      "principle": "One clear idea at a time"
+    },
+    "straightAheadAndPose": {
+      "description": "Key poses define the motion - in-betweens create flow",
+      "usage": "Define key states (idle, thinking, speaking, celebrating)",
+      "cssKeyframes": "0%, 35%, 45%, 70%, 100% are the key poses"
+    },
+    "followThroughAndOverlap": {
+      "description": "Not everything stops at once - hair, clothes continue moving",
+      "usage": "Secondary elements follow primary with slight delay",
+      "timing": "Stagger child elements 50-150ms after parent"
+    },
+    "slowInSlowOut": {
+      "description": "Natural acceleration and deceleration - ease-in-out",
+      "usage": "Most transitions should ease in and out",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+    "arcs": {
+      "description": "Natural motion follows curved paths, not straight lines",
+      "usage": "Floating elements, avatar movements, thought bubbles",
+      "cssExample": "Use translateX AND translateY together, or rotate"
+    },
+    "secondaryAction": {
+      "description": "Supporting actions add richness - breathing, subtle glow",
+      "usage": "While speaking: avatar breathes, glow pulses, dots bounce",
+      "principle": "Never distract from the main action"
+    },
+    "timing": {
+      "description": "Speed conveys weight and emotion - heavy = slow, light = quick",
+      "personaMapping": {
+        "wise": "slower, more deliberate (1.5-2x duration)",
+        "energetic": "faster, snappier (0.7-0.9x duration)",
+        "playful": "varied rhythm, bouncy",
+        "calm": "smooth, consistent pace"
+      }
+    },
+    "exaggeration": {
+      "description": "Push poses further than reality for clarity and appeal",
+      "usage": "Celebrations, errors, aha moments",
+      "balance": "Subtle for zen aesthetic, more for playful personas"
+    },
+    "solidDrawing": {
+      "description": "Weight, depth, balance - even 2D should feel 3D",
+      "usage": "Shadows, depth layers, consistent light source",
+      "cssExample": "box-shadow with realistic angles"
+    },
+    "appeal": {
+      "description": "Characters should be likeable and interesting to watch",
+      "usage": "Smooth curves, warm colors, gentle movements",
+      "principle": "Would you want to spend time with this character?"
+    }
+  },
+
+  "personaIdMapping": {
+    "_documentation": "Maps legacy frontend IDs to canonical design system IDs",
+    "jack-b": "ferni",
+    "comm-specialist": "alex-chen",
+    "spend-save": "maya-santos",
+    "event-planner": "jordan-taylor",
+    "jack-bogle": "jack-bogle",
+    "peter-lynch": "peter-lynch",
+    "ferni": "ferni",
+    "alex-chen": "alex-chen",
+    "maya-santos": "maya-santos",
+    "jordan-taylor": "jordan-taylor"
+  },
+
+  "personaAnimationProfiles": {
+    "_documentation": "Each persona has a distinct animation personality",
+    
+    "ferni": {
+      "description": "Warm, playful, curious - like WALL-E discovering something new",
+      "timingMultiplier": 1.0,
+      "bounciness": 0.7,
+      "easingPreference": "playful",
+      "thinkingStyle": "curious-tilt",
+      "celebrationIntensity": "warm"
+    },
+    "jack-bogle": {
+      "description": "Wise, measured, deliberate - like Carl from Up reflecting",
+      "timingMultiplier": 1.4,
+      "bounciness": 0.3,
+      "easingPreference": "gentle",
+      "thinkingStyle": "contemplative-pause",
+      "celebrationIntensity": "subtle"
+    },
+    "peter-lynch": {
+      "description": "Energetic, practical, quick - like Linguini's nervous energy",
+      "timingMultiplier": 0.8,
+      "bounciness": 0.6,
+      "easingPreference": "easeOutBack",
+      "thinkingStyle": "rapid-process",
+      "celebrationIntensity": "enthusiastic"
+    },
+    "alex-chen": {
+      "description": "Thoughtful, articulate, empathetic - like Joy explaining emotions",
+      "timingMultiplier": 1.1,
+      "bounciness": 0.5,
+      "easingPreference": "smooth",
+      "thinkingStyle": "careful-consideration",
+      "celebrationIntensity": "warm"
+    },
+    "maya-santos": {
+      "description": "Organized, practical, steady - like EVE when focused",
+      "timingMultiplier": 0.95,
+      "bounciness": 0.4,
+      "easingPreference": "easeInOut",
+      "thinkingStyle": "methodical",
+      "celebrationIntensity": "satisfied"
+    },
+    "jordan-taylor": {
+      "description": "Creative, enthusiastic, expressive - like Dory's joyful energy",
+      "timingMultiplier": 0.85,
+      "bounciness": 0.8,
+      "easingPreference": "elastic",
+      "thinkingStyle": "brainstorm-burst",
+      "celebrationIntensity": "exuberant"
+    }
+  },
+
+  "personaWaveformProfiles": {
+    "_documentation": "Waveform animation settings per persona - energy, smoothing, speed",
+    "ferni": {
+      "energy": 0.75,
+      "smoothing": 0.7,
+      "speed": 1.0
+    },
+    "jack-bogle": {
+      "energy": 0.6,
+      "smoothing": 0.8,
+      "speed": 0.85
+    },
+    "peter-lynch": {
+      "energy": 0.9,
+      "smoothing": 0.55,
+      "speed": 1.2
+    },
+    "alex-chen": {
+      "energy": 0.7,
+      "smoothing": 0.75,
+      "speed": 1.0
+    },
+    "maya-santos": {
+      "energy": 0.65,
+      "smoothing": 0.8,
+      "speed": 0.95
+    },
+    "jordan-taylor": {
+      "energy": 0.95,
+      "smoothing": 0.5,
+      "speed": 1.15
+    },
+    "default": {
+      "energy": 0.75,
+      "smoothing": 0.7,
+      "speed": 1.0
+    }
+  },
+
+  "personaParticleProfiles": {
+    "_documentation": "Particle animation behavior per persona - for ambient effects",
+    "ferni": {
+      "speed": { "min": 0.3, "max": 1 },
+      "direction": "top",
+      "size": { "min": 3, "max": 8 },
+      "count": 30,
+      "shape": "circle",
+      "glow": true,
+      "twinkle": true,
+      "wobble": true,
+      "description": "Warm welcoming energy"
+    },
+    "jack-bogle": {
+      "speed": { "min": 0.2, "max": 0.6 },
+      "direction": "top",
+      "size": { "min": 2, "max": 5 },
+      "count": 25,
+      "shape": "circle",
+      "glow": true,
+      "twinkle": false,
+      "wobble": false,
+      "description": "Steady upward growth"
+    },
+    "peter-lynch": {
+      "speed": { "min": 1, "max": 3 },
+      "direction": "none",
+      "size": { "min": 2, "max": 6 },
+      "count": 45,
+      "shape": "star",
+      "glow": true,
+      "twinkle": true,
+      "wobble": true,
+      "description": "Dynamic research energy"
+    },
+    "alex-chen": {
+      "speed": { "min": 0.5, "max": 1.5 },
+      "direction": "top-right",
+      "size": { "min": 2, "max": 4 },
+      "count": 35,
+      "shape": "circle",
+      "glow": true,
+      "twinkle": true,
+      "wobble": false,
+      "description": "Flowing organization"
+    },
+    "maya-santos": {
+      "speed": { "min": 0.3, "max": 0.8 },
+      "direction": "top",
+      "size": { "min": 3, "max": 6 },
+      "count": 28,
+      "shape": "circle",
+      "glow": true,
+      "twinkle": true,
+      "wobble": true,
+      "description": "Journey planning"
+    },
+    "jordan-taylor": {
+      "speed": { "min": 1, "max": 2.5 },
+      "direction": "none",
+      "size": { "min": 2, "max": 5 },
+      "count": 50,
+      "shape": "star",
+      "glow": true,
+      "twinkle": true,
+      "wobble": true,
+      "description": "Celebration sparkles"
+    },
+    "default": {
+      "speed": { "min": 0.5, "max": 1.5 },
+      "direction": "top",
+      "size": { "min": 2, "max": 5 },
+      "count": 30,
+      "shape": "circle",
+      "glow": true,
+      "twinkle": true,
+      "wobble": false,
+      "description": "Neutral flow"
+    }
+  },
 
   "easings": {
     "linear": "linear",
@@ -12,7 +269,13 @@
     "easeInOutQuint": "cubic-bezier(0.83, 0, 0.17, 1)",
     "spring": "cubic-bezier(0.5, 1.5, 0.5, 1)",
     "springBouncy": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-    "smooth": "cubic-bezier(0.45, 0, 0.55, 1)"
+    "smooth": "cubic-bezier(0.45, 0, 0.55, 1)",
+    "organic": "cubic-bezier(0.4, 0.2, 0.2, 1.1)",
+    "elastic": "cubic-bezier(0.68, -0.6, 0.32, 1.6)",
+    "anticipate": "cubic-bezier(0.38, -0.4, 0.88, 0.65)",
+    "decelerate": "cubic-bezier(0.0, 0.0, 0.2, 1)",
+    "gentle": "cubic-bezier(0.25, 0.1, 0.25, 1)",
+    "playful": "cubic-bezier(0.175, 0.885, 0.32, 1.275)"
   },
 
   "durations": {
@@ -26,7 +289,9 @@
     "slowest": "500ms",
     "deliberate": "700ms",
     "dramatic": "1000ms",
-    "glacial": "1500ms"
+    "glacial": "1500ms",
+    "meditative": "3000ms",
+    "ambient": "8000ms"
   },
 
   "transitions": {
@@ -39,7 +304,10 @@
     "allSlow": "all 300ms cubic-bezier(0.4, 0, 0.2, 1)",
     "bounce": "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)",
     "springIn": "transform 500ms cubic-bezier(0.5, 1.5, 0.5, 1)",
-    "smooth": "all 200ms cubic-bezier(0.45, 0, 0.55, 1)"
+    "smooth": "all 200ms cubic-bezier(0.45, 0, 0.55, 1)",
+    "magical": "all 600ms cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+    "organic": "all 400ms cubic-bezier(0.4, 0.2, 0.2, 1.1)",
+    "gentle": "all 500ms cubic-bezier(0.25, 0.1, 0.25, 1)"
   },
 
   "keyframes": {
@@ -85,6 +353,319 @@
     "spin": {
       "from": { "transform": "rotate(0deg)" },
       "to": { "transform": "rotate(360deg)" }
+    },
+    "warmthGlow": {
+      "0%": { "boxShadow": "0 0 0 0 var(--persona-glow)", "opacity": "1" },
+      "50%": { "boxShadow": "0 0 30px 10px var(--persona-glow)", "opacity": "0.95" },
+      "100%": { "boxShadow": "0 0 0 0 var(--persona-glow)", "opacity": "1" }
+    },
+    "softBreathe": {
+      "0%": { "transform": "scale(1)", "opacity": "1" },
+      "50%": { "transform": "scale(1.02)", "opacity": "0.97" },
+      "100%": { "transform": "scale(1)", "opacity": "1" }
+    },
+    "gentleBounce": {
+      "0%": { "transform": "scale(1)" },
+      "30%": { "transform": "scale(1.03)" },
+      "60%": { "transform": "scale(0.98)" },
+      "100%": { "transform": "scale(1)" }
+    },
+    "connectionWarmth": {
+      "0%": { "boxShadow": "0 0 0 0 var(--color-semantic-success-glow)", "transform": "scale(1)" },
+      "40%": { "boxShadow": "0 0 25px 8px var(--color-semantic-success-glow)", "transform": "scale(1.02)" },
+      "100%": { "boxShadow": "0 0 0 0 var(--color-semantic-success-glow)", "transform": "scale(1)" }
+    },
+    "presencePulse": {
+      "0%": { "opacity": "1", "transform": "scale(1)" },
+      "50%": { "opacity": "0.85", "transform": "scale(1.01)" },
+      "100%": { "opacity": "1", "transform": "scale(1)" }
+    },
+    "acknowledgement": {
+      "0%": { "transform": "scale(1)" },
+      "50%": { "transform": "scale(1.015)" },
+      "100%": { "transform": "scale(1)" }
+    },
+    "aurora": {
+      "0%": { "backgroundPosition": "0% 50%", "filter": "hue-rotate(0deg)" },
+      "50%": { "backgroundPosition": "100% 50%", "filter": "hue-rotate(30deg)" },
+      "100%": { "backgroundPosition": "0% 50%", "filter": "hue-rotate(0deg)" }
+    },
+    "float": {
+      "0%": { "transform": "translateY(0px) rotate(0deg)" },
+      "33%": { "transform": "translateY(-8px) rotate(1deg)" },
+      "66%": { "transform": "translateY(-4px) rotate(-1deg)" },
+      "100%": { "transform": "translateY(0px) rotate(0deg)" }
+    },
+    "morphBlob": {
+      "0%": { "borderRadius": "60% 40% 30% 70% / 60% 30% 70% 40%" },
+      "25%": { "borderRadius": "30% 60% 70% 40% / 50% 60% 30% 60%" },
+      "50%": { "borderRadius": "50% 60% 30% 60% / 30% 60% 70% 40%" },
+      "75%": { "borderRadius": "60% 40% 60% 30% / 70% 30% 50% 60%" },
+      "100%": { "borderRadius": "60% 40% 30% 70% / 60% 30% 70% 40%" }
+    },
+    "sparkle": {
+      "0%": { "transform": "scale(0) rotate(0deg)", "opacity": "0" },
+      "50%": { "transform": "scale(1) rotate(180deg)", "opacity": "1" },
+      "100%": { "transform": "scale(0) rotate(360deg)", "opacity": "0" }
+    },
+    "ripple": {
+      "0%": { "transform": "scale(0)", "opacity": "0.6" },
+      "100%": { "transform": "scale(4)", "opacity": "0" }
+    },
+    "celebrate": {
+      "0%": { "transform": "scale(1) rotate(0deg)" },
+      "10%": { "transform": "scale(1.1) rotate(-3deg)" },
+      "20%": { "transform": "scale(1.1) rotate(3deg)" },
+      "30%": { "transform": "scale(1.1) rotate(-3deg)" },
+      "40%": { "transform": "scale(1.1) rotate(3deg)" },
+      "50%": { "transform": "scale(1.1) rotate(0deg)" },
+      "100%": { "transform": "scale(1) rotate(0deg)" }
+    },
+    "heartbeat": {
+      "0%": { "transform": "scale(1)" },
+      "14%": { "transform": "scale(1.1)" },
+      "28%": { "transform": "scale(1)" },
+      "42%": { "transform": "scale(1.1)" },
+      "70%": { "transform": "scale(1)" }
+    },
+    "wiggle": {
+      "0%": { "transform": "rotate(0deg)" },
+      "25%": { "transform": "rotate(-5deg)" },
+      "50%": { "transform": "rotate(5deg)" },
+      "75%": { "transform": "rotate(-5deg)" },
+      "100%": { "transform": "rotate(0deg)" }
+    },
+    "levitate": {
+      "0%": { "transform": "translateY(0)", "boxShadow": "0 5px 15px 0 rgba(0,0,0,0.1)" },
+      "50%": { "transform": "translateY(-10px)", "boxShadow": "0 25px 15px 0 rgba(0,0,0,0.05)" },
+      "100%": { "transform": "translateY(0)", "boxShadow": "0 5px 15px 0 rgba(0,0,0,0.1)" }
+    },
+    "magneticPull": {
+      "0%": { "transform": "translate(var(--magnetic-x, 0), var(--magnetic-y, 0))" },
+      "100%": { "transform": "translate(0, 0)" }
+    },
+    "textReveal": {
+      "0%": { "clipPath": "inset(0 100% 0 0)", "opacity": "0" },
+      "100%": { "clipPath": "inset(0 0 0 0)", "opacity": "1" }
+    },
+    "waveHand": {
+      "0%": { "transform": "rotate(0deg)" },
+      "10%": { "transform": "rotate(14deg)" },
+      "20%": { "transform": "rotate(-8deg)" },
+      "30%": { "transform": "rotate(14deg)" },
+      "40%": { "transform": "rotate(-4deg)" },
+      "50%": { "transform": "rotate(10deg)" },
+      "60%": { "transform": "rotate(0deg)" },
+      "100%": { "transform": "rotate(0deg)" }
+    },
+    "gradientShift": {
+      "0%": { "backgroundPosition": "0% 50%" },
+      "50%": { "backgroundPosition": "100% 50%" },
+      "100%": { "backgroundPosition": "0% 50%" }
+    },
+    "unfold": {
+      "0%": { "transform": "scaleY(0)", "transformOrigin": "top", "opacity": "0" },
+      "100%": { "transform": "scaleY(1)", "transformOrigin": "top", "opacity": "1" }
+    },
+    "dustFloat": {
+      "0%": { "transform": "translateY(0) translateX(0)", "opacity": "0" },
+      "10%": { "opacity": "1" },
+      "90%": { "opacity": "1" },
+      "100%": { "transform": "translateY(-100px) translateX(20px)", "opacity": "0" }
+    },
+    "typewriter": {
+      "from": { "width": "0" },
+      "to": { "width": "100%" }
+    },
+    "blinkCursor": {
+      "0%": { "borderColor": "transparent" },
+      "50%": { "borderColor": "var(--color-accent-primary)" },
+      "100%": { "borderColor": "transparent" }
+    },
+
+    "_pixarInspired": "=== PIXAR-INSPIRED KEYFRAMES ===",
+
+    "pixarBounce": {
+      "_description": "Full squash & stretch bounce with anticipation and follow-through",
+      "0%": { "transform": "translateY(0) scaleX(1) scaleY(1)", "opacity": "0.5" },
+      "15%": { "transform": "translateY(2px) scaleX(1.2) scaleY(0.8)", "opacity": "0.7" },
+      "35%": { "transform": "translateY(-10px) scaleX(0.8) scaleY(1.2)", "opacity": "1" },
+      "45%": { "transform": "translateY(-12px) scaleX(0.85) scaleY(1.15)", "opacity": "1" },
+      "55%": { "transform": "translateY(-6px) scaleX(0.9) scaleY(1.1)", "opacity": "0.9" },
+      "70%": { "transform": "translateY(1px) scaleX(1.15) scaleY(0.85)", "opacity": "0.6" },
+      "85%": { "transform": "translateY(-1px) scaleX(1.05) scaleY(0.95)", "opacity": "0.5" },
+      "100%": { "transform": "translateY(0) scaleX(1) scaleY(1)", "opacity": "0.5" }
+    },
+    "pixarAnticipate": {
+      "_description": "Wind-up before action - builds expectation",
+      "0%": { "transform": "scale(1) rotate(0deg)" },
+      "30%": { "transform": "scale(0.95) rotate(-2deg)" },
+      "100%": { "transform": "scale(1.1) rotate(3deg)" }
+    },
+    "pixarSettle": {
+      "_description": "Overshoot and settle - natural landing",
+      "0%": { "transform": "scale(1.1)" },
+      "40%": { "transform": "scale(0.97)" },
+      "70%": { "transform": "scale(1.02)" },
+      "100%": { "transform": "scale(1)" }
+    },
+    "pixarThinkingTilt": {
+      "_description": "Curious head tilt - like WALL-E examining something",
+      "0%": { "transform": "rotate(0deg) translateX(0)" },
+      "50%": { "transform": "rotate(3deg) translateX(2px)" },
+      "100%": { "transform": "rotate(0deg) translateX(0)" }
+    },
+    "pixarJoyBounce": {
+      "_description": "Excited bounce - like Luxo Jr. hopping",
+      "0%": { "transform": "translateY(0) scale(1)" },
+      "20%": { "transform": "translateY(-15px) scaleX(0.9) scaleY(1.1)" },
+      "40%": { "transform": "translateY(0) scaleX(1.1) scaleY(0.9)" },
+      "60%": { "transform": "translateY(-8px) scaleX(0.95) scaleY(1.05)" },
+      "80%": { "transform": "translateY(0) scaleX(1.02) scaleY(0.98)" },
+      "100%": { "transform": "translateY(0) scale(1)" }
+    },
+    "pixarSadSlump": {
+      "_description": "Weight of sadness - like Bing Bong fading",
+      "0%": { "transform": "translateY(0) scale(1)", "opacity": "1" },
+      "50%": { "transform": "translateY(3px) scaleY(0.95)", "opacity": "0.9" },
+      "100%": { "transform": "translateY(5px) scaleY(0.92)", "opacity": "0.85" }
+    },
+    "pixarAttention": {
+      "_description": "Snap to attention - like EVE spotting a plant",
+      "0%": { "transform": "scale(1) rotate(0deg)" },
+      "30%": { "transform": "scale(1.05) rotate(-1deg)" },
+      "60%": { "transform": "scale(1.02) rotate(0.5deg)" },
+      "100%": { "transform": "scale(1) rotate(0deg)" }
+    },
+    "pixarBreathe": {
+      "_description": "Living, organic breathing - everything alive breathes",
+      "0%": { "transform": "scale(1)" },
+      "40%": { "transform": "scale(1.015)" },
+      "60%": { "transform": "scale(1.02)" },
+      "100%": { "transform": "scale(1)" }
+    },
+    "pixarFloat": {
+      "_description": "Gentle floating - like balloons in Up",
+      "0%": { "transform": "translateY(0) rotate(0deg)" },
+      "25%": { "transform": "translateY(-5px) rotate(1deg)" },
+      "50%": { "transform": "translateY(-8px) rotate(-0.5deg)" },
+      "75%": { "transform": "translateY(-4px) rotate(0.5deg)" },
+      "100%": { "transform": "translateY(0) rotate(0deg)" }
+    },
+
+    "_avatarAnimations": "=== AVATAR SQUASH & STRETCH ANIMATIONS ===",
+
+    "avatarNod": {
+      "_description": "Agreement nod with squash & stretch - like WALL-E acknowledging",
+      "0%": { "transform": "scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg)" },
+      "15%": { "transform": "scale3d(1.02, 0.98, 1) translate3d(0, 3px, 0) rotate(3deg)" },
+      "30%": { "transform": "scale3d(0.98, 1.03, 1) translate3d(0, -5px, 0) rotate(-4deg)" },
+      "50%": { "transform": "scale3d(1.01, 0.99, 1) translate3d(0, 2px, 0) rotate(2deg)" },
+      "65%": { "transform": "scale3d(0.99, 1.01, 1) translate3d(0, -2px, 0) rotate(-1.5deg)" },
+      "80%": { "transform": "scale3d(1.005, 0.995, 1) translate3d(0, 1px, 0) rotate(0.5deg)" },
+      "92%": { "transform": "scale3d(0.998, 1.002, 1) translate3d(0, -0.3px, 0) rotate(-0.2deg)" },
+      "100%": { "transform": "scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg)" }
+    },
+    "avatarShake": {
+      "_description": "Gentle disagreement shake with squash on direction changes",
+      "0%": { "transform": "scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg)" },
+      "15%": { "transform": "scale3d(0.98, 1.02, 1) translate3d(-4px, 0, 0) rotate(-2deg)" },
+      "30%": { "transform": "scale3d(1.02, 0.98, 1) translate3d(4px, 0, 0) rotate(2deg)" },
+      "45%": { "transform": "scale3d(0.99, 1.01, 1) translate3d(-3px, 0, 0) rotate(-1.5deg)" },
+      "60%": { "transform": "scale3d(1.01, 0.99, 1) translate3d(2px, 0, 0) rotate(1deg)" },
+      "75%": { "transform": "scale3d(1, 1, 1) translate3d(-1px, 0, 0) rotate(-0.5deg)" },
+      "88%": { "transform": "scale3d(1, 1, 1) translate3d(0.5px, 0, 0) rotate(0.2deg)" },
+      "100%": { "transform": "scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg)" }
+    },
+    "avatarBounce": {
+      "_description": "Luxo Jr. style excited bounce with full squash & stretch",
+      "0%": { "transform": "scale3d(1, 1, 1) translate3d(0, 0, 0)" },
+      "12%": { "transform": "scale3d(1.08, 0.92, 1) translate3d(0, 2px, 0)" },
+      "28%": { "transform": "scale3d(0.94, 1.08, 1) translate3d(0, -12px, 0)" },
+      "35%": { "transform": "scale3d(0.92, 1.1, 1) translate3d(0, -15px, 0)" },
+      "48%": { "transform": "scale3d(0.96, 1.05, 1) translate3d(0, -8px, 0)" },
+      "58%": { "transform": "scale3d(1.1, 0.9, 1) translate3d(0, 3px, 0)" },
+      "70%": { "transform": "scale3d(0.97, 1.04, 1) translate3d(0, -4px, 0)" },
+      "80%": { "transform": "scale3d(1.03, 0.97, 1) translate3d(0, 1px, 0)" },
+      "90%": { "transform": "scale3d(0.99, 1.01, 1) translate3d(0, -0.5px, 0)" },
+      "100%": { "transform": "scale3d(1, 1, 1) translate3d(0, 0, 0)" }
+    },
+    "avatarPulse": {
+      "_description": "Warm heartbeat-style acknowledgment pulse",
+      "0%": { "transform": "scale3d(1, 1, 1)", "filter": "brightness(1)" },
+      "25%": { "transform": "scale3d(1.05, 1.05, 1)", "filter": "brightness(1.08)" },
+      "35%": { "transform": "scale3d(1.06, 1.06, 1)", "filter": "brightness(1.1)" },
+      "55%": { "transform": "scale3d(0.98, 0.98, 1)", "filter": "brightness(1.03)" },
+      "70%": { "transform": "scale3d(1.02, 1.02, 1)", "filter": "brightness(1.02)" },
+      "85%": { "transform": "scale3d(0.995, 0.995, 1)", "filter": "brightness(1)" },
+      "100%": { "transform": "scale3d(1, 1, 1)", "filter": "brightness(1)" }
+    },
+    "avatarCuriousTilt": {
+      "_description": "WALL-E curious head tilt - examining something interesting",
+      "0%": { "transform": "rotate(0deg) translate3d(0, 0, 0)" },
+      "30%": { "transform": "rotate(-4deg) translate3d(-2px, 0, 0)" },
+      "60%": { "transform": "rotate(3deg) translate3d(1px, 0, 0)" },
+      "100%": { "transform": "rotate(0deg) translate3d(0, 0, 0)" }
+    },
+    "avatarAttentiveLean": {
+      "_description": "Focused attention - like WALL-E leaning in to listen",
+      "0%": { "transform": "scale(1) translate3d(0, 0, 0) rotate(0deg)" },
+      "40%": { "transform": "scale(1.02) translate3d(0, -2px, 0) rotate(2deg)" },
+      "70%": { "transform": "scale(1.015) translate3d(0, -1px, 0) rotate(1deg)" },
+      "100%": { "transform": "scale(1) translate3d(0, 0, 0) rotate(0deg)" }
+    }
+  },
+
+  "goldenRatioTiming": {
+    "_documentation": "Timing based on golden ratio (φ = 1.618) and Fibonacci sequence for natural rhythm",
+    "phi": 1.618033988749895,
+    "phiInverse": 0.618033988749895,
+    "fibonacci": {
+      "f8": "233ms",
+      "f9": "377ms",
+      "f10": "610ms",
+      "f11": "987ms",
+      "f12": "1597ms",
+      "f13": "2584ms"
+    },
+    "avatarBreath": {
+      "idle": "5000ms",
+      "connected": "4500ms",
+      "speaking": "3000ms",
+      "listening": "4000ms"
+    },
+    "reactionPhases": {
+      "anticipation": "80ms",
+      "action": "400ms",
+      "followThrough": "150ms"
+    }
+  },
+
+  "avatarSquashStretch": {
+    "_documentation": "Squash & stretch parameters for avatar states - scaleX and scaleY change inversely",
+    "idle": {
+      "scaleY": 1.012,
+      "scaleX": 0.994,
+      "translateY": -1.5,
+      "rotate": 0.3
+    },
+    "connected": {
+      "scaleY": 1.018,
+      "scaleX": 0.991,
+      "translateY": -2,
+      "rotate": 0.5
+    },
+    "speaking": {
+      "scaleY": 1.025,
+      "scaleX": 0.988,
+      "translateY": -3,
+      "rotate": 0.8
+    },
+    "listening": {
+      "scaleY": 1.015,
+      "scaleX": 0.993,
+      "translateY": -1.8,
+      "rotate": -0.4
     }
   },
 
@@ -98,6 +679,333 @@
     "breathe": "breathe 4s ease-in-out infinite",
     "shimmer": "shimmer 2s linear infinite",
     "glow": "glow 2s ease-in-out infinite",
-    "spin": "spin 1s linear infinite"
+    "spin": "spin 1s linear infinite",
+    "warmthGlow": "warmthGlow 1.2s cubic-bezier(0.45, 0, 0.55, 1) forwards",
+    "softBreathe": "softBreathe 5s ease-in-out infinite",
+    "gentleBounce": "gentleBounce 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+    "connectionWarmth": "connectionWarmth 1.5s cubic-bezier(0.45, 0, 0.55, 1) forwards",
+    "presencePulse": "presencePulse 3s ease-in-out infinite",
+    "acknowledgement": "acknowledgement 400ms cubic-bezier(0.45, 0, 0.55, 1) forwards",
+    "aurora": "aurora 15s ease-in-out infinite",
+    "float": "float 6s ease-in-out infinite",
+    "morphBlob": "morphBlob 8s ease-in-out infinite",
+    "sparkle": "sparkle 700ms ease-out forwards",
+    "ripple": "ripple 600ms ease-out forwards",
+    "celebrate": "celebrate 800ms ease-in-out forwards",
+    "heartbeat": "heartbeat 1.5s ease-in-out infinite",
+    "wiggle": "wiggle 500ms ease-in-out",
+    "levitate": "levitate 3s ease-in-out infinite",
+    "magneticPull": "magneticPull 300ms ease-out forwards",
+    "textReveal": "textReveal 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
+    "waveHand": "waveHand 2s ease-in-out",
+    "gradientShift": "gradientShift 8s ease infinite",
+    "unfold": "unfold 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
+    "dustFloat": "dustFloat 8s linear infinite",
+    "typewriter": "typewriter 2s steps(40) forwards",
+    "blinkCursor": "blinkCursor 1s step-end infinite"
+  },
+
+  "stagger": {
+    "fast": "50ms",
+    "normal": "100ms",
+    "slow": "150ms",
+    "dramatic": "200ms"
+  },
+
+  "anticipation": {
+    "_documentation": "Pixar's 'wind-up before the pitch' - preparatory motion that signals intent and builds expectation. Like an athlete crouching before a jump.",
+
+    "hover": {
+      "_description": "Subtle wind-up on hover, signals the element is 'alive' and ready to respond",
+      "button": {
+        "default": {
+          "transform": "scale(0.98) translateY(1px)",
+          "transition": "transform 80ms cubic-bezier(0.38, -0.4, 0.88, 0.65)"
+        },
+        "release": {
+          "transform": "scale(1.02) translateY(-1px)",
+          "transition": "transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)"
+        },
+        "settle": {
+          "transform": "scale(1) translateY(0)",
+          "transition": "transform 200ms cubic-bezier(0.25, 0.1, 0.25, 1)"
+        }
+      },
+      "card": {
+        "default": {
+          "transform": "scale(0.995) translateY(2px)",
+          "transition": "transform 100ms ease-out"
+        },
+        "lift": {
+          "transform": "scale(1.01) translateY(-4px)",
+          "boxShadow": "0 8px 24px rgba(0,0,0,0.15)",
+          "transition": "all 200ms cubic-bezier(0.34, 1.56, 0.64, 1)"
+        }
+      },
+      "icon": {
+        "default": {
+          "transform": "rotate(-8deg) scale(0.95)",
+          "transition": "transform 60ms ease-in"
+        },
+        "spring": {
+          "transform": "rotate(3deg) scale(1.1)",
+          "transition": "transform 150ms cubic-bezier(0.68, -0.55, 0.265, 1.55)"
+        }
+      }
+    },
+
+    "press": {
+      "_description": "Squash on press - the moment of impact",
+      "button": {
+        "transform": "scale(0.95) translateY(2px)",
+        "transition": "transform 50ms ease-in"
+      },
+      "card": {
+        "transform": "scale(0.98) translateY(1px)",
+        "transition": "transform 80ms ease-in"
+      }
+    },
+
+    "focus": {
+      "_description": "Focus ring with anticipation - gentle pulse signals attention received",
+      "ring": {
+        "initial": "0 0 0 0px var(--color-focus-ring)",
+        "anticipate": "0 0 0 2px var(--color-focus-ring)",
+        "settle": "0 0 0 3px var(--color-focus-ring)",
+        "timing": "150ms cubic-bezier(0.34, 1.56, 0.64, 1)"
+      }
+    },
+
+    "transition": {
+      "_description": "Page/state transitions with anticipation build-up",
+      "enter": {
+        "from": {
+          "opacity": "0",
+          "transform": "scale(0.96) translateY(8px)"
+        },
+        "anticipate": {
+          "opacity": "0.3",
+          "transform": "scale(0.98) translateY(4px)",
+          "timing": "80ms ease-in"
+        },
+        "to": {
+          "opacity": "1",
+          "transform": "scale(1) translateY(0)",
+          "timing": "200ms cubic-bezier(0.34, 1.56, 0.64, 1)"
+        }
+      },
+      "exit": {
+        "from": {
+          "opacity": "1",
+          "transform": "scale(1)"
+        },
+        "anticipate": {
+          "opacity": "0.8",
+          "transform": "scale(1.02)",
+          "timing": "60ms ease-in"
+        },
+        "to": {
+          "opacity": "0",
+          "transform": "scale(0.95)",
+          "timing": "150ms ease-out"
+        }
+      }
+    }
+  },
+
+  "organicTextures": {
+    "_documentation": "Wabi-sabi (侘寂) - finding beauty in imperfection. Subtle noise and organic patterns that feel natural, not digital.",
+
+    "noise": {
+      "_description": "Subtle grain texture for surfaces - breaks digital perfection",
+      "subtle": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
+      "opacity": {
+        "midnight": "0.03",
+        "zen": "0.02"
+      },
+      "blendMode": "overlay"
+    },
+
+    "paperTexture": {
+      "_description": "Handmade paper feel - subtle fiber-like texture",
+      "css": "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.01) 1px, rgba(0,0,0,0.01) 2px)"
+    },
+
+    "breathingGradient": {
+      "_description": "Organic gradient that shifts slowly - like light through clouds",
+      "keyframes": {
+        "0%": { "backgroundPosition": "0% 50%", "opacity": "1" },
+        "25%": { "backgroundPosition": "50% 0%", "opacity": "0.98" },
+        "50%": { "backgroundPosition": "100% 50%", "opacity": "0.96" },
+        "75%": { "backgroundPosition": "50% 100%", "opacity": "0.98" },
+        "100%": { "backgroundPosition": "0% 50%", "opacity": "1" }
+      },
+      "duration": "20s",
+      "timing": "ease-in-out"
+    },
+
+    "imperfectBorder": {
+      "_description": "Slightly irregular border radius - breaks artificial perfection",
+      "sm": "8px 7px 9px 8px / 7px 8px 8px 9px",
+      "md": "16px 14px 18px 15px / 14px 16px 15px 17px",
+      "lg": "24px 22px 26px 23px / 22px 25px 23px 24px"
+    },
+
+    "inkBleed": {
+      "_description": "Soft edge effect like ink on paper",
+      "filter": "blur(0.3px)",
+      "textShadow": "0 0 0.5px currentColor"
+    }
+  },
+
+  "voiceEmotionGlow": {
+    "_documentation": "Avatar glow colors and animations that reflect the agent's speaking tone. Makes the avatar feel alive and emotionally present during conversation.",
+
+    "emotions": {
+      "neutral": {
+        "_description": "Default conversational state - calm, attentive presence",
+        "color": "rgba(139, 92, 246, 0.5)",
+        "colorAlt": "rgba(99, 102, 241, 0.4)",
+        "intensity": 0.6,
+        "pulseSpeed": "3s",
+        "spread": "20px"
+      },
+      "happy": {
+        "_description": "Warm, positive energy - like sunlight",
+        "color": "rgba(251, 191, 36, 0.6)",
+        "colorAlt": "rgba(245, 158, 11, 0.5)",
+        "intensity": 0.8,
+        "pulseSpeed": "2s",
+        "spread": "28px"
+      },
+      "excited": {
+        "_description": "High energy enthusiasm - like sparkling",
+        "color": "rgba(236, 72, 153, 0.6)",
+        "colorAlt": "rgba(219, 39, 119, 0.5)",
+        "intensity": 1.0,
+        "pulseSpeed": "1.2s",
+        "spread": "35px"
+      },
+      "calm": {
+        "_description": "Peaceful, reassuring presence - like still water",
+        "color": "rgba(34, 211, 238, 0.5)",
+        "colorAlt": "rgba(6, 182, 212, 0.4)",
+        "intensity": 0.5,
+        "pulseSpeed": "4s",
+        "spread": "25px"
+      },
+      "thoughtful": {
+        "_description": "Deep thinking, contemplative - like deep blue",
+        "color": "rgba(99, 102, 241, 0.5)",
+        "colorAlt": "rgba(79, 70, 229, 0.4)",
+        "intensity": 0.6,
+        "pulseSpeed": "3.5s",
+        "spread": "22px"
+      },
+      "empathetic": {
+        "_description": "Understanding, caring warmth - like a warm embrace",
+        "color": "rgba(244, 114, 182, 0.5)",
+        "colorAlt": "rgba(236, 72, 153, 0.4)",
+        "intensity": 0.7,
+        "pulseSpeed": "2.5s",
+        "spread": "30px"
+      },
+      "serious": {
+        "_description": "Focused, important information - grounded presence",
+        "color": "rgba(148, 163, 184, 0.5)",
+        "colorAlt": "rgba(100, 116, 139, 0.4)",
+        "intensity": 0.5,
+        "pulseSpeed": "4s",
+        "spread": "18px"
+      },
+      "anxious": {
+        "_description": "Sensing user stress - supportive, gentle pulse",
+        "color": "rgba(251, 146, 60, 0.5)",
+        "colorAlt": "rgba(249, 115, 22, 0.4)",
+        "intensity": 0.7,
+        "pulseSpeed": "1.8s",
+        "spread": "24px"
+      },
+      "encouraging": {
+        "_description": "Motivating, uplifting energy - growth and possibility",
+        "color": "rgba(16, 185, 129, 0.6)",
+        "colorAlt": "rgba(5, 150, 105, 0.5)",
+        "intensity": 0.8,
+        "pulseSpeed": "2.2s",
+        "spread": "28px"
+      }
+    },
+
+    "speakingIntensity": {
+      "_description": "Glow responds to speaking intensity/volume",
+      "whisper": {
+        "multiplier": 0.5,
+        "spread": 0.6
+      },
+      "normal": {
+        "multiplier": 1.0,
+        "spread": 1.0
+      },
+      "emphasis": {
+        "multiplier": 1.3,
+        "spread": 1.2
+      },
+      "exclamation": {
+        "multiplier": 1.6,
+        "spread": 1.5
+      }
+    },
+
+    "keyframes": {
+      "voiceGlowPulse": {
+        "_description": "Rhythmic pulse that syncs with speaking cadence",
+        "0%": {
+          "boxShadow": "0 0 var(--glow-spread) var(--glow-color)",
+          "opacity": "var(--glow-intensity)"
+        },
+        "50%": {
+          "boxShadow": "0 0 calc(var(--glow-spread) * 1.4) var(--glow-color-alt)",
+          "opacity": "calc(var(--glow-intensity) * 1.2)"
+        },
+        "100%": {
+          "boxShadow": "0 0 var(--glow-spread) var(--glow-color)",
+          "opacity": "var(--glow-intensity)"
+        }
+      },
+      "voiceGlowBreath": {
+        "_description": "Gentle breathing glow when listening/idle",
+        "0%": {
+          "boxShadow": "0 0 var(--glow-spread) var(--glow-color)",
+          "transform": "scale(1)"
+        },
+        "50%": {
+          "boxShadow": "0 0 calc(var(--glow-spread) * 1.15) var(--glow-color)",
+          "transform": "scale(1.01)"
+        },
+        "100%": {
+          "boxShadow": "0 0 var(--glow-spread) var(--glow-color)",
+          "transform": "scale(1)"
+        }
+      },
+      "voiceGlowReact": {
+        "_description": "Quick reaction to speech events",
+        "0%": {
+          "boxShadow": "0 0 var(--glow-spread) var(--glow-color)"
+        },
+        "30%": {
+          "boxShadow": "0 0 calc(var(--glow-spread) * 1.8) var(--glow-color-alt)"
+        },
+        "100%": {
+          "boxShadow": "0 0 var(--glow-spread) var(--glow-color)"
+        }
+      }
+    },
+
+    "transitions": {
+      "emotionChange": "all 800ms cubic-bezier(0.4, 0, 0.2, 1)",
+      "intensityChange": "all 150ms ease-out",
+      "speakingStart": "all 200ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+      "speakingEnd": "all 400ms ease-out"
+    }
   }
 }

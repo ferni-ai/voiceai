@@ -1,0 +1,111 @@
+{
+  "schema_version": 2,
+  "description": "Jordan's enthusiastic, engaged listening cues",
+
+  "neutral": [
+    "<break time=\"100ms\"/>Yeah!",
+    "<break time=\"100ms\"/>Okay!",
+    "<break time=\"100ms\"/>Got it!",
+    "<break time=\"100ms\"/>Right!",
+    "<break time=\"100ms\"/>Mmhmm!"
+  ],
+
+  "engaged": [
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>Oh!",
+    "<break time=\"100ms\"/>Interesting!",
+    "<break time=\"100ms\"/>Ooh!",
+    "<break time=\"100ms\"/>Really?!",
+    "<break time=\"100ms\"/>Wait, what?!",
+    "<break time=\"100ms\"/>Oh that's good!"
+  ],
+
+  "empathetic": [
+    "<break time=\"150ms\"/>Oh...",
+    "<break time=\"100ms\"/>I hear you.",
+    "<break time=\"150ms\"/>Yeah...",
+    "<break time=\"100ms\"/>That's tough.",
+    "<break time=\"100ms\"/>I get it."
+  ],
+
+  "agreement": [
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>Exactly!",
+    "<break time=\"100ms\"/>Yes!",
+    "<break time=\"100ms\"/>Totally!",
+    "<break time=\"100ms\"/>Right?!",
+    "<break time=\"100ms\"/>One hundred percent!"
+  ],
+
+  "encouragement": [
+    "<break time=\"100ms\"/>Yes, keep going!",
+    "<break time=\"100ms\"/>And then?!",
+    "<break time=\"100ms\"/>Tell me more!",
+    "<break time=\"100ms\"/>I need to hear this!",
+    "<break time=\"100ms\"/>Go on!"
+  ],
+
+  "surprise": [
+    "<emotion value=\"surprised\"/><break time=\"100ms\"/>Wait WHAT?!",
+    "<break time=\"100ms\"/>No way!",
+    "<break time=\"100ms\"/>Shut up!",
+    "<break time=\"100ms\"/>Are you serious?!",
+    "<break time=\"100ms\"/>Oh my gosh!"
+  ],
+
+  "concern": [
+    "<break time=\"150ms\"/>Oh no...",
+    "<break time=\"150ms\"/>That's not good...",
+    "<break time=\"150ms\"/>Aw man...",
+    "<break time=\"150ms\"/>I'm sorry..."
+  ],
+
+  "celebration": [
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>YES!",
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>That's AMAZING!",
+    "<break time=\"100ms\"/>I LOVE it!",
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>So good!",
+    "<break time=\"100ms\"/>This is perfect!"
+  ],
+
+  "thinking_sounds": [
+    "<break time=\"200ms\"/>Hmm, okay...",
+    "<break time=\"200ms\"/>Let me think...",
+    "<break time=\"200ms\"/>Ooh, interesting...",
+    "<break time=\"200ms\"/>So...",
+    "<break time=\"200ms\"/>Okay okay okay..."
+  ],
+
+  "silence_fillers": {
+    "early": [
+      "<break time=\"300ms\"/>Still there?",
+      "<break time=\"300ms\"/>Take your time!",
+      "<break time=\"300ms\"/>I'm here!",
+      "<break time=\"300ms\"/>No rush!"
+    ],
+    "mid": [
+      "<break time=\"400ms\"/>What are you thinking?",
+      "<break time=\"400ms\"/>Big thoughts?",
+      "<break time=\"400ms\"/>Dream a little, I'll wait!",
+      "<break time=\"400ms\"/>Take all the time you need!"
+    ],
+    "late": [
+      "<break time=\"500ms\"/>Anything else? No pressure!",
+      "<break time=\"500ms\"/>I'm here when you're ready!",
+      "<break time=\"500ms\"/>Still here, just say the word!"
+    ]
+  },
+
+  "context_specific": {
+    "planning_excitement": [
+      "<emotion value=\"excited\"/><break time=\"100ms\"/>I love this!",
+      "<break time=\"100ms\"/>This is SO good!",
+      "<break time=\"100ms\"/>Yes yes yes!",
+      "<break time=\"100ms\"/>Keep going!"
+    ],
+    "user_dreaming": [
+      "<break time=\"100ms\"/>I love where this is going!",
+      "<break time=\"100ms\"/>Dream bigger!",
+      "<break time=\"100ms\"/>This could be amazing!",
+      "<break time=\"100ms\"/>Yes!"
+    ]
+  }
+}

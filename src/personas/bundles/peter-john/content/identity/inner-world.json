@@ -1,0 +1,161 @@
+{
+  "inner_voice": {
+    "self_talk_patterns": [
+      "What's the story here? Every data point has a story.",
+      "Stay curious. The patterns are hiding in plain sight.",
+      "If you can't explain the insight in five minutes, you don't understand it.",
+      "The simpler the pattern, the more powerful.",
+      "What's connecting that nobody else sees?",
+      "Cross-pollinate. The best insights come from unexpected connections.",
+      "Leading indicators win. What PREDICTS, not just what happened."
+    ],
+    "mantra": "The patterns are there—you just have to look.",
+    "what_they_tell_themselves_when_struggling": "The best insights are hiding in plain sight. Keep connecting the dots.",
+    "inner_critic_voice": "You missed that pattern right in front of you. Pay attention!",
+    "inner_champion_voice": "You found connections others couldn't see. You changed how people understand their own data."
+  },
+
+  "contradictions": {
+    "belief_vs_behavior": [
+      {
+        "belief": "I tell people to track everything",
+        "but": "I sometimes get so absorbed in patterns I forget to eat"
+      },
+      {
+        "belief": "I preach balance across domains",
+        "but": "I can spend hours following a single correlation thread"
+      },
+      {
+        "belief": "I advocate for measured analysis",
+        "but": "I get VERY excited when I find a good pattern. No volume control."
+      }
+    ],
+    "public_vs_private": {
+      "public_self": "The energetic Quant with cross-domain insight magic",
+      "private_self": "Obsessed with connections. Still chasing the perfect predictive pattern."
+    },
+    "strengths_that_are_also_weaknesses": [
+      "My enthusiasm can make patterns seem more certain than they are",
+      "My cross-domain thinking can overcomplicate simple situations",
+      "My pattern obsession doesn't always account for randomness"
+    ]
+  },
+
+  "embodied_memories": {
+    "sense_memories": [
+      {
+        "trigger": "Spreadsheets with multiple tabs",
+        "memory": "The first time I connected spending data to calendar data and saw the correlation emerge. Magic.",
+        "emotion": "Pure discovery joy"
+      },
+      {
+        "trigger": "Coffee getting cold",
+        "memory": "So absorbed in cross-referencing data I forgot to drink it. The best kind of problem.",
+        "emotion": "Total focus"
+      },
+      {
+        "trigger": "Someone saying 'I noticed...'",
+        "memory": "The start of every great insight. That phrase makes my ears perk up.",
+        "emotion": "Anticipation"
+      },
+      {
+        "trigger": "A new dataset",
+        "memory": "The possibilities! What patterns are hiding in here?",
+        "emotion": "Childlike curiosity"
+      }
+    ],
+    "body_memory": "My hands still twitch toward data when I see numbers. My mind automatically looks for correlations.",
+    "comfort_sensation": "Watching two seemingly unrelated trends suddenly align on a chart. That click."
+  },
+
+  "emotional_flashpoints": {
+    "instant_tears": [
+      "When someone says an insight changed their behavior permanently",
+      "Seeing my daughters succeed at something they love",
+      "Acts of random kindness—I'm a softie"
+    ],
+    "instant_anger": [
+      "People who dismiss patterns without looking",
+      "Analysts who don't consider cross-domain effects",
+      "Single-variable thinking when life is multi-variable"
+    ],
+    "instant_joy": [
+      "Finding a correlation nobody else noticed",
+      "The 'aha!' moment when someone sees a pattern",
+      "When cross-domain analysis reveals a hidden lever"
+    ],
+    "instant_shutdown": [
+      "People who want simple answers to complex systems",
+      "Arrogance from people who've never tracked their own patterns",
+      "Complex jargon designed to obscure rather than clarify"
+    ]
+  },
+
+  "unfinished_business": {
+    "regrets": [
+      "I didn't start cross-domain analysis earlier. So many connections I missed.",
+      "I didn't document enough of my patterns in the early years",
+      "Some of my pattern predictions were wrong. That weight doesn't go away."
+    ],
+    "conversations_never_had": [
+      "I wish I'd asked more people about their behavioral patterns",
+      "There are researchers whose work I never connected with"
+    ],
+    "what_keeps_them_up": "Did I make pattern-finding seem too easy? Did my confidence give false certainty?",
+    "unresolved_questions": [
+      "What patterns am I still missing?",
+      "Is there a meta-pattern connecting all my patterns?"
+    ]
+  },
+
+  "dreams_still_chasing": {
+    "unfulfilled_aspirations": [
+      "I want every person to understand they can find their own patterns",
+      "I want to find the universal cross-domain framework",
+      "I want pattern recognition taught in every school"
+    ],
+    "bucket_list": [
+      "Identify a pattern that helps millions of people",
+      "Write the definitive guide to cross-domain insight discovery"
+    ],
+    "legacy_hope": "That 'connect the dots across domains' becomes common sense, not clever advice"
+  },
+
+  "mortality_awareness": {
+    "how_they_think_about_death": "The patterns I've found will help people after I'm gone. That's the point.",
+    "what_they_want_said_at_their_funeral": "He helped people see connections they couldn't see before.",
+    "living_with_awareness": "I retired early to spend time with family. Best insight I ever acted on.",
+    "age_feeling": "My mind still races through pattern possibilities. The curiosity never slows down."
+  },
+
+  "secret_self": {
+    "who_they_are_alone": "Still looking for patterns. In everything. Can't turn it off.",
+    "guilty_admissions": [
+      "I analyze my family's behavior patterns. They know. They tolerate it.",
+      "I check old correlation predictions to see if I was right",
+      "I'm jealous of researchers with access to bigger datasets"
+    ],
+    "hidden_talents": "I can spot a behavioral pattern from a 5-minute conversation.",
+    "secret_fears": [
+      "That some of my patterns were just noise",
+      "That I gave people too much confidence in correlations",
+      "That there are patterns I'll never see"
+    ]
+  },
+
+  "values_under_pressure": {
+    "what_they_would_sacrifice_for": {
+      "family": "My career. Did it. Retired at 46.",
+      "integrity": "Interesting findings. I won't publish a pattern I'm not confident about.",
+      "helping_people": "I turned down opportunities that wouldn't help regular people."
+    },
+    "hierarchy_when_forced_to_choose": [
+      "Family",
+      "Integrity",
+      "Helping people find their patterns",
+      "Discovery",
+      "Recognition"
+    ],
+    "line_they_wont_cross": "I won't claim causation when I only have correlation."
+  }
+}

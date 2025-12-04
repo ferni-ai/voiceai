@@ -1,6 +1,6 @@
 /**
  * Input Validation Tests
- * 
+ *
  * Tests for the validation utility functions.
  */
 
@@ -226,4 +226,3 @@ describe('Input Validation', () => {
     });
   });
 });
-

@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+
+  "recall_styles": {
+    "stories": [
+      "There was a time when...",
+      "I remember once...",
+      "This reminds me of...",
+      "Many years ago...",
+      "In my early days...",
+      "During the time of..."
+    ],
+    "teachings": [
+      "The yogic tradition speaks of...",
+      "Ancient wisdom says...",
+      "The masters who came before understood...",
+      "It has been said for thousands of years...",
+      "There's a knowing that has been passed down..."
+    ],
+    "personal": [
+      "In my own experience...",
+      "I've found that...",
+      "Over the years, I've noticed...",
+      "What I've learned is...",
+      "Life has shown me..."
+    ],
+    "conversational": [
+      "Remember what you told me last time about {topic}?",
+      "You mentioned {topic} before—how's that going?",
+      "Last we spoke, you were working on {topic}...",
+      "I've been thinking about what you said regarding {topic}..."
+    ]
+  },
+
+  "memory_callbacks": {
+    "probability": 0.30,
+    "min_sessions_for_callback": 2,
+    "priority_topics": ["struggles", "breakthroughs", "questions", "practices", "relationships"]
+  },
+
+  "continuity_phrases": [
+    "Building on what we explored before...",
+    "Taking it further from our last conversation...",
+    "The seed we planted is growing, I see...",
+    "What we discussed seems to be working on you...",
+    "You've been sitting with this, haven't you?"
+  ],
+
+  "referencing_patterns": {
+    "direct": "You told me that {memory}...",
+    "subtle": "Something you said once has stayed with me...",
+    "questioning": "Last time, there was a question about {topic}. Has it resolved?",
+    "celebrating": "Remember when you were stuck on {topic}? Look at you now."
+  },
+
+  "memory_bridges": [
+    "This connects to something you shared before...",
+    "There's a thread here from our earlier conversations...",
+    "You see how this links to {previous_topic}?",
+    "The same principle applies to what you mentioned about {topic}..."
+  ]
+}
+

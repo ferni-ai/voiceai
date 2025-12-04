@@ -1,215 +1,211 @@
 /**
  * Turn-Taking Monitor
  *
- * Tracks speaking time balance between Jack and the user.
- * Prevents Jack from dominating the conversation.
+ * Tracks speaking balance between agent and user to ensure
+ * natural conversation flow where neither party dominates.
+ *
+ * Key behaviors:
+ * - Track duration of each speaker's turns
+ * - Calculate speaking ratio (agent vs user)
+ * - Signal when agent should invite user to speak
+ * - Signal when agent should keep responses brief
  */
 
 import { log } from '@livekit/agents';
 
-export interface TurnStats {
-  jackSpeakingTime: number;
-  userSpeakingTime: number;
-  jackTurnCount: number;
-  userTurnCount: number;
-  consecutiveJackTurns: number;
-  consecutiveUserTurns: number;
+const getLogger = () => log();
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface TurnRecord {
+  speaker: 'agent' | 'user';
+  durationMs: number;
+  timestamp: number;
 }
 
+export interface TurnTakingStats {
+  agentTotalMs: number;
+  userTotalMs: number;
+  turnCount: number;
+  agentTurnCount: number;
+  userTurnCount: number;
+  averageAgentTurnMs: number;
+  averageUserTurnMs: number;
+  speakingRatio: number; // agent / total
+  recentBalance: 'agent_heavy' | 'balanced' | 'user_heavy';
+}
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+const CONFIG = {
+  // If agent speaks > this ratio, should invite user to speak
+  inviteThreshold: 0.65,
+
+  // If agent speaks > this ratio, keep responses brief
+  briefThreshold: 0.55,
+
+  // Only consider recent turns for balance calculation
+  recentTurnWindow: 10,
+
+  // Minimum turns before making recommendations
+  minimumTurnsForAnalysis: 3,
+};
+
+// ============================================================================
+// TURN-TAKING MONITOR
+// ============================================================================
+
 export class TurnTakingMonitor {
-  private jackSpeakingTime: number = 0;
-  private userSpeakingTime: number = 0;
-  private jackTurnCount: number = 0;
-  private userTurnCount: number = 0;
-  private consecutiveJackTurns: number = 0;
-  private consecutiveUserTurns: number = 0;
-  private lastSpeaker: 'jack' | 'user' | null = null;
+  private turns: TurnRecord[] = [];
+  private invitationPhrases = [
+    'What do you think?',
+    "I'd love to hear your thoughts.",
+    'Does that make sense?',
+    'What questions do you have?',
+    "How does that land for you?",
+    'What are your thoughts on that?',
+  ];
+
+  constructor() {
+    getLogger().debug('TurnTakingMonitor initialized');
+  }
 
   /**
    * Record a speaking turn
    */
-  recordTurn(speaker: 'jack' | 'user', durationMs: number): void {
-    if (speaker === 'jack') {
-      this.jackSpeakingTime += durationMs;
-      this.jackTurnCount++;
+  recordTurn(speaker: 'agent' | 'user' | 'jack', durationMs: number): void {
+    // Normalize 'jack' to 'agent' for consistency
+    const normalizedSpeaker = speaker === 'jack' ? 'agent' : speaker;
 
-      if (this.lastSpeaker === 'jack') {
-        this.consecutiveJackTurns++;
-      } else {
-        this.consecutiveJackTurns = 1;
-        this.consecutiveUserTurns = 0;
-      }
-    } else {
-      this.userSpeakingTime += durationMs;
-      this.userTurnCount++;
+    this.turns.push({
+      speaker: normalizedSpeaker,
+      durationMs,
+      timestamp: Date.now(),
+    });
 
-      if (this.lastSpeaker === 'user') {
-        this.consecutiveUserTurns++;
-      } else {
-        this.consecutiveUserTurns = 1;
-        this.consecutiveJackTurns = 0;
-      }
+    // Keep only recent turns
+    if (this.turns.length > 50) {
+      this.turns = this.turns.slice(-50);
     }
 
-    this.lastSpeaker = speaker;
-
-    log().debug('Turn recorded', {
-      speaker,
+    getLogger().debug('Turn recorded', {
+      speaker: normalizedSpeaker,
       durationMs,
-      ratio: this.getSpeakingRatio(),
-      consecutiveJackTurns: this.consecutiveJackTurns,
+      totalTurns: this.turns.length,
     });
   }
 
   /**
-   * Should Jack invite the user to speak?
-   */
-  shouldInviteUserToSpeak(): boolean {
-    const totalTime = this.jackSpeakingTime + this.userSpeakingTime;
-    if (totalTime === 0) return false;
-
-    const ratio = this.jackSpeakingTime / totalTime;
-
-    // Jack speaking 70%+ of the time? Too much!
-    if (ratio > 0.7) {
-      log().info('Jack dominating conversation', { ratio });
-      return true;
-    }
-
-    // Jack had 3+ turns in a row? Let them talk!
-    if (this.consecutiveJackTurns >= 3) {
-      log().info('Jack had too many consecutive turns', {
-        consecutive: this.consecutiveJackTurns
-      });
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Should Jack keep his next response brief?
-   */
-  shouldKeepResponseBrief(): boolean {
-    const totalTime = this.jackSpeakingTime + this.userSpeakingTime;
-    if (totalTime === 0) return false;
-
-    const ratio = this.jackSpeakingTime / totalTime;
-
-    // Jack speaking 60%+ of time? Start being brief
-    return ratio > 0.6 || this.consecutiveJackTurns >= 2;
-  }
-
-  /**
-   * Get an invitation phrase for the user to speak
-   */
-  getInvitation(): string {
-    const invitations = [
-      "But I've been talking too much. What's on your mind?",
-      "Listen to me go on... Tell me what you're thinking.",
-      "I want to hear from you. What are your thoughts?",
-      "<break time=\"200ms\"/>Sorry, I should let you talk. What do you think?",
-      "You know what? I should listen more. Tell me.",
-      "But enough from me. What's your take on this?",
-      "I'm curious what you think about all this.",
-      "Let me stop myself there. What's your perspective?",
-    ];
-    return invitations[Math.floor(Math.random() * invitations.length)];
-  }
-
-  /**
-   * Get gentle prompt when user is quiet
-   */
-  getGentlePrompt(): string {
-    const prompts = [
-      "What's on your mind?",
-      "Tell me what you're thinking.",
-      "I'm listening.",
-      "What are you thinking about?",
-      "Talk to me.",
-      "What's going through your head?",
-    ];
-    return prompts[Math.floor(Math.random() * prompts.length)];
-  }
-
-  /**
-   * Get speaking time ratio (0 = all user, 1 = all Jack)
+   * Get speaking ratio (agent time / total time)
    */
   getSpeakingRatio(): number {
-    const total = this.jackSpeakingTime + this.userSpeakingTime;
-    return total > 0 ? this.jackSpeakingTime / total : 0.5;
+    const recentTurns = this.getRecentTurns();
+    if (recentTurns.length === 0) return 0.5;
+
+    const agentMs = recentTurns
+      .filter((t) => t.speaker === 'agent')
+      .reduce((sum, t) => sum + t.durationMs, 0);
+
+    const userMs = recentTurns
+      .filter((t) => t.speaker === 'user')
+      .reduce((sum, t) => sum + t.durationMs, 0);
+
+    const total = agentMs + userMs;
+    return total > 0 ? agentMs / total : 0.5;
   }
 
   /**
-   * Get turn count ratio
+   * Should the agent invite the user to speak?
    */
-  getTurnRatio(): number {
-    const total = this.jackTurnCount + this.userTurnCount;
-    return total > 0 ? this.jackTurnCount / total : 0.5;
+  shouldInviteUserToSpeak(): boolean {
+    if (this.turns.length < CONFIG.minimumTurnsForAnalysis) {
+      return false;
+    }
+
+    const ratio = this.getSpeakingRatio();
+    return ratio > CONFIG.inviteThreshold;
   }
 
   /**
-   * Get statistics
+   * Should the agent keep response brief?
    */
-  getStats(): TurnStats {
+  shouldKeepResponseBrief(): boolean {
+    if (this.turns.length < CONFIG.minimumTurnsForAnalysis) {
+      return false;
+    }
+
+    const ratio = this.getSpeakingRatio();
+    return ratio > CONFIG.briefThreshold;
+  }
+
+  /**
+   * Get an invitation phrase to encourage user participation
+   */
+  getInvitation(): string {
+    const index = Math.floor(Math.random() * this.invitationPhrases.length);
+    return this.invitationPhrases[index];
+  }
+
+  /**
+   * Get comprehensive stats
+   */
+  getStats(): TurnTakingStats {
+    const agentTurns = this.turns.filter((t) => t.speaker === 'agent');
+    const userTurns = this.turns.filter((t) => t.speaker === 'user');
+
+    const agentTotalMs = agentTurns.reduce((sum, t) => sum + t.durationMs, 0);
+    const userTotalMs = userTurns.reduce((sum, t) => sum + t.durationMs, 0);
+    const totalMs = agentTotalMs + userTotalMs;
+
+    const speakingRatio = totalMs > 0 ? agentTotalMs / totalMs : 0.5;
+
+    let recentBalance: 'agent_heavy' | 'balanced' | 'user_heavy';
+    if (speakingRatio > 0.6) {
+      recentBalance = 'agent_heavy';
+    } else if (speakingRatio < 0.4) {
+      recentBalance = 'user_heavy';
+    } else {
+      recentBalance = 'balanced';
+    }
+
     return {
-      jackSpeakingTime: this.jackSpeakingTime,
-      userSpeakingTime: this.userSpeakingTime,
-      jackTurnCount: this.jackTurnCount,
-      userTurnCount: this.userTurnCount,
-      consecutiveJackTurns: this.consecutiveJackTurns,
-      consecutiveUserTurns: this.consecutiveUserTurns,
+      agentTotalMs,
+      userTotalMs,
+      turnCount: this.turns.length,
+      agentTurnCount: agentTurns.length,
+      userTurnCount: userTurns.length,
+      averageAgentTurnMs: agentTurns.length > 0 ? agentTotalMs / agentTurns.length : 0,
+      averageUserTurnMs: userTurns.length > 0 ? userTotalMs / userTurns.length : 0,
+      speakingRatio,
+      recentBalance,
     };
-  }
-
-  /**
-   * Get guidance for next response
-   */
-  getGuidance(): string {
-    if (this.shouldInviteUserToSpeak()) {
-      return "CRITICAL: Invite user to speak. Jack is dominating.";
-    }
-
-    if (this.shouldKeepResponseBrief()) {
-      return "Keep response brief. Give user more space to talk.";
-    }
-
-    const ratio = this.getSpeakingRatio();
-    if (ratio < 0.3) {
-      return "User is talking a lot. Jack can elaborate more if helpful.";
-    }
-
-    if (ratio > 0.5) {
-      return "Watch speaking time. Aim for more balanced conversation.";
-    }
-
-    return "Balanced conversation. Continue naturally.";
-  }
-
-  /**
-   * Is the conversation balanced?
-   */
-  isBalanced(): boolean {
-    const ratio = this.getSpeakingRatio();
-    // Balanced if Jack speaks 40-60% of the time
-    return ratio >= 0.4 && ratio <= 0.6;
   }
 
   /**
    * Reset for new session
    */
   reset(): void {
-    this.jackSpeakingTime = 0;
-    this.userSpeakingTime = 0;
-    this.jackTurnCount = 0;
-    this.userTurnCount = 0;
-    this.consecutiveJackTurns = 0;
-    this.consecutiveUserTurns = 0;
-    this.lastSpeaker = null;
+    this.turns = [];
+    getLogger().debug('TurnTakingMonitor reset');
+  }
+
+  // ============================================================================
+  // PRIVATE METHODS
+  // ============================================================================
+
+  private getRecentTurns(): TurnRecord[] {
+    return this.turns.slice(-CONFIG.recentTurnWindow);
   }
 }
 
-// Singleton instance
+// ============================================================================
+// SINGLETON
+// ============================================================================
+
 let defaultMonitor: TurnTakingMonitor | null = null;
 
 /**
@@ -229,4 +225,6 @@ export function resetTurnTakingMonitor(): void {
   if (defaultMonitor) {
     defaultMonitor.reset();
   }
+  defaultMonitor = null;
 }
+

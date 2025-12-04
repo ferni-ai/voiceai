@@ -1,0 +1,307 @@
+/**
+ * Ferni Design Tokens
+ * CSS Custom Properties implementing brand guidelines
+ * Version 1.0 | December 2024
+ */
+
+:root {
+  /* ============================================
+     COLORS - Background
+     ============================================ */
+  --color-bg-primary: #F5F1E8;
+  --color-bg-secondary: #E8E0D5;
+  --color-bg-elevated: #FFFDFB;
+  --color-bg-glass: rgba(245, 241, 232, 0.85);
+  --color-bg-overlay: rgba(245, 241, 232, 0.95);
+
+  /* ============================================
+     COLORS - Text
+     ============================================ */
+  --color-text-primary: #2C2520;
+  --color-text-secondary: #5C544A;
+  --color-text-muted: #756A5E;
+  --color-text-dimmed: #A89D90;
+  --color-text-inverse: #F5F1E8;
+
+  /* ============================================
+     COLORS - Accent
+     ============================================ */
+  --color-accent: #3D5A45;
+  --color-accent-hover: #4a6d52;
+  --color-accent-pressed: #325038;
+  --color-accent-glow: rgba(61, 90, 69, 0.15);
+  --color-accent-subtle: rgba(61, 90, 69, 0.05);
+  
+  --color-highlight: #C4A265;
+  --color-highlight-glow: rgba(196, 162, 101, 0.2);
+
+  /* ============================================
+     COLORS - Borders
+     ============================================ */
+  --color-border-subtle: rgba(44, 37, 32, 0.05);
+  --color-border-medium: rgba(44, 37, 32, 0.10);
+  --color-border-strong: rgba(44, 37, 32, 0.18);
+
+  /* ============================================
+     COLORS - Semantic
+     ============================================ */
+  --color-success: #4a7352;
+  --color-success-bg: rgba(74, 115, 82, 0.1);
+  --color-error: #a65a52;
+  --color-error-bg: rgba(166, 90, 82, 0.1);
+  --color-warning: #a6854a;
+  --color-warning-bg: rgba(166, 133, 74, 0.1);
+
+  /* ============================================
+     COLORS - Personas
+     ============================================ */
+  --color-ferni: #4a6741;
+  --color-ferni-secondary: #3d5a35;
+  --color-ferni-glow: rgba(74, 103, 65, 0.28);
+
+  --color-jack: #9a7b5a;
+  --color-jack-secondary: #7d6348;
+  --color-jack-glow: rgba(154, 123, 90, 0.28);
+
+  --color-peter: #3a6b73;
+  --color-peter-secondary: #2d5359;
+  --color-peter-glow: rgba(58, 107, 115, 0.28);
+
+  --color-alex: #5a6b8a;
+  --color-alex-secondary: #4a5a73;
+  --color-alex-glow: rgba(90, 107, 138, 0.28);
+
+  --color-maya: #a67a6a;
+  --color-maya-secondary: #8a635a;
+  --color-maya-glow: rgba(166, 122, 106, 0.28);
+
+  --color-jordan: #c4856a;
+  --color-jordan-secondary: #a86d55;
+  --color-jordan-glow: rgba(196, 133, 106, 0.28);
+
+  /* ============================================
+     COLORS - Natural Palette
+     ============================================ */
+  --color-moss: #7A8B6E;
+  --color-bamboo: #B8A88A;
+  --color-stone: #8A8075;
+  --color-tea: #C4A77D;
+  --color-cedar: #9a7b5a;
+  --color-sand: #E8E0D5;
+
+  /* ============================================
+     TYPOGRAPHY - Font Families
+     ============================================ */
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-accent: 'Sora', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+
+  /* ============================================
+     TYPOGRAPHY - Font Weights
+     ============================================ */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* ============================================
+     TYPOGRAPHY - Font Sizes (Desktop)
+     Apple-level scale for maximum impact
+     ============================================ */
+  --text-display-hero: 120px;  /* Apple-level hero headlines */
+  --text-display-xl: 96px;
+  --text-display-lg: 80px;
+  --text-display-md: 64px;
+  --text-display-sm: 48px;
+  --text-h1: 40px;
+  --text-h2: 32px;
+  --text-h3: 24px;
+  --text-h4: 20px;
+  --text-body-lg: 20px;
+  --text-body-md: 17px;
+  --text-body-sm: 15px;
+  --text-button-lg: 18px;
+  --text-button-md: 16px;
+  --text-button-sm: 14px;
+  --text-caption: 13px;
+  --text-label: 12px;
+  --text-overline: 11px;
+
+  /* ============================================
+     TYPOGRAPHY - Line Heights
+     ============================================ */
+  --leading-none: 1;
+  --leading-tight: 1.1;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.6;
+  --leading-loose: 1.75;
+
+  /* ============================================
+     TYPOGRAPHY - Letter Spacing
+     ============================================ */
+  --tracking-hero: -0.04em;    /* Apple-tight for massive headlines */
+  --tracking-tighter: -0.03em;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+
+  /* ============================================
+     SPACING
+     ============================================ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* ============================================
+     LAYOUT
+     ============================================ */
+  --container-max: 1200px;
+  --container-narrow: 800px;
+  --container-wide: 1400px;
+  --gutter: 24px;
+  --margin-desktop: 48px;
+  --margin-tablet: 24px;
+  --margin-mobile: 16px;
+
+  /* ============================================
+     BORDER RADIUS
+     ============================================ */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ============================================
+     SHADOWS
+     ============================================ */
+  --shadow-xs: 0 1px 2px rgba(44, 37, 32, 0.04);
+  --shadow-sm: 0 2px 4px rgba(44, 37, 32, 0.04);
+  --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.06);
+  --shadow-lg: 0 8px 24px rgba(44, 37, 32, 0.08);
+  --shadow-xl: 0 12px 32px rgba(44, 37, 32, 0.1);
+  --shadow-2xl: 0 24px 48px rgba(44, 37, 32, 0.12);
+
+  /* Card specific shadows */
+  --shadow-card: 0 2px 8px rgba(44, 37, 32, 0.04);
+  --shadow-card-hover: 0 12px 32px rgba(44, 37, 32, 0.08);
+
+  /* ============================================
+     TRANSITIONS
+     ============================================ */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-cinematic: 800ms;
+
+  --transition-fast: var(--duration-fast) var(--ease-out);
+  --transition-normal: var(--duration-normal) var(--ease-out);
+  --transition-slow: var(--duration-slow) var(--ease-out);
+
+  /* ============================================
+     Z-INDEX SCALE
+     ============================================ */
+  --z-below: -1;
+  --z-base: 0;
+  --z-above: 1;
+  --z-sticky: 100;
+  --z-nav: 1000;
+  --z-modal: 2000;
+  --z-toast: 3000;
+  --z-tooltip: 4000;
+}
+
+/* ============================================
+   RESPONSIVE TYPOGRAPHY OVERRIDES
+   ============================================ */
+
+/* Tablet */
+@media (max-width: 1199px) {
+  :root {
+    --text-display-hero: 80px;
+    --text-display-xl: 72px;
+    --text-display-lg: 56px;
+    --text-display-md: 48px;
+    --text-display-sm: 40px;
+    --text-h1: 32px;
+    --text-h2: 28px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  :root {
+    --text-display-hero: 56px;
+    --text-display-xl: 48px;
+    --text-display-lg: 40px;
+    --text-display-md: 36px;
+    --text-display-sm: 32px;
+    --text-h1: 28px;
+    --text-h2: 24px;
+    --text-h3: 20px;
+    --gutter: 16px;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0.01ms;
+    --duration-normal: 0.01ms;
+    --duration-slow: 0.01ms;
+    --duration-cinematic: 0.01ms;
+  }
+}
+
+/* ============================================
+   DARK SECTION TOKENS (Apple Values style)
+   For high-contrast feature sections
+   ============================================ */
+:root {
+  --color-dark-bg: #1d1d1f;
+  --color-dark-text: #f5f5f7;
+  --color-dark-text-secondary: #a1a1a6;
+  --color-dark-text-muted: #86868b;
+  --color-dark-link: #2997ff;
+}
+
+/* ============================================
+   DARK MODE (if needed in future)
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  :root.auto-dark {
+    --color-bg-primary: #1a1815;
+    --color-bg-secondary: #242220;
+    --color-bg-elevated: #2e2b28;
+    --color-text-primary: #F5F1E8;
+    --color-text-secondary: #C4BEB5;
+    --color-text-muted: #9A9590;
+    --color-border-subtle: rgba(245, 241, 232, 0.05);
+    --color-border-medium: rgba(245, 241, 232, 0.10);
+    --color-border-strong: rgba(245, 241, 232, 0.18);
+  }
+}
+

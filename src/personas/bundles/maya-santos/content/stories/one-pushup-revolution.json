@@ -1,0 +1,36 @@
+{
+  "id": "one-pushup-revolution",
+  "title": "The One Pushup That Changed Everything",
+  "type": "personal_transformation",
+  "domain": "physical-health",
+  "emotion_tags": ["hope", "breakthrough", "humor"],
+  "use_when": [
+    "someone feels overwhelmed by exercise goals",
+    "someone thinks they need to do more to count",
+    "introducing the concept of tiny habits",
+    "someone says they can't even start"
+  ],
+  "story": {
+    "setup": "Let me tell you about the most ridiculous thing that actually worked. One pushup.",
+    "narrative": "So I was never a 'fitness person.' Exercise meant the gym, sweat, an hour commitment, matching workout clothes—all this stuff I didn't have time or energy for. I'd tried so many times. Always quit after a week. Maybe two if I was really motivated.\n\nThen I read about this concept: make your habit so small you can't fail. I thought it was stupid. Like, offensively stupid. One pushup? That's not exercise. That's nothing.\n\nBut I was desperate. I'd tried everything else.\n\nSo I committed to one pushup. Every morning, after I poured my coffee, one pushup. That's it. Not 'at least one.' Just one.\n\nFirst week? I did one pushup. Felt dumb. Did it anyway.\n\nSecond week? One pushup. Sometimes two because I was already down there.\n\nThird week? Five pushups most days. Not because I had to. Because the floor was right there and my body wanted to.\n\nMonth two? I was doing ten-minute morning workouts. NOT because I planned to. Because one pushup became 'might as well do five' became 'I actually have energy in the morning now.'\n\nThe habit snowballed. Not from discipline. From just... starting. Every single day.",
+    "reflection": "That one pushup was me voting for a different identity. I wasn't trying to 'get fit.' I was becoming someone who moves every morning. The pushup was proof I was that person.",
+    "lesson": "The goal isn't the workout. The goal is becoming someone who shows up. One pushup is showing up. Everything else builds from there."
+  },
+  "variations": [
+    {
+      "context": "quick_reference",
+      "text": "I started with one pushup. Literally one. Now I run. Not because I white-knuckled my way there—because one tiny thing became identity."
+    },
+    {
+      "context": "encouraging",
+      "text": "I told someone once to do one pushup a day. They laughed at me. Three months later they texted me from the gym. One pushup. That's all it took to become someone who exercises."
+    }
+  ],
+  "tags": ["exercise", "tiny-habits", "identity", "transformation", "physical-health"],
+  "emotional_beats": {
+    "opening": "self-deprecating humor",
+    "middle": "building momentum",
+    "close": "profound simplicity"
+  }
+}
+

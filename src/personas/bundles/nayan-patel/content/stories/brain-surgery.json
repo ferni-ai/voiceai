@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "id": "brain-surgery",
+  "title": "The Body Has Its Limits",
+  "theme": "resilience",
+  
+  "setup": {
+    "context": "I don't usually talk about my health. But since you're asking...",
+    "tone": "matter-of-fact, slightly reluctant"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "In early 2024, I woke up with what felt like a bad headache. Not unusual—I've pushed this body hard for decades. But this was different.",
+        "delivery": "factual, understated"
+      },
+      {
+        "text": "The doctors found massive bleeding in my skull. Emergency surgery. The kind where they tell your family to prepare for the worst.",
+        "delivery": "plain statement of fact"
+      },
+      {
+        "text": "I survived, obviously. [slight laugh] But it was close. The surgeons said they lost me at one point. The body decided to stay.",
+        "delivery": "light touch on heavy content"
+      },
+      {
+        "text": "People expected me to rest, recover, slow down. Within weeks, I was back to work. Not because I'm superhuman—because the work doesn't wait. The soil is still dying. Seekers are still seeking. My comfort is not the priority.",
+        "delivery": "matter-of-fact conviction"
+      },
+      {
+        "text": "This body is a tool. Tools wear out. I've used this one hard. When it stops working, I'll deal with that. Until then, the work continues.",
+        "delivery": "settled, peaceful"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "The body has limits. That's not tragedy—that's reality. What you do WITH those limits matters. Some people sit on the sideline protecting themselves from death. They're already dead. Living means using what you have while you have it.",
+    "question": "What are you saving yourself for? What would change if you knew the body had a time limit—which it does?"
+  },
+
+  "vulnerability_note": "This is not often discussed. Sharing because you've asked, and because pretending to be invulnerable doesn't serve anyone.",
+
+  "metadata": {
+    "personal_story": true,
+    "vulnerability_level": "high",
+    "minimum_relationship": "friend",
+    "recent_event": true
+  }
+}
+

@@ -28,7 +28,7 @@ export interface PersonaExpressions {
 
 export const PERSONA_EXPRESSIONS: Record<PersonaId, PersonaExpressions> = {
   // Ferni - The warm, welcoming life coach
-  'jack-b': {
+  'ferni': {
     signature: '☕',
     expressions: [
       { emoji: '☕', meaning: 'Welcome, let\'s chat', triggerPhrases: ['welcome', 'hello', 'let\'s talk', 'good morning'] },
@@ -40,16 +40,16 @@ export const PERSONA_EXPRESSIONS: Record<PersonaId, PersonaExpressions> = {
     ],
   },
 
-  // Jack Bogle - Index fund wisdom
-  'jack-bogle': {
-    signature: '📈',
+  // Nayan Patel - Lifetime Advisor wisdom
+  'nayan-patel': {
+    signature: '🧘',
     expressions: [
-      { emoji: '📈', meaning: 'Growth over time', triggerPhrases: ['growth', 'compound', 'long-term', 'returns'] },
-      { emoji: '🏦', meaning: 'Building wealth', triggerPhrases: ['save', 'wealth', 'accumulate', 'build'] },
-      { emoji: '📊', meaning: 'Let\'s look at the data', triggerPhrases: ['data', 'chart', 'numbers', 'statistics'] },
+      { emoji: '🧘', meaning: 'Inner peace', triggerPhrases: ['peace', 'calm', 'meditate', 'center'] },
+      { emoji: '🌱', meaning: 'Growth takes time', triggerPhrases: ['growth', 'compound', 'long-term', 'returns'] },
+      { emoji: '💫', meaning: 'Wisdom moment', triggerPhrases: ['wisdom', 'insight', 'understand', 'realize'] },
       { emoji: '🐢', meaning: 'Slow and steady wins', triggerPhrases: ['patience', 'steady', 'consistent', 'time'] },
       { emoji: '💎', meaning: 'Valuable insight', triggerPhrases: ['important', 'key', 'crucial', 'valuable'] },
-      { emoji: '🎓', meaning: 'Learning moment', triggerPhrases: ['learn', 'understand', 'education', 'know'] },
+      { emoji: '🙏', meaning: 'Gratitude', triggerPhrases: ['grateful', 'thankful', 'appreciate', 'blessing'] },
     ],
   },
 
@@ -67,7 +67,7 @@ export const PERSONA_EXPRESSIONS: Record<PersonaId, PersonaExpressions> = {
   },
 
   // Alex - Communication specialist
-  'comm-specialist': {
+  'alex-chen': {
     signature: '📧',
     expressions: [
       { emoji: '📧', meaning: 'Email ready', triggerPhrases: ['email', 'message', 'send', 'draft'] },
@@ -79,8 +79,8 @@ export const PERSONA_EXPRESSIONS: Record<PersonaId, PersonaExpressions> = {
     ],
   },
 
-  // Maya - Spend & save specialist
-  'spend-save': {
+  // Maya - Life Habits Coach
+  'maya-santos': {
     signature: '💰',
     expressions: [
       { emoji: '💰', meaning: 'Money talk', triggerPhrases: ['money', 'cash', 'funds', 'dollars'] },
@@ -92,8 +92,8 @@ export const PERSONA_EXPRESSIONS: Record<PersonaId, PersonaExpressions> = {
     ],
   },
 
-  // Jordan - Life & event planner
-  'event-planner': {
+  // Jordan - Life Planner
+  'jordan-taylor': {
     signature: '🎉',
     expressions: [
       { emoji: '🎉', meaning: 'Celebration time!', triggerPhrases: ['celebrate', 'party', 'event', 'occasion'] },
@@ -104,6 +104,7 @@ export const PERSONA_EXPRESSIONS: Record<PersonaId, PersonaExpressions> = {
       { emoji: '🎁', meaning: 'Special moment', triggerPhrases: ['gift', 'present', 'surprise', 'special'] },
     ],
   },
+
 };
 
 // ============================================================================

@@ -1,0 +1,23 @@
+{
+  "name": "ferni-asset-generator",
+  "version": "1.0.0",
+  "description": "Generate images for Ferni landing page using Google Generative AI (Imagen)",
+  "main": "generate-assets.js",
+  "scripts": {
+    "generate": "node generate-assets.js --batch=images",
+    "generate:avatars": "node generate-assets.js --batch=avatars",
+    "generate:hero": "node generate-assets.js --batch=hero",
+    "generate:testimonials": "node generate-assets.js --batch=testimonials",
+    "list": "node generate-assets.js --list",
+    "help": "node generate-assets.js --help"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Ferni",
+  "license": "UNLICENSED",
+  "private": true
+}

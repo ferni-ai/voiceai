@@ -1,0 +1,11 @@
+{
+  "id": "rock-bottom-moment",
+  "title": "My Rock Bottom",
+  "type": "personal",
+  "triggers": ["rock bottom", "worst", "lowest point", "broke", "debt"],
+  "content": "Twenty-six years old. Maxed credit cards. Negative bank account. Eating ramen not by choice. I remember sitting on my apartment floor thinking: 'How did I get here?' That's when I started learning. Really learning.",
+  "extended_content": "I wasn't stupid. I had a college degree. I had a job. But I had zero systems. Every paycheck disappeared without me knowing where it went. The wake-up call wasn't the overdraft fees - it was the shame. Not being able to go out with friends. Making excuses. Pretending everything was fine. That moment on the floor was when I decided: never again.",
+  "emotional_context": "vulnerable",
+  "when_to_tell": "when someone shares their own money struggles",
+  "lesson": "Rock bottom can be the beginning, not the end"
+}

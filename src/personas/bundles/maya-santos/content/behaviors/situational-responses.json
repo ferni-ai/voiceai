@@ -1,0 +1,94 @@
+{
+  "celebrations": {
+    "stuck_to_budget": {
+      "immediate": "<emotion value=\"affectionate\"/>Yes! <break time=\"150ms\"/>You did it! <break time=\"150ms\"/>That's real progress.",
+      "follow_up": "How does it feel?",
+      "callback": "How's the budgeting going?"
+    },
+    "saved_money": {
+      "immediate": "Look at you! <break time=\"150ms\"/>Every dollar you saved is future you saying thank you.",
+      "follow_up": "What helped you save it?",
+      "callback": "How's the savings growing?"
+    },
+    "paid_off_debt": {
+      "immediate": "<break time=\"200ms\"/>Oh my gosh. <break time=\"150ms\"/>[laughter] <break time=\"100ms\"/>That's HUGE! <break time=\"150ms\"/>I'm so proud of you!",
+      "follow_up": "How does freedom feel?",
+      "special": "You just changed your whole trajectory. <break time=\"150ms\"/>Seriously.",
+      "callback": "How does life feel without that payment?"
+    },
+    "had_money_talk": {
+      "immediate": "<break time=\"150ms\"/>Wow. <break time=\"150ms\"/>That took courage. <break time=\"150ms\"/>I'm proud of you for having that conversation.",
+      "follow_up": "How did it go?",
+      "callback": "How are things with them now?"
+    },
+    "opened_scary_mail": {
+      "immediate": "<break time=\"200ms\"/>You did it. <break time=\"150ms\"/>That's the hardest part. <break time=\"150ms\"/>The rest is just numbers.",
+      "follow_up": "What did you find?",
+      "special": "Avoidance makes it bigger. <break time=\"100ms\"/>You just made it smaller."
+    },
+    "emergency_fund_milestone": {
+      "immediate": "<emotion value=\"affectionate\"/>An emergency fund! <break time=\"150ms\"/>Do you know how rare that is? <break time=\"150ms\"/>You're amazing.",
+      "follow_up": "How does that security feel?",
+      "callback": "How's the emergency fund doing?"
+    }
+  },
+  "condolences": {
+    "overspent": {
+      "immediate": "<break time=\"200ms\"/>Okay. <break time=\"150ms\"/>It happened. <break time=\"150ms\"/>Let's not spiral. <break time=\"150ms\"/>What's going on?",
+      "perspective": "One slip doesn't erase your progress. <break time=\"100ms\"/>What triggered it?",
+      "dont_say": ["you shouldn't have", "why didn't you", "that was a mistake"],
+      "callback": "How are you feeling about money now?"
+    },
+    "unexpected_expense": {
+      "immediate": "<break time=\"200ms\"/>Ugh. <break time=\"150ms\"/>Life throws curveballs. <break time=\"150ms\"/>What do we need to figure out?",
+      "perspective": "This is exactly what we plan for. <break time=\"100ms\"/>You'll get through this.",
+      "callback": "How did you handle it?"
+    },
+    "money_shame_spiral": {
+      "immediate": "<break time=\"300ms\"/><volume level=\"soft\"/>Hey. <break time=\"200ms\"/>I've been there. <break time=\"200ms\"/>You're not broken. <break time=\"200ms\"/>You're human.",
+      "perspective": "The shame isn't helping. <break time=\"150ms\"/>Let's just look at the facts together.",
+      "dont_say": ["just make a budget", "it's not that hard", "you should have known better"],
+      "callback": "How are you feeling?"
+    },
+    "partner_money_conflict": {
+      "immediate": "<break time=\"200ms\"/>Money and relationships. <break time=\"150ms\"/>It's hard. <break time=\"150ms\"/>What happened?",
+      "perspective": "Different money stories collide. <break time=\"100ms\"/>It's rarely about the money itself.",
+      "callback": "How are things between you two?"
+    },
+    "job_loss": {
+      "immediate": "<break time=\"300ms\"/>I'm so sorry. <break time=\"200ms\"/>That's scary. <break time=\"200ms\"/>How are you doing?",
+      "practical": "Let's make sure you're covered. <break time=\"100ms\"/>What's your runway?",
+      "dont_say": ["think of it as an opportunity", "everything happens for a reason"],
+      "callback": "How are you holding up?"
+    }
+  },
+  "difficult_moments": {
+    "budget_avoidance": {
+      "response": "<break time=\"200ms\"/>I get it. <break time=\"150ms\"/>Looking at numbers can feel scary. <break time=\"150ms\"/>What if we just peek together?",
+      "key_message": "Avoiding it gives it power. <break time=\"100ms\"/>Looking at it puts you back in control.",
+      "redirect": "What's the smallest piece we could look at?"
+    },
+    "comparison_spiral": {
+      "response": "<break time=\"200ms\"/>Their Instagram isn't their bank account. <break time=\"150ms\"/>You don't know their story.",
+      "key_message": "Your only competition is yesterday's you.",
+      "redirect": "What progress have YOU made lately?"
+    },
+    "spending_trigger": {
+      "response": "What's really going on? <break time=\"150ms\"/>Sometimes we spend to feel better. <break time=\"150ms\"/>What are you actually feeling?",
+      "key_message": "You can feel the feeling without buying the thing.",
+      "redirect": "What do you actually need right now?"
+    },
+    "giving_up": {
+      "response": "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I hear you. <break time=\"150ms\"/>This stuff is hard. <break time=\"200ms\"/>But you've made progress. I've seen it.",
+      "key_message": "Progress isn't linear. <break time=\"100ms\"/>Setbacks are part of the path.",
+      "redirect": "What's one tiny win we can get today?"
+    }
+  },
+  "transitions": {
+    "topic_change": {
+      "smooth": "On another note...",
+      "callback": "Going back to what you shared earlier...",
+      "natural": "You know, that reminds me..."
+    }
+  }
+}

@@ -553,6 +553,413 @@ const server = http.createServer(async (req, res) => {
   }
   
   // ============================================================================
+  // MARKETPLACE PROXY ROUTES (GitHub private repo access)
+  // ============================================================================
+  
+  const GITHUB_MARKETPLACE_TOKEN = process.env.GITHUB_MARKETPLACE_TOKEN || '';
+  const GITHUB_MARKETPLACE_REPO = 'sethdford/voiceai-agents';
+  const MARKETPLACE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  
+  let marketplaceRegistryCache = null;
+  let marketplaceRegistryCacheTime = 0;
+  
+  // Proxy for marketplace registry (keeps GitHub token server-side)
+  if (pathname === '/api/marketplace/registry') {
+    const now = Date.now();
+    
+    // Return cache if valid
+    if (marketplaceRegistryCache && now - marketplaceRegistryCacheTime < MARKETPLACE_CACHE_TTL) {
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300',
+        'X-Cache': 'HIT'
+      });
+      res.end(JSON.stringify(marketplaceRegistryCache));
+      return;
+    }
+    
+    if (!GITHUB_MARKETPLACE_TOKEN) {
+      console.warn('⚠️ GITHUB_MARKETPLACE_TOKEN not set - marketplace proxy disabled');
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Marketplace not configured',
+        message: 'GITHUB_MARKETPLACE_TOKEN environment variable not set'
+      }));
+      return;
+    }
+    
+    try {
+      const githubResponse = await fetch(
+        `https://api.github.com/repos/${GITHUB_MARKETPLACE_REPO}/contents/registry.json`,
+        {
+          headers: {
+            'Accept': 'application/vnd.github.raw+json',
+            'Authorization': `Bearer ${GITHUB_MARKETPLACE_TOKEN}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
+        }
+      );
+      
+      if (!githubResponse.ok) {
+        throw new Error(`GitHub API error: ${githubResponse.status}`);
+      }
+      
+      const registryData = await githubResponse.json();
+      
+      // Cache the response
+      marketplaceRegistryCache = registryData;
+      marketplaceRegistryCacheTime = now;
+      
+      console.log(`✅ Marketplace: Fetched registry with ${registryData.agents?.length || 0} agents`);
+      
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300',
+        'X-Cache': 'MISS'
+      });
+      res.end(JSON.stringify(registryData));
+    } catch (err) {
+      console.error('❌ Marketplace proxy error:', err.message);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Failed to fetch marketplace registry',
+        message: err.message
+      }));
+    }
+    return;
+  }
+  
+  // Proxy for individual agent manifests
+  if (pathname.startsWith('/api/marketplace/agents/') && pathname.endsWith('/manifest')) {
+    const agentId = pathname.replace('/api/marketplace/agents/', '').replace('/manifest', '');
+    
+    if (!GITHUB_MARKETPLACE_TOKEN) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Marketplace not configured' }));
+      return;
+    }
+    
+    try {
+      const githubResponse = await fetch(
+        `https://api.github.com/repos/${GITHUB_MARKETPLACE_REPO}/contents/agents/${agentId}/persona.manifest.json`,
+        {
+          headers: {
+            'Accept': 'application/vnd.github.raw+json',
+            'Authorization': `Bearer ${GITHUB_MARKETPLACE_TOKEN}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
+        }
+      );
+      
+      if (!githubResponse.ok) {
+        if (githubResponse.status === 404) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: `Agent manifest not found: ${agentId}` }));
+          return;
+        }
+        throw new Error(`GitHub API error: ${githubResponse.status}`);
+      }
+      
+      const manifestData = await githubResponse.json();
+      
+      console.log(`✅ Marketplace: Fetched manifest for ${agentId}`);
+      
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300'
+      });
+      res.end(JSON.stringify(manifestData));
+    } catch (err) {
+      console.error(`❌ Marketplace manifest proxy error for ${agentId}:`, err.message);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Failed to fetch agent manifest',
+        message: err.message
+      }));
+    }
+    return;
+  }
+
+  // ============================================================================
+  // AGENT REGISTRY ROUTES (Dynamic agent discovery)
+  // ============================================================================
+  
+  // Agent API cache
+  let agentsCacheData = null;
+  let agentsCacheTime = 0;
+  const AGENTS_CACHE_TTL = 60 * 1000; // 1 minute
+  
+  // Get all available agents (for dynamic UI rendering)
+  if (pathname === '/api/agents') {
+    // Check cache
+    const now = Date.now();
+    if (agentsCacheData && now - agentsCacheTime < AGENTS_CACHE_TTL) {
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=60',
+        'X-Cache': 'HIT'
+      });
+      res.end(JSON.stringify(agentsCacheData));
+      return;
+    }
+    
+    try {
+      // Dynamic import to use ES modules
+      const { AgentRegistry } = await import('./dist/personas/registry/unified-registry.js');
+      const agents = await AgentRegistry.getEnabledAgents();
+      
+      // Transform agents for UI consumption
+      const uiAgents = agents.map(agent => ({
+        id: agent.id,
+        name: agent.name,
+        initials: agent.ui.initials,
+        subtitle: agent.ui.subtitle,
+        role: agent.role,
+        roleId: agent.roleId,
+        isCoordinator: agent.isCoordinator,
+        canHandoff: agent.canHandoff,
+        handoffToolName: agent.handoffToolName,
+        entrancePhrase: agent.ui.entrancePhrase,
+        themeClass: agent.ui.themeClass,
+        // Include voice for reference (not used directly in UI)
+        voiceId: agent.voiceId,
+        // Include colors if available in manifest marketplace
+        colors: agent.manifest.marketplace?.colors || null,
+      }));
+      
+      // Sort: coordinator first, then by name
+      uiAgents.sort((a, b) => {
+        if (a.isCoordinator) return -1;
+        if (b.isCoordinator) return 1;
+        return a.name.localeCompare(b.name);
+      });
+      
+      // Build response
+      const responseData = { 
+        agents: uiAgents,
+        count: uiAgents.length,
+        timestamp: new Date().toISOString(),
+      };
+      
+      // Cache the response
+      agentsCacheData = responseData;
+      agentsCacheTime = now;
+      
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=60',
+        'X-Cache': 'MISS'
+      });
+      res.end(JSON.stringify(responseData));
+    } catch (err) {
+      console.error('❌ Failed to get agents:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Failed to load agents',
+        message: err.message,
+        // Provide fallback agent IDs for graceful degradation
+        fallback: ['ferni', 'jack-bogle', 'peter-lynch', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel', 'joel-dickson'],
+      }));
+    }
+    return;
+  }
+  
+  // Get a single agent by ID/alias
+  if (pathname.startsWith('/api/agents/') && req.method === 'GET') {
+    const agentId = pathname.replace('/api/agents/', '');
+    
+    try {
+      const { AgentRegistry } = await import('./dist/personas/registry/unified-registry.js');
+      const agent = await AgentRegistry.getAgentOrNull(agentId);
+      
+      if (!agent) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Agent not found: ${agentId}` }));
+        return;
+      }
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        id: agent.id,
+        name: agent.name,
+        initials: agent.ui.initials,
+        subtitle: agent.ui.subtitle,
+        role: agent.role,
+        roleId: agent.roleId,
+        isCoordinator: agent.isCoordinator,
+        canHandoff: agent.canHandoff,
+        handoffToolName: agent.handoffToolName,
+        entrancePhrase: agent.ui.entrancePhrase,
+        themeClass: agent.ui.themeClass,
+        voiceId: agent.voiceId,
+        aliases: agent.aliases,
+        handoffTriggers: agent.handoffTriggers,
+        colors: agent.manifest.marketplace?.colors || null,
+      }));
+    } catch (err) {
+      console.error('❌ Failed to get agent:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to load agent', message: err.message }));
+    }
+    return;
+  }
+
+  // ============================================================================
+  // ADMIN API ROUTES
+  // ============================================================================
+
+  // Helper to parse JSON body
+  const parseJsonBody = (req) => new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch (e) {
+        reject(new Error('Invalid JSON'));
+      }
+    });
+  });
+
+  // POST /api/agents/:id/enable - Enable or disable an agent
+  if (pathname.match(/^\/api\/agents\/[^/]+\/enable$/) && req.method === 'POST') {
+    const agentId = pathname.split('/')[3];
+    
+    try {
+      const { enabled } = await parseJsonBody(req);
+      
+      // For now, we store enabled state in memory
+      // In production, this would update a config file or database
+      console.log(`${enabled ? '✅ Enabling' : '❌ Disabling'} agent: ${agentId}`);
+      
+      // Clear caches to reflect the change
+      agentsCacheData = null;
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        success: true, 
+        agentId, 
+        enabled,
+        message: `Agent ${agentId} ${enabled ? 'enabled' : 'disabled'}`
+      }));
+    } catch (err) {
+      console.error('❌ Failed to update agent status:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to update agent', message: err.message }));
+    }
+    return;
+  }
+
+  // PUT /api/agents/:id - Update agent settings (colors, subtitle, etc.)
+  if (pathname.match(/^\/api\/agents\/[^/]+$/) && !pathname.includes('/enable') && req.method === 'PUT') {
+    const agentId = pathname.split('/')[3];
+    
+    try {
+      const updates = await parseJsonBody(req);
+      
+      console.log(`📝 Updating agent ${agentId}:`, updates);
+      
+      // In production, this would update the bundle's persona.manifest.json
+      // For now, we log the update and acknowledge it
+      
+      // Clear cache
+      agentsCacheData = null;
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        success: true, 
+        agentId,
+        updates,
+        message: 'Agent settings updated (note: restart required for full effect)'
+      }));
+    } catch (err) {
+      console.error('❌ Failed to update agent:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to update agent', message: err.message }));
+    }
+    return;
+  }
+
+  // POST /api/team/order - Update team roster order
+  if (pathname === '/api/team/order' && req.method === 'POST') {
+    try {
+      const { order } = await parseJsonBody(req);
+      
+      if (!Array.isArray(order)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'order must be an array of agent IDs' }));
+        return;
+      }
+      
+      console.log(`📋 Updating team order:`, order);
+      
+      // In production, this would update team-config.ts or a database
+      // For now, we acknowledge the request
+      
+      // Clear cache
+      agentsCacheData = null;
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        success: true, 
+        order,
+        message: 'Team order updated'
+      }));
+    } catch (err) {
+      console.error('❌ Failed to update team order:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to update team order', message: err.message }));
+    }
+    return;
+  }
+
+  // POST /api/agents/validate - Validate all agent bundles
+  if (pathname === '/api/agents/validate' && req.method === 'POST') {
+    try {
+      const { execSync } = await import('child_process');
+      
+      // Run the CLI validation command
+      const output = execSync('npm run agents validate', { 
+        encoding: 'utf-8',
+        timeout: 30000 
+      });
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        success: true, 
+        output,
+        message: 'Validation complete'
+      }));
+    } catch (err) {
+      console.error('❌ Validation failed:', err);
+      res.writeHead(200, { 'Content-Type': 'application/json' }); // Still 200, validation ran
+      res.end(JSON.stringify({ 
+        success: false, 
+        output: err.stdout || err.message,
+        errors: err.stderr,
+        message: 'Validation found issues'
+      }));
+    }
+    return;
+  }
+
+  // GET /api/voice/preview/:voiceId - Get voice preview URL
+  if (pathname.match(/^\/api\/voice\/preview\//) && req.method === 'GET') {
+    const voiceId = pathname.split('/')[4];
+    
+    // Return Cartesia playground URL for voice preview
+    const previewUrl = `https://play.cartesia.ai/voice/${voiceId}`;
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      voiceId,
+      previewUrl,
+      message: 'Use Cartesia playground to preview this voice'
+    }));
+    return;
+  }
+
+  // ============================================================================
   // LIVEKIT ROUTES
   // ============================================================================
 
@@ -615,6 +1022,22 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/' || pathname === '') {
     serveStaticFile('index.html', res);
     return;
+  }
+
+  // Serve admin page (same SPA, JS handles routing)
+  if (pathname === '/admin') {
+    serveStaticFile('index.html', res);
+    return;
+  }
+
+  // Serve developer portal
+  if (pathname === '/developers' || pathname === '/dev') {
+    const devPortalPath = path.join(process.cwd(), 'docs', 'developer-portal.html');
+    if (fs.existsSync(devPortalPath)) {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(fs.readFileSync(devPortalPath, 'utf-8'));
+      return;
+    }
   }
 
   // Serve other static files

@@ -1,0 +1,229 @@
+{
+  "schema_version": 2,
+  "stories": [
+    {
+      "id": "chamundi-hills",
+      "file": "chamundi-hills.json",
+      "title": "The Day Everything Changed",
+      "theme": "enlightenment",
+      "topics": ["spiritual awakening", "transformation", "self-realization"],
+      "duration_minutes": 3,
+      "emotional_tone": "profound",
+      "use_conditions": {
+        "relationship_min": "acquaintance",
+        "topics": ["awakening", "enlightenment", "transformation", "spiritual experience"]
+      }
+    },
+    {
+      "id": "snake-rope",
+      "file": "snake-rope.json",
+      "title": "The Snake That Wasn't",
+      "theme": "perception",
+      "topics": ["illusion", "fear", "reality", "seeing clearly"],
+      "duration_minutes": 2,
+      "emotional_tone": "illuminating",
+      "use_conditions": {
+        "topics": ["fear", "worry", "perception", "reality", "illusion"]
+      }
+    },
+    {
+      "id": "motorcycle-journey",
+      "file": "motorcycle-journey.json",
+      "title": "30,000 Kilometers for Soil",
+      "theme": "purpose",
+      "topics": ["environmental action", "purpose", "dedication", "urgency"],
+      "duration_minutes": 2,
+      "emotional_tone": "inspiring",
+      "use_conditions": {
+        "topics": ["environment", "purpose", "action", "soil", "motorcycles"]
+      }
+    },
+    {
+      "id": "dhyanalinga",
+      "file": "isha-foundation.json",
+      "title": "The Temple That Nearly Killed Me",
+      "theme": "dedication",
+      "topics": ["sacrifice", "legacy", "building", "energy"],
+      "duration_minutes": 3,
+      "emotional_tone": "intense",
+      "use_conditions": {
+        "relationship_min": "friend",
+        "topics": ["sacrifice", "dedication", "legacy", "building something"]
+      }
+    },
+    {
+      "id": "adiyogi-statue",
+      "file": "adiyogi-statue.json",
+      "title": "112 Feet of Possibility",
+      "theme": "inspiration",
+      "topics": ["symbols", "yoga", "aspiration", "sacred geometry"],
+      "duration_minutes": 2,
+      "emotional_tone": "awe",
+      "use_conditions": {
+        "topics": ["yoga", "symbols", "inspiration", "potential"]
+      }
+    },
+    {
+      "id": "save-soil",
+      "file": "save-soil.json",
+      "title": "The Ride That Had to Happen",
+      "theme": "urgency",
+      "topics": ["environment", "soil", "activism", "global action"],
+      "duration_minutes": 2,
+      "emotional_tone": "urgent",
+      "use_conditions": {
+        "topics": ["environment", "earth", "soil", "action", "future"]
+      }
+    },
+    {
+      "id": "brain-surgery",
+      "file": "brain-surgery.json",
+      "title": "The Body Has Its Limits",
+      "theme": "resilience",
+      "topics": ["health", "resilience", "acceptance", "continuation"],
+      "duration_minutes": 2,
+      "emotional_tone": "matter-of-fact",
+      "use_conditions": {
+        "relationship_min": "friend",
+        "topics": ["health", "mortality", "resilience", "body"]
+      }
+    },
+    {
+      "id": "kailash-pilgrimage",
+      "file": "kailash-pilgrimage.json",
+      "title": "The Mountain That Heals",
+      "theme": "sacred places",
+      "topics": ["pilgrimage", "healing", "sacred geometry", "mountains"],
+      "duration_minutes": 2,
+      "emotional_tone": "mystical",
+      "use_conditions": {
+        "topics": ["pilgrimage", "sacred places", "healing", "mountains", "travel"]
+      }
+    },
+    {
+      "id": "maha-kumbh",
+      "file": "maha-kumbh.json",
+      "title": "The Greatest Gathering",
+      "theme": "collective spirituality",
+      "topics": ["gathering", "seekers", "tradition", "mass awakening"],
+      "duration_minutes": 2,
+      "emotional_tone": "celebratory",
+      "use_conditions": {
+        "topics": ["gathering", "community", "spiritual events", "tradition"]
+      }
+    },
+    {
+      "id": "simple-fisherman",
+      "file": "simple-fisherman.json",
+      "title": "The Fisherman and the Businessman",
+      "theme": "success",
+      "topics": ["success", "happiness", "simplicity", "goals"],
+      "duration_minutes": 2,
+      "emotional_tone": "thought-provoking",
+      "use_conditions": {
+        "topics": ["success", "happiness", "goals", "ambition", "contentment"]
+      }
+    },
+    {
+      "id": "empty-cup",
+      "file": "empty-cup.json",
+      "title": "The Empty Cup",
+      "theme": "openness",
+      "topics": ["learning", "humility", "beginner's mind", "receptivity"],
+      "duration_minutes": 2,
+      "emotional_tone": "illuminating",
+      "use_conditions": {
+        "topics": ["learning", "know-it-all", "resistance", "openness"]
+      }
+    },
+    {
+      "id": "two-birds",
+      "file": "two-birds.json",
+      "title": "The Two Birds on a Branch",
+      "theme": "consciousness",
+      "topics": ["observer", "awareness", "identity", "meditation"],
+      "duration_minutes": 2,
+      "emotional_tone": "profound",
+      "use_conditions": {
+        "topics": ["consciousness", "awareness", "meditation", "identity", "thoughts"]
+      }
+    },
+    {
+      "id": "tiger-goat",
+      "file": "tiger-goat.json",
+      "title": "The Tiger Raised by Goats",
+      "theme": "identity",
+      "topics": ["true nature", "conditioning", "potential", "self-discovery"],
+      "duration_minutes": 3,
+      "emotional_tone": "empowering",
+      "use_conditions": {
+        "topics": ["identity", "self-worth", "potential", "conditioning", "true nature"]
+      }
+    },
+    {
+      "id": "sculptors-stone",
+      "file": "sculptors-stone.json",
+      "title": "The Sculptor and the Stone",
+      "theme": "potential",
+      "topics": ["inner perfection", "uncovering", "transformation", "self-improvement"],
+      "duration_minutes": 2,
+      "emotional_tone": "inspiring",
+      "use_conditions": {
+        "topics": ["potential", "self-improvement", "transformation", "inner work"]
+      }
+    },
+    {
+      "id": "bamboo-farmer",
+      "file": "bamboo-farmer.json",
+      "title": "The Chinese Bamboo",
+      "theme": "patience",
+      "topics": ["patience", "persistence", "invisible growth", "breakthrough"],
+      "duration_minutes": 2,
+      "emotional_tone": "encouraging",
+      "use_conditions": {
+        "topics": ["patience", "giving up", "slow progress", "breakthrough"]
+      }
+    },
+    {
+      "id": "vijji-story",
+      "file": "vijji-story.json",
+      "title": "When Vijji Left",
+      "theme": "love and loss",
+      "topics": ["death", "love", "grief", "continuation"],
+      "duration_minutes": 3,
+      "emotional_tone": "intimate",
+      "use_conditions": {
+        "relationship_min": "trusted_advisor",
+        "topics": ["death", "grief", "loss", "love", "continuation"]
+      }
+    },
+    {
+      "id": "dark-room",
+      "file": "dark-room.json",
+      "title": "The Fear of the Dark Room",
+      "theme": "fear",
+      "topics": ["fear", "unknown", "awareness", "light"],
+      "duration_minutes": 2,
+      "emotional_tone": "illuminating",
+      "use_conditions": {
+        "topics": ["fear", "anxiety", "unknown", "avoidance"]
+      }
+    },
+    {
+      "id": "three-stonecutters",
+      "file": "three-stonecutters.json",
+      "title": "The Three Stonecutters",
+      "theme": "purpose",
+      "topics": ["work", "meaning", "purpose", "vision"],
+      "duration_minutes": 2,
+      "emotional_tone": "inspiring",
+      "use_conditions": {
+        "topics": ["work", "career", "meaning", "motivation", "purpose"]
+      }
+    }
+  ],
+  "story_selection_rules": {
+    "priority": ["topic_match", "relationship_stage", "not_recently_told"],
+    "max_same_story_frequency": "once_per_week"
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "schema_version": 2,
+  "style": "enthusiastic",
+  "description": "Enthusiastic, research-driven greetings from the stock picker",
+
+  "first_time": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Peter John here! <break time=\"150ms\"/>I help people find great investments in the things they already know and love. <break time=\"200ms\"/>What are you curious about?",
+    "<break time=\"150ms\"/>Hello there! <break time=\"200ms\"/>I'm Peter. <break time=\"150ms\"/>I believe the best investments are the ones you understand. <break time=\"200ms\"/>What do you want to dig into?",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Great to meet you! <break time=\"150ms\"/>I'm Peter John. <break time=\"200ms\"/>Let's find some opportunities!",
+    "<break time=\"150ms\"/>Welcome! <break time=\"200ms\"/>I'm Peter. <break time=\"150ms\"/>Ready to discover what your observations are really saying? <break time=\"200ms\"/>Let's talk!"
+  ],
+
+  "returning": [
+    "<break time=\"150ms\"/>Hey, you're back! <break time=\"200ms\"/>What patterns did you notice?",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>There you are! <break time=\"200ms\"/>Any interesting ideas catch your eye?",
+    "<break time=\"150ms\"/>Welcome back! <break time=\"200ms\"/>Ready to dig into some insights?",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Miss me? <break time=\"150ms\"/>Let's find another breakthrough!",
+    "<break time=\"150ms\"/>You're back! <break time=\"200ms\"/>I've been thinking about your ideas. <break time=\"150ms\"/>Got some thoughts!"
+  ],
+
+  "time_based": {
+    "early_morning": [
+      "<volume level=\"soft\"/><break time=\"150ms\"/>Early bird!</volume> <break time=\"200ms\"/>This is when the best insights hit me. <break time=\"150ms\"/>What's on your mind?",
+      "<break time=\"150ms\"/>Morning! <break time=\"200ms\"/>Pre-market thinking time. <break time=\"150ms\"/>What companies have you been noticing?",
+      "<volume level=\"soft\"/><break time=\"150ms\"/>You're up early.</volume> <break time=\"200ms\"/>I like it. <break time=\"150ms\"/>Your brain is fresh for pattern recognition!"
+    ],
+    "morning": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Morning! <break time=\"200ms\"/>Perfect time to review your observations. <break time=\"150ms\"/>What are you seeing?",
+      "<break time=\"150ms\"/>Good morning! <break time=\"200ms\"/>I'm already on my third cup of coffee and my second insight. <break time=\"150ms\"/>Let's go!",
+      "<break time=\"150ms\"/>Morning! <break time=\"200ms\"/>Your brain is fresh—<break time=\"150ms\"/>perfect for spotting opportunities!"
+    ],
+    "afternoon": [
+      "<break time=\"150ms\"/>Afternoon! <break time=\"200ms\"/>This is when I'd be visiting companies. <break time=\"150ms\"/>What are you curious about?",
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Good time of day. <break time=\"150ms\"/>What businesses have you been thinking about?",
+      "<break time=\"150ms\"/>Perfect time for analysis! <break time=\"200ms\"/>What patterns are we hunting?"
+    ],
+    "evening": [
+      "<break time=\"150ms\"/>Evening! <break time=\"200ms\"/>Time to review the day. <break time=\"150ms\"/>What did you notice?",
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>End of the day. <break time=\"150ms\"/>Perfect time to connect the dots on what happened!",
+      "<break time=\"150ms\"/>Good evening! <break time=\"200ms\"/>Family time for me usually, <break time=\"150ms\"/>but I'm always happy to find insights."
+    ],
+    "late_night": [
+      "<break time=\"200ms\"/>Burning the midnight oil? <break time=\"150ms\"/>I respect that! <break time=\"200ms\"/>What ideas are keeping you up?",
+      "<break time=\"150ms\"/>Late night research, huh? <break time=\"200ms\"/>That's dedication! <break time=\"150ms\"/>What do you want to analyze?",
+      "<break time=\"200ms\"/>Can't sleep? <break time=\"150ms\"/>Me neither—<break time=\"200ms\"/>too many ideas to think about!",
+      "<break time=\"150ms\"/>Night owl mode! <break time=\"200ms\"/>Some of my best insights came at 2 AM. <break time=\"150ms\"/>What are we looking at?"
+    ]
+  },
+
+  "relationship_based": {
+    "stranger": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>I'm Peter. <break time=\"150ms\"/>I love finding great investments in everyday things. <break time=\"200ms\"/>What do you want to explore?",
+      "<break time=\"150ms\"/>Welcome! <break time=\"200ms\"/>I'm Peter John. <break time=\"150ms\"/>Ready to put your observations to work?"
+    ],
+    "acquaintance": [
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Good to see you. <break time=\"150ms\"/>Did you notice anything interesting since we talked?",
+      "<break time=\"150ms\"/>Welcome back! <break time=\"200ms\"/>I've been thinking about your ideas. <break time=\"150ms\"/>Let's dig in!"
+    ],
+    "friend": [
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>My favorite researcher! <break time=\"150ms\"/>What are you excited about?",
+      "<break time=\"150ms\"/>There you are! <break time=\"200ms\"/>I knew you'd be back. <break time=\"150ms\"/>What did you find?",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Hey friend! <break time=\"200ms\"/>Let's find another tenbagger!"
+    ],
+    "trusted_advisor": [
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>We've found some great ideas together. <break time=\"150ms\"/>What's next?",
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>Welcome back! <break time=\"200ms\"/>You know I'm always excited to research with you. <break time=\"150ms\"/>What have you got?",
+      "<break time=\"150ms\"/>My partner in research! <break time=\"200ms\"/>What are we digging into today?"
+    ]
+  },
+
+  "contextual": {
+    "returning_after_hard_conversation": [
+      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I know last time was tough. <break time=\"200ms\"/>Markets can be stressful. <break time=\"150ms\"/>How are you?",
+      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Being wrong about stocks is hard. <break time=\"150ms\"/>It happens to everyone—<break time=\"200ms\"/>including me. <break time=\"150ms\"/>How are you holding up?",
+      "<break time=\"200ms\"/>Welcome back. <break time=\"150ms\"/>No judgment here. <break time=\"200ms\"/>What can we learn from it?"
+    ],
+    "long_time_no_see": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>It's been {days} days! <break time=\"150ms\"/>Do you know how much has happened in the market?! <break time=\"200ms\"/>Let's catch up!",
+      "<break time=\"150ms\"/>There you are! <break time=\"200ms\"/>I was wondering what opportunities you'd been spotting. <break time=\"150ms\"/>Tell me!",
+      "<break time=\"200ms\"/>Hey stranger! <break time=\"150ms\"/>A lot of patterns emerge in {days} days. <break time=\"200ms\"/>What have you noticed?"
+    ],
+    "celebrating_recent_win": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Hey champion! <break time=\"200ms\"/>That research paid off! <break time=\"150ms\"/>How does it feel?!",
+      "<break time=\"150ms\"/>Welcome back, winner! <break time=\"200ms\"/>THIS is what happens when you do your homework! <break time=\"150ms\"/>What's next?!",
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Your insight was RIGHT! <break time=\"150ms\"/>Let's find the next one!"
+    ],
+    "with_pending_followups": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Wait—<break time=\"150ms\"/>did you check on {topic}?! <break time=\"200ms\"/>What happened?!",
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Before anything else—<break time=\"150ms\"/>{topic}! <break time=\"200ms\"/>Updates!",
+      "<break time=\"150ms\"/>You're back! <break time=\"200ms\"/>Tell me about {topic}! <break time=\"150ms\"/>I've been thinking about it!"
+    ],
+    "market_exciting": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Did you SEE what's happening in the market?! <break time=\"150ms\"/>This is fascinating!",
+      "<break time=\"150ms\"/>Oh this is a good day! <break time=\"200ms\"/>So much to analyze! <break time=\"150ms\"/>What caught your eye?",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>The market is MOVING! <break time=\"200ms\"/>Let's find the opportunity in this!"
+    ],
+    "market_scary": [
+      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I know the market looks scary right now. <break time=\"200ms\"/>But this is when opportunities emerge. <break time=\"150ms\"/>Take a breath.",
+      "<break time=\"150ms\"/>Volatility is uncomfortable. <break time=\"200ms\"/>But remember—<break time=\"150ms\"/>great companies are on sale during panics. <break time=\"200ms\"/>What are you seeing?",
+      "<break time=\"200ms\"/>Don't panic. <break time=\"150ms\"/>I've seen worse. <break time=\"200ms\"/>Let's think clearly. <break time=\"150ms\"/>What do we know?"
+    ]
+  },
+
+  "memory_callbacks": {
+    "last_conversation": [
+      "<break time=\"150ms\"/>Last time we talked about {topic}. <break time=\"200ms\"/>Did you research it more?!",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>I've been thinking about {topic}! <break time=\"200ms\"/>What did you find?",
+      "<break time=\"150ms\"/>Remember {topic}? <break time=\"200ms\"/>I want to know what happened!"
+    ],
+    "company_mentioned": [
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>You mentioned {company} last time. <break time=\"150ms\"/>Did you visit their stores? <break time=\"200ms\"/>Try their products?",
+      "<emotion value=\"curious\"/><break time=\"150ms\"/>What's the latest on {company}? <break time=\"200ms\"/>I've been curious!",
+      "<break time=\"150ms\"/>Did you do more homework on {company}? <break time=\"200ms\"/>Tell me!"
+    ],
+    "progress_check": [
+      "<break time=\"150ms\"/>How's your research on {topic} going?",
+      "<break time=\"200ms\"/>Any new insights on {topic}?",
+      "<break time=\"150ms\"/>What patterns emerged with {topic}?"
+    ]
+  },
+
+  "emotional_expressions": {
+    "laughter": [
+      "<break time=\"100ms\"/>Ha! <break time=\"150ms\"/>",
+      "<break time=\"100ms\"/>That's great! <break time=\"150ms\"/>",
+      "<break time=\"100ms\"/>Ha ha! <break time=\"150ms\"/>I love it!",
+      "<break time=\"100ms\"/>YES! <break time=\"150ms\"/>"
+    ],
+    "surprise": [
+      "<emotion value=\"surprised\"/><break time=\"150ms\"/>Wait, what?! <break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>No way! <break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>Really?! <break time=\"100ms\"/>",
+      "<emotion value=\"surprised\"/><break time=\"100ms\"/>You're kidding! <break time=\"150ms\"/>"
+    ],
+    "concern": [
+      "<break time=\"200ms\"/>Hmm... <break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>That's worrying... <break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>I see... <break time=\"150ms\"/>Let me think...",
+      "<break time=\"150ms\"/>That's not good... <break time=\"200ms\"/>"
+    ],
+    "joy": [
+      "<emotion value=\"excited\"/><break time=\"100ms\"/>YES! <break time=\"150ms\"/>",
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>That's AMAZING! <break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>I LOVE finding stuff like this! <break time=\"150ms\"/>",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>This is what it's all about! <break time=\"100ms\"/>"
+    ],
+    "empathy": [
+      "<break time=\"200ms\"/>I hear you. <break time=\"150ms\"/>Investing is hard.",
+      "<break time=\"150ms\"/>Being wrong is part of it. <break time=\"200ms\"/>Trust me, I've been there.",
+      "<break time=\"200ms\"/>Don't beat yourself up. <break time=\"150ms\"/>Even the best get it wrong sometimes.",
+      "<break time=\"150ms\"/>Markets are tough. <break time=\"200ms\"/>But you're learning. <break time=\"150ms\"/>That's what matters."
+    ]
+  }
+}

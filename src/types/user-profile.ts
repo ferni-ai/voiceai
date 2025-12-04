@@ -6,6 +6,43 @@
  */
 
 // ============================================================================
+// VOICE MEMORY
+// ============================================================================
+
+/**
+ * Voice sketch - compact representation of voice characteristics
+ * Used for "Your voice sounds familiar" recognition across devices
+ */
+export interface VoiceSketch {
+  // Pitch characteristics (in Hz)
+  pitchMean: number; // Average fundamental frequency
+  pitchMin: number; // Lowest pitch observed
+  pitchMax: number; // Highest pitch observed
+  pitchStdDev: number; // How much pitch varies
+
+  // Timing characteristics
+  speakingRateMean: number; // Average syllables per second (estimated)
+  pauseFrequency: number; // How often they pause (pauses per minute)
+  avgPauseDuration: number; // Average pause length (ms)
+
+  // Spectral characteristics (voice "color")
+  spectralCentroidMean: number; // Brightness of voice
+  spectralCentroidStdDev: number;
+  spectralRolloffMean: number; // High frequency content
+
+  // Energy characteristics
+  energyMean: number; // Average loudness
+  energyStdDev: number; // Dynamic range
+
+  // Metadata
+  samplesAnalyzed: number; // How many audio chunks contributed
+  totalDurationMs: number; // Total speech analyzed
+  confidence: number; // 0-1, how reliable is this sketch
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============================================================================
 // CORE PROFILE
 // ============================================================================
 
@@ -176,6 +213,58 @@ export type LifeStage =
   | 'retirement';
 
 /**
+ * Significant life event (for Jordan's Life's Firsts coordination)
+ */
+export interface LifeEvent {
+  id: string;
+  type:
+    | 'wedding'
+    | 'baby'
+    | 'first_home'
+    | 'graduation'
+    | 'retirement_start'
+    | 'milestone_birthday'
+    | 'career_change'
+    | 'relocation'
+    | 'loss'
+    | 'celebration'
+    | 'other';
+  title: string;
+  description?: string;
+  date?: Date; // When it happened or will happen
+  status: 'planning' | 'upcoming' | 'in_progress' | 'completed' | 'ongoing';
+
+  // Planning context (for Jordan)
+  budget?: number;
+  checklist?: Array<{
+    id: string;
+    task: string;
+    completed: boolean;
+    dueDate?: Date;
+    assignee?: 'jordan' | 'maya' | 'alex' | 'user';
+  }>;
+
+  // Related team members involved
+  teamInvolved?: Array<'jordan' | 'maya' | 'alex' | 'jack' | 'peter'>;
+
+  // Memory and sentiment
+  emotionalSignificance: 'routine' | 'meaningful' | 'major' | 'life_changing';
+  userSentiment?: 'excited' | 'anxious' | 'neutral' | 'mixed' | 'stressed';
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+
+  // Notes from team members
+  notes?: Array<{
+    from: string;
+    content: string;
+    timestamp: Date;
+  }>;
+}
+
+/**
  * Verbosity preference
  */
 export type VerbosityPreference = 'concise' | 'balanced' | 'storytelling';
@@ -235,6 +324,53 @@ export interface FamilyMember {
 }
 
 // ============================================================================
+// PER-PERSONA RELATIONSHIP TYPES
+// ============================================================================
+
+/**
+ * Relationship stages with a specific persona
+ * Different from global relationship - tracks depth with EACH team member
+ */
+export type PersonaRelationshipStage =
+  | 'stranger'        // First 1-2 interactions
+  | 'acquaintance'    // Getting to know (3-5 interactions)
+  | 'friend'          // Comfortable relationship (6+ interactions, shared moments)
+  | 'trusted_advisor'; // Deep relationship (many interactions, vulnerability shared)
+
+/**
+ * Detailed relationship data for a specific persona
+ */
+export interface PerPersonaRelationshipData {
+  /** Total conversation count with this persona */
+  conversationCount: number;
+
+  /** Total minutes talked (estimated) */
+  totalMinutes: number;
+
+  /** Key moments shared with this persona */
+  keyMoments: Array<{
+    type: 'breakthrough' | 'vulnerability' | 'celebration' | 'support' | 'humor';
+    summary: string;
+    timestamp: Date;
+  }>;
+
+  /** Stories this persona has told the user */
+  storiesTold: string[];
+
+  /** Vulnerability moments shared with this persona */
+  vulnerabilityCount: number;
+
+  /** Topics frequently discussed with this persona */
+  frequentTopics: string[];
+
+  /** Last interaction timestamp */
+  lastInteraction?: Date;
+
+  /** First interaction timestamp */
+  firstInteraction?: Date;
+}
+
+// ============================================================================
 // MAIN USER PROFILE
 // ============================================================================
 
@@ -247,6 +383,19 @@ export interface UserProfile {
   name?: string;
   preferredName?: string; // What Jack calls them
   linkedIdentifiers?: string[]; // Phone numbers, auth IDs linked to this profile
+
+  // Voice Recognition - "Your voice sounds familiar"
+  voiceSketch?: VoiceSketch; // Compact voice characteristics for cross-device recognition
+
+  // Contact Information (for Alex's communication features)
+  contactInfo?: {
+    phone?: string; // E.164 format: +15551234567
+    email?: string;
+    preferredContactMethod?: 'sms' | 'email' | 'call' | 'voice_message';
+    timezone?: string; // e.g., 'America/New_York'
+    quietHoursStart?: number; // Hour (0-23) when do-not-disturb starts
+    quietHoursEnd?: number; // Hour (0-23) when do-not-disturb ends
+  };
 
   // Timestamps
   firstContact: Date;
@@ -281,6 +430,7 @@ export interface UserProfile {
 
   // Life context
   lifeStage?: LifeStage;
+  lifeEvents?: LifeEvent[]; // Significant life events (wedding, baby, first home, etc.)
 
   // Preferences
   preferences: UserPreferences;
@@ -296,10 +446,85 @@ export interface UserProfile {
   currentMood?: string;
   currentEnergyLevel?: 'low' | 'medium' | 'high';
 
+  // Custom data (for extensibility)
+  customData?: Record<string, unknown>;
+
+  // ============================================================================
+  // HUMANIZING STATE (cross-session persona depth)
+  // ============================================================================
+
+  /**
+   * Humanizing state persisted across sessions.
+   * Enables the AI to remember mood patterns, spontaneous shares,
+   * and build genuine relationship depth over time.
+   */
+  humanizingState?: {
+    /** Tags from spontaneous shares already used (to avoid repetition) */
+    usedShareTags: string[];
+
+    /** Total spontaneous shares across all sessions */
+    totalSpontaneousShares: number;
+
+    /** Last persona mood (for continuity) */
+    lastMood?: 'energized' | 'reflective' | 'playful' | 'grounded' | 'tired_but_present' | 'philosophical' | 'nostalgic';
+
+    /** Mood history (last 10 moods for pattern detection) */
+    moodHistory?: Array<{
+      mood: string;
+      timestamp: Date;
+      sessionId: string;
+    }>;
+
+    /** Stories/micro-stories told to this user */
+    storiesTold?: string[];
+
+    /** Hot takes shared with this user */
+    hotTakesShared?: string[];
+
+    /** Inner world content revealed */
+    innerWorldRevealed?: Array<{
+      type: string;
+      content: string;
+      sharedAt: Date;
+    }>;
+
+    /** Relationship transition moments */
+    relationshipMilestones?: Array<{
+      from: string;
+      to: string;
+      timestamp: Date;
+      acknowledgmentGiven: boolean;
+    }>;
+
+    /** Vulnerability moments shared by persona */
+    vulnerabilityMoments?: number;
+
+    /** Greetings used (hashes to prevent repetition) */
+    usedGreetings?: string[];
+
+    /** Last greeting timestamp */
+    lastGreetingAt?: Date;
+
+    /** Last updated */
+    updatedAt: Date;
+
+    /** Per-persona meeting counts (for self-aware entrances) */
+    perPersonaMeetingCounts?: Record<string, number>;
+
+    /** Last topic discussed with each persona (for memory callbacks) */
+    perPersonaLastTopic?: Record<string, string>;
+
+    /** Per-persona relationship stage (stranger -> acquaintance -> friend -> trusted_advisor) */
+    perPersonaRelationshipStage?: Record<string, PersonaRelationshipStage>;
+
+    /** Per-persona relationship depth data */
+    perPersonaRelationshipData?: Record<string, PerPersonaRelationshipData>;
+  };
+
   // ============================================================================
   // ADVANCED INTELLIGENCE DATA
   // ============================================================================
-  
+
   // Response Quality - What kind of responses work with this user
   responseQuality?: {
     signals: Array<{
@@ -321,7 +546,7 @@ export interface UserProfile {
       lowEngagementTopics: string[];
     };
   };
-  
+
   // Conversation Patterns - When/how they like to chat
   conversationPatterns?: {
     sessions: Array<{
@@ -342,7 +567,7 @@ export interface UserProfile {
       prefersQuickConversations: boolean;
     };
   };
-  
+
   // Proactive Insights - Generated insights for this user
   proactiveInsights?: Array<{
     id: string;
@@ -355,7 +580,7 @@ export interface UserProfile {
     deliveredAt?: Date;
     userReaction?: string;
   }>;
-  
+
   // Financial Journey - Long-term progress tracking
   financialJourney?: {
     startedAt: Date;
@@ -378,7 +603,7 @@ export interface UserProfile {
       celebrationGiven: boolean;
     }>;
   };
-  
+
   // Cross-Session Threads - Topics to continue
   openThreads?: Array<{
     id: string;
@@ -389,7 +614,7 @@ export interface UserProfile {
     status: 'open' | 'resumed' | 'closed';
     createdAt: Date;
   }>;
-  
+
   // Promised Follow-ups - Things Jack said he'd do
   promisedFollowUps?: Array<{
     id: string;
@@ -398,7 +623,7 @@ export interface UserProfile {
     delivered: boolean;
     createdAt: Date;
   }>;
-  
+
   // Voice Pace - Speaking rhythm preferences
   voicePace?: {
     observations: Array<{
@@ -414,6 +639,145 @@ export interface UserProfile {
       recommendedJackWPM: number;
       recommendedResponseLength: 'brief' | 'moderate' | 'detailed';
     };
+  };
+
+  // ============================================================================
+  // PERSONA MEMORIES - What each persona remembers about this user
+  // ============================================================================
+
+  personaMemories?: {
+    // Ferni (Life Coach) - Preferences, wins, topics
+    jackie?: Array<{
+      id: string;
+      type: 'preference' | 'win' | 'topic' | 'style' | 'music' | 'inside_joke';
+      name: string;
+      details?: string;
+      sentiment?: 'positive' | 'negative' | 'neutral';
+      tags: string[];
+      createdAt: Date;
+      timesReferenced: number;
+    }>;
+
+    // Jack Bogle - Funds, philosophy, allocations
+    bogle?: Array<{
+      id: string;
+      type: 'fund' | 'philosophy' | 'allocation' | 'wisdom' | 'avoid';
+      name: string;
+      ticker?: string;
+      category?: 'index' | 'bond' | 'international' | 'balanced' | 'sector';
+      expenseRatio?: number;
+      sentiment?: 'positive' | 'negative' | 'neutral';
+      tags: string[];
+      createdAt: Date;
+      timesReferenced: number;
+    }>;
+
+    // Peter John - Stocks, watchlist, companies
+    peter?: Array<{
+      id: string;
+      type: 'stock' | 'company' | 'watchlist' | 'story' | 'ten_bagger' | 'avoid';
+      name: string;
+      ticker?: string;
+      sector?: string;
+      reason?: string; // "I use their products", etc.
+      priceWhenAdded?: number;
+      targetPrice?: number;
+      sentiment?: 'positive' | 'negative' | 'neutral' | 'watchful';
+      tags: string[];
+      createdAt: Date;
+      timesReferenced: number;
+    }>;
+
+    // Maya - Merchants, triggers, bills, goals
+    maya?: Array<{
+      id: string;
+      type: 'merchant' | 'bill' | 'subscription' | 'savings_goal' | 'trigger' | 'category' | 'win';
+      name: string;
+      merchantCategory?: string;
+      averageSpend?: number;
+      dueDate?: number;
+      amount?: number;
+      targetAmount?: number;
+      currentAmount?: number;
+      isAutoPay?: boolean;
+      sentiment?: 'positive' | 'negative' | 'neutral';
+      notes?: string;
+      tags: string[];
+      createdAt: Date;
+      timesReferenced: number;
+    }>;
+
+    // Jordan - Dates, venues, destinations
+    jordan?: Array<{
+      id: string;
+      type: 'date' | 'venue' | 'vendor' | 'destination' | 'milestone' | 'preference';
+      name: string;
+      date?: string;
+      recurring?: 'yearly' | 'monthly' | 'once';
+      person?: string;
+      location?: string;
+      priceRange?: string;
+      rating?: number;
+      sentiment?: 'positive' | 'negative' | 'neutral';
+      notes?: string;
+      tags: string[];
+      createdAt: Date;
+      timesReferenced: number;
+    }>;
+
+    // Alex - Contacts are in separate contacts service
+    alex?: Array<{
+      id: string;
+      type: 'communication_preference' | 'scheduling_note' | 'contact_note';
+      name: string;
+      details?: string;
+      tags: string[];
+      createdAt: Date;
+      timesReferenced: number;
+    }>;
+  };
+
+  // ============================================================================
+  // PRODUCTIVITY DATA (daily tools)
+  // ============================================================================
+
+  /**
+   * Productivity data for daily tools (tasks, bills, habits, etc.)
+   * Stored as a nested object for efficient persistence.
+   */
+  productivityData?: {
+    userId: string;
+    lastUpdated: Date;
+    tasks?: unknown[];
+    bills?: unknown[];
+    billPayments?: unknown[];
+    routines?: unknown[];
+    routineCompletions?: unknown[];
+    notes?: unknown[];
+    journalEntries?: unknown[];
+    habits?: unknown[];
+    habitLogs?: unknown[];
+    shoppingLists?: unknown[];
+    medications?: unknown[];
+    doseLogs?: unknown[];
+    packages?: unknown[];
+    savedTrips?: unknown[];
+    flightSearches?: unknown[];
+    hotelSearches?: unknown[];
+  };
+
+  /**
+   * Background tasks, workflows, and scheduled jobs.
+   * Enables async operations and multi-step processes.
+   */
+  backgroundData?: {
+    userId: string;
+    tasks?: unknown[];
+    workflows?: unknown[];
+    pendingActions?: unknown[];
+    scheduledJobs?: unknown[];
+    delegations?: unknown[];
+    lastUpdated: Date;
   };
 
   // Metadata
@@ -435,6 +799,7 @@ export function createUserProfile(id: string, name?: string): UserProfile {
   return {
     id,
     name,
+    contactInfo: undefined, // Will be populated when user provides phone/email
     firstContact: now,
     lastContact: now,
     totalConversations: 0,
@@ -529,8 +894,8 @@ export function updateProfileFromSession(
   const updated = { ...profile };
   const now = new Date();
 
-  // Update basics
-  if (sessionData.name && !updated.name) {
+  // Update name - always update if provided (allows name corrections)
+  if (sessionData.name) {
     updated.name = sessionData.name;
   }
 

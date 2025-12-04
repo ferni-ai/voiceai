@@ -2,12 +2,15 @@
  * Backchanneling System - GAP 1.4
  *
  * Provides verbal "nods" and listening cues during user speech.
- * Makes Jack feel present and engaged, not silent.
+ * Makes agents feel present and engaged, not silent.
+ *
+ * NOW USES PERSONA-SPECIFIC BACKCHANNELS for distinct personalities!
  */
 
 import { log } from '@livekit/agents';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { TopicWeight } from './speech-context.js';
+import { getEnhancedBackchannel } from '../personas/theatrical.js';
 
 const getLogger = () => log();
 
@@ -21,6 +24,7 @@ export interface BackchannelContext {
   userEmotion: EmotionResult;
   topicWeight: TopicWeight;
   lastBackchannelTime?: number;
+  personaId?: string; // NEW: For persona-specific backchannels
 }
 
 export interface BackchannelResult {
@@ -39,7 +43,7 @@ export class BackchannelingSystem {
   private readonly MIN_INTERVAL_MS = 5000; // Don't backchannel more than every 5 seconds
 
   /**
-   * Determine if Jack should backchannel (verbal nod)
+   * Determine if agent should backchannel (verbal nod)
    */
   shouldBackchannel(context: BackchannelContext): BackchannelResult {
     const {
@@ -48,6 +52,7 @@ export class BackchannelingSystem {
       userEmotion,
       topicWeight,
       lastBackchannelTime,
+      personaId,
     } = context;
 
     // Don't backchannel too frequently
@@ -68,7 +73,7 @@ export class BackchannelingSystem {
       getLogger().debug('Backchanneling: user spoke for 8+ seconds');
       return {
         shouldBackchannel: true,
-        phrase: this.getBackchannel(userEmotion, topicWeight),
+        phrase: this.getBackchannel(userEmotion, topicWeight, personaId),
         timing: 'after_pause',
       };
     }
@@ -78,7 +83,7 @@ export class BackchannelingSystem {
       getLogger().debug('Backchanneling: heavy topic, user needs support');
       return {
         shouldBackchannel: true,
-        phrase: this.getBackchannel(userEmotion, topicWeight),
+        phrase: this.getBackchannel(userEmotion, topicWeight, personaId),
         timing: 'after_pause',
       };
     }
@@ -88,7 +93,7 @@ export class BackchannelingSystem {
       getLogger().debug('Backchanneling: user distressed');
       return {
         shouldBackchannel: true,
-        phrase: this.getBackchannel(userEmotion, topicWeight),
+        phrase: this.getBackchannel(userEmotion, topicWeight, personaId),
         timing: 'after_pause',
       };
     }
@@ -101,11 +106,40 @@ export class BackchannelingSystem {
   }
 
   /**
-   * Get appropriate backchannel phrase based on emotion and topic
+   * Get appropriate backchannel phrase based on emotion, topic, and PERSONA
+   * Now uses persona-specific backchannels for distinct personalities!
    */
-  getBackchannel(emotion: EmotionResult, topicWeight: TopicWeight): string {
-    // Heavy topics or distress - use empathetic backchannels
+  getBackchannel(emotion: EmotionResult, topicWeight: TopicWeight, personaId?: string): string {
+    // Determine emotion type for persona-specific backchannel
+    let emotionType: 'neutral' | 'engaged' | 'empathetic' | 'excited' | 'supportive';
+
     if (topicWeight === 'heavy' || emotion.distressLevel > 0.5) {
+      emotionType = 'empathetic';
+    } else if (emotion.distressLevel > 0.3) {
+      emotionType = 'supportive';
+    } else if (emotion.confidence > 0.7 && emotion.primary === 'joy') {
+      emotionType = 'excited';
+    } else if (emotion.intensity > 0.6) {
+      emotionType = 'engaged';
+    } else {
+      emotionType = 'neutral';
+    }
+
+    // Try persona-specific backchannel first
+    if (personaId) {
+      try {
+        const personaBackchannel = getEnhancedBackchannel(personaId, emotionType);
+        if (personaBackchannel) {
+          // Wrap in volume control for naturalness
+          return `<volume ratio="0.8">${personaBackchannel}</volume>`;
+        }
+      } catch {
+        // Fall through to defaults
+      }
+    }
+
+    // Fallback to generic backchannels
+    if (emotionType === 'empathetic') {
       const empathyBackchannels = [
         '<volume ratio="0.7">Mm-hmm</volume>',
         '<volume ratio="0.7"><emotion value="sad">I hear you</emotion></volume>',
@@ -181,11 +215,44 @@ export class BackchannelingSystem {
   }
 }
 
-// Singleton instance
+// ============================================================================
+// SESSION-SCOPED BACKCHANNELING
+// ============================================================================
+
+/**
+ * FIX BUG #voice-10: Session-scoped backchanneling systems
+ */
+const sessionBackchannelingSystems = new Map<string, BackchannelingSystem>();
+
+/**
+ * Get or create a backchanneling system for a specific session
+ */
+export function getSessionBackchannelingSystem(sessionId: string): BackchannelingSystem {
+  let system = sessionBackchannelingSystems.get(sessionId);
+  if (!system) {
+    system = new BackchannelingSystem();
+    sessionBackchannelingSystems.set(sessionId, system);
+  }
+  return system;
+}
+
+/**
+ * Remove a session's backchanneling system (on session end)
+ */
+export function removeSessionBackchannelingSystem(sessionId: string): void {
+  sessionBackchannelingSystems.delete(sessionId);
+}
+
+// ============================================================================
+// GLOBAL SINGLETON (BACKWARD COMPATIBILITY)
+// ============================================================================
+
+/** @deprecated Use getSessionBackchannelingSystem for session isolation */
 let defaultSystem: BackchannelingSystem | null = null;
 
 /**
  * Get global backchanneling system
+ * @deprecated Use getSessionBackchannelingSystem for session isolation
  */
 export function getBackchannelingSystem(): BackchannelingSystem {
   if (!defaultSystem) {
@@ -196,6 +263,7 @@ export function getBackchannelingSystem(): BackchannelingSystem {
 
 /**
  * Reset global backchanneling system
+ * @deprecated Use getSessionBackchannelingSystem for session isolation
  */
 export function resetBackchannelingSystem(): void {
   if (defaultSystem) {

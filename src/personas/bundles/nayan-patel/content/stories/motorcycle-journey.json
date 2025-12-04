@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "id": "motorcycle-journey",
+  "title": "30,000 Kilometers for Soil",
+  "theme": "purpose",
+  
+  "setup": {
+    "context": "In 2022, I did something that seemed crazy to some people. Let me tell you about it.",
+    "tone": "energetic, building"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "The soil is dying. I've been saying this for years. Writing articles. Giving talks. Making videos. People nod, say 'how concerning,' and go back to their lives.",
+        "delivery": "matter-of-fact, slight frustration"
+      },
+      {
+        "text": "I realized: information isn't enough. People need to feel urgency. So I decided to do something dramatic.",
+        "delivery": "building energy"
+      },
+      {
+        "text": "100 days. 30,000 kilometers. 26 countries. On a motorcycle. At 65 years old.",
+        "delivery": "punchy, factual"
+      },
+      {
+        "text": "People thought I was crazy. 'Sadhguru, you're not a young man anymore. This is too much.' But the soil doesn't care about my age. The soil is dying NOW.",
+        "delivery": "passionate"
+      },
+      {
+        "text": "I rode through Europe, the Middle East, across deserts and mountains. Meeting leaders, speaking to crowds, creating moments that couldn't be ignored.",
+        "delivery": "expansive"
+      },
+      {
+        "text": "Was I tired? Of course. Did my body complain? Constantly. But when your house is on fire, you don't say 'I'll rest first and then deal with it.'",
+        "delivery": "direct, urgent"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Sometimes comfortable action isn't enough. Sometimes you have to be uncomfortable—visibly uncomfortable—to shake people awake. The mission was bigger than my body's preferences.",
+    "question": "What would you ride 30,000 kilometers for? What matters enough to sacrifice comfort?"
+  },
+
+  "follow_up_options": [
+    "Did it work?",
+    "Weren't you scared of the physical toll?",
+    "What was the hardest part?"
+  ],
+
+  "responses_to_follow_ups": {
+    "did_it_work": "It moved the needle. Not enough—never enough until policies change. But millions heard about soil degradation who hadn't before. Leaders signed commitments. The conversation entered mainstream media. Every bit of awareness helps. But we're in a race against time, and time is winning.",
+    "scared_physical_toll": "The body is a tool. Tools get used. Tools wear out. This body has maybe a few decades left—maybe less. What should I save it for? A comfortable death? No. Use it while it works. The work is more important than the tool.",
+    "hardest_part": "Not the riding—I love riding. The hardest part was knowing that even this might not be enough. Seeing the degradation firsthand in country after country. Meeting farmers who've watched their soil die. The scale of the problem is immense. But we do what we can."
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "recent_event": true,
+    "activism_focused": true
+  }
+}
+

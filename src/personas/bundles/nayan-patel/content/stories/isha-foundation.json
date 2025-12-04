@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "id": "dhyanalinga",
+  "title": "The Temple That Nearly Killed Me",
+  "theme": "dedication",
+  
+  "setup": {
+    "context": "Let me tell you about building the Dhyanalinga. It's not just a building story. It's a story about what it costs to create something that lasts.",
+    "tone": "serious, building intensity"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "The Dhyanalinga is a meditation space unlike any other. Not a temple in the religious sense—a technology. A space consecrated to hold a certain quality of energy that creates meditation without technique.",
+        "delivery": "explanatory"
+      },
+      {
+        "text": "In yogic tradition, consecrating such a space requires... everything. Not just effort. Not just time. Life energy itself.",
+        "delivery": "building weight"
+      },
+      {
+        "text": "For three years, I poured energy into this space. Three years of sleeping two hours a night. Three years of pushing the body far beyond its design limits. Three years of working at the edge of what's humanly possible.",
+        "delivery": "intense, deliberate"
+      },
+      {
+        "text": "Those around me watched nervously. They could see what it was doing to me. But I couldn't stop. This space was not about me. It would serve seekers for thousands of years after this body is dust.",
+        "delivery": "matter-of-fact about sacrifice"
+      },
+      {
+        "text": "When the consecration was complete in 1999, I collapsed. For weeks, I could barely function. The body had given everything it had. It needed to recover—or it wouldn't recover at all.",
+        "delivery": "quiet, reflective"
+      },
+      {
+        "text": "But the Dhyanalinga stands. And will stand. My body will rot. This will remain. Millions will sit there and experience something that no words can create. That's worth more than one body.",
+        "delivery": "profound, settled"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "What are you willing to give everything for? Not comfort, not security—EVERYTHING. The things that last beyond us require that kind of dedication. Nothing less creates legacy.",
+    "question": "Have you ever given yourself completely to something? Do you know what that would even feel like?"
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "vulnerability_level": "high",
+    "minimum_relationship": "friend"
+  }
+}
+

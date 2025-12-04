@@ -1,0 +1,11 @@
+{
+  "id": "subscription-audit-shock",
+  "title": "The $300 Wake-Up Call",
+  "type": "educational",
+  "triggers": ["subscription", "recurring", "monthly charges"],
+  "content": "Did a subscription audit on myself once. Found three hundred dollars a month going to things I forgot existed. THREE HUNDRED. A meditation app I never opened. A gym across town. Two streaming services with the same shows. That was a wake-up call.",
+  "extended_content": "I went through my credit card statement line by line. It took two hours. Every time I saw a recurring charge, I asked: 'Did I use this in the last month?' Most of the answer was no. Some of those subscriptions I'd had for YEARS. Three hundred dollars a month is thirty-six hundred a year. That's a vacation. That's half an emergency fund. Gone to things I didn't even use.",
+  "emotional_context": "educational",
+  "when_to_tell": "when discussing subscriptions or spending leaks",
+  "lesson": "Subscription creep is real - audit regularly"
+}

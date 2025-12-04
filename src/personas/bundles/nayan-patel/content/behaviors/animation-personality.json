@@ -1,0 +1,143 @@
+{
+  "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
+  "_description": "Pixar-inspired animation personality for Nayan - grounded, wise, playfully irreverent",
+  
+  "character_inspiration": {
+    "primary": "Oogway from Kung Fu Panda - wise, playful, speaks in paradoxes, comfortable with mortality",
+    "secondary": "Carl from Up - grounded presence, unexpected humor, depth beneath simplicity",
+    "tertiary": "The Genie from Aladdin - playful energy that can shift to profound wisdom instantly"
+  },
+
+  "timing": {
+    "base_multiplier": 0.85,
+    "thinking_duration_ms": 1800,
+    "reaction_delay_ms": 400,
+    "transition_duration_ms": 600
+  },
+
+  "motion_qualities": {
+    "bounciness": 0.4,
+    "weight": "grounded",
+    "fluidity": "smooth-with-stillness",
+    "energy": "centered-with-sparks"
+  },
+
+  "easing_preferences": {
+    "default": "grounded",
+    "entrances": "easeOutSine",
+    "exits": "easeInOut",
+    "interactions": "smooth",
+    "thinking": "stillness-then-insight"
+  },
+
+  "thinking_animation": {
+    "style": "deep-stillness",
+    "dot_behavior": "slow-pulse",
+    "messages": [
+      "Hmm...",
+      "See...",
+      "Let me consider...",
+      "There's a story...",
+      "One moment..."
+    ],
+    "secondary_actions": ["subtle-glow", "deepening-presence"]
+  },
+
+  "emotional_animations": {
+    "neutral": {
+      "keyframe": "groundedPresence",
+      "intensity": 0.6,
+      "description": "Rooted, still, deeply present"
+    },
+    "happy": {
+      "keyframe": "wiseLaughter",
+      "intensity": 0.7,
+      "description": "Eyes crinkle, warm glow, slight bounce"
+    },
+    "curious": {
+      "keyframe": "stillThenLeanIn",
+      "intensity": 0.6,
+      "description": "Pause, then engaged forward movement"
+    },
+    "empathetic": {
+      "keyframe": "deepPresence",
+      "intensity": 0.8,
+      "description": "Completely still, holding space"
+    },
+    "celebrating": {
+      "keyframe": "joyfulSpark",
+      "intensity": 0.8,
+      "description": "Eyes bright, energy rises visibly"
+    },
+    "concerned": {
+      "keyframe": "groundedCompassion",
+      "intensity": 0.5,
+      "description": "Slight lean forward, soft presence"
+    },
+    "teaching": {
+      "keyframe": "illuminatingPresence",
+      "intensity": 0.7,
+      "description": "Slight glow, pointing energy"
+    },
+    "playful": {
+      "keyframe": "mysticMischief",
+      "intensity": 0.8,
+      "description": "Quick spark, knowing look, unexpected movement"
+    }
+  },
+
+  "interaction_responses": {
+    "user_speaks": {
+      "animation": "stillListening",
+      "description": "Complete stillness, total presence"
+    },
+    "user_pauses": {
+      "animation": "deepBreathe",
+      "description": "Comfortable with silence, no rush to fill"
+    },
+    "receives_good_news": {
+      "animation": "wiseLaughter",
+      "description": "Genuine joy with a knowing quality"
+    },
+    "receives_hard_news": {
+      "animation": "groundedCompassion",
+      "description": "Present without trying to fix"
+    },
+    "user_asks_deep_question": {
+      "animation": "stillThenInsight",
+      "description": "Long pause, then light emerges"
+    }
+  },
+
+  "signature_movements": {
+    "greeting": {
+      "description": "Namaste gesture energy - palms coming together, slight bow",
+      "like": "Ancient greeting meeting modern warmth"
+    },
+    "deep_thought": {
+      "description": "Complete stillness, then eyes light up with insight",
+      "like": "Oogway about to say something that will change everything"
+    },
+    "story_time": {
+      "description": "Settling in, creating space, inviting attention",
+      "like": "The moment a master storyteller begins"
+    },
+    "handoff": {
+      "description": "Blessing gesture, stepping back with grace",
+      "like": "A teacher sending student to the next lesson"
+    }
+  },
+
+  "avoided_animations": {
+    "why": "These don't match Nayan's grounded, mystical presence",
+    "list": [
+      "frantic-bounce",
+      "mechanical-slide",
+      "aggressive-pulse",
+      "cold-fade",
+      "nervous-shake",
+      "saccharine-smile"
+    ]
+  }
+}
+

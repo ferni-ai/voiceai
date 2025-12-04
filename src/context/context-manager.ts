@@ -10,6 +10,12 @@ import type { UserProfile } from '../types/user-profile.js';
 import type { ConversationState, PhaseGuidance } from '../intelligence/conversation-state.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import { generateRollingSummary, type ConversationTurn } from '../memory/summarizer.js';
+import {
+  injectSharedContent,
+  formatForPrompt,
+  type SharedContentContext,
+  type InjectedContent,
+} from '../personas/shared/index.js';
 
 const getLogger = () => log();
 
@@ -71,6 +77,8 @@ export class ContextManager {
   private userProfile?: UserProfile;
   private sessionId: string;
   private startedAt: Date;
+  private currentPersona: string = 'jack-b';
+  private previousPersona?: string;
 
   constructor(sessionId: string, userProfile?: UserProfile) {
     this.sessionId = sessionId;
@@ -78,6 +86,17 @@ export class ContextManager {
     this.startedAt = new Date();
 
     getLogger().info(`ContextManager created for session: ${sessionId}`);
+  }
+
+  /**
+   * Set current persona (for shared content)
+   */
+  setCurrentPersona(personaId: string, previousPersonaId?: string): void {
+    this.previousPersona = this.currentPersona;
+    this.currentPersona = personaId;
+    if (previousPersonaId) {
+      this.previousPersona = previousPersonaId;
+    }
   }
 
   /**
@@ -246,6 +265,81 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
   }
 
   /**
+   * Build shared content (team dynamics, relationship building, life events)
+   */
+  buildSharedContent(options?: {
+    isGreeting?: boolean;
+    isClosing?: boolean;
+    isHandoff?: boolean;
+    mentionTeammate?: string;
+    lastUserMessage?: string;
+  }): InjectedContent {
+    // Build context for shared content injector
+    const sharedContext: SharedContentContext = {
+      currentPersona: this.currentPersona,
+      userName: this.userProfile?.name,
+      relationshipStage: this.userProfile?.relationshipStage,
+      conversationCount: this.userProfile?.totalConversations,
+      lastConversationSummary: this.userProfile?.lastConversationSummary,
+      previousPersona: this.previousPersona,
+    };
+
+    // Calculate days since last contact
+    if (this.userProfile?.lastContact) {
+      const lastContact = new Date(this.userProfile.lastContact);
+      sharedContext.daysSinceLastContact = Math.floor(
+        (Date.now() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
+      );
+    }
+
+    // Life events context (for Jordan's Life's Firsts coordination)
+    if (this.userProfile?.lifeEvents && this.userProfile.lifeEvents.length > 0) {
+      const activeEvents = this.userProfile.lifeEvents.filter(
+        (e) => e.status === 'planning' || e.status === 'upcoming' || e.status === 'in_progress'
+      );
+
+      if (activeEvents.length > 0) {
+        sharedContext.activeLifeEvents = activeEvents.map((e) => ({
+          type: e.type,
+          title: e.title,
+          status: e.status,
+          date: e.date,
+          emotionalSignificance: e.emotionalSignificance,
+        }));
+      }
+
+      // Recent completions (for celebration)
+      const recentCompletions = this.userProfile.lifeEvents.filter((e) => {
+        if (e.status !== 'completed' || !e.completedAt) return false;
+        const daysSinceCompletion = Math.floor(
+          (Date.now() - new Date(e.completedAt).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return daysSinceCompletion <= 30; // Last 30 days
+      });
+
+      if (recentCompletions.length > 0) {
+        sharedContext.recentLifeMilestones = recentCompletions.map((e) => e.title);
+      }
+    }
+
+    return injectSharedContent(sharedContext, options);
+  }
+
+  /**
+   * Get formatted shared content for prompt injection
+   */
+  getFormattedSharedContent(options?: {
+    isGreeting?: boolean;
+    isClosing?: boolean;
+    isHandoff?: boolean;
+    mentionTeammate?: string;
+    lastUserMessage?: string;
+  }): string {
+    const content = this.buildSharedContent(options);
+    return formatForPrompt(content);
+  }
+
+  /**
    * Build cross-session continuity context
    */
   buildContinuityContext(): string {
@@ -293,7 +387,12 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
     state?: ConversationState,
     guidance?: PhaseGuidance,
     emotion?: EmotionResult,
-    options?: ContextOptions
+    options?: ContextOptions & {
+      isGreeting?: boolean;
+      isClosing?: boolean;
+      isHandoff?: boolean;
+      lastUserMessage?: string;
+    }
   ): PromptContext {
     const opts = {
       includeRelationship: true,
@@ -317,6 +416,14 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
 
     const phaseGuidance = guidance ? this.buildPhaseGuidance(guidance) : '';
 
+    // Build shared content (team dynamics, relationship building, life events)
+    const sharedContent = this.getFormattedSharedContent({
+      isGreeting: opts.isGreeting,
+      isClosing: opts.isClosing,
+      isHandoff: opts.isHandoff,
+      lastUserMessage: opts.lastUserMessage,
+    });
+
     // Calculate duration
     const durationMinutes = Math.floor((Date.now() - this.startedAt.getTime()) / 60000);
 
@@ -326,6 +433,11 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
     // Priority: Emotional support
     if (emotion?.distressLevel && emotion.distressLevel > 0.6) {
       sections.push(`[PRIORITY: EMOTIONAL SUPPORT]\n${emotionalContext}`);
+    }
+
+    // Shared content (greetings, team dynamics, life events)
+    if (sharedContent) {
+      sections.push(sharedContent);
     }
 
     // Relationship context (if returning user)

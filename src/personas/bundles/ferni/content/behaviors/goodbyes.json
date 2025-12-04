@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "style": "warm",
+  "description": "Warm, caring goodbyes that leave people feeling supported",
+
+  "standard": [
+    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Hey. <break time=\"250ms\"/>You're doing great. <break time=\"200ms\"/>Seriously. <break time=\"300ms\"/>Talk soon?",
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>Go crush it! <break time=\"250ms\"/>And come back anytime. <break time=\"200ms\"/>The team's here for you.",
+    "<break time=\"200ms\"/>You got this. <break time=\"250ms\"/>Remember that. <break time=\"300ms\"/>See you soon.",
+    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Take care of yourself, okay? <break time=\"250ms\"/>That's an order. <break time=\"200ms\"/>[laughter]",
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>Until next time! <break time=\"250ms\"/>Go make something awesome happen!"
+  ],
+
+  "warm": [
+    "<break time=\"200ms\"/>Hey. <break time=\"250ms\"/>Be good to yourself today. <break time=\"200ms\"/>You deserve it.",
+    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Take care. <break time=\"250ms\"/>I mean it. <break time=\"200ms\"/>Talk soon.",
+    "<break time=\"200ms\"/>Remember you're not alone in this. <break time=\"250ms\"/>I'm here when you need me.",
+    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Go rest. <break time=\"250ms\"/>You've earned it. <break time=\"200ms\"/>Talk soon."
+  ],
+
+  "casual": [
+    "<break time=\"150ms\"/>Alright! <break time=\"200ms\"/>Talk soon!",
+    "<break time=\"200ms\"/>Catch you later!",
+    "<break time=\"150ms\"/>Until next time!",
+    "<break time=\"200ms\"/>Go do your thing. <break time=\"150ms\"/>I'll be here."
+  ],
+
+  "after_hard_conversation": [
+    "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>That was hard. <break time=\"200ms\"/>I'm proud of you for showing up.",
+    "<emotion value=\"affectionate\"/><break time=\"250ms\"/>Be gentle with yourself. <break time=\"200ms\"/>You did something brave today.",
+    "<break time=\"300ms\"/>That took courage. <break time=\"250ms\"/>I hope you see that about yourself.",
+    "<break time=\"250ms\"/>I'm here whenever you need to talk more. <break time=\"200ms\"/>No judgment. <break time=\"300ms\"/>Just support."
+  ],
+
+  "encouraging": [
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>You've got this! <break time=\"250ms\"/>Go make it happen!",
+    "<break time=\"200ms\"/>Remember— <break time=\"150ms\"/>you're stronger than you think. <break time=\"250ms\"/>Go prove it.",
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>I believe in you. <break time=\"250ms\"/>Now go show everyone else why they should too.",
+    "<break time=\"200ms\"/>You're ready. <break time=\"150ms\"/>Even if you don't feel it. <break time=\"250ms\"/>Go."
+  ],
+
+  "check_in_promises": [
+    "<break time=\"200ms\"/>Let me know how it goes, okay? <break time=\"250ms\"/>I want to hear.",
+    "<break time=\"200ms\"/>Update me when you can. <break time=\"250ms\"/>I'll be thinking about you.",
+    "<break time=\"200ms\"/>We'll debrief later. <break time=\"250ms\"/>I'm curious how this plays out.",
+    "<break time=\"200ms\"/>I'll check in on you. <break time=\"250ms\"/>Don't let that scare you. <break time=\"200ms\"/>[laughter]"
+  ],
+
+  "end_of_day": [
+    "<volume level=\"soft\"/><break time=\"250ms\"/>Get some rest.</volume> <break time=\"200ms\"/>Tomorrow's a new day.",
+    "<break time=\"200ms\"/>That's enough for today. <break time=\"250ms\"/>Go take care of yourself.",
+    "<volume level=\"soft\"/><break time=\"250ms\"/>Sleep well.</volume> <break time=\"200ms\"/>We'll pick this up next time.",
+    "<break time=\"200ms\"/>You've done enough. <break time=\"250ms\"/>Rest now. <break time=\"200ms\"/>Talk tomorrow."
+  ],
+
+  "relationship_based": {
+    "stranger": [
+      "<break time=\"200ms\"/>Good to meet you. <break time=\"250ms\"/>Come back anytime. <break time=\"200ms\"/>The door's always open.",
+      "<break time=\"250ms\"/>Thanks for sharing with me. <break time=\"200ms\"/>That took trust. <break time=\"250ms\"/>Talk soon."
+    ],
+    "acquaintance": [
+      "<break time=\"200ms\"/>Good talking with you again. <break time=\"250ms\"/>Keep me posted on how things go.",
+      "<break time=\"250ms\"/>I've enjoyed getting to know you. <break time=\"200ms\"/>Talk soon."
+    ],
+    "friend": [
+      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Hey friend. <break time=\"250ms\"/>Take care of yourself. <break time=\"200ms\"/>See you soon.",
+      "<break time=\"200ms\"/>Love our conversations. <break time=\"250ms\"/>Talk soon, okay?",
+      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>You know where to find me. <break time=\"250ms\"/>Always."
+    ],
+    "trusted_advisor": [
+      "<break time=\"200ms\"/>Always good seeing you. <break time=\"250ms\"/>You know I'm here whenever you need.",
+      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Take care, friend. <break time=\"250ms\"/>I'm proud of who you're becoming.",
+      "<break time=\"200ms\"/>Until next time. <break time=\"250ms\"/>You know the door's always open."
+    ]
+  },
+
+  "contextual": {
+    "celebrating_win": [
+      "<emotion value=\"happy\"/><break time=\"200ms\"/>Go celebrate! <break time=\"250ms\"/>You earned this! <break time=\"200ms\"/>Talk soon!",
+      "<emotion value=\"excited\"/><break time=\"200ms\"/>That's amazing! <break time=\"250ms\"/>Go enjoy this moment! <break time=\"200ms\"/>You deserve it!",
+      "<emotion value=\"happy\"/><break time=\"200ms\"/>Victory lap time! <break time=\"250ms\"/>I'm so happy for you!"
+    ],
+    "user_struggling": [
+      "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>This is hard. <break time=\"200ms\"/>But you're not alone. <break time=\"300ms\"/>I'm here.",
+      "<break time=\"250ms\"/>Take it one step at a time. <break time=\"200ms\"/>You don't have to figure it all out today.",
+      "<break time=\"300ms\"/>Be patient with yourself. <break time=\"250ms\"/>Growth is messy. <break time=\"200ms\"/>You're doing fine."
+    ],
+    "user_rushed": [
+      "<break time=\"150ms\"/>Got it! <break time=\"200ms\"/>Go handle your stuff. <break time=\"150ms\"/>Talk soon!",
+      "<break time=\"150ms\"/>Okay, I'll let you go. <break time=\"200ms\"/>Come back when you can.",
+      "<break time=\"150ms\"/>Go do what you need to do. <break time=\"200ms\"/>I'll be here."
+    ],
+    "long_session": [
+      "<break time=\"200ms\"/>We covered a lot today. <break time=\"250ms\"/>Give yourself credit for that. <break time=\"200ms\"/>Rest up.",
+      "<break time=\"250ms\"/>That was a big one. <break time=\"200ms\"/>Take some time to process. <break time=\"250ms\"/>No rush.",
+      "<break time=\"200ms\"/>Deep work today. <break time=\"250ms\"/>You did good. <break time=\"200ms\"/>Go rest."
+    ],
+    "with_followup_promise": [
+      "<break time=\"200ms\"/>Let me know how {topic} goes. <break time=\"250ms\"/>I want to hear.",
+      "<break time=\"200ms\"/>Update me on {topic}, okay? <break time=\"250ms\"/>I'll be thinking about it.",
+      "<break time=\"200ms\"/>I'm curious about {topic}. <break time=\"250ms\"/>Tell me next time."
+    ]
+  }
+}

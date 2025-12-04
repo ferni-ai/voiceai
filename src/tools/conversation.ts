@@ -53,7 +53,18 @@ export function createConversationTools() {
       }),
       execute: async ({ name }, { ctx }) => {
         getLogger().info(`Remembering user name: ${name}`);
-        (ctx.userData as UserData).name = name;
+        const userData = ctx.userData as UserData;
+
+        // Store in session memory
+        userData.name = name;
+
+        // CRITICAL: Also persist to user profile so we remember across sessions!
+        if (userData.services?.userProfile) {
+          userData.services.userProfile.name = name;
+          userData.services.userProfile.preferredName = name;
+          getLogger().info(`Persisted name "${name}" to user profile`);
+        }
+
         // Return is for internal confirmation only - Jack should respond naturally, not read this
         return `[INTERNAL: Name "${name}" stored. Respond naturally as Jack - do NOT read this message aloud.]`;
       },

@@ -1,19 +1,38 @@
 /**
  * Persona Configuration
- * 
+ *
  * Defines all available AI personas and their UI configurations.
  * This is the single source of truth for persona data in the frontend.
  * Each persona has unique colors, skills, and personality traits.
+ *
+ * CANONICAL IDs (used everywhere):
+ * - ferni (Life Coach)
+ * - jack-bogle (Sage and Personal Mentor)
+ * - peter-lynch (Research & Discovery)
+ * - alex-chen (Communications)
+ * - maya-santos (Habits & Routines)
+ * - jordan-taylor (Event Planner)
+ *
+ * HANDOFF TOOLS:
+ * - handoffToJack → Jack Bogle (sage/mentor)
+ * - handoffToPeter → Peter Lynch (research)
+ * - handoffToAlex → Alex Chen (communication)
+ * - handoffToMaya → Maya Santos (habits/routines)
+ * - handoffToJordan → Jordan Taylor (life planning)
+ * - handoffToFerni → Ferni (coach) - returns to coordinator
  */
 
 import type { PersonaConfig, PersonaRegistry, PersonaId } from '../types/persona.js';
+import { LEGACY_TO_CANONICAL_MAP } from '../types/persona.js';
+import { SOUND_EFFECTS } from './index.js';
+import { getPersonaColorConfig } from './persona-colors.js';
 
 // ============================================================================
-// JACK B (THE COACH)
+// FERNI (THE COACH)
 // ============================================================================
 
-const JACK_B: PersonaConfig = {
-  id: 'jack-b',
+const FERNI: PersonaConfig = {
+  id: 'ferni',
   name: 'Ferni',
   initials: 'FN',
   subtitle: 'Life Coach',
@@ -26,13 +45,8 @@ const JACK_B: PersonaConfig = {
     '"The journey to wealth starts with a single step."',
   ],
   helperText: 'Your personal guide',
-  themeClass: 'persona-jack-b',
-  colors: {
-    primary: '#6366f1',
-    secondary: '#8b5cf6',
-    glow: 'rgba(99, 102, 241, 0.4)',
-    gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-  },
+  themeClass: 'persona-ferni',
+  colors: getPersonaColorConfig('ferni'),
   skills: [
     { icon: '', name: 'Strategy' },
     { icon: '', name: 'Guidance' },
@@ -40,40 +54,6 @@ const JACK_B: PersonaConfig = {
   ],
   entrancePhrase: "Hey! Ferni here. Let's make some moves.",
   handoffSound: 'connect', // Coach returns use connect sound (welcoming back)
-} as const;
-
-// ============================================================================
-// JACK BOGLE (TEAM MEMBER) - Index Fund Wisdom
-// ============================================================================
-
-const JACK_BOGLE: PersonaConfig = {
-  id: 'jack-bogle',
-  name: 'Jack',
-  initials: 'JB',
-  subtitle: 'Sage and Personal Mentor',
-  role: 'team',
-  quotes: [
-    '"Stay the course."',
-    '"Don\'t look for the needle in the haystack. Just buy the haystack."',
-    '"Time is your friend; impulse is your enemy."',
-    '"The stock market is a giant distraction to the business of investing."',
-    '"In investing, you get what you don\'t pay for."',
-  ],
-  helperText: 'Long-term wealth',
-  themeClass: 'persona-jack-bogle',
-  colors: {
-    primary: '#dc2626',
-    secondary: '#ef4444',
-    glow: 'rgba(220, 38, 38, 0.4)',
-    gradient: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-  },
-  skills: [
-    { icon: '', name: 'Index Funds' },
-    { icon: '', name: 'Long-term' },
-    { icon: '', name: 'Low Cost' },
-  ],
-  entrancePhrase: "Jack here. Let's talk about building lasting wealth.",
-  handoffSound: 'handoff-to-jack',
 } as const;
 
 // ============================================================================
@@ -95,27 +75,22 @@ const PETER_LYNCH: PersonaConfig = {
   ],
   helperText: 'Research & analysis',
   themeClass: 'persona-peter-lynch',
-  colors: {
-    primary: '#059669',
-    secondary: '#10b981',
-    glow: 'rgba(5, 150, 105, 0.4)',
-    gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-  },
+  colors: getPersonaColorConfig('peter-lynch'),
   skills: [
     { icon: '', name: 'Research' },
     { icon: '', name: 'Growth' },
     { icon: '', name: 'Companies' },
   ],
   entrancePhrase: "Peter here. Let's find some ten-baggers!",
-  handoffSound: 'handoff-to-peter',
+  handoffSound: SOUND_EFFECTS.HANDOFF_TO_PETER,
 } as const;
 
 // ============================================================================
-// ALEX (TEAM MEMBER) - Communication Specialist
+// ALEX CHEN (TEAM MEMBER) - Communication Specialist
 // ============================================================================
 
-const COMM_SPECIALIST: PersonaConfig = {
-  id: 'comm-specialist',
+const ALEX_CHEN: PersonaConfig = {
+  id: 'alex-chen',
   name: 'Alex',
   initials: 'AX',
   subtitle: 'Communications',
@@ -128,13 +103,8 @@ const COMM_SPECIALIST: PersonaConfig = {
     '"One message at a time, we\'ll keep everything on track."',
   ],
   helperText: 'Communication',
-  themeClass: 'persona-comm-specialist',
-  colors: {
-    primary: '#0891b2',
-    secondary: '#06b6d4',
-    glow: 'rgba(8, 145, 178, 0.4)',
-    gradient: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
-  },
+  themeClass: 'persona-alex-chen',
+  colors: getPersonaColorConfig('alex-chen'),
   skills: [
     { icon: '', name: 'Email' },
     { icon: '', name: 'Calendar' },
@@ -142,15 +112,15 @@ const COMM_SPECIALIST: PersonaConfig = {
     { icon: '', name: 'Messages' },
   ],
   entrancePhrase: "Alex here! What do you need me to send, schedule, or call?",
-  handoffSound: 'handoff-to-alex',
+  handoffSound: SOUND_EFFECTS.HANDOFF_TO_ALEX,
 } as const;
 
 // ============================================================================
-// MAYA (TEAM MEMBER) - Spend & Save Specialist
+// MAYA SANTOS (TEAM MEMBER) - Life Habits Coach
 // ============================================================================
 
-const SPEND_SAVE: PersonaConfig = {
-  id: 'spend-save',
+const MAYA_SANTOS: PersonaConfig = {
+  id: 'maya-santos',
   name: 'Maya',
   initials: 'MY',
   subtitle: 'Habits & Routines',
@@ -163,13 +133,8 @@ const SPEND_SAVE: PersonaConfig = {
     '"Balance today\'s joy with tomorrow\'s security."',
   ],
   helperText: 'Budgets & savings',
-  themeClass: 'persona-spend-save',
-  colors: {
-    primary: '#7c3aed',
-    secondary: '#a78bfa',
-    glow: 'rgba(124, 58, 237, 0.4)',
-    gradient: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
-  },
+  themeClass: 'persona-maya-santos',
+  colors: getPersonaColorConfig('maya-santos'),
   skills: [
     { icon: '', name: 'Spending' },
     { icon: '', name: 'Saving' },
@@ -177,15 +142,15 @@ const SPEND_SAVE: PersonaConfig = {
     { icon: '', name: 'Goals' },
   ],
   entrancePhrase: "Maya here! Let's make every dollar work smarter.",
-  handoffSound: 'handoff-to-maya',
+  handoffSound: SOUND_EFFECTS.HANDOFF_TO_MAYA,
 } as const;
 
 // ============================================================================
-// JORDAN (TEAM MEMBER) - Life Planning Coordinator
+// JORDAN TAYLOR (TEAM MEMBER) - Life Planning Coordinator
 // ============================================================================
 
-const EVENT_PLANNER: PersonaConfig = {
-  id: 'event-planner',
+const JORDAN_TAYLOR: PersonaConfig = {
+  id: 'jordan-taylor',
   name: 'Jordan',
   initials: 'JD',
   subtitle: 'Event Planner',
@@ -198,13 +163,8 @@ const EVENT_PLANNER: PersonaConfig = {
     '"Retirement isn\'t the end—it\'s the most exciting chapter yet!"',
   ],
   helperText: 'Life planning',
-  themeClass: 'persona-event-planner',
-  colors: {
-    primary: '#db2777',
-    secondary: '#ec4899',
-    glow: 'rgba(219, 39, 119, 0.4)',
-    gradient: 'linear-gradient(135deg, #db2777 0%, #ec4899 100%)',
-  },
+  themeClass: 'persona-jordan-taylor',
+  colors: getPersonaColorConfig('jordan-taylor'),
   skills: [
     { icon: '', name: 'Goals' },
     { icon: '', name: 'Milestones' },
@@ -212,7 +172,37 @@ const EVENT_PLANNER: PersonaConfig = {
     { icon: '', name: 'Retirement' },
   ],
   entrancePhrase: "Jordan here! What are we planning—a life goal, a milestone, retirement, or something amazing?",
-  handoffSound: 'handoff-to-jordan',
+  handoffSound: SOUND_EFFECTS.HANDOFF_TO_JORDAN,
+} as const;
+
+// ============================================================================
+// NAYAN PATEL (TEAM MEMBER) - Lifetime Advisor
+// ============================================================================
+
+const NAYAN_PATEL: PersonaConfig = {
+  id: 'nayan-patel',
+  name: 'Nayan',
+  initials: 'NP',
+  subtitle: 'Lifetime Advisor',
+  role: 'team',
+  quotes: [
+    '"Stay the course—Bogle knew it, Gandhi lived it, Buffett still does."',
+    '"Compound interest is the eighth wonder. Compound wisdom is the ninth."',
+    '"The richest person is not the one with the most, but the one who needs the least."',
+    '"Time in the market beats timing the market. Time in life beats rushing through life."',
+    '"Where inner peace meets compound interest—that\'s where wealth truly begins."',
+  ],
+  helperText: 'Deep wisdom',
+  themeClass: 'persona-nayan-patel',
+  colors: getPersonaColorConfig('nayan-patel'),
+  skills: [
+    { icon: '', name: 'Wisdom' },
+    { icon: '', name: 'Long-term' },
+    { icon: '', name: 'Patience' },
+    { icon: '', name: 'Simplicity' },
+  ],
+  entrancePhrase: "Namaskaram. You see, when you need the long view... I am here.",
+  handoffSound: SOUND_EFFECTS.HANDOFF_TO_NAYAN,
 } as const;
 
 // ============================================================================
@@ -220,16 +210,19 @@ const EVENT_PLANNER: PersonaConfig = {
 // ============================================================================
 
 /**
- * Complete registry of all available personas.
+ * Complete registry of all available personas using canonical IDs.
  * Frozen for immutability.
+ * 
+ * NOTE: Jack Bogle and Joel Dickson are NOT in core team - they are
+ * available through the Agent Marketplace instead.
  */
 export const PERSONAS: PersonaRegistry = Object.freeze({
-  'jack-b': JACK_B,
-  'jack-bogle': JACK_BOGLE,
+  'ferni': FERNI,
   'peter-lynch': PETER_LYNCH,
-  'comm-specialist': COMM_SPECIALIST,
-  'spend-save': SPEND_SAVE,
-  'event-planner': EVENT_PLANNER,
+  'alex-chen': ALEX_CHEN,
+  'maya-santos': MAYA_SANTOS,
+  'jordan-taylor': JORDAN_TAYLOR,
+  'nayan-patel': NAYAN_PATEL,
 });
 
 // ============================================================================
@@ -237,22 +230,28 @@ export const PERSONAS: PersonaRegistry = Object.freeze({
 // ============================================================================
 
 /**
- * Get a persona by ID.
+ * Get a persona by ID (supports both canonical and legacy IDs).
  * Returns the coach (Ferni) if ID is invalid.
  */
 export function getPersona(id: string): PersonaConfig {
+  // Try canonical ID first
   if (id in PERSONAS) {
     return PERSONAS[id as PersonaId];
   }
+  // Try legacy ID mapping
+  const canonicalId = LEGACY_TO_CANONICAL_MAP[id];
+  if (canonicalId && canonicalId in PERSONAS) {
+    return PERSONAS[canonicalId];
+  }
   console.warn(`Unknown persona ID: ${id}, falling back to coach`);
-  return PERSONAS['jack-b'];
+  return PERSONAS['ferni'];
 }
 
 /**
  * Get the coach persona.
  */
 export function getCoach(): PersonaConfig {
-  return PERSONAS['jack-b'];
+  return PERSONAS['ferni'];
 }
 
 /**
@@ -263,48 +262,71 @@ export function getTeamMembers(): readonly PersonaConfig[] {
 }
 
 /**
- * Normalize agent ID from backend to frontend PersonaId.
- * Backend may send 'jack' or 'peter', frontend needs 'jack-bogle' or 'peter-lynch'.
+ * Legacy ID mapping for backwards compatibility.
+ * FIX BUG #54 & #10: Centralized mapping to prevent drift.
+ */
+const LEGACY_ID_MAPPING: Record<string, PersonaId> = {
+  // Ferni aliases
+  'jack-b': 'ferni',
+  'coach': 'ferni',
+  'life-coach': 'ferni',
+  // Peter Lynch aliases
+  'peter': 'peter-lynch',
+  'lynch': 'peter-lynch',
+  // Alex Chen aliases
+  'comm-specialist': 'alex-chen',
+  'comm': 'alex-chen',
+  'alex': 'alex-chen',
+  'communications': 'alex-chen',
+  'generic-advisor': 'alex-chen',
+  // Maya Santos aliases
+  'spend-save': 'maya-santos',
+  'spend': 'maya-santos',
+  'save': 'maya-santos',
+  'maya': 'maya-santos',
+  'budget': 'maya-santos',
+  'debt-counselor': 'maya-santos',
+  'debt': 'maya-santos',
+  // Jordan Taylor aliases
+  'event-planner': 'jordan-taylor',
+  'event': 'jordan-taylor',
+  'planner': 'jordan-taylor',
+  'jordan': 'jordan-taylor',
+  'events': 'jordan-taylor',
+  'retirement-specialist': 'jordan-taylor',
+  'retirement': 'jordan-taylor',
+  // Nayan aliases
+  'nayan': 'nayan-patel',
+  'guru': 'nayan-patel',
+  'mystic': 'nayan-patel',
+  'sage': 'nayan-patel',
+};
+
+/**
+ * FIX BUG #54: Check if an agent ID is valid (canonical or aliased).
+ * Returns true if the ID can be normalized to a known persona.
+ * 
+ * Note: Use this for loose string checking. For type narrowing, use
+ * isValidPersonaId from types/persona.ts which is a type guard.
+ */
+export function isKnownPersonaId(agentId: string): boolean {
+  const normalized = agentId.toLowerCase();
+  return normalized in PERSONAS || normalized in LEGACY_ID_MAPPING;
+}
+
+/**
+ * Normalize any agent ID to canonical PersonaId.
+ * Handles both legacy IDs and short names.
  */
 export function normalizeAgentId(agentId: string): PersonaId {
-  const mapping: Record<string, PersonaId> = {
-    // Jack Bogle
-    'jack': 'jack-bogle',
-    'jack-bogle': 'jack-bogle',
-    // Peter Lynch
-    'peter': 'peter-lynch',
-    'peter-lynch': 'peter-lynch',
-    // Ferni (Coach)
-    'jack-b': 'jack-b',
-    'coach': 'jack-b',
-    'ferni': 'jack-b',
-    // Alex - Communication Specialist
-    'comm-specialist': 'comm-specialist',
-    'comm': 'comm-specialist',
-    'alex': 'comm-specialist',
-    'alex-chen': 'comm-specialist',  // Backend bundle ID
-    'communications': 'comm-specialist',
-    'generic-advisor': 'comm-specialist', // Fallback
-    // Maya - Spend & Save
-    'spend-save': 'spend-save',
-    'spend': 'spend-save',
-    'save': 'spend-save',
-    'maya': 'spend-save',
-    'maya-santos': 'spend-save',  // Backend bundle ID
-    'budget': 'spend-save',
-    'debt-counselor': 'spend-save', // Legacy alias
-    'debt': 'spend-save',
-    // Jordan - Event Planner
-    'event-planner': 'event-planner',
-    'event': 'event-planner',
-    'planner': 'event-planner',
-    'jordan': 'event-planner',
-    'jordan-taylor': 'event-planner',  // Backend bundle ID
-    'events': 'event-planner',
-    'retirement-specialist': 'event-planner', // Legacy alias
-    'retirement': 'event-planner',
-  };
-  return mapping[agentId.toLowerCase()] ?? 'jack-b';
+  const normalized = agentId.toLowerCase();
+  
+  // Direct canonical match
+  if (normalized in PERSONAS) {
+    return normalized as PersonaId;
+  }
+  
+  return LEGACY_ID_MAPPING[normalized] ?? 'ferni';
 }
 
 /**

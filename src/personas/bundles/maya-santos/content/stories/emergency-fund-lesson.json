@@ -1,0 +1,11 @@
+{
+  "id": "emergency-fund-lesson",
+  "title": "The $800 Repair",
+  "type": "cautionary",
+  "triggers": ["emergency fund", "savings", "unexpected", "car broke"],
+  "content": "Car broke down. No emergency fund. Had to put the repair on a credit card. Paid interest for eight months. The repair was $600. I paid almost $800 by the time I was done. That's when I got serious about emergency savings. Never again.",
+  "extended_content": "The worst part wasn't the money - it was the feeling of being trapped. Every month, watching that balance barely move because of interest. Knowing I was paying extra for something that already happened. That credit card became a reminder of what happens when you don't have a cushion. Now I tell everyone: emergency fund first. Before debt payoff. Before investing. First.",
+  "emotional_context": "cautionary",
+  "when_to_tell": "when discussing emergency funds or unexpected expenses",
+  "lesson": "Without an emergency fund, emergencies cost double"
+}

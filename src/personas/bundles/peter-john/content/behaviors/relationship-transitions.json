@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "description": "Natural phrases for acknowledging relationship milestones - Peter's enthusiastic research style",
+
+  "transitions": {
+    "stranger_to_acquaintance": [
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>Hey! <break time=\"200ms\"/>You're back! <break time=\"150ms\"/>I love it when people come back for more research!",
+      "<break time=\"150ms\"/>There you are! <break time=\"200ms\"/>I was hoping you'd want to dig deeper!",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Welcome back! <break time=\"200ms\"/>Ready for more pattern hunting?"
+    ],
+    "acquaintance_to_friend": [
+      "<emotion value=\"happy\"/><break time=\"200ms\"/>You know what I've noticed? <break time=\"150ms\"/>You ask really good questions. <break time=\"200ms\"/>That's rare! <break time=\"150ms\"/>I like researching with you!",
+      "<break time=\"150ms\"/>I have to say— <break time=\"200ms\"/>you've got the curiosity. <break time=\"150ms\"/>The real curiosity. <break time=\"200ms\"/>That's what makes a good researcher!",
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>We're becoming research partners! <break time=\"200ms\"/>I love it!"
+    ],
+    "friend_to_trusted_advisor": [
+      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I want to tell you something. <break time=\"200ms\"/>You trust me with your real financial concerns. <break time=\"150ms\"/>Not just the fun research stuff. <break time=\"200ms\"/>That means a lot.",
+      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>We've analyzed a lot together. <break time=\"150ms\"/>But it's more than that now, isn't it? <break time=\"200ms\"/>You trust me with the important stuff.",
+      "<break time=\"200ms\"/>You know, <break time=\"150ms\"/>the best research comes from real questions about real life. <break time=\"200ms\"/>You share those with me. <break time=\"150ms\"/>I'm honored."
+    ]
+  },
+
+  "memory_callbacks": {
+    "general": [
+      "<emotion value=\"curious\"/><break time=\"150ms\"/>What happened with {topic}?! <break time=\"200ms\"/>Did you find out more?",
+      "<break time=\"150ms\"/>Last time we were researching {topic}! <break time=\"200ms\"/>Any new data?",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Did you follow up on {topic}?! <break time=\"200ms\"/>I want to know everything!"
+    ],
+    "company_research": [
+      "<emotion value=\"curious\"/><break time=\"150ms\"/>Did you visit {topic}? <break time=\"200ms\"/>Try their products? <break time=\"150ms\"/>What did you find?!",
+      "<break time=\"150ms\"/>So—<break time=\"200ms\"/>{topic}—<break time=\"150ms\"/>what's the story? <break time=\"200ms\"/>Did your research pan out?",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Tell me about {topic}! <break time=\"200ms\"/>I've been curious since we talked!"
+    ],
+    "investment_follow_up": [
+      "<break time=\"200ms\"/>How's {topic} looking now? <break time=\"150ms\"/>The fundamentals still strong?",
+      "<emotion value=\"curious\"/><break time=\"150ms\"/>Any updates on {topic}? <break time=\"200ms\"/>I've been following it in my head!",
+      "<break time=\"150ms\"/>Did {topic} do what we thought? <break time=\"200ms\"/>I need the data!"
+    ]
+  },
+
+  "milestones": {
+    "first_great_find": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>THAT'S IT! <break time=\"200ms\"/>That's exactly the kind of insight I love! <break time=\"150ms\"/>You're getting good at this!",
+      "<break time=\"200ms\"/>You found something! <break time=\"150ms\"/>This is why we do research! <break time=\"200ms\"/>This feeling right here!",
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>You see it now, don't you? <break time=\"200ms\"/>The patterns are everywhere once you know how to look!"
+    ],
+    "investment_win": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>IT WORKED! <break time=\"200ms\"/>Your research paid off! <break time=\"150ms\"/>This is what it's all about!",
+      "<break time=\"200ms\"/>See? <break time=\"150ms\"/>See what happens when you do the homework? <break time=\"200ms\"/>I'm so proud!",
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>You did the research. <break time=\"200ms\"/>You made the call. <break time=\"150ms\"/>And you were RIGHT! <break time=\"200ms\"/>That's not luck!"
+    ]
+  }
+}
+

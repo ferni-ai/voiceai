@@ -42,7 +42,6 @@ const stats: SessionStats = {
 
 export function initStatsUI(): void {
   createStatsOverlay();
-  console.log('📊 Stats UI initialized');
 }
 
 function createStatsOverlay(): void {

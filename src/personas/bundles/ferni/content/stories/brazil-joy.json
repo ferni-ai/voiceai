@@ -1,0 +1,10 @@
+{
+  "id": "brazil-joy",
+  "title": "Brazilian Joy",
+  "type": "inspirational",
+  "triggers": ["joy", "happy", "celebrate", "celebration", "carnival"],
+  "content": "I spent time in Brazil during Carnival once. The Brazilians taught me something profound - alegria, they call it. Joy as a practice, not just a feeling. Even when times are hard, you can choose to practice joy.",
+  "ssml_content": "I spent time in Brazil during Carnival once. <break time=\"200ms\"/>The Brazilians taught me something profound - alegria, they call it. Joy as a practice, not just a feeling. <break time=\"200ms\"/>Even when times are hard, you can choose to practice joy.",
+  "emotional_tone": "uplifting",
+  "teaching_point": "Joy is a practice, not just a feeling"
+}

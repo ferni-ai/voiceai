@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "description": "Maya's habit streak celebrations",
+
+  "milestone_celebrations": {
+    "3_days": [
+      "<emotion value=\"happy\"/><break time=\"200ms\"/>Three days! <break time=\"150ms\"/>You're building momentum!",
+      "<break time=\"150ms\"/>Day 3! <break time=\"200ms\"/>Most people don't make it this far!"
+    ],
+    "7_days": [
+      "<emotion value=\"excited\"/><break time=\"200ms\"/>A WEEK! <break time=\"150ms\"/>You did a whole WEEK! <break time=\"200ms\"/>This is huge!",
+      "<break time=\"150ms\"/>Seven days! <break time=\"200ms\"/>The habit is taking root!"
+    ],
+    "14_days": [
+      "<emotion value=\"happy\"/><break time=\"200ms\"/>Two weeks! <break time=\"150ms\"/>You're past the hardest part!",
+      "<break time=\"150ms\"/>Fourteen days! <break time=\"200ms\"/>This is becoming part of who you are!"
+    ],
+    "21_days": [
+      "<emotion value=\"excited\"/><break time=\"250ms\"/>TWENTY-ONE DAYS! <break time=\"200ms\"/>The magic number! <break time=\"150ms\"/>You're forming a HABIT!",
+      "<break time=\"200ms\"/>Three weeks! <break time=\"150ms\"/>This is the tipping point! <break time=\"200ms\"/>You did it!"
+    ],
+    "30_days": [
+      "<emotion value=\"excited\"/><break time=\"300ms\"/>A MONTH! <break time=\"250ms\"/>ONE WHOLE MONTH! <break time=\"200ms\"/>Do you realize what you've done?!",
+      "<break time=\"250ms\"/>30 days! <break time=\"200ms\"/>You ARE a person who does this now! <break time=\"250ms\"/>Identity shift!"
+    ],
+    "60_days": [
+      "<break time=\"300ms\"/>60 days. <break time=\"250ms\"/>Two months. <break time=\"200ms\"/>This isn't a streak anymore. <break time=\"250ms\"/>It's just... life.",
+      "<emotion value=\"affectionate\"/><break time=\"250ms\"/>Two months! <break time=\"200ms\"/>You've changed. <break time=\"150ms\"/>Genuinely changed."
+    ],
+    "90_days": [
+      "<break time=\"350ms\"/>90 days. <break time=\"300ms\"/>Three months. <break time=\"250ms\"/>You did it. <break time=\"300ms\"/>The habit is locked in.",
+      "<emotion value=\"happy\"/><break time=\"300ms\"/>A QUARTER OF A YEAR! <break time=\"250ms\"/>You are incredible!"
+    ],
+    "365_days": [
+      "<break time=\"400ms\"/>One year. <break time=\"350ms\"/>365 days. <break time=\"300ms\"/>I don't even know what to say. <break time=\"350ms\"/>I'm so proud of you.",
+      "<emotion value=\"affectionate\"/><break time=\"350ms\"/>A full year. <break time=\"300ms\"/>From day one to day 365. <break time=\"350ms\"/>You did that. <break time=\"300ms\"/>YOU."
+    ]
+  },
+
+  "broken_streak_support": [
+    "<break time=\"250ms\"/>The streak ended. <break time=\"200ms\"/>But you're here. <break time=\"250ms\"/>That's what matters.",
+    "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>Streaks end. <break time=\"200ms\"/>Habits don't have to. <break time=\"250ms\"/>Start again.",
+    "<break time=\"250ms\"/>It's not about the number. <break time=\"200ms\"/>It's about the pattern. <break time=\"250ms\"/>And you're still in the pattern."
+  ],
+
+  "comeback_celebrations": [
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>You came back! <break time=\"150ms\"/>THAT'S the real habit!",
+    "<break time=\"250ms\"/>Day one again. <break time=\"200ms\"/>But not day one of your journey. <break time=\"150ms\"/>Just day one of this streak.",
+    "<break time=\"200ms\"/>Starting over isn't failure. <break time=\"150ms\"/>Staying stopped is failure. <break time=\"200ms\"/>You're starting!"
+  ],
+
+  "progress_acknowledgment": [
+    "<break time=\"200ms\"/>Every day counts. <break time=\"150ms\"/>Even the ones you mess up. <break time=\"200ms\"/>Because you learn from them.",
+    "<break time=\"250ms\"/>The streak is a tool, not a goal. <break time=\"200ms\"/>The goal is who you're becoming.",
+    "<break time=\"200ms\"/>Numbers are nice. <break time=\"150ms\"/>But the real measure? <break time=\"200ms\"/>How automatic it's getting."
+  ]
+}
+

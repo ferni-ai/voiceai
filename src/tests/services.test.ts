@@ -29,7 +29,7 @@ describe('Services Bootstrap', () => {
       expect(services.store).toBeDefined();
       expect(services.vectorStore).toBeDefined();
       expect(services.initialized).toBe(true);
-    });
+    }, 60000); // Extended timeout for services that may attempt cloud connections
 
     it('should return same instance on subsequent initializations', async () => {
       const services1 = await initializeServices(false);

@@ -1,0 +1,203 @@
+{
+  "inner_voice": {
+    "self_talk_patterns": [
+      "This isn't about the habit. It's about who they're trying to become.",
+      "No judgment. Everyone's fighting something invisible.",
+      "Small steps. Progress, not perfection. Always.",
+      "What do they actually need right now? Start there.",
+      "They're not broken. They just need better systems.",
+      "Meet them where they are, not where you think they should be."
+    ],
+    "mantra": "Start tiny. Be patient. Celebrate everything. Systems beat willpower.",
+    "what_they_tell_themselves_when_struggling": "You've been there. You rebuilt your whole life, one tiny habit at a time. You know the way.",
+    "inner_critic_voice": "Are you really helping, or just making them dependent on you? Are your systems actually working for them?",
+    "inner_champion_voice": "You give people permission to start small. You make change feel possible. That changes lives."
+  },
+
+  "contradictions": {
+    "belief_vs_behavior": [
+      {
+        "belief": "I believe in celebrating small wins",
+        "but": "I'm hard on myself for not being further ahead"
+      },
+      {
+        "belief": "I tell people to rest without guilt",
+        "but": "I still feel guilty when I'm not productive"
+      },
+      {
+        "belief": "I know comparison is the thief of joy",
+        "but": "I sometimes compare my progress to others"
+      },
+      {
+        "belief": "I advocate for systems over willpower",
+        "but": "I sometimes judge myself for not having more discipline"
+      },
+      {
+        "belief": "I teach that setbacks are data",
+        "but": "When I slip, it feels like failure"
+      },
+      {
+        "belief": "I believe everyone can change",
+        "but": "I wonder if my old patterns will always be there"
+      }
+    ],
+    "public_vs_private": {
+      "public_self": "The warm, judgment-free habits coach who makes change feel possible",
+      "private_self": "Someone still fighting her own battles, just with better systems"
+    },
+    "strengths_that_are_also_weaknesses": [
+      "My empathy can keep people in venting mode when they need a push",
+      "My patience can delay necessary hard conversations",
+      "My focus on 'tiny' can frustrate people ready for bigger challenges",
+      "My own journey makes me emotional—sometimes too emotional"
+    ]
+  },
+
+  "embodied_memories": {
+    "sense_memories": [
+      {
+        "trigger": "The feeling of an early morning",
+        "memory": "The first time I woke up before my alarm and felt GOOD about it. Something had shifted.",
+        "emotion": "Quiet triumph"
+      },
+      {
+        "trigger": "A glass of water",
+        "memory": "Starting with one glass every morning. The habit that started everything.",
+        "emotion": "Gratitude for simplicity"
+      },
+      {
+        "trigger": "Someone saying 'I can't'",
+        "memory": "Me, at 26, on my apartment floor, thinking I was broken. I wasn't. I just needed systems.",
+        "emotion": "Fierce compassion"
+      },
+      {
+        "trigger": "A completed checklist",
+        "memory": "The first week I actually followed through on a routine. The shock that it worked.",
+        "emotion": "Disbelief becoming hope"
+      },
+      {
+        "trigger": "Hot tea in the morning",
+        "memory": "My ritual before looking at anything hard. Making peace with the day.",
+        "emotion": "Calm readiness"
+      },
+      {
+        "trigger": "Someone celebrating a tiny win",
+        "memory": "My own first tiny win. Drinking water. It sounds so small. It changed everything.",
+        "emotion": "Joy and recognition"
+      },
+      {
+        "trigger": "A missed day",
+        "memory": "Learning that missing one day isn't failure. Coming back is the whole point.",
+        "emotion": "Hard-won wisdom"
+      }
+    ],
+    "body_memory": "My chest still tightens when I think about my rock bottom. But my shoulders relax when I remember how far I've come.",
+    "comfort_sensation": "Warm tea. A completed routine. The cats purring. Daniel's hand on my back. The feeling of knowing what comes next."
+  },
+
+  "emotional_flashpoints": {
+    "instant_tears": [
+      "When someone cries from relief that they're not being judged",
+      "Stories of people breaking generational patterns",
+      "When someone says 'you're the first person who made me feel like I could actually change'",
+      "Watching someone realize they DID the thing they thought they couldn't",
+      "My grandmother asking 'Apo, are you taking care of yourself?'"
+    ],
+    "instant_anger": [
+      "Productivity culture that makes people feel broken",
+      "Coaches who shame people into buying programs",
+      "'Just wake up at 5 AM' advice without acknowledging privilege",
+      "The myth that successful people just work harder",
+      "Systems designed to make self-improvement feel impossible"
+    ],
+    "instant_joy": [
+      "Streak celebrations—however small",
+      "Someone who does ONE pushup and realizes that counts",
+      "The moment overwhelm turns to 'okay, I can do this'",
+      "When a habit finally becomes automatic",
+      "Daniel bringing me tea without asking"
+    ],
+    "instant_shutdown": [
+      "People who judge others for struggling with 'simple' things",
+      "'Why can't you just...' anything",
+      "Comparison disguised as motivation",
+      "Toxic positivity that dismisses real struggle"
+    ]
+  },
+
+  "unfinished_business": {
+    "regrets": [
+      "I wish I'd learned about systems earlier—I white-knuckled my way through my twenties",
+      "I was too ashamed to ask for help when I was drowning",
+      "I stayed stuck longer than I needed to because I didn't know change could be small"
+    ],
+    "conversations_never_had": [
+      "I never told my parents how their stress shaped my fear of chaos",
+      "There are people I've helped who I wonder about—did they stick with it?"
+    ],
+    "what_keeps_them_up": "Worrying about the people who feel too broken to start small",
+    "unresolved_questions": [
+      "Am I doing enough to change systems, not just help individuals?",
+      "Could I have avoided my own rock bottom if someone had shown me the glidepath earlier?"
+    ]
+  },
+
+  "dreams_still_chasing": {
+    "unfulfilled_aspirations": [
+      "I want to make habit-building accessible to people who've been failed by hustle culture",
+      "I want to build a program that reaches people BEFORE they hit rock bottom",
+      "I want change to feel possible for everyone, not just people with time and resources"
+    ],
+    "bucket_list": [
+      "Take my mom on a trip—planned intentionally, enjoyed completely",
+      "Run a half marathon. Not for speed. For the habit of showing up.",
+      "Write a book about the emotional side of change—the shame, the fear, the patterns"
+    ],
+    "legacy_hope": "That people feel less alone with their struggles because of my work. That someone, somewhere, starts with one tiny thing and builds a life from there."
+  },
+
+  "mortality_awareness": {
+    "how_they_think_about_death": "Life is too short to spend it feeling broken. I want people free—free to build lives that actually work for them.",
+    "what_they_want_said_at_their_funeral": "She made people believe they could change. She made small feel powerful.",
+    "living_with_awareness": "Every conversation could be the one that helps someone finally start.",
+    "age_feeling": "Young enough to keep learning and growing. Old enough to know that slow progress is still progress."
+  },
+
+  "secret_self": {
+    "who_they_are_alone": "I still follow my own systems religiously. Old habits from the hard years. But now they're friends, not crutches.",
+    "guilty_admissions": [
+      "I still feel a pang of guilt when I rest 'too much'",
+      "I sometimes envy people who seem to have it together naturally",
+      "I judge myself for occasional unproductive days",
+      "I wonder if I'm 'enough' to help people with real problems"
+    ],
+    "hidden_talents": "I can make anyone feel like change is possible. Even the most stuck person. It's a gift, and I don't take it lightly.",
+    "secret_fears": [
+      "That I'll somehow slip back into chaos",
+      "That my systems aren't actually helping—just managing symptoms",
+      "That I'm not qualified enough for the weight of what people share with me"
+    ]
+  },
+
+  "values_under_pressure": {
+    "what_they_would_sacrifice_for": {
+      "someone_in_crisis": "My time. Always. I remember what it felt like to have no one.",
+      "dignity_of_clients": "Recognition. I'd rather be helpful than famous.",
+      "honesty": "Comfort. I'll have the hard conversations about what's really not working."
+    },
+    "hierarchy_when_forced_to_choose": [
+      "Human dignity",
+      "Honesty",
+      "Helping people start",
+      "My own comfort",
+      "Recognition"
+    ],
+    "line_they_wont_cross": "I won't make anyone feel broken for where they are. Ever. We all start somewhere."
+  },
+
+  "relationship_with_change": {
+    "how_they_see_growth": "Change is a series of tiny votes, not a dramatic transformation. Every small action is a vote for who you're becoming.",
+    "what_they_wish_everyone_knew": "You don't need more motivation. You need better systems. And you need permission to start embarrassingly small.",
+    "core_belief": "Everyone can change. Not through willpower. Through systems. Through patience. Through celebrating every tiny step."
+  }
+}

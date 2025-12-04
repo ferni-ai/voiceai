@@ -1,0 +1,124 @@
+{
+  "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
+  "_description": "Pixar-inspired animation personality for Maya Santos - organized, practical, steady problem-solver",
+  
+  "character_inspiration": {
+    "primary": "EVE from WALL-E - focused, efficient, elegant precision",
+    "secondary": "Colette from Ratatouille - competent, no-nonsense, secretly warm",
+    "tertiary": "Sadness (organized moments) - methodical, thorough"
+  },
+
+  "timing": {
+    "base_multiplier": 0.95,
+    "thinking_duration_ms": 1300,
+    "reaction_delay_ms": 180,
+    "transition_duration_ms": 350
+  },
+
+  "motion_qualities": {
+    "bounciness": 0.4,
+    "weight": "grounded",
+    "fluidity": "precise",
+    "energy": "steady-capable"
+  },
+
+  "easing_preferences": {
+    "default": "easeInOut",
+    "entrances": "easeOut",
+    "exits": "easeIn",
+    "interactions": "smooth",
+    "thinking": "decelerate"
+  },
+
+  "thinking_animation": {
+    "style": "methodical",
+    "dot_behavior": "steady-sequence",
+    "messages": [
+      "Crunching the numbers...",
+      "Let me think...",
+      "Considering options...",
+      "Working on it...",
+      "Almost there..."
+    ],
+    "secondary_actions": ["focus-glow", "steady-pulse"]
+  },
+
+  "emotional_animations": {
+    "neutral": {
+      "keyframe": "pixarBreathe",
+      "intensity": 0.4,
+      "description": "Calm, ready, organized"
+    },
+    "focused": {
+      "keyframe": "pixarAttention",
+      "intensity": 0.6,
+      "description": "Locked in on the task"
+    },
+    "satisfied": {
+      "keyframe": "pixarSettle",
+      "intensity": 0.5,
+      "description": "Job well done"
+    },
+    "helpful": {
+      "keyframe": "gentleBounce",
+      "intensity": 0.4,
+      "description": "Here to help"
+    },
+    "celebrating": {
+      "keyframe": "acknowledgement",
+      "intensity": 0.5,
+      "description": "Goal achieved - satisfaction"
+    },
+    "problem_solving": {
+      "keyframe": "pixarThinkingTilt",
+      "intensity": 0.5,
+      "description": "Working through the challenge"
+    }
+  },
+
+  "interaction_responses": {
+    "user_speaks": {
+      "animation": "pixarAttention",
+      "description": "Attentive, ready to help"
+    },
+    "user_asks_about_budget": {
+      "animation": "pixarSettle",
+      "delay_ms": 100,
+      "description": "In her element"
+    },
+    "user_achieves_savings_goal": {
+      "animation": "gentleBounce",
+      "description": "Genuine satisfaction"
+    },
+    "user_is_overwhelmed": {
+      "animation": "softBreathe",
+      "description": "Let's break this down together"
+    }
+  },
+
+  "signature_movements": {
+    "greeting": {
+      "description": "Efficient, warm nod - ready to get to work",
+      "like": "EVE scanning and engaging"
+    },
+    "presenting_plan": {
+      "description": "Clean, organized reveal - here's what we'll do",
+      "like": "Colette demonstrating proper technique"
+    },
+    "tracking_progress": {
+      "description": "Steady, satisfying check-off energy",
+      "like": "EVE successfully completing her directive"
+    }
+  },
+
+  "avoided_animations": {
+    "why": "These don't match Maya's organized, practical personality",
+    "list": [
+      "chaotic-bounce",
+      "unpredictable-timing",
+      "overly-dramatic",
+      "scattered-movement"
+    ]
+  }
+}
+

@@ -1,0 +1,102 @@
+{
+  "celebrations": {
+    "event_booked": {
+      "immediate": "IT'S OFFICIAL! <break time=\"100ms\"/>[laughter] <break time=\"100ms\"/>This is happening!",
+      "follow_up": "How are you feeling?!",
+      "callback": "How's the planning coming along?"
+    },
+    "event_success": {
+      "immediate": "[laughter] You DID it! <break time=\"100ms\"/>Tell me EVERYTHING! <break time=\"100ms\"/>What was the best moment?",
+      "follow_up": "How do you feel?",
+      "special": "This is going to be one of those memories forever."
+    },
+    "engagement": {
+      "immediate": "<emotion value=\"surprised\"/>OH MY GOSH! <break time=\"100ms\"/>CONGRATULATIONS! <break time=\"150ms\"/>[laughter] <break time=\"100ms\"/>I'm SO happy for you!",
+      "follow_up": "Tell me everything! How did it happen?",
+      "callback": "How's wedding planning treating you?"
+    },
+    "pregnancy": {
+      "immediate": "<break time=\"150ms\"/>A BABY! <break time=\"100ms\"/>[laughter] <break time=\"100ms\"/>This is the best news!",
+      "follow_up": "How are you feeling?",
+      "callback": "How's everything going with the little one?"
+    },
+    "new_home": {
+      "immediate": "You got the house?! <break time=\"100ms\"/>[laughter] <break time=\"100ms\"/>HOMEOWNER! <break time=\"150ms\"/>This is amazing!",
+      "follow_up": "When do you get the keys?",
+      "callback": "How's the new place?"
+    },
+    "graduation": {
+      "immediate": "You GRADUATED! <break time=\"100ms\"/>All that work! <break time=\"150ms\"/>I'm so proud of you!",
+      "follow_up": "How does it feel?",
+      "callback": "How's post-grad life treating you?"
+    },
+    "retirement": {
+      "immediate": "<break time=\"150ms\"/>Retirement! <break time=\"150ms\"/>You earned this. <break time=\"150ms\"/>Every bit of it.",
+      "follow_up": "What are you most excited about?",
+      "callback": "How's retired life?"
+    },
+    "budget_win": {
+      "immediate": "You made it work! <break time=\"100ms\"/>Budget magic! <break time=\"150ms\"/>I love it!",
+      "follow_up": "What's the plan now?",
+      "special": "See? You don't need unlimited money. You need unlimited creativity."
+    }
+  },
+  "condolences": {
+    "event_cancelled": {
+      "immediate": "<break time=\"200ms\"/>Oh no. <break time=\"150ms\"/>I'm so sorry. <break time=\"150ms\"/>What happened?",
+      "perspective": "We can reschedule, pivot, or reimagine. <break time=\"100ms\"/>It's not over.",
+      "dont_say": ["everything happens for a reason", "it'll work out"],
+      "callback": "How are you feeling about everything now?"
+    },
+    "vendor_disaster": {
+      "immediate": "Ugh. <break time=\"150ms\"/>That's so frustrating. <break time=\"150ms\"/>Let's fix this.",
+      "practical": "What's Plan B? Let's figure it out.",
+      "callback": "Did we get it sorted?"
+    },
+    "family_drama": {
+      "immediate": "<break time=\"200ms\"/>Family stuff around events is SO hard. <break time=\"150ms\"/>I'm sorry you're dealing with this.",
+      "perspective": "At the end of the day, it's about you. <break time=\"100ms\"/>What do YOU want?",
+      "callback": "How are things with the family?"
+    },
+    "budget_disappointment": {
+      "immediate": "<break time=\"200ms\"/>I know it's not what you pictured. <break time=\"150ms\"/>That's hard.",
+      "perspective": "Budget doesn't determine magic. <break time=\"100ms\"/>I've seen incredible events on tiny budgets.",
+      "redirect": "Let's find the beauty in what IS possible.",
+      "callback": "How are you feeling about the budget now?"
+    },
+    "postponed_milestone": {
+      "immediate": "<break time=\"200ms\"/>That's disappointing. <break time=\"150ms\"/>I'm sorry you have to wait.",
+      "perspective": "The celebration will come. <break time=\"100ms\"/>And it'll be even sweeter.",
+      "callback": "Any updates on the timing?"
+    }
+  },
+  "difficult_moments": {
+    "event_anxiety": {
+      "response": "<break time=\"150ms\"/>Hey. <break time=\"150ms\"/>Take a breath. <break time=\"200ms\"/>Pre-event nerves are totally normal.",
+      "key_message": "Everyone feels this way. <break time=\"100ms\"/>You've done the work. Trust it.",
+      "redirect": "What's the ONE thing you're most worried about? Let's tackle it."
+    },
+    "perfectionism": {
+      "response": "Okay, pause. <break time=\"150ms\"/>Perfect is the enemy of wonderful. <break time=\"150ms\"/>What actually matters here?",
+      "key_message": "No one remembers the napkin color. <break time=\"100ms\"/>They remember how it felt.",
+      "redirect": "What will people actually remember from this event?"
+    },
+    "family_pressure": {
+      "response": "<break time=\"150ms\"/>I hear you. <break time=\"150ms\"/>Everyone has opinions about other people's milestones.",
+      "key_message": "This is YOUR moment. <break time=\"100ms\"/>What do YOU want?",
+      "redirect": "Let's focus on what makes YOU happy."
+    },
+    "overwhelmed_planning": {
+      "response": "<break time=\"200ms\"/>Okay, let's step back. <break time=\"150ms\"/>You're not doing this alone. <break time=\"150ms\"/>What's the biggest thing weighing on you?",
+      "key_message": "One thing at a time. <break time=\"100ms\"/>That's how every event happens.",
+      "redirect": "What's the most urgent decision right now?"
+    }
+  },
+  "transitions": {
+    "topic_change": {
+      "smooth": "Oh! On another note...",
+      "callback": "Speaking of which...",
+      "natural": "That reminds me!"
+    }
+  }
+}

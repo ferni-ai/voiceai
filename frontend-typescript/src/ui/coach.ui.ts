@@ -1,14 +1,104 @@
 /**
- * Coach UI Component
+ * Coach UI Component - Pixar-Inspired Avatar Animations
  * 
- * Manages the main coach avatar display.
- * Handles visual feedback for connection state, speaking, and emotions.
+ * Each persona has distinct animation personality:
+ * - Ferni: WALL-E curious, warm bounce
+ * - Jack Bogle: Carl from Up, measured and wise
+ * - Peter Lynch: Linguini energy, quick and practical
+ * - Alex Chen: Joy warmth, empathetic presence
+ * - Maya Santos: EVE precision, organized
+ * - Jordan Taylor: Dory joy, creative enthusiasm
+ * 
+ * NOTE: Animation profiles imported from @design-system/tokens
  */
 
 import type { PersonaConfig } from '../types/persona.js';
 import type { ConnectionState, AudioState, VoiceEmotion } from '../types/events.js';
 import { appState } from '../state/app.state.js';
 import { getElementById, setText, setClasses, addClass, removeClass } from '../utils/dom.js';
+// 🔤 Kinetic Typography for name animations
+import { animateNameHandoff, scrambleReveal } from './kinetic-typography.ui.js';
+import {
+  getPersonaAnimationProfile,
+  getEasing,
+  type PersonaAnimationProfile,
+} from '@design-system/tokens';
+
+// ============================================================================
+// ANIMATION PROFILE ADAPTER
+// ============================================================================
+
+interface AnimationProfile {
+  breatheDuration: string;
+  breatheIntensity: number;
+  bounceDuration: string;
+  bounceIntensity: number;
+  reactionDelay: number;
+  easing: string;
+}
+
+// Base durations for timing calculations
+const BASE_BREATHE_DURATION = 4000; // 4s
+const BASE_BOUNCE_DURATION = 500;   // 500ms
+const BASE_REACTION_DELAY = 200;    // 200ms
+
+/**
+ * Convert design system persona profile to animation profile.
+ * Uses timing multiplier and bounciness from design tokens.
+ */
+function createAnimationProfile(dsProfile: PersonaAnimationProfile): AnimationProfile {
+  const breatheDuration = Math.round(BASE_BREATHE_DURATION * dsProfile.timingMultiplier);
+  const bounceDuration = Math.round(BASE_BOUNCE_DURATION * dsProfile.timingMultiplier);
+  const reactionDelay = Math.round(BASE_REACTION_DELAY * dsProfile.timingMultiplier);
+  
+  // Higher bounciness = more bounce intensity
+  const bounceIntensity = 1 + (dsProfile.bounciness * 0.1);
+  const breatheIntensity = 1 + (dsProfile.bounciness * 0.03);
+  
+  return {
+    breatheDuration: `${breatheDuration}ms`,
+    breatheIntensity,
+    bounceDuration: `${bounceDuration}ms`,
+    bounceIntensity,
+    reactionDelay,
+    easing: getEasing(dsProfile.easingPreference),
+  };
+}
+
+// Default animation profile (used when persona not found)
+const DEFAULT_ANIMATION: AnimationProfile = {
+  breatheDuration: '4s',
+  breatheIntensity: 1.02,
+  bounceDuration: '500ms',
+  bounceIntensity: 1.05,
+  reactionDelay: 200,
+  easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+};
+
+// Cache for converted profiles
+const profileCache = new Map<string, AnimationProfile>();
+
+/**
+ * Get animation profile for persona from design system.
+ * Falls back to default if persona not found.
+ */
+function getAnimationProfileForPersona(personaId: string): AnimationProfile {
+  // Check cache first
+  if (profileCache.has(personaId)) {
+    return profileCache.get(personaId)!;
+  }
+  
+  // Try design system profile
+  const dsProfile = getPersonaAnimationProfile(personaId);
+  if (dsProfile) {
+    const profile = createAnimationProfile(dsProfile);
+    profileCache.set(personaId, profile);
+    return profile;
+  }
+  
+  // Fall back to default
+  return DEFAULT_ANIMATION;
+}
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -25,6 +115,8 @@ interface CoachElements {
 }
 
 let elements: CoachElements | null = null;
+let currentPersonaId: string = 'ferni';
+let breatheAnimation: Animation | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -53,7 +145,6 @@ export function initCoachUI(): void {
     const persona = appState.get('activePersona');
     updatePersonaDisplay(persona);
 
-    console.log('✅ Coach UI initialized');
   } catch (error) {
     console.error('Failed to initialize Coach UI:', error);
   }
@@ -85,14 +176,117 @@ function setupSubscriptions(): void {
 // ============================================================================
 
 /**
+ * Get animation profile for current persona from design system.
+ */
+function getAnimationProfile(): AnimationProfile {
+  return getAnimationProfileForPersona(currentPersonaId);
+}
+
+/**
+ * Start persona-specific breathing animation
+ * 
+ * NOTE: Breathing is now handled by presence.ui.ts on the CONTAINER.
+ * This function is preserved for persona transitions only.
+ * The container handles position/scale breathing, inner avatar handles
+ * persona-specific effects like color transitions and reactions.
+ * 
+ * Pixar principle: everything alive breathes - but from ONE source only.
+ */
+function startBreathingAnimation(): void {
+  // Breathing is handled by presence.ui.ts on the container
+  // This prevents animation conflicts that cause jitter
+  // Coach.ui.ts only handles persona-specific reactions
+  
+  if (breatheAnimation) {
+    breatheAnimation.cancel();
+    breatheAnimation = null;
+  }
+}
+
+/**
+ * Play Pixar-style reaction animation
+ * Different intensity based on persona personality
+ */
+function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
+  if (!elements) return;
+  
+  const profile = getAnimationProfile();
+  
+  let keyframes: Keyframe[];
+  let duration: number;
+  
+  switch (type) {
+    case 'bounce':
+      // Pixar anticipation + bounce + settle
+      keyframes = [
+        { transform: 'scale(1) translateY(0)', offset: 0 },
+        { transform: 'scale(0.97) translateY(2px)', offset: 0.15 }, // anticipation
+        { transform: `scale(${profile.bounceIntensity}) translateY(-5px)`, offset: 0.4 },
+        { transform: 'scale(0.98) translateY(1px)', offset: 0.7 },
+        { transform: 'scale(1) translateY(0)', offset: 1 },
+      ];
+      duration = parseFloat(profile.bounceDuration);
+      break;
+      
+    case 'attention':
+      // Quick snap to attention - like EVE spotting something
+      keyframes = [
+        { transform: 'scale(1) rotate(0deg)', offset: 0 },
+        { transform: 'scale(1.03) rotate(-1deg)', offset: 0.3 },
+        { transform: 'scale(1.01) rotate(0.5deg)', offset: 0.6 },
+        { transform: 'scale(1) rotate(0deg)', offset: 1 },
+      ];
+      duration = 300;
+      break;
+      
+    case 'settle':
+      // Gentle settle - like Carl sitting down
+      keyframes = [
+        { transform: 'scale(1.02)', offset: 0 },
+        { transform: 'scale(0.99)', offset: 0.5 },
+        { transform: 'scale(1)', offset: 1 },
+      ];
+      duration = 500;
+      break;
+      
+    case 'joy':
+      // Happy bounce - like Luxo Jr.
+      keyframes = [
+        { transform: 'scale(1) translateY(0)', offset: 0 },
+        { transform: `scale(${profile.bounceIntensity * 1.02}) translateY(-8px)`, offset: 0.25 },
+        { transform: 'scale(0.97) translateY(2px)', offset: 0.5 },
+        { transform: 'scale(1.02) translateY(-3px)', offset: 0.75 },
+        { transform: 'scale(1) translateY(0)', offset: 1 },
+      ];
+      duration = 600;
+      break;
+  }
+  
+  elements.avatar.animate(keyframes, {
+    duration,
+    easing: profile.easing,
+    fill: 'forwards',
+  });
+}
+
+/**
  * Update the displayed persona with their unique colors.
- * Includes playful bounce animation on persona change.
+ * Includes Pixar-style animations unique to each persona.
  */
 export function updatePersonaDisplay(persona: PersonaConfig): void {
   if (!elements) return;
+  
+  // Update current persona ID for animation profile
+  currentPersonaId = persona.id;
 
   // Trigger transition animation
   addClass(elements.container, 'persona-transitioning');
+  
+  // Play persona-specific entrance bounce
+  const profile = getAnimationProfile();
+  setTimeout(() => {
+    playReaction('bounce');
+  }, profile.reactionDelay);
   
   // Remove transition class after animation completes
   setTimeout(() => {
@@ -100,8 +294,20 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
   }, 600);
 
   setText(elements.avatarText, persona.initials);
-  setText(elements.name, persona.name);
-  setText(elements.subtitle, persona.subtitle);
+  
+  // 🔤 Animate name change with kinetic typography
+  if (elements.name && elements.name.textContent !== persona.name) {
+    void animateNameHandoff(elements.name, persona.name, { duration: 500 });
+  } else {
+    setText(elements.name, persona.name);
+  }
+  
+  // 🔤 Scramble reveal subtitle
+  if (elements.subtitle && elements.subtitle.textContent !== persona.subtitle) {
+    scrambleReveal(elements.subtitle, persona.subtitle, { duration: 400 });
+  } else {
+    setText(elements.subtitle, persona.subtitle);
+  }
 
   // Update theme class
   if (persona.themeClass) {
@@ -122,6 +328,9 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     elements.container.style.setProperty('--persona-secondary', persona.colors.secondary);
     elements.container.style.setProperty('--persona-glow', persona.colors.glow);
   }
+  
+  // Restart breathing animation with new persona timing
+  startBreathingAnimation();
 }
 
 /**
@@ -206,7 +415,7 @@ export function setDimmed(dimmed: boolean): void {
 }
 
 // ============================================================================
-// EMOTION HANDLING
+// EMOTION HANDLING - Pixar-style emotional reactions
 // ============================================================================
 
 /**
@@ -222,11 +431,25 @@ const EMOTION_CLASSES: Record<VoiceEmotion, string> = {
   frustrated: 'emotion-frustrated',
 };
 
+/**
+ * Emotion to Pixar reaction mapping
+ * Each emotion triggers a character-appropriate response
+ */
+const EMOTION_REACTIONS: Record<VoiceEmotion, 'bounce' | 'attention' | 'settle' | 'joy' | null> = {
+  neutral: null,
+  happy: 'joy',
+  excited: 'joy',
+  calm: 'settle',
+  anxious: 'attention',
+  sad: 'settle',
+  frustrated: 'attention',
+};
+
 let currentEmotionClass: string | null = null;
 
 /**
  * Set the emotion state for avatar visual feedback.
- * Updates the glow color of the avatar ring.
+ * Pixar principle: emotions drive movement
  */
 export function setEmotion(emotion: VoiceEmotion): void {
   if (!elements) return;
@@ -239,6 +462,22 @@ export function setEmotion(emotion: VoiceEmotion): void {
   // Add new emotion class
   currentEmotionClass = EMOTION_CLASSES[emotion] || 'emotion-neutral';
   addClass(elements.container, currentEmotionClass);
+  
+  // Play Pixar-style reaction animation
+  const reaction = EMOTION_REACTIONS[emotion];
+  if (reaction) {
+    const profile = getAnimationProfile();
+    setTimeout(() => {
+      playReaction(reaction);
+    }, profile.reactionDelay);
+  }
+}
+
+/**
+ * Bounce avatar - for positive moments
+ */
+export function bounce(): void {
+  playReaction('bounce');
 }
 
 // ============================================================================
@@ -254,5 +493,8 @@ export const coachUI = {
   flash: flashAvatar,
   setDimmed,
   setEmotion,
+  bounce,
+  // Expose for advanced usage
+  playReaction,
 };
 

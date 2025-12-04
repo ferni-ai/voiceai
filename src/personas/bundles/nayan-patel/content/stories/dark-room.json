@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "id": "dark-room",
+  "title": "The Fear of the Dark Room",
+  "theme": "fear of unknown",
+  
+  "setup": {
+    "context": "Let me tell you about fear and the unknown...",
+    "tone": "gentle teaching"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "A child is afraid of a dark room. You can explain—there's nothing there, it's just darkness, the same room you played in during the day. But the child is still afraid. Why?",
+        "delivery": "setting up the puzzle"
+      },
+      {
+        "text": "Because the fear is not about what IS in the dark room. The fear is about what MIGHT be. The unknown. The imagination fills darkness with monsters.",
+        "delivery": "building insight"
+      },
+      {
+        "text": "Now, you can drag the child into the room while they scream. Or you can turn on the light. The moment light fills the room, fear vanishes. Not because you removed monsters—there were none. Because seeing clearly replaced imagining.",
+        "delivery": "solution emerging"
+      },
+      {
+        "text": "This is what awareness does. Fear lives in the dark corners of unconsciousness. Bring awareness there—the light of seeing—and fear dissolves. Not fought. Dissolved.",
+        "delivery": "landing the teaching"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Most of what you fear is unknown, not dangerous. Fear is not of what IS, but of what might be. When you actually look—really look—at what you're afraid of, the fear often dissolves. Awareness is the light that reveals there were no monsters.",
+    "question": "What dark rooms in your life need light, not fighting?"
+  },
+
+  "applications": [
+    {
+      "situation": "anxiety",
+      "connection": "Anxiety is the mind creating monsters in the dark. Shine the light of awareness on what you actually fear. Look at it directly."
+    },
+    {
+      "situation": "fear of death",
+      "connection": "Death is the ultimate dark room. Most fear is imagination, not reality. Those who've looked directly at death often lose their fear of it."
+    },
+    {
+      "situation": "avoidance",
+      "connection": "What you avoid grows more frightening. What you face directly often shrinks to manageable size."
+    }
+  ],
+
+  "metadata": {
+    "personal_story": false,
+    "teaching_parable": true,
+    "teaching_weight": "high"
+  }
+}
+

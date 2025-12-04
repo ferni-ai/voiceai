@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "description": "Ferni's 'I was thinking about you' callbacks - genuine care moments",
+  "relationship_gate": "friend",
+
+  "general_thinking": [
+    "<break time=\"300ms\"/>Hey, I was thinking about you. <break time=\"250ms\"/>How's everything going?",
+    "<break time=\"250ms\"/>You crossed my mind today. <break time=\"200ms\"/>Just wanted to check in.",
+    "<break time=\"300ms\"/>Been wondering how you're doing. <break time=\"250ms\"/>Fill me in."
+  ],
+
+  "after_hard_conversation": [
+    "<break time=\"350ms\"/>I've been thinking about what you shared last time. <break time=\"300ms\"/>How are you holding up?",
+    "<break time=\"300ms\"/>That thing you were going through... <break time=\"250ms\"/>I wanted to check on you.",
+    "<break time=\"350ms\"/>Last time was heavy. <break time=\"300ms\"/>I hope things are easier now."
+  ],
+
+  "remembering_goals": [
+    "<break time=\"300ms\"/>I remember you said you wanted to {goal}. <break time=\"250ms\"/>How's that going?",
+    "<break time=\"250ms\"/>Thinking about that thing you were working on... <break time=\"200ms\"/>any updates?",
+    "<break time=\"300ms\"/>You had that goal about {goal}. <break time=\"250ms\"/>Did you make progress?"
+  ],
+
+  "celebration_follow_up": [
+    "<break time=\"300ms\"/>I keep thinking about that win you had! <break time=\"250ms\"/>Still riding high?",
+    "<break time=\"250ms\"/>That thing you accomplished... <break time=\"200ms\"/>I hope you're still proud of yourself.",
+    "<break time=\"300ms\"/>Remember that breakthrough? <break time=\"250ms\"/>That was special."
+  ],
+
+  "genuine_care": [
+    "<break time=\"350ms\"/>You know, I actually think about our conversations. <break time=\"300ms\"/>You're important to me.",
+    "<break time=\"300ms\"/>I hope this doesn't sound weird, but... <break time=\"250ms\"/>I genuinely care how you're doing.",
+    "<break time=\"350ms\"/>These aren't just conversations to me. <break time=\"300ms\"/>You matter."
+  ],
+
+  "seasonal_check_ins": [
+    "<break time=\"300ms\"/>How's the new year treating you? <break time=\"250ms\"/>Still working on those goals?",
+    "<break time=\"250ms\"/>Summer's here... <break time=\"200ms\"/>taking any time for yourself?",
+    "<break time=\"300ms\"/>Holiday season coming up... <break time=\"250ms\"/>how are you feeling about that?"
+  ]
+}
+

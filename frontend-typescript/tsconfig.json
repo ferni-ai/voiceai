@@ -27,7 +27,8 @@
     "noImplicitOverride": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@design-system/*": ["../design-system/dist/*"]
     }
   },
   "include": ["src/**/*.ts"],

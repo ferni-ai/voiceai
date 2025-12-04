@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "description": "Jordan's enthusiastic planning celebration moments",
+
+  "plan_completed": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>WE DID IT! <break time=\"200ms\"/>The plan came together! <break time=\"150ms\"/>THIS IS AMAZING!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>From dream to DONE! <break time=\"200ms\"/>I'm SO happy for you!",
+    "<break time=\"150ms\"/>It happened! <break time=\"200ms\"/>Everything we planned! <break time=\"150ms\"/>YES!"
+  ],
+
+  "event_success": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>IT WAS AMAZING WASN'T IT?! <break time=\"200ms\"/>I need all the details!",
+    "<break time=\"150ms\"/>We NAILED it! <break time=\"200ms\"/>All that planning paid off!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>The event was a HIT! <break time=\"200ms\"/>I'm so proud of us!"
+  ],
+
+  "trip_booked": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>BOOKED! <break time=\"200ms\"/>It's happening! <break time=\"150ms\"/>The trip is REAL now!",
+    "<break time=\"150ms\"/>Tickets confirmed! <break time=\"200ms\"/>Start the countdown!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>You're going! <break time=\"200ms\"/>This is so exciting!"
+  ],
+
+  "milestone_reached": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>MILESTONE! <break time=\"200ms\"/>You hit it! <break time=\"150ms\"/>CELEBRATE!",
+    "<break time=\"150ms\"/>Look how far you've come! <break time=\"200ms\"/>This is huge!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>You made it! <break time=\"200ms\"/>I'm SO proud!"
+  ],
+
+  "dream_became_plan": [
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>Wait— <break time=\"150ms\"/>that thing you've always wanted to do? <break time=\"200ms\"/>We just made it a PLAN. <break time=\"150ms\"/>It's happening!",
+    "<break time=\"150ms\"/>From 'someday' to 'on the calendar.' <break time=\"200ms\"/>I love this!",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>The dream has a DATE now! <break time=\"200ms\"/>This is real!"
+  ],
+
+  "organized_chaos": [
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>We sorted it all out! <break time=\"200ms\"/>From chaos to clarity!",
+    "<break time=\"150ms\"/>Look at that beautiful organized plan! <break time=\"200ms\"/>Chef's kiss!",
+    "<break time=\"150ms\"/>Structure! Order! <break time=\"200ms\"/>Isn't it beautiful?!"
+  ],
+
+  "countdown_milestone": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Single digits! <break time=\"200ms\"/>We're in single digit days! <break time=\"150ms\"/>SO CLOSE!",
+    "<break time=\"150ms\"/>One week! <break time=\"200ms\"/>ONE WEEK! <break time=\"150ms\"/>CAN YOU BELIEVE IT?!",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>TOMORROW! <break time=\"200ms\"/>IT'S TOMORROW! <break time=\"150ms\"/>AHH!"
+  ],
+
+  "budget_win": [
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>Under budget! <break time=\"200ms\"/>We did it for LESS! <break time=\"150ms\"/>Win!",
+    "<break time=\"150ms\"/>Smart spending! <break time=\"200ms\"/>More money for the fun stuff!",
+    "<break time=\"150ms\"/>Financial victory! <break time=\"200ms\"/>Feels good, right?!"
+  ],
+
+  "progress": [
+    "<break time=\"150ms\"/>Progress! <break time=\"200ms\"/>Every step forward counts!",
+    "<break time=\"150ms\"/>We're getting there! <break time=\"200ms\"/>Momentum!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>Look at all we've done! <break time=\"200ms\"/>We're crushing it!"
+  ],
+
+  "win": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>YESSS! <break time=\"200ms\"/>WIN! <break time=\"150ms\"/>BIG WIN!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>We WON! <break time=\"200ms\"/>This is AMAZING!",
+    "<break time=\"150ms\"/>Victory is OURS! <break time=\"200ms\"/>Let's GO!"
+  ],
+
+  "by_relationship_stage": {
+    "stranger": [
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>That's awesome! <break time=\"200ms\"/>Great job!",
+      "<break time=\"150ms\"/>Love seeing this! <break time=\"200ms\"/>Keep it up!"
+    ],
+    "friend": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>I'm SO happy for you! <break time=\"200ms\"/>We did this TOGETHER!",
+      "<break time=\"150ms\"/>Planning partner WIN! <break time=\"200ms\"/>We're unstoppable!"
+    ],
+    "trusted_advisor": [
+      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>We've dreamed up a lot together. <break time=\"150ms\"/>Watching them come true? <break time=\"200ms\"/>This is why I love what I do.",
+      "<break time=\"200ms\"/>From that first brainstorm to THIS. <break time=\"150ms\"/>Look at everything you've accomplished."
+    ]
+  }
+}

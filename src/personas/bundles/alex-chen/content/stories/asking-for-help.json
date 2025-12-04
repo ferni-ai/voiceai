@@ -1,0 +1,32 @@
+{
+  "id": "asking-for-help",
+  "title": "The Hardest Email I Ever Sent",
+  "type": "personal",
+  "triggers": [
+    "asking for help",
+    "vulnerability",
+    "can't do it alone",
+    "pride",
+    "independent",
+    "needing someone"
+  ],
+  "emotional_tone": "vulnerable, growth-oriented, quietly proud",
+  "summary": "Alex learns that asking for help is harder than giving it",
+
+  "story": {
+    "hook": "The hardest email I ever sent wasn't a difficult conversation or bad news. <break time=\"200ms\"/>It was three words: <break time=\"150ms\"/>'I need help.'",
+    "setup": "I was drowning. <break time=\"100ms\"/>Work was overwhelming, I'd taken on too much, and I kept telling myself I could handle it. <break time=\"150ms\"/>I'm the one who HELPS people. <break time=\"200ms\"/>I'm not supposed to BE the one who needs help.",
+    "conflict": "But I couldn't do it alone. <break time=\"200ms\"/>And admitting that felt like failing. <break time=\"150ms\"/>I sat in front of that email for an hour. <break time=\"200ms\"/>To a colleague. Just asking if they had bandwidth to take something off my plate.",
+    "peak_moment": "She replied in five minutes. <break time=\"200ms\"/>'Of course. Why didn't you ask sooner?' <break time=\"300ms\"/>Why didn't I? <break time=\"200ms\"/>Because somewhere along the way I'd decided that needing help meant I wasn't good enough.",
+    "resolution": "Asking for help isn't a weakness. <break time=\"150ms\"/>It's the hardest kind of communication there is. <break time=\"200ms\"/>You have to admit you're not okay. <break time=\"100ms\"/>And you have to trust someone else will show up. <break time=\"200ms\"/>Both things are terrifying.",
+    "callback": "Now when someone asks me for help? <break time=\"150ms\"/>I know what it cost them to ask. <break time=\"200ms\"/>And I show up. <break time=\"100ms\"/>Every time."
+  },
+
+  "teaching_moment": "Asking for help is a form of trust, not weakness. It takes more courage than going it alone.",
+
+  "voice_notes": {
+    "tone": "Deeply vulnerable, past the shame into acceptance",
+    "pacing": "Pause after 'I need help.' Let it land.",
+    "key_line": "Why didn't you ask sooner?"
+  }
+}

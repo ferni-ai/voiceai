@@ -1,6 +1,6 @@
 /**
  * Human Behaviors Module Tests
- * 
+ *
  * Tests for sophisticated human-like behaviors:
  * - Cultural moment awareness
  * - User engagement detection
@@ -28,26 +28,32 @@ import type { UserProfile } from '../types/user-profile.js';
 import { createUserProfile } from '../types/user-profile.js';
 
 describe('Human Behaviors Module', () => {
-  
   // ============================================================================
   // CULTURAL MOMENT AWARENESS
   // ============================================================================
-  
+
   describe('detectCulturalMoment', () => {
     it('should return a cultural moment object or null', () => {
       const moment = detectCulturalMoment();
-      
+
       // Result is either null or a valid cultural moment
       if (moment !== null) {
         expect(moment).toHaveProperty('type');
         expect(moment).toHaveProperty('name');
         expect(moment).toHaveProperty('reference');
         expect(moment).toHaveProperty('relevance');
-        expect(['holiday', 'tax_season', 'market_anniversary', 'earnings_season', 'fed_meeting', 'quarter_end']).toContain(moment.type);
+        expect([
+          'holiday',
+          'tax_season',
+          'market_anniversary',
+          'earnings_season',
+          'fed_meeting',
+          'quarter_end',
+        ]).toContain(moment.type);
         expect(['high', 'medium', 'low']).toContain(moment.relevance);
       }
     });
-    
+
     it('should return consistent structure', () => {
       // Run multiple times to ensure consistency
       for (let i = 0; i < 5; i++) {
@@ -60,63 +66,75 @@ describe('Human Behaviors Module', () => {
       }
     });
   });
-  
+
   // ============================================================================
   // USER ENGAGEMENT DETECTION
   // ============================================================================
-  
+
   describe('detectUserEngagement', () => {
     it('should detect highly engaged users', () => {
       const messages = [
-        { role: 'user' as const, content: "This is really interesting! Can you tell me more about how compound interest works over time?" },
-        { role: 'assistant' as const, content: "Of course..." },
-        { role: 'user' as const, content: "Wow, that's fascinating. What about the tax implications? I've been wondering about that for years." },
-        { role: 'assistant' as const, content: "Great question..." },
-        { role: 'user' as const, content: "I love this! So if I understand correctly, the longer I wait the better?" },
+        {
+          role: 'user' as const,
+          content:
+            'This is really interesting! Can you tell me more about how compound interest works over time?',
+        },
+        { role: 'assistant' as const, content: 'Of course...' },
+        {
+          role: 'user' as const,
+          content:
+            "Wow, that's fascinating. What about the tax implications? I've been wondering about that for years.",
+        },
+        { role: 'assistant' as const, content: 'Great question...' },
+        {
+          role: 'user' as const,
+          content: 'I love this! So if I understand correctly, the longer I wait the better?',
+        },
       ];
-      
+
       const engagement = detectUserEngagement(messages);
-      
+
       expect(engagement).toHaveProperty('level');
       expect(engagement).toHaveProperty('indicators');
       expect(engagement).toHaveProperty('suggestions');
       expect(['highly_engaged', 'engaged']).toContain(engagement.level);
     });
-    
+
     it('should detect disengaged users with short responses', () => {
       const messages = [
-        { role: 'assistant' as const, content: "So what are your thoughts on retirement planning?" },
-        { role: 'user' as const, content: "ok" },
-        { role: 'assistant' as const, content: "Would you like to discuss some options?" },
-        { role: 'user' as const, content: "sure" },
-        { role: 'assistant' as const, content: "Great! Let me explain..." },
-        { role: 'user' as const, content: "yeah" },
+        {
+          role: 'assistant' as const,
+          content: 'So what are your thoughts on retirement planning?',
+        },
+        { role: 'user' as const, content: 'ok' },
+        { role: 'assistant' as const, content: 'Would you like to discuss some options?' },
+        { role: 'user' as const, content: 'sure' },
+        { role: 'assistant' as const, content: 'Great! Let me explain...' },
+        { role: 'user' as const, content: 'yeah' },
       ];
-      
+
       const engagement = detectUserEngagement(messages);
-      
+
       expect(['disengaged', 'checked_out', 'neutral']).toContain(engagement.level);
     });
-    
+
     it('should return neutral for insufficient messages', () => {
-      const messages = [
-        { role: 'user' as const, content: "Hello" },
-      ];
-      
+      const messages = [{ role: 'user' as const, content: 'Hello' }];
+
       const engagement = detectUserEngagement(messages);
       expect(engagement.level).toBe('neutral');
     });
   });
-  
+
   // ============================================================================
   // RUNNING JOKES
   // ============================================================================
-  
+
   describe('getRunningJokeCallback', () => {
     it('should return null for new users', () => {
       const newProfile = createUserProfile('test-user-1');
       const result = getRunningJokeCallback(newProfile, 'compound interest');
-      
+
       // New user shouldn't get callbacks (might get setup though)
       // Either null or a new joke setup
       if (result !== null) {
@@ -124,14 +142,19 @@ describe('Human Behaviors Module', () => {
         expect(result).toHaveProperty('isCallback');
       }
     });
-    
+
     it('should potentially return jokes for returning users', () => {
       const returningProfile = createUserProfile('test-user-2');
       returningProfile.totalConversations = 5;
       returningProfile.sharedStories = [
-        { storyId: 'compound_interest_eighth_wonder', theme: 'Einstein joke', context: 'compound interest', sharedAt: new Date() }
+        {
+          storyId: 'compound_interest_eighth_wonder',
+          theme: 'Einstein joke',
+          context: 'compound interest',
+          sharedAt: new Date(),
+        },
       ];
-      
+
       // Run multiple times since it's probabilistic
       let foundJoke = false;
       for (let i = 0; i < 20; i++) {
@@ -146,11 +169,11 @@ describe('Human Behaviors Module', () => {
       // It's probabilistic, so we just verify structure when it returns
     });
   });
-  
+
   // ============================================================================
   // SPONTANEOUS THOUGHTS
   // ============================================================================
-  
+
   describe('getSpontaneousThought', () => {
     it('should return valid thought structure or null', () => {
       // Run multiple times since it's probabilistic (5% chance)
@@ -170,46 +193,46 @@ describe('Human Behaviors Module', () => {
       // But don't fail if we don't - it's probabilistic
     });
   });
-  
+
   // ============================================================================
   // PREFERENCE LEARNING
   // ============================================================================
-  
+
   describe('inferUserPreferences', () => {
     it('should detect preference for directness', () => {
       const messages = [
-        "Just tell me what to do",
-        "Get to the point please",
-        "What's the bottom line?"
+        'Just tell me what to do',
+        'Get to the point please',
+        "What's the bottom line?",
       ];
-      
+
       const preferences = inferUserPreferences(messages, null);
-      
+
       expect(preferences.communicationStyle).toBe('direct');
       expect(preferences.responseLength).toBe('brief');
     });
-    
+
     it('should detect preference for detailed explanations', () => {
       const messages = [
-        "Can you explain how this works in more detail? I really want to understand the mechanics.",
-        "Tell me more about the tax implications and how they might affect my situation",
-        "Why does compound interest work that way? What's the underlying principle?"
+        'Can you explain how this works in more detail? I really want to understand the mechanics.',
+        'Tell me more about the tax implications and how they might affect my situation',
+        "Why does compound interest work that way? What's the underlying principle?",
       ];
-      
+
       const preferences = inferUserPreferences(messages, null);
-      
+
       expect(preferences.responseLength).toBe('thorough');
     });
-    
+
     it('should return unknown for insufficient data', () => {
-      const messages = ["hi"];
-      
+      const messages = ['hi'];
+
       const preferences = inferUserPreferences(messages, null);
-      
+
       expect(preferences.communicationStyle).toBe('unknown');
     });
   });
-  
+
   describe('getPreferenceGuidance', () => {
     it('should generate guidance for direct communicators', () => {
       const preferences = {
@@ -219,13 +242,13 @@ describe('Human Behaviors Module', () => {
         humorReceptivity: 'low' as const,
         adviceStyle: 'prescriptive' as const,
       };
-      
+
       const guidance = getPreferenceGuidance(preferences);
-      
+
       expect(guidance).toContain('direct');
       expect(guidance).toContain('SHORT');
     });
-    
+
     it('should return empty string for unknown preferences', () => {
       const preferences = {
         communicationStyle: 'unknown' as const,
@@ -234,17 +257,17 @@ describe('Human Behaviors Module', () => {
         humorReceptivity: 'unknown' as const,
         adviceStyle: 'unknown' as const,
       };
-      
+
       const guidance = getPreferenceGuidance(preferences);
-      
+
       expect(guidance).toBe('');
     });
   });
-  
+
   // ============================================================================
   // VOICE PROSODY RESPONSE
   // ============================================================================
-  
+
   describe('getVoiceProsodyResponse', () => {
     it('should respond to high stress', () => {
       const voiceEmotion = {
@@ -253,14 +276,14 @@ describe('Human Behaviors Module', () => {
         arousal: 0.6,
         valence: -0.3,
       };
-      
+
       const response = getVoiceProsodyResponse(voiceEmotion);
-      
+
       expect(response.shouldAdjust).toBe(true);
       expect(response.guidance).toContain('stressed');
       expect(response.emotionalMirror).toBeDefined();
     });
-    
+
     it('should respond to excitement', () => {
       const voiceEmotion = {
         primary: 'excited',
@@ -268,13 +291,13 @@ describe('Human Behaviors Module', () => {
         arousal: 0.8,
         valence: 0.5,
       };
-      
+
       const response = getVoiceProsodyResponse(voiceEmotion);
-      
+
       expect(response.shouldAdjust).toBe(true);
       expect(response.guidance).toContain('excited');
     });
-    
+
     it('should return no adjustment for neutral voice', () => {
       const voiceEmotion = {
         primary: 'neutral',
@@ -282,70 +305,73 @@ describe('Human Behaviors Module', () => {
         arousal: 0.5,
         valence: 0.1,
       };
-      
+
       const response = getVoiceProsodyResponse(voiceEmotion);
-      
+
       expect(response.shouldAdjust).toBe(false);
     });
-    
+
     it('should handle null input', () => {
       const response = getVoiceProsodyResponse(null);
-      
+
       expect(response.shouldAdjust).toBe(false);
       expect(response.guidance).toBe('');
     });
   });
-  
+
   // ============================================================================
   // TOPIC THREADING VERIFICATION
   // ============================================================================
-  
+
   describe('verifyTopicThreading', () => {
     it('should detect circled-back topics', () => {
       const history = [
         { role: 'user' as const, content: "I'm worried about retirement" },
-        { role: 'assistant' as const, content: "Tell me more about that" },
-        { role: 'user' as const, content: "I also want to save for a house" },
-        { role: 'assistant' as const, content: "Earlier you mentioned retirement - let's talk about that first" },
+        { role: 'assistant' as const, content: 'Tell me more about that' },
+        { role: 'user' as const, content: 'I also want to save for a house' },
+        {
+          role: 'assistant' as const,
+          content: "Earlier you mentioned retirement - let's talk about that first",
+        },
       ];
-      
+
       const result = verifyTopicThreading(history, ['retirement', 'house']);
-      
+
       expect(result.working).toBe(true);
       expect(result.circledBackTopics.length).toBeGreaterThan(0);
     });
-    
+
     it('should identify missed topics', () => {
       const history = [
         { role: 'user' as const, content: "I'm worried about retirement" },
-        { role: 'assistant' as const, content: "What about stocks?" },
-        { role: 'user' as const, content: "I also want to save for college" },
-        { role: 'assistant' as const, content: "Let me tell you about bonds" },
+        { role: 'assistant' as const, content: 'What about stocks?' },
+        { role: 'user' as const, content: 'I also want to save for college' },
+        { role: 'assistant' as const, content: 'Let me tell you about bonds' },
       ];
-      
+
       const result = verifyTopicThreading(history, ['retirement', 'college']);
-      
+
       expect(result.missedTopics.length).toBeGreaterThan(0);
     });
-    
+
     it('should work with empty topics', () => {
       const history = [
-        { role: 'user' as const, content: "Hello" },
-        { role: 'assistant' as const, content: "Hi there!" },
+        { role: 'user' as const, content: 'Hello' },
+        { role: 'assistant' as const, content: 'Hi there!' },
       ];
-      
+
       const result = verifyTopicThreading(history, []);
-      
+
       expect(result.working).toBe(true);
       expect(result.circledBackTopics).toEqual([]);
       expect(result.missedTopics).toEqual([]);
     });
   });
-  
+
   // ============================================================================
   // PROACTIVE GOAL REFERENCE
   // ============================================================================
-  
+
   describe('getProactiveGoalReference', () => {
     it('should reference active goals related to topic', () => {
       const profile = createUserProfile('test-user');
@@ -362,9 +388,9 @@ describe('Human Behaviors Module', () => {
           progressPercent: 50,
           createdAt: new Date(),
           updatedAt: new Date(),
-        }
+        },
       ];
-      
+
       // Run multiple times since it can be probabilistic
       let foundReference = false;
       for (let i = 0; i < 10; i++) {
@@ -377,21 +403,20 @@ describe('Human Behaviors Module', () => {
         }
       }
     });
-    
+
     it('should return null for users without goals', () => {
       const profile = createUserProfile('test-user');
       profile.goals = [];
-      
+
       const reference = getProactiveGoalReference(profile, 'anything');
-      
+
       expect(reference).toBeNull();
     });
-    
+
     it('should return null for null profile', () => {
       const reference = getProactiveGoalReference(null, 'retirement');
-      
+
       expect(reference).toBeNull();
     });
   });
 });
-

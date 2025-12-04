@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tagTextWithSsml } from '../ssml-tagger.js';
+import { tagTextWithSsml } from '../ssml/index.js';
 import {
   stripSsmlTags,
   containsTextIgnoringSsml,

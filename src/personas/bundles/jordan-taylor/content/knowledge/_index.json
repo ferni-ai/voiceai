@@ -1,0 +1,22 @@
+{
+  "topics": [
+    {
+      "id": "lifetime-planning",
+      "topic": "Lifetime Planning Guide",
+      "file": "lifes-firsts.md",
+      "domains": ["lifetime-planning", "life-stages", "milestones", "transitions", "celebrations", "goals"]
+    },
+    {
+      "id": "vacation-planning",
+      "topic": "Vacation Planning Principles",
+      "file": "vacation-planning.md",
+      "domains": ["travel", "planning", "adventures"]
+    },
+    {
+      "id": "annual-planning",
+      "topic": "Annual Life Planning",
+      "file": "annual-planning.md",
+      "domains": ["goals", "planning", "quarterly-reviews", "life-portfolio"]
+    }
+  ]
+}

@@ -34,23 +34,51 @@ const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   // Retirement accounts
   { pattern: /\b401\s*[Kk]\b/g, replacement: 'four oh one K', description: 'Retirement account' },
   { pattern: /\b401\s*\(k\)\b/gi, replacement: 'four oh one K', description: 'Retirement account' },
-  { pattern: /\b403\s*[Bb]\b/g, replacement: 'four oh three B', description: 'Nonprofit retirement' },
-  { pattern: /\b457\s*[Bb]?\b/g, replacement: 'four fifty seven', description: 'Government retirement' },
+  {
+    pattern: /\b403\s*[Bb]\b/g,
+    replacement: 'four oh three B',
+    description: 'Nonprofit retirement',
+  },
+  {
+    pattern: /\b457\s*[Bb]?\b/g,
+    replacement: 'four fifty seven',
+    description: 'Government retirement',
+  },
   { pattern: /\bIRA\b/g, replacement: 'I R A', description: 'Individual Retirement Account' },
   { pattern: /\bRoth\s+IRA\b/gi, replacement: 'Roth I R A', description: 'After-tax retirement' },
-  { pattern: /\bSEP[\s-]?IRA\b/gi, replacement: 'sep I R A', description: 'Self-employed retirement' },
-  { pattern: /\bSIMPLE[\s-]?IRA\b/gi, replacement: 'simple I R A', description: 'Small business retirement' },
-  
+  {
+    pattern: /\bSEP[\s-]?IRA\b/gi,
+    replacement: 'sep I R A',
+    description: 'Self-employed retirement',
+  },
+  {
+    pattern: /\bSIMPLE[\s-]?IRA\b/gi,
+    replacement: 'simple I R A',
+    description: 'Small business retirement',
+  },
+
   // Regulatory bodies
   { pattern: /\bSEC\b/g, replacement: 'S E C', description: 'Securities and Exchange Commission' },
-  { pattern: /\bFINRA\b/g, replacement: 'fin-rah', description: 'Financial Industry Regulatory Authority' },
-  { pattern: /\bFDIC\b/g, replacement: 'F D I C', description: 'Federal Deposit Insurance Corporation' },
+  {
+    pattern: /\bFINRA\b/g,
+    replacement: 'fin-rah',
+    description: 'Financial Industry Regulatory Authority',
+  },
+  {
+    pattern: /\bFDIC\b/g,
+    replacement: 'F D I C',
+    description: 'Federal Deposit Insurance Corporation',
+  },
   { pattern: /\bFed\b/g, replacement: 'Fed', description: 'Federal Reserve' },
   { pattern: /\bFOMC\b/g, replacement: 'F O M C', description: 'Federal Open Market Committee' },
-  { pattern: /\bCFPB\b/g, replacement: 'C F P B', description: 'Consumer Financial Protection Bureau' },
+  {
+    pattern: /\bCFPB\b/g,
+    replacement: 'C F P B',
+    description: 'Consumer Financial Protection Bureau',
+  },
   { pattern: /\bOCC\b/g, replacement: 'O C C', description: 'Office of the Comptroller' },
   { pattern: /\bSIPC\b/g, replacement: 'S I P C', description: 'Securities Investor Protection' },
-  
+
   // Indices and markets
   { pattern: /\bS&P\s*500\b/gi, replacement: 'S and P five hundred', description: 'Stock index' },
   { pattern: /\bS&P\b/gi, replacement: 'S and P', description: 'Standard and Poors' },
@@ -63,7 +91,7 @@ const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bETFs\b/g, replacement: 'E T Fs', description: 'Exchange Traded Funds' },
   { pattern: /\bREIT\b/g, replacement: 'reet', description: 'Real Estate Investment Trust' },
   { pattern: /\bREITs\b/g, replacement: 'reets', description: 'Real Estate Investment Trusts' },
-  
+
   // Fund types
   { pattern: /\bVTI\b/g, replacement: 'V T I', description: 'Vanguard Total Stock' },
   { pattern: /\bVOO\b/g, replacement: 'V O O', description: 'Vanguard S&P 500' },
@@ -71,7 +99,7 @@ const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bVFIAX\b/g, replacement: 'V F I ax', description: 'Vanguard 500 Admiral' },
   { pattern: /\bVBTLX\b/g, replacement: 'V B T L X', description: 'Vanguard Bond' },
   { pattern: /\bVXUS\b/g, replacement: 'V X U S', description: 'Vanguard International' },
-  
+
   // Financial metrics
   { pattern: /\bP\/E\b/g, replacement: 'P E ratio', description: 'Price to Earnings' },
   { pattern: /\bEPS\b/g, replacement: 'E P S', description: 'Earnings Per Share' },
@@ -85,7 +113,7 @@ const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bYoY\b/g, replacement: 'year over year', description: 'Year comparison' },
   { pattern: /\bCAPM\b/g, replacement: 'cap M', description: 'Capital Asset Pricing Model' },
   { pattern: /\bEBITDA\b/g, replacement: 'E bit dah', description: 'Earnings metric' },
-  
+
   // Account types
   { pattern: /\bHSA\b/g, replacement: 'H S A', description: 'Health Savings Account' },
   { pattern: /\bFSA\b/g, replacement: 'F S A', description: 'Flexible Spending Account' },
@@ -93,7 +121,7 @@ const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\b529\b/g, replacement: 'five twenty nine', description: 'Education savings plan' },
   { pattern: /\bUGMA\b/g, replacement: 'U G M A', description: 'Uniform Gifts to Minors' },
   { pattern: /\bUTMA\b/g, replacement: 'U T M A', description: 'Uniform Transfers to Minors' },
-  
+
   // Trading terms
   { pattern: /\bIPO\b/g, replacement: 'I P O', description: 'Initial Public Offering' },
   { pattern: /\bSPAC\b/g, replacement: 'spac', description: 'Special Purpose Acquisition' },
@@ -102,17 +130,17 @@ const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bCD\b/g, replacement: 'C D', description: 'Certificate of Deposit' },
   { pattern: /\bAPY\b/g, replacement: 'A P Y', description: 'Annual Percentage Yield' },
   { pattern: /\bAPR\b/g, replacement: 'A P R', description: 'Annual Percentage Rate' },
-  
+
   // Basis points and percentages
   { pattern: /\b(\d+)\s*bps\b/gi, replacement: '$1 basis points', description: 'Basis points' },
   { pattern: /\b(\d+)\s*bp\b/gi, replacement: '$1 basis points', description: 'Basis point' },
-  
+
   // Money amounts (for clearer pronunciation)
   { pattern: /\$(\d+)k\b/gi, replacement: '$1 thousand dollars', description: 'Thousands' },
   { pattern: /\$(\d+)m\b/gi, replacement: '$1 million dollars', description: 'Millions' },
   { pattern: /\$(\d+)b\b/gi, replacement: '$1 billion dollars', description: 'Billions' },
   { pattern: /\$(\d+)t\b/gi, replacement: '$1 trillion dollars', description: 'Trillions' },
-  
+
   // Common Bogle/Vanguard terms
   { pattern: /\bVanguard\b/g, replacement: 'Vanguard', description: 'Company name' },
   { pattern: /\bBogle\b/g, replacement: 'Bogul', description: 'Name pronunciation' },
@@ -124,7 +152,7 @@ const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
  * Apply financial pronunciation dictionary to text
  */
 // Unique markers to protect financial pronunciations from SSML corruption
-const FINANCIAL_START = '\uE001';  // Private use Unicode character
+const FINANCIAL_START = '\uE001'; // Private use Unicode character
 const FINANCIAL_END = '\uE002';
 
 function applyFinancialPronunciations(text: string): string {
@@ -180,7 +208,7 @@ const EMOTION_KEYWORDS: Record<string, string> = {
   'my girl': 'affectionate',
   'young man': 'affectionate',
   'young lady': 'affectionate',
-  
+
   // Curious/Inquisitive (engaging questions)
   'tell me': 'curious',
   'what is': 'curious',
@@ -199,7 +227,7 @@ const EMOTION_KEYWORDS: Record<string, string> = {
   'tell me more': 'curious',
   'go on': 'curious',
   'and then': 'curious',
-  
+
   // Sad/Empathetic (responding to difficult topics)
   sorry: 'sad',
   loss: 'sad',
@@ -226,10 +254,10 @@ const EMOTION_KEYWORDS: Record<string, string> = {
   failure: 'sad',
   'let you down': 'sad',
   disappointed: 'sad',
-  
+
   // Surprised (genuine reactions)
   'oh!': 'surprised',
-  'wow': 'surprised',
+  wow: 'surprised',
   'really?': 'surprised',
   'no way': 'surprised',
   'that is surprising': 'surprised',
@@ -241,35 +269,33 @@ const EMOTION_KEYWORDS: Record<string, string> = {
   'i had no idea': 'surprised',
   'never expected': 'surprised',
   astonishing: 'surprised',
-  'goodness': 'surprised',
+  goodness: 'surprised',
   'my word': 'surprised',
-  
+
   // Angry/Passionate (Bogle's crusader moments against Wall Street)
   'will not': 'angry',
   'should not': 'angry',
   'this is wrong': 'angry',
-  'unacceptable': 'angry',
-  'stealing': 'angry',
-  'greed': 'angry',
-  'exploitation': 'angry',
-  'outrageous': 'angry',
-  'disgrace': 'angry',
-  'shameful': 'angry',
+  unacceptable: 'angry',
+  stealing: 'angry',
+  greed: 'angry',
+  exploitation: 'angry',
+  outrageous: 'angry',
+  disgrace: 'angry',
+  shameful: 'angry',
   'wall street': 'angry', // Jack's famous Wall Street criticism
   'high fees': 'angry',
   'rip off': 'angry',
   'ripping off': 'angry',
   'taking advantage': 'angry',
-  'industry': 'angry', // When talking about fund industry abuses
+  industry: 'angry', // When talking about fund industry abuses
   'mutual fund industry': 'angry',
   'active management': 'angry', // Jack's criticism of active funds
-  'manager': 'angry', // Fund managers taking fees
+  manager: 'angry', // Fund managers taking fees
 };
 
 // Thinking sounds that indicate natural hesitation and reflection
-const THINKING_SOUNDS = [
-  /\b(well|hmm|ah|oh|um|uh|you know|i mean|actually|let me think|hmm)\b/gi,
-];
+const THINKING_SOUNDS = [/\b(well|hmm|ah|oh|um|uh|you know|i mean|actually|let me think|hmm)\b/gi];
 
 // Reflection phrases that suggest contemplation
 const REFLECTION_PHRASES = [
@@ -305,17 +331,10 @@ const CONTRASTIVE_PATTERNS = [
 ];
 
 // Parenthetical indicators
-const PARENTHETICAL_PATTERNS = [
-  /\([^)]+\)/g,
-  /—[^—]+—/g,
-  /–[^–]+–/g,
-];
+const PARENTHETICAL_PATTERNS = [/\([^)]+\)/g, /—[^—]+—/g, /–[^–]+–/g];
 
 // List patterns (detect numbered/bulleted lists)
-const LIST_PATTERNS = [
-  /\b(\d+[\.\)]\s+[^.!?]+)/g,
-  /\b([•·-]\s+[^.!?]+)/g,
-];
+const LIST_PATTERNS = [/\b(\d+[\.\)]\s+[^.!?]+)/g, /\b([•·-]\s+[^.!?]+)/g];
 
 // Acronym patterns (all caps, 2-5 letters)
 const ACRONYM_PATTERN = /\b[A-Z]{2,5}\b/g;
@@ -329,28 +348,69 @@ const NUMBER_PATTERNS = [
 
 // Words that suggest slower, more thoughtful pacing
 const SLOW_PACE_KEYWORDS = [
-  'think', 'consider', 'remember', 'reflect', 'important', 'crucial',
-  'serious', 'difficult', 'challenging', 'loss', 'grief', 'sorry',
-  'understand', 'empathy', 'compassion', 'wisdom', 'philosophy',
+  'think',
+  'consider',
+  'remember',
+  'reflect',
+  'important',
+  'crucial',
+  'serious',
+  'difficult',
+  'challenging',
+  'loss',
+  'grief',
+  'sorry',
+  'understand',
+  'empathy',
+  'compassion',
+  'wisdom',
+  'philosophy',
 ];
 
 // Words that suggest faster, more enthusiastic pacing
 const FAST_PACE_KEYWORDS = [
-  'excited', 'great', 'wonderful', 'fantastic', 'yes!', 'exactly',
-  'absolutely', 'definitely', 'celebrate', 'success', 'win', 'victory',
+  'excited',
+  'great',
+  'wonderful',
+  'fantastic',
+  'yes!',
+  'exactly',
+  'absolutely',
+  'definitely',
+  'celebrate',
+  'success',
+  'win',
+  'victory',
 ];
 
 // Words/phrases that suggest emphasis (louder volume)
 const EMPHASIS_KEYWORDS = [
-  'important', 'crucial', 'critical', 'must', 'essential', 'vital',
-  'never', 'always', 'absolutely', 'definitely', 'this matters',
-  'pay attention', 'listen', 'remember this',
+  'important',
+  'crucial',
+  'critical',
+  'must',
+  'essential',
+  'vital',
+  'never',
+  'always',
+  'absolutely',
+  'definitely',
+  'this matters',
+  'pay attention',
+  'listen',
+  'remember this',
 ];
 
 // Phrases that suggest whispers (softer volume)
 const WHISPER_KEYWORDS = [
-  'secret', 'confidential', 'just between us', 'let me tell you',
-  'i want to share', 'intimate', 'personal', 'private',
+  'secret',
+  'confidential',
+  'just between us',
+  'let me tell you',
+  'i want to share',
+  'intimate',
+  'personal',
+  'private',
 ];
 
 // Phrases that suggest laughter - expanded for more natural humor
@@ -428,7 +488,7 @@ interface TaggingContext {
  */
 function detectEmotion(text: string): string {
   const lowerText = text.toLowerCase();
-  
+
   // Check for emotion keywords (longer phrases first for specificity)
   const sortedKeywords = Object.entries(EMOTION_KEYWORDS).sort((a, b) => b[0].length - a[0].length);
   for (const [phrase, emotion] of sortedKeywords) {
@@ -436,7 +496,7 @@ function detectEmotion(text: string): string {
       return emotion;
     }
   }
-  
+
   // Default to affectionate for Bogle's warm personality
   return 'affectionate';
 }
@@ -447,54 +507,55 @@ function detectEmotion(text: string): string {
  */
 function detectPacing(text: string): { speed: number; reason: string } {
   const lowerText = text.toLowerCase();
-  
+
   // Check for slow pace indicators
-  const slowMatches = SLOW_PACE_KEYWORDS.filter(kw => lowerText.includes(kw)).length;
-  const fastMatches = FAST_PACE_KEYWORDS.filter(kw => lowerText.includes(kw)).length;
-  
+  const slowMatches = SLOW_PACE_KEYWORDS.filter((kw) => lowerText.includes(kw)).length;
+  const fastMatches = FAST_PACE_KEYWORDS.filter((kw) => lowerText.includes(kw)).length;
+
   // Check punctuation
   const hasQuestion = text.includes('?');
   const hasExclamation = text.includes('!');
   const hasEllipsis = text.includes('...') || text.includes('…');
-  
+
   // Check sentence length (shorter = faster, longer = slower)
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-  const avgSentenceLength = sentences.length > 0
-    ? sentences.reduce((sum, s) => sum + s.length, 0) / sentences.length
-    : text.length;
-  
+  const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+  const avgSentenceLength =
+    sentences.length > 0
+      ? sentences.reduce((sum, s) => sum + s.length, 0) / sentences.length
+      : text.length;
+
   // Check for complex structures (clauses, lists)
   const hasComplexStructure = /(,|;|:|—|–)/.test(text);
   const clauseCount = (text.match(/,/g) || []).length;
-  
+
   // Add randomness for natural pacing variation (±5%)
-  const variation = 0.95 + (Math.random() * 0.10); // 0.95 to 1.05
-  
+  const variation = 0.95 + Math.random() * 0.1; // 0.95 to 1.05
+
   // Jack speaks deliberately but not TOO slow - warm grandfather, not sleepy
   // Cartesia speed range: 0.6 - 1.5 (we stay in the 0.68-0.85 range)
-  
+
   if (hasEllipsis || slowMatches > fastMatches + 1) {
     return { speed: 0.68 * variation, reason: 'thoughtful' }; // Contemplative
   }
-  
+
   if (hasExclamation && fastMatches > 0) {
     return { speed: 0.85 * variation, reason: 'enthusiastic' }; // Warm energy
   }
-  
+
   if (hasQuestion) {
     return { speed: 0.78 * variation, reason: 'inquisitive' }; // Curious
   }
-  
+
   if (avgSentenceLength > 120 || clauseCount > 3) {
     return { speed: 0.72 * variation, reason: 'complex' }; // Complex thoughts
   }
-  
+
   if (hasComplexStructure && clauseCount > 1) {
     return { speed: 0.78 * variation, reason: 'structured' }; // Deliberate
   }
-  
+
   // Default: Jack's warm, unhurried but not sluggish pace
-  return { speed: 0.80 * variation, reason: 'conversational' };
+  return { speed: 0.8 * variation, reason: 'conversational' };
 }
 
 /**
@@ -502,40 +563,44 @@ function detectPacing(text: string): { speed: number; reason: string } {
  */
 function detectVolume(text: string): { volume: number; hasEmphasis: boolean; hasWhisper: boolean } {
   const lowerText = text.toLowerCase();
-  
-  const hasEmphasis = EMPHASIS_KEYWORDS.some(kw => lowerText.includes(kw));
-  const hasWhisper = WHISPER_KEYWORDS.some(kw => lowerText.includes(kw));
-  
+
+  const hasEmphasis = EMPHASIS_KEYWORDS.some((kw) => lowerText.includes(kw));
+  const hasWhisper = WHISPER_KEYWORDS.some((kw) => lowerText.includes(kw));
+
   // Check for all caps (emphasis)
   const hasAllCaps = /[A-Z]{3,}/.test(text);
-  
+
   // Check for contrastive patterns (often need emphasis)
-  const hasContrast = CONTRASTIVE_PATTERNS.some(pattern => pattern.test(text));
-  
+  const hasContrast = CONTRASTIVE_PATTERNS.some((pattern) => pattern.test(text));
+
   if (hasWhisper) {
     return { volume: 0.68, hasEmphasis: false, hasWhisper: true };
   }
-  
+
   if (hasEmphasis || hasAllCaps || hasContrast) {
     return { volume: 1.18, hasEmphasis: true, hasWhisper: false };
   }
-  
+
   return { volume: 1.0, hasEmphasis: false, hasWhisper: false };
 }
 
 /**
  * Detect vocal cues with enhanced laughter detection
  */
-function detectVocalCues(text: string): { hasLaughter: boolean; hasSigh: boolean; laughterCount: number } {
-  const hasLaughter = LAUGHTER_PATTERNS.some(pattern => pattern.test(text));
-  const hasSigh = SIGH_PATTERNS.some(pattern => pattern.test(text));
-  
+function detectVocalCues(text: string): {
+  hasLaughter: boolean;
+  hasSigh: boolean;
+  laughterCount: number;
+} {
+  const hasLaughter = LAUGHTER_PATTERNS.some((pattern) => pattern.test(text));
+  const hasSigh = SIGH_PATTERNS.some((pattern) => pattern.test(text));
+
   // Count laughter opportunities for more natural distribution
   const laughterCount = LAUGHTER_PATTERNS.reduce((count, pattern) => {
     const matches = text.match(pattern);
     return count + (matches ? matches.length : 0);
   }, 0);
-  
+
   return { hasLaughter, hasSigh, laughterCount };
 }
 
@@ -544,7 +609,7 @@ function detectVocalCues(text: string): { hasLaughter: boolean; hasSigh: boolean
  */
 function addThinkingSounds(text: string): string {
   let result = text;
-  
+
   // Add "well" or "hmm" before contrastive transitions
   result = result.replace(/\b(but|however|although)\b/gi, (match, offset) => {
     const before = result.substring(Math.max(0, offset - 20), offset);
@@ -554,9 +619,9 @@ function addThinkingSounds(text: string): string {
     }
     return match;
   });
-  
+
   // Add reflection sounds before contemplative phrases
-  REFLECTION_PHRASES.forEach(pattern => {
+  REFLECTION_PHRASES.forEach((pattern) => {
     result = result.replace(pattern, (match, offset) => {
       const before = result.substring(Math.max(0, offset - 15), offset);
       // Don't duplicate if already present
@@ -570,28 +635,34 @@ function addThinkingSounds(text: string): string {
       return match;
     });
   });
-  
+
   // Add natural hesitations before important statements with longer pauses
-  result = result.replace(/\b(i think|i believe|i feel|i know|i see|i understand|i realize)\b/gi, (match) => {
-    return `<break time="120ms"/>${match}<break time="150ms"/>`;
-  });
-  
-  // Add "you know" or "I mean" before clarifications (natural speech patterns)
-  result = result.replace(/\b(that is|which means|in other words|to put it another way)\b/gi, (match, offset) => {
-    const before = result.substring(Math.max(0, offset - 20), offset);
-    if (!/\b(you know|i mean)\b/i.test(before)) {
-      return `you know<break time="100ms"/>${match}`;
+  result = result.replace(
+    /\b(i think|i believe|i feel|i know|i see|i understand|i realize)\b/gi,
+    (match) => {
+      return `<break time="120ms"/>${match}<break time="150ms"/>`;
     }
-    return match;
-  });
-  
+  );
+
+  // Add "you know" or "I mean" before clarifications (natural speech patterns)
+  result = result.replace(
+    /\b(that is|which means|in other words|to put it another way)\b/gi,
+    (match, offset) => {
+      const before = result.substring(Math.max(0, offset - 20), offset);
+      if (!/\b(you know|i mean)\b/i.test(before)) {
+        return `you know<break time="100ms"/>${match}`;
+      }
+      return match;
+    }
+  );
+
   // Add contemplative pauses before deep thoughts
-  CONTEMPLATIVE_PAUSE_PHRASES.forEach(pattern => {
+  CONTEMPLATIVE_PAUSE_PHRASES.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       return `<break time="180ms"/>${match}<break time="200ms"/>`;
     });
   });
-  
+
   return result;
 }
 
@@ -600,18 +671,20 @@ function addThinkingSounds(text: string): string {
  */
 function addNaturalPauses(text: string, baseSpeed: number): string {
   let result = text;
-  
+
   // Variable pause after commas based on context (120-300ms)
   // Longer pause if followed by a clause or complex phrase, or for reflection
   result = result.replace(/,(\s+)/g, (match, space, offset) => {
     const after = result.substring(offset + match.length, offset + match.length + 40);
     const before = result.substring(Math.max(0, offset - 30), offset);
     const isComplex = /\b(which|that|who|when|where|because|since|although|while)\b/i.test(after);
-    const isReflective = /\b(think|consider|remember|reflect|wonder|imagine)\b/i.test(before + after);
+    const isReflective = /\b(think|consider|remember|reflect|wonder|imagine)\b/i.test(
+      before + after
+    );
     const pauseTime = isReflective ? '280ms' : isComplex ? '220ms' : '140ms';
     return `,<break time="${pauseTime}"/>${space}`;
   });
-  
+
   // Pauses after semicolons (280-400ms) - longer for reflection
   result = result.replace(/;(\s+)/g, (match, space, offset) => {
     const before = result.substring(Math.max(0, offset - 30), offset);
@@ -619,14 +692,18 @@ function addNaturalPauses(text: string, baseSpeed: number): string {
     const pauseTime = isReflective ? '380ms' : '300ms';
     return `;<break time="${pauseTime}"/>${space}`;
   });
-  
+
   // Variable pauses after periods based on sentence importance and reflection (350-800ms)
   result = result.replace(/\.(\s+)/g, (match, space, offset) => {
     const before = result.substring(Math.max(0, offset - 50), offset);
-    const isImportant = /\b(important|crucial|remember|listen|think|know|understand)\b/i.test(before);
-    const isReflective = /\b(think|consider|remember|reflect|wonder|imagine|realize)\b/i.test(before);
+    const isImportant = /\b(important|crucial|remember|listen|think|know|understand)\b/i.test(
+      before
+    );
+    const isReflective = /\b(think|consider|remember|reflect|wonder|imagine|realize)\b/i.test(
+      before
+    );
     const isQuestion = /\?/.test(before);
-    
+
     let pauseTime = '400ms';
     if (isReflective) {
       pauseTime = '650ms'; // Longer pause for reflection
@@ -635,10 +712,10 @@ function addNaturalPauses(text: string, baseSpeed: number): string {
     } else if (isQuestion) {
       pauseTime = '450ms';
     }
-    
+
     return `.<break time="${pauseTime}"/>${space}`;
   });
-  
+
   // Longer pauses after questions (600-900ms) - gives time for response and reflection
   result = result.replace(/\?(\s+)/g, (match, space, offset) => {
     const before = result.substring(Math.max(0, offset - 40), offset);
@@ -646,35 +723,38 @@ function addNaturalPauses(text: string, baseSpeed: number): string {
     const pauseTime = isDeepQuestion ? '850ms' : '650ms';
     return `?<break time="${pauseTime}"/>${space}`;
   });
-  
+
   // Pauses after exclamation marks (300-450ms)
   result = result.replace(/!(\s+)/g, (match, space) => {
     return `!<break time="350ms"/>${space}`;
   });
-  
+
   // Add micro-pauses before thinking sounds and transitions (enhanced)
   // IMPORTANT: Exclude matches inside protected financial pronunciation markers
-  result = result.replace(/\b(well|you know|i mean|actually|hmm|ah|oh|um|uh)\b/gi, (match, word, offset) => {
-    // Check if we're inside a protected region (between FINANCIAL_START and FINANCIAL_END)
-    const before = result.substring(0, offset);
-    const startCount = (before.match(new RegExp(FINANCIAL_START, 'g')) || []).length;
-    const endCount = (before.match(new RegExp(FINANCIAL_END, 'g')) || []).length;
-    if (startCount > endCount) {
-      // We're inside a protected region, don't modify
-      return match;
+  result = result.replace(
+    /\b(well|you know|i mean|actually|hmm|ah|oh|um|uh)\b/gi,
+    (match, word, offset) => {
+      // Check if we're inside a protected region (between FINANCIAL_START and FINANCIAL_END)
+      const before = result.substring(0, offset);
+      const startCount = (before.match(new RegExp(FINANCIAL_START, 'g')) || []).length;
+      const endCount = (before.match(new RegExp(FINANCIAL_END, 'g')) || []).length;
+      if (startCount > endCount) {
+        // We're inside a protected region, don't modify
+        return match;
+      }
+      return `<break time="100ms"/>${match}`;
     }
-    return `<break time="100ms"/>${match}`;
-  });
-  
+  );
+
   // Add longer contemplative pauses before reflection phrases
-  REFLECTION_PHRASES.forEach(pattern => {
+  REFLECTION_PHRASES.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       return `<break time="250ms"/>${match}<break time="200ms"/>`;
     });
   });
-  
+
   // Add breath pauses before important phrases (longer for reflection)
-  BREATH_POINTS.forEach(pattern => {
+  BREATH_POINTS.forEach((pattern) => {
     result = result.replace(pattern, (match, offset) => {
       const before = result.substring(Math.max(0, offset - 30), offset);
       const isReflective = /\b(think|consider|reflect|wonder)\b/i.test(before + match);
@@ -682,9 +762,9 @@ function addNaturalPauses(text: string, baseSpeed: number): string {
       return `<break time="${pauseTime}"/>${match}`;
     });
   });
-  
+
   // Add pauses after transition phrases (longer for thoughtful transitions)
-  TRANSITION_PHRASES.forEach(pattern => {
+  TRANSITION_PHRASES.forEach((pattern) => {
     result = result.replace(pattern, (match, offset) => {
       const after = result.substring(offset + match.length, offset + match.length + 30);
       const isReflective = /\b(think|consider|remember|reflect)\b/i.test(after);
@@ -692,17 +772,20 @@ function addNaturalPauses(text: string, baseSpeed: number): string {
       return `${match}<break time="${pauseTime}"/>`;
     });
   });
-  
+
   // Add longer pauses before "remember", "think about", "consider" - natural reflection points
-  result = result.replace(/\b(remember|think about|consider|reflect on|imagine|picture)\b/gi, (match) => {
-    return `<break time="300ms"/>${match}<break time="200ms"/>`;
-  });
-  
+  result = result.replace(
+    /\b(remember|think about|consider|reflect on|imagine|picture)\b/gi,
+    (match) => {
+      return `<break time="300ms"/>${match}<break time="200ms"/>`;
+    }
+  );
+
   // Add pause before long sentences (natural breathing simulation)
   result = result.replace(/^([A-Z][^.!?]{80,}[.!?])/gm, (match) => {
     return `<break time="250ms"/>${match}`;
   });
-  
+
   return result;
 }
 
@@ -711,39 +794,47 @@ function addNaturalPauses(text: string, baseSpeed: number): string {
  */
 function addSpeedVariations(text: string, baseSpeed: number): string {
   let result = text;
-  
+
   // Slow down for emphasis phrases (more nuanced)
   const emphasisPhrases = [
-    { pattern: /\b(this is important|remember this|pay attention|listen carefully)\b/gi, speed: baseSpeed * 0.82 },
+    {
+      pattern: /\b(this is important|remember this|pay attention|listen carefully)\b/gi,
+      speed: baseSpeed * 0.82,
+    },
     { pattern: /\b(i want you to|think about|consider this)\b/gi, speed: baseSpeed * 0.85 },
     { pattern: /\b(here is the thing|the truth is|let me tell you)\b/gi, speed: baseSpeed * 0.88 },
   ];
-  
+
   for (const { pattern, speed } of emphasisPhrases) {
     result = result.replace(pattern, (match) => {
       return `<speed ratio="${speed.toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
     });
   }
-  
+
   // Enhanced sentence-final lengthening - slow down last 2-3 words of important statements
-  result = result.replace(/(\w+\s+\w+\s+\w+)([.!?])(\s+)/g, (match, lastWords, punct, space, offset) => {
-    const before = result.substring(Math.max(0, offset - 80), offset);
-    const isImportant = /\b(important|remember|know|understand|matters|crucial|vital)\b/i.test(before + lastWords);
-    const isReflective = /\b(think|consider|reflect|wonder|realize)\b/i.test(before + lastWords);
-    
-    if (isImportant || isReflective) {
-      // Slow down the last few words for emphasis
-      const words = lastWords.trim().split(/\s+/);
-      if (words.length >= 2) {
-        const lastTwoWords = words.slice(-2).join(' ');
-        const beforeLastTwo = words.slice(0, -2).join(' ');
-        const speedRatio = isReflective ? 0.88 : 0.90;
-        return `${beforeLastTwo ? beforeLastTwo + ' ' : ''}<speed ratio="${(baseSpeed * speedRatio).toFixed(2)}"/>${lastTwoWords}<break time="100ms"/>${punct}<speed ratio="${baseSpeed.toFixed(2)}"/><break time="450ms"/>${space}`;
+  result = result.replace(
+    /(\w+\s+\w+\s+\w+)([.!?])(\s+)/g,
+    (match, lastWords, punct, space, offset) => {
+      const before = result.substring(Math.max(0, offset - 80), offset);
+      const isImportant = /\b(important|remember|know|understand|matters|crucial|vital)\b/i.test(
+        before + lastWords
+      );
+      const isReflective = /\b(think|consider|reflect|wonder|realize)\b/i.test(before + lastWords);
+
+      if (isImportant || isReflective) {
+        // Slow down the last few words for emphasis
+        const words = lastWords.trim().split(/\s+/);
+        if (words.length >= 2) {
+          const lastTwoWords = words.slice(-2).join(' ');
+          const beforeLastTwo = words.slice(0, -2).join(' ');
+          const speedRatio = isReflective ? 0.88 : 0.9;
+          return `${beforeLastTwo ? beforeLastTwo + ' ' : ''}<speed ratio="${(baseSpeed * speedRatio).toFixed(2)}"/>${lastTwoWords}<break time="100ms"/>${punct}<speed ratio="${baseSpeed.toFixed(2)}"/><break time="450ms"/>${space}`;
+        }
       }
+      return match;
     }
-    return match;
-  });
-  
+  );
+
   // Fallback for shorter sentences
   result = result.replace(/([.!?])(\s+)/g, (match, punct, space, offset) => {
     const before = result.substring(Math.max(0, offset - 50), offset);
@@ -753,25 +844,28 @@ function addSpeedVariations(text: string, baseSpeed: number): string {
     }
     return match;
   });
-  
+
   // Enhanced list intonation - rising pitch on items, falling on final item
   const listMatches: Array<{ match: string; index: number; isLast: boolean }> = [];
   let listIndex = 0;
-  
+
   result = result.replace(/(\d+[\.\)]\s+[^.!?]+)/g, (match, offset) => {
     const after = result.substring(offset + match.length, offset + match.length + 50);
     const isLast = !/(\d+[\.\)]\s+)/.test(after);
     listMatches.push({ match, index: listIndex++, isLast });
     return `__LIST_${listMatches.length - 1}__`;
   });
-  
+
   // Replace list items with proper intonation
   listMatches.forEach(({ match, isLast }, idx) => {
     const speedRatio = isLast ? 0.95 : 1.05; // Rising on items, falling on final
     const pauseTime = isLast ? '300ms' : '250ms';
-    result = result.replace(`__LIST_${idx}__`, `<speed ratio="${(baseSpeed * speedRatio).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/><break time="${pauseTime}"/>`);
+    result = result.replace(
+      `__LIST_${idx}__`,
+      `<speed ratio="${(baseSpeed * speedRatio).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/><break time="${pauseTime}"/>`
+    );
   });
-  
+
   // Handle bulleted lists similarly
   result = result.replace(/([•·-]\s+[^.!?]+)/g, (match, offset) => {
     const after = result.substring(offset + match.length, offset + match.length + 50);
@@ -780,7 +874,7 @@ function addSpeedVariations(text: string, baseSpeed: number): string {
     const pauseTime = isLast ? '300ms' : '250ms';
     return `<speed ratio="${(baseSpeed * speedRatio).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/><break time="${pauseTime}"/>`;
   });
-  
+
   return result;
 }
 
@@ -791,7 +885,7 @@ function addEmotionalShifts(text: string, baseEmotion: string): string {
   // SIMPLIFIED: Adding per-word emotion tags causes cascading corruption issues
   // when subsequent functions modify the text. Instead, we rely on the base emotion
   // set at the start of the utterance and sentence-level emotion detection.
-  // 
+  //
   // The emotion for the entire utterance is already set in the opening tags.
   // Fine-grained emotion shifts within single utterances are not well-supported
   // by TTS and can sound jarring anyway.
@@ -803,17 +897,17 @@ function addEmotionalShifts(text: string, baseEmotion: string): string {
  */
 function handleParentheticals(text: string, baseSpeed: number, baseVolume: number): string {
   let result = text;
-  
+
   // Handle parentheses
   result = result.replace(/\(([^)]+)\)/g, (match, content) => {
     return `<volume ratio="${(baseVolume * 0.85).toFixed(2)}"/><speed ratio="${(baseSpeed * 0.95).toFixed(2)}"/>(${content})<speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>`;
   });
-  
+
   // Handle em dashes (asides)
   result = result.replace(/—([^—]+)—/g, (match, content) => {
     return `<break time="150ms"/><volume ratio="${(baseVolume * 0.9).toFixed(2)}"/>—${content}—<volume ratio="${baseVolume.toFixed(2)}"/><break time="150ms"/>`;
   });
-  
+
   return result;
 }
 
@@ -822,17 +916,17 @@ function handleParentheticals(text: string, baseSpeed: number, baseVolume: numbe
  */
 function handleContrastiveStress(text: string, baseSpeed: number, baseVolume: number): string {
   let result = text;
-  
+
   // Emphasize the "but Y" part
   result = result.replace(/\bnot\s+(\w+),\s*but\s+(\w+)/gi, (match, neg, pos) => {
     return `not ${neg}, but <volume ratio="${(baseVolume * 1.15).toFixed(2)}"/><speed ratio="${(baseSpeed * 0.92).toFixed(2)}"/>${pos}<speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>`;
   });
-  
+
   // Handle "rather than" patterns
   result = result.replace(/(\w+)\s+rather than\s+(\w+)/gi, (match, preferred, alternative) => {
     return `<volume ratio="${(baseVolume * 1.1).toFixed(2)}"/>${preferred}<volume ratio="${baseVolume.toFixed(2)}"/> rather than ${alternative}`;
   });
-  
+
   return result;
 }
 
@@ -841,22 +935,22 @@ function handleContrastiveStress(text: string, baseSpeed: number, baseVolume: nu
  */
 function handleNumbers(text: string, baseSpeed: number): string {
   let result = text;
-  
+
   // Slow down percentages
   result = result.replace(/(\d+[.,]\d+%)/g, (match) => {
     return `<speed ratio="${(baseSpeed * 0.92).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
   });
-  
+
   // Slow down money amounts
   result = result.replace(/(\$\d+[.,]?\d*\s*(?:million|billion|thousand|k|m|b)?)/gi, (match) => {
-    return `<speed ratio="${(baseSpeed * 0.90).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
+    return `<speed ratio="${(baseSpeed * 0.9).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
   });
-  
+
   // Slow down dates
   result = result.replace(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/g, (match) => {
     return `<speed ratio="${(baseSpeed * 0.93).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
   });
-  
+
   return result;
 }
 
@@ -930,9 +1024,9 @@ function breakTag(time: string): string {
 /**
  * Cartesia Sonic-3 Full Emotion Vocabulary (62 emotions!)
  * @see https://docs.cartesia.ai/build-with-cartesia/sonic-3/volume-speed-emotion
- * 
+ *
  * Primary emotions (best quality): neutral, angry, excited, content, sad, scared
- * 
+ *
  * Full list organized by category:
  */
 const CARTESIA_EMOTIONS = {
@@ -943,35 +1037,35 @@ const CARTESIA_EMOTIONS = {
   elated: 'elated',
   euphoric: 'euphoric',
   triumphant: 'triumphant',
-  
+
   // Surprise/Wonder
   amazed: 'amazed',
   surprised: 'surprised',
   curious: 'curious',
-  
+
   // Playful
   flirtatious: 'flirtatious',
   joking: 'joking/comedic',
   sarcastic: 'sarcastic',
   ironic: 'ironic',
-  
+
   // Calm/Content
   content: 'content',
   peaceful: 'peaceful',
   serene: 'serene',
   calm: 'calm',
   neutral: 'neutral',
-  
+
   // Warmth/Connection
   grateful: 'grateful',
   affectionate: 'affectionate',
   trust: 'trust',
   sympathetic: 'sympathetic',
-  
+
   // Anticipation/Mystery
   anticipation: 'anticipation',
   mysterious: 'mysterious',
-  
+
   // Anger/Frustration
   angry: 'angry',
   mad: 'mad',
@@ -982,7 +1076,7 @@ const CARTESIA_EMOTIONS = {
   disgusted: 'disgusted',
   contempt: 'contempt',
   envious: 'envious',
-  
+
   // Sadness
   sad: 'sad',
   dejected: 'dejected',
@@ -991,17 +1085,17 @@ const CARTESIA_EMOTIONS = {
   hurt: 'hurt',
   guilty: 'guilty',
   rejected: 'rejected',
-  
+
   // Nostalgia/Reflection
   nostalgic: 'nostalgic',
   wistful: 'wistful',
   contemplative: 'contemplative',
-  
+
   // Low Energy
   bored: 'bored',
   tired: 'tired',
   resigned: 'resigned',
-  
+
   // Uncertainty/Anxiety
   apologetic: 'apologetic',
   hesitant: 'hesitant',
@@ -1011,18 +1105,18 @@ const CARTESIA_EMOTIONS = {
   panicked: 'panicked',
   alarmed: 'alarmed',
   scared: 'scared',
-  
+
   // Confidence
   proud: 'proud',
   confident: 'confident',
   determined: 'determined',
-  
+
   // Distance
   distant: 'distant',
   skeptical: 'skeptical',
 } as const;
 
-type CartesiaEmotion = typeof CARTESIA_EMOTIONS[keyof typeof CARTESIA_EMOTIONS];
+type CartesiaEmotion = (typeof CARTESIA_EMOTIONS)[keyof typeof CARTESIA_EMOTIONS];
 
 /**
  * Map detected emotion to best Cartesia emotion for Jack Bogle's character
@@ -1030,38 +1124,38 @@ type CartesiaEmotion = typeof CARTESIA_EMOTIONS[keyof typeof CARTESIA_EMOTIONS];
 function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
   const emotionMap: Record<string, CartesiaEmotion> = {
     // Our emotion detector outputs → Cartesia emotions
-    'neutral': 'neutral',
-    'happy': 'content',  // Jack is warm, not overly peppy
-    'sad': 'sympathetic', // Jack empathizes rather than being sad himself
-    'angry': 'frustrated', // Jack gets frustrated at Wall Street, not angry
-    'fearful': 'calm', // Jack stays calm in scary markets
-    'surprised': 'curious', // Jack is more curious than shocked
-    'disgusted': 'skeptical', // Jack is skeptical of high fees
-    'anticipation': 'anticipation',
-    
+    neutral: 'neutral',
+    happy: 'content', // Jack is warm, not overly peppy
+    sad: 'sympathetic', // Jack empathizes rather than being sad himself
+    angry: 'frustrated', // Jack gets frustrated at Wall Street, not angry
+    fearful: 'calm', // Jack stays calm in scary markets
+    surprised: 'curious', // Jack is more curious than shocked
+    disgusted: 'skeptical', // Jack is skeptical of high fees
+    anticipation: 'anticipation',
+
     // Context-specific mappings for Jack
-    'curious': 'curious',
-    'affectionate': 'affectionate',
-    'nostalgic': 'nostalgic',
-    'wistful': 'wistful',
-    'grateful': 'grateful',
-    'proud': 'proud',
-    'contemplative': 'contemplative',
-    'determined': 'determined',
-    'sympathetic': 'sympathetic',
-    'calm': 'calm',
-    'peaceful': 'peaceful',
-    'content': 'content',
-    'enthusiastic': 'enthusiastic',
-    'amazed': 'amazed',
-    'hesitant': 'hesitant',
-    'apologetic': 'apologetic',
-    'disappointed': 'disappointed',
-    'resigned': 'resigned',
-    'confident': 'confident',
-    'skeptical': 'skeptical',
+    curious: 'curious',
+    affectionate: 'affectionate',
+    nostalgic: 'nostalgic',
+    wistful: 'wistful',
+    grateful: 'grateful',
+    proud: 'proud',
+    contemplative: 'contemplative',
+    determined: 'determined',
+    sympathetic: 'sympathetic',
+    calm: 'calm',
+    peaceful: 'peaceful',
+    content: 'content',
+    enthusiastic: 'enthusiastic',
+    amazed: 'amazed',
+    hesitant: 'hesitant',
+    apologetic: 'apologetic',
+    disappointed: 'disappointed',
+    resigned: 'resigned',
+    confident: 'confident',
+    skeptical: 'skeptical',
   };
-  
+
   return emotionMap[detected.toLowerCase()] || 'neutral';
 }
 
@@ -1070,47 +1164,49 @@ function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
  */
 function getContextualEmotion(text: string, baseEmotion: string): CartesiaEmotion {
   const lower = text.toLowerCase();
-  
+
   // Wisdom/teaching moments → contemplative + warm
-  if (/\b(let me tell you|the key is|what matters is|remember this|here'?s the thing)\b/i.test(lower)) {
+  if (
+    /\b(let me tell you|the key is|what matters is|remember this|here'?s the thing)\b/i.test(lower)
+  ) {
     return 'contemplative';
   }
-  
+
   // Nostalgia → wistful or nostalgic
   if (/\b(back in|those days|i remember when|years ago|used to be)\b/i.test(lower)) {
     return 'nostalgic';
   }
-  
+
   // Encouraging → warm and confident
   if (/\b(you can do this|you'?re on the right track|that'?s smart|good thinking)\b/i.test(lower)) {
     return 'affectionate';
   }
-  
+
   // Frustration at Wall Street → skeptical
   if (/\b(wall street|high fees|active managers|market timing|speculation)\b/i.test(lower)) {
     return 'skeptical';
   }
-  
+
   // Humor/wit → joking
   if (/\b(ha!|heh|ha ha|\[laughter\])\b/i.test(lower)) {
     return 'joking/comedic';
   }
-  
+
   // Sympathy for user struggles
   if (/\b(i understand|that'?s hard|i'?m sorry|must be difficult)\b/i.test(lower)) {
     return 'sympathetic';
   }
-  
+
   // Gratitude
   if (/\b(thank you|grateful|appreciate|means a lot)\b/i.test(lower)) {
     return 'grateful';
   }
-  
+
   // Pride in principles
   if (/\b(vanguard|index fund|low cost|stay the course)\b/i.test(lower)) {
     return 'proud';
   }
-  
+
   return mapToCartesiaEmotion(baseEmotion);
 }
 
@@ -1130,52 +1226,71 @@ function spellTag(text: string): string {
 }
 
 /**
- * Main SSML tagging function
- * Applies full Cartesia Sonic-3 SSML support with financial pronunciations
+ * Main SSML tagging function (LEGACY - Jack Bogle optimized)
+ *
+ * Applies full Cartesia Sonic-3 SSML support with financial pronunciations.
+ * This version is optimized for Jack Bogle's grandfatherly character.
+ *
+ * FOR PERSONA-AWARE TAGGING, use the new modular system:
+ * ```typescript
+ * import { tagTextWithSsmlPersonaAware } from './ssml/index.js';
+ *
+ * const ssml = tagTextWithSsmlPersonaAware(text, {
+ *   personaId: 'peter-john',  // or 'maya', 'jordan', 'alex', 'jack-b'
+ *   humanize: true,
+ * });
+ * ```
+ *
+ * The new system adjusts:
+ * - Default emotion per persona (curious for Peter, affectionate for Maya)
+ * - Speaking speed per persona (faster for Peter, slower for Jack)
+ * - Behavior frequency (more disfluencies for Peter, more warmth for Maya)
+ *
+ * @deprecated For multi-persona support, use tagTextWithSsmlPersonaAware from ./ssml/
  */
 export function tagTextWithSsml(text: string): string {
   if (!text || text.trim().length === 0) {
     return text;
   }
-  
-  // If already has SSML tags, return as-is
+
+  // If already has SSML tags, still sanitize out stage directions like "*chuckles*"
   if (text.includes('<')) {
-    return text;
+    return sanitizeSsml(text);
   }
-  
+
   // STEP 0: Apply financial pronunciation dictionary FIRST
   // This ensures 401K becomes "four oh one K" before any other processing
   let processedText = applyFinancialPronunciations(text);
-  
+
   // Analyze text (after pronunciation fixes)
   const emotion = detectEmotion(processedText);
   const { speed: rawSpeed, reason } = detectPacing(processedText);
   const { volume: rawVolume, hasEmphasis, hasWhisper } = detectVolume(processedText);
   const { hasLaughter, hasSigh, laughterCount } = detectVocalCues(processedText);
-  
+
   // Clamp values to Cartesia's valid ranges
   const speed = clampSpeed(rawSpeed);
   const volume = clampVolume(rawVolume);
-  
+
   // Build opening tags with clamped values
   let tagged = `<speed ratio="${speed.toFixed(2)}"/><volume ratio="${volume.toFixed(2)}"/>`;
-  
+
   if (emotion) {
     tagged += `<emotion value="${emotion}"/>`;
   }
-  
+
   // Add pauses at the start for emotional moments (replaces invalid vocal cues)
   if (hasSigh) {
     // Longer pause with softer volume for "sigh" effect
     tagged += '<volume ratio="0.85"/><break time="400ms"/><volume ratio="1.0"/>';
   }
-  
+
   // Add warmth at start if positive emotion detected
   if (hasLaughter || (emotion === 'affectionate' && laughterCount > 0)) {
     // Slight uptick in emotion for warm start
     tagged += '<break time="200ms"/>';
   }
-  
+
   // Process text through multiple enhancement layers
   // Note: processedText already has financial pronunciations applied, but has NO SSML tags yet
   //
@@ -1192,33 +1307,33 @@ export function tagTextWithSsml(text: string): string {
   // ═══════════════════════════════════════════════════════════════════════════
   // TIER 1: CORE NATURAL SPEECH (Always safe)
   // ═══════════════════════════════════════════════════════════════════════════
-  processedText = addThinkingSounds(processedText);           // "hmm", "well", contemplative
-  processedText = addNaturalPauses(processedText, speed);     // Commas, periods, breath points
-  
+  processedText = addThinkingSounds(processedText); // "hmm", "well", contemplative
+  processedText = addNaturalPauses(processedText, speed); // Commas, periods, breath points
+
   // ═══════════════════════════════════════════════════════════════════════════
   // TIER 2: JACK'S SIGNATURE PERSONALITY (Phrase-specific, no conflicts)
   // ═══════════════════════════════════════════════════════════════════════════
-  processedText = addCatchphraseEmphasis(processedText, emotion);     // "Stay the course"
-  processedText = addHistoricalYearGravity(processedText);            // 1974, 1975, 2008
-  processedText = addWisdomCadence(processedText, emotion);           // Life lessons
-  processedText = addStorytellingMode(processedText, emotion);        // "I remember..."
-  processedText = addHumbleDeflection(processedText, emotion);        // Modest responses
-  processedText = addTricolonCadence(processedText, speed);           // "Goals, balance, cost"
-  processedText = addQuotationVoiceShift(processedText, emotion);     // When quoting others
-  
+  processedText = addCatchphraseEmphasis(processedText, emotion); // "Stay the course"
+  processedText = addHistoricalYearGravity(processedText); // 1974, 1975, 2008
+  processedText = addWisdomCadence(processedText, emotion); // Life lessons
+  processedText = addStorytellingMode(processedText, emotion); // "I remember..."
+  processedText = addHumbleDeflection(processedText, emotion); // Modest responses
+  processedText = addTricolonCadence(processedText, speed); // "Goals, balance, cost"
+  processedText = addQuotationVoiceShift(processedText, emotion); // When quoting others
+
   // ═══════════════════════════════════════════════════════════════════════════
   // TIER 3: WARMTH & EMOTION (Re-enabled with caution)
   // ═══════════════════════════════════════════════════════════════════════════
-  processedText = addNameWarmth(processedText, emotion);              // Warm when saying names
-  processedText = addActiveListeningSounds(processedText, emotion);   // "mmhmm", "I see"
+  processedText = addNameWarmth(processedText, emotion); // Warm when saying names
+  processedText = addActiveListeningSounds(processedText, emotion); // "mmhmm", "I see"
   processedText = addLaughterThroughout(processedText, emotion, laughterCount); // Gentle warmth
-  
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // TIER 4: ELDERLY CHARACTER (Age-appropriate hesitations)  
+  // TIER 4: ELDERLY CHARACTER (Age-appropriate hesitations)
   // ═══════════════════════════════════════════════════════════════════════════
-  processedText = addWordFindingPauses(processedText, emotion);       // "what's the word..."
-  processedText = addSelfCorrections(processedText, emotion);         // Rephrasing thoughts
-  
+  processedText = addWordFindingPauses(processedText, emotion); // "what's the word..."
+  processedText = addSelfCorrections(processedText, emotion); // Rephrasing thoughts
+
   // ═══════════════════════════════════════════════════════════════════════════
   // DISABLED: These cause cascading issues when text has SSML already
   // Can be re-enabled once we move to segment-based transformation
@@ -1248,56 +1363,103 @@ export function tagTextWithSsml(text: string): string {
   processedText = sanitizeSsml(processedText);
 
   tagged += processedText;
-  
+
   return tagged;
 }
 
 /**
  * Sanitize malformed SSML output
  * Fixes corrupted tags where content was inserted into attribute values
+ * ALSO removes stage directions like "*chuckles*" that LLMs generate
  *
  * IMPORTANT: Use non-greedy quantifiers (*?) to avoid eating too much text.
  * The malformed tags look like: <break time="140ms<speed ratio="0.8"/>"/>
  */
-function sanitizeSsml(text: string): string {
+export function sanitizeSsml(text: string): string {
   let result = text;
 
   // ================================================
-  // FIRST: Remove stage directions that LLM might generate
-  // These are NOT SSML - they're text that should NOT be spoken
-  // ================================================
-  
-  // Remove parenthetical actions: (sighs), (deep breath), (pauses), (laughs)
-  result = result.replace(/\([^)]*(?:sigh|breath|pause|laugh|chuckle|smile|nod|think|clear|cough)[^)]*\)/gi, '');
-  
-  // Remove bracketed actions: [sighs], [thinking], [pauses]
-  result = result.replace(/\[[^\]]*(?:sigh|breath|pause|laugh|chuckle|smile|nod|think|clear|cough)[^\]]*\]/gi, '');
-  
-  // Remove asterisk actions: *sighs*, *takes a breath*, *chuckles*
-  result = result.replace(/\*[^*]*(?:sigh|breath|pause|laugh|chuckle|smile|nod|think|clear|cough)[^*]*\*/gi, '');
-  
-  // Remove common standalone stage directions (non-audio)
-  result = result.replace(/\b(deep breath|long pause|brief pause|sighs heavily|clears throat)\b/gi, '');
-  
-  // CONVERT laugh/chuckle stage directions to Cartesia [laughter] tag
+  // FIRST: CONVERT laugh/chuckle to [laughter] (BEFORE removals!)
   // Cartesia Sonic-3 supports [laughter] for actual laugh sounds!
-  // Pattern: "*chuckles*", "(laughs)", "chuckles softly", "he chuckles", etc.
+  // See: https://docs.cartesia.ai/build-with-cartesia/sonic-3/volume-speed-emotion
+  // ================================================
+
+  // Pattern: "*chuckles*", "(laughs)", "[chuckles]", etc. → [laughter]
   result = result.replace(/\*[^*]*(?:chuckle|laugh)[^*]*\*/gi, '[laughter]');
   result = result.replace(/\([^)]*(?:chuckle|laugh)[^)]*\)/gi, '[laughter]');
-  result = result.replace(/\b(chuckles?|laughs?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi, '[laughter] ');
-  result = result.replace(/\b(he|she|jack|i)\s+(chuckles?|laughs?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi, '[laughter] ');
-  
+  result = result.replace(/\[chuckles?\]/gi, '[laughter]');
+  // Use negative lookbehind (?<!\[) to avoid matching inside existing [laughter] tags
+  result = result.replace(
+    /(?<!\[)\b(chuckles?|laughs?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
+    '[laughter] '
+  );
+  result = result.replace(
+    /(?<!\[)\b(he|she|jack|i)\s+(chuckles?|laughs?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    '[laughter] '
+  );
+
+  // CATCH-ALL: Convert ANY remaining "chuckle" or "chuckles" to [laughter]
+  // This catches ALL punctuation: chuckles, chuckles. chuckles! chuckles? chuckles: chuckles— etc.
+  // Use negative lookbehind to avoid matching inside existing [laughter] tags
+  result = result.replace(/(?<!\[)\bchuckles?\b[,.!?:;—–-]?\s*/gi, '[laughter] ');
+
+  // NUCLEAR OPTION: If "chuckle" still appears anywhere (edge cases), remove it entirely
+  // This ensures the word NEVER gets spoken aloud
+  if (/chuckle/i.test(result)) {
+    result = result.replace(/\bchuckles?\b/gi, '');
+  }
+
   // Clean up multiple [laughter] tags in a row
   result = result.replace(/(\[laughter\]\s*){2,}/gi, '[laughter] ');
-  
+
+  // ================================================
+  // THEN: Remove stage directions that LLM might generate
+  // These are NOT SSML - they're text that should NOT be spoken
+  // ================================================
+
+  // Remove parenthetical actions: (sighs), (deep breath), (pauses)
+  // Note: (laughs) already converted to [laughter] above
+  result = result.replace(/\([^)]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^)]*\)/gi, '');
+
+  // Remove bracketed actions: [sighs], [thinking], [pauses], etc.
+  // Note: [laughter] is the valid Cartesia format - DON'T remove it!
+  result = result.replace(
+    /\[[^\]]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^\]]*\]/gi,
+    ''
+  );
+
+  // Remove asterisk actions: *sighs*, *takes a breath*, *smiles*
+  // Note: *chuckles* already converted to [laughter] above
+  result = result.replace(/\*[^*]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^*]*\*/gi, '');
+
+  // Remove common standalone stage directions (non-audio)
+  result = result.replace(
+    /\b(deep breath|long pause|brief pause|sighs heavily|clears throat)\b/gi,
+    ''
+  );
+
   // Remove other non-audio action verbs (smiles, nods, etc. can't be voiced)
-  result = result.replace(/\b(sighs?|smiles?|grins?|nods?|pauses?|winks?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi, '');
-  result = result.replace(/\b(he|she|jack|i)\s+(sighs?|smiles?|grins?|pauses?|nods?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi, '');
+  result = result.replace(
+    /\b(sighs?|smiles?|grins?|nods?|pauses?|winks?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
+    ''
+  );
+  result = result.replace(
+    /\b(he|she|jack|i)\s+(sighs?|smiles?|grins?|pauses?|nods?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    ''
+  );
+
+  // NUCLEAR OPTION for action verbs: If any still appear, remove them entirely
+  // These are visual actions that should NEVER be spoken aloud
+  result = result.replace(/\bsmiles?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bgrins?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bnods?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bwinks?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bsighs?\b[,.!?:;—–-]?\s*/gi, '');
 
   // ================================================
   // THEN: Fix malformed SSML tags
   // ================================================
-  
+
   // Strategy: Find tags where the attribute value contains a < or >
   // These are definitely malformed. Use non-greedy matching.
 
@@ -1338,7 +1500,7 @@ function sanitizeSsml(text: string): string {
  */
 function addNaturalBreathing(text: string): string {
   let result = text;
-  
+
   // Add pause before long sentences (>60 chars) - simulates breath
   result = result.replace(/([.!?]\s+)([A-Z][^.!?]{60,})/g, (match, punct, sentence) => {
     // 40% chance to add pause before long sentence
@@ -1347,7 +1509,7 @@ function addNaturalBreathing(text: string): string {
     }
     return match;
   });
-  
+
   // Add brief pauses after commas in long clauses (occasionally)
   result = result.replace(/,(\s+)([^,]{40,}?,)/g, (match, space, clause) => {
     // 25% chance
@@ -1356,7 +1518,7 @@ function addNaturalBreathing(text: string): string {
     }
     return match;
   });
-  
+
   // Add pause before "well", "you know", "now" (natural pause points)
   result = result.replace(/\b(well|you know|now|look|listen)\b/gi, (match, offset) => {
     const before = result.substring(Math.max(0, offset - 30), offset);
@@ -1366,7 +1528,7 @@ function addNaturalBreathing(text: string): string {
     }
     return match;
   });
-  
+
   return result;
 }
 
@@ -1376,34 +1538,29 @@ function addNaturalBreathing(text: string): string {
  */
 function addSelfCorrections(text: string, emotion: string): string {
   let result = text;
-  
+
   // Don't add self-corrections if sad (too serious) or very short text
   if (emotion === 'sad' || text.length < 100) {
     return result;
   }
-  
+
   // Occasionally add "I mean" or "well, actually" before clarifications
   const clarificationPatterns = [
     /\b(that is to say|in other words|what I mean is|to put it simply)\b/gi,
   ];
-  
-  clarificationPatterns.forEach(pattern => {
+
+  clarificationPatterns.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       // 20% chance to add self-correction
       if (Math.random() < 0.2) {
-        const corrections = [
-          'well, actually—',
-          'no, wait—',
-          'hmm, let me rephrase—',
-          "I mean—",
-        ];
+        const corrections = ['well, actually—', 'no, wait—', 'hmm, let me rephrase—', 'I mean—'];
         const correction = corrections[Math.floor(Math.random() * corrections.length)];
         return `${correction}<break time="200ms"/>${match}`;
       }
       return match;
     });
   });
-  
+
   // Add pause before corrections/contradictions
   result = result.replace(/\b(but actually|however|on second thought)\b/gi, (match) => {
     if (Math.random() < 0.25) {
@@ -1411,7 +1568,7 @@ function addSelfCorrections(text: string, emotion: string): string {
     }
     return match;
   });
-  
+
   return result;
 }
 
@@ -1421,19 +1578,19 @@ function addSelfCorrections(text: string, emotion: string): string {
  */
 function addTrailingOff(text: string, emotion: string): string {
   let result = text;
-  
+
   // Only trail off occasionally and in appropriate contexts
   if (emotion === 'angry' || text.length < 80) {
     return result;
   }
-  
+
   // Add trailing off after certain phrases
   const trailOffTriggers = [
     /\b(you know how it is|but anyway|that's life|such is life|well)\b([.!])/gi,
     /\b(i remember when|back in my day|years ago)\b/gi,
   ];
-  
-  trailOffTriggers.forEach(pattern => {
+
+  trailOffTriggers.forEach((pattern) => {
     result = result.replace(pattern, (match, phrase, punct) => {
       // 15% chance to trail off
       if (Math.random() < 0.15) {
@@ -1442,7 +1599,7 @@ function addTrailingOff(text: string, emotion: string): string {
       return match;
     });
   });
-  
+
   // Sometimes trail off before transitioning to new topic
   result = result.replace(/([.!?]\s+)(Anyway|But|So|Now)/g, (match, punct, transition) => {
     if (Math.random() < 0.12) {
@@ -1450,7 +1607,7 @@ function addTrailingOff(text: string, emotion: string): string {
     }
     return match;
   });
-  
+
   return result;
 }
 
@@ -1460,19 +1617,19 @@ function addTrailingOff(text: string, emotion: string): string {
  */
 function addThroatClearing(text: string, emotion: string): string {
   let result = text;
-  
+
   // Only for serious/important contexts
   if (emotion === 'sad') {
     return result;
   }
-  
+
   // Add deliberate pause before important statements
   const importantMarkers = [
     /\b(here is the truth|the reality is|listen carefully|this is important|let me be clear)\b/gi,
     /\b(i want you to understand|remember this|never forget)\b/gi,
   ];
-  
-  importantMarkers.forEach(pattern => {
+
+  importantMarkers.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       // 30% chance to add pause before important statement
       if (Math.random() < 0.3) {
@@ -1481,29 +1638,29 @@ function addThroatClearing(text: string, emotion: string): string {
       return match;
     });
   });
-  
+
   return result;
 }
 
 /**
  * Add warmth/lift throughout the text at natural moments
- * Uses valid Cartesia SSML (emotion tags, pauses) instead of invalid [laughter]
+ * Uses valid Cartesia SSML (emotion tags, pauses) - laughter uses [laughter] format
  */
 function addLaughterThroughout(text: string, emotion: string, laughterCount: number): string {
   let result = text;
-  
+
   // Don't add warmth if sad/angry emotion
   if (emotion === 'sad' || emotion === 'angry') {
     return result;
   }
-  
+
   // Add warm pause after positive statements (but not too frequently)
   const positiveEndings = [
     /\b(that is great|that is wonderful|that is amazing|that is fantastic|i love that)\b/gi,
     /\b(isn't that something|can you believe|imagine that)\b/gi,
   ];
-  
-  positiveEndings.forEach(pattern => {
+
+  positiveEndings.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       // Add warm pause after positive statements (30% chance to avoid overuse)
       if (Math.random() < 0.3) {
@@ -1512,21 +1669,23 @@ function addLaughterThroughout(text: string, emotion: string, laughterCount: num
       return match;
     });
   });
-  
+
   // Add slight pause after "you know" in warm contexts
   if (emotion === 'affectionate' && laughterCount === 0) {
     result = result.replace(/\byou know\b/gi, (match, offset) => {
       const before = result.substring(Math.max(0, offset - 30), offset);
       const after = result.substring(offset + match.length, offset + match.length + 30);
       // Add warm pause after "you know" if it's in a positive context (20% chance)
-      if (/\b(great|wonderful|amazing|love|proud|care)\b/i.test(before + after) &&
-          Math.random() < 0.2) {
+      if (
+        /\b(great|wonderful|amazing|love|proud|care)\b/i.test(before + after) &&
+        Math.random() < 0.2
+      ) {
         return `${match}<break time="180ms"/>`;
       }
       return match;
     });
   }
-  
+
   return result;
 }
 
@@ -1535,33 +1694,36 @@ function addLaughterThroughout(text: string, emotion: string, laughterCount: num
  */
 function addQuestionIntonation(text: string, baseSpeed: number): string {
   let result = text;
-  
+
   // Rhetorical questions - slower, more contemplative
   const rhetoricalPatterns = [
     /\b(isn't that|don't you think|wouldn't you|doesn't it|can't you)\b/gi,
     /\b(how could|why would|what else)\b/gi,
   ];
-  
-  rhetoricalPatterns.forEach(pattern => {
+
+  rhetoricalPatterns.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       return `<speed ratio="${(baseSpeed * 0.88).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
     });
   });
-  
+
   // Real questions - faster, more curious
-  result = result.replace(/\b(what|how|why|when|where|who|tell me|help me|can you|will you)\b/gi, (match, offset) => {
-    const after = result.substring(offset + match.length, offset + match.length + 30);
-    if (/\?/.test(after)) {
-      return `<speed ratio="${(baseSpeed * 1.03).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
+  result = result.replace(
+    /\b(what|how|why|when|where|who|tell me|help me|can you|will you)\b/gi,
+    (match, offset) => {
+      const after = result.substring(offset + match.length, offset + match.length + 30);
+      if (/\?/.test(after)) {
+        return `<speed ratio="${(baseSpeed * 1.03).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
+      }
+      return match;
     }
-    return match;
-  });
-  
+  );
+
   // Tag questions ("right?", "isn't it?") - softer, checking tone
   result = result.replace(/\b(right|isn't it|don't you|won't you|can't you)\s*\?/gi, (match) => {
     return `<volume ratio="0.92"/><speed ratio="${(baseSpeed * 0.95).toFixed(2)}"/>${match}<volume ratio="1.0"/><speed ratio="${baseSpeed.toFixed(2)}"/>`;
   });
-  
+
   return result;
 }
 
@@ -1570,29 +1732,34 @@ function addQuestionIntonation(text: string, baseSpeed: number): string {
  */
 function addConversationalMarkers(text: string, emotion: string): string {
   let result = text;
-  
+
   // Add "right?" at end of statements seeking agreement (affectionate/curious contexts)
   if (emotion === 'affectionate' || emotion === 'curious') {
-    result = result.replace(/([^.!?])(\.)(\s+)([A-Z])/g, (match, before, punct, space, next, offset) => {
-      const context = result.substring(Math.max(0, offset - 40), offset);
-      const seeksAgreement = /\b(think|believe|feel|know|see|understand|agree)\b/i.test(context);
-      
-      if (seeksAgreement && Math.random() < 0.15) { // 15% chance to avoid overuse
-        return `${before}, right?${space}${next}`;
+    result = result.replace(
+      /([^.!?])(\.)(\s+)([A-Z])/g,
+      (match, before, punct, space, next, offset) => {
+        const context = result.substring(Math.max(0, offset - 40), offset);
+        const seeksAgreement = /\b(think|believe|feel|know|see|understand|agree)\b/i.test(context);
+
+        if (seeksAgreement && Math.random() < 0.15) {
+          // 15% chance to avoid overuse
+          return `${before}, right?${space}${next}`;
+        }
+        return match;
       }
-      return match;
-    });
+    );
   }
-  
+
   // Add "you know?" for checking understanding
   result = result.replace(/\b(understand|see|get it|follow)\b/gi, (match, offset) => {
     const after = result.substring(offset + match.length, offset + match.length + 20);
-    if (!/\?/.test(after) && Math.random() < 0.1) { // 10% chance
+    if (!/\?/.test(after) && Math.random() < 0.1) {
+      // 10% chance
       return `${match}, you know?`;
     }
     return match;
   });
-  
+
   return result;
 }
 
@@ -1601,14 +1768,14 @@ function addConversationalMarkers(text: string, emotion: string): string {
  */
 function addTopicTransitions(text: string): string {
   let result = text;
-  
+
   // Topic shift markers
   const topicMarkers = [
     /\b(now|speaking of|by the way|on another note|changing gears|let me shift|moving on)\b/gi,
     /\b(also|additionally|furthermore|moreover|in addition)\b/gi,
   ];
-  
-  topicMarkers.forEach(pattern => {
+
+  topicMarkers.forEach((pattern) => {
     result = result.replace(pattern, (match, offset) => {
       const before = result.substring(Math.max(0, offset - 10), offset);
       // Add longer pause before topic shifts
@@ -1618,18 +1785,18 @@ function addTopicTransitions(text: string): string {
       return match;
     });
   });
-  
+
   // Detect new subject nouns (heuristic: capitalized words after periods)
   result = result.replace(/\.(\s+)([A-Z][a-z]+)/g, (match, space, nextWord, offset) => {
     const before = result.substring(Math.max(0, offset - 60), offset);
     const isNewTopic = !/\b(the|a|an|this|that|it|he|she|they|we|you)\b/i.test(before);
-    
+
     if (isNewTopic && nextWord.length > 4) {
       return `.<break time="600ms"/>${space}${nextWord}`;
     }
     return match;
   });
-  
+
   return result;
 }
 
@@ -1638,12 +1805,12 @@ function addTopicTransitions(text: string): string {
  */
 function addDisfluencies(text: string, emotion: string): string {
   let result = text;
-  
+
   // Don't add disfluencies in sad/angry contexts (too casual)
   if (emotion === 'sad' || emotion === 'angry') {
     return result;
   }
-  
+
   // Add "um" or "uh" before self-corrections (10% chance to avoid overuse)
   result = result.replace(/\b(actually|or rather|wait|hold on|let me)\b/gi, (match, offset) => {
     const before = result.substring(Math.max(0, offset - 20), offset);
@@ -1654,7 +1821,7 @@ function addDisfluencies(text: string, emotion: string): string {
     }
     return match;
   });
-  
+
   // Add "I-I-I mean" pattern for strong emphasis (5% chance)
   result = result.replace(/\b(i mean)\b/gi, (match, offset) => {
     const before = result.substring(Math.max(0, offset - 30), offset);
@@ -1664,7 +1831,7 @@ function addDisfluencies(text: string, emotion: string): string {
     }
     return match;
   });
-  
+
   // Add natural false starts before corrections
   result = result.replace(/\b(or rather|actually|wait|hold on)\b/gi, (match, offset) => {
     const before = result.substring(Math.max(0, offset - 50), offset);
@@ -1677,7 +1844,7 @@ function addDisfluencies(text: string, emotion: string): string {
     }
     return match;
   });
-  
+
   return result;
 }
 
@@ -1686,37 +1853,43 @@ function addDisfluencies(text: string, emotion: string): string {
  */
 function addRepetitionForEmphasis(text: string, emotion: string): string {
   let result = text;
-  
+
   // Strong disagreement patterns
   result = result.replace(/\b(no|never|absolutely not|definitely not)\b/gi, (match, offset) => {
     const before = result.substring(Math.max(0, offset - 30), offset);
     const after = result.substring(offset + match.length, offset + match.length + 30);
-    const isEmphatic = /\b(important|crucial|wrong|unacceptable|should not|will not)\b/i.test(before + after);
-    
+    const isEmphatic = /\b(important|crucial|wrong|unacceptable|should not|will not)\b/i.test(
+      before + after
+    );
+
     if (isEmphatic && match.toLowerCase() === 'no' && Math.random() < 0.12) {
       return `no, no, no`;
     }
-    if (isEmphatic && match.toLowerCase() === 'never' && Math.random() < 0.10) {
+    if (isEmphatic && match.toLowerCase() === 'never' && Math.random() < 0.1) {
       return `never, never`;
     }
     return match;
   });
-  
+
   // Strong agreement patterns
   result = result.replace(/\b(yes|absolutely|definitely|exactly)\b/gi, (match, offset) => {
     const before = result.substring(Math.max(0, offset - 30), offset);
     const after = result.substring(offset + match.length, offset + match.length + 30);
     const isEmphatic = /\b(right|correct|exactly|perfect|great|wonderful)\b/i.test(before + after);
-    
-    if (isEmphatic && match.toLowerCase() === 'yes' && Math.random() < 0.10) {
+
+    if (isEmphatic && match.toLowerCase() === 'yes' && Math.random() < 0.1) {
       return `yes, yes`;
     }
-    if (isEmphatic && (match.toLowerCase() === 'absolutely' || match.toLowerCase() === 'definitely') && Math.random() < 0.08) {
+    if (
+      isEmphatic &&
+      (match.toLowerCase() === 'absolutely' || match.toLowerCase() === 'definitely') &&
+      Math.random() < 0.08
+    ) {
       return `${match}, ${match}`;
     }
     return match;
   });
-  
+
   return result;
 }
 
@@ -1725,42 +1898,48 @@ function addRepetitionForEmphasis(text: string, emotion: string): string {
  */
 function handleSarcasm(text: string, emotion: string): string {
   let result = text;
-  
+
   // Detect sarcastic patterns
   const sarcasmIndicators = [
     /\b(sure|obviously|of course|clearly)\b/gi,
     /\b(what a surprise|how unexpected|imagine that)\b/gi,
   ];
-  
+
   let hasSarcasm = false;
-  sarcasmIndicators.forEach(pattern => {
+  sarcasmIndicators.forEach((pattern) => {
     if (pattern.test(text)) {
       // Check context - sarcasm often appears with negative sentiment
-      const hasNegativeContext = /\b(but|however|unfortunately|sadly|wrong|bad|terrible)\b/i.test(text);
+      const hasNegativeContext = /\b(but|however|unfortunately|sadly|wrong|bad|terrible)\b/i.test(
+        text
+      );
       if (hasNegativeContext) {
         hasSarcasm = true;
       }
     }
   });
-  
+
   if (hasSarcasm) {
     // Apply ironic tone shifts
-    result = result.replace(/\b(sure|obviously|of course|clearly|what a surprise|how unexpected)\b/gi, (match) => {
-      return `<emotion value="surprised"/><speed ratio="0.92"/><volume ratio="0.95"/>${match}<emotion value="${emotion}"/><speed ratio="1.0"/><volume ratio="1.0"/>`;
-    });
+    result = result.replace(
+      /\b(sure|obviously|of course|clearly|what a surprise|how unexpected)\b/gi,
+      (match) => {
+        return `<emotion value="surprised"/><speed ratio="0.92"/><volume ratio="0.95"/>${match}<emotion value="${emotion}"/><speed ratio="1.0"/><volume ratio="1.0"/>`;
+      }
+    );
   }
-  
+
   // Detect sarcastic positive statements in negative contexts
   result = result.replace(/\b(that is great|wonderful|fantastic|perfect)\b/gi, (match, offset) => {
     const before = result.substring(Math.max(0, offset - 50), offset);
-    const hasNegativeContext = /\b(but|however|unfortunately|wrong|bad|terrible|awful|horrible)\b/i.test(before);
-    
+    const hasNegativeContext =
+      /\b(but|however|unfortunately|wrong|bad|terrible|awful|horrible)\b/i.test(before);
+
     if (hasNegativeContext && Math.random() < 0.15) {
       return `<emotion value="surprised"/><speed ratio="0.90"/><volume ratio="0.92"/>${match}<emotion value="${emotion}"/><speed ratio="1.0"/><volume ratio="1.0"/>`;
     }
     return match;
   });
-  
+
   return result;
 }
 
@@ -1769,7 +1948,7 @@ function handleSarcasm(text: string, emotion: string): string {
  */
 function addEmphasisCombinations(text: string, baseSpeed: number, baseVolume: number): string {
   let result = text;
-  
+
   // Find truly important words/phrases (ALL CAPS, key concepts)
   // Note: Quoted phrases are handled separately in addQuotationVoiceShift to avoid conflicts
   const emphasisPatterns = [
@@ -1777,7 +1956,7 @@ function addEmphasisCombinations(text: string, baseSpeed: number, baseVolume: nu
     /\b(index fund|low cost|compound|diversify|patience|simplicity)\b/gi, // Bogle key concepts
   ];
 
-  emphasisPatterns.forEach(pattern => {
+  emphasisPatterns.forEach((pattern) => {
     result = result.replace(pattern, (match, offset) => {
       const isAllCaps = /^[A-Z]{3,}$/.test(match);
 
@@ -1792,48 +1971,53 @@ function addEmphasisCombinations(text: string, baseSpeed: number, baseVolume: nu
 
       if (isAllCaps) {
         // Maximum emphasis: slow + loud + spell
-        return `<speed ratio="${(baseSpeed * 0.80).toFixed(2)}"/><volume ratio="${(baseVolume * 1.25).toFixed(2)}"/><spell>${match}</spell><speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>`;
+        return `<speed ratio="${(baseSpeed * 0.8).toFixed(2)}"/><volume ratio="${(baseVolume * 1.25).toFixed(2)}"/><spell>${match}</spell><speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>`;
       } else {
         // Key concepts: slower + slightly louder
-        return `<speed ratio="${(baseSpeed * 0.90).toFixed(2)}"/><volume ratio="${(baseVolume * 1.10).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>`;
+        return `<speed ratio="${(baseSpeed * 0.9).toFixed(2)}"/><volume ratio="${(baseVolume * 1.1).toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>`;
       }
     });
   });
-  
+
   return result;
 }
 
 /**
  * Enhanced prosody variations - vary emphasis within sentences dynamically
  */
-function addProsodyVariations(text: string, baseSpeed: number, baseVolume: number, emotion: string): string {
+function addProsodyVariations(
+  text: string,
+  baseSpeed: number,
+  baseVolume: number,
+  emotion: string
+): string {
   let result = text;
-  
+
   // Vary emphasis on key words within sentences
   const keyWords = [
     /\b(important|crucial|essential|vital|critical|remember|know|understand)\b/gi,
     /\b(never|always|absolutely|definitely|exactly|precisely)\b/gi,
     /\b(index fund|low cost|compound interest|diversification|patience)\b/gi,
   ];
-  
-  keyWords.forEach(pattern => {
+
+  keyWords.forEach((pattern) => {
     result = result.replace(pattern, (match, offset) => {
       const before = result.substring(Math.max(0, offset - 40), offset);
       const after = result.substring(offset + match.length, offset + match.length + 40);
-      
+
       // Check if already has emphasis tags
       if (/<speed|<volume|<spell/.test(before + after)) {
         return match;
       }
-      
+
       // Apply prosody variation: slightly slower + slightly louder
       const speedVariation = baseSpeed * 0.92;
       const volumeVariation = baseVolume * 1.08;
-      
+
       return `<speed ratio="${speedVariation.toFixed(2)}"/><volume ratio="${volumeVariation.toFixed(2)}"/>${match}<speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>`;
     });
   });
-  
+
   // Vary prosody for parenthetical asides (softer, faster)
   result = result.replace(/\(([^)]+)\)/g, (match, content, offset) => {
     const before = result.substring(Math.max(0, offset - 20), offset);
@@ -1843,15 +2027,15 @@ function addProsodyVariations(text: string, baseSpeed: number, baseVolume: numbe
     }
     return `(<speed ratio="${(baseSpeed * 0.95).toFixed(2)}"/><volume ratio="${(baseVolume * 0.88).toFixed(2)}"/>${content}<speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>)`;
   });
-  
+
   // Vary prosody for contrastive stress (emphasize the "but Y" part)
   result = result.replace(/\bnot\s+(\w+),\s*but\s+(\w+)\b/gi, (match, neg, pos) => {
-    return `not ${neg}, but <speed ratio="${(baseSpeed * 0.90).toFixed(2)}"/><volume ratio="${(baseVolume * 1.12).toFixed(2)}"/>${pos}<speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>`;
+    return `not ${neg}, but <speed ratio="${(baseSpeed * 0.9).toFixed(2)}"/><volume ratio="${(baseVolume * 1.12).toFixed(2)}"/>${pos}<speed ratio="${baseSpeed.toFixed(2)}"/><volume ratio="${baseVolume.toFixed(2)}"/>`;
   });
-  
+
   // Vary prosody for lists - rising on items, falling on final
   // (This complements the existing list intonation)
-  
+
   return result;
 }
 
@@ -1861,38 +2045,41 @@ function addProsodyVariations(text: string, baseSpeed: number, baseVolume: numbe
  */
 function addStorytellingMode(text: string, emotion: string): string {
   let result = text;
-  
+
   // Detect storytelling triggers
   const storyTriggers = [
     /\b(i remember|back in|years ago|when i was|let me tell you|there was a time|one day|once upon)\b/gi,
     /\b(in 1974|in 1975|in 2008|in the crash|during the)\b/gi,
     /\b(my father|at vanguard|at wellington|the board)\b/gi,
   ];
-  
+
   let isStory = false;
-  storyTriggers.forEach(pattern => {
+  storyTriggers.forEach((pattern) => {
     if (pattern.test(text)) {
       isStory = true;
     }
   });
-  
+
   if (isStory) {
     // Slow down story openings with dramatic pause
     result = result.replace(/\b(i remember|back in|years ago|when i was)\b/gi, (match) => {
       return `<speed ratio="0.75"/><break time="300ms"/>${match}<break time="200ms"/><speed ratio="0.82"/>`;
     });
-    
+
     // Add suspense before revelations in stories
     result = result.replace(/\b(and then|suddenly|but then|that's when)\b/gi, (match) => {
       return `<break time="400ms"/><speed ratio="0.78"/>${match}<break time="150ms"/>`;
     });
-    
+
     // Add warmth to nostalgic moments
-    result = result.replace(/\b(those were the days|simpler times|i miss|fond memories)\b/gi, (match) => {
-      return `<emotion value="affectionate"/><speed ratio="0.75"/>${match}<break time="200ms"/>`;
-    });
+    result = result.replace(
+      /\b(those were the days|simpler times|i miss|fond memories)\b/gi,
+      (match) => {
+        return `<emotion value="affectionate"/><speed ratio="0.75"/>${match}<break time="200ms"/>`;
+      }
+    );
   }
-  
+
   return result;
 }
 
@@ -1902,18 +2089,16 @@ function addStorytellingMode(text: string, emotion: string): string {
  */
 function addActiveListeningSounds(text: string, emotion: string): string {
   let result = text;
-  
+
   // Don't add in sad/angry contexts
   if (emotion === 'sad' || emotion === 'angry') {
     return result;
   }
-  
+
   // Add "mmhmm" or "I see" before acknowledgments
-  const acknowledgmentPatterns = [
-    /\b(i understand|that makes sense|i hear you|i get it)\b/gi,
-  ];
-  
-  acknowledgmentPatterns.forEach(pattern => {
+  const acknowledgmentPatterns = [/\b(i understand|that makes sense|i hear you|i get it)\b/gi];
+
+  acknowledgmentPatterns.forEach((pattern) => {
     result = result.replace(pattern, (match, offset) => {
       const before = result.substring(Math.max(0, offset - 30), offset);
       // Don't add if already has listening sound
@@ -1925,7 +2110,7 @@ function addActiveListeningSounds(text: string, emotion: string): string {
       return match;
     });
   });
-  
+
   // Add "go on" or "tell me more" after user shares something
   result = result.replace(/\b(that's interesting|tell me about|how did that)\b/gi, (match) => {
     if (Math.random() < 0.15) {
@@ -1933,7 +2118,7 @@ function addActiveListeningSounds(text: string, emotion: string): string {
     }
     return match;
   });
-  
+
   return result;
 }
 
@@ -1943,19 +2128,19 @@ function addActiveListeningSounds(text: string, emotion: string): string {
  */
 function addWordFindingPauses(text: string, emotion: string): string {
   let result = text;
-  
+
   // Don't add in urgent/angry contexts
   if (emotion === 'angry') {
     return result;
   }
-  
+
   // Occasionally add word-finding pauses before certain words
   const complexWords = [
     /\b(diversification|rebalancing|compounding|allocation|volatility)\b/gi,
     /\b(sophisticated|fundamental|philosophy|perspective|circumstances)\b/gi,
   ];
-  
-  complexWords.forEach(pattern => {
+
+  complexWords.forEach((pattern) => {
     result = result.replace(pattern, (match, offset) => {
       const before = result.substring(Math.max(0, offset - 40), offset);
       // 8% chance - rare but noticeable
@@ -1970,15 +2155,18 @@ function addWordFindingPauses(text: string, emotion: string): string {
       return match;
     });
   });
-  
+
   // Add occasional "now where was I" after long pauses
-  result = result.replace(/(<break time="[5-9]\d{2}ms"\/>)(\s*)([A-Z])/g, (match, breakTag, space, letter) => {
-    if (Math.random() < 0.05) {
-      return `${breakTag}${space}Now, where was I...<break time="200ms"/>${letter}`;
+  result = result.replace(
+    /(<break time="[5-9]\d{2}ms"\/>)(\s*)([A-Z])/g,
+    (match, breakTag, space, letter) => {
+      if (Math.random() < 0.05) {
+        return `${breakTag}${space}Now, where was I...<break time="200ms"/>${letter}`;
+      }
+      return match;
     }
-    return match;
-  });
-  
+  );
+
   return result;
 }
 
@@ -1988,7 +2176,7 @@ function addWordFindingPauses(text: string, emotion: string): string {
  */
 function addCatchphraseEmphasis(text: string, emotion: string): string {
   let result = text;
-  
+
   // Jack's most famous catchphrases - slow, deliberate, wise
   const catchphrases = [
     { pattern: /\bstay the course\b/gi, gravitas: 'high' },
@@ -1999,7 +2187,7 @@ function addCatchphraseEmphasis(text: string, emotion: string): string {
     { pattern: /\bsimplicity\b/gi, gravitas: 'medium' },
     { pattern: /\bthe relentless rules of humble arithmetic\b/gi, gravitas: 'high' },
   ];
-  
+
   catchphrases.forEach(({ pattern, gravitas }) => {
     result = result.replace(pattern, (match) => {
       if (gravitas === 'high') {
@@ -2011,7 +2199,7 @@ function addCatchphraseEmphasis(text: string, emotion: string): string {
       }
     });
   });
-  
+
   return result;
 }
 
@@ -2021,7 +2209,7 @@ function addCatchphraseEmphasis(text: string, emotion: string): string {
  */
 function addHistoricalYearGravity(text: string): string {
   let result = text;
-  
+
   const significantYears: Record<string, string> = {
     '1974': 'founding', // Vanguard founded
     '1975': 'revolution', // First index fund
@@ -2031,7 +2219,7 @@ function addHistoricalYearGravity(text: string): string {
     '2009': 'recovery', // Market bottom
     '1929': 'historic', // Great Depression
   };
-  
+
   Object.entries(significantYears).forEach(([year, significance]) => {
     const pattern = new RegExp(`\\b(in\\s+)?${year}\\b`, 'gi');
     result = result.replace(pattern, (match) => {
@@ -2039,7 +2227,7 @@ function addHistoricalYearGravity(text: string): string {
       return `<break time="150ms"/><speed ratio="0.75"/><volume ratio="1.08"/>${match}<volume ratio="1.0"/><speed ratio="0.82"/><break time="200ms"/>`;
     });
   });
-  
+
   return result;
 }
 
@@ -2049,20 +2237,23 @@ function addHistoricalYearGravity(text: string): string {
  */
 function addTricolonCadence(text: string, baseSpeed: number): string {
   let result = text;
-  
+
   // Detect lists of 3 items (A, B, and C)
   const tricolonPattern = /\b(\w+),\s+(\w+),?\s+and\s+(\w+)\b/gi;
-  
+
   result = result.replace(tricolonPattern, (match, first, second, third) => {
     // Rising intonation on first two, falling on third (natural list cadence)
     return `<speed ratio="${(baseSpeed * 1.02).toFixed(2)}"/>${first}<break time="180ms"/><speed ratio="${(baseSpeed * 1.0).toFixed(2)}"/>${second}<break time="200ms"/><speed ratio="${(baseSpeed * 0.92).toFixed(2)}"/>and ${third}<speed ratio="${baseSpeed.toFixed(2)}"/>`;
   });
-  
+
   // Also handle the classic Bogle Four Principles pattern
-  result = result.replace(/\b(goals),?\s*(balance),?\s*(cost),?\s*and\s*(discipline)\b/gi, (match) => {
-    return `<break time="200ms"/><speed ratio="0.78"/>goals<break time="250ms"/>balance<break time="250ms"/>cost<break time="280ms"/>and discipline<speed ratio="0.82"/><break time="300ms"/>`;
-  });
-  
+  result = result.replace(
+    /\b(goals),?\s*(balance),?\s*(cost),?\s*and\s*(discipline)\b/gi,
+    (match) => {
+      return `<break time="200ms"/><speed ratio="0.78"/>goals<break time="250ms"/>balance<break time="250ms"/>cost<break time="280ms"/>and discipline<speed ratio="0.82"/><break time="300ms"/>`;
+    }
+  );
+
   return result;
 }
 
@@ -2072,7 +2263,7 @@ function addTricolonCadence(text: string, baseSpeed: number): string {
  */
 function addQuotationVoiceShift(text: string, emotion: string): string {
   let result = text;
-  
+
   // Detect quoted speech patterns
   const quotePatterns = [
     /\b(my father (always )?said|my father told me|as my father put it)\s*[,:]?\s*["']([^"']+)["']/gi,
@@ -2080,25 +2271,28 @@ function addQuotationVoiceShift(text: string, emotion: string): string {
     /\b(as (the saying goes|they say|someone once said))\s*[,:]?\s*["']([^"']+)["']/gi,
     /\b(einstein (once )?said|warren (buffett )?said)\s*[,:]?\s*["']([^"']+)["']/gi,
   ];
-  
-  quotePatterns.forEach(pattern => {
+
+  quotePatterns.forEach((pattern) => {
     result = result.replace(pattern, (match, intro, _, quote) => {
       // Setup the quote with reverence, then shift voice slightly for the quote itself
       return `${intro}: <break time="300ms"/><emotion value="affectionate"/><speed ratio="0.75"/><volume ratio="0.95"/>"${quote}"<volume ratio="1.0"/><speed ratio="0.82"/><break time="200ms"/>`;
     });
   });
-  
+
   // Generic quoted text gets slight voice shift
   // IMPORTANT: Skip financial pronunciations and short technical phrases (< 20 chars)
   result = result.replace(/"([^"]{20,})"(?!\s*[,:])/g, (match, quote) => {
     // Skip if this looks like a financial pronunciation (contains numbers/letters pattern)
-    const isFinancialPronunciation = /\b(four|three|five|six|seven|eight|nine|oh|one|two)\s+(oh|hundred|thousand|million)?\s*[A-Z]?\b/i.test(quote);
+    const isFinancialPronunciation =
+      /\b(four|three|five|six|seven|eight|nine|oh|one|two)\s+(oh|hundred|thousand|million)?\s*[A-Z]?\b/i.test(
+        quote
+      );
     if (isFinancialPronunciation) {
       return match;
     }
     return `<break time="100ms"/><speed ratio="0.85"/><volume ratio="0.95"/>"${quote}"<volume ratio="1.0"/><speed ratio="0.88"/>`;
   });
-  
+
   return result;
 }
 
@@ -2108,32 +2302,32 @@ function addQuotationVoiceShift(text: string, emotion: string): string {
  */
 function addWisdomCadence(text: string, emotion: string): string {
   let result = text;
-  
+
   // Wisdom-imparting phrases
   const wisdomIntros = [
     /\b(here['']s (the thing|what i['']ve learned|the truth)|let me tell you something|i['']ve learned that|the secret is|what matters is|remember this)\b/gi,
     /\b(in my experience|over the years|after.*decades|looking back)\b/gi,
     /\b(the most important thing|what really matters|at the end of the day)\b/gi,
   ];
-  
-  wisdomIntros.forEach(pattern => {
+
+  wisdomIntros.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       // Slow down, pause, lean in - this is wisdom time
       return `<break time="350ms"/><speed ratio="0.72"/><emotion value="affectionate"/>${match}<break time="200ms"/>`;
     });
   });
-  
+
   // Life lesson conclusions
   const wisdomConclusions = [
     /\b(and that['']s (the truth|what matters|all there is to it)|that['']s the key|that['']s (my|the) philosophy)\b/gi,
   ];
-  
-  wisdomConclusions.forEach(pattern => {
+
+  wisdomConclusions.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       return `<break time="250ms"/><speed ratio="0.70"/>${match}<speed ratio="0.82"/><break time="400ms"/>`;
     });
   });
-  
+
   return result;
 }
 
@@ -2143,20 +2337,20 @@ function addWisdomCadence(text: string, emotion: string): string {
  */
 function addHumbleDeflection(text: string, emotion: string): string {
   let result = text;
-  
+
   // Humble phrases Jack uses
   const humblePhrases = [
     /\b(oh,?\s+i don['']t know about that|well,?\s+i just|it['']s not me,?\s+it['']s|i was just lucky|anyone could have|i had help)\b/gi,
     /\b(the credit (really )?goes to|i can['']t take credit|it was a team effort|i was in the right place)\b/gi,
   ];
-  
-  humblePhrases.forEach(pattern => {
+
+  humblePhrases.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       // Softer, slightly embarrassed but warm
       return `<volume ratio="0.92"/><speed ratio="0.85"/>${match}<volume ratio="1.0"/><speed ratio="0.82"/>`;
     });
   });
-  
+
   return result;
 }
 
@@ -2166,7 +2360,7 @@ function addHumbleDeflection(text: string, emotion: string): string {
  */
 function addNameWarmth(text: string, emotion: string): string {
   let result = text;
-  
+
   // Common name patterns (capitalized words after direct address markers)
   const namePatterns = [
     /\b(hello|hi|hey|well|now|listen|look),?\s+([A-Z][a-z]+)\b/gi,
@@ -2174,17 +2368,20 @@ function addNameWarmth(text: string, emotion: string): string {
     /\btake care,?\s+([A-Z][a-z]+)\b/gi,
     /\bgoodbye,?\s+([A-Z][a-z]+)\b/gi,
   ];
-  
-  namePatterns.forEach(pattern => {
+
+  namePatterns.forEach((pattern) => {
     result = result.replace(pattern, (match, before, name) => {
       // Add warmth around the name
       if (name && /^[A-Z][a-z]+$/.test(name)) {
-        return match.replace(name, `<emotion value="affectionate"/><speed ratio="0.85"/>${name}<speed ratio="0.88"/>`);
+        return match.replace(
+          name,
+          `<emotion value="affectionate"/><speed ratio="0.85"/>${name}<speed ratio="0.88"/>`
+        );
       }
       return match;
     });
   });
-  
+
   return result;
 }
 

@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "id": "sculptors-stone",
+  "title": "The Sculptor and the Stone",
+  "theme": "potential",
+  
+  "setup": {
+    "context": "Someone once asked Michelangelo how he created his David from a block of marble...",
+    "tone": "thoughtful, building"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "A block of marble sat in a quarry for years. Many sculptors looked at it, rejected it. Too flawed, they said. Too difficult. The marble had a crack running through it. Nobody wanted it.",
+        "delivery": "setting the scene"
+      },
+      {
+        "text": "Then Michelangelo came. He circled the block. Studied it. Smiled. He took it to his studio.",
+        "delivery": "building anticipation"
+      },
+      {
+        "text": "When asked how he would create his masterpiece from such a flawed stone, he said something strange: 'David is already in there. I just need to remove what isn't David.'",
+        "delivery": "pause for the insight"
+      },
+      {
+        "text": "He didn't add anything to the stone. He only removed what was covering the perfection already within. The David had been there all along—hidden inside what everyone else saw as a flawed rock.",
+        "delivery": "let it land"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Spiritual growth is not about adding things. It's about removing what doesn't belong. You are not broken and in need of fixing. You are perfect and in need of uncovering. The David is already in you—buried under conditioning, beliefs, fears. We're not building something new. We're revealing what was always there.",
+    "question": "What layers are covering your David? What needs to be chipped away?"
+  },
+
+  "applications": [
+    {
+      "situation": "self-improvement anxiety",
+      "connection": "Stop trying to become something better. Start removing what's covering what you already are."
+    },
+    {
+      "situation": "meditation practice",
+      "connection": "Meditation doesn't create peace. It removes what's disturbing the peace that's already there."
+    },
+    {
+      "situation": "transformation work",
+      "connection": "The work is subtraction, not addition. Less becoming, more unbecoming."
+    }
+  ],
+
+  "metadata": {
+    "personal_story": false,
+    "traditional_parable": false,
+    "origin": "Michelangelo anecdote",
+    "teaching_weight": "high"
+  }
+}
+

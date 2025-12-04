@@ -14,5 +14,4 @@ export * from './types/index.js';
 // Re-export config for external use
 export * from './config/index.js';
 
-console.log('🎤 Voice AI Frontend loaded');
 

@@ -1,16 +1,16 @@
 /**
  * Communication Tools Tests
- * 
+ *
  * Tests for email, SMS, and calendar tools.
  * These tests verify validation and error handling without actually sending.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
-  sendEmail, 
-  sendSMS, 
+import {
+  sendEmail,
+  sendSMS,
   parseScheduleTime,
-  createCommunicationTools 
+  createCommunicationTools,
 } from '../tools/communication.js';
 
 describe('Communication Tools', () => {
@@ -52,7 +52,7 @@ describe('Communication Tools', () => {
     it('should parse tomorrow', () => {
       const result = parseScheduleTime('tomorrow');
       expect(result).toBeInstanceOf(Date);
-      
+
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       expect(result!.getDate()).toBe(tomorrow.getDate());
@@ -61,7 +61,7 @@ describe('Communication Tools', () => {
     it('should parse next week', () => {
       const result = parseScheduleTime('next week');
       expect(result).toBeInstanceOf(Date);
-      
+
       const nextWeek = new Date();
       nextWeek.setDate(nextWeek.getDate() + 7);
       expect(result!.getDate()).toBe(nextWeek.getDate());
@@ -92,7 +92,7 @@ describe('Communication Tools', () => {
   describe('Tool Creation', () => {
     it('should create all communication tools', () => {
       const tools = createCommunicationTools();
-      
+
       expect(tools.sendEmail).toBeDefined();
       expect(tools.sendSMS).toBeDefined();
       expect(tools.scheduleReminder).toBeDefined();
@@ -101,7 +101,7 @@ describe('Communication Tools', () => {
 
     it('should have proper tool descriptions', () => {
       const tools = createCommunicationTools();
-      
+
       // Access internal description through the tool
       expect(tools.sendEmail).toBeDefined();
       expect(tools.sendSMS).toBeDefined();
@@ -119,11 +119,7 @@ describe('Communication Tools', () => {
 
     it('should handle special characters in email subject', async () => {
       // Should not throw
-      const result = await sendEmail(
-        'test@example.com',
-        '<script>alert("xss")</script>',
-        'Body'
-      );
+      const result = await sendEmail('test@example.com', '<script>alert("xss")</script>', 'Body');
       expect(result).toBeDefined();
     });
   });
@@ -132,7 +128,7 @@ describe('Communication Tools', () => {
     it('should gracefully handle missing SendGrid config', async () => {
       // With no SENDGRID_API_KEY, should return friendly message
       const result = await sendEmail('valid@example.com', 'Subject', 'Body');
-      
+
       // Either validation fails or config not set message
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -141,10 +137,9 @@ describe('Communication Tools', () => {
     it('should gracefully handle missing Twilio config', async () => {
       // With no TWILIO_* vars, should return friendly message
       const result = await sendSMS('+15551234567', 'Test');
-      
+
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
     });
   });
 });
-

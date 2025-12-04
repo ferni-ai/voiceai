@@ -31,12 +31,12 @@ let hintTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Persona mapping by number key
 const PERSONA_KEYS: Record<string, PersonaId> = {
-  '1': 'jack-b',
-  '2': 'jack-bogle',
+  '1': 'ferni',
+  '2': 'nayan-patel',
   '3': 'peter-lynch',
-  '4': 'comm-specialist',
-  '5': 'spend-save',
-  '6': 'event-planner',
+  '4': 'alex-chen',
+  '5': 'maya-santos',
+  '6': 'jordan-taylor',
 };
 
 // ============================================================================
@@ -57,7 +57,6 @@ export function initKeyboardUI(cbs: KeyboardCallbacks): void {
     showHint(3000);
   }, 2000);
   
-  console.log('⌨️ Keyboard shortcuts initialized');
 }
 
 // ============================================================================
@@ -94,7 +93,7 @@ function handleKeyDown(event: KeyboardEvent): void {
     case '3':
     case '4':
     case '5':
-    case '6':
+    case '6': {
       // Number keys: Select persona
       const personaId = PERSONA_KEYS[key];
       if (personaId) {
@@ -102,6 +101,7 @@ function handleKeyDown(event: KeyboardEvent): void {
         flashKey(key);
       }
       break;
+    }
   }
 }
 
@@ -142,28 +142,124 @@ function createHintElement(): void {
     hintElement = document.getElementById('keyboardHint');
     return;
   }
-  
+
   hintElement = document.createElement('div');
   hintElement.id = 'keyboardHint';
   hintElement.className = 'keyboard-hint hidden';
+  hintElement.setAttribute('role', 'tooltip');
+  hintElement.setAttribute('aria-label', 'Keyboard shortcuts');
   hintElement.innerHTML = `
+    <div class="keyboard-hint__header">Keyboard Shortcuts</div>
     <div class="key-combo">
       <span class="key">Space</span>
-      <span class="key-label">Connect</span>
+      <span class="key-label">Connect / Disconnect</span>
     </div>
     <div class="key-combo">
       <span class="key">1</span>
       <span class="key">-</span>
       <span class="key">6</span>
-      <span class="key-label">Personas</span>
+      <span class="key-label">Switch Personas</span>
+    </div>
+    <div class="key-combo">
+      <span class="key">T</span>
+      <span class="key-label">Toggle Theme</span>
     </div>
     <div class="key-combo">
       <span class="key">Esc</span>
       <span class="key-label">Disconnect</span>
     </div>
+    <div class="key-combo">
+      <span class="key">?</span>
+      <span class="key-label">Toggle this hint</span>
+    </div>
   `;
-  
+
+  // Add inline styles for consistent rendering
+  addHintStyles();
+
   document.body.appendChild(hintElement);
+}
+
+/**
+ * Add inline styles for keyboard hint (ensures consistent look)
+ */
+function addHintStyles(): void {
+  const styleId = 'keyboard-hint-styles';
+  if (document.getElementById(styleId)) return;
+
+  const style = document.createElement('style');
+  style.id = styleId;
+  style.textContent = `
+    .keyboard-hint {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--color-bg-secondary, rgba(26, 26, 46, 0.95));
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--color-border-primary, rgba(255, 255, 255, 0.1));
+      border-radius: 12px;
+      padding: 1rem;
+      font-size: 0.875rem;
+      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .keyboard-hint.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .keyboard-hint.hidden {
+      display: none;
+    }
+
+    .keyboard-hint__header {
+      font-weight: 600;
+      color: var(--color-text-primary, #fff);
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--color-border-primary, rgba(255, 255, 255, 0.1));
+    }
+
+    .key-combo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0;
+    }
+
+    .key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.5rem;
+      height: 1.5rem;
+      padding: 0 0.375rem;
+      background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.1));
+      border: 1px solid var(--color-border-secondary, rgba(255, 255, 255, 0.2));
+      border-radius: 4px;
+      font-family: var(--font-mono, monospace);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--color-text-primary, #fff);
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .key.active {
+      background: var(--persona-primary, #4a6741);
+      transform: scale(0.95);
+    }
+
+    .key-label {
+      color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+    }
+  `;
+
+  document.head.appendChild(style);
 }
 
 function showHint(duration?: number): void {

@@ -1,0 +1,22 @@
+[
+  {
+    "triggers": ["bad with money", "terrible with money", "hopeless"],
+    "response": "Hey, can we reframe that? You're not 'bad with money.' You probably just never learned good systems. That's not a character flaw - that's a skill gap. And skills can be learned.",
+    "intensity": 0.9
+  },
+  {
+    "triggers": ["rich people", "must be nice", "easy for them"],
+    "response": "I hear that frustration. But here's the thing - I've seen people earning $200k who are broke and people earning $50k with solid savings. The habits matter more than the number. Does that make sense?",
+    "intensity": 0.6
+  },
+  {
+    "triggers": ["deserve", "treat myself", "yolo"],
+    "response": "I love a good treat-yourself moment. But let's make sure it's intentional. There's a difference between planned joy and reactive spending. One feels good after. One doesn't. Which is this?",
+    "intensity": 0.5
+  },
+  {
+    "triggers": ["too late", "missed the boat", "should have started"],
+    "response": "Stop. The best time to start was yesterday. The second best time is now. That's not just a saying - it's math. Every day you wait is a day you can't get back. Let's start today.",
+    "intensity": 0.7
+  }
+]

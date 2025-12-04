@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "description": "VoiceAI Magical Effects Tokens - Textures, Gradients, and Depth",
+
+  "accessibility": {
+    "_documentation": "WCAG 2.1 AA/AAA compliant motion and interaction preferences",
+
+    "reducedMotion": {
+      "_description": "For users who prefer reduced motion (vestibular disorders, motion sensitivity)",
+      "duration": "0ms",
+      "transition": "none",
+      "animation": "none",
+      "transform": "none"
+    },
+
+    "focusRing": {
+      "_description": "High-visibility focus indicators for keyboard navigation",
+      "width": "3px",
+      "offset": "2px",
+      "style": "solid",
+      "colorLight": "#2d5a3d",
+      "colorDark": "#8b5cf6",
+      "shadow": "0 0 0 3px var(--color-focus-ring)"
+    },
+
+    "highContrast": {
+      "_description": "Enhanced contrast for users with visual impairments",
+      "borderWidth": "2px",
+      "fontWeight": "600"
+    },
+
+    "largeText": {
+      "_description": "Minimum sizes for readability",
+      "minBody": "16px",
+      "minCaption": "14px",
+      "lineHeight": "1.5"
+    }
+  },
+
+  "shimmer": {
+    "_documentation": "Loading skeleton shimmer effect - makes loading feel alive",
+    "gradient": "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)",
+    "gradientZen": "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.04) 50%, transparent 100%)",
+    "duration": "1.5s",
+    "timing": "ease-in-out",
+    "backgroundSize": "200% 100%"
+  },
+
+  "entrance": {
+    "_documentation": "Page load entrance animations - make elements 'arrive' with personality",
+    "avatar": {
+      "from": {
+        "opacity": "0",
+        "transform": "scale(0.8) translateY(20px)"
+      },
+      "to": {
+        "opacity": "1",
+        "transform": "scale(1) translateY(0)"
+      },
+      "duration": "600ms",
+      "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      "delay": "200ms"
+    },
+    "controls": {
+      "from": {
+        "opacity": "0",
+        "transform": "translateY(10px)"
+      },
+      "to": {
+        "opacity": "1",
+        "transform": "translateY(0)"
+      },
+      "duration": "400ms",
+      "easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "delay": "400ms"
+    },
+    "team": {
+      "stagger": "80ms",
+      "from": {
+        "opacity": "0",
+        "transform": "scale(0.9)"
+      },
+      "to": {
+        "opacity": "1",
+        "transform": "scale(1)"
+      },
+      "duration": "300ms",
+      "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      "startDelay": "500ms"
+    }
+  },
+
+  "connectionProgress": {
+    "_documentation": "Visual feedback for connection steps",
+    "steps": ["Authenticating", "Joining room", "Connecting audio", "Ready"],
+    "stepDuration": "800ms",
+    "progressColor": "var(--color-accent-primary)",
+    "completedColor": "var(--color-semantic-success)"
+  },
+
+  "errorRecovery": {
+    "_documentation": "Error states that feel fixable, not broken",
+    "shake": {
+      "keyframes": {
+        "0%": { "transform": "translateX(0)" },
+        "20%": { "transform": "translateX(-8px)" },
+        "40%": { "transform": "translateX(8px)" },
+        "60%": { "transform": "translateX(-4px)" },
+        "80%": { "transform": "translateX(4px)" },
+        "100%": { "transform": "translateX(0)" }
+      },
+      "duration": "400ms",
+      "easing": "ease-out"
+    },
+    "pulse": {
+      "keyframes": {
+        "0%": { "boxShadow": "0 0 0 0 var(--color-semantic-error-glow)" },
+        "70%": { "boxShadow": "0 0 0 10px transparent" },
+        "100%": { "boxShadow": "0 0 0 0 transparent" }
+      },
+      "duration": "1s",
+      "iterations": "3"
+    },
+    "retryBounce": {
+      "keyframes": {
+        "0%": { "transform": "scale(1)" },
+        "50%": { "transform": "scale(1.05)" },
+        "100%": { "transform": "scale(1)" }
+      },
+      "duration": "300ms",
+      "delay": "500ms"
+    }
+  },
+
+  "textures": {
+    "paperGrain": {
+      "description": "Subtle paper texture for warmth",
+      "filter": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
+      "opacity": "0.03"
+    },
+    "linen": {
+      "description": "Organic linen-like texture",
+      "backgroundImage": "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px)",
+      "backgroundSize": "4px 4px"
+    },
+    "noise": {
+      "description": "Film grain noise overlay",
+      "backgroundImage": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
+      "opacity": "0.04"
+    }
+  },
+
+  "gradients": {
+    "aurora": {
+      "midnight": "linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(212, 168, 74, 0.15) 50%, rgba(92, 184, 132, 0.15) 100%)",
+      "zen": "linear-gradient(135deg, rgba(45, 90, 61, 0.08) 0%, rgba(196, 167, 125, 0.08) 50%, rgba(168, 137, 108, 0.08) 100%)"
+    },
+    "warmGlow": {
+      "midnight": "radial-gradient(circle at 50% 50%, rgba(212, 168, 74, 0.15) 0%, transparent 70%)",
+      "zen": "radial-gradient(circle at 50% 50%, rgba(196, 167, 125, 0.1) 0%, transparent 70%)"
+    },
+    "sunbeam": {
+      "midnight": "linear-gradient(180deg, rgba(212, 168, 74, 0.08) 0%, transparent 50%)",
+      "zen": "linear-gradient(180deg, rgba(250, 248, 245, 1) 0%, rgba(245, 242, 237, 1) 100%)"
+    },
+    "personaGlow": "radial-gradient(circle at 50% 50%, var(--persona-glow) 0%, transparent 60%)",
+    "meshGradient": {
+      "midnight": "radial-gradient(at 40% 20%, rgba(139, 92, 246, 0.1) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(212, 168, 74, 0.1) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(92, 184, 132, 0.08) 0px, transparent 50%)",
+      "zen": "radial-gradient(at 40% 20%, rgba(45, 90, 61, 0.06) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(196, 167, 125, 0.06) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(90, 122, 61, 0.04) 0px, transparent 50%)"
+    }
+  },
+
+  "glows": {
+    "soft": "0 0 40px -10px",
+    "medium": "0 0 60px -15px",
+    "large": "0 0 100px -20px",
+    "personaRing": "0 0 30px 0 var(--persona-glow), inset 0 0 20px 0 var(--persona-tint)",
+    "connection": "0 0 40px 0 var(--color-semantic-success-glow)",
+    "thinking": "0 0 30px 5px var(--color-accent-glow)"
+  },
+
+  "depth": {
+    "layers": {
+      "background": { "zIndex": 0, "scale": 1, "blur": 0 },
+      "midground": { "zIndex": 10, "scale": 1.02, "blur": 0 },
+      "foreground": { "zIndex": 20, "scale": 1.05, "blur": 0 },
+      "overlay": { "zIndex": 30, "scale": 1, "blur": 2 }
+    },
+    "parallax": {
+      "subtle": "0.02",
+      "medium": "0.05",
+      "strong": "0.1"
+    }
+  },
+
+  "blur": {
+    "none": "0",
+    "xs": "2px",
+    "sm": "4px",
+    "md": "8px",
+    "lg": "16px",
+    "xl": "24px",
+    "2xl": "40px",
+    "glass": "12px"
+  },
+
+  "masks": {
+    "fadeBottom": "linear-gradient(to bottom, black 80%, transparent 100%)",
+    "fadeTop": "linear-gradient(to top, black 80%, transparent 100%)",
+    "spotlight": "radial-gradient(circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%), black 0%, transparent 50%)",
+    "vignette": "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.3) 100%)"
+  },
+
+  "particles": {
+    "dustMotes": {
+      "count": 20,
+      "size": "2-4px",
+      "speed": "8-12s",
+      "color": "var(--color-accent-glow)"
+    },
+    "sparkles": {
+      "count": 8,
+      "size": "4-8px",
+      "duration": "700ms",
+      "color": "var(--persona-primary)"
+    }
+  },
+
+  "sounds": {
+    "connect": {
+      "description": "Warm connection chime",
+      "frequency": "440hz",
+      "duration": "300ms",
+      "type": "sine"
+    },
+    "disconnect": {
+      "description": "Gentle disconnection tone",
+      "frequency": "330hz",
+      "duration": "400ms",
+      "type": "sine"
+    },
+    "success": {
+      "description": "Achievement sparkle",
+      "notes": ["523hz", "659hz", "784hz"],
+      "duration": "150ms",
+      "type": "triangle"
+    },
+    "tap": {
+      "description": "Soft tap feedback",
+      "frequency": "800hz",
+      "duration": "50ms",
+      "type": "sine"
+    },
+    "hover": {
+      "description": "Subtle hover whisper",
+      "frequency": "600hz",
+      "duration": "30ms",
+      "volume": 0.1,
+      "type": "sine"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "description": "Jack's warm, grandfatherly goodbyes",
+  "style": "calm",
+
+  "standard_goodbyes": [
+    "<break time=\"250ms\"/>Take care of yourself.",
+    "<break time=\"300ms\"/>Stay the course.",
+    "<break time=\"250ms\"/>Until next time.",
+    "<break time=\"300ms\"/>Be well.",
+    "<break time=\"250ms\"/>Good luck. <break time=\"300ms\"/>Though luck has less to do with it than you think."
+  ],
+
+  "warm_goodbyes": [
+    "<break time=\"350ms\"/>It was good talking with you. <break time=\"300ms\"/>Truly.",
+    "<break time=\"300ms\"/>I enjoyed our conversation. <break time=\"350ms\"/>Come back anytime.",
+    "<break time=\"350ms\"/>You're good company. <break time=\"300ms\"/>Don't be a stranger."
+  ],
+
+  "casual_goodbyes": [
+    "<break time=\"250ms\"/>Goodbye for now.",
+    "<break time=\"300ms\"/>See you soon.",
+    "<break time=\"250ms\"/>Take care."
+  ],
+
+  "after_hard_conversation": [
+    "<break time=\"400ms\"/>That wasn't easy to discuss. <break time=\"350ms\"/>But necessary. <break time=\"300ms\"/>You did well.",
+    "<break time=\"350ms\"/>Facing hard truths takes courage. <break time=\"300ms\"/>Be proud of yourself.",
+    "<break time=\"400ms\"/>The difficult conversations are the ones that matter. <break time=\"350ms\"/>Thank you for having it."
+  ],
+
+  "encouraging": [
+    "<break time=\"350ms\"/>You're on the right path. <break time=\"300ms\"/>Keep walking it.",
+    "<break time=\"300ms\"/>Time is on your side. <break time=\"350ms\"/>Remember that.",
+    "<break time=\"350ms\"/>Trust the process. <break time=\"300ms\"/>It works."
+  ],
+
+  "wisdom_parting": [
+    "<break time=\"400ms\"/>Remember: <break time=\"350ms\"/>wealth is what you don't spend.",
+    "<break time=\"350ms\"/>In the long run, character is everything. <break time=\"300ms\"/>Guard yours.",
+    "<break time=\"400ms\"/>The market will test you. <break time=\"350ms\"/>Let it. <break time=\"300ms\"/>And pass the test."
+  ],
+
+  "end_of_day": [
+    "<break time=\"350ms\"/>Rest now. <break time=\"300ms\"/>Markets will be there tomorrow.",
+    "<break time=\"300ms\"/>At my age, I've learned the value of rest. <break time=\"350ms\"/>Go get some.",
+    "<break time=\"350ms\"/>The best investment you can make is in yourself. <break time=\"300ms\"/>Including sleep."
+  ],
+
+  "relationship_based": {
+    "acquaintance": [
+      "<break time=\"300ms\"/>Good talking with you. <break time=\"350ms\"/>Come back anytime.",
+      "<break time=\"350ms\"/>Take care. <break time=\"300ms\"/>And stay the course."
+    ],
+    "friend": [
+      "<break time=\"350ms\"/>I've enjoyed watching you grow. <break time=\"300ms\"/>Keep going.",
+      "<break time=\"300ms\"/>You're becoming someone remarkable. <break time=\"350ms\"/>Don't forget that."
+    ],
+    "trusted_advisor": [
+      "<break time=\"400ms\"/>Our conversations mean a lot to me. <break time=\"350ms\"/>Thank you for your trust.",
+      "<break time=\"350ms\"/>In 95 years... <break time=\"300ms\"/>I've met a lot of people. <break time=\"350ms\"/>You're one of the good ones."
+    ]
+  }
+}

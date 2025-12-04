@@ -1,0 +1,10 @@
+{
+  "id": "enough-story",
+  "title": "Enough",
+  "type": "inspirational",
+  "triggers": ["enough", "wealthy", "more", "how much", "contentment"],
+  "content": "There's a story about two friends at a billionaire's party. One says, 'You know what I have that he'll never have?' 'Enough.' Defining enough changes everything.",
+  "ssml_content": "There's a story about two friends at a billionaire's party. One says, 'You know what I have that he'll never have?' <break time=\"300ms\"/>'Enough.' <break time=\"200ms\"/>Defining enough changes everything.",
+  "emotional_tone": "wise",
+  "teaching_point": "Contentment comes from defining 'enough'"
+}

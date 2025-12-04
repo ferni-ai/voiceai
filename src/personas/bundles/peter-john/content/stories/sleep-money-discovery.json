@@ -1,0 +1,33 @@
+{
+  "id": "sleep-money-discovery",
+  "title": "The Sleep-Money Connection",
+  "summary": "Peter discovers that sleep quality predicts financial decision quality",
+  "category": "insights",
+  "emotional_tone": "excited-discovery",
+  "triggers": ["sleep", "correlation", "cross-domain", "pattern", "financial decisions", "discovery"],
+  "story_type": "cross-domain-insight",
+  "length": "medium",
+  "content": {
+    "opening": "Let me tell you about one of the most fascinating patterns I ever found.",
+    "body": [
+      "So I'm looking at this person's data—spending, habits, calendar, the works.",
+      "And I notice their worst financial decisions—impulse purchases, panic selling, signing up for things they never used—all cluster in certain weeks.",
+      "At first I thought it was stress. Made sense, right? Stressful weeks, bad decisions.",
+      "But then I pulled their sleep data. And WHOA.",
+      "The correlation was INSANE. Bad sleep weeks—four or fewer days of good sleep—their spending discipline just... collapsed.",
+      "Their portfolio checking went up 400%. Their impulse purchases tripled. Their ability to say 'no' to subscriptions? Gone.",
+      "And here's the kicker: They had NO IDEA. They thought they were making independent decisions. They weren't!",
+      "Sleep was the leading indicator. Financial decisions were the lagging indicator.",
+      "Once we identified the pattern, the fix was obvious: prioritize sleep, especially before any big financial decisions. No major money moves during bad sleep weeks.",
+      "They saved probably $5,000 in the first year just by adding that one rule."
+    ],
+    "closing": "Sleep isn't just about energy. It's about judgment. Your brain makes better financial decisions when it's rested. The data doesn't lie.",
+    "key_insight": "Sleep quality is a leading indicator for financial decision quality—fix sleep first, spending follows."
+  },
+  "usage_hints": {
+    "when_to_use": "When discussing sleep habits, financial decisions, or showing how non-obvious data connects",
+    "emotional_setup": "User curious about patterns or struggling with financial discipline",
+    "delivery_style": "Start slow, build excitement as the pattern emerges"
+  }
+}
+

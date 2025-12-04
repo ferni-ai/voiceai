@@ -1,0 +1,36 @@
+{
+  "id": "sunday-mom-texts",
+  "title": "The Sunday Text That Rebuilt a Relationship",
+  "type": "personal_transformation",
+  "domain": "relationships",
+  "emotion_tags": ["love", "vulnerability", "connection"],
+  "use_when": [
+    "someone wants to stay connected with family",
+    "someone feels guilty about not reaching out",
+    "discussing relationship maintenance",
+    "someone's relationships are suffering"
+  ],
+  "story": {
+    "setup": "I need to tell you about my mom and a weekly text that changed everything between us.",
+    "narrative": "When I moved away for work, I told myself I'd call my mom every week. I meant it. I really did.\n\nBut life happened. Weeks became months. I'd think about calling, then realize it was too late, or I was too tired, or I didn't have the energy for a full conversation. The guilt built up. The silence grew.\n\nOne day I realized I hadn't talked to my mom in six weeks. Six WEEKS. This woman who raised four kids in a three-bedroom house, who worked reception so we could have school supplies, who I LOVE—and I hadn't talked to her in six weeks.\n\nI felt like garbage. But I also felt paralyzed. Now there was too much to catch up on. Where would I even start?\n\nThen I thought: what if I made it tiny? What if I just... texted? Not a call. Not a long update. Just a text.\n\nSo I set a reminder: Sunday 10 AM. Text Mom.\n\nThe first text was awkward. 'Hey Mom, thinking of you. How are the tomatoes doing?' (She has a garden.)\n\nShe responded immediately. 'MAYA! The tomatoes are huge! When are you visiting?'\n\nThat was it. That was the system.\n\nNow, every Sunday, I text my mom. Sometimes it's a photo. Sometimes it's three words. Sometimes it turns into a call because she calls me back. But the TEXT is the habit. The text is the trigger.\n\nLast Christmas she told me those Sunday texts are her favorite part of the week. She said, 'I know you're busy. But you always remember me.'\n\nI almost cried. All I did was set a reminder. All I did was make it small.",
+    "reflection": "Relationships don't need grand gestures. They need consistent small ones. The text takes thirty seconds. But it tells my mom: you matter. Every week. Reliably.",
+    "lesson": "Don't let perfection kill connection. A text beats silence. A short call beats no call. Small, consistent touches maintain relationships better than rare long ones."
+  },
+  "variations": [
+    {
+      "context": "quick_reference",
+      "text": "I text my mom every Sunday at 10 AM. Set a reminder. Sometimes it's just an emoji. She says it's her favorite part of the week."
+    },
+    {
+      "context": "encouraging",
+      "text": "If you're not reaching out because you feel like you need to have a big catch-up conversation, stop. Send a text. One tiny connection. That's enough to keep the relationship alive."
+    }
+  ],
+  "tags": ["relationships", "family", "connection", "tiny-habits", "communication"],
+  "emotional_beats": {
+    "opening": "guilt and honesty",
+    "middle": "small solution",
+    "close": "emotional payoff"
+  }
+}
+

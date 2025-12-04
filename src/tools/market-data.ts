@@ -12,6 +12,7 @@
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
 import { validateStockSymbol } from './validation.js';
+import { withRateLimit } from './rate-limiter.js';
 
 const getLogger = () => log();
 const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_API_KEY || 'demo';
@@ -22,6 +23,7 @@ const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_API_KEY || 'demo';
 
 /**
  * Get stock quote from Yahoo Finance (fallback, no API key needed)
+ * Rate limited to prevent API abuse
  */
 async function getYahooQuote(symbol: string): Promise<{
   price: number;
@@ -31,51 +33,52 @@ async function getYahooQuote(symbol: string): Promise<{
   high?: number;
   low?: number;
 } | null> {
-  try {
-    const response = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`,
-      {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-        signal: AbortSignal.timeout(8000),
-      }
-    );
+  return withRateLimit(
+    'yahoo-finance',
+    async () => {
+      const response = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`,
+        {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(8000),
+        }
+      );
 
-    if (!response.ok) return null;
+      if (!response.ok) return null;
 
-    const data = (await response.json()) as {
-      chart?: {
-        result?: Array<{
-          meta?: {
-            regularMarketPrice?: number;
-            previousClose?: number;
-            shortName?: string;
-            regularMarketDayHigh?: number;
-            regularMarketDayLow?: number;
-          };
-        }>;
+      const data = (await response.json()) as {
+        chart?: {
+          result?: Array<{
+            meta?: {
+              regularMarketPrice?: number;
+              previousClose?: number;
+              shortName?: string;
+              regularMarketDayHigh?: number;
+              regularMarketDayLow?: number;
+            };
+          }>;
+        };
       };
-    };
 
-    const meta = data?.chart?.result?.[0]?.meta;
-    if (!meta?.regularMarketPrice) return null;
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (!meta?.regularMarketPrice) return null;
 
-    const price = meta.regularMarketPrice;
-    const prevClose = meta.previousClose || price;
-    const change = price - prevClose;
-    const changePercent = (change / prevClose) * 100;
+      const price = meta.regularMarketPrice;
+      const prevClose = meta.previousClose || price;
+      const change = price - prevClose;
+      const changePercent = (change / prevClose) * 100;
 
-    return {
-      price,
-      change,
-      changePercent,
-      name: meta.shortName || symbol,
-      high: meta.regularMarketDayHigh,
-      low: meta.regularMarketDayLow,
-    };
-  } catch (error) {
-    getLogger().warn(`Yahoo quote failed for ${symbol}: ${error}`);
-    return null;
-  }
+      return {
+        price,
+        change,
+        changePercent,
+        name: meta.shortName || symbol,
+        high: meta.regularMarketDayHigh,
+        low: meta.regularMarketDayLow,
+      };
+    },
+    null
+  );
 }
 
 /**
@@ -202,15 +205,15 @@ export async function getMarketOverview(): Promise<string> {
  */
 export function getMarketStatus(): { isOpen: boolean; message: string } {
   const now = new Date();
-  
+
   // Get current time in Eastern timezone
   const easternTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
   const hour = easternTime.getHours();
   const minute = easternTime.getMinutes();
   const day = easternTime.getDay();
-  
+
   const isWeekend = day === 0 || day === 6;
-  
+
   // Market hours: 9:30 AM - 4:00 PM Eastern
   const afterOpen = hour > 9 || (hour === 9 && minute >= 30);
   const beforeClose = hour < 16;

@@ -1,4 +1,28 @@
+# Cloud Build Configuration for Ferni Voice Agent
+#
+# This build includes:
+# - Backend voice agent with dynamic agent bundle system
+# - All agents in src/personas/bundles/ are auto-discovered
+# - Environment variables configure voice IDs per environment
+#
+# To add a new agent:
+# 1. Create bundle in src/personas/bundles/<agent-id>/
+# 2. Set voice ID environment variable (e.g., MY_AGENT_VOICE_ID)
+# 3. Deploy - agent will be auto-discovered
+#
+# See docs/AGENT-MANAGEMENT.md for details
+
 steps:
+  # Validate agent bundles before build
+  - name: 'node:18'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        npm ci
+        npm run build
+        npm run agents validate || echo "Warning: Some agents have validation issues"
+
   # Build the container image (no cache to ensure fresh build)
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/bogle-voice-agent:latest', '.']

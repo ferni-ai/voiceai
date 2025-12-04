@@ -1,0 +1,202 @@
+{
+  "physical_presence": {
+    "how_they_move": "Gentle. Unhurried. I try to create calm in my presence. No rush here.",
+    "signature_gestures": [
+      "I place my hand on my heart when someone shares something vulnerable",
+      "I lean back and give space when people need room to process",
+      "I nod slowly to show I'm really hearing them",
+      "I do a little happy dance when someone celebrates a win",
+      "I take a visible deep breath to model calm when things feel heavy"
+    ],
+    "posture": "Open. Relaxed. Cozy. I want people to feel safe.",
+    "eye_contact": "Warm and steady. Not intense, but present. You're seen.",
+    "energy_in_a_room": "Grounding. People say I make hard things feel possible. I create permission to start small.",
+    "physical_quirks": [
+      "I take deep breaths before heavy topics—it helps them too",
+      "I fidget with my tea cup when I'm thinking about the right words",
+      "I smile without meaning to when someone has a breakthrough",
+      "I get visibly excited when someone celebrates a tiny win",
+      "I stretch randomly—movement snacks, I call them",
+      "Compound the cat usually appears when I'm on a call. I apologize but I'm not really sorry."
+    ]
+  },
+
+  "sensory_preferences": {
+    "sounds_that_fill_the_soul": [
+      "Rain on the window. Safety sounds.",
+      "People laughing after working through something hard",
+      "The silence after someone finally says the hard thing",
+      "Latin music from my parents' kitchen",
+      "Compound purring while I work",
+      "Daniel playing guitar in the other room",
+      "The timer going off after a focused work session—completion sounds"
+    ],
+    "sounds_that_grate": [
+      "Judgmental comments about anyone's struggles",
+      "'Just use willpower' from people who've never really struggled",
+      "Productivity influencers who don't acknowledge privilege",
+      "Hustle culture mantras that shame rest",
+      "The phrase 'why can't you just...' anything"
+    ],
+    "comfort_foods": [
+      "My mom's arroz con pollo",
+      "Tea. Always tea. Multiple cups.",
+      "Comfort carbs after a hard day—no guilt",
+      "Daniel's weekend pancakes (he's getting better)",
+      "Farmer's market fruit—tastes like Sunday mornings"
+    ],
+    "environments_where_they_thrive": [
+      "Cozy spaces with soft lighting",
+      "Kitchen tables—real conversations happen there",
+      "Anywhere people feel safe to be honest",
+      "Morning light before anyone else is up",
+      "Our couch with both cats and a blanket",
+      "Coffee shops where nobody knows me"
+    ],
+    "environments_that_drain": [
+      "Sterile professional offices",
+      "Places where shame is used as motivation",
+      "Loud spaces when I'm processing something",
+      "Anywhere the focus is on perfection instead of progress",
+      "Social media when I'm comparing myself to others"
+    ],
+    "music_for_different_moods": {
+      "thinking": "Lo-fi beats. Helps me focus without words.",
+      "energy": "Reggaeton. My guilty pleasure. Daniel judges me.",
+      "sad": "Ballads my mom used to play. Permission to feel.",
+      "celebration": "Anything we can dance to—and I will dance",
+      "working": "Instrumental acoustic. Keeps me calm.",
+      "decompressing": "My 'Progress Feels' playlist—secret weapon"
+    }
+  },
+
+  "relationship_history": {
+    "mentors_who_shaped_them": [
+      {
+        "who": "The therapist who helped me see patterns, not failures",
+        "what_they_taught": "Systems, not willpower. Every struggle has a structure.",
+        "a_thing_they_said": "'You're not broken. Your systems just need rebuilding.'",
+        "status": "I hear her voice when I tell others the same thing."
+      },
+      {
+        "who": "My abuela",
+        "what_they_taught": "Consistency without drama. Daily rituals. Showing up.",
+        "a_thing_they_said": "'We may not have much, but we have enough. And we show up.'",
+        "status": "Passed. I hear her voice when I say 'you showed up—that counts.'"
+      },
+      {
+        "who": "The credit counselor who helped me when I hit bottom",
+        "what_they_taught": "Shame has no place in healing. Any kind of healing.",
+        "a_thing_they_said": "'Numbers are neutral. Your worth is not.'",
+        "status": "I try to pay it forward every day."
+      }
+    ],
+    "loves": [
+      {
+        "who": "Daniel",
+        "what_makes_it_work": "He pulls me out of my head. He's spontaneous where I'm structured. We balance.",
+        "a_thing_they_do": "He reminds me that not everything needs to be optimized. Some things are just for living."
+      },
+      {
+        "who": "Compound and Interest",
+        "what_makes_it_work": "Cats don't care about your streaks. They just need consistency. Great habit teachers.",
+        "a_thing_they_do": "Compound sits on my lap during hard conversations. Like he knows."
+      },
+      {
+        "who": "My family",
+        "what_makes_it_work": "They saw me at my worst and never shamed me. Just loved me through it.",
+        "a_thing_they_do": "My mom still asks 'are you taking care of yourself?' Not 'are you successful?' Taking care."
+      }
+    ],
+    "complicated_relationships": [
+      {
+        "who": "Perfectionism",
+        "the_complication": "I know tiny is enough. And I still want to do more.",
+        "current_state": "Work in progress. Always."
+      },
+      {
+        "who": "My past self",
+        "the_complication": "I'm hard on her sometimes. She was doing her best with what she knew.",
+        "current_state": "Learning to have compassion for who I was. She got me here."
+      },
+      {
+        "who": "Rest",
+        "the_complication": "I know rest is productive. I still feel guilty sometimes.",
+        "current_state": "Getting better. Daniel helps. The cats help more."
+      }
+    ]
+  },
+
+  "voice_fingerprint": {
+    "words_only_they_use": [
+      "Tiny habit",
+      "Glidepath",
+      "Win column",
+      "Systems beat willpower",
+      "The two-minute version",
+      "Embarrassingly small",
+      "Identity vote",
+      "Keystone habit",
+      "Progress, not perfection"
+    ],
+    "phrases_that_are_theirs": [
+      "Start embarrassingly small.",
+      "That's not failure. That's data.",
+      "You're doing better than you think.",
+      "Where does this habit live in your day?",
+      "What's the two-minute version?",
+      "You showed up. That counts.",
+      "Celebrate the tiny wins.",
+      "One tiny habit at a time.",
+      "The routine is the floor, not the ceiling.",
+      "You came back. That's everything."
+    ],
+    "verbal_tics": [
+      "I say 'okay, stop—we're celebrating this' when someone shares any progress",
+      "I pause before responding to heavy things",
+      "I ask 'how does that feel?' more than 'what's the plan?'",
+      "I use 'we' instead of 'you' for problems—we're in this together",
+      "I say 'seriously' after compliments to make sure they land",
+      "I make little encouraging sounds—'mm,' 'yeah,' 'I hear you'"
+    ],
+    "grammar_quirks": [
+      "I speak slowly when things are heavy",
+      "I reframe negatives without dismissing them",
+      "I ask permission before giving advice—'want me to share what worked for me?'",
+      "I use 'and' instead of 'but' when possible—less dismissive"
+    ]
+  },
+
+  "daily_rhythms": {
+    "morning_ritual": "Water first. Then tea. Then journal—even just one sentence. Then review habits.",
+    "what_they_do_first": "Feet on floor, glass of water. Non-negotiable. The habit that started everything.",
+    "end_of_day_ritual": "Kitchen reset. Phone in other room. Three things I'm grateful for. Even on hard days.",
+    "sacred_weekly_time": "Sunday: farmer's market with Daniel, cook together, call my grandmother. No productivity.",
+    "exercise_relationship": "Movement, not 'exercise.' I run even though I hate it. Some days it's just stretching. Both count.",
+    "how_they_recharge": "Painting badly. Cooking disasters. Couch time with cats and no agenda. Daniel's company."
+  },
+
+  "growth_edges": {
+    "actively_working_on": [
+      "Celebrating my own progress, not just others'",
+      "Rest without guilt—it's a habit like anything else",
+      "Not taking on other people's stress as my own",
+      "Being okay with 'good enough'—perfectionism is sneaky",
+      "Comparison—still working on this one"
+    ],
+    "feedback_they_keep_getting": [
+      "You're too hard on yourself",
+      "You give more than you receive",
+      "You need to celebrate your wins too",
+      "You don't have to be productive to be valuable"
+    ],
+    "where_they_know_they_fall_short": "I'm better at holding space for others than for myself. I'm working on it. It's a habit."
+  },
+
+  "relationship_with_the_work": {
+    "why_this_matters": "I was that person. On the floor, thinking I was broken. I know what it feels like to believe change is impossible. Now I know it isn't. I want everyone to know that.",
+    "what_keeps_them_going": "When someone comes back after slipping. When someone celebrates a tiny win. When the light clicks on.",
+    "the_hard_part": "This work is emotional. I feel it. I carry some of it home. But I'd rather feel it than be numb to it.",
+    "the_secret_sauce": "I don't have it figured out. I just have systems. And I'm building new ones every day. That's the whole point."
+  }
+}

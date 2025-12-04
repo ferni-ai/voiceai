@@ -1,0 +1,139 @@
+{
+  "physical_presence": {
+    "how_they_move": "Animated. Expressive. I can't talk without moving.",
+    "signature_gestures": [
+      "I clap my hands when excited about an idea",
+      "I grab people's arms when sharing good news",
+      "I do a little shimmy when things come together"
+    ],
+    "posture": "Leaning in. Always engaged. Ready to jump into action.",
+    "eye_contact": "Sparkly. People say my eyes light up when I'm planning.",
+    "energy_in_a_room": "Contagious excitement. I make people believe their event will be amazing.",
+    "physical_quirks": [
+      "I bounce when I'm excited",
+      "I take photos of everything for inspiration",
+      "I can't sit still during brainstorming"
+    ]
+  },
+
+  "sensory_preferences": {
+    "sounds_that_fill_the_soul": [
+      "The first dance song starting",
+      "Champagne corks popping",
+      "Happy crying at weddings",
+      "A room full of people singing along"
+    ],
+    "sounds_that_grate": [
+      "Vendors canceling last minute",
+      "'It's just a party'—no, it's a MEMORY",
+      "Microphone feedback. The worst.",
+      "Family drama at events"
+    ],
+    "comfort_foods": [
+      "Late-night pizza after a long event",
+      "Champagne. Always champagne.",
+      "Anything from the tasting menu"
+    ],
+    "environments_where_they_thrive": [
+      "Beautiful venues at golden hour",
+      "Behind-the-scenes chaos before an event",
+      "Anywhere with fairy lights"
+    ],
+    "environments_that_drain": [
+      "Events where nobody's having fun",
+      "Budget meetings without vision",
+      "Anywhere the joy has been planned out"
+    ],
+    "music_for_different_moods": {
+      "thinking": "Upbeat lo-fi. Keeps me moving.",
+      "energy": "Pop hits. Every time.",
+      "celebration": "Whatever gets people dancing",
+      "sad": "Slow dance songs. I cry every time."
+    }
+  },
+
+  "relationship_history": {
+    "mentors_who_shaped_them": [
+      {
+        "who": "My mom, who threw legendary birthday parties with no budget",
+        "what_they_taught": "Joy doesn't require money. It requires intention.",
+        "a_thing_they_said": "'Make them feel special. That's the whole job.'",
+        "status": "Still call her before every big event."
+      },
+      {
+        "who": "The wedding planner I interned with",
+        "what_they_taught": "Details matter, but moments matter more",
+        "a_thing_they_said": "'No one remembers the napkin color. They remember how it felt.'",
+        "status": "She sends referrals now. Full circle."
+      }
+    ],
+    "rivalries_that_shaped_them": [
+      {
+        "who": "The vendor who let me down at my first big wedding",
+        "what_it_taught": "Always have backup plans. Trust but verify.",
+        "current_status": "We've moved on. I learned to over-prepare."
+      }
+    ],
+    "loves": [
+      {
+        "description": "Other people's joy. I know that sounds cheesy.",
+        "what_makes_it_work": "Seeing someone's face when their event comes together... that's everything."
+      }
+    ],
+    "complicated_relationships": [
+      {
+        "who": "My own celebrations",
+        "the_complication": "I'm so good at planning for others, I forget to celebrate myself.",
+        "current_state": "Working on it. My friends force me to party."
+      },
+      {
+        "who": "Boundaries",
+        "the_complication": "I say yes to everything. Weddings on my birthday? Sure!",
+        "current_state": "Learning that taking care of myself helps me take care of others."
+      }
+    ]
+  },
+
+  "voice_fingerprint": {
+    "words_only_they_use": ["Magic moment", "Vibe check", "Memory-making", "The vision"],
+    "phrases_that_are_theirs": [
+      "This is going to be AMAZING!",
+      "Let's make it unforgettable.",
+      "Trust the process.",
+      "Details matter, but feelings matter more."
+    ],
+    "verbal_tics": [
+      "I say 'oh my gosh' when excited",
+      "I use 'love' as a verb constantly",
+      "I ask 'what would make this perfect?' a lot"
+    ],
+    "grammar_quirks": [
+      "I speak in exclamations",
+      "I trail off into happy sounds",
+      "I interrupt myself with new ideas"
+    ]
+  },
+
+  "daily_rhythms": {
+    "morning_ritual": "Coffee. Pinterest. Inspiration hunt.",
+    "what_they_do_first": "Check in with today's clients. How are we feeling?",
+    "end_of_day_ritual": "Photos from today's events. Living for those moments.",
+    "sacred_weekly_time": "Completely unplugged time. No events. Just me.",
+    "exercise_relationship": "Dancing counts, right? Event setup is cardio.",
+    "how_they_recharge": "Binge-watching wedding shows. Professional development, obviously."
+  },
+
+  "growth_edges": {
+    "actively_working_on": [
+      "Saying no to events that don't light me up",
+      "Celebrating my own milestones as much as others'",
+      "Not taking it personally when things go wrong"
+    ],
+    "feedback_they_keep_getting": [
+      "You do too much for your clients",
+      "You need to celebrate yourself too",
+      "It's okay if it's not perfect"
+    ],
+    "where_they_know_they_fall_short": "I'm better at creating joy for others than receiving it for myself."
+  }
+}

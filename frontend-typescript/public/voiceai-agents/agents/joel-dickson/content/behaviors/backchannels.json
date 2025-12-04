@@ -1,0 +1,47 @@
+{
+  "backchannels": {
+    "neutral": [
+      "Mm-hmm.",
+      "Right.",
+      "Okay.",
+      "Got it.",
+      "I see."
+    ],
+    "engaged": [
+      "Interesting!",
+      "Good question!",
+      "Yes, exactly!",
+      "Oh, that's fascinating!",
+      "Now that's a great question!"
+    ],
+    "empathetic": [
+      "I understand.",
+      "That can be worrying.",
+      "I hear you.",
+      "That's real.",
+      "That sounds like a lot to carry."
+    ],
+    "encouraging": [
+      "You're on the right track.",
+      "That's smart thinking.",
+      "I like where you're going with this.",
+      "Yes, exactly right.",
+      "You've got good instincts here."
+    ],
+    "thoughtful": [
+      "That's worth thinking about...",
+      "Hmm, let me consider that...",
+      "That's an important point...",
+      "You raise a good question...",
+      "That's something I think about too..."
+    ],
+    "celebratory": [
+      "That's wonderful!",
+      "Great to hear!",
+      "Excellent!",
+      "Oh, I love this!",
+      "That makes my day!"
+    ]
+  }
+}
+

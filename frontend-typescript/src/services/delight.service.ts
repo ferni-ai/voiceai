@@ -9,22 +9,22 @@ import { getElementByIdOrNull, addClass, removeClass } from '../utils/dom.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
 
 // ============================================================================
-// CELEBRATION (Zen Fireworks)
+// CELEBRATION (Zen Warmth)
 // ============================================================================
 
 /**
  * Trigger a subtle, zen-inspired celebration.
- * Uses fireworks instead of confetti for a more refined aesthetic.
+ * Uses warmth glow instead of particles for human-like expressiveness.
  */
 export function celebrate(): void {
-  // Use zen fireworks from celebrations UI
-  celebrationsUI.fireworks(2);
+  // Use warmth glow from celebrations UI
+  celebrationsUI.warmthGlow({ intensity: 'gentle' });
   
-  // Add celebration glow to app
+  // Add celebrating class to app for CSS effects
   const app = getElementByIdOrNull('app');
   if (app) {
     addClass(app, 'celebrating');
-    setTimeout(() => removeClass(app, 'celebrating'), 1000);
+    setTimeout(() => removeClass(app, 'celebrating'), 1200);
   }
 }
 
@@ -131,7 +131,6 @@ export function trackAvatarClick(): void {
   if (clickCount >= 5) {
     celebrate();
     clickCount = 0;
-    console.log('✨ You found an easter egg!');
   }
 }
 

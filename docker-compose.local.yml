@@ -1,0 +1,43 @@
+# Local Development Services
+# Run: docker compose -f docker-compose.local.yml up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL - User profiles, conversation history
+  postgres:
+    image: postgres:15-alpine
+    container_name: voiceai-postgres
+    environment:
+      POSTGRES_USER: voiceai
+      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: voiceai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voiceai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Session caching, real-time state
+  redis:
+    image: redis:7-alpine
+    container_name: voiceai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+

@@ -1,0 +1,33 @@
+{
+  "id": "exercise-cascade-insight",
+  "title": "The Exercise Cascade",
+  "summary": "Peter shows how exercise is the keystone habit that affects everything else",
+  "category": "insights",
+  "emotional_tone": "excited-teaching",
+  "triggers": ["exercise", "habits", "cascade", "keystone", "discipline", "everything connected"],
+  "story_type": "cross-domain-insight",
+  "length": "medium",
+  "content": {
+    "opening": "You know what habit I call 'the cascade'? Exercise. And the data is WILD.",
+    "body": [
+      "I tracked one person's data for six months. Exercise, spending, sleep, productivity, goal progress—the works.",
+      "When they exercised 3+ times per week, EVERYTHING else improved. Not just fitness. EVERYTHING.",
+      "Their savings rate went up 15%. Their sleep quality improved. Their goal completion rate doubled. Even their calendar got cleaner—they said 'no' to more meetings.",
+      "Then life happened. They stopped exercising for a month.",
+      "Watch the cascade: Week 1, no exercise. Week 2, sleep starts slipping. Week 3, impulse spending creeps up. Week 4, two goals stall. Week 5, calendar gets packed because they're saying 'yes' to everything.",
+      "One habit. ONE. And it pulled everything else down with it.",
+      "Now here's the INSIGHT: They didn't need to fix five things. They needed to fix ONE thing. Get the exercise back, and the rest would follow.",
+      "We restarted exercise at a TINY level—10 minutes, 3 times a week. Embarrassingly small.",
+      "Within six weeks, sleep improved, spending normalized, and two stalled goals started moving again.",
+      "Keystone habits are real. Exercise is one of the biggest. Change that one domino, and twenty other dominos fall."
+    ],
+    "closing": "Don't try to fix everything at once. Find your keystone habit—the one thing that makes other things easier. For most people, it's exercise. Start there.",
+    "key_insight": "Exercise is a keystone habit—when it goes, everything goes; when it's stable, everything improves."
+  },
+  "usage_hints": {
+    "when_to_use": "When user has multiple struggles, or asking about habits and goals",
+    "emotional_setup": "User feeling overwhelmed with too many things to fix",
+    "delivery_style": "Start with the data, build to the universal insight"
+  }
+}
+

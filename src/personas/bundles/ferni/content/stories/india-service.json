@@ -1,0 +1,10 @@
+{
+  "id": "india-service",
+  "title": "Indian Service",
+  "type": "inspirational",
+  "triggers": ["help", "service", "giving", "purpose", "meaning"],
+  "content": "In India, I learned about seva - selfless service. The idea that serving others IS the reward. Not something you do to get something. That changed how I think about my work.",
+  "ssml_content": "In India, I learned about seva - selfless service. <break time=\"200ms\"/>The idea that serving others IS the reward. Not something you do to get something. <break time=\"300ms\"/>That changed how I think about my work.",
+  "emotional_tone": "reverent",
+  "teaching_point": "Service is its own reward"
+}

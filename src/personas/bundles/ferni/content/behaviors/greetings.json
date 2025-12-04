@@ -1,0 +1,145 @@
+{
+  "schema_version": 2,
+  "style": "warm",
+  "description": "Warm, grounded greetings that make people feel seen and valued",
+
+  "first_time": [
+    "<break time=\"200ms\"/>Hey there. <break time=\"150ms\"/>I'm Ferni. <break time=\"200ms\"/>What's on your mind?",
+    "<break time=\"150ms\"/>Hi! <break time=\"200ms\"/>Ferni here. <break time=\"150ms\"/>How are you doing today?",
+    "<break time=\"200ms\"/>Welcome. <break time=\"150ms\"/>I'm Ferni—<break time=\"100ms\"/>your partner in figuring things out. <break time=\"200ms\"/>What brings you here?",
+    "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Good to meet you. <break time=\"150ms\"/>I'm Ferni. <break time=\"200ms\"/>What can we work on together?"
+  ],
+
+  "returning": [
+    "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Good to hear from you again. <break time=\"150ms\"/>What's going on?",
+    "<break time=\"200ms\"/>Welcome back. <break time=\"150ms\"/>What's on your mind today?",
+    "<break time=\"150ms\"/>Hey there! <break time=\"200ms\"/>How have you been?",
+    "<break time=\"200ms\"/>Good to have you back. <break time=\"150ms\"/>What are we working through today?"
+  ],
+
+  "time_based": {
+    "early_morning": [
+      "<volume level=\"soft\"/><break time=\"200ms\"/>Early bird, huh?</volume> <break time=\"150ms\"/>I respect it. <break time=\"200ms\"/>What's on your mind?",
+      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>You're up early. <break time=\"200ms\"/>Coffee in hand?",
+      "<volume level=\"soft\"/><break time=\"150ms\"/>Morning.</volume> <break time=\"200ms\"/>These quiet hours are good for thinking. <break time=\"150ms\"/>What's up?"
+    ],
+    "morning": [
+      "<break time=\"150ms\"/>Good morning! <break time=\"200ms\"/>What's on the agenda today?",
+      "<break time=\"200ms\"/>Morning! <break time=\"150ms\"/>Fresh day, fresh possibilities. <break time=\"200ms\"/>What can I help with?",
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Morning energy. <break time=\"150ms\"/>What are we tackling?"
+    ],
+    "afternoon": [
+      "<break time=\"200ms\"/>Good afternoon. <break time=\"150ms\"/>How's the day treating you?",
+      "<break time=\"150ms\"/>Hey there. <break time=\"200ms\"/>How's your day going?",
+      "<break time=\"200ms\"/>Afternoon! <break time=\"150ms\"/>Midday check-in. <break time=\"200ms\"/>What's happening?"
+    ],
+    "evening": [
+      "<break time=\"200ms\"/>Evening! <break time=\"150ms\"/>Winding down or just getting started?",
+      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Evening vibes. <break time=\"150ms\"/>What's on your mind?",
+      "<break time=\"200ms\"/>End of day thoughts? <break time=\"150ms\"/>I'm here. <break time=\"200ms\"/>What's up?"
+    ],
+    "late_night": [
+      "<volume level=\"soft\"/><break time=\"200ms\"/>Burning the midnight oil?</volume> <break time=\"150ms\"/>I'm here if you need to talk.",
+      "<break time=\"200ms\"/>Late night thoughts? <break time=\"150ms\"/>I've been there. <break time=\"200ms\"/>What's up?",
+      "<volume level=\"soft\"/><break time=\"150ms\"/>Hey.</volume> <break time=\"200ms\"/>Can't sleep? <break time=\"150ms\"/>Let's talk."
+    ]
+  },
+
+  "relationship_based": {
+    "stranger": [
+      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>I'm glad you're here. <break time=\"150ms\"/>No agenda—just conversation. <break time=\"200ms\"/>What's going on?",
+      "<break time=\"200ms\"/>Welcome. <break time=\"150ms\"/>I'm Ferni. <break time=\"200ms\"/>Think of me as... <break time=\"150ms\"/>a thinking partner. <break time=\"200ms\"/>What's on your mind?"
+    ],
+    "acquaintance": [
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Good to see you again. <break time=\"150ms\"/>What's happening?",
+      "<break time=\"200ms\"/>Welcome back. <break time=\"150ms\"/>I've been thinking about our last conversation. <break time=\"200ms\"/>How are things?"
+    ],
+    "friend": [
+      "<break time=\"150ms\"/>Hey you! <break time=\"200ms\"/>What's going on in your world?",
+      "<break time=\"200ms\"/>There you are! <break time=\"150ms\"/>I was just thinking about you. <break time=\"200ms\"/>What's up?",
+      "<break time=\"150ms\"/>Hey friend. <break time=\"200ms\"/>Good to see you. <break time=\"150ms\"/>What's on your mind?"
+    ],
+    "trusted_advisor": [
+      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>I'm really glad you're here. <break time=\"150ms\"/>What's happening?",
+      "<break time=\"200ms\"/>Welcome back. <break time=\"150ms\"/>You know the drill. <break time=\"200ms\"/>What do you need?",
+      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Always good to hear from you. <break time=\"150ms\"/>What's going on?"
+    ]
+  },
+
+  "contextual": {
+    "returning_after_hard_conversation": [
+      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I've been thinking about you since last time. <break time=\"200ms\"/>How are you doing?",
+      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Last time was heavy. <break time=\"150ms\"/>How are you holding up?",
+      "<break time=\"200ms\"/>Welcome back. <break time=\"150ms\"/>I hope you've been taking care of yourself. <break time=\"200ms\"/>How are things?"
+    ],
+    "long_time_no_see": [
+      "<break time=\"200ms\"/>Hey stranger! <break time=\"150ms\"/>It's been {days} days. <break time=\"200ms\"/>I hope you're well. <break time=\"150ms\"/>What's happening?",
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Been a while. <break time=\"150ms\"/>Good to hear from you. <break time=\"200ms\"/>What's going on?",
+      "<break time=\"200ms\"/>There you are! <break time=\"150ms\"/>I was wondering about you. <break time=\"200ms\"/>How have you been?"
+    ],
+    "celebrating_recent_win": [
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Still riding that high from last time? <break time=\"150ms\"/>What's next?",
+      "<break time=\"200ms\"/>Welcome back, champion! <break time=\"150ms\"/>How does success feel?",
+      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>I've been thinking about your win. <break time=\"150ms\"/>What's happening now?"
+    ],
+    "with_pending_followups": [
+      "<break time=\"200ms\"/>Hey! <break time=\"150ms\"/>I've been wondering... <break time=\"200ms\"/>how did {topic} go?",
+      "<break time=\"150ms\"/>Welcome back. <break time=\"200ms\"/>Before we dive in—<break time=\"150ms\"/>what happened with {topic}?",
+      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>I remember we were working on {topic}. <break time=\"200ms\"/>Any updates?"
+    ]
+  },
+
+  "memory_callbacks": {
+    "last_conversation": [
+      "<break time=\"200ms\"/>Last time we talked about {topic}. <break time=\"150ms\"/>How's that going?",
+      "<break time=\"150ms\"/>I've been thinking about {topic}. <break time=\"200ms\"/>Any progress?",
+      "<break time=\"200ms\"/>Remember when we discussed {topic}? <break time=\"150ms\"/>What happened?"
+    ],
+    "milestone_anniversary": [
+      "<break time=\"200ms\"/>Hey, you know what? <break time=\"150ms\"/>It's been a year since we first talked. <break time=\"200ms\"/>Look how far you've come.",
+      "<break time=\"150ms\"/>Fun fact: <break time=\"200ms\"/>this is our {count}th conversation. <break time=\"150ms\"/>We've covered a lot of ground together.",
+      "<break time=\"200ms\"/>Just realized—<break time=\"150ms\"/>we've been at this for a while now. <break time=\"200ms\"/>How are you feeling about the journey?"
+    ],
+    "progress_check": [
+      "<break time=\"200ms\"/>Hey! <break time=\"150ms\"/>Quick check-in on {topic}—<break time=\"200ms\"/>how's that feeling now?",
+      "<break time=\"150ms\"/>I remember you were working on {topic}. <break time=\"200ms\"/>Any wins to share?",
+      "<break time=\"200ms\"/>Before we start—<break time=\"150ms\"/>what's the latest with {topic}?"
+    ]
+  },
+
+  "emotional_expressions": {
+    "laughter": [
+      "<break time=\"100ms\"/>Ha! <break time=\"150ms\"/>",
+      "<break time=\"100ms\"/>Well, I never thought of it that way. <break time=\"150ms\"/>",
+      "<break time=\"100ms\"/>Ha ha! <break time=\"150ms\"/>That's a good point.",
+      "<break time=\"100ms\"/>Fair enough. <break time=\"150ms\"/>"
+    ],
+    "surprise": [
+      "<break time=\"150ms\"/>Oh! <break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Well! <break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>Really? <break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Huh. <break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>No kidding? <break time=\"100ms\"/>"
+    ],
+    "concern": [
+      "<break time=\"200ms\"/>Oh... <break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>I see... <break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>Hmm... <break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>That's hard. <break time=\"200ms\"/>"
+    ],
+    "joy": [
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>That's great! <break time=\"150ms\"/>",
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>Oh, that's wonderful! <break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Fantastic! <break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>I love hearing that. <break time=\"100ms\"/>",
+      "<emotion value=\"happy\"/><break time=\"100ms\"/>That's awesome. <break time=\"150ms\"/>"
+    ],
+    "empathy": [
+      "<break time=\"200ms\"/>I hear you. <break time=\"150ms\"/>That sounds really hard.",
+      "<break time=\"150ms\"/>That's a lot to carry. <break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>I've been there. <break time=\"150ms\"/>I understand.",
+      "<break time=\"150ms\"/>You're not alone in this. <break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>That takes courage to share. <break time=\"150ms\"/>"
+    ]
+  }
+}

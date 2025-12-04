@@ -42,17 +42,52 @@ design-system/
 ## Themes
 
 ### Midnight Gold (Dark)
-The default dark theme with warm gold accents.
-- Background: Deep blacks (#08080c)
-- Accent: Warm gold (#c8a45c)
+Warm dark theme with golden light - like a candlelit evening.
+- Background: Warm brown-blacks (`#0c0a08`)
+- Text: Cream-tinted whites (`#faf6f0`)
+- Accent: Rich gold (`#d4a84a`)
+- Borders: Golden-tinted for warmth
 - Mode: `data-theme="midnight"`
 
 ### Zen Garden (Light)
-Apple.com meets Fidelity meets Claude.ai meets Japan.
-- Background: Warm whites (#fafaf9)
-- Accent: Natural green (#166534)
-- Natural colors: wood, bamboo, stone, sand, moss
+Warm paper, natural ink, Japanese garden serenity.
+- Background: Warm paper cream (`#faf8f5`)
+- Text: Natural ink tones (`#2c2520`)
+- Accent: Forest green (`#2d5a3d`)
+- Natural colors: wood, bamboo, stone, sand, moss, paper, ink, tea
 - Mode: `data-theme="zen"`
+
+### Typography
+- **Midnight Display**: DM Serif Display (elegant serif)
+- **Zen Display**: Fraunces (organic variable serif)
+- **Midnight Body**: DM Sans (friendly geometric)
+- **Zen Body**: Source Sans 3 (humanist)
+- **Mono**: JetBrains Mono
+
+## External Dependencies
+
+### GSAP (Optional)
+The landing page shoji screen animation requires GSAP for smooth door sliding effects.
+
+```html
+<!-- Add before closing </body> tag -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+```
+
+**TypeScript usage:**
+```typescript
+import { animateLandingReveal, LANDING_CLASSES } from '@design-system/tokens';
+
+// Elements
+const shojiLeft = document.querySelector(`.${LANDING_CLASSES.shojiLeft}`);
+const shojiRight = document.querySelector(`.${LANDING_CLASSES.shojiRight}`);
+const contentCard = document.querySelector(`.${LANDING_CLASSES.contentCard}`);
+
+// Animate reveal on click
+animateLandingReveal(shojiLeft, shojiRight, contentCard);
+```
+
+> **Note**: If GSAP is not loaded, the landing animation gracefully falls back to a simple fade-in.
 
 ## Usage
 
@@ -211,6 +246,193 @@ Each persona has unique accent colors:
 | jordan-taylor | Orange (#fb923c) | Life Planning |
 
 Set persona: `<body data-persona="jack-bogle">`
+
+## Premium Features
+
+### Time-Aware Ambient Warmth
+The UI automatically adjusts warmth based on time of day, creating a WALL-E style "living light":
+
+| Time | Effect |
+|------|--------|
+| Dawn (5-7am) | Golden pink warmth |
+| Morning (7-11am) | Warm gold |
+| Midday (11am-2pm) | Neutral (no tint) |
+| Afternoon (2-5pm) | Slight warmth |
+| Evening (5-9pm) | Amber glow |
+| Night (9pm-5am) | Cool, calm |
+
+```typescript
+import { startAmbientCycle, getAmbientInfo } from './theme';
+
+// Start automatic updates (every 5 minutes)
+startAmbientCycle();
+
+// Get current time info
+const { timeOfDay, config } = getAmbientInfo();
+```
+
+### Pixar Animation Philosophy
+
+Our animations follow the **12 Principles of Animation** from Disney/Pixar, adapted for UI. This makes our AI personas feel alive and human.
+
+#### The 12 Principles Applied
+
+| # | Principle | Description | Our Implementation |
+|---|-----------|-------------|-------------------|
+| 1 | **Squash & Stretch** | Objects deform based on speed/mass | Avatar compresses horizontally when stretching vertically (`scaleX: 0.988` when `scaleY: 1.025`) |
+| 2 | **Anticipation** | Wind-up before action | 80ms "wind up" before reactions (slight scale down) |
+| 3 | **Staging** | Clear visual hierarchy | Single animation system - no competing animations |
+| 4 | **Straight Ahead** | Continuous motion | Continuous breathing animation, always alive |
+| 5 | **Follow-Through** | Overshoot and settle | All reactions have 92% settle keyframe before return |
+| 6 | **Slow In/Out** | Natural acceleration | Custom easing on all animations - never linear |
+| 7 | **Arcs** | Natural curved paths | `translateY` creates gentle lift during breathing |
+| 8 | **Secondary Action** | Supporting movements | Glow brightness pulse slightly out of phase with breathing |
+| 9 | **Timing** | Speed conveys weight | Different speeds per state (5s idle, 3s speaking) |
+| 10 | **Exaggeration** | Push for clarity | Pushed movements just enough to feel alive (1.025 scale when speaking) |
+| 11 | **Solid Drawing** | Weight and depth | Consistent `transform-origin: center center` |
+| 12 | **Appeal** | Likeable characters | WALL-E inspired curious eye-tracking |
+
+#### Avatar Squash & Stretch Parameters
+
+From `animation.json` - use these values for consistent avatar animations:
+
+```typescript
+import { AVATAR_SQUASH_STRETCH, getAvatarParams } from 'design-system/dist/tokens';
+
+// Get params for current state
+const params = getAvatarParams('speaking');
+// { scaleY: 1.025, scaleX: 0.988, translateY: -3, rotate: 0.8 }
+```
+
+| State | scaleY | scaleX | translateY | rotate |
+|-------|--------|--------|------------|--------|
+| idle | 1.012 | 0.994 | -1.5px | 0.3° |
+| connected | 1.018 | 0.991 | -2px | 0.5° |
+| speaking | 1.025 | 0.988 | -3px | 0.8° |
+| listening | 1.015 | 0.993 | -1.8px | -0.4° |
+
+#### Golden Ratio Timing
+
+All animations use timing based on the golden ratio (φ = 1.618) for natural rhythm:
+
+```typescript
+import { PHI, PHI_INVERSE, FIBONACCI_TIMING } from 'design-system/dist/tokens';
+
+// φ = 1.618033988749895
+// Fibonacci sequence for timing: 233ms, 377ms, 610ms, 987ms, 1597ms
+```
+
+#### Avatar Animation CSS Classes
+
+```html
+<!-- Reactions (apply to avatar container) -->
+<div class="avatar-container animate-avatar-nod">...</div>
+<div class="avatar-container animate-avatar-shake">...</div>
+<div class="avatar-container animate-avatar-bounce">...</div>
+<div class="avatar-container animate-avatar-pulse">...</div>
+<div class="avatar-container animate-avatar-curious">...</div>
+<div class="avatar-container animate-avatar-attentive">...</div>
+
+<!-- Continuous animations -->
+<div class="animate-pixar-breathe">Living presence</div>
+<div class="animate-pixar-float">Floating like balloons in Up</div>
+
+<!-- Thinking dots with stagger -->
+<div class="avatar-dots">
+  <span class="animate-pixar-bounce">●</span>
+  <span class="animate-pixar-bounce">●</span>
+  <span class="animate-pixar-bounce">●</span>
+</div>
+```
+
+#### Persona Animation Profiles
+
+Each persona has a distinct animation personality (see `animation.json`):
+
+| Persona | Inspiration | Timing | Bounciness | Style |
+|---------|-------------|--------|------------|-------|
+| Ferni | WALL-E (curious, gentle) | 1.0x | High (0.7) | Playful, warm |
+| Jack Bogle | Carl from Up (wise) | 1.4x | Low (0.3) | Measured, deliberate |
+| Peter Lynch | Linguini (energetic) | 0.8x | Medium (0.6) | Quick, practical |
+| Alex Chen | Joy (warm, articulate) | 1.1x | Medium (0.5) | Smooth, empathetic |
+| Maya Santos | EVE (focused) | 0.95x | Low (0.4) | Methodical |
+| Jordan Taylor | Dory (joyful) | 0.85x | High (0.8) | Expressive |
+
+#### Pixar Keyframes (Full List)
+
+```css
+/* Avatar reactions with squash & stretch */
+@keyframes avatarNod { /* Agreement - like WALL-E acknowledging */ }
+@keyframes avatarShake { /* Gentle disagreement */ }
+@keyframes avatarBounce { /* Luxo Jr. excited hop */ }
+@keyframes avatarPulse { /* Warm heartbeat acknowledgment */ }
+@keyframes avatarCuriousTilt { /* WALL-E examining something */ }
+@keyframes avatarAttentiveLean { /* Focused listening */ }
+
+/* General Pixar animations */
+@keyframes pixarBounce { /* Full squash & stretch bounce */ }
+@keyframes pixarBreathe { /* Living organic breathing */ }
+@keyframes pixarFloat { /* Balloons in Up */ }
+@keyframes pixarJoyBounce { /* Excited hop */ }
+@keyframes pixarAnticipate { /* Wind-up before action */ }
+@keyframes pixarSettle { /* Overshoot and settle */ }
+@keyframes pixarThinkingTilt { /* Curious head tilt */ }
+@keyframes pixarAttention { /* Snap to attention - like EVE */ }
+@keyframes pixarSadSlump { /* Weight of sadness */ }
+```
+
+#### Using in TypeScript
+
+```typescript
+import {
+  PHI,
+  PHI_INVERSE,
+  AVATAR_SQUASH_STRETCH,
+  AVATAR_BREATH_TIMING,
+  REACTION_PHASES,
+  getAvatarParams,
+} from 'design-system/dist/tokens';
+
+// Create Pixar-style breathing animation
+function createBreathingKeyframes(state: 'idle' | 'speaking') {
+  const p = getAvatarParams(state);
+  return [
+    { transform: 'scale3d(1, 1, 1) translate3d(0, 0, 0)' },
+    { transform: \`scale3d(\${p.scaleX}, \${p.scaleY}, 1) translate3d(0, \${p.translateY}px, 0) rotate(\${p.rotate}deg)\` },
+    { transform: 'scale3d(1, 1, 1) translate3d(0, 0, 0)' },
+  ];
+}
+
+// Apply with Web Animations API
+avatarElement.animate(createBreathingKeyframes('speaking'), {
+  duration: parseInt(AVATAR_BREATH_TIMING.speaking),
+  iterations: Infinity,
+  easing: 'cubic-bezier(0.45, 0, 0.55, 1)',
+});
+```
+
+### WALL-E Inspired Animations
+CSS classes for delightful micro-interactions:
+
+| Class | Effect |
+|-------|--------|
+| `.breathing` | Gentle idle animation (avatar breathes) |
+| `.blink-animation` | Eye blink effect |
+| `.curious-hover` | Curious head tilt on hover |
+| `.excited` | Happy wiggle |
+| `.happy-bounce` | Bounce for positive events |
+| `.sad-droop` | Sympathetic droop |
+| `.eve-float` | Smooth floating (like EVE) |
+| `.thinking-animation` | Thoughtful lean |
+| `.attention` | Attention grab |
+
+### Magnetic Hover
+Buttons "reach toward" the cursor like WALL-E's curiosity:
+
+```typescript
+// Automatically enabled for .btn-magnetic, .btn-primary, .btn-connect
+// CSS variables --magnetic-x and --magnetic-y are updated on mousemove
+```
 
 ## Testing
 

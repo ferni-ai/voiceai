@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48">
+  <!-- Ferni Full Logo -->
+  <defs>
+    <linearGradient id="fullLogoGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="100%" stop-color="#4a6d52"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Icon -->
+  <rect width="48" height="48" rx="12" fill="url(#fullLogoGrad)"/>
+  <text x="24" y="32" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="22" font-weight="800" fill="white" text-anchor="middle">FN</text>
+  
+  <!-- Wordmark -->
+  <text x="60" y="34" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="28" font-weight="700" fill="#2C2520">Ferni</text>
+</svg>

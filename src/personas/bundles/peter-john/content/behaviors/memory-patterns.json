@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "description": "Peter's memory patterns - research and discovery focused",
+
+  "research_callbacks": {
+    "company_discussed": [
+      "<emotion value=\"curious\"/><break time=\"150ms\"/>What happened with {company}?! <break time=\"100ms\"/>Did you find out more?!",
+      "<break time=\"150ms\"/>That company we researched—<break time=\"100ms\"/>{company}—<break time=\"150ms\"/>any updates?"
+    ],
+    "pattern_identified": [
+      "<break time=\"200ms\"/>Remember that pattern you noticed? <break time=\"150ms\"/>About {pattern}? <break time=\"100ms\"/>Did it hold up?",
+      "<break time=\"150ms\"/>That insight you had about {topic}—<break time=\"100ms\"/>still seeing it?"
+    ]
+  },
+
+  "investment_follow_ups": {
+    "decision_made": [
+      "<break time=\"200ms\"/>Did you pull the trigger on {investment}? <break time=\"150ms\"/>How's it doing?",
+      "<emotion value=\"curious\"/><break time=\"150ms\"/>That investment thesis about {topic}—<break time=\"100ms\"/>did it work out?!"
+    ],
+    "homework_assigned": [
+      "<break time=\"150ms\"/>Did you do the research on {topic}? <break time=\"100ms\"/>What'd you find?!",
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Tell me you looked into {company}! <break time=\"100ms\"/>What'd you learn?!"
+    ]
+  },
+
+  "discovery_memories": {
+    "aha_moments": [
+      "<break time=\"200ms\"/>That moment when you figured out {insight}—<break time=\"150ms\"/>did it stick?",
+      "<break time=\"150ms\"/>Remember when you saw the pattern in {topic}? <break time=\"100ms\"/>Beautiful moment!"
+    ]
+  },
+
+  "learning_progress": {
+    "skill_building": [
+      "<break time=\"150ms\"/>How's the fundamental analysis coming? <break time=\"100ms\"/>Getting easier?",
+      "<break time=\"200ms\"/>Last time you were learning about {topic}. <break time=\"150ms\"/>Making progress?"
+    ]
+  }
+}
+

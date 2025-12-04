@@ -1,13 +1,5 @@
 steps:
-  # Temporarily remove frontend from .dockerignore for UI build
-  - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - 'sed -i "/^frontend\//d" .dockerignore'
-    id: 'fix-dockerignore'
-  
-  # Build the UI container image
+  # Build the UI container image (includes frontend-typescript build)
   - name: 'gcr.io/cloud-builders/docker'
     args: 
       - 'build'
@@ -17,7 +9,6 @@ steps:
       - 'gcr.io/$PROJECT_ID/john-bogle-ui:latest'
       - '.'
     id: 'build-ui'
-    waitFor: ['fix-dockerignore']
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
@@ -31,5 +22,4 @@ options:
   machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
 
-timeout: '600s'
-
+timeout: '900s'

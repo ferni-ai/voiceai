@@ -2,7 +2,12 @@
  * Persona Type Definitions
  * 
  * Defines the structure for AI personas used in the Voice AI application.
- * Follows the backend PersonaConfig schema for consistency.
+ * Uses canonical IDs that match backend PersonaConfig schema.
+ * 
+ * REFACTOR TODO #100: Create a shared package (e.g., @voiceai/persona-types) that
+ * exports PersonaId, KNOWN_PERSONA_IDS, and LEGACY_TO_CANONICAL_MAP for use by
+ * both frontend and backend. This would eliminate the need to keep them in sync
+ * manually and ensure type consistency across the codebase.
  */
 
 // ============================================================================
@@ -10,28 +15,76 @@
 // ============================================================================
 
 /**
- * Valid persona identifiers.
- * Must match backend persona registry.
+ * Valid persona identifiers - canonical IDs used everywhere.
  */
-export type PersonaId = 
-  | 'jack-b' 
-  | 'jack-bogle' 
+export type PersonaId =
+  | 'ferni'
+  | 'alex-chen'
+  | 'maya-santos'
+  | 'jordan-taylor'
   | 'peter-lynch'
-  | 'comm-specialist'
-  | 'spend-save'
-  | 'event-planner';
+  | 'nayan-patel';
 
 /**
  * List of all known persona IDs for validation
  */
 const KNOWN_PERSONA_IDS: readonly string[] = [
-  'jack-b',
-  'jack-bogle', 
+  'ferni',
+  'alex-chen',
+  'maya-santos',
+  'jordan-taylor',
   'peter-lynch',
-  'comm-specialist',
-  'spend-save',
-  'event-planner',
+  'nayan-patel',
 ] as const;
+
+/**
+ * Legacy ID to canonical ID mapping for backward compatibility.
+ * Maps old IDs to canonical IDs.
+ * 
+ * FIX BUG #30: This should stay in sync with:
+ * - Backend: src/tools/handoff/state.ts (toCanonicalId mapping)
+ * - Backend: src/personas/voice-registry.ts
+ */
+export const LEGACY_TO_CANONICAL_MAP: Record<string, PersonaId> = {
+  // Ferni legacy aliases
+  'jack-b': 'ferni',
+  'coach': 'ferni',
+  'life-coach': 'ferni',
+  // Alex legacy aliases
+  'comm-specialist': 'alex-chen',
+  'comm': 'alex-chen',
+  'alex': 'alex-chen',
+  // Maya legacy aliases
+  'spend-save': 'maya-santos',
+  'maya': 'maya-santos',
+  'debt-counselor': 'maya-santos',
+  // Jordan legacy aliases
+  'event-planner': 'jordan-taylor',
+  'jordan': 'jordan-taylor',
+  'retirement-specialist': 'jordan-taylor',
+  // Peter Lynch aliases
+  'peter': 'peter-lynch',
+  'lynch': 'peter-lynch',
+  // Nayan Patel aliases
+  'nayan': 'nayan-patel',
+  'patel': 'nayan-patel',
+  'guru': 'nayan-patel',
+  'mystic': 'nayan-patel',
+  'lifetime-advisor': 'nayan-patel',
+  'sage': 'nayan-patel',
+  'wisdom': 'nayan-patel',
+  // Legacy alias for backward compatibility
+  'jaggi': 'nayan-patel',
+  'jaggi-vasudev': 'nayan-patel',
+};
+
+/**
+ * Convert a legacy persona ID to canonical format
+ */
+export function normalizePersonaId(id: string): PersonaId {
+  if (isValidPersonaId(id)) return id;
+  return LEGACY_TO_CANONICAL_MAP[id] || 'ferni';
+}
 
 /**
  * Type guard to check if a value is a valid PersonaId
@@ -50,9 +103,10 @@ export function isValidPersonaId(value: unknown): value is PersonaId {
 /**
  * Role classification for personas.
  * - coach: Main AI assistant (Ferni)
- * - team: Specialist advisors (Jack Bogle, Peter Lynch)
+ * - team: Specialist advisors (Jack Bogle, Peter Lynch, etc.)
+ * - standalone: Single-persona experiences (Joel Dickson, etc.)
  */
-export type PersonaRole = 'coach' | 'team';
+export type PersonaRole = 'coach' | 'team' | 'standalone';
 
 // ============================================================================
 // PERSONA CONFIG
@@ -86,7 +140,7 @@ export interface PersonaSkill {
  * Complete persona configuration for UI rendering.
  */
 export interface PersonaConfig {
-  /** Unique identifier */
+  /** Unique identifier (canonical) */
   readonly id: PersonaId;
 
   /** Display name */
@@ -139,17 +193,17 @@ export type PersonaRegistry = Readonly<Record<PersonaId, PersonaConfig>>;
 /**
  * The default/coach persona ID.
  */
-export const DEFAULT_PERSONA_ID: PersonaId = 'jack-b';
+export const DEFAULT_PERSONA_ID: PersonaId = 'ferni';
 
 /**
- * All available persona IDs for iteration.
+ * Core team persona IDs (built-in, not from marketplace).
+ * Jack Bogle and Joel Dickson are available through the Agent Marketplace.
  */
 export const ALL_PERSONA_IDS: readonly PersonaId[] = [
-  'jack-b',
-  'jack-bogle',
+  'ferni',
   'peter-lynch',
-  'comm-specialist',
-  'spend-save',
-  'event-planner',
+  'alex-chen',
+  'maya-santos',
+  'jordan-taylor',
+  'nayan-patel',
 ] as const;
-

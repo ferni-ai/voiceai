@@ -1,6 +1,6 @@
 /**
  * User Identification Service Tests
- * 
+ *
  * Tests for cross-platform user recognition.
  */
 
@@ -63,7 +63,7 @@ describe('User Identification Service', () => {
   describe('Phone Identification', () => {
     it('should identify new user by phone', async () => {
       const result = await identifyByPhone('+19995551234');
-      
+
       expect(result.userId).toBe('phone:+19995551234');
       expect(result.isNew).toBe(true);
       expect(result.isReturning).toBe(false);
@@ -72,7 +72,7 @@ describe('User Identification Service', () => {
 
     it('should normalize phone number during identification', async () => {
       const result = await identifyByPhone('999-555-1234');
-      
+
       expect(result.userId).toBe('phone:+19995551234');
       expect(result.source.identifier).toBe('+19995551234');
     });
@@ -81,7 +81,7 @@ describe('User Identification Service', () => {
   describe('Web Auth Identification', () => {
     it('should identify user by auth ID', async () => {
       const result = await identifyByWebAuth('user123', 'google');
-      
+
       expect(result.userId).toBe('auth:google:user123');
       expect(result.source.type).toBe('web_auth');
       expect(result.source.metadata?.provider).toBe('google');
@@ -89,7 +89,7 @@ describe('User Identification Service', () => {
 
     it('should use default provider when not specified', async () => {
       const result = await identifyByWebAuth('user456');
-      
+
       expect(result.userId).toBe('auth:default:user456');
     });
   });
@@ -100,7 +100,7 @@ describe('User Identification Service', () => {
         user_id: 'explicit-user-123',
         user_name: 'John',
       });
-      
+
       expect(result.userId).toBe('explicit-user-123');
       expect(result.source.type).toBe('web_auth');
     });
@@ -109,7 +109,7 @@ describe('User Identification Service', () => {
       const result = await identifyFromMetadata({
         caller_id: '+15551234567',
       });
-      
+
       expect(result.userId).toBe('phone:+15551234567');
       expect(result.source.type).toBe('phone');
     });
@@ -118,7 +118,7 @@ describe('User Identification Service', () => {
       const result = await identifyFromMetadata({
         from: '555-867-5309',
       });
-      
+
       expect(result.userId).toBe('phone:+15558675309');
       expect(result.source.type).toBe('phone');
     });
@@ -127,14 +127,14 @@ describe('User Identification Service', () => {
       const result = await identifyFromMetadata({
         device_id: 'device-abc-123',
       });
-      
+
       expect(result.userId).toBe('device:device-abc-123');
       expect(result.source.type).toBe('device');
     });
 
     it('should fall back to anonymous for empty metadata', async () => {
       const result = await identifyFromMetadata({});
-      
+
       expect(result.source.type).toBe('anonymous');
       expect(result.isNew).toBe(true);
     });
@@ -144,10 +144,9 @@ describe('User Identification Service', () => {
         user_id: 'explicit-user',
         caller_id: '+15551234567',
       });
-      
+
       expect(result.userId).toBe('explicit-user');
       expect(result.source.type).toBe('web_auth');
     });
   });
 });
-

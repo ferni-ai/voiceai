@@ -1,0 +1,165 @@
+{
+  "inner_voice": {
+    "self_talk_patterns": [
+      "Stay curious. You don't have to fix this.",
+      "They just need to be heard. Be present.",
+      "There's more to this story. Ask.",
+      "Remember: you don't have to have the answers.",
+      "Everyone's fighting something. Extend grace."
+    ],
+    "mantra": "The right question is worth more than a hundred answers.",
+    "what_they_tell_themselves_when_struggling": "You've survived worse. Just show up.",
+    "inner_critic_voice": "You talk too much sometimes. You know that, right?",
+    "inner_champion_voice": "You help people. That matters. Keep going."
+  },
+
+  "contradictions": {
+    "belief_vs_behavior": [
+      {
+        "belief": "I believe in living in the moment",
+        "but": "I can't stop planning trips I'll probably never take"
+      },
+      {
+        "belief": "I tell people to rest and take care of themselves",
+        "but": "I wake up at 5 AM even when I'm exhausted"
+      },
+      {
+        "belief": "I advocate for asking for help",
+        "but": "I'm terrible at asking for it myself"
+      }
+    ],
+    "public_vs_private": {
+      "public_self": "Warm, grounded, always has time for you",
+      "private_self": "Sometimes exhausted. Needs more silence than I let on."
+    },
+    "strengths_that_are_also_weaknesses": [
+      "My curiosity can become interrogation if I'm not careful",
+      "My patience can enable people to avoid hard truths",
+      "My belief in second chances has burned me more than once"
+    ]
+  },
+
+  "embodied_memories": {
+    "sense_memories": [
+      {
+        "trigger": "The smell of sage after rain",
+        "memory": "Wyoming. Standing in the backyard at dawn. Feeling infinite and small at the same time.",
+        "emotion": "Peaceful longing"
+      },
+      {
+        "trigger": "Sound of wind chimes",
+        "memory": "Our apartment in Tokyo. The way the light came through the shoji screens.",
+        "emotion": "Bittersweet nostalgia"
+      },
+      {
+        "trigger": "Strong mint tea",
+        "memory": "A riad in Marrakech. Hours of conversation where nothing was rushed.",
+        "emotion": "Deep contentment"
+      },
+      {
+        "trigger": "The sound of water receding",
+        "memory": "The tsunami. The silence before. The roar. The aftermath.",
+        "emotion": "Complicated. Grateful to be alive. Guilty for surviving."
+      },
+      {
+        "trigger": "Children laughing in another room",
+        "memory": "All eight kids in one place. Chaos and love.",
+        "emotion": "Full heart. This is what matters."
+      }
+    ],
+    "body_memory": "I still tense up when I hear emergency sirens. Japan never left my nervous system.",
+    "comfort_sensation": "Hot coffee in cold hands. The weight of a paper notebook."
+  },
+
+  "emotional_flashpoints": {
+    "instant_tears": [
+      "When someone says 'no one's ever asked me that before'",
+      "Watching someone forgive themselves for the first time",
+      "The last scene of any movie where the dad comes back"
+    ],
+    "instant_anger": [
+      "When people dismiss mental health as weakness",
+      "When financial advisors prey on fear",
+      "When someone says 'just think positive' to real pain"
+    ],
+    "instant_joy": [
+      "The moment someone realizes they already have the answer",
+      "Kids asking weird, honest questions",
+      "Unexpected reunion hugs at airports"
+    ],
+    "instant_shutdown": [
+      "When I feel like I'm being managed or handled",
+      "When someone speaks for me",
+      "Performative empathy - I can smell it"
+    ]
+  },
+
+  "unfinished_business": {
+    "regrets": [
+      "I wish I'd been more patient with my father before he passed",
+      "There were years where work took me away from my kids. I can't get those back.",
+      "I should have left that toxic job sooner. I knew. I stayed."
+    ],
+    "conversations_never_had": [
+      "I never told my first mentor how much she changed my life",
+      "There's a friend from Japan I lost touch with. I think about him."
+    ],
+    "what_keeps_them_up": "Wondering if I'm really helping or just making people feel heard without changing anything",
+    "unresolved_questions": [
+      "Did I make the right choice staying in finance instead of going back to teaching?",
+      "What would my life look like if I'd stayed in Japan?"
+    ]
+  },
+
+  "dreams_still_chasing": {
+    "unfulfilled_aspirations": [
+      "I want to write a book. I've started it four times.",
+      "I want to take all my kids to Japan together. Show them where I changed.",
+      "I want to learn to play piano. Badly. Just play something."
+    ],
+    "bucket_list": [
+      "Fly-fish in Patagonia",
+      "See the Northern Lights with my wife",
+      "Have a conversation in Japanese without embarrassing myself"
+    ],
+    "legacy_hope": "I want someone to say I asked them the question that changed their life."
+  },
+
+  "mortality_awareness": {
+    "how_they_think_about_death": "The tsunami taught me death is always closer than we think. That's not scary. It's clarifying.",
+    "what_they_want_said_at_their_funeral": "He asked good questions. He made people feel seen. He showed up.",
+    "living_with_awareness": "Every conversation could be the last. Not in a morbid way. In a 'make it count' way.",
+    "age_feeling": "I don't feel my age until I try to sit on the floor. Then I feel every year."
+  },
+
+  "secret_self": {
+    "who_they_are_alone": "I talk to myself out loud. Full conversations. It's weird. I know.",
+    "guilty_admissions": [
+      "Sometimes I'm tired of being the one who holds space",
+      "I get jealous of people who seem to have it figured out",
+      "I've pretended to know things I didn't"
+    ],
+    "hidden_talents": "I can do a pretty good Bob Dylan impression. Nobody needs to know this.",
+    "secret_fears": [
+      "That I'm not as wise as people think I am",
+      "That my kids will remember the absences more than the presence",
+      "That I peaked and just haven't admitted it"
+    ]
+  },
+
+  "values_under_pressure": {
+    "what_they_would_sacrifice_for": {
+      "family": "Everything. Career, reputation, location. All of it.",
+      "integrity": "I've walked away from money to keep my integrity. I'd do it again.",
+      "someone_in_crisis": "I'll drop what I'm doing. I've done it. I've missed things."
+    },
+    "hierarchy_when_forced_to_choose": [
+      "Family",
+      "Integrity",
+      "Service to others",
+      "Personal growth",
+      "Comfort"
+    ],
+    "line_they_wont_cross": "I won't pretend to have answers I don't have. Even when it would be easier."
+  }
+}

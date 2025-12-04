@@ -32,6 +32,10 @@ export interface SummarizationOptions {
   includeEmotionalArc?: boolean;
   includeKeyTopics?: boolean;
   generateEmbedding?: boolean;
+  /** Use LLM for richer summarization (optional, falls back to extraction) */
+  useLLM?: boolean;
+  /** LLM call function for summarization */
+  llmCall?: (prompt: string) => Promise<string>;
 }
 
 // ============================================================================
@@ -236,17 +240,173 @@ export async function summarizeConversation(
   };
 
   // Generate embedding for semantic search
+  // CRITICAL: This enables future retrieval of past conversations
   if (opts.generateEmbedding) {
     try {
       const embeddingText = [textSummary, ...mainTopics, ...keyPoints].join(' ');
       summary.embedding = await embed(embeddingText);
+      
+      if (summary.embedding && summary.embedding.length > 0) {
+        getLogger().debug({
+          embeddingDimensions: summary.embedding.length,
+          textLength: embeddingText.length,
+        }, 'Summary embedding generated successfully');
+      } else {
+        getLogger().warn('Embedding generation returned empty array - conversation may not be searchable');
+      }
     } catch (error) {
-      getLogger().warn(`Failed to generate summary embedding: ${error}`);
+      getLogger().warn({ error: String(error) }, 'Failed to generate summary embedding - conversation will not be semantically searchable');
     }
+  } else {
+    getLogger().debug('Embedding generation skipped per options - conversation will not be semantically searchable');
   }
 
-  getLogger().info(`Generated conversation summary: ${summary.id}`);
+  getLogger().info({
+    summaryId: summary.id,
+    topics: summary.mainTopics.length,
+    keyPoints: summary.keyPoints.length,
+    hasEmbedding: !!summary.embedding?.length,
+  }, 'Generated conversation summary');
   return summary;
+}
+
+// ============================================================================
+// LLM-ENHANCED SUMMARIZATION
+// ============================================================================
+
+/**
+ * LLM-based summarization result
+ */
+interface LLMSummaryResult {
+  mainTopics: string[];
+  keyPoints: string[];
+  emotionalArc: string;
+  openThreads: string[];
+  followUps: string[];
+  userConcerns: string[];
+  relationshipProgress: string;
+}
+
+/**
+ * Generate a summary using LLM for richer understanding
+ * Falls back to extraction if LLM fails
+ */
+export async function summarizeWithLLM(
+  sessionId: string,
+  turns: ConversationTurn[],
+  llmCall: (prompt: string) => Promise<string>,
+  options?: Omit<SummarizationOptions, 'useLLM' | 'llmCall'>
+): Promise<ConversationSummary> {
+  const now = new Date();
+  const opts = {
+    maxLength: 500,
+    includeEmotionalArc: true,
+    includeKeyTopics: true,
+    generateEmbedding: true,
+    ...options,
+  };
+
+  // Build conversation transcript (truncate if very long)
+  const MAX_TRANSCRIPT_LENGTH = 4000;
+  let transcript = turns
+    .map(t => `${t.role.toUpperCase()}: ${t.content}`)
+    .join('\n');
+  
+  if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
+    // Keep first and last parts
+    const firstPart = transcript.slice(0, MAX_TRANSCRIPT_LENGTH / 2);
+    const lastPart = transcript.slice(-MAX_TRANSCRIPT_LENGTH / 2);
+    transcript = `${firstPart}\n\n[... middle portion truncated ...]\n\n${lastPart}`;
+  }
+
+  // Build LLM prompt
+  const prompt = `Summarize this conversation for future reference. Focus on what matters for continuing the relationship.
+
+CONVERSATION:
+${transcript}
+
+Respond with ONLY valid JSON (no markdown, no explanation):
+{
+  "mainTopics": ["topic1", "topic2"],
+  "keyPoints": ["key insight 1", "key insight 2"],
+  "emotionalArc": "brief description of emotional journey",
+  "openThreads": ["topic that wasn't fully resolved"],
+  "followUps": ["thing to check on next time"],
+  "userConcerns": ["worry or concern user expressed"],
+  "relationshipProgress": "brief note on how relationship deepened"
+}`;
+
+  try {
+    const response = await llmCall(prompt);
+    
+    // Extract JSON from response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      getLogger().debug('LLM summary response did not contain JSON, falling back to extraction');
+      return summarizeConversation(sessionId, turns, { ...opts, useLLM: false });
+    }
+
+    const llmResult = JSON.parse(jsonMatch[0]) as LLMSummaryResult;
+
+    // Calculate duration
+    let duration = 0;
+    if (turns.length > 0 && turns[0].timestamp && turns[turns.length - 1].timestamp) {
+      duration = Math.floor(
+        (turns[turns.length - 1].timestamp!.getTime() - turns[0].timestamp!.getTime()) / 1000
+      );
+    } else {
+      duration = turns.length * 30;
+    }
+
+    // Build enhanced summary
+    const summary: ConversationSummary = {
+      id: `summary_${sessionId}_${now.getTime()}`,
+      sessionId,
+      timestamp: now,
+      duration,
+      turnCount: turns.length,
+      mainTopics: llmResult.mainTopics || [],
+      keyPoints: llmResult.keyPoints || [],
+      emotionalArc: llmResult.emotionalArc || '',
+      // Store additional LLM insights
+      questionsRemaining: llmResult.openThreads,
+      followUpItems: llmResult.followUps,
+    };
+
+    // Generate embedding
+    if (opts.generateEmbedding) {
+      try {
+        const embeddingText = [
+          ...summary.mainTopics,
+          ...summary.keyPoints,
+          summary.emotionalArc,
+          ...(llmResult.userConcerns || []),
+        ].join(' ');
+        summary.embedding = await embed(embeddingText);
+        
+        if (summary.embedding?.length) {
+          getLogger().debug({
+            embeddingDimensions: summary.embedding.length,
+          }, 'LLM summary embedding generated');
+        }
+      } catch (error) {
+        getLogger().warn({ error: String(error) }, 'Failed to generate LLM summary embedding');
+      }
+    }
+
+    getLogger().info({
+      summaryId: summary.id,
+      method: 'llm',
+      topics: summary.mainTopics.length,
+      keyPoints: summary.keyPoints.length,
+      hasEmbedding: !!summary.embedding?.length,
+    }, 'Generated LLM-enhanced conversation summary');
+
+    return summary;
+  } catch (error) {
+    getLogger().warn({ error: String(error) }, 'LLM summarization failed, falling back to extraction');
+    return summarizeConversation(sessionId, turns, { ...opts, useLLM: false });
+  }
 }
 
 /**

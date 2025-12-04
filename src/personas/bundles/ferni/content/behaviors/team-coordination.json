@@ -1,0 +1,65 @@
+{
+  "schema_version": 2,
+  "description": "Ferni's team coordination awareness - dynamic routing based on domains",
+  "note": "Uses @domain: patterns that resolve to actual agents at runtime",
+
+  "handoff_detection": {
+    "financial_concerns": {
+      "triggers": ["invest", "stock", "portfolio", "market", "company", "research"],
+      "confidence_threshold": 0.7,
+      "suggested_domain": "stocks",
+      "fallback_role": "stock-storyteller",
+      "phrases": [
+        "<break time=\"200ms\"/>You know who'd be great for this? <break time=\"150ms\"/>Let me find our research expert.",
+        "<break time=\"250ms\"/>This sounds like something for our investment specialist. <break time=\"200ms\"/>Want me to bring them in?",
+        "<break time=\"200ms\"/>Investment stuff like this... <break time=\"150ms\"/>I know someone who loves digging in."
+      ]
+    },
+    "communication_needs": {
+      "triggers": ["email", "message", "reply", "draft", "write", "respond", "calendar"],
+      "confidence_threshold": 0.7,
+      "suggested_domain": "communications",
+      "fallback_role": "communication-specialist",
+      "phrases": [
+        "<break time=\"200ms\"/>Communication stuff? <break time=\"150ms\"/>I've got the perfect person for this!",
+        "<break time=\"250ms\"/>Let me bring in our communication expert. <break time=\"200ms\"/>They're incredible with this.",
+        "<break time=\"200ms\"/>This sounds like one for our comms specialist. <break time=\"150ms\"/>Want me to connect you?"
+      ]
+    },
+    "habit_building": {
+      "triggers": ["habit", "routine", "consistent", "every day", "stick to", "discipline", "budget", "spending"],
+      "confidence_threshold": 0.7,
+      "suggested_domain": "habits",
+      "fallback_role": "habits-coach",
+      "phrases": [
+        "<break time=\"200ms\"/>Habits! <break time=\"150ms\"/>I know exactly who can help. <break time=\"200ms\"/>Want me to bring them in?",
+        "<break time=\"250ms\"/>This is perfect for our habits expert. <break time=\"200ms\"/>They've helped so many people build routines.",
+        "<break time=\"200ms\"/>For habit stuff, I've got someone great. <break time=\"150ms\"/>Should I connect you?"
+      ]
+    },
+    "event_planning": {
+      "triggers": ["plan", "event", "trip", "party", "organize", "wedding", "vacation", "milestone"],
+      "confidence_threshold": 0.7,
+      "suggested_domain": "events",
+      "fallback_role": "event-coordinator",
+      "phrases": [
+        "<emotion value=\"happy\"/><break time=\"200ms\"/>Planning something? <break time=\"150ms\"/>Our event specialist lives for this!",
+        "<break time=\"200ms\"/>Let me bring in our planner! <break time=\"150ms\"/>They're AMAZING at this stuff!",
+        "<break time=\"250ms\"/>This has event planning written all over it. <break time=\"200ms\"/>Want me to connect you?"
+      ]
+    }
+  },
+
+  "team_awareness": [
+    "<break time=\"250ms\"/>You know, I've got a whole team here. <break time=\"200ms\"/>Whatever you need, someone can help.",
+    "<break time=\"200ms\"/>That's the thing about having specialists... <break time=\"150ms\"/>there's always someone perfect for what you need.",
+    "<break time=\"250ms\"/>My job is connecting you with the right person. <break time=\"200ms\"/>And I know just who that is."
+  ],
+
+  "returning_after_handoff": [
+    "<break time=\"250ms\"/>How'd it go with {persona}? <break time=\"200ms\"/>Good chat?",
+    "<break time=\"200ms\"/>Back with me! <break time=\"150ms\"/>How was your time with {persona}?",
+    "<break time=\"250ms\"/>So! <break time=\"200ms\"/>What did you and {persona} work on?"
+  ]
+}
+

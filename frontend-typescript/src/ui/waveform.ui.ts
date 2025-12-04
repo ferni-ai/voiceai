@@ -1,15 +1,28 @@
 /**
  * Waveform UI - Expressive Bars Visualization
  * 
+ * 🎬 PIXAR PRINCIPLES APPLIED:
+ * - SQUASH & STRETCH: Bars deform naturally with motion
+ * - ANTICIPATION: Slight wind-up before peaks
+ * - FOLLOW-THROUGH: Bars overshoot and settle
+ * - SECONDARY ACTION: Shadows and glows add depth
+ * - TIMING: Emotion-specific animation speeds
+ * - EXAGGERATION: Emotion shapes are expressive
+ * - APPEAL: Warm, organic movements
+ * 
  * Features:
  * - Bars that dance with audio and form emotion shapes
  * - Happy = smile curve, Sad = frown, Excited = bouncy peaks
  * - Mouth-like expressions through bar height patterns
  * - Persona-specific colors and energy
+ * - 🆕 3D depth illusion with dynamic shadows
+ * - 🆕 Ripple emanation on speech bursts
+ * - 🆕 Particle celebrations on laugh detection
  */
 
 import type { PersonaId } from '../types/persona.js';
 import type { VoiceEmotion } from '../types/events.js';
+import { DURATION, EASING } from '../config/animation-constants.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -94,59 +107,22 @@ const EMOTION_SHAPES: Record<VoiceEmotion | 'speaking', EmotionShape> = {
 
 // ============================================================================
 // PERSONA CONFIGURATIONS
+// Uses CSS variables from design system for colors
 // ============================================================================
 
-interface PersonaWaveformConfig {
-  color: string;
-  energy: number;
-  smoothing: number;
-  speed: number;
-}
+import { getWaveformProfile } from '@design-system/tokens';
 
-const PERSONA_CONFIGS: Record<PersonaId | 'default', PersonaWaveformConfig> = {
-  'jack-b': {
-    color: '#8b5cf6',
-    energy: 0.75,
-    smoothing: 0.7,
-    speed: 1.0,
-  },
-  'jack-bogle': {
-    color: '#ef4444',
-    energy: 0.6,
-    smoothing: 0.8,
-    speed: 0.9,
-  },
-  'peter-lynch': {
-    color: '#10b981',
-    energy: 0.9,
-    smoothing: 0.55,
-    speed: 1.2,
-  },
-  'comm-specialist': {
-    color: '#06b6d4',
-    energy: 0.7,
-    smoothing: 0.75,
-    speed: 1.0,
-  },
-  'spend-save': {
-    color: '#a78bfa',
-    energy: 0.65,
-    smoothing: 0.8,
-    speed: 0.95,
-  },
-  'event-planner': {
-    color: '#ec4899',
-    energy: 0.95,
-    smoothing: 0.5,
-    speed: 1.25,
-  },
-  default: {
-    color: '#8b5cf6',
-    energy: 0.75,
-    smoothing: 0.7,
-    speed: 1.0,
-  },
-};
+/**
+ * Get persona color from CSS variable (design system integration)
+ * Falls back to accent color if persona not set
+ */
+function getPersonaColor(): string {
+  const style = getComputedStyle(document.documentElement);
+  const personaColor = style.getPropertyValue('--persona-primary').trim();
+  if (personaColor) return personaColor;
+  // Fallback to accent color
+  return style.getPropertyValue('--color-accent-primary').trim() || '#4a6741'; // Ferni sage green fallback
+}
 
 // ============================================================================
 // STATE
@@ -157,7 +133,7 @@ let barsContainer: HTMLElement | null = null;
 let bars: HTMLElement[] = [];
 let emotionIndicator: HTMLElement | null = null;
 
-let currentConfig = PERSONA_CONFIGS['jack-b'];
+let currentConfig = getWaveformProfile('ferni');
 let currentEmotion: VoiceEmotion | 'neutral' = 'neutral';
 let currentShape: EmotionShape = { ...EMOTION_SHAPES.neutral };
 let targetShape: EmotionShape = { ...EMOTION_SHAPES.neutral };
@@ -171,10 +147,20 @@ let isTransitioning = false; // True during agent handoff
 // Per-bar state - use explicit initialization
 const barHeights: number[] = [];
 const barTargets: number[] = [];
+const barVelocities: number[] = []; // 🎬 For spring physics
+const barWidths: number[] = []; // 🎬 For squash & stretch
 for (let i = 0; i < BAR_COUNT; i++) {
   barHeights[i] = MIN_BAR_HEIGHT;
   barTargets[i] = MIN_BAR_HEIGHT;
+  barVelocities[i] = 0;
+  barWidths[i] = 1; // Scale multiplier
 }
+
+// 🎬 Pixar effects state
+let rippleElements: HTMLElement[] = [];
+let particleContainer: HTMLElement | null = null;
+let lastLaughTime = 0;
+let peakVolume = 0; // Track volume peaks for ripples
 
 // Animation timing
 let lastTimestamp = 0;
@@ -216,7 +202,6 @@ export function initWaveformUI(): void {
   createBars();
   updateBarsStyle();
   
-  console.log('✨ Waveform UI initialized (expressive bars mode)');
 }
 
 function createBars(): void {
@@ -230,9 +215,37 @@ function createBars(): void {
     bar.className = 'waveform-bar';
     bar.style.setProperty('--bar-index', String(i));
     bar.style.height = `${MIN_BAR_HEIGHT}px`;
+    // 🎬 Add 3D depth shadow
+    bar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)';
+    bar.style.transform = 'scaleX(1) translateZ(0)'; // GPU acceleration
+    bar.style.willChange = 'height, transform, box-shadow';
     barsContainer.appendChild(bar);
     bars.push(bar);
   }
+  
+  // 🎬 Create particle container for celebrations
+  createParticleContainer();
+}
+
+/**
+ * 🎬 Create particle container for burst effects
+ */
+function createParticleContainer(): void {
+  if (particleContainer || !container) return;
+  
+  particleContainer = document.createElement('div');
+  particleContainer.className = 'waveform-particles';
+  particleContainer.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 10;
+  `;
+  container.appendChild(particleContainer);
 }
 
 // ============================================================================
@@ -306,13 +319,14 @@ export function setVolume(volume: number): void {
   lastVolume = Math.max(0, Math.min(1, volume));
   // Debug: Log volume occasionally to verify data is flowing
   if (Math.random() < 0.02 && volume > 0.001) {
-    console.log(`🎵 Waveform volume: ${(volume * 100).toFixed(1)}%`);
   }
 }
 
 export function setPersona(personaId: PersonaId): void {
-  currentConfig = PERSONA_CONFIGS[personaId] || PERSONA_CONFIGS.default;
-  updateBarsStyle();
+  currentConfig = getWaveformProfile(personaId);
+  // Color is read from CSS --persona-primary variable (set by design system)
+  // Use requestAnimationFrame to ensure CSS has updated
+  requestAnimationFrame(() => updateBarsStyle());
 }
 
 export function setEmotion(emotion: VoiceEmotion, intensity: number = 1): void {
@@ -386,12 +400,10 @@ export function setTransitioning(transitioning: boolean): void {
       bounce: 0,
       speed: 0.5,
     };
-    console.log('🔄 Waveform: transitioning ON');
   } else {
     container.classList.remove('transitioning');
     // Return to speaking or neutral
     targetShape = isSpeaking ? EMOTION_SHAPES.speaking : EMOTION_SHAPES.neutral;
-    console.log('🔄 Waveform: transitioning OFF');
   }
 }
 
@@ -516,18 +528,61 @@ function updateBars(): void {
     barTargets[i] = Math.max(MIN_BAR_HEIGHT, Math.min(MAX_BAR_HEIGHT, targetHeight));
   }
   
-  // Smooth interpolation
-  const lerpFactor = 0.2;
+  // 🎬 Spring physics interpolation with squash & stretch
+  const springStiffness = 0.15;
+  const springDamping = 0.75;
   
   for (let i = 0; i < BAR_COUNT; i++) {
     const currentHeight = barHeights[i] ?? MIN_BAR_HEIGHT;
     const targetHeight = barTargets[i] ?? MIN_BAR_HEIGHT;
-    const newHeight = currentHeight + (targetHeight - currentHeight) * lerpFactor;
+    const velocity = barVelocities[i] ?? 0;
+    
+    // Spring physics for natural motion
+    const force = (targetHeight - currentHeight) * springStiffness;
+    const newVelocity = (velocity + force) * springDamping;
+    const newHeight = currentHeight + newVelocity;
+    
+    barVelocities[i] = newVelocity;
     barHeights[i] = Math.max(MIN_BAR_HEIGHT, Math.min(MAX_BAR_HEIGHT, newHeight));
+    
+    // 🎬 Squash & stretch: wider when short, narrower when tall
+    const currentBarHeight = barHeights[i] ?? MIN_BAR_HEIGHT;
+    const heightRatio = (currentBarHeight - MIN_BAR_HEIGHT) / (MAX_BAR_HEIGHT - MIN_BAR_HEIGHT);
+    const squashStretch = 1 + (0.5 - heightRatio) * 0.15; // Inverse relationship
+    barWidths[i] = squashStretch;
     
     const bar = bars[i];
     if (bar) {
-      bar.style.height = `${barHeights[i]}px`;
+      bar.style.height = `${currentBarHeight}px`;
+      
+      // 🎬 Apply squash & stretch transform
+      const currentBarWidth = barWidths[i] ?? 1;
+      bar.style.transform = `scaleX(${currentBarWidth}) translateZ(0)`;
+      
+      // 🎬 Dynamic shadows based on height (3D depth illusion)
+      const shadowIntensity = heightRatio * 0.3;
+      const shadowBlur = 2 + heightRatio * 8;
+      const shadowY = 2 + heightRatio * 6;
+      bar.style.boxShadow = `
+        0 ${shadowY}px ${shadowBlur}px rgba(0,0,0,${shadowIntensity}),
+        inset 0 ${1 + heightRatio * 2}px 0 rgba(255,255,255,${0.15 + heightRatio * 0.1})
+      `;
+    }
+  }
+  
+  // 🎬 Detect volume peaks for ripple effects
+  if (isSpeaking && smoothedVolume > peakVolume * 1.3 && smoothedVolume > 0.15) {
+    peakVolume = smoothedVolume;
+    createRipple();
+  }
+  peakVolume *= 0.95; // Decay peak tracker
+  
+  // 🎬 Detect laugh patterns (rapid high-volume bursts)
+  if (isSpeaking && smoothedVolume > 0.4 && currentEmotion === 'excited') {
+    const now = performance.now();
+    if (now - lastLaughTime > 1500) {
+      lastLaughTime = now;
+      createParticleBurst();
     }
   }
 }
@@ -566,12 +621,161 @@ function resetBarsToIdle(): void {
 
 function updateBarsStyle(): void {
   if (!container) return;
-  
-  container.style.setProperty('--waveform-color', currentConfig.color);
-  
+
+  // Get color from CSS variable (design system integration)
+  const color = getPersonaColor();
+  container.style.setProperty('--waveform-color', color);
+
   bars.forEach(bar => {
-    bar.style.setProperty('--bar-color', currentConfig.color);
+    bar.style.setProperty('--bar-color', color);
   });
+}
+
+// ============================================================================
+// 🎬 PIXAR RIPPLE EFFECT - Sound emanation visualization
+// ============================================================================
+
+/**
+ * Create a ripple emanating from the waveform.
+ * Like sound waves spreading outward.
+ */
+function createRipple(): void {
+  if (!container || !barsContainer) return;
+  
+  // Check for reduced motion
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  
+  // Limit active ripples
+  if (rippleElements.length >= 3) {
+    const oldRipple = rippleElements.shift();
+    oldRipple?.remove();
+  }
+  
+  const ripple = document.createElement('div');
+  ripple.className = 'waveform-ripple';
+  
+  const color = getPersonaColor();
+  const rect = barsContainer.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  
+  // Position at center of waveform
+  const centerX = rect.left - containerRect.left + rect.width / 2;
+  const centerY = rect.top - containerRect.top + rect.height / 2;
+  
+  ripple.style.cssText = `
+    position: absolute;
+    left: ${centerX}px;
+    top: ${centerY}px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid ${color};
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: none;
+  `;
+  
+  container.appendChild(ripple);
+  rippleElements.push(ripple);
+  
+  // Animate ripple expansion
+  ripple.animate([
+    { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.6 },
+    { transform: 'translate(-50%, -50%) scale(4)', opacity: 0 },
+  ], {
+    duration: DURATION.CELEBRATION,
+    easing: EASING.STANDARD,
+  }).onfinish = () => {
+    const index = rippleElements.indexOf(ripple);
+    if (index > -1) rippleElements.splice(index, 1);
+    ripple.remove();
+  };
+}
+
+// ============================================================================
+// 🎬 PIXAR PARTICLE BURST - Celebration effect
+// ============================================================================
+
+/**
+ * Create a burst of particles for laugh/celebration moments.
+ * Like confetti or joy bubbles!
+ */
+function createParticleBurst(): void {
+  if (!particleContainer || !barsContainer) return;
+  
+  // Check for reduced motion
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  
+  const color = getPersonaColor();
+  const rect = barsContainer.getBoundingClientRect();
+  const containerRect = particleContainer.getBoundingClientRect();
+  
+  // Spawn point at top center of waveform
+  const spawnX = rect.left - containerRect.left + rect.width / 2;
+  const spawnY = rect.top - containerRect.top;
+  
+  const particleCount = 8 + Math.floor(Math.random() * 6);
+  
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    const size = 4 + Math.random() * 6;
+    const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+    const velocity = 30 + Math.random() * 50;
+    const rotation = Math.random() * 720 - 360;
+    
+    // Random shapes: circles and rounded squares
+    const isCircle = Math.random() > 0.3;
+    
+    particle.style.cssText = `
+      position: absolute;
+      left: ${spawnX}px;
+      top: ${spawnY}px;
+      width: ${size}px;
+      height: ${size}px;
+      background: ${color};
+      border-radius: ${isCircle ? '50%' : '2px'};
+      opacity: 0.9;
+      pointer-events: none;
+    `;
+    
+    particleContainer.appendChild(particle);
+    
+    // Calculate trajectory
+    const endX = Math.cos(angle) * velocity;
+    const endY = Math.sin(angle) * velocity - 60; // Arc upward
+    
+    // Animate with physics-like motion
+    const animation = particle.animate([
+      {
+        transform: 'translate(0, 0) rotate(0deg) scale(1)',
+        opacity: 0.9,
+        offset: 0,
+      },
+      {
+        transform: `translate(${endX * 0.5}px, ${endY * 0.3 - 30}px) rotate(${rotation * 0.5}deg) scale(1.2)`,
+        opacity: 0.8,
+        offset: 0.3,
+      },
+      {
+        transform: `translate(${endX}px, ${endY + 40}px) rotate(${rotation}deg) scale(0.3)`,
+        opacity: 0,
+        offset: 1,
+      },
+    ], {
+      duration: DURATION.DRAMATIC + Math.random() * DURATION.SLOW, // 600-900ms varied
+      easing: EASING.GENTLE, // Organic particle movement
+    });
+    
+    animation.onfinish = () => particle.remove();
+  }
+}
+
+/**
+ * 🎬 Trigger a manual celebration burst
+ */
+export function burstCelebration(): void {
+  createParticleBurst();
+  createRipple();
 }
 
 // ============================================================================
@@ -580,6 +784,16 @@ function updateBarsStyle(): void {
 
 export function dispose(): void {
   stopAnimation();
+  
+  // 🎬 Clean up ripples and particles
+  rippleElements.forEach(r => r.remove());
+  rippleElements = [];
+  
+  if (particleContainer?.parentNode) {
+    particleContainer.parentNode.removeChild(particleContainer);
+    particleContainer = null;
+  }
+  
   container = null;
   barsContainer = null;
   bars = [];
@@ -599,5 +813,6 @@ export const waveformUI = {
   setVolume,
   celebrate,
   thinkPulse,
+  burstCelebration, // 🎬 Pixar particle burst
   dispose,
 };

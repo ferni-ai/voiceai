@@ -56,7 +56,7 @@ const WISDOM_QUOTES = [
     quote:
       "In the short run, the market is a voting machine. In the long run, it's a weighing machine.",
   },
-  { author: 'Peter Lynch', quote: 'Know what you own, and know why you own it.' },
+  { author: 'Peter John', quote: 'Know what you own, and know why you own it.' },
   {
     author: 'Charlie Munger',
     quote: 'The big money is not in the buying and selling, but in the waiting.',
@@ -71,7 +71,7 @@ const WISDOM_QUOTES = [
   },
   { author: 'Warren Buffett', quote: "Risk comes from not knowing what you're doing." },
   {
-    author: 'Peter Lynch',
+    author: 'Peter John',
     quote:
       'Far more money has been lost by investors preparing for corrections, or trying to anticipate corrections, than has been lost in corrections themselves.',
   },
@@ -84,12 +84,11 @@ const WISDOM_QUOTES = [
   {
     author: 'Warren Buffett',
     quote:
-      "The most important quality for an investor is temperament, not intellect. You need a temperament that neither derives great pleasure from being with the crowd or against the crowd.",
+      'The most important quality for an investor is temperament, not intellect. You need a temperament that neither derives great pleasure from being with the crowd or against the crowd.',
   },
   {
     author: 'Benjamin Graham',
-    quote:
-      'The intelligent investor is a realist who sells to optimists and buys from pessimists.',
+    quote: 'The intelligent investor is a realist who sells to optimists and buys from pessimists.',
   },
   {
     author: 'Charlie Munger',
@@ -97,12 +96,12 @@ const WISDOM_QUOTES = [
   },
   {
     author: 'Warren Buffett',
-    quote: "Be fearful when others are greedy, and greedy when others are fearful.",
+    quote: 'Be fearful when others are greedy, and greedy when others are fearful.',
   },
   {
-    author: 'Peter Lynch',
+    author: 'Peter John',
     quote:
-      "In the long run, a portfolio of well-chosen stocks and/or equity mutual funds will always outperform a portfolio of bonds or a money-market account.",
+      'In the long run, a portfolio of well-chosen stocks and/or equity mutual funds will always outperform a portfolio of bonds or a money-market account.',
   },
 ];
 
@@ -160,7 +159,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Long-term discipline prevents costly behavioral mistakes. Investors who panic and sell during downturns typically miss the recovery and underperform by significant margins.',
     jackSays:
-      "The fourth principle is discipline. This is where most people fail. Not because they chose bad funds—because they panicked. They sold at the bottom. They chased the hot thing. Discipline is worth more than any strategy.",
+      'The fourth principle is discipline. This is where most people fail. Not because they chose bad funds—because they panicked. They sold at the bottom. They chased the hot thing. Discipline is worth more than any strategy.',
     source: "Vanguard's Principles for Investing Success",
   },
 
@@ -205,7 +204,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'A dynamic spending strategy that adjusts withdrawals based on market performance can add approximately 0.70% annually compared to rigid withdrawal rules.',
     jackSays:
-      "Most people follow a rigid withdrawal rule—take 4% every year regardless. Our research shows a dynamic approach—taking a bit less after bad years, a bit more after good—adds about 0.70% annually and dramatically improves retirement outcomes.",
+      'Most people follow a rigid withdrawal rule—take 4% every year regardless. Our research shows a dynamic approach—taking a bit less after bad years, a bit more after good—adds about 0.70% annually and dramatically improves retirement outcomes.',
     source: "Vanguard Advisor's Alpha",
   },
   {
@@ -256,9 +255,9 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
   {
     topic: 'direct_indexing_esg',
     finding:
-      "Direct indexing allows investors to exclude specific companies or sectors based on personal values while maintaining broad market exposure and tax efficiency.",
+      'Direct indexing allows investors to exclude specific companies or sectors based on personal values while maintaining broad market exposure and tax efficiency.',
     jackSays:
-      "If you want to avoid certain companies—tobacco, weapons, whatever your conscience dictates—direct indexing lets you do that without sacrificing diversification or tax efficiency. Your values, your portfolio.",
+      'If you want to avoid certain companies—tobacco, weapons, whatever your conscience dictates—direct indexing lets you do that without sacrificing diversification or tax efficiency. Your values, your portfolio.',
     source: 'Vanguard Personalized Indexing',
   },
   {
@@ -279,7 +278,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'The Vanguard Financial Advice Model (VFAM) measures advice value across three dimensions: portfolio outcomes, financial outcomes (probability of meeting goals), and emotional outcomes (peace of mind).',
     jackSays:
-      "We created something called VFAM—the Vanguard Financial Advice Model—to measure advice properly. Not just returns, but three things: portfolio outcomes, goal success probability, and emotional outcomes. Peace of mind has value too.",
+      'We created something called VFAM—the Vanguard Financial Advice Model—to measure advice properly. Not just returns, but three things: portfolio outcomes, goal success probability, and emotional outcomes. Peace of mind has value too.',
     source: 'Vanguard Financial Advice Model',
   },
   {
@@ -287,7 +286,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Personalized financial planning recommendations can improve the probability of goal success by 20% or more compared to generic advice, particularly for complex situations.',
     jackSays:
-      "Generic advice is fine for simple situations. But personalized advice—advice that knows your specific taxes, your Social Security timing, your healthcare costs—can improve your odds of success by 20% or more. The complexity of life requires nuance.",
+      'Generic advice is fine for simple situations. But personalized advice—advice that knows your specific taxes, your Social Security timing, your healthcare costs—can improve your odds of success by 20% or more. The complexity of life requires nuance.',
     source: 'Vanguard Financial Advice Model',
   },
   {
@@ -314,7 +313,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
   {
     topic: 'retirement_income_approach',
     finding:
-      "A goals-based retirement income approach that separates essential spending (covered by stable income) from discretionary spending (funded by portfolio) leads to better outcomes and lower anxiety.",
+      'A goals-based retirement income approach that separates essential spending (covered by stable income) from discretionary spending (funded by portfolio) leads to better outcomes and lower anxiety.',
     jackSays:
       "Here's how to think about retirement income: separate your essential spending—what you must have—from your discretionary spending. Cover essentials with Social Security, pensions, or annuities. Fund the discretionary part with your portfolio. This approach dramatically reduces anxiety.",
     source: 'Vanguard Retirement Income Research',
@@ -340,7 +339,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Strategic Roth conversions in lower-income years can reduce lifetime tax burden and required minimum distributions. The benefit is greatest when current tax rates are lower than expected future rates.',
     jackSays:
-      "Converting traditional IRA money to Roth in low-income years—maybe early retirement before Social Security kicks in—can reduce your lifetime tax bill significantly. Pay taxes at a lower rate now, enjoy tax-free growth forever.",
+      'Converting traditional IRA money to Roth in low-income years—maybe early retirement before Social Security kicks in—can reduce your lifetime tax bill significantly. Pay taxes at a lower rate now, enjoy tax-free growth forever.',
     source: 'Vanguard Tax Research',
   },
 
@@ -419,7 +418,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Attempting to time factor exposure typically destroys value. Consistent exposure is essential—factor rotation strategies generally underperform buy-and-hold approaches.',
     jackSays:
-      "Can you time factors? Move in and out of value or growth? The research says no. Factor timing destroys value. If you want factor exposure, commit to it for decades, not years. Otherwise, stick with total market.",
+      'Can you time factors? Move in and out of value or growth? The research says no. Factor timing destroys value. If you want factor exposure, commit to it for decades, not years. Otherwise, stick with total market.',
     source: 'Vanguard Factor Research',
   },
 
@@ -483,7 +482,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
   {
     topic: 'international_diversification',
     finding:
-      "Vanguard recommends 20-40% international allocation in equity portfolios to reduce volatility while maintaining similar expected returns.",
+      'Vanguard recommends 20-40% international allocation in equity portfolios to reduce volatility while maintaining similar expected returns.',
     jackSays:
       "We found that holding 20 to 40 percent of your stocks in international markets smooths the ride without hurting returns. The American market won't always be the best performer. Diversify globally.",
   },
@@ -501,7 +500,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'The traditional 4% withdrawal rule has been refined—dynamic strategies that adjust spending based on market performance can improve outcomes by 15-20%.',
     jackSays:
-      "The old 4% rule? Good start, but rigid. Our research shows flexible spending—taking a bit less after bad years, a bit more after good years—can improve your retirement odds by 15 to 20 percent.",
+      'The old 4% rule? Good start, but rigid. Our research shows flexible spending—taking a bit less after bad years, a bit more after good years—can improve your retirement odds by 15 to 20 percent.',
   },
   {
     topic: 'sequence_of_returns_risk',
@@ -515,7 +514,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Research shows retirees naturally spend less as they age—the "spending smile" pattern means early retirement years have higher expenses.',
     jackSays:
-      "Retirement spending follows a smile pattern. You spend more in your active early years, less in the quiet middle, then more again if health care kicks in. Plan for that smile.",
+      'Retirement spending follows a smile pattern. You spend more in your active early years, less in the quiet middle, then more again if health care kicks in. Plan for that smile.',
   },
 
   // DOLLAR COST AVERAGING RESEARCH
@@ -563,7 +562,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       "Index funds' advantage grows over time—they're more likely to outperform over 20 years than 1 year due to cost compounding.",
     jackSays:
-      "The longer you hold, the more the index fund advantage grows. One year? Active funds have a fighting chance. Twenty years? Almost no active fund beats a low-cost index.",
+      'The longer you hold, the more the index fund advantage grows. One year? Active funds have a fighting chance. Twenty years? Almost no active fund beats a low-cost index.',
   },
 
   // EMERGENCY FUND RESEARCH
@@ -572,7 +571,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Research suggests 3-6 months of expenses in liquid savings provides optimal balance between opportunity cost and financial security.',
     jackSays:
-      "Three to six months of expenses in cash. Not invested, just sitting there being boring. It sounds like a waste, but that boring cash is what keeps you from selling stocks at the worst possible moment.",
+      'Three to six months of expenses in cash. Not invested, just sitting there being boring. It sounds like a waste, but that boring cash is what keeps you from selling stocks at the worst possible moment.',
   },
 
   // INVESTOR PSYCHOLOGY RESEARCH
@@ -604,7 +603,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       "Adding 20-30 stocks provides most of diversification's benefits; a total market fund with thousands eliminates virtually all company-specific risk.",
     jackSays:
-      "You get most diversification benefits with about 20 or 30 stocks. But why stop there? A total market fund with thousands of stocks eliminates company-specific risk almost entirely. Own the haystack.",
+      'You get most diversification benefits with about 20 or 30 stocks. But why stop there? A total market fund with thousands of stocks eliminates company-specific risk almost entirely. Own the haystack.',
   },
 
   // RETIREMENT PLANNING RESEARCH
@@ -620,7 +619,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
   {
     topic: 'bond_duration',
     finding:
-      "Bond fund duration should roughly match your time horizon—longer for distant goals, shorter for near-term needs.",
+      'Bond fund duration should roughly match your time horizon—longer for distant goals, shorter for near-term needs.',
     jackSays:
       "Match your bonds to your timeline. Money you need in 2 years? Short-term bonds. Money you need in 20 years? You can handle longer bonds. It's not complicated, but it matters.",
   },
@@ -640,7 +639,7 @@ const VANGUARD_RESEARCH: ResearchInsight[] = [
     finding:
       'Target-date fund investors show better behavioral outcomes—they trade less, panic less, and earn returns closer to fund returns.',
     jackSays:
-      "Target-date fund investors make fewer mistakes. They trade less, panic less, and actually earn what their funds earn. Sometimes the best strategy is the one that removes you from the equation.",
+      'Target-date fund investors make fewer mistakes. They trade less, panic less, and actually earn what their funds earn. Sometimes the best strategy is the one that removes you from the equation.',
   },
 ];
 
@@ -656,13 +655,12 @@ const LIFE_WISDOM = [
   },
   {
     topic: 'time',
-    wisdom:
-      "You can always make more money. You cannot make more time. Spend accordingly.",
+    wisdom: 'You can always make more money. You cannot make more time. Spend accordingly.',
   },
   {
     topic: 'family',
     wisdom:
-      "I worked too much when my children were young. No success at work can compensate for failure at home.",
+      'I worked too much when my children were young. No success at work can compensate for failure at home.',
   },
   {
     topic: 'character',
@@ -690,8 +688,7 @@ const LIFE_WISDOM = [
   },
   {
     topic: 'humility',
-    wisdom:
-      "I'm not nearly as smart as I used to be. But I'm much wiser. There's a difference.",
+    wisdom: "I'm not nearly as smart as I used to be. But I'm much wiser. There's a difference.",
   },
   {
     topic: 'persistence',
@@ -701,7 +698,7 @@ const LIFE_WISDOM = [
   {
     topic: 'gratitude',
     wisdom:
-      "Start each day grateful. Not for what you might get, but for what you already have. Most people have more than they realize.",
+      'Start each day grateful. Not for what you might get, but for what you already have. Most people have more than they realize.',
   },
   {
     topic: 'relationships',
@@ -719,7 +716,7 @@ const FINANCIAL_HISTORY: Record<string, string[]> = {
     'On this day in 1863, the Emancipation Proclamation took effect. Freedom—in all its forms—is the foundation of prosperity.',
   ],
   '01-16': [
-    "On this day in 2019, I passed away at 89. But I like to think my ideas live on. Stay the course, friends.",
+    'On this day in 2019, I passed away at 89. But I like to think my ideas live on. Stay the course, friends.',
   ],
   '01-19': [
     "Happy birthday to me! I was born on this day in 1929. The same year as the crash. Maybe that's why I understand market cycles!",
@@ -731,11 +728,15 @@ const FINANCIAL_HISTORY: Record<string, string[]> = {
   '03-09': [
     'On this day in 2009, the market hit its low during the financial crisis. Those who stayed invested saw a 400% gain over the next decade.',
   ],
-  '04-15': ['Tax day. Remember: tax-efficient investing can add half a percent annually. It adds up.'],
+  '04-15': [
+    'Tax day. Remember: tax-efficient investing can add half a percent annually. It adds up.',
+  ],
   '05-01': [
     'On this day in 1975, I founded Vanguard. We started with a simple idea: put investors first.',
   ],
-  '05-06': ['On this day in 2010, the Flash Crash happened. Markets dropped 9% in minutes, then recovered. Patience prevailed.'],
+  '05-06': [
+    'On this day in 2010, the Flash Crash happened. Markets dropped 9% in minutes, then recovered. Patience prevailed.',
+  ],
   '08-31': [
     "On this day in 1976, we launched the First Index Investment Trust—the first index fund for individual investors. They called it 'Bogle's Folly.' Turned out okay!",
   ],
@@ -770,9 +771,9 @@ const GENERIC_HISTORY = [
   'In 1929, the market lost 89% of its value. Those who stayed invested were whole again by 1954. Twenty-five years is a long time, but the market always recovers.',
   "The dot-com crash taught us that new technology doesn't change the fundamentals of investing. Profits still matter.",
   '2008 showed us that even total market funds work. They fell less, recovered faster, and cost less than actively managed funds.',
-  "Since 1926, there have been 26 bear markets. Every single one was followed by a bull market. Every. Single. One.",
-  "The average investor holds a fund for just 3.3 years. The average holding period needed to be confident of positive returns? About 7 years.",
-  "In the 1970s, everyone said stocks were dead. The 1980s and 1990s proved them spectacularly wrong.",
+  'Since 1926, there have been 26 bear markets. Every single one was followed by a bull market. Every. Single. One.',
+  'The average investor holds a fund for just 3.3 years. The average holding period needed to be confident of positive returns? About 7 years.',
+  'In the 1970s, everyone said stocks were dead. The 1980s and 1990s proved them spectacularly wrong.',
 ];
 
 // ============================================================================
@@ -897,7 +898,7 @@ export function getCrashPerspective(crashName?: string): string {
     '2020':
       "March 2020—the fastest crash in history. 34% down in 23 days. But if you'd panicked and sold, you'd have missed the fastest recovery in history too.",
     '2022':
-      "2022 was painful—stocks and bonds both fell. Rare and unpleasant. But those who stayed invested saw recovery begin by mid-2023. Patience pays.",
+      '2022 was painful—stocks and bonds both fell. Rare and unpleasant. But those who stayed invested saw recovery begin by mid-2023. Patience pays.',
   };
 
   if (crashName && perspectives[crashName]) {
@@ -1013,7 +1014,9 @@ export function createWisdomTools() {
         feePercent: z.number().describe('The higher fee percentage to compare against index funds'),
       }),
       execute: async ({ amount, years, feePercent }) => {
-        getLogger().info(`Calculating cost impact: $${amount} over ${years} years at ${feePercent}%`);
+        getLogger().info(
+          `Calculating cost impact: $${amount} over ${years} years at ${feePercent}%`
+        );
         return getCostImpact(amount, years, feePercent);
       },
     }),

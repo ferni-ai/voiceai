@@ -1,0 +1,47 @@
+# Cloud Build ignore file
+# This file overrides .gitignore for Cloud Build
+
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Secrets
+.livekit-secrets.env
+.plaid-tokens.json
+.spotify-tokens.json
+.spotify-device.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Reference / docs
+reference/
+/*.md
+/docs/*.md
+
+# Git
+.git/
+.gitignore
+
+# Build outputs - specific paths only
+# Keep design-system/dist for frontend builds!
+/dist
+/frontend-typescript/dist
+/functions/dist
+
+# Cursor
+.cursor
+

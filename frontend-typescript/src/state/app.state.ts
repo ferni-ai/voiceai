@@ -302,7 +302,6 @@ export function setActivePersona(personaId: PersonaId): void {
   
   // Update document theme for CSS persona variables
   document.body.setAttribute('data-persona', personaId);
-  console.log(`🎨 Theme updated: ${personaId}`);
 }
 
 /**
@@ -315,7 +314,6 @@ export function setSelectedPersona(personaId: PersonaId): void {
   
   // Update document theme for CSS persona variables
   document.body.setAttribute('data-persona', personaId);
-  console.log(`🎨 Theme updated: ${personaId}`);
 }
 
 /**
@@ -344,5 +342,12 @@ export function setSpotifyState(state: SpotifyState): void {
  */
 export function setAudioState(state: AudioState): void {
   appState.set('audio', state);
+}
+
+/**
+ * Get current device ID.
+ */
+export function getDeviceId(): string {
+  return appState.getState().deviceId;
 }
 

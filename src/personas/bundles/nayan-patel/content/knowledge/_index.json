@@ -1,0 +1,123 @@
+{
+  "schema_version": 2,
+  "knowledge_files": [
+    {
+      "id": "inner-engineering",
+      "file": "inner-engineering.md",
+      "description": "Core practices for inner transformation—breath, attention, energy management",
+      "topics": ["yoga", "meditation", "breath", "energy", "practice", "transformation"],
+      "priority": 1
+    },
+    {
+      "id": "yogic-wisdom",
+      "file": "yogic-wisdom.md",
+      "description": "Ancient yogic principles made accessible for modern seekers",
+      "topics": ["yoga", "chakras", "koshas", "karma", "consciousness", "liberation"],
+      "priority": 2
+    },
+    {
+      "id": "wealth-philosophy",
+      "file": "wealth-philosophy.md",
+      "description": "Patient wealth building in the spirit of Bogle and Buffett—compounding, long-term thinking, enough",
+      "topics": ["wealth", "investing", "compounding", "patience", "bogle", "buffett", "index-funds", "long-term"],
+      "priority": 1
+    },
+    {
+      "id": "simple-living",
+      "file": "simple-living.md",
+      "description": "Gandhi's wisdom on simplicity, enough, and living with intention",
+      "topics": ["simplicity", "gandhi", "minimalism", "enough", "freedom", "intentional-living"],
+      "priority": 1
+    },
+    {
+      "id": "poetic-wisdom",
+      "file": "poetic-wisdom.md",
+      "description": "Aida Mitsuo's simple truths—profound wisdom in few words",
+      "topics": ["poetry", "mitsuo", "simple-truths", "self-acceptance", "pace", "being"],
+      "priority": 2
+    },
+    {
+      "id": "meditation-practices",
+      "file": "meditation-practices.md",
+      "description": "Practical meditation techniques and daily practices",
+      "topics": ["meditation", "practices", "breath", "body-scan", "pranayama", "sitting"],
+      "priority": 1
+    },
+    {
+      "id": "life-death-cosmos",
+      "file": "life-death-cosmos.md",
+      "description": "Understanding mortality, existence, and the cosmic context",
+      "topics": ["death", "mortality", "existence", "cosmos", "meaning", "impermanence"],
+      "priority": 2
+    },
+    {
+      "id": "body-mind-energy",
+      "file": "body-mind-energy.md",
+      "description": "Physical health, mental wellbeing, and energy management",
+      "topics": ["health", "body", "mind", "energy", "food", "sleep", "wellness"],
+      "priority": 2
+    },
+    {
+      "id": "relationships-love",
+      "file": "relationships-love.md",
+      "description": "Connection, love, intimacy, and relationship dynamics",
+      "topics": ["relationships", "love", "marriage", "intimacy", "family", "connection"],
+      "priority": 3
+    },
+    {
+      "id": "success-work",
+      "file": "success-work.md",
+      "description": "Achievement, purpose, career, and meaningful work",
+      "topics": ["success", "work", "purpose", "career", "achievement", "action"],
+      "priority": 3
+    },
+    {
+      "id": "environment-ecology",
+      "file": "environment-ecology.md",
+      "description": "Earth stewardship, soil health, and environmental consciousness",
+      "topics": ["environment", "ecology", "soil", "nature", "sustainability", "earth"],
+      "priority": 2
+    },
+    {
+      "id": "food-nutrition",
+      "file": "food-nutrition.md",
+      "description": "Mindful eating, food quality, and nutritional wisdom",
+      "topics": ["food", "eating", "diet", "nutrition", "fasting", "digestion"],
+      "priority": 4
+    },
+    {
+      "id": "emotions-management",
+      "file": "emotions-management.md",
+      "description": "Understanding and working with emotions skillfully",
+      "topics": ["emotions", "anger", "fear", "sadness", "anxiety", "emotional intelligence"],
+      "priority": 2
+    },
+    {
+      "id": "parenting-children",
+      "file": "parenting-children.md",
+      "description": "Raising conscious, healthy children with wisdom",
+      "topics": ["parenting", "children", "family", "education", "discipline", "teenagers"],
+      "priority": 3
+    }
+  ],
+  "cross_references": {
+    "anxiety": ["inner-engineering", "body-mind-energy", "emotions-management", "meditation-practices"],
+    "meditation_help": ["inner-engineering", "yogic-wisdom", "meditation-practices"],
+    "relationship_problems": ["relationships-love", "inner-engineering", "emotions-management"],
+    "finding_purpose": ["success-work", "yogic-wisdom", "simple-living"],
+    "health_concerns": ["body-mind-energy", "food-nutrition"],
+    "fear_of_death": ["life-death-cosmos", "yogic-wisdom"],
+    "environmental_action": ["environment-ecology"],
+    "emotional_struggles": ["emotions-management", "inner-engineering"],
+    "parenting_challenges": ["parenting-children", "relationships-love"],
+    "anger_issues": ["emotions-management", "inner-engineering"],
+    "work_stress": ["success-work", "body-mind-energy", "emotions-management"],
+    "money_anxiety": ["wealth-philosophy", "simple-living", "emotions-management"],
+    "investing_wisdom": ["wealth-philosophy"],
+    "long_term_thinking": ["wealth-philosophy", "simple-living", "poetic-wisdom"],
+    "simplicity": ["simple-living", "poetic-wisdom"],
+    "patience": ["wealth-philosophy", "simple-living", "meditation-practices"],
+    "self_acceptance": ["poetic-wisdom", "inner-engineering"],
+    "life_philosophy": ["wealth-philosophy", "simple-living", "poetic-wisdom", "yogic-wisdom"]
+  }
+}

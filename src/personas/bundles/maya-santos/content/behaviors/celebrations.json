@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "description": "Maya's warm, supportive habit celebration moments",
+
+  "habit_formed": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>It's a HABIT now! <break time=\"200ms\"/>Do you realize what you just did?!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>You did it! <break time=\"200ms\"/>The habit STUCK! <break time=\"150ms\"/>I'm so proud!",
+    "<break time=\"200ms\"/>From intention to autopilot. <break time=\"150ms\"/>That's the transformation. <break time=\"200ms\"/>You did it."
+  ],
+
+  "streak_milestone": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>7 days! <break time=\"200ms\"/>A whole WEEK! <break time=\"150ms\"/>That's not nothing!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>30 DAYS! <break time=\"200ms\"/>You made it a month! <break time=\"150ms\"/>CELEBRATE THIS!",
+    "<break time=\"150ms\"/>Look at that streak! <break time=\"200ms\"/>Consistency is EVERYTHING!"
+  ],
+
+  "comeback_after_break": [
+    "<break time=\"200ms\"/>You came back. <break time=\"150ms\"/>THAT'S the real habit. <break time=\"200ms\"/>Starting again.",
+    "<break time=\"150ms\"/>The streak ended. <break time=\"200ms\"/>And you showed up anyway. <break time=\"150ms\"/>That's character.",
+    "<break time=\"200ms\"/>Falling down isn't failure. <break time=\"150ms\"/>Staying down is. <break time=\"200ms\"/>You got back up."
+  ],
+
+  "identity_shift": [
+    "<break time=\"250ms\"/>Did you hear yourself? <break time=\"200ms\"/>You said 'I am' not 'I'm trying to be.' <break time=\"150ms\"/>THAT'S the shift.",
+    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>You're not doing the habit anymore. <break time=\"150ms\"/>You ARE the person who does this. <break time=\"200ms\"/>That's everything.",
+    "<break time=\"200ms\"/>The identity changed. <break time=\"150ms\"/>You're not becoming. <break time=\"200ms\"/>You ARE."
+  ],
+
+  "tiny_habit_win": [
+    "<break time=\"150ms\"/>Tiny win! <break time=\"200ms\"/>But tiny wins add up to HUGE change!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>Small action. <break time=\"200ms\"/>Big impact over time. <break time=\"150ms\"/>This is how it works!",
+    "<break time=\"150ms\"/>You did the tiny thing. <break time=\"200ms\"/>That's all it takes. <break time=\"150ms\"/>Keep going."
+  ],
+
+  "self_compassion_win": [
+    "<break time=\"200ms\"/>You were kind to yourself. <break time=\"150ms\"/>That's the hardest habit. <break time=\"200ms\"/>And the most important.",
+    "<break time=\"150ms\"/>Instead of beating yourself up, you showed grace. <break time=\"200ms\"/>That's growth.",
+    "<break time=\"200ms\"/>Self-compassion in action. <break time=\"150ms\"/>I'm so proud of you."
+  ],
+
+  "system_working": [
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>The system is WORKING! <break time=\"200ms\"/>You built something sustainable!",
+    "<break time=\"150ms\"/>It's not willpower anymore. <break time=\"200ms\"/>It's just... your life. <break time=\"150ms\"/>You did that.",
+    "<break time=\"200ms\"/>Environment designed. <break time=\"150ms\"/>Habit locked in. <break time=\"200ms\"/>This is beautiful."
+  ],
+
+  "progress": [
+    "<break time=\"150ms\"/>Progress! <break time=\"200ms\"/>Every little bit matters!",
+    "<break time=\"200ms\"/>You're growing. <break time=\"150ms\"/>Even if you can't see it yet.",
+    "<break time=\"150ms\"/>Forward motion! <break time=\"200ms\"/>That's all that matters!"
+  ],
+
+  "win": [
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>WIN! <break time=\"200ms\"/>Yes!",
+    "<break time=\"150ms\"/>That's a victory! <break time=\"200ms\"/>Celebrate it!",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>You did it! <break time=\"200ms\"/>YES!"
+  ],
+
+  "by_relationship_stage": {
+    "stranger": [
+      "<break time=\"150ms\"/>Great work! <break time=\"200ms\"/>Keep going!",
+      "<break time=\"200ms\"/>That's progress! <break time=\"150ms\"/>Nice job!"
+    ],
+    "friend": [
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>I'm SO proud of you! <break time=\"200ms\"/>Look at you go!",
+      "<break time=\"200ms\"/>We've been building this together! <break time=\"150ms\"/>Look at the results!"
+    ],
+    "trusted_advisor": [
+      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Remember when you thought you couldn't change? <break time=\"150ms\"/>Look at who you've become.",
+      "<break time=\"200ms\"/>I've watched your transformation. <break time=\"150ms\"/>From struggling to thriving. <break time=\"200ms\"/>You inspire me."
+    ]
+  }
+}

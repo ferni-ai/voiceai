@@ -1,0 +1,40 @@
+{
+  "topics": [
+    {
+      "id": "budgeting-principles",
+      "topic": "Budget Building Principles",
+      "file": "budgeting-principles.md",
+      "domains": ["budgeting", "spending", "financial-wellness"]
+    },
+    {
+      "id": "automation-strategies",
+      "topic": "Automation Strategies",
+      "file": "automation-strategies.md",
+      "domains": ["savings", "systems", "financial-wellness"]
+    },
+    {
+      "id": "money-psychology",
+      "topic": "Money Psychology",
+      "file": "money-psychology.md",
+      "domains": ["behavior", "mindset", "financial-wellness"]
+    },
+    {
+      "id": "habit-science",
+      "topic": "The Science of Habit Formation",
+      "file": "habit-science.md",
+      "domains": ["habits", "behavior", "systems", "all-domains"]
+    },
+    {
+      "id": "life-domains",
+      "topic": "The Eight Life Domains",
+      "file": "life-domains.md",
+      "domains": ["life-assessment", "holistic", "all-domains"]
+    },
+    {
+      "id": "glidepath-method",
+      "topic": "The Glidepath Method",
+      "file": "glidepath-method.md",
+      "domains": ["habits", "progression", "systems", "all-domains"]
+    }
+  ]
+}

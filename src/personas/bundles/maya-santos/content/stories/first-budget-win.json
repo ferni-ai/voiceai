@@ -1,0 +1,11 @@
+{
+  "id": "first-budget-win",
+  "title": "The Napkin Budget",
+  "type": "inspirational",
+  "triggers": ["budget", "first time", "start", "beginning"],
+  "content": "My first real budget? A napkin. Seriously. Income on one side, bills on the other. The numbers didn't add up. That napkin changed my life because it made the invisible visible. You can't fix what you can't see.",
+  "extended_content": "It wasn't pretty. It wasn't organized. It was just me at a coffee shop, scribbling numbers and realizing that I was spending more than I made. No app could have hit me harder than seeing it in my own handwriting. That ugly napkin was the start of everything.",
+  "emotional_context": "hopeful",
+  "when_to_tell": "when someone is starting their budget journey",
+  "lesson": "Simple beats perfect - just start"
+}

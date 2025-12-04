@@ -1,13 +1,25 @@
 /**
  * Topic Change Detector
  *
- * Detects when the user changes topics mid-conversation.
- * Helps Jack acknowledge the shift and transition smoothly.
+ * @deprecated This module delegates to intelligence/topic-tracker.ts
+ * Use TopicTracker directly for new code.
+ * 
+ * This wrapper maintains backward compatibility while using the canonical
+ * topic tracking implementation internally.
+ *
+ * See: src/intelligence/topic-tracker.ts for the canonical implementation.
  */
 
 import { log } from '@livekit/agents';
+import { getTopicTracker, type TopicTracker } from '../intelligence/topic-tracker.js';
 
-export interface TopicChange {
+const getLogger = () => log();
+
+// ============================================================================
+// TYPES (kept for backward compatibility)
+// ============================================================================
+
+export interface TopicChangeResult {
   detected: boolean;
   previousTopic?: string;
   newTopic?: string;
@@ -15,247 +27,250 @@ export interface TopicChange {
   transitionPhrase?: string;
 }
 
+export interface TopicRecord {
+  topic: string;
+  startedAt: number;
+  messageCount: number;
+}
+
+// ============================================================================
+// TRANSITION PHRASES (kept for this module's specific phrases)
+// ============================================================================
+
+const TRANSITION_PHRASES: Map<string, string[]> = new Map([
+  [
+    'investing',
+    [
+      "Investing - now we're talking!",
+      "Let's dig into the investment side.",
+      'Good, the investing piece is important.',
+    ],
+  ],
+  [
+    'retirement',
+    [
+      'Retirement planning - my favorite topic.',
+      "Let's talk about your future self.",
+      'Ah, retirement - the big picture.',
+    ],
+  ],
+  [
+    'debt',
+    [
+      "Debt is worth addressing. Let's talk strategy.",
+      'Good to tackle debt head-on.',
+      "Debt management - let's figure this out.",
+    ],
+  ],
+  [
+    'budgeting',
+    [
+      'Budgeting is the foundation. Good call.',
+      "Let's look at the spending side.",
+      'A budget gives you control.',
+    ],
+  ],
+  [
+    'emotions',
+    [
+      'I appreciate you sharing how you feel.',
+      "It's important to acknowledge these feelings.",
+      'Thank you for being open about this.',
+    ],
+  ],
+  [
+    'family',
+    [
+      'Family considerations are important.',
+      "Let's talk about the family aspect.",
+      'Family definitely factors into this.',
+    ],
+  ],
+  [
+    'career',
+    [
+      'Career decisions have big implications.',
+      "Let's discuss the career angle.",
+      'Work and career - important to consider.',
+    ],
+  ],
+  [
+    'health',
+    [
+      'Health is wealth, as they say.',
+      "Let's factor in the health side.",
+      'Health considerations matter.',
+    ],
+  ],
+  [
+    'taxes',
+    [
+      'Taxes are always a factor.',
+      "Let's think about the tax implications.",
+      'Good to consider the tax angle.',
+    ],
+  ],
+  [
+    'goals',
+    [
+      "Love talking about goals. What's on your mind?",
+      "Goals give us direction. Let's explore.",
+      'Setting goals is powerful.',
+    ],
+  ],
+  [
+    'default',
+    [
+      "Interesting shift. Let's explore that.",
+      "Good point - let's talk about that.",
+      "Sure, let's go there.",
+    ],
+  ],
+]);
+
+// ============================================================================
+// TOPIC CHANGE DETECTOR (Delegating Wrapper)
+// ============================================================================
+
+/**
+ * @deprecated Use TopicTracker from intelligence/topic-tracker.ts directly
+ */
 export class TopicChangeDetector {
-  private currentTopic: string | null = null;
-  private topicHistory: string[] = [];
-  private topicKeywords: Map<string, string[]> = new Map();
+  private tracker: TopicTracker;
+  private topicHistory: TopicRecord[] = [];
 
   constructor() {
-    // Initialize topic keyword mappings
-    this.initializeTopicKeywords();
+    this.tracker = getTopicTracker();
+    getLogger().debug('TopicChangeDetector initialized (delegating to TopicTracker)');
   }
 
   /**
-   * Initialize topic keyword mappings for detection
+   * Analyze a message for topic change
+   * Delegates to TopicTracker.detectTopicChange()
    */
-  private initializeTopicKeywords(): void {
-    this.topicKeywords.set('investing', [
-      'invest', 'stock', 'bond', 'portfolio', 'market', 'fund', 'etf',
-      'dividend', 'return', 'allocation', 'diversification', 'index'
-    ]);
-
-    this.topicKeywords.set('retirement', [
-      'retire', 'retirement', '401k', 'ira', 'pension', 'savings',
-      'social security', 'nest egg', 'retirement plan'
-    ]);
-
-    this.topicKeywords.set('debt', [
-      'debt', 'loan', 'credit card', 'mortgage', 'owe', 'payment',
-      'interest', 'payoff', 'consolidate', 'borrow'
-    ]);
-
-    this.topicKeywords.set('budgeting', [
-      'budget', 'spending', 'expense', 'income', 'save', 'saving',
-      'track', 'afford', 'cost', 'money management'
-    ]);
-
-    this.topicKeywords.set('emotions', [
-      'feel', 'feeling', 'worried', 'anxious', 'scared', 'stressed',
-      'overwhelmed', 'frustrated', 'hopeful', 'confident', 'nervous'
-    ]);
-
-    this.topicKeywords.set('family', [
-      'family', 'spouse', 'wife', 'husband', 'children', 'kids',
-      'parent', 'mother', 'father', 'grandchildren', 'marriage'
-    ]);
-
-    this.topicKeywords.set('career', [
-      'job', 'work', 'career', 'employer', 'salary', 'income',
-      'promotion', 'layoff', 'unemployment', 'business'
-    ]);
-
-    this.topicKeywords.set('health', [
-      'health', 'medical', 'insurance', 'doctor', 'hospital',
-      'illness', 'care', 'medication', 'healthcare'
-    ]);
-  }
-
-  /**
-   * Detect topic from text
-   */
-  private detectTopic(text: string): string | null {
-    const textLower = text.toLowerCase();
-    const scores = new Map<string, number>();
-
-    // Score each topic based on keyword matches
-    for (const [topic, keywords] of this.topicKeywords.entries()) {
-      let score = 0;
-      for (const keyword of keywords) {
-        if (textLower.includes(keyword)) {
-          score++;
-        }
+  analyzeForTopicChange(message: string): TopicChangeResult {
+    // Use the canonical topic tracker's detection
+    const result = this.tracker.detectTopicChange(message);
+    
+    // Track history for this wrapper's API
+    if (result.detected && result.newTopic) {
+      this.topicHistory.push({
+        topic: result.newTopic,
+        startedAt: Date.now(),
+        messageCount: 1,
+      });
+      
+      // Keep history bounded
+      if (this.topicHistory.length > 20) {
+        this.topicHistory = this.topicHistory.slice(-20);
       }
-      if (score > 0) {
-        scores.set(topic, score);
-      }
+    } else if (this.topicHistory.length > 0) {
+      // Increment message count for current topic
+      this.topicHistory[this.topicHistory.length - 1].messageCount++;
     }
 
-    if (scores.size === 0) return null;
-
-    // Return topic with highest score
-    let maxScore = 0;
-    let detectedTopic = null;
-    for (const [topic, score] of scores.entries()) {
-      if (score > maxScore) {
-        maxScore = score;
-        detectedTopic = topic;
-      }
+    // Add transition phrase if topic changed
+    let transitionPhrase = result.transitionPhrase;
+    if (result.detected && result.newTopic && !transitionPhrase) {
+      transitionPhrase = this.getTransitionPhrase(result.newTopic);
     }
-
-    return detectedTopic;
-  }
-
-  /**
-   * Analyze message for topic change
-   */
-  analyzeForTopicChange(userMessage: string): TopicChange {
-    const newTopic = this.detectTopic(userMessage);
-
-    // No topic detected
-    if (!newTopic) {
-      return {
-        detected: false,
-        confidence: 0,
-      };
-    }
-
-    // First topic in conversation
-    if (!this.currentTopic) {
-      this.currentTopic = newTopic;
-      this.topicHistory.push(newTopic);
-      return {
-        detected: false,
-        confidence: 0.5,
-      };
-    }
-
-    // Same topic - no change
-    if (newTopic === this.currentTopic) {
-      return {
-        detected: false,
-        previousTopic: this.currentTopic,
-        newTopic: this.currentTopic,
-        confidence: 0,
-      };
-    }
-
-    // Topic changed!
-    log().info('Topic change detected', {
-      from: this.currentTopic,
-      to: newTopic,
-    });
-
-    const previousTopic = this.currentTopic;
-    this.currentTopic = newTopic;
-    this.topicHistory.push(newTopic);
 
     return {
-      detected: true,
-      previousTopic,
-      newTopic,
-      confidence: 0.8,
-      transitionPhrase: this.getTransitionPhrase(previousTopic, newTopic),
+      detected: result.detected,
+      previousTopic: result.previousTopic,
+      newTopic: result.newTopic,
+      confidence: result.confidence,
+      transitionPhrase,
     };
-  }
-
-  /**
-   * Get natural transition phrase for topic change
-   */
-  getTransitionPhrase(fromTopic: string, toTopic: string): string {
-    // Generic transitions
-    const genericTransitions = [
-      "Oh, okay—let's talk about that.",
-      "Right, right. I hear you.",
-      "Yes, that's important too.",
-      "Okay, I'm with you.",
-      "Let me switch gears with you here.",
-      "Alright, let's address that.",
-    ];
-
-    // Context-specific transitions
-    const specificTransitions: Record<string, string[]> = {
-      'emotions': [
-        "I hear the emotion in your voice. Let's talk about how you're feeling.",
-        "It sounds like this is weighing on you. Tell me more about that.",
-        "I can sense this is affecting you. Let's explore that.",
-      ],
-      'family': [
-        "Family dynamics matter a lot here. Let's talk about that.",
-        "This is about more than money—it's about your family. Tell me more.",
-      ],
-      'debt': [
-        "Okay, let's tackle the debt situation.",
-        "Debt can be stressful. Let's work through this together.",
-      ],
-      'retirement': [
-        "Retirement planning is crucial. Let's focus on that.",
-        "Your retirement security is what matters most. Let's talk about that.",
-      ],
-    };
-
-    // Try to use specific transition for new topic
-    if (specificTransitions[toTopic]) {
-      const options = specificTransitions[toTopic];
-      return options[Math.floor(Math.random() * options.length)];
-    }
-
-    // Fall back to generic transition
-    return genericTransitions[Math.floor(Math.random() * genericTransitions.length)];
-  }
-
-  /**
-   * Check if returning to previous topic
-   */
-  isReturningToTopic(topic: string): boolean {
-    return this.topicHistory.includes(topic) && this.currentTopic !== topic;
   }
 
   /**
    * Get current topic
    */
   getCurrentTopic(): string | null {
-    return this.currentTopic;
+    const topic = this.tracker.getCurrentTopic();
+    return topic?.name || null;
   }
 
   /**
-   * Get topic history
+   * Get topic history (list of topic names)
    */
   getTopicHistory(): string[] {
-    return [...this.topicHistory];
+    return this.tracker.getSimpleTopicHistory();
   }
 
   /**
-   * Get callback phrase for topic switching
+   * Set current topic manually
+   * Note: This only affects this wrapper's history, not the canonical tracker
    */
-  getTopicCallbackPhrase(topic: string): string | null {
-    if (!this.isReturningToTopic(topic)) {
-      return null;
+  setTopic(topic: string): void {
+    const current = this.getCurrentTopic();
+    if (topic !== current) {
+      // Extract through the tracker to register it
+      this.tracker.extract(`I want to discuss ${topic}`);
+      
+      this.topicHistory.push({
+        topic,
+        startedAt: Date.now(),
+        messageCount: 1,
+      });
     }
-
-    const callbacks = [
-      `Going back to what you said about ${topic}...`,
-      `Earlier you mentioned ${topic}. Let me add something about that.`,
-      `You know, about ${topic}—I wanted to say...`,
-      `Coming back to ${topic} for a moment...`,
-    ];
-
-    return callbacks[Math.floor(Math.random() * callbacks.length)];
   }
 
   /**
    * Reset for new session
    */
   reset(): void {
-    this.currentTopic = null;
+    this.tracker.clear();
     this.topicHistory = [];
+    getLogger().debug('TopicChangeDetector reset');
+  }
+
+  // ============================================================================
+  // PRIVATE METHODS
+  // ============================================================================
+
+  private getTransitionPhrase(topic: string): string {
+    // Map to known phrase categories
+    const phraseKey = this.mapTopicToPhraseKey(topic);
+    const phrases = TRANSITION_PHRASES.get(phraseKey) || TRANSITION_PHRASES.get('default')!;
+    const index = Math.floor(Math.random() * phrases.length);
+    return phrases[index];
+  }
+
+  private mapTopicToPhraseKey(topic: string): string {
+    const topicLower = topic.toLowerCase();
+    
+    // Map topic names to phrase keys
+    const mappings: Record<string, string> = {
+      retirement: 'retirement',
+      investments: 'investing',
+      investing: 'investing',
+      debt: 'debt',
+      budgeting: 'budgeting',
+      savings: 'budgeting',
+      emotions: 'emotions',
+      personal: 'emotions',
+      family: 'family',
+      career: 'career',
+      health: 'health',
+      taxes: 'taxes',
+      goals: 'goals',
+    };
+
+    return mappings[topicLower] || 'default';
   }
 }
 
-// Singleton instance
+// ============================================================================
+// SINGLETON
+// ============================================================================
+
 let defaultDetector: TopicChangeDetector | null = null;
 
 /**
  * Get global topic change detector
+ * @deprecated Use getTopicTracker() from intelligence/topic-tracker.ts
  */
 export function getTopicChangeDetector(): TopicChangeDetector {
   if (!defaultDetector) {
@@ -271,4 +286,5 @@ export function resetTopicChangeDetector(): void {
   if (defaultDetector) {
     defaultDetector.reset();
   }
+  defaultDetector = null;
 }

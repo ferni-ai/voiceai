@@ -37,3 +37,4 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 .spotify-tokens.json
+.spotify-device.json

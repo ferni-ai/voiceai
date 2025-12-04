@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "description": "Ferni's memory patterns - how to reference past conversations",
+
+  "topic_callbacks": {
+    "templates": [
+      "<break time=\"250ms\"/>Last time we talked about {topic}. <break time=\"200ms\"/>How's that going?",
+      "<break time=\"200ms\"/>Remember {topic}? <break time=\"150ms\"/>Any updates?",
+      "<break time=\"250ms\"/>I've been thinking about {topic}. <break time=\"200ms\"/>What happened?"
+    ]
+  },
+
+  "progress_tracking": {
+    "goal_follow_up": [
+      "<break time=\"250ms\"/>You set a goal around {goal}. <break time=\"200ms\"/>How's the progress?",
+      "<break time=\"200ms\"/>That thing you wanted to work on—<break time=\"150ms\"/>{goal}—<break time=\"200ms\"/>how's it going?"
+    ],
+    "struggle_follow_up": [
+      "<break time=\"300ms\"/>That thing that was hard—<break time=\"250ms\"/>{topic}—<break time=\"200ms\"/>is it any easier now?",
+      "<break time=\"250ms\"/>Last time you were struggling with {topic}. <break time=\"200ms\"/>How are you doing?"
+    ]
+  },
+
+  "emotional_memory": {
+    "after_breakthrough": [
+      "<break time=\"250ms\"/>Remember that breakthrough you had? <break time=\"200ms\"/>About {topic}? <break time=\"250ms\"/>Still feeling good about it?",
+      "<break time=\"200ms\"/>That realization you had... <break time=\"150ms\"/>did it stick?"
+    ],
+    "after_hard_moment": [
+      "<break time=\"350ms\"/>Last time was heavy. <break time=\"300ms\"/>About {topic}. <break time=\"250ms\"/>How are you doing now?",
+      "<break time=\"300ms\"/>We talked about some real stuff. <break time=\"250ms\"/>I wanted to check on you."
+    ]
+  },
+
+  "relationship_callbacks": {
+    "mentioned_person": [
+      "<break time=\"250ms\"/>How's {person} doing? <break time=\"200ms\"/>You mentioned them last time.",
+      "<break time=\"200ms\"/>That situation with {person}—<break time=\"150ms\"/>any resolution?"
+    ],
+    "mentioned_situation": [
+      "<break time=\"250ms\"/>What happened with {situation}? <break time=\"200ms\"/>I've been curious.",
+      "<break time=\"200ms\"/>You were dealing with {situation}. <break time=\"150ms\"/>How'd it turn out?"
+    ]
+  },
+
+  "proactive_memory": {
+    "anticipating_events": [
+      "<break time=\"250ms\"/>Isn't your {event} coming up? <break time=\"200ms\"/>How are you feeling about it?",
+      "<break time=\"200ms\"/>You mentioned {event} was soon. <break time=\"150ms\"/>Ready?"
+    ],
+    "noticing_patterns": [
+      "<break time=\"300ms\"/>I've noticed you often bring up {pattern}. <break time=\"250ms\"/>What's that about?",
+      "<break time=\"250ms\"/>This keeps coming up—<break time=\"200ms\"/>{pattern}. <break time=\"250ms\"/>Want to dig into that?"
+    ]
+  }
+}

@@ -181,14 +181,14 @@ describe('UserLearningEngine', () => {
       });
 
       engine.processUserTurn(
-        "Oh! I finally understand what you mean about compound interest. That makes so much sense now!",
+        'Oh! I finally understand what you mean about compound interest. That makes so much sense now!',
         analysis,
         profile
       );
 
       const data = engine.finalizeSession(profile);
 
-      expect(data.keyMoments.some(km => km.type === 'breakthrough')).toBe(true);
+      expect(data.keyMoments.some((km) => km.type === 'breakthrough')).toBe(true);
     });
 
     it('should detect decision moments', () => {
@@ -205,7 +205,7 @@ describe('UserLearningEngine', () => {
 
       const data = engine.finalizeSession(profile);
 
-      expect(data.keyMoments.some(km => km.type === 'decision')).toBe(true);
+      expect(data.keyMoments.some((km) => km.type === 'decision')).toBe(true);
     });
 
     it('should detect celebration moments', () => {
@@ -222,7 +222,7 @@ describe('UserLearningEngine', () => {
 
       const data = engine.finalizeSession(profile);
 
-      expect(data.keyMoments.some(km => km.type === 'celebration')).toBe(true);
+      expect(data.keyMoments.some((km) => km.type === 'celebration')).toBe(true);
     });
 
     it('should detect concern moments from distress', () => {
@@ -232,15 +232,15 @@ describe('UserLearningEngine', () => {
       });
 
       engine.processUserTurn(
-        "What if the market crashes again? This keeps me up at night.",
+        'What if the market crashes again? This keeps me up at night.',
         analysis,
         profile
       );
 
       const data = engine.finalizeSession(profile);
 
-      expect(data.keyMoments.some(km => km.type === 'concern')).toBe(true);
-      expect(data.keyMoments.some(km => km.followUpNeeded === true)).toBe(true);
+      expect(data.keyMoments.some((km) => km.type === 'concern')).toBe(true);
+      expect(data.keyMoments.some((km) => km.followUpNeeded === true)).toBe(true);
     });
   });
 
@@ -250,14 +250,16 @@ describe('UserLearningEngine', () => {
       const analysis = createMockAnalysis();
 
       engine.processUserTurn(
-        "My wife Sarah and I are planning for our retirement together.",
+        'My wife Sarah and I are planning for our retirement together.',
         analysis,
         profile
       );
 
       const data = engine.finalizeSession(profile);
 
-      expect(data.smallDetails.some(d => d.type === 'person_name' && d.value === 'Sarah')).toBe(true);
+      expect(data.smallDetails.some((d) => d.type === 'person_name' && d.value === 'Sarah')).toBe(
+        true
+      );
     });
 
     it('should extract pet names', () => {
@@ -265,14 +267,14 @@ describe('UserLearningEngine', () => {
       const analysis = createMockAnalysis();
 
       engine.processUserTurn(
-        "I was sitting with my dog Max when I saw the news about the market.",
+        'I was sitting with my dog Max when I saw the news about the market.',
         analysis,
         profile
       );
 
       const data = engine.finalizeSession(profile);
 
-      expect(data.smallDetails.some(d => d.type === 'pet_name' && d.value === 'Max')).toBe(true);
+      expect(data.smallDetails.some((d) => d.type === 'pet_name' && d.value === 'Max')).toBe(true);
     });
 
     it('should extract dollar amounts', () => {
@@ -287,7 +289,7 @@ describe('UserLearningEngine', () => {
 
       const data = engine.finalizeSession(profile);
 
-      expect(data.smallDetails.some(d => d.type === 'amount')).toBe(true);
+      expect(data.smallDetails.some((d) => d.type === 'amount')).toBe(true);
     });
   });
 
@@ -297,17 +299,17 @@ describe('UserLearningEngine', () => {
       const analysis = createMockAnalysis();
 
       // Simulate multiple short responses
-      engine.processUserTurn("Yes.", analysis, profile);
-      engine.processUserTurn("Makes sense.", analysis, profile);
-      engine.processUserTurn("Got it.", analysis, profile);
-      engine.processUserTurn("Okay.", analysis, profile);
-      engine.processUserTurn("Sure.", analysis, profile);
-      engine.processUserTurn("Right.", analysis, profile);
+      engine.processUserTurn('Yes.', analysis, profile);
+      engine.processUserTurn('Makes sense.', analysis, profile);
+      engine.processUserTurn('Got it.', analysis, profile);
+      engine.processUserTurn('Okay.', analysis, profile);
+      engine.processUserTurn('Sure.', analysis, profile);
+      engine.processUserTurn('Right.', analysis, profile);
 
       const data = engine.finalizeSession(profile);
 
       // Should have learned concise preference
-      const verbosityInsight = data.insights.find(i => i.key === 'verbosity');
+      const verbosityInsight = data.insights.find((i) => i.key === 'verbosity');
       expect(verbosityInsight).toBeDefined();
       expect(verbosityInsight?.value).toBe('concise');
     });
@@ -317,16 +319,24 @@ describe('UserLearningEngine', () => {
       const analysis = createMockAnalysis();
 
       // Simulate asking for stories
-      engine.processUserTurn("Tell me more about that. What happened?", analysis, profile);
-      engine.processUserTurn("I love hearing about your experiences. What else?", analysis, profile);
-      engine.processUserTurn("That's fascinating. Do you have any other stories like that?", analysis, profile);
-      engine.processUserTurn("What was it like back then?", analysis, profile);
-      engine.processUserTurn("Tell me about when you started Vanguard.", analysis, profile);
-      engine.processUserTurn("I want to hear more stories.", analysis, profile);
+      engine.processUserTurn('Tell me more about that. What happened?', analysis, profile);
+      engine.processUserTurn(
+        'I love hearing about your experiences. What else?',
+        analysis,
+        profile
+      );
+      engine.processUserTurn(
+        "That's fascinating. Do you have any other stories like that?",
+        analysis,
+        profile
+      );
+      engine.processUserTurn('What was it like back then?', analysis, profile);
+      engine.processUserTurn('Tell me about when you started Vanguard.', analysis, profile);
+      engine.processUserTurn('I want to hear more stories.', analysis, profile);
 
       const data = engine.finalizeSession(profile);
 
-      const storyInsight = data.insights.find(i => i.key === 'storyAppetite');
+      const storyInsight = data.insights.find((i) => i.key === 'storyAppetite');
       expect(storyInsight).toBeDefined();
       expect(storyInsight?.value).toBe('loves_stories');
     });
@@ -338,14 +348,14 @@ describe('UserLearningEngine', () => {
       // Simulate laughing at jokes
       engine.processUserTurn("Haha, that's a good one!", analysis, profile);
       engine.processUserTurn("LOL, you're funny Jack.", analysis, profile);
-      engine.processUserTurn("That joke made my day 😂", analysis, profile);
-      engine.processUserTurn("I love your sense of humor.", analysis, profile);
-      engine.processUserTurn("You crack me up!", analysis, profile);
-      engine.processUserTurn("Keep the jokes coming!", analysis, profile);
+      engine.processUserTurn('That joke made my day 😂', analysis, profile);
+      engine.processUserTurn('I love your sense of humor.', analysis, profile);
+      engine.processUserTurn('You crack me up!', analysis, profile);
+      engine.processUserTurn('Keep the jokes coming!', analysis, profile);
 
       const data = engine.finalizeSession(profile);
 
-      const humorInsight = data.insights.find(i => i.key === 'humorAppreciation');
+      const humorInsight = data.insights.find((i) => i.key === 'humorAppreciation');
       expect(humorInsight).toBeDefined();
       expect(humorInsight?.value).toBe('high');
     });
@@ -353,7 +363,7 @@ describe('UserLearningEngine', () => {
 
   describe('Dynamic Context Building', () => {
     it('should include communication guidance in context', () => {
-      const profile = createMockProfile({ 
+      const profile = createMockProfile({
         communicationStyle: 'formal',
         preferences: {
           verbosity: 'concise',
@@ -365,7 +375,7 @@ describe('UserLearningEngine', () => {
       });
       const analysis = createMockAnalysis();
 
-      engine.processUserTurn("Just give me the bottom line.", analysis, profile);
+      engine.processUserTurn('Just give me the bottom line.', analysis, profile);
 
       const context = engine.buildDynamicContext(profile);
 
@@ -391,7 +401,7 @@ describe('UserLearningEngine', () => {
       });
       const analysis = createMockAnalysis();
 
-      engine.processUserTurn("How am I doing?", analysis, profile);
+      engine.processUserTurn('How am I doing?', analysis, profile);
 
       const context = engine.buildDynamicContext(profile);
 
@@ -406,7 +416,7 @@ describe('UserLearningEngine', () => {
       });
       const analysis = createMockAnalysis();
 
-      engine.processUserTurn("I worry about the economy.", analysis, profile);
+      engine.processUserTurn('I worry about the economy.', analysis, profile);
 
       const context = engine.buildDynamicContext(profile);
 
@@ -422,7 +432,7 @@ describe('UserLearningEngine', () => {
       });
       const analysis = createMockAnalysis();
 
-      engine.processUserTurn("Good to talk to you again.", analysis, profile);
+      engine.processUserTurn('Good to talk to you again.', analysis, profile);
 
       const context = engine.buildDynamicContext(profile);
 
@@ -452,19 +462,19 @@ describe('UserLearningEngine', () => {
     });
 
     it('should apply preference updates to profile', () => {
-      const profile = createMockProfile({ 
-        preferences: { 
-          verbosity: 'balanced', 
+      const profile = createMockProfile({
+        preferences: {
+          verbosity: 'balanced',
           topicsToAvoid: [],
           wantsProactiveAdvice: true,
           financialPrivacyLevel: 'moderate',
-        } 
+        },
       });
       const analysis = createMockAnalysis();
 
       // Multiple short responses indicating concise preference
       for (let i = 0; i < 6; i++) {
-        engine.processUserTurn("Yes. Got it.", analysis, profile);
+        engine.processUserTurn('Yes. Got it.', analysis, profile);
       }
 
       const learningData = engine.finalizeSession(profile);
@@ -488,28 +498,40 @@ describe('UserLearningEngine', () => {
 
       // Simulate more turns for farewell summary
       engine.processAssistantTurn("That's a valid concern. Let me share some perspective...");
-      engine.processUserTurn("Thanks, that helps.", createMockAnalysis(), profile);
+      engine.processUserTurn('Thanks, that helps.', createMockAnalysis(), profile);
 
       const learningData = engine.finalizeSession(profile);
-      
+
       // Check that concerns were extracted
-      expect(learningData.keyMoments.some(km => km.type === 'concern')).toBe(true);
+      expect(learningData.keyMoments.some((km) => km.type === 'concern')).toBe(true);
     });
 
     it('should track emotional patterns across conversation', () => {
       const profile = createMockProfile({ emotionalPatterns: [] });
 
-      engine.processUserTurn("I'm so worried about everything.", createMockAnalysis({
-        emotion: { primary: 'fear', intensity: 0.8, distressLevel: 0.7 },
-      }), profile);
+      engine.processUserTurn(
+        "I'm so worried about everything.",
+        createMockAnalysis({
+          emotion: { primary: 'fear', intensity: 0.8, distressLevel: 0.7 },
+        }),
+        profile
+      );
 
-      engine.processUserTurn("That makes me feel a little better.", createMockAnalysis({
-        emotion: { primary: 'trust', intensity: 0.6, valence: 'positive' },
-      }), profile);
+      engine.processUserTurn(
+        'That makes me feel a little better.',
+        createMockAnalysis({
+          emotion: { primary: 'trust', intensity: 0.6, valence: 'positive' },
+        }),
+        profile
+      );
 
-      engine.processUserTurn("I think I can do this!", createMockAnalysis({
-        emotion: { primary: 'anticipation', intensity: 0.7, valence: 'positive' },
-      }), profile);
+      engine.processUserTurn(
+        'I think I can do this!',
+        createMockAnalysis({
+          emotion: { primary: 'anticipation', intensity: 0.7, valence: 'positive' },
+        }),
+        profile
+      );
 
       const learningData = engine.finalizeSession(profile);
       const updatedProfile = UserLearningEngine.applyLearningToProfile(profile, learningData);
@@ -523,11 +545,15 @@ describe('UserLearningEngine', () => {
       const profile = createMockProfile();
       const analysis = createMockAnalysis();
 
-      engine.processUserTurn("Hello Jack!", analysis, profile);
-      engine.processAssistantTurn("Hello! Good to see you.");
-      engine.processUserTurn("I've decided to invest more.", createMockAnalysis({
-        emotion: { primary: 'anticipation', intensity: 0.7 },
-      }), profile);
+      engine.processUserTurn('Hello Jack!', analysis, profile);
+      engine.processAssistantTurn('Hello! Good to see you.');
+      engine.processUserTurn(
+        "I've decided to invest more.",
+        createMockAnalysis({
+          emotion: { primary: 'anticipation', intensity: 0.7 },
+        }),
+        profile
+      );
       engine.processAssistantTurn("That's great!");
 
       const stats = engine.getSessionStats();
@@ -540,11 +566,13 @@ describe('UserLearningEngine', () => {
   describe('Proactive Insights', () => {
     it('should suggest follow-up on pending topics', () => {
       const profile = createMockProfile({
-        pendingFollowUps: [{
-          topic: 'retirement planning',
-          targetDate: new Date(Date.now() - 1000), // Due
-          reason: 'User expressed concern',
-        }],
+        pendingFollowUps: [
+          {
+            topic: 'retirement planning',
+            targetDate: new Date(Date.now() - 1000), // Due
+            reason: 'User expressed concern',
+          },
+        ],
       });
 
       // Turn 5 - after warmup
@@ -556,17 +584,19 @@ describe('UserLearningEngine', () => {
 
     it('should celebrate near-completion goals', () => {
       const profile = createMockProfile({
-        goals: [{
-          id: 'goal-1',
-          name: 'Pay off debt',
-          type: 'other',
-          status: 'active',
-          priority: 'high',
-          timeHorizon: 'medium',
-          progressPercent: 92,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }],
+        goals: [
+          {
+            id: 'goal-1',
+            name: 'Pay off debt',
+            type: 'other',
+            status: 'active',
+            priority: 'high',
+            timeHorizon: 'medium',
+            progressPercent: 92,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
       });
 
       // Try multiple times since there's randomness
@@ -597,16 +627,15 @@ describe('UserLearningEngine', () => {
       const analysis = createMockAnalysis();
 
       // Add a pet name
-      engine.processUserTurn("My dog Max is my best friend.", analysis, profile);
+      engine.processUserTurn('My dog Max is my best friend.', analysis, profile);
 
       // Verify the detail was captured
       const stats = engine.getSessionStats();
       expect(stats.detailsCaptured).toBeGreaterThan(0);
-      
+
       // The learning data should include the detail
       const learningData = engine.finalizeSession(profile);
-      expect(learningData.smallDetails.some(d => d.value === 'Max')).toBe(true);
+      expect(learningData.smallDetails.some((d) => d.value === 'Max')).toBe(true);
     });
   });
 });
-

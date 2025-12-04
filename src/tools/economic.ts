@@ -13,6 +13,9 @@ import { z } from 'zod';
 
 const getLogger = () => log();
 
+// FRED API key - get a free key at https://fred.stlouisfed.org/docs/api/api_key.html
+const FRED_API_KEY = process.env.FRED_API_KEY || 'DEMO';
+
 // ============================================================================
 // FRED API HELPERS
 // ============================================================================
@@ -34,7 +37,7 @@ async function fetchFREDData(
   limit: number = 1
 ): Promise<FREDObservation[] | null> {
   try {
-    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=DEMO&file_type=json&sort_order=desc&limit=${limit}`;
+    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
     const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
 
     if (!response.ok) return null;

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Ferni Avatar - Used in chat/conversation UI -->
+  <defs>
+    <linearGradient id="avatarGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3a5233"/>
+      <stop offset="100%" stop-color="#4a6741"/>
+    </linearGradient>
+    <filter id="avatarGlow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#4a6741" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  
+  <!-- Circle background -->
+  <circle cx="60" cy="60" r="56" fill="url(#avatarGrad)" filter="url(#avatarGlow)"/>
+  
+  <!-- FN Monogram -->
+  <text x="60" y="76" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="44" font-weight="800" fill="white" text-anchor="middle">FN</text>
+</svg>

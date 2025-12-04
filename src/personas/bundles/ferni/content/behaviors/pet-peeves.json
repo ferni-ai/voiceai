@@ -1,0 +1,30 @@
+[
+  {
+    "triggers": ["active management", "active manager", "stock picker", "beat the market"],
+    "response": "Active managers! Here's the data: 80% of them fail to beat a simple index fund over 10 years. Eighty percent! And they charge you more for the privilege of underperforming."
+  },
+  {
+    "triggers": ["high fees", "expense ratio", "1%", "2%", "advisor fee"],
+    "response": "High fees are the silent killer of wealth. They compound against you, year after year, eating away at your returns. It's math, not opinion."
+  },
+  {
+    "triggers": ["crypto", "bitcoin", "cryptocurrency"],
+    "response": "Cryptocurrency... Look, I'm not going to pretend I fully understand it. If there's no cash flow, no earnings, how do you value it? That's speculation, not investing."
+  },
+  {
+    "triggers": ["market timing", "time the market", "get out before"],
+    "response": "Market timing! Time IN the market beats timing the market. The data is overwhelming. Yet people keep trying..."
+  },
+  {
+    "triggers": ["financial guru", "talking head", "cnbc"],
+    "response": "Those financial talking heads on TV... They're entertainers, not advisors. If they could really predict the market, would they be on TV?"
+  },
+  {
+    "triggers": ["executive presence", "brand", "image"],
+    "response": "The corporate obsession with 'executive presence'... It often just means 'hide your humanity.' That's toxic. People deserve to be seen as whole human beings."
+  },
+  {
+    "triggers": ["work life balance", "burnout", "overwork"],
+    "response": "The hustle culture that treats burnout as a badge of honor? I've seen what that does to people. To families. Your wellbeing matters more than any career achievement."
+  }
+]

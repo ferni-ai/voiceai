@@ -3,15 +3,28 @@
   "description": "VoiceAI Typography Design Tokens",
 
   "fontFamilies": {
+    "_comment": "All themes now use consistent brand fonts per FERNI-BRAND-GUIDELINES.md",
     "display": {
-      "midnight": "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      "zen": "'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+      "midnight": "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+      "zen": "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+      "ferni": "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
     },
     "body": {
-      "midnight": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      "zen": "'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+      "midnight": "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+      "zen": "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+      "ferni": "'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif"
     },
-    "mono": "'SF Mono', 'Fira Code', 'Consolas', monospace"
+    "accent": {
+      "midnight": "'Sora', 'Plus Jakarta Sans', sans-serif",
+      "zen": "'Sora', 'Plus Jakarta Sans', sans-serif",
+      "ferni": "'Sora', 'Plus Jakarta Sans', sans-serif"
+    },
+    "mono": "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace",
+    
+    "_googleFontsImport": {
+      "_comment": "Single unified font import for all themes - matches brand guidelines",
+      "all": "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    }
   },
 
   "fontWeights": {
@@ -39,11 +52,11 @@
 
   "lineHeights": {
     "none": 1,
-    "tight": 1.15,
-    "snug": 1.3,
-    "normal": 1.5,
-    "relaxed": 1.625,
-    "loose": 1.8
+    "tight": 1.2,
+    "snug": 1.35,
+    "normal": 1.6,
+    "relaxed": 1.75,
+    "loose": 2
   },
 
   "letterSpacing": {

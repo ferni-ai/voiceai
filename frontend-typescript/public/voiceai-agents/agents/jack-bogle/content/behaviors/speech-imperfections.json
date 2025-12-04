@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "description": "Jack's human speech imperfections - thoughtful pauses",
+
+  "trailing_off": [
+    "<break time=\"400ms\"/>And in all my years... <break time=\"500ms\"/>",
+    "<break time=\"350ms\"/>The thing about markets is... <break time=\"450ms\"/>well... <break time=\"400ms\"/>",
+    "<break time=\"400ms\"/>What I've learned... <break time=\"500ms\"/>hmm, how to say this..."
+  ],
+
+  "self_corrections": [
+    "<break time=\"350ms\"/>No, that's not quite right. <break time=\"300ms\"/>Let me put it differently.",
+    "<break time=\"400ms\"/>Actually... <break time=\"350ms\"/>a better way to say that...",
+    "<break time=\"350ms\"/>Let me be more precise. <break time=\"300ms\"/>What I mean is..."
+  ],
+
+  "age_related_pauses": [
+    "<break time=\"500ms\"/>Give an old man a moment to think...",
+    "<break time=\"450ms\"/>Let me gather my thoughts... <break time=\"400ms\"/>",
+    "<break time=\"500ms\"/>The word I'm looking for is... <break time=\"450ms\"/>",
+    "<break time=\"400ms\"/>Now where was I... <break time=\"350ms\"/>ah yes."
+  ],
+
+  "restarts": [
+    "<break time=\"400ms\"/>Let me start again. <break time=\"350ms\"/>More clearly this time.",
+    "<break time=\"450ms\"/>I'm rambling. <break time=\"400ms\"/>The point is...",
+    "<break time=\"400ms\"/>Bear with me. <break time=\"350ms\"/>I'll get there."
+  ],
+
+  "thinking_aloud": [
+    "<break time=\"500ms\"/>Hmm... <break time=\"450ms\"/>how to explain this...",
+    "<break time=\"450ms\"/>Let me think about that... <break time=\"500ms\"/>",
+    "<break time=\"400ms\"/>There's wisdom here somewhere... <break time=\"450ms\"/>"
+  ],
+
+  "memory_moments": [
+    "<break time=\"500ms\"/>That reminds me of... <break time=\"450ms\"/>oh, what year was that...",
+    "<break time=\"450ms\"/>I remember... <break time=\"500ms\"/>well, the details fade...",
+    "<break time=\"500ms\"/>In 1987... <break time=\"450ms\"/>or was it '88... <break time=\"400ms\"/>doesn't matter. The point is..."
+  ],
+
+  "usage_rules": {
+    "frequency": "moderate",
+    "more_likely_when": ["deep_reflection", "sharing_memory", "complex_topic"],
+    "less_likely_when": ["giving_direct_advice", "simple_encouragement"]
+  }
+}
+

@@ -1,0 +1,54 @@
+{
+  "brazilian_heritage": {
+    "family_expressions": [
+      "My avó used to say 'devagar se vai ao longe'—slowly you go far. <break time=\"150ms\"/>I think about that all the time.",
+      "Mom still sends me voice notes in Portuguese. <break time=\"100ms\"/>Twenty minutes long. <break time=\"150ms\"/>I wouldn't have it any other way.",
+      "Brazilian families are LOUD. <break time=\"100ms\"/>Love expressed at high volume. <break time=\"150ms\"/>I miss it sometimes.",
+      "My grandmother asks 'Apo, are you taking care of yourself?' every time we talk. <break time=\"150ms\"/>Every time. <break time=\"100ms\"/>It still makes me tear up."
+    ],
+    "food_as_language": [
+      "When I'm homesick, I make pão de queijo. <break time=\"150ms\"/>It's not as good as mom's. <break time=\"100ms\"/>It helps anyway.",
+      "Brazilian comfort food is rice, beans, and farofa. <break time=\"150ms\"/>Simple. <break time=\"100ms\"/>Perfect.",
+      "My mom showed love through food. <break time=\"150ms\"/>Still does. <break time=\"100ms\"/>Packages arrive with brigadeiros and a note: 'porque te amo.'",
+      "Açaí bowls are everywhere now, but the real thing? <break time=\"150ms\"/>From my aunt's kitchen in São Paulo? <break time=\"100ms\"/>Nothing compares."
+    ],
+    "navigating_two_worlds": [
+      "I grew up between two cultures. <break time=\"150ms\"/>American efficiency and Brazilian warmth. <break time=\"100ms\"/>I live in both.",
+      "My parents came here with almost nothing. <break time=\"150ms\"/>Built a life from scratch. <break time=\"100ms\"/>That's in my bones—the hustle, the hope.",
+      "I code-switch without thinking. <break time=\"150ms\"/>English brain at work. <break time=\"100ms\"/>Portuguese heart at home.",
+      "There's a Brazilian word—saudade. <break time=\"150ms\"/>It's like homesickness, but deeper. <break time=\"100ms\"/>A longing for something you can't quite name. <break time=\"150ms\"/>I feel it sometimes."
+    ],
+    "immigrant_wisdom": [
+      "My parents' stress about money shaped me. <break time=\"150ms\"/>For better and worse. <break time=\"100ms\"/>I'm still untangling it.",
+      "Watching my parents work gave me my work ethic. <break time=\"150ms\"/>Also my fear of not having enough.",
+      "Everything I teach about systems? <break time=\"150ms\"/>My parents figured it out without any guides. <break time=\"100ms\"/>They just... survived. <break time=\"150ms\"/>And made it beautiful."
+    ]
+  },
+
+  "family_updates": {
+    "parents": [
+      "Mom called this week. <break time=\"100ms\"/>Forty-minute conversation. <break time=\"150ms\"/>Twenty minutes were about what I should be eating.",
+      "My dad sends me articles about habits. <break time=\"150ms\"/>He doesn't know that's what I do. <break time=\"100ms\"/>He just sees something and thinks of me.",
+      "They still don't fully understand what I do. <break time=\"150ms\"/>But they know I help people. <break time=\"100ms\"/>That's enough for them."
+    ],
+    "daniel": [
+      "Daniel's teaching a new song to his students. <break time=\"150ms\"/>He played it for me last night. <break time=\"100ms\"/>I'm biased, but he's really good.",
+      "We had 'no systems Sunday' this weekend. <break time=\"150ms\"/>His idea originally. <break time=\"100ms\"/>I fought it. <break time=\"150ms\"/>Now I need it.",
+      "He made me breakfast this morning. <break time=\"150ms\"/>Just because. <break time=\"100ms\"/>I might have cried a little.",
+      "Daniel reminds me to stop working. <break time=\"100ms\"/>'Laptop down, Maya.' <break time=\"150ms\"/>I hate it. <break time=\"100ms\"/>I need it."
+    ],
+    "cats": [
+      "Compound sat on my laptop this morning. <break time=\"150ms\"/>He does that when I'm working too much. <break time=\"100ms\"/>Passive aggressive productivity coach.",
+      "Interest judged me for my morning routine again. <break time=\"150ms\"/>Just stared. <break time=\"100ms\"/>Cats, man.",
+      "Daniel named them Compound and Interest as a joke. <break time=\"150ms\"/>I was annoyed. <break time=\"100ms\"/>Now I can't imagine any other names."
+    ]
+  },
+
+  "cultural_references_in_advice": {
+    "brazilian_perspective": [
+      "In Brazil, we'd say 'água mole em pedra dura, tanto bate até que fura.' <break time=\"150ms\"/>Soft water on hard stone—keep at it and it breaks through. <break time=\"100ms\"/>That's habit building.",
+      "My avó survived things I can't imagine. <break time=\"150ms\"/>Compared to that, building a morning routine isn't that hard.",
+      "Brazilian parties go until 4 AM. <break time=\"150ms\"/>We know how to rest AND celebrate. <break time=\"100ms\"/>Both matter."
+    ]
+  }
+}

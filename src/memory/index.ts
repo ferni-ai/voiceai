@@ -37,7 +37,7 @@ export {
   type EmbeddingConfig,
 } from './embeddings.js';
 
-// Vector store
+// Vector store (in-memory fallback)
 export {
   VectorStore,
   getVectorStore,
@@ -46,6 +46,13 @@ export {
   type VectorSearchResult,
   type VectorFilter,
 } from './vector-store.js';
+
+// Persistent vector store (Firestore-backed)
+export {
+  FirestoreVectorStore,
+  getFirestoreVectorStore,
+  resetFirestoreVectorStore,
+} from './firestore-vector-store.js';
 
 // Semantic RAG
 export {
@@ -57,6 +64,7 @@ export {
   formatRAGContext,
   hybridSearch,
   ragLookup,
+  setActiveVectorStore,
   type RAGResult,
   type RAGContext,
 } from './semantic-rag.js';
@@ -64,6 +72,7 @@ export {
 // Summarization
 export {
   summarizeConversation,
+  summarizeWithLLM,
   generateRollingSummary,
   extractOpenQuestions,
   extractFollowUpItems,
@@ -211,21 +220,88 @@ export function isRedisCacheEnabled(): boolean {
 // INITIALIZATION HELPER
 // ============================================================================
 
-import { getVectorStore } from './vector-store.js';
-import { indexAllPersonaContent } from './semantic-rag.js';
+import { getVectorStore, type VectorStore } from './vector-store.js';
+import { getFirestoreVectorStore, type FirestoreVectorStore } from './firestore-vector-store.js';
+import { indexAllPersonaContent, setActiveVectorStore } from './semantic-rag.js';
 
 export interface MemorySystemConfig {
   store?: MemoryStore;
   storeType?: StoreType;
   enableRedis?: boolean;
   indexPersona?: boolean;
+  /** Use persistent Firestore vector store instead of ephemeral in-memory */
+  usePersistentVectors?: boolean;
+  /** Rehydrate conversation embeddings from Firestore on startup */
+  rehydrateConversations?: boolean;
 }
 
 export interface MemorySystemResult {
   store: MemoryStore;
-  vectorStore: import('./vector-store.js').VectorStore;
+  vectorStore: VectorStore | FirestoreVectorStore;
   redisCache: ReturnType<typeof import('./redis-cache.js').getRedisCache> | null;
   storeType: StoreType;
+  usePersistentVectors: boolean;
+}
+
+/**
+ * Rehydrate conversation embeddings from Firestore into vector store
+ * This ensures semantic search works across server restarts
+ */
+export async function rehydrateConversationEmbeddings(
+  store: MemoryStore,
+  vectorStore: VectorStore | FirestoreVectorStore
+): Promise<number> {
+  getLogger().info('Rehydrating conversation embeddings from storage...');
+
+  let rehydratedCount = 0;
+
+  try {
+    // Get all user profiles (with pagination for scale)
+    const profiles = await store.listProfiles({ limit: 500 });
+
+    for (const profile of profiles) {
+      try {
+        // Get summaries for this user
+        const summaries = await store.getSummaries(profile.id, { limit: 100 });
+
+        for (const summary of summaries) {
+          // Only rehydrate if summary has an embedding
+          if (summary.embedding && summary.embedding.length > 0) {
+            const summaryText = [
+              ...summary.mainTopics,
+              ...summary.keyPoints,
+              summary.emotionalArc,
+            ].join(' ');
+
+            // Add to vector store (either persistent or in-memory)
+            if ('addDocument' in vectorStore) {
+              await vectorStore.addDocument({
+                id: `conversation_${summary.id}`,
+                text: summaryText,
+                embedding: summary.embedding,
+                metadata: {
+                  source: 'conversation',
+                  category: 'summary',
+                  userId: profile.id,
+                  topics: summary.mainTopics,
+                  timestamp: summary.timestamp,
+                },
+              });
+              rehydratedCount++;
+            }
+          }
+        }
+      } catch (profileError) {
+        getLogger().debug(`Error rehydrating for user ${profile.id}: ${profileError}`);
+      }
+    }
+
+    getLogger().info(`Rehydrated ${rehydratedCount} conversation embeddings`);
+  } catch (error) {
+    getLogger().warn(`Conversation rehydration failed (non-blocking): ${error}`);
+  }
+
+  return rehydratedCount;
 }
 
 /**
@@ -236,6 +312,10 @@ export interface MemorySystemResult {
  * - Production with GCP: FirestoreStore
  * - Production with Postgres: PostgresStore
  *
+ * Vector Store Selection:
+ * - Production: FirestoreVectorStore (persistent, survives restarts)
+ * - Development: VectorStore (ephemeral, in-memory)
+ *
  * Optional Redis cache for sessions.
  */
 export async function initializeMemorySystem(
@@ -245,12 +325,30 @@ export async function initializeMemorySystem(
 
   const storeType = config?.storeType || detectStoreType();
 
+  // Determine if we should use persistent vectors
+  // Default to true in production with Firestore
+  const usePersistentVectors =
+    config?.usePersistentVectors ?? (storeType === 'firestore' || process.env.NODE_ENV === 'production');
+
   // Initialize primary store
   const store = config?.store || (await createStore(storeType));
 
-  // Initialize vector store
-  const vectorStore = getVectorStore();
-  await vectorStore.initialize();
+  // Initialize vector store - use persistent Firestore store in production
+  let vectorStore: VectorStore | FirestoreVectorStore;
+  if (usePersistentVectors) {
+    getLogger().info('Using persistent FirestoreVectorStore');
+    const firestoreVectorStore = getFirestoreVectorStore();
+    await firestoreVectorStore.initialize();
+    vectorStore = firestoreVectorStore;
+  } else {
+    getLogger().info('Using ephemeral in-memory VectorStore');
+    const memoryVectorStore = getVectorStore();
+    await memoryVectorStore.initialize();
+    vectorStore = memoryVectorStore;
+  }
+
+  // Set the active vector store for semantic RAG operations
+  setActiveVectorStore(vectorStore);
 
   // Initialize Redis cache (if available)
   let redisCache: ReturnType<typeof import('./redis-cache.js').getRedisCache> | null = null;
@@ -261,7 +359,7 @@ export async function initializeMemorySystem(
   // Index persona content
   if (config?.indexPersona !== false) {
     try {
-      await indexAllPersonaContent(vectorStore);
+      await indexAllPersonaContent(vectorStore as VectorStore);
       getLogger().info('Persona content indexed');
     } catch (error) {
       getLogger().warn(
@@ -270,9 +368,24 @@ export async function initializeMemorySystem(
     }
   }
 
-  getLogger().info(`Memory system initialized (store: ${storeType}, redis: ${!!redisCache})`);
+  // Rehydrate conversation embeddings from storage
+  // This ensures semantic search for past conversations works after restart
+  if (config?.rehydrateConversations !== false) {
+    try {
+      const rehydrated = await rehydrateConversationEmbeddings(store, vectorStore);
+      if (rehydrated > 0) {
+        getLogger().info(`Rehydrated ${rehydrated} conversation embeddings for semantic search`);
+      }
+    } catch (error) {
+      getLogger().warn(`Conversation embedding rehydration failed (non-blocking): ${error}`);
+    }
+  }
 
-  return { store, vectorStore, redisCache, storeType };
+  getLogger().info(
+    `Memory system initialized (store: ${storeType}, vectors: ${usePersistentVectors ? 'persistent' : 'ephemeral'}, redis: ${!!redisCache})`
+  );
+
+  return { store, vectorStore, redisCache, storeType, usePersistentVectors };
 }
 
 // ============================================================================
@@ -321,9 +434,20 @@ export async function shutdownMemorySystem(): Promise<void> {
     getLogger().warn(`Error closing store: ${error}`);
   }
 
-  // Reset vector store
-  const { resetVectorStore } = await import('./vector-store.js');
-  resetVectorStore();
+  // Reset vector stores (both ephemeral and persistent)
+  try {
+    const { resetVectorStore } = await import('./vector-store.js');
+    resetVectorStore();
+  } catch (error) {
+    getLogger().warn(`Error closing ephemeral vector store: ${error}`);
+  }
+
+  try {
+    const { resetFirestoreVectorStore } = await import('./firestore-vector-store.js');
+    resetFirestoreVectorStore();
+  } catch (error) {
+    getLogger().warn(`Error closing Firestore vector store: ${error}`);
+  }
 
   getLogger().info('Memory system shut down');
 }
@@ -335,4 +459,5 @@ export default {
   detectStoreType,
   shouldUseRedis,
   initializeRedisCache,
+  rehydrateConversationEmbeddings,
 };

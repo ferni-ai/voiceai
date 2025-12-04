@@ -21,6 +21,7 @@ const colors = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/colors.js
 const typography = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/typography.json'), 'utf8'));
 const spacing = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/spacing.json'), 'utf8'));
 const animation = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/animation.json'), 'utf8'));
+const effects = JSON.parse(fs.readFileSync(path.join(__dirname, 'tokens/effects.json'), 'utf8'));
 
 // ============================================================================
 // CSS GENERATION HELPERS
@@ -72,15 +73,16 @@ ${generateCSSVariables(flattened)}
 
 function generatePersonaCSS(personas) {
   const lines = [];
-  for (const [personaId, colors] of Object.entries(personas)) {
+  for (const [personaId, personaColors] of Object.entries(personas)) {
     const kebabId = camelToKebab(personaId);
     lines.push(`
 /* Persona: ${personaId} */
 [data-persona="${kebabId}"] {
-  --persona-primary: ${colors.primary};
-  --persona-secondary: ${colors.secondary};
-  --persona-glow: ${colors.glow};
-  --persona-tint: ${colors.tint};
+  --persona-primary: ${personaColors.primary};
+  --persona-secondary: ${personaColors.secondary};
+  --persona-text: ${personaColors.text || '#ffffff'};
+  --persona-glow: ${personaColors.glow};
+  --persona-tint: ${personaColors.tint};
 }`);
   }
   return lines.join('\n');
@@ -158,6 +160,29 @@ function generateSpacingCSS(spacing) {
 
   lines.push(':root {');
 
+  // MA (間) Spacing - Golden Ratio Rhythm
+  if (spacing.ma) {
+    lines.push('  /* MA (間) Spacing - Japanese intentional negative space */');
+    lines.push('  /* Based on Fibonacci sequence - approximates golden ratio */');
+    for (const [key, value] of Object.entries(spacing.ma)) {
+      if (!key.startsWith('_')) {
+        lines.push(`  --ma-${key}: ${value};`);
+      }
+    }
+    lines.push('');
+  }
+
+  // Golden Ratio Scales
+  if (spacing.goldenRatio) {
+    lines.push('  /* Golden Ratio Scales (φ = 1.618) */');
+    if (spacing.goldenRatio.scales) {
+      for (const [key, value] of Object.entries(spacing.goldenRatio.scales)) {
+        lines.push(`  --phi-${key}: ${value};`);
+      }
+    }
+    lines.push('');
+  }
+
   // Spacing scale
   lines.push('  /* Spacing Scale */');
   for (const [key, value] of Object.entries(spacing.spacing)) {
@@ -218,6 +243,72 @@ function generateSpacingCSS(spacing) {
   }
   lines.push('}');
 
+  // Glass Morphism
+  if (spacing.glassMorphism) {
+    lines.push('');
+    lines.push('/* ========================================');
+    lines.push('   GLASS MORPHISM - Apple Liquid Glass Style');
+    lines.push('   ======================================== */');
+
+    // Midnight glass
+    if (spacing.glassMorphism.midnight) {
+      lines.push('');
+      lines.push('[data-theme="midnight"] {');
+      const midnightGlass = spacing.glassMorphism.midnight;
+      if (midnightGlass.surface) {
+        for (const [key, value] of Object.entries(midnightGlass.surface)) {
+          lines.push(`  --glass-surface-${key}: ${value};`);
+        }
+      }
+      if (midnightGlass.blur) {
+        for (const [key, value] of Object.entries(midnightGlass.blur)) {
+          lines.push(`  --glass-blur-${key}: ${value};`);
+        }
+      }
+      if (midnightGlass.border) {
+        for (const [key, value] of Object.entries(midnightGlass.border)) {
+          lines.push(`  --glass-border-${key}: ${value};`);
+        }
+      }
+      if (midnightGlass.innerGlow) {
+        lines.push(`  --glass-inner-glow: ${midnightGlass.innerGlow};`);
+      }
+      if (midnightGlass.outerGlow) {
+        lines.push(`  --glass-outer-glow: ${midnightGlass.outerGlow};`);
+      }
+      lines.push('}');
+    }
+
+    // Zen glass
+    if (spacing.glassMorphism.zen) {
+      lines.push('');
+      lines.push('[data-theme="zen"] {');
+      const zenGlass = spacing.glassMorphism.zen;
+      if (zenGlass.surface) {
+        for (const [key, value] of Object.entries(zenGlass.surface)) {
+          lines.push(`  --glass-surface-${key}: ${value};`);
+        }
+      }
+      if (zenGlass.blur) {
+        for (const [key, value] of Object.entries(zenGlass.blur)) {
+          lines.push(`  --glass-blur-${key}: ${value};`);
+        }
+      }
+      if (zenGlass.border) {
+        for (const [key, value] of Object.entries(zenGlass.border)) {
+          lines.push(`  --glass-border-${key}: ${value};`);
+        }
+      }
+      if (zenGlass.innerGlow) {
+        lines.push(`  --glass-inner-glow: ${zenGlass.innerGlow};`);
+      }
+      if (zenGlass.outerGlow) {
+        lines.push(`  --glass-outer-glow: ${zenGlass.outerGlow};`);
+      }
+      lines.push('}');
+    }
+  }
+
   return lines.join('\n');
 }
 
@@ -265,6 +356,1557 @@ function generateAnimationCSS(animation) {
     }
     lines.push('}');
   }
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// EFFECTS CSS GENERATION
+// ============================================================================
+
+function generateEffectsCSS(effects) {
+  const lines = [];
+
+  // Blur utilities
+  lines.push('/* Blur Utilities */');
+  lines.push(':root {');
+  for (const [key, value] of Object.entries(effects.blur)) {
+    lines.push(`  --blur-${key}: ${value};`);
+  }
+  lines.push('}');
+  lines.push('');
+
+  // Gradient variables
+  lines.push('/* Gradients */');
+  lines.push('[data-theme="midnight"] {');
+  lines.push(`  --gradient-aurora: ${effects.gradients.aurora.midnight};`);
+  lines.push(`  --gradient-warm-glow: ${effects.gradients.warmGlow.midnight};`);
+  lines.push(`  --gradient-sunbeam: ${effects.gradients.sunbeam.midnight};`);
+  lines.push(`  --gradient-mesh: ${effects.gradients.meshGradient.midnight};`);
+  lines.push('}');
+  lines.push('[data-theme="zen"] {');
+  lines.push(`  --gradient-aurora: ${effects.gradients.aurora.zen};`);
+  lines.push(`  --gradient-warm-glow: ${effects.gradients.warmGlow.zen};`);
+  lines.push(`  --gradient-sunbeam: ${effects.gradients.sunbeam.zen};`);
+  lines.push(`  --gradient-mesh: ${effects.gradients.meshGradient.zen};`);
+  lines.push('}');
+  lines.push(':root {');
+  lines.push(`  --gradient-persona-glow: ${effects.gradients.personaGlow};`);
+  lines.push('}');
+  lines.push('');
+
+  // Glow utilities
+  lines.push('/* Glow Effects */');
+  lines.push(':root {');
+  for (const [key, value] of Object.entries(effects.glows)) {
+    lines.push(`  --glow-${camelToKebab(key)}: ${value};`);
+  }
+  lines.push('}');
+  lines.push('');
+
+  // Magical utility classes
+  lines.push('/* ========================================');
+  lines.push('   MAGICAL UTILITY CLASSES');
+  lines.push('   ======================================== */');
+  lines.push('');
+
+  // Paper texture overlay
+  lines.push(`/* Paper texture overlay - add to any element */
+.texture-paper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+`);
+
+  // Aurora background
+  lines.push(`/* Aurora gradient background */
+.aurora-bg {
+  background: var(--gradient-aurora);
+  background-size: 400% 400%;
+  animation: aurora 15s ease-in-out infinite;
+}
+`);
+
+  // Mesh gradient
+  lines.push(`/* Mesh gradient background */
+.mesh-bg {
+  background: var(--gradient-mesh);
+}
+`);
+
+  // Organic blob shape
+  lines.push(`/* Organic blob shape - morphing border radius */
+.blob {
+  animation: morphBlob 8s ease-in-out infinite;
+}
+
+.blob-subtle {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+`);
+
+  // Float animation
+  lines.push(`/* Floating/levitating effect */
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.levitate {
+  animation: levitate 3s ease-in-out infinite;
+}
+`);
+
+  // Glow effects
+  lines.push(`/* Glow effects */
+.glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.glow-persona {
+  box-shadow: var(--glow-persona-ring);
+}
+
+.glow-connection {
+  box-shadow: var(--glow-connection);
+  animation: connectionWarmth 1.5s ease forwards;
+}
+`);
+
+  // Heartbeat/breathing
+  lines.push(`/* Living animations - makes elements feel alive */
+.breathing {
+  animation: softBreathe 5s ease-in-out infinite;
+}
+
+.heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.pulse-soft {
+  animation: presencePulse 3s ease-in-out infinite;
+}
+`);
+
+  // Celebration effects
+  lines.push(`/* Celebration/delight animations */
+.celebrate {
+  animation: celebrate 800ms ease-in-out forwards;
+}
+
+.wiggle {
+  animation: wiggle 500ms ease-in-out;
+}
+
+.wave {
+  animation: waveHand 2s ease-in-out;
+  transform-origin: 70% 70%;
+  display: inline-block;
+}
+`);
+
+  // Ripple effect
+  lines.push(`/* Ripple effect container */
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--color-accent-glow);
+  animation: ripple 600ms ease-out forwards;
+  pointer-events: none;
+}
+`);
+
+  // Sparkle effect
+  lines.push(`/* Sparkle effect */
+.sparkle {
+  animation: sparkle 700ms ease-out forwards;
+}
+`);
+
+  // Staggered cascade animations
+  lines.push(`/* Staggered cascade animations for lists */
+.cascade > * {
+  opacity: 0;
+  animation: slideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.cascade > *:nth-child(1) { animation-delay: 0ms; }
+.cascade > *:nth-child(2) { animation-delay: 50ms; }
+.cascade > *:nth-child(3) { animation-delay: 100ms; }
+.cascade > *:nth-child(4) { animation-delay: 150ms; }
+.cascade > *:nth-child(5) { animation-delay: 200ms; }
+.cascade > *:nth-child(6) { animation-delay: 250ms; }
+.cascade > *:nth-child(7) { animation-delay: 300ms; }
+.cascade > *:nth-child(8) { animation-delay: 350ms; }
+.cascade > *:nth-child(9) { animation-delay: 400ms; }
+.cascade > *:nth-child(10) { animation-delay: 450ms; }
+
+.cascade-slow > * {
+  opacity: 0;
+  animation: slideUp 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.cascade-slow > *:nth-child(1) { animation-delay: 0ms; }
+.cascade-slow > *:nth-child(2) { animation-delay: 100ms; }
+.cascade-slow > *:nth-child(3) { animation-delay: 200ms; }
+.cascade-slow > *:nth-child(4) { animation-delay: 300ms; }
+.cascade-slow > *:nth-child(5) { animation-delay: 400ms; }
+`);
+
+  // Magnetic hover
+  lines.push(`/* Magnetic hover effect */
+.magnetic {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: translate(calc(var(--magnetic-x, 0) * 1px), calc(var(--magnetic-y, 0) * 1px));
+}
+`);
+
+  // Text reveal
+  lines.push(`/* Text reveal animation */
+.text-reveal {
+  animation: textReveal 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typewriter 2s steps(40) forwards;
+  border-right: 2px solid var(--color-accent-primary);
+}
+
+.typewriter.blink {
+  animation: typewriter 2s steps(40) forwards, blinkCursor 1s step-end infinite;
+}
+`);
+
+  // Glass effect
+  lines.push(`/* Glass morphism */
+.glass {
+  background: var(--color-background-glass);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  border: 1px solid var(--color-border-subtle);
+}
+
+.glass-strong {
+  background: var(--color-background-overlay);
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+}
+
+/* Advanced Glass Layers */
+.glass-layer-1 {
+  background: var(--glass-surface-1);
+  backdrop-filter: blur(var(--glass-blur-subtle));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
+  border: var(--glass-border-subtle);
+  box-shadow: var(--glass-inner-glow);
+}
+
+.glass-layer-2 {
+  background: var(--glass-surface-2);
+  backdrop-filter: blur(var(--glass-blur-medium));
+  -webkit-backdrop-filter: blur(var(--glass-blur-medium));
+  border: var(--glass-border-light);
+  box-shadow: var(--glass-inner-glow);
+}
+
+.glass-layer-3 {
+  background: var(--glass-surface-3);
+  backdrop-filter: blur(var(--glass-blur-strong));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong));
+  border: var(--glass-border-medium);
+  box-shadow: var(--glass-inner-glow), var(--glass-outer-glow);
+}
+`);
+
+  // Anticipation Hover States (Pixar wind-up)
+  lines.push(`/* ========================================
+   ANTICIPATION HOVER STATES
+   Pixar's "wind-up before the pitch"
+   ======================================== */
+
+/* Button with anticipation */
+.btn-anticipate {
+  transition: transform 200ms var(--ease-gentle);
+}
+
+.btn-anticipate:hover {
+  transform: scale(0.98) translateY(1px);
+  transition: transform 80ms cubic-bezier(0.38, -0.4, 0.88, 0.65);
+}
+
+.btn-anticipate:hover:active {
+  transform: scale(0.95) translateY(2px);
+  transition: transform 50ms ease-in;
+}
+
+.btn-anticipate:not(:hover) {
+  transform: scale(1) translateY(0);
+  transition: transform 200ms var(--ease-gentle);
+}
+
+/* Card with lift anticipation */
+.card-anticipate {
+  transition: all 200ms var(--ease-gentle);
+}
+
+.card-anticipate:hover {
+  transform: scale(1.01) translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Icon with spring anticipation */
+.icon-anticipate {
+  transition: transform 150ms var(--ease-gentle);
+}
+
+.icon-anticipate:hover {
+  transform: rotate(3deg) scale(1.1);
+  transition: transform 150ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Focus ring with anticipation */
+.focus-anticipate:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  transition: box-shadow 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+`);
+
+  // Wabi-sabi Organic Textures
+  lines.push(`/* ========================================
+   WABI-SABI ORGANIC TEXTURES
+   侘寂 - Beauty in imperfection
+   ======================================== */
+
+/* Subtle noise overlay for breaking digital perfection */
+.texture-noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+[data-theme="zen"] .texture-noise::before {
+  opacity: 0.02;
+}
+
+/* Imperfect border radius - organic shapes */
+.radius-organic-sm {
+  border-radius: 8px 7px 9px 8px / 7px 8px 8px 9px;
+}
+
+.radius-organic-md {
+  border-radius: 16px 14px 18px 15px / 14px 16px 15px 17px;
+}
+
+.radius-organic-lg {
+  border-radius: 24px 22px 26px 23px / 22px 25px 23px 24px;
+}
+
+/* Ink bleed text effect - soft edges like brush strokes */
+.text-ink {
+  filter: blur(0.3px);
+  text-shadow: 0 0 0.5px currentColor;
+}
+
+/* Breathing gradient background */
+@keyframes breathingGradient {
+  0% { background-position: 0% 50%; opacity: 1; }
+  25% { background-position: 50% 0%; opacity: 0.98; }
+  50% { background-position: 100% 50%; opacity: 0.96; }
+  75% { background-position: 50% 100%; opacity: 0.98; }
+  100% { background-position: 0% 50%; opacity: 1; }
+}
+
+.gradient-breathing {
+  background-size: 200% 200%;
+  animation: breathingGradient 20s ease-in-out infinite;
+}
+`);
+
+  // MA (間) Spacing Utilities
+  lines.push(`/* ========================================
+   MA (間) SPACING UTILITIES
+   Japanese intentional negative space
+   ======================================== */
+
+/* MA padding */
+.p-ma-breath { padding: var(--ma-breath); }
+.p-ma-pause { padding: var(--ma-pause); }
+.p-ma-rest { padding: var(--ma-rest); }
+.p-ma-silence { padding: var(--ma-silence); }
+.p-ma-meditation { padding: var(--ma-meditation); }
+.p-ma-contemplation { padding: var(--ma-contemplation); }
+.p-ma-vastness { padding: var(--ma-vastness); }
+
+/* MA margin */
+.m-ma-breath { margin: var(--ma-breath); }
+.m-ma-pause { margin: var(--ma-pause); }
+.m-ma-rest { margin: var(--ma-rest); }
+.m-ma-silence { margin: var(--ma-silence); }
+.m-ma-meditation { margin: var(--ma-meditation); }
+.m-ma-contemplation { margin: var(--ma-contemplation); }
+.m-ma-vastness { margin: var(--ma-vastness); }
+
+/* MA gap */
+.gap-ma-breath { gap: var(--ma-breath); }
+.gap-ma-pause { gap: var(--ma-pause); }
+.gap-ma-rest { gap: var(--ma-rest); }
+.gap-ma-silence { gap: var(--ma-silence); }
+.gap-ma-meditation { gap: var(--ma-meditation); }
+
+/* Golden ratio spacing */
+.gap-phi-sm { gap: var(--phi-sm); }
+.gap-phi-md { gap: var(--phi-md); }
+.gap-phi-lg { gap: var(--phi-lg); }
+.gap-phi-xl { gap: var(--phi-xl); }
+`);
+
+  // Gradient text
+  lines.push(`/* Gradient text */
+.gradient-text {
+  background: var(--gradient-aurora);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 8s ease infinite;
+}
+`);
+
+  // Depth layers
+  lines.push(`/* Depth/parallax layers */
+.depth-bg { z-index: 0; }
+.depth-mid { z-index: 10; }
+.depth-fg { z-index: 20; }
+.depth-overlay { z-index: 30; }
+
+[data-parallax] {
+  will-change: transform;
+}
+`);
+
+  // Warm vignette
+  lines.push(`/* Warm vignette overlay */
+.vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, var(--color-background-primary) 150%);
+  pointer-events: none;
+  opacity: 0.4;
+}
+`);
+
+  // ========================================
+  // PIXAR AVATAR ANIMATION UTILITIES
+  // ========================================
+  lines.push(`/* ========================================
+   PIXAR AVATAR ANIMATIONS
+   Squash & stretch, anticipation, follow-through
+   ======================================== */
+
+/* Avatar reaction classes - apply to .avatar-container */
+.animate-avatar-nod {
+  animation: avatarNod 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-avatar-shake {
+  animation: avatarShake 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-avatar-bounce {
+  animation: avatarBounce 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-avatar-pulse {
+  animation: avatarPulse 700ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-avatar-curious {
+  animation: avatarCuriousTilt 800ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-avatar-attentive {
+  animation: avatarAttentiveLean 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Pixar-style Luxo Jr. bounce - for thinking dots */
+.animate-pixar-bounce {
+  animation: pixarBounce 1.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+}
+
+/* Pixar-style breathing - living presence */
+.animate-pixar-breathe {
+  animation: pixarBreathe 5s ease-in-out infinite;
+}
+
+/* Pixar-style floating - like balloons in Up */
+.animate-pixar-float {
+  animation: pixarFloat 6s ease-in-out infinite;
+}
+
+/* Pixar-style joy bounce */
+.animate-pixar-joy {
+  animation: pixarJoyBounce 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ========================================
+   ANTICIPATION EFFECTS - "Wind-up Before the Pitch"
+   Apply on hover/focus for alive-feeling interactions
+   ======================================== */
+
+/* Button anticipation - squash on hover */
+.anticipate-btn {
+  transition: transform 80ms cubic-bezier(0.38, -0.4, 0.88, 0.65);
+}
+.anticipate-btn:hover {
+  transform: scale(0.98) translateY(1px);
+}
+.anticipate-btn:active {
+  transform: scale(0.95) translateY(2px);
+  transition: transform 50ms ease-in;
+}
+
+/* Card anticipation - lift on hover */
+.anticipate-card {
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.anticipate-card:hover {
+  transform: scale(1.01) translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.anticipate-card:active {
+  transform: scale(0.98) translateY(1px);
+  transition: transform 80ms ease-in;
+}
+
+/* Icon anticipation - rotate spring */
+.anticipate-icon {
+  transition: transform 150ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+.anticipate-icon:hover {
+  transform: rotate(3deg) scale(1.1);
+}
+
+/* Focus ring with anticipation pulse */
+.anticipate-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-primary);
+  animation: focusAnticipate 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes focusAnticipate {
+  0% { box-shadow: 0 0 0 0px var(--color-accent-primary); }
+  50% { box-shadow: 0 0 0 4px var(--color-accent-primary); }
+  100% { box-shadow: 0 0 0 3px var(--color-accent-primary); }
+}
+
+/* Page enter with anticipation */
+.anticipate-enter {
+  animation: anticipateEnter 280ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes anticipateEnter {
+  0% { opacity: 0; transform: scale(0.96) translateY(8px); }
+  30% { opacity: 0.3; transform: scale(0.98) translateY(4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Page exit with anticipation */
+.anticipate-exit {
+  animation: anticipateExit 210ms ease-out forwards;
+}
+
+@keyframes anticipateExit {
+  0% { opacity: 1; transform: scale(1); }
+  30% { opacity: 0.8; transform: scale(1.02); }
+  100% { opacity: 0; transform: scale(0.95); }
+}
+
+/* ========================================
+   VOICE EMOTION GLOW - Avatar responds to speaking tone
+   ======================================== */
+
+/* Base voice glow setup */
+.voice-glow {
+  --glow-color: rgba(139, 92, 246, 0.5);
+  --glow-color-alt: rgba(99, 102, 241, 0.4);
+  --glow-intensity: 0.6;
+  --glow-spread: 20px;
+  --glow-pulse-speed: 3s;
+  transition: var(--glow-transition, all 800ms cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+/* Glow pulse animation when speaking */
+@keyframes voiceGlowPulse {
+  0% { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
+  50% { box-shadow: 0 0 calc(var(--glow-spread) * 1.4) var(--glow-color-alt); }
+  100% { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
+}
+
+/* Gentle breathing glow when idle/listening */
+@keyframes voiceGlowBreath {
+  0% { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
+  50% { box-shadow: 0 0 calc(var(--glow-spread) * 1.15) var(--glow-color); }
+  100% { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
+}
+
+/* Quick reaction flash */
+@keyframes voiceGlowReact {
+  0% { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
+  30% { box-shadow: 0 0 calc(var(--glow-spread) * 1.8) var(--glow-color-alt); }
+  100% { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
+}
+
+/* Speaking state - pulsing glow */
+.voice-glow.speaking {
+  animation: voiceGlowPulse var(--glow-pulse-speed) ease-in-out infinite;
+}
+
+/* Listening state - gentle breathing */
+.voice-glow.listening {
+  animation: voiceGlowBreath 4s ease-in-out infinite;
+}
+
+/* Idle state - static glow */
+.voice-glow.idle {
+  box-shadow: 0 0 calc(var(--glow-spread) * 0.7) var(--glow-color);
+  animation: none;
+}
+
+/* Emotion-specific glow colors */
+.voice-glow[data-emotion="neutral"] {
+  --glow-color: rgba(139, 92, 246, 0.5);
+  --glow-color-alt: rgba(99, 102, 241, 0.4);
+}
+
+.voice-glow[data-emotion="happy"] {
+  --glow-color: rgba(251, 191, 36, 0.6);
+  --glow-color-alt: rgba(245, 158, 11, 0.5);
+  --glow-pulse-speed: 2s;
+}
+
+.voice-glow[data-emotion="excited"] {
+  --glow-color: rgba(236, 72, 153, 0.6);
+  --glow-color-alt: rgba(219, 39, 119, 0.5);
+  --glow-pulse-speed: 1.2s;
+  --glow-spread: 35px;
+}
+
+.voice-glow[data-emotion="calm"] {
+  --glow-color: rgba(34, 211, 238, 0.5);
+  --glow-color-alt: rgba(6, 182, 212, 0.4);
+  --glow-pulse-speed: 4s;
+}
+
+.voice-glow[data-emotion="thoughtful"] {
+  --glow-color: rgba(99, 102, 241, 0.5);
+  --glow-color-alt: rgba(79, 70, 229, 0.4);
+  --glow-pulse-speed: 3.5s;
+}
+
+.voice-glow[data-emotion="empathetic"] {
+  --glow-color: rgba(244, 114, 182, 0.5);
+  --glow-color-alt: rgba(236, 72, 153, 0.4);
+  --glow-pulse-speed: 2.5s;
+  --glow-spread: 30px;
+}
+
+.voice-glow[data-emotion="serious"] {
+  --glow-color: rgba(148, 163, 184, 0.5);
+  --glow-color-alt: rgba(100, 116, 139, 0.4);
+  --glow-pulse-speed: 4s;
+  --glow-spread: 18px;
+}
+
+.voice-glow[data-emotion="anxious"] {
+  --glow-color: rgba(251, 146, 60, 0.5);
+  --glow-color-alt: rgba(249, 115, 22, 0.4);
+  --glow-pulse-speed: 1.8s;
+}
+
+.voice-glow[data-emotion="encouraging"] {
+  --glow-color: rgba(16, 185, 129, 0.6);
+  --glow-color-alt: rgba(5, 150, 105, 0.5);
+  --glow-pulse-speed: 2.2s;
+  --glow-spread: 28px;
+}
+
+/* Intensity modifiers */
+.voice-glow[data-intensity="whisper"] {
+  --glow-intensity: 0.5;
+  --glow-spread: calc(var(--glow-spread) * 0.6);
+}
+
+.voice-glow[data-intensity="emphasis"] {
+  --glow-intensity: 0.9;
+  --glow-spread: calc(var(--glow-spread) * 1.2);
+}
+
+.voice-glow[data-intensity="exclamation"] {
+  --glow-intensity: 1;
+  --glow-spread: calc(var(--glow-spread) * 1.5);
+}
+
+/* Transition between emotions */
+.voice-glow.transitioning {
+  transition: all 300ms ease-out;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .voice-glow.speaking,
+  .voice-glow.listening {
+    animation: none;
+    box-shadow: 0 0 var(--glow-spread) var(--glow-color);
+  }
+}
+
+/* Staggered avatar dots (for thinking indicator) */
+.avatar-dots > *:nth-child(1) { animation-delay: 0s; }
+.avatar-dots > *:nth-child(2) { animation-delay: 0.15s; }
+.avatar-dots > *:nth-child(3) { animation-delay: 0.3s; }
+
+/* Avatar container base styles for smooth animations */
+.avatar-container-animated {
+  will-change: transform;
+  transform-origin: center center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+`);
+
+  // ========================================
+  // ACCESSIBILITY - WCAG 2.1 AA/AAA
+  // ========================================
+  lines.push(`/* ========================================
+   ACCESSIBILITY - WCAG 2.1 Compliant
+   ======================================== */
+
+/* Reduced motion - CRITICAL for vestibular disorders */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .float, .levitate, .blob, .breathing { animation: none !important; }
+}
+
+@media (prefers-contrast: more) {
+  :root { --color-border-subtle: var(--color-border-strong); }
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus-ring, var(--color-accent-primary));
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+.skip-link {
+  position: absolute; top: -100%; left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-background-elevated);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  z-index: var(--z-skip-link);
+  transition: top 200ms ease;
+}
+.skip-link:focus { top: var(--spacing-md); }
+`);
+
+  // Shimmer skeleton
+  lines.push(`/* SHIMMER SKELETON - Living Loading States */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton { background: var(--color-background-tertiary); border-radius: var(--radius-md); overflow: hidden; }
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--color-background-tertiary) 0%, var(--color-background-elevated) 50%, var(--color-background-tertiary) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+.skeleton-avatar { width: 80px; height: 80px; border-radius: 50%; }
+.skeleton-text { height: 1em; margin-bottom: 0.5em; }
+.skeleton-button { height: 40px; width: 120px; border-radius: var(--radius-lg); }
+@media (prefers-reduced-motion: reduce) { .skeleton-shimmer { animation: none; } }
+`);
+
+  // Entrance animations
+  lines.push(`/* ENTRANCE ANIMATIONS - Elements "arrive" with personality */
+@keyframes entranceAvatar {
+  0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes entranceControls {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes entranceTeamMember {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.entrance-avatar { animation: entranceAvatar 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; animation-delay: 200ms; opacity: 0; }
+.entrance-controls { animation: entranceControls 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 400ms; opacity: 0; }
+.entrance-team > * { animation: entranceTeamMember 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; opacity: 0; }
+.entrance-team > *:nth-child(1) { animation-delay: 500ms; }
+.entrance-team > *:nth-child(2) { animation-delay: 580ms; }
+.entrance-team > *:nth-child(3) { animation-delay: 660ms; }
+.entrance-team > *:nth-child(4) { animation-delay: 740ms; }
+.entrance-team > *:nth-child(5) { animation-delay: 820ms; }
+.entrance-team > *:nth-child(6) { animation-delay: 900ms; }
+@media (prefers-reduced-motion: reduce) { .entrance-avatar, .entrance-controls, .entrance-team > * { animation: fadeIn 200ms ease forwards; transform: none; } }
+`);
+
+  // Error recovery
+  lines.push(`/* ERROR RECOVERY - Errors feel fixable, not broken */
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+@keyframes errorPulse {
+  0% { box-shadow: 0 0 0 0 var(--color-semantic-error-glow); }
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.error-shake { animation: errorShake 400ms ease-out; }
+.error-pulse { animation: errorPulse 1s ease-out; animation-iteration-count: 3; }
+.error-glow { box-shadow: 0 0 0 3px var(--color-semantic-error-glow); }
+.has-error { border-color: var(--color-semantic-error) !important; }
+@media (prefers-reduced-motion: reduce) { .error-shake, .error-pulse { animation: none; } }
+`);
+
+  // Connection progress
+  lines.push(`/* CONNECTION PROGRESS - Show steps, not just status */
+.connection-progress { display: flex; align-items: center; gap: var(--spacing-xs); }
+.connection-step { width: 8px; height: 8px; border-radius: 50%; background: var(--color-background-tertiary); transition: all 300ms ease; }
+.connection-step.active { background: var(--color-accent-primary); transform: scale(1.2); }
+.connection-step.completed { background: var(--color-semantic-success); }
+.connection-bar { height: 3px; background: var(--color-background-tertiary); border-radius: var(--radius-full); overflow: hidden; }
+.connection-bar-fill { height: 100%; background: var(--color-accent-primary); transition: width 300ms ease; }
+.connection-bar-fill.complete { background: var(--color-semantic-success); }
+`);
+
+  // ========================================
+  // LANDING PAGE - Immersive 3D Zen Experience
+  // ========================================
+  lines.push(`/* ========================================
+   LANDING PAGE - Immersive 3D Zen Experience
+   Japanese zen aesthetic with shoji screen reveal
+   ======================================== */
+
+/* Scene container */
+.landing-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: hidden;
+  background: #0a0a0a;
+  cursor: pointer;
+}
+
+.landing-scene.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 800ms ease, visibility 800ms;
+}
+
+.landing-scene.revealed {
+  cursor: default;
+}
+
+/* 3D Scene Container */
+.landing-3d-scene {
+  position: fixed;
+  inset: 0;
+  perspective: 1000px;
+  perspective-origin: 50% 50%;
+  overflow: hidden;
+}
+
+/* Atmospheric mist layers */
+.landing-mist {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.landing-mist-1 {
+  background: linear-gradient(180deg, rgba(245, 242, 235, 0.4) 0%, transparent 40%, transparent 70%, rgba(245, 242, 235, 0.3) 100%);
+  transform: translateZ(-100px);
+  animation: mistDrift1 30s ease-in-out infinite;
+}
+
+.landing-mist-2 {
+  background: radial-gradient(ellipse 120% 60% at 20% 80%, rgba(245, 242, 235, 0.3) 0%, transparent 60%);
+  transform: translateZ(-50px);
+  animation: mistDrift2 25s ease-in-out infinite reverse;
+}
+
+@keyframes mistDrift1 {
+  0%, 100% { opacity: 0.6; transform: translateZ(-100px) translateX(0); }
+  50% { opacity: 0.8; transform: translateZ(-100px) translateX(3%); }
+}
+
+@keyframes mistDrift2 {
+  0%, 100% { opacity: 0.5; transform: translateZ(-50px) translateX(0); }
+  50% { opacity: 0.7; transform: translateZ(-50px) translateX(-2%); }
+}
+
+/* Shoji Screen Doors */
+.landing-shoji-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.landing-shoji {
+  flex: 1;
+  background: linear-gradient(90deg, rgba(245, 240, 230, 0.97) 0%, rgba(250, 245, 235, 0.98) 50%, rgba(245, 240, 230, 0.97) 100%);
+  backdrop-filter: blur(2px);
+  box-shadow: inset 0 0 60px rgba(200, 180, 140, 0.15), 0 0 40px rgba(0, 0, 0, 0.2);
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-shoji::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+}
+
+.landing-shoji::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(139, 90, 43, 0.2) 1px, transparent 1px), linear-gradient(rgba(139, 90, 43, 0.2) 1px, transparent 1px);
+  background-size: 80px 100px;
+  opacity: 0.4;
+}
+
+.landing-shoji-left { transform-origin: left center; }
+.landing-shoji-right { transform-origin: right center; }
+
+/* Floating content card */
+.landing-content-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateZ(100px);
+  width: 90%;
+  max-width: 480px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 48px 40px;
+  text-align: center;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.2), 0 10px 30px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  z-index: 20;
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-content-card.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) translateZ(100px) scale(1);
+}
+
+/* Ensou (Zen circle) */
+.landing-ensou {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 32px;
+  position: relative;
+}
+
+.landing-ensou-circle {
+  width: 100%;
+  height: 100%;
+  border: 3px solid rgba(60, 60, 60, 0.15);
+  border-radius: 50%;
+  position: relative;
+}
+
+.landing-ensou-circle::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: 10%;
+  width: 20%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.landing-ensou-wave {
+  position: absolute;
+  inset: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.landing-ensou-bar {
+  width: 3px;
+  background: linear-gradient(180deg, #4a5568 0%, #718096 100%);
+  border-radius: 2px;
+  animation: zenWave 2s ease-in-out infinite;
+}
+
+.landing-ensou-bar:nth-child(1) { height: 10px; animation-delay: 0ms; }
+.landing-ensou-bar:nth-child(2) { height: 18px; animation-delay: 200ms; }
+.landing-ensou-bar:nth-child(3) { height: 24px; animation-delay: 400ms; }
+.landing-ensou-bar:nth-child(4) { height: 18px; animation-delay: 600ms; }
+.landing-ensou-bar:nth-child(5) { height: 10px; animation-delay: 800ms; }
+
+@keyframes zenWave {
+  0%, 100% { transform: scaleY(1); opacity: 0.6; }
+  50% { transform: scaleY(0.5); opacity: 1; }
+}
+
+/* Typography */
+.landing-headline {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.landing-headline-accent {
+  display: block;
+  background: linear-gradient(135deg, #6b7280 0%, #374151 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.landing-subhead {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.55);
+  line-height: 1.6;
+  margin-bottom: 32px;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Form */
+.landing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.landing-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 20px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  color: #1a1a1a;
+  font-family: var(--font-body);
+  font-size: 15px;
+  transition: all 200ms ease;
+}
+
+.landing-input:focus {
+  outline: none;
+  background: white;
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.landing-input::placeholder {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.landing-submit {
+  width: 100%;
+  height: 52px;
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.landing-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.landing-submit:active {
+  transform: scale(0.98);
+}
+
+.landing-skip {
+  background: none;
+  border: none;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px;
+  transition: color 200ms;
+}
+
+.landing-skip:hover {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* Feature pills */
+.landing-features {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.landing-feature {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 100px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+}
+
+.landing-feature svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+/* Success state */
+.landing-success {
+  display: none;
+}
+
+.landing-success.visible {
+  display: block;
+  animation: fadeInUp 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.landing-success-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-radius: 50%;
+  color: white;
+}
+
+.landing-success-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+/* Tap hint */
+.landing-tap-hint {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  opacity: 1;
+  transition: opacity 400ms ease;
+}
+
+.landing-scene.revealed .landing-tap-hint {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.landing-tap-hint-circle {
+  width: 100px;
+  height: 100px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: tapPulse 2s ease-in-out infinite;
+}
+
+.landing-tap-hint-circle svg {
+  width: 40px;
+  height: 40px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.landing-tap-hint-text {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes tapPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.7; }
+}
+
+/* Mobile */
+@media (max-width: 520px) {
+  .landing-content-card {
+    padding: 32px 24px;
+    border-radius: 20px;
+  }
+  .landing-ensou {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 24px;
+  }
+  .landing-headline { font-size: 1.5rem; }
+  .landing-features { gap: 6px; }
+  .landing-feature { padding: 6px 12px; font-size: 11px; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .landing-mist-1,
+  .landing-mist-2,
+  .landing-ensou-bar,
+  .landing-tap-hint-circle {
+    animation: none;
+  }
+  .landing-shoji {
+    transition-duration: 0.01ms;
+  }
+}
+`);
+
+  // ========================================
+  // TOAST SYSTEM - World-class notifications
+  // ========================================
+  lines.push(`/* ========================================
+   TOAST SYSTEM - Sonner-inspired notifications
+   Spring physics, stacking, swipe-to-dismiss
+   ======================================== */
+
+/* Container */
+.toast-container {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: min(360px, calc(100vw - 32px));
+  contain: layout style;
+}
+
+@media (max-width: 480px) {
+  .toast-container {
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    left: 12px;
+    right: 12px;
+    align-items: stretch;
+    max-width: none;
+  }
+}
+
+/* Individual Toast */
+.toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(22, 22, 26, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.15), inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+  pointer-events: auto;
+  cursor: default;
+  touch-action: pan-x;
+  will-change: transform, opacity;
+  contain: layout;
+  animation: toastSlideIn 350ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  transform-origin: top right;
+}
+
+@keyframes toastSlideIn {
+  0% { opacity: 0; transform: translateX(calc(100% + 20px)); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@media (max-width: 480px) {
+  .toast {
+    transform-origin: top center;
+    animation-name: toastSlideDown;
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+  @keyframes toastSlideDown {
+    0% { opacity: 0; transform: translateY(-100%); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
+
+/* Toast exit */
+.toast.toast-exiting {
+  animation: toastSlideOut 250ms cubic-bezier(0.32, 0, 0.67, 0) forwards;
+}
+
+@keyframes toastSlideOut {
+  0% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(calc(100% + 20px)); }
+}
+
+/* Swipe dismiss */
+.toast.toast-swiping { transition: none; }
+.toast.toast-swipe-out {
+  animation: toastSwipeOut 180ms ease-out forwards;
+}
+
+@keyframes toastSwipeOut {
+  to { opacity: 0; transform: translateX(120%); }
+}
+
+/* Stacking */
+.toast:nth-child(2) { opacity: 0.85; transform: scale(0.97); }
+.toast:nth-child(3) { opacity: 0.7; transform: scale(0.94); }
+.toast:nth-child(n+4) { opacity: 0; transform: scale(0.9); pointer-events: none; }
+
+/* Expand stack on hover */
+.toast-container:hover .toast,
+.toast-container:focus-within .toast {
+  opacity: 1;
+  transform: scale(1);
+  transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Pause timer on hover */
+.toast:hover .toast-progress,
+.toast:focus-within .toast-progress {
+  animation-play-state: paused;
+}
+
+/* Toast Icon */
+.toast-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.toast-icon svg { width: 12px; height: 12px; }
+
+/* Toast Content */
+.toast-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.toast-title {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.35;
+  letter-spacing: -0.008em;
+}
+
+.toast-description {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+}
+
+/* Toast Close Button */
+.toast-close {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-left: 4px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: all 120ms ease;
+}
+
+.toast:hover .toast-close { opacity: 1; }
+.toast-close:hover { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.8); }
+.toast-close:active { transform: scale(0.92); }
+.toast-close svg { width: 12px; height: 12px; }
+
+/* Toast Progress Bar */
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+}
+
+.toast-progress-bar {
+  height: 100%;
+  background: currentColor;
+  opacity: 0.4;
+  transform-origin: right;
+  animation: toastProgress var(--toast-duration, 5000ms) linear forwards;
+}
+
+@keyframes toastProgress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* Toast Types */
+.toast-info .toast-icon { color: rgba(255, 255, 255, 0.6); }
+.toast-info .toast-progress-bar { background: rgba(255, 255, 255, 0.5); }
+
+.toast-success .toast-icon { color: #34d399; }
+.toast-success .toast-progress-bar { background: #34d399; }
+
+.toast-error {
+  background: rgba(35, 20, 22, 0.94);
+  border-color: rgba(239, 68, 68, 0.12);
+}
+.toast-error .toast-icon { color: #ef4444; }
+.toast-error .toast-progress-bar { background: #ef4444; }
+
+.toast-warning .toast-icon { color: #f59e0b; }
+.toast-warning .toast-progress-bar { background: #f59e0b; }
+
+.toast-loading .toast-icon {
+  color: rgba(255, 255, 255, 0.5);
+  animation: iconSpin 1s linear infinite;
+}
+
+@keyframes iconSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Toast Action Button */
+.toast-action {
+  margin-left: 8px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 100ms ease;
+  flex-shrink: 0;
+}
+
+.toast-action:hover { background: rgba(255, 255, 255, 0.14); }
+.toast-action:active { background: rgba(255, 255, 255, 0.1); }
+
+/* Zen Theme */
+[data-theme="zen"] .toast {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+[data-theme="zen"] .toast-title { color: rgba(0, 0, 0, 0.9); }
+[data-theme="zen"] .toast-description { color: rgba(0, 0, 0, 0.55); }
+[data-theme="zen"] .toast-close { color: rgba(0, 0, 0, 0.35); }
+[data-theme="zen"] .toast-close:hover { background: rgba(0, 0, 0, 0.06); color: rgba(0, 0, 0, 0.7); }
+[data-theme="zen"] .toast-progress { background: rgba(0, 0, 0, 0.06); }
+[data-theme="zen"] .toast-error {
+  background: rgba(254, 242, 242, 0.98);
+  border-color: rgba(248, 113, 113, 0.15);
+}
+[data-theme="zen"] .toast-action {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.75);
+}
+[data-theme="zen"] .toast-action:hover { background: rgba(0, 0, 0, 0.08); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: toastEnterReduced 200ms ease-out forwards; }
+  @keyframes toastEnterReduced { from { opacity: 0; } to { opacity: 1; } }
+  .toast.toast-exiting { animation: toastExitReduced 150ms ease-out forwards; }
+  @keyframes toastExitReduced { from { opacity: 1; } to { opacity: 0; } }
+  .toast-progress-bar { animation: none; transform: scaleX(0); }
+  .toast-loading .toast-icon { animation: none; }
+  .toast-container:hover .toast { transition: none; }
+}
+`);
 
   return lines.join('\n');
 }
@@ -336,6 +1978,13 @@ function build() {
   output.push('   ANIMATION');
   output.push('   ======================================== */');
   output.push(generateAnimationCSS(animation));
+  output.push('');
+
+  // Effects & Magical Utilities
+  output.push('/* ========================================');
+  output.push('   EFFECTS & MAGICAL UTILITIES');
+  output.push('   ======================================== */');
+  output.push(generateEffectsCSS(effects));
 
   // Write output
   const outputDir = path.join(__dirname, 'dist');
@@ -365,6 +2014,35 @@ function generateTypeScript() {
   const themeNames = Object.keys(colors.themes);
   const personaIds = Object.keys(colors.personas);
 
+  // Extract Pixar animation constants from animation.json
+  const goldenRatioTiming = animation.goldenRatioTiming || {};
+  const rawAvatarSquashStretch = animation.avatarSquashStretch || {};
+  const rawPersonaProfiles = animation.personaAnimationProfiles || {};
+  const rawPersonaIdMapping = animation.personaIdMapping || {};
+  const rawWaveformProfiles = animation.personaWaveformProfiles || {};
+  const rawParticleProfiles = animation.personaParticleProfiles || {};
+  const easings = animation.easings || {};
+  const anticipation = animation.anticipation || {};
+  const organicTextures = animation.organicTextures || {};
+  const voiceEmotionGlow = animation.voiceEmotionGlow || {};
+  
+  // Filter out _documentation fields
+  const avatarSquashStretch = Object.fromEntries(
+    Object.entries(rawAvatarSquashStretch).filter(([key]) => !key.startsWith('_'))
+  );
+  const personaAnimationProfiles = Object.fromEntries(
+    Object.entries(rawPersonaProfiles).filter(([key]) => !key.startsWith('_'))
+  );
+  const personaIdMapping = Object.fromEntries(
+    Object.entries(rawPersonaIdMapping).filter(([key]) => !key.startsWith('_'))
+  );
+  const waveformProfiles = Object.fromEntries(
+    Object.entries(rawWaveformProfiles).filter(([key]) => !key.startsWith('_'))
+  );
+  const particleProfiles = Object.fromEntries(
+    Object.entries(rawParticleProfiles).filter(([key]) => !key.startsWith('_'))
+  );
+
   const ts = `/**
  * VoiceAI Design System Types
  *
@@ -390,6 +2068,376 @@ export const THEMES: Record<ThemeName, ThemeMeta> = ${JSON.stringify(
   )};
 
 export const PERSONA_IDS: PersonaId[] = ${JSON.stringify(personaIds)};
+
+// ============================================================================
+// PIXAR ANIMATION CONSTANTS
+// ============================================================================
+
+/**
+ * Golden Ratio (φ) for mathematically harmonious animations.
+ * Used for timing, spacing, and proportions.
+ */
+export const PHI = ${goldenRatioTiming.phi || 1.618033988749895};
+export const PHI_INVERSE = ${goldenRatioTiming.phiInverse || 0.618033988749895};
+
+/**
+ * Fibonacci-based timing for natural rhythm.
+ * Each duration is approximately φ × the previous.
+ */
+export const FIBONACCI_TIMING = ${JSON.stringify(goldenRatioTiming.fibonacci || {
+  f8: '233ms',
+  f9: '377ms', 
+  f10: '610ms',
+  f11: '987ms',
+  f12: '1597ms',
+  f13: '2584ms'
+}, null, 2)};
+
+/**
+ * Avatar breathing animation durations by state.
+ */
+export const AVATAR_BREATH_TIMING = ${JSON.stringify(goldenRatioTiming.avatarBreath || {
+  idle: '5000ms',
+  connected: '4500ms',
+  speaking: '3000ms',
+  listening: '4000ms'
+}, null, 2)};
+
+/**
+ * Pixar reaction animation phases.
+ * Every action has: Anticipation → Action → Follow-through
+ */
+export const REACTION_PHASES = ${JSON.stringify(goldenRatioTiming.reactionPhases || {
+  anticipation: '80ms',
+  action: '400ms',
+  followThrough: '150ms'
+}, null, 2)};
+
+/**
+ * Avatar squash & stretch parameters.
+ * Pixar principle: scaleX and scaleY change inversely.
+ */
+export interface AvatarSquashStretchParams {
+  scaleY: number;
+  scaleX: number;
+  translateY: number;
+  rotate: number;
+}
+
+export const AVATAR_SQUASH_STRETCH: Record<'idle' | 'connected' | 'speaking' | 'listening', AvatarSquashStretchParams> = ${JSON.stringify(avatarSquashStretch, null, 2)};
+
+/**
+ * Get squash & stretch params for current avatar state.
+ */
+export function getAvatarParams(state: 'idle' | 'connected' | 'speaking' | 'listening'): AvatarSquashStretchParams {
+  return AVATAR_SQUASH_STRETCH[state] || AVATAR_SQUASH_STRETCH.idle;
+}
+
+// ============================================================================
+// PERSONA ANIMATION PROFILES
+// ============================================================================
+
+/**
+ * Animation profile for a persona - defines their unique movement style.
+ * Based on Pixar principle: timing conveys personality.
+ */
+export interface PersonaAnimationProfile {
+  description: string;
+  timingMultiplier: number;
+  bounciness: number;
+  easingPreference: string;
+  thinkingStyle: string;
+  celebrationIntensity: string;
+}
+
+export type PersonaAnimationId = ${Object.keys(personaAnimationProfiles).map(p => `'${p}'`).join(' | ')};
+
+/**
+ * Persona ID mapping - maps legacy frontend IDs to canonical design system IDs.
+ * This allows both 'jack-b' and 'ferni' to work correctly.
+ */
+export const PERSONA_ID_MAPPING: Record<string, PersonaAnimationId> = ${JSON.stringify(personaIdMapping, null, 2)};
+
+/**
+ * Normalize a persona ID to canonical form.
+ * Handles both legacy IDs (jack-b, comm-specialist) and canonical IDs (ferni, alex-chen).
+ */
+export function normalizePersonaId(personaId: string): PersonaAnimationId {
+  return (PERSONA_ID_MAPPING[personaId] || personaId) as PersonaAnimationId;
+}
+
+/**
+ * Persona animation profiles from design system.
+ * Each persona moves differently based on their character.
+ */
+export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnimationProfile> = ${JSON.stringify(personaAnimationProfiles, null, 2)};
+
+/**
+ * Get animation profile for a persona.
+ * Automatically normalizes legacy IDs (jack-b → ferni, comm-specialist → alex-chen, etc.)
+ */
+export function getPersonaAnimationProfile(personaId: string): PersonaAnimationProfile | undefined {
+  const normalizedId = normalizePersonaId(personaId);
+  return PERSONA_ANIMATION_PROFILES[normalizedId];
+}
+
+// ============================================================================
+// EASING FUNCTIONS
+// ============================================================================
+
+/**
+ * Named easing functions from design system.
+ */
+export const EASINGS = ${JSON.stringify(easings, null, 2)};
+
+export type EasingName = keyof typeof EASINGS;
+
+/**
+ * Get easing function by preference name.
+ */
+export function getEasing(preference: string): string {
+  return (EASINGS as Record<string, string>)[preference] || EASINGS.easeInOut;
+}
+
+// ============================================================================
+// WAVEFORM PROFILES
+// ============================================================================
+
+/**
+ * Waveform animation settings - how the audio visualizer moves per persona.
+ */
+export interface WaveformProfile {
+  energy: number;    // 0-1, how reactive to audio
+  smoothing: number; // 0-1, how smooth the motion
+  speed: number;     // multiplier for animation speed
+}
+
+/**
+ * Waveform profiles per persona.
+ */
+export const WAVEFORM_PROFILES: Record<string, WaveformProfile> = ${JSON.stringify(waveformProfiles, null, 2)};
+
+/**
+ * Get waveform profile for a persona.
+ * Automatically normalizes legacy IDs.
+ */
+export function getWaveformProfile(personaId: string): WaveformProfile {
+  const normalizedId = normalizePersonaId(personaId);
+  const profile = WAVEFORM_PROFILES[normalizedId] || WAVEFORM_PROFILES['default'] || WAVEFORM_PROFILES['ferni'];
+  // Guaranteed to exist since we have fallbacks
+  return profile as WaveformProfile;
+}
+
+// ============================================================================
+// PARTICLE PROFILES
+// ============================================================================
+
+/**
+ * Particle animation behavior - for ambient effects around the avatar.
+ */
+export interface ParticleProfile {
+  speed: { min: number; max: number };
+  direction: string;
+  size: { min: number; max: number };
+  count: number;
+  shape: string;
+  glow: boolean;
+  twinkle: boolean;
+  wobble: boolean;
+  description: string;
+}
+
+/**
+ * Particle profiles per persona.
+ */
+export const PARTICLE_PROFILES: Record<string, ParticleProfile> = ${JSON.stringify(particleProfiles, null, 2)};
+
+/**
+ * Get particle profile for a persona.
+ * Automatically normalizes legacy IDs.
+ */
+export function getParticleProfile(personaId: string): ParticleProfile {
+  const normalizedId = normalizePersonaId(personaId);
+  const profile = PARTICLE_PROFILES[normalizedId] || PARTICLE_PROFILES['default'] || PARTICLE_PROFILES['ferni'];
+  // Guaranteed to exist since we have fallbacks
+  return profile as ParticleProfile;
+}
+
+// ============================================================================
+// ANTICIPATION - Pixar's "Wind-up Before the Pitch"
+// ============================================================================
+
+/**
+ * Anticipation effect configuration.
+ * Creates the "wind-up" before an action for more natural, alive-feeling interactions.
+ */
+export interface AnticipationEffect {
+  transform: string;
+  transition: string;
+  boxShadow?: string;
+}
+
+/**
+ * Anticipation effects for hover interactions.
+ * Usage: Apply 'default' on mouseenter, 'release'/'lift'/'spring' on mouseleave
+ */
+export const ANTICIPATION_HOVER = ${JSON.stringify(anticipation.hover || {}, null, 2)};
+
+/**
+ * Anticipation effects for press/click interactions.
+ * Apply on mousedown for satisfying tactile feedback.
+ */
+export const ANTICIPATION_PRESS = ${JSON.stringify(anticipation.press || {}, null, 2)};
+
+/**
+ * Focus ring anticipation effects.
+ */
+export const ANTICIPATION_FOCUS = ${JSON.stringify(anticipation.focus || {}, null, 2)};
+
+/**
+ * Page/state transition anticipation.
+ */
+export const ANTICIPATION_TRANSITION = ${JSON.stringify(anticipation.transition || {}, null, 2)};
+
+// ============================================================================
+// ORGANIC TEXTURES - Wabi-sabi (侘寂) Imperfection
+// ============================================================================
+
+/**
+ * Organic texture configuration for natural, non-digital feel.
+ */
+export const ORGANIC_TEXTURES = {
+  noise: ${JSON.stringify(organicTextures.noise || {}, null, 2)},
+  paperTexture: ${JSON.stringify(organicTextures.paperTexture || {}, null, 2)},
+  breathingGradient: ${JSON.stringify(organicTextures.breathingGradient || {}, null, 2)},
+  imperfectBorder: ${JSON.stringify(organicTextures.imperfectBorder || {}, null, 2)},
+  inkBleed: ${JSON.stringify(organicTextures.inkBleed || {}, null, 2)},
+};
+
+/**
+ * Get imperfect border radius for wabi-sabi aesthetic.
+ * Breaks artificial digital perfection.
+ */
+export function getImperfectBorder(size: 'sm' | 'md' | 'lg'): string {
+  return ORGANIC_TEXTURES.imperfectBorder[size] || ORGANIC_TEXTURES.imperfectBorder.md;
+}
+
+// ============================================================================
+// VOICE EMOTION GLOW - Avatar responds to speaking tone
+// ============================================================================
+
+/**
+ * Voice emotion types that affect avatar glow.
+ */
+export type VoiceEmotion = 
+  | 'neutral'
+  | 'happy'
+  | 'excited'
+  | 'calm'
+  | 'thoughtful'
+  | 'empathetic'
+  | 'serious'
+  | 'anxious'
+  | 'encouraging';
+
+/**
+ * Speaking intensity levels.
+ */
+export type SpeakingIntensity = 'whisper' | 'normal' | 'emphasis' | 'exclamation';
+
+/**
+ * Voice emotion glow configuration.
+ */
+export interface VoiceGlowConfig {
+  color: string;
+  colorAlt: string;
+  intensity: number;
+  pulseSpeed: string;
+  spread: string;
+}
+
+/**
+ * Speaking intensity multipliers.
+ */
+export interface SpeakingIntensityConfig {
+  multiplier: number;
+  spread: number;
+}
+
+/**
+ * Voice emotion glow configurations.
+ */
+export const VOICE_EMOTION_GLOW: Record<VoiceEmotion, VoiceGlowConfig> = ${JSON.stringify(
+    Object.fromEntries(
+      Object.entries(voiceEmotionGlow.emotions || {}).map(([key, value]) => [
+        key,
+        Object.fromEntries(Object.entries(value).filter(([k]) => !k.startsWith('_')))
+      ])
+    ),
+    null,
+    2
+  )};
+
+/**
+ * Speaking intensity configurations.
+ */
+export const SPEAKING_INTENSITY: Record<SpeakingIntensity, SpeakingIntensityConfig> = ${JSON.stringify(
+    Object.fromEntries(
+      Object.entries(voiceEmotionGlow.speakingIntensity || {}).filter(([key]) => !key.startsWith('_'))
+    ),
+    null,
+    2
+  )};
+
+/**
+ * Voice glow transition timings.
+ */
+export const VOICE_GLOW_TRANSITIONS = ${JSON.stringify(voiceEmotionGlow.transitions || {}, null, 2)};
+
+/**
+ * Get glow configuration for a voice emotion.
+ */
+export function getVoiceGlow(emotion: VoiceEmotion): VoiceGlowConfig {
+  return VOICE_EMOTION_GLOW[emotion] || VOICE_EMOTION_GLOW.neutral;
+}
+
+/**
+ * Get CSS custom properties for voice glow.
+ * Apply these to the avatar container element.
+ */
+export function getVoiceGlowCSS(
+  emotion: VoiceEmotion,
+  intensity: SpeakingIntensity = 'normal'
+): Record<string, string> {
+  const glow = getVoiceGlow(emotion);
+  const intensityConfig = SPEAKING_INTENSITY[intensity] || SPEAKING_INTENSITY.normal;
+  
+  return {
+    '--glow-color': glow.color,
+    '--glow-color-alt': glow.colorAlt,
+    '--glow-intensity': String(glow.intensity * intensityConfig.multiplier),
+    '--glow-spread': \`\${parseInt(glow.spread) * intensityConfig.spread}px\`,
+    '--glow-pulse-speed': glow.pulseSpeed,
+  };
+}
+
+/**
+ * Apply voice glow to an element.
+ */
+export function applyVoiceGlow(
+  element: HTMLElement,
+  emotion: VoiceEmotion,
+  intensity: SpeakingIntensity = 'normal'
+): void {
+  const cssProps = getVoiceGlowCSS(emotion, intensity);
+  Object.entries(cssProps).forEach(([prop, value]) => {
+    element.style.setProperty(prop, value);
+  });
+}
+
+// ============================================================================
+// THEME MANAGEMENT
+// ============================================================================
 
 /**
  * Set the active theme
@@ -428,6 +2476,285 @@ export function initTheme(): ThemeName {
   const theme: ThemeName = prefersDark ? 'midnight' : 'zen';
   setTheme(theme);
   return theme;
+}
+
+// ============================================================================
+// APPLE-LEVEL UX UTILITIES
+// ============================================================================
+
+/**
+ * CSS class names for entrance animations.
+ * Apply these classes to trigger entrance animations on page load.
+ */
+export const ENTRANCE_CLASSES = {
+  avatar: 'entrance-avatar',
+  controls: 'entrance-controls',
+  team: 'entrance-team',
+} as const;
+
+/**
+ * CSS class names for skeleton loading states.
+ */
+export const SKELETON_CLASSES = {
+  shimmer: 'skeleton-shimmer',
+} as const;
+
+/**
+ * CSS class names for error recovery animations.
+ */
+export const ERROR_CLASSES = {
+  shake: 'error-shake',
+  pulse: 'error-pulse',
+  retryBounce: 'error-retry-bounce',
+  glow: 'error-glow',
+} as const;
+
+/**
+ * CSS class names for connection progress.
+ */
+export const CONNECTION_CLASSES = {
+  step: 'connection-step',
+  stepActive: 'active',
+  stepCompleted: 'completed',
+  bar: 'connection-bar',
+  barFill: 'connection-bar-fill',
+} as const;
+
+/**
+ * CSS class names for focus states.
+ */
+export const FOCUS_CLASSES = {
+  anticipate: 'focus-anticipate',
+  ring: 'anticipate-focus',
+} as const;
+
+/**
+ * Apply entrance animation to an element.
+ */
+export function applyEntranceAnimation(
+  element: HTMLElement,
+  type: 'avatar' | 'controls' | 'team'
+): void {
+  const className = ENTRANCE_CLASSES[type];
+  element.classList.add(className);
+}
+
+/**
+ * Replay entrance animation on an element.
+ */
+export function replayEntranceAnimation(
+  element: HTMLElement,
+  type: 'avatar' | 'controls' | 'team'
+): void {
+  const className = ENTRANCE_CLASSES[type];
+  element.classList.remove(className);
+  void element.offsetHeight; // Force reflow
+  element.classList.add(className);
+}
+
+/**
+ * Apply skeleton shimmer loading effect.
+ */
+export function applySkeletonShimmer(element: HTMLElement): void {
+  element.classList.add(SKELETON_CLASSES.shimmer);
+}
+
+/**
+ * Remove skeleton shimmer loading effect.
+ */
+export function removeSkeletonShimmer(element: HTMLElement): void {
+  element.classList.remove(SKELETON_CLASSES.shimmer);
+}
+
+/**
+ * Trigger error shake animation (400ms).
+ */
+export function triggerErrorShake(element: HTMLElement): Promise<void> {
+  return new Promise((resolve) => {
+    element.classList.remove(ERROR_CLASSES.shake);
+    void element.offsetHeight;
+    element.classList.add(ERROR_CLASSES.shake);
+    setTimeout(() => {
+      element.classList.remove(ERROR_CLASSES.shake);
+      resolve();
+    }, 400);
+  });
+}
+
+/**
+ * Trigger error pulse animation (3s).
+ */
+export function triggerErrorPulse(element: HTMLElement): Promise<void> {
+  return new Promise((resolve) => {
+    element.classList.remove(ERROR_CLASSES.pulse);
+    void element.offsetHeight;
+    element.classList.add(ERROR_CLASSES.pulse);
+    setTimeout(() => {
+      element.classList.remove(ERROR_CLASSES.pulse);
+      resolve();
+    }, 3000);
+  });
+}
+
+/**
+ * Trigger retry bounce animation (300ms).
+ */
+export function triggerRetryBounce(element: HTMLElement): Promise<void> {
+  return new Promise((resolve) => {
+    element.classList.remove(ERROR_CLASSES.retryBounce);
+    void element.offsetHeight;
+    element.classList.add(ERROR_CLASSES.retryBounce);
+    setTimeout(() => {
+      element.classList.remove(ERROR_CLASSES.retryBounce);
+      resolve();
+    }, 300);
+  });
+}
+
+/**
+ * Connection progress step states.
+ */
+export type ConnectionStep = 'pending' | 'active' | 'completed';
+
+/**
+ * Update connection step state.
+ */
+export function setConnectionStepState(
+  element: HTMLElement,
+  state: ConnectionStep
+): void {
+  element.classList.remove('active', 'completed');
+  if (state === 'active') {
+    element.classList.add('active');
+  } else if (state === 'completed') {
+    element.classList.add('completed');
+  }
+}
+
+/**
+ * Update connection progress bar (0-100).
+ */
+export function setConnectionProgress(
+  element: HTMLElement,
+  progress: number
+): void {
+  element.style.width = Math.min(100, Math.max(0, progress)) + '%';
+}
+
+// ============================================================================
+// LANDING PAGE - Zen 3D Experience
+// ============================================================================
+
+/**
+ * CSS class names for landing page.
+ * NOTE: Requires GSAP for shoji door animations.
+ * CDN: https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js
+ */
+export const LANDING_CLASSES = {
+  scene: 'landing-scene',
+  sceneHidden: 'hidden',
+  sceneRevealed: 'revealed',
+  shojiLeft: 'landing-shoji-left',
+  shojiRight: 'landing-shoji-right',
+  contentCard: 'landing-content-card',
+  contentVisible: 'visible',
+  tapHint: 'landing-tap-hint',
+  form: 'landing-form',
+  input: 'landing-input',
+  submit: 'landing-submit',
+  skip: 'landing-skip',
+  success: 'landing-success',
+  successVisible: 'visible',
+} as const;
+
+/**
+ * Animate the landing page reveal.
+ * Requires GSAP to be loaded.
+ * @param shojiLeft - Left shoji door element
+ * @param shojiRight - Right shoji door element
+ * @param contentCard - Content card element
+ */
+export function animateLandingReveal(
+  shojiLeft: HTMLElement,
+  shojiRight: HTMLElement,
+  contentCard: HTMLElement
+): void {
+  // @ts-expect-error GSAP is loaded via CDN
+  const gsap = window.gsap;
+  if (!gsap) {
+    console.warn('GSAP not loaded - landing animation disabled');
+    contentCard.classList.add('visible');
+    return;
+  }
+  
+  gsap.to(shojiLeft, { x: '-100%', duration: 1.2, ease: 'power2.inOut' });
+  gsap.to(shojiRight, { x: '100%', duration: 1.2, ease: 'power2.inOut' });
+  gsap.to(contentCard, { opacity: 1, y: 0, duration: 0.8, delay: 0.4, ease: 'power2.out' });
+}
+
+// ============================================================================
+// TOAST SYSTEM - World-class Notifications
+// ============================================================================
+
+/**
+ * Toast types for semantic styling.
+ */
+export type ToastType = 'info' | 'success' | 'error' | 'warning' | 'loading';
+
+/**
+ * CSS class names for toast system.
+ */
+export const TOAST_CLASSES = {
+  container: 'toast-container',
+  toast: 'toast',
+  exiting: 'toast-exiting',
+  swiping: 'toast-swiping',
+  swipeOut: 'toast-swipe-out',
+  icon: 'toast-icon',
+  content: 'toast-content',
+  title: 'toast-title',
+  description: 'toast-description',
+  close: 'toast-close',
+  progress: 'toast-progress',
+  progressBar: 'toast-progress-bar',
+  action: 'toast-action',
+  // Type variants
+  info: 'toast-info',
+  success: 'toast-success',
+  error: 'toast-error',
+  warning: 'toast-warning',
+  loading: 'toast-loading',
+} as const;
+
+/**
+ * Get toast type class name.
+ */
+export function getToastTypeClass(type: ToastType): string {
+  return TOAST_CLASSES[type];
+}
+
+/**
+ * Check if user prefers reduced motion (WCAG accessibility).
+ */
+export function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * Apply animation only if user allows motion.
+ */
+export function safeAnimate(
+  element: HTMLElement,
+  animationClass: string,
+  fallbackOpacity: boolean = true
+): void {
+  if (prefersReducedMotion()) {
+    if (fallbackOpacity) {
+      element.style.opacity = '1';
+    }
+    return;
+  }
+  element.classList.add(animationClass);
 }
 `;
 
@@ -609,11 +2936,13 @@ function validateAccessibility() {
     midnight: [
       { text: colors.themes.midnight.text.primary, bg: colors.themes.midnight.background.primary, label: 'Primary text on background', level: 'AA' },
       { text: colors.themes.midnight.text.secondary, bg: colors.themes.midnight.background.primary, label: 'Secondary text on background', level: 'AA' },
+      { text: colors.themes.midnight.text.muted, bg: colors.themes.midnight.background.primary, label: 'Muted text on background', level: 'AA' },
       { text: colors.themes.midnight.text.inverse, bg: colors.themes.midnight.accent.primary, label: 'Inverse text on accent', level: 'AA' },
     ],
     zen: [
       { text: colors.themes.zen.text.primary, bg: colors.themes.zen.background.primary, label: 'Primary text on background', level: 'AA' },
       { text: colors.themes.zen.text.secondary, bg: colors.themes.zen.background.primary, label: 'Secondary text on background', level: 'AA' },
+      { text: colors.themes.zen.text.muted, bg: colors.themes.zen.background.primary, label: 'Muted text on background', level: 'AA' },
       { text: colors.themes.zen.text.inverse, bg: colors.themes.zen.accent.primary, label: 'Inverse text on accent', level: 'AA' },
     ]
   };

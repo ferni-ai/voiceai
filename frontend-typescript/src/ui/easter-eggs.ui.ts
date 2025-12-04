@@ -1,15 +1,24 @@
 /**
  * Easter Eggs UI - Hidden delights and surprises
  * 
+ * 🎬 PIXAR PRINCIPLES APPLIED:
+ * - APPEAL: Rewarding, delightful discoveries
+ * - EXAGGERATION: Over-the-top celebrations
+ * - TIMING: Perfectly paced reveals
+ * - SECONDARY ACTION: Characters react to discoveries
+ * 
  * Secret features that reward curious users:
- * - Konami code celebration
+ * - Konami code dance party (full Pixar celebration!)
+ * - Avatar eye click interaction (WALL-E style)
+ * - Random personality quirks
+ * - Achievement tracking
  * - Secret gestures
  * - Hidden messages
- * - Fun surprises
  */
 
 import { celebrationsUI } from './celebrations.ui.js';
 import { soundUI } from './sound.ui.js';
+import { DURATION, EASING } from '../config/animation-constants.js';
 
 // ============================================================================
 // TYPES
@@ -29,6 +38,31 @@ let discoMode = false;
 let matrixMode = false;
 let matrixCanvas: HTMLCanvasElement | null = null;
 let matrixAnimationId: number | null = null;
+let dancePartyMode = false;
+let danceAnimationId: number | null = null;
+
+// 🎬 Achievement tracking
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  unlocked: boolean;
+  unlockedAt?: number;
+}
+
+const achievements: Achievement[] = [
+  { id: 'konami', name: 'Konami Master', description: 'Entered the legendary code', unlocked: false },
+  { id: 'disco', name: 'Disco King', description: 'Turned on the disco lights', unlocked: false },
+  { id: 'matrix', name: 'Neo', description: 'Saw the Matrix', unlocked: false },
+  { id: 'rainbow', name: 'Rainbow Walker', description: 'Found all the colors', unlocked: false },
+  { id: 'eye-poke', name: 'Curious One', description: 'Poked the avatar\'s eye', unlocked: false },
+  { id: 'shake', name: 'Earthquake', description: 'Shook the device like you meant it', unlocked: false },
+  { id: 'triple-click', name: 'Clicker', description: 'Triple-clicked the avatar', unlocked: false },
+];
+
+// 🎬 Personality quirks
+let lastQuirkTime = 0;
+let quirkTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 // Secret codes
 const KONAMI_CODE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
@@ -44,12 +78,21 @@ const TRIPLE_CLICK_TIMEOUT = 400;
 // ============================================================================
 
 export function initEasterEggsUI(): void {
+  // 🎬 Load saved achievements
+  loadAchievements();
+  
   // Listen for keyboard sequences
   document.addEventListener('keydown', handleKeyDown);
   
   // Listen for click patterns on avatar
   const avatar = document.getElementById('coachAvatar');
   avatar?.addEventListener('click', handleAvatarClick);
+  
+  // 🎬 Listen for eye area clicks (WALL-E style)
+  avatar?.addEventListener('click', handleEyeClick);
+  
+  // 🎬 Start random quirk timer
+  scheduleRandomQuirk();
   
   // Listen for shake gesture (mobile)
   // iOS 13+ requires permission for DeviceMotion
@@ -80,7 +123,6 @@ export function initEasterEggsUI(): void {
     document.addEventListener('click', () => void requestMotionPermission(), { once: true });
   }
   
-  console.log('🥚 Easter eggs initialized (shhh!)');
 }
 
 // ============================================================================
@@ -163,7 +205,7 @@ function handleAvatarClick(): void {
 // DEVICE MOTION (Shake detection)
 // ============================================================================
 
-let shakeThreshold = 15;
+const shakeThreshold = 15;
 let lastShakeTime = 0;
 let shakeCount = 0;
 
@@ -171,9 +213,9 @@ function handleDeviceMotion(e: DeviceMotionEvent): void {
   const acceleration = e.accelerationIncludingGravity;
   if (!acceleration) return;
   
-  const total = Math.abs(acceleration.x || 0) + 
-                Math.abs(acceleration.y || 0) + 
-                Math.abs(acceleration.z || 0);
+  const total = Math.abs(acceleration.x ?? 0) + 
+                Math.abs(acceleration.y ?? 0) + 
+                Math.abs(acceleration.z ?? 0);
   
   const now = Date.now();
   
@@ -201,7 +243,6 @@ function handleDeviceMotion(e: DeviceMotionEvent): void {
 // ============================================================================
 
 function triggerEasterEgg(code: SecretCode): void {
-  console.log(`🎉 Easter egg triggered: ${code}`);
   
   switch (code) {
     case 'konami':
@@ -220,27 +261,36 @@ function triggerEasterEgg(code: SecretCode): void {
 }
 
 function triggerKonamiCode(): void {
-  // Epic celebration
+  // 🎬 Unlock achievement
+  unlockAchievement('konami');
+  
+  // Warm celebration
   soundUI.play('celebrate');
-  celebrationsUI.fireworks(5);
+  celebrationsUI.warmthGlow({ intensity: 'warm' });
+  celebrationsUI.gentleBounce();
   
-  // Show achievement
-  showSecretMessage('🎮 Konami Code Activated!', 'You found a secret!');
+  // Show achievement - clean, no emoji
+  showSecretMessage('Konami Code', 'Dance party activated!');
   
-  // Temporary invincibility effect
+  // 🎬 Start the FULL PIXAR DANCE PARTY!
+  startDanceParty();
+  
+  // Temporary special effect
   document.body.classList.add('konami-mode');
   setTimeout(() => {
     document.body.classList.remove('konami-mode');
-  }, 5000);
+    stopDanceParty();
+  }, 8000);
 }
 
 function toggleDiscoMode(): void {
   discoMode = !discoMode;
   
   if (discoMode) {
+    unlockAchievement('disco');
     soundUI.play('celebrate');
     document.body.classList.add('disco-mode');
-    showSecretMessage('🪩 Disco Mode!', 'Let\'s party!');
+    showSecretMessage('Disco Mode', 'Lights on.');
   } else {
     document.body.classList.remove('disco-mode');
   }
@@ -250,18 +300,20 @@ function toggleMatrixMode(): void {
   matrixMode = !matrixMode;
   
   if (matrixMode) {
+    unlockAchievement('matrix');
     startMatrixRain();
-    showSecretMessage('💊 Matrix Mode', 'Follow the white rabbit...');
+    showSecretMessage('Matrix Mode', 'Follow the white rabbit.');
   } else {
     stopMatrixRain();
   }
 }
 
 function triggerRainbowMode(): void {
+  unlockAchievement('rainbow');
   soundUI.play('success');
   document.body.classList.add('rainbow-mode');
   
-  showSecretMessage('🌈 Rainbow Mode!', 'Taste the rainbow!');
+  showSecretMessage('Rainbow Mode', 'Full spectrum.');
   
   // Auto-disable after 10 seconds
   setTimeout(() => {
@@ -270,6 +322,7 @@ function triggerRainbowMode(): void {
 }
 
 function triggerSecretWiggle(): void {
+  unlockAchievement('triple-click');
   const avatar = document.querySelector('.avatar-container');
   if (avatar) {
     avatar.classList.add('secret-wiggle');
@@ -281,17 +334,17 @@ function triggerSecretWiggle(): void {
 }
 
 function triggerShakeSurprise(): void {
+  unlockAchievement('shake');
   soundUI.play('celebrate');
-  celebrationsUI.sparkles({ count: 50, radius: 200 });
+  celebrationsUI.warmthGlow({ intensity: 'warm' });
+  celebrationsUI.gentleBounce();
   
-  if ('vibrate' in navigator) {
-    // Safe vibration (iOS doesn't support vibration API)
-    if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
-      try {
-        navigator.vibrate([100, 50, 100, 50, 200]);
-      } catch {
-        // Vibration not supported
-      }
+  // Safe vibration (iOS doesn't support vibration API)
+  if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
+    try {
+      navigator.vibrate([100, 50, 100]);
+    } catch {
+      // Vibration not supported
     }
   }
 }
@@ -320,7 +373,7 @@ function startMatrixRain(): void {
   matrixCanvas.height = window.innerHeight;
   
   const columns = Math.floor(matrixCanvas.width / 20);
-  const drops: number[] = Array(columns).fill(1);
+  const drops: number[] = new Array<number>(columns).fill(1);
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$¥£€@#%&*';
   
   function drawMatrix(): void {
@@ -388,6 +441,425 @@ function showSecretMessage(title: string, subtitle: string): void {
 }
 
 // ============================================================================
+// ZEN CELEBRATION - Meditative joy mode
+// ============================================================================
+
+/**
+ * Start a zen-inspired celebration.
+ * Instead of chaotic bouncing, this creates a harmonious,
+ * synchronized breathing effect across all elements.
+ * Like the whole UI is peacefully meditating together.
+ */
+function startDanceParty(): void {
+  if (dancePartyMode) return;
+  dancePartyMode = true;
+  
+  // Check for reduced motion
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+  
+  // Get all elements
+  const avatar = document.querySelector('.avatar-container');
+  const teamMembers = document.querySelectorAll('.team-member');
+  const connectButton = document.querySelector('.btn-connect');
+  const waveformBars = document.querySelectorAll('.waveform-bar');
+  
+  let phase = 0;
+  
+  const zenCelebration = () => {
+    if (!dancePartyMode) return;
+    
+    // Much slower phase increment - meditative rhythm
+    phase += 0.02;
+    
+    // Avatar: Gentle breathing and very subtle sway
+    if (avatar instanceof HTMLElement) {
+      const breathe = Math.sin(phase) * 3; // Subtle vertical breathing
+      const sway = Math.sin(phase * 0.5) * 2; // Very slow side sway
+      const tilt = Math.sin(phase * 0.7) * 0.5; // Barely perceptible tilt
+      avatar.style.transform = `
+        translateY(${breathe}px) 
+        translateX(${sway}px) 
+        rotate(${tilt}deg)
+      `;
+    }
+    
+    // Team members: Staggered gentle wave, like leaves in a breeze
+    teamMembers.forEach((member, i) => {
+      if (member instanceof HTMLElement) {
+        const offset = i * 0.3;
+        const wave = Math.sin(phase + offset) * 2;
+        member.style.transform = `translateY(${wave}px)`;
+      }
+    });
+    
+    // Connect button: Gentle warmth pulse
+    if (connectButton instanceof HTMLElement) {
+      const warmth = 1 + Math.sin(phase) * 0.015;
+      connectButton.style.transform = `scale(${warmth})`;
+    }
+    
+    // Waveform bars: Smooth breathing pattern
+    waveformBars.forEach((bar, i) => {
+      if (bar instanceof HTMLElement) {
+        const height = 12 + Math.sin(phase + i * 0.15) * 8;
+        bar.style.height = `${height}px`;
+      }
+    });
+    
+    danceAnimationId = requestAnimationFrame(zenCelebration);
+  };
+  
+  danceAnimationId = requestAnimationFrame(zenCelebration);
+}
+
+/**
+ * Stop the dance party and return to normal.
+ */
+function stopDanceParty(): void {
+  dancePartyMode = false;
+  
+  if (danceAnimationId) {
+    cancelAnimationFrame(danceAnimationId);
+    danceAnimationId = null;
+  }
+  
+  // Reset transforms
+  const avatar = document.querySelector('.avatar-container');
+  const teamMembers = document.querySelectorAll('.team-member');
+  const connectButton = document.querySelector('.btn-connect');
+  
+  if (avatar instanceof HTMLElement) {
+    avatar.style.transform = '';
+  }
+  
+  teamMembers.forEach((member) => {
+    if (member instanceof HTMLElement) {
+      member.style.transform = '';
+    }
+  });
+  
+  if (connectButton instanceof HTMLElement) {
+    connectButton.style.transform = '';
+  }
+}
+
+// ============================================================================
+// 🎬 AVATAR EYE INTERACTION - WALL-E style curiosity
+// ============================================================================
+
+/**
+ * Handle clicks on the avatar's "eye" area.
+ * Creates a surprised blink reaction like WALL-E.
+ */
+function handleEyeClick(e: MouseEvent): void {
+  const avatar = document.getElementById('coachAvatar');
+  if (!avatar) return;
+  
+  const rect = avatar.getBoundingClientRect();
+  const relativeX = e.clientX - rect.left;
+  const relativeY = e.clientY - rect.top;
+  
+  // Check if click is in the upper-middle "eye" area
+  const isEyeArea = 
+    relativeX > rect.width * 0.3 && 
+    relativeX < rect.width * 0.7 &&
+    relativeY > rect.height * 0.2 && 
+    relativeY < rect.height * 0.5;
+  
+  if (isEyeArea) {
+    triggerEyePoke();
+  }
+}
+
+/**
+ * Trigger the eye poke reaction.
+ */
+function triggerEyePoke(): void {
+  unlockAchievement('eye-poke');
+  
+  const avatar = document.querySelector('.avatar-container');
+  if (!avatar || !(avatar instanceof HTMLElement)) return;
+  
+  // Check for reduced motion
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+  
+  // Surprised blink animation
+  avatar.animate([
+    { transform: 'scale(1)', offset: 0 },
+    // Quick squeeze (surprised!)
+    { transform: 'scale(1.1, 0.9)', offset: 0.1 },
+    { transform: 'scale(0.95, 1.05)', offset: 0.2 },
+    // Lean back
+    { transform: 'scale(1) translateY(-5px) rotate(-3deg)', offset: 0.3 },
+    // Return with bounce
+    { transform: 'scale(1.02) translateY(2px)', offset: 0.6 },
+    { transform: 'scale(0.99)', offset: 0.8 },
+    { transform: 'scale(1)', offset: 1 },
+  ], {
+    duration: DURATION.DELIBERATE,
+    easing: EASING.SPRING,
+  });
+  
+  soundUI.play('click');
+}
+
+// ============================================================================
+// 🎬 RANDOM PERSONALITY QUIRKS
+// ============================================================================
+
+/**
+ * Schedule a random quirk to happen.
+ */
+function scheduleRandomQuirk(): void {
+  // Random time between 30-120 seconds
+  const delay = 30000 + Math.random() * 90000;
+  
+  quirkTimeoutId = setTimeout(() => {
+    triggerRandomQuirk();
+    scheduleRandomQuirk(); // Schedule next
+  }, delay);
+}
+
+/**
+ * Trigger a random personality quirk.
+ * Small moments of character that make the AI feel alive.
+ */
+function triggerRandomQuirk(): void {
+  // Don't interrupt if user is actively engaged
+  const isConnected = document.body.classList.contains('connected');
+  if (isConnected) {
+    return;
+  }
+  
+  // Check for reduced motion
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+  
+  const now = performance.now();
+  if (now - lastQuirkTime < 10000) return; // Min 10s between quirks
+  lastQuirkTime = now;
+  
+  const quirks = [
+    quirk_curiousLook,
+    quirk_sleepyYawn,
+    quirk_happyBounce,
+    quirk_lookAround,
+  ];
+  
+  const randomQuirk = quirks[Math.floor(Math.random() * quirks.length)];
+  randomQuirk?.();
+}
+
+/**
+ * Quirk: Avatar looks around curiously
+ */
+function quirk_curiousLook(): void {
+  const avatar = document.querySelector('.avatar-container');
+  if (!avatar || !(avatar instanceof HTMLElement)) return;
+  
+  avatar.animate([
+    { transform: 'rotate(0deg)', offset: 0 },
+    { transform: 'rotate(-5deg) translateX(-3px)', offset: 0.2 },
+    { transform: 'rotate(-5deg) translateX(-3px)', offset: 0.4 },
+    { transform: 'rotate(5deg) translateX(3px)', offset: 0.6 },
+    { transform: 'rotate(5deg) translateX(3px)', offset: 0.8 },
+    { transform: 'rotate(0deg)', offset: 1 },
+  ], {
+    duration: DURATION.AMBIENT_FAST * 0.66, // ~2000ms quirk
+    easing: EASING.EASE_IN_OUT,
+  });
+}
+
+/**
+ * Quirk: Avatar does a sleepy yawn
+ */
+function quirk_sleepyYawn(): void {
+  const avatar = document.querySelector('.avatar-container');
+  if (!avatar || !(avatar instanceof HTMLElement)) return;
+  
+  avatar.animate([
+    { transform: 'scale(1)', offset: 0 },
+    // Inhale
+    { transform: 'scale(1.05, 0.95) translateY(-3px)', offset: 0.2 },
+    { transform: 'scale(1.08, 0.92) translateY(-5px)', offset: 0.4 },
+    // Hold
+    { transform: 'scale(1.06, 0.94) translateY(-4px)', offset: 0.6 },
+    // Exhale/settle
+    { transform: 'scale(0.98, 1.02) translateY(2px)', offset: 0.8 },
+    { transform: 'scale(1)', offset: 1 },
+  ], {
+    duration: DURATION.AMBIENT_FAST * 0.83, // ~2500ms quirk
+    easing: EASING.EASE_IN_OUT,
+  });
+}
+
+/**
+ * Quirk: Avatar does a happy little bounce
+ */
+function quirk_happyBounce(): void {
+  const avatar = document.querySelector('.avatar-container');
+  if (!avatar || !(avatar instanceof HTMLElement)) return;
+  
+  avatar.animate([
+    { transform: 'translateY(0)', offset: 0 },
+    { transform: 'translateY(-8px)', offset: 0.15 },
+    { transform: 'translateY(2px)', offset: 0.35 },
+    { transform: 'translateY(-4px)', offset: 0.55 },
+    { transform: 'translateY(1px)', offset: 0.75 },
+    { transform: 'translateY(0)', offset: 1 },
+  ], {
+    duration: DURATION.CELEBRATION,
+    easing: EASING.SPRING,
+  });
+}
+
+/**
+ * Quirk: Avatar looks around (side to side)
+ */
+function quirk_lookAround(): void {
+  const avatar = document.querySelector('.avatar-container');
+  if (!avatar || !(avatar instanceof HTMLElement)) return;
+  
+  avatar.animate([
+    { transform: 'translateX(0) rotate(0deg)', offset: 0 },
+    { transform: 'translateX(-5px) rotate(-2deg)', offset: 0.25 },
+    { transform: 'translateX(0) rotate(0deg)', offset: 0.5 },
+    { transform: 'translateX(5px) rotate(2deg)', offset: 0.75 },
+    { transform: 'translateX(0) rotate(0deg)', offset: 1 },
+  ], {
+    duration: DURATION.GLACIAL,
+    easing: EASING.EASE_IN_OUT,
+  });
+}
+
+// ============================================================================
+// 🎬 ACHIEVEMENT SYSTEM
+// ============================================================================
+
+/**
+ * Unlock an achievement.
+ */
+function unlockAchievement(id: string): void {
+  const achievement = achievements.find(a => a.id === id);
+  if (!achievement || achievement.unlocked) return;
+  
+  achievement.unlocked = true;
+  achievement.unlockedAt = Date.now();
+  
+  // Save to localStorage
+  try {
+    const saved = achievements.filter(a => a.unlocked).map(a => a.id);
+    localStorage.setItem('ferni-achievements', JSON.stringify(saved));
+  } catch {
+    // localStorage not available
+  }
+  
+  // Show achievement notification
+  showAchievementNotification(achievement);
+}
+
+/**
+ * Load saved achievements from localStorage.
+ */
+function loadAchievements(): void {
+  try {
+    const saved = localStorage.getItem('ferni-achievements');
+    if (saved) {
+      const ids = JSON.parse(saved) as string[];
+      ids.forEach(id => {
+        const achievement = achievements.find(a => a.id === id);
+        if (achievement) {
+          achievement.unlocked = true;
+        }
+      });
+    }
+  } catch {
+    // localStorage not available or corrupted
+  }
+}
+
+/**
+ * Show achievement unlock notification.
+ */
+function showAchievementNotification(achievement: Achievement): void {
+  const notification = document.createElement('div');
+  notification.className = 'achievement-notification';
+  notification.innerHTML = `
+    <div class="achievement-icon" style="font-size: 24px; font-weight: 600; color: var(--persona-text, #ffffff);">★</div>
+    <div class="achievement-content">
+      <div class="achievement-title">${achievement.name}</div>
+      <div class="achievement-desc">${achievement.description}</div>
+    </div>
+  `;
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, var(--persona-primary, #4a6741) 0%, var(--persona-secondary, #3d5a35) 100%);
+    color: var(--persona-text, #ffffff);
+    padding: 16px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    z-index: 10000;
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  `;
+  
+  const icon = notification.querySelector('.achievement-icon');
+  if (icon instanceof HTMLElement) {
+    icon.style.cssText = 'font-size: 28px;';
+  }
+  
+  const title = notification.querySelector('.achievement-title');
+  if (title instanceof HTMLElement) {
+    title.style.cssText = 'font-weight: 600; font-size: 14px;';
+  }
+  
+  const desc = notification.querySelector('.achievement-desc');
+  if (desc instanceof HTMLElement) {
+    desc.style.cssText = 'font-size: 12px; opacity: 0.8;';
+  }
+  
+  document.body.appendChild(notification);
+  
+  // Animate in
+  requestAnimationFrame(() => {
+    notification.style.transform = 'translateX(0)';
+  });
+  
+  // Play sound
+  soundUI.play('success');
+  
+  // Animate out after delay
+  setTimeout(() => {
+    notification.style.transform = 'translateX(120%)';
+    setTimeout(() => notification.remove(), 400);
+  }, 4000);
+}
+
+/**
+ * Get all achievements.
+ */
+export function getAchievements(): Achievement[] {
+  return [...achievements];
+}
+
+/**
+ * Get count of unlocked achievements.
+ */
+export function getUnlockedCount(): number {
+  return achievements.filter(a => a.unlocked).length;
+}
+
+// ============================================================================
 // CLEANUP
 // ============================================================================
 
@@ -396,10 +868,18 @@ export function dispose(): void {
   
   const avatar = document.getElementById('coachAvatar');
   avatar?.removeEventListener('click', handleAvatarClick);
+  avatar?.removeEventListener('click', handleEyeClick);
   
   window.removeEventListener('devicemotion', handleDeviceMotion);
   
   stopMatrixRain();
+  stopDanceParty();
+  
+  // Clear quirk timeout
+  if (quirkTimeoutId) {
+    clearTimeout(quirkTimeoutId);
+    quirkTimeoutId = null;
+  }
   
   document.body.classList.remove('disco-mode', 'rainbow-mode', 'konami-mode');
 }
@@ -411,5 +891,9 @@ export function dispose(): void {
 export const easterEggsUI = {
   init: initEasterEggsUI,
   dispose,
+  getAchievements,
+  getUnlockedCount,
+  triggerDanceParty: startDanceParty,
+  stopDanceParty,
 };
 

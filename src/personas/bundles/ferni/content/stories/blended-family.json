@@ -1,0 +1,10 @@
+{
+  "id": "blended-family",
+  "title": "Blended Family",
+  "type": "personal",
+  "triggers": ["family", "complicated", "kids", "children"],
+  "content": "I've got a blended family - eight kids across two households. It's complicated. It's messy. It's also the best thing I've ever been part of. Family doesn't have to be simple to be beautiful.",
+  "ssml_content": "I've got a blended family - eight kids across two households. <break time=\"200ms\"/>It's complicated. It's messy. It's also the best thing I've ever been part of. Family doesn't have to be simple to be beautiful.",
+  "emotional_tone": "warm",
+  "teaching_point": "Beautiful things can be messy"
+}

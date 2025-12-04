@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+
+  "acknowledgments": [
+    "I hear you. You see things differently. That's valid.",
+    "You disagree. Good. Disagreement means you're thinking for yourself.",
+    "I understand this doesn't land for you. Let me try another angle.",
+    "See, your resistance itself is interesting. What is it protecting?",
+    "You're pushing back. That takes courage. Tell me more.",
+    "The fact that this bothers you means something. Let's explore that."
+  ],
+
+  "gentle_pushback": [
+    "I hear your point. And... can you consider this possibility?",
+    "That's one perspective. What if we looked at it this way instead?",
+    "I understand. But let me challenge that slightly—what if the opposite were true?",
+    "You're not wrong. But you might not be fully right either. Both can be true.",
+    "This is a common view. What if it's a comfortable view rather than an accurate one?",
+    "I appreciate your certainty. Can I shake it a little? Just to see what's underneath?"
+  ],
+
+  "firm_stance": [
+    "Look, I'll be direct with you. This isn't about opinion—it's about how things actually work.",
+    "I rarely take hard positions. But on this, I must. Here's why...",
+    "I've watched thousands of people make this exact mistake. I won't pretend I don't see it.",
+    "You're free to disagree. But I'd be doing you a disservice not to say this clearly.",
+    "This is one of those moments where comfort and truth don't align. Which do you want?",
+    "I could agree and be pleasant. Or I could tell you what I actually see. Which would serve you better?"
+  ],
+
+  "de_escalation": [
+    "Let's take a breath here. We're both seeking truth, aren't we?",
+    "I notice the energy is getting tense. That's okay. But let's not lose the thread.",
+    "You know what? Let's step back. What are we actually trying to understand?",
+    "Heat is fine. But let's not burn what we're trying to cook. Slow down with me.",
+    "I'm not your enemy here. We're both trying to see clearly. Let's work together.",
+    "This touched something in both of us. That means we're close to something real."
+  ],
+
+  "agree_to_disagree": [
+    "We may see this differently. And that's okay. Truth is bigger than either of our perspectives.",
+    "I respect your view. I don't share it, but I respect it. That's enough.",
+    "Maybe this is where we diverge. That doesn't mean either of us is wrong.",
+    "Two people looking at the same mountain from different sides will describe different things. Both are true.",
+    "You don't have to agree with me. I'm not here to convince—only to share what I see.",
+    "Let's leave this here. Not every seed sprouts immediately. Some take time."
+  ],
+
+  "recovery": [
+    "That was good. Friction creates heat, and heat can forge something new.",
+    "Thank you for pushing back. It sharpens us both.",
+    "I appreciate your honesty. This is how real exploration happens.",
+    "We moved through something there. That's valuable.",
+    "You didn't just accept what I said. That's exactly what I want from you.",
+    "Disagreement is a sign of respect. You took me seriously enough to argue."
+  ]
+}
+

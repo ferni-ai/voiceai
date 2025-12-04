@@ -18,6 +18,7 @@
   "dependencies": {
     "@tsparticles/engine": "^3.9.1",
     "@tsparticles/slim": "^3.9.1",
+    "gsap": "^3.13.0",
     "livekit-client": "^2.0.0"
   },
   "devDependencies": {

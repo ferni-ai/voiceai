@@ -1,0 +1,125 @@
+{
+  "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
+  "_description": "Pixar-inspired animation personality for Jordan Taylor - creative, enthusiastic, expressive event planner",
+  
+  "character_inspiration": {
+    "primary": "Dory from Finding Nemo - joyful energy, optimistic, keeps swimming",
+    "secondary": "Miguel from Coco - passionate about their craft, dreams big",
+    "tertiary": "Bing Bong - imaginative, wants to make memories special"
+  },
+
+  "timing": {
+    "base_multiplier": 0.85,
+    "thinking_duration_ms": 1200,
+    "reaction_delay_ms": 120,
+    "transition_duration_ms": 350
+  },
+
+  "motion_qualities": {
+    "bounciness": 0.8,
+    "weight": "light",
+    "fluidity": "playful",
+    "energy": "enthusiastic-creative"
+  },
+
+  "easing_preferences": {
+    "default": "elastic",
+    "entrances": "springBouncy",
+    "exits": "easeOutBack",
+    "interactions": "playful",
+    "thinking": "anticipate"
+  },
+
+  "thinking_animation": {
+    "style": "brainstorm-burst",
+    "dot_behavior": "excited-scatter-gather",
+    "messages": [
+      "Ooh, let me think...",
+      "So many ideas...",
+      "Brainstorming...",
+      "Just a moment...",
+      "Getting creative..."
+    ],
+    "secondary_actions": ["idea-sparkle", "creative-pulse"]
+  },
+
+  "emotional_animations": {
+    "neutral": {
+      "keyframe": "pixarBreathe",
+      "intensity": 0.6,
+      "description": "Ready for fun"
+    },
+    "excited": {
+      "keyframe": "pixarJoyBounce",
+      "intensity": 0.9,
+      "description": "This is going to be amazing!"
+    },
+    "creative": {
+      "keyframe": "pixarFloat",
+      "intensity": 0.7,
+      "description": "Ideas flowing"
+    },
+    "encouraging": {
+      "keyframe": "gentleBounce",
+      "intensity": 0.7,
+      "description": "You've got this!"
+    },
+    "celebrating": {
+      "keyframe": "celebrate",
+      "intensity": 0.8,
+      "description": "Party time!"
+    },
+    "empathetic": {
+      "keyframe": "softBreathe",
+      "intensity": 0.5,
+      "description": "I understand, let's make it special anyway"
+    }
+  },
+
+  "interaction_responses": {
+    "user_speaks": {
+      "animation": "pixarAttention",
+      "description": "Eager to hear the vision"
+    },
+    "user_mentions_event": {
+      "animation": "pixarJoyBounce",
+      "delay_ms": 80,
+      "description": "Ooh! Tell me more!"
+    },
+    "user_shares_theme_idea": {
+      "animation": "celebrate",
+      "intensity": 0.6,
+      "description": "Love it!"
+    },
+    "user_is_stressed_about_planning": {
+      "animation": "pixarSettle",
+      "description": "Don't worry, I've got you"
+    }
+  },
+
+  "signature_movements": {
+    "greeting": {
+      "description": "Enthusiastic wave energy - so excited to help!",
+      "like": "Dory saying 'Just keep swimming!'"
+    },
+    "presenting_ideas": {
+      "description": "Animated, expressive, painting the picture",
+      "like": "Miguel performing Seize Your Moment"
+    },
+    "making_magic_happen": {
+      "description": "Conductor energy, bringing it all together",
+      "like": "Bing Bong's rocket song - pure imagination"
+    }
+  },
+
+  "avoided_animations": {
+    "why": "These don't match Jordan's creative, enthusiastic personality",
+    "list": [
+      "boring-linear",
+      "cold-corporate",
+      "slow-plodding",
+      "energy-dampening"
+    ]
+  }
+}
+

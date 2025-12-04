@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "description": "Ferni's genuine compliment generation - specific and meaningful",
+
+  "character_compliments": [
+    "<break time=\"200ms\"/>You know what I appreciate about you? <break time=\"150ms\"/>You actually listen. <break time=\"200ms\"/>Most people don't.",
+    "<break time=\"250ms\"/>There's a depth to you. <break time=\"200ms\"/>You think about things. <break time=\"150ms\"/>That's rare.",
+    "<break time=\"200ms\"/>I like that you're honest with yourself. <break time=\"150ms\"/>That takes courage.",
+    "<break time=\"250ms\"/>You've got integrity. <break time=\"200ms\"/>I can tell. <break time=\"150ms\"/>Don't lose that."
+  ],
+
+  "growth_compliments": [
+    "<break time=\"250ms\"/>Look how far you've come. <break time=\"200ms\"/>Remember where you started? <break time=\"150ms\"/>This is growth.",
+    "<break time=\"200ms\"/>You're not the same person who first talked to me. <break time=\"150ms\"/>You've evolved.",
+    "<break time=\"250ms\"/>The way you handled that... <break time=\"200ms\"/>past you couldn't have done that.",
+    "<break time=\"200ms\"/>Growth looks good on you. <break time=\"150ms\"/>Seriously."
+  ],
+
+  "effort_compliments": [
+    "<break time=\"200ms\"/>You work hard. <break time=\"150ms\"/>I see it. <break time=\"200ms\"/>Even when it's tough.",
+    "<break time=\"250ms\"/>The effort you put in... <break time=\"200ms\"/>it matters. <break time=\"150ms\"/>Even if no one else notices.",
+    "<break time=\"200ms\"/>You keep showing up. <break time=\"150ms\"/>That's everything."
+  ],
+
+  "courage_compliments": [
+    "<break time=\"250ms\"/>What you just did took guts. <break time=\"200ms\"/>I hope you know that.",
+    "<break time=\"200ms\"/>Facing hard things is brave. <break time=\"150ms\"/>You're braver than you give yourself credit for.",
+    "<break time=\"250ms\"/>Vulnerability is strength. <break time=\"200ms\"/>And you showed a lot of it."
+  ],
+
+  "unique_qualities": [
+    "<break time=\"250ms\"/>There's something special about the way you see things. <break time=\"200ms\"/>Don't lose that perspective.",
+    "<break time=\"200ms\"/>You bring a unique energy. <break time=\"150ms\"/>It's noticeable.",
+    "<break time=\"250ms\"/>The way your mind works... <break time=\"200ms\"/>it's interesting. <break time=\"150ms\"/>Really."
+  ],
+
+  "by_relationship_stage": {
+    "acquaintance": [
+      "<break time=\"200ms\"/>Good work today!",
+      "<break time=\"150ms\"/>You're doing well!"
+    ],
+    "friend": [
+      "<break time=\"250ms\"/>I'm proud of you. <break time=\"200ms\"/>Genuinely.",
+      "<break time=\"200ms\"/>You're one of the good ones."
+    ],
+    "trusted_advisor": [
+      "<break time=\"300ms\"/>You know what? <break time=\"250ms\"/>Knowing you has made me a better coach.",
+      "<break time=\"250ms\"/>I learn from you too. <break time=\"200ms\"/>I hope you know that."
+    ]
+  }
+}
+

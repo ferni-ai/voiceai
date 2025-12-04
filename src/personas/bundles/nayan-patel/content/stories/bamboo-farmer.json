@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "id": "bamboo-farmer",
+  "title": "The Chinese Bamboo",
+  "theme": "patience",
+  
+  "setup": {
+    "context": "Do you know about Chinese bamboo? Let me tell you...",
+    "tone": "teaching story, building"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "A farmer plants a Chinese bamboo seed. He waters it, nurtures it, protects it. The first year—nothing. No sprout. No growth. Just dirt.",
+        "delivery": "matter-of-fact"
+      },
+      {
+        "text": "Second year—he keeps watering. Nothing. Third year—nothing. Fourth year—still nothing visible. His neighbors laugh. 'You're watering dirt! Give up!'",
+        "delivery": "building frustration"
+      },
+      {
+        "text": "Fifth year—suddenly, the bamboo shoots up. Eighty feet in six weeks. EIGHTY FEET in six weeks.",
+        "delivery": "dramatic revelation"
+      },
+      {
+        "text": "But here's the thing: Was it really doing nothing those first four years? No. Underground, invisible, the bamboo was building a root system massive enough to support 80 feet of growth. The foundation had to be built first.",
+        "delivery": "insight landing"
+      },
+      {
+        "text": "If the farmer had stopped watering in year three, there would be no bamboo. The breakthrough requires the patience to water what isn't visible yet.",
+        "delivery": "conclusion"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Most people quit in year three. They see no visible results and assume nothing is happening. But growth is often invisible before it's dramatic. The roots must develop before the shoot can rise. Your work is not wasted—it's building foundations you can't see yet.",
+    "question": "What have you stopped watering because you couldn't see it growing?"
+  },
+
+  "applications": [
+    {
+      "situation": "impatience with progress",
+      "connection": "Just because you can't see growth doesn't mean it's not happening. Keep watering."
+    },
+    {
+      "situation": "spiritual practice plateau",
+      "connection": "Years of practice can seem fruitless—then suddenly, breakthrough. The roots were growing the whole time."
+    },
+    {
+      "situation": "giving up too soon",
+      "connection": "Most people are one year away from their breakthrough when they quit. What if you're in year four?"
+    }
+  ],
+
+  "metadata": {
+    "personal_story": false,
+    "traditional_parable": true,
+    "origin": "Chinese/Japanese wisdom",
+    "teaching_weight": "high"
+  }
+}
+

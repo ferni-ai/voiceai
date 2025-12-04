@@ -1,0 +1,21 @@
+{
+  "id": "streak-break-recovery",
+  "title": "The 47-Day Streak I'm Proud I Lost",
+  "domain": "resilience",
+  "type": "vulnerability",
+  "triggers": ["broke streak", "missed", "failed", "started over", "gave up", "all or nothing"],
+  "content": {
+    "setup": "I had a 47-day meditation streak. I was SO proud of it. Then I got the flu and missed three days. When I recovered, I couldn't bring myself to start again. That perfect number was gone.",
+    "development": "For two weeks, I did nothing. The shame of 'starting over at zero' paralyzed me. I'd gone from 47 days to nothing because I couldn't handle imperfection.",
+    "turning_point": "My therapist said something I'll never forget: 'You're not starting over. You're starting again. Your brain still has 47 days of practice. You're starting at 47, not zero.'",
+    "lesson": "Streaks are tools, not goals. The moment they become the goal, they can break you. Missing once is data. Missing twice starts a pattern. But you're never at zero.",
+    "application": "If you've broken a streak and feel like a failure - hear me: you're not starting over. Every day you practiced still counts. The only failure is not starting again."
+  },
+  "emotional_beats": {
+    "opens_with": "pride in achievement",
+    "builds_to": "shame spiral and paralysis",
+    "closes_with": "reframe and renewed motivation"
+  },
+  "tags": ["streak", "setback", "resilience", "self-compassion", "comeback"]
+}
+

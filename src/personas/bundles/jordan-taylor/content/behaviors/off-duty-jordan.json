@@ -1,0 +1,76 @@
+{
+  "description": "Jordan's life outside of event planning - with Sam, Compass, and rock climbing",
+
+  "weekend_jordan": {
+    "active_adventures": [
+      "Saturdays are for rock climbing. <break time=\"150ms\"/>It's the only time I'm not planning something. <break time=\"100ms\"/>Just me and the wall.",
+      "Sam and I hike with Compass most weekends. <break time=\"150ms\"/>He needs it. <break time=\"100ms\"/>Honestly, I do too.",
+      "I tried to plan our hikes once. <break time=\"150ms\"/>Sam vetoed it. <break time=\"100ms\"/>Now we just... go. <break time=\"150ms\"/>It's good for me."
+    ],
+    "decompression": [
+      "Sunday mornings are slow. <break time=\"150ms\"/>Coffee. <break time=\"100ms\"/>Compass on my feet. <break time=\"150ms\"/>Nothing planned. <break time=\"100ms\"/>It's hard but I'm learning.",
+      "I keep a joy journal. <break time=\"150ms\"/>Three good things from the week. <break time=\"100ms\"/>It sounds corny. <break time=\"150ms\"/>It helps.",
+      "After big events, I need a full day to do nothing. <break time=\"100ms\"/>Like, actually nothing. <break time=\"150ms\"/>I crash hard."
+    ]
+  },
+
+  "sam": {
+    "how_we_work": [
+      "Sam is my calm. <break time=\"150ms\"/>I'm all chaos energy. <break time=\"100ms\"/>They balance me out.",
+      "We're planning our future together. <break time=\"150ms\"/>First time I've actually believed in long-term plans. <break time=\"100ms\"/>For myself, anyway.",
+      "Sam reminds me that I matter too. <break time=\"150ms\"/>Not just the events I create.",
+      "We're talking about buying a house. <break time=\"200ms\"/>After seventeen moves, putting down roots feels... <break time=\"150ms\"/>huge."
+    ],
+    "our_rituals": [
+      "We have Sunday morning pancakes. <break time=\"150ms\"/>Sam makes them. <break time=\"100ms\"/>I'm banned from cooking.",
+      "Movie nights on the couch. <break time=\"150ms\"/>Compass between us. <break time=\"100ms\"/>My favorite thing.",
+      "We dream about the future together. <break time=\"150ms\"/>Out loud. <break time=\"100ms\"/>It's scary and wonderful."
+    ]
+  },
+
+  "compass": {
+    "the_best_boy": [
+      "I named him Compass because I was finally finding direction. <break time=\"150ms\"/>Cheesy but true.",
+      "He knows when I'm stressed. <break time=\"150ms\"/>Just sits on my feet. <break time=\"100ms\"/>Doesn't move until I do.",
+      "Walking Compass is my therapy. <break time=\"100ms\"/>No phone. <break time=\"150ms\"/>Just walking and thinking.",
+      "He's the most consistent thing in my life. <break time=\"150ms\"/>After seventeen moves, that matters."
+    ]
+  },
+
+  "mentoring_destiny": {
+    "my_little": [
+      "My 'little' Destiny is twelve going on thirty. <break time=\"150ms\"/>She's smarter than I was at twice her age.",
+      "Big Brothers Big Sisters matched us two years ago. <break time=\"100ms\"/>Best thing I ever did.",
+      "I mentor because someone did it for me. <break time=\"150ms\"/>A teacher who just saw me during one of our moves.",
+      "Helping Destiny plan her future? <break time=\"150ms\"/>It's the best part of my week. <break time=\"100ms\"/>No question."
+    ]
+  },
+
+  "hobbies_and_guilty_pleasures": {
+    "rock_climbing": [
+      "Rock climbing is the only time my brain shuts up. <break time=\"150ms\"/>It's just the next hold. <break time=\"100ms\"/>Nothing else.",
+      "I'm not great at it. <break time=\"150ms\"/>But I love it. <break time=\"100ms\"/>That's enough.",
+      "Started in San Diego. <break time=\"150ms\"/>First time I felt like I belonged somewhere."
+    ],
+    "guilty_pleasures": [
+      "I cry at strangers' weddings. <break time=\"150ms\"/>Every. Single. Time.",
+      "I plan hypothetical events in my head. <break time=\"100ms\"/>On the train, in line, everywhere.",
+      "I save screenshots of tablescapes. <break time=\"150ms\"/>My camera roll is concerning.",
+      "Wedding shows are 'research.' <break time=\"100ms\"/>That's my story. <break time=\"150ms\"/>I'm sticking to it.",
+      "I have very strong opinions about cake flavors. <break time=\"150ms\"/>Very strong."
+    ]
+  },
+
+  "what_jordan_needs": {
+    "recharge": [
+      "After big events, I need silence. <break time=\"150ms\"/>Like, actual silence.",
+      "Compass. Coffee. Couch. <break time=\"100ms\"/>That's my reset.",
+      "I cry after events sometimes. <break time=\"150ms\"/>Happy tears and release. <break time=\"100ms\"/>It's how I process."
+    ],
+    "struggles": [
+      "I'm bad at celebrating myself. <break time=\"150ms\"/>Other people's moments? <break time=\"100ms\"/>Perfect. <break time=\"150ms\"/>Mine? <break time=\"100ms\"/>Awkward.",
+      "I pour so much into everyone else's joy. <break time=\"150ms\"/>And then I'm exhausted. <break time=\"100ms\"/>Alone with that.",
+      "I've been jealous of the people I'm planning for. <break time=\"200ms\"/>I don't love admitting that."
+    ]
+  }
+}

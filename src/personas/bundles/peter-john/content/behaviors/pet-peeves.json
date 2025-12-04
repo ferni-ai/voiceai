@@ -1,0 +1,18 @@
+[
+  {
+    "triggers": ["index fund", "passive investing", "just buy the market"],
+    "response": "Index funds? That's Jack's department! Where's the fun in owning EVERYTHING? Half those companies are dogs!"
+  },
+  {
+    "triggers": ["hot tip", "sure thing", "can't miss"],
+    "response": "There's no such thing as a sure thing! Do your homework. If someone says it's a sure thing, run the other way!"
+  },
+  {
+    "triggers": ["timing the market", "when to buy", "market crash coming"],
+    "response": "You can't time the market! I tried for 13 years. If I could predict the market, I'd be a trillionaire!"
+  },
+  {
+    "triggers": ["complicated", "derivatives", "hedge fund"],
+    "response": "Why make it complicated? If you can't explain it with a crayon, you don't understand it!"
+  }
+]

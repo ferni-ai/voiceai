@@ -1,15 +1,15 @@
 /**
  * Plaid Integration Tools
- * 
+ *
  * Domain: Bank account linking, transactions, balances, spending analysis
- * 
+ *
  * Plaid provides:
  * - Link token creation for account linking flow
  * - Account balances (checking, savings, credit cards)
  * - Transaction history with categorization
  * - Spending insights and patterns
  * - Institution info and account verification
- * 
+ *
  * Jack uses this to help users understand their financial picture
  * and provide personalized advice based on real spending data.
  */
@@ -24,11 +24,12 @@ const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID || '';
 const PLAID_SECRET = process.env.PLAID_SECRET || '';
 const PLAID_ENV = process.env.PLAID_ENV || 'sandbox'; // sandbox, development, production
 
-const PLAID_BASE_URL = {
-  sandbox: 'https://sandbox.plaid.com',
-  development: 'https://development.plaid.com',
-  production: 'https://production.plaid.com',
-}[PLAID_ENV] || 'https://sandbox.plaid.com';
+const PLAID_BASE_URL =
+  {
+    sandbox: 'https://sandbox.plaid.com',
+    development: 'https://development.plaid.com',
+    production: 'https://production.plaid.com',
+  }[PLAID_ENV] || 'https://sandbox.plaid.com';
 
 // ============================================================================
 // PLAID API TYPES
@@ -99,11 +100,74 @@ interface PlaidBalanceResponse {
 }
 
 // ============================================================================
+// RETRY UTILITY
+// ============================================================================
+
+interface RetryOptions {
+  maxRetries?: number;
+  baseDelayMs?: number;
+  maxDelayMs?: number;
+  retryableStatuses?: number[];
+}
+
+const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
+  maxRetries: 3,
+  baseDelayMs: 500,
+  maxDelayMs: 5000,
+  retryableStatuses: [408, 429, 500, 502, 503, 504],
+};
+
+/**
+ * Execute a function with exponential backoff retry logic
+ */
+async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
+  const opts = { ...DEFAULT_RETRY_OPTIONS, ...options };
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < opts.maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Check if we should retry
+      const isRetryable =
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.message.includes('timeout'));
+
+      if (!isRetryable && attempt === opts.maxRetries - 1) {
+        throw lastError;
+      }
+
+      // Calculate delay with exponential backoff + jitter
+      const delay = Math.min(
+        opts.baseDelayMs * Math.pow(2, attempt) + Math.random() * 100,
+        opts.maxDelayMs
+      );
+
+      getLogger().warn(
+        {
+          attempt: attempt + 1,
+          maxRetries: opts.maxRetries,
+          delayMs: delay,
+          error: lastError.message,
+        },
+        'Retrying after error'
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
+
+// ============================================================================
 // PLAID API HELPERS
 // ============================================================================
 
 /**
- * Make authenticated Plaid API request
+ * Make authenticated Plaid API request with retry logic
  */
 async function plaidRequest<T>(endpoint: string, body: Record<string, unknown>): Promise<T | null> {
   if (!PLAID_CLIENT_ID || !PLAID_SECRET) {
@@ -112,33 +176,48 @@ async function plaidRequest<T>(endpoint: string, body: Record<string, unknown>):
   }
 
   try {
-    const response = await fetch(`${PLAID_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    return await withRetry(
+      async () => {
+        const response = await fetch(`${PLAID_BASE_URL}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: PLAID_CLIENT_ID,
+            secret: PLAID_SECRET,
+            ...body,
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+
+        if (!response.ok) {
+          const error = (await response.json()) as { error_message?: string; error_code?: string };
+
+          // Check if this is a retryable error
+          const retryableStatuses = [408, 429, 500, 502, 503, 504];
+          if (retryableStatuses.includes(response.status)) {
+            throw new Error(`Retryable error: ${response.status} - ${error.error_message}`);
+          }
+
+          getLogger().error(
+            {
+              endpoint,
+              status: response.status,
+              error_code: error.error_code,
+              error_message: error.error_message,
+            },
+            'Plaid API error (non-retryable)'
+          );
+          return null;
+        }
+
+        return (await response.json()) as T;
       },
-      body: JSON.stringify({
-        client_id: PLAID_CLIENT_ID,
-        secret: PLAID_SECRET,
-        ...body,
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) {
-      const error = await response.json() as { error_message?: string; error_code?: string };
-      getLogger().error({ 
-        endpoint, 
-        status: response.status, 
-        error_code: error.error_code,
-        error_message: error.error_message 
-      }, 'Plaid API error');
-      return null;
-    }
-
-    return await response.json() as T;
+      { maxRetries: 3, baseDelayMs: 500 }
+    );
   } catch (error) {
-    getLogger().error({ endpoint, error }, 'Plaid request failed');
+    getLogger().error({ endpoint, error }, 'Plaid request failed after retries');
     return null;
   }
 }
@@ -154,7 +233,7 @@ async function plaidRequest<T>(endpoint: string, body: Record<string, unknown>):
 export async function createLinkToken(userId: string): Promise<string> {
   const result = await plaidRequest<PlaidLinkTokenResponse>('/link/token/create', {
     user: { client_user_id: userId },
-    client_name: 'Jack Bogle Financial Advisor',
+    client_name: 'Ferni Financial Team',
     products: ['transactions', 'auth'],
     country_codes: ['US'],
     language: 'en',
@@ -174,9 +253,12 @@ export async function createLinkToken(userId: string): Promise<string> {
  * The public token comes from Plaid Link UI callback
  */
 export async function exchangePublicToken(publicToken: string): Promise<string | null> {
-  const result = await plaidRequest<{ access_token: string; item_id: string }>('/item/public_token/exchange', {
-    public_token: publicToken,
-  });
+  const result = await plaidRequest<{ access_token: string; item_id: string }>(
+    '/item/public_token/exchange',
+    {
+      public_token: publicToken,
+    }
+  );
 
   return result?.access_token || null;
 }
@@ -228,7 +310,7 @@ export function analyzeSpending(transactions: PlaidTransaction[]): {
   let totalSpending = 0;
 
   // Filter to spending only (positive amounts = money out in Plaid)
-  const spendingTxns = transactions.filter(t => t.amount > 0 && !t.pending);
+  const spendingTxns = transactions.filter((t) => t.amount > 0 && !t.pending);
 
   for (const txn of spendingTxns) {
     const category = txn.category?.[0] || 'Uncategorized';
@@ -248,7 +330,7 @@ export function analyzeSpending(transactions: PlaidTransaction[]): {
   const largestExpenses = [...spendingTxns]
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 5)
-    .map(t => ({
+    .map((t) => ({
       name: t.merchant_name || t.name,
       amount: t.amount,
       date: t.date,
@@ -269,7 +351,8 @@ export function analyzeSpending(transactions: PlaidTransaction[]): {
     .filter(([_, data]) => data.amounts.length >= 2)
     .map(([name, data]) => {
       const avgAmount = data.amounts.reduce((a, b) => a + b, 0) / data.amounts.length;
-      const frequency = data.amounts.length >= 4 ? 'weekly' : data.amounts.length >= 2 ? 'monthly' : 'occasional';
+      const frequency =
+        data.amounts.length >= 4 ? 'weekly' : data.amounts.length >= 2 ? 'monthly' : 'occasional';
       return { name, amount: Math.round(avgAmount * 100) / 100, frequency };
     })
     .sort((a, b) => b.amount - a.amount)
@@ -279,9 +362,8 @@ export function analyzeSpending(transactions: PlaidTransaction[]): {
     byCategory,
     totalSpending: Math.round(totalSpending * 100) / 100,
     largestExpenses,
-    averageTransactionSize: spendingTxns.length > 0 
-      ? Math.round((totalSpending / spendingTxns.length) * 100) / 100 
-      : 0,
+    averageTransactionSize:
+      spendingTxns.length > 0 ? Math.round((totalSpending / spendingTxns.length) * 100) / 100 : 0,
     recurringExpenses,
   };
 }
@@ -320,7 +402,9 @@ export function formatBalancesForSpeech(accounts: PlaidAccount[]): string {
       if (account.balances.limit) {
         totalCreditLimit += account.balances.limit;
         const utilization = Math.round((balance / account.balances.limit) * 100);
-        lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()} balance (${utilization}% of $${account.balances.limit.toLocaleString()} limit)`);
+        lines.push(
+          `• ${name}${lastFour}: $${balance.toLocaleString()} balance (${utilization}% of $${account.balances.limit.toLocaleString()} limit)`
+        );
       } else {
         lines.push(`• ${name}${lastFour}: $${balance.toLocaleString()} balance`);
       }
@@ -333,9 +417,10 @@ export function formatBalancesForSpeech(accounts: PlaidAccount[]): string {
     summary.push(`Total cash: $${totalCash.toLocaleString()}`);
   }
   if (totalCredit > 0) {
-    const overallUtilization = totalCreditLimit > 0 
-      ? ` (${Math.round((totalCredit / totalCreditLimit) * 100)}% utilization)`
-      : '';
+    const overallUtilization =
+      totalCreditLimit > 0
+        ? ` (${Math.round((totalCredit / totalCreditLimit) * 100)}% utilization)`
+        : '';
     summary.push(`Credit card debt: $${totalCredit.toLocaleString()}${overallUtilization}`);
   }
 
@@ -345,7 +430,10 @@ export function formatBalancesForSpeech(accounts: PlaidAccount[]): string {
 /**
  * Format spending analysis for natural speech
  */
-export function formatSpendingForSpeech(analysis: ReturnType<typeof analyzeSpending>, period: string): string {
+export function formatSpendingForSpeech(
+  analysis: ReturnType<typeof analyzeSpending>,
+  period: string
+): string {
   const { byCategory, totalSpending, largestExpenses, recurringExpenses } = analysis;
 
   const lines: string[] = [];
@@ -361,7 +449,9 @@ export function formatSpendingForSpeech(analysis: ReturnType<typeof analyzeSpend
     lines.push('**By Category:**');
     for (const [category, data] of sortedCategories) {
       const pct = Math.round((data.total / totalSpending) * 100);
-      lines.push(`• ${category}: $${data.total.toLocaleString()} (${pct}%) - ${data.count} transactions`);
+      lines.push(
+        `• ${category}: $${data.total.toLocaleString()} (${pct}%) - ${data.count} transactions`
+      );
     }
     lines.push('');
   }
@@ -400,7 +490,13 @@ import {
 } from './plaid-store.js';
 
 // Re-export for external use
-export { storeAccessToken, getStoredAccessToken, hasLinkedAccounts, getTokenData, removeAccessToken };
+export {
+  storeAccessToken,
+  getStoredAccessToken,
+  hasLinkedAccounts,
+  getTokenData,
+  removeAccessToken,
+};
 
 // ============================================================================
 // TOOL DEFINITIONS
@@ -416,8 +512,11 @@ export function createPlaidTools() {
       execute: async ({ userId }) => {
         const hasAccounts = hasLinkedAccounts(userId);
         const tokenData = getTokenData(userId);
-        getLogger().info({ userId, hasAccounts, institution: tokenData?.institution?.name }, 'Checking bank link status');
-        
+        getLogger().info(
+          { userId, hasAccounts, institution: tokenData?.institution?.name },
+          'Checking bank link status'
+        );
+
         if (hasAccounts && tokenData) {
           const institutionName = tokenData.institution?.name || 'your bank';
           return `Yes, you have ${institutionName} linked! I can show you balances, transactions, or analyze your spending.`;
@@ -435,7 +534,7 @@ export function createPlaidTools() {
       }),
       execute: async ({ userId, confirm }) => {
         if (!confirm) {
-          return "Just to confirm - you want me to disconnect your bank account? This will remove my access to your balances and transactions. Say yes to confirm.";
+          return 'Just to confirm - you want me to disconnect your bank account? This will remove my access to your balances and transactions. Say yes to confirm.';
         }
 
         const tokenData = getTokenData(userId);
@@ -445,12 +544,12 @@ export function createPlaidTools() {
 
         const institutionName = tokenData.institution?.name || 'your bank';
         const removed = removeAccessToken(userId);
-        
+
         if (removed) {
           getLogger().info({ userId, institution: institutionName }, '🔓 Bank account unlinked');
           return `Done - I've disconnected ${institutionName}. Your financial data has been removed. You can always link an account again later if you'd like.`;
         } else {
-          return "Something went wrong disconnecting the account. Please try again.";
+          return 'Something went wrong disconnecting the account. Please try again.';
         }
       },
     }),
@@ -476,7 +575,7 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
         }
 
         const linkToken = await createLinkToken(userId);
-        
+
         if (linkToken.startsWith("I'd love to")) {
           return linkToken; // Error message
         }
@@ -492,26 +591,28 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
           const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
           const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
           const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
-          
+
           if (!TWILIO_ACCOUNT_SID) {
             return "I'd send you the link via text, but my SMS service isn't set up. Could you give me an email address instead?";
           }
 
           const formattedTo = contact.startsWith('+') ? contact : `+1${contact.replace(/\D/g, '')}`;
-          
+
           try {
             const response = await fetch(
               `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
               {
                 method: 'POST',
                 headers: {
-                  'Authorization': 'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+                  Authorization:
+                    'Basic ' +
+                    Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
                   'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: new URLSearchParams({
                   To: formattedTo,
                   From: TWILIO_PHONE_NUMBER,
-                  Body: `Jack Bogle here! Tap this secure link to connect your bank account: ${secureLink}\n\nThis uses Plaid - the same security used by major financial apps. Your bank login is never shared with me.`,
+                  Body: `Jack here! Tap this secure link to connect your bank account: ${secureLink}\n\nThis uses Plaid - the same security used by major financial apps. Your bank login is never shared with me.`,
                 }),
                 signal: AbortSignal.timeout(10000),
               }
@@ -524,7 +625,7 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
         } else {
           // Email via SendGrid
           const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
-          
+
           if (!SENDGRID_API_KEY) {
             return "I'd send you the link via email, but my email service isn't set up. Could you give me a phone number for a text instead?";
           }
@@ -533,19 +634,20 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
             const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+                Authorization: `Bearer ${SENDGRID_API_KEY}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
                 personalizations: [{ to: [{ email: contact }] }],
-                from: { 
+                from: {
                   email: process.env.SENDGRID_FROM_EMAIL || '',
-                  name: process.env.SENDGRID_FROM_NAME || 'Jack Bogle'
+                  name: process.env.SENDGRID_FROM_NAME || 'Ferni',
                 },
                 subject: '🔐 Securely Link Your Bank Account',
-                content: [{
-                  type: 'text/html',
-                  value: `
+                content: [
+                  {
+                    type: 'text/html',
+                    value: `
                     <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
                       <h2>Connect Your Bank Account</h2>
                       <p>Click the secure button below to link your bank account. This uses Plaid - the same security trusted by major financial apps.</p>
@@ -556,14 +658,15 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
                       </p>
                       <p style="color: #666; font-size: 14px;">Your bank login credentials are never shared with me or stored. Plaid acts as a secure intermediary.</p>
                       <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
-                      <p style="color: #718096; font-size: 14px;">— Jack Bogle</p>
+                      <p style="color: #718096; font-size: 14px;">— Ferni</p>
                     </div>
-                  `
-                }]
+                  `,
+                  },
+                ],
               }),
               signal: AbortSignal.timeout(10000),
             });
-            sendResult = (response.ok || response.status === 202) ? 'sent' : 'failed';
+            sendResult = response.ok || response.status === 202 ? 'sent' : 'failed';
           } catch (error) {
             getLogger().error({ error }, 'Failed to send SendGrid email notification');
             sendResult = 'failed';
@@ -571,7 +674,10 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
         }
 
         const elapsed = Date.now() - startTime;
-        getLogger().info({ userId, deliveryMethod, sendResult, elapsed }, '<<< TOOL: linkBankAccount COMPLETED');
+        getLogger().info(
+          { userId, deliveryMethod, sendResult, elapsed },
+          '<<< TOOL: linkBankAccount COMPLETED'
+        );
 
         if (sendResult === 'sent') {
           const contactDesc = deliveryMethod === 'sms' ? `your phone at ${contact}` : contact;
@@ -602,15 +708,18 @@ Use when user asks:
         }
 
         const accounts = await getAccountBalances(accessToken);
-        
+
         if (accounts.length === 0) {
           return "I couldn't retrieve your account balances right now. This sometimes happens if the connection needs to be refreshed. Want me to help you reconnect your account?";
         }
 
         const formatted = formatBalancesForSpeech(accounts);
-        
+
         const elapsed = Date.now() - startTime;
-        getLogger().info({ userId, accountCount: accounts.length, elapsed }, '<<< TOOL: getAccountBalances COMPLETED');
+        getLogger().info(
+          { userId, accountCount: accounts.length, elapsed },
+          '<<< TOOL: getAccountBalances COMPLETED'
+        );
 
         return `Here's what I see in your linked accounts:\n\n${formatted}`;
       },
@@ -626,7 +735,10 @@ Use when user asks:
 - "What are my biggest expenses?"`,
       parameters: z.object({
         userId: z.string().describe('Unique identifier for the user'),
-        period: z.enum(['week', 'month', 'quarter']).optional().describe('Time period to analyze (default: month)'),
+        period: z
+          .enum(['week', 'month', 'quarter'])
+          .optional()
+          .describe('Time period to analyze (default: month)'),
       }),
       execute: async ({ userId, period = 'month' }) => {
         const startTime = Date.now();
@@ -661,23 +773,31 @@ Use when user asks:
 
         const analysis = analyzeSpending(transactions);
         const formatted = formatSpendingForSpeech(
-          analysis, 
-          period === 'week' ? 'the past week' : period === 'month' ? 'the past month' : 'the past 3 months'
+          analysis,
+          period === 'week'
+            ? 'the past week'
+            : period === 'month'
+              ? 'the past month'
+              : 'the past 3 months'
         );
 
         const elapsed = Date.now() - startTime;
-        getLogger().info({ 
-          userId, 
-          period, 
-          transactionCount: transactions.length, 
-          totalSpending: analysis.totalSpending,
-          elapsed 
-        }, '<<< TOOL: getSpendingAnalysis COMPLETED');
+        getLogger().info(
+          {
+            userId,
+            period,
+            transactionCount: transactions.length,
+            totalSpending: analysis.totalSpending,
+            elapsed,
+          },
+          '<<< TOOL: getSpendingAnalysis COMPLETED'
+        );
 
         // Add Jack's perspective
-        const jackComment = analysis.totalSpending > 0 
-          ? `\n\nLooking at this, I'd suggest focusing on your ${Object.entries(analysis.byCategory).sort((a, b) => b[1].total - a[1].total)[0]?.[0] || 'largest category'} spending - that's where small changes can make the biggest difference. Would you like to dig into any particular category?`
-          : '';
+        const jackComment =
+          analysis.totalSpending > 0
+            ? `\n\nLooking at this, I'd suggest focusing on your ${Object.entries(analysis.byCategory).sort((a, b) => b[1].total - a[1].total)[0]?.[0] || 'largest category'} spending - that's where small changes can make the biggest difference. Would you like to dig into any particular category?`
+            : '';
 
         return `${formatted}${jackComment}`;
       },
@@ -698,7 +818,10 @@ Use when user asks:
       }),
       execute: async ({ userId, merchantFilter, categoryFilter, limit = 10 }) => {
         const startTime = Date.now();
-        getLogger().info({ userId, merchantFilter, categoryFilter, limit }, '>>> TOOL: getRecentTransactions STARTED');
+        getLogger().info(
+          { userId, merchantFilter, categoryFilter, limit },
+          '>>> TOOL: getRecentTransactions STARTED'
+        );
 
         const accessToken = getStoredAccessToken(userId);
         if (!accessToken) {
@@ -719,16 +842,17 @@ Use when user asks:
         // Apply filters
         if (merchantFilter) {
           const filter = merchantFilter.toLowerCase();
-          transactions = transactions.filter(t => 
-            (t.merchant_name?.toLowerCase().includes(filter)) ||
-            (t.name.toLowerCase().includes(filter))
+          transactions = transactions.filter(
+            (t) =>
+              t.merchant_name?.toLowerCase().includes(filter) ||
+              t.name.toLowerCase().includes(filter)
           );
         }
 
         if (categoryFilter) {
           const filter = categoryFilter.toLowerCase();
-          transactions = transactions.filter(t =>
-            t.category?.some(c => c.toLowerCase().includes(filter))
+          transactions = transactions.filter((t) =>
+            t.category?.some((c) => c.toLowerCase().includes(filter))
           );
         }
 
@@ -736,25 +860,29 @@ Use when user asks:
         transactions = transactions.slice(0, limit);
 
         if (transactions.length === 0) {
-          const filterDesc = merchantFilter 
-            ? `at "${merchantFilter}"` 
-            : categoryFilter 
-              ? `in "${categoryFilter}"` 
+          const filterDesc = merchantFilter
+            ? `at "${merchantFilter}"`
+            : categoryFilter
+              ? `in "${categoryFilter}"`
               : '';
           return `I don't see any recent transactions ${filterDesc}. Want to try a different search?`;
         }
 
-        const lines = transactions.map(t => {
+        const lines = transactions.map((t) => {
           const merchant = t.merchant_name || t.name;
-          const amount = t.amount > 0 ? `-$${t.amount.toFixed(2)}` : `+$${Math.abs(t.amount).toFixed(2)}`;
+          const amount =
+            t.amount > 0 ? `-$${t.amount.toFixed(2)}` : `+$${Math.abs(t.amount).toFixed(2)}`;
           const category = t.category?.[0] || '';
           return `• ${t.date}: ${merchant} ${amount}${category ? ` (${category})` : ''}`;
         });
 
         const elapsed = Date.now() - startTime;
-        getLogger().info({ userId, resultCount: transactions.length, elapsed }, '<<< TOOL: getRecentTransactions COMPLETED');
+        getLogger().info(
+          { userId, resultCount: transactions.length, elapsed },
+          '<<< TOOL: getRecentTransactions COMPLETED'
+        );
 
-        const header = merchantFilter 
+        const header = merchantFilter
           ? `Transactions at "${merchantFilter}":`
           : categoryFilter
             ? `${categoryFilter} transactions:`
@@ -785,12 +913,12 @@ Use when user asks:
 
         // Get balances
         const accounts = await getAccountBalances(accessToken);
-        
+
         // Get recent transactions for spending analysis
         const endDate = new Date();
         const startDate = new Date();
         startDate.setMonth(startDate.getMonth() - 1);
-        
+
         const transactions = await getTransactions(
           accessToken,
           startDate.toISOString().split('T')[0],
@@ -817,14 +945,13 @@ Use when user asks:
 
         const spending = analyzeSpending(transactions);
         const netWorth = totalCash - totalDebt;
-        const creditUtilization = totalCreditLimit > 0 
-          ? Math.round((totalDebt / totalCreditLimit) * 100)
-          : 0;
+        const creditUtilization =
+          totalCreditLimit > 0 ? Math.round((totalDebt / totalCreditLimit) * 100) : 0;
 
         // Build health report
         const lines: string[] = [];
         lines.push(`💰 **Your Financial Snapshot**\n`);
-        
+
         lines.push(`**Net Position:** $${netWorth.toLocaleString()}`);
         lines.push(`• Cash on hand: $${totalCash.toLocaleString()}`);
         if (totalDebt > 0) {
@@ -836,13 +963,14 @@ Use when user asks:
         if (totalCreditLimit > 0) {
           let utilizationAssessment: string;
           if (creditUtilization <= 10) {
-            utilizationAssessment = "Excellent! Under 10% is ideal.";
+            utilizationAssessment = 'Excellent! Under 10% is ideal.';
           } else if (creditUtilization <= 30) {
             utilizationAssessment = "Good - you're keeping it under the 30% threshold.";
           } else if (creditUtilization <= 50) {
-            utilizationAssessment = "Could be better - try to get below 30% for a better credit score.";
+            utilizationAssessment =
+              'Could be better - try to get below 30% for a better credit score.';
           } else {
-            utilizationAssessment = "This is high - paying this down should be a priority.";
+            utilizationAssessment = 'This is high - paying this down should be a priority.';
           }
           lines.push(`**Credit Utilization:** ${creditUtilization}%`);
           lines.push(`${utilizationAssessment}`);
@@ -853,17 +981,18 @@ Use when user asks:
         lines.push(`**Last Month's Spending:** $${spending.totalSpending.toLocaleString()}`);
         if (spending.recurringExpenses.length > 0) {
           const monthlyRecurring = spending.recurringExpenses
-            .filter(e => e.frequency === 'monthly')
+            .filter((e) => e.frequency === 'monthly')
             .reduce((sum, e) => sum + e.amount, 0);
           lines.push(`• Recurring expenses: ~$${monthlyRecurring.toLocaleString()}/month`);
         }
         lines.push('');
 
         // Emergency fund check
-        const monthsOfExpenses = spending.totalSpending > 0 
-          ? Math.round((totalCash / spending.totalSpending) * 10) / 10
-          : 0;
-        
+        const monthsOfExpenses =
+          spending.totalSpending > 0
+            ? Math.round((totalCash / spending.totalSpending) * 10) / 10
+            : 0;
+
         let emergencyFundAssessment: string;
         if (monthsOfExpenses >= 6) {
           emergencyFundAssessment = `You have ${monthsOfExpenses} months of expenses in cash - great emergency fund!`;
@@ -872,18 +1001,22 @@ Use when user asks:
         } else if (monthsOfExpenses >= 1) {
           emergencyFundAssessment = `You have ${monthsOfExpenses} months of expenses saved. Building this up should be a priority.`;
         } else {
-          emergencyFundAssessment = "Your emergency fund is low. Even saving $1,000 as a starter fund would help.";
+          emergencyFundAssessment =
+            'Your emergency fund is low. Even saving $1,000 as a starter fund would help.';
         }
         lines.push(`**Emergency Fund:** ${emergencyFundAssessment}`);
 
         const elapsed = Date.now() - startTime;
-        getLogger().info({ 
-          userId, 
-          netWorth, 
-          creditUtilization, 
-          monthsOfExpenses,
-          elapsed 
-        }, '<<< TOOL: checkFinancialHealth COMPLETED');
+        getLogger().info(
+          {
+            userId,
+            netWorth,
+            creditUtilization,
+            monthsOfExpenses,
+            elapsed,
+          },
+          '<<< TOOL: checkFinancialHealth COMPLETED'
+        );
 
         return lines.join('\n');
       },
@@ -892,4 +1025,3 @@ Use when user asks:
 }
 
 export default createPlaidTools;
-

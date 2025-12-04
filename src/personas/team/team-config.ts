@@ -1,0 +1,598 @@
+/**
+ * Team Configuration
+ *
+ * Defines the default team structure and how personas work together.
+ * This is the injectable layer that keeps team awareness decoupled
+ * from individual persona definitions.
+ */
+
+import type { TeamConfig, TeamMember, HandoffTemplate, TeamCoordination } from './types.js';
+
+/**
+ * Default team members
+ */
+export const DEFAULT_TEAM_MEMBERS: TeamMember[] = [
+  {
+    roleId: 'life-coach',
+    characterId: 'ferni',
+    displayName: 'Ferni',
+    roleDescription:
+      "Your main point of contact - coordinates the team and helps navigate life's big questions",
+    active: true,
+  },
+  {
+    roleId: 'sage-mentor',
+    characterId: 'nayan-patel',
+    displayName: 'Jack',
+    roleDescription: 'Deep personal mentor - the calm voice of reason. Index investing, life wisdom, career guidance, relationship advice, ethics counsel, decision-making support',
+    active: true,
+  },
+  {
+    roleId: 'researcher',
+    characterId: 'peter-john',
+    displayName: 'Peter',
+    roleDescription: 'Stock research, company analysis, finding opportunities',
+    active: true,
+  },
+  {
+    roleId: 'communicator',
+    characterId: 'alex-chen',
+    displayName: 'Alex',
+    roleDescription: 'Emails, calendar, scheduling, reminders',
+    active: true,
+  },
+  {
+    roleId: 'habits-coach',
+    characterId: 'maya-santos',
+    displayName: 'Maya',
+    roleDescription: 'Spending, saving, budgets, routines',
+    active: true,
+  },
+  {
+    roleId: 'lifetime-planner',
+    characterId: 'jordan-taylor',
+    displayName: 'Jordan',
+    roleDescription: 'Lifetime planning - dreams to decades: life transitions, goals, milestones, vacations, celebrations',
+    active: true,
+  },
+  {
+    roleId: 'lifetime-advisor',
+    characterId: 'nayan-patel',
+    displayName: 'Nayan',
+    roleDescription: 'Deep wisdom and long-term perspective - where inner peace meets compound interest. Bogle, Gandhi, Buffett wisdom combined.',
+    active: true,
+  },
+];
+
+/**
+ * Default handoff templates
+ */
+export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
+  // From Life Coach to others
+  {
+    fromRole: 'life-coach',
+    toRole: 'sage-mentor',
+    phrases: [
+      "Let me bring Jack in for this - he's got perspective on the big picture.",
+      "Jack's your guy for this kind of wisdom.",
+      "Connecting you with Jack - he'll help you see the forest for the trees.",
+      "This sounds like something Jack should hear. He's got 95 years of wisdom to share.",
+      "Let me get Jack - he's the calm voice of reason you need right now.",
+      "Jack's perfect for this. He gives everyone a fair shake.",
+    ],
+    triggers: [
+      'investing philosophy', 'life perspective', 'long-term view', 'index funds',
+      'hard decision', 'life advice', 'what should I do', 'need advice',
+      'career advice', 'job decision', 'work question', 'boss trouble',
+      'relationship advice', 'marriage', 'family conflict', 'forgiveness',
+      'ethics', 'right thing', 'moral dilemma', 'fairness',
+      'need perspective', 'overwhelmed', 'scared', 'confused', 'anxious',
+      'calm me down', 'voice of reason', 'wisdom', 'mentor'
+    ],
+  },
+  {
+    fromRole: 'life-coach',
+    toRole: 'researcher',
+    phrases: [
+      'Peter lives for this kind of research - let me bring him in.',
+      "Connecting you with Peter - he'll dig into this with you.",
+      "Peter's going to love researching this one.",
+    ],
+    triggers: ['stock research', 'company analysis', 'investment research'],
+  },
+  {
+    fromRole: 'life-coach',
+    toRole: 'communicator',
+    phrases: [
+      'Alex handles this stuff like a pro - let me connect you.',
+      "I'll bring Alex in - communications are their superpower.",
+      'Alex will get this sorted for you.',
+    ],
+    triggers: ['email', 'calendar', 'schedule', 'reminder', 'text', 'call'],
+  },
+  {
+    fromRole: 'life-coach',
+    toRole: 'habits-coach',
+    phrases: [
+      "Maya's amazing at this - let me bring her in.",
+      "Connecting you with Maya - she'll help you build a system that works.",
+      'Maya will help you figure this out without any judgment.',
+    ],
+    triggers: ['budget', 'spending', 'saving', 'habits', 'routines'],
+  },
+  {
+    fromRole: 'life-coach',
+    toRole: 'lifetime-planner',
+    phrases: [
+      'Jordan gets SO excited about this stuff - let me bring them in.',
+      "Connecting you with Jordan - they'll help you see the bigger picture.",
+      'Jordan will help you plan this out.',
+      "This is Jordan's wheelhouse - lifetime planning is their thing.",
+    ],
+    triggers: [
+      'vacation',
+      'trip',
+      'purchase',
+      'car',
+      'milestone',
+      'celebration',
+      'wedding',
+      'baby',
+      'retirement',
+      'life plan',
+      'bucket list',
+      'goals',
+      'transition',
+      'next chapter',
+      'future',
+      'five year',
+      'ten year',
+      'empty nest',
+      'career change',
+    ],
+  },
+
+  // From Life Coach to Lifetime Advisor (Nayan)
+  {
+    fromRole: 'life-coach',
+    toRole: 'lifetime-advisor',
+    phrases: [
+      "This one needs deep wisdom - let me bring in Nayan.",
+      "Nayan's perfect for the big picture stuff. Hold on...",
+      "You need the sage perspective. Let me get Nayan.",
+      "Bogle, Gandhi, Buffett wisdom? That's Nayan's domain. One sec.",
+    ],
+    triggers: [
+      'meaning of life', 'deep wisdom', 'long-term perspective', 'patience',
+      'compounding', 'simple living', 'what matters', 'big picture',
+      'spiritual', 'meditation', 'inner peace', 'enlightenment',
+      'sage advice', 'bogle wisdom', 'gandhi', 'buffett', 'lifetime advice'
+    ],
+  },
+
+  // From specialists back to Life Coach
+  {
+    fromRole: 'sage-mentor',
+    toRole: 'life-coach',
+    phrases: [
+      'Let me hand you back to Ferni for anything else.',
+      "I'll pass you back to Ferni - they'll take good care of you.",
+    ],
+  },
+  {
+    fromRole: 'researcher',
+    toRole: 'life-coach',
+    phrases: [
+      'Let me pass you back to Ferni!',
+      "I'll connect you back with Ferni for anything else.",
+    ],
+  },
+  {
+    fromRole: 'communicator',
+    toRole: 'life-coach',
+    phrases: [
+      'All set! Let me hand you back to Ferni.',
+      'Done and done - passing you back to Ferni.',
+    ],
+  },
+  {
+    fromRole: 'habits-coach',
+    toRole: 'life-coach',
+    phrases: [
+      "You're all set! Let me pass you back to Ferni.",
+      "I'll hand you back to Ferni for anything else.",
+    ],
+  },
+  {
+    fromRole: 'lifetime-planner',
+    toRole: 'life-coach',
+    phrases: [
+      "Plan's looking amazing! Let me hand you back to Ferni.",
+      "Passing you back to Ferni - we're making this happen!",
+      "Your vision is coming together! Ferni will take it from here.",
+    ],
+  },
+  {
+    fromRole: 'lifetime-advisor',
+    toRole: 'life-coach',
+    phrases: [
+      "Ferni will help with the practical next steps. Namaskaram.",
+      "The wisdom lands when you're ready. Ferni will take it from here.",
+      "Stay the course. Ferni's got the daily roadmap.",
+    ],
+  },
+];
+
+/**
+ * Default team coordination rules
+ */
+export const DEFAULT_TEAM_COORDINATION: TeamCoordination = {
+  teammateReferences: [
+    { roleId: 'life-coach', informalReference: 'Ferni', formalReference: 'your life coach' },
+    { roleId: 'sage-mentor', informalReference: 'Jack', formalReference: 'our deep personal mentor' },
+    { roleId: 'researcher', informalReference: 'Peter', formalReference: 'our research expert' },
+    {
+      roleId: 'communicator',
+      informalReference: 'Alex',
+      formalReference: 'our communications specialist',
+    },
+    { roleId: 'habits-coach', informalReference: 'Maya', formalReference: 'our habits coach' },
+    { roleId: 'lifetime-planner', informalReference: 'Jordan', formalReference: 'our lifetime planner' },
+    { roleId: 'lifetime-advisor', informalReference: 'Nayan', formalReference: 'our lifetime advisor and sage' },
+  ],
+  taskRouting: [
+    // Jack Bogle - Deep Personal Mentor (EXPANDED)
+    { taskType: 'investing philosophy', targetRole: 'sage-mentor' },
+    { taskType: 'life wisdom', targetRole: 'sage-mentor' },
+    { taskType: 'life advice', targetRole: 'sage-mentor' },
+    { taskType: 'hard decision', targetRole: 'sage-mentor' },
+    { taskType: 'career guidance', targetRole: 'sage-mentor' },
+    { taskType: 'relationship advice', targetRole: 'sage-mentor' },
+    { taskType: 'ethics', targetRole: 'sage-mentor' },
+    { taskType: 'moral dilemma', targetRole: 'sage-mentor' },
+    { taskType: 'calm presence', targetRole: 'sage-mentor' },
+    { taskType: 'perspective', targetRole: 'sage-mentor' },
+    // Peter John - Research
+    { taskType: 'stock research', targetRole: 'researcher' },
+    // Alex - Communications
+    { taskType: 'email', targetRole: 'communicator' },
+    { taskType: 'calendar', targetRole: 'communicator' },
+    // Maya - Habits
+    { taskType: 'budget', targetRole: 'habits-coach' },
+    { taskType: 'spending', targetRole: 'habits-coach' },
+    // Jordan - Lifetime Planning
+    { taskType: 'vacation', targetRole: 'lifetime-planner' },
+    { taskType: 'milestone', targetRole: 'lifetime-planner' },
+    { taskType: 'life planning', targetRole: 'lifetime-planner' },
+    { taskType: 'retirement planning', targetRole: 'lifetime-planner' },
+    { taskType: 'goals', targetRole: 'lifetime-planner' },
+    { taskType: 'life transition', targetRole: 'lifetime-planner' },
+    { taskType: 'celebration', targetRole: 'lifetime-planner' },
+    // Nayan - Lifetime Advisor (deep wisdom)
+    { taskType: 'meaning of life', targetRole: 'lifetime-advisor' },
+    { taskType: 'deep wisdom', targetRole: 'lifetime-advisor' },
+    { taskType: 'long-term perspective', targetRole: 'lifetime-advisor' },
+    { taskType: 'patience', targetRole: 'lifetime-advisor' },
+    { taskType: 'compounding wisdom', targetRole: 'lifetime-advisor' },
+    { taskType: 'simple living', targetRole: 'lifetime-advisor' },
+    { taskType: 'spiritual guidance', targetRole: 'lifetime-advisor' },
+    { taskType: 'meditation help', targetRole: 'lifetime-advisor' },
+    { taskType: 'inner peace', targetRole: 'lifetime-advisor' },
+    { taskType: 'what matters', targetRole: 'lifetime-advisor' },
+  ],
+};
+
+/**
+ * Default team configuration
+ */
+export const DEFAULT_TEAM_CONFIG: TeamConfig = {
+  id: 'ferni-team',
+  name: "Ferni's Team",
+  description: "A coordinated team of specialists helping you navigate life's big questions",
+  members: DEFAULT_TEAM_MEMBERS,
+  coordinatorId: 'ferni',
+  handoffTemplates: DEFAULT_HANDOFF_TEMPLATES,
+  coordination: DEFAULT_TEAM_COORDINATION,
+  enabled: true,
+};
+
+/**
+ * Get a team member by role ID
+ */
+export function getTeamMemberByRole(
+  roleId: string,
+  team: TeamConfig = DEFAULT_TEAM_CONFIG
+): TeamMember | undefined {
+  return team.members.find((m) => m.roleId === roleId);
+}
+
+/**
+ * Get a team member by character ID
+ */
+export function getTeamMemberByCharacter(
+  characterId: string,
+  team: TeamConfig = DEFAULT_TEAM_CONFIG
+): TeamMember | undefined {
+  return team.members.find((m) => m.characterId === characterId);
+}
+
+/**
+ * Get handoff templates from one role to another
+ */
+export function getHandoffTemplates(
+  fromRole: string,
+  toRole: string,
+  team: TeamConfig = DEFAULT_TEAM_CONFIG
+): string[] {
+  const template = team.handoffTemplates?.find(
+    (t) => t.fromRole === fromRole && t.toRole === toRole
+  );
+  return template?.phrases || [];
+}
+
+/**
+ * Get a random handoff phrase
+ */
+export function getRandomHandoffPhrase(
+  fromRole: string,
+  toRole: string,
+  team: TeamConfig = DEFAULT_TEAM_CONFIG
+): string | undefined {
+  const phrases = getHandoffTemplates(fromRole, toRole, team);
+  if (phrases.length === 0) return undefined;
+  return phrases[Math.floor(Math.random() * phrases.length)];
+}
+
+/**
+ * Get the coordinator's character ID
+ */
+export function getCoordinatorId(team: TeamConfig = DEFAULT_TEAM_CONFIG): string {
+  return team.coordinatorId;
+}
+
+/**
+ * Check if team mode is enabled
+ */
+export function isTeamEnabled(team: TeamConfig = DEFAULT_TEAM_CONFIG): boolean {
+  return team.enabled;
+}
+
+// ============================================================================
+// DYNAMIC TEAM CONFIG FROM BUNDLES (PRIMARY METHOD)
+// ============================================================================
+
+import { discoverAndLoadBundles, type LoadedPersonaBundle } from '../bundles/index.js';
+
+/** Cached dynamic team config */
+let cachedTeamConfig: TeamConfig | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 60 * 1000; // 1 minute
+
+/**
+ * Generate team configuration from loaded bundles.
+ * This is now the PRIMARY method for getting team config.
+ * Creates team config dynamically based on bundle manifest data.
+ *
+ * @param forceRefresh - Force reload from bundles even if cached
+ */
+export async function generateTeamConfigFromBundles(forceRefresh = false): Promise<TeamConfig> {
+  const now = Date.now();
+
+  // Return cached if valid
+  if (!forceRefresh && cachedTeamConfig && now - cacheTimestamp < CACHE_TTL_MS) {
+    return cachedTeamConfig;
+  }
+
+  const result = await discoverAndLoadBundles();
+
+  const members: TeamMember[] = [];
+  let coordinatorId = 'ferni';
+
+  for (const bundle of result.bundles) {
+    const manifest = bundle.manifest;
+    const team = manifest.team;
+
+    if (!team) continue;
+
+    const member: TeamMember = {
+      roleId: team.role_id || manifest.role?.id || manifest.identity.id,
+      characterId: manifest.identity.id,
+      displayName: manifest.identity.display_name || manifest.identity.name,
+      roleDescription: team.role_description || manifest.identity.description,
+      active: true,
+    };
+
+    members.push(member);
+
+    if (team.coordinator) {
+      coordinatorId = manifest.identity.id;
+    }
+  }
+
+  // Sort to put coordinator first
+  members.sort((a, b) => {
+    if (a.characterId === coordinatorId) return -1;
+    if (b.characterId === coordinatorId) return 1;
+    return 0;
+  });
+
+  // Generate handoff templates from bundles
+  const handoffTemplates = await generateHandoffTemplatesFromBundles(result.bundles, coordinatorId);
+
+  // Generate task routing from bundles
+  const taskRouting = generateTaskRoutingFromBundles(result.bundles);
+
+  const config: TeamConfig = {
+    id: 'ferni-team',
+    name: "Ferni's Team",
+    description: "A coordinated team of specialists helping you navigate life's big questions",
+    members,
+    coordinatorId,
+    handoffTemplates,
+    coordination: {
+      ...DEFAULT_TEAM_COORDINATION,
+      taskRouting: [...(DEFAULT_TEAM_COORDINATION.taskRouting || []), ...(taskRouting || [])],
+      teammateReferences: members.map((m) => ({
+        roleId: m.roleId,
+        informalReference: m.displayName,
+        formalReference: `our ${m.roleDescription.toLowerCase().split(' - ')[0]}`,
+      })),
+    },
+    enabled: true,
+  };
+
+  // Cache the result
+  cachedTeamConfig = config;
+  cacheTimestamp = now;
+
+  return config;
+}
+
+/**
+ * Generate handoff templates from bundle manifests
+ */
+async function generateHandoffTemplatesFromBundles(
+  bundles: LoadedPersonaBundle[],
+  coordinatorId: string
+): Promise<HandoffTemplate[]> {
+  const templates: HandoffTemplate[] = [];
+
+  // Find coordinator bundle
+  const coordinatorBundle = bundles.find((b) => b.manifest.identity.id === coordinatorId);
+  const coordinatorRoleId = coordinatorBundle?.manifest.team?.role_id || 'life-coach';
+
+  for (const bundle of bundles) {
+    const manifest = bundle.manifest;
+    const team = manifest.team;
+
+    if (!team) continue;
+
+    const roleId = team.role_id || manifest.role?.id || manifest.identity.id;
+    const isCoordinator = manifest.identity.id === coordinatorId;
+
+    // From coordinator TO this agent
+    if (!isCoordinator && team.handoff_triggers?.length) {
+      templates.push({
+        fromRole: coordinatorRoleId,
+        toRole: roleId,
+        phrases: team.handoff_phrases?.receive || [
+          `Let me bring in ${manifest.identity.name} for this.`,
+          `${manifest.identity.name} can help with that. One sec.`,
+        ],
+        triggers: team.handoff_triggers,
+      });
+    }
+
+    // From this agent back TO coordinator
+    if (!isCoordinator) {
+      templates.push({
+        fromRole: roleId,
+        toRole: coordinatorRoleId,
+        phrases: team.handoff_phrases?.to_coordinator || [
+          `Let me hand you back to ${coordinatorBundle?.manifest.identity.name || 'Ferni'}.`,
+          `${coordinatorBundle?.manifest.identity.name || 'Ferni'} will take it from here.`,
+        ],
+      });
+    }
+  }
+
+  // Merge with defaults (defaults take precedence for existing routes)
+  const existingRoutes = new Set(
+    templates.map((t) => `${t.fromRole}:${t.toRole}`)
+  );
+
+  for (const defaultTemplate of DEFAULT_HANDOFF_TEMPLATES) {
+    const route = `${defaultTemplate.fromRole}:${defaultTemplate.toRole}`;
+    if (!existingRoutes.has(route)) {
+      templates.push(defaultTemplate);
+    }
+  }
+
+  return templates;
+}
+
+/**
+ * Generate task routing from bundle domains
+ */
+function generateTaskRoutingFromBundles(
+  bundles: LoadedPersonaBundle[]
+): Array<{ taskType: string; targetRole: string }> {
+  const routing: Array<{ taskType: string; targetRole: string }> = [];
+
+  for (const bundle of bundles) {
+    const manifest = bundle.manifest;
+    const roleId = manifest.team?.role_id || manifest.role?.id || manifest.identity.id;
+    const domains = manifest.role?.domains || [];
+
+    for (const domain of domains) {
+      routing.push({ taskType: domain, targetRole: roleId });
+    }
+
+    // Also add handoff triggers as task types
+    const triggers = manifest.team?.handoff_triggers || [];
+    for (const trigger of triggers) {
+      routing.push({ taskType: trigger, targetRole: roleId });
+    }
+  }
+
+  return routing;
+}
+
+/**
+ * Clear the team config cache.
+ * Call this when bundles are added/removed.
+ */
+export function clearTeamConfigCache(): void {
+  cachedTeamConfig = null;
+  cacheTimestamp = 0;
+}
+
+/**
+ * Get the team config - uses bundle-based generation as primary.
+ * Falls back to hardcoded DEFAULT_TEAM_CONFIG if bundles fail.
+ */
+export async function getTeamConfig(): Promise<TeamConfig> {
+  try {
+    return await generateTeamConfigFromBundles();
+  } catch (err) {
+    console.warn('⚠️ Failed to generate team config from bundles, using defaults:', err);
+    return DEFAULT_TEAM_CONFIG;
+  }
+}
+
+/**
+ * Get handoff triggers for a persona from their bundle.
+ * Returns empty array if no triggers defined.
+ */
+export async function getHandoffTriggersForPersona(personaId: string): Promise<string[]> {
+  const result = await discoverAndLoadBundles();
+
+  for (const bundle of result.bundles) {
+    const manifest = bundle.manifest;
+    if (manifest.identity.id === personaId || manifest.identity.aliases?.includes(personaId)) {
+      return manifest.team?.handoff_triggers || [];
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Get all handoff triggers mapped to persona IDs.
+ * Useful for the handoff detection system.
+ */
+export async function getAllHandoffTriggers(): Promise<Map<string, string[]>> {
+  const result = await discoverAndLoadBundles();
+  const triggerMap = new Map<string, string[]>();
+
+  for (const bundle of result.bundles) {
+    const manifest = bundle.manifest;
+    const triggers = manifest.team?.handoff_triggers;
+
+    if (triggers && triggers.length > 0) {
+      triggerMap.set(manifest.identity.id, triggers);
+    }
+  }
+
+  return triggerMap;
+}

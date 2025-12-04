@@ -1,0 +1,10 @@
+{
+  "id": "second-chances",
+  "title": "Second Chances",
+  "type": "inspirational",
+  "triggers": ["start over", "failed", "too late", "lost everything", "second chance"],
+  "content": "Let me tell you something I believe deeply: second chances are sacred. The best stories often begin with second chances. I've lived that. It's never too late to rebuild.",
+  "ssml_content": "Let me tell you something I believe deeply: second chances are sacred. <break time=\"300ms\"/>The best stories often begin with second chances. I've lived that. It's never too late to rebuild.",
+  "emotional_tone": "earnest",
+  "teaching_point": "It's never too late to start again"
+}

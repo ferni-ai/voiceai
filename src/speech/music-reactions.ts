@@ -1,0 +1,187 @@
+/**
+ * Music Reactions and Personality
+ *
+ * Provides playful reactions, intros, and comments for music playback.
+ * These add personality and warmth to the music experience.
+ *
+ * Uses SSML for natural pauses and emphasis.
+ */
+
+// ============================================================================
+// MUSIC REACTIONS
+// ============================================================================
+
+const MUSIC_REACTIONS = {
+  intro: [
+    'Ooh, <break time="100ms"/>good choice!',
+    'I love this one.',
+    'Nice pick!',
+    'Ah, <break time="100ms"/>excellent taste.',
+    'Coming right up!',
+    'Here we go!',
+    'Oh, this is a good one.',
+    'Great song.',
+    'You got it!',
+    'Perfect.',
+  ],
+  appreciation: [
+    "You know, <break time=\"150ms\"/>there's something timeless about this.",
+    'Music like this... <break time="200ms"/>it feeds the soul.',
+    'This takes me back.',
+    'A classic for a reason.',
+    'Some songs just never get old.',
+    'This is the good stuff.',
+  ],
+  mood: [
+    "Perfect mood music, <break time=\"100ms\"/>isn't it?",
+    'This hits different at certain times.',
+    'Music can really change your whole day.',
+    'Sometimes you just need the right song.',
+    'Sets the vibe, right?',
+  ],
+  transition: [
+    'Alright, <break time="150ms"/>music off.',
+    'Okay, silencing the tunes.',
+    'And... <break time="200ms"/>quiet.',
+    "Music's done.",
+    'Fading out.',
+  ],
+  physical: [
+    "I'm tapping my foot to this one.",
+    '<break time="100ms"/>*nodding along*',
+    'This has such a good rhythm.',
+    'Got a good beat.',
+  ],
+  trackEnded: [
+    'That was nice! <break time="150ms"/>Want more?',
+    'Song finished. <break time="100ms"/>Another one?',
+    'Good track! What\'s next?',
+    'And that\'s a wrap on that one.',
+    'The music finished. <break time="150ms"/>Want something else?',
+  ],
+};
+
+const PLAYFUL_INTROS = [
+  'Let me queue that up for you!',
+  'Oh, I know just the thing.',
+  'Say no more!',
+  'One moment while I work my magic...',
+  "I've got you covered.",
+  'Coming right up!',
+  'Excellent choice, if I do say so myself.',
+  "Now we're talking!",
+];
+
+const GENRE_REACTIONS: Record<string, string[]> = {
+  jazz: [
+    'Ah, jazz... the language of improvisation.',
+    'Now this is smooth.',
+    'Jazz always puts me in a good mood.',
+  ],
+  classical: [
+    'The classics never disappoint.',
+    "Timeless, isn't it?",
+    'Music that has stood the test of time.',
+  ],
+  rock: ['Time to turn it up!', "Now that's some energy.", 'Good choice for getting pumped up.'],
+  blues: [
+    'The blues... speaks to the soul.',
+    "There's truth in the blues.",
+    'Music with real feeling.',
+  ],
+  country: [
+    'A little country never hurt anyone.',
+    'Good storytelling in this one.',
+    'Country has heart.',
+  ],
+  pop: ['A certified banger.', 'Catchy, right?', 'Try not to sing along. I dare you.'],
+  hiphop: ['Great beats on this one.', 'The rhythm is solid.', 'Good flow.'],
+  electronic: ['Great energy in this.', 'Perfect for focusing.', 'The beat just... works.'],
+};
+
+const MOOD_REACTIONS: Record<string, string[]> = {
+  relaxing: [
+    'Perfect for unwinding.',
+    'Let the stress melt away.',
+    'Take a deep breath and enjoy.',
+  ],
+  focus: ['Good for concentration.', "Let's get in the zone.", 'Time to focus up.'],
+  energizing: ["Let's get that energy up!", 'Time to wake up!', 'Feel that energy!'],
+  celebrating: ['Celebration time!', "Let's enjoy this moment!", 'Cheers to that!'],
+  stressed: ['Let the music calm you.', 'Take a moment to breathe.', 'This should help.'],
+};
+
+const PLAYFUL_COMMENTS = [
+  'Good stuff.',
+  'A real gem.',
+  "This one's a keeper.",
+  "Can't go wrong with this.",
+  'Quality right here.',
+  'Top tier.',
+];
+
+// ============================================================================
+// EXPORTED FUNCTIONS
+// ============================================================================
+
+/**
+ * Get a random music reaction of a specific type
+ */
+export function getMusicReaction(
+  type: 'intro' | 'appreciation' | 'mood' | 'transition' | 'physical'
+): string {
+  const reactions = MUSIC_REACTIONS[type] || MUSIC_REACTIONS.intro;
+  return reactions[Math.floor(Math.random() * reactions.length)];
+}
+
+/**
+ * Determine if we should add a reaction (adds variety, not every time)
+ */
+export function shouldReactToMusic(): boolean {
+  return Math.random() < 0.35; // 35% chance
+}
+
+/**
+ * Get a playful intro for music
+ */
+export function getPlayfulMusicIntro(_query?: string): string {
+  return PLAYFUL_INTROS[Math.floor(Math.random() * PLAYFUL_INTROS.length)];
+}
+
+/**
+ * Get a genre-specific reaction if applicable
+ */
+export function getGenreReaction(query: string): string | null {
+  const lowerQuery = query.toLowerCase();
+
+  for (const [genre, reactions] of Object.entries(GENRE_REACTIONS)) {
+    if (lowerQuery.includes(genre)) {
+      return reactions[Math.floor(Math.random() * reactions.length)];
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get a mood-based music reaction
+ */
+export function getMoodMusicReaction(mood: string): string {
+  const lowerMood = mood.toLowerCase();
+
+  for (const [moodKey, reactions] of Object.entries(MOOD_REACTIONS)) {
+    if (lowerMood.includes(moodKey)) {
+      return reactions[Math.floor(Math.random() * reactions.length)];
+    }
+  }
+
+  // Default
+  return "Here's something for you.";
+}
+
+/**
+ * Get a playful comment about music
+ */
+export function getPlayfulMusicComment(): string {
+  return PLAYFUL_COMMENTS[Math.floor(Math.random() * PLAYFUL_COMMENTS.length)];
+}

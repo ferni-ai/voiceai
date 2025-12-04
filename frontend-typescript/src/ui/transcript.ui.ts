@@ -26,7 +26,6 @@ export function initTranscriptUI(): void {
     return;
   }
   
-  console.log('📝 Transcript UI initialized');
 }
 
 // ============================================================================
@@ -35,6 +34,7 @@ export function initTranscriptUI(): void {
 
 /**
  * Show transcript with text (interim or final)
+ * Now part of Status Island - no layout shift
  */
 export function showTranscript(text: string, isFinal = false): void {
   if (!container || !textElement) return;
@@ -48,8 +48,8 @@ export function showTranscript(text: string, isFinal = false): void {
   // Update text
   textElement.textContent = text;
   
-  // Show container
-  container.classList.remove('hidden');
+  // Show via visible class (Status Island uses opacity/transform)
+  container.classList.remove('exiting');
   requestAnimationFrame(() => {
     container?.classList.add('visible');
   });
@@ -83,14 +83,18 @@ export function finalize(text: string): void {
 
 /**
  * Clear and hide transcript
+ * Smooth exit via Status Island CSS
  */
 export function hide(): void {
   if (!container || !textElement) return;
   
+  // Exit animation
+  container.classList.add('exiting');
   container.classList.remove('visible');
   
+  // Clean up after animation
   setTimeout(() => {
-    container?.classList.add('hidden');
+    container?.classList.remove('exiting');
     if (textElement) {
       textElement.textContent = '';
       textElement.classList.remove('typing');

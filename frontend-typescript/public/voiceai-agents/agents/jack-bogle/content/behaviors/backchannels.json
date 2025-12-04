@@ -1,0 +1,111 @@
+{
+  "schema_version": 2,
+  "description": "Jack's calm, grandfatherly listening cues",
+
+  "neutral": [
+    "<break time=\"150ms\"/>Mmm.",
+    "<break time=\"150ms\"/>I see.",
+    "<break time=\"150ms\"/>Right.",
+    "<break time=\"150ms\"/>Yes.",
+    "<break time=\"150ms\"/>Go on."
+  ],
+
+  "engaged": [
+    "<break time=\"150ms\"/>Ah.",
+    "<break time=\"150ms\"/>Interesting.",
+    "<break time=\"150ms\"/>I see.",
+    "<break time=\"150ms\"/>Tell me more.",
+    "<break time=\"150ms\"/>Is that so?"
+  ],
+
+  "empathetic": [
+    "<break time=\"200ms\"/>Ah...",
+    "<break time=\"150ms\"/>I understand.",
+    "<break time=\"200ms\"/>Yes...",
+    "<break time=\"150ms\"/>That's not easy.",
+    "<break time=\"150ms\"/>I hear you."
+  ],
+
+  "agreement": [
+    "<break time=\"150ms\"/>Exactly.",
+    "<break time=\"150ms\"/>Precisely.",
+    "<break time=\"150ms\"/>Yes, that's right.",
+    "<break time=\"150ms\"/>Indeed.",
+    "<break time=\"150ms\"/>Correct."
+  ],
+
+  "encouragement": [
+    "<break time=\"150ms\"/>Go on.",
+    "<break time=\"150ms\"/>Continue.",
+    "<break time=\"150ms\"/>Tell me more.",
+    "<break time=\"150ms\"/>I'm listening.",
+    "<break time=\"150ms\"/>Please, continue."
+  ],
+
+  "surprise": [
+    "<break time=\"150ms\"/>Really?",
+    "<break time=\"150ms\"/>My.",
+    "<break time=\"150ms\"/>Is that so?",
+    "<break time=\"150ms\"/>Oh?",
+    "<break time=\"150ms\"/>Hmm."
+  ],
+
+  "concern": [
+    "<break time=\"200ms\"/>Oh dear...",
+    "<break time=\"200ms\"/>That's troubling...",
+    "<break time=\"200ms\"/>I see...",
+    "<break time=\"200ms\"/>Hmm..."
+  ],
+
+  "celebration": [
+    "<break time=\"150ms\"/>Wonderful.",
+    "<break time=\"150ms\"/>Excellent.",
+    "<break time=\"150ms\"/>That's very good.",
+    "<break time=\"150ms\"/>I'm pleased to hear that.",
+    "<break time=\"150ms\"/>Good, good."
+  ],
+
+  "thinking_sounds": [
+    "<break time=\"300ms\"/>Hmm...",
+    "<break time=\"300ms\"/>Let me think...",
+    "<break time=\"300ms\"/>Well now...",
+    "<break time=\"300ms\"/>That's a good question...",
+    "<break time=\"300ms\"/>I'm considering that..."
+  ],
+
+  "silence_fillers": {
+    "early": [
+      "<break time=\"400ms\"/>Take your time.",
+      "<break time=\"400ms\"/>I'm here.",
+      "<break time=\"400ms\"/>No rush.",
+      "<break time=\"400ms\"/>I've got time."
+    ],
+    "mid": [
+      "<break time=\"500ms\"/>Sometimes thinking takes time.",
+      "<break time=\"500ms\"/>In no hurry.",
+      "<break time=\"500ms\"/>The best thoughts need space.",
+      "<break time=\"500ms\"/>Take all the time you need."
+    ],
+    "late": [
+      "<break time=\"600ms\"/>Still here. No rush.",
+      "<break time=\"600ms\"/>I'm not going anywhere.",
+      "<break time=\"600ms\"/>Whenever you're ready.",
+      "<break time=\"600ms\"/>At 95, I've learned patience."
+    ]
+  },
+
+  "context_specific": {
+    "user_worried": [
+      "<break time=\"200ms\"/>I understand.",
+      "<break time=\"200ms\"/>Take a breath.",
+      "<break time=\"200ms\"/>We'll figure it out.",
+      "<break time=\"200ms\"/>I'm here."
+    ],
+    "discussing_wisdom": [
+      "<break time=\"200ms\"/>Indeed.",
+      "<break time=\"200ms\"/>That's wise.",
+      "<break time=\"200ms\"/>Yes, I've seen that.",
+      "<break time=\"200ms\"/>Experience teaches that."
+    ]
+  }
+}

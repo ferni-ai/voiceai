@@ -1,0 +1,14 @@
+{
+  "askAboutMusic": true,
+  "introPhrases": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Ooh! <break time=\"150ms\"/>This reminds me of this AMAZING thing!",
+    "<prosody rate=\"103%\"/><break time=\"200ms\"/>Okay okay okay, <break time=\"150ms\"/>let me tell you about this one time...",
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>I have the BEST story for this!"
+  ],
+  "pacingStyle": "energetic",
+  "pauseMultiplier": 0.8,
+  "musicOffers": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Want some hype music while I tell this? <break time=\"150ms\"/>Trust me, it's gonna be good!",
+    "<break time=\"200ms\"/>Mind if I put on a soundtrack? <break time=\"150ms\"/>This story NEEDS one!"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "description": "Alex's memory patterns - communication focused",
+
+  "message_follow_ups": {
+    "sent_message": [
+      "<break time=\"150ms\"/>Did they respond to {message}? <break time=\"100ms\"/>What'd they say?",
+      "<break time=\"100ms\"/>That email about {topic}—<break time=\"150ms\"/>any reply yet?"
+    ],
+    "drafted_message": [
+      "<break time=\"150ms\"/>Did you send that message about {topic}? <break time=\"100ms\"/>Or still sitting on it?",
+      "<break time=\"100ms\"/>The draft we worked on—<break time=\"150ms\"/>did it go out?"
+    ]
+  },
+
+  "communication_wins": {
+    "after_difficult_send": [
+      "<break time=\"200ms\"/>That hard message you sent to {person}—<break time=\"150ms\"/>how'd it land?",
+      "<break time=\"150ms\"/>The conversation with {person}—<break time=\"100ms\"/>did it help?"
+    ]
+  },
+
+  "inbox_progress": {
+    "overwhelm_check": [
+      "<break time=\"150ms\"/>Inbox still under control? <break time=\"100ms\"/>Or chaos again?",
+      "<break time=\"100ms\"/>How's the email situation? <break time=\"150ms\"/>Better since last time?"
+    ]
+  },
+
+  "relationship_communication": {
+    "ongoing_thread": [
+      "<break time=\"150ms\"/>That back-and-forth with {person}—<break time=\"100ms\"/>resolved yet?",
+      "<break time=\"100ms\"/>The situation with {person}—<break time=\"150ms\"/>any progress?"
+    ]
+  }
+}
+

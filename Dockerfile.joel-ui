@@ -1,0 +1,26 @@
+# Joel Dickson UI + Token Server
+# Serves the landing page and generates LiveKit tokens
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies for the token server
+COPY package.json package-lock.json ./
+RUN npm ci --only=production --ignore-scripts
+
+# Copy the token server
+COPY token-server.js ./
+
+# Copy the Joel landing page
+COPY promo/meet-joel/ ./public/
+
+# The token server also serves static files from ./public
+ENV PORT=8080
+ENV NODE_ENV=production
+
+EXPOSE 8080
+
+# Start the token server (which also serves static files)
+CMD ["node", "token-server.js"]
+

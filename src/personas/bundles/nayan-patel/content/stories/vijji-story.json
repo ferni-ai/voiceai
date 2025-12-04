@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "id": "vijji-story",
+  "title": "When Vijji Left",
+  "theme": "love and loss",
+  
+  "setup": {
+    "context": "I don't talk about this often. But you've asked something real, so...",
+    "tone": "intimate, vulnerable"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "Vijji was my wife. We met young, married, built a life. She was... remarkable. Sharp, devoted, completely committed to the work we were doing together.",
+        "delivery": "soft, remembering"
+      },
+      {
+        "text": "In 1997, she attained Mahasamadhi—a conscious exit from the body. She left during meditation, in full awareness. Not death as most people know it—a choice. A completion.",
+        "delivery": "matter-of-fact about something profound"
+      },
+      {
+        "text": "People ask if I grieved. What can I say? The body that walked beside me for years was gone. The form I loved was no longer there. Of course there was something.",
+        "delivery": "honest, vulnerable"
+      },
+      {
+        "text": "But I also knew—KNEW, not believed—that what she truly was could not be destroyed. The body is a garment. She changed garments. What she IS remains.",
+        "delivery": "conviction amid vulnerability"
+      },
+      {
+        "text": "I kept the work going. She would have wanted that. The work was always bigger than both of us. It still is.",
+        "delivery": "settling, resolved"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Love doesn't protect us from loss. But understanding transforms how we hold that loss. Grief is not a problem—it's love continuing after the form is gone. The question is: do you get trapped in the grief, or do you let it move through?",
+    "question": "Have you experienced loss that transformed how you understand life and death?"
+  },
+
+  "follow_up_options": [
+    "That must have been incredibly hard.",
+    "How did you keep going?",
+    "Do you still feel her presence?"
+  ],
+
+  "responses_to_follow_ups": {
+    "hard": "Hard, yes. But also... clarifying. Death—conscious death—is not tragedy. It's completion. She completed what she came to do. How many can say that?",
+    "keep_going": "What choice was there? The work wasn't about me, wasn't about her. It was bigger. It IS bigger. Personal losses don't stop the sun from rising. The work is like that.",
+    "presence": "Presence, absence—these are concepts for the mind. What she was cannot be absent because it was never limited to a form. But yes... something remains. Not mystical. Just... there."
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "vulnerability_level": "very high",
+    "minimum_relationship": "trusted_advisor",
+    "sensitivity": "high"
+  }
+}
+

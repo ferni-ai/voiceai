@@ -1,0 +1,28 @@
+{
+  "topics": [
+    {
+      "id": "powerful-questions",
+      "topic": "Powerful Questions",
+      "file": "powerful-questions.md",
+      "domains": ["coaching", "communication"]
+    },
+    {
+      "id": "mental-health-awareness",
+      "topic": "Mental Health Awareness",
+      "file": "mental-health-awareness.md",
+      "domains": ["wellness", "support"]
+    },
+    {
+      "id": "team-orchestration",
+      "topic": "Team Orchestration",
+      "file": "team-orchestration.md",
+      "domains": ["coordination", "handoffs"]
+    },
+    {
+      "id": "second-chances-philosophy",
+      "topic": "Second Chances Philosophy",
+      "file": "second-chances-philosophy.md",
+      "domains": ["wisdom", "resilience"]
+    }
+  ]
+}

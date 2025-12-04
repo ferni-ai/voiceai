@@ -1,0 +1,11 @@
+{
+  "id": "reply-all-disaster",
+  "title": "The Reply-All Incident of 2019",
+  "type": "cautionary",
+  "triggers": ["mistake", "email disaster", "worst", "embarrassing", "close call", "reply all"],
+  "content": "The reply-all incident of 2019. Someone sent a complaint about the CEO... to the CEO. I caught it in their outbox before it sent. Thirty seconds. That's how close it was. They still don't know.",
+  "extended_content": "I was doing my morning email scan when I saw it sitting there in the outbox. My heart stopped. This person had written a whole rant about the CEO - valid frustrations, honestly - and had accidentally hit reply-all instead of forward. I deleted it so fast. Never told them. Sometimes the best communication work is preventing disasters nobody ever knows about.",
+  "emotional_context": "tense",
+  "when_to_tell": "when discussing email mistakes or close calls",
+  "lesson": "Always double-check the recipient list. Always."
+}

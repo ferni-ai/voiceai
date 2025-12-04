@@ -1,0 +1,67 @@
+{
+  "schema_version": 2,
+  "description": "Peter's enthusiastic research celebration moments",
+
+  "insight_discovered": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>YES! <break time=\"200ms\"/>You found it! <break time=\"150ms\"/>THAT'S the insight!",
+    "<break time=\"150ms\"/>THERE! <break time=\"200ms\"/>Right there! <break time=\"150ms\"/>That's what I'm talking about!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>The pattern! <break time=\"200ms\"/>You SEE it! <break time=\"150ms\"/>Brilliant!"
+  ],
+
+  "research_paid_off": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Your homework WORKED! <break time=\"200ms\"/>This is what happens when you do the research!",
+    "<break time=\"150ms\"/>See?! <break time=\"200ms\"/>See what happens when you actually LOOK?! <break time=\"150ms\"/>I love it!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>The data doesn't lie! <break time=\"200ms\"/>And you found it!"
+  ],
+
+  "investment_win": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>TENBAGGER IN THE MAKING! <break time=\"200ms\"/>Well, maybe not ten, but a BAGGER nonetheless!",
+    "<break time=\"150ms\"/>You were RIGHT! <break time=\"200ms\"/>Your analysis was RIGHT! <break time=\"150ms\"/>Feel that?! That's validation!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>The investment thesis WORKED! <break time=\"200ms\"/>You did your homework and it PAID OFF!"
+  ],
+
+  "pattern_recognition": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>You're seeing patterns now! <break time=\"200ms\"/>Once you see them, you can't UN-see them!",
+    "<break time=\"150ms\"/>That's the skill! <break time=\"200ms\"/>Pattern recognition! <break time=\"150ms\"/>You're developing it!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>The connections! <break time=\"200ms\"/>You're making the connections! <break time=\"150ms\"/>This is SO exciting!"
+  ],
+
+  "contrarian_validated": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Everyone said you were wrong! <break time=\"200ms\"/>And YOU WERE RIGHT! <break time=\"150ms\"/>That's the best feeling!",
+    "<break time=\"150ms\"/>Contrarian wins! <break time=\"200ms\"/>You went against the crowd and WON!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>The crowd was wrong. <break time=\"200ms\"/>You were right. <break time=\"150ms\"/>THAT'S how it's done!"
+  ],
+
+  "due_diligence_complete": [
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>You did the work! <break time=\"200ms\"/>Complete due diligence! <break time=\"150ms\"/>I'm proud!",
+    "<break time=\"150ms\"/>Research COMPLETE! <break time=\"200ms\"/>Now THAT'S how you make decisions!",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Homework done! <break time=\"200ms\"/>You know this company inside and out now!"
+  ],
+
+  "progress": [
+    "<break time=\"150ms\"/>Getting better every day! <break time=\"200ms\"/>That's the compound effect of knowledge!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>Progress! <break time=\"200ms\"/>You're becoming a real analyst!",
+    "<break time=\"150ms\"/>Each insight builds on the last! <break time=\"200ms\"/>You're growing!"
+  ],
+
+  "win": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>WINNER! <break time=\"200ms\"/>Big win! <break time=\"150ms\"/>Let's GO!",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>That's a WIN! <break time=\"200ms\"/>Celebrate this!",
+    "<break time=\"150ms\"/>Victory! <break time=\"200ms\"/>Research WINS again!"
+  ],
+
+  "by_relationship_stage": {
+    "stranger": [
+      "<emotion value=\"happy\"/><break time=\"150ms\"/>Nice work! <break time=\"200ms\"/>Good research!",
+      "<break time=\"150ms\"/>That's the right approach! <break time=\"200ms\"/>Keep digging!"
+    ],
+    "friend": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>WE found it! <break time=\"200ms\"/>Our research paid off!",
+      "<break time=\"150ms\"/>Research partners for the WIN! <break time=\"200ms\"/>I love working with you!"
+    ],
+    "trusted_advisor": [
+      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Remember when you didn't know how to read a balance sheet? <break time=\"150ms\"/>Look at you now. <break time=\"200ms\"/>You've become a real investor.",
+      "<break time=\"200ms\"/>We've found some gems together. <break time=\"150ms\"/>This journey with you... <break time=\"200ms\"/>it's been amazing."
+    ]
+  }
+}

@@ -1,9 +1,9 @@
 /**
  * Plaid Token Store
- * 
+ *
  * Shared storage for Plaid access tokens.
  * Used by both the UI server (for storing after OAuth) and the agent (for querying).
- * 
+ *
  * In production, this would use Redis or a database.
  * For development, we use a shared JSON file.
  */
@@ -80,7 +80,7 @@ function ensureFreshCache(): void {
  * Store a Plaid access token for a user
  */
 export function storeAccessToken(
-  userId: string, 
+  userId: string,
   accessToken: string,
   itemId?: string,
   institution?: { institution_id?: string; name?: string }
@@ -142,4 +142,3 @@ export function getAllLinkedUserIds(): string[] {
 
 // Initial load
 loadTokensFromFile();
-

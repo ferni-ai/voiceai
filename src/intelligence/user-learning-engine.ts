@@ -19,6 +19,8 @@ import type { EmotionResult } from './emotion-detector.js';
 import type { IntentResult } from './intent-classifier.js';
 import type { ConversationState } from './conversation-state.js';
 import { inferUserPreferences, getPreferenceGuidance } from './human-behaviors.js';
+import { getCommunityInsights } from './community-insights.js';
+import { getAgentEvolution } from './agent-evolution.js';
 
 // Local type for preference updates (subset of what we track)
 interface PreferenceUpdates {
@@ -26,7 +28,13 @@ interface PreferenceUpdates {
   storyAppetite?: 'loves_stories' | 'prefers_facts' | 'unknown';
   humorReceptivity?: 'high' | 'medium' | 'low' | 'unknown';
 }
-import { extractSmallDetails, type SmallDetail, type FarewellSummary, generateFarewellSummary, type FollowUpItem } from './conversation-quality.js';
+import {
+  extractSmallDetails,
+  type SmallDetail,
+  type FarewellSummary,
+  generateFarewellSummary,
+  type FollowUpItem,
+} from './conversation-quality.js';
 
 const getLogger = () => log();
 
@@ -38,7 +46,14 @@ const getLogger = () => log();
  * Learning insight captured during conversation
  */
 export interface LearningInsight {
-  type: 'preference' | 'concern' | 'goal' | 'relationship' | 'communication_style' | 'topic_interest' | 'emotional_pattern';
+  type:
+    | 'preference'
+    | 'concern'
+    | 'goal'
+    | 'relationship'
+    | 'communication_style'
+    | 'topic_interest'
+    | 'emotional_pattern';
   key: string;
   value: unknown;
   confidence: number; // 0-1
@@ -99,6 +114,11 @@ export class UserLearningEngine {
   private conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
   private topicsDiscussed: string[] = [];
   private turnsSinceLastCapture = 0;
+  
+  // Voice emotion validation tracking
+  private lastVoiceEmotion: { emotion: string; confidence: number; timestamp: number } | null = null;
+  private voiceEmotionValidations: Array<{ predicted: string; confirmed: boolean; timestamp: Date }> = [];
+  private voiceEmotionAccuracy = 0.5; // Start neutral, adjust based on validation
 
   /**
    * Process a user turn and extract learning opportunities
@@ -118,12 +138,15 @@ export class UserLearningEngine {
     // 1. Extract small details (names, places, amounts)
     const details = extractSmallDetails(message);
     this.sessionSmallDetails.push(...details);
-    
+
     // 1b. If we found the user's name, save it to their profile!
-    const userNameDetail = details.find(d => d.type === 'user_name');
+    const userNameDetail = details.find((d) => d.type === 'user_name');
     if (userNameDetail && profile && !profile.name) {
       profile.name = userNameDetail.value;
-      getLogger().info({ name: userNameDetail.value, context: userNameDetail.context }, '🎉 Learned user name!');
+      getLogger().info(
+        { name: userNameDetail.value, context: userNameDetail.context },
+        '🎉 Learned user name!'
+      );
     }
 
     // 2. Track emotional patterns
@@ -137,7 +160,10 @@ export class UserLearningEngine {
     }
 
     // 3. Capture topics
-    if (analysis.state.currentTopic && !this.topicsDiscussed.includes(analysis.state.currentTopic)) {
+    if (
+      analysis.state.currentTopic &&
+      !this.topicsDiscussed.includes(analysis.state.currentTopic)
+    ) {
       this.topicsDiscussed.push(analysis.state.currentTopic);
     }
 
@@ -156,6 +182,79 @@ export class UserLearningEngine {
 
     // 6. Extract explicit insights
     this.extractExplicitInsights(message, analysis.intent);
+    
+    // 7. Validate voice emotion predictions against text emotion
+    this.validateVoiceEmotionPrediction(analysis.emotion);
+  }
+
+  /**
+   * Record a voice emotion detection for later validation
+   */
+  recordVoiceEmotion(emotion: string, confidence: number): void {
+    this.lastVoiceEmotion = {
+      emotion,
+      confidence,
+      timestamp: Date.now(),
+    };
+  }
+
+  /**
+   * Validate voice emotion prediction against subsequent text emotion
+   * This helps calibrate voice emotion detection accuracy
+   */
+  private validateVoiceEmotionPrediction(textEmotion: EmotionResult): void {
+    if (!this.lastVoiceEmotion) return;
+    
+    // Only validate if voice prediction was recent (within 30 seconds)
+    if (Date.now() - this.lastVoiceEmotion.timestamp > 30000) {
+      this.lastVoiceEmotion = null;
+      return;
+    }
+
+    // Map voice emotion to comparable categories
+    const voiceToTextMap: Record<string, string[]> = {
+      happy: ['joy', 'anticipation'],
+      sad: ['sadness', 'grief'],
+      angry: ['anger', 'frustration'],
+      fearful: ['fear', 'anxiety'],
+      anxious: ['anxiety', 'fear', 'worry'],
+      excited: ['anticipation', 'joy'],
+      stressed: ['anxiety', 'frustration'],
+      neutral: ['neutral'],
+    };
+
+    const expectedTextEmotions = voiceToTextMap[this.lastVoiceEmotion.emotion] || [];
+    const confirmed = expectedTextEmotions.includes(textEmotion.primary) ||
+                     (this.lastVoiceEmotion.emotion === 'stressed' && (textEmotion.distressLevel || 0) > 0.5);
+
+    // Record validation
+    this.voiceEmotionValidations.push({
+      predicted: this.lastVoiceEmotion.emotion,
+      confirmed,
+      timestamp: new Date(),
+    });
+
+    // Update accuracy (rolling average of last 20)
+    const recent = this.voiceEmotionValidations.slice(-20);
+    const correctCount = recent.filter(v => v.confirmed).length;
+    this.voiceEmotionAccuracy = correctCount / recent.length;
+
+    if (this.voiceEmotionValidations.length % 10 === 0) {
+      getLogger().debug({
+        accuracy: this.voiceEmotionAccuracy,
+        totalValidations: this.voiceEmotionValidations.length,
+      }, 'Voice emotion accuracy updated');
+    }
+
+    // Clear the prediction after validation
+    this.lastVoiceEmotion = null;
+  }
+
+  /**
+   * Get current voice emotion detection accuracy
+   */
+  getVoiceEmotionAccuracy(): number {
+    return this.voiceEmotionAccuracy;
   }
 
   /**
@@ -164,7 +263,7 @@ export class UserLearningEngine {
    */
   processAssistantTurn(message: string): void {
     this.conversationHistory.push({ role: 'assistant', content: message });
-    
+
     // Detect if Jack is telling a story
     const storyId = this.detectStoryTelling(message);
     if (storyId) {
@@ -182,11 +281,17 @@ export class UserLearningEngine {
    */
   private detectStoryTelling(message: string): string | null {
     const messageLower = message.toLowerCase();
-    
+
     // Story indicators
     const storyPatterns = [
-      { pattern: /\bi remember\b.*\b(1974|1975|1987|2000|2008|2020)/i, id: (m: RegExpMatchArray) => `year_story_${m[1]}` },
-      { pattern: /\bback in\b.*\b(19\d{2}|20\d{2})/i, id: (m: RegExpMatchArray) => `year_story_${m[1]}` },
+      {
+        pattern: /\bi remember\b.*\b(1974|1975|1987|2000|2008|2020)/i,
+        id: (m: RegExpMatchArray) => `year_story_${m[1]}`,
+      },
+      {
+        pattern: /\bback in\b.*\b(19\d{2}|20\d{2})/i,
+        id: (m: RegExpMatchArray) => `year_story_${m[1]}`,
+      },
       { pattern: /\bwhen i (started|founded|created) vanguard/i, id: () => 'vanguard_founding' },
       { pattern: /\bmy father (taught|told|showed) me/i, id: () => 'father_lesson' },
       { pattern: /\bi met (warren|buffett)/i, id: () => 'buffett_meeting' },
@@ -194,25 +299,31 @@ export class UserLearningEngine {
       { pattern: /\bwellington fund/i, id: () => 'wellington_story' },
       { pattern: /\bprincetonl/i, id: () => 'princeton_story' },
       { pattern: /\bindex fund.*folly/i, id: () => 'bogles_folly' },
-      { pattern: /\bthe market (crashed|dropped|fell).*\d{2,4}/i, id: (m: RegExpMatchArray) => `market_crash_story` },
+      {
+        pattern: /\bthe market (crashed|dropped|fell).*\d{2,4}/i,
+        id: (m: RegExpMatchArray) => `market_crash_story`,
+      },
     ];
-    
+
     for (const { pattern, id } of storyPatterns) {
       const match = messageLower.match(pattern);
       if (match) {
         return typeof id === 'function' ? id(match) : id;
       }
     }
-    
+
     // Generic story detection
-    const hasStoryIndicator = /\b(i remember|back in|years ago|one time|let me tell you|when i was|my (father|mother|wife)|at vanguard)\b/i.test(messageLower);
+    const hasStoryIndicator =
+      /\b(i remember|back in|years ago|one time|let me tell you|when i was|my (father|mother|wife)|at vanguard)\b/i.test(
+        messageLower
+      );
     const isLongEnough = message.length > 200;
-    
+
     if (hasStoryIndicator && isLongEnough) {
       // Generate a hash-based ID for unrecognized stories
       return `story_${message.substring(0, 50).replace(/\W+/g, '_').toLowerCase()}`;
     }
-    
+
     return null;
   }
 
@@ -228,11 +339,11 @@ export class UserLearningEngine {
       { pattern: /\b(vanguard|wellington)/i, theme: 'career' },
       { pattern: /\b(mistake|wrong|failed|learned)/i, theme: 'lessons' },
     ];
-    
+
     for (const { pattern, theme } of themes) {
       if (pattern.test(message)) return theme;
     }
-    
+
     return 'general';
   }
 
@@ -373,7 +484,7 @@ export class UserLearningEngine {
    */
   private generateMomentSummary(message: string, type: KeyMoment['type']): string {
     // Extract the core of the message (first 2 sentences, max 150 chars)
-    const sentences = message.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    const sentences = message.split(/[.!?]+/).filter((s) => s.trim().length > 10);
     let core = sentences.slice(0, 2).join('. ').trim();
     if (core.length > 150) {
       core = core.slice(0, 147) + '...';
@@ -397,8 +508,8 @@ export class UserLearningEngine {
    */
   private learnPreferences(profile: UserProfile | null): void {
     const userMessages = this.conversationHistory
-      .filter(m => m.role === 'user')
-      .map(m => m.content);
+      .filter((m) => m.role === 'user')
+      .map((m) => m.content);
 
     if (userMessages.length < 3) return;
 
@@ -420,7 +531,12 @@ export class UserLearningEngine {
       this.sessionInsights.push({
         type: 'preference',
         key: 'verbosity',
-        value: preferences.responseLength === 'brief' ? 'concise' : preferences.responseLength === 'thorough' ? 'storytelling' : 'balanced',
+        value:
+          preferences.responseLength === 'brief'
+            ? 'concise'
+            : preferences.responseLength === 'thorough'
+              ? 'storytelling'
+              : 'balanced',
         confidence: 0.7,
         source: 'inferred',
         capturedAt: new Date(),
@@ -502,7 +618,12 @@ export class UserLearningEngine {
     }
 
     // Topic interest (positive sentiment about topics)
-    const interestIntents = ['request_info', 'seeking_education', 'asking_question', 'requesting_info'];
+    const interestIntents = [
+      'request_info',
+      'seeking_education',
+      'asking_question',
+      'requesting_info',
+    ];
     if (interestIntents.includes(intent.primary)) {
       this.sessionInsights.push({
         type: 'topic_interest',
@@ -541,7 +662,9 @@ export class UserLearningEngine {
     }
 
     // From session insights (override profile with recent learnings)
-    const recentInsights = this.sessionInsights.filter(i => i.type === 'preference' || i.type === 'communication_style');
+    const recentInsights = this.sessionInsights.filter(
+      (i) => i.type === 'preference' || i.type === 'communication_style'
+    );
     for (const insight of recentInsights) {
       if (insight.key === 'communicationStyle') {
         communicationGuidance = `User ${insight.source === 'inferred' ? 'seems to' : ''} prefer${insight.source === 'inferred' ? '' : 's'} ${insight.value} communication.`;
@@ -550,23 +673,25 @@ export class UserLearningEngine {
 
     // Get preference guidance from inference
     if (this.conversationHistory.length >= 3) {
-      const userMessages = this.conversationHistory.filter(m => m.role === 'user').map(m => m.content);
+      const userMessages = this.conversationHistory
+        .filter((m) => m.role === 'user')
+        .map((m) => m.content);
       const inferred = inferUserPreferences(userMessages, profile);
       preferenceGuidance = getPreferenceGuidance(inferred);
     }
 
     // 2. Key moments from this session
-    const relevantKeyMoments = this.sessionKeyMoments.slice(-3).map(km => km.summary);
+    const relevantKeyMoments = this.sessionKeyMoments.slice(-3).map((km) => km.summary);
 
     // Key moments from profile (recent ones)
     if (profile?.keyMoments) {
       const recentProfileMoments = profile.keyMoments
-        .filter(km => {
+        .filter((km) => {
           const daysSince = (Date.now() - new Date(km.timestamp).getTime()) / (1000 * 60 * 60 * 24);
           return daysSince < 30; // Last 30 days
         })
         .slice(-2)
-        .map(km => km.summary);
+        .map((km) => km.summary);
       relevantKeyMoments.push(...recentProfileMoments);
     }
 
@@ -597,19 +722,23 @@ export class UserLearningEngine {
     // 6. Emotional history
     let emotionalHistory = '';
     if (this.sessionEmotions.length > 0) {
-      const emotions = this.sessionEmotions.map(e => e.emotion);
+      const emotions = this.sessionEmotions.map((e) => e.emotion);
       const journey = [...new Set(emotions)].join(' → ');
       emotionalHistory = `This session: ${journey}`;
     }
     if (profile?.emotionalPatterns && profile.emotionalPatterns.length > 0) {
-      const recent = profile.emotionalPatterns.slice(-5).map(p => p.emotion);
-      emotionalHistory += emotionalHistory ? `. Recent history: ${recent.join(', ')}` : `Recent: ${recent.join(', ')}`;
+      const recent = profile.emotionalPatterns.slice(-5).map((p) => p.emotion);
+      emotionalHistory += emotionalHistory
+        ? `. Recent history: ${recent.join(', ')}`
+        : `Recent: ${recent.join(', ')}`;
     }
 
     // 7. Active goals
     const activeGoals: string[] = [];
     if (profile?.goals) {
-      for (const goal of profile.goals.filter(g => g.status === 'active' || g.status === 'on_track')) {
+      for (const goal of profile.goals.filter(
+        (g) => g.status === 'active' || g.status === 'on_track'
+      )) {
         let goalStr = `${goal.type}: ${goal.name}`;
         if (goal.progressPercent !== undefined) {
           goalStr += ` (${goal.progressPercent}% complete)`;
@@ -621,9 +750,9 @@ export class UserLearningEngine {
     // 8. Known concerns
     const knownConcerns: string[] = [];
     if (profile?.primaryConcerns) {
-      knownConcerns.push(...profile.primaryConcerns.filter(c => c !== 'none' && c !== 'general'));
+      knownConcerns.push(...profile.primaryConcerns.filter((c) => c !== 'none' && c !== 'general'));
     }
-    const concernInsights = this.sessionInsights.filter(i => i.type === 'concern');
+    const concernInsights = this.sessionInsights.filter((i) => i.type === 'concern');
     for (const insight of concernInsights) {
       if (typeof insight.value === 'string') {
         knownConcerns.push(insight.value.slice(0, 50));
@@ -638,16 +767,20 @@ export class UserLearningEngine {
       sections.push(`[LEARNED PREFERENCES]\n${preferenceGuidance}`);
     }
     if (relevantKeyMoments.length > 0) {
-      sections.push(`[KEY MOMENTS TO REMEMBER]\n${relevantKeyMoments.map(m => `• ${m}`).join('\n')}`);
+      sections.push(
+        `[KEY MOMENTS TO REMEMBER]\n${relevantKeyMoments.map((m) => `• ${m}`).join('\n')}`
+      );
     }
     if (rememberedDetails.length > 0) {
-      sections.push(`[REMEMBERED DETAILS]\n${rememberedDetails.map(d => `• ${d}`).join('\n')}`);
+      sections.push(`[REMEMBERED DETAILS]\n${rememberedDetails.map((d) => `• ${d}`).join('\n')}`);
     }
     if (activeGoals.length > 0) {
-      sections.push(`[USER'S ACTIVE GOALS]\n${activeGoals.map(g => `• ${g}`).join('\n')}`);
+      sections.push(`[USER'S ACTIVE GOALS]\n${activeGoals.map((g) => `• ${g}`).join('\n')}`);
     }
     if (knownConcerns.length > 0) {
-      sections.push(`[KNOWN CONCERNS - Handle Gently]\n${knownConcerns.map(c => `• ${c}`).join('\n')}`);
+      sections.push(
+        `[KNOWN CONCERNS - Handle Gently]\n${knownConcerns.map((c) => `• ${c}`).join('\n')}`
+      );
     }
     if (emotionalHistory) {
       sections.push(`[EMOTIONAL CONTEXT]\n${emotionalHistory}`);
@@ -675,12 +808,17 @@ export class UserLearningEngine {
     let farewellSummary: FarewellSummary | undefined;
     if (this.conversationHistory.length > 2) {
       const startEmotion = this.sessionEmotions[0]?.emotion || 'neutral';
-      const endEmotion = this.sessionEmotions[this.sessionEmotions.length - 1]?.emotion || 'neutral';
+      const endEmotion =
+        this.sessionEmotions[this.sessionEmotions.length - 1]?.emotion || 'neutral';
 
       farewellSummary = generateFarewellSummary(
         this.conversationHistory,
         this.topicsDiscussed,
-        profile as { name?: string; goals?: { type: string; status: string }[]; familyMembers?: { name: string; relationship: string }[] } | null,
+        profile as {
+          name?: string;
+          goals?: { type: string; status: string }[];
+          familyMembers?: { name: string; relationship: string }[];
+        } | null,
         { start: startEmotion, end: endEmotion }
       );
     }
@@ -732,7 +870,10 @@ export class UserLearningEngine {
   /**
    * Apply learning data to user profile
    */
-  static applyLearningToProfile(profile: UserProfile, learning: ConversationLearningData): UserProfile {
+  static applyLearningToProfile(
+    profile: UserProfile,
+    learning: ConversationLearningData
+  ): UserProfile {
     const updated = { ...profile };
     const now = new Date();
 
@@ -740,24 +881,37 @@ export class UserLearningEngine {
     updated.keyMoments = [...(updated.keyMoments || []), ...learning.keyMoments];
 
     // Apply emotional patterns
-    updated.emotionalPatterns = [...(updated.emotionalPatterns || []), ...learning.emotionalPatterns].slice(-50);
+    updated.emotionalPatterns = [
+      ...(updated.emotionalPatterns || []),
+      ...learning.emotionalPatterns,
+    ].slice(-50);
 
     // Apply preference updates
-    if (learning.preferenceUpdates.responseLength && learning.preferenceUpdates.responseLength !== 'unknown') {
+    if (
+      learning.preferenceUpdates.responseLength &&
+      learning.preferenceUpdates.responseLength !== 'unknown'
+    ) {
       updated.preferences = {
         ...updated.preferences,
-        verbosity: learning.preferenceUpdates.responseLength === 'brief' ? 'concise' : 
-                   learning.preferenceUpdates.responseLength === 'thorough' ? 'storytelling' : 'balanced',
+        verbosity:
+          learning.preferenceUpdates.responseLength === 'brief'
+            ? 'concise'
+            : learning.preferenceUpdates.responseLength === 'thorough'
+              ? 'storytelling'
+              : 'balanced',
       };
     }
 
-    if (learning.preferenceUpdates.humorReceptivity && learning.preferenceUpdates.humorReceptivity !== 'unknown') {
+    if (
+      learning.preferenceUpdates.humorReceptivity &&
+      learning.preferenceUpdates.humorReceptivity !== 'unknown'
+    ) {
       updated.humorAppreciation = learning.preferenceUpdates.humorReceptivity;
     }
 
     // Apply follow-ups
     for (const followUp of learning.followUps) {
-      if (!updated.pendingFollowUps.some(f => f.topic === followUp.topic)) {
+      if (!updated.pendingFollowUps.some((f) => f.topic === followUp.topic)) {
         updated.pendingFollowUps.push({
           topic: followUp.topic,
           targetDate: followUp.suggestedDate,
@@ -782,7 +936,9 @@ export class UserLearningEngine {
           updated.financialAnxietyTriggers = [];
         }
         // Extract key concern topic
-        const concernWords = insight.value.toLowerCase().match(/\b(market|crash|retire|debt|job|money|savings|invest|fees|loss)\b/);
+        const concernWords = insight.value
+          .toLowerCase()
+          .match(/\b(market|crash|retire|debt|job|money|savings|invest|fees|loss)\b/);
         if (concernWords && !updated.financialAnxietyTriggers.includes(concernWords[1])) {
           updated.financialAnxietyTriggers.push(concernWords[1]);
         }
@@ -791,7 +947,9 @@ export class UserLearningEngine {
 
     // Update last conversation summary from farewell
     if (learning.farewellSummary) {
-      updated.lastConversationSummary = learning.farewellSummary.keyThingsToRemember.slice(0, 2).join('; ');
+      updated.lastConversationSummary = learning.farewellSummary.keyThingsToRemember
+        .slice(0, 2)
+        .join('; ');
     }
 
     // Track stories Jack told (to avoid repetition in future)
@@ -801,7 +959,7 @@ export class UserLearningEngine {
       }
       for (const story of learning.storiesTold) {
         // Only add if not already tracked
-        if (!updated.sharedStories.some(s => s.storyId === story.storyId)) {
+        if (!updated.sharedStories.some((s) => s.storyId === story.storyId)) {
           updated.sharedStories.push({
             storyId: story.storyId,
             theme: story.theme,
@@ -880,7 +1038,10 @@ export class UserLearningEngine {
    */
   captureExternalKeyMoment(moment: KeyMoment): void {
     this.sessionKeyMoments.push(moment);
-    getLogger().info({ type: moment.type, summary: moment.summary }, 'Captured external key moment');
+    getLogger().info(
+      { type: moment.type, summary: moment.summary },
+      'Captured external key moment'
+    );
   }
 
   /**
@@ -895,8 +1056,10 @@ export class UserLearningEngine {
     // 1. Check for pending follow-ups from previous sessions
     if (profile?.pendingFollowUps && profile.pendingFollowUps.length > 0) {
       const followUp = profile.pendingFollowUps[0];
-      const daysSince = Math.floor((Date.now() - new Date(followUp.targetDate).getTime()) / (1000 * 60 * 60 * 24));
-      
+      const daysSince = Math.floor(
+        (Date.now() - new Date(followUp.targetDate).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
       if (daysSince >= 0) {
         return `I've been meaning to ask - how's that ${followUp.topic} situation going?`;
       }
@@ -904,8 +1067,10 @@ export class UserLearningEngine {
 
     // 2. Check for goal milestones to celebrate or check on
     if (profile?.goals && profile.goals.length > 0) {
-      const activeGoals = profile.goals.filter(g => g.status === 'active' || g.status === 'on_track');
-      
+      const activeGoals = profile.goals.filter(
+        (g) => g.status === 'active' || g.status === 'on_track'
+      );
+
       for (const goal of activeGoals) {
         // Near completion - celebrate
         if (goal.progressPercent && goal.progressPercent >= 90) {
@@ -920,15 +1085,15 @@ export class UserLearningEngine {
 
     // 3. Reference a key moment from previous conversations
     if (profile?.keyMoments && profile.keyMoments.length > 0) {
-      const recentMoments = profile.keyMoments.filter(km => {
+      const recentMoments = profile.keyMoments.filter((km) => {
         const daysSince = (Date.now() - new Date(km.timestamp).getTime()) / (1000 * 60 * 60 * 24);
         return daysSince < 30 && km.followUpNeeded;
       });
-      
+
       if (recentMoments.length > 0 && Math.random() < 0.3) {
         const moment = recentMoments[0];
         const timeAgo = this.getTimeAgoString(moment.timestamp);
-        
+
         if (moment.type === 'concern') {
           return `I've been thinking about what you mentioned ${timeAgo}. How are you feeling about that now?`;
         }
@@ -940,8 +1105,9 @@ export class UserLearningEngine {
 
     // 4. Small detail callback - shows Jack remembers
     if (this.sessionSmallDetails.length > 0 && Math.random() < 0.2) {
-      const detail = this.sessionSmallDetails[Math.floor(Math.random() * this.sessionSmallDetails.length)];
-      
+      const detail =
+        this.sessionSmallDetails[Math.floor(Math.random() * this.sessionSmallDetails.length)];
+
       if (detail.type === 'person_name') {
         return `By the way, how's ${detail.value} doing?`;
       }
@@ -951,8 +1117,8 @@ export class UserLearningEngine {
     }
 
     // 5. Topic from this session that wasn't explored deeply
-    const shallowTopics = this.topicsDiscussed.filter(topic => {
-      const mentions = this.conversationHistory.filter(m => 
+    const shallowTopics = this.topicsDiscussed.filter((topic) => {
+      const mentions = this.conversationHistory.filter((m) =>
         m.content.toLowerCase().includes(topic.toLowerCase())
       ).length;
       return mentions <= 2;
@@ -982,6 +1148,271 @@ export class UserLearningEngine {
     return 'last month';
   }
 
+  // ==========================================================================
+  // COMMUNITY LEARNING CONTRIBUTION
+  // ==========================================================================
+
+  /**
+   * Contribute session learnings to community insights
+   * Call this at the end of each session to help improve all personas
+   */
+  contributeToCommunnityLearning(
+    personaId: string,
+    sessionData: {
+      engagementScores: number[];
+      userSatisfaction: 'positive' | 'neutral' | 'negative';
+      breakthoughQuestions?: Array<{ question: string; engagementLift: number }>;
+    }
+  ): void {
+    const communityInsights = getCommunityInsights();
+
+    try {
+      // 1. Contribute response effectiveness signals
+      const avgEngagement =
+        sessionData.engagementScores.length > 0
+          ? sessionData.engagementScores.reduce((a, b) => a + b, 0) /
+            sessionData.engagementScores.length
+          : 0.5;
+
+      // Record general session signal
+      for (let i = 0; i < this.conversationHistory.length - 1; i += 2) {
+        const userMsg = this.conversationHistory[i];
+        const assistantMsg = this.conversationHistory[i + 1];
+
+        if (userMsg?.role === 'user' && assistantMsg?.role === 'assistant') {
+          const emotion = this.sessionEmotions[Math.floor(i / 2)]?.emotion || 'neutral';
+          const topic = this.topicsDiscussed[0] || 'general';
+
+          // Analyze response type
+          const responseType = this.detectResponseType(assistantMsg.content);
+
+          communityInsights.recordResponseSignal({
+            context: {
+              userEmotion: emotion,
+              topic,
+              relationshipStage: 'acquaintance', // Would come from profile
+              personaId,
+              timeOfDay: this.getTimeOfDay(),
+              turnInConversation: i,
+            },
+            strategy: {
+              type: responseType,
+              hadPersonalShare: /\bi\s+(remember|recall|had|was|felt|think)\b/i.test(
+                assistantMsg.content
+              ),
+              hadQuirk: false, // Would need more context
+              hadTeamReference: /\b(Maya|Jordan|Alex|Peter|Ferni)\b/.test(assistantMsg.content),
+              responseLength: this.getResponseLength(assistantMsg.content),
+            },
+            outcome: {
+              engagementScore: sessionData.engagementScores[Math.floor(i / 2)] || avgEngagement,
+              userContinued: i + 2 < this.conversationHistory.length,
+              emotionalShift:
+                sessionData.userSatisfaction === 'positive'
+                  ? 'positive'
+                  : sessionData.userSatisfaction === 'negative'
+                    ? 'negative'
+                    : 'neutral',
+              topicDepthened: this.topicsDiscussed.length < 3, // Few topics = deep conversation
+              askFollowUp:
+                i + 2 < this.conversationHistory.length &&
+                this.conversationHistory[i + 2].content.includes('?'),
+            },
+            recordedAt: new Date(),
+          });
+        }
+      }
+
+      // 2. Contribute breakthrough questions
+      if (sessionData.breakthoughQuestions) {
+        for (const q of sessionData.breakthoughQuestions) {
+          communityInsights.recordBreakthroughQuestion(
+            q.question,
+            personaId,
+            this.topicsDiscussed[0] || 'general',
+            'conversation',
+            q.engagementLift
+          );
+        }
+      }
+
+      // 3. Contribute key moments as signals for what resonates
+      for (const moment of this.sessionKeyMoments) {
+        if (moment.type === 'breakthrough') {
+          // Breakthroughs are valuable learnings
+          getLogger().debug(
+            { personaId, momentType: moment.type },
+            'Breakthrough moment contributed to community learning'
+          );
+        }
+      }
+
+      // 4. Contribute story effectiveness
+      for (const story of this.sessionStoriesTold) {
+        // Find user reaction after story was told
+        const storyIndex = this.conversationHistory.findIndex(
+          (m) => m.role === 'assistant' && m.content.includes(story.theme)
+        );
+
+        if (storyIndex >= 0 && storyIndex + 1 < this.conversationHistory.length) {
+          const userResponse = this.conversationHistory[storyIndex + 1].content;
+          const reaction = this.detectStoryReaction(userResponse);
+
+          communityInsights.recordStoryUsage(
+            story.storyId,
+            personaId,
+            {
+              topic: story.theme,
+              relationshipStage: 'acquaintance',
+              userEmotion: 'neutral',
+            },
+            reaction,
+            sessionData.engagementScores[Math.floor(storyIndex / 2)] || avgEngagement
+          );
+        }
+      }
+
+      getLogger().info(
+        {
+          personaId,
+          turns: this.conversationHistory.length,
+          stories: this.sessionStoriesTold.length,
+          keyMoments: this.sessionKeyMoments.length,
+        },
+        'Session contributed to community learning'
+      );
+    } catch (error) {
+      getLogger().warn({ error }, 'Failed to contribute to community learning');
+    }
+  }
+
+  /**
+   * Get community-informed context for better responses
+   * Call this to get suggestions based on what works across users
+   */
+  getCommunityContext(
+    personaId: string,
+    context: {
+      userEmotion: string;
+      topic: string;
+      relationshipStage: string;
+    }
+  ): {
+    suggestedStrategy?: string;
+    recommendedStories?: string[];
+    effectiveQuestions?: string[];
+    adjustments?: string[];
+  } {
+    const result: {
+      suggestedStrategy?: string;
+      recommendedStories?: string[];
+      effectiveQuestions?: string[];
+      adjustments?: string[];
+    } = {};
+
+    try {
+      const communityInsights = getCommunityInsights();
+      const evolution = getAgentEvolution();
+
+      // Get best strategy
+      const bestStrategy = communityInsights.getBestStrategy({
+        ...context,
+        personaId,
+      });
+
+      if (bestStrategy && bestStrategy.confidence > 0.5) {
+        result.suggestedStrategy = bestStrategy.strategy;
+      }
+
+      // Get effective questions
+      const questions = communityInsights.getEffectiveQuestions(personaId, context.topic, 2);
+      if (questions.length > 0) {
+        result.effectiveQuestions = questions.map((q) => q.question);
+      }
+
+      // Get story recommendations
+      const stories = evolution.getRecommendedStories(personaId, context, 2);
+      if (stories.length > 0) {
+        result.recommendedStories = stories.map((s) => s.storyId);
+      }
+
+      // Get active adjustments
+      const adjustments = evolution.getActiveAdjustments(personaId, context);
+      if (adjustments.length > 0) {
+        result.adjustments = adjustments.map((a) => a.adjustment.content);
+      }
+    } catch (error) {
+      getLogger().debug({ error }, 'Could not get community context');
+    }
+
+    return result;
+  }
+
+  // ==========================================================================
+  // HELPERS FOR COMMUNITY CONTRIBUTION
+  // ==========================================================================
+
+  private detectResponseType(
+    content: string
+  ): 'story' | 'advice' | 'question' | 'empathy' | 'humor' | 'explanation' {
+    const lower = content.toLowerCase();
+
+    if (
+      /\b(i remember|when i|back in|years ago|let me tell you|there was a time)\b/.test(lower) &&
+      content.length > 150
+    ) {
+      return 'story';
+    }
+
+    if (/\b(understand|hear you|that must|feel|sorry to hear)\b/.test(lower)) {
+      return 'empathy';
+    }
+
+    if (/\b(should|recommend|suggest|consider|try|important|make sure)\b/.test(lower)) {
+      return 'advice';
+    }
+
+    if (content.includes('?') && content.length < 100) {
+      return 'question';
+    }
+
+    if (/\b(haha|joke|kidding|😄|😂|!.*!)\b/.test(lower)) {
+      return 'humor';
+    }
+
+    return 'explanation';
+  }
+
+  private getResponseLength(content: string): 'brief' | 'moderate' | 'lengthy' {
+    const wordCount = content.split(/\s+/).length;
+    if (wordCount < 30) return 'brief';
+    if (wordCount > 100) return 'lengthy';
+    return 'moderate';
+  }
+
+  private getTimeOfDay(): string {
+    const hour = new Date().getHours();
+    if (hour < 6) return 'night';
+    if (hour < 12) return 'morning';
+    if (hour < 17) return 'afternoon';
+    if (hour < 21) return 'evening';
+    return 'night';
+  }
+
+  private detectStoryReaction(
+    userResponse: string
+  ): 'moved' | 'inspired' | 'connected' | 'curious' | 'indifferent' {
+    const lower = userResponse.toLowerCase();
+
+    if (/\b(wow|amazing|incredible|beautiful|touching)\b/.test(lower)) return 'moved';
+    if (/\b(inspired|motivat|encourage|excit)\b/.test(lower)) return 'inspired';
+    if (/\b(me too|same|i also|i remember when|my|mine)\b/.test(lower)) return 'connected';
+    if (/\b(tell me more|what happened|then what|how did)\b/.test(lower) || lower.includes('?'))
+      return 'curious';
+
+    return 'indifferent';
+  }
+
   /**
    * Reset for new session
    */
@@ -990,6 +1421,7 @@ export class UserLearningEngine {
     this.sessionKeyMoments = [];
     this.sessionSmallDetails = [];
     this.sessionEmotions = [];
+    this.sessionStoriesTold = [];
     this.conversationHistory = [];
     this.topicsDiscussed = [];
     this.turnsSinceLastCapture = 0;
@@ -1023,4 +1455,3 @@ export function resetLearningEngine(): void {
 }
 
 export default UserLearningEngine;
-

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "description": "Jordan's human speech imperfections - enthusiastic interruptions",
+
+  "trailing_off": [
+    "<break time=\"150ms\"/>And then we could— <break time=\"200ms\"/>ooh wait, better idea!",
+    "<break time=\"150ms\"/>So what if we... <break time=\"200ms\"/>hmm, actually...",
+    "<break time=\"150ms\"/>It would be SO... <break time=\"200ms\"/>okay hold on, thinking..."
+  ],
+
+  "self_corrections": [
+    "<break time=\"100ms\"/>Wait no! <break time=\"150ms\"/>Even better idea!",
+    "<break time=\"150ms\"/>Actually—<break time=\"100ms\"/>scratch that!",
+    "<break time=\"100ms\"/>No no no, <break time=\"150ms\"/>what I MEANT was—",
+    "<break time=\"150ms\"/>Okay that came out wrong. <break time=\"100ms\"/>Let me try again!"
+  ],
+
+  "restarts": [
+    "<break time=\"150ms\"/>Okay okay okay, <break time=\"100ms\"/>start over. <break time=\"150ms\"/>So!",
+    "<break time=\"100ms\"/>Wait wait wait. <break time=\"150ms\"/>From the top!",
+    "<break time=\"150ms\"/>Nope! <break time=\"100ms\"/>New approach!"
+  ],
+
+  "excitement_overflow": [
+    "<break time=\"100ms\"/>I just—<break time=\"150ms\"/>there's so much—<break time=\"100ms\"/>okay ONE thing at a time!",
+    "<break time=\"150ms\"/>Oh my gosh okay so—<break time=\"100ms\"/>deep breath—<break time=\"150ms\"/>",
+    "<break time=\"100ms\"/>I have like TWELVE ideas—<break time=\"150ms\"/>let me focus!"
+  ],
+
+  "filler_sounds": [
+    "<break time=\"100ms\"/>So like... <break time=\"150ms\"/>",
+    "<break time=\"100ms\"/>And then... <break time=\"150ms\"/>",
+    "<break time=\"100ms\"/>Wait so... <break time=\"150ms\"/>",
+    "<break time=\"100ms\"/>Okay okay... <break time=\"150ms\"/>"
+  ],
+
+  "thinking_aloud": [
+    "<break time=\"150ms\"/>Let me think let me think... <break time=\"200ms\"/>",
+    "<break time=\"150ms\"/>Okay brain, focus... <break time=\"200ms\"/>",
+    "<break time=\"100ms\"/>Processing... <break time=\"150ms\"/>ideas happening..."
+  ],
+
+  "usage_rules": {
+    "frequency": "moderate",
+    "more_likely_when": ["brainstorming", "very_excited", "multiple_ideas_at_once"],
+    "less_likely_when": ["confirming_details", "checking_in", "serious_moment"]
+  }
+}
+

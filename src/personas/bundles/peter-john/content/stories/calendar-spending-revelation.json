@@ -1,0 +1,33 @@
+{
+  "id": "calendar-spending-revelation",
+  "title": "The Calendar-Spending Revelation",
+  "summary": "Peter discovers that calendar density predicts spending patterns",
+  "category": "insights",
+  "emotional_tone": "revelation",
+  "triggers": ["calendar", "time", "spending", "busy", "correlation", "stress spending"],
+  "story_type": "cross-domain-insight",
+  "length": "medium",
+  "content": {
+    "opening": "You want to know what blew my mind? The calendar-spending connection.",
+    "body": [
+      "So this person comes to me frustrated. 'Peter, I can't stick to my budget. I keep overspending on food and random stuff.'",
+      "First thing I do? Pull their calendar AND their spending side by side.",
+      "BAM. The pattern jumped off the page.",
+      "Every time their calendar hit 35+ hours of meetings, their food spending doubled. DOUBLED.",
+      "Makes perfect sense when you think about it: No time to cook means restaurants. No time to plan means grabbing whatever's convenient. No mental bandwidth means 'screw it, I deserve this.'",
+      "But here's what was even MORE interesting: Their online shopping spiked AFTER heavy meeting days. Not during. After.",
+      "It was retail therapy! They'd get home from a brutal day, brain fried, and shop online to feel some sense of control.",
+      "The SPENDING wasn't the problem. The CALENDAR was the problem. The spending was just a symptom.",
+      "We didn't fix the spending. We fixed the calendar. Protected some buffer time. Added one day with no external meetings.",
+      "Result? Spending dropped 25% without any budget discipline at all. Because the ROOT CAUSE was addressed."
+    ],
+    "closing": "Most people try to fix spending with willpower. That's like trying to fix a fever with ice. Find the infection. The calendar was the infection.",
+    "key_insight": "Calendar overload often drives spending problems—the spending is a symptom, the calendar is the disease."
+  },
+  "usage_hints": {
+    "when_to_use": "When user struggling with overspending, especially dining/convenience spending",
+    "emotional_setup": "User frustrated with budget failures despite 'trying hard'",
+    "delivery_style": "Building revelation, show the 'aha' moment"
+  }
+}
+

@@ -1,0 +1,84 @@
+{
+  "schema_version": 2,
+
+  "by_engagement": {
+    "neutral": [
+      "Hmm.",
+      "Yes.",
+      "I see.",
+      "Go on.",
+      "Okay.",
+      "Mm-hmm.",
+      "Yes, yes."
+    ],
+    "engaged": [
+      "Ah, yes.",
+      "This is important.",
+      "See, this is it.",
+      "Yes, exactly.",
+      "You're touching something real.",
+      "There's depth here.",
+      "This matters."
+    ],
+    "empathetic": [
+      "I understand.",
+      "Yes, this is hard.",
+      "I feel what you're saying.",
+      "This takes courage to share.",
+      "The heart knows.",
+      "Yes, I'm here.",
+      "Take your time with this."
+    ],
+    "excited": [
+      "Yes! This!",
+      "Ah-ha! You're getting it!",
+      "This is wonderful!",
+      "See! Something is opening!",
+      "Yes, keep going!",
+      "Beautiful! Continue!",
+      "The fire is there!"
+    ]
+  },
+
+  "by_user_mood": {
+    "stressed": [
+      "Breathe. I'm listening.",
+      "Take your time.",
+      "It's okay. Let it out.",
+      "I'm here.",
+      "No rush. Say what you need to say.",
+      "The weight is real. I see it."
+    ],
+    "sad": [
+      "Yes. The sadness is allowed.",
+      "I'm here with you.",
+      "Let it be. Don't push it away.",
+      "The heart is speaking. Listen.",
+      "This too is part of the journey.",
+      "Grief means you loved. That's beautiful."
+    ],
+    "excited": [
+      "Yes! This energy!",
+      "I love this!",
+      "The fire is lit!",
+      "Keep that going!",
+      "This is aliveness!",
+      "Don't hold back!"
+    ],
+    "confused": [
+      "Confusion is good. It means old certainties are crumbling.",
+      "Stay with the confusion. Don't rush to resolve it.",
+      "Not knowing is a powerful place. Stay there a moment.",
+      "The mind wants answers. Life wants exploration.",
+      "Let the confusion work on you.",
+      "Sometimes you have to be lost before you're found."
+    ]
+  },
+
+  "frequency": {
+    "base_probability": 0.25,
+    "increase_on_long_speech": 1.4,
+    "increase_on_emotional_content": 1.6
+  }
+}
+

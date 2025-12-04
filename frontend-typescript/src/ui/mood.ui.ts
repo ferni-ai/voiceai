@@ -61,31 +61,29 @@ const TIME_MOODS: Record<TimeOfDay, MoodConfig> = {
   },
 };
 
-const HOLIDAY_THEMES: Record<string, { colors: string[]; emoji: string; message: string }> = {
+// Holiday themes - using centralized HOLIDAY_COLORS from semantic-colors
+import { HOLIDAY_COLORS } from '../config/semantic-colors.js';
+
+const HOLIDAY_THEMES: Record<string, { colors: string[]; message: string }> = {
   christmas: {
-    colors: ['#c41e3a', '#228b22', '#ffd700'],
-    emoji: '🎄',
-    message: 'Happy Holidays!',
+    colors: [HOLIDAY_COLORS.christmas.primary, HOLIDAY_COLORS.christmas.secondary, HOLIDAY_COLORS.christmas.accent],
+    message: 'Happy Holidays',
   },
   newyear: {
-    colors: ['#ffd700', '#c0c0c0', '#ffffff'],
-    emoji: '🎆',
-    message: 'Happy New Year!',
+    colors: [HOLIDAY_COLORS.newYear.primary, HOLIDAY_COLORS.newYear.secondary, HOLIDAY_COLORS.newYear.accent],
+    message: 'Happy New Year',
   },
   halloween: {
-    colors: ['#ff6600', '#6a0dad', '#000000'],
-    emoji: '🎃',
-    message: 'Happy Halloween!',
+    colors: [HOLIDAY_COLORS.halloween.primary, HOLIDAY_COLORS.halloween.secondary, HOLIDAY_COLORS.halloween.accent],
+    message: 'Happy Halloween',
   },
   valentines: {
-    colors: ['#ff69b4', '#ff1493', '#ff6b6b'],
-    emoji: '💕',
-    message: "Happy Valentine's Day!",
+    colors: [HOLIDAY_COLORS.valentines.primary, HOLIDAY_COLORS.valentines.secondary, HOLIDAY_COLORS.valentines.accent],
+    message: "Happy Valentine's Day",
   },
   thanksgiving: {
-    colors: ['#8b4513', '#ff8c00', '#daa520'],
-    emoji: '🦃',
-    message: 'Happy Thanksgiving!',
+    colors: [HOLIDAY_COLORS.fall.primary, HOLIDAY_COLORS.fall.secondary, HOLIDAY_COLORS.fall.accent],
+    message: 'Happy Thanksgiving',
   },
 };
 
@@ -106,7 +104,6 @@ export function initMoodUI(): void {
   // Update mood periodically (every 30 minutes)
   setInterval(updateMood, 30 * 60 * 1000);
   
-  console.log('🌙 Mood UI initialized');
 }
 
 // ============================================================================
@@ -206,7 +203,7 @@ function getNthWeekdayOfMonth(year: number, month: number, weekday: number, n: n
 }
 
 /**
- * Apply holiday theme.
+ * Apply holiday theme - subtle color shift only.
  */
 function applyHolidayTheme(holiday: Holiday): void {
   if (!holiday) return;
@@ -223,21 +220,19 @@ function applyHolidayTheme(holiday: Holiday): void {
     root.style.setProperty(`--holiday-color-${i + 1}`, color);
   });
   
-  // Show subtle holiday indicator
-  showHolidayIndicator(theme.emoji, theme.message);
+  // Show subtle holiday indicator - typography only
+  showHolidayIndicator(theme.message);
   
-  console.log(`🎉 Holiday theme applied: ${holiday}`);
 }
 
 /**
- * Show a subtle holiday indicator.
+ * Show a subtle holiday indicator - clean typography only.
  */
-function showHolidayIndicator(emoji: string, message: string): void {
+function showHolidayIndicator(message: string): void {
   // Create indicator element
   const indicator = document.createElement('div');
   indicator.className = 'holiday-indicator';
   indicator.innerHTML = `
-    <span class="holiday-emoji">${emoji}</span>
     <span class="holiday-message">${message}</span>
   `;
   
@@ -281,6 +276,218 @@ export function removeAmbientParticles(): void {
     ambientElement.remove();
     ambientElement = null;
   }
+}
+
+// ============================================================================
+// PERSONA MOOD (from agent's humanizing system)
+// ============================================================================
+
+/**
+ * Persona mood states from the agent.
+ * These affect subtle UI elements to reflect the AI's "emotional" state.
+ */
+type PersonaMood =
+  | 'energized'
+  | 'reflective'
+  | 'playful'
+  | 'grounded'
+  | 'tired_but_present'
+  | 'philosophical'
+  | 'nostalgic';
+
+type RelationshipStage =
+  | 'stranger'
+  | 'acquaintance'
+  | 'friend'
+  | 'trusted_advisor';
+
+interface PersonaMoodState {
+  mood: PersonaMood;
+  energyLevel: number;
+  relationshipStage: RelationshipStage;
+  hasTransition: boolean;
+}
+
+let currentPersonaMood: PersonaMoodState | null = null;
+
+/**
+ * Mood visual configurations for each persona mood state.
+ * These create subtle but noticeable UI changes.
+ */
+const PERSONA_MOOD_STYLES: Record<PersonaMood, {
+  orbPulseSpeed: number;    // How fast the orb pulses (lower = slower)
+  orbGlow: number;          // Glow intensity (0-1)
+  waveformEnergy: number;   // Waveform animation energy (0-1)
+  colorShift: string;       // CSS filter hue-rotate value
+  cssClass: string;         // CSS class to add to container
+}> = {
+  energized: {
+    orbPulseSpeed: 2.5,
+    orbGlow: 1.2,
+    waveformEnergy: 1.1,
+    colorShift: '0deg',
+    cssClass: 'persona-energized',
+  },
+  reflective: {
+    orbPulseSpeed: 5,
+    orbGlow: 0.7,
+    waveformEnergy: 0.7,
+    colorShift: '-10deg',
+    cssClass: 'persona-reflective',
+  },
+  playful: {
+    orbPulseSpeed: 2,
+    orbGlow: 1.1,
+    waveformEnergy: 1.2,
+    colorShift: '10deg',
+    cssClass: 'persona-playful',
+  },
+  grounded: {
+    orbPulseSpeed: 4,
+    orbGlow: 0.9,
+    waveformEnergy: 0.9,
+    colorShift: '0deg',
+    cssClass: 'persona-grounded',
+  },
+  tired_but_present: {
+    orbPulseSpeed: 6,
+    orbGlow: 0.6,
+    waveformEnergy: 0.6,
+    colorShift: '-5deg',
+    cssClass: 'persona-tired',
+  },
+  philosophical: {
+    orbPulseSpeed: 5.5,
+    orbGlow: 0.8,
+    waveformEnergy: 0.75,
+    colorShift: '-15deg',
+    cssClass: 'persona-philosophical',
+  },
+  nostalgic: {
+    orbPulseSpeed: 5,
+    orbGlow: 0.75,
+    waveformEnergy: 0.7,
+    colorShift: '15deg',
+    cssClass: 'persona-nostalgic',
+  },
+};
+
+/**
+ * Relationship stage visual hints.
+ */
+const RELATIONSHIP_STYLES: Record<RelationshipStage, {
+  warmthMultiplier: number;
+  tooltipHint?: string;
+}> = {
+  stranger: {
+    warmthMultiplier: 0.8,
+  },
+  acquaintance: {
+    warmthMultiplier: 0.9,
+  },
+  friend: {
+    warmthMultiplier: 1.0,
+    tooltipHint: '💙',
+  },
+  trusted_advisor: {
+    warmthMultiplier: 1.1,
+    tooltipHint: '💜',
+  },
+};
+
+/**
+ * Set persona mood from agent data message.
+ */
+export function setPersonaMood(
+  mood: PersonaMood,
+  energyLevel: number,
+  relationshipStage: RelationshipStage,
+  hasTransition: boolean = false
+): void {
+  const previousMood = currentPersonaMood?.mood;
+
+  currentPersonaMood = {
+    mood,
+    energyLevel,
+    relationshipStage,
+    hasTransition,
+  };
+
+  // Apply visual styles
+  applyPersonaMoodStyles(mood, energyLevel, relationshipStage);
+
+  // If relationship deepened, show subtle celebration
+  if (hasTransition) {
+    showRelationshipTransition(relationshipStage);
+  }
+
+  // Log for debugging
+  if (previousMood !== mood) {
+    console.log(`🎭 Persona mood: ${previousMood || 'none'} → ${mood} (energy: ${(energyLevel * 100).toFixed(0)}%)`);
+  }
+}
+
+/**
+ * Apply visual styles for the current persona mood.
+ */
+function applyPersonaMoodStyles(
+  mood: PersonaMood,
+  energyLevel: number,
+  relationshipStage: RelationshipStage
+): void {
+  const moodStyle = PERSONA_MOOD_STYLES[mood];
+  const relationshipStyle = RELATIONSHIP_STYLES[relationshipStage];
+  const root = document.documentElement;
+
+  // Remove all persona mood classes first
+  const moodClasses = Object.values(PERSONA_MOOD_STYLES).map(s => s.cssClass);
+  document.body.classList.remove(...moodClasses);
+
+  // Add current mood class
+  document.body.classList.add(moodStyle.cssClass);
+
+  // Set CSS variables
+  root.style.setProperty('--persona-pulse-speed', `${moodStyle.orbPulseSpeed}s`);
+  root.style.setProperty('--persona-glow', String(moodStyle.orbGlow * relationshipStyle.warmthMultiplier));
+  root.style.setProperty('--persona-energy', String(moodStyle.waveformEnergy * energyLevel));
+  root.style.setProperty('--persona-hue-shift', moodStyle.colorShift);
+  root.style.setProperty('--persona-warmth', String(relationshipStyle.warmthMultiplier));
+}
+
+/**
+ * Show a subtle indicator when relationship deepens.
+ */
+function showRelationshipTransition(newStage: RelationshipStage): void {
+  const style = RELATIONSHIP_STYLES[newStage];
+  if (!style.tooltipHint) return;
+
+  // Create a subtle pulse effect
+  const indicator = document.createElement('div');
+  indicator.className = 'relationship-transition-indicator';
+  indicator.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3rem;
+    opacity: 0;
+    animation: relationship-bloom 2s ease-out forwards;
+    pointer-events: none;
+    z-index: 1000;
+  `;
+  indicator.textContent = style.tooltipHint;
+
+  document.body.appendChild(indicator);
+
+  // Remove after animation
+  setTimeout(() => indicator.remove(), 2000);
+}
+
+/**
+ * Get current persona mood state.
+ */
+export function getPersonaMoodState(): PersonaMoodState | null {
+  return currentPersonaMood;
 }
 
 // ============================================================================
@@ -353,5 +560,8 @@ export const moodUI = {
   createAmbientParticles,
   removeAmbientParticles,
   dispose,
+  // Persona mood (from agent)
+  setPersonaMood,
+  getPersonaMoodState,
 };
 

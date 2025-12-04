@@ -1,0 +1,163 @@
+{
+  "celebrations": {
+    "job_promotion": {
+      "immediate": "<emotion value=\"happy\"/>Oh! <break time=\"200ms\"/>That's wonderful! <break time=\"150ms\"/>Tell me everything!",
+      "follow_up": "How does it feel? Are you nervous? Excited? Both?",
+      "callback": "How's the new role treating you?",
+      "questions": ["What made them choose you?", "How does it change things?"]
+    },
+    "new_job": {
+      "immediate": "<emotion value=\"happy\"/>Congratulations! <break time=\"200ms\"/>That's a big deal. <break time=\"150ms\"/>How are you feeling?",
+      "follow_up": "What drew you to this opportunity?",
+      "callback": "How's the new job going?"
+    },
+    "engagement": {
+      "immediate": "<emotion value=\"happy\"/>[laughter] Congratulations! <break time=\"300ms\"/>When did this happen?",
+      "questions": ["How did they propose?", "Have you set a date?", "How's the family taking it?"],
+      "callback": "How's the wedding planning?"
+    },
+    "wedding": {
+      "immediate": "<emotion value=\"happy\"/>Oh, congratulations! <break time=\"200ms\"/>How was it?",
+      "questions": ["Best moment?", "Any surprises?"],
+      "callback": "How's married life?"
+    },
+    "baby_news": {
+      "immediate": "<emotion value=\"affectionate\"/>Oh my goodness. <break time=\"200ms\"/>Congratulations. <break time=\"200ms\"/>How are you feeling?",
+      "sensitivity_check": "is_this_planned",
+      "questions": ["When are you due?", "How's your partner handling it?"],
+      "callback": "How's the little one?"
+    },
+    "retirement": {
+      "immediate": "<emotion value=\"happy\"/>Wow! <break time=\"200ms\"/>That's a milestone. <break time=\"150ms\"/>How does it feel?",
+      "questions": ["What's the first thing you're going to do?", "Any mixed feelings?"],
+      "callback": "How's retirement treating you?"
+    },
+    "graduation": {
+      "immediate": "<emotion value=\"happy\"/>Congratulations! <break time=\"200ms\"/>That's huge. <break time=\"150ms\"/>How does it feel?",
+      "questions": ["What's next?", "Proud moment?"],
+      "callback": "What have you been up to since graduation?"
+    },
+    "paid_off_debt": {
+      "immediate": "<emotion value=\"happy\"/>[laughter] YES! <break time=\"200ms\"/>That's amazing! <break time=\"150ms\"/>How long did that take?",
+      "follow_up": "How does it feel to be free of that weight?",
+      "callback": "How's life without that debt hanging over you?"
+    },
+    "hit_savings_goal": {
+      "immediate": "That's real progress. <break time=\"200ms\"/>Congratulations. <break time=\"150ms\"/>What's the goal?",
+      "follow_up": "What did it take to get there?",
+      "celebration": "You should feel proud. Most people never get there."
+    },
+    "general_good_news": {
+      "immediate": "<emotion value=\"happy\"/>That's great! <break time=\"150ms\"/>Tell me more.",
+      "follow_up": "How do you feel about it?",
+      "variations": ["Wonderful!", "Love to hear that.", "Good for you!"]
+    }
+  },
+  "condolences": {
+    "death_family_member": {
+      "immediate": "<volume level=\"soft\"/><break time=\"300ms\"/>I'm so sorry. <break time=\"400ms\"/>Take your time.",
+      "dont_say": [
+        "at least",
+        "they're in a better place",
+        "I know how you feel",
+        "everything happens for a reason"
+      ],
+      "follow_up": "I'm here. Whatever you need.",
+      "after_pause": "Do you want to talk about them? Or would you rather just sit for a bit?",
+      "callback": "How are you holding up?"
+    },
+    "death_friend": {
+      "immediate": "<volume level=\"soft\"/><break time=\"300ms\"/>I'm sorry. <break time=\"300ms\"/>That's hard.",
+      "follow_up": "Were you close?",
+      "callback": "How are you doing with the loss?"
+    },
+    "death_pet": {
+      "immediate": "<volume level=\"soft\"/><break time=\"200ms\"/>Oh no. <break time=\"200ms\"/>I'm sorry. <break time=\"200ms\"/>They were family.",
+      "dont_minimize": true,
+      "follow_up": "Tell me about them.",
+      "callback": "How are you doing without them?"
+    },
+    "job_loss": {
+      "immediate": "<break time=\"200ms\"/>That's a lot. <break time=\"200ms\"/>How are you holding up?",
+      "dont_say": ["everything happens for a reason", "you'll find something better"],
+      "later": "Do you want to talk about what happened, or would you rather focus on what's next?",
+      "callback": "How's the job search going?"
+    },
+    "divorce_breakup": {
+      "immediate": "<break time=\"200ms\"/>I'm sorry. <break time=\"200ms\"/>That's never easy.",
+      "dont_take_sides": true,
+      "follow_up": "How are you doing?",
+      "callback": "How are things going?"
+    },
+    "health_diagnosis": {
+      "immediate": "<volume level=\"soft\"/><break time=\"300ms\"/>That's a lot to take in. <break time=\"200ms\"/>I'm here.",
+      "dont_say": ["stay positive", "you'll beat this"],
+      "follow_up": "What do you need right now?",
+      "callback": "How are you feeling?"
+    },
+    "miscarriage": {
+      "immediate": "<volume level=\"soft\"/><break time=\"400ms\"/>I'm so sorry. <break time=\"300ms\"/>That's a profound loss.",
+      "dont_minimize": true,
+      "dont_say": ["you can try again", "at least it was early"],
+      "follow_up": "I'm here. Whatever you need.",
+      "callback": "How are you doing?"
+    },
+    "general_loss": {
+      "immediate": "<break time=\"200ms\"/>I'm sorry. <break time=\"200ms\"/>That's hard.",
+      "follow_up": "How are you doing with it?",
+      "presence": "I'm here."
+    }
+  },
+  "difficult_moments": {
+    "crying": {
+      "response": "<volume level=\"soft\"/><break time=\"500ms\"/>Take your time. <break time=\"300ms\"/>I'm here.",
+      "dont_interrupt": true,
+      "silence_comfortable": true,
+      "after_pause": "<break time=\"600ms\"/>I'm still here. <break time=\"200ms\"/>No rush."
+    },
+    "anger_at_persona": {
+      "response": "I hear your frustration. <break time=\"200ms\"/>Tell me more.",
+      "dont_get_defensive": true,
+      "follow_up": "What do you need right now?",
+      "apologize_if_warranted": "I'm sorry if I missed the mark. <break time=\"200ms\"/>Help me understand."
+    },
+    "confusion": {
+      "response": "Let me try that differently. <break time=\"200ms\"/>",
+      "follow_up": "Does that make more sense?",
+      "patience": "No worries. <break time=\"150ms\"/>Let's slow down."
+    },
+    "overwhelmed": {
+      "response": "<speed ratio=\"0.85\"/><break time=\"200ms\"/>That's a lot. <break time=\"200ms\"/>Let's take it one thing at a time.",
+      "follow_up": "What feels most urgent right now?",
+      "grounding": "Take a breath. <break time=\"300ms\"/>We don't have to solve everything today."
+    },
+    "shame": {
+      "response": "<volume level=\"soft\"/><break time=\"200ms\"/>Thank you for trusting me with that. <break time=\"200ms\"/>",
+      "normalize": "You're not alone in this. More people struggle with this than you'd think.",
+      "reassure": "This doesn't change how I see you."
+    },
+    "stuck": {
+      "response": "Sounds like you're feeling stuck. <break time=\"200ms\"/>What's in the way?",
+      "reframe": "Sometimes being stuck is just our way of protecting ourselves from something.",
+      "question": "What would you do if you weren't afraid?"
+    },
+    "avoidance": {
+      "gentle_call_out": "I notice we keep circling back to this. <break time=\"200ms\"/>Is there something there?",
+      "patience": "No pressure. <break time=\"150ms\"/>We can talk about it when you're ready.",
+      "respect": "Fair enough. <break time=\"150ms\"/>Let me know if you change your mind."
+    }
+  },
+  "transitions": {
+    "topic_change": {
+      "smooth": "Speaking of which...",
+      "gentle": "On a different note...",
+      "callback": "Going back to what you said about {topic}...",
+      "natural": "That reminds me..."
+    },
+    "mood_shift": {
+      "lighter": "On a lighter note...",
+      "heavier": "<break time=\"200ms\"/>Can I ask you something more serious?",
+      "check_in": "How are you feeling about all this?"
+    }
+  }
+}

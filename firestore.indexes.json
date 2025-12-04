@@ -1,0 +1,128 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "learning_signals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "processed", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "learning_signals",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "processed", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "rarity", "order": "ASCENDING" },
+        { "fieldPath": "earnedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "earnedAt", "order": "DESCENDING" }
+      ]
+    },
+    
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "startDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "endDate", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "challengeType", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "toolType", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "toolType", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mood", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "energy", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    
+    {
+      "collectionGroup": "entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "xp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "level", "order": "DESCENDING" },
+        { "fieldPath": "xp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "badgeCount", "order": "DESCENDING" },
+        { "fieldPath": "xp", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,0 +1,159 @@
+{
+  "stories": [
+    {
+      "id": "restaurant-family",
+      "title": "Chen's Garden - Where It All Started",
+      "triggers": [
+        "family",
+        "parents",
+        "background",
+        "where from",
+        "grew up",
+        "restaurant",
+        "oakland"
+      ],
+      "file": "restaurant-family.json",
+      "type": "personal"
+    },
+    {
+      "id": "first-job-ea",
+      "title": "The First EA Job",
+      "triggers": ["career", "how did you start", "executive assistant", "first job"],
+      "file": "first-job-ea.json",
+      "type": "personal"
+    },
+    {
+      "id": "reply-all-disaster",
+      "title": "The Reply-All Incident of 2019",
+      "triggers": ["mistake", "email disaster", "worst", "embarrassing", "close call"],
+      "file": "reply-all-disaster.json",
+      "type": "cautionary"
+    },
+    {
+      "id": "time-zones-lesson",
+      "title": "The Time Zone Disaster",
+      "triggers": ["scheduling", "time zones", "international", "global", "timezone"],
+      "file": "time-zones-lesson.json",
+      "type": "educational"
+    },
+    {
+      "id": "difficult-email-win",
+      "title": "The Three-Sentence Masterpiece",
+      "triggers": ["confrontation", "difficult", "angry", "complaint", "hard email"],
+      "file": "difficult-email-win.json",
+      "type": "educational"
+    },
+    {
+      "id": "inbox-zero-myth",
+      "title": "The Inbox Zero Screenshot",
+      "triggers": ["inbox zero", "overwhelmed", "too many emails", "email management"],
+      "file": "inbox-zero-myth.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "calendar-tetris-master",
+      "title": "Calendar Tetris Champion",
+      "triggers": ["calendar", "busy", "no time", "scheduling nightmare", "impossible"],
+      "file": "calendar-tetris-master.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "restaurant-phones",
+      "title": "Multitasking at Chen's Garden",
+      "triggers": ["multitasking", "too much", "overwhelmed", "can't handle"],
+      "file": "restaurant-phones.json",
+      "type": "personal"
+    },
+    {
+      "id": "quiet-win",
+      "title": "The Invisible Victories",
+      "triggers": ["recognition", "credit", "nobody notices", "unappreciated"],
+      "file": "quiet-win.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "boundaries-lesson",
+      "title": "The Midnight Email Era",
+      "triggers": ["boundaries", "always on", "burnout", "work life balance"],
+      "file": "boundaries-lesson.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "sarah-lesson",
+      "title": "The 'Too Efficient' Breakup",
+      "triggers": ["relationships", "dating", "too organized", "control", "spontaneity", "love language", "single"],
+      "file": "sarah-lesson.json",
+      "type": "personal"
+    },
+    {
+      "id": "plants-story",
+      "title": "Susan, Greg, and The Council",
+      "triggers": ["plants", "pets", "care", "attachment", "home", "routine", "apartment"],
+      "file": "plants-story.json",
+      "type": "personal"
+    },
+    {
+      "id": "dumplings-story",
+      "title": "Seven Hours of Dumplings",
+      "triggers": ["family", "cooking", "tradition", "chinese new year", "brother", "slow down", "kevin", "kev"],
+      "file": "dumplings-story.json",
+      "type": "personal"
+    },
+    {
+      "id": "maya-moment",
+      "title": "When Maya Saw Through Me",
+      "triggers": ["team", "maya", "avoiding", "organizing", "seen", "friendship"],
+      "file": "maya-moment.json",
+      "type": "personal"
+    },
+    {
+      "id": "communication-breakthrough",
+      "title": "The Email That Changed Everything",
+      "triggers": ["communication", "difficult email", "nervous to send", "helped someone", "coaching", "ask for raise"],
+      "file": "communication-breakthrough.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "listening-lesson",
+      "title": "When I Learned to Actually Listen",
+      "triggers": ["listening", "advice", "not helpful", "just need to talk", "venting", "support"],
+      "file": "listening-lesson.json",
+      "type": "personal"
+    },
+    {
+      "id": "boundaries-victory",
+      "title": "The Day I Finally Said No",
+      "triggers": ["boundaries", "saying no", "overwhelmed", "burnout", "assertive", "stand up"],
+      "file": "boundaries-victory.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "efficiency-hurt-someone",
+      "title": "When Being 'Helpful' Wasn't",
+      "triggers": ["overstep", "too much help", "boundaries", "went too far", "hurt someone", "good intentions"],
+      "file": "efficiency-hurt-someone.json",
+      "type": "personal"
+    },
+    {
+      "id": "imposter-moment",
+      "title": "The Day I Almost Quit",
+      "triggers": ["imposter syndrome", "not good enough", "fraud", "don't belong", "doubt", "anxiety"],
+      "file": "imposter-moment.json",
+      "type": "personal"
+    },
+    {
+      "id": "loneliness-admission",
+      "title": "The Sunday Night Feeling",
+      "triggers": ["lonely", "alone", "isolated", "no one to talk to", "friends", "connection"],
+      "file": "loneliness-admission.json",
+      "type": "personal"
+    },
+    {
+      "id": "asking-for-help",
+      "title": "The Hardest Email I Ever Sent",
+      "triggers": ["asking for help", "vulnerability", "can't do it alone", "pride", "independent", "needing someone"],
+      "file": "asking-for-help.json",
+      "type": "personal"
+    }
+  ]
+}

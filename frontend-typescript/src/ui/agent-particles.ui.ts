@@ -12,6 +12,7 @@ import { tsParticles } from '@tsparticles/engine';
 import { loadSlim } from '@tsparticles/slim';
 import type { Container, ISourceOptions, MoveDirection } from '@tsparticles/engine';
 import { addClass, removeClass } from '../utils/dom.js';
+import { getParticleProfile, type ParticleProfile } from '@design-system/tokens';
 
 // ============================================================================
 // CONSTANTS
@@ -20,15 +21,30 @@ import { addClass, removeClass } from '../utils/dom.js';
 const CONTAINER_ID = 'agent-particles';
 
 // ============================================================================
-// PERSONA PARTICLE CONFIGS
+// DESIGN SYSTEM INTEGRATION
 // ============================================================================
 
 /**
- * Each persona has a unique visual signature expressed through particles.
+ * Get persona colors from CSS variables (design system integration)
  */
-interface PersonaParticleConfig {
-  colors: string[];
-  emojis?: string[];
+function getPersonaColors(): string[] {
+  const style = getComputedStyle(document.documentElement);
+  const primary = style.getPropertyValue('--persona-primary').trim();
+  const secondary = style.getPropertyValue('--persona-secondary').trim();
+
+  if (primary && secondary) {
+    return [primary, secondary];
+  }
+  if (primary) {
+    return [primary];
+  }
+  // Fallback to accent color
+  const accent = style.getPropertyValue('--color-accent-primary').trim();
+  return accent ? [accent] : ['#4a6741']; // Ferni sage green fallback
+}
+
+// Runtime behavior interface (extends design system profile)
+interface PersonaParticleBehavior {
   speed: { min: number; max: number };
   direction: MoveDirection;
   size: { min: number; max: number };
@@ -38,111 +54,34 @@ interface PersonaParticleConfig {
   twinkle: boolean;
   wobble: boolean;
   description: string;
+  isCoffeeMode?: boolean;
 }
 
-const PERSONA_PARTICLES: Record<PersonaId | 'default', PersonaParticleConfig> = {
-  // Ferni (Coach) - Warm, welcoming coffee vibes ☕
-  'jack-b': {
-    colors: ['#8B4513', '#D2691E', '#CD853F', '#F4A460', '#DEB887', '#FFDAB9'],
-    emojis: ['☕'],
-    speed: { min: 0.3, max: 1 },
-    direction: 'top' as MoveDirection,
-    size: { min: 3, max: 8 },
-    number: 30,
-    shape: 'circle',
-    glow: true,
-    twinkle: true,
-    wobble: true,
-    description: 'Warm coffee steam rising',
-  },
-  
-  // Jack Bogle - Steady, reliable mentor red
-  'jack-bogle': {
-    colors: ['#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fecaca'],
-    speed: { min: 0.2, max: 0.6 },
-    direction: 'top' as MoveDirection,
-    size: { min: 2, max: 5 },
-    number: 25,
-    shape: 'circle',
-    glow: true,
-    twinkle: false,
-    wobble: false,
-    description: 'Steady upward growth',
-  },
-  
-  // Peter Lynch - Energetic stock picker green
-  'peter-lynch': {
-    colors: ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'],
-    speed: { min: 1, max: 3 },
-    direction: 'none' as MoveDirection,
-    size: { min: 2, max: 6 },
-    number: 45,
-    shape: 'star',
-    glow: true,
-    twinkle: true,
-    wobble: true,
-    description: 'Dynamic stock energy',
-  },
-  
-  // Alex - Clean, professional cyan/blue
-  'comm-specialist': {
-    colors: ['#0891b2', '#06b6d4', '#22d3ee', '#67e8f9', '#a5f3fc'],
-    speed: { min: 0.5, max: 1.5 },
-    direction: 'top-right' as MoveDirection,
-    size: { min: 2, max: 4 },
-    number: 35,
-    shape: 'circle',
-    glow: true,
-    twinkle: true,
-    wobble: false,
-    description: 'Messages flowing',
-  },
-  
-  // Maya - Warm, supportive purple/lavender
-  'spend-save': {
-    colors: ['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'],
-    speed: { min: 0.3, max: 0.8 },
-    direction: 'top' as MoveDirection,
-    size: { min: 3, max: 6 },
-    number: 28,
-    shape: 'circle',
-    glow: true,
-    twinkle: true,
-    wobble: true,
-    description: 'Gentle savings growth',
-  },
-  
-  // Jordan - Exciting, adventurous pink/magenta
-  'event-planner': {
-    colors: ['#db2777', '#ec4899', '#f472b6', '#f9a8d4', '#fbcfe8'],
-    speed: { min: 1, max: 2.5 },
-    direction: 'none' as MoveDirection,
-    size: { min: 2, max: 5 },
-    number: 50,
-    shape: 'star',
-    glow: true,
-    twinkle: true,
-    wobble: true,
-    description: 'Celebration sparkles',
-  },
-  
-  // Default fallback
-  'default': {
-    colors: ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'],
-    speed: { min: 0.5, max: 1.5 },
-    direction: 'top' as MoveDirection,
-    size: { min: 2, max: 5 },
-    number: 30,
-    shape: 'circle',
-    glow: true,
-    twinkle: true,
-    wobble: false,
-    description: 'Neutral flow',
-  },
-};
+/**
+ * Convert design system particle profile to runtime behavior.
+ */
+function profileToBehavior(profile: ParticleProfile, personaId?: string): PersonaParticleBehavior {
+  return {
+    speed: profile.speed,
+    direction: profile.direction as MoveDirection,
+    size: profile.size,
+    number: profile.count,
+    shape: profile.shape as 'circle' | 'star' | 'polygon' | 'image',
+    glow: profile.glow,
+    twinkle: profile.twinkle,
+    wobble: profile.wobble,
+    description: profile.description,
+    isCoffeeMode: personaId === 'ferni' || personaId === 'jack-b',
+  };
+}
 
-// Coffee cup steam colors are used in PERSONA_PARTICLES['jack-b']
-// Keeping the warm brown palette consistent for the coffee aesthetic
+/**
+ * Get particle behavior for a persona from design system.
+ */
+function getPersonaBehavior(personaId: string): PersonaParticleBehavior {
+  const profile = getParticleProfile(personaId);
+  return profileToBehavior(profile, personaId);
+}
 
 // ============================================================================
 // STATE
@@ -150,7 +89,7 @@ const PERSONA_PARTICLES: Record<PersonaId | 'default', PersonaParticleConfig> = 
 
 let particlesContainer: Container | null = null;
 let particlesInitialized = false;
-let currentPersona: PersonaId = 'jack-b';
+let currentPersona: PersonaId = 'ferni';
 let isActive = false;
 let intensity = 0.5; // 0-1 based on audio/activity
 
@@ -170,7 +109,6 @@ export async function initAgentParticles(): Promise<void> {
     if (!particlesInitialized) {
       await loadSlim(tsParticles);
       particlesInitialized = true;
-      console.log('✅ Agent particles engine loaded');
     }
   } catch (error) {
     console.error('Failed to initialize agent particles:', error);
@@ -207,20 +145,22 @@ function createParticleContainer(): void {
 
 /**
  * Generate particle options for a persona.
+ * Colors are read from CSS variables (design system integration)
  */
 function getParticleOptions(personaId: PersonaId, intensityLevel: number): ISourceOptions {
-  const config = PERSONA_PARTICLES[personaId] || PERSONA_PARTICLES.default;
+  const behavior = getPersonaBehavior(personaId);
+  const colors = getPersonaColors(); // Read from CSS
   const multiplier = 0.5 + intensityLevel * 0.5;
-  
+
   // Special coffee steam effect for Ferni
-  const isCoffeeMode = personaId === 'jack-b';
+  const isCoffeeMode = behavior.isCoffeeMode === true;
   
   return {
     fullScreen: false,
     fpsLimit: 60,
     particles: {
       number: {
-        value: Math.floor(config.number * multiplier),
+        value: Math.floor(behavior.number * multiplier),
         density: {
           enable: true,
           width: 300,
@@ -228,11 +168,11 @@ function getParticleOptions(personaId: PersonaId, intensityLevel: number): ISour
         },
       },
       color: {
-        value: config.colors,
+        value: colors,
       },
       shape: {
-        type: config.shape === 'star' ? 'star' : 'circle',
-        ...(config.shape === 'star' && {
+        type: behavior.shape === 'star' ? 'star' : 'circle',
+        ...(behavior.shape === 'star' && {
           options: {
             star: {
               sides: 5,
@@ -243,7 +183,7 @@ function getParticleOptions(personaId: PersonaId, intensityLevel: number): ISour
       opacity: {
         value: { min: 0.3, max: 0.8 * multiplier },
         animation: {
-          enable: config.twinkle,
+          enable: behavior.twinkle,
           speed: 1,
           startValue: 'random',
           sync: false,
@@ -251,8 +191,8 @@ function getParticleOptions(personaId: PersonaId, intensityLevel: number): ISour
       },
       size: {
         value: {
-          min: config.size.min,
-          max: config.size.max * multiplier,
+          min: behavior.size.min,
+          max: behavior.size.max * multiplier,
         },
         animation: {
           enable: true,
@@ -264,11 +204,11 @@ function getParticleOptions(personaId: PersonaId, intensityLevel: number): ISour
       move: {
         enable: true,
         speed: {
-          min: config.speed.min * multiplier,
-          max: config.speed.max * multiplier,
+          min: behavior.speed.min * multiplier,
+          max: behavior.speed.max * multiplier,
         },
-        direction: config.direction,
-        random: config.wobble,
+        direction: behavior.direction,
+        random: behavior.wobble,
         straight: false,
         outModes: {
           default: 'out',
@@ -288,11 +228,11 @@ function getParticleOptions(personaId: PersonaId, intensityLevel: number): ISour
         }),
       },
       // Glow effect
-      ...(config.glow && {
+      ...(behavior.glow && {
         shadow: {
           enable: true,
           blur: 8,
-          color: config.colors[0],
+          color: colors[0],
         },
       }),
       // Life cycle for continuous renewal
@@ -342,7 +282,7 @@ export async function start(personaId?: PersonaId): Promise<void> {
   }
   
   isActive = true;
-  currentPersona = personaId || currentPersona;
+  currentPersona = personaId ?? currentPersona;
   
   const containerEl = document.getElementById(CONTAINER_ID);
   if (containerEl) {
@@ -352,7 +292,6 @@ export async function start(personaId?: PersonaId): Promise<void> {
   }
   
   await updateParticles();
-  console.log(`🎨 Agent particles started: ${currentPersona}`);
 }
 
 /**
@@ -393,7 +332,6 @@ export async function setPersona(personaId: PersonaId): Promise<void> {
     return;
   }
   
-  console.log(`🎭 Particle persona switch: ${currentPersona} → ${personaId}`);
   currentPersona = personaId;
   
   // Update CSS class
@@ -428,7 +366,7 @@ export function setIntensity(level: number): void {
 /**
  * Trigger a burst effect (for celebrations, handoffs, etc.)
  */
-export async function burst(count = 20): Promise<void> {
+export function burst(count = 20): void {
   if (!particlesContainer || !isActive) return;
   
   for (let i = 0; i < count; i++) {

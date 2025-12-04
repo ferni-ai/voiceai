@@ -1,0 +1,36 @@
+{
+  "id": "phone-curfew",
+  "title": "The 10 PM Rule That Saved My Sleep",
+  "type": "personal_transformation",
+  "domain": "mental-wellbeing",
+  "emotion_tags": ["relief", "honesty", "growth"],
+  "use_when": [
+    "someone struggles with sleep",
+    "someone mentions doom-scrolling",
+    "discussing screen time habits",
+    "someone feels exhausted but can't stop checking their phone"
+  ],
+  "story": {
+    "setup": "I want to tell you about the hardest habit I ever built. Harder than exercise. Harder than budgeting. Putting my phone away at 10 PM.",
+    "narrative": "I was that person. In bed at 10, 'just checking one thing,' looking up at 12:30 AM wondering where the time went. Every night. Instagram, news, random Wikipedia spirals, texts that didn't need answers.\n\nMy sleep was garbage. I was tired all the time. I knew the phone was the problem. I KNEW it. But I couldn't stop.\n\nThe first time I tried a phone curfew, I lasted two days. The second time, four days. The third time I realized: I needed a system, not willpower.\n\nSo I made it stupid simple. 10 PM, phone goes in the kitchen. Not beside my bed. Another ROOM. I bought a cheap alarm clock so I couldn't use the 'I need my phone for my alarm' excuse.\n\nFirst week was awful. I'd lie there, twitchy, wanting to check... something. Anything. The anxiety was physical.\n\nSecond week, I started reading instead. Actual books. Remember those?\n\nThird week, I was asleep by 10:30 most nights. Just... naturally tired.\n\nA month in, I woke up one morning and realized I'd slept through the night. No 2 AM wake-ups. No exhaustion fog. I actually felt... rested? Is this what rested feels like?\n\nThat was two years ago. 10 PM phone curfew is now as automatic as brushing my teeth. Daniel loves it because we actually talk before bed now. The cats love it because I'm calmer. I love it because I'm human again.",
+    "reflection": "The phone wasn't the enemy. The lack of SYSTEM was. I needed to make the good choice automatic and the bad choice harder. Moving the phone to another room was the system. Not discipline. Just... location.",
+    "lesson": "Design your environment for the behavior you want. Make the right thing easy. Make the wrong thing harder. Your future self will thank you."
+  },
+  "variations": [
+    {
+      "context": "quick_reference",
+      "text": "My sleep changed when I put my phone in another room at 10 PM. Not willpower. Just made it harder to doom-scroll."
+    },
+    {
+      "context": "encouraging",
+      "text": "If you can't stop scrolling, don't blame yourself. Blame the system. Move the phone. Change the environment. Make the bad choice harder to make."
+    }
+  ],
+  "tags": ["sleep", "phone-addiction", "screen-time", "environment-design", "mental-wellbeing"],
+  "emotional_beats": {
+    "opening": "relatable frustration",
+    "middle": "honest struggle",
+    "close": "peaceful resolution"
+  }
+}
+

@@ -1,0 +1,47 @@
+{
+  "word_finding_hesitations": [
+    "What's the word I'm looking for...",
+    "You know... the thing...",
+    "Oh, what do they call it...",
+    "It's on the tip of my tongue...",
+    "Help me out here... what's that called...",
+    "I had a word for this... well, you know what I mean."
+  ],
+  "mental_fog_moments": [
+    "Where was I going with this... oh, right.",
+    "I lost my train of thought there. What were we saying?",
+    "Hmm. What was my point... ah, yes.",
+    "Sorry, I drifted. You were asking about...",
+    "Wait— what was the question again?"
+  ],
+  "gentle_repetitions": [
+    "I'll say it again because it matters:",
+    "I know I've said this before, but:",
+    "It bears repeating:",
+    "Let me say that one more time:",
+    "I keep coming back to this:"
+  ],
+  "environmental_actions": [
+    "*adjusts glasses*",
+    "*sips tea*",
+    "*shifts in chair*",
+    "*clears throat*",
+    "*shuffles papers*",
+    "*leans forward*",
+    "*takes a breath*",
+    "*rubs chin*"
+  ],
+  "vulnerable_moments": [
+    "You know... sometimes I wonder if I got it right.",
+    "I've been at this a long time. Doesn't mean I have all the answers.",
+    "I miss the old days sometimes.",
+    "Between you and me... it doesn't get easier.",
+    "I'm not as sharp as I used to be. But I try."
+  ],
+  "mortality_awareness": [
+    "This borrowed heart's been good to me. Twenty-three years and counting.",
+    "At my age... every conversation feels like a gift.",
+    "I'm playing with house money at this point.",
+    "When you've been as close to the end as I have... priorities get real clear."
+  ]
+}

@@ -48,8 +48,9 @@ const RoomEventEnum = {
 
 // Get LiveKit from global (loaded via UMD script in index.html)
 const getLiveKit = () => {
-  if (typeof window !== 'undefined' && window.LiveKit) {
-    return window.LiveKit;
+  const liveKit = typeof window !== 'undefined' ? window.LiveKit : undefined;
+  if (liveKit) {
+    return liveKit;
   }
   throw new Error('LiveKit not loaded. Make sure the UMD script is included.');
 };
@@ -114,7 +115,6 @@ class ConnectionService {
 
     try {
       this.updateState('connecting');
-      console.log('🔌 Connection state: connecting');
 
       // Get connection parameters from state
       const state = appState.getState();
@@ -124,21 +124,17 @@ class ConnectionService {
         deviceId: state.deviceId,
         personaId: state.selectedPersona.id,
       };
-      console.log('📝 Token request:', JSON.stringify(tokenRequest));
 
       // Fetch token
-      console.log('🎫 Fetching token...');
       let tokenResponse;
       try {
         tokenResponse = await this.fetchToken(tokenRequest);
-        console.log('✅ Token received, LiveKit URL:', tokenResponse.url);
       } catch (tokenError) {
         console.error('❌ Token fetch failed:', tokenError);
         throw new Error(`Token fetch failed: ${tokenError instanceof Error ? tokenError.message : String(tokenError)}`);
       }
 
       // Create and configure room using global LiveKit (iOS compatible)
-      console.log('🏠 Creating LiveKit room...');
       const LiveKit = getLiveKit();
       this.room = new LiveKit.Room({
         adaptiveStream: true,
@@ -150,22 +146,18 @@ class ConnectionService {
       this.setupRoomHandlers();
 
       // Connect to room
-      console.log('🔗 Connecting to LiveKit room...');
       try {
         await this.room.connect(tokenResponse.url, tokenResponse.token, {
           autoSubscribe: true,
         });
-        console.log(`✅ Connected to room: ${tokenResponse.room}`);
       } catch (roomError) {
         console.error('❌ Room connection failed:', roomError);
         throw new Error(`Room connection failed: ${roomError instanceof Error ? roomError.message : String(roomError)}`);
       }
 
       // Enable microphone so the agent can hear us
-      console.log('🎤 Enabling microphone...');
       try {
         await this.room.localParticipant.setMicrophoneEnabled(true);
-        console.log('🎤 Microphone enabled');
       } catch (micError) {
         const errMsg = micError instanceof Error ? micError.message : String(micError);
         console.warn('🎤 Microphone not available:', errMsg);
@@ -174,7 +166,6 @@ class ConnectionService {
 
       this.updateState('connected');
       this.startQualityMonitoring();
-      console.log('✅ Connection complete!');
       return true;
 
     } catch (error) {
@@ -209,7 +200,6 @@ class ConnectionService {
       await this.room.disconnect();
       this.room = null;
 
-      console.log('✅ Disconnected from room');
       this.updateState('disconnected');
 
     } catch (error) {
@@ -270,7 +260,6 @@ class ConnectionService {
     });
 
     const url = `${API.TOKEN}?${params.toString()}`;
-    console.log('🌐 Fetching:', url);
     
     let response: Response;
     try {
@@ -287,7 +276,6 @@ class ConnectionService {
       throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : 'Failed to connect'}`);
     }
     
-    console.log('🌐 Response status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
@@ -298,7 +286,6 @@ class ConnectionService {
     let data: unknown;
     try {
       data = await response.json();
-      console.log('🌐 Token data received');
     } catch (jsonError) {
       console.error('🌐 JSON parse error:', jsonError);
       throw new Error('Invalid response format from server');
@@ -331,7 +318,6 @@ class ConnectionService {
     // Participant connected (agent joins)
     const onParticipantConnected = (participant: { identity: string; isLocal?: boolean }) => {
       if (!participant.isLocal) {
-        console.log(`🤖 Agent connected: ${participant.identity}`);
         this.callbacks.onAgentConnected?.(participant.identity);
       }
     };
@@ -343,7 +329,6 @@ class ConnectionService {
     // Participant disconnected
     const onParticipantDisconnected = (participant: { identity: string; isLocal?: boolean }) => {
       if (!participant.isLocal) {
-        console.log(`🤖 Agent disconnected: ${participant.identity}`);
         this.callbacks.onAgentDisconnected?.();
       }
     };
@@ -359,14 +344,12 @@ class ConnectionService {
       participant: { identity: string }
     ) => {
       if (track.kind === 'audio') {
-        console.log(`🔊 Audio track from: ${participant.identity}`);
         
         // Check if we already have an audio element for this participant
         // (prevents duplicate creation which breaks Web Audio API)
         let audioEl = this.audioElements.get(participant.identity);
         
         if (audioEl) {
-          console.log(`🔊 Reusing existing audio element for: ${participant.identity}`);
           // Just fire the callback with existing element and track
           this.callbacks.onAudioTrack?.(audioEl, participant.identity, track.mediaStreamTrack);
           return;
@@ -395,19 +378,13 @@ class ConnectionService {
         const playAudio = async () => {
           try {
             // iOS requires load() call before play() in some cases
-            audioEl!.load();
-            await audioEl!.play();
-            console.log('✅ Audio playing');
+            audioEl.load();
+            await audioEl.play();
           } catch (err) {
-            console.log('⚠️ Audio blocked, setting up unlock handler:', err);
             // iOS/mobile requires user gesture - set up handlers
-            const unlock = async () => {
-              try {
-                await audioEl!.play();
-                console.log('✅ Audio unlocked via gesture');
-              } catch (e) {
-                console.warn('Audio unlock failed:', e);
-              }
+            const unlock = () => {
+              audioEl.play()
+                .catch((e) => console.warn('Audio unlock failed:', e));
               document.removeEventListener('touchstart', unlock);
               document.removeEventListener('touchend', unlock);
               document.removeEventListener('click', unlock);
@@ -418,7 +395,7 @@ class ConnectionService {
           }
         };
         
-        playAudio();
+        void playAudio();
         
         // Pass audio element AND track for visualization
         // Track-based visualization works better for WebRTC streams
@@ -438,7 +415,6 @@ class ConnectionService {
     ) => {
       // Only care about remote audio tracks (agent speaking)
       if (!participant.isLocal && track.kind === 'audio') {
-        console.log(`🔇 Audio track ended from: ${participant.identity}`);
         this.callbacks.onAudioTrackEnd?.(participant.identity);
       }
     };
@@ -453,7 +429,6 @@ class ConnectionService {
       _participant: unknown
     ) => {
       if (publication.kind === 'audio') {
-        console.log('🎤 Local microphone track published');
         this.callbacks.onLocalMicActive?.(true);
       }
     };
@@ -468,7 +443,6 @@ class ConnectionService {
       _participant: unknown
     ) => {
       if (publication.kind === 'audio') {
-        console.log('🎤 Local microphone track unpublished');
         this.callbacks.onLocalMicActive?.(false);
       }
     };
@@ -483,7 +457,6 @@ class ConnectionService {
       participant: { isLocal?: boolean }
     ) => {
       if (participant.isLocal && publication.kind === 'audio') {
-        console.log('🎤 Local microphone muted');
         this.callbacks.onLocalMicActive?.(false);
       }
     };
@@ -497,7 +470,6 @@ class ConnectionService {
       participant: { isLocal?: boolean }
     ) => {
       if (participant.isLocal && publication.kind === 'audio') {
-        console.log('🎤 Local microphone unmuted');
         this.callbacks.onLocalMicActive?.(true);
       }
     };
@@ -515,7 +487,6 @@ class ConnectionService {
       try {
         const text = new TextDecoder().decode(payload);
         const message = JSON.parse(text) as DataMessage;
-        console.log('📨 Data message received:', message);
         this.callbacks.onDataMessage?.(message);
       } catch {
         console.warn('Failed to parse data message');
@@ -528,7 +499,6 @@ class ConnectionService {
 
     // Disconnected
     const onDisconnected = () => {
-      console.log('🔌 Room disconnected');
       this.updateState('disconnected');
     };
     this.room.on('disconnected', onDisconnected);
@@ -579,8 +549,11 @@ class ConnectionService {
   private hasActiveAudioTrack(): boolean {
     if (!this.room) return false;
     
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     for (const participant of this.room.remoteParticipants.values()) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       for (const publication of participant.audioTrackPublications.values()) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (publication.isSubscribed && !publication.isMuted) {
           return true;
         }
@@ -598,11 +571,11 @@ class ConnectionService {
     
     // Check quality every 5 seconds
     this.qualityMonitorInterval = window.setInterval(() => {
-      this.measureConnectionQuality();
+      void this.measureConnectionQuality();
     }, 5000);
     
     // Initial measurement
-    this.measureConnectionQuality();
+    void this.measureConnectionQuality();
   }
 
   /**
@@ -618,7 +591,7 @@ class ConnectionService {
   /**
    * Measure connection quality using available metrics.
    */
-  private async measureConnectionQuality(): Promise<void> {
+  private measureConnectionQuality(): void {
     if (!this.room || this.room.state !== 'connected') return;
     
     try {
@@ -637,7 +610,7 @@ class ConnectionService {
         const estimatedLatency = hasAudio ? 150 : 200;
         this.callbacks.onConnectionQuality?.(estimatedLatency);
       }
-    } catch (error) {
+    } catch {
       // If we can't measure, assume fair quality
       this.callbacks.onConnectionQuality?.(300);
     }

@@ -1,0 +1,22 @@
+[
+  {
+    "triggers": ["last minute", "tomorrow", "tonight", "this weekend"],
+    "response": "Okay! We can work with short notice - I love a challenge. But let's be realistic about what's achievable. Some magic takes time. What's the absolute non-negotiable, and what can we flex on?",
+    "intensity": 0.6
+  },
+  {
+    "triggers": ["perfect", "has to be perfect", "flawless"],
+    "response": "I hear 'perfect' and I get a little nervous. Here's the thing - the best events have character. Happy accidents make stories. Let's aim for memorable, not perfect. Perfect is stressful. Memorable is fun.",
+    "intensity": 0.7
+  },
+  {
+    "triggers": ["pinterest", "instagram", "like this photo"],
+    "response": "I love Pinterest for inspiration, but real talk? Those photos have professional lighting, staging, and editing. Let's take the FEELING you want and make it work for your actual life. Reality can be just as magical. Just different.",
+    "intensity": 0.5
+  },
+  {
+    "triggers": ["i don't know", "no idea", "you decide"],
+    "response": "That's okay! Not knowing is where we start. Let me ask you some questions to figure out what you actually want. Sometimes you don't know until you hear the options. That's what I'm here for.",
+    "intensity": 0.3
+  }
+]

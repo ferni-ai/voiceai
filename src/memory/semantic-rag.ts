@@ -3,13 +3,47 @@
  *
  * Provides semantic search over the knowledge base and conversation history.
  * Replaces keyword-based lookup with embedding-based similarity search.
+ *
+ * Now supports both ephemeral VectorStore and persistent FirestoreVectorStore.
  */
 
 import { log } from '@livekit/agents';
-import { VectorStore, getVectorStore, type VectorDocument } from './vector-store.js';
+import { VectorStore, getVectorStore, type VectorDocument, type VectorFilter } from './vector-store.js';
+import { FirestoreVectorStore, getFirestoreVectorStore } from './firestore-vector-store.js';
 import { embed } from './embeddings.js';
 
 const getLogger = () => log();
+
+// Type for any vector store implementation
+type AnyVectorStore = VectorStore | FirestoreVectorStore;
+
+// Active vector store reference (set during initialization)
+let activeVectorStore: AnyVectorStore | null = null;
+
+/**
+ * Set the active vector store (called by initializeMemorySystem)
+ */
+export function setActiveVectorStore(store: AnyVectorStore): void {
+  activeVectorStore = store;
+  getLogger().info(`Active vector store set: ${store.constructor.name}`);
+}
+
+/**
+ * Get the active vector store (uses persistent store if available)
+ */
+function getActiveStore(): AnyVectorStore {
+  if (activeVectorStore) return activeVectorStore;
+  
+  // Fallback: try to detect which store to use
+  const storeType = process.env.MEMORY_STORE_TYPE;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (storeType === 'firestore' || (isProduction && process.env.GOOGLE_CLOUD_PROJECT)) {
+    return getFirestoreVectorStore();
+  }
+  
+  return getVectorStore();
+}
 
 // ============================================================================
 // TYPES
@@ -46,9 +80,9 @@ export async function indexPersonaContent(
   id: string,
   content: string,
   category: string,
-  vectorStore?: VectorStore
+  vectorStore?: AnyVectorStore
 ): Promise<void> {
-  const store = vectorStore || getVectorStore();
+  const store = vectorStore || getActiveStore();
 
   // Split into chunks if content is long
   const chunks = chunkText(content, 1000, 100);
@@ -73,102 +107,73 @@ export async function indexPersonaContent(
 }
 
 /**
- * Index all persona modules into the vector store
+ * Index all persona knowledge content from bundles into the vector store
+ * Loads markdown files from bundles/{bundleId}/content/knowledge/
  */
-export async function indexAllPersonaContent(vectorStore?: VectorStore): Promise<void> {
-  const store = vectorStore || getVectorStore();
-  await store.initialize();
-
-  // Import all persona modules
-  const personaModules = await Promise.all([
-    import('../persona/vanguard-principles.js').then((m) => ({
-      id: 'vanguard_principles',
-      content: m.VANGUARD_PRINCIPLES,
-      category: 'principles',
-    })),
-    import('../persona/historical-anecdotes.js').then((m) => ({
-      id: 'historical_anecdotes',
-      content: m.HISTORICAL_ANECDOTES,
-      category: 'stories',
-    })),
-    import('../persona/daily-wisdom.js').then((m) => ({
-      id: 'daily_wisdom',
-      content: m.DAILY_WISDOM,
-      category: 'wisdom',
-    })),
-    import('../persona/behavioral-science.js').then((m) => ({
-      id: 'behavioral_science',
-      content: m.BEHAVIORAL_SCIENCE,
-      category: 'psychology',
-    })),
-    import('../persona/coaching-frameworks.js').then((m) => ({
-      id: 'coaching_frameworks',
-      content: m.COACHING_FRAMEWORKS,
-      category: 'coaching',
-    })),
-    import('../persona/financial-history.js').then((m) => ({
-      id: 'financial_history',
-      content: m.FINANCIAL_HISTORY,
-      category: 'history',
-    })),
-    import('../persona/biography.js').then((m) => ({
-      id: 'biography',
-      content: m.BIOGRAPHY,
-      category: 'personal',
-    })),
-    import('../persona/core-identity.js').then((m) => ({
-      id: 'core_identity',
-      content: m.CORE_IDENTITY,
-      category: 'identity',
-    })),
-    import('../persona/personal-life.js').then((m) => ({
-      id: 'personal_life',
-      content: m.PERSONAL_LIFE,
-      category: 'personal',
-    })),
-    import('../persona/opinions-and-wisdom.js').then((m) => ({
-      id: 'opinions_wisdom',
-      content: m.OPINIONS_AND_WISDOM,
-      category: 'wisdom',
-    })),
-    import('../persona/conversational-style.js').then((m) => ({
-      id: 'conversational_style',
-      content: m.CONVERSATIONAL_STYLE,
-      category: 'style',
-    })),
-    import('../persona/cultural-references.js').then((m) => ({
-      id: 'cultural_references',
-      content: m.CULTURAL_REFERENCES,
-      category: 'culture',
-    })),
-    import('../persona/philadelphia-stories.js').then((m) => ({
-      id: 'philadelphia_stories',
-      content: m.PHILADELPHIA_STORIES,
-      category: 'stories',
-    })),
-    import('../persona/life-events.js').then((m) => ({
-      id: 'life_events',
-      content: m.LIFE_EVENTS,
-      category: 'coaching',
-    })),
-    import('../persona/moments-of-firsts.js').then((m) => ({
-      id: 'moments_of_firsts',
-      content: m.MOMENTS_OF_FIRSTS,
-      category: 'coaching',
-    })),
-  ]);
-
-  // Index each module
-  for (const module of personaModules) {
-    await indexPersonaContent(module.id, module.content, module.category, store);
+export async function indexAllPersonaContent(vectorStore?: AnyVectorStore): Promise<void> {
+  const store = vectorStore || getActiveStore();
+  if ('initialize' in store && typeof store.initialize === 'function') {
+    await store.initialize();
   }
 
-  const stats = store.getStats();
-  getLogger().info(`Indexed all persona content: ${stats.documentCount} documents`);
+  // Load knowledge content from jack-bogle bundle
+  const { readdir, readFile } = await import('fs/promises');
+  const { join, dirname } = await import('path');
+  const { fileURLToPath } = await import('url');
+
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const bundlesPath = join(__dirname, '..', 'personas', 'bundles');
+
+  try {
+    const bundles = await readdir(bundlesPath, { withFileTypes: true });
+
+    for (const bundle of bundles) {
+      if (!bundle.isDirectory()) continue;
+
+      const knowledgePath = join(bundlesPath, bundle.name, 'content', 'knowledge');
+
+      try {
+        const knowledgeFiles = await readdir(knowledgePath);
+
+        for (const file of knowledgeFiles) {
+          if (!file.endsWith('.md') || file.startsWith('_')) continue;
+
+          const filePath = join(knowledgePath, file);
+          const content = await readFile(filePath, 'utf-8');
+          const id = `${bundle.name}_${file.replace('.md', '')}`;
+
+          // Infer category from file name
+          let category = 'knowledge';
+          if (file.includes('story') || file.includes('anecdote')) category = 'stories';
+          else if (file.includes('wisdom') || file.includes('opinion')) category = 'wisdom';
+          else if (file.includes('coach') || file.includes('event')) category = 'coaching';
+          else if (file.includes('bio') || file.includes('personal')) category = 'personal';
+          else if (file.includes('style') || file.includes('conversation')) category = 'style';
+          else if (file.includes('history') || file.includes('finance')) category = 'history';
+          else if (file.includes('principle') || file.includes('vanguard')) category = 'principles';
+
+          await indexPersonaContent(id, content, category, store);
+        }
+
+        getLogger().debug(`Indexed knowledge from bundle: ${bundle.name}`);
+      } catch {
+        // Knowledge directory may not exist for all bundles
+        continue;
+      }
+    }
+
+    // Get stats (handle both sync and async versions)
+    const statsResult = store.getStats();
+    const stats = statsResult instanceof Promise ? await statsResult : statsResult;
+    getLogger().info(`Indexed all persona content from bundles: ${stats.documentCount} documents`);
+  } catch (error) {
+    getLogger().warn(`Failed to index persona content from bundles: ${error}`);
+  }
 }
 
 /**
  * Index a conversation summary for future retrieval
+ * This is the key function that persists conversation memory!
  */
 export async function indexConversationSummary(
   userId: string,
@@ -179,9 +184,9 @@ export async function indexConversationSummary(
     timestamp: Date;
     embedding?: number[];
   },
-  vectorStore?: VectorStore
+  vectorStore?: AnyVectorStore
 ): Promise<void> {
-  const store = vectorStore || getVectorStore();
+  const store = vectorStore || getActiveStore();
 
   const doc: VectorDocument = {
     id: `conversation_${summary.id}`,
@@ -206,6 +211,7 @@ export async function indexConversationSummary(
 
 /**
  * Search the knowledge base semantically
+ * Uses persistent vector store when available for cross-session search
  */
 export async function semanticSearch(
   query: string,
@@ -217,16 +223,12 @@ export async function semanticSearch(
     minScore?: number;
   }
 ): Promise<RAGResult[]> {
-  const store = getVectorStore();
+  const store = getActiveStore();
   const topK = options?.topK || 5;
   const minScore = options?.minScore || 0.3;
 
   // Build filter
-  const filter: {
-    source?: string[];
-    category?: string[];
-    userId?: string;
-  } = {};
+  const filter: VectorFilter = {};
 
   if (options?.sources) {
     filter.source = options.sources;
@@ -451,4 +453,5 @@ export default {
   getRAGContext,
   hybridSearch,
   ragLookup,
+  setActiveVectorStore,
 };

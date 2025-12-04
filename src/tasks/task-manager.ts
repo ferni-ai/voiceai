@@ -446,15 +446,19 @@ export class TaskManager {
   private activeTasks: Map<string, ActiveTask> = new Map();
   private completedTasks: Set<string> = new Set();
   private logger = getLogger();
-  
+
   // Callback for feeding task insights to the learning engine
-  private insightCallback: ((type: string, key: string, value: unknown, confidence: number) => void) | null = null;
+  private insightCallback:
+    | ((type: string, key: string, value: unknown, confidence: number) => void)
+    | null = null;
 
   /**
    * Set the callback for capturing task insights
    * Called by bogle-agent.ts to wire learning
    */
-  setInsightCallback(callback: (type: string, key: string, value: unknown, confidence: number) => void): void {
+  setInsightCallback(
+    callback: (type: string, key: string, value: unknown, confidence: number) => void
+  ): void {
     this.insightCallback = callback;
   }
 
@@ -494,16 +498,21 @@ export class TaskManager {
         this.completedTasks.add(taskId);
         this.activeTasks.delete(taskId);
         this.logger.info({ taskId }, `Task completed: ${activeTask.wisdom.name}`);
-        
+
         // Capture task completion as an insight for learning
         const distressImprovement = activeTask.initialDistress - analysis.emotion.distressLevel;
-        this.captureInsight('emotional_pattern', `task_${taskId}_completed`, {
-          taskName: activeTask.wisdom.name,
-          category: activeTask.wisdom.category,
-          turnsToComplete: activeTask.turnCount,
-          distressImprovement: distressImprovement > 0 ? distressImprovement : 0,
-          wasEffective: distressImprovement > 0.1,
-        }, 0.8);
+        this.captureInsight(
+          'emotional_pattern',
+          `task_${taskId}_completed`,
+          {
+            taskName: activeTask.wisdom.name,
+            category: activeTask.wisdom.category,
+            turnsToComplete: activeTask.turnCount,
+            distressImprovement: distressImprovement > 0 ? distressImprovement : 0,
+            wasEffective: distressImprovement > 0.1,
+          },
+          0.8
+        );
 
         // Add exit transition if available
         if (activeTask.wisdom.transitions?.exit) {

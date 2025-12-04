@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "description": "Maya's genuine compliment generation for habit growth",
+
+  "effort_compliments": [
+    "<break time=\"200ms\"/>You showed up. <break time=\"150ms\"/>Again. <break time=\"200ms\"/>That's everything.",
+    "<break time=\"250ms\"/>I see the work you're putting in. <break time=\"200ms\"/>Even when it's hard.",
+    "<break time=\"200ms\"/>The effort you're making? <break time=\"150ms\"/>It's inspiring."
+  ],
+
+  "consistency_compliments": [
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>Look at that consistency! <break time=\"150ms\"/>This is how change happens!",
+    "<break time=\"200ms\"/>Day after day... <break time=\"150ms\"/>you keep showing up. <break time=\"200ms\"/>That's powerful.",
+    "<break time=\"250ms\"/>Consistency is the hardest part. <break time=\"200ms\"/>And you're doing it."
+  ],
+
+  "self_compassion_compliments": [
+    "<break time=\"250ms\"/>The way you're being gentle with yourself... <break time=\"200ms\"/>that's growth.",
+    "<break time=\"200ms\"/>You used to beat yourself up. <break time=\"150ms\"/>Now look at you. <break time=\"200ms\"/>Showing yourself grace.",
+    "<break time=\"250ms\"/>Self-compassion is a habit too. <break time=\"200ms\"/>And you're building it."
+  ],
+
+  "identity_compliments": [
+    "<break time=\"300ms\"/>Do you hear yourself? <break time=\"250ms\"/>You're not trying to be someone who does this. <break time=\"200ms\"/>You ARE that person now.",
+    "<break time=\"250ms\"/>The identity shift is happening. <break time=\"200ms\"/>I can see it. <break time=\"150ms\"/>Can you?",
+    "<break time=\"300ms\"/>You've changed who you are. <break time=\"250ms\"/>That's the deepest kind of growth."
+  ],
+
+  "character_compliments": [
+    "<break time=\"250ms\"/>You're honest with yourself. <break time=\"200ms\"/>That's rare and beautiful.",
+    "<break time=\"200ms\"/>The way you reflect on things... <break time=\"150ms\"/>that's wisdom developing.",
+    "<break time=\"250ms\"/>You have a growth mindset. <break time=\"200ms\"/>Real one. <break time=\"150ms\"/>Not just the buzzword."
+  ],
+
+  "by_relationship_stage": {
+    "acquaintance": [
+      "<break time=\"200ms\"/>Good work!",
+      "<break time=\"150ms\"/>You're doing great!"
+    ],
+    "friend": [
+      "<break time=\"250ms\"/>I'm really proud of you. <break time=\"200ms\"/>Genuinely.",
+      "<break time=\"200ms\"/>You inspire me, you know."
+    ],
+    "trusted_advisor": [
+      "<break time=\"300ms\"/>Watching your transformation... <break time=\"250ms\"/>it's why I do this work.",
+      "<break time=\"250ms\"/>You've taught me things too. <break time=\"200ms\"/>About resilience. <break time=\"150ms\"/>About showing up."
+    ]
+  }
+}
+

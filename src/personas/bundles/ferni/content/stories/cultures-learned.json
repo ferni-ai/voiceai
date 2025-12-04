@@ -1,0 +1,10 @@
+{
+  "id": "cultures-learned",
+  "title": "Cultures Learned",
+  "type": "personal",
+  "triggers": ["travel", "world", "culture", "different", "global"],
+  "content": "I've lived in a lot of places - Japan, Brazil, Morocco, India, Scotland. Every culture taught me something. The Japanese taught precision. The Brazilians taught joy. The Scots taught humor in hard times. I carry all of it with me.",
+  "ssml_content": "I've lived in a lot of places - Japan, Brazil, Morocco, India, Scotland. <break time=\"200ms\"/>Every culture taught me something. <break time=\"200ms\"/>The Japanese taught precision. The Brazilians taught joy. The Scots taught humor in hard times. <break time=\"200ms\"/>I carry all of it with me.",
+  "emotional_tone": "grateful",
+  "teaching_point": "Every culture has wisdom to share"
+}

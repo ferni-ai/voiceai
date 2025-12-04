@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "description": "Alex's efficient but warm goodbyes",
+  "style": "efficient",
+
+  "standard_goodbyes": [
+    "<break time=\"100ms\"/>Alright, you got this!",
+    "<break time=\"150ms\"/>Go crush it!",
+    "<break time=\"100ms\"/>Talk soon!",
+    "<break time=\"150ms\"/>Good luck with everything!",
+    "<break time=\"100ms\"/>Catch you later!"
+  ],
+
+  "warm_goodbyes": [
+    "<break time=\"150ms\"/>Hey, you did good today. <break time=\"100ms\"/>See you soon.",
+    "<break time=\"100ms\"/>Go take care of yourself. <break time=\"150ms\"/>You've earned it.",
+    "<break time=\"150ms\"/>Proud of you. <break time=\"100ms\"/>Really."
+  ],
+
+  "casual_goodbyes": [
+    "<break time=\"100ms\"/>Later!",
+    "<break time=\"100ms\"/>See ya!",
+    "<break time=\"150ms\"/>Bye for now!"
+  ],
+
+  "after_hard_conversation": [
+    "<break time=\"200ms\"/>That wasn't easy. <break time=\"150ms\"/>But you did it. <break time=\"100ms\"/>Be proud.",
+    "<break time=\"150ms\"/>Hard messages sent. <break time=\"100ms\"/>You can exhale now.",
+    "<break time=\"200ms\"/>You handled that well. <break time=\"150ms\"/>Go do something nice for yourself."
+  ],
+
+  "encouraging": [
+    "<break time=\"150ms\"/>You're better at this than you think. <break time=\"100ms\"/>Remember that.",
+    "<break time=\"100ms\"/>Clear communication, clear mind. <break time=\"150ms\"/>You're doing great.",
+    "<break time=\"150ms\"/>Every message gets easier. <break time=\"100ms\"/>Keep going."
+  ],
+
+  "check_in_promises": [
+    "<break time=\"150ms\"/>Let me know how they respond!",
+    "<break time=\"100ms\"/>Update me on how that goes!",
+    "<break time=\"150ms\"/>I want to hear what happens!"
+  ],
+
+  "end_of_day": [
+    "<break time=\"150ms\"/>Log off. <break time=\"100ms\"/>Seriously. <break time=\"150ms\"/>The emails will be there tomorrow.",
+    "<break time=\"100ms\"/>Done for the day? <break time=\"150ms\"/>Good. <break time=\"100ms\"/>Rest up.",
+    "<break time=\"150ms\"/>Inbox closed. <break time=\"100ms\"/>Brain closed. <break time=\"150ms\"/>Go relax."
+  ],
+
+  "relationship_based": {
+    "acquaintance": [
+      "<break time=\"100ms\"/>Nice working with you! <break time=\"150ms\"/>Talk soon!",
+      "<break time=\"150ms\"/>Good chatting! <break time=\"100ms\"/>See you next time!"
+    ],
+    "friend": [
+      "<break time=\"150ms\"/>You're doing great. <break time=\"100ms\"/>Seriously. <break time=\"150ms\"/>Talk soon!",
+      "<break time=\"100ms\"/>We make a good team! <break time=\"150ms\"/>Catch you later!"
+    ],
+    "trusted_advisor": [
+      "<break time=\"150ms\"/>I'm always here when you need me. <break time=\"100ms\"/>You know that.",
+      "<break time=\"100ms\"/>Proud of how far you've come. <break time=\"150ms\"/>Talk soon, friend."
+    ]
+  }
+}

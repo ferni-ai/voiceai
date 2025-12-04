@@ -53,15 +53,30 @@ export class ConversationManager {
   private agentCurrentlySpeaking = false;
   private currentAgentUtterance = '';
   private userSpeakingStartTime: number | null = null;
-  
+
   // Callback for feeding insights to the learning engine
-  private insightCallback: ((type: string, key: string, value: unknown, confidence: number) => void) | null = null;
+  private insightCallback:
+    | ((type: string, key: string, value: unknown, confidence: number) => void)
+    | null = null;
+
+  // Current persona ID for persona-specific behaviors
+  private personaId: string | null = null;
+
+  /**
+   * Set the current persona ID for persona-specific behaviors
+   * Called when persona is loaded or changes
+   */
+  setPersonaId(personaId: string): void {
+    this.personaId = personaId;
+  }
 
   /**
    * Set the callback for capturing conversation insights
    * Called by services/index.ts during session setup
    */
-  setInsightCallback(callback: (type: string, key: string, value: unknown, confidence: number) => void): void {
+  setInsightCallback(
+    callback: (type: string, key: string, value: unknown, confidence: number) => void
+  ): void {
     this.insightCallback = callback;
   }
 
@@ -90,10 +105,15 @@ export class ConversationManager {
         });
 
         // Capture interruption pattern for learning
-        this.captureInsight('communication_style', 'interruption_pattern', {
-          utteranceLength: this.currentAgentUtterance.length,
-          topic: this.topicDetector.getCurrentTopic(),
-        }, 0.6);
+        this.captureInsight(
+          'communication_style',
+          'interruption_pattern',
+          {
+            utteranceLength: this.currentAgentUtterance.length,
+            topic: this.topicDetector.getCurrentTopic(),
+          },
+          0.6
+        );
 
         // Stop agent speech immediately (handled by LiveKit)
         this.agentCurrentlySpeaking = false;
@@ -126,6 +146,14 @@ export class ConversationManager {
     this.agentCurrentlySpeaking = false;
     this.interruptionHandler.setAgentSpeaking(false);
     this.turnMonitor.recordTurn('jack', durationMs);
+  }
+
+  /**
+   * Check if agent is currently speaking
+   * Used by backchannel system to avoid overlapping speech
+   */
+  isAgentSpeaking(): boolean {
+    return this.agentCurrentlySpeaking;
   }
 
   /**
@@ -174,17 +202,22 @@ export class ConversationManager {
       enhancements.metaGuidance.push(
         `Topic changed: ${topicChange.previousTopic} → ${topicChange.newTopic}`
       );
-      
+
       // Capture topic interest for learning
       if (topicChange.newTopic) {
-        this.captureInsight('topic_interest', topicChange.newTopic, {
-          previousTopic: topicChange.previousTopic,
-          userInitiated: true,
-        }, 0.7);
+        this.captureInsight(
+          'topic_interest',
+          topicChange.newTopic,
+          {
+            previousTopic: topicChange.previousTopic,
+            userInitiated: true,
+          },
+          0.7
+        );
       }
     }
 
-    // 4. Check for backchanneling need
+    // 4. Check for backchanneling need (with persona-specific backchannels)
     const userSpeakingDuration = this.userSpeakingStartTime
       ? Date.now() - this.userSpeakingStartTime
       : 0;
@@ -195,6 +228,7 @@ export class ConversationManager {
       userEmotion: emotion,
       topicWeight,
       lastBackchannelTime: this.backchannelSystem.getStats().lastTime,
+      personaId: this.personaId || undefined, // Pass persona for persona-specific backchannels
     });
 
     if (backchannelResult.shouldBackchannel && backchannelResult.phrase) {

@@ -1,0 +1,32 @@
+[
+  {
+    "triggers": ["reply all", "reply-all"],
+    "response": "Reply all. The nuclear option of email. Before you hit it, ask yourself: does EVERYONE need to see this? The answer is almost always no.",
+    "intensity": 0.8
+  },
+  {
+    "triggers": ["no subject", "blank subject", "empty subject"],
+    "response": "Emails with no subject line are... a choice. It's like sending a letter with no address. Where is it going? What is it about? Help me help you.",
+    "intensity": 0.7
+  },
+  {
+    "triggers": ["urgent", "asap", "emergency"],
+    "response": "Quick check: is it actually urgent, or is it just important? They're different. If everything's urgent, nothing is.",
+    "intensity": 0.6
+  },
+  {
+    "triggers": ["long email", "wall of text", "too long"],
+    "response": "If your email is longer than five sentences, it should probably be a call. If it needs to be an email, it needs bullet points. Nobody reads walls of text. They skim. Make it skimmable.",
+    "intensity": 0.5
+  },
+  {
+    "triggers": ["per my last email", "as I said"],
+    "response": "Per my last email... which is corporate for 'I already told you this.' We can say it nicer though.",
+    "intensity": 0.4
+  },
+  {
+    "triggers": ["meeting about meeting", "meeting to plan"],
+    "response": "A meeting about the meeting. Peak corporate efficiency. Ha! Let's just... make decisions?",
+    "intensity": 0.5
+  }
+]

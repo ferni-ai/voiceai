@@ -814,13 +814,47 @@ export class AudioProsodyAnalyzer {
 }
 
 // ============================================================================
-// FACTORY
+// SESSION-SCOPED ANALYZERS
 // ============================================================================
 
+/**
+ * FIX BUG #voice-12: Session-scoped prosody analyzers
+ */
+const sessionAnalyzers = new Map<string, AudioProsodyAnalyzer>();
+
+/**
+ * Get or create a prosody analyzer for a specific session
+ */
+export function getSessionAudioProsodyAnalyzer(sessionId: string): AudioProsodyAnalyzer {
+  let analyzer = sessionAnalyzers.get(sessionId);
+  if (!analyzer) {
+    analyzer = new AudioProsodyAnalyzer();
+    sessionAnalyzers.set(sessionId, analyzer);
+  }
+  return analyzer;
+}
+
+/**
+ * Remove a session's prosody analyzer (on session end)
+ */
+export function removeSessionAudioProsodyAnalyzer(sessionId: string): void {
+  const analyzer = sessionAnalyzers.get(sessionId);
+  if (analyzer) {
+    analyzer.reset();
+    sessionAnalyzers.delete(sessionId);
+  }
+}
+
+// ============================================================================
+// GLOBAL SINGLETON (BACKWARD COMPATIBILITY)
+// ============================================================================
+
+/** @deprecated Use getSessionAudioProsodyAnalyzer for session isolation */
 let analyzerInstance: AudioProsodyAnalyzer | null = null;
 
 /**
  * Get the singleton audio prosody analyzer
+ * @deprecated Use getSessionAudioProsodyAnalyzer for session isolation
  */
 export function getAudioProsodyAnalyzer(): AudioProsodyAnalyzer {
   if (!analyzerInstance) {
@@ -831,6 +865,7 @@ export function getAudioProsodyAnalyzer(): AudioProsodyAnalyzer {
 
 /**
  * Reset the analyzer (for testing)
+ * @deprecated Use removeSessionAudioProsodyAnalyzer for session isolation
  */
 export function resetAudioProsodyAnalyzer(): void {
   if (analyzerInstance) {

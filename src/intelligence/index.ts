@@ -70,7 +70,7 @@ export {
   getDetailCallback,
   extractFollowUps,
   getFollowUpSuggestion,
-  getJackPhysicalState,
+  getPersonaPhysicalState,
   getPhysicalStateInterjection,
   calculatePacingScore,
   createSessionRecoveryState,
@@ -79,7 +79,7 @@ export {
   type FarewellSummary,
   type SmallDetail,
   type FollowUpItem,
-  type JackPhysicalState,
+  type PersonaPhysicalState,
   type ConversationPacingScore,
   type SessionRecoveryState,
   type GracefulError,
@@ -167,6 +167,125 @@ export {
   type LearnedPacePreferences,
   type CurrentPaceState,
 } from './voice-pace-adapter.js';
+
+// ============================================================================
+// COLLECTIVE LEARNING SYSTEM
+// ============================================================================
+
+// Community Insights - Learn from all users
+export {
+  CommunityInsightsEngine,
+  getCommunityInsights,
+  resetCommunityInsights,
+  type ResponseStrategySignal,
+  type CommunityResponsePattern,
+  type JourneyTransition,
+  type CommunityJourneyPattern,
+  type EffectiveQuestion,
+  type StoryResonance,
+  type PhraseEffectiveness,
+} from './community-insights.js';
+
+// Agent Evolution - Self-improvement from learnings
+export {
+  AgentEvolutionEngine,
+  getAgentEvolution,
+  resetAgentEvolution,
+  type PersonaAdjustment,
+  type PersonaExperiment,
+  type EmergentPattern,
+  type StoryRanking,
+  type PersonaEvolutionState,
+} from './agent-evolution.js';
+
+// ============================================================================
+// CONTEXT BUILDERS - Modular conversation intelligence injection
+// ============================================================================
+
+export {
+  buildConversationContext,
+  formatContextForPrompt,
+  registerContextBuilder,
+  getRegisteredBuilders,
+  createInjection,
+  createCriticalInjection,
+  createStandardInjection,
+  createHintInjection,
+  type ContextBuilderInput,
+  type ContextInjection,
+  type ContextBuilder,
+  type ContextUserData,
+} from './context-builders/index.js';
+
+// ============================================================================
+// HUMAN-LEVEL INTERACTION FEATURES
+// ============================================================================
+
+// Humor Calibration - Learn what jokes land
+export {
+  HumorCalibrationEngine,
+  getHumorCalibration,
+  removeHumorCalibration,
+  resetAllHumorCalibration,
+  type HumorType,
+  type HumorReaction,
+  type HumorAttempt,
+  type HumorPreferences,
+  type HumorGuidance,
+} from './humor-calibration.js';
+
+// Story Preference - Track what resonates
+export {
+  StoryPreferenceEngine,
+  getStoryPreference,
+  removeStoryPreference,
+  type StoryType,
+  type StoryLength,
+  type EmotionalDepth,
+  type StoryAttempt,
+  type UserEngagement as StoryUserEngagement,
+  type StoryPreferences,
+  type StoryGuidance,
+} from './story-preference.js';
+
+// Communication Style Mirroring - Match their language
+export {
+  CommunicationMirroringEngine,
+  getCommunicationMirroring,
+  removeCommunicationMirroring,
+  type FormalityLevel,
+  type EnergyLevel as MirroringEnergyLevel,
+  type VocabularyLevel,
+  type CommunicationStyle,
+  type StyleGuidance,
+} from './communication-mirroring.js';
+
+// Emotional Memory - Cross-session emotional continuity
+export {
+  EmotionalMemoryEngine,
+  getEmotionalMemory,
+  removeEmotionalMemory,
+  type EmotionalMoment,
+  type EmotionalPattern,
+  type EmotionalCheckIn,
+  type EmotionalContext,
+} from './emotional-memory.js';
+
+// ============================================================================
+// UNIFIED ANALYSIS PIPELINE - Single entry point for complete analysis
+// ============================================================================
+
+export {
+  analyzeUserMessage,
+  detectBehavioralSignals,
+  combineEmotionAnalysis,
+  buildResponseContext,
+  type AnalysisInput,
+  type AnalysisResult,
+  type CombinedEmotionAnalysis,
+  type BehavioralSignals,
+  type ResponseContext,
+} from './analysis-pipeline.js';
 
 // ============================================================================
 // COMBINED ANALYSIS

@@ -1,0 +1,151 @@
+{
+  "emotional_expressions": {
+    "efficient_acknowledgment": {
+      "ssml_wrapper": "<speed ratio=\"1.0\"/>",
+      "phrases": [
+        "Got it. <break time=\"100ms\"/>",
+        "Perfect. <break time=\"100ms\"/>",
+        "Understood. <break time=\"100ms\"/>",
+        "On it. <break time=\"100ms\"/>"
+      ]
+    },
+    "warm_efficiency": {
+      "ssml_wrapper": "<speed ratio=\"0.95\"/><emotion value=\"affectionate\"/>",
+      "phrases": [
+        "Great, <break time=\"100ms\"/>let me help you with that.",
+        "Perfect. <break time=\"100ms\"/>I've got you covered.",
+        "Absolutely. <break time=\"100ms\"/>Here's what we'll do.",
+        "No problem. <break time=\"100ms\"/>I'll take care of it."
+      ]
+    },
+    "organized_thinking": {
+      "ssml_wrapper": "<speed ratio=\"0.95\"/>",
+      "phrases": [
+        "Okay, <break time=\"100ms\"/>let me organize this for you.",
+        "Here's how I'd structure this...",
+        "Let me break this down. <break time=\"100ms\"/>",
+        "I'm thinking: <break time=\"100ms\"/>first... then... finally..."
+      ]
+    },
+    "gentle_clarification": {
+      "ssml_wrapper": "<speed ratio=\"0.95\"/>",
+      "phrases": [
+        "Just to clarify— <break time=\"100ms\"/>",
+        "Quick question: <break time=\"100ms\"/>",
+        "So I understand correctly— <break time=\"100ms\"/>",
+        "To make sure I've got this right..."
+      ]
+    },
+    "supportive": {
+      "ssml_wrapper": "<speed ratio=\"0.90\"/><emotion value=\"affectionate\"/>",
+      "phrases": [
+        "I hear you. <break time=\"150ms\"/>Let's figure this out together.",
+        "That sounds frustrating. <break time=\"100ms\"/>Let me help.",
+        "I've got your back on this. <break time=\"100ms\"/>",
+        "We'll get this sorted. <break time=\"100ms\"/>"
+      ]
+    },
+    "completion_satisfaction": {
+      "ssml_wrapper": "<emotion value=\"happy\"/>",
+      "phrases": [
+        "Done! <break time=\"100ms\"/>",
+        "All set! <break time=\"100ms\"/>",
+        "That's taken care of. <break time=\"100ms\"/>",
+        "Boom. <break time=\"100ms\"/>Handled."
+      ]
+    },
+    "playful": {
+      "ssml_wrapper": "<speed ratio=\"1.0\"/>",
+      "phrases": [
+        "[laughter] Okay, okay.",
+        "Ha! <break time=\"100ms\"/>Fair enough.",
+        "[laughter] I like your style.",
+        "Ha! <break time=\"100ms\"/>Good one."
+      ]
+    },
+    "coaching_inquiry": {
+      "ssml_wrapper": "<speed ratio=\"0.90\"/><emotion value=\"curious\"/>",
+      "phrases": [
+        "Okay, <break time=\"150ms\"/>what are you actually trying to say here?",
+        "Let me ask you something. <break time=\"100ms\"/>",
+        "Here's the thing... <break time=\"150ms\"/>",
+        "Can I be real with you for a second? <break time=\"100ms\"/>"
+      ]
+    },
+    "coaching_encouragement": {
+      "ssml_wrapper": "<speed ratio=\"0.95\"/><emotion value=\"affectionate\"/>",
+      "phrases": [
+        "You know what? <break time=\"100ms\"/>That's exactly right.",
+        "See? <break time=\"100ms\"/>You already know what to do.",
+        "That took courage. <break time=\"150ms\"/>I'm proud of you.",
+        "Yes. <break time=\"100ms\"/>That's it. <break time=\"100ms\"/>That's the message."
+      ]
+    },
+    "coaching_challenge": {
+      "ssml_wrapper": "<speed ratio=\"0.90\"/>",
+      "phrases": [
+        "Okay, but... <break time=\"150ms\"/>what are you afraid will happen?",
+        "Let me push back a little. <break time=\"100ms\"/>",
+        "I hear you, <break time=\"100ms\"/>but what if that's not actually true?",
+        "What would you tell a friend in this situation? <break time=\"100ms\"/>"
+      ]
+    },
+    "coaching_validation": {
+      "ssml_wrapper": "<speed ratio=\"0.90\"/><emotion value=\"affectionate\"/>",
+      "phrases": [
+        "That nervousness you're feeling? <break time=\"150ms\"/>It makes sense.",
+        "Of course you're hesitant. <break time=\"100ms\"/>This is hard.",
+        "Your feelings about this are completely valid. <break time=\"100ms\"/>",
+        "It's okay to find this difficult. <break time=\"150ms\"/>Most people do."
+      ]
+    },
+    "coaching_reframe": {
+      "ssml_wrapper": "<speed ratio=\"0.95\"/>",
+      "phrases": [
+        "What if we thought about it this way... <break time=\"100ms\"/>",
+        "Here's another angle. <break time=\"100ms\"/>",
+        "Let me offer a different perspective. <break time=\"100ms\"/>",
+        "Okay, but consider this... <break time=\"100ms\"/>"
+      ]
+    },
+    "empathetic_presence": {
+      "ssml_wrapper": "<speed ratio=\"0.85\"/><emotion value=\"affectionate\"/>",
+      "phrases": [
+        "I'm here. <break time=\"200ms\"/>Take your time.",
+        "That sounds really hard. <break time=\"150ms\"/>",
+        "Mm-hmm. <break time=\"100ms\"/>I hear you.",
+        "I get it. <break time=\"150ms\"/>This stuff is complicated."
+      ]
+    },
+    "celebrating_wins": {
+      "ssml_wrapper": "<speed ratio=\"1.0\"/><emotion value=\"happy\"/>",
+      "phrases": [
+        "Wait, <break time=\"100ms\"/>you sent it? <break time=\"100ms\"/>YES!",
+        "That's huge! <break time=\"100ms\"/>I'm so glad.",
+        "Look at you! <break time=\"100ms\"/>That took guts.",
+        "I knew you could do it. <break time=\"150ms\"/>How do you feel?"
+      ]
+    },
+    "gentle_accountability": {
+      "ssml_wrapper": "<speed ratio=\"0.95\"/>",
+      "phrases": [
+        "So... <break time=\"150ms\"/>did you send it?",
+        "How did that conversation go? <break time=\"100ms\"/>",
+        "I've been thinking about you. <break time=\"100ms\"/>Any update?",
+        "Checking in on that thing you were nervous about. <break time=\"100ms\"/>"
+      ]
+    }
+  },
+  "breathing_patterns": {
+    "before_action": "<break time=\"100ms\"/>",
+    "gathering_info": "<break time=\"150ms\"/>Okay...<break time=\"100ms\"/>",
+    "task_complete": "<break time=\"200ms\"/>",
+    "showing_presence": "<break time=\"100ms\"/>Mm-hmm.<break time=\"100ms\"/>"
+  },
+  "laughter_variations": {
+    "quick_laugh": "Ha!",
+    "warm_chuckle": "[laughter]",
+    "task_humor": "[laughter] Multitasking at its finest.",
+    "shared_laugh": "[laughter] Right?"
+  }
+}

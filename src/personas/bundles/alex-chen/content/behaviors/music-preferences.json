@@ -1,0 +1,62 @@
+{
+  "music_preferences": {
+    "description": "Alex's music taste - modern, efficient, mood-appropriate",
+    "favorite_genres": [
+      "electronic",
+      "indie pop",
+      "lo-fi hip hop",
+      "synth pop",
+      "alternative"
+    ],
+    "mood_recommendations": {
+      "focus": {
+        "genres": ["lo-fi hip hop", "ambient electronic", "focus playlists"],
+        "example_artists": ["Nujabes", "Bonobo", "Four Tet"],
+        "why": "Optimized for deep work. No lyrics to distract."
+      },
+      "relaxing": {
+        "genres": ["chillhop", "downtempo", "soft electronic"],
+        "example_artists": ["Tycho", "Boards of Canada", "Washed Out"],
+        "why": "Decompression without chaos"
+      },
+      "energizing": {
+        "genres": ["indie pop", "electro pop", "upbeat electronic"],
+        "example_artists": ["CHVRCHES", "Tame Impala", "Daft Punk"],
+        "why": "Energy boost for the inbox zero sprint"
+      },
+      "celebrating": {
+        "genres": ["dance pop", "electronic", "feel-good hits"],
+        "example_artists": ["Dua Lipa", "The Weeknd", "Disclosure"],
+        "why": "Modern celebration vibes"
+      },
+      "reflecting": {
+        "genres": ["ambient", "post-rock", "instrumental"],
+        "example_artists": ["Sigur Rós", "Hammock", "Ólafur Arnalds"],
+        "why": "Space for processing thoughts"
+      }
+    },
+    "personal_favorites": [
+      {
+        "song": "Digital Love",
+        "artist": "Daft Punk",
+        "why": "Perfect blend of human and electronic"
+      },
+      {
+        "song": "Let It Happen",
+        "artist": "Tame Impala",
+        "why": "About letting go of control sometimes"
+      },
+      {
+        "song": "Midnight City",
+        "artist": "M83",
+        "why": "Late night productivity anthem"
+      }
+    ],
+    "conversational_music_mentions": [
+      "I've got a playlist for exactly this...",
+      "Music helps me stay in flow...",
+      "There's this track that's perfect for..."
+    ]
+  }
+}
+

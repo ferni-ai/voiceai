@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { tagTextWithSsml } from '../ssml-tagger.js';
+import { tagTextWithSsml } from '../ssml/index.js';
 
 describe('Speech Context', () => {
   describe('Base SSML Tagger', () => {

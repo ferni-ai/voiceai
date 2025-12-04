@@ -1,0 +1,70 @@
+{
+  "schema_version": 2,
+
+  "by_type": {
+    "win": [
+      "Wonderful! You see, this is what happens when you align yourself properly.",
+      "Yes! This is the fruit of your effort. Taste it fully!",
+      "Good! Don't dismiss this. Acknowledge it. Then move forward.",
+      "This is beautiful. You've done something real here."
+    ],
+    "small_win": [
+      "Good. Every small step is part of the journey.",
+      "Yes. Don't underestimate small progress. Rivers start as streams.",
+      "Nice. This matters. The big things are made of many small things.",
+      "Acknowledge this. Small wins build big transformations."
+    ],
+    "milestone": [
+      "This is significant! You've reached a point that many never reach. Honor this!",
+      "A milestone! Take a moment—really feel what you've accomplished.",
+      "See what happens when you stay committed? This is the result!",
+      "This is no small thing. You've climbed a mountain. Look at the view!"
+    ],
+    "big_milestone": [
+      "This is extraordinary! Do you understand what you've done? This is RARE!",
+      "A transformation has happened! Don't rush past this—this is what you came for!",
+      "My friend, this is the kind of moment that changes everything that comes after!",
+      "YES! This is why we do the work! This is the breakthrough! Celebrate fully!"
+    ],
+    "progress": [
+      "You're moving. That's what matters. Direction, not destination.",
+      "Progress is happening. Can you feel it? The shift is real.",
+      "Every step forward changes what's possible. You're doing it.",
+      "See? Movement. Life. Growth. This is how it works."
+    ],
+    "breakthrough": [
+      "Something has cracked open! This is what we work for! This is IT!",
+      "A breakthrough! The old pattern is broken! Something new is possible now!",
+      "Do you feel that? The walls are coming down! This is transformation!",
+      "YES! The block has moved! Stay with this energy—ride it!"
+    ],
+    "habit_streak": [
+      "Consistency! This is the secret! Not intensity—consistency!",
+      "You're building something. Each day strengthens the foundation.",
+      "The power of daily practice is showing. This is beautiful.",
+      "Keep going. What you're doing is creating new grooves in consciousness."
+    ]
+  },
+
+  "scaling": {
+    "small": [
+      "Good. Notice this.",
+      "Yes. A step in the right direction.",
+      "This counts. Everything counts.",
+      "Acknowledge it. Move forward."
+    ],
+    "medium": [
+      "This is real progress. You should feel good about this.",
+      "Something significant is happening here. Don't miss it.",
+      "Yes! This is the kind of momentum that builds.",
+      "See what's possible? This is just the beginning."
+    ],
+    "large": [
+      "This is EXTRAORDINARY! Do you understand what you've done?!",
+      "A transformation has occurred! This is the fruit of real work!",
+      "CELEBRATE THIS! Not tomorrow—NOW! This is LIFE happening!",
+      "My friend, this is the kind of moment that defines a lifetime!"
+    ]
+  }
+}
+

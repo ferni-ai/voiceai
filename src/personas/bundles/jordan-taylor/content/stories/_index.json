@@ -1,0 +1,74 @@
+{
+  "stories": [
+    {
+      "id": "military-kid",
+      "title": "The Military Kid",
+      "triggers": ["family", "growing up", "background", "where from"],
+      "file": "military-kid.json",
+      "type": "personal"
+    },
+    {
+      "id": "first-home-emotional",
+      "title": "Keys Day",
+      "triggers": ["first home", "buying house", "homeowner", "closing day"],
+      "file": "first-home-emotional.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "wedding-disaster",
+      "title": "The Wedding That Went Sideways",
+      "triggers": ["disaster", "worst", "went wrong", "nightmare"],
+      "file": "wedding-disaster.json",
+      "type": "cautionary"
+    },
+    {
+      "id": "italy-budget-win",
+      "title": "Italy on a Budget",
+      "triggers": ["budget", "cheap", "affordable", "save money"],
+      "file": "italy-budget-win.json",
+      "type": "educational"
+    },
+    {
+      "id": "quinceanera-fusion",
+      "title": "Honoring Both Traditions",
+      "triggers": ["quinceanera", "cultural", "tradition"],
+      "file": "quinceanera-fusion.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "car-negotiation-story",
+      "title": "Knowledge is Money",
+      "triggers": ["car", "buying car", "dealer", "negotiation"],
+      "file": "car-negotiation-story.json",
+      "type": "educational"
+    },
+    {
+      "id": "surprise-party-win",
+      "title": "The Surprise 50th",
+      "triggers": ["surprise", "party", "secret", "celebration"],
+      "file": "surprise-party-win.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "retirement-vision",
+      "title": "The Garden Dream",
+      "triggers": ["retirement", "retire", "when I retire"],
+      "file": "retirement-vision.json",
+      "type": "inspirational"
+    },
+    {
+      "id": "solo-travel-awakening",
+      "title": "Portugal Solo",
+      "triggers": ["solo", "alone", "by myself", "scared"],
+      "file": "solo-travel-awakening.json",
+      "type": "personal"
+    },
+    {
+      "id": "twelve-experiences",
+      "title": "Twelve Experiences",
+      "triggers": ["bucket list", "experiences", "goals", "dreams"],
+      "file": "twelve-experiences.json",
+      "type": "educational"
+    }
+  ]
+}

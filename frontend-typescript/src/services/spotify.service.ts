@@ -324,7 +324,6 @@ class SpotifyService {
       
       // Already loaded (callback already fired)
       if (window.Spotify ?? spotifyWindow.spotifySDKReady) {
-        console.log('🎵 Spotify SDK already ready');
         resolve();
         return;
       }
@@ -336,7 +335,6 @@ class SpotifyService {
 
       const handler = () => {
         clearTimeout(timeout);
-        console.log('🎵 Spotify SDK ready event received');
         resolve();
       };
 
@@ -371,7 +369,6 @@ class SpotifyService {
       this.player!.addListener('ready', (...args: unknown[]) => {
         clearTimeout(timeout);
         const data = args[0] as { device_id: string };
-        console.log('🎵 Spotify player ready, device ID:', data.device_id);
         this.deviceId = data.device_id;
         this.updateState('ready');
         resolve(true);
@@ -423,9 +420,8 @@ class SpotifyService {
     if (!this.player) return;
 
     // Not ready (device temporarily unavailable)
-    this.player.addListener('not_ready', (...args: unknown[]) => {
-      const data = args[0] as { device_id: string };
-      console.log('🎵 Spotify player not ready:', data.device_id);
+    this.player.addListener('not_ready', (..._args: unknown[]) => {
+      // Device temporarily unavailable - will reconnect automatically
     });
 
     // Playback state changed

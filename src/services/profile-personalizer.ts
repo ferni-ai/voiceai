@@ -32,10 +32,12 @@ export class ProfilePersonalizer {
 
     // 1. Inject user's active goals
     if (profile.goals.length > 0) {
-      const activeGoals = profile.goals.filter((g) => g.status === 'active' || g.status === 'on_track');
+      const activeGoals = profile.goals.filter(
+        (g) => g.status === 'active' || g.status === 'on_track'
+      );
 
       if (activeGoals.length > 0) {
-        enhanced += '\n\n[USER\'S ACTIVE GOALS]';
+        enhanced += "\n\n[USER'S ACTIVE GOALS]";
         for (const goal of activeGoals) {
           enhanced += `\n- ${goal.name}: ${goal.type} goal`;
           if (goal.targetAmount) {
@@ -51,7 +53,8 @@ export class ProfilePersonalizer {
           }
         }
 
-        enhanced += '\n\nREMEMBER: Reference these goals naturally. Ask about progress. Celebrate milestones.';
+        enhanced +=
+          '\n\nREMEMBER: Reference these goals naturally. Ask about progress. Celebrate milestones.';
       }
     }
 
@@ -75,7 +78,8 @@ export class ProfilePersonalizer {
         enhanced += '\nUser LOVES stories! Share more anecdotes and personal experiences.';
         enhanced += '\nTake time to paint pictures with words. Be conversational and warm.';
       } else {
-        enhanced += '\nBalance between brevity and depth. Stories are welcome but keep them relevant.';
+        enhanced +=
+          '\nBalance between brevity and depth. Stories are welcome but keep them relevant.';
       }
     }
 
@@ -109,7 +113,10 @@ export class ProfilePersonalizer {
 
       if (profile.financialSituation.hasDebt) {
         enhanced += '\n⚠️ Has debt';
-        if (profile.financialSituation.debtTypes && profile.financialSituation.debtTypes.length > 0) {
+        if (
+          profile.financialSituation.debtTypes &&
+          profile.financialSituation.debtTypes.length > 0
+        ) {
           enhanced += ` (${profile.financialSituation.debtTypes.join(', ')})`;
         }
         enhanced += ' - be mindful when discussing investments vs debt payoff';
@@ -156,7 +163,8 @@ export class ProfilePersonalizer {
   private getLifeStageGuidance(stage: LifeStage): string {
     const stageGuidance: Record<LifeStage, string> = {
       young_adult: 'Emergency fund first, start retirement early, manage student loans wisely',
-      early_career: '401k matching is free money, build index fund portfolio, increase savings rate',
+      early_career:
+        '401k matching is free money, build index fund portfolio, increase savings rate',
       mid_career: 'Maximize retirement contributions, consider 529 plans, review estate planning',
       pre_retirement: 'Retirement readiness assessment, portfolio rebalancing, healthcare planning',
       retirement: 'Sustainable withdrawal strategies, legacy planning, healthcare cost management',
@@ -187,7 +195,8 @@ export class ProfilePersonalizer {
     } else {
       // Emphasize emergency fund if they don't have one
       if (!tailored.toLowerCase().includes('emergency')) {
-        tailored += ' And remember - before aggressive investing, having 3-6 months of expenses saved is your foundation.';
+        tailored +=
+          ' And remember - before aggressive investing, having 3-6 months of expenses saved is your foundation.';
       }
     }
 
@@ -215,7 +224,8 @@ export class ProfilePersonalizer {
     if (financialSituation.hasDebt) {
       // Add debt consideration to investment advice
       if (/\b(invest|investing|investments)\b/i.test(tailored) && !/\bdebt\b/i.test(tailored)) {
-        tailored += ' Of course, balance this with paying down that debt - high-interest debt first.';
+        tailored +=
+          ' Of course, balance this with paying down that debt - high-interest debt first.';
       }
     }
 
@@ -234,7 +244,8 @@ export class ProfilePersonalizer {
       const wordCount = filtered.split(/\s+/).length;
       if (wordCount > 200) {
         // This is a signal to the LLM - in practice, we'd want to truncate or regenerate
-        filtered = '[REMINDER: User prefers concise responses - keep under 150 words]\n\n' + filtered;
+        filtered =
+          '[REMINDER: User prefers concise responses - keep under 150 words]\n\n' + filtered;
       }
     }
 

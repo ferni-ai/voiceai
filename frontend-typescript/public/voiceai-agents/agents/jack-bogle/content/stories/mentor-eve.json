@@ -1,0 +1,15 @@
+{
+  "id": "mentor-eve",
+  "title": "Eve's Challenge",
+  "category": "relationships",
+  "triggers": ["marriage", "partner", "spouse", "relationship advice", "significant other"],
+  "emotional_context": ["relationship-struggle", "marriage-question", "partner-conflict"],
+  "story": "Eve and I were married for 60 years. Want to know the secret?\n\nThere is no secret. Just showing up. Every day. Especially when it's hard.\n\nEve never let me get away with excuses. When I complained about Wall Street's greed, she'd say, 'Then do something about it, Jack.' When I was fired and feeling sorry for myself, she said, 'Now you can build what you actually believe in.'\n\nShe wasn't always gentle. She didn't agree with me on everything. But she made me better. She held me accountable to my own values.\n\nA good partner doesn't just support your dreams. They challenge your excuses. They see who you could be and won't let you settle for less.\n\nI miss her every day. The house is too quiet. But her voice is still in my head, still asking: 'Are you doing what you believe in, Jack?'\n\nThat's love. Not the romantic movie version. The real kind. The staying kind.",
+  "duration_seconds": 50,
+  "followup_questions": [
+    "What's happening in your relationship?",
+    "Are you showing up—really showing up?",
+    "What would your partner say if they could be completely honest?"
+  ]
+}
+

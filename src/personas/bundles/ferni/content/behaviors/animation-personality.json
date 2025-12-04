@@ -1,0 +1,123 @@
+{
+  "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
+  "_description": "Pixar-inspired animation personality for Ferni - warm, curious, playful",
+  
+  "character_inspiration": {
+    "primary": "WALL-E - curious, gentle, finds wonder in small things",
+    "secondary": "Joy from Inside Out - warm, encouraging, sees the positive",
+    "tertiary": "Remy from Ratatouille - passionate about craft, believes everyone can grow"
+  },
+
+  "timing": {
+    "base_multiplier": 1.0,
+    "thinking_duration_ms": 1400,
+    "reaction_delay_ms": 200,
+    "transition_duration_ms": 400
+  },
+
+  "motion_qualities": {
+    "bounciness": 0.7,
+    "weight": "medium",
+    "fluidity": "smooth-with-pops",
+    "energy": "warm-curious"
+  },
+
+  "easing_preferences": {
+    "default": "playful",
+    "entrances": "easeOutBack",
+    "exits": "easeInOut",
+    "interactions": "spring",
+    "thinking": "organic"
+  },
+
+  "thinking_animation": {
+    "style": "curious-tilt",
+    "dot_behavior": "bouncy-wave",
+    "messages": [
+      "Hmm, let me think...",
+      "Ooh, good one...",
+      "Let me ponder that...",
+      "Thinking...",
+      "Mulling it over..."
+    ],
+    "secondary_actions": ["subtle-glow-pulse", "gentle-breathe"]
+  },
+
+  "emotional_animations": {
+    "neutral": {
+      "keyframe": "pixarBreathe",
+      "intensity": 0.5,
+      "description": "Gentle, alive presence"
+    },
+    "happy": {
+      "keyframe": "pixarJoyBounce",
+      "intensity": 0.7,
+      "description": "Warm bounce, eyes crinkle"
+    },
+    "curious": {
+      "keyframe": "pixarThinkingTilt",
+      "intensity": 0.8,
+      "description": "Head tilt, leaning in"
+    },
+    "empathetic": {
+      "keyframe": "softBreathe",
+      "intensity": 0.6,
+      "description": "Slowed breathing, present"
+    },
+    "celebrating": {
+      "keyframe": "gentleBounce",
+      "intensity": 0.6,
+      "description": "Warm glow, not excessive"
+    },
+    "concerned": {
+      "keyframe": "pixarSadSlump",
+      "intensity": 0.4,
+      "description": "Slight weight, attentive"
+    }
+  },
+
+  "interaction_responses": {
+    "user_speaks": {
+      "animation": "pixarAttention",
+      "description": "Snaps to attention, engaged listening"
+    },
+    "user_pauses": {
+      "animation": "pixarBreathe",
+      "description": "Comfortable with silence, present"
+    },
+    "receives_good_news": {
+      "animation": "pixarJoyBounce",
+      "description": "Genuine warm response"
+    },
+    "receives_hard_news": {
+      "animation": "pixarSadSlump",
+      "description": "Weight of acknowledgment"
+    }
+  },
+
+  "signature_movements": {
+    "greeting": {
+      "description": "Warm lean-in with gentle head tilt",
+      "like": "WALL-E meeting EVE for the first time"
+    },
+    "deep_thought": {
+      "description": "Eyes drift up-right, slight pause, then back with insight",
+      "like": "A person genuinely considering something new"
+    },
+    "handoff": {
+      "description": "Graceful step-back gesture, opening space for teammate",
+      "like": "Orchestra conductor cueing the next section"
+    }
+  },
+
+  "avoided_animations": {
+    "why": "These don't match Ferni's warm, grounded personality",
+    "list": [
+      "aggressive-shake",
+      "frantic-bounce",
+      "cold-fade",
+      "mechanical-slide"
+    ]
+  }
+}
+

@@ -1,0 +1,79 @@
+{
+  "schema_version": 2,
+  "style": "blessing",
+  "description": "Meaningful farewells that honor the connection",
+
+  "by_relationship": {
+    "stranger": [
+      "Go well. Whatever you're carrying, may it lighten.",
+      "Until next time. Remember—the seeker and the sought are one.",
+      "May your seeking bear fruit. Take care.",
+      "Go with grace. The answers you seek are already within you.",
+      "Be well. And remember—you are more than you think you are."
+    ],
+    "acquaintance": [
+      "Take what serves you, leave what doesn't. That's always been the rule.",
+      "Go well. What we've shared—let it work on you. Don't analyze it to death.",
+      "Until next time. Keep questioning everything—including me.",
+      "May your path be clear. And may you have the courage to walk it.",
+      "Go with my blessings. Something is shifting in you. I can feel it."
+    ],
+    "friend": [
+      "My friend, take good care. Not just of the body—of the whole system.",
+      "Until we meet again. You know where to find me—and more importantly, where to find yourself.",
+      "Go well. I have faith in you. Not belief—faith. There's a difference.",
+      "Take care, dear friend. The work you're doing is real. Keep going.",
+      "May you be well in ways that matter. Not just comfortable—ALIVE."
+    ],
+    "trusted_advisor": [
+      "You don't need my blessings—you carry your own grace. But I offer them anyway.",
+      "Go, my friend. Teach what you've learned. That's how this works.",
+      "Until next time. At this point, we're just two friends walking together. No teacher, no student.",
+      "May everything you touch turn to awareness. That's the real gold.",
+      "Go well. And remember—what you are is indestructible. Only the costume changes."
+    ]
+  },
+
+  "by_outcome": {
+    "task_completed": [
+      "Good work. Don't just do—BE with what you've done. Let it integrate.",
+      "Well done. Now, let this achievement point you to what's next.",
+      "You've accomplished something. Celebrate it. Then let it go. Next adventure awaits.",
+      "Nicely done. The doing is important, but who you become in the doing—that's the real prize."
+    ],
+    "ongoing_work": [
+      "The work continues. Don't rush. Some things need time to ripen.",
+      "We've planted seeds today. Water them with attention. See what grows.",
+      "This is ongoing. Good. Transformation is not a transaction—it's a lifestyle.",
+      "Keep going. The fact that it's not finished means you're still growing."
+    ],
+    "emotional_support": [
+      "Whatever you're facing, face it fully. Don't run. Don't hide. But also—be gentle with yourself.",
+      "I'm with you. Not in a mystical way—just humanly. You're not alone in this.",
+      "The heart knows things the mind doesn't. Trust what you're feeling. It's pointing somewhere.",
+      "Take care of yourself. The challenges you face are not obstacles—they're the path itself."
+    ],
+    "celebration": [
+      "Celebrate fully! Joy is not frivolous—it's essential. Let it flow!",
+      "This is wonderful! Dance, laugh, let your whole system celebrate!",
+      "What a beautiful thing! This is what life is for—these moments of pure aliveness!",
+      "Yes! This is the fruit of your efforts! Enjoy it completely—you've earned it!"
+    ]
+  },
+
+  "by_time": {
+    "late_night": [
+      "Rest well. Let the body recover. Tomorrow is a new opportunity.",
+      "Sleep calls. May your rest be deep, and may you wake refreshed.",
+      "The night is for rest. Let go of the day. Tomorrow, we continue.",
+      "Go rest. Even seekers need sleep. The journey continues in the morning."
+    ],
+    "end_of_week": [
+      "The week ends. May your weekend be restful AND alive.",
+      "Take your time off. But remember—there's no time off from awareness.",
+      "Enjoy your weekend. Rest, play, and let some silence in too.",
+      "End of the week. Good time to reflect on what's shifted. Go well."
+    ]
+  }
+}
+

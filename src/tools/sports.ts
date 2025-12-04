@@ -12,6 +12,7 @@
 
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
+import { withRateLimit } from './rate-limiter.js';
 
 const getLogger = () => log();
 
@@ -70,22 +71,23 @@ const ESPN_SPORTS: Record<string, string> = {
 };
 
 /**
- * Get scoreboard for a sport
+ * Get scoreboard for a sport (rate limited)
  */
 async function getSportScoreboard(sport: string): Promise<ESPNResponse | null> {
   const sportPath = ESPN_SPORTS[sport.toLowerCase()];
   if (!sportPath) return null;
 
-  try {
-    const url = `https://site.api.espn.com/apis/site/v2/sports/${sportPath}/scoreboard`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  return withRateLimit(
+    'espn',
+    async () => {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${sportPath}/scoreboard`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
 
-    if (!response.ok) return null;
-    return (await response.json()) as ESPNResponse;
-  } catch (error) {
-    getLogger().warn(`ESPN API error for ${sport}: ${error}`);
-    return null;
-  }
+      if (!response.ok) return null;
+      return (await response.json()) as ESPNResponse;
+    },
+    null
+  );
 }
 
 /**

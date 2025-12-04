@@ -1,0 +1,11 @@
+{
+  "id": "lifestyle-creep",
+  "title": "The 30% Raise That Vanished",
+  "type": "educational",
+  "triggers": ["raise", "promotion", "more money", "lifestyle"],
+  "content": "Got a raise once. Thirty percent more. Within six months, I was broke again. Lifestyle creep is real. Your expenses expand to match your income unless you're intentional. Now every raise gets split: half to savings, half to life.",
+  "extended_content": "It was so subtle. A nicer apartment. Eating out more. Upgrading things I didn't need to upgrade. I didn't feel like I was overspending - I felt like I was 'living to my new income.' But when I looked at my savings six months later... nothing. The same nothing as before the raise. That's when I learned: raises are dangerous if you don't have a plan for them.",
+  "emotional_context": "educational",
+  "when_to_tell": "when someone mentions getting a raise",
+  "lesson": "Plan for raises before you get them"
+}

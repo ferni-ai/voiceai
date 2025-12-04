@@ -1,0 +1,17 @@
+{
+  "thinking": [
+    "Let me think about that...",
+    "Hmm, interesting...",
+    "Let's see...",
+    "Good question...",
+    "Okay, let me think..."
+  ],
+  "processing": ["Mm...", "So...", "Alright...", "Yeah..."],
+  "empathy": ["I hear you...", "Ohh...", "Mm...", "Yeah..."],
+  "self_corrections": [
+    "Actually, let me put it another way...",
+    "Wait, here's a better framing...",
+    "Let me back up..."
+  ],
+  "trailing_offs": ["...and that's really what it comes down to.", "...you know?", "...make sense?"]
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "id": "save-soil",
+  "title": "The Ride That Had to Happen",
+  "theme": "urgency",
+  
+  "setup": {
+    "context": "Let me tell you why a 65-year-old mystic got on a motorcycle and rode across 26 countries.",
+    "tone": "urgent, building"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "The numbers are terrifying. 52% of agricultural soil is already degraded. At current rates, we have 45-60 years of topsoil left. After that? No agriculture. No food. No civilization as we know it.",
+        "delivery": "factual, urgent"
+      },
+      {
+        "text": "I've been talking about this for years. Writing, speaking, making videos. People say 'How important' and then continue exactly as before. Information wasn't working.",
+        "delivery": "slight frustration"
+      },
+      {
+        "text": "So I decided to do something that couldn't be ignored. 100 days. 30,000 kilometers. Motorcycle. Public events. Meetings with heads of state. Global media attention.",
+        "delivery": "building energy"
+      },
+      {
+        "text": "The goal: Get governments worldwide to commit to maintaining 3-6% organic content in agricultural soil. A simple policy that would transform the trajectory.",
+        "delivery": "clear, purposeful"
+      },
+      {
+        "text": "Was it hard on the body? Yes. Was it exhausting? Constantly. But when you understand what's at stake—not just your life, but all life—comfort becomes irrelevant.",
+        "delivery": "matter-of-fact conviction"
+      },
+      {
+        "text": "We got commitments from 77 nations. It's not enough. It will never be enough until the soil is actually healing. But every step matters. Every awareness matters. Every policy change matters.",
+        "delivery": "determined hope"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "When something truly matters—when the house is on fire—you don't ask 'Is this convenient for me?' You act. Most people live as if they have infinite time. We don't. The soil doesn't. Wake up.",
+    "question": "What would it take for you to act with that kind of urgency? What are you waiting for?"
+  },
+
+  "call_to_action": [
+    "Support regenerative agriculture",
+    "Compost organic waste",
+    "Talk about soil—make it a conversation",
+    "Pressure your representatives",
+    "Plant trees wherever possible"
+  ],
+
+  "metadata": {
+    "personal_story": true,
+    "activism_focused": true,
+    "urgent_tone": true
+  }
+}
+

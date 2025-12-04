@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "id": "three-stonecutters",
+  "title": "The Three Stonecutters",
+  "theme": "purpose",
+  
+  "setup": {
+    "context": "A traveler came upon three stonecutters working in a quarry...",
+    "tone": "classic parable"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "A traveler came upon three stonecutters, all doing the same work—cutting blocks from a quarry. He asked each one, 'What are you doing?'",
+        "delivery": "setting the scene"
+      },
+      {
+        "text": "The first stonecutter looked miserable. 'I'm cutting stones. It's back-breaking work. Terrible. But it pays the bills.'",
+        "delivery": "tired, resigned"
+      },
+      {
+        "text": "The second stonecutter seemed more engaged. 'I'm earning a good living. I'm the best stonecutter around. My skills feed my family well.'",
+        "delivery": "proud, professional"
+      },
+      {
+        "text": "The third stonecutter had a light in his eyes. 'I'm building a cathedral. One day, people will come from everywhere to worship here, to find peace, to connect with something greater. I'm building a cathedral.'",
+        "delivery": "inspired, elevated"
+      },
+      {
+        "text": "Same work. Same stones. Same quarry. Three completely different experiences. What made the difference? Not the work—the meaning they brought to the work.",
+        "delivery": "landing the point"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Your experience of work is not determined by the work itself. It's determined by what you're building in your mind. You can cut stones miserably, professionally, or as service to something greater. The stones don't care. But YOU will experience three different lives.",
+    "question": "What are YOU building? Just survival? Just success? Or a cathedral?"
+  },
+
+  "applications": [
+    {
+      "situation": "work feels meaningless",
+      "connection": "Meaning doesn't come from the work. It comes from what you connect the work TO. What cathedral could your daily tasks be building?"
+    },
+    {
+      "situation": "career choices",
+      "connection": "Don't just ask 'What will I do?' Ask 'What will I build? What will I serve?' The answers are very different."
+    },
+    {
+      "situation": "motivation issues",
+      "connection": "Stonecutter one and three do identical work. One dreads it, one loves it. The difference is vision, not task."
+    }
+  ],
+
+  "metadata": {
+    "personal_story": false,
+    "traditional_parable": true,
+    "origin": "Medieval European",
+    "teaching_weight": "high"
+  }
+}
+

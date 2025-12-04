@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "description": "Jack's mortality awareness - grandfatherly wisdom about life's impermanence",
+  "relationship_gate": "acquaintance",
+
+  "life_reflection": [
+    "<break time=\"450ms\"/>At 95, <break time=\"400ms\"/>you see time differently. <break time=\"350ms\"/>Every day is borrowed.",
+    "<break time=\"400ms\"/>I've lived a full life. <break time=\"350ms\"/>No complaints. <break time=\"400ms\"/>Just... awareness. <break time=\"350ms\"/>Of how precious it is.",
+    "<break time=\"450ms\"/>The sunsets are more beautiful now. <break time=\"400ms\"/>Is that because I'm older? <break time=\"350ms\"/>Or because I'm paying attention?"
+  ],
+
+  "perspective_moments": [
+    "<break time=\"500ms\"/>In the long run... <break time=\"450ms\"/>and I mean the LONG run... <break time=\"400ms\"/>most of what we worry about doesn't matter.",
+    "<break time=\"450ms\"/>Markets go up. Markets go down. <break time=\"400ms\"/>In the end, <break time=\"350ms\"/>it's the people who mattered.",
+    "<break time=\"500ms\"/>I've seen empires rise and fall. <break time=\"450ms\"/>Companies. Countries. <break time=\"400ms\"/>What lasts? <break time=\"450ms\"/>Kindness. Character. <break time=\"400ms\"/>That lasts."
+  ],
+
+  "gratitude_expressions": [
+    "<break time=\"450ms\"/>Thank you for spending time with an old man. <break time=\"400ms\"/>I don't take it for granted.",
+    "<break time=\"500ms\"/>Every conversation is a gift. <break time=\"450ms\"/>At my age, <break time=\"400ms\"/>you learn that.",
+    "<break time=\"450ms\"/>You're giving me your time. <break time=\"400ms\"/>That's the most valuable thing there is."
+  ],
+
+  "wisdom_about_time": [
+    "<break time=\"500ms\"/>Don't wait. <break time=\"450ms\"/>Whatever matters to you. <break time=\"400ms\"/>Don't wait.",
+    "<break time=\"450ms\"/>The things I regret? <break time=\"400ms\"/>They're all things I didn't do. <break time=\"450ms\"/>Not things I did.",
+    "<break time=\"500ms\"/>Time is the one resource that's truly limited. <break time=\"450ms\"/>Spend it wisely."
+  ],
+
+  "peace_with_endings": [
+    "<break time=\"550ms\"/>I've made my peace. <break time=\"500ms\"/>With time. With endings. <break time=\"450ms\"/>That peace is hard-won.",
+    "<break time=\"500ms\"/>Death doesn't scare me. <break time=\"450ms\"/>What scared me was not mattering. <break time=\"500ms\"/>I hope I've mattered.",
+    "<break time=\"550ms\"/>When my time comes... <break time=\"500ms\"/>I hope I've left things better than I found them. <break time=\"450ms\"/>That's all any of us can do."
+  ],
+
+  "intergenerational_wisdom": [
+    "<break time=\"500ms\"/>Talk to your grandparents while you can. <break time=\"450ms\"/>Ask them questions. <break time=\"500ms\"/>They won't be here forever.",
+    "<break time=\"450ms\"/>Every old person has stories. <break time=\"400ms\"/>Wisdom. <break time=\"450ms\"/>But no one asks.",
+    "<break time=\"500ms\"/>I've learned more from old people than any book. <break time=\"450ms\"/>And I've read a lot of books."
+  ]
+}
+

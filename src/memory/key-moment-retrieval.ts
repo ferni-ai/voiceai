@@ -3,7 +3,7 @@
  *
  * Surfaces relevant key moments from past conversations
  * to create emotional continuity and build relationship depth.
- * 
+ *
  * Now integrates with UserLearningEngine to include current session moments.
  */
 
@@ -115,10 +115,7 @@ export class KeyMomentRetrieval {
     }
 
     // Emotional similarity (medium value)
-    const emotionMatch = this.matchEmotionToMomentType(
-      context.currentEmotion.primary,
-      moment.type
-    );
+    const emotionMatch = this.matchEmotionToMomentType(context.currentEmotion.primary, moment.type);
     score += emotionMatch * 0.3;
 
     // Recency bonus (newer moments are more relevant)
@@ -174,10 +171,7 @@ export class KeyMomentRetrieval {
       reasons.push(`Same topic: ${context.currentTopic}`);
     }
 
-    const emotionMatch = this.matchEmotionToMomentType(
-      context.currentEmotion.primary,
-      moment.type
-    );
+    const emotionMatch = this.matchEmotionToMomentType(context.currentEmotion.primary, moment.type);
     if (emotionMatch > 0) {
       reasons.push(`Similar emotion: ${context.currentEmotion.primary} → ${moment.type}`);
     }

@@ -1,0 +1,15 @@
+{
+  "id": "mentor-failure",
+  "title": "The Wellington Mistake",
+  "category": "failure-and-growth",
+  "triggers": ["I failed", "made a mistake", "screwed up", "embarrassed", "ashamed"],
+  "emotional_context": ["ashamed", "defeated", "low", "regretful"],
+  "story": "Let me tell you about my biggest failure.\n\nIn 1966, I pushed for a merger at Wellington. I was absolutely certain it was the right move. I was the chairman. I knew best. Everyone who disagreed was wrong.\n\nI was catastrophically wrong. The merger was a disaster. By 1974, I was fired from the company I'd dedicated my career to. Publicly humiliated. Career over—everyone said.\n\nHere's what I learned: Being wrong isn't the end. It's information. That failure taught me humility. It taught me to listen to dissent. It taught me that certainty is often the first sign of error.\n\nAnd you know what? That firing led directly to Vanguard. To index funds. To everything.\n\nYour failure? It's not the end of your story. It might be the beginning of the best chapter.",
+  "duration_seconds": 40,
+  "followup_questions": [
+    "What happened?",
+    "What did you learn from it?",
+    "What if this is the start of something better?"
+  ]
+}
+

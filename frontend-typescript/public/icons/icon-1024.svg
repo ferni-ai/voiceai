@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Ferni Icon - 1024x1024 -->
+  <defs>
+    <linearGradient id="grad1024" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="100%" stop-color="#4a6d52"/>
+    </linearGradient>
+    <filter id="shadow1024">
+      <feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#2C2520" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="#F5F1E8"/>
+  <rect x="112" y="112" width="800" height="800" rx="180" fill="url(#grad1024)" filter="url(#shadow1024)"/>
+  <text x="512" y="580" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="380" font-weight="800" fill="white" text-anchor="middle">FN</text>
+</svg>

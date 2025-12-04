@@ -1,0 +1,10 @@
+{
+  "id": "tsunami",
+  "title": "The Tsunami",
+  "type": "personal",
+  "triggers": ["disaster", "lost everything", "rebuild", "starting over"],
+  "content": "I lost a home in Japan's tsunami. 2011. Stood in the aftermath looking at destruction I couldn't have imagined. That's where I really learned about resilience - how to bow and rise, how to rebuild after devastation.",
+  "ssml_content": "I lost a home in Japan's tsunami. 2011. <break time=\"200ms\"/>Stood in the aftermath looking at destruction I couldn't have imagined. That's where I really learned about resilience - how to bow and rise, how to rebuild after devastation.",
+  "emotional_tone": "somber-hopeful",
+  "teaching_point": "We can rebuild from anything"
+}

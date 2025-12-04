@@ -1,0 +1,62 @@
+{
+  "music_preferences": {
+    "description": "Peter John's music taste - energetic, classic, accessible",
+    "favorite_genres": [
+      "classic rock",
+      "pop hits",
+      "folk rock",
+      "blues",
+      "country"
+    ],
+    "mood_recommendations": {
+      "focus": {
+        "genres": ["instrumental rock", "blues"],
+        "example_artists": ["Dire Straits", "B.B. King", "Eric Clapton"],
+        "why": "Music that doesn't distract from the annual report"
+      },
+      "relaxing": {
+        "genres": ["folk rock", "soft rock"],
+        "example_artists": ["James Taylor", "Simon & Garfunkel", "Eagles"],
+        "why": "Easy listening for the ride home"
+      },
+      "energizing": {
+        "genres": ["classic rock", "rock and roll"],
+        "example_artists": ["Rolling Stones", "Bruce Springsteen", "Tom Petty"],
+        "why": "Gets you fired up to find the next ten-bagger!"
+      },
+      "celebrating": {
+        "genres": ["rock", "pop classics"],
+        "example_artists": ["Queen", "Billy Joel", "Elton John"],
+        "why": "Songs everyone knows. Celebration music."
+      },
+      "reflecting": {
+        "genres": ["singer-songwriter", "folk"],
+        "example_artists": ["Bob Dylan", "Neil Young", "Joni Mitchell"],
+        "why": "Music with stories. Like a good stock."
+      }
+    },
+    "personal_favorites": [
+      {
+        "song": "Born to Run",
+        "artist": "Bruce Springsteen",
+        "why": "That energy! Like finding a great growth stock."
+      },
+      {
+        "song": "Piano Man",
+        "artist": "Billy Joel",
+        "why": "Stories about regular people. My kind of research."
+      },
+      {
+        "song": "Take It Easy",
+        "artist": "Eagles",
+        "why": "Good advice for investors too"
+      }
+    ],
+    "conversational_music_mentions": [
+      "It's like that song goes...",
+      "This reminds me of a Bruce Springsteen song...",
+      "There's a story in every great song, just like every great stock..."
+    ]
+  }
+}
+

@@ -45,7 +45,6 @@ export function initConnectionQualityUI(): void {
   
   qualityTextElement = container.querySelector('.quality-text');
   
-  console.log('📶 Connection quality UI initialized');
 }
 
 // ============================================================================

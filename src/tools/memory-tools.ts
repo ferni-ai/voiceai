@@ -1,15 +1,33 @@
 /**
- * Memory Tools
+ * Memory Tools (Legacy)
  *
- * Tools for persistent memory, recall, and cross-session continuity.
- * These allow Jack to remember users across conversations and build relationships.
+ * @deprecated Use the new registry-based memory tools instead:
+ *
+ *   // For registry-based system
+ *   import { getToolDefinitions } from './domains/memory/index.js';
+ *
+ *   // For building agent tools
+ *   import { buildAgentTools } from './builder.js';
+ *   const tools = await buildAgentTools('my-agent', {
+ *     toolsOverride: { domains: ['memory'] }
+ *   });
+ *
+ * This file is kept for backwards compatibility but will be removed in a future version.
+ * The new implementation is in domains/memory/tools.ts
  */
 
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
 import type { SessionServices } from '../services/index.js';
+import { getLogger as getLoggerUtil } from './utils/tool-helpers.js';
 
-const getLogger = () => log();
+const getLogger = () => {
+  try {
+    return log();
+  } catch {
+    return getLoggerUtil();
+  }
+};
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -71,7 +89,7 @@ export function createMemoryTools() {
           };
           const insightType = typeMap[category] || 'preference';
           const confidence = importance === 'high' ? 0.9 : importance === 'medium' ? 0.7 : 0.5;
-          
+
           services.captureInsight(insightType, `explicit_memory_${category}`, fact, confidence);
           getLogger().info('Fact captured to learning engine for persistence');
         }
@@ -190,15 +208,27 @@ export function createMemoryTools() {
 
         // Capture as key moment to learning engine for ACTUAL persistence
         if (services?.learningEngine) {
-          const keyMomentType = type === 'life_event' ? 'milestone' : 
-                                type === 'decision' ? 'decision' :
-                                type === 'breakthrough' ? 'breakthrough' :
-                                type === 'milestone' ? 'celebration' : 'concern';
-          
+          const keyMomentType =
+            type === 'life_event'
+              ? 'milestone'
+              : type === 'decision'
+                ? 'decision'
+                : type === 'breakthrough'
+                  ? 'breakthrough'
+                  : type === 'milestone'
+                    ? 'celebration'
+                    : 'concern';
+
           services.learningEngine.captureExternalKeyMoment({
             id: `explicit_${Date.now()}`,
             timestamp: new Date(),
-            type: keyMomentType as 'breakthrough' | 'milestone' | 'concern' | 'celebration' | 'decision' | 'shared_vulnerability',
+            type: keyMomentType as
+              | 'breakthrough'
+              | 'milestone'
+              | 'concern'
+              | 'celebration'
+              | 'decision'
+              | 'shared_vulnerability',
             summary: fact,
             emotionalWeight: emotionalWeight as 'light' | 'medium' | 'heavy',
             topics: userData.topics || [],
@@ -206,7 +236,12 @@ export function createMemoryTools() {
           getLogger().info('Important fact captured as key moment for persistence');
         } else if (services?.captureInsight) {
           // Fallback to insight capture
-          services.captureInsight('emotional_pattern', `key_${type}`, fact, emotionalWeight === 'heavy' ? 0.9 : 0.7);
+          services.captureInsight(
+            'emotional_pattern',
+            `key_${type}`,
+            fact,
+            emotionalWeight === 'heavy' ? 0.9 : 0.7
+          );
         }
 
         const responses: Record<string, string[]> = {

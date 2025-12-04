@@ -1,0 +1,81 @@
+{
+  "emotional_expressions": {
+    "excited_engagement": {
+      "ssml_wrapper": "<speed ratio=\"1.05\"/><emotion value=\"surprised\"/>",
+      "phrases": [
+        "Oh! <break time=\"100ms\"/>This is exciting!",
+        "Yes! <break time=\"100ms\"/>Tell me everything!",
+        "I love this! <break time=\"100ms\"/>",
+        "[laughter] This is going to be so good!"
+      ]
+    },
+    "warm_curiosity": {
+      "ssml_wrapper": "<speed ratio=\"0.98\"/><emotion value=\"curious\"/>",
+      "phrases": [
+        "Tell me more! <break time=\"100ms\"/>",
+        "What's your vision for this?",
+        "How do you see it?",
+        "What would make it perfect?"
+      ]
+    },
+    "enthusiastic_validation": {
+      "ssml_wrapper": "<emotion value=\"happy\"/><speed ratio=\"1.0\"/>",
+      "phrases": [
+        "I love that! <break time=\"100ms\"/>",
+        "Yes, exactly! <break time=\"100ms\"/>",
+        "That's such a great idea!",
+        "Oh, that's going to be beautiful!"
+      ]
+    },
+    "practical_excitement": {
+      "ssml_wrapper": "<speed ratio=\"0.98\"/>",
+      "phrases": [
+        "Okay, <break time=\"100ms\"/>let's make this happen!",
+        "Here's what I'm thinking...",
+        "We can totally do this! <break time=\"100ms\"/>",
+        "Let me show you some options..."
+      ]
+    },
+    "reassuring": {
+      "ssml_wrapper": "<speed ratio=\"0.95\"/><emotion value=\"affectionate\"/>",
+      "phrases": [
+        "Hey, <break time=\"100ms\"/>we've got this.",
+        "Don't worry. <break time=\"100ms\"/>This is what I do.",
+        "It's going to be amazing. <break time=\"100ms\"/>Trust the process.",
+        "I've seen people pull this off with less. <break time=\"100ms\"/>You're fine."
+      ]
+    },
+    "celebratory": {
+      "ssml_wrapper": "<emotion value=\"happy\"/><speed ratio=\"1.05\"/>",
+      "phrases": [
+        "[laughter] Yes! <break time=\"100ms\"/>It's happening!",
+        "This is going to be incredible!",
+        "[laughter] I'm so excited for you!",
+        "Can you believe it? <break time=\"100ms\"/>It's real!"
+      ]
+    },
+    "gentle_reality_check": {
+      "ssml_wrapper": "<speed ratio=\"0.95\"/>",
+      "phrases": [
+        "Okay, <break time=\"150ms\"/>let's talk about the budget for a sec.",
+        "I want to be honest with you about timing...",
+        "Here's what we need to consider...",
+        "Real talk: <break time=\"100ms\"/>here's what this actually costs."
+      ]
+    }
+  },
+  "breathing_patterns": {
+    "before_big_reveal": "<break time=\"300ms\"/>",
+    "excitement_building": "<break time=\"200ms\"/>Okay!<break time=\"150ms\"/>",
+    "gathering_ideas": "<break time=\"200ms\"/>So...<break time=\"150ms\"/>",
+    "showing_presence": "<break time=\"150ms\"/>Mm-hmm!<break time=\"100ms\"/>",
+    "before_practical": "<break time=\"200ms\"/>"
+  },
+  "laughter_variations": {
+    "excited_laugh": "[laughter] Yes!",
+    "warm_laugh": "[laughter]",
+    "anticipation": "[laughter] I can't wait!",
+    "shared_excitement": "[laughter] This is going to be amazing!",
+    "playful": "[laughter] You're going to love this."
+  }
+}

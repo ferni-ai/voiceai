@@ -4,7 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VoiceAI Design System</title>
+
+  <!-- Google Fonts: Brand fonts from FERNI-BRAND-GUIDELINES.md -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="../dist/tokens.css">
+  <link rel="stylesheet" href="../dist/components.css">
+  <link rel="stylesheet" href="../dist/app-components.css">
   <style>
     * {
       margin: 0;
@@ -306,7 +314,7 @@
 
     .btn-persona {
       background: var(--persona-primary);
-      color: white;
+      color: var(--persona-text);
     }
 
     .btn-persona:hover {
@@ -377,12 +385,12 @@
 
     .contrast-pass {
       background: var(--color-semantic-success);
-      color: white;
+      color: var(--color-background-primary);
     }
 
     .contrast-fail {
       background: var(--color-semantic-error);
-      color: white;
+      color: var(--color-background-primary);
     }
   </style>
 </head>
@@ -567,6 +575,363 @@
       </div>
     </section>
 
+    <!-- UI Components (Design System) Section -->
+    <section class="section">
+      <h2 class="section-title">UI Components</h2>
+      <p class="section-subtitle">Reusable components from components.css - ready for use across the app</p>
+      
+      <div class="component-grid" style="margin-top: var(--spacing-lg);">
+        <!-- Icon Button -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Icon Button</h3>
+          <p style="font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">Theme toggle style</p>
+          <div style="display: flex; justify-content: center; gap: var(--spacing-md);">
+            <button class="icon-btn icon-btn--sm" aria-label="Small icon button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42"/>
+              </svg>
+            </button>
+            <button class="icon-btn" aria-label="Default icon button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </button>
+            <button class="icon-btn icon-btn--lg" aria-label="Large icon button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4"/>
+              </svg>
+            </button>
+          </div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-md); display: block;">.icon-btn .icon-btn--sm .icon-btn--lg</code>
+        </div>
+
+        <!-- Badge -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Badge</h3>
+          <p style="font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">Streak badge style</p>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: var(--spacing-sm);">
+            <span class="badge">
+              <span class="badge__value">7</span>
+              <span class="badge__label">day streak</span>
+            </span>
+            <span class="badge badge--success badge--animate">
+              <span class="badge__value">●</span>
+              <span class="badge__label">Connected</span>
+            </span>
+            <span class="badge badge--persona">
+              <span class="badge__value">★</span>
+              <span class="badge__label">Persona Active</span>
+            </span>
+          </div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-md); display: block;">.badge .badge--success .badge--persona</code>
+        </div>
+
+        <!-- Add Button -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Add Button</h3>
+          <p style="font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">For adding new agents/items</p>
+          <div style="display: flex; justify-content: center; gap: var(--spacing-md); align-items: center;">
+            <button class="add-btn add-btn--sm" aria-label="Add item (small)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+            <button class="add-btn" aria-label="Add item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+            <button class="add-btn add-btn--lg" aria-label="Add item (large)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+            <button class="add-btn add-btn--prominent" aria-label="Add item (prominent)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+          </div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-md); display: block;">.add-btn .add-btn--prominent</code>
+        </div>
+
+        <!-- Team Slot -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Team Slot</h3>
+          <p style="font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">Empty team member slot</p>
+          <div style="display: flex; justify-content: center; gap: var(--spacing-md);">
+            <!-- Existing team members (for context) -->
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: var(--spacing-xs);">
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--persona-primary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white;">F</div>
+              <span style="font-size: 10px; color: var(--color-text-muted);">FERNI</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: var(--spacing-xs);">
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: #9a7b5a; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white;">JB</div>
+              <span style="font-size: 10px; color: var(--color-text-muted);">JACK</span>
+            </div>
+            <!-- Empty slot -->
+            <button class="team-slot">
+              <div class="team-slot__avatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+              </div>
+              <span class="team-slot__label">Add</span>
+            </button>
+          </div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-md); display: block;">.team-slot</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- App Components Section -->
+    <section class="section">
+      <h2 class="section-title">App Components</h2>
+      <p class="section-subtitle">Production components from the Voice AI app - the signature Ferni experience</p>
+      
+      <!-- App Buttons -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Buttons</h3>
+      <p style="font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+        The signature Ferni button with depth shadows, glass shine, breathing glow, and persona-adaptive colors
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-lg); align-items: center; padding: var(--spacing-xl); background: var(--color-background-secondary); border-radius: var(--radius-xl);">
+        <button class="app-btn app-btn--primary">
+          Connect
+        </button>
+        <button class="app-btn app-btn--secondary">
+          Disconnect
+        </button>
+        <button class="app-btn app-btn--primary" disabled>
+          Disabled
+        </button>
+      </div>
+      <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">
+        .app-btn .app-btn--primary .app-btn--secondary .app-btn--magnetic
+      </code>
+
+      <!-- App Avatar -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Avatar</h3>
+      <p style="font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+        The main coach avatar with animated ring, glow, and breathing states
+      </p>
+      <div style="display: flex; gap: var(--spacing-2xl); align-items: center; justify-content: center; padding: var(--spacing-xl); background: var(--color-background-secondary); border-radius: var(--radius-xl);">
+        <div style="position: relative; text-align: center;">
+          <div class="app-avatar-glow"></div>
+          <div class="app-avatar-ring" style="position: absolute; inset: -8px;"></div>
+          <div class="app-avatar app-avatar--breathing" style="position: relative;">
+            <span>F</span>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-md);">Idle (Breathing)</div>
+        </div>
+        <div style="position: relative; text-align: center;">
+          <div class="app-avatar app-avatar--speaking">
+            <span>JB</span>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-md);">Speaking</div>
+        </div>
+        <div style="position: relative; text-align: center;">
+          <div class="app-avatar app-avatar--listening">
+            <span>PL</span>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-md);">Listening</div>
+        </div>
+      </div>
+      <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">
+        .app-avatar .app-avatar-ring .app-avatar-glow .app-avatar--breathing .app-avatar--speaking .app-avatar--listening
+      </code>
+
+      <!-- Team Roster -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Team Roster</h3>
+      <p style="font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+        Individual team members with selection states and persona-adaptive styling
+      </p>
+      <div style="display: flex; gap: var(--spacing-sm); padding: var(--spacing-lg); background: var(--color-background-secondary); border-radius: var(--radius-xl);">
+        <button class="app-team-member active" style="--persona-primary: #4a6741; --persona-glow: rgba(74, 103, 65, 0.3);">
+          <div style="position: relative;">
+            <div class="app-team-avatar-ring"></div>
+            <div class="app-team-avatar" style="background: linear-gradient(180deg, #4a6741 0%, #3d5a35 100%);">FN</div>
+          </div>
+          <span class="app-team-label">Ferni</span>
+        </button>
+        <button class="app-team-member">
+          <div style="position: relative;">
+            <div class="app-team-avatar-ring"></div>
+            <div class="app-team-avatar" style="background: linear-gradient(180deg, #9a7b5a 0%, #7d6348 100%);">JB</div>
+          </div>
+          <span class="app-team-label">Jack</span>
+        </button>
+        <button class="app-team-member">
+          <div style="position: relative;">
+            <div class="app-team-avatar-ring"></div>
+            <div class="app-team-avatar" style="background: linear-gradient(180deg, #3a6b73 0%, #2d5359 100%);">PL</div>
+          </div>
+          <span class="app-team-label">Peter</span>
+        </button>
+        <button class="app-team-member">
+          <div style="position: relative;">
+            <div class="app-team-avatar-ring"></div>
+            <div class="app-team-avatar" style="background: linear-gradient(180deg, #5a6b8a 0%, #4a5a73 100%);">AX</div>
+          </div>
+          <span class="app-team-label">Alex</span>
+        </button>
+        <button class="app-team-member">
+          <div style="position: relative;">
+            <div class="app-team-avatar-ring"></div>
+            <div class="app-team-avatar" style="background: linear-gradient(180deg, #a67a6a 0%, #8a635a 100%);">MY</div>
+          </div>
+          <span class="app-team-label">Maya</span>
+        </button>
+        <button class="team-slot">
+          <div class="team-slot__avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </div>
+          <span class="team-slot__label">Add</span>
+        </button>
+      </div>
+      <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">
+        .app-team-member .app-team-avatar .app-team-avatar-ring .app-team-label
+      </code>
+
+      <!-- Waveform -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Waveform</h3>
+      <p style="font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--spacing-md);">
+        Audio visualization with emotion-adaptive colors
+      </p>
+      <div style="display: flex; gap: var(--spacing-xl); align-items: center; justify-content: center; padding: var(--spacing-xl); background: var(--color-background-secondary); border-radius: var(--radius-xl);">
+        <div style="text-align: center;">
+          <div class="app-waveform" style="--persona-primary: #4a6741; --persona-secondary: #3d5a35;">
+            <div class="app-waveform-bar" style="height: 12px;"></div>
+            <div class="app-waveform-bar" style="height: 24px;"></div>
+            <div class="app-waveform-bar" style="height: 36px;"></div>
+            <div class="app-waveform-bar" style="height: 48px;"></div>
+            <div class="app-waveform-bar" style="height: 32px;"></div>
+            <div class="app-waveform-bar" style="height: 20px;"></div>
+            <div class="app-waveform-bar" style="height: 28px;"></div>
+            <div class="app-waveform-bar" style="height: 16px;"></div>
+            <div class="app-waveform-bar" style="height: 8px;"></div>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm);">Default</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="app-waveform" data-emotion="excited" style="--persona-primary: #c4856a; --persona-secondary: #a86d55;">
+            <div class="app-waveform-bar" style="height: 18px;"></div>
+            <div class="app-waveform-bar" style="height: 36px;"></div>
+            <div class="app-waveform-bar" style="height: 48px;"></div>
+            <div class="app-waveform-bar" style="height: 42px;"></div>
+            <div class="app-waveform-bar" style="height: 48px;"></div>
+            <div class="app-waveform-bar" style="height: 30px;"></div>
+            <div class="app-waveform-bar" style="height: 40px;"></div>
+            <div class="app-waveform-bar" style="height: 24px;"></div>
+            <div class="app-waveform-bar" style="height: 12px;"></div>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm);">Excited</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="app-waveform" data-emotion="calm" style="--persona-primary: #3a6b73; --persona-secondary: #2d5359;">
+            <div class="app-waveform-bar" style="height: 8px;"></div>
+            <div class="app-waveform-bar" style="height: 12px;"></div>
+            <div class="app-waveform-bar" style="height: 16px;"></div>
+            <div class="app-waveform-bar" style="height: 20px;"></div>
+            <div class="app-waveform-bar" style="height: 18px;"></div>
+            <div class="app-waveform-bar" style="height: 14px;"></div>
+            <div class="app-waveform-bar" style="height: 10px;"></div>
+            <div class="app-waveform-bar" style="height: 8px;"></div>
+            <div class="app-waveform-bar" style="height: 6px;"></div>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm);">Calm</div>
+        </div>
+      </div>
+      <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">
+        .app-waveform .app-waveform-bar [data-emotion="excited|calm|sad|anxious|happy"]
+      </code>
+
+      <!-- Status & Thinking -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Status & Indicators</h3>
+      <div style="display: flex; gap: var(--spacing-xl); align-items: center; flex-wrap: wrap; padding: var(--spacing-lg); background: var(--color-background-secondary); border-radius: var(--radius-xl);">
+        <div style="text-align: center;">
+          <div class="app-status-pill visible connected" style="position: relative;">
+            <span class="app-status-dot"></span>
+            <span>Connected</span>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm);">.connected</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="app-status-pill visible connecting" style="position: relative;">
+            <span class="app-status-dot"></span>
+            <span>Connecting...</span>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm);">.connecting</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="app-status-pill visible error" style="position: relative;">
+            <span class="app-status-dot"></span>
+            <span>Error</span>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm);">.error</div>
+        </div>
+        <div style="text-align: center;">
+          <div class="app-thinking-dots">
+            <div class="app-thinking-dot"></div>
+            <div class="app-thinking-dot"></div>
+            <div class="app-thinking-dot"></div>
+          </div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm);">Thinking</div>
+        </div>
+      </div>
+      <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">
+        .app-status-pill .app-status-dot .app-thinking-dots .app-thinking-dot
+      </code>
+
+      <!-- Cards & Input -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Cards & Inputs</h3>
+      <div class="component-grid">
+        <div class="app-card">
+          <h4 style="margin-bottom: var(--spacing-sm); font-weight: var(--font-weight-semibold);">Default Card</h4>
+          <p style="font-size: var(--text-sm); color: var(--color-text-secondary);">
+            Standard container with elevated background
+          </p>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.app-card</code>
+        </div>
+        <div class="app-card app-card--glass">
+          <h4 style="margin-bottom: var(--spacing-sm); font-weight: var(--font-weight-semibold);">Glass Card</h4>
+          <p style="font-size: var(--text-sm); color: var(--color-text-secondary);">
+            Glass morphism with backdrop blur
+          </p>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.app-card--glass</code>
+        </div>
+        <div class="app-card">
+          <h4 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Input Field</h4>
+          <input class="app-input" type="text" placeholder="Enter your name...">
+          <code style="font-size: 10px; color: var(--color-text-dimmed); margin-top: var(--spacing-sm); display: block;">.app-input</code>
+        </div>
+      </div>
+
+      <!-- Connection Progress -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Connection Steps</h3>
+      <div style="padding: var(--spacing-lg); background: var(--color-background-secondary); border-radius: var(--radius-xl);">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+          <div class="app-connection-step completed"></div>
+          <div style="flex: 1; height: 2px; background: var(--color-semantic-success);"></div>
+          <div class="app-connection-step completed"></div>
+          <div style="flex: 1; height: 2px; background: var(--color-semantic-success);"></div>
+          <div class="app-connection-step active"></div>
+          <div style="flex: 1; height: 2px; background: var(--color-background-tertiary);"></div>
+          <div class="app-connection-step"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: var(--spacing-sm); font-size: var(--text-xs); color: var(--color-text-muted);">
+          <span>Auth</span>
+          <span>Room</span>
+          <span style="color: var(--color-accent-primary);">Audio</span>
+          <span>Ready</span>
+        </div>
+      </div>
+      <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">
+        .app-connection-step .active .completed
+      </code>
+    </section>
+
     <!-- Components Section -->
     <section class="section">
       <h2 class="section-title">Components</h2>
@@ -607,11 +972,461 @@
       </div>
     </section>
 
+    <!-- Magical Effects Section -->
+    <section class="section">
+      <h2 class="section-title">Magical Effects</h2>
+      <p class="section-subtitle">Delightful micro-interactions that make the UI feel alive</p>
+
+      <div class="component-grid" style="margin-top: var(--spacing-lg);">
+        <!-- Organic Blob -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Organic Blob</h3>
+          <div class="blob" style="width: 80px; height: 80px; background: var(--gradient-persona-glow); margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+            <div style="width: 60px; height: 60px; background: var(--persona-primary); border-radius: inherit;"></div>
+          </div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.blob</code>
+        </div>
+
+        <!-- Floating Effect -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Float</h3>
+          <div class="float" style="width: 60px; height: 60px; background: var(--color-accent-primary); border-radius: var(--radius-xl); margin: 0 auto;"></div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.float</code>
+        </div>
+
+        <!-- Levitate -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Levitate</h3>
+          <div class="levitate" style="width: 60px; height: 60px; background: var(--color-accent-primary); border-radius: var(--radius-lg); margin: 0 auto;"></div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.levitate</code>
+        </div>
+
+        <!-- Breathing -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Breathing</h3>
+          <div class="breathing glow-persona" style="width: 60px; height: 60px; background: var(--persona-primary); border-radius: 50%; margin: 0 auto;"></div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.breathing</code>
+        </div>
+
+        <!-- Heartbeat -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Heartbeat</h3>
+          <div class="heartbeat" style="width: 50px; height: 50px; background: var(--color-semantic-error); border-radius: 50%; margin: 0 auto; clip-path: path('M25,45 C10,35 0,25 0,15 A15,15 0 0,1 25,5 A15,15 0 0,1 50,15 C50,25 40,35 25,45');"></div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.heartbeat</code>
+        </div>
+
+        <!-- Celebrate (click) -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Celebrate</h3>
+          <button class="btn btn-primary" id="celebrateBtn" style="margin: 0 auto;">Click me!</button>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.celebrate</code>
+        </div>
+
+        <!-- Wave -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Wave</h3>
+          <div class="wave" id="waveHand" style="width: 48px; height: 48px; background: var(--color-accent-primary); border-radius: var(--radius-lg); cursor: pointer;"></div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.wave</code>
+        </div>
+
+        <!-- Gradient Text -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Gradient Text</h3>
+          <span class="gradient-text" style="font-size: var(--text-2xl); font-weight: var(--font-weight-bold);">Magic</span>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.gradient-text</code>
+        </div>
+      </div>
+
+      <!-- Cascade Demo -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Cascade Animation</h3>
+      <p class="section-subtitle">Items animate in sequence - click to replay</p>
+      <div class="cascade" id="cascadeDemo" style="display: flex; gap: var(--spacing-sm); cursor: pointer;">
+        <div style="width: 50px; height: 50px; background: var(--persona-primary); border-radius: var(--radius-lg);"></div>
+        <div style="width: 50px; height: 50px; background: var(--persona-primary); border-radius: var(--radius-lg); opacity: 0.85;"></div>
+        <div style="width: 50px; height: 50px; background: var(--persona-primary); border-radius: var(--radius-lg); opacity: 0.7;"></div>
+        <div style="width: 50px; height: 50px; background: var(--persona-primary); border-radius: var(--radius-lg); opacity: 0.55;"></div>
+        <div style="width: 50px; height: 50px; background: var(--persona-primary); border-radius: var(--radius-lg); opacity: 0.4;"></div>
+      </div>
+
+      <!-- Glass Effect -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Glass Morphism</h3>
+      <div style="position: relative; padding: var(--spacing-xl); background: var(--gradient-mesh); border-radius: var(--radius-xl); overflow: hidden;">
+        <div class="glass" style="padding: var(--spacing-lg); border-radius: var(--radius-lg); position: relative;">
+          <p style="margin: 0;">This card has a glass morphism effect with backdrop blur.</p>
+        </div>
+      </div>
+
+      <!-- Aurora Background -->
+      <h3 style="margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Aurora Background</h3>
+      <div class="aurora-bg texture-paper" style="position: relative; padding: var(--spacing-xl); border-radius: var(--radius-xl); text-align: center; overflow: hidden;">
+        <span style="font-size: var(--text-lg); font-weight: var(--font-weight-medium);">Subtle shifting gradient with paper texture</span>
+      </div>
+    </section>
+
+    <!-- MA (間) Spacing Section -->
+    <section class="section">
+      <h2 class="section-title">間 MA Spacing</h2>
+      <p class="section-subtitle">Japanese intentional negative space - the pause between notes gives music meaning</p>
+
+      <div style="margin-top: var(--spacing-lg);">
+        <h3 style="font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-md);">Golden Ratio Rhythm (Fibonacci)</h3>
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
+          <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="width: var(--ma-breath); height: 24px; background: var(--persona-primary); border-radius: var(--radius-sm);"></div>
+            <span class="spacing-label">breath (8px) - Tightest rhythm</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="width: var(--ma-pause); height: 24px; background: var(--persona-primary); border-radius: var(--radius-sm);"></div>
+            <span class="spacing-label">pause (13px) - Brief pause</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="width: var(--ma-rest); height: 24px; background: var(--persona-primary); border-radius: var(--radius-sm);"></div>
+            <span class="spacing-label">rest (21px) - Comfortable rest</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="width: var(--ma-silence); height: 24px; background: var(--persona-primary); border-radius: var(--radius-sm);"></div>
+            <span class="spacing-label">silence (34px) - Meaningful silence</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="width: var(--ma-meditation); height: 24px; background: var(--persona-primary); border-radius: var(--radius-sm);"></div>
+            <span class="spacing-label">meditation (55px) - Deep breath</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="width: var(--ma-contemplation); height: 24px; background: var(--persona-primary); border-radius: var(--radius-sm);"></div>
+            <span class="spacing-label">contemplation (89px) - Expansive</span>
+          </div>
+        </div>
+
+        <p style="margin-top: var(--spacing-lg); font-size: var(--text-sm); color: var(--color-text-muted); font-style: italic;">
+          "間 (MA) - The Japanese concept of intentional negative space. The space between elements gives design clarity, just as the pause between notes gives music meaning."
+        </p>
+      </div>
+    </section>
+
+    <!-- Glass Morphism Depth Section -->
+    <section class="section">
+      <h2 class="section-title">Glass Morphism Depth</h2>
+      <p class="section-subtitle">Apple-inspired "Liquid Glass" aesthetic with layered depth</p>
+
+      <div style="position: relative; padding: var(--spacing-2xl); background: var(--gradient-mesh); border-radius: var(--radius-xl); margin-top: var(--spacing-lg); min-height: 300px;">
+        <!-- Layer 1 -->
+        <div class="glass-layer-1" style="position: absolute; top: 20px; left: 20px; width: 200px; padding: var(--spacing-lg); border-radius: var(--radius-lg);">
+          <div style="font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-xs);">Layer 1</div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted);">Subtle surface, light blur</div>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.glass-layer-1</code>
+        </div>
+
+        <!-- Layer 2 -->
+        <div class="glass-layer-2" style="position: absolute; top: 80px; left: 120px; width: 200px; padding: var(--spacing-lg); border-radius: var(--radius-lg);">
+          <div style="font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-xs);">Layer 2</div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted);">Medium opacity, blur</div>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.glass-layer-2</code>
+        </div>
+
+        <!-- Layer 3 -->
+        <div class="glass-layer-3" style="position: absolute; top: 140px; left: 220px; width: 200px; padding: var(--spacing-lg); border-radius: var(--radius-lg);">
+          <div style="font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-xs);">Layer 3</div>
+          <div style="font-size: var(--text-xs); color: var(--color-text-muted);">Strong blur + outer glow</div>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.glass-layer-3</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- Anticipation States Section -->
+    <section class="section">
+      <h2 class="section-title">Anticipation States</h2>
+      <p class="section-subtitle">Pixar's "wind-up before the pitch" - preparatory motion that signals intent</p>
+
+      <div class="component-grid" style="margin-top: var(--spacing-lg);">
+        <!-- Button Anticipation -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Button Wind-up</h3>
+          <button class="btn btn-primary btn-anticipate">Hover me</button>
+          <p style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-md);">
+            Slight "crouch" on hover → spring release on click
+          </p>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.btn-anticipate</code>
+        </div>
+
+        <!-- Card Anticipation -->
+        <div class="component-card card-anticipate" style="text-align: center; cursor: pointer;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Card Lift</h3>
+          <p style="font-size: var(--text-sm); color: var(--color-text-secondary);">
+            Hover to see the card "lift" with shadow depth
+          </p>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.card-anticipate</code>
+        </div>
+
+        <!-- Icon Anticipation -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Icon Spring</h3>
+          <div class="icon-anticipate" style="width: 48px; height: 48px; background: var(--color-accent-primary); border-radius: var(--radius-lg); margin: 0 auto var(--spacing-sm); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <span style="font-size: 1.5rem; color: var(--color-accent-primary);">*</span>
+          </div>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.icon-anticipate</code>
+        </div>
+      </div>
+
+      <p style="margin-top: var(--spacing-lg); font-size: var(--text-sm); color: var(--color-text-muted); font-style: italic;">
+        "Like an athlete crouching before a jump, UI elements that 'prepare' before action feel more intentional and alive."
+      </p>
+    </section>
+
+    <!-- Wabi-Sabi Organic Section -->
+    <section class="section">
+      <h2 class="section-title">侘寂 Wabi-Sabi Textures</h2>
+      <p class="section-subtitle">Beauty in imperfection - breaking digital perfection for organic warmth</p>
+
+      <div class="component-grid" style="margin-top: var(--spacing-lg);">
+        <!-- Organic Border Radius -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Organic Shapes</h3>
+          <div style="display: flex; gap: var(--spacing-md); justify-content: center;">
+            <div class="radius-organic-sm" style="width: 50px; height: 50px; background: var(--color-accent-primary);"></div>
+            <div class="radius-organic-md" style="width: 60px; height: 60px; background: var(--persona-primary);"></div>
+            <div class="radius-organic-lg" style="width: 70px; height: 70px; background: var(--persona-secondary);"></div>
+          </div>
+          <code style="font-size: 10px; color: var(--color-text-dimmed); margin-top: var(--spacing-sm); display: block;">.radius-organic-*</code>
+        </div>
+
+        <!-- Noise Texture -->
+        <div class="component-card texture-noise" style="text-align: center; position: relative; overflow: hidden;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Subtle Grain</h3>
+          <p style="font-size: var(--text-sm); color: var(--color-text-secondary);">
+            Barely perceptible noise texture breaks artificial smoothness
+          </p>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.texture-noise</code>
+        </div>
+
+        <!-- Ink Bleed Text -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Ink Bleed</h3>
+          <p class="text-ink" style="font-size: var(--text-xl); font-weight: var(--font-weight-bold); color: var(--persona-primary);">
+            Soft Edges
+          </p>
+          <p style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm);">
+            Like brush strokes on paper
+          </p>
+          <code style="font-size: 10px; color: var(--color-text-dimmed);">.text-ink</code>
+        </div>
+      </div>
+
+      <div style="margin-top: var(--spacing-xl);">
+        <h3 style="font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-md);">Breathing Gradient</h3>
+        <div class="gradient-breathing" style="padding: var(--spacing-xl); background: var(--gradient-aurora); border-radius: var(--radius-xl); text-align: center;">
+          <span style="font-weight: var(--font-weight-medium);">Organic gradient shifts like light through clouds</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Keyboard Focus Showcase -->
+    <section class="section">
+      <h2 class="section-title">Keyboard Focus States</h2>
+      <p class="section-subtitle">Accessible focus indicators with anticipation animation</p>
+
+      <p style="font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--spacing-lg);">
+        Press <kbd style="background: var(--color-background-tertiary); padding: 2px 6px; border-radius: var(--radius-sm); font-family: var(--font-mono);">Tab</kbd> to navigate through these elements
+      </p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-lg);">
+        <button class="btn btn-primary focus-anticipate" tabindex="0">Focusable Button</button>
+        <button class="btn btn-secondary focus-anticipate" tabindex="0">Secondary</button>
+        <input type="text" class="input focus-anticipate" placeholder="Focus me..." style="max-width: 200px;" tabindex="0">
+        <div class="component-card focus-anticipate" tabindex="0" style="max-width: 200px; cursor: pointer;">
+          <span style="font-weight: var(--font-weight-medium);">Focusable Card</span>
+        </div>
+      </div>
+
+      <div style="margin-top: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-background-secondary); border-radius: var(--radius-lg);">
+        <h4 style="font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-sm);">Focus Ring Animation</h4>
+        <code style="font-size: var(--text-xs); color: var(--color-text-muted); display: block;">
+          .focus-anticipate:focus-visible {<br>
+          &nbsp;&nbsp;box-shadow: 0 0 0 3px var(--color-focus-ring);<br>
+          &nbsp;&nbsp;transition: 150ms cubic-bezier(0.34, 1.56, 0.64, 1);<br>
+          }
+        </code>
+      </div>
+    </section>
+
     <!-- Contrast Checker -->
     <section class="section">
       <h2 class="section-title">Accessibility</h2>
       <p class="section-subtitle">WCAG contrast ratios (calculated live)</p>
       <div id="contrastResults" style="display: grid; gap: var(--spacing-sm);"></div>
+    </section>
+
+    <!-- NEW: Accessibility Features -->
+    <section class="section">
+      <h2 class="section-title">Accessibility First</h2>
+      <p class="section-subtitle">WCAG 2.1 AA/AAA compliant motion and interaction</p>
+
+      <div class="component-grid" style="margin-top: var(--spacing-lg);">
+        <!-- Reduced Motion -->
+        <div class="component-card">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Reduced Motion</h3>
+          <p style="font-size: var(--text-sm); color: var(--color-text-secondary); margin-bottom: var(--spacing-sm);">
+            All animations respect <code style="font-size: var(--text-xs);">prefers-reduced-motion</code>
+          </p>
+          <div style="background: var(--color-background-secondary); padding: var(--spacing-sm); border-radius: var(--radius-md); font-size: var(--text-xs); font-family: var(--font-mono); color: var(--color-text-muted);">
+            @media (prefers-reduced-motion: reduce) { ... }
+          </div>
+        </div>
+
+        <!-- Skip Link -->
+        <div class="component-card">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Skip Link</h3>
+          <p style="font-size: var(--text-sm); color: var(--color-text-secondary); margin-bottom: var(--spacing-sm);">
+            Press Tab to reveal skip link (screen reader friendly)
+          </p>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted);">.skip-link</code>
+        </div>
+
+        <!-- High Contrast -->
+        <div class="component-card">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">High Contrast Mode</h3>
+          <p style="font-size: var(--text-sm); color: var(--color-text-secondary); margin-bottom: var(--spacing-sm);">
+            Supports <code style="font-size: var(--text-xs);">prefers-contrast: more</code>
+          </p>
+          <div style="border: 2px solid var(--color-border-strong); padding: var(--spacing-sm); border-radius: var(--radius-md); font-weight: 600;">
+            Enhanced borders & weight
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NEW: Skeleton Loading -->
+    <section class="section">
+      <h2 class="section-title">Skeleton Loading</h2>
+      <p class="section-subtitle">Shimmer effect that makes loading feel alive</p>
+
+      <div style="margin-top: var(--spacing-lg); padding: var(--spacing-xl); background: var(--color-background-secondary); border-radius: var(--radius-xl);">
+        <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+          <!-- Avatar skeleton -->
+          <div class="skeleton-shimmer" style="width: 64px; height: 64px; border-radius: 50%; background: var(--color-background-tertiary);"></div>
+          <div style="flex: 1;">
+            <!-- Title skeleton -->
+            <div class="skeleton-shimmer" style="height: 20px; width: 60%; border-radius: var(--radius-md); margin-bottom: var(--spacing-sm); background: var(--color-background-tertiary);"></div>
+            <!-- Subtitle skeleton -->
+            <div class="skeleton-shimmer" style="height: 14px; width: 40%; border-radius: var(--radius-md); background: var(--color-background-tertiary);"></div>
+          </div>
+        </div>
+        <div style="margin-top: var(--spacing-lg);">
+          <div class="skeleton-shimmer" style="height: 16px; width: 100%; border-radius: var(--radius-md); margin-bottom: var(--spacing-sm); background: var(--color-background-tertiary);"></div>
+          <div class="skeleton-shimmer" style="height: 16px; width: 90%; border-radius: var(--radius-md); margin-bottom: var(--spacing-sm); background: var(--color-background-tertiary);"></div>
+          <div class="skeleton-shimmer" style="height: 16px; width: 75%; border-radius: var(--radius-md); background: var(--color-background-tertiary);"></div>
+        </div>
+      </div>
+      <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-md); display: block;">.skeleton-shimmer</code>
+    </section>
+
+    <!-- NEW: Entrance Animations -->
+    <section class="section">
+      <h2 class="section-title">Entrance Animations</h2>
+      <p class="section-subtitle">Elements "arrive" with personality - click to replay</p>
+
+      <button class="btn btn-secondary" id="replayEntranceBtn" style="margin-bottom: var(--spacing-lg);">↻ Replay Entrance</button>
+
+      <div style="padding: var(--spacing-xl); background: var(--color-background-secondary); border-radius: var(--radius-xl);">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: var(--spacing-lg);">
+          <!-- Avatar entrance -->
+          <div id="entranceAvatar" class="entrance-avatar" style="width: 100px; height: 100px; background: var(--persona-primary); border-radius: 50%; box-shadow: 0 0 30px var(--persona-glow); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: var(--persona-text);">
+            F
+          </div>
+
+          <!-- Controls entrance -->
+          <div id="entranceControls" class="entrance-controls" style="display: flex; gap: var(--spacing-md);">
+            <button class="btn btn-primary">Start</button>
+            <button class="btn btn-secondary">Settings</button>
+          </div>
+
+          <!-- Team entrance -->
+          <div id="entranceTeam" class="entrance-team" style="display: flex; gap: var(--spacing-sm);">
+            <div style="width: 40px; height: 40px; background: #5cb884; border-radius: 50%;"></div>
+            <div style="width: 40px; height: 40px; background: #dc6b4a; border-radius: 50%;"></div>
+            <div style="width: 40px; height: 40px; background: #d4a84a; border-radius: 50%;"></div>
+            <div style="width: 40px; height: 40px; background: #6b8dd4; border-radius: 50%;"></div>
+            <div style="width: 40px; height: 40px; background: #8b5cf6; border-radius: 50%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: var(--spacing-md); font-size: var(--text-sm); color: var(--color-text-muted);">
+        <code>.entrance-avatar</code> (600ms spring) → <code>.entrance-controls</code> (400ms) → <code>.entrance-team</code> (80ms stagger)
+      </div>
+    </section>
+
+    <!-- NEW: Error Recovery -->
+    <section class="section">
+      <h2 class="section-title">Error Recovery</h2>
+      <p class="section-subtitle">Errors feel fixable, not broken - click to trigger</p>
+
+      <div class="component-grid" style="margin-top: var(--spacing-lg);">
+        <!-- Shake -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Error Shake</h3>
+          <div id="errorShakeDemo" style="padding: var(--spacing-md); background: var(--color-semantic-error-glow); border: 2px solid var(--color-semantic-error); border-radius: var(--radius-lg); cursor: pointer;">
+            <span style="color: var(--color-semantic-error); font-weight: var(--font-weight-medium);">Click to shake</span>
+          </div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.error-shake</code>
+        </div>
+
+        <!-- Pulse -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Error Pulse</h3>
+          <div id="errorPulseDemo" style="padding: var(--spacing-md); background: var(--color-background-tertiary); border: 2px solid var(--color-semantic-error); border-radius: var(--radius-lg); cursor: pointer;">
+            <span style="color: var(--color-semantic-error); font-weight: var(--font-weight-medium);">Click to pulse</span>
+          </div>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.error-pulse</code>
+        </div>
+
+        <!-- Retry Bounce -->
+        <div class="component-card" style="text-align: center;">
+          <h3 style="margin-bottom: var(--spacing-md); font-weight: var(--font-weight-semibold);">Retry Bounce</h3>
+          <button id="retryBounceDemo" class="btn btn-secondary" style="border-color: var(--color-semantic-warning);">
+            Retry
+          </button>
+          <code style="font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--spacing-sm); display: block;">.error-retry-bounce</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- NEW: Connection Progress -->
+    <section class="section">
+      <h2 class="section-title">Connection Progress</h2>
+      <p class="section-subtitle">Visual feedback for connection steps - click to simulate</p>
+
+      <div style="margin-top: var(--spacing-lg); padding: var(--spacing-xl); background: var(--color-background-secondary); border-radius: var(--radius-xl);">
+        <!-- Steps variant -->
+        <h3 style="font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-md);">Steps Indicator</h3>
+        <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-xl);">
+          <div id="step1" class="connection-step completed"></div>
+          <div style="flex: 1; height: 2px; background: var(--color-semantic-success);"></div>
+          <div id="step2" class="connection-step completed"></div>
+          <div style="flex: 1; height: 2px; background: var(--color-semantic-success);"></div>
+          <div id="step3" class="connection-step active"></div>
+          <div style="flex: 1; height: 2px; background: var(--color-background-tertiary);"></div>
+          <div id="step4" class="connection-step"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: var(--text-xs); color: var(--color-text-muted);">
+          <span>Authenticating</span>
+          <span>Joining room</span>
+          <span style="color: var(--color-accent-primary); font-weight: var(--font-weight-medium);">Connecting audio</span>
+          <span>Ready</span>
+        </div>
+
+        <!-- Bar variant -->
+        <h3 style="font-weight: var(--font-weight-semibold); margin-top: var(--spacing-xl); margin-bottom: var(--spacing-md);">Progress Bar</h3>
+        <div class="connection-bar" id="connectionBar">
+          <div class="connection-bar-fill" id="connectionBarFill" style="width: 75%;"></div>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--spacing-sm); text-align: center;">
+          Connecting audio...
+        </p>
+
+        <button class="btn btn-primary" id="simulateConnectionBtn" style="margin-top: var(--spacing-lg);">
+          ▶ Simulate Connection
+        </button>
+      </div>
     </section>
   </div>
 
@@ -757,6 +1572,144 @@
     }
 
     updateContrastChecks();
+
+    // Magical Effects Interactions
+    // Celebrate button
+    const celebrateBtn = document.getElementById('celebrateBtn');
+    celebrateBtn.addEventListener('click', () => {
+      celebrateBtn.classList.remove('celebrate');
+      void celebrateBtn.offsetWidth; // Trigger reflow
+      celebrateBtn.classList.add('celebrate');
+    });
+
+    // Wave hand
+    const waveHand = document.getElementById('waveHand');
+    waveHand.addEventListener('click', () => {
+      waveHand.style.animation = 'none';
+      void waveHand.offsetWidth;
+      waveHand.style.animation = 'waveHand 2s ease-in-out';
+    });
+
+    // Cascade replay
+    const cascadeDemo = document.getElementById('cascadeDemo');
+    cascadeDemo.addEventListener('click', () => {
+      const items = cascadeDemo.children;
+      for (let item of items) {
+        item.style.animation = 'none';
+        void item.offsetWidth;
+      }
+      cascadeDemo.classList.remove('cascade');
+      void cascadeDemo.offsetWidth;
+      cascadeDemo.classList.add('cascade');
+    });
+
+    // Ripple effect on buttons
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.classList.add('ripple-container');
+      btn.addEventListener('click', (e) => {
+        const ripple = document.createElement('span');
+        ripple.classList.add('ripple');
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+        btn.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+      });
+    });
+
+    // ===== NEW: Apple-Level Feature Demos =====
+
+    // Replay Entrance Animations
+    const replayEntranceBtn = document.getElementById('replayEntranceBtn');
+    const entranceAvatar = document.getElementById('entranceAvatar');
+    const entranceControls = document.getElementById('entranceControls');
+    const entranceTeam = document.getElementById('entranceTeam');
+
+    function resetEntrance(el) {
+      el.style.animation = 'none';
+      el.offsetHeight; // Trigger reflow
+      el.style.animation = '';
+    }
+
+    replayEntranceBtn.addEventListener('click', () => {
+      resetEntrance(entranceAvatar);
+      resetEntrance(entranceControls);
+      entranceTeam.querySelectorAll('*').forEach(resetEntrance);
+    });
+
+    // Error Shake Demo
+    const errorShakeDemo = document.getElementById('errorShakeDemo');
+    errorShakeDemo.addEventListener('click', () => {
+      errorShakeDemo.classList.remove('error-shake');
+      errorShakeDemo.offsetHeight;
+      errorShakeDemo.classList.add('error-shake');
+    });
+
+    // Error Pulse Demo
+    const errorPulseDemo = document.getElementById('errorPulseDemo');
+    errorPulseDemo.addEventListener('click', () => {
+      errorPulseDemo.classList.remove('error-pulse');
+      errorPulseDemo.offsetHeight;
+      errorPulseDemo.classList.add('error-pulse');
+    });
+
+    // Retry Bounce Demo
+    const retryBounceDemo = document.getElementById('retryBounceDemo');
+    retryBounceDemo.addEventListener('click', () => {
+      retryBounceDemo.classList.remove('error-retry-bounce');
+      retryBounceDemo.offsetHeight;
+      retryBounceDemo.classList.add('error-retry-bounce');
+    });
+
+    // Connection Progress Simulation
+    const simulateConnectionBtn = document.getElementById('simulateConnectionBtn');
+    const steps = [
+      document.getElementById('step1'),
+      document.getElementById('step2'),
+      document.getElementById('step3'),
+      document.getElementById('step4')
+    ];
+    const connectionBarFill = document.getElementById('connectionBarFill');
+
+    simulateConnectionBtn.addEventListener('click', () => {
+      // Reset
+      steps.forEach(s => {
+        s.classList.remove('completed', 'active');
+      });
+      connectionBarFill.style.width = '0%';
+      simulateConnectionBtn.disabled = true;
+
+      // Animate through steps
+      const stepLabels = ['Authenticating...', 'Joining room...', 'Connecting audio...', 'Ready!'];
+      const progressLabel = simulateConnectionBtn.closest('.section').querySelector('p[style*="text-align: center"]');
+
+      let currentStep = 0;
+      const interval = setInterval(() => {
+        if (currentStep < 4) {
+          if (currentStep > 0) {
+            steps[currentStep - 1].classList.remove('active');
+            steps[currentStep - 1].classList.add('completed');
+          }
+          steps[currentStep].classList.add('active');
+          connectionBarFill.style.width = ((currentStep + 1) * 25) + '%';
+          progressLabel.textContent = stepLabels[currentStep];
+          currentStep++;
+        } else {
+          steps[3].classList.remove('active');
+          steps[3].classList.add('completed');
+          connectionBarFill.style.width = '100%';
+          progressLabel.textContent = 'Connected!';
+          progressLabel.style.color = 'var(--color-semantic-success)';
+          clearInterval(interval);
+          setTimeout(() => {
+            simulateConnectionBtn.disabled = false;
+            progressLabel.style.color = '';
+          }, 1500);
+        }
+      }, 800);
+    });
   </script>
 </body>
 </html>

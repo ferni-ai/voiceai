@@ -1,13 +1,13 @@
 /**
  * LiveKit Telephony Tools
- * 
+ *
  * Allows Jack to make outbound phone calls to users!
- * 
+ *
  * Uses LiveKit's SIP integration for outbound calling.
  * Requires:
  * - LiveKit server with SIP Trunk configured
  * - SIP provider (Twilio, etc.) for PSTN connectivity
- * 
+ *
  * @see https://docs.livekit.io/agents/quickstarts/outbound-calls/
  */
 
@@ -29,25 +29,25 @@ const CALLER_ID = process.env.CALLER_ID || ''; // Must be configured in .env
 
 const CALL_ANNOUNCEMENTS = {
   marketAlert: [
-    "Hey there, it's Jack. <break time='300ms'/> I noticed some market volatility and thought you'd want to know.",
-    "This is Jack Bogle calling. <break time='200ms'/> The markets are moving and I wanted to remind you: stay the course!",
-    "Hey, it's your old pal Jack. <break time='300ms'/> Market's acting up, but remember what I always say...",
+    "Hey there, it's Alex from your financial team. <break time='300ms'/> I noticed some market volatility and thought you'd want to know.",
+    "This is Alex calling. <break time='200ms'/> The markets are moving. Just wanted to give you a heads up!",
+    "Hey, it's Alex. <break time='300ms'/> Market's acting up, but Jack says stay the course...",
   ],
-  
+
   reminder: [
-    "Hi, it's Jack! <break time='200ms'/> You asked me to remind you about something.",
-    "Hey there, Jack Bogle here with your reminder!",
-    "This is Jack calling with that reminder you set up.",
+    "Hi, it's Alex! <break time='200ms'/> You asked me to remind you about something.",
+    'Hey there, Alex here with your reminder!',
+    'This is Alex calling with that reminder you set up.',
   ],
-  
+
   checkIn: [
-    "Hey, it's Jack! <break time='200ms'/> Just calling to check in. <break time='300ms'/> How's the long-term investing going?",
-    "Hi there! <break time='200ms'/> Jack Bogle here. <break time='300ms'/> Thought I'd give you a ring to see how you're doing.",
+    "Hey, it's Alex! <break time='200ms'/> Just calling to check in. <break time='300ms'/> How's everything going?",
+    "Hi there! <break time='200ms'/> Jack here. <break time='300ms'/> Thought I'd give you a ring to see how you're doing.",
     "This is Jack! <break time='200ms'/> Haven't heard from you in a while. <break time='300ms'/> Everything okay with your portfolio?",
   ],
-  
+
   peterHandoff: [
-    "Hey, it's Jack. <break time='200ms'/> Peter Lynch here has been <emphasis>dying</emphasis> to talk to you about some stock he found. <break time='300ms'/> I'll let him take over...",
+    "Hey, it's Jack. <break time='200ms'/> Peter here has been <emphasis>dying</emphasis> to talk to you about some stock he found. <break time='300ms'/> I'll let him take over...",
     "This is Jack. <break time='200ms'/> Peter wanted me to call you. <break time='300ms'/> He says he found another <prosody rate='fast'>ten-bagger</prosody>. <break time='200ms'/> I'll hand you over...",
   ],
 };
@@ -85,23 +85,21 @@ async function createOutboundCall(
   if (cleanNumber.length < 10) {
     return {
       success: false,
-      message: "I need a valid phone number to call you. Can you give me your number?",
+      message: 'I need a valid phone number to call you. Can you give me your number?',
     };
   }
 
   // Format to E.164
-  const e164Number = cleanNumber.startsWith('1') 
-    ? `+${cleanNumber}` 
-    : `+1${cleanNumber}`;
+  const e164Number = cleanNumber.startsWith('1') ? `+${cleanNumber}` : `+1${cleanNumber}`;
 
   // Check if LiveKit SIP is configured
   if (!SIP_TRUNK_ID || !LIVEKIT_URL) {
     getLogger().warn('SIP not configured - simulating call');
-    
+
     // Simulate the call for testing
     const announcement = customMessage || getAnnouncement(reason);
     getLogger().info({ to: e164Number, reason, announcement }, 'Simulated outbound call');
-    
+
     return {
       success: true,
       message: `I'll call you at ${e164Number}. Since we're in demo mode, imagine your phone is ringing... "Ring ring!" 📞`,
@@ -113,12 +111,15 @@ async function createOutboundCall(
     // Create the SIP participant for outbound call
     // This would connect to your LiveKit room and dial out
     const announcement = customMessage || getAnnouncement(reason);
-    
-    getLogger().info({ 
-      to: e164Number, 
-      trunk: SIP_TRUNK_ID,
-      announcement: announcement.slice(0, 50) + '...'
-    }, 'Creating SIP outbound call');
+
+    getLogger().info(
+      {
+        to: e164Number,
+        trunk: SIP_TRUNK_ID,
+        announcement: announcement.slice(0, 50) + '...',
+      },
+      'Creating SIP outbound call'
+    );
 
     // NOTE: Actual LiveKit SIP implementation would go here
     // This requires:
@@ -159,21 +160,25 @@ export function createTelephonyTools() {
 - User asks you to call them about something
 - You need to deliver important market alerts
 - You want to check in with the user
-- Peter Lynch wants to talk to them about a stock
+- Peter wants to talk to them about a stock
 
 IMPORTANT: Only use this if the user has given you their phone number.`,
       parameters: z.object({
-        phoneNumber: z.string().describe('The phone number to call (e.g., "+15551234567" or "555-123-4567")'),
-        reason: z.enum(['marketAlert', 'reminder', 'checkIn', 'peterHandoff']).describe('Why Jack is calling'),
+        phoneNumber: z
+          .string()
+          .describe('The phone number to call (e.g., "+15551234567" or "555-123-4567")'),
+        reason: z
+          .enum(['marketAlert', 'reminder', 'checkIn', 'peterHandoff'])
+          .describe('Why Alex is calling'),
         customMessage: z.string().optional().describe('Optional custom message to deliver'),
       }),
       execute: async ({ phoneNumber, reason, customMessage }) => {
         const result = await createOutboundCall(phoneNumber, reason, customMessage);
-        
+
         if (result.success) {
           getLogger().info({ phoneNumber, reason }, 'Call initiated');
         }
-        
+
         return result.message;
       },
     }),
@@ -185,19 +190,23 @@ IMPORTANT: Only use this if the user has given you their phone number.`,
 - User wants Jack to check in periodically`,
       parameters: z.object({
         phoneNumber: z.string().describe('The phone number to call'),
-        when: z.string().describe('When to call (e.g., "in 30 minutes", "tomorrow at 9am", "next Monday")'),
-        reason: z.string().describe('Why Jack should call (e.g., "remind about rebalancing", "market update")'),
+        when: z
+          .string()
+          .describe('When to call (e.g., "in 30 minutes", "tomorrow at 9am", "next Monday")'),
+        reason: z
+          .string()
+          .describe('Why Jack should call (e.g., "remind about rebalancing", "market update")'),
       }),
       execute: async ({ phoneNumber, when, reason }) => {
         getLogger().info({ phoneNumber, when, reason }, '📅 Scheduling callback');
-        
+
         // In a real implementation, this would:
         // 1. Parse the 'when' string into a timestamp
         // 2. Store in a database or use Google Cloud Scheduler
         // 3. Trigger the call at the scheduled time
-        
+
         getLogger().info({ phoneNumber, when, reason }, 'Callback scheduled');
-        
+
         return `Got it! I'll give you a call ${when} about ${reason}. Make sure your phone is nearby!`;
       },
     }),
@@ -205,4 +214,3 @@ IMPORTANT: Only use this if the user has given you their phone number.`,
 }
 
 export default createTelephonyTools;
-

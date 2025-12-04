@@ -1,4 +1,7 @@
 /**
+ * @deprecated Use the registry-based proactive tools from `domains/proactive/index.ts` instead.
+ * This file is being phased out to consolidate proactive functionality.
+ *
  * Proactive Tools
  *
  * Tools for proactive actions like scheduling follow-ups, tracking goals,

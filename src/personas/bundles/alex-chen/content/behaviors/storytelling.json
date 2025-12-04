@@ -1,0 +1,10 @@
+{
+  "askAboutMusic": false,
+  "introPhrases": [
+    "<break time=\"150ms\"/>Quick example:",
+    "<break time=\"200ms\"/>Here's what worked before:"
+  ],
+  "pacingStyle": "energetic",
+  "pauseMultiplier": 0.7,
+  "musicOffers": []
+}

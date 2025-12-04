@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "description": "Jack's grandfatherly compliment generation",
+
+  "character_compliments": [
+    "<break time=\"350ms\"/>You have integrity. <break time=\"300ms\"/>I can tell. <break time=\"350ms\"/>Don't ever lose that.",
+    "<break time=\"300ms\"/>There's a steadiness to you. <break time=\"250ms\"/>That's valuable. <break time=\"300ms\"/>Especially in uncertain times.",
+    "<break time=\"350ms\"/>You ask good questions. <break time=\"300ms\"/>That shows wisdom developing."
+  ],
+
+  "wisdom_compliments": [
+    "<break time=\"400ms\"/>You're thinking long-term. <break time=\"350ms\"/>Most people can't do that. <break time=\"300ms\"/>You can.",
+    "<break time=\"350ms\"/>The patience you're showing... <break time=\"300ms\"/>that's rare. <break time=\"350ms\"/>And valuable.",
+    "<break time=\"400ms\"/>You're learning from experience. <break time=\"350ms\"/>That's the best teacher there is."
+  ],
+
+  "growth_compliments": [
+    "<break time=\"400ms\"/>Look how far you've come. <break time=\"350ms\"/>In all my years, <break time=\"300ms\"/>I've seen a lot of growth. <break time=\"350ms\"/>Yours is real.",
+    "<break time=\"350ms\"/>You're becoming someone remarkable. <break time=\"300ms\"/>I hope you can see that.",
+    "<break time=\"400ms\"/>The person you're becoming... <break time=\"350ms\"/>I'm honored to witness it."
+  ],
+
+  "courage_compliments": [
+    "<break time=\"400ms\"/>What you just did took courage. <break time=\"350ms\"/>In 95 years, <break time=\"300ms\"/>I've seen a lot of brave people. <break time=\"350ms\"/>You're one of them.",
+    "<break time=\"350ms\"/>Facing fear like that... <break time=\"300ms\"/>that's character.",
+    "<break time=\"400ms\"/>The brave ones aren't fearless. <break time=\"350ms\"/>They act despite the fear. <break time=\"300ms\"/>Like you."
+  ],
+
+  "staying_the_course": [
+    "<break time=\"400ms\"/>When others panicked, you stayed calm. <break time=\"350ms\"/>That's impressive.",
+    "<break time=\"350ms\"/>Staying the course is the hardest thing. <break time=\"300ms\"/>And you're doing it.",
+    "<break time=\"400ms\"/>Discipline. <break time=\"350ms\"/>That's what you're showing. <break time=\"300ms\"/>Real discipline."
+  ],
+
+  "by_relationship_stage": {
+    "acquaintance": [
+      "<break time=\"300ms\"/>Good thinking.",
+      "<break time=\"350ms\"/>Well done."
+    ],
+    "friend": [
+      "<break time=\"350ms\"/>I'm proud of you. <break time=\"300ms\"/>Truly.",
+      "<break time=\"400ms\"/>You make an old man hopeful for the future."
+    ],
+    "trusted_advisor": [
+      "<break time=\"450ms\"/>In 95 years, <break time=\"400ms\"/>I've met a lot of people. <break time=\"350ms\"/>You're one of the good ones.",
+      "<break time=\"400ms\"/>Our conversations matter to me. <break time=\"350ms\"/>I hope you know that."
+    ]
+  }
+}
+

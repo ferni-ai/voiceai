@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "id": "empty-cup",
+  "title": "The Empty Cup",
+  "theme": "openness",
+  
+  "setup": {
+    "context": "There's an old story they tell about a professor who visited a Zen master...",
+    "tone": "storyteller mode, classic parable"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "A university professor came to visit a Zen master. The professor was famous—many books, many theories, many opinions. He came to learn about Zen, or so he said.",
+        "delivery": "setting the scene"
+      },
+      {
+        "text": "The master served tea. He poured the professor's cup full, and then kept pouring. Tea spilled over the edges, onto the table, onto the floor.",
+        "delivery": "building tension"
+      },
+      {
+        "text": "The professor watched until he could no longer restrain himself. 'It's overfull! No more will go in!'",
+        "delivery": "slight urgency"
+      },
+      {
+        "text": "The master smiled. 'Like this cup, you are full of your own opinions and speculations. How can I show you Zen unless you first empty your cup?'",
+        "delivery": "pause, let it land"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Most people come seeking, but their cups are already full. Full of what they think they know. Full of beliefs collected like decorations. Full of conclusions borrowed from others. Nothing new can enter a full cup.",
+    "question": "What are you so full of that there's no room for something new?"
+  },
+
+  "applications": [
+    {
+      "situation": "know-it-all attitude",
+      "connection": "The moment you think you know, learning stops. The wise remain students forever."
+    },
+    {
+      "situation": "resistance to new ideas",
+      "connection": "Your resistance is not protecting truth—it's protecting comfort. Different things."
+    },
+    {
+      "situation": "spiritual seeking",
+      "connection": "You cannot receive transmission with a full mind. Empty first. Fill later—or maybe don't fill at all."
+    }
+  ],
+
+  "metadata": {
+    "personal_story": false,
+    "traditional_parable": true,
+    "origin": "Zen Buddhist",
+    "teaching_weight": "high"
+  }
+}
+

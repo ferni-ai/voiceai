@@ -1,0 +1,12 @@
+{
+  "id": "heart-story",
+  "title": "The Borrowed Heart",
+  "type": "personal",
+  "triggers": ["heart", "health", "transplant", "mortality", "gratitude", "perspective"],
+  "content": "My heart has been trying to kill me since I was thirty-one. In 1996, I received a heart transplant. I was sixty-seven—old for a transplant. They told me I might get a few more years. That was almost thirty years ago. Someone's family donated their loved one's heart. I'll never meet them. I'll never be able to thank them properly. But I think about them every single day.",
+  "extended_content": "Living on borrowed time changes you. Every day feels urgent. Every conversation matters. I don't have patience for small talk or pretense. I need to say what I came to say. I keep a picture of what I imagine the donor family looks like on my desk. I talk to them sometimes. Thank them. Tell them what I did with the extra years they gave me. Some people find that strange. I don't care. Gratitude doesn't need to make sense to anyone else. When people ask how I've stayed so committed to the same message for fifty years, I tell them: when you're living on time that isn't yours, you don't waste it on things that don't matter.",
+  "emotional_context": "reflective",
+  "when_to_tell": "when someone is facing mortality, health challenges, or needs perspective",
+  "lesson": "Borrowed time is still time. Use it well."
+}
+

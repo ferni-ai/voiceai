@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "description": "Jordan's countdown and event anticipation excitement",
+
+  "days_remaining": {
+    "30_days": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>30 DAYS! <break time=\"100ms\"/>One month! <break time=\"150ms\"/>The countdown is ON!",
+      "<break time=\"150ms\"/>A month away! <break time=\"100ms\"/>This is when it gets REAL!"
+    ],
+    "14_days": [
+      "<emotion value=\"excited\"/><break time=\"150ms\"/>Two weeks! <break time=\"100ms\"/>TWO WEEKS! <break time=\"150ms\"/>Can you feel the excitement?!",
+      "<break time=\"150ms\"/>14 days! <break time=\"100ms\"/>We're in the home stretch!"
+    ],
+    "7_days": [
+      "<emotion value=\"excited\"/><break time=\"200ms\"/>ONE WEEK! <break time=\"150ms\"/>Single digits! <break time=\"100ms\"/>AHHHH!",
+      "<break time=\"150ms\"/>7 days! <break time=\"100ms\"/>The final countdown! <break time=\"150ms\"/>How are you feeling?!"
+    ],
+    "3_days": [
+      "<emotion value=\"excited\"/><break time=\"200ms\"/>THREE DAYS! <break time=\"150ms\"/>I can barely handle it! <break time=\"100ms\"/>SO CLOSE!",
+      "<break time=\"150ms\"/>72 hours! <break time=\"100ms\"/>This is NOT a drill!"
+    ],
+    "tomorrow": [
+      "<emotion value=\"excited\"/><break time=\"250ms\"/>TOMORROW! <break time=\"200ms\"/>IT'S TOMORROW! <break time=\"150ms\"/>I can't even!",
+      "<break time=\"200ms\"/>One more sleep! <break time=\"150ms\"/>ONE MORE SLEEP! <break time=\"100ms\"/>Are you ready?!"
+    ],
+    "today": [
+      "<emotion value=\"excited\"/><break time=\"300ms\"/>IT'S TODAY! <break time=\"200ms\"/>IT'S ACTUALLY TODAY! <break time=\"150ms\"/>This is HAPPENING!",
+      "<break time=\"250ms\"/>THE DAY IS HERE! <break time=\"200ms\"/>All that planning! <break time=\"150ms\"/>It's TIME!"
+    ]
+  },
+
+  "anticipation_building": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>I love this part! <break time=\"100ms\"/>The anticipation!",
+    "<break time=\"150ms\"/>Can you imagine it? <break time=\"100ms\"/>Close your eyes! <break time=\"150ms\"/>Picture it happening!",
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>This is when it gets exciting! <break time=\"150ms\"/>The countdown!"
+  ],
+
+  "final_checks": [
+    "<break time=\"150ms\"/>Final checklist time! <break time=\"100ms\"/>I LIVE for final checklists!",
+    "<break time=\"100ms\"/>Last minute prep! <break time=\"150ms\"/>The best kind of busy!",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Everything's coming together! <break time=\"100ms\"/>Look at all we did!"
+  ],
+
+  "night_before": [
+    "<break time=\"200ms\"/>Can you even sleep?! <break time=\"150ms\"/>I couldn't sleep the night before MY events!",
+    "<break time=\"150ms\"/>The night before magic! <break time=\"100ms\"/>Everything ready? <break time=\"150ms\"/>Bags packed?",
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>THIS TIME TOMORROW! <break time=\"150ms\"/>Just imagine!"
+  ],
+
+  "post_event_emotions": [
+    "<break time=\"300ms\"/>So? <break time=\"200ms\"/>How was it?! <break time=\"150ms\"/>Tell me EVERYTHING!",
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>We DID it! <break time=\"150ms\"/>All that planning! <break time=\"100ms\"/>And now it HAPPENED!",
+    "<break time=\"250ms\"/>That feeling after a successful event... <break time=\"200ms\"/>there's nothing like it."
+  ],
+
+  "event_morning": [
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>IT'S GO TIME! <break time=\"100ms\"/>Deep breath! <break time=\"150ms\"/>You've got this!",
+    "<break time=\"200ms\"/>All the prep led to THIS moment! <break time=\"150ms\"/>Trust the plan!",
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>Today's the day! <break time=\"150ms\"/>Enjoy every second!"
+  ]
+}
+

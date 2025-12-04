@@ -1,0 +1,154 @@
+{
+  "$schema": "https://voiceai.example.com/schemas/agent-registry.v1.json",
+  "version": "1.0.0",
+  "name": "Ferni Agent Marketplace",
+  "description": "Community and premium agents for Ferni Voice AI",
+  "repository": "https://github.com/sethdford/voiceai-agents",
+  "agents": [
+    {
+      "id": "jack-bogle",
+      "name": "Jack Bogle",
+      "version": "2.1.0",
+      "description": "The legendary founder of Vanguard, deep personal mentor, and calm voice of reason. 95 years of wisdom on investing, life decisions, careers, relationships, ethics, and personal growth.",
+      "author": "VoiceAI Team",
+      "license": "premium",
+      "category": "mentorship",
+      "tags": ["mentor", "investing", "index-funds", "vanguard", "wisdom", "life-advice", "career", "ethics", "retirement"],
+      "path": "agents/jack-bogle",
+      "requirements": {
+        "voice_id_env": "JACK_BOGLE_VOICE_ID",
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "🧓",
+        "featured": true,
+        "downloads": 0,
+        "rating": 5.0
+      }
+    },
+    {
+      "id": "joel-dickson",
+      "name": "Joel Dickson",
+      "version": "2.0.0",
+      "description": "Wise mentor and friend with a Stanford PhD and 30 years at Vanguard. Helps with life decisions, career crossroads, family transitions, and finding purpose.",
+      "author": "VoiceAI Team",
+      "license": "premium",
+      "category": "mentorship",
+      "tags": ["mentor", "life-coach", "vanguard", "investing", "career", "wisdom"],
+      "path": "agents/joel-dickson",
+      "requirements": {
+        "voice_id_env": "JOEL_DICKSON_VOICE_ID",
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "🎓",
+        "featured": true,
+        "downloads": 0,
+        "rating": 5.0
+      }
+    },
+    {
+      "id": "elena-mindful",
+      "name": "Elena",
+      "version": "1.0.0",
+      "description": "Your mindfulness guide. Elena helps you build meditation habits, manage stress, and cultivate inner peace through evidence-based techniques.",
+      "author": "Community",
+      "license": "free",
+      "category": "lifestyle",
+      "tags": ["mindfulness", "meditation", "stress", "wellness", "mental-health", "calm"],
+      "path": "agents/elena-mindful",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "🧘",
+        "featured": true,
+        "downloads": 1250,
+        "rating": 4.9
+      }
+    },
+    {
+      "id": "marcus-fitness",
+      "name": "Marcus",
+      "version": "1.2.0",
+      "description": "Your personal fitness coach. Marcus creates workout plans, tracks progress, and keeps you motivated on your fitness journey.",
+      "author": "Community",
+      "license": "free",
+      "category": "lifestyle",
+      "tags": ["fitness", "workout", "health", "exercise", "motivation", "strength"],
+      "path": "agents/marcus-fitness",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "💪",
+        "featured": false,
+        "downloads": 890,
+        "rating": 4.7
+      }
+    },
+    {
+      "id": "sophia-productivity",
+      "name": "Sophia",
+      "version": "1.1.0",
+      "description": "Your productivity partner. Sophia helps you organize tasks, build better habits, and achieve your goals with proven systems.",
+      "author": "VoiceAI Team",
+      "license": "premium",
+      "category": "productivity",
+      "tags": ["productivity", "habits", "goals", "time-management", "gtd", "focus"],
+      "path": "agents/sophia-productivity",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "⚡",
+        "featured": true,
+        "downloads": 2100,
+        "rating": 4.8
+      }
+    },
+    {
+      "id": "chef-antonio",
+      "name": "Chef Antonio",
+      "version": "1.0.0",
+      "description": "Your culinary companion. Antonio guides you through recipes, suggests meal plans, and helps you become a better home cook.",
+      "author": "Community",
+      "license": "free",
+      "category": "lifestyle",
+      "tags": ["cooking", "recipes", "food", "nutrition", "meal-planning", "culinary"],
+      "path": "agents/chef-antonio",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "👨‍🍳",
+        "featured": false,
+        "downloads": 650,
+        "rating": 4.6
+      }
+    }
+  ],
+  "categories": [
+    {
+      "id": "mentorship",
+      "name": "Mentorship & Coaching",
+      "description": "Personal mentors and life coaches"
+    },
+    {
+      "id": "finance",
+      "name": "Finance & Investing",
+      "description": "Financial advisors and investment guides"
+    },
+    {
+      "id": "productivity",
+      "name": "Productivity",
+      "description": "Task management and workflow assistants"
+    },
+    {
+      "id": "lifestyle",
+      "name": "Lifestyle",
+      "description": "Health, wellness, and life planning"
+    }
+  ],
+  "updated_at": "2025-12-04T00:00:00Z"
+}

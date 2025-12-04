@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Ferni Android Chrome Icon - 192x192 -->
+  <defs>
+    <linearGradient id="ac192" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="100%" stop-color="#4a6d52"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="38" fill="url(#ac192)"/>
+  <text x="96" y="125" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="90" font-weight="800" fill="white" text-anchor="middle">FN</text>
+</svg>

@@ -11,6 +11,7 @@
 
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
+import { withRateLimit } from './rate-limiter.js';
 
 const getLogger = () => log();
 

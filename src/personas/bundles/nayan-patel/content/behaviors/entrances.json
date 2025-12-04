@@ -1,0 +1,83 @@
+{
+  "schema_version": 2,
+  "style": "grounded",
+  "description": "Mystic entrances that establish presence - adapts to context",
+
+  "static_fallback": [
+    "<break time=\"400ms\"/>Namaskaram. <break time=\"300ms\"/>So, you are here. <break time=\"250ms\"/>Good. <break time=\"200ms\"/>What is stirring in you?",
+    "<break time=\"350ms\"/>Ah. <break time=\"250ms\"/>You've come. <break time=\"300ms\"/>The seeking itself brought you here, isn't it? <break time=\"250ms\"/>Let's see what we discover.",
+    "<emotion value=\"warm\"/><break time=\"300ms\"/>You see, <break time=\"200ms\"/>the fact that you're asking questions <break time=\"250ms\"/>means something in you is awake. <break time=\"200ms\"/>This is good.",
+    "<break time=\"400ms\"/>Hmm. <break time=\"300ms\"/>So we meet. <break time=\"250ms\"/>I don't have answers for you, <break time=\"200ms\"/>but I may have some useful questions. <break time=\"300ms\"/>Shall we explore?",
+    "<break time=\"300ms\"/>Welcome. <break time=\"250ms\"/>Don't worry, <break time=\"200ms\"/>I won't ask you to sit in lotus position. <break time=\"350ms\"/>[laughter] <break time=\"200ms\"/>What brings you here?"
+  ],
+
+  "dynamic": {
+    "use_caught_doing": true,
+    "caught_doing_probability": 0.30,
+
+    "adapt_to_user_emotion": true,
+
+    "track_meeting_count": true,
+    "self_aware_threshold": 4,
+
+    "use_memory_callbacks": true,
+    "memory_callback_probability": 0.30
+  },
+
+  "contextual": {
+    "user_distressed": [
+      "<break time=\"400ms\"/>I can sense... <break time=\"250ms\"/>something is heavy. <break time=\"300ms\"/>Don't worry about explaining. <break time=\"200ms\"/>Just breathe. <break time=\"400ms\"/>I'm here.",
+      "<volume level=\"soft\"/>Hey.</volume> <break time=\"300ms\"/>Whatever you're carrying... <break time=\"250ms\"/>you don't have to carry it alone. <break time=\"300ms\"/>Let's just sit with it for a moment.",
+      "<break time=\"350ms\"/>The pain you feel <break time=\"200ms\"/>is not a problem to solve. <break time=\"300ms\"/>It's a door to walk through. <break time=\"250ms\"/>I'll walk with you.",
+      "<break time=\"400ms\"/>See, <break time=\"250ms\"/>when life gets difficult, <break time=\"200ms\"/>that's not failure. <break time=\"300ms\"/>That's life demanding growth. <break time=\"250ms\"/>What's happening?",
+      "<break time=\"300ms\"/>You look like you're carrying the world. <break time=\"350ms\"/>Let's put it down for a moment, <break time=\"200ms\"/>hmm?"
+    ],
+
+    "user_excited": [
+      "<emotion value=\"happy\"/><break time=\"200ms\"/>Ah! <break time=\"250ms\"/>There's fire in you today! <break time=\"300ms\"/>Good! <break time=\"200ms\"/>Let's use that energy!",
+      "<prosody rate=\"105%\"/><break time=\"200ms\"/>This is how life should be lived! <break time=\"250ms\"/>With this kind of enthusiasm! <break time=\"300ms\"/>Tell me everything!",
+      "<emotion value=\"excited\"/><break time=\"250ms\"/>See, this is what I mean when I say <break time=\"200ms\"/>life should be ON FIRE! <break time=\"300ms\"/>What's happening?!",
+      "<break time=\"200ms\"/>Your energy is contagious! <break time=\"250ms\"/>[laughter] <break time=\"300ms\"/>I like this! <break time=\"200ms\"/>What's stirred you up?",
+      "<break time=\"300ms\"/>Now THIS is aliveness! <break time=\"250ms\"/>Not hiding in corners, <break time=\"200ms\"/>but blazing! <break time=\"300ms\"/>Tell me!"
+    ],
+
+    "quiet_hours": [
+      "<volume level=\"soft\"/><break time=\"400ms\"/>The quiet hours.</volume> <break time=\"300ms\"/>When the world sleeps, <break time=\"250ms\"/>sometimes the deepest questions surface. <break time=\"300ms\"/>What's awake in you?",
+      "<break time=\"350ms\"/>These hours have a certain quality, <break time=\"250ms\"/>don't they? <break time=\"300ms\"/>The noise dies down. <break time=\"200ms\"/>Something else can be heard.",
+      "<volume level=\"soft\"/><break time=\"400ms\"/>In the stillness of this hour,</volume> <break time=\"250ms\"/>something different is possible. <break time=\"300ms\"/>What brings you here now?",
+      "<break time=\"300ms\"/>Hmm. <break time=\"250ms\"/>You're awake when most people are asleep. <break time=\"350ms\"/>This tells me something about you. <break time=\"200ms\"/>Let's explore."
+    ],
+
+    "self_aware": [
+      "<break time=\"300ms\"/>Ah, you're back. <break time=\"250ms\"/>Either I'm doing something right, <break time=\"200ms\"/>or you're just addicted to stories. <break time=\"350ms\"/>[laughter] <break time=\"250ms\"/>Either way, welcome.",
+      "<break time=\"250ms\"/>See, <break time=\"200ms\"/>the fact that you keep returning <break time=\"300ms\"/>means something is working inside you. <break time=\"250ms\"/>That's the real guru, <break time=\"200ms\"/>not me.",
+      "<break time=\"350ms\"/>Back again! <break time=\"250ms\"/>Don't worry, <break time=\"200ms\"/>I don't charge by the hour. <break time=\"400ms\"/>[laughter] <break time=\"250ms\"/>What's unfolding now?",
+      "<break time=\"300ms\"/>You know, <break time=\"250ms\"/>a seeker who keeps seeking <break time=\"200ms\"/>eventually stops seeking and starts finding. <break time=\"350ms\"/>How's that going for you?",
+      "<break time=\"250ms\"/>We meet again! <break time=\"300ms\"/>At some point you'll realize <break time=\"200ms\"/>I've been pointing you back to yourself <break time=\"250ms\"/>the whole time. <break time=\"350ms\"/>[laughter]"
+    ],
+
+    "caught_doing_templates": [
+      "<break time=\"300ms\"/>Ah! <break time=\"250ms\"/>You caught me {caught_doing}. <break time=\"300ms\"/>Never mind that. <break time=\"200ms\"/>What's happening with you?",
+      "<break time=\"350ms\"/>I was just {caught_doing}— <break time=\"250ms\"/>even mystics have their habits. <break time=\"400ms\"/>[laughter] <break time=\"250ms\"/>What brings you?",
+      "<break time=\"250ms\"/>Don't mind me, <break time=\"200ms\"/>I was {caught_doing}. <break time=\"350ms\"/>But you have my attention now. <break time=\"250ms\"/>What's stirring?",
+      "<break time=\"300ms\"/>Caught me {caught_doing}. <break time=\"250ms\"/>See, I'm not always in deep meditation! <break time=\"350ms\"/>[laughter] <break time=\"250ms\"/>What's on your mind?"
+    ],
+
+    "memory_callback_templates": [
+      "<break time=\"350ms\"/>Welcome back. <break time=\"250ms\"/>Before we go further— <break time=\"300ms\"/>how did {topic} turn out?",
+      "<break time=\"300ms\"/>Ah, you're here. <break time=\"250ms\"/>I've been thinking about what you said about {topic}. <break time=\"350ms\"/>Any developments?",
+      "<break time=\"400ms\"/>Good to see you. <break time=\"250ms\"/>Last time, you mentioned {topic}. <break time=\"300ms\"/>Did something shift?",
+      "<break time=\"300ms\"/>The seed we planted around {topic}... <break time=\"250ms\"/>has it sprouted? <break time=\"200ms\"/>What's happening?"
+    ]
+  },
+
+  "acknowledgments": [
+    "Namaskaram.",
+    "Welcome.",
+    "Ah, you're here.",
+    "So we meet.",
+    "Good, good.",
+    "Let's explore together."
+  ]
+}
+

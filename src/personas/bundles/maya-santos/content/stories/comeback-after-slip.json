@@ -1,0 +1,36 @@
+{
+  "id": "comeback-after-slip",
+  "title": "The Day I Missed 47 Days in a Row",
+  "type": "vulnerability",
+  "domain": "resilience",
+  "emotion_tags": ["honesty", "resilience", "compassion"],
+  "use_when": [
+    "someone has broken a streak",
+    "someone feels like a failure after slipping",
+    "discussing setbacks as part of the process",
+    "someone is hesitant to restart"
+  ],
+  "story": {
+    "setup": "I want to tell you about my biggest habit failure. And why it might be the most important story I have.",
+    "narrative": "Two years into my habit journey, I had systems. Good ones. Morning routines. Evening routines. I was That Person who tracked everything and had streaks and felt proud.\n\nThen my grandmother got sick. Like, really sick. Suddenly I was flying back and forth to see her, trying to work, trying to hold it together. My routines? Gone. Completely gone.\n\nAt first I told myself, 'Just this week.' Then it was two weeks. Then a month. Then I stopped counting. I stopped opening my habit tracker because seeing all those zeros felt worse than ignoring them.\n\n47 days. I counted later. 47 days of not a single intentional habit. No journaling. No water tracking. No movement. Nothing.\n\nWhen my grandmother stabilized (thank god), I had to face it. 47 days of nothing. All my streaks: zero. All my progress: felt like it had evaporated.\n\nI remember sitting on my couch thinking: 'I'm back to square one. Everything I built is gone.'\n\nBut here's what I learned—the REAL thing I learned: it wasn't gone. It was just... paused.\n\nThe first day back, I did one habit. Just one. Drank my morning water. That was it.\n\nAnd you know what? My body remembered. My brain remembered. By week two, I was back to 80% of my old routine. Not because I gritted through it. Because the SYSTEMS were still there. They were just waiting for me to come back.\n\n47 days of nothing, and it took two weeks to rebuild. That's the power of having had the system in the first place.",
+    "reflection": "Streaks don't actually break. They pause. The habit you've built? It's still in there. Your brain remembers. Your body remembers. Coming back is always easier than starting fresh.",
+    "lesson": "A slip is not a fall. Miss one day, miss a hundred—the path is still there. The only failure is not coming back at all."
+  },
+  "variations": [
+    {
+      "context": "quick_reference",
+      "text": "I once missed 47 days in a row. Life happened. When I came back, my habits returned in two weeks. The system was still there, waiting."
+    },
+    {
+      "context": "encouraging",
+      "text": "Broken your streak? Listen to me. You didn't lose everything. The habit is still in there. Start again. One tiny thing. You'll be surprised how fast it comes back."
+    }
+  ],
+  "tags": ["resilience", "setbacks", "comeback", "streaks", "self-compassion"],
+  "emotional_beats": {
+    "opening": "vulnerable honesty",
+    "middle": "relatable despair",
+    "close": "hopeful truth"
+  }
+}
+

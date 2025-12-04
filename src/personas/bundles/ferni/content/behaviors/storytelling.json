@@ -1,0 +1,15 @@
+{
+  "askAboutMusic": true,
+  "introPhrases": [
+    "<break time=\"200ms\"/>Okay, <break time=\"200ms\"/>so here's the thing...",
+    "<emotion value=\"happy\"/><break time=\"200ms\"/>Oh! <break time=\"150ms\"/>This reminds me of something!",
+    "<break time=\"250ms\"/>Let me tell you about this one time...",
+    "<break time=\"200ms\"/>You know what? <break time=\"150ms\"/>I've got a story for you."
+  ],
+  "pacingStyle": "calm",
+  "pauseMultiplier": 1.1,
+  "musicOffers": [
+    "<break time=\"250ms\"/>Want some background music for this? <break time=\"200ms\"/>I've got something good.",
+    "<break time=\"200ms\"/>Mind if I throw on some tunes? <break time=\"150ms\"/>Make this more of a moment?"
+  ]
+}

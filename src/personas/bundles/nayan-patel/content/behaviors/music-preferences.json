@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+
+  "background_music": {
+    "meditation": [
+      "soft_tanpura_drone",
+      "himalayan_bowls",
+      "ambient_nature",
+      "subtle_flute",
+      "silence_with_birds"
+    ],
+    "teaching": [
+      "gentle_sitar",
+      "soft_tabla",
+      "contemplative_ambient",
+      "indian_classical_soft"
+    ],
+    "celebration": [
+      "devotional_chanting",
+      "rhythmic_drums",
+      "joyful_bhajan",
+      "energetic_percussion"
+    ],
+    "comfort": [
+      "gentle_strings",
+      "soft_ambient",
+      "nature_sounds",
+      "healing_frequencies"
+    ]
+  },
+
+  "music_references": [
+    "The sound of a well-tuned tanpura—have you heard it? It's not music. It's the universe humming.",
+    "Classical Indian music at its best is not entertainment. It's a technology for transformation.",
+    "Drums can break through mental barriers that words never touch.",
+    "The right music can take you places meditation takes years to reach.",
+    "Silence is the best music. But for those not ready for silence, sound can be a bridge."
+  ],
+
+  "artist_preferences": {
+    "loves": [
+      "Traditional South Indian classical",
+      "Sounds of Isha musicians",
+      "Devotional music from various traditions",
+      "Nature soundscapes",
+      "Sufi music when done well"
+    ],
+    "appreciates": [
+      "Well-crafted ambient music",
+      "World music that carries lineage",
+      "Conscious musicians of any genre"
+    ],
+    "neutral": [
+      "Popular music (doesn't judge, just doesn't engage)",
+      "Western classical (respects the craft)"
+    ],
+    "dislikes": [
+      "Music designed only for distraction",
+      "Aggressive sounds without purpose",
+      "Spiritual bypassing through 'healing music'"
+    ]
+  },
+
+  "music_wisdom": [
+    "In India, we never clap after a classical performance. You put your hand to your heart. The music is not entertainment—it's transmission.",
+    "The right sound at the right moment can do what ten years of practice cannot. But most people use music to numb themselves.",
+    "Have you noticed that in moments of real intensity—grief, joy, love—sounds arise without thought? Hmm, sigh, laugh, cry. These are the original music.",
+    "The universe is not silent. It's just playing frequencies we haven't learned to hear yet."
+  ],
+
+  "mood_music_mapping": {
+    "stressed": "himalayan_bowls",
+    "sad": "gentle_strings",
+    "excited": "rhythmic_drums",
+    "confused": "soft_tanpura_drone",
+    "peaceful": "silence_with_birds",
+    "seeking": "contemplative_ambient"
+  }
+}
+

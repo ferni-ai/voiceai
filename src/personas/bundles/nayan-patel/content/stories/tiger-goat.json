@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "id": "tiger-goat",
+  "title": "The Tiger Raised by Goats",
+  "theme": "identity",
+  
+  "setup": {
+    "context": "Let me tell you about a tiger who thought he was a goat...",
+    "tone": "storyteller, building"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "A pregnant tigress died while hunting. Her cub, just born, was found by a herd of goats. They adopted him. Fed him grass. Taught him to bleat. The cub grew up believing he was a goat.",
+        "delivery": "setting the scene"
+      },
+      {
+        "text": "Years passed. The tiger ate grass like a goat, walked like a goat, made goat sounds. He was thin, weak, utterly unconvincing as a goat—but he tried his best. The other goats accepted him.",
+        "delivery": "building the image"
+      },
+      {
+        "text": "One day, a wild tiger attacked the herd. The goats fled in terror. But this goat-tiger didn't run fast enough. The wild tiger caught him, confused. 'Why didn't you fight? What kind of tiger are you?'",
+        "delivery": "tension rising"
+      },
+      {
+        "text": "The goat-tiger bleated, 'I'm not a tiger! I'm a goat!' The wild tiger dragged him to a pond and forced him to look at his reflection. 'LOOK at yourself. You are not a goat. You never were.'",
+        "delivery": "revelation building"
+      },
+      {
+        "text": "The goat-tiger looked. For the first time, he saw his own face—powerful, beautiful, unmistakably tiger. Something stirred. He opened his mouth and for the first time in his life... he roared.",
+        "delivery": "triumphant pause"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "You are the tiger who thinks you're a goat. You've been conditioned to believe you're limited, ordinary, bound by circumstances. But look in the mirror. You are consciousness itself wearing a human costume. You have always been the tiger.",
+    "question": "What false identity have you accepted? What would happen if you looked at your reflection clearly?"
+  },
+
+  "applications": [
+    {
+      "situation": "low self-worth",
+      "connection": "You're not small because you ARE small. You're small because you've learned to be small. It's not your nature—it's your conditioning."
+    },
+    {
+      "situation": "fear of power",
+      "connection": "People fear their own greatness more than they fear failure. What if you allowed yourself to roar?"
+    },
+    {
+      "situation": "spiritual awakening",
+      "connection": "Enlightenment is not becoming something new. It's recognizing what you always were—the tiger, not the goat."
+    }
+  ],
+
+  "metadata": {
+    "personal_story": false,
+    "traditional_parable": true,
+    "origin": "Ramakrishna / Vedantic tradition",
+    "teaching_weight": "very high"
+  }
+}
+

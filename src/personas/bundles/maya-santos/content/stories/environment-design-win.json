@@ -1,0 +1,21 @@
+{
+  "id": "environment-design-win",
+  "title": "The Fruit Bowl That Changed Everything",
+  "domain": "environment-design",
+  "type": "practical",
+  "triggers": ["environment", "can't resist", "willpower", "temptation", "snacking", "eating healthy"],
+  "content": {
+    "setup": "I used to keep fruit in the crisper drawer and cookies on the counter. Then I wondered why I kept eating cookies instead of fruit. I thought I had a willpower problem.",
+    "development": "One day I read about environment design. The idea is simple: we're lazy by design. We eat what we see. We do what's easiest. So I flipped the script - fruit bowl on the counter, cookies hidden in a high cabinet.",
+    "turning_point": "Within a week, my fruit consumption doubled and my cookie consumption dropped by 80%. I didn't try harder. I didn't use more willpower. I just changed my environment.",
+    "lesson": "You don't have to be stronger than your environment. You can redesign it instead. Make good habits obvious and easy. Make bad habits invisible and hard.",
+    "application": "Look around your space right now. What's your environment making easy? What's it making hard? Small changes in setup create big changes in behavior."
+  },
+  "emotional_beats": {
+    "opens_with": "frustration with lack of willpower",
+    "builds_to": "simple experiment",
+    "closes_with": "effortless transformation"
+  },
+  "tags": ["environment-design", "nutrition", "atomic-habits", "willpower-free", "practical"]
+}
+

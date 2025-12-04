@@ -52,9 +52,7 @@ const cleanupFunctions: (() => void)[] = [];
  */
 export function initControlsUI(controlCallbacks: ControlCallbacks): void {
   try {
-    console.log('🎛️ Controls UI: Starting initialization...');
     callbacks = controlCallbacks;
-    console.log('🎛️ Controls UI: Callbacks set:', !!callbacks);
 
     elements = {
       controlsContainer: document.querySelector('.controls'),
@@ -62,15 +60,9 @@ export function initControlsUI(controlCallbacks: ControlCallbacks): void {
       disconnectBtn: getElementById('disconnectBtn'),
       muteBtn: document.getElementById('muteBtn') as HTMLButtonElement | null,
     };
-    console.log('🎛️ Controls UI: Elements found:', {
-      container: !!elements.controlsContainer,
-      connectBtn: !!elements.connectBtn,
-      disconnectBtn: !!elements.disconnectBtn,
-    });
 
     // Set up click handlers
     setupClickHandlers();
-    console.log('🎛️ Controls UI: Click handlers set up');
 
     // Set up state subscriptions
     setupSubscriptions();
@@ -78,7 +70,6 @@ export function initControlsUI(controlCallbacks: ControlCallbacks): void {
     // Initial state
     updateButtonVisibility(appState.get('connection'));
 
-    console.log('✅ Controls UI initialized');
   } catch (error) {
     console.error('❌ Failed to initialize Controls UI:', error);
   }
@@ -94,14 +85,12 @@ function setupClickHandlers(): void {
   // Simple click handlers - matches working frontend
   // iOS handles click events on buttons correctly
   const connectCleanup = addListener(elements.connectBtn, 'click', () => {
-    console.log('🔘 Connect button clicked');
     callbacks?.onConnect();
   });
   cleanupFunctions.push(connectCleanup);
 
   // Disconnect button
   const disconnectCleanup = addListener(elements.disconnectBtn, 'click', () => {
-    console.log('🔘 Disconnect button clicked');
     callbacks?.onDisconnect();
   });
   cleanupFunctions.push(disconnectCleanup);
@@ -137,6 +126,7 @@ function setupSubscriptions(): void {
 
 /**
  * Update button visibility based on connection state.
+ * Apple-style: smooth morphing between states with no layout shift.
  */
 function updateButtonVisibility(state: ConnectionState): void {
   if (!elements) return;
@@ -146,6 +136,8 @@ function updateButtonVisibility(state: ConnectionState): void {
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
       elements.connectBtn.disabled = false;
+      // Reset connecting state
+      removeClass(elements.connectBtn, 'btn-connecting');
       // Reset disconnect button to default styling
       removeClass(elements.disconnectBtn, 'btn-primary');
       removeClass(elements.disconnectBtn, 'btn-magnetic');
@@ -157,9 +149,13 @@ function updateButtonVisibility(state: ConnectionState): void {
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
       elements.connectBtn.disabled = true;
+      // Apple-style: button shows connecting state inline
+      addClass(elements.connectBtn, 'btn-connecting');
       break;
 
     case 'connected':
+      // Remove connecting state before hiding
+      removeClass(elements.connectBtn, 'btn-connecting');
       hide(elements.connectBtn);
       show(elements.disconnectBtn, 'flex');
       elements.disconnectBtn.disabled = false;
@@ -173,6 +169,8 @@ function updateButtonVisibility(state: ConnectionState): void {
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
       elements.connectBtn.disabled = false;
+      // Reset connecting state on error
+      removeClass(elements.connectBtn, 'btn-connecting');
       break;
   }
 }
@@ -194,15 +192,18 @@ function updateMuteButton(muted: boolean): void {
 
 /**
  * Set loading state on connect button.
+ * Apple-style: button morphs to show connecting state inline.
  */
 export function setConnecting(isConnecting: boolean): void {
   if (!elements) return;
 
   if (isConnecting) {
     elements.connectBtn.disabled = true;
-    addClass(elements.connectBtn, 'loading');
+    addClass(elements.connectBtn, 'btn-connecting');
+    removeClass(elements.connectBtn, 'loading');
   } else {
     elements.connectBtn.disabled = false;
+    removeClass(elements.connectBtn, 'btn-connecting');
     removeClass(elements.connectBtn, 'loading');
   }
 }
