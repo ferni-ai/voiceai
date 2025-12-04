@@ -497,8 +497,8 @@ export const FINANCIAL_WELLNESS_TEAM: TeamPackageManifest = {
     {
       personaId: 'nayan-patel',
       characterId: 'nayan-patel',
-      roleId: 'sage-mentor',
-      displayName: 'Jack Bogle',
+      roleId: 'lifetime-advisor',
+      displayName: 'Nayan Patel',
       required: true,
     },
     {
@@ -536,18 +536,18 @@ export const FINANCIAL_WELLNESS_TEAM: TeamPackageManifest = {
   routing: {
     topicRouting: [
       { topics: ['budget', 'spending', 'savings', 'debt', 'habits'], targetRole: 'habits-coach', priority: 10 },
-      { topics: ['investing', 'portfolio', 'index funds', 'retirement'], targetRole: 'sage-mentor', priority: 10 },
+      { topics: ['investing', 'portfolio', 'index funds', 'retirement'], targetRole: 'lifetime-advisor', priority: 10 },
       { topics: ['stocks', 'analysis', 'research', 'earnings'], targetRole: 'researcher', priority: 10 },
       { topics: ['schedule', 'meeting', 'email', 'calendar'], targetRole: 'communicator', priority: 10 },
       { topics: ['milestone', 'event', 'wedding', 'baby', 'goals'], targetRole: 'event-planner', priority: 10 },
     ],
     intentRouting: [
       { intents: ['analyze_spending', 'create_budget'], targetRole: 'habits-coach', priority: 5 },
-      { intents: ['invest_advice', 'portfolio_review'], targetRole: 'sage-mentor', priority: 5 },
+      { intents: ['invest_advice', 'portfolio_review'], targetRole: 'lifetime-advisor', priority: 5 },
       { intents: ['stock_analysis', 'research_company'], targetRole: 'researcher', priority: 5 },
     ],
     emotionRouting: [
-      { emotions: ['anxious', 'worried', 'stressed'], minIntensity: 0.6, targetRole: 'sage-mentor' },
+      { emotions: ['anxious', 'worried', 'stressed'], minIntensity: 0.6, targetRole: 'lifetime-advisor' },
       { emotions: ['excited', 'hopeful'], minIntensity: 0.7, targetRole: 'coordinator' },
     ],
     defaultMember: 'ferni',

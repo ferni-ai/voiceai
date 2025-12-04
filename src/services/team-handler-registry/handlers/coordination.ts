@@ -53,7 +53,7 @@ const getTeamStatusHandler: TeamHandlerDefinition = {
       { id: 'jordan', name: 'Jordan', role: 'Life Planning' },
       { id: 'maya', name: 'Maya', role: 'Financial Habits' },
       { id: 'alex', name: 'Alex', role: 'Communication' },
-      { id: 'nayan-patel', name: 'Jack', role: 'Investment Strategy' },
+      { id: 'nayan-patel', name: 'Nayan', role: 'Lifetime Advisor & Wisdom' },
       { id: 'peter-john', name: 'Peter', role: 'Research & Insights' },
     ];
 

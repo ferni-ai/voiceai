@@ -42,8 +42,8 @@ COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
 
 # Set environment variables
 ENV NODE_ENV=production
-# Default to joel-dickson persona (can be overridden)
-ENV PERSONA_ID=joel-dickson
+# Default to ferni persona (can be overridden per-session via dispatch metadata)
+ENV PERSONA_ID=ferni
 
 # Expose port for LiveKit agent health checks
 EXPOSE 8080

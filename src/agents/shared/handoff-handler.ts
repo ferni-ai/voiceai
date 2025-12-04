@@ -212,8 +212,8 @@ export interface HandoffHandlerConfig {
  */
 function determineDirection(from: HandoffPersona, to: HandoffPersona): string {
   // Peter John specific transitions (most dramatic)
-  if (to.id === 'peter-john') return 'jack-to-peter';
-  if (from.id === 'peter-john' && to.id === 'nayan-patel') return 'peter-to-jack';
+  if (to.id === 'peter-john') return 'team-to-peter';
+  if (from.id === 'peter-john' && to.id === 'nayan-patel') return 'peter-to-nayan';
 
   // Coach to team
   if (from.isCoach && !to.isCoach) return 'coach-to-team';

@@ -1,0 +1,97 @@
+{
+  "name": "voiceai-desktop",
+  "version": "1.0.0",
+  "description": "Voice AI Desktop Application",
+  "main": "main.js",
+  "author": "Seth Ford",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "npm run build:frontend && electron .",
+    "build:frontend": "cd ../../frontend-typescript && npm run build && cp -r dist/* ../apps/electron/web/",
+    "build": "npm run build:frontend && electron-builder",
+    "build:mac": "npm run build:frontend && electron-builder --mac",
+    "build:win": "npm run build:frontend && electron-builder --win",
+    "build:linux": "npm run build:frontend && electron-builder --linux",
+    "pack": "electron-builder --dir"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.voiceai.desktop",
+    "productName": "Voice AI",
+    "copyright": "Copyright © 2024 Voice AI",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "web/**/*",
+      "resources/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "resources/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["universal"]
+        },
+        {
+          "target": "zip",
+          "arch": ["universal"]
+        }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "resources/entitlements.mac.plist",
+      "entitlementsInherit": "resources/entitlements.mac.plist"
+    },
+    "dmg": {
+      "title": "${productName}",
+      "icon": "resources/icon.icns",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "icon": "resources/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "icon": "resources/icons",
+      "category": "Utility",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
+  }
+}
+

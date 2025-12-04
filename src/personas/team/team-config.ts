@@ -20,13 +20,7 @@ export const DEFAULT_TEAM_MEMBERS: TeamMember[] = [
       "Your main point of contact - coordinates the team and helps navigate life's big questions",
     active: true,
   },
-  {
-    roleId: 'sage-mentor',
-    characterId: 'nayan-patel',
-    displayName: 'Jack',
-    roleDescription: 'Deep personal mentor - the calm voice of reason. Index investing, life wisdom, career guidance, relationship advice, ethics counsel, decision-making support',
-    active: true,
-  },
+  // NOTE: Jack Bogle (sage-mentor) moved to Agent Marketplace. Nayan Patel is now the lifetime-advisor.
   {
     roleId: 'researcher',
     characterId: 'peter-john',
@@ -69,27 +63,7 @@ export const DEFAULT_TEAM_MEMBERS: TeamMember[] = [
  */
 export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
   // From Life Coach to others
-  {
-    fromRole: 'life-coach',
-    toRole: 'sage-mentor',
-    phrases: [
-      "Let me bring Jack in for this - he's got perspective on the big picture.",
-      "Jack's your guy for this kind of wisdom.",
-      "Connecting you with Jack - he'll help you see the forest for the trees.",
-      "This sounds like something Jack should hear. He's got 95 years of wisdom to share.",
-      "Let me get Jack - he's the calm voice of reason you need right now.",
-      "Jack's perfect for this. He gives everyone a fair shake.",
-    ],
-    triggers: [
-      'investing philosophy', 'life perspective', 'long-term view', 'index funds',
-      'hard decision', 'life advice', 'what should I do', 'need advice',
-      'career advice', 'job decision', 'work question', 'boss trouble',
-      'relationship advice', 'marriage', 'family conflict', 'forgiveness',
-      'ethics', 'right thing', 'moral dilemma', 'fairness',
-      'need perspective', 'overwhelmed', 'scared', 'confused', 'anxious',
-      'calm me down', 'voice of reason', 'wisdom', 'mentor'
-    ],
-  },
+  // NOTE: sage-mentor (Jack Bogle) moved to Agent Marketplace. Use lifetime-advisor (Nayan) instead.
   {
     fromRole: 'life-coach',
     toRole: 'researcher',
@@ -172,14 +146,6 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
 
   // From specialists back to Life Coach
   {
-    fromRole: 'sage-mentor',
-    toRole: 'life-coach',
-    phrases: [
-      'Let me hand you back to Ferni for anything else.',
-      "I'll pass you back to Ferni - they'll take good care of you.",
-    ],
-  },
-  {
     fromRole: 'researcher',
     toRole: 'life-coach',
     phrases: [
@@ -229,7 +195,7 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
 export const DEFAULT_TEAM_COORDINATION: TeamCoordination = {
   teammateReferences: [
     { roleId: 'life-coach', informalReference: 'Ferni', formalReference: 'your life coach' },
-    { roleId: 'sage-mentor', informalReference: 'Jack', formalReference: 'our deep personal mentor' },
+    // NOTE: sage-mentor (Jack Bogle) moved to Agent Marketplace
     { roleId: 'researcher', informalReference: 'Peter', formalReference: 'our research expert' },
     {
       roleId: 'communicator',
@@ -241,17 +207,18 @@ export const DEFAULT_TEAM_COORDINATION: TeamCoordination = {
     { roleId: 'lifetime-advisor', informalReference: 'Nayan', formalReference: 'our lifetime advisor and sage' },
   ],
   taskRouting: [
-    // Jack Bogle - Deep Personal Mentor (EXPANDED)
-    { taskType: 'investing philosophy', targetRole: 'sage-mentor' },
-    { taskType: 'life wisdom', targetRole: 'sage-mentor' },
-    { taskType: 'life advice', targetRole: 'sage-mentor' },
-    { taskType: 'hard decision', targetRole: 'sage-mentor' },
-    { taskType: 'career guidance', targetRole: 'sage-mentor' },
-    { taskType: 'relationship advice', targetRole: 'sage-mentor' },
-    { taskType: 'ethics', targetRole: 'sage-mentor' },
-    { taskType: 'moral dilemma', targetRole: 'sage-mentor' },
-    { taskType: 'calm presence', targetRole: 'sage-mentor' },
-    { taskType: 'perspective', targetRole: 'sage-mentor' },
+    // NOTE: Jack Bogle (sage-mentor) moved to Agent Marketplace. 
+    // These tasks now route to Nayan (lifetime-advisor) for deep wisdom.
+    { taskType: 'investing philosophy', targetRole: 'lifetime-advisor' },
+    { taskType: 'life wisdom', targetRole: 'lifetime-advisor' },
+    { taskType: 'life advice', targetRole: 'lifetime-advisor' },
+    { taskType: 'hard decision', targetRole: 'lifetime-advisor' },
+    { taskType: 'career guidance', targetRole: 'lifetime-advisor' },
+    { taskType: 'relationship advice', targetRole: 'lifetime-advisor' },
+    { taskType: 'ethics', targetRole: 'lifetime-advisor' },
+    { taskType: 'moral dilemma', targetRole: 'lifetime-advisor' },
+    { taskType: 'calm presence', targetRole: 'lifetime-advisor' },
+    { taskType: 'perspective', targetRole: 'lifetime-advisor' },
     // Peter John - Research
     { taskType: 'stock research', targetRole: 'researcher' },
     // Alex - Communications

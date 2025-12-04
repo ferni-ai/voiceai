@@ -62,7 +62,7 @@ export interface HandoffToolSet {
  * Generate a handoff tool definition for an agent
  */
 function generateHandoffTool(agent: Agent, coordinator: Agent): HandoffToolDefinition {
-  // Generate tool name from agent ID (e.g., 'nayan-patel' -> 'handoffToJack')
+  // Generate tool name from agent ID (e.g., 'nayan-patel' -> 'handoffToNayan')
   const firstName = agent.name.split(' ')[0];
   const toolName = `handoffTo${firstName}`;
 

@@ -1,0 +1,28 @@
+{
+  "name": "voiceai-ios",
+  "version": "1.0.0",
+  "description": "Voice AI iOS Application",
+  "private": true,
+  "scripts": {
+    "build:web": "cd ../../frontend-typescript && npm run build",
+    "sync": "npx cap sync ios",
+    "open": "npx cap open ios",
+    "build": "npm run build:web && npm run sync",
+    "run:ios": "npm run build && npx cap run ios",
+    "dev": "npm run build:web && npm run sync && npm run open"
+  },
+  "dependencies": {
+    "@capacitor/app": "^5.0.7",
+    "@capacitor/core": "^5.6.0",
+    "@capacitor/haptics": "^5.0.7",
+    "@capacitor/ios": "^5.6.0",
+    "@capacitor/keyboard": "^5.0.8",
+    "@capacitor/splash-screen": "^5.0.7",
+    "@capacitor/status-bar": "^5.0.7",
+    "@capacitor/screen-orientation": "^5.0.7"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.6.0"
+  }
+}
+

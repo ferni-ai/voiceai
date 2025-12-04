@@ -75,18 +75,19 @@ export function toCanonicalId(agentId: string): AgentId {
     'alex': 'alex-chen',
     'maya': 'maya-santos',
     'jordan': 'jordan-taylor',
-    'jack': 'nayan-patel',
     'peter': 'peter-john',
     'coach': 'ferni',
-    'bogle': 'nayan-patel',
     'john': 'peter-john',
-    // Nayan (Lifetime Advisor)
+    // Nayan Patel (Lifetime Advisor)
     'nayan': 'nayan-patel',
+    'patel': 'nayan-patel',
     'sage': 'nayan-patel',
-    // Joel Dickson (Vanguard Expert)
-    'joel': 'peter-john',
-    'dickson': 'peter-john',
-    'vanguard-expert': 'peter-john',
+    'guru': 'nayan-patel',
+    'mystic': 'nayan-patel',
+    'lifetime-advisor': 'nayan-patel',
+    // NOTE: Jack Bogle is now a Marketplace agent, not core team
+    // If user says "jack" or "bogle", they might mean marketplace Jack Bogle
+    // For now, these are not mapped - use full ID 'jack-bogle' from marketplace
   };
   return mapping[agentId.toLowerCase()] || (agentId as AgentId);
 }

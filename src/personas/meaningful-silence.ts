@@ -180,6 +180,12 @@ const GENTLE_OBSERVATIONS = {
     '<break time="400ms"/>Big decisions need space to breathe. <break time="300ms"/>I\'m here when you\'re ready.',
     '<break time="500ms"/>You know what? <break time="200ms"/>Some of the best plans come after a good pause. <break time="300ms"/>No rush.',
   ],
+  nayan: [
+    '<break time="500ms"/>You see, <break time="200ms"/>the mind needs space to unfold. <break time="300ms"/>No hurry.',
+    '<break time="400ms"/>In silence, we find what noise cannot reveal. <break time="300ms"/>Take your time.',
+    '<break time="500ms"/>The best insights come when we stop seeking them. <break time="300ms"/>Just be.',
+    '<break time="400ms"/>Patience is not waiting. <break time="200ms"/>It is being present. <break time="300ms"/>Like this.',
+  ],
 };
 
 /**

@@ -136,7 +136,7 @@ function getInitials(name: string): string {
  * Generate handoff tool name from agent ID
  */
 function getHandoffToolName(id: string): string {
-  // Convert 'nayan-patel' to 'handoffToJack'
+  // Convert 'nayan-patel' to 'handoffToNayan', 'peter-john' to 'handoffToPeter'
   const parts = id.split('-');
   const firstName = parts[0];
   return `handoffTo${firstName.charAt(0).toUpperCase()}${firstName.slice(1)}`;

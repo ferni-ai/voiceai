@@ -50,7 +50,7 @@ vi.mock('../../../personas/voice-registry.js', () => ({
       'maya-santos': 'Maya Santos',
       'alex-chen': 'Alex Chen',
       'jordan-taylor': 'Jordan Taylor',
-      'nayan-patel': 'Jack Bogle',
+      'nayan-patel': 'Nayan Patel',
       'ferni': 'Ferni',
     };
     return names[id] || id;
