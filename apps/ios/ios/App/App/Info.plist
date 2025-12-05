@@ -45,5 +45,26 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	
+	<!-- Microphone Permission - Required for voice conversations -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Voice AI needs microphone access to have voice conversations with your AI coach.</string>
+	
+	<!-- Camera Permission - For future video features -->
+	<key>NSCameraUsageDescription</key>
+	<string>Voice AI may use the camera for video calls in future updates.</string>
+	
+	<!-- Background Audio - Keep conversations going when app is backgrounded -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	
+	<!-- Privacy - App Transport Security (allow WebRTC connections) -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

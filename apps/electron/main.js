@@ -9,6 +9,30 @@ const { app, BrowserWindow, Menu, Tray, ipcMain, shell, nativeTheme } = require(
 const path = require('path');
 const Store = require('electron-store');
 
+// ============================================================================
+// SENTRY ERROR TRACKING
+// ============================================================================
+const Sentry = require('@sentry/electron/main');
+
+// Initialize Sentry for error tracking (replace DSN with your project's DSN)
+// Get your DSN from: https://sentry.io/settings/projects/YOUR_PROJECT/keys/
+const SENTRY_DSN = process.env.SENTRY_DSN || '';
+
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: app.isPackaged ? 'production' : 'development',
+    release: `voiceai-desktop@${app.getVersion()}`,
+    // Performance monitoring
+    tracesSampleRate: 0.2, // 20% of transactions
+    // Only send errors in production
+    enabled: app.isPackaged,
+  });
+  console.log('✅ Sentry initialized for error tracking');
+} else {
+  console.log('ℹ️ Sentry DSN not configured - error tracking disabled');
+}
+
 // Initialize persistent store
 const store = new Store({
   name: 'voiceai-settings',

@@ -14,7 +14,7 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "${env:EVENT_PLANNER_VOICE_ID|b2d14370-c56b-4bdd-a6a3-71abe1b6e345}",
+    "voice_id": "${env:JORDAN_TAYLOR_VOICE_ID|b2d14370-c56b-4bdd-a6a3-71abe1b6e345}",
     "default_rate": "medium"
   },
 

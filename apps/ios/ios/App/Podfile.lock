@@ -14,6 +14,10 @@ PODS:
     - Capacitor
   - CapacitorStatusBar (5.0.8):
     - Capacitor
+  - Sentry/HybridSDK (8.56.2)
+  - SentryCapacitor (2.4.1):
+    - Capacitor
+    - Sentry/HybridSDK (= 8.56.2)
 
 DEPENDENCIES:
   - "Capacitor (from `../../node_modules/@capacitor/ios`)"
@@ -24,6 +28,11 @@ DEPENDENCIES:
   - "CapacitorScreenOrientation (from `../../node_modules/@capacitor/screen-orientation`)"
   - "CapacitorSplashScreen (from `../../node_modules/@capacitor/splash-screen`)"
   - "CapacitorStatusBar (from `../../node_modules/@capacitor/status-bar`)"
+  - "SentryCapacitor (from `../../node_modules/@sentry/capacitor`)"
+
+SPEC REPOS:
+  trunk:
+    - Sentry
 
 EXTERNAL SOURCES:
   Capacitor:
@@ -42,6 +51,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor/splash-screen"
   CapacitorStatusBar:
     :path: "../../node_modules/@capacitor/status-bar"
+  SentryCapacitor:
+    :path: "../../node_modules/@sentry/capacitor"
 
 SPEC CHECKSUMS:
   Capacitor: 9686e5711b48a1aa84671ede795d0175848abcba
@@ -52,7 +63,9 @@ SPEC CHECKSUMS:
   CapacitorScreenOrientation: 0b02c9ad94d17b65582de52916a18f203e8ed68e
   CapacitorSplashScreen: 0b962a2bee014151569dc59b089ba0e93daeeaf0
   CapacitorStatusBar: 8e0a8f213504695505dc8c4f808dffbe03aa0e0f
+  Sentry: b53951377b78e21a734f5dc8318e333dbfc682d7
+  SentryCapacitor: 5087f8c8080b93732f368c7c54be790fe1dba10c
 
-PODFILE CHECKSUM: dd0884c05b491dedd973850c66d0f00107c91464
+PODFILE CHECKSUM: afbd0038d8ec0fbac9e5be8e06522ae3dee979ee
 
 COCOAPODS: 1.16.2

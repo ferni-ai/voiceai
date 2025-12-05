@@ -14,7 +14,7 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "${env:SPEND_SAVE_VOICE_ID|9329fbdb-e285-4fba-95ec-592e15f14476}",
+    "voice_id": "${env:MAYA_SANTOS_VOICE_ID|9329fbdb-e285-4fba-95ec-592e15f14476}",
     "default_rate": "medium"
   },
 

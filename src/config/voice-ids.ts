@@ -67,14 +67,15 @@ export function getVoiceIdForPersona(personaId: string): string {
   const normalized = personaId.toLowerCase();
 
   // Check environment variable override first
+  // Canonical names (preferred) with fallback to legacy names
   const envOverrides: Record<string, string | undefined> = {
-    ferni: process.env.JACK_B_VOICE_ID,
-    'jack-b': process.env.JACK_B_VOICE_ID,
+    ferni: process.env.FERNI_VOICE_ID || process.env.JACK_B_VOICE_ID,
+    'jack-b': process.env.FERNI_VOICE_ID || process.env.JACK_B_VOICE_ID,
     'peter-john': process.env.PETER_JOHN_VOICE_ID,
-    'alex-chen': process.env.COMM_SPECIALIST_VOICE_ID,
-    'maya-santos': process.env.SPEND_SAVE_VOICE_ID,
-    'jordan-taylor': process.env.EVENT_PLANNER_VOICE_ID,
-    'nayan-patel': process.env.NAYAN_VOICE_ID,
+    'alex-chen': process.env.ALEX_CHEN_VOICE_ID || process.env.COMM_SPECIALIST_VOICE_ID,
+    'maya-santos': process.env.MAYA_SANTOS_VOICE_ID || process.env.SPEND_SAVE_VOICE_ID,
+    'jordan-taylor': process.env.JORDAN_TAYLOR_VOICE_ID || process.env.EVENT_PLANNER_VOICE_ID,
+    'nayan-patel': process.env.NAYAN_PATEL_VOICE_ID || process.env.NAYAN_VOICE_ID,
     'generic-advisor': process.env.GENERIC_ADVISOR_VOICE_ID,
   };
 

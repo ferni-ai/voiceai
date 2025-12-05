@@ -14,7 +14,7 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "${env:JACK_B_VOICE_ID|fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc}",
+    "voice_id": "${env:FERNI_VOICE_ID|fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc}",
     "default_rate": "medium"
   },
 
