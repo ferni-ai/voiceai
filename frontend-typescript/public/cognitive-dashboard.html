@@ -1041,11 +1041,17 @@
   <script>
     // ========================================
     // COGNITIVE DASHBOARD - DATA MANAGEMENT
+    // WebSocket for real-time updates, HTTP fallback
     // ========================================
     
     const API_BASE = 'http://localhost:8080/api/cognitive';
+    const WS_URL = 'ws://localhost:8080/ws/cognitive';
     let isConnected = false;
     let demoMode = false;
+    let ws = null;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const RECONNECT_DELAY = 2000;
     
     // Lucide icon paths for each mode
     const modeIcons = {
@@ -1145,50 +1151,252 @@
       }
     }
     
-    // Fetch data from API
+    // ========================================
+    // WEBSOCKET CONNECTION
+    // ========================================
+    
+    function connectWebSocket() {
+      if (demoMode) return;
+      
+      try {
+        ws = new WebSocket(WS_URL);
+        
+        ws.onopen = () => {
+          isConnected = true;
+          reconnectAttempts = 0;
+          console.log('WebSocket connected');
+          updateConnectionStatus();
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handleWebSocketMessage(data);
+          } catch (err) {
+            console.warn('Invalid WebSocket message:', err);
+          }
+        };
+        
+        ws.onclose = () => {
+          isConnected = false;
+          updateConnectionStatus();
+          
+          // Attempt reconnection
+          if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !demoMode) {
+            reconnectAttempts++;
+            console.log(`WebSocket disconnected. Reconnecting (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+            setTimeout(connectWebSocket, RECONNECT_DELAY);
+          } else if (!demoMode) {
+            console.log('WebSocket max reconnect attempts reached. Falling back to polling.');
+            startPolling();
+          }
+        };
+        
+        ws.onerror = (error) => {
+          console.warn('WebSocket error:', error);
+        };
+        
+      } catch (err) {
+        console.warn('WebSocket connection failed, falling back to polling');
+        startPolling();
+      }
+    }
+    
+    function handleWebSocketMessage(data) {
+      switch (data.type) {
+        case 'initial_state':
+          updateFromState(data.data);
+          break;
+        case 'event':
+          handleCognitiveEvent(data.event);
+          break;
+        case 'history':
+          // Could update history table here
+          break;
+        case 'heartbeat':
+          // Connection alive
+          break;
+        case 'pong':
+          // Response to ping
+          break;
+      }
+    }
+    
+    function handleCognitiveEvent(event) {
+      switch (event.type) {
+        case 'cognitive_mode':
+          updateMode(event.mode, event.reason);
+          break;
+        case 'user_style':
+          updateUserStyle(event.style, event.confidence);
+          break;
+        case 'voice_emotion':
+          updateVoiceEmotion(event.emotion, event.confidence, event.trend);
+          break;
+        case 'confidence':
+          updateConfidence(event.level);
+          break;
+        case 'metrics':
+          updateMetrics(event);
+          break;
+      }
+    }
+    
+    function updateFromState(state) {
+      if (state.cognitiveMode) {
+        updateMode(state.cognitiveMode.mode, state.cognitiveMode.reason);
+      }
+      if (state.userStyle) {
+        updateUserStyle(state.userStyle.style, state.userStyle.confidence);
+      }
+      if (state.voiceEmotion) {
+        updateVoiceEmotion(state.voiceEmotion.emotion, state.voiceEmotion.confidence, state.voiceEmotion.trend);
+      }
+      if (state.confidence) {
+        updateConfidence(state.confidence.level);
+      }
+      if (state.metrics) {
+        updateMetrics(state.metrics);
+      }
+    }
+    
+    function updateMode(mode, reason) {
+      const iconPath = modeIcons[mode] || modeIcons.narrative;
+      document.getElementById('modeIcon').innerHTML = iconPath;
+      document.getElementById('modeName').textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+      document.getElementById('modeDescription').textContent = modeDescriptions[mode] || modeDescriptions.narrative;
+      document.getElementById('modeReason').textContent = reason || 'Adapting to user';
+    }
+    
+    function updateUserStyle(style, confidence) {
+      document.getElementById('userStyle').textContent = style;
+      document.getElementById('styleConfidence').textContent = Math.round(confidence * 100) + '%';
+    }
+    
+    function updateVoiceEmotion(emotion, confidence, trend) {
+      document.getElementById('emotionLabel').textContent = emotion.charAt(0).toUpperCase() + emotion.slice(1);
+      document.getElementById('emotionConfidence').textContent = Math.round(confidence * 100) + '% confidence';
+      
+      const trendIcon = document.getElementById('trendIcon');
+      const trendText = document.getElementById('trendText');
+      trendIcon.innerHTML = trendIcons[trend] || trendIcons.stable;
+      trendText.textContent = trend === 'improving' ? 'Improving' : trend === 'worsening' ? 'Increasing stress' : 'Stable';
+      
+      const trendEl = document.getElementById('emotionTrend');
+      trendEl.className = 'emotion-trend ' + trend;
+    }
+    
+    function updateConfidence(level) {
+      const confidence = Math.round(level * 100);
+      document.getElementById('confidenceValue').textContent = confidence + '%';
+      document.getElementById('confidenceBar').style.width = confidence + '%';
+    }
+    
+    function updateMetrics(metrics) {
+      const avg = metrics.avgTotalOverhead || 12;
+      const p95 = metrics.p95TotalOverhead || 28;
+      const under50 = metrics.under50msPercentage || 96;
+      
+      document.getElementById('avgOverhead').textContent = Math.round(avg) + 'ms';
+      document.getElementById('p95Overhead').textContent = Math.round(p95) + 'ms';
+      document.getElementById('under50').textContent = Math.round(under50) + '%';
+      
+      document.getElementById('avgOverheadBar').style.width = Math.min(avg / 50 * 100, 100) + '%';
+      document.getElementById('p95OverheadBar').style.width = Math.min(p95 / 100 * 100, 100) + '%';
+      document.getElementById('under50Bar').style.width = under50 + '%';
+      
+      document.getElementById('avgOverheadBar').className = 'metric-bar ' + (avg < 30 ? 'success' : avg < 50 ? 'warning' : 'error');
+      document.getElementById('p95OverheadBar').className = 'metric-bar ' + (p95 < 60 ? 'success' : p95 < 100 ? 'warning' : 'error');
+      document.getElementById('under50Bar').className = 'metric-bar ' + (under50 > 95 ? 'success' : under50 > 80 ? 'warning' : 'error');
+    }
+    
+    function updateConnectionStatus() {
+      const statusIndicator = document.getElementById('statusIndicator');
+      const statusText = document.getElementById('statusText');
+      if (isConnected) {
+        statusIndicator.classList.add('connected');
+        statusText.textContent = 'Live (WebSocket)';
+      } else if (demoMode) {
+        statusIndicator.classList.remove('connected');
+        statusText.textContent = 'Demo Mode';
+      } else {
+        statusIndicator.classList.remove('connected');
+        statusText.textContent = 'Disconnected';
+      }
+    }
+    
+    // ========================================
+    // POLLING FALLBACK
+    // ========================================
+    
+    let pollingInterval = null;
+    
+    function startPolling() {
+      if (pollingInterval) return;
+      pollingInterval = setInterval(fetchData, 2000);
+    }
+    
     async function fetchData() {
       try {
         const response = await fetch(API_BASE + '/state');
         if (!response.ok) throw new Error('API unavailable');
-        const data = await response.json();
+        const result = await response.json();
         isConnected = true;
-        updateUI(data);
+        if (result.data) {
+          updateFromState(result.data);
+        }
+        updateConnectionStatus();
+        document.getElementById('statusText').textContent = 'Live (Polling)';
       } catch (error) {
         isConnected = false;
+        updateConnectionStatus();
         if (!demoMode) {
           console.log('Cognitive API not available:', error.message);
         }
       }
     }
     
-    // Demo mode with random data
+    // ========================================
+    // DEMO MODE
+    // ========================================
+    
     function runDemoMode() {
       demoMode = true;
+      if (ws) {
+        ws.close();
+      }
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+      
       const modes = Object.keys(modeIcons);
       const styles = ['Analytical', 'Emotional', 'Practical', 'Narrative', 'Systematic'];
       const emotions = ['neutral', 'happy', 'calm', 'thoughtful', 'excited'];
       
+      updateConnectionStatus();
+      
       setInterval(() => {
-        updateUI({
-          currentMode: modes[Math.floor(Math.random() * modes.length)],
-          modeReason: 'Demo: Adapting',
-          userStyle: styles[Math.floor(Math.random() * styles.length)],
-          styleConfidence: 0.5 + Math.random() * 0.5,
-          styleMatch: 'Demo: Style detected',
-          voiceEmotion: emotions[Math.floor(Math.random() * emotions.length)],
-          emotionConfidence: 0.6 + Math.random() * 0.4,
-          emotionTrend: ['stable', 'improving', 'worsening'][Math.floor(Math.random() * 3)],
-          confidence: 0.6 + Math.random() * 0.35,
-          metrics: {
-            avgTotalOverhead: 8 + Math.random() * 20,
-            p95TotalOverhead: 20 + Math.random() * 40,
-            under50msPercentage: 85 + Math.random() * 15,
-          },
+        updateMode(modes[Math.floor(Math.random() * modes.length)], 'Demo: Adapting');
+        updateUserStyle(styles[Math.floor(Math.random() * styles.length)], 0.5 + Math.random() * 0.5);
+        updateVoiceEmotion(
+          emotions[Math.floor(Math.random() * emotions.length)],
+          0.6 + Math.random() * 0.4,
+          ['stable', 'improving', 'worsening'][Math.floor(Math.random() * 3)]
+        );
+        updateConfidence(0.6 + Math.random() * 0.35);
+        updateMetrics({
+          avgTotalOverhead: 8 + Math.random() * 20,
+          p95TotalOverhead: 20 + Math.random() * 40,
+          under50msPercentage: 85 + Math.random() * 15,
         });
       }, 2000);
     }
     
-    // Keyboard shortcuts
+    // ========================================
+    // KEYBOARD SHORTCUTS
+    // ========================================
+    
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.key === 'd') {
         e.preventDefault();
@@ -1196,13 +1404,19 @@
       }
       if (e.ctrlKey && e.key === 'r') {
         e.preventDefault();
-        fetchData();
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        } else {
+          fetchData();
+        }
       }
     });
     
-    // Initialize
-    fetchData();
-    setInterval(fetchData, 2000);
+    // ========================================
+    // INITIALIZE
+    // ========================================
+    
+    connectWebSocket();
   </script>
 </body>
 </html>

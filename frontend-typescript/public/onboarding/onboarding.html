@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="midnight">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Ferni | Your AI Life Coach</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Design System -->
+  <link rel="stylesheet" href="../design-system/tokens.css">
+  
+  <style>
+    /* ================================================================
+       BASE STYLES
+       ================================================================ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-background);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--ma-breath);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 80% 50% at 20% 40%, var(--persona-glow) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 80% 60%, var(--color-accent-warm) 0%, transparent 40%);
+      opacity: 0.15;
+      animation: breathe 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.15; }
+      50% { transform: scale(1.1); opacity: 0.2; }
+    }
+
+    /* ================================================================
+       ONBOARDING CONTAINER
+       ================================================================ */
+    .onboarding {
+      max-width: 600px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ================================================================
+       STEP CARDS
+       ================================================================ */
+    .step {
+      background: var(--glass-background);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-xl);
+      padding: var(--ma-room);
+      display: none;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: 
+        opacity var(--duration-slow) var(--ease-gentle),
+        transform var(--duration-slow) var(--ease-spring);
+    }
+
+    .step.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .step.exiting {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    /* ================================================================
+       STEP CONTENT
+       ================================================================ */
+    .step-header {
+      text-align: center;
+      margin-bottom: var(--ma-pause);
+    }
+
+    .step-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto var(--ma-breath);
+      background: linear-gradient(135deg, var(--persona-primary), var(--persona-secondary));
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .step-icon svg {
+      width: 40px;
+      height: 40px;
+      stroke: var(--color-text-inverse);
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    .step-title {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: 600;
+      margin-bottom: var(--ma-breath);
+      color: var(--color-text-primary);
+    }
+
+    .step-description {
+      font-size: var(--text-base);
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* ================================================================
+       FORM ELEMENTS
+       ================================================================ */
+    .form-group {
+      margin-top: var(--ma-pause);
+    }
+
+    .form-label {
+      display: block;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--color-text-muted);
+      margin-bottom: var(--ma-whisper);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-background-subtle);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      color: var(--color-text-primary);
+      transition: 
+        border-color var(--duration-fast) var(--ease-standard),
+        box-shadow var(--duration-fast) var(--ease-standard);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--persona-primary);
+      box-shadow: 0 0 0 3px var(--persona-glow);
+    }
+
+    .form-input::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    /* ================================================================
+       OPTIONS GRID
+       ================================================================ */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--ma-breath);
+      margin-top: var(--ma-pause);
+    }
+
+    .option-card {
+      background: var(--color-background-subtle);
+      border: 2px solid transparent;
+      border-radius: var(--radius-lg);
+      padding: var(--ma-breath);
+      cursor: pointer;
+      text-align: center;
+      transition: 
+        border-color var(--duration-fast) var(--ease-standard),
+        transform var(--duration-fast) var(--ease-spring),
+        box-shadow var(--duration-fast) var(--ease-standard);
+    }
+
+    .option-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .option-card.selected {
+      border-color: var(--persona-primary);
+      background: var(--color-background-elevated);
+    }
+
+    .option-card input {
+      display: none;
+    }
+
+    .option-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto var(--ma-whisper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .option-icon svg {
+      width: 32px;
+      height: 32px;
+      stroke: var(--color-text-secondary);
+      stroke-width: 1.5;
+      fill: none;
+      transition: stroke var(--duration-fast) var(--ease-standard);
+    }
+
+    .option-card.selected .option-icon svg {
+      stroke: var(--persona-primary);
+    }
+
+    .option-label {
+      font-weight: 500;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .option-description {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* ================================================================
+       PROGRESS & NAVIGATION
+       ================================================================ */
+    .progress-bar {
+      display: flex;
+      gap: var(--space-2);
+      justify-content: center;
+      margin-bottom: var(--ma-pause);
+    }
+
+    .progress-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: var(--color-background-subtle);
+      transition: 
+        background var(--duration-normal) var(--ease-standard),
+        transform var(--duration-normal) var(--ease-spring);
+    }
+
+    .progress-dot.active {
+      background: var(--persona-primary);
+      transform: scale(1.2);
+    }
+
+    .progress-dot.completed {
+      background: var(--color-success);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: var(--ma-breath);
+      margin-top: var(--ma-pause);
+    }
+
+    .btn {
+      flex: 1;
+      padding: var(--space-3) var(--space-6);
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      font-weight: 500;
+      cursor: pointer;
+      transition: 
+        background var(--duration-fast) var(--ease-standard),
+        transform var(--duration-fast) var(--ease-spring),
+        box-shadow var(--duration-fast) var(--ease-standard);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: var(--color-background-subtle);
+      color: var(--color-text-secondary);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--persona-primary), var(--persona-secondary));
+      color: var(--color-text-inverse);
+    }
+
+    .btn-primary:hover {
+      box-shadow: var(--shadow-glow);
+    }
+
+    /* ================================================================
+       PERSONA CARDS
+       ================================================================ */
+    .persona-grid {
+      display: grid;
+      gap: var(--ma-breath);
+      margin-top: var(--ma-pause);
+    }
+
+    .persona-card {
+      background: var(--color-background-subtle);
+      border: 2px solid transparent;
+      border-radius: var(--radius-lg);
+      padding: var(--ma-breath);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: var(--ma-breath);
+      transition: 
+        border-color var(--duration-fast) var(--ease-standard),
+        transform var(--duration-fast) var(--ease-spring);
+    }
+
+    .persona-card:hover {
+      transform: translateX(4px);
+    }
+
+    .persona-card.selected {
+      border-color: var(--persona-primary);
+    }
+
+    .persona-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--persona-primary), var(--persona-secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .persona-avatar svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--color-text-inverse);
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    .persona-info {
+      flex: 1;
+    }
+
+    .persona-name {
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .persona-specialty {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    /* ================================================================
+       COMPLETION ANIMATION
+       ================================================================ */
+    .completion-animation {
+      text-align: center;
+      padding: var(--ma-room);
+    }
+
+    .checkmark-circle {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto var(--ma-breath);
+      position: relative;
+    }
+
+    .checkmark-circle svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .checkmark-circle circle {
+      fill: none;
+      stroke: var(--color-success);
+      stroke-width: 3;
+      stroke-dasharray: 283;
+      stroke-dashoffset: 283;
+      animation: circle-draw 0.6s ease-out forwards;
+    }
+
+    .checkmark-circle polyline {
+      fill: none;
+      stroke: var(--color-success);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+      animation: check-draw 0.3s ease-out 0.5s forwards;
+    }
+
+    @keyframes circle-draw {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes check-draw {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* ================================================================
+       RESPONSIVE
+       ================================================================ */
+    @media (max-width: 480px) {
+      .options-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        padding: var(--ma-pause);
+      }
+
+      .step-title {
+        font-size: var(--text-xl);
+      }
+    }
+
+    /* ================================================================
+       REDUCED MOTION
+       ================================================================ */
+    @media (prefers-reduced-motion: reduce) {
+      .step-icon,
+      body::before {
+        animation: none;
+      }
+
+      .step,
+      .btn,
+      .option-card,
+      .persona-card {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="onboarding">
+    <!-- Progress Bar -->
+    <div class="progress-bar" role="progressbar" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1">
+      <div class="progress-dot active" data-step="1"></div>
+      <div class="progress-dot" data-step="2"></div>
+      <div class="progress-dot" data-step="3"></div>
+      <div class="progress-dot" data-step="4"></div>
+      <div class="progress-dot" data-step="5"></div>
+    </div>
+
+    <!-- Step 1: Welcome -->
+    <div class="step active" data-step="1">
+      <div class="step-header">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <h1 class="step-title">Welcome to Ferni</h1>
+        <p class="step-description">
+          Your AI life coach, always here to listen, guide, and grow with you. 
+          Let's personalize your experience.
+        </p>
+      </div>
+      <div class="nav-buttons">
+        <button class="btn btn-primary" onclick="nextStep()">Get Started</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Your Name -->
+    <div class="step" data-step="2">
+      <div class="step-header">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <h1 class="step-title">What should I call you?</h1>
+        <p class="step-description">
+          This helps me connect with you more personally.
+        </p>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="userName">Your name</label>
+        <input 
+          type="text" 
+          id="userName" 
+          class="form-input" 
+          placeholder="Enter your name"
+          autocomplete="given-name"
+        >
+      </div>
+      <div class="nav-buttons">
+        <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+        <button class="btn btn-primary" onclick="nextStep()">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 3: What brings you here -->
+    <div class="step" data-step="3">
+      <div class="step-header">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <h1 class="step-title">What brings you here?</h1>
+        <p class="step-description">
+          Choose what resonates most. You can explore everything later.
+        </p>
+      </div>
+      <div class="options-grid" role="radiogroup" aria-label="Primary interest">
+        <label class="option-card">
+          <input type="radio" name="interest" value="growth">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 20V10M18 20V4M6 20v-4"/>
+            </svg>
+          </div>
+          <div class="option-label">Personal Growth</div>
+          <div class="option-description">Goals, habits, self-improvement</div>
+        </label>
+        <label class="option-card">
+          <input type="radio" name="interest" value="wellbeing">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <div class="option-label">Emotional Wellbeing</div>
+          <div class="option-description">Stress, anxiety, mindfulness</div>
+        </label>
+        <label class="option-card">
+          <input type="radio" name="interest" value="career">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+          </div>
+          <div class="option-label">Career & Purpose</div>
+          <div class="option-description">Direction, decisions, meaning</div>
+        </label>
+        <label class="option-card">
+          <input type="radio" name="interest" value="relationships">
+          <div class="option-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="option-label">Relationships</div>
+          <div class="option-description">Connection, communication, boundaries</div>
+        </label>
+      </div>
+      <div class="nav-buttons">
+        <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+        <button class="btn btn-primary" onclick="nextStep()">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Choose your guide -->
+    <div class="step" data-step="4">
+      <div class="step-header">
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4M12 8h.01"/>
+          </svg>
+        </div>
+        <h1 class="step-title">Choose your guide</h1>
+        <p class="step-description">
+          Each has a unique approach. You can switch anytime.
+        </p>
+      </div>
+      <div class="persona-grid">
+        <label class="persona-card selected">
+          <input type="radio" name="persona" value="ferni" checked>
+          <div class="persona-avatar">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>
+            </svg>
+          </div>
+          <div class="persona-info">
+            <div class="persona-name">Ferni</div>
+            <div class="persona-specialty">Warm, intuitive life coach for any topic</div>
+          </div>
+        </label>
+        <label class="persona-card">
+          <input type="radio" name="persona" value="maya-santos">
+          <div class="persona-avatar">
+            <svg viewBox="0 0 24 24">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <div class="persona-info">
+            <div class="persona-name">Maya Santos</div>
+            <div class="persona-specialty">Empathetic wellness expert, habit coach</div>
+          </div>
+        </label>
+        <label class="persona-card">
+          <input type="radio" name="persona" value="alex-chen">
+          <div class="persona-avatar">
+            <svg viewBox="0 0 24 24">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+          </div>
+          <div class="persona-info">
+            <div class="persona-name">Alex Chen</div>
+            <div class="persona-specialty">Systematic productivity strategist</div>
+          </div>
+        </label>
+      </div>
+      <div class="nav-buttons">
+        <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+        <button class="btn btn-primary" onclick="nextStep()">Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Complete -->
+    <div class="step" data-step="5">
+      <div class="step-header">
+        <div class="completion-animation">
+          <div class="checkmark-circle">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45"/>
+              <polyline points="30 50 45 65 70 35"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="step-title">You're all set!</h1>
+        <p class="step-description">
+          Ready to start your journey? Tap below to begin your first conversation.
+        </p>
+      </div>
+      <div class="nav-buttons">
+        <button class="btn btn-primary" onclick="completeOnboarding()">Start Talking</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let currentStep = 1;
+    const totalSteps = 5;
+    const userData = {
+      name: '',
+      interest: '',
+      persona: 'ferni',
+    };
+
+    // DOM Elements
+    const steps = document.querySelectorAll('.step');
+    const progressDots = document.querySelectorAll('.progress-dot');
+
+    // Option card selection
+    document.querySelectorAll('.option-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const group = card.closest('.options-grid');
+        group.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        card.querySelector('input').checked = true;
+      });
+    });
+
+    // Persona card selection
+    document.querySelectorAll('.persona-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        card.querySelector('input').checked = true;
+      });
+    });
+
+    // Navigation
+    function nextStep() {
+      if (currentStep >= totalSteps) return;
+      
+      // Save data from current step
+      saveStepData(currentStep);
+      
+      // Animate out
+      const currentStepEl = document.querySelector(`.step[data-step="${currentStep}"]`);
+      currentStepEl.classList.add('exiting');
+      
+      setTimeout(() => {
+        currentStepEl.classList.remove('active', 'exiting');
+        
+        currentStep++;
+        
+        // Update progress
+        updateProgress();
+        
+        // Show next step
+        const nextStepEl = document.querySelector(`.step[data-step="${currentStep}"]`);
+        nextStepEl.classList.add('active');
+        
+        // Focus first input if exists
+        const firstInput = nextStepEl.querySelector('input:not([type="radio"])');
+        if (firstInput) {
+          setTimeout(() => firstInput.focus(), 300);
+        }
+      }, 200);
+    }
+
+    function prevStep() {
+      if (currentStep <= 1) return;
+      
+      const currentStepEl = document.querySelector(`.step[data-step="${currentStep}"]`);
+      currentStepEl.classList.remove('active');
+      
+      currentStep--;
+      
+      updateProgress();
+      
+      const prevStepEl = document.querySelector(`.step[data-step="${currentStep}"]`);
+      prevStepEl.classList.add('active');
+    }
+
+    function updateProgress() {
+      progressDots.forEach((dot, i) => {
+        const stepNum = i + 1;
+        dot.classList.toggle('active', stepNum === currentStep);
+        dot.classList.toggle('completed', stepNum < currentStep);
+      });
+      
+      // Update ARIA
+      document.querySelector('.progress-bar').setAttribute('aria-valuenow', currentStep);
+    }
+
+    function saveStepData(step) {
+      switch (step) {
+        case 2:
+          userData.name = document.getElementById('userName').value.trim();
+          break;
+        case 3:
+          const interest = document.querySelector('input[name="interest"]:checked');
+          if (interest) userData.interest = interest.value;
+          break;
+        case 4:
+          const persona = document.querySelector('input[name="persona"]:checked');
+          if (persona) userData.persona = persona.value;
+          break;
+      }
+    }
+
+    function completeOnboarding() {
+      // Save all data
+      localStorage.setItem('ferni_user_name', userData.name);
+      localStorage.setItem('ferni_interest', userData.interest);
+      localStorage.setItem('ferni_persona', userData.persona);
+      localStorage.setItem('ferni_onboarding_complete', 'true');
+      
+      // Redirect to main app
+      window.location.href = `/?persona=${userData.persona}`;
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        const activeStep = document.querySelector('.step.active');
+        const primaryBtn = activeStep.querySelector('.btn-primary');
+        if (primaryBtn && document.activeElement.tagName !== 'BUTTON') {
+          primaryBtn.click();
+        }
+      }
+    });
+
+    // Check if already onboarded
+    if (localStorage.getItem('ferni_onboarding_complete')) {
+      // Skip to app
+      // window.location.href = '/';
+    }
+  </script>
+</body>
+</html>
+

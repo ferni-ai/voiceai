@@ -15,7 +15,7 @@
  * - GET /api/metrics/sessions - Active sessions only
  */
 
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'node:http';
 
 // Debug flag for startup logging
 const DEBUG_STARTUP = process.env['DEBUG_AGENT'] === 'true' || process.env['NODE_ENV'] !== 'production';
@@ -23,6 +23,7 @@ const DEBUG_STARTUP = process.env['DEBUG_AGENT'] === 'true' || process.env['NODE
 // Lazy imports to avoid circular dependencies
 let cognitiveBroadcast: typeof import('../../services/cognitive-broadcast.js').cognitiveBroadcast | null = null;
 let persistenceMetrics: typeof import('../../services/persistence-metrics.js').persistenceMetrics | null = null;
+let cognitiveWebSocket: typeof import('../../services/cognitive-websocket.js') | null = null;
 
 async function getCognitiveBroadcast() {
   if (!cognitiveBroadcast) {
@@ -46,6 +47,21 @@ async function getPersistenceMetrics() {
     }
   }
   return persistenceMetrics;
+}
+
+async function initWebSocketServer(httpServer: Server) {
+  if (!cognitiveWebSocket) {
+    try {
+      const module = await import('../../services/cognitive-websocket.js');
+      cognitiveWebSocket = module;
+      module.initCognitiveWebSocket(httpServer);
+      if (DEBUG_STARTUP) {
+        console.log('[health-server] Cognitive WebSocket server initialized');
+      }
+    } catch (err) {
+      console.warn('[health-server] Could not initialize WebSocket server:', err);
+    }
+  }
 }
 
 /**
@@ -202,6 +218,9 @@ export function startHealthCheckServer(serviceName: string = 'voice-agent'): voi
     // Use console here since diag may not be imported yet
     if (DEBUG_STARTUP)
       console.log(`[${serviceName}] Health check server listening on port ${port}`);
+
+    // Initialize WebSocket server for real-time cognitive updates
+    initWebSocketServer(server);
   });
 
   server.on('error', (err: Error) => {

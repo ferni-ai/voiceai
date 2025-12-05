@@ -89,6 +89,28 @@ export {
 } from './persistence-metrics.js';
 
 // ============================================================================
+// ERROR TRACKING
+// ============================================================================
+
+export {
+  errorTracking,
+  withErrorTracking,
+  trackVoiceSession,
+  trackHandoff,
+  trackApiCall,
+} from './error-tracking.js';
+
+// ============================================================================
+// PERFORMANCE PROFILING
+// ============================================================================
+
+export {
+  performanceProfiler,
+  withTiming,
+  Timed,
+} from './performance-profiler.js';
+
+// ============================================================================
 // SESSION MANAGEMENT
 // ============================================================================
 
