@@ -2356,3 +2356,90 @@
   .toast-loading .toast-icon { animation: none; }
   .toast-container:hover .toast { transition: none; }
 }
+
+/* ========================================
+   ICONOGRAPHY SYSTEM
+   Per FERNI-BRAND-GUIDELINES.md Section 7
+   ======================================== */
+
+/*
+ * Icon Style Guidelines:
+ * - Style: Outlined (stroke), NOT filled
+ * - Stroke weight: 1.5px - 2px
+ * - Corner radius: Rounded (2px)
+ * - Size scale: 16px, 20px (base), 24px, 32px
+ * - Icon set: Lucide Icons (https://lucide.dev) or custom matching style
+ *
+ * Usage:
+ * <svg class="icon" viewBox="0 0 24 24">
+ *   <path d="..."/>
+ * </svg>
+ */
+
+:root {
+  /* Icon sizing */
+  --icon-size-sm: 16px;
+  --icon-size-base: 20px;
+  --icon-size-md: 24px;
+  --icon-size-lg: 32px;
+  
+  /* Icon stroke */
+  --icon-stroke-weight: 1.75;
+  --icon-stroke-linecap: round;
+  --icon-stroke-linejoin: round;
+}
+
+/* Base icon styles */
+.icon {
+  width: var(--icon-size-base);
+  height: var(--icon-size-base);
+  stroke: currentColor;
+  stroke-width: var(--icon-stroke-weight);
+  stroke-linecap: var(--icon-stroke-linecap);
+  stroke-linejoin: var(--icon-stroke-linejoin);
+  fill: none;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Icon size variants */
+.icon-sm {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.icon-md {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.icon-lg {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+/* Icon color variants - per brand guidelines */
+.icon-default {
+  color: var(--color-text-secondary); /* #5C544A in zen */
+}
+
+.icon-muted {
+  color: var(--color-text-dimmed); /* #A89D90 */
+}
+
+.icon-active {
+  color: var(--color-accent-primary); /* Forest Green #3D5A45 in zen */
+}
+
+/* Semantic icon colors */
+.icon-success { color: var(--color-semantic-success); }
+.icon-error { color: var(--color-semantic-error); }
+.icon-warning { color: var(--color-semantic-warning); }
+.icon-info { color: var(--color-semantic-info); }
+
+/* On dark backgrounds */
+[data-theme="midnight"] .icon-on-dark,
+.icon-inverse {
+  color: var(--color-text-primary); /* Paper Cream #F5F1E8 */
+}

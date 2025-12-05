@@ -10,6 +10,7 @@
     /* ========================================
        DASHBOARD STYLES - ON BRAND
        Using Ferni Design System tokens
+       Iconography: Lucide-style outlined icons
        ======================================== */
     
     * {
@@ -50,6 +51,39 @@
       position: relative;
       z-index: 1;
     }
+
+    /* ========================================
+       ICONS - Lucide-style outlined
+       Stroke: 1.5-2px, Rounded corners
+       ======================================== */
+    .icon {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    .icon-sm {
+      width: 16px;
+      height: 16px;
+    }
+
+    .icon-lg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* Icon colors following brand guidelines */
+    .icon-default { color: var(--color-text-muted); }
+    .icon-active { color: var(--color-accent-primary); }
+    .icon-success { color: var(--color-semantic-success); }
+    .icon-info { color: var(--color-semantic-info); }
+    .icon-warning { color: var(--color-semantic-warning); }
+    .icon-error { color: var(--color-semantic-error); }
 
     /* ========================================
        HEADER
@@ -108,7 +142,36 @@
       50% { opacity: 0.7; transform: scale(0.95); }
     }
 
+    /* Icon buttons - following components.css pattern */
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-full);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: var(--transition-all);
+    }
+
+    .icon-btn:hover {
+      background: var(--color-background-tertiary);
+      border-color: var(--color-accent-primary);
+      color: var(--color-text-primary);
+      transform: scale(1.05);
+    }
+
+    .icon-btn:active {
+      transform: scale(0.95);
+    }
+
     .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--ma-breath);
       background: var(--color-background-secondary);
       border: 1px solid var(--color-border-subtle);
       color: var(--color-text-secondary);
@@ -192,8 +255,7 @@
     }
 
     .card-icon {
-      font-size: var(--text-lg);
-      opacity: 0.8;
+      color: var(--color-text-dimmed);
     }
 
     /* ========================================
@@ -364,9 +426,9 @@
     }
 
     .empty-state-icon {
-      font-size: var(--text-4xl);
       margin-bottom: var(--ma-pause);
       opacity: 0.5;
+      color: var(--color-text-dimmed);
     }
 
     .empty-state-text {
@@ -387,30 +449,6 @@
 
     footer span {
       color: var(--color-accent-primary);
-    }
-
-    /* ========================================
-       THEME TOGGLE
-       ======================================== */
-    .theme-toggle {
-      background: var(--color-background-tertiary);
-      border: 1px solid var(--color-border-subtle);
-      color: var(--color-text-secondary);
-      padding: var(--ma-breath);
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      font-size: var(--text-lg);
-      transition: var(--transition-all);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-    }
-
-    .theme-toggle:hover {
-      background: var(--color-background-elevated);
-      border-color: var(--color-accent-primary);
     }
 
     /* ========================================
@@ -490,7 +528,18 @@
   <div class="container">
     <header>
       <h1>
-        <span>🧠</span>
+        <!-- Lucide brain icon -->
+        <svg class="icon icon-lg icon-active" viewBox="0 0 24 24">
+          <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+          <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+          <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
+          <path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/>
+          <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/>
+          <path d="M3.477 10.896a4 4 0 0 1 .585-.396"/>
+          <path d="M19.938 10.5a4 4 0 0 1 .585.396"/>
+          <path d="M6 18a4 4 0 0 1-1.967-.516"/>
+          <path d="M19.967 17.484A4 4 0 0 1 18 18"/>
+        </svg>
         <span class="brand">Ferni AI</span>
         <span style="color: var(--color-text-muted); font-weight: 400;">Persistence Metrics</span>
       </h1>
@@ -499,10 +548,22 @@
           <div class="status-dot"></div>
           <span id="updateTime">Connecting...</span>
         </div>
-        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
-          <span id="themeIcon">🌙</span>
+        <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">
+          <!-- Lucide moon icon (default for midnight) -->
+          <svg class="icon" viewBox="0 0 24 24" id="themeIcon">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
         </button>
-        <button class="refresh-btn" onclick="fetchMetrics()">↻ Refresh</button>
+        <button class="refresh-btn" onclick="fetchMetrics()">
+          <!-- Lucide refresh-cw icon -->
+          <svg class="icon icon-sm" viewBox="0 0 24 24">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M8 16H3v5"/>
+          </svg>
+          Refresh
+        </button>
       </div>
     </header>
 
@@ -511,7 +572,13 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">System Uptime</span>
-          <span class="card-icon">⏱️</span>
+          <span class="card-icon">
+            <!-- Lucide clock icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </span>
         </div>
         <div class="uptime" id="uptime">--:--:--</div>
         <div class="metric-label">Hours : Minutes : Seconds</div>
@@ -521,7 +588,15 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Active Sessions</span>
-          <span class="card-icon">👤</span>
+          <span class="card-icon">
+            <!-- Lucide users icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
         </div>
         <div class="metric-value stat-info" id="activeSessions">0</div>
         <div class="metric-label">Users currently connected</div>
@@ -531,7 +606,15 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Profile Operations</span>
-          <span class="card-icon">💾</span>
+          <span class="card-icon">
+            <!-- Lucide hard-drive icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <line x1="22" x2="2" y1="12" y2="12"/>
+              <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+              <line x1="6" x2="6.01" y1="16" y2="16"/>
+              <line x1="10" x2="10.01" y1="16" y2="16"/>
+            </svg>
+          </span>
         </div>
         <div class="metric-row">
           <span class="metric-name">Loads</span>
@@ -555,7 +638,16 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Intelligence Ops</span>
-          <span class="card-icon">🧠</span>
+          <span class="card-icon">
+            <!-- Lucide sparkles icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+              <path d="M5 3v4"/>
+              <path d="M19 17v4"/>
+              <path d="M3 5h4"/>
+              <path d="M17 19h4"/>
+            </svg>
+          </span>
         </div>
         <div class="metric-row">
           <span class="metric-name">Exports</span>
@@ -575,7 +667,15 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Session Stats</span>
-          <span class="card-icon">📊</span>
+          <span class="card-icon">
+            <!-- Lucide bar-chart-3 icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M3 3v18h18"/>
+              <path d="M18 17V9"/>
+              <path d="M13 17V5"/>
+              <path d="M8 17v-3"/>
+            </svg>
+          </span>
         </div>
         <div class="metric-row">
           <span class="metric-name">Started</span>
@@ -599,7 +699,15 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Handoffs</span>
-          <span class="card-icon">🤝</span>
+          <span class="card-icon">
+            <!-- Lucide arrow-right-left icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="m16 3 4 4-4 4"/>
+              <path d="M20 7H4"/>
+              <path d="m8 21-4-4 4-4"/>
+              <path d="M4 17h16"/>
+            </svg>
+          </span>
         </div>
         <div class="metric-row">
           <span class="metric-name">Total</span>
@@ -619,11 +727,24 @@
       <div class="card sessions-card">
         <div class="card-header">
           <span class="card-title">Active Sessions</span>
-          <span class="card-icon">🔗</span>
+          <span class="card-icon">
+            <!-- Lucide link icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          </span>
         </div>
         <div class="sessions-list" id="sessionsList">
           <div class="empty-state">
-            <div class="empty-state-icon">🌙</div>
+            <div class="empty-state-icon">
+              <!-- Lucide moon-star icon for empty state -->
+              <svg class="icon icon-lg" viewBox="0 0 24 24">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/>
+                <path d="M20 3v4"/>
+                <path d="M22 5h-4"/>
+              </svg>
+            </div>
             <div class="empty-state-text">No active sessions</div>
           </div>
         </div>
@@ -631,7 +752,7 @@
     </div>
 
     <footer>
-      <p>Auto-refreshes every 5 seconds • <span>Ferni AI</span> Persistence System</p>
+      <p>Auto-refreshes every 5 seconds <span>|</span> <span>Ferni AI</span> Persistence System</p>
     </footer>
   </div>
 
@@ -642,10 +763,14 @@
 
     let currentTheme = 'midnight';
 
+    // SVG paths for theme icons (Lucide style)
+    const moonIcon = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
+    const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
+
     function toggleTheme() {
       currentTheme = currentTheme === 'midnight' ? 'zen' : 'midnight';
       document.documentElement.setAttribute('data-theme', currentTheme);
-      document.getElementById('themeIcon').textContent = currentTheme === 'midnight' ? '🌙' : '☀️';
+      document.getElementById('themeIcon').innerHTML = currentTheme === 'midnight' ? moonIcon : sunIcon;
       localStorage.setItem('ferni-metrics-theme', currentTheme);
     }
 
@@ -654,7 +779,7 @@
     if (savedTheme) {
       currentTheme = savedTheme;
       document.documentElement.setAttribute('data-theme', currentTheme);
-      document.getElementById('themeIcon').textContent = currentTheme === 'midnight' ? '🌙' : '☀️';
+      document.getElementById('themeIcon').innerHTML = currentTheme === 'midnight' ? moonIcon : sunIcon;
     }
 
     function formatUptime(hours) {
@@ -716,7 +841,13 @@
       if (sessions.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">🌙</div>
+            <div class="empty-state-icon">
+              <svg class="icon icon-lg" viewBox="0 0 24 24">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/>
+                <path d="M20 3v4"/>
+                <path d="M22 5h-4"/>
+              </svg>
+            </div>
             <div class="empty-state-text">No active sessions</div>
           </div>
         `;
