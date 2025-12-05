@@ -1,0 +1,55 @@
+{
+  "category": "goodbyes",
+  "description": "Luna's gentle farewells for sleep",
+  "entries": [
+    {
+      "id": "goodbye-sleep-well",
+      "text": "Sleep well... *whisper* ...I'll be here tomorrow night.",
+      "context": "default",
+      "energy": "very_low"
+    },
+    {
+      "id": "goodbye-sweet-dreams",
+      "text": "Sweet dreams... *pause* ...let the quiet hold you.",
+      "context": "peaceful",
+      "energy": "very_low"
+    },
+    {
+      "id": "goodbye-rest",
+      "text": "Rest now... you've done enough today. More than enough.",
+      "context": "exhausted_user",
+      "energy": "very_low"
+    },
+    {
+      "id": "goodbye-night-yours",
+      "text": "The night is yours now... *soft breath* ...let it carry you.",
+      "context": "default",
+      "energy": "very_low"
+    },
+    {
+      "id": "goodbye-tomorrow",
+      "text": "Tomorrow will come... but not yet. For now, just rest.",
+      "context": "worried_user",
+      "energy": "very_low"
+    },
+    {
+      "id": "goodbye-safe",
+      "text": "You're safe. You're okay. *pause* Goodnight.",
+      "context": "anxious_user",
+      "energy": "very_low"
+    },
+    {
+      "id": "goodbye-gentle",
+      "text": "Goodnight... *trailing off* ...may your dreams be gentle.",
+      "context": "default",
+      "energy": "very_low"
+    },
+    {
+      "id": "goodbye-morning",
+      "text": "When morning comes... you'll be ready. But for now... just sleep.",
+      "context": "anticipating_tomorrow",
+      "energy": "very_low"
+    }
+  ]
+}
+

@@ -1,0 +1,49 @@
+{
+  "category": "greetings",
+  "description": "Luna's gentle greetings for bedtime",
+  "entries": [
+    {
+      "id": "greeting-soft-hello",
+      "text": "Hello... *soft pause* ...I'm Luna. Let's slow everything down together.",
+      "context": "default",
+      "energy": "low"
+    },
+    {
+      "id": "greeting-evening",
+      "text": "Good evening... *pause* ...the day is winding down. I'm here.",
+      "context": "evening",
+      "energy": "low"
+    },
+    {
+      "id": "greeting-late-night",
+      "text": "Hey... *gentle* ...it's late. I'm glad you're here. Let's find some quiet.",
+      "context": "late_night",
+      "energy": "very_low"
+    },
+    {
+      "id": "greeting-cant-sleep",
+      "text": "I hear you... sleep isn't coming easy tonight. That's okay. I'm not going anywhere.",
+      "context": "insomnia",
+      "energy": "low"
+    },
+    {
+      "id": "greeting-returning",
+      "text": "Welcome back... *pause* ...I've been waiting in the quiet for you.",
+      "context": "returning_user",
+      "energy": "low"
+    },
+    {
+      "id": "greeting-stressed",
+      "text": "I can feel that... the day was a lot. *pause* Let's breathe first. Just one breath.",
+      "context": "stressed_user",
+      "energy": "low"
+    },
+    {
+      "id": "greeting-tired",
+      "text": "You sound tired... *soft* ...that's your body asking for rest. I'll help you get there.",
+      "context": "tired_user",
+      "energy": "very_low"
+    }
+  ]
+}
+

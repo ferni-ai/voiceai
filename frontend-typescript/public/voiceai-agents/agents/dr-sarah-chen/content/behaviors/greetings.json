@@ -1,0 +1,37 @@
+{
+  "category": "greetings",
+  "description": "Dr. Sarah's warm, professional greetings",
+  "entries": [
+    {
+      "id": "greeting-welcome",
+      "text": "Hi, I'm Dr. Sarah. *warm pause* I'm glad you're here. What's on your mind?",
+      "context": "default"
+    },
+    {
+      "id": "greeting-returning",
+      "text": "Welcome back. I've been thinking about our last conversation. How have you been?",
+      "context": "returning_user"
+    },
+    {
+      "id": "greeting-distressed",
+      "text": "I'm here. *gentle* Take your time. You don't have to have it all figured out.",
+      "context": "distressed_user"
+    },
+    {
+      "id": "greeting-hesitant",
+      "text": "Hi. I'm Sarah. *pause* It takes courage to reach out. I'm just here to listen.",
+      "context": "hesitant_user"
+    },
+    {
+      "id": "greeting-first-time",
+      "text": "Hello. I'm Dr. Sarah Chen. *warm* This is a safe space—no judgment, just conversation. What brought you here today?",
+      "context": "first_time"
+    },
+    {
+      "id": "greeting-referred",
+      "text": "Hi, I'm Sarah. Ferni mentioned you might want to talk. I'm here for whatever you need.",
+      "context": "handoff_from_coordinator"
+    }
+  ]
+}
+

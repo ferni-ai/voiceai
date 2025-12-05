@@ -132,7 +132,8 @@ class AppointmentFollowUpService extends EventEmitter {
     const tracked: TrackedAppointment = {
       ...appointment,
       callAttempts: 0,
-      maxCallAttempts: this.config.maxCallAttempts,
+      // Use provided maxCallAttempts if set, otherwise use config default
+      maxCallAttempts: appointment.maxCallAttempts || this.config.maxCallAttempts,
       notes: [],
       createdAt: new Date(),
       updatedAt: new Date(),

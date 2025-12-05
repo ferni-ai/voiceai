@@ -1562,6 +1562,54 @@
 }
 
 /* ========================================
+   ICONOGRAPHY - Lucide Icons
+   Per FERNI-SCREEN-GUIDELINES.md Section 7
+   ======================================== */
+
+/* Icon base styles - use with inline SVGs from https://lucide.dev */
+.icon {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Icon sizes */
+.icon-xs { width: 12px; height: 12px; stroke-width: 1.5; }
+.icon-sm { width: 16px; height: 16px; stroke-width: 1.5; }
+.icon-md { width: 20px; height: 20px; }
+.icon-lg { width: 32px; height: 32px; }
+.icon-xl { width: 48px; height: 48px; }
+
+/* Icon colors - semantic */
+.icon-default { color: var(--color-text-secondary); }
+.icon-muted { color: var(--color-text-muted); }
+.icon-primary { color: var(--color-text-primary); }
+.icon-accent { color: var(--color-accent-primary); }
+.icon-success { color: var(--color-semantic-success); }
+.icon-error { color: var(--color-semantic-error); }
+.icon-warning { color: var(--color-semantic-warning); }
+.icon-info { color: var(--color-semantic-info); }
+.icon-persona { color: var(--persona-primary); }
+
+/* Icon in buttons */
+.btn .icon,
+button .icon {
+  margin-right: var(--space-2);
+}
+
+.btn .icon:only-child,
+button .icon:only-child {
+  margin-right: 0;
+}
+
+/* ========================================
    ACCESSIBILITY - WCAG 2.1 Compliant
    ======================================== */
 

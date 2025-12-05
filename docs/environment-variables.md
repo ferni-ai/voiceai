@@ -91,7 +91,95 @@ TAX_EXPERT_VOICE_ID=your-cartesia-uuid
 
 ---
 
+## Communication Integrations (Required for Full Features)
+
+### Email (SendGrid) ⭐ CRITICAL
+
+Required for: Email notifications, portfolio summaries, Plaid link delivery
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SENDGRID_API_KEY` | ✓ | SendGrid API key |
+| `SENDGRID_FROM_EMAIL` | ✓ | Verified sender email address |
+| `SENDGRID_FROM_NAME` | | Sender display name (default: "Ferni") |
+
+**Setup:**
+1. Create account at [sendgrid.com](https://sendgrid.com)
+2. Verify a sender email address
+3. Create an API key with "Mail Send" permission
+4. Add to `.env`
+
+### SMS (Twilio) ⭐ CRITICAL
+
+Required for: Text reminders, alerts, Plaid link delivery, appointment notifications
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TWILIO_ACCOUNT_SID` | ✓ | Twilio account SID |
+| `TWILIO_AUTH_TOKEN` | ✓ | Twilio auth token |
+| `TWILIO_PHONE_NUMBER` | ✓ | Your Twilio phone number (E.164 format) |
+
+**Setup:**
+1. Create account at [twilio.com](https://twilio.com)
+2. Get a phone number (SMS-enabled)
+3. Find Account SID and Auth Token in console
+4. Add to `.env`
+
+### Voice Calls (Twilio) ⭐ CRITICAL
+
+Required for: Outbound calls, appointment scheduling calls, voice messages
+
+Uses same Twilio credentials as SMS, plus optional:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SIP_TRUNK_ID` | | LiveKit SIP trunk ID for advanced calling |
+| `CALLER_ID` | | Override caller ID for outbound calls |
+
+---
+
 ## Third-Party Integrations (Optional)
+
+### Google Calendar
+
+Required for: Calendar event creation, appointment reminders, scheduling
+
+| Variable | Description |
+|----------|-------------|
+| `GOOGLE_CALENDAR_CREDENTIALS` | JSON string with OAuth or Service Account credentials |
+| `GOOGLE_CALENDAR_ID` | Calendar ID to use (default: "primary") |
+
+**Option A: OAuth Credentials (for personal calendars)**
+```json
+{
+  "client_id": "xxx.apps.googleusercontent.com",
+  "client_secret": "xxx",
+  "refresh_token": "xxx"
+}
+```
+
+**Option B: Service Account (for shared calendars)**
+```json
+{
+  "type": "service_account",
+  "project_id": "xxx",
+  "private_key_id": "xxx",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...",
+  "client_email": "xxx@xxx.iam.gserviceaccount.com"
+}
+```
+
+### Restaurant Reservations
+
+Optional APIs for instant online reservations (without phone calls):
+
+| Variable | Description |
+|----------|-------------|
+| `OPENTABLE_API_KEY` | OpenTable Partner API key |
+| `RESY_API_KEY` | Resy API key |
+| `YELP_API_KEY` | Yelp Fusion API key (for search + some reservations) |
+
+Without these, reservations fall back to phone calls via Twilio.
 
 ### Plaid (Banking)
 
@@ -100,30 +188,22 @@ TAX_EXPERT_VOICE_ID=your-cartesia-uuid
 | `PLAID_CLIENT_ID` | Plaid client ID |
 | `PLAID_SECRET` | Plaid secret key |
 | `PLAID_ENV` | Environment: `sandbox`, `development`, `production` |
+| `PLAID_LINK_BASE_URL` | URL for hosted Plaid Link page |
 
 ### Spotify (Music)
 
 | Variable | Description |
 |----------|-------------|
+| `MUSIC_ENABLED` | Master toggle: `true` to enable music features |
 | `SPOTIFY_CLIENT_ID` | Spotify app client ID |
 | `SPOTIFY_CLIENT_SECRET` | Spotify app secret |
-| `SPOTIFY_REFRESH_TOKEN` | User's refresh token |
+| `SPOTIFY_REFRESH_TOKEN` | User's refresh token (get via `node scripts/spotify-auth.js`) |
+| `SPOTIFY_REDIRECT_URI` | OAuth callback URL for production (e.g., `https://app.ferni.ai/spotify/callback`) |
 
-### Google Calendar
-
-| Variable | Description |
-|----------|-------------|
-| `GOOGLE_CALENDAR_CLIENT_ID` | OAuth client ID |
-| `GOOGLE_CALENDAR_CLIENT_SECRET` | OAuth client secret |
-| `GOOGLE_CALENDAR_REFRESH_TOKEN` | User's refresh token |
-
-### Email (Gmail)
-
-| Variable | Description |
-|----------|-------------|
-| `GMAIL_CLIENT_ID` | OAuth client ID |
-| `GMAIL_CLIENT_SECRET` | OAuth client secret |
-| `GMAIL_REFRESH_TOKEN` | User's refresh token |
+**Setup for Production:**
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Add redirect URI matching your production URL
+3. Set `SPOTIFY_REDIRECT_URI` environment variable to match
 
 ---
 
@@ -219,15 +299,66 @@ Or use the upload script:
 
 ---
 
+## Testing & Validation Variables
+
+For running integration tests with real APIs:
+
+| Variable | Description |
+|----------|-------------|
+| `TEST_EMAIL` | Email address to receive test emails |
+| `TEST_PHONE_NUMBER` | Phone number to receive test SMS (E.164 format) |
+| `TEST_BUSINESS_PHONE` | Phone number for testing appointment calls |
+| `SCHEDULING_TEST_MODE` | Set to `real` to make actual appointment calls |
+
+---
+
 ## Validating Configuration
 
-Check required variables are set:
+### Quick Check
 ```bash
-npm run validate:config  # (if available)
+# Validate all integrations
+npx ts-node scripts/validate-integrations.ts
+
+# With actual test messages (requires TEST_EMAIL and TEST_PHONE_NUMBER)
+npx ts-node scripts/validate-integrations.ts --send-test
 ```
 
-Or manually check:
+### Run E2E Integration Tests
+```bash
+# Communication tests (email, SMS, calls)
+npx vitest run src/tests/integrations/communication-e2e.test.ts
+
+# Scheduling tests (appointments, reservations)
+npx vitest run src/tests/integrations/scheduling-e2e.test.ts
+```
+
+### Manual Check
 ```bash
 echo $LIVEKIT_URL
 echo $GOOGLE_API_KEY
+echo $SENDGRID_API_KEY
+echo $TWILIO_ACCOUNT_SID
 ```
+
+---
+
+## Production Readiness Checklist
+
+### ✅ Core (Required)
+- [ ] `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
+- [ ] `GOOGLE_API_KEY` (Gemini LLM)
+- [ ] `CARTESIA_API_KEY` (TTS)
+
+### ✅ Communication (Required for full features)
+- [ ] `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`
+- [ ] `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+
+### 🟡 Recommended
+- [ ] `DATABASE_URL` or `GOOGLE_CLOUD_PROJECT` (persistence)
+- [ ] `GOOGLE_CALENDAR_CREDENTIALS` (scheduling)
+- [ ] `REDIS_URL` (caching)
+
+### ⚪ Optional
+- [ ] `PLAID_*` (banking)
+- [ ] `SPOTIFY_*` (music)
+- [ ] `OPENTABLE_API_KEY`, `RESY_API_KEY`, `YELP_API_KEY` (reservations)

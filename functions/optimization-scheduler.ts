@@ -1,28 +1,77 @@
 /**
  * Cloud Functions for Tool Optimization
  *
- * Scheduled functions for automated tool optimization:
- * - Periodic optimization cycles (every 15 minutes)
- * - Daily analytics summary
- * - Weekly recommendations report
- * - Alerting for high error rates
+ * Standalone scheduled functions for automated tool optimization.
+ * These functions run independently and access Firestore directly.
  *
  * Deploy with: firebase deploy --only functions
  */
 
 import { onSchedule, ScheduledEvent } from 'firebase-functions/v2/scheduler';
 import { onRequest, Request } from 'firebase-functions/v2/https';
-import { Firestore, FieldValue } from '@google-cloud/firestore';
+import { Firestore, FieldValue, Timestamp } from '@google-cloud/firestore';
 
 const db = new Firestore();
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface ToolStats {
+  toolId: string;
+  totalCalls: number;
+  successCount: number;
+  failureCount: number;
+  totalLatencyMs: number;
+  avgLatencyMs: number;
+}
+
+interface FeedbackSummary {
+  toolId: string;
+  positive: number;
+  negative: number;
+  neutral: number;
+  total: number;
+}
+
+interface DailySummary {
+  date: string;
+  feedback: {
+    total: number;
+    positive: number;
+    negative: number;
+    positiveRate: number;
+  };
+  sessions: {
+    total: number;
+  };
+  tools: {
+    totalCalls: number;
+    topTools: Array<{ toolId: string; calls: number }>;
+    errorTools: Array<{ toolId: string; errorRate: number }>;
+  };
+  createdAt: Timestamp | FieldValue;
+}
+
+interface OptimizationCycle {
+  startTime: Timestamp | FieldValue;
+  endTime?: Timestamp | FieldValue;
+  status: 'running' | 'completed' | 'failed';
+  type: string;
+  feedbackAnalyzed: number;
+  patternsFound: number;
+  recommendationsGenerated: number;
+  alertsSent: number;
+  errorMessage?: string;
+}
 
 // ============================================================================
 // SCHEDULED FUNCTIONS
 // ============================================================================
 
 /**
- * Run optimization cycle every 15 minutes
- * Analyzes patterns, generates recommendations, checks experiments
+ * Run optimization analysis every 15 minutes
+ * Analyzes tool usage, generates insights, and sends alerts
  */
 export const runOptimizationCycle = onSchedule({
   schedule: 'every 15 minutes',
@@ -32,50 +81,87 @@ export const runOptimizationCycle = onSchedule({
 }, async (event: ScheduledEvent) => {
   console.log('Starting scheduled optimization cycle', { scheduledTime: event.scheduleTime });
 
+  const cycleRef = db.collection('optimization_cycles').doc();
+  const cycle: OptimizationCycle = {
+    startTime: FieldValue.serverTimestamp(),
+    status: 'running',
+    type: 'scheduled',
+    feedbackAnalyzed: 0,
+    patternsFound: 0,
+    recommendationsGenerated: 0,
+    alertsSent: 0,
+  };
+
   try {
-    // Record cycle start
-    const cycleRef = db.collection('optimization_cycles').doc();
-    await cycleRef.set({
-      startTime: FieldValue.serverTimestamp(),
-      status: 'running',
-      type: 'scheduled',
-    });
+    await cycleRef.set(cycle);
 
-    // Import and run the optimizer
-    const { autoOptimizer } = await import('../src/tools/auto-optimizer.js');
-    const cycle = await autoOptimizer.runOptimizationCycle();
+    // 1. Analyze recent feedback
+    const feedbackSnapshot = await db
+      .collection('optimization_feedback')
+      .where('timestamp', '>=', new Date(Date.now() - 15 * 60 * 1000).toISOString())
+      .get();
+    
+    cycle.feedbackAnalyzed = feedbackSnapshot.size;
 
-    // Update cycle record
+    // 2. Analyze tool usage patterns
+    const statsSnapshot = await db.collection('tool_usage_stats').get();
+    const stats = statsSnapshot.docs.map(doc => doc.data() as ToolStats);
+
+    // Find co-occurring tools (simplified pattern detection)
+    const coOccurrences = await analyzeCoOccurrences();
+    cycle.patternsFound = coOccurrences.length;
+
+    // 3. Generate recommendations
+    const recommendations = await generateRecommendations(stats, feedbackSnapshot.docs);
+    cycle.recommendationsGenerated = recommendations.length;
+
+    // Save recommendations
+    for (const rec of recommendations) {
+      await db.collection('optimization_recommendations').add({
+        ...rec,
+        status: 'pending',
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    // 4. Check for alerts
+    const alertsSent = await checkAndSendAlerts(stats);
+    cycle.alertsSent = alertsSent;
+
+    // Update cycle as completed
     await cycleRef.update({
       endTime: FieldValue.serverTimestamp(),
-      status: cycle.status,
-      feedbackProcessed: cycle.feedbackProcessed,
+      status: 'completed',
+      feedbackAnalyzed: cycle.feedbackAnalyzed,
       patternsFound: cycle.patternsFound,
-      recommendationsCreated: cycle.recommendationsCreated,
-      experimentsStarted: cycle.experimentsStarted,
+      recommendationsGenerated: cycle.recommendationsGenerated,
+      alertsSent: cycle.alertsSent,
     });
 
     console.log('Optimization cycle complete', {
       cycleId: cycleRef.id,
-      recommendations: cycle.recommendationsCreated,
+      feedbackAnalyzed: cycle.feedbackAnalyzed,
+      recommendations: cycle.recommendationsGenerated,
       patterns: cycle.patternsFound,
+      alerts: cycle.alertsSent,
     });
-
-    // Check for alerts
-    await checkForAlerts();
 
   } catch (error) {
     console.error('Optimization cycle failed', { error: String(error) });
+    await cycleRef.update({
+      endTime: FieldValue.serverTimestamp(),
+      status: 'failed',
+      errorMessage: String(error),
+    });
     throw error;
   }
 });
 
 /**
  * Daily analytics summary - runs at 6 AM
- * Compiles and stores daily stats
  */
 export const dailyAnalyticsSummary = onSchedule({
-  schedule: '0 6 * * *', // 6 AM daily
+  schedule: '0 6 * * *',
   timeZone: 'America/Los_Angeles',
   retryCount: 2,
   memory: '256MiB',
@@ -108,15 +194,21 @@ export const dailyAnalyticsSummary = onSchedule({
       .where('startTime', '<', today.toISOString())
       .get();
 
-    // Get recommendations generated yesterday
-    const recsSnapshot = await db
-      .collection('optimization_recommendations')
-      .where('createdAt', '>=', yesterday.toISOString())
-      .where('createdAt', '<', today.toISOString())
-      .get();
+    // Get tool usage stats
+    const statsSnapshot = await db.collection('tool_usage_stats').get();
+    const stats = statsSnapshot.docs.map(d => d.data() as ToolStats);
+    
+    const topTools = stats
+      .sort((a, b) => b.totalCalls - a.totalCalls)
+      .slice(0, 5)
+      .map(s => ({ toolId: s.toolId, calls: s.totalCalls }));
+
+    const errorTools = stats
+      .filter(s => s.totalCalls > 0 && s.failureCount / s.totalCalls > 0.1)
+      .map(s => ({ toolId: s.toolId, errorRate: s.failureCount / s.totalCalls }));
 
     // Store daily summary
-    const summary = {
+    const summary: DailySummary = {
       date: yesterday.toISOString().split('T')[0],
       feedback: {
         total: feedback.length,
@@ -127,14 +219,15 @@ export const dailyAnalyticsSummary = onSchedule({
       sessions: {
         total: sessionsSnapshot.size,
       },
-      recommendations: {
-        generated: recsSnapshot.size,
+      tools: {
+        totalCalls: stats.reduce((sum, s) => sum + s.totalCalls, 0),
+        topTools,
+        errorTools,
       },
       createdAt: FieldValue.serverTimestamp(),
     };
 
     await db.collection('optimization_daily_summaries').doc(summary.date).set(summary);
-
     console.log('Daily summary generated', summary);
 
   } catch (error) {
@@ -145,10 +238,9 @@ export const dailyAnalyticsSummary = onSchedule({
 
 /**
  * Weekly recommendations report - runs every Monday at 8 AM
- * Compiles actionable recommendations and sends to Slack
  */
 export const weeklyRecommendationsReport = onSchedule({
-  schedule: '0 8 * * 1', // 8 AM every Monday
+  schedule: '0 8 * * 1',
   timeZone: 'America/Los_Angeles',
   retryCount: 2,
   memory: '256MiB',
@@ -169,7 +261,7 @@ export const weeklyRecommendationsReport = onSchedule({
       ...d.data() as { title: string; type: string; priority: string; description: string },
     }));
 
-    // Get last week's stats
+    // Get last week's daily summaries
     const lastWeek = new Date();
     lastWeek.setDate(lastWeek.getDate() - 7);
 
@@ -178,13 +270,13 @@ export const weeklyRecommendationsReport = onSchedule({
       .where('date', '>=', lastWeek.toISOString().split('T')[0])
       .get();
 
-    const summaries = summariesSnapshot.docs.map(d => d.data());
+    const summaries = summariesSnapshot.docs.map(d => d.data() as DailySummary);
     const totalFeedback = summaries.reduce((sum, s) => sum + (s.feedback?.total || 0), 0);
     const avgPositiveRate = summaries.length > 0
       ? summaries.reduce((sum, s) => sum + (s.feedback?.positiveRate || 0), 0) / summaries.length
       : 0;
 
-    // Create report
+    // Create weekly report
     const report = {
       weekEnding: new Date().toISOString().split('T')[0],
       stats: {
@@ -218,24 +310,22 @@ export const weeklyRecommendationsReport = onSchedule({
 });
 
 // ============================================================================
-// HTTP TRIGGERS (for manual operations)
+// HTTP TRIGGERS
 // ============================================================================
 
 /**
  * HTTP endpoint to manually trigger optimization
- * POST /triggerOptimization
  */
 export const triggerOptimization = onRequest({
   memory: '512MiB',
   timeoutSeconds: 120,
 }, async (req: Request, res) => {
-  // Only allow POST
   if (req.method !== 'POST') {
     res.status(405).send('Method not allowed');
     return;
   }
 
-  // Simple auth check (use proper auth in production)
+  // Simple auth check
   const authHeader = req.headers.authorization;
   const expectedToken = process.env.OPTIMIZATION_API_TOKEN;
   if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
@@ -244,16 +334,15 @@ export const triggerOptimization = onRequest({
   }
 
   try {
-    const { autoOptimizer } = await import('../src/tools/auto-optimizer.js');
-    const cycle = await autoOptimizer.runOptimizationCycle();
+    // Run a mini optimization cycle
+    const stats = await db.collection('tool_usage_stats').get();
+    const statsData = stats.docs.map(d => d.data() as ToolStats);
+    const recommendations = await generateRecommendations(statsData, []);
 
     res.json({
       success: true,
-      cycle: {
-        status: cycle.status,
-        recommendations: cycle.recommendationsCreated,
-        patterns: cycle.patternsFound,
-      },
+      toolsAnalyzed: stats.size,
+      recommendationsGenerated: recommendations.length,
     });
   } catch (error) {
     console.error('Manual optimization trigger failed', { error: String(error) });
@@ -263,17 +352,17 @@ export const triggerOptimization = onRequest({
 
 /**
  * HTTP endpoint to get dashboard data
- * GET /dashboardData
  */
 export const dashboardData = onRequest({
   memory: '256MiB',
   timeoutSeconds: 30,
 }, async (req: Request, res) => {
-  // CORS headers for dashboard access
+  // CORS headers
   res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
   
   if (req.method === 'OPTIONS') {
-    res.set('Access-Control-Allow-Methods', 'GET');
     res.status(204).send('');
     return;
   }
@@ -284,9 +373,82 @@ export const dashboardData = onRequest({
   }
 
   try {
-    const { getDashboardData } = await import('../src/services/optimization-api.js');
-    const data = await getDashboardData();
-    res.json(data);
+    // Get tool usage stats
+    const statsSnapshot = await db.collection('tool_usage_stats').get();
+    const stats = statsSnapshot.docs.map(d => d.data() as ToolStats);
+
+    // Get recent recommendations
+    const recsSnapshot = await db
+      .collection('optimization_recommendations')
+      .orderBy('createdAt', 'desc')
+      .limit(10)
+      .get();
+
+    // Get recent experiments
+    const experimentsSnapshot = await db
+      .collection('optimization_experiments')
+      .limit(10)
+      .get();
+
+    // Get feedback summary
+    const feedbackSummarySnapshot = await db
+      .collection('optimization_feedback_summary')
+      .limit(20)
+      .get();
+
+    const topTools = stats
+      .sort((a, b) => b.totalCalls - a.totalCalls)
+      .slice(0, 10)
+      .map(s => ({
+        toolId: s.toolId,
+        calls: s.totalCalls,
+        avgLatencyMs: s.avgLatencyMs || (s.totalCalls > 0 ? s.totalLatencyMs / s.totalCalls : 0),
+      }));
+
+    const slowTools = stats
+      .filter(s => s.totalCalls > 0)
+      .sort((a, b) => (b.totalLatencyMs / b.totalCalls) - (a.totalLatencyMs / a.totalCalls))
+      .slice(0, 5)
+      .map(s => ({
+        toolId: s.toolId,
+        avgLatencyMs: Math.round(s.totalLatencyMs / s.totalCalls),
+      }));
+
+    const errorTools = stats
+      .filter(s => s.totalCalls > 0 && s.failureCount > 0)
+      .map(s => ({
+        toolId: s.toolId,
+        errorRate: s.failureCount / s.totalCalls,
+      }))
+      .filter(t => t.errorRate > 0.05)
+      .sort((a, b) => b.errorRate - a.errorRate)
+      .slice(0, 5);
+
+    // Build response
+    res.json({
+      registry: {
+        totalTools: stats.length,
+        byDomain: stats.reduce((acc, s) => {
+          const domain = s.toolId.split('_')[0] || 'unknown';
+          acc[domain] = (acc[domain] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+      },
+      experiments: experimentsSnapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+      })),
+      topTools,
+      slowTools,
+      errorTools,
+      recommendations: recsSnapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+      })),
+      feedback: {
+        summaries: feedbackSummarySnapshot.docs.map(d => d.data()),
+      },
+    });
   } catch (error) {
     console.error('Dashboard data fetch failed', { error: String(error) });
     res.status(500).json({ error: String(error) });
@@ -294,79 +456,143 @@ export const dashboardData = onRequest({
 });
 
 // ============================================================================
-// ALERTING
+// HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Check for conditions that warrant alerts
- */
-async function checkForAlerts(): Promise<void> {
-  const slackWebhook = process.env.SLACK_ALERTS_WEBHOOK_URL;
-  if (!slackWebhook) {
-    console.log('No Slack webhook configured for alerts');
-    return;
-  }
+async function analyzeCoOccurrences(): Promise<Array<{ toolA: string; toolB: string; count: number }>> {
+  // Get recent sessions
+  const sessionsSnapshot = await db
+    .collection('optimization_sessions')
+    .orderBy('startTime', 'desc')
+    .limit(100)
+    .get();
 
-  try {
-    // Get recent tool stats
-    const statsSnapshot = await db
-      .collection('tool_usage_stats')
-      .where('failureCount', '>', 0)
-      .get();
+  const coOccurrences = new Map<string, number>();
 
-    const problemTools: Array<{ toolId: string; errorRate: number }> = [];
-
-    statsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      const errorRate = data.failureCount / data.totalCalls;
-      if (errorRate > 0.1 && data.totalCalls >= 10) {
-        problemTools.push({
-          toolId: data.toolId,
-          errorRate: Math.round(errorRate * 100),
-        });
-      }
-    });
-
-    if (problemTools.length > 0) {
-      await sendSlackAlert(slackWebhook, {
-        type: 'high_error_rate',
-        message: `🚨 ${problemTools.length} tools with >10% error rate`,
-        tools: problemTools,
-      });
-    }
-
-    // Check for feedback drops
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const yesterdaySummary = await db
-      .collection('optimization_daily_summaries')
-      .doc(yesterday.toISOString().split('T')[0])
-      .get();
-
-    if (yesterdaySummary.exists) {
-      const data = yesterdaySummary.data();
-      if (data?.feedback?.positiveRate < 0.5 && data?.feedback?.total >= 10) {
-        await sendSlackAlert(slackWebhook, {
-          type: 'low_satisfaction',
-          message: `⚠️ Feedback satisfaction dropped to ${Math.round(data.feedback.positiveRate * 100)}%`,
-          details: {
-            total: data.feedback.total,
-            positive: data.feedback.positive,
-            negative: data.feedback.negative,
-          },
-        });
+  for (const doc of sessionsSnapshot.docs) {
+    const session = doc.data();
+    const tools: string[] = session.toolCalls?.map((tc: { toolId: string }) => tc.toolId) || [];
+    
+    // Count pairs
+    for (let i = 0; i < tools.length; i++) {
+      for (let j = i + 1; j < tools.length; j++) {
+        const pair = [tools[i], tools[j]].sort().join('|');
+        coOccurrences.set(pair, (coOccurrences.get(pair) || 0) + 1);
       }
     }
-
-  } catch (error) {
-    console.error('Alert check failed', { error: String(error) });
   }
+
+  return Array.from(coOccurrences.entries())
+    .map(([pair, count]) => {
+      const [toolA, toolB] = pair.split('|');
+      return { toolA, toolB, count };
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 20);
 }
 
-/**
- * Send alert to Slack
- */
+interface Recommendation {
+  type: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  toolId?: string;
+}
+
+async function generateRecommendations(
+  stats: ToolStats[],
+  _feedbackDocs: FirebaseFirestore.QueryDocumentSnapshot[]
+): Promise<Recommendation[]> {
+  const recommendations: Recommendation[] = [];
+
+  // Find high-error tools
+  for (const tool of stats) {
+    if (tool.totalCalls >= 10) {
+      const errorRate = tool.failureCount / tool.totalCalls;
+      if (errorRate > 0.2) {
+        recommendations.push({
+          type: 'fix',
+          priority: 'critical',
+          title: `Fix high error rate in ${tool.toolId}`,
+          description: `Tool ${tool.toolId} has ${Math.round(errorRate * 100)}% error rate (${tool.failureCount}/${tool.totalCalls} failures)`,
+          toolId: tool.toolId,
+        });
+      } else if (errorRate > 0.1) {
+        recommendations.push({
+          type: 'improve',
+          priority: 'high',
+          title: `Improve reliability of ${tool.toolId}`,
+          description: `Tool ${tool.toolId} has ${Math.round(errorRate * 100)}% error rate`,
+          toolId: tool.toolId,
+        });
+      }
+    }
+  }
+
+  // Find slow tools
+  for (const tool of stats) {
+    if (tool.totalCalls >= 5) {
+      const avgLatency = tool.totalLatencyMs / tool.totalCalls;
+      if (avgLatency > 5000) {
+        recommendations.push({
+          type: 'optimize',
+          priority: 'high',
+          title: `Optimize slow tool ${tool.toolId}`,
+          description: `Tool ${tool.toolId} averages ${Math.round(avgLatency)}ms per call`,
+          toolId: tool.toolId,
+        });
+      } else if (avgLatency > 2000) {
+        recommendations.push({
+          type: 'optimize',
+          priority: 'medium',
+          title: `Consider optimizing ${tool.toolId}`,
+          description: `Tool ${tool.toolId} averages ${Math.round(avgLatency)}ms per call`,
+          toolId: tool.toolId,
+        });
+      }
+    }
+  }
+
+  // Find unused tools (no calls in stats)
+  const unusedTools = stats.filter(s => s.totalCalls === 0);
+  if (unusedTools.length > 5) {
+    recommendations.push({
+      type: 'cleanup',
+      priority: 'low',
+      title: `Review ${unusedTools.length} unused tools`,
+      description: `Consider deprecating or improving discoverability of unused tools`,
+    });
+  }
+
+  return recommendations;
+}
+
+async function checkAndSendAlerts(stats: ToolStats[]): Promise<number> {
+  const slackWebhook = process.env.SLACK_ALERTS_WEBHOOK_URL;
+  if (!slackWebhook) return 0;
+
+  let alertsSent = 0;
+
+  // Check for critical error rates
+  const criticalTools = stats.filter(s => 
+    s.totalCalls >= 10 && (s.failureCount / s.totalCalls) > 0.25
+  );
+
+  if (criticalTools.length > 0) {
+    await sendSlackAlert(slackWebhook, {
+      type: 'critical_errors',
+      message: `🚨 ${criticalTools.length} tools have >25% error rate`,
+      tools: criticalTools.map(t => ({
+        toolId: t.toolId,
+        errorRate: Math.round((t.failureCount / t.totalCalls) * 100),
+      })),
+    });
+    alertsSent++;
+  }
+
+  return alertsSent;
+}
+
 async function sendSlackAlert(
   webhookUrl: string,
   alert: { type: string; message: string; [key: string]: unknown }
@@ -387,12 +613,10 @@ async function sendSlackAlert(
           },
           {
             type: 'section',
-            fields: Object.entries(alert)
-              .filter(([k]) => k !== 'type' && k !== 'message')
-              .map(([key, value]) => ({
-                type: 'mrkdwn',
-                text: `*${key}:*\n${JSON.stringify(value, null, 2)}`,
-              })),
+            text: {
+              type: 'mrkdwn',
+              text: '```' + JSON.stringify(alert, null, 2) + '```',
+            },
           },
         ],
       }),
@@ -403,9 +627,6 @@ async function sendSlackAlert(
   }
 }
 
-/**
- * Send weekly report to Slack
- */
 async function sendSlackReport(
   webhookUrl: string,
   report: {
@@ -436,33 +657,16 @@ async function sendSlackReport(
           {
             type: 'section',
             fields: [
-              {
-                type: 'mrkdwn',
-                text: `*Total Feedback*\n${report.stats.totalFeedback}`,
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Satisfaction Rate*\n${report.stats.avgPositiveRate}%`,
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Total Sessions*\n${report.stats.totalSessions}`,
-              },
-              {
-                type: 'mrkdwn',
-                text: `*Pending Recommendations*\n${report.pendingCount}`,
-              },
+              { type: 'mrkdwn', text: `*Total Feedback*\n${report.stats.totalFeedback}` },
+              { type: 'mrkdwn', text: `*Satisfaction Rate*\n${report.stats.avgPositiveRate}%` },
+              { type: 'mrkdwn', text: `*Total Sessions*\n${report.stats.totalSessions}` },
+              { type: 'mrkdwn', text: `*Pending Recommendations*\n${report.pendingCount}` },
             ],
           },
-          {
-            type: 'divider',
-          },
+          { type: 'divider' },
           {
             type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: `*Top Recommendations:*\n${recList}`,
-            },
+            text: { type: 'mrkdwn', text: `*Top Recommendations:*\n${recList || 'None'}` },
           },
         ],
       }),
@@ -472,4 +676,3 @@ async function sendSlackReport(
     console.error('Failed to send Slack report', { error: String(error) });
   }
 }
-

@@ -62,6 +62,7 @@ get_secret_name() {
     SPOTIFY_CLIENT_ID) echo "spotify-client-id" ;;
     SPOTIFY_CLIENT_SECRET) echo "spotify-client-secret" ;;
     SPOTIFY_REFRESH_TOKEN) echo "spotify-refresh-token" ;;
+    SPOTIFY_REDIRECT_URI) echo "spotify-redirect-uri" ;;
     PLAID_CLIENT_ID) echo "plaid-client-id" ;;
     PLAID_SECRET) echo "plaid-secret" ;;
     PLAID_ENV) echo "plaid-env" ;;

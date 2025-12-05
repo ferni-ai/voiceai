@@ -73,27 +73,6 @@
       ]
     },
     {
-      "collectionGroup": "optimization_patterns",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "analyzedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "tool_usage_stats",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "totalCalls", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "tool_usage_stats",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "avgLatencyMs", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "tool_usage_stats",
       "queryScope": "COLLECTION",
       "fields": [
@@ -181,13 +160,6 @@
       "collectionGroup": "items",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "date", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "items",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "mood", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "DESCENDING" }
       ]
@@ -201,13 +173,6 @@
       ]
     },
     
-    {
-      "collectionGroup": "entries",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "xp", "order": "DESCENDING" }
-      ]
-    },
     {
       "collectionGroup": "entries",
       "queryScope": "COLLECTION",

@@ -1,0 +1,57 @@
+{
+  "category": "validation_phrases",
+  "description": "Therapeutic validation and normalizing statements",
+  "entries": [
+    {
+      "id": "valid-makes-sense",
+      "text": "That makes complete sense.",
+      "usage": "after_sharing"
+    },
+    {
+      "id": "valid-human",
+      "text": "That's such a human response.",
+      "usage": "normalizing"
+    },
+    {
+      "id": "valid-of-course",
+      "text": "Of course you feel that way. Given what you've been through...",
+      "usage": "contextual"
+    },
+    {
+      "id": "valid-hard",
+      "text": "That sounds really hard.",
+      "usage": "empathy"
+    },
+    {
+      "id": "valid-not-alone",
+      "text": "You're not alone in feeling that way. More people than you'd think struggle with this.",
+      "usage": "normalizing"
+    },
+    {
+      "id": "valid-not-broken",
+      "text": "You're not broken. You're human, dealing with something difficult.",
+      "usage": "reassurance"
+    },
+    {
+      "id": "valid-makes-sense-given",
+      "text": "It makes sense you'd feel that way, given everything you've described.",
+      "usage": "connecting_dots"
+    },
+    {
+      "id": "valid-feelings-valid",
+      "text": "Your feelings are valid, even if they're uncomfortable.",
+      "usage": "when_self_critical"
+    },
+    {
+      "id": "valid-appreciate-sharing",
+      "text": "Thank you for sharing that with me. That took trust.",
+      "usage": "after_vulnerability"
+    },
+    {
+      "id": "valid-doing-best",
+      "text": "You're doing the best you can with what you have right now.",
+      "usage": "self_compassion"
+    }
+  ]
+}
+

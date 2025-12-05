@@ -6,27 +6,6 @@
   "repository": "https://github.com/sethdford/voiceai-agents",
   "agents": [
     {
-      "id": "jack-bogle",
-      "name": "Jack Bogle",
-      "version": "2.1.0",
-      "description": "The legendary founder of Vanguard, deep personal mentor, and calm voice of reason. 95 years of wisdom on investing, life decisions, careers, relationships, ethics, and personal growth.",
-      "author": "VoiceAI Team",
-      "license": "premium",
-      "category": "mentorship",
-      "tags": ["mentor", "investing", "index-funds", "vanguard", "wisdom", "life-advice", "career", "ethics", "retirement"],
-      "path": "agents/jack-bogle",
-      "requirements": {
-        "voice_id_env": "JACK_BOGLE_VOICE_ID",
-        "min_platform_version": "2.0.0"
-      },
-      "marketplace": {
-        "icon": "🧓",
-        "featured": true,
-        "downloads": 0,
-        "rating": 5.0
-      }
-    },
-    {
       "id": "joel-dickson",
       "name": "Joel Dickson",
       "version": "2.0.0",
@@ -126,6 +105,81 @@
         "downloads": 650,
         "rating": 4.6
       }
+    },
+    {
+      "id": "luna-sleep",
+      "name": "Luna",
+      "version": "1.0.0",
+      "description": "Your gentle sleep and wind-down companion. Luna helps you transition from the chaos of the day into peaceful rest with soothing conversation and bedtime rituals.",
+      "short_description": "Your gentle bedtime companion. Soothing conversations, sleep rituals, and peaceful transitions to rest.",
+      "author": "Ferni Team",
+      "license": "free",
+      "category": "health",
+      "tags": ["sleep", "relaxation", "bedtime", "wind-down", "insomnia", "rest", "wellness", "breathing", "calm"],
+      "path": "agents/luna-sleep",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "🌙",
+        "featured": true,
+        "downloads": 0,
+        "rating": 5.0
+      },
+      "colors": {
+        "primary": "#5B6B8A",
+        "secondary": "#3D4A63"
+      }
+    },
+    {
+      "id": "dr-sarah-chen",
+      "name": "Dr. Sarah Chen",
+      "version": "1.0.0",
+      "description": "A compassionate therapist for anxiety, stress, and emotional processing. Dr. Sarah provides a safe space to explore thoughts and develop healthier mental patterns.",
+      "short_description": "A compassionate therapist for anxiety, stress, and emotional processing. A safe space to be heard.",
+      "author": "Ferni Team",
+      "license": "premium",
+      "category": "health",
+      "tags": ["therapy", "mental-health", "anxiety", "depression", "stress", "CBT", "emotional-support", "counseling", "coping"],
+      "path": "agents/dr-sarah-chen",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "💜",
+        "featured": true,
+        "downloads": 0,
+        "rating": 5.0
+      },
+      "colors": {
+        "primary": "#8B7B9B",
+        "secondary": "#6B5B7B"
+      }
+    },
+    {
+      "id": "david-park",
+      "name": "David Park",
+      "version": "1.0.0",
+      "description": "Strategic career coaching. David helps you ace interviews, negotiate salaries, navigate job searches, and plan career transitions.",
+      "short_description": "Strategic career coaching. Interview prep, salary negotiation, and career transitions.",
+      "author": "Ferni Team",
+      "license": "premium",
+      "category": "mentorship",
+      "tags": ["career", "interview", "negotiation", "salary", "job-search", "resume", "linkedin", "leadership", "promotion"],
+      "path": "agents/david-park",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "🚀",
+        "featured": true,
+        "downloads": 0,
+        "rating": 5.0
+      },
+      "colors": {
+        "primary": "#4A7B6F",
+        "secondary": "#3A5B4F"
+      }
     }
   ],
   "categories": [
@@ -140,6 +194,11 @@
       "description": "Financial advisors and investment guides"
     },
     {
+      "id": "health",
+      "name": "Health & Wellness",
+      "description": "Mental health, sleep, and wellness support"
+    },
+    {
       "id": "productivity",
       "name": "Productivity",
       "description": "Task management and workflow assistants"
@@ -147,7 +206,7 @@
     {
       "id": "lifestyle",
       "name": "Lifestyle",
-      "description": "Health, wellness, and life planning"
+      "description": "Cooking, fitness, and life enrichment"
     }
   ],
   "updated_at": "2025-12-04T00:00:00Z"

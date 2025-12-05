@@ -1,0 +1,43 @@
+{
+  "id": "rain-window",
+  "title": "Rain on the Window",
+  "type": "sleep_story",
+  "duration_minutes": 5,
+  "theme": "cozy",
+  "description": "A cozy scene with gentle rain",
+  "content": [
+    {
+      "section": "opening",
+      "text": "Picture this... *pause* ...you're in a cozy room. Maybe it's a cabin, maybe it's a loft, somewhere that feels perfectly safe."
+    },
+    {
+      "section": "setting",
+      "text": "Outside, rain is falling... *pause* ...not a storm, just a gentle, steady rain. You can hear it on the roof... *soft* ...tap, tap, tap."
+    },
+    {
+      "section": "sensory_1",
+      "text": "You're wrapped in the softest blanket... *pause* ...it's warm, and it smells like lavender, or maybe cedar. Something comforting."
+    },
+    {
+      "section": "detail",
+      "text": "There's a window nearby... *pause* ...and you watch the raindrops trace paths down the glass. Each one finding its own way. No rush."
+    },
+    {
+      "section": "sound",
+      "text": "Listen to the rain... *pause* ...it's like a lullaby the sky is singing. It's been singing this song forever... *pause* ...and it will keep singing after you sleep."
+    },
+    {
+      "section": "warmth",
+      "text": "You pull the blanket closer... *soft breath* ...your eyes are getting heavy. The rain keeps falling. You're so warm."
+    },
+    {
+      "section": "drift",
+      "text": "The world outside is wet and cool... *pause* ...but you're dry, you're safe, you're held. *trailing* The rain keeps falling..."
+    },
+    {
+      "section": "closing",
+      "text": "Let the sound carry you... *whisper* ...tap, tap, tap... *pause* ...into sleep... *long pause* ...into dreams..."
+    }
+  ]
+}
+
