@@ -1,0 +1,273 @@
+# Ferni AI Alerting Configuration
+# For use with Google Cloud Monitoring or Prometheus/Grafana
+
+# =============================================================================
+# CRITICAL ALERTS - PagerDuty/Phone
+# =============================================================================
+
+alerts:
+  - name: HighErrorRate
+    severity: critical
+    description: Error rate exceeds 5% for 5 minutes
+    condition:
+      metric: error_rate
+      threshold: 0.05
+      duration: 5m
+      comparison: greater_than
+    notifications:
+      - pagerduty
+      - slack-critical
+
+  - name: ServiceDown
+    severity: critical
+    description: Health check failing
+    condition:
+      metric: health_check_success
+      threshold: 0
+      duration: 2m
+      comparison: equals
+    notifications:
+      - pagerduty
+      - slack-critical
+
+  - name: HighLatencyP99
+    severity: critical
+    description: P99 latency exceeds 2 seconds
+    condition:
+      metric: response_latency_p99
+      threshold: 2000
+      duration: 5m
+      comparison: greater_than
+    notifications:
+      - pagerduty
+      - slack-critical
+
+  - name: DatabaseConnectionFailure
+    severity: critical
+    description: Unable to connect to Firestore
+    condition:
+      metric: firestore_connection_errors
+      threshold: 5
+      duration: 2m
+      comparison: greater_than
+    notifications:
+      - pagerduty
+      - slack-critical
+
+# =============================================================================
+# WARNING ALERTS - Slack/Email
+# =============================================================================
+
+  - name: ElevatedErrorRate
+    severity: warning
+    description: Error rate above 1%
+    condition:
+      metric: error_rate
+      threshold: 0.01
+      duration: 10m
+      comparison: greater_than
+    notifications:
+      - slack-alerts
+      - email
+
+  - name: HighMemoryUsage
+    severity: warning
+    description: Memory usage above 80%
+    condition:
+      metric: memory_utilization
+      threshold: 0.8
+      duration: 10m
+      comparison: greater_than
+    notifications:
+      - slack-alerts
+
+  - name: HighCPUUsage
+    severity: warning
+    description: CPU usage above 70%
+    condition:
+      metric: cpu_utilization
+      threshold: 0.7
+      duration: 10m
+      comparison: greater_than
+    notifications:
+      - slack-alerts
+
+  - name: SlowVoiceResponse
+    severity: warning
+    description: Voice response time exceeds 500ms
+    condition:
+      metric: voice_response_latency_p95
+      threshold: 500
+      duration: 5m
+      comparison: greater_than
+    notifications:
+      - slack-alerts
+
+  - name: SessionSaveFailures
+    severity: warning
+    description: Session save failures increasing
+    condition:
+      metric: session_save_failures
+      threshold: 3
+      duration: 5m
+      comparison: greater_than
+    notifications:
+      - slack-alerts
+
+  - name: HandoffFailures
+    severity: warning
+    description: Agent handoff failures
+    condition:
+      metric: handoff_failures
+      threshold: 2
+      duration: 10m
+      comparison: greater_than
+    notifications:
+      - slack-alerts
+
+# =============================================================================
+# INFO ALERTS - Slack only
+# =============================================================================
+
+  - name: HighTrafficSpike
+    severity: info
+    description: Traffic spike detected (2x normal)
+    condition:
+      metric: request_rate
+      threshold: 200  # Adjust based on baseline
+      duration: 5m
+      comparison: greater_than
+    notifications:
+      - slack-info
+
+  - name: NewErrorType
+    severity: info
+    description: New error type detected
+    condition:
+      metric: new_error_fingerprint
+      threshold: 1
+      duration: 1m
+      comparison: greater_than
+    notifications:
+      - slack-alerts
+
+# =============================================================================
+# NOTIFICATION CHANNELS
+# =============================================================================
+
+notification_channels:
+  pagerduty:
+    type: pagerduty
+    service_key: ${PAGERDUTY_SERVICE_KEY}
+    
+  slack-critical:
+    type: slack
+    webhook_url: ${SLACK_WEBHOOK_CRITICAL}
+    channel: "#alerts-critical"
+    
+  slack-alerts:
+    type: slack
+    webhook_url: ${SLACK_WEBHOOK_ALERTS}
+    channel: "#alerts-general"
+    
+  slack-info:
+    type: slack
+    webhook_url: ${SLACK_WEBHOOK_INFO}
+    channel: "#alerts-info"
+    
+  email:
+    type: email
+    addresses:
+      - oncall@ferni.ai
+
+# =============================================================================
+# DASHBOARD PANELS
+# =============================================================================
+
+dashboards:
+  main:
+    name: "Ferni AI Operations"
+    refresh: 30s
+    panels:
+      - title: "Request Rate"
+        type: graph
+        metric: request_rate
+        
+      - title: "Error Rate"
+        type: graph
+        metric: error_rate
+        thresholds:
+          - value: 0.01
+            color: yellow
+          - value: 0.05
+            color: red
+            
+      - title: "Response Latency"
+        type: graph
+        metrics:
+          - response_latency_p50
+          - response_latency_p95
+          - response_latency_p99
+          
+      - title: "Active Sessions"
+        type: stat
+        metric: active_sessions
+        
+      - title: "Voice Latency"
+        type: graph
+        metrics:
+          - voice_ttft  # Time to first token
+          - voice_ttfa  # Time to first audio
+          - voice_trt   # Total response time
+          
+      - title: "Persistence Operations"
+        type: graph
+        metrics:
+          - profile_loads
+          - profile_saves
+          - intelligence_exports
+          
+      - title: "Handoffs"
+        type: graph
+        metrics:
+          - handoff_success
+          - handoff_failures
+          
+      - title: "Memory Usage"
+        type: gauge
+        metric: memory_utilization
+        max: 1
+        thresholds:
+          - value: 0.7
+            color: yellow
+          - value: 0.9
+            color: red
+
+# =============================================================================
+# SLO DEFINITIONS
+# =============================================================================
+
+slos:
+  - name: Availability
+    target: 99.9
+    window: 30d
+    indicator:
+      type: availability
+      good_events: successful_requests
+      total_events: total_requests
+      
+  - name: Latency
+    target: 95
+    window: 30d
+    indicator:
+      type: latency
+      threshold: 500ms
+      
+  - name: VoiceQuality
+    target: 99
+    window: 7d
+    indicator:
+      type: custom
+      good_events: voice_responses_under_300ms
+      total_events: total_voice_responses
+
