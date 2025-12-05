@@ -684,25 +684,8 @@ const server = http.createServer(async (req, res) => {
   // AGENT REGISTRY ROUTES (Dynamic agent discovery)
   // ============================================================================
   
-  // Agent API cache
-  let agentsCacheData = null;
-  let agentsCacheTime = 0;
-  const AGENTS_CACHE_TTL = 60 * 1000; // 1 minute
-  
   // Get all available agents (for dynamic UI rendering)
   if (pathname === '/api/agents') {
-    // Check cache
-    const now = Date.now();
-    if (agentsCacheData && now - agentsCacheTime < AGENTS_CACHE_TTL) {
-      res.writeHead(200, { 
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=60',
-        'X-Cache': 'HIT'
-      });
-      res.end(JSON.stringify(agentsCacheData));
-      return;
-    }
-    
     try {
       // Dynamic import to use ES modules
       const { AgentRegistry } = await import('./dist/personas/registry/unified-registry.js');
@@ -727,10 +710,14 @@ const server = http.createServer(async (req, res) => {
         colors: agent.manifest.marketplace?.colors || null,
       }));
       
-      // Sort: coordinator first, then by name
+      // Sort: coordinator (Ferni) first, then alphabetically by name
+      // Check both isCoordinator flag AND id='ferni' for robustness
       uiAgents.sort((a, b) => {
-        if (a.isCoordinator) return -1;
-        if (b.isCoordinator) return 1;
+        const aIsCoordinator = a.isCoordinator || a.id === 'ferni';
+        const bIsCoordinator = b.isCoordinator || b.id === 'ferni';
+        
+        if (aIsCoordinator && !bIsCoordinator) return -1;
+        if (!aIsCoordinator && bIsCoordinator) return 1;
         return a.name.localeCompare(b.name);
       });
       
@@ -741,14 +728,9 @@ const server = http.createServer(async (req, res) => {
         timestamp: new Date().toISOString(),
       };
       
-      // Cache the response
-      agentsCacheData = responseData;
-      agentsCacheTime = now;
-      
       res.writeHead(200, { 
         'Content-Type': 'application/json',
         'Cache-Control': 'public, max-age=60',
-        'X-Cache': 'MISS'
       });
       res.end(JSON.stringify(responseData));
     } catch (err) {

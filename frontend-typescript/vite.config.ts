@@ -16,6 +16,9 @@ export default defineConfig({
       '/token': 'http://localhost:3001',
       '/token-url': 'http://localhost:3001',
       '/spotify': 'http://localhost:3001',
+      // Agent routes go to ui-server (which has the registry integration)
+      '/api/agents': 'http://localhost:3003',
+      // Other API routes to token server
       '/api': 'http://localhost:3001',
     },
   },

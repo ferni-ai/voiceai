@@ -99,6 +99,24 @@ export async function shutdownServices(): Promise<void> {
     getLogger().warn({ error }, 'Error shutting down memory management');
   }
 
+  // Shutdown optimization persistence (flush all buffers)
+  try {
+    const { optimizationPersistence } = await import('./optimization-persistence.js');
+    await optimizationPersistence.shutdown();
+    getLogger().info('📊 Optimization persistence shutdown');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error shutting down optimization persistence');
+  }
+
+  // Shutdown auto-optimizer
+  try {
+    const { autoOptimizer } = await import('../tools/auto-optimizer.js');
+    autoOptimizer.stop();
+    getLogger().info('🤖 Auto-optimizer stopped');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error stopping auto-optimizer');
+  }
+
   // Clear all life data caches
   try {
     const { getLifeDataStore } = await import('./life-data-store.js');

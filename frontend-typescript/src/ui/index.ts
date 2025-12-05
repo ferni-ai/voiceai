@@ -98,6 +98,34 @@ export {
   injectAdminStyles,
 } from './admin.ui.js';
 
+// Daily Engagement UI
+export {
+  EngagementUI,
+  getEngagementUI,
+  initializeEngagementUI,
+} from './engagement.ui.js';
+export type {
+  RitualStreakData,
+  EmotionalWeatherData,
+  EngagementStats,
+  EngagementData,
+} from './engagement.ui.js';
+
+// Predictions UI
+export {
+  PredictionsUI,
+  getPredictionsUI,
+  initializePredictionsUI,
+} from './predictions.ui.js';
+export type { PredictionsUIData } from './predictions.ui.js';
+
+// Engagement Trigger Buttons
+export {
+  engagementTriggerUI,
+  initEngagementTriggerUI,
+} from './engagement-trigger.ui.js';
+export type { EngagementTriggerCallbacks, EngagementBadgeState } from './engagement-trigger.ui.js';
+
 // Types
 export type { ControlCallbacks } from './controls.ui.js';
 export type { ConnectionQuality } from './connection-quality.ui.js';

@@ -157,22 +157,22 @@
   --persona-tint: rgba(74, 103, 65, 0.06);
 }
 
-/* Persona: jack-bogle */
-[data-persona="jack-bogle"] {
-  --persona-primary: #9a7b5a;
-  --persona-secondary: #7d6348;
-  --persona-text: #ffffff;
-  --persona-glow: rgba(154, 123, 90, 0.28);
-  --persona-tint: rgba(154, 123, 90, 0.06);
-}
-
-/* Persona: peter-lynch */
-[data-persona="peter-lynch"] {
+/* Persona: peter-john (Research & Insights - Deep Teal) */
+[data-persona="peter-john"] {
   --persona-primary: #3a6b73;
   --persona-secondary: #2d5359;
   --persona-text: #ffffff;
-  --persona-glow: rgba(58, 107, 115, 0.28);
+  --persona-glow: rgba(58, 107, 115, 0.32);
   --persona-tint: rgba(58, 107, 115, 0.06);
+}
+
+/* Persona: nayan-patel (Wisdom & Long-term - Golden Amber) */
+[data-persona="nayan-patel"] {
+  --persona-primary: #b8956a;
+  --persona-secondary: #9a7a52;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(184, 149, 106, 0.35);
+  --persona-tint: rgba(184, 149, 106, 0.06);
 }
 
 /* Persona: alex-chen */

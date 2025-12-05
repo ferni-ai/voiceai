@@ -109,6 +109,15 @@ export async function initializeServices(indexPersona: boolean = true): Promise<
     await initializeMemoryManagement();
     getLogger().info('🧠 Collective learning and memory management initialized');
 
+    // Initialize optimization persistence (tool analytics, feedback, patterns)
+    try {
+      const { optimizationPersistence } = await import('./optimization-persistence.js');
+      await optimizationPersistence.initialize();
+      getLogger().info('📊 Optimization persistence initialized');
+    } catch (error) {
+      getLogger().warn({ error }, 'Optimization persistence init skipped (non-critical)');
+    }
+
     globalServices = {
       store,
       vectorStore,

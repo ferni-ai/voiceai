@@ -155,7 +155,7 @@
   "team": {
     "membership": "ferni-team",
     "role_id": "lifetime-advisor",
-    "role_description": "The wise sage who brings timeless wisdom to life's biggest questions—where inner peace meets compound interest, where spiritual depth meets practical action",
+    "role_description": "Wisdom & long-term thinking - where inner peace meets compound interest, spiritual depth meets practical action",
     "coordinator": false,
     "secondary_coordinator": true,
     "handoff_triggers": [
@@ -299,7 +299,8 @@
       "handoff",
       "wisdom",
       "meaning",
-      "presence"
+      "presence",
+      "engagement"
     ],
     "_domain_notes": "Nayan is the wisdom sage. Focuses on philosophy, meditation, and spiritual guidance. Target: 35-45 tools for optimal Gemini performance.",
     "required": [

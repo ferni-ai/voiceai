@@ -18,7 +18,7 @@
 import type { PersonaId } from '../types/persona.js';
 import type { HandoffEvent, NormalizedHandoff, DataMessage } from '../types/events.js';
 import { isHandoffMessage, isHandoffStarted, isHandoffComplete, isHandoffFailed, isHandoffAcknowledged, isHandoffCancelled, isStateReset } from '../types/events.js';
-import { normalizeAgentId, getPersona } from '../config/personas.js';
+import { normalizeAgentId, getPersona, getTransitionConfig } from '../config/personas.js';
 import { SOUND_EFFECTS } from '../config/index.js';
 import { HANDOFF_TIMING, getPostSoundPause, type TransitionStyle } from '../config/handoff-timing.js';
 import { appState, setActivePersona } from '../state/app.state.js';
@@ -700,30 +700,12 @@ class HandoffService {
 
   /**
    * Get the transition style for a persona.
-   * Derived from persona energy level and role.
+   * Now reads from manifest-generated config instead of hardcoded lists.
    */
   private getTransitionStyle(personaId: PersonaId): TransitionStyle {
-    const persona = getPersona(personaId);
-
-    // Coach returns are warm
-    if (persona.role === 'coach') {
-      return 'warm';
-    }
-
-    // Check for high-energy personas (dramatic entrances)
-    // This can be configured in personas.ts via a new field
-    const highEnergyPersonas = ['peter-john']; // TODO: Move to persona config
-    if (highEnergyPersonas.includes(personaId)) {
-      return 'dramatic';
-    }
-
-    // Check for calm/wisdom personas (subtle transitions)
-    const calmPersonas = ['nayan-patel'];
-    if (calmPersonas.includes(personaId)) {
-      return 'subtle';
-    }
-
-    return 'standard';
+    // Get transition config from generated manifest data
+    const config = getTransitionConfig(personaId);
+    return config.style;
   }
 
   /**

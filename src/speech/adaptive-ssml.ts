@@ -11,6 +11,13 @@ import { getLogger } from '../utils/safe-logger.js';
 import { tagTextWithSsml, sanitizeSsml, tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 import type { SpeechContext } from './speech-context.js';
 import type { ConversationPhase } from '../intelligence/conversation-state.js';
+import type { CognitiveGuidance, ReasoningStyle } from '../personas/cognitive-types.js';
+import {
+  applyCognitiveSpeechAdjustments,
+  buildCognitiveSSML,
+  type CognitiveSpeechInput,
+  type CognitiveSpeechResult,
+} from './cognitive-speech-integration.js';
 
 // ============================================================================
 // ADAPTIVE TAGGING
@@ -572,8 +579,93 @@ export function tagWrapUpWithPersonality(
   return `<emotion value="${emotion}"><speed ratio="${speed}">${tagged}</speed></emotion>`;
 }
 
+// ============================================================================
+// COGNITIVE-AWARE SSML TAGGING
+// ============================================================================
+
+export interface CognitiveSsmlOptions {
+  /** Speech context with pacing, energy, etc. */
+  speechContext: SpeechContext;
+  /** Cognitive guidance from the cognitive engine */
+  cognitiveGuidance?: CognitiveGuidance;
+  /** Persona ID for persona-specific SSML */
+  personaId?: string;
+  /** Session ID for tracking */
+  sessionId?: string;
+  /** Emotional weight of conversation */
+  emotionalWeight?: number;
+  /** Base speech characteristics from persona */
+  baseCharacteristics?: {
+    baseSpeedMultiplier: number;
+    pauseMultiplier: number;
+    thinkingSoundFrequency: number;
+    emphasisStyle: 'subtle' | 'moderate' | 'pronounced';
+    sentenceEndingStyle: 'natural' | 'falling' | 'rising';
+    minimumEnergy: number;
+    maximumEnergy: number;
+    speedVariation: number;
+  };
+}
+
+/**
+ * Tag text with SSML, applying cognitive intelligence adjustments.
+ *
+ * This is the recommended entry point for cognitive-aware speech generation.
+ * It combines:
+ * - Base SSML tagging
+ * - Persona-specific characteristics
+ * - Cognitive state adjustments (reasoning mode, confidence, etc.)
+ */
+export function tagTextWithCognitiveSsml(
+  text: string,
+  options: CognitiveSsmlOptions
+): { ssml: string; cognitiveResult?: CognitiveSpeechResult } {
+  const { speechContext, cognitiveGuidance, personaId, sessionId, emotionalWeight, baseCharacteristics } = options;
+
+  if (!text || text.trim().length === 0) {
+    return { ssml: text };
+  }
+
+  // First, apply base SSML tagging
+  let tagged = tagTextWithSsmlAdaptive(text, speechContext, personaId);
+
+  // If we have cognitive guidance and session, apply cognitive adjustments
+  let cognitiveResult: CognitiveSpeechResult | undefined;
+
+  if (cognitiveGuidance && sessionId && baseCharacteristics) {
+    const cognitiveInput: CognitiveSpeechInput = {
+      speechContext,
+      baseCharacteristics,
+      cognitiveGuidance,
+      emotionalWeight: emotionalWeight || 0.3,
+    };
+
+    cognitiveResult = applyCognitiveSpeechAdjustments(cognitiveInput, sessionId);
+
+    // Apply cognitive SSML (thinking sounds, pauses)
+    tagged = buildCognitiveSSML(tagged, cognitiveResult);
+
+    // Log cognitive speech adjustments
+    getLogger().debug({
+      personaId,
+      cognitiveMode: cognitiveResult.debug.cognitiveMode,
+      confidence: cognitiveResult.debug.confidence,
+      speedMult: cognitiveResult.debug.adjustments.speedMultiplier,
+      pauseMult: cognitiveResult.debug.adjustments.pauseMultiplier,
+    }, '🧠 Cognitive SSML applied');
+  }
+
+  return { ssml: tagged, cognitiveResult };
+}
+
+/**
+ * Get cognitive speech stats for monitoring
+ */
+export { getCognitiveSpeechStats, clearCognitiveSpeechState } from './cognitive-speech-integration.js';
+
 export default {
   tagTextWithSsmlAdaptive,
+  tagTextWithCognitiveSsml,
   tagGreeting,
   tagSupportResponse,
   tagAdvice,

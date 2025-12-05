@@ -6,7 +6,7 @@
  */
 
 export type ThemeName = 'midnight' | 'zen';
-export type PersonaId = 'ferni' | 'jack-bogle' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
+export type PersonaId = 'ferni' | 'peter-john' | 'alex-chen' | 'maya-santos' | 'jordan-taylor' | 'nayan-patel';
 
 export interface ThemeMeta {
   name: string;
@@ -27,7 +27,7 @@ export const THEMES: Record<ThemeName, ThemeMeta> = {
   }
 };
 
-export const PERSONA_IDS: PersonaId[] = ["ferni","jack-bogle","peter-lynch","alex-chen","maya-santos","jordan-taylor"];
+export const PERSONA_IDS: PersonaId[] = ["ferni","alex-chen","jordan-taylor","maya-santos","nayan-patel","peter-john"];
 
 // ============================================================================
 // PIXAR ANIMATION CONSTANTS
@@ -135,7 +135,7 @@ export interface PersonaAnimationProfile {
   celebrationIntensity: string;
 }
 
-export type PersonaAnimationId = 'ferni' | 'jack-bogle' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
+export type PersonaAnimationId = 'ferni' | 'peter-john' | 'alex-chen' | 'maya-santos' | 'jordan-taylor' | 'nayan-patel';
 
 /**
  * Persona ID mapping - maps legacy frontend IDs to canonical design system IDs.
@@ -146,12 +146,15 @@ export const PERSONA_ID_MAPPING: Record<string, PersonaAnimationId> = {
   "comm-specialist": "alex-chen",
   "spend-save": "maya-santos",
   "event-planner": "jordan-taylor",
-  "jack-bogle": "jack-bogle",
-  "peter-lynch": "peter-lynch",
   "ferni": "ferni",
   "alex-chen": "alex-chen",
   "maya-santos": "maya-santos",
-  "jordan-taylor": "jordan-taylor"
+  "jordan-taylor": "jordan-taylor",
+  "peter-john": "peter-john",
+  "nayan-patel": "nayan-patel",
+  // Legacy mappings
+  "peter-lynch": "peter-john",
+  "jack-bogle": "nayan-patel"
 };
 
 /**
@@ -175,22 +178,6 @@ export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnima
     "thinkingStyle": "curious-tilt",
     "celebrationIntensity": "warm"
   },
-  "jack-bogle": {
-    "description": "Wise, measured, deliberate - like Carl from Up reflecting",
-    "timingMultiplier": 1.4,
-    "bounciness": 0.3,
-    "easingPreference": "gentle",
-    "thinkingStyle": "contemplative-pause",
-    "celebrationIntensity": "subtle"
-  },
-  "peter-lynch": {
-    "description": "Energetic, practical, quick - like Linguini's nervous energy",
-    "timingMultiplier": 0.8,
-    "bounciness": 0.6,
-    "easingPreference": "easeOutBack",
-    "thinkingStyle": "rapid-process",
-    "celebrationIntensity": "enthusiastic"
-  },
   "alex-chen": {
     "description": "Thoughtful, articulate, empathetic - like Joy explaining emotions",
     "timingMultiplier": 1.1,
@@ -198,6 +185,14 @@ export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnima
     "easingPreference": "smooth",
     "thinkingStyle": "careful-consideration",
     "celebrationIntensity": "warm"
+  },
+  "jordan-taylor": {
+    "description": "Creative, enthusiastic, expressive - like Dory's joyful energy",
+    "timingMultiplier": 0.85,
+    "bounciness": 0.8,
+    "easingPreference": "elastic",
+    "thinkingStyle": "brainstorm-burst",
+    "celebrationIntensity": "exuberant"
   },
   "maya-santos": {
     "description": "Organized, practical, steady - like EVE when focused",
@@ -207,13 +202,21 @@ export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnima
     "thinkingStyle": "methodical",
     "celebrationIntensity": "satisfied"
   },
-  "jordan-taylor": {
-    "description": "Creative, enthusiastic, expressive - like Dory's joyful energy",
-    "timingMultiplier": 0.85,
-    "bounciness": 0.8,
-    "easingPreference": "elastic",
-    "thinkingStyle": "brainstorm-burst",
-    "celebrationIntensity": "exuberant"
+  "nayan-patel": {
+    "description": "Wise, measured, deliberate - like Carl from Up reflecting",
+    "timingMultiplier": 1.4,
+    "bounciness": 0.3,
+    "easingPreference": "gentle",
+    "thinkingStyle": "contemplative-pause",
+    "celebrationIntensity": "subtle"
+  },
+  "peter-john": {
+    "description": "Energetic, practical, quick - like Linguini's nervous energy",
+    "timingMultiplier": 0.8,
+    "bounciness": 0.6,
+    "easingPreference": "easeOutBack",
+    "thinkingStyle": "rapid-process",
+    "celebrationIntensity": "enthusiastic"
   }
 };
 
@@ -283,30 +286,30 @@ export const WAVEFORM_PROFILES: Record<string, WaveformProfile> = {
     "smoothing": 0.7,
     "speed": 1
   },
-  "jack-bogle": {
-    "energy": 0.6,
-    "smoothing": 0.8,
-    "speed": 0.85
-  },
-  "peter-lynch": {
-    "energy": 0.9,
-    "smoothing": 0.55,
-    "speed": 1.2
-  },
   "alex-chen": {
     "energy": 0.7,
     "smoothing": 0.75,
     "speed": 1
+  },
+  "jordan-taylor": {
+    "energy": 0.95,
+    "smoothing": 0.5,
+    "speed": 1.15
   },
   "maya-santos": {
     "energy": 0.65,
     "smoothing": 0.8,
     "speed": 0.95
   },
-  "jordan-taylor": {
-    "energy": 0.95,
-    "smoothing": 0.5,
-    "speed": 1.15
+  "nayan-patel": {
+    "energy": 0.6,
+    "smoothing": 0.8,
+    "speed": 0.85
+  },
+  "peter-john": {
+    "energy": 0.9,
+    "smoothing": 0.55,
+    "speed": 1.2
   },
   "default": {
     "energy": 0.75,
@@ -366,40 +369,6 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
     "wobble": true,
     "description": "Warm welcoming energy"
   },
-  "jack-bogle": {
-    "speed": {
-      "min": 0.2,
-      "max": 0.6
-    },
-    "direction": "top",
-    "size": {
-      "min": 2,
-      "max": 5
-    },
-    "count": 25,
-    "shape": "circle",
-    "glow": true,
-    "twinkle": false,
-    "wobble": false,
-    "description": "Steady upward growth"
-  },
-  "peter-lynch": {
-    "speed": {
-      "min": 1,
-      "max": 3
-    },
-    "direction": "none",
-    "size": {
-      "min": 2,
-      "max": 6
-    },
-    "count": 45,
-    "shape": "star",
-    "glow": true,
-    "twinkle": true,
-    "wobble": true,
-    "description": "Dynamic research energy"
-  },
   "alex-chen": {
     "speed": {
       "min": 0.5,
@@ -417,23 +386,6 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
     "wobble": false,
     "description": "Flowing organization"
   },
-  "maya-santos": {
-    "speed": {
-      "min": 0.3,
-      "max": 0.8
-    },
-    "direction": "top",
-    "size": {
-      "min": 3,
-      "max": 6
-    },
-    "count": 28,
-    "shape": "circle",
-    "glow": true,
-    "twinkle": true,
-    "wobble": true,
-    "description": "Journey planning"
-  },
   "jordan-taylor": {
     "speed": {
       "min": 1,
@@ -450,6 +402,57 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
     "twinkle": true,
     "wobble": true,
     "description": "Celebration sparkles"
+  },
+  "maya-santos": {
+    "speed": {
+      "min": 0.3,
+      "max": 0.8
+    },
+    "direction": "top",
+    "size": {
+      "min": 3,
+      "max": 6
+    },
+    "count": 28,
+    "shape": "circle",
+    "glow": true,
+    "twinkle": true,
+    "wobble": true,
+    "description": "Nurturing warmth"
+  },
+  "nayan-patel": {
+    "speed": {
+      "min": 0.2,
+      "max": 0.6
+    },
+    "direction": "top",
+    "size": {
+      "min": 2,
+      "max": 5
+    },
+    "count": 25,
+    "shape": "circle",
+    "glow": true,
+    "twinkle": false,
+    "wobble": false,
+    "description": "Steady wisdom glow"
+  },
+  "peter-john": {
+    "speed": {
+      "min": 1,
+      "max": 3
+    },
+    "direction": "none",
+    "size": {
+      "min": 2,
+      "max": 6
+    },
+    "count": 45,
+    "shape": "star",
+    "glow": true,
+    "twinkle": true,
+    "wobble": true,
+    "description": "Dynamic research energy"
   },
   "default": {
     "speed": {

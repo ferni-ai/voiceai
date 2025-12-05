@@ -124,7 +124,7 @@
   "team": {
     "membership": "ferni-team",
     "role_id": "insights-quant",
-    "role_description": "The Quant - synthesizes insights across all domains, finds patterns that drive behavior change and goal setting",
+    "role_description": "Research & insights - synthesizes patterns across all domains to drive action and goal setting",
     "coordinator": false,
     "cross_domain_access": {
       "maya-santos": ["spending-patterns", "habit-data", "trigger-patterns", "budget-trends"],
@@ -225,6 +225,7 @@
       "research",
       "information",
       "stories",
+      "engagement",
       "curiosity"
     ],
     "_domain_notes": "Peter is the Quant and insights specialist. Owns stock research, pattern discovery, and storytelling. Finance domain moved to Maya for spending habits. Target: 50-60 tools for optimal Gemini performance.",

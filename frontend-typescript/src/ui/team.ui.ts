@@ -360,6 +360,9 @@ function createMarketplaceAgentElement(agent: marketplaceService.InstalledAgent)
   const name = manifestIdentity?.name || agent.id.split('-').map(w => (w[0] ?? '').toUpperCase() + w.slice(1)).join(' ');
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   
+  // Display first name only in roster for cleaner UI
+  const displayName = getFirstName(name);
+  
   element.className = 'team-member team-member--marketplace-agent';
   element.setAttribute('data-persona-id', agent.id);
   element.setAttribute('data-marketplace-agent', 'true');
@@ -385,7 +388,7 @@ function createMarketplaceAgentElement(agent: marketplaceService.InstalledAgent)
         ${initials}
       </div>
     </div>
-    <span class="team-name">${name}</span>
+    <span class="team-name">${displayName}</span>
     <span class="drag-hint" aria-hidden="true">Drag to remove</span>
   `;
   
@@ -463,6 +466,14 @@ function attachMarketplaceAgentListeners(
 }
 
 /**
+ * Extract first name from full name for roster display
+ * Shows "Ferni" instead of "Ferni", "Alex" instead of "Alex Chen", etc.
+ */
+function getFirstName(fullName: string): string {
+  return fullName.split(' ')[0] ?? fullName;
+}
+
+/**
  * Create a team member DOM element from API agent data
  */
 function createTeamMemberElement(agent: ApiAgent): HTMLElement {
@@ -479,12 +490,15 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   // Use CSS variables with hardcoded fallbacks for safety
   const gradient = colors?.gradient || `linear-gradient(135deg, ${colors?.secondary || 'var(--persona-secondary, #3d5a35)'}, ${colors?.primary || 'var(--persona-primary, #4a6741)'})`;
 
+  // Display first name only in roster for cleaner UI
+  const displayName = getFirstName(agent.name);
+
   element.innerHTML = `
     <div class="team-avatar-container">
       <div class="team-avatar-ring"></div>
       <div class="team-avatar" style="--persona-gradient: ${gradient};">${agent.initials}</div>
     </div>
-    <span class="team-name">${agent.name}</span>
+    <span class="team-name">${displayName}</span>
   `;
 
   return element;

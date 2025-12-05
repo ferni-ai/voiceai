@@ -122,10 +122,13 @@ import {
   isToolRegistryInitialized,
 } from '../tools/index.js';
 
-// Advanced Tool Systems - Dynamic loading, deprecation, analytics
+// Advanced Tool Systems - Dynamic loading, deprecation, analytics, optimization
 import { dynamicToolLoader } from '../tools/dynamic-loader.js';
 import { deprecationService } from '../tools/deprecation.js';
 import { abTestingService } from '../tools/ab-testing.js';
+import { autoOptimizer } from '../tools/auto-optimizer.js';
+import { feedbackCollector, type ConversationContext as FeedbackContext } from '../tools/feedback-collector.js';
+import { patternAnalyzer } from '../tools/pattern-analyzer.js';
 
 // Voice Manager
 import { getVoiceManager, createPersonaAwareTTS } from '../speech/voice-manager.js';
@@ -2019,6 +2022,14 @@ export default defineAgent({
       }
 
       // ===============================================
+      // AUTO-OPTIMIZATION: Start session tracking
+      // ===============================================
+      // Track this session for pattern analysis and feedback collection
+      patternAnalyzer.startSession(sessionId, userId || 'anonymous', sessionPersona.id);
+      autoOptimizer.startSession(sessionId, userId || 'anonymous', sessionPersona.id);
+      diag.entry('Optimization session started', { sessionId, personaId: sessionPersona.id });
+
+      // ===============================================
       // STEP 3b: INITIALIZE HANDOFF CONTEXT (for alive entrances)
       // FIX BUG #34: Load per-persona meeting counts from both humanizingState and customData
       // (customData is where session-manager persists them on session end)
@@ -2189,6 +2200,12 @@ export default defineAgent({
 
               // Record for deprecation analysis (identifies unused/error-prone tools)
               deprecationService.recordUsage(toolName, !hasError, latencyMs);
+
+              // Record for pattern analysis (co-occurrence, sequences, journeys)
+              patternAnalyzer.recordToolCall(services.sessionId || sessionId, toolName, !hasError, latencyMs);
+              
+              // Record for auto-optimizer (feeds recommendation engine)
+              autoOptimizer.recordToolExecution(services.sessionId || sessionId, toolName, !hasError, latencyMs);
             } catch {
               // Analytics recording is non-critical, don't fail the tool execution
             }
@@ -2515,6 +2532,33 @@ export default defineAgent({
           }).catch((error) => {
             logger.warn({ error }, 'Failed to process message for dynamic tool loading');
           });
+
+          // ===============================================
+          // FEEDBACK COLLECTION for tool optimization
+          // ===============================================
+          // Collect implicit and explicit feedback from user messages
+          // This powers the automated recommendation system
+          try {
+            const feedbackContext: FeedbackContext = {
+              userId: userData.userId || 'anonymous',
+              sessionId,
+              agentId: sessionPersona.id,
+              turnNumber: userData.turnCount || 0,
+              recentTools: userData.conversationState?.getRecentToolCalls?.()?.map(tc => tc.toolName) || [],
+              lastToolResult: userData.conversationState?.getLastToolResult?.(),
+            };
+            
+            // Get the last tool that was called (if any)
+            const lastToolCalls = userData.conversationState?.getRecentToolCalls?.() || [];
+            const lastToolId = lastToolCalls.length > 0 ? lastToolCalls[lastToolCalls.length - 1]?.toolName : undefined;
+            
+            // Process feedback asynchronously
+            autoOptimizer.processUserMessage(event.transcript, feedbackContext, lastToolId);
+            
+          } catch (feedbackError) {
+            // Feedback collection is non-critical
+            diag.warn('Feedback collection error', { error: String(feedbackError) });
+          }
         }
       });
 
@@ -3196,6 +3240,16 @@ export default defineAgent({
               resetMusicPlayer();
               diag.session('Spotify and music player reset');
             }
+          } catch {
+            // Non-fatal
+          }
+
+          // Flush optimization data (patterns, feedback)
+          try {
+            patternAnalyzer.endSession(sessionId);
+            autoOptimizer.endSession(sessionId);
+            await feedbackCollector.flush();
+            diag.session('Optimization data flushed');
           } catch {
             // Non-fatal
           }

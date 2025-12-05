@@ -1,6 +1,107 @@
 {
   "indexes": [
     {
+      "collectionGroup": "optimization_feedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "toolId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "optimization_feedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "optimization_feedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sentiment", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "optimization_feedback",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "agentId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "optimization_recommendations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "priority", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "optimization_recommendations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "optimization_experiments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "startedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "optimization_sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "agentId", "order": "ASCENDING" },
+        { "fieldPath": "startTime", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "optimization_sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "startTime", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "optimization_patterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "analyzedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tool_usage_stats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "totalCalls", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tool_usage_stats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "avgLatencyMs", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tool_usage_stats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "domain", "order": "ASCENDING" },
+        { "fieldPath": "totalCalls", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "learning_signals",
       "queryScope": "COLLECTION",
       "fields": [

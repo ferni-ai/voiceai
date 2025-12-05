@@ -14,6 +14,11 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import {
+  getEngagementStore,
+  type StoredRitualStreak,
+  type StoredWeatherEntry,
+} from './engagement-store.js';
 
 // ============================================================================
 // TYPES
@@ -318,9 +323,47 @@ export const RITUAL_PROMPTS = {
 
 export class DailyRitualsService {
   private userProfiles: Map<string, UserRitualProfile> = new Map();
+  private firestoreEnabled: boolean = false;
+
+  /**
+   * Initialize Firestore integration
+   */
+  async initializeFirestore(): Promise<void> {
+    try {
+      const store = await getEngagementStore();
+      this.firestoreEnabled = true;
+      getLogger().info('Daily rituals Firestore integration enabled');
+    } catch (error) {
+      getLogger().warn({ error }, 'Firestore not available for daily rituals');
+    }
+  }
 
   /**
    * Get or create a user's ritual profile
+   */
+  async getOrCreateProfileAsync(userId: string): Promise<UserRitualProfile> {
+    // Check memory cache first
+    let profile = this.userProfiles.get(userId);
+    if (profile) return profile;
+
+    // Try Firestore
+    if (this.firestoreEnabled) {
+      try {
+        const store = await getEngagementStore();
+        profile = await store.toRitualProfile(userId);
+        this.userProfiles.set(userId, profile);
+        return profile;
+      } catch (error) {
+        getLogger().warn({ error, userId }, 'Failed to load ritual profile from Firestore');
+      }
+    }
+
+    // Create default
+    return this.getOrCreateProfile(userId);
+  }
+
+  /**
+   * Get or create a user's ritual profile (sync for backward compatibility)
    */
   getOrCreateProfile(userId: string): UserRitualProfile {
     let profile = this.userProfiles.get(userId);
@@ -348,8 +391,8 @@ export class DailyRitualsService {
   /**
    * Activate a ritual for a user
    */
-  activateRitual(userId: string, ritualId: string): void {
-    const profile = this.getOrCreateProfile(userId);
+  async activateRitual(userId: string, ritualId: string): Promise<void> {
+    const profile = await this.getOrCreateProfileAsync(userId);
 
     if (!profile.activeRituals.includes(ritualId)) {
       profile.activeRituals.push(ritualId);
@@ -364,6 +407,29 @@ export class DailyRitualsService {
         totalCompletions: 0,
         streakHistory: [],
       };
+
+      // Persist to Firestore
+      if (this.firestoreEnabled) {
+        try {
+          const store = await getEngagementStore();
+          const engagementProfile = await store.getProfile(userId);
+          engagementProfile.activeRituals = profile.activeRituals;
+          await store.saveProfile(engagementProfile);
+
+          const ritual = PERSONA_RITUALS[ritualId];
+          await store.saveRitualStreak(userId, {
+            ritualId,
+            personaId: ritual?.personaId || 'unknown',
+            currentStreak: 0,
+            longestStreak: 0,
+            lastCompletedAt: new Date(0).toISOString(),
+            totalCompletions: 0,
+            streakHistory: [],
+          });
+        } catch (error) {
+          getLogger().warn({ error, userId, ritualId }, 'Failed to persist ritual activation');
+        }
+      }
     }
 
     getLogger().info({ userId, ritualId }, '🌅 Ritual activated');
@@ -372,7 +438,7 @@ export class DailyRitualsService {
   /**
    * Record a ritual completion
    */
-  recordCompletion(
+  async recordCompletionAsync(
     userId: string,
     ritualId: string,
     data?: {
@@ -380,13 +446,13 @@ export class DailyRitualsService {
       emotionalWeather?: EmotionalWeather;
       insights?: string[];
     }
-  ): { newStreak: number; isNewRecord: boolean; celebration?: string } {
-    const profile = this.getOrCreateProfile(userId);
-    const streak = profile.streaks[ritualId];
+  ): Promise<{ newStreak: number; isNewRecord: boolean; celebration?: string }> {
+    const profile = await this.getOrCreateProfileAsync(userId);
+    let streak = profile.streaks[ritualId];
 
     if (!streak) {
-      this.activateRitual(userId, ritualId);
-      return this.recordCompletion(userId, ritualId, data);
+      await this.activateRitual(userId, ritualId);
+      return this.recordCompletionAsync(userId, ritualId, data);
     }
 
     const now = new Date();
@@ -449,6 +515,50 @@ export class DailyRitualsService {
     }
     profile.lastRitualDate = now;
 
+    // Persist to Firestore
+    if (this.firestoreEnabled) {
+      try {
+        const store = await getEngagementStore();
+        const ritual = PERSONA_RITUALS[ritualId];
+
+        // Save streak
+        await store.saveRitualStreak(userId, {
+          ritualId,
+          personaId: ritual?.personaId || 'unknown',
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          lastCompletedAt: streak.lastCompletedAt.toISOString(),
+          totalCompletions: streak.totalCompletions,
+          streakHistory: streak.streakHistory.map((h) => ({
+            startDate: h.startDate.toISOString(),
+            endDate: h.endDate.toISOString(),
+            length: h.length,
+          })),
+        });
+
+        // Save weather if provided
+        if (data?.emotionalWeather) {
+          await store.recordWeather(userId, {
+            date: now.toISOString(),
+            weather: data.emotionalWeather,
+            ritualId,
+            insights: data.insights,
+          });
+        }
+
+        // Update engagement profile
+        const engagementProfile = await store.getProfile(userId);
+        engagementProfile.totalRitualDays = profile.totalRitualDays;
+        engagementProfile.lastEngagementAt = now.toISOString();
+        if (streak.longestStreak > engagementProfile.longestOverallStreak) {
+          engagementProfile.longestOverallStreak = streak.longestStreak;
+        }
+        await store.saveProfile(engagementProfile);
+      } catch (error) {
+        getLogger().warn({ error, userId, ritualId }, 'Failed to persist ritual completion');
+      }
+    }
+
     getLogger().info(
       { userId, ritualId, streak: streak.currentStreak, isNewRecord },
       '✅ Ritual completed'
@@ -458,6 +568,40 @@ export class DailyRitualsService {
       newStreak: streak.currentStreak,
       isNewRecord,
       celebration,
+    };
+  }
+
+  /**
+   * Record a ritual completion (sync for backward compatibility)
+   */
+  recordCompletion(
+    userId: string,
+    ritualId: string,
+    data?: {
+      userResponse?: string;
+      emotionalWeather?: EmotionalWeather;
+      insights?: string[];
+    }
+  ): { newStreak: number; isNewRecord: boolean; celebration?: string } {
+    // Call async version without awaiting for backward compatibility
+    // The persistence will happen in the background
+    this.recordCompletionAsync(userId, ritualId, data).catch((error) => {
+      getLogger().warn({ error, userId, ritualId }, 'Background ritual persistence failed');
+    });
+
+    // Synchronous logic for immediate return
+    const profile = this.getOrCreateProfile(userId);
+    const streak = profile.streaks[ritualId];
+
+    if (!streak) {
+      // Trigger activation in background
+      this.activateRitual(userId, ritualId).catch(() => {});
+      return { newStreak: 1, isNewRecord: true };
+    }
+
+    return {
+      newStreak: streak.currentStreak,
+      isNewRecord: false,
     };
   }
 

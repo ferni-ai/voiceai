@@ -16,6 +16,11 @@ import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 import { createHandoffEvent } from '../../personas/PersonaRegistry.js';
 import { getAliveEntranceForHandoff, detectUserMoodFromContext } from '../../personas/alive-entrances.js';
 import type { AgentId } from '../../services/agent-bus.js';
+import {
+  buildCognitiveHandoffContext,
+  formatCognitiveHandoffForPrompt,
+  type CognitiveHandoffContext,
+} from './cognitive-handoff.js';
 // FIX BUG: Import state management from state.ts to keep state in sync
 // FIX BUG: Import handoffEvents from state.ts instead of creating a duplicate!
 // The handler in voice-agent.ts registers on state.ts's EventEmitter,
@@ -93,6 +98,8 @@ interface HandoffContext {
   summary: string;
   pendingItems: string[];
   recentMessages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  /** Cognitive insights for the target persona */
+  cognitiveContext?: CognitiveHandoffContext;
 }
 
 let conversationContext: HandoffContext | null = null;
@@ -107,7 +114,51 @@ export function captureHandoffContext(context: Partial<HandoffContext>): void {
     summary: context.summary || '',
     pendingItems: context.pendingItems || [],
     recentMessages: context.recentMessages || [],
+    cognitiveContext: context.cognitiveContext,
   };
+}
+
+/**
+ * Capture handoff context with cognitive intelligence
+ */
+export function captureHandoffContextWithCognition(
+  context: Partial<HandoffContext>,
+  sessionId: string,
+  previousPersonaId: string,
+  targetPersonaId: string
+): void {
+  // Calculate emotional weight from emotional state
+  const emotionalWeight = context.emotionalState === 'distressed' ? 0.9
+    : context.emotionalState === 'anxious' ? 0.7
+    : context.emotionalState === 'sad' ? 0.6
+    : context.emotionalState === 'excited' ? 0.4
+    : context.emotionalState === 'happy' ? 0.3
+    : 0.2;
+
+  // Build cognitive handoff context
+  const cognitiveContext = buildCognitiveHandoffContext({
+    previousPersonaId,
+    targetPersonaId,
+    conversationHistory: (context.recentMessages || []).map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    })),
+    currentTopic: context.topics?.[0] || 'general',
+    emotionalWeight,
+    userExpertise: 'unknown', // Would come from analysis
+  }, sessionId);
+
+  captureHandoffContext({
+    ...context,
+    cognitiveContext,
+  });
+
+  getLogger().info({
+    previousPersona: previousPersonaId,
+    targetPersona: targetPersonaId,
+    userStyle: cognitiveContext.userCognitiveStyle,
+    effectiveApproaches: cognitiveContext.effectiveApproaches,
+  }, '🧠 Cognitive handoff context captured');
 }
 
 /**
@@ -326,14 +377,96 @@ async function generateHandoffGreeting(
     );
 
     if (aliveEntrance) {
+      // Enhance with cognitive collaboration if context available
+      const cognitiveEnhancement = getCognitiveCollaborationGreeting(
+        targetAgentId,
+        previousAgent
+      );
+
+      if (cognitiveEnhancement) {
+        return `${aliveEntrance} ${cognitiveEnhancement}`;
+      }
+
       return aliveEntrance;
     }
   } catch (err) {
     getLogger().warn({ error: err }, 'Could not get ALIVE entrance');
   }
 
-  // Fall back to a generic greeting
-  return `Hi there! ${targetName} here. ${getReasonAcknowledgment(reason)}`;
+  // Fall back to a generic greeting with cognitive enhancement
+  const cognitiveEnhancement = getCognitiveCollaborationGreeting(
+    targetAgentId,
+    previousAgent
+  );
+
+  const baseGreeting = `Hi there! ${targetName} here. ${getReasonAcknowledgment(reason)}`;
+
+  if (cognitiveEnhancement) {
+    return `${baseGreeting} ${cognitiveEnhancement}`;
+  }
+
+  return baseGreeting;
+}
+
+/**
+ * Generate cognitive collaboration greeting enhancement
+ */
+function getCognitiveCollaborationGreeting(
+  targetAgentId: string,
+  previousAgentId: string
+): string | null {
+  // Only generate if we have cognitive context from handoff
+  if (!conversationContext?.cognitiveContext) {
+    return null;
+  }
+
+  const { userCognitiveStyle, effectiveApproaches, previousPersonaStyle } = conversationContext.cognitiveContext;
+
+  // Cognitive collaboration greetings by persona
+  const collaborationPhrases: Record<string, Record<string, string>> = {
+    'peter-john': {
+      narrative: "Ferni mentioned you like the story behind things - I'll make sure to frame the data that way.",
+      empathetic: "Maya told me you're processing some feelings here - I'll keep that in mind with the numbers.",
+      pragmatic: "Jordan said you're ready for action - let me show you the data that matters most.",
+    },
+    'maya-santos': {
+      analytical: "Peter shared his analysis - but I want to check in on how you're feeling about all that.",
+      narrative: "Ferni set the stage beautifully - let's explore what this means for you personally.",
+      systematic: "Alex organized things well - now let's see what feels right for you.",
+    },
+    'ferni': {
+      analytical: "Peter's given me the data picture - let me help you find the meaning in it.",
+      empathetic: "Maya's been holding space with you - let's see where the story goes from here.",
+      pragmatic: "Jordan's got the action plan - I'm curious about the deeper why behind it all.",
+    },
+    'alex-chen': {
+      narrative: "Ferni's been exploring the big picture - let me help organize the next steps.",
+      empathetic: "Maya mentioned what you're working through - I'll make the process gentle.",
+      analytical: "Peter's got the data - now let me help you actually do something with it.",
+    },
+    'jordan-taylor': {
+      analytical: "Peter showed me the patterns - let's turn those into a real plan!",
+      empathetic: "Maya helped you process - now let's channel that into something exciting!",
+      narrative: "Ferni painted the vision - let's make it happen!",
+    },
+    'nayan-patel': {
+      analytical: "Peter's numbers tell one story - let's find the wisdom underneath.",
+      pragmatic: "Jordan's got the doing - I'm here for the being.",
+      empathetic: "Maya's been with your heart - let me offer a different kind of space.",
+    },
+  };
+
+  // Get collaboration phrase based on target persona and previous persona style
+  const targetPhrases = collaborationPhrases[targetAgentId];
+  if (!targetPhrases) return null;
+
+  const phrase = targetPhrases[previousPersonaStyle];
+  if (!phrase) return null;
+
+  // Only use 30% of the time to avoid being overwhelming
+  if (Math.random() > 0.3) return null;
+
+  return phrase;
 }
 
 /**
@@ -398,17 +531,25 @@ function buildHandoffInstructions(
 ): string {
   const targetName = getPersonaDisplayName(targetAgentId);
 
+  // Include cognitive context if available
+  let cognitiveInstructions = '';
+  if (conversationContext?.cognitiveContext) {
+    cognitiveInstructions = `\n\n${formatCognitiveHandoffForPrompt(conversationContext.cognitiveContext)}`;
+  }
+
   return `You are now ${targetName}. A handoff just occurred.
 
 HANDOFF REASON: ${reason}
 
 ${contextContinuation ? `CONTEXT: ${contextContinuation}` : ''}
+${cognitiveInstructions}
 
 INSTRUCTIONS:
 1. Acknowledge the handoff naturally - you're picking up where someone else left off
 2. Reference the context if relevant
 3. Move forward with your expertise in this area
-4. Stay in character as ${targetName}`;
+4. Stay in character as ${targetName}
+5. Apply the cognitive insights above to match the user's thinking style`;
 }
 
 // ============================================================================

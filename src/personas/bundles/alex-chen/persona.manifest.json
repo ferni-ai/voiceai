@@ -300,7 +300,8 @@
       "handoff",
       "calendar",
       "communication",
-      "telephony"
+      "telephony",
+      "engagement"
     ],
     "_domain_notes": "Alex is the communication specialist. Owns calendar, email, SMS, and phone call tools. Target: 40-50 tools for optimal Gemini performance.",
     "required": [

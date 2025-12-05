@@ -5,9 +5,9 @@
  * A premium experience that rivals Apple and Google.
  */
 
-import type { DataMessage, CelebrationEvent, EmotionEvent, ExpressionEvent, MoodEvent, MusicEvent } from './types/events.js';
+import type { DataMessage, CelebrationEvent, EmotionEvent, ExpressionEvent, MoodEvent, MusicEvent, EngagementTriggerEvent } from './types/events.js';
 import type { PersonaId } from './types/persona.js';
-import { isCelebrationMessage, isEmotionMessage, isExpressionMessage, isMoodMessage, isMusicMessage } from './types/events.js';
+import { isCelebrationMessage, isEmotionMessage, isExpressionMessage, isMoodMessage, isMusicMessage, isEngagementTriggerMessage } from './types/events.js';
 
 // Theme system
 import {
@@ -28,6 +28,7 @@ import {
   handoffService,
   spotifyService,
   moodService,
+  engagementService,
 } from './services/index.js';
 import { delightService } from './services/delight.service.js';
 
@@ -61,6 +62,10 @@ import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
 import { marketplaceUI } from './ui/marketplace.ui.js';
 // Admin UI
 import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
+// Engagement UI
+import { getEngagementUI, initializeEngagementUI } from './ui/engagement.ui.js';
+import { getPredictionsUI, initializePredictionsUI } from './ui/predictions.ui.js';
+import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
 // 🎬 Pixar-quality Animation Orchestrator
 import { 
   initAnimationOrchestrator, 
@@ -351,6 +356,9 @@ class VoiceAIApp {
       // Update gesture system
       gesturesUI.setCurrentPersona(persona.id);
       
+      // Show engagement triggers (with slight delay for visual flow)
+      setTimeout(() => engagementTriggerUI.show(), 500);
+      
       // Show success message
       messageUI.show(`Connected to ${persona.name}!`, 'success', 2000);
       
@@ -410,6 +418,7 @@ class VoiceAIApp {
     // keyboardUI.setConnected(false);
     connectionQualityUI.hide();
     transcriptUI.hide();
+    engagementTriggerUI.hide();
     
     // End session stats
     statsUI.endSession();
@@ -613,6 +622,14 @@ class VoiceAIApp {
     this.safeInit('AvatarFeedback', () => initAvatarFeedback()); // ✨ For music dancing!
     // 🎬 Animation Orchestrator - Pixar-quality coordinated animations
     this.safeInit('AnimationOrchestrator', () => initAnimationOrchestrator());
+    
+    // 📊 Engagement UI - Daily practice, streaks, predictions
+    this.safeInit('EngagementUI', () => initializeEngagementUI());
+    this.safeInit('PredictionsUI', () => initializePredictionsUI());
+    this.safeInit('EngagementTriggerUI', () => initEngagementTriggerUI({
+      onEngagementClick: () => getEngagementUI().toggle(),
+      onPredictionsClick: () => getPredictionsUI().toggle(),
+    }));
     // Agent particles disabled for cleaner professional UI
     // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
     
@@ -1019,6 +1036,46 @@ class VoiceAIApp {
         messageUI.show(`Now playing: ${trackInfo.name}`, 'info', 3000);
       }
     });
+
+    // Engagement service callbacks
+    engagementService.setCallbacks({
+      onEngagementUpdate: (data) => {
+        // Update the engagement UI panel
+        getEngagementUI().update(data);
+        
+        // Update badge count for due rituals
+        const dueCount = data.ritualStreaks.filter(s => s.dueToday).length;
+        engagementTriggerUI.updateBadges({ ritualsdue: dueCount });
+        
+        // Check for streak at risk (streak > 3 days and due today)
+        const atRisk = data.ritualStreaks.some(s => s.currentStreak >= 3 && s.dueToday);
+        if (atRisk) {
+          engagementTriggerUI.updateBadges({ streakAtRisk: true });
+        }
+      },
+      
+      onPredictionsUpdate: (predictions) => {
+        // Update predictions UI
+        const readyCount = predictions.filter(p => p.status === 'resolved').length;
+        engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
+        
+        // Update predictions panel
+        getPredictionsUI().update({
+          predictions,
+          accuracy: engagementService.calculateAccuracy(),
+          totalResolved: predictions.filter(p => p.status === 'resolved').length,
+          currentStreak: 0, // TODO: Calculate from prediction history
+        });
+      },
+      
+      onStreakMilestone: (streak) => {
+        // Celebrate streak milestones with warmth
+        celebrationsUI.warmthGlow({ intensity: 'warm' });
+        messageUI.show(`${streak.ritualName}: ${streak.count} day streak`, 'success', 3000);
+        delightService.haptic('medium');
+        presenceUI.bounce();
+      },
+    });
   }
 
   /**
@@ -1061,6 +1118,17 @@ class VoiceAIApp {
     // ✨ Try to process as music event (for avatar dancing)
     if (isMusicMessage(message)) {
       this.handleMusic(message);
+      return;
+    }
+
+    // 📊 Try to process as engagement update
+    if (engagementService.handleDataMessage(message)) {
+      return;
+    }
+
+    // 💬 Try to process as engagement trigger
+    if (isEngagementTriggerMessage(message)) {
+      this.handleEngagementTrigger(message);
       return;
     }
 
@@ -1219,6 +1287,38 @@ class VoiceAIApp {
       waveformUI.setMusicPlaying(false);
       
       console.log('[App] Music stopped');
+    }
+  }
+
+  /**
+   * Handle engagement triggers from the agent.
+   * These are natural conversation prompts about rituals, streaks, predictions.
+   */
+  private handleEngagementTrigger(event: EngagementTriggerEvent): void {
+    console.log('[App] Engagement trigger:', event.triggerType, event.message);
+
+    // Update badge state based on trigger type
+    switch (event.triggerType) {
+      case 'streak_due':
+        engagementTriggerUI.updateBadges({ ritualsdue: 1, streakAtRisk: event.priority === 'high' });
+        engagementTriggerUI.pulseEngagement();
+        break;
+      case 'streak_milestone':
+        // Show a warm acknowledgement
+        celebrationsUI.warmthGlow({ intensity: 'gentle' });
+        delightService.haptic('medium');
+        break;
+      case 'prediction_result':
+        engagementTriggerUI.updateBadges({ predictionsReady: 1 });
+        break;
+      case 'ritual_reminder':
+        engagementTriggerUI.pulseEngagement();
+        break;
+    }
+
+    // For high-priority triggers, show a subtle message
+    if (event.priority === 'high' && event.message) {
+      messageUI.show(event.message, 'info', 4000);
     }
   }
 

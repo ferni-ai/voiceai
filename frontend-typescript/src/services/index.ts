@@ -10,4 +10,5 @@ export * from './handoff.service.js';
 export * from './spotify.service.js';
 export * from './delight.service.js';
 export * from './mood.service.js';
+export * from './engagement.service.js';
 

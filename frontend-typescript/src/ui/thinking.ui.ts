@@ -16,6 +16,9 @@
  * - APPEAL: Curious, engaged expression
  */
 
+import { normalizeAgentId } from '../config/personas.js';
+import type { PersonaId } from '../types/persona.js';
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -28,17 +31,10 @@ let avatarContainer: HTMLElement | null = null;
 let curiousTiltAnimation: Animation | null = null;
 
 // Persona-specific thinking phrases - each character thinks differently!
-// Includes both canonical IDs and legacy aliases for backward compatibility
-const PERSONA_THINKING_MESSAGES: Record<string, string[]> = {
-  // Ferni - warm, encouraging, playful (canonical + legacy)
+// Uses canonical IDs only - normalization handles legacy aliases
+const PERSONA_THINKING_MESSAGES: Record<PersonaId, string[]> = {
+  // Ferni - warm, encouraging, playful
   'ferni': [
-    'Hmm, let me think...',
-    'Ooh, good one...',
-    'Let me ponder that...',
-    'Thinking...',
-    'Mulling it over...',
-  ],
-  'jack-b': [ // Legacy alias for ferni
     'Hmm, let me think...',
     'Ooh, good one...',
     'Let me ponder that...',
@@ -53,7 +49,7 @@ const PERSONA_THINKING_MESSAGES: Record<string, string[]> = {
     'Pondering wisely...',
     'Taking a moment...',
   ],
-  // Peter Lynch - energetic, practical
+  // Peter John - energetic, practical
   'peter-john': [
     'Great question...',
     'Let me dig into that...',
@@ -61,7 +57,7 @@ const PERSONA_THINKING_MESSAGES: Record<string, string[]> = {
     'Running the numbers...',
     'Thinking...',
   ],
-  // Alex Chen - thoughtful communicator (canonical + legacy)
+  // Alex Chen - thoughtful communicator
   'alex-chen': [
     'Let me think about how to say this...',
     'Considering your perspective...',
@@ -69,14 +65,7 @@ const PERSONA_THINKING_MESSAGES: Record<string, string[]> = {
     'Processing that...',
     'Finding the right words...',
   ],
-  'comm-specialist': [ // Legacy alias
-    'Let me think about how to say this...',
-    'Considering your perspective...',
-    'Hmm, thinking...',
-    'Processing that...',
-    'Finding the right words...',
-  ],
-  // Maya Santos - practical, organized (canonical + legacy)
+  // Maya Santos - practical, organized
   'maya-santos': [
     'Crunching the numbers...',
     'Let me think...',
@@ -84,22 +73,8 @@ const PERSONA_THINKING_MESSAGES: Record<string, string[]> = {
     'Working on it...',
     'Almost there...',
   ],
-  'spend-save': [ // Legacy alias
-    'Crunching the numbers...',
-    'Let me think...',
-    'Considering options...',
-    'Working on it...',
-    'Almost there...',
-  ],
-  // Jordan Taylor - creative, enthusiastic (canonical + legacy)
+  // Jordan Taylor - creative, enthusiastic
   'jordan-taylor': [
-    'Ooh, let me think...',
-    'So many ideas...',
-    'Brainstorming...',
-    'Just a moment...',
-    'Getting creative...',
-  ],
-  'event-planner': [ // Legacy alias
     'Ooh, let me think...',
     'So many ideas...',
     'Brainstorming...',
@@ -226,7 +201,9 @@ export function setPersona(personaId: string): void {
  * Get thinking messages for current persona
  */
 function getThinkingMessages(): string[] {
-  return PERSONA_THINKING_MESSAGES[currentPersonaId] ?? DEFAULT_THINKING_MESSAGES;
+  // Normalize the persona ID to handle legacy aliases
+  const normalizedId = normalizeAgentId(currentPersonaId);
+  return PERSONA_THINKING_MESSAGES[normalizedId] ?? DEFAULT_THINKING_MESSAGES;
 }
 
 // ============================================================================

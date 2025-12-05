@@ -460,6 +460,89 @@ export function isExpressionMessage(data: unknown): data is ExpressionEvent {
 }
 
 // ============================================================================
+// ENGAGEMENT EVENTS (from agent - streaks, rituals, predictions)
+// ============================================================================
+
+/**
+ * Engagement data event fired by the agent to update frontend.
+ * Contains ritual streaks, emotional weather, and engagement stats.
+ */
+export interface EngagementEvent {
+  readonly type: 'engagement';
+  readonly ritualStreaks: Array<{
+    ritualId: string;
+    ritualName: string;
+    personaId: string;
+    currentStreak: number;
+    longestStreak: number;
+    lastCompletedAt: string | null;
+    dueToday: boolean;
+  }>;
+  readonly weatherHistory: Array<{
+    primary: 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'rainbow';
+    energy: 'high' | 'medium' | 'low';
+    note?: string;
+    recordedAt: string;
+  }>;
+  readonly stats: {
+    totalRitualDays: number;
+    longestOverallStreak: number;
+    currentActiveStreaks: number;
+    predictionAccuracy?: number;
+    teamHuddlesAttended: number;
+  };
+  readonly predictions?: Array<{
+    id: string;
+    category: string;
+    question: string;
+    userPrediction: number;
+    actualOutcome?: number;
+    status: 'pending' | 'resolved';
+    createdAt: string;
+  }>;
+  readonly message?: string;
+  readonly timestamp: number;
+}
+
+/**
+ * Type guard for engagement messages.
+ */
+export function isEngagementMessage(data: unknown): data is EngagementEvent {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as Record<string, unknown>)['type'] === 'engagement'
+  );
+}
+
+/**
+ * Engagement trigger event - prompts for engagement-related conversation.
+ * Sent by agents to naturally introduce engagement topics.
+ */
+export interface EngagementTriggerEvent {
+  readonly type: 'engagement_trigger';
+  readonly triggerType: 'streak_due' | 'streak_milestone' | 'prediction_result' | 'team_suggestion' | 'ritual_reminder' | 'weather_check';
+  readonly personaId: string;
+  readonly message: string;
+  readonly priority: 'low' | 'medium' | 'high';
+  readonly data?: Record<string, unknown>;
+  readonly timestamp: number;
+}
+
+/**
+ * Type guard for engagement trigger messages.
+ */
+export function isEngagementTriggerMessage(data: unknown): data is EngagementTriggerEvent {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as Record<string, unknown>)['type'] === 'engagement_trigger'
+  );
+}
+
+// ============================================================================
 // AGGREGATED EVENT TYPES
 // ============================================================================
 
@@ -475,7 +558,9 @@ export type AppEvent =
   | MessageEvent
   | EmotionEvent
   | CelebrationEvent
-  | ExpressionEvent;
+  | ExpressionEvent
+  | EngagementEvent
+  | EngagementTriggerEvent;
 
 /**
  * Event type discriminator.

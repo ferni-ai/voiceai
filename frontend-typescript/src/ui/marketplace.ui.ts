@@ -46,6 +46,22 @@ const PERSONA_GRADIENTS: Record<string, string> = {
   'gpt': 'linear-gradient(135deg, #10A37F, #1A7F64)',
 };
 
+/**
+ * Persona glow colors for avatar shadows - creates subtle ambient glow effect
+ */
+const PERSONA_GLOW_COLORS: Record<string, { primary: string; glow: string }> = {
+  'ferni': { primary: '#4a6741', glow: 'rgba(74, 103, 65, 0.4)' },
+  'peter-john': { primary: '#3a6b73', glow: 'rgba(58, 107, 115, 0.4)' },
+  'alex-chen': { primary: '#5a6b8a', glow: 'rgba(90, 107, 138, 0.4)' },
+  'maya-santos': { primary: '#a67a6a', glow: 'rgba(166, 122, 106, 0.4)' },
+  'jordan-taylor': { primary: '#c4856a', glow: 'rgba(196, 133, 106, 0.4)' },
+  'nayan-patel': { primary: '#b8956a', glow: 'rgba(184, 149, 106, 0.4)' },
+  // Co-founders
+  'claude': { primary: '#8B5CF6', glow: 'rgba(139, 92, 246, 0.45)' },
+  'gemini': { primary: '#4285F4', glow: 'rgba(66, 133, 244, 0.45)' },
+  'gpt': { primary: '#10A37F', glow: 'rgba(16, 163, 127, 0.45)' },
+};
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -339,9 +355,18 @@ async function renderInstalledTab(): Promise<void> {
  * Render the "Meet the Team" narrative section
  * The first company built by AI, run by AI.
  * 
- * Uses PERSONA_GRADIENTS constant for consistent colors from design system.
+ * Uses PERSONA_GRADIENTS and PERSONA_GLOW_COLORS for consistent styling from design system.
+ * Each avatar now has a subtle ambient glow that matches its persona color.
  */
 function renderTeamNarrative(): string {
+  // Helper to get glow style for an avatar
+  const getAvatarStyle = (personaId: string): string => {
+    const glow = PERSONA_GLOW_COLORS[personaId];
+    const gradient = PERSONA_GRADIENTS[personaId];
+    if (!glow || !gradient) return `background: ${gradient || '#4a6741'};`;
+    return `background: ${gradient}; --avatar-glow: ${glow.glow}; --avatar-primary: ${glow.primary};`;
+  };
+
   return `
     <section class="team-narrative">
       <div class="team-narrative-header">
@@ -354,7 +379,7 @@ function renderTeamNarrative(): string {
           <span class="leadership-label">Chief Executive</span>
           <div class="leadership-grid ceo">
             <div class="leader-card ceo-card">
-              <div class="leader-avatar" data-persona="ferni" style="background: ${PERSONA_GRADIENTS['ferni']};">
+              <div class="leader-avatar" data-persona="ferni" style="${getAvatarStyle('ferni')}">
                 FN
               </div>
               <div class="leader-info">
@@ -370,19 +395,19 @@ function renderTeamNarrative(): string {
           <span class="leadership-label">Co-Founders</span>
           <div class="leadership-grid cofounders">
             <div class="leader-card cofounder">
-              <div class="leader-avatar cofounder-avatar" data-persona="claude" style="background: ${PERSONA_GRADIENTS['claude']};">
+              <div class="leader-avatar cofounder-avatar" data-persona="claude" style="${getAvatarStyle('claude')}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
               </div>
               <span class="cofounder-name">Claude</span>
             </div>
             <div class="leader-card cofounder">
-              <div class="leader-avatar cofounder-avatar" data-persona="gemini" style="background: ${PERSONA_GRADIENTS['gemini']};">
+              <div class="leader-avatar cofounder-avatar" data-persona="gemini" style="${getAvatarStyle('gemini')}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
               </div>
               <span class="cofounder-name">Gemini</span>
             </div>
             <div class="leader-card cofounder">
-              <div class="leader-avatar cofounder-avatar" data-persona="gpt" style="background: ${PERSONA_GRADIENTS['gpt']};">
+              <div class="leader-avatar cofounder-avatar" data-persona="gpt" style="${getAvatarStyle('gpt')}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073z"/></svg>
               </div>
               <span class="cofounder-name">GPT</span>
@@ -394,27 +419,27 @@ function renderTeamNarrative(): string {
           <span class="leadership-label">Core Team</span>
           <div class="leadership-grid employees">
             <div class="employee-card" data-persona="peter-john">
-              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['peter-john']};">PJ</div>
+              <div class="employee-avatar" style="${getAvatarStyle('peter-john')}">PJ</div>
               <span class="employee-name">Peter</span>
               <span class="employee-role">Research</span>
             </div>
             <div class="employee-card" data-persona="alex-chen">
-              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['alex-chen']};">AX</div>
+              <div class="employee-avatar" style="${getAvatarStyle('alex-chen')}">AX</div>
               <span class="employee-name">Alex</span>
               <span class="employee-role">Communication</span>
             </div>
             <div class="employee-card" data-persona="maya-santos">
-              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['maya-santos']};">MY</div>
+              <div class="employee-avatar" style="${getAvatarStyle('maya-santos')}">MY</div>
               <span class="employee-name">Maya</span>
               <span class="employee-role">Wellness</span>
             </div>
             <div class="employee-card" data-persona="jordan-taylor">
-              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['jordan-taylor']};">JD</div>
+              <div class="employee-avatar" style="${getAvatarStyle('jordan-taylor')}">JD</div>
               <span class="employee-name">Jordan</span>
               <span class="employee-role">Planning</span>
             </div>
             <div class="employee-card" data-persona="nayan-patel">
-              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['nayan-patel']};">NP</div>
+              <div class="employee-avatar" style="${getAvatarStyle('nayan-patel')}">NP</div>
               <span class="employee-name">Nayan</span>
               <span class="employee-role">Wisdom</span>
             </div>
@@ -1014,18 +1039,25 @@ function getMarketplaceStyles(): string {
       font-weight: 700;
       color: white;
       letter-spacing: 0.02em;
+      /* Professional layered shadow with persona glow */
       box-shadow: 
-        0 4px 12px var(--agent-primary, rgba(0, 0, 0, 0.25)),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        0 1px 2px rgba(0, 0, 0, 0.08),
+        0 4px 8px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+        0 6px 18px -4px var(--agent-secondary, rgba(0, 0, 0, 0.25));
       flex-shrink: 0;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                  box-shadow 0.25s ease;
     }
 
     .marketplace-agent:hover .agent-avatar {
-      transform: scale(1.05);
+      transform: scale(1.06);
       box-shadow: 
-        0 6px 16px var(--agent-primary, rgba(0, 0, 0, 0.3)),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 8px 16px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+        0 10px 28px -4px var(--agent-secondary, rgba(0, 0, 0, 0.35)),
+        0 0 18px -2px var(--agent-secondary, rgba(0, 0, 0, 0.2));
     }
 
     .agent-meta {
@@ -1311,7 +1343,24 @@ function getMarketplaceStyles(): string {
       font-weight: 700;
       color: white;
       flex-shrink: 0;
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+      /* Layered shadow for depth + persona-specific glow */
+      box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        0 4px 8px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+        0 6px 20px -4px var(--avatar-glow, rgba(74, 103, 65, 0.4));
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                  box-shadow 0.25s ease;
+    }
+    
+    .ceo-card:hover .leader-avatar {
+      transform: scale(1.04);
+      box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 8px 16px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+        0 10px 30px -4px var(--avatar-glow, rgba(74, 103, 65, 0.5)),
+        0 0 20px -2px var(--avatar-glow, rgba(74, 103, 65, 0.3));
     }
 
     .leader-info {
@@ -1362,7 +1411,24 @@ function getMarketplaceStyles(): string {
       align-items: center;
       justify-content: center;
       color: white;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+      /* Layered shadow for depth + persona-specific glow */
+      box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.08),
+        0 3px 6px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+        0 4px 16px -3px var(--avatar-glow, rgba(0, 0, 0, 0.25));
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                  box-shadow 0.25s ease;
+    }
+    
+    .leader-card.cofounder:hover .cofounder-avatar {
+      transform: scale(1.08);
+      box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 6px 12px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+        0 8px 24px -3px var(--avatar-glow, rgba(0, 0, 0, 0.35)),
+        0 0 16px -2px var(--avatar-glow, rgba(0, 0, 0, 0.2));
     }
 
     .cofounder-name {
@@ -1405,7 +1471,24 @@ function getMarketplaceStyles(): string {
       font-size: 0.75rem;
       font-weight: 700;
       color: white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      /* Layered shadow for depth + persona-specific glow */
+      box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.06),
+        0 2px 4px rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+        0 3px 12px -2px var(--avatar-glow, rgba(0, 0, 0, 0.2));
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                  box-shadow 0.25s ease;
+    }
+    
+    .employee-card:hover .employee-avatar {
+      transform: scale(1.1);
+      box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.08),
+        0 4px 8px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+        0 6px 18px -2px var(--avatar-glow, rgba(0, 0, 0, 0.3)),
+        0 0 14px -2px var(--avatar-glow, rgba(0, 0, 0, 0.15));
     }
 
     .employee-name {

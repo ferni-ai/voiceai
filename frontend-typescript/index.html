@@ -249,20 +249,20 @@
       --persona-bg-tint: rgba(74, 103, 65, 0.08);
     }
     
-    /* Jack Bogle - Warm Cedar (trusted mentor, wisdom) */
-    [data-persona="jack-bogle"] {
-      --persona-primary: #9a7b5a;
-      --persona-secondary: #7d6348;
-      --persona-glow: rgba(154, 123, 90, 0.32);
-      --persona-bg-tint: rgba(154, 123, 90, 0.08);
-    }
-    
-    /* Peter Lynch - Ocean Teal (research, discovery, depth) */
-    [data-persona="peter-lynch"] {
+    /* Peter John - Ocean Teal (research, discovery, insights) */
+    [data-persona="peter-john"] {
       --persona-primary: #3a6b73;
       --persona-secondary: #2d5359;
       --persona-glow: rgba(58, 107, 115, 0.32);
       --persona-bg-tint: rgba(58, 107, 115, 0.08);
+    }
+    
+    /* Nayan Patel - Golden Amber (wisdom, long-term thinking) */
+    [data-persona="nayan-patel"] {
+      --persona-primary: #b8956a;
+      --persona-secondary: #9a7a52;
+      --persona-glow: rgba(184, 149, 106, 0.35);
+      --persona-bg-tint: rgba(184, 149, 106, 0.08);
     }
     
     /* Alex - Soft Indigo (clear communication, flow) */
@@ -498,14 +498,14 @@
       --member-color: var(--color-ferni, #4a6741);
     }
     
-    [data-theme="zen"] .team-member[data-persona-id="jack-bogle"]:hover,
-    [data-theme="zen"] .team-member[data-persona-id="jack-bogle"].active {
-      --member-color: var(--color-jack, #9a7b5a);
+    [data-theme="zen"] .team-member[data-persona-id="peter-john"]:hover,
+    [data-theme="zen"] .team-member[data-persona-id="peter-john"].active {
+      --member-color: var(--color-peter, #3a6b73);
     }
     
-    [data-theme="zen"] .team-member[data-persona-id="peter-lynch"]:hover,
-    [data-theme="zen"] .team-member[data-persona-id="peter-lynch"].active {
-      --member-color: var(--color-peter, #3a6b73);
+    [data-theme="zen"] .team-member[data-persona-id="nayan-patel"]:hover,
+    [data-theme="zen"] .team-member[data-persona-id="nayan-patel"].active {
+      --member-color: var(--color-nayan, #b8956a);
     }
     
     [data-theme="zen"] .team-member[data-persona-id="alex-chen"]:hover,
@@ -593,14 +593,14 @@
       background: linear-gradient(145deg, var(--color-ferni, #4a6741) 0%, var(--color-ferni-secondary, #3d5a35) 100%);
     }
     
-    /* Jack Bogle - Warm Cedar Brown (trusted, timeless, substantial) */
-    [data-theme="zen"][data-persona="jack-bogle"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-jack, #9a7b5a) 0%, var(--color-jack-secondary, #7d6348) 100%);
+    /* Peter John - Deep Teal (curious, research, insights) */
+    [data-theme="zen"][data-persona="peter-john"] .btn-primary {
+      background: linear-gradient(145deg, var(--color-peter, #3a6b73) 0%, var(--color-peter-secondary, #2d5359) 100%);
     }
     
-    /* Peter Lynch - Deep Teal (curious, exploratory, insightful) */
-    [data-theme="zen"][data-persona="peter-lynch"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-peter, #3a6b73) 0%, var(--color-peter-secondary, #2d5359) 100%);
+    /* Nayan Patel - Golden Amber (wisdom, long-term thinking) */
+    [data-theme="zen"][data-persona="nayan-patel"] .btn-primary {
+      background: linear-gradient(145deg, var(--color-nayan, #b8956a) 0%, var(--color-nayan-secondary, #9a7a52) 100%);
     }
     
     /* Alex Chen - Slate Blue (thoughtful, communicative, balanced) */
@@ -2445,11 +2445,11 @@
     }
     
     /* Persona-specific thinking speeds */
-    [data-persona="jack-bogle"] #coach.is-thinking #avatarRing {
-      animation-duration: 2.5s; /* Wise, measured */
+    [data-persona="nayan-patel"] #coach.is-thinking #avatarRing {
+      animation-duration: 2.5s; /* Wise, measured - contemplative pace */
     }
-    [data-persona="peter-lynch"] #coach.is-thinking #avatarRing {
-      animation-duration: 1.5s; /* Energetic */
+    [data-persona="peter-john"] #coach.is-thinking #avatarRing {
+      animation-duration: 1.5s; /* Energetic - research enthusiasm */
     }
 
     /* Persona transition - playful bounce entrance */
@@ -3416,14 +3416,14 @@
       background: linear-gradient(145deg, var(--color-ferni-secondary, #3d5a35) 0%, var(--color-ferni, #4a6741) 50%, #5a7751 100%) !important;
     }
     
-    /* Jack Bogle - Warm Cedar Brown */
-    [data-persona="jack-bogle"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-jack-secondary, #7d6348) 0%, var(--color-jack, #9a7b5a) 50%, #aa8b6a 100%) !important;
+    /* Peter John - Deep Teal (research, insights) */
+    [data-persona="peter-john"] .btn-primary {
+      background: linear-gradient(145deg, var(--color-peter-secondary, #2d5359) 0%, var(--color-peter, #3a6b73) 50%, #4a7b83 100%) !important;
     }
     
-    /* Peter Lynch - Deep Teal */
-    [data-persona="peter-lynch"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-peter-secondary, #2d5359) 0%, var(--color-peter, #3a6b73) 50%, #4a7b83 100%) !important;
+    /* Nayan Patel - Golden Amber (wisdom) */
+    [data-persona="nayan-patel"] .btn-primary {
+      background: linear-gradient(145deg, var(--color-nayan-secondary, #9a7a52) 0%, var(--color-nayan, #b8956a) 50%, #c8a57a 100%) !important;
     }
     
     /* Alex Chen - Slate Blue */
@@ -3838,12 +3838,11 @@
 
     /* Persona-specific colors (canonical IDs) */
     .team-member[data-persona-id="ferni"] { --member-color: #4a6741; }  /* Deep sage - grounding leader */
-    .team-member[data-persona-id="jack-bogle"] { --member-color: #9a7b5a; }  /* Warm cedar - trusted mentor */
-    .team-member[data-persona-id="peter-lynch"] { --member-color: #3a6b73; }  /* Ocean teal - research */
     .team-member[data-persona-id="alex-chen"] { --member-color: #5a6b8a; }  /* Soft indigo - communication */
-    .team-member[data-persona-id="maya-santos"] { --member-color: #a67a6a; }  /* Dusty terracotta - nurturing */
     .team-member[data-persona-id="jordan-taylor"] { --member-color: #c4856a; }  /* Warm sunset - celebration */
+    .team-member[data-persona-id="maya-santos"] { --member-color: #a67a6a; }  /* Dusty terracotta - nurturing */
     .team-member[data-persona-id="nayan-patel"] { --member-color: #b8956a; }  /* Golden amber - wisdom */
+    .team-member[data-persona-id="peter-john"] { --member-color: #3a6b73; }  /* Ocean teal - research */
     
     /* Marketplace button - Add more agents */
     .team-member--marketplace {
@@ -6185,20 +6184,11 @@
           
           <span class="team-divider"></span>
           
-          <!-- Jack Bogle - Sage & Personal Mentor -->
-          <div class="team-member" data-persona-id="jack-bogle" role="button" tabindex="0" aria-label="Talk to Jack Bogle">
+          <!-- Peter John - Research & Insights -->
+          <div class="team-member" data-persona-id="peter-john" role="button" tabindex="0" aria-label="Talk to Peter">
             <div class="team-avatar-container">
             <div class="team-avatar-ring"></div>
-            <div class="team-avatar" style="--persona-gradient: linear-gradient(135deg, #7d6348, #9a7b5a);">JB</div>
-            </div>
-            <span class="team-name">Jack</span>
-          </div>
-          
-          <!-- Peter Lynch - Investment & Research -->
-          <div class="team-member" data-persona-id="peter-lynch" role="button" tabindex="0" aria-label="Talk to Peter Lynch">
-            <div class="team-avatar-container">
-            <div class="team-avatar-ring"></div>
-            <div class="team-avatar" style="--persona-gradient: linear-gradient(135deg, #2d5359, #3a6b73);">PL</div>
+            <div class="team-avatar" style="--persona-gradient: linear-gradient(135deg, #2d5359, #3a6b73);">PJ</div>
             </div>
             <span class="team-name">Peter</span>
           </div>

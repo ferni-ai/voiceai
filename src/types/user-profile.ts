@@ -780,6 +780,74 @@ export interface UserProfile {
     lastUpdated: Date;
   };
 
+  // ============================================================================
+  // COGNITIVE INTELLIGENCE DATA
+  // ============================================================================
+
+  /**
+   * Cognitive intelligence data for personalized thinking adaptation.
+   * Tracks how the user thinks, what approaches work, and cognitive learning.
+   */
+  cognitiveIntelligence?: {
+    /** User's detected cognitive style */
+    detectedStyle: 'analytical' | 'emotional' | 'practical' | 'narrative' | 'systematic' | 'intuitive' | 'unknown';
+
+    /** Confidence in style detection (0-1) */
+    styleConfidence: number;
+
+    /** When style was last updated */
+    styleUpdatedAt: Date;
+
+    /** Effectiveness scores by approach per persona */
+    approachEffectiveness: Record<string, {
+      approach: 'analytical' | 'empathetic' | 'narrative' | 'systematic' | 'pragmatic' | 'intuitive';
+      totalScore: number;
+      sampleCount: number;
+      lastUsed: Date;
+    }[]>;
+
+    /** Topics user has demonstrated expertise in */
+    expertiseAreas: string[];
+
+    /** Topics user is learning */
+    noviceAreas: string[];
+
+    /** Topics that have been explained (don't re-explain) */
+    explainedTopics: Record<string, {
+      personaId: string;
+      level: 'introduced' | 'explained' | 'deep_dive';
+      lastExplained: Date;
+      revisits: number;
+    }>;
+
+    /** Concepts user has demonstrated understanding of */
+    demonstratedUnderstanding: string[];
+
+    /** Cognitive approach preferences by topic */
+    topicPreferences: Record<string, {
+      preferredApproach: string;
+      confidence: number;
+    }>;
+
+    /** Total cognitive interactions tracked */
+    totalInteractions: number;
+
+    /** Per-persona cognitive relationship data */
+    perPersonaCognitiveData?: Record<string, {
+      /** Effective approaches with this persona */
+      effectiveApproaches: string[];
+      /** Ineffective approaches with this persona */
+      ineffectiveApproaches: string[];
+      /** Topics explained by this persona */
+      explainedTopics: string[];
+      /** Relationship cognitive growth stage */
+      cognitiveGrowthStage: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
+    }>;
+
+    /** Last updated */
+    updatedAt: Date;
+  };
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;

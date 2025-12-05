@@ -5,15 +5,12 @@
  * Uses CSS custom properties from the design system.
  */
 
+import { type PersonaId, ALL_PERSONA_IDS } from '../types/persona.js';
+
 export type ThemeName = 'midnight' | 'zen';
-// Frontend persona IDs - using canonical IDs
-export type PersonaId =
-  | 'ferni'
-  | 'peter-john'
-  | 'alex-chen'
-  | 'maya-santos'
-  | 'jordan-taylor'
-  | 'nayan-patel';
+
+// Re-export PersonaId for consumers that import from theme
+export type { PersonaId };
 
 export interface ThemeMeta {
   name: string;
@@ -34,14 +31,10 @@ export const THEMES: Record<ThemeName, ThemeMeta> = {
   },
 };
 
-export const PERSONA_IDS: PersonaId[] = [
-  'ferni',
-  'peter-john',
-  'alex-chen',
-  'maya-santos',
-  'jordan-taylor',
-  'nayan-patel',
-];
+/**
+ * List of all persona IDs - derived from shared types, not hardcoded
+ */
+export const PERSONA_IDS: PersonaId[] = [...ALL_PERSONA_IDS];
 
 const STORAGE_KEY = 'voiceai-theme';
 

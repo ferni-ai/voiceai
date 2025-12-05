@@ -24,6 +24,10 @@ import { deprecationService } from '../tools/deprecation.js';
 import { versioningService } from '../tools/versioning.js';
 import { abTestingService } from '../tools/ab-testing.js';
 import { semanticRouter } from '../tools/semantic-router.js';
+import { recommendationEngine } from '../tools/recommendation-engine.js';
+import { autoOptimizer } from '../tools/auto-optimizer.js';
+import { patternAnalyzer } from '../tools/pattern-analyzer.js';
+import { feedbackCollector } from '../tools/feedback-collector.js';
 
 // ============================================================================
 // COLORS FOR CONSOLE OUTPUT
@@ -376,6 +380,398 @@ async function demonstrateSemanticRouting(query: string): Promise<void> {
 }
 
 // ============================================================================
+// ACTIVATE EXPERIMENT
+// ============================================================================
+
+async function activateExperiment(experimentId: string): Promise<void> {
+  console.log(color('\n🧪 ACTIVATING EXPERIMENT\n', 'bright'));
+  console.log(color('═'.repeat(60), 'dim'));
+
+  const experiment = abTestingService.getExperiments().find(e => e.id === experimentId);
+  
+  if (!experiment) {
+    console.log(color(`\n❌ Experiment "${experimentId}" not found.`, 'red'));
+    console.log(color('\nAvailable experiments:', 'dim'));
+    for (const exp of abTestingService.getExperiments()) {
+      console.log(`  • ${exp.id} - ${exp.name}`);
+    }
+    return;
+  }
+
+  if (experiment.active) {
+    console.log(color(`\n⚠️  Experiment "${experimentId}" is already active.`, 'yellow'));
+    return;
+  }
+
+  const success = abTestingService.activateExperiment(experimentId);
+  
+  if (success) {
+    console.log(color(`\n✅ Experiment "${experimentId}" activated!`, 'green'));
+    console.log(color('\n📋 EXPERIMENT DETAILS', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    console.log(`  Name:        ${experiment.name}`);
+    console.log(`  Description: ${experiment.description}`);
+    console.log(`  Variants:    ${[experiment.control, ...experiment.variants].map(v => v.name).join(', ')}`);
+    console.log(`  Metrics:     ${experiment.metrics.map(m => m.name).join(', ')}`);
+    console.log(color('\n💡 Users will now be randomly assigned to variants.', 'cyan'));
+  } else {
+    console.log(color(`\n❌ Failed to activate experiment.`, 'red'));
+  }
+
+  console.log(color('\n═'.repeat(60), 'dim'));
+}
+
+// ============================================================================
+// DEACTIVATE EXPERIMENT
+// ============================================================================
+
+async function deactivateExperiment(experimentId: string): Promise<void> {
+  console.log(color('\n🧪 DEACTIVATING EXPERIMENT\n', 'bright'));
+  console.log(color('═'.repeat(60), 'dim'));
+
+  const success = abTestingService.deactivateExperiment(experimentId);
+  
+  if (success) {
+    console.log(color(`\n✅ Experiment "${experimentId}" deactivated.`, 'green'));
+    
+    // Show results
+    const results = abTestingService.getResults(experimentId);
+    if (results && results.totalParticipants > 0) {
+      console.log(color('\n📊 FINAL RESULTS', 'bright'));
+      console.log(color('─'.repeat(40), 'dim'));
+      console.log(`  Total Participants: ${results.totalParticipants}`);
+      for (const rec of results.recommendations) {
+        console.log(`  ${rec}`);
+      }
+    }
+  } else {
+    console.log(color(`\n❌ Experiment "${experimentId}" not found or already inactive.`, 'red'));
+  }
+
+  console.log(color('\n═'.repeat(60), 'dim'));
+}
+
+// ============================================================================
+// BENCHMARK
+// ============================================================================
+
+async function runBenchmark(): Promise<void> {
+  console.log(color('\n⚡ TOOL SYSTEM BENCHMARK\n', 'bright'));
+  console.log(color('═'.repeat(60), 'dim'));
+
+  // Initialize registry
+  console.log(color('\n📊 Initializing...', 'cyan'));
+  const initStart = Date.now();
+  await initializeToolRegistry({ parallel: true });
+  const initTime = Date.now() - initStart;
+
+  const registryStats = toolRegistry.getStats();
+
+  console.log(color('\n📦 REGISTRY STATS', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log(`  Total Tools:      ${registryStats.totalTools}`);
+  console.log(`  Init Time:        ${color(initTime + 'ms', initTime < 1000 ? 'green' : 'yellow')}`);
+
+  // Benchmark semantic router
+  console.log(color('\n🎯 SEMANTIC ROUTER BENCHMARK', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+
+  const routerInitStart = Date.now();
+  await semanticRouter.initialize();
+  const routerInitTime = Date.now() - routerInitStart;
+  console.log(`  Router Init:      ${color(routerInitTime + 'ms', routerInitTime < 500 ? 'green' : 'yellow')}`);
+
+  // Test queries
+  const testQueries = [
+    'I need help with my budget',
+    'Play some relaxing music',
+    'Schedule a meeting for tomorrow',
+    'I am feeling stressed',
+    'Tell me about my goals',
+  ];
+
+  let totalQueryTime = 0;
+  for (const query of testQueries) {
+    const queryStart = Date.now();
+    semanticRouter.findRelevantTools(query);
+    const queryTime = Date.now() - queryStart;
+    totalQueryTime += queryTime;
+    console.log(`  Query "${query.slice(0, 30)}...": ${color(queryTime + 'ms', queryTime < 10 ? 'green' : 'yellow')}`);
+  }
+
+  const avgQueryTime = (totalQueryTime / testQueries.length).toFixed(1);
+  console.log(`  Average Query:    ${color(avgQueryTime + 'ms', parseFloat(avgQueryTime) < 10 ? 'green' : 'yellow')}`);
+
+  // Benchmark dynamic loader topic detection
+  console.log(color('\n🔄 DYNAMIC LOADER BENCHMARK', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+
+  const { DynamicToolLoader } = await import('../tools/dynamic-loader.js');
+  const loader = new DynamicToolLoader();
+
+  let totalDetectionTime = 0;
+  for (const query of testQueries) {
+    const detectStart = Date.now();
+    loader.detectTopics(query);
+    const detectTime = Date.now() - detectStart;
+    totalDetectionTime += detectTime;
+  }
+
+  const avgDetectionTime = (totalDetectionTime / testQueries.length).toFixed(2);
+  console.log(`  Topic Detection:  ${color(avgDetectionTime + 'ms', parseFloat(avgDetectionTime) < 1 ? 'green' : 'yellow')} avg`);
+
+  // Summary
+  console.log(color('\n📋 PERFORMANCE SUMMARY', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  
+  const totalTools = registryStats.totalTools;
+  const targetToolCount = 50;
+  const toolsPerAgent = Math.min(totalTools, targetToolCount);
+  
+  console.log(`  Tools Available:     ${totalTools}`);
+  console.log(`  Target Per Agent:    ${targetToolCount}`);
+  console.log(`  Registry Init:       ${initTime}ms`);
+  console.log(`  Router Init:         ${routerInitTime}ms`);
+  console.log(`  Avg Query Time:      ${avgQueryTime}ms`);
+  console.log(`  Avg Topic Detection: ${avgDetectionTime}ms`);
+
+  // Performance rating
+  const rating = 
+    initTime < 2000 && parseFloat(avgQueryTime) < 20 && parseFloat(avgDetectionTime) < 1
+      ? '🟢 EXCELLENT'
+      : initTime < 5000 && parseFloat(avgQueryTime) < 50
+        ? '🟡 GOOD'
+        : '🔴 NEEDS OPTIMIZATION';
+
+  console.log(`\n  Overall Rating:      ${color(rating, rating.includes('EXCELLENT') ? 'green' : rating.includes('GOOD') ? 'yellow' : 'red')}`);
+
+  console.log(color('\n═'.repeat(60), 'dim'));
+}
+
+// ============================================================================
+// HELP
+// ============================================================================
+
+// ============================================================================
+// RECOMMENDATIONS
+// ============================================================================
+
+async function generateRecommendations(): Promise<void> {
+  console.log(color('\n💡 TOOL RECOMMENDATIONS\n', 'bright'));
+  console.log(color('═'.repeat(60), 'dim'));
+
+  // Generate recommendations
+  console.log(color('\n📊 Analyzing data...', 'cyan'));
+  const recommendations = await recommendationEngine.generateRecommendations();
+
+  if (recommendations.length === 0) {
+    console.log(color('\n✅ No recommendations at this time.', 'green'));
+    console.log(color('   Need more usage data to generate recommendations.', 'dim'));
+    return;
+  }
+
+  // Show recommendations by type
+  const types = ['create_tool', 'consolidate_tools', 'deprecate_tool', 'improve_tool', 'run_experiment'];
+  
+  for (const type of types) {
+    const typeRecs = recommendations.filter(r => r.type === type);
+    if (typeRecs.length === 0) continue;
+
+    const icon = {
+      create_tool: '➕',
+      consolidate_tools: '🔗',
+      deprecate_tool: '🗑️',
+      improve_tool: '⬆️',
+      run_experiment: '🧪',
+    }[type] || '📋';
+
+    console.log(color(`\n${icon} ${type.toUpperCase().replace(/_/g, ' ')} (${typeRecs.length})`, 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+
+    for (const rec of typeRecs.slice(0, 3)) {
+      const priorityColor = {
+        critical: 'red',
+        high: 'yellow',
+        medium: 'cyan',
+        low: 'dim',
+      }[rec.priority] as keyof typeof colors;
+
+      console.log(`  ${color(`[${rec.priority.toUpperCase()}]`, priorityColor)} ${rec.title}`);
+      console.log(`    ${rec.description}`);
+      console.log(`    Rationale: ${rec.rationale}`);
+      console.log('');
+    }
+  }
+
+  // Summary
+  console.log(color('\n📊 SUMMARY', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log(`  Total Recommendations: ${recommendations.length}`);
+  console.log(`  Critical: ${recommendations.filter(r => r.priority === 'critical').length}`);
+  console.log(`  High:     ${recommendations.filter(r => r.priority === 'high').length}`);
+  console.log(`  Medium:   ${recommendations.filter(r => r.priority === 'medium').length}`);
+  console.log(`  Low:      ${recommendations.filter(r => r.priority === 'low').length}`);
+
+  console.log(color('\n═'.repeat(60), 'dim'));
+}
+
+// ============================================================================
+// OPTIMIZER STATUS
+// ============================================================================
+
+async function showOptimizerStatus(): Promise<void> {
+  console.log(color('\n🤖 AUTO OPTIMIZER STATUS\n', 'bright'));
+  console.log(color('═'.repeat(60), 'dim'));
+
+  const status = autoOptimizer.getStatus();
+  const report = autoOptimizer.getReport();
+
+  console.log(color('\n⚙️ CONFIGURATION', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log(`  Running:              ${status.isRunning ? color('✅ Yes', 'green') : color('❌ No', 'red')}`);
+  console.log(`  Auto Recommendations: ${status.config.enableAutoRecommendations ? '✅' : '❌'}`);
+  console.log(`  Auto Experiments:     ${status.config.enableAutoExperiments ? '✅' : '❌'}`);
+  console.log(`  Auto Implementation:  ${status.config.enableAutoImplementation ? '✅' : '❌'}`);
+  console.log(`  Min Data Points:      ${status.config.minDataPoints}`);
+  console.log(`  Analysis Interval:    ${status.config.analysisIntervalMs / 1000}s`);
+
+  console.log(color('\n📊 CURRENT METRICS', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log(`  Feedback Collected:   ${report.summary.feedbackCollected}`);
+  console.log(`  Patterns Identified:  ${report.summary.patternsIdentified}`);
+  console.log(`  Recommendations:      ${report.summary.recommendationsGenerated}`);
+  console.log(`  Active Experiments:   ${report.summary.experimentsRunning}`);
+  console.log(`  Optimization Cycles:  ${status.cycleCount}`);
+
+  if (report.activeExperiments.length > 0) {
+    console.log(color('\n🧪 ACTIVE EXPERIMENTS', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    for (const expId of report.activeExperiments) {
+      console.log(`  • ${expId}`);
+    }
+  }
+
+  if (report.recentChanges.length > 0) {
+    console.log(color('\n🚀 RECENT CHANGES', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    for (const change of report.recentChanges.slice(-5)) {
+      console.log(`  • ${change}`);
+    }
+  }
+
+  console.log(color('\n💡 COMMANDS', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log('  npm run tools:optimizer start     Start the optimizer');
+  console.log('  npm run tools:optimizer stop      Stop the optimizer');
+  console.log('  npm run tools:optimizer run       Run single optimization cycle');
+
+  console.log(color('\n═'.repeat(60), 'dim'));
+}
+
+// ============================================================================
+// PATTERNS
+// ============================================================================
+
+async function showPatterns(): Promise<void> {
+  console.log(color('\n🔍 INTERACTION PATTERNS\n', 'bright'));
+  console.log(color('═'.repeat(60), 'dim'));
+
+  // Co-occurrences
+  const coOccs = patternAnalyzer.getCoOccurrences(3);
+  if (coOccs.length > 0) {
+    console.log(color('\n🔗 TOOL CO-OCCURRENCES', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    for (const co of coOccs.slice(0, 5)) {
+      const bar = '█'.repeat(Math.ceil(co.correlation * 10));
+      console.log(`  ${co.toolA} ↔ ${co.toolB}`);
+      console.log(`    Count: ${co.count}, Correlation: ${color(`${(co.correlation * 100).toFixed(0)}%`, 'green')} ${color(bar, 'blue')}`);
+    }
+  }
+
+  // Sequences
+  const sequences = patternAnalyzer.discoverSequences(2, 4, 2);
+  if (sequences.length > 0) {
+    console.log(color('\n📍 COMMON SEQUENCES', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    for (const seq of sequences.slice(0, 5)) {
+      console.log(`  ${seq.sequence.join(' → ')}`);
+      console.log(`    Used ${seq.count} times, ${(seq.successRate * 100).toFixed(0)}% success`);
+    }
+  }
+
+  // Journeys
+  const journeys = patternAnalyzer.identifyJourneys();
+  if (journeys.length > 0) {
+    console.log(color('\n🚀 USER JOURNEYS', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    for (const journey of journeys.slice(0, 3)) {
+      console.log(`  ${journey.name}`);
+      console.log(`    Tools: ${journey.tools.join(' → ')}`);
+      console.log(`    Frequency: ${journey.frequency}, Success: ${(journey.avgSuccess * 100).toFixed(0)}%`);
+    }
+  }
+
+  // Consolidation opportunities
+  const consolidations = patternAnalyzer.findConsolidationOpportunities();
+  if (consolidations.length > 0) {
+    console.log(color('\n🔧 CONSOLIDATION OPPORTUNITIES', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    for (const opp of consolidations.slice(0, 3)) {
+      console.log(`  ${opp.tools.join(' + ')} → ${opp.suggestedName}`);
+      console.log(`    ${opp.reason}`);
+    }
+  }
+
+  if (coOccs.length === 0 && sequences.length === 0) {
+    console.log(color('\n⏳ Not enough data yet.', 'yellow'));
+    console.log(color('   Start using tools to collect interaction patterns.', 'dim'));
+  }
+
+  console.log(color('\n═'.repeat(60), 'dim'));
+}
+
+function showHelp(): void {
+  console.log(color('\n🔧 TOOL MANAGEMENT CLI\n', 'bright'));
+  console.log(color('═'.repeat(60), 'dim'));
+  
+  console.log(color('\n📋 ANALYTICS COMMANDS', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log('  npm run tools:report              Main analytics report');
+  console.log('  npm run tools:deprecation         Deprecation management');
+  console.log('  npm run tools:versions            Version changelog');
+  console.log('  npm run tools:benchmark           Performance benchmark');
+
+  console.log(color('\n🧪 EXPERIMENTATION', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log('  npm run tools:experiments         A/B testing status');
+  console.log('  npm run tools:activate <id>       Activate an experiment');
+  console.log('  npm run tools:deactivate <id>     Deactivate an experiment');
+
+  console.log(color('\n🤖 AUTO-OPTIMIZATION', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log('  npm run tools:recommendations     Get AI-generated recommendations');
+  console.log('  npm run tools:patterns            View interaction patterns');
+  console.log('  npm run tools:optimizer           Show optimizer status');
+  console.log('  npm run tools:optimizer start     Start auto-optimizer');
+  console.log('  npm run tools:optimizer run       Run single optimization cycle');
+
+  console.log(color('\n🎯 UTILITIES', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log('  npm run tools:route "query"       Semantic routing demo');
+  console.log('  npm run tools:help                Show this help');
+
+  console.log(color('\n🧪 AVAILABLE EXPERIMENTS', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  for (const exp of abTestingService.getExperiments()) {
+    const status = exp.active ? color('[ACTIVE]', 'green') : color('[INACTIVE]', 'dim');
+    console.log(`  ${exp.id} ${status}`);
+    console.log(`    ${exp.description}`);
+  }
+
+  console.log(color('\n═'.repeat(60), 'dim'));
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -399,6 +795,65 @@ async function main(): Promise<void> {
     case 'route':
       const query = args.slice(1).join(' ') || 'I need help managing my schedule and tasks';
       await demonstrateSemanticRouting(query);
+      break;
+    
+    case 'activate':
+      const activateId = args[1];
+      if (!activateId) {
+        console.log(color('\n❌ Please specify an experiment ID.', 'red'));
+        console.log('  Usage: npm run tools:activate <experiment-id>');
+        showHelp();
+      } else {
+        await activateExperiment(activateId);
+      }
+      break;
+    
+    case 'deactivate':
+      const deactivateId = args[1];
+      if (!deactivateId) {
+        console.log(color('\n❌ Please specify an experiment ID.', 'red'));
+        console.log('  Usage: npm run tools:deactivate <experiment-id>');
+      } else {
+        await deactivateExperiment(deactivateId);
+      }
+      break;
+    
+    case 'benchmark':
+      await runBenchmark();
+      break;
+    
+    case 'recommendations':
+    case 'recs':
+      await generateRecommendations();
+      break;
+    
+    case 'patterns':
+      await showPatterns();
+      break;
+    
+    case 'optimizer':
+      const optimizerCmd = args[1];
+      if (optimizerCmd === 'start') {
+        autoOptimizer.start();
+        console.log(color('\n✅ Auto-optimizer started!', 'green'));
+        console.log(color('   It will run optimization cycles automatically.', 'dim'));
+      } else if (optimizerCmd === 'stop') {
+        autoOptimizer.stop();
+        console.log(color('\n✅ Auto-optimizer stopped.', 'green'));
+      } else if (optimizerCmd === 'run') {
+        console.log(color('\n🔄 Running optimization cycle...', 'cyan'));
+        const cycle = await autoOptimizer.runOptimizationCycle();
+        console.log(color(`\n✅ Cycle completed in ${cycle.endTime ? ((cycle.endTime.getTime() - cycle.startTime.getTime()) / 1000).toFixed(1) : '?'}s`, 'green'));
+        console.log(`   Feedback: ${cycle.feedbackProcessed}, Patterns: ${cycle.patternsFound}, Recs: ${cycle.recommendationsCreated}`);
+      } else {
+        await showOptimizerStatus();
+      }
+      break;
+    
+    case 'help':
+    case '--help':
+    case '-h':
+      showHelp();
       break;
     
     case 'report':

@@ -1,6 +1,6 @@
 {
   "_generated": {
-    "timestamp": "2025-12-05T11:26:58.768Z",
+    "timestamp": "2025-12-05T12:00:58.218Z",
     "source": "scripts/generate-frontend-personas.ts",
     "version": "1.0.0"
   },
@@ -201,10 +201,10 @@
       "id": "jordan-taylor",
       "name": "Jordan Taylor",
       "initials": "JT",
-      "subtitle": "Lifetime planning",
+      "subtitle": "Life milestones & planning",
       "role": "team",
       "description": "Your lifetime planning partner - from daily moments to decade milestones, Jordan helps you envision, plan, and celebrate every chapter of your life journey.",
-      "helperText": "Lifetime planning",
+      "helperText": "Life milestones & planning",
       "skills": [
         {
           "icon": "",
@@ -576,10 +576,10 @@
       "id": "nayan-patel",
       "name": "Nayan",
       "initials": "NA",
-      "subtitle": "The wise sage who brings timeless wisdom to life's biggest questions—where inner peace meets compound interest, where spiritual depth meets practical action",
+      "subtitle": "Wisdom & long-term thinking",
       "role": "team",
       "description": "Your lifetime advisor. Combines the patience of Bogle, the simplicity of Gandhi, the wit of Buffett, and the poetic wisdom of Aida Mitsuo. Mystic who rides motorcycles and understands compound interest—both financial and spiritual.",
-      "helperText": "The wise sage who brings timeless wisdom to life's biggest questions—where inner peace meets compound interest, where spiritual depth meets practical action",
+      "helperText": "Wisdom & long-term thinking",
       "skills": [
         {
           "icon": "",
@@ -672,10 +672,10 @@
       "id": "peter-john",
       "name": "Peter John",
       "initials": "PJ",
-      "subtitle": "The Quant",
+      "subtitle": "Research & insights",
       "role": "team",
       "description": "The Quant of the team - a legendary analytical mind who synthesizes insights across all domains. From market patterns to spending behaviors, life milestones to daily habits, Peter finds the signal in the noise and delivers insights that drive action.",
-      "helperText": "The Quant",
+      "helperText": "Research & insights",
       "skills": [
         {
           "icon": "",

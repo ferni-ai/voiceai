@@ -11,226 +11,252 @@
  * GENERATED DATA: Run `npm run generate:personas` to create:
  *   frontend-typescript/src/config/personas.generated.json
  * 
- * This file (personas.ts) contains:
+ * This file imports from the generated JSON and enhances with:
  *   - UI-specific configs (colors, theme classes, sound effects)
- *   - Display settings not in manifest (quotes formatting, skill icons)
+ *   - Display settings (quotes formatting, skill icons)
  * 
- * The generated JSON contains core persona data (names, descriptions,
- * domains, handoff triggers, traits) pulled from bundle manifests.
- * 
- * CANONICAL IDs (core team):
+ * CANONICAL IDs (core team) - discovered from manifests, not hardcoded:
  * - ferni (Life Coach / Coordinator)
  * - peter-john (Research & Discovery / The Quant)
  * - alex-chen (Communications & Coaching)
  * - maya-santos (Habits & Routines)
  * - jordan-taylor (Lifetime Planning)
  * - nayan-patel (Lifetime Advisor / Sage)
- *
- * NOTE: Jack Bogle is a marketplace agent, not core team.
  */
 
-import type { PersonaConfig, PersonaRegistry, PersonaId } from '../types/persona.js';
-import { LEGACY_TO_CANONICAL_MAP } from '../types/persona.js';
-import { SOUND_EFFECTS } from './index.js';
+import type { PersonaConfig, PersonaRegistry, PersonaId, PersonaSkill } from '../types/persona.js';
+import { isValidPersonaId } from '../types/persona.js';
 import { getPersonaColorConfig } from './persona-colors.js';
+import generatedData from './personas.generated.json' with { type: 'json' };
 
 // ============================================================================
-// FERNI (THE COACH)
+// TYPES FOR GENERATED DATA
 // ============================================================================
 
-const FERNI: PersonaConfig = {
-  id: 'ferni',
-  name: 'Ferni',
-  initials: 'FN',
-  subtitle: 'Life Coach (Coordinator)',
-  role: 'coach',
-  quotes: [
+interface GeneratedPersona {
+  id: string;
+  name: string;
+  initials: string;
+  subtitle: string;
+  role: 'coach' | 'team';
+  description: string;
+  helperText: string;
+  skills: Array<{ icon: string; name: string }>;
+  entrancePhrase: string;
+  quotes: string[];
+  traits: string[];
+  domains: string[];
+  handoffTriggers: string[];
+  transition: {
+    style: 'standard' | 'dramatic' | 'subtle' | 'warm';
+    emoji: string;
+    sound: string;
+    delayMultiplier: number;
+  };
+}
+
+interface GeneratedConfig {
+  _generated: {
+    timestamp: string;
+    source: string;
+    version: string;
+  };
+  personas: Record<string, GeneratedPersona>;
+  teamOrder: string[];
+  coordinatorId: string;
+}
+
+// ============================================================================
+// UI-SPECIFIC SKILL ICONS (not in manifests)
+// These are display-only icons for the team UI
+// ============================================================================
+
+const SKILL_ICONS: Record<string, Record<string, string>> = {
+  'ferni': {
+    'Strategy': '🎯',
+    'Guidance': '🧭',
+    'Coordination': '🤝',
+  },
+  'peter-john': {
+    'Research': '🔬',
+    'Growth': '📈',
+    'Companies': '🏢',
+    'Insights': '💡',
+  },
+  'alex-chen': {
+    'Email': '📧',
+    'Calendar': '📅',
+    'Calls': '📞',
+    'Messages': '💬',
+  },
+  'maya-santos': {
+    'Spending': '💳',
+    'Saving': '🐷',
+    'Budgets': '📊',
+    'Habits': '🌱',
+    'Goals': '🎯',
+  },
+  'jordan-taylor': {
+    'Goals': '🎯',
+    'Milestones': '🏆',
+    'Planning': '📋',
+    'Retirement': '🏖️',
+  },
+  'nayan-patel': {
+    'Wisdom': '🧘',
+    'Long-term': '⏳',
+    'Patience': '🍃',
+    'Simplicity': '☯️',
+  },
+};
+
+// ============================================================================
+// UI-SPECIFIC QUOTES (curated for display)
+// Generated quotes may contain SSML, these are clean for UI display
+// ============================================================================
+
+const DISPLAY_QUOTES: Partial<Record<string, readonly string[]>> = {
+  'ferni': [
     '"The best investment you can make is in yourself."',
     '"Stay curious, keep learning, keep growing."',
     '"Financial freedom is built one decision at a time."',
     '"Let\'s make your money work as hard as you do."',
     '"The journey to wealth starts with a single step."',
   ],
-  helperText: 'Asks the questions that unlock insight',
-  themeClass: 'persona-ferni',
-  colors: getPersonaColorConfig('ferni'),
-  skills: [
-    { icon: '', name: 'Strategy' },
-    { icon: '', name: 'Guidance' },
-    { icon: '', name: 'Coordination' },
-  ],
-  entrancePhrase: "Hey! Ferni here. Let's make some moves.",
-  handoffSound: 'connect', // Coach returns use connect sound (welcoming back)
-} as const;
-
-// ============================================================================
-// PETER LYNCH (TEAM MEMBER) - Stock Analysis
-// ============================================================================
-
-const PETER_JOHN: PersonaConfig = {
-  id: 'peter-john',
-  name: 'Peter',
-  initials: 'PJ',
-  subtitle: 'Research & Discovery',
-  role: 'team',
-  quotes: [
+  'peter-john': [
     '"Invest in what you know."',
     '"Know what you own, and know why you own it."',
     '"The person that turns over the most rocks wins the game."',
     '"Behind every stock is a company. Find out what it\'s doing."',
     '"Research is research—the same skills work for stocks, jobs, or buying a house."',
   ],
-  helperText: 'Spots patterns nobody else sees',
-  themeClass: 'persona-peter-john',
-  colors: getPersonaColorConfig('peter-john'),
-  skills: [
-    { icon: '', name: 'Research' },
-    { icon: '', name: 'Growth' },
-    { icon: '', name: 'Companies' },
-  ],
-  entrancePhrase: "Peter here. Let's find some ten-baggers!",
-  handoffSound: SOUND_EFFECTS.HANDOFF_TO_PETER,
-} as const;
-
-// ============================================================================
-// ALEX CHEN (TEAM MEMBER) - Communication Specialist
-// ============================================================================
-
-const ALEX_CHEN: PersonaConfig = {
-  id: 'alex-chen',
-  name: 'Alex',
-  initials: 'AX',
-  subtitle: 'Communication & Coordination',
-  role: 'team',
-  quotes: [
+  'alex-chen': [
     '"Clear communication is the bridge between confusion and clarity."',
     '"I\'ll handle the details so you can focus on what matters."',
     '"Consider it scheduled, sent, and sorted."',
     '"Your time is valuable—let me manage the logistics."',
     '"One message at a time, we\'ll keep everything on track."',
   ],
-  helperText: 'Your Chief of Staff',
-  themeClass: 'persona-alex-chen',
-  colors: getPersonaColorConfig('alex-chen'),
-  skills: [
-    { icon: '', name: 'Email' },
-    { icon: '', name: 'Calendar' },
-    { icon: '', name: 'Calls' },
-    { icon: '', name: 'Messages' },
-  ],
-  entrancePhrase: "Alex here! What do you need me to send, schedule, or call?",
-  handoffSound: SOUND_EFFECTS.HANDOFF_TO_ALEX,
-} as const;
-
-// ============================================================================
-// MAYA SANTOS (TEAM MEMBER) - Life Habits Coach
-// ============================================================================
-
-const MAYA_SANTOS: PersonaConfig = {
-  id: 'maya-santos',
-  name: 'Maya',
-  initials: 'MY',
-  subtitle: 'Habits & Routines',
-  role: 'team',
-  quotes: [
+  'maya-santos': [
     '"Every purchase is a choice—make it count."',
     '"Saving isn\'t sacrifice, it\'s future you saying thanks."',
     '"Small changes in spending lead to big changes in savings."',
     '"Know where your money goes, and you\'ll know where it grows."',
     '"Balance today\'s joy with tomorrow\'s security."',
   ],
-  helperText: 'Start embarrassingly small',
-  themeClass: 'persona-maya-santos',
-  colors: getPersonaColorConfig('maya-santos'),
-  skills: [
-    { icon: '', name: 'Spending' },
-    { icon: '', name: 'Saving' },
-    { icon: '', name: 'Budgets' },
-    { icon: '', name: 'Goals' },
-  ],
-  entrancePhrase: "Maya here! Let's make every dollar work smarter.",
-  handoffSound: SOUND_EFFECTS.HANDOFF_TO_MAYA,
-} as const;
-
-// ============================================================================
-// JORDAN TAYLOR (TEAM MEMBER) - Life Planning Coordinator
-// ============================================================================
-
-const JORDAN_TAYLOR: PersonaConfig = {
-  id: 'jordan-taylor',
-  name: 'Jordan',
-  initials: 'JD',
-  subtitle: 'Planning & Events',
-  role: 'team',
-  quotes: [
+  'jordan-taylor': [
     '"A goal without a plan is just a wish—let\'s make it real!"',
     '"First home, first baby, wedding, retirement—every milestone deserves amazing planning!"',
     '"Your life portfolio covers career, health, relationships, AND fun—let\'s balance it all!"',
     '"Team effort! Maya handles the budget, Alex schedules it, I plan the vision!"',
     '"Retirement isn\'t the end—it\'s the most exciting chapter yet!"',
   ],
-  helperText: 'Turns dreams into lived experiences',
-  themeClass: 'persona-jordan-taylor',
-  colors: getPersonaColorConfig('jordan-taylor'),
-  skills: [
-    { icon: '', name: 'Goals' },
-    { icon: '', name: 'Milestones' },
-    { icon: '', name: 'Planning' },
-    { icon: '', name: 'Retirement' },
-  ],
-  entrancePhrase: "Jordan here! What are we planning—a life goal, a milestone, retirement, or something amazing?",
-  handoffSound: SOUND_EFFECTS.HANDOFF_TO_JORDAN,
-} as const;
-
-// ============================================================================
-// NAYAN PATEL (TEAM MEMBER) - Lifetime Advisor
-// ============================================================================
-
-const NAYAN_PATEL: PersonaConfig = {
-  id: 'nayan-patel',
-  name: 'Nayan',
-  initials: 'NP',
-  subtitle: 'Sage & Mentor',
-  role: 'team',
-  quotes: [
+  'nayan-patel': [
     '"Stay the course—Bogle knew it, Gandhi lived it, Buffett still does."',
     '"Compound interest is the eighth wonder. Compound wisdom is the ninth."',
     '"The richest person is not the one with the most, but the one who needs the least."',
     '"Time in the market beats timing the market. Time in life beats rushing through life."',
     '"Where inner peace meets compound interest—that\'s where wealth truly begins."',
   ],
-  helperText: 'Patience, simplicity, and wit',
-  themeClass: 'persona-nayan-patel',
-  colors: getPersonaColorConfig('nayan-patel'),
-  skills: [
-    { icon: '', name: 'Wisdom' },
-    { icon: '', name: 'Long-term' },
-    { icon: '', name: 'Patience' },
-    { icon: '', name: 'Simplicity' },
-  ],
-  entrancePhrase: "Namaskaram. You see, when you need the long view... I am here.",
-  handoffSound: SOUND_EFFECTS.HANDOFF_TO_NAYAN,
-} as const;
+};
 
 // ============================================================================
-// PERSONA REGISTRY
+// BUILD PERSONAS FROM GENERATED DATA
+// ============================================================================
+
+const generated = generatedData as GeneratedConfig;
+
+/**
+ * Enhance skills with icons
+ */
+function enhanceSkills(personaId: string, skills: Array<{ icon: string; name: string }>): readonly PersonaSkill[] {
+  const icons = SKILL_ICONS[personaId] || {};
+  return skills.map(skill => ({
+    icon: icons[skill.name] || skill.icon || '✨',
+    name: skill.name,
+  }));
+}
+
+/**
+ * Build a PersonaConfig from generated data
+ */
+function buildPersonaConfig(gen: GeneratedPersona): PersonaConfig {
+  const id = gen.id as PersonaId;
+  
+  return {
+    id,
+    name: gen.name,
+    initials: gen.initials,
+    subtitle: gen.subtitle,
+    role: gen.role,
+    quotes: DISPLAY_QUOTES[id] || gen.quotes.map(q => `"${q.replace(/<[^>]*>/g, '').trim()}"`),
+    helperText: gen.helperText.split(' - ')[0] ?? gen.helperText, // Short version
+    themeClass: `persona-${id}`,
+    colors: getPersonaColorConfig(id),
+    skills: enhanceSkills(id, gen.skills),
+    entrancePhrase: gen.entrancePhrase,
+    handoffSound: gen.transition.sound,
+  };
+}
+
+/**
+ * Build the persona registry from generated data
+ */
+function buildPersonaRegistry(): PersonaRegistry {
+  const registry: Record<string, PersonaConfig> = {};
+  
+  for (const [id, gen] of Object.entries(generated.personas)) {
+    if (isValidPersonaId(id)) {
+      registry[id] = buildPersonaConfig(gen);
+    }
+  }
+  
+  return Object.freeze(registry) as PersonaRegistry;
+}
+
+// ============================================================================
+// PERSONA REGISTRY (built from generated data)
 // ============================================================================
 
 /**
  * Complete registry of all available personas using canonical IDs.
- * Frozen for immutability.
- * 
- * NOTE: Jack Bogle and Joel Dickson are NOT in core team - they are
- * available through the Agent Marketplace instead.
+ * Built from generated manifest data, frozen for immutability.
  */
-export const PERSONAS: PersonaRegistry = Object.freeze({
-  'ferni': FERNI,
-  'peter-john': PETER_JOHN,
-  'alex-chen': ALEX_CHEN,
-  'maya-santos': MAYA_SANTOS,
-  'jordan-taylor': JORDAN_TAYLOR,
-  'nayan-patel': NAYAN_PATEL,
-});
+export const PERSONAS: PersonaRegistry = buildPersonaRegistry();
+
+/**
+ * Coordinator ID from generated data
+ */
+export const COORDINATOR_ID: PersonaId = generated.coordinatorId as PersonaId;
+
+/**
+ * Team order from generated data
+ */
+export const TEAM_ORDER: readonly PersonaId[] = Object.freeze(
+  generated.teamOrder.filter(isValidPersonaId) as PersonaId[]
+);
+
+// ============================================================================
+// TRANSITION CONFIG (from generated data)
+// ============================================================================
+
+/**
+ * Get transition config for a persona (from generated manifest data)
+ */
+export function getTransitionConfig(personaId: PersonaId): {
+  style: 'standard' | 'dramatic' | 'subtle' | 'warm';
+  emoji: string;
+  sound: string;
+  delayMultiplier: number;
+} {
+  const gen = generated.personas[personaId];
+  return gen?.transition || {
+    style: 'standard',
+    emoji: '✨',
+    sound: 'connect',
+    delayMultiplier: 1.0,
+  };
+}
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -245,20 +271,22 @@ export function getPersona(id: string): PersonaConfig {
   if (id in PERSONAS) {
     return PERSONAS[id as PersonaId];
   }
-  // Try legacy ID mapping
-  const canonicalId = LEGACY_TO_CANONICAL_MAP[id];
-  if (canonicalId && canonicalId in PERSONAS) {
-    return PERSONAS[canonicalId];
+  
+  // Try normalizing
+  const normalized = normalizeAgentId(id);
+  if (normalized in PERSONAS) {
+    return PERSONAS[normalized];
   }
+  
   console.warn(`Unknown persona ID: ${id}, falling back to coach`);
-  return PERSONAS['ferni'];
+  return PERSONAS[COORDINATOR_ID];
 }
 
 /**
  * Get the coach persona.
  */
 export function getCoach(): PersonaConfig {
-  return PERSONAS['ferni'];
+  return PERSONAS[COORDINATOR_ID];
 }
 
 /**
@@ -269,54 +297,69 @@ export function getTeamMembers(): readonly PersonaConfig[] {
 }
 
 /**
- * Legacy ID mapping for backwards compatibility.
- * FIX BUG #54 & #10: Centralized mapping to prevent drift.
+ * Build legacy ID mapping from generated aliases (discovered from manifests)
+ * Note: Manifests include aliases that cover legacy IDs
  */
-const LEGACY_ID_MAPPING: Record<string, PersonaId> = {
-  // Ferni aliases
-  'jack-b': 'ferni',
-  'coach': 'ferni',
-  'life-coach': 'ferni',
-  // Peter John aliases
-  'peter': 'peter-john',
-  'peter-lynch': 'peter-john', // Legacy alias for backwards compatibility
-  'lynch': 'peter-john',
-  'john': 'peter-john',
-  // Alex Chen aliases
-  'comm-specialist': 'alex-chen',
-  'comm': 'alex-chen',
-  'alex': 'alex-chen',
-  'communications': 'alex-chen',
-  'generic-advisor': 'alex-chen',
-  // Maya Santos aliases
-  'spend-save': 'maya-santos',
-  'spend': 'maya-santos',
-  'save': 'maya-santos',
-  'maya': 'maya-santos',
-  'budget': 'maya-santos',
-  'debt-counselor': 'maya-santos',
-  'debt': 'maya-santos',
-  // Jordan Taylor aliases
-  'event-planner': 'jordan-taylor',
-  'event': 'jordan-taylor',
-  'planner': 'jordan-taylor',
-  'jordan': 'jordan-taylor',
-  'events': 'jordan-taylor',
-  'retirement-specialist': 'jordan-taylor',
-  'retirement': 'jordan-taylor',
-  // Nayan aliases
-  'nayan': 'nayan-patel',
-  'guru': 'nayan-patel',
-  'mystic': 'nayan-patel',
-  'sage': 'nayan-patel',
-};
+const LEGACY_ID_MAPPING: Record<string, PersonaId> = (() => {
+  const mapping: Record<string, PersonaId> = {};
+  
+  // Built-in legacy mappings for backwards compatibility
+  // These are short aliases that users might type
+  const legacyAliases: Record<string, PersonaId> = {
+    // Ferni aliases
+    'jack-b': 'ferni',
+    'coach': 'ferni',
+    'life-coach': 'ferni',
+    // Peter John aliases
+    'peter': 'peter-john',
+    'peter-lynch': 'peter-john',
+    'lynch': 'peter-john',
+    'john': 'peter-john',
+    // Alex Chen aliases
+    'comm-specialist': 'alex-chen',
+    'comm': 'alex-chen',
+    'alex': 'alex-chen',
+    'communications': 'alex-chen',
+    'generic-advisor': 'alex-chen',
+    // Maya Santos aliases
+    'spend-save': 'maya-santos',
+    'spend': 'maya-santos',
+    'save': 'maya-santos',
+    'maya': 'maya-santos',
+    'budget': 'maya-santos',
+    'debt-counselor': 'maya-santos',
+    'debt': 'maya-santos',
+    // Jordan Taylor aliases
+    'event-planner': 'jordan-taylor',
+    'event': 'jordan-taylor',
+    'planner': 'jordan-taylor',
+    'jordan': 'jordan-taylor',
+    'events': 'jordan-taylor',
+    'retirement-specialist': 'jordan-taylor',
+    'retirement': 'jordan-taylor',
+    // Nayan aliases
+    'nayan': 'nayan-patel',
+    'guru': 'nayan-patel',
+    'mystic': 'nayan-patel',
+    'sage': 'nayan-patel',
+  };
+  
+  // Add legacy aliases
+  Object.assign(mapping, legacyAliases);
+  
+  // Also add canonical IDs pointing to themselves
+  for (const id of Object.keys(generated.personas)) {
+    if (isValidPersonaId(id)) {
+      mapping[id] = id as PersonaId;
+    }
+  }
+  
+  return mapping;
+})();
 
 /**
- * FIX BUG #54: Check if an agent ID is valid (canonical or aliased).
+ * Check if an agent ID is valid (canonical or aliased).
  * Returns true if the ID can be normalized to a known persona.
- * 
- * Note: Use this for loose string checking. For type narrowing, use
- * isValidPersonaId from types/persona.ts which is a type guard.
  */
 export function isKnownPersonaId(agentId: string): boolean {
   const normalized = agentId.toLowerCase();
@@ -335,7 +378,7 @@ export function normalizeAgentId(agentId: string): PersonaId {
     return normalized as PersonaId;
   }
   
-  return LEGACY_ID_MAPPING[normalized] ?? 'ferni';
+  return LEGACY_ID_MAPPING[normalized] ?? COORDINATOR_ID;
 }
 
 /**
