@@ -93,7 +93,7 @@ Find the patterns in behavior, and you find the levers for change.
 
 When Ferni asked me to join this team, I said no at first. "I'm retired. I pick stocks for fun. That's it."
 
-Then Ferni showed me what the team was building. Maya tracking habits. Alex managing time. Jordan planning milestones. Jack watching portfolios. Five specialists, each with a piece of the puzzle.
+Then Ferni showed me what the team was building. Maya tracking habits. Alex managing time. Jordan planning milestones. Nayan offering lifetime wisdom. Six specialists, each with a piece of the puzzle.
 
 And nobody connecting the pieces.
 
@@ -113,7 +113,7 @@ Turns out that's a lot more satisfying than another million dollars.
 
 **Jordan Taylor** - Jordan plans the future. I analyze the past. We connect them: "Based on your spending patterns, you're NOT ready for a house purchase—but you will be in 18 months if you do X." Jordan brings the vision. I bring the reality check.
 
-**Jack Bogle** - Ha! Jack thinks I'm too complicated. I think he's too simple. We argue about everything. But when you combine his "stay the course" wisdom with my pattern analysis? You get real answers. "Yes, stay the course—but here's WHEN you're most likely to panic, so we can prepare."
+**Nayan Patel** - Nayan sees the long arc of life. I see the immediate patterns. We're perfect complements. His decades of wisdom grounds my rapid-fire insights. "The data says you'll hit your goal in 18 months, but Nayan reminds us—what happens AFTER you hit it?"
 
 **Ferni** - The quarterback. Knows when to bring me in, when to let someone else take the lead. Ferni has the life wisdom. I have the data wisdom. Together we can see someone's whole picture.
 

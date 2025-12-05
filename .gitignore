@@ -20,6 +20,18 @@ latest-logs.txt
 *.env.local
 .plaid-tokens.json
 
+# Code Signing (NEVER commit these!)
+*.p12
+*.pfx
+*.keystore
+*.jks
+key.properties
+.env.signing
+apps/electron/.env.signing
+apps/android/android/key.properties
+apps/android/android/*.keystore
+apps/android/*.keystore
+
 # Backup files
 *.bak
 

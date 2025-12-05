@@ -3,6 +3,8 @@
  *
  * Provides smooth loading skeleton screens that appear during app initialization.
  * Creates a polished first impression while resources load.
+ * 
+ * Uses design system tokens for all animations and colors.
  */
 
 // ============================================================================
@@ -83,12 +85,13 @@ function addSkeletonStyles(): void {
     .skeleton {
       position: fixed;
       inset: 0;
-      z-index: 9999;
+      z-index: var(--z-overlay, 9999);
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-bg-primary, #0a0a0f);
-      transition: opacity 0.4s ease-out, visibility 0.4s ease-out;
+      background: var(--color-background-primary, #0a0a0f);
+      transition: opacity var(--duration-slower, 400ms) var(--ease-ease-out, ease-out), 
+                  visibility var(--duration-slower, 400ms) var(--ease-ease-out, ease-out);
     }
 
     .skeleton--hidden {
@@ -101,19 +104,19 @@ function addSkeletonStyles(): void {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1.5rem;
-      padding: 2rem;
+      gap: var(--space-6, 1.5rem);
+      padding: var(--space-8, 2rem);
     }
 
     .skeleton__avatar {
       width: 120px;
       height: 120px;
-      border-radius: 50%;
+      border-radius: var(--radius-full, 50%);
       background: linear-gradient(
         90deg,
-        var(--color-bg-secondary, #1a1a2e) 25%,
-        var(--color-bg-tertiary, #252542) 50%,
-        var(--color-bg-secondary, #1a1a2e) 75%
+        var(--color-background-secondary, #1a1a2e) 25%,
+        var(--color-background-tertiary, #252542) 50%,
+        var(--color-background-secondary, #1a1a2e) 75%
       );
       background-size: 200% 100%;
     }
@@ -122,16 +125,16 @@ function addSkeletonStyles(): void {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.75rem;
+      gap: var(--space-3, 0.75rem);
     }
 
     .skeleton__line {
-      border-radius: 4px;
+      border-radius: var(--radius-xs, 4px);
       background: linear-gradient(
         90deg,
-        var(--color-bg-secondary, #1a1a2e) 25%,
-        var(--color-bg-tertiary, #252542) 50%,
-        var(--color-bg-secondary, #1a1a2e) 75%
+        var(--color-background-secondary, #1a1a2e) 25%,
+        var(--color-background-tertiary, #252542) 50%,
+        var(--color-background-secondary, #1a1a2e) 75%
       );
       background-size: 200% 100%;
     }
@@ -149,31 +152,31 @@ function addSkeletonStyles(): void {
     .skeleton__button {
       width: 140px;
       height: 48px;
-      border-radius: 24px;
+      border-radius: var(--radius-full, 24px);
       background: linear-gradient(
         90deg,
-        var(--color-bg-secondary, #1a1a2e) 25%,
-        var(--color-bg-tertiary, #252542) 50%,
-        var(--color-bg-secondary, #1a1a2e) 75%
+        var(--color-background-secondary, #1a1a2e) 25%,
+        var(--color-background-tertiary, #252542) 50%,
+        var(--color-background-secondary, #1a1a2e) 75%
       );
       background-size: 200% 100%;
     }
 
     .skeleton__team {
       display: flex;
-      gap: 1rem;
-      margin-top: 1rem;
+      gap: var(--space-4, 1rem);
+      margin-top: var(--space-4, 1rem);
     }
 
     .skeleton__team-member {
       width: 48px;
       height: 48px;
-      border-radius: 50%;
+      border-radius: var(--radius-full, 50%);
       background: linear-gradient(
         90deg,
-        var(--color-bg-secondary, #1a1a2e) 25%,
-        var(--color-bg-tertiary, #252542) 50%,
-        var(--color-bg-secondary, #1a1a2e) 75%
+        var(--color-background-secondary, #1a1a2e) 25%,
+        var(--color-background-tertiary, #252542) 50%,
+        var(--color-background-secondary, #1a1a2e) 75%
       );
       background-size: 200% 100%;
     }
@@ -182,7 +185,7 @@ function addSkeletonStyles(): void {
     .skeleton--pulse .skeleton__line,
     .skeleton--pulse .skeleton__button,
     .skeleton--pulse .skeleton__team-member {
-      animation: shimmer 1.5s ease-in-out infinite;
+      animation: shimmer var(--duration-glacial, 1500ms) var(--ease-ease-in-out, ease-in-out) infinite;
     }
 
     @keyframes shimmer {
@@ -195,32 +198,33 @@ function addSkeletonStyles(): void {
     }
 
     /* Trigger entrance animations when skeleton hides */
+    /* Uses design system easings and durations via CSS variables */
     .skeleton--hidden ~ #app .entrance-avatar {
-      animation: entranceAvatar 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      animation: entranceAvatar var(--duration-dramatic, 600ms) var(--ease-ease-out-back, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
       animation-delay: 100ms;
     }
     .skeleton--hidden ~ #app .entrance-name {
-      animation: entranceControls 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
       animation-delay: 200ms;
     }
     .skeleton--hidden ~ #app .entrance-subtitle {
-      animation: entranceControls 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
       animation-delay: 250ms;
     }
     .skeleton--hidden ~ #app .entrance-roster {
-      animation: entranceControls 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
       animation-delay: 350ms;
     }
     .skeleton--hidden ~ #app .entrance-waveform {
-      animation: entranceControls 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
       animation-delay: 450ms;
     }
     .skeleton--hidden ~ #app .entrance-controls {
-      animation: entranceControls 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
       animation-delay: 550ms;
     }
     .skeleton--hidden ~ #app .entrance-helper {
-      animation: entranceControls 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: entranceControls var(--duration-slower, 400ms) var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
       animation-delay: 650ms;
     }
 
@@ -266,20 +270,78 @@ export function show(): void {
 
 /**
  * Hide the skeleton loading UI with a smooth transition.
+ * 
+ * 🎬 FIX: Pre-promotes animated elements to GPU layers BEFORE hiding skeleton.
+ * This prevents jank from layer creation during entrance animations.
  */
 export function hide(): void {
   if (skeletonContainer) {
-    skeletonContainer.classList.add(SKELETON_HIDDEN_CLASS);
-    isVisible = false;
+    // 🎬 FIX: Promote animated elements to GPU BEFORE animations start
+    // This ensures layers are created in a quiet moment, not during animation
+    promoteEntranceElementsToGPU();
+    
+    // Small delay to let GPU layers settle before animations begin
+    requestAnimationFrame(() => {
+      if (skeletonContainer) {
+        skeletonContainer.classList.add(SKELETON_HIDDEN_CLASS);
+        isVisible = false;
 
-    // Remove from DOM after transition
-    setTimeout(() => {
-      if (skeletonContainer && !isVisible) {
-        skeletonContainer.remove();
-        skeletonContainer = null;
+        // Remove from DOM after transition
+        setTimeout(() => {
+          if (skeletonContainer && !isVisible) {
+            skeletonContainer.remove();
+            skeletonContainer = null;
+          }
+        }, 400);
       }
-    }, 400);
+    });
   }
+}
+
+/**
+ * 🎬 FIX: Pre-promote elements that will animate during entrance to GPU layers.
+ * This prevents the "jank at the beginning" by ensuring layer creation happens
+ * BEFORE the animations start, not during them.
+ */
+function promoteEntranceElementsToGPU(): void {
+  // Entrance elements that animate
+  const selectors = [
+    '.avatar-container',
+    '.entrance-avatar',
+    '.entrance-name',
+    '.entrance-subtitle', 
+    '.entrance-roster',
+    '.entrance-waveform',
+    '.entrance-controls',
+    '.entrance-helper',
+    '#coachAvatar',
+    '#avatarRing',
+    '.team-member',
+    '.waveform-bar',
+  ];
+  
+  selectors.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(el => {
+      if (el instanceof HTMLElement) {
+        // Force GPU layer creation
+        el.style.willChange = 'transform, opacity';
+        el.style.transform = el.style.transform || 'translateZ(0)';
+      }
+    });
+  });
+  
+  // Clean up willChange hints after entrance animations complete (~1200ms)
+  setTimeout(() => {
+    selectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.style.willChange = 'auto';
+        }
+      });
+    });
+  }, 1500);
 }
 
 /**

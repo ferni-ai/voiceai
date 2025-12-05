@@ -67,10 +67,10 @@ const FERNI: PersonaConfig = {
 // PETER LYNCH (TEAM MEMBER) - Stock Analysis
 // ============================================================================
 
-const PETER_LYNCH: PersonaConfig = {
-  id: 'peter-lynch',
+const PETER_JOHN: PersonaConfig = {
+  id: 'peter-john',
   name: 'Peter',
-  initials: 'PL',
+  initials: 'PJ',
   subtitle: 'Research & Discovery',
   role: 'team',
   quotes: [
@@ -81,8 +81,8 @@ const PETER_LYNCH: PersonaConfig = {
     '"Research is research—the same skills work for stocks, jobs, or buying a house."',
   ],
   helperText: 'Spots patterns nobody else sees',
-  themeClass: 'persona-peter-lynch',
-  colors: getPersonaColorConfig('peter-lynch'),
+  themeClass: 'persona-peter-john',
+  colors: getPersonaColorConfig('peter-john'),
   skills: [
     { icon: '', name: 'Research' },
     { icon: '', name: 'Growth' },
@@ -225,7 +225,7 @@ const NAYAN_PATEL: PersonaConfig = {
  */
 export const PERSONAS: PersonaRegistry = Object.freeze({
   'ferni': FERNI,
-  'peter-lynch': PETER_LYNCH,
+  'peter-john': PETER_JOHN,
   'alex-chen': ALEX_CHEN,
   'maya-santos': MAYA_SANTOS,
   'jordan-taylor': JORDAN_TAYLOR,
@@ -277,9 +277,11 @@ const LEGACY_ID_MAPPING: Record<string, PersonaId> = {
   'jack-b': 'ferni',
   'coach': 'ferni',
   'life-coach': 'ferni',
-  // Peter Lynch aliases
-  'peter': 'peter-lynch',
-  'lynch': 'peter-lynch',
+  // Peter John aliases
+  'peter': 'peter-john',
+  'peter-lynch': 'peter-john', // Legacy alias for backwards compatibility
+  'lynch': 'peter-john',
+  'john': 'peter-john',
   // Alex Chen aliases
   'comm-specialist': 'alex-chen',
   'comm': 'alex-chen',

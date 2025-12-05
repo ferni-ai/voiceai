@@ -1,0 +1,465 @@
+# Voice AI - Build Native Apps
+#
+# Builds signed desktop and mobile apps for all platforms.
+# Triggered on version tags (v*) or manual dispatch.
+
+name: Build Native Apps
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Platforms to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - desktop
+          - mobile
+          - macos
+          - windows
+          - linux
+          - ios
+          - android
+
+# Cancel in-progress runs for same ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # BUILD FRONTEND (shared by all platforms)
+  # ============================================================================
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend-typescript/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend-typescript
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend-typescript
+          npm run build
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-typescript/dist/
+          retention-days: 1
+
+  # ============================================================================
+  # macOS BUILD
+  # ============================================================================
+  build-macos:
+    needs: build-frontend
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.platforms == 'all' ||
+      github.event.inputs.platforms == 'desktop' ||
+      github.event.inputs.platforms == 'macos'
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/electron/package-lock.json
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-typescript/dist/
+
+      - name: Copy frontend to Electron
+        run: |
+          rm -rf apps/electron/web/*
+          cp -r frontend-typescript/dist/* apps/electron/web/
+
+      - name: Install Electron dependencies
+        run: |
+          cd apps/electron
+          npm ci
+
+      - name: Import Code Signing Certificate
+        if: env.APPLE_CERTIFICATE_P12_BASE64 != ''
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Import certificate
+          echo "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          
+          # Allow codesign to access the key
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Build macOS App
+        env:
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd apps/electron
+          npm run build:mac
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: |
+            apps/electron/dist/*.dmg
+            apps/electron/dist/*.zip
+          retention-days: 30
+
+  # ============================================================================
+  # WINDOWS BUILD
+  # ============================================================================
+  build-windows:
+    needs: build-frontend
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.platforms == 'all' ||
+      github.event.inputs.platforms == 'desktop' ||
+      github.event.inputs.platforms == 'windows'
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/electron/package-lock.json
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-typescript/dist/
+
+      - name: Copy frontend to Electron
+        run: |
+          Remove-Item -Path "apps\electron\web\*" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item -Path "frontend-typescript\dist\*" -Destination "apps\electron\web\" -Recurse
+        shell: pwsh
+
+      - name: Install Electron dependencies
+        run: |
+          cd apps\electron
+          npm ci
+
+      - name: Import Code Signing Certificate
+        if: env.WINDOWS_CERTIFICATE_P12_BASE64 != ''
+        env:
+          WINDOWS_CERTIFICATE_P12_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_P12_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_P12_BASE64)
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\certificate.pfx", $certBytes)
+          echo "CSC_LINK=$env:RUNNER_TEMP\certificate.pfx" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      - name: Build Windows App
+        env:
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd apps\electron
+          npm run build:win
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            apps/electron/dist/*.exe
+          retention-days: 30
+
+  # ============================================================================
+  # LINUX BUILD
+  # ============================================================================
+  build-linux:
+    needs: build-frontend
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.platforms == 'all' ||
+      github.event.inputs.platforms == 'desktop' ||
+      github.event.inputs.platforms == 'linux'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/electron/package-lock.json
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-typescript/dist/
+
+      - name: Copy frontend to Electron
+        run: |
+          rm -rf apps/electron/web/*
+          cp -r frontend-typescript/dist/* apps/electron/web/
+
+      - name: Install Electron dependencies
+        run: |
+          cd apps/electron
+          npm ci
+
+      - name: Build Linux App
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd apps/electron
+          npm run build:linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            apps/electron/dist/*.AppImage
+            apps/electron/dist/*.deb
+            apps/electron/dist/*.rpm
+          retention-days: 30
+
+  # ============================================================================
+  # iOS BUILD
+  # ============================================================================
+  build-ios:
+    needs: build-frontend
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.platforms == 'all' ||
+      github.event.inputs.platforms == 'mobile' ||
+      github.event.inputs.platforms == 'ios'
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/ios/package-lock.json
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-typescript/dist/
+
+      - name: Install Capacitor dependencies
+        run: |
+          cd apps/ios
+          npm ci
+
+      - name: Copy web assets to iOS
+        run: |
+          rm -rf apps/ios/ios/App/App/public/*
+          cp -r frontend-typescript/dist/* apps/ios/ios/App/App/public/
+
+      - name: Install CocoaPods
+        run: |
+          cd apps/ios/ios/App
+          pod install --repo-update
+        continue-on-error: true
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      # For full iOS builds, you'd add:
+      # - Import provisioning profiles
+      # - Import signing certificates
+      # - Build with xcodebuild
+      # - Upload to TestFlight
+      
+      - name: Build iOS (Archive Ready)
+        run: |
+          cd apps/ios/ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath $RUNNER_TEMP/App.xcarchive \
+            archive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+        continue-on-error: true
+
+      - name: Upload iOS project
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-project
+          path: apps/ios/ios/
+          retention-days: 30
+
+  # ============================================================================
+  # ANDROID BUILD
+  # ============================================================================
+  build-android:
+    needs: build-frontend
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.platforms == 'all' ||
+      github.event.inputs.platforms == 'mobile' ||
+      github.event.inputs.platforms == 'android'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/android/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-typescript/dist/
+
+      - name: Install Capacitor dependencies
+        run: |
+          cd apps/android
+          npm ci
+
+      - name: Sync Capacitor
+        run: |
+          cd apps/android
+          npx cap sync android
+
+      - name: Decode Keystore
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > apps/android/android/voiceai-release.keystore
+
+      - name: Create key.properties
+        if: env.ANDROID_KEYSTORE_PASSWORD != ''
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cat > apps/android/android/key.properties << EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=voiceai-release.keystore
+          EOF
+
+      - name: Build Android APK
+        run: |
+          cd apps/android/android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Build Android Bundle (AAB)
+        run: |
+          cd apps/android/android
+          ./gradlew bundleRelease
+        continue-on-error: true
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: |
+            apps/android/android/app/build/outputs/apk/release/*.apk
+            apps/android/android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+
+  # ============================================================================
+  # CREATE RELEASE
+  # ============================================================================
+  create-release:
+    needs: [build-macos, build-windows, build-linux, build-android]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            artifacts/macos-build/*
+            artifacts/windows-build/*
+            artifacts/linux-build/*
+            artifacts/android-build/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

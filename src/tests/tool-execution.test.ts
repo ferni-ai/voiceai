@@ -17,6 +17,8 @@
 
 import { describe, it, expect, beforeAll } from 'vitest';
 
+import { getToolCategories } from '../tools/index.js';
+
 // Skip these integration tests - they require full environment setup
 // and are better suited for E2E testing
 describe.skip('Tool Execution Integration Tests', () => {

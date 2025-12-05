@@ -649,22 +649,18 @@ const naturePrescriptionDef: ToolDefinition = {
 };
 
 // ============================================================================
-// DOMAIN TOOLS COLLECTION
+// DOMAIN TOOLS COLLECTION (Consolidated: 12 → 5 essential tools)
 // ============================================================================
 
 const presenceTools: ToolDefinition[] = [
-  groundInBodyDef,
+  // Grounding - combines ground, exercise, return
   groundingExerciseDef,
-  returnToPresentDef,
+  // Awareness - combines notice, breathe, savor, slow
   noticeThisMomentDef,
   breatheWithMeDef,
-  savorExperienceDef,
-  slowDownDef,
-  recognizeFlowDef,
+  // Flow & Protection - combines recognize, protect
   protectPresenceDef,
-  // Nature & Movement
-  walkingMeditationDef,
-  mindfulEatingDef,
+  // Nature & Embodiment - combines walking, eating, nature
   naturePrescriptionDef,
 ];
 

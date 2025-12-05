@@ -9,7 +9,7 @@ export type ThemeName = 'midnight' | 'zen';
 // Frontend persona IDs - using canonical IDs
 export type PersonaId =
   | 'ferni'
-  | 'peter-lynch'
+  | 'peter-john'
   | 'alex-chen'
   | 'maya-santos'
   | 'jordan-taylor'
@@ -36,7 +36,7 @@ export const THEMES: Record<ThemeName, ThemeMeta> = {
 
 export const PERSONA_IDS: PersonaId[] = [
   'ferni',
-  'peter-lynch',
+  'peter-john',
   'alex-chen',
   'maya-santos',
   'jordan-taylor',

@@ -63,7 +63,8 @@ interface LogData {
 }
 
 class DiagnosticLogger {
-  private _logger: ReturnType<ReturnType<typeof getLogger>> | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _logger: any = null;
 
   /**
    * Lazy getter for logger - only initializes when needed

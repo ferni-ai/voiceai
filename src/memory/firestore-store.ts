@@ -440,6 +440,123 @@ export class FirestoreStore extends MemoryStore {
   }
 
   // ============================================================================
+  // ATOMIC PROFILE UPDATE (Transaction-wrapped)
+  // ============================================================================
+
+  /**
+   * Atomically update a user profile using a transaction.
+   * Ensures that read-modify-write operations are safe from race conditions.
+   * 
+   * @param userId - The user ID to update
+   * @param updater - Function that receives current profile and returns updated profile
+   * @param options - Transaction options
+   * @returns The updated profile, or null if user doesn't exist and createIfMissing is false
+   */
+  async atomicProfileUpdate(
+    userId: string,
+    updater: (profile: UserProfile) => UserProfile | Promise<UserProfile>,
+    options: {
+      createIfMissing?: boolean;
+      maxRetries?: number;
+    } = {}
+  ): Promise<UserProfile | null> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    const { createIfMissing = false, maxRetries = 3 } = options;
+
+    try {
+      // Import Firestore for transaction support
+      const { Firestore } = await import('@google-cloud/firestore');
+      const db = this.db as unknown as InstanceType<typeof Firestore>;
+
+      const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
+
+      // Run transaction
+      const result = await db.runTransaction(async (transaction) => {
+        const doc = await transaction.get(docRef);
+
+        let currentProfile: UserProfile | null = null;
+
+        if (doc.exists) {
+          const data = doc.data();
+          if (data) {
+            const hydrated = this.hydrateData(data as Record<string, unknown>);
+            if (isValidUserProfile(hydrated)) {
+              currentProfile = hydrated;
+            }
+          }
+        }
+
+        if (!currentProfile) {
+          if (!createIfMissing) {
+            return null;
+          }
+          // Create a new profile
+          const { createUserProfile } = await import('../types/user-profile.js');
+          currentProfile = createUserProfile(userId);
+        }
+
+        // Apply the update
+        const updatedProfile = await updater(currentProfile);
+        
+        // Ensure updatedAt is set
+        updatedProfile.updatedAt = new Date();
+        updatedProfile.version = (currentProfile.version || 0) + 1;
+
+        // Serialize and save
+        const serialized = this.serializeForFirestore(updatedProfile);
+        transaction.set(docRef, serialized, { merge: true });
+
+        return updatedProfile;
+      }, { maxAttempts: maxRetries });
+
+      if (result) {
+        getLogger().debug(`Atomic update completed for profile: ${userId}`);
+      }
+
+      return result;
+    } catch (error) {
+      getLogger().error(`atomicProfileUpdate error: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch update multiple profiles atomically
+   * Useful for bulk operations like migrations
+   */
+  async batchProfileUpdate(
+    updates: Array<{
+      userId: string;
+      updater: (profile: UserProfile) => UserProfile;
+    }>
+  ): Promise<{ success: number; failed: number; errors: string[] }> {
+    if (!this.db) throw new Error('FirestoreStore not initialized');
+
+    const results = { success: 0, failed: 0, errors: [] as string[] };
+
+    // Process in batches of 10 (Firestore transaction limit is 500 writes)
+    const batchSize = 10;
+    for (let i = 0; i < updates.length; i += batchSize) {
+      const batch = updates.slice(i, i + batchSize);
+
+      await Promise.all(
+        batch.map(async ({ userId, updater }) => {
+          try {
+            await this.atomicProfileUpdate(userId, updater);
+            results.success++;
+          } catch (error) {
+            results.failed++;
+            results.errors.push(`${userId}: ${error}`);
+          }
+        })
+      );
+    }
+
+    return results;
+  }
+
+  // ============================================================================
   // CLOSE
   // ============================================================================
 

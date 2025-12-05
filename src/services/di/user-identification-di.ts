@@ -70,11 +70,13 @@ export interface IdentificationResult {
  */
 export class UserIdentificationService {
   private readonly store: ExtendedMemoryStore;
-  private readonly getLogger: () => ReturnType<ReturnType<typeof getLogger>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly getLogger: () => any;
 
   constructor(deps: UserIdentificationDeps) {
     this.store = deps.store;
-    this.getLogger = deps.logger ?? (() => getLogger());
+    const loggerDep = deps.logger;
+    this.getLogger = typeof loggerDep === 'function' ? loggerDep : () => loggerDep ?? getLogger();
   }
 
   /**

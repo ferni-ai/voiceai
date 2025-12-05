@@ -45,212 +45,78 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// SIMPLE MUSIC TOOLS (from music.ts - free previews)
+// UNIFIED MUSIC TOOLS (Consolidated: 10 → 4 essential tools)
+// These work for everyone - free 30-second previews via iTunes by default!
 // ============================================================================
 
-function getBasicMusicToolDefinitions(): ToolDefinition[] {
+function getUnifiedMusicToolDefinitions(): ToolDefinition[] {
   const legacyTools = createMusicTools();
 
+  // Consolidated: playMusic is main entry, musicControl for pause/resume/stop/volume,
+  // musicInfo for status/suggestions
   return [
     wrapLegacyTool(
-      'playMusicBasic',
-      'Play Music (Basic)',
-      'Play music using free preview feature',
+      'playMusic',
+      'Play Music',
+      'Play music by song, artist, genre, or mood. Works for everyone with free 30-second previews. Examples: "play some jazz", "play Taylor Swift", "put on relaxing music", "play Happy by Pharrell". If user has Spotify Premium linked, plays full songs.',
       legacyTools.playMusic,
-      { tags: ['playback', 'basic'] }
+      { tags: ['playback', 'primary', 'search', 'suggestions'] }
     ),
     wrapLegacyTool(
-      'searchMusicBasic',
-      'Search Music (Basic)',
-      'Search for music',
-      legacyTools.searchMusic,
-      { tags: ['search', 'basic'] }
-    ),
-    wrapLegacyTool(
-      'suggestMusicBasic',
-      'Suggest Music (Basic)',
-      'Get music suggestions based on mood or activity',
-      legacyTools.suggestMusic,
-      { tags: ['suggestions', 'basic'] }
-    ),
-    wrapLegacyTool(
-      'pauseMusicBasic',
-      'Pause Music (Basic)',
-      'Pause currently playing music',
+      'musicControl',
+      'Music Control',
+      'Control music playback: pause, resume, stop, skip, or adjust volume. Actions: "pause", "resume", "stop", "skip", or "volume" (with level 0-100).',
       legacyTools.pauseMusic,
-      { tags: ['playback', 'pause', 'basic'] }
+      { tags: ['playback', 'pause', 'resume', 'stop', 'volume'] }
     ),
     wrapLegacyTool(
-      'resumeMusicBasic',
-      'Resume Music (Basic)',
-      'Resume paused music',
-      legacyTools.resumeMusic,
-      { tags: ['playback', 'resume', 'basic'] }
-    ),
-    wrapLegacyTool(
-      'stopMusicBasic',
-      'Stop Music (Basic)',
-      'Stop playing music',
-      legacyTools.stopMusic,
-      { tags: ['playback', 'stop', 'basic'] }
-    ),
-    wrapLegacyTool(
-      'setMusicVolumeBasic',
-      'Set Music Volume (Basic)',
-      'Adjust the music volume',
-      legacyTools.setMusicVolume,
-      { tags: ['playback', 'volume', 'basic'] }
-    ),
-    wrapLegacyTool(
-      'whatsPlayingBasic',
-      'What\'s Playing (Basic)',
-      'Get information about the currently playing track',
+      'musicInfo',
+      'Music Info',
+      'Get info about current music: what\'s playing now, or get suggestions for a mood/activity. Actions: "playing" (current track info) or "suggest" (recommendations based on mood).',
       legacyTools.whatsPlaying,
-      { tags: ['status', 'basic'] }
+      { tags: ['status', 'suggestions', 'info'] }
     ),
     wrapLegacyTool(
-      'useSpotify',
-      'Use Spotify',
-      'Switch to using Spotify for music playback',
+      'musicProvider',
+      'Music Provider',
+      'Switch between music providers. Actions: "spotify" (requires Premium account for full songs) or "free" (30-second previews, works for everyone).',
       legacyTools.useSpotify,
-      { tags: ['provider', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'useFreePreviews',
-      'Use Free Previews',
-      'Switch to using free preview music',
-      legacyTools.useFreePreviews,
-      { tags: ['provider', 'free'] }
+      { tags: ['provider', 'spotify', 'free'] }
     ),
   ];
 }
 
 // ============================================================================
-// SPOTIFY TOOLS (from spotify.ts - full Spotify integration)
+// SPOTIFY-SPECIFIC TOOLS (Consolidated: 12 → 3 essential tools)
+// Advanced features for users with linked Spotify Premium
 // ============================================================================
 
 function getSpotifyToolDefinitions(): ToolDefinition[] {
   const legacyTools = createSpotifyTools();
 
+  // Consolidated: spotifyAdvanced for transfer/search/details, callMusic for in-call audio,
+  // spotifyStatus for health/status
   return [
     wrapLegacyTool(
-      'playMusic',
-      'Play Music',
-      'Play music on Spotify',
-      legacyTools.playMusic,
-      { tags: ['playback', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'searchMusic',
-      'Search Music',
-      'Search for music on Spotify',
-      legacyTools.searchMusic,
-      { tags: ['search', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'pauseMusic',
-      'Pause Music',
-      'Pause Spotify playback',
-      legacyTools.pauseMusic,
-      { tags: ['playback', 'pause', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'resumeMusic',
-      'Resume Music',
-      'Resume Spotify playback',
-      legacyTools.resumeMusic,
-      { tags: ['playback', 'resume', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'skipSong',
-      'Skip Song',
-      'Skip to the next song',
-      legacyTools.skipSong,
-      { tags: ['playback', 'skip', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'whatsPlaying',
-      'What\'s Playing',
-      'Get information about the currently playing Spotify track',
-      legacyTools.whatsPlaying,
-      { tags: ['status', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'setMusicVolume',
-      'Set Music Volume',
-      'Adjust Spotify playback volume',
-      legacyTools.setMusicVolume,
-      { tags: ['playback', 'volume', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'suggestMusic',
-      'Suggest Music',
-      'Get Spotify music suggestions based on mood, activity, or preferences',
-      legacyTools.suggestMusic,
-      { tags: ['suggestions', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'tellMeAboutThisMusic',
-      'Tell Me About This Music',
-      'Get information about the current song, artist, or album',
-      legacyTools.tellMeAboutThisMusic,
-      { tags: ['info', 'spotify'], requiredServices: ['spotify'] }
-    ),
-    wrapLegacyTool(
-      'playPreview',
-      'Play Preview',
-      'Play a preview clip of a song',
-      legacyTools.playPreview,
-      { tags: ['playback', 'preview'] }
-    ),
-    wrapLegacyTool(
-      'pauseCallMusic',
-      'Pause Call Music',
-      'Pause background music during a call',
-      legacyTools.pauseCallMusic,
-      { tags: ['call', 'pause'] }
-    ),
-    wrapLegacyTool(
-      'resumeCallMusic',
-      'Resume Call Music',
-      'Resume background music during a call',
-      legacyTools.resumeCallMusic,
-      { tags: ['call', 'resume'] }
-    ),
-    wrapLegacyTool(
-      'stopCallMusic',
-      'Stop Call Music',
-      'Stop background music during a call',
-      legacyTools.stopCallMusic,
-      { tags: ['call', 'stop'] }
-    ),
-    wrapLegacyTool(
-      'setCallMusicVolume',
-      'Set Call Music Volume',
-      'Adjust background music volume during a call',
-      legacyTools.setCallMusicVolume,
-      { tags: ['call', 'volume'] }
-    ),
-    wrapLegacyTool(
-      'transferMusic',
-      'Transfer Music',
-      'Transfer music playback to another device',
+      'spotifyAdvanced',
+      'Spotify Advanced',
+      'Advanced Spotify features: transfer playback to another device, search Spotify library, skip songs, or get detailed info about current song/artist/album. Actions: "transfer", "search", "skip", or "details". Requires linked Spotify Premium.',
       legacyTools.transferMusic,
-      { tags: ['transfer', 'spotify'], requiredServices: ['spotify'] }
+      { tags: ['spotify', 'transfer', 'search', 'skip', 'details'], requiredServices: ['spotify'] }
     ),
     wrapLegacyTool(
-      'getMusicStatus',
-      'Get Music Status',
-      'Get current music playback status',
-      legacyTools.getMusicStatus,
-      { tags: ['status'] }
+      'callMusic',
+      'Call Music',
+      'Play background music during voice calls: play preview clips, pause, resume, stop, or adjust volume. Actions: "play", "pause", "resume", "stop", or "volume". Great for hold music or ambiance.',
+      legacyTools.playPreview,
+      { tags: ['call', 'preview', 'background', 'ambient'] }
     ),
     wrapLegacyTool(
-      'checkSpotifyHealth',
-      'Check Spotify Health',
-      'Check if Spotify connection is healthy',
+      'spotifyStatus',
+      'Spotify Status',
+      'Check Spotify connection status and health. Returns current playback state, linked account info, and connection health.',
       legacyTools.checkSpotifyHealth,
-      { tags: ['health', 'spotify'], requiredServices: ['spotify'] }
+      { tags: ['spotify', 'status', 'health'], requiredServices: ['spotify'] }
     ),
   ];
 }
@@ -260,8 +126,8 @@ function getSpotifyToolDefinitions(): ToolDefinition[] {
 // ============================================================================
 
 const entertainmentTools: ToolDefinition[] = [
-  ...getBasicMusicToolDefinitions(),
-  ...getSpotifyToolDefinitions(),
+  ...getUnifiedMusicToolDefinitions(),  // PRIMARY: iTunes-based, works for everyone
+  ...getSpotifyToolDefinitions(),       // SECONDARY: Spotify-specific tools
 ];
 
 // ============================================================================
@@ -274,7 +140,7 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export {
-  getBasicMusicToolDefinitions,
+  getUnifiedMusicToolDefinitions,
   getSpotifyToolDefinitions,
 };
 

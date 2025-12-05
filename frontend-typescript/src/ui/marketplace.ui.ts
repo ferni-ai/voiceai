@@ -25,6 +25,28 @@ import { soundUI } from './sound.ui.js';
 import { refreshMarketplaceAgents } from './team.ui.js';
 
 // ============================================================================
+// PERSONA COLORS - Single source of truth from design system
+// Use data-persona attributes in HTML and let CSS handle the gradients
+// ============================================================================
+
+/**
+ * Persona color configuration mapped from design system tokens.
+ * These match the CSS variables defined in tokens.css under [data-persona="..."]
+ */
+const PERSONA_GRADIENTS: Record<string, string> = {
+  'ferni': 'var(--gradient-ferni, linear-gradient(135deg, var(--persona-secondary, #3d5a35), var(--persona-primary, #4a6741)))',
+  'peter-john': 'var(--gradient-peter, linear-gradient(135deg, var(--persona-secondary, #2d5359), var(--persona-primary, #3a6b73)))',
+  'alex-chen': 'var(--gradient-alex, linear-gradient(135deg, var(--persona-secondary, #4a5a73), var(--persona-primary, #5a6b8a)))',
+  'maya-santos': 'var(--gradient-maya, linear-gradient(135deg, var(--persona-secondary, #8a635a), var(--persona-primary, #a67a6a)))',
+  'jordan-taylor': 'var(--gradient-jordan, linear-gradient(135deg, var(--persona-secondary, #a86d55), var(--persona-primary, #c4856a)))',
+  'nayan-patel': 'var(--gradient-nayan, linear-gradient(135deg, #9a7a52, #b8956a))',
+  // Co-founders (external AI companies)
+  'claude': 'linear-gradient(135deg, #8B5CF6, #A78BFA)',
+  'gemini': 'linear-gradient(135deg, #4285F4, #34A853)',
+  'gpt': 'linear-gradient(135deg, #10A37F, #1A7F64)',
+};
+
+// ============================================================================
 // STATE
 // ============================================================================
 
@@ -316,6 +338,8 @@ async function renderInstalledTab(): Promise<void> {
 /**
  * Render the "Meet the Team" narrative section
  * The first company built by AI, run by AI.
+ * 
+ * Uses PERSONA_GRADIENTS constant for consistent colors from design system.
  */
 function renderTeamNarrative(): string {
   return `
@@ -330,7 +354,7 @@ function renderTeamNarrative(): string {
           <span class="leadership-label">Chief Executive</span>
           <div class="leadership-grid ceo">
             <div class="leader-card ceo-card">
-              <div class="leader-avatar" style="background: linear-gradient(135deg, #3d5a35, #4a6741);">
+              <div class="leader-avatar" data-persona="ferni" style="background: ${PERSONA_GRADIENTS['ferni']};">
                 FN
               </div>
               <div class="leader-info">
@@ -346,19 +370,19 @@ function renderTeamNarrative(): string {
           <span class="leadership-label">Co-Founders</span>
           <div class="leadership-grid cofounders">
             <div class="leader-card cofounder">
-              <div class="leader-avatar cofounder-avatar" style="background: linear-gradient(135deg, #8B5CF6, #A78BFA);">
+              <div class="leader-avatar cofounder-avatar" data-persona="claude" style="background: ${PERSONA_GRADIENTS['claude']};">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
               </div>
               <span class="cofounder-name">Claude</span>
             </div>
             <div class="leader-card cofounder">
-              <div class="leader-avatar cofounder-avatar" style="background: linear-gradient(135deg, #4285F4, #34A853);">
+              <div class="leader-avatar cofounder-avatar" data-persona="gemini" style="background: ${PERSONA_GRADIENTS['gemini']};">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
               </div>
               <span class="cofounder-name">Gemini</span>
             </div>
             <div class="leader-card cofounder">
-              <div class="leader-avatar cofounder-avatar" style="background: linear-gradient(135deg, #10A37F, #1A7F64);">
+              <div class="leader-avatar cofounder-avatar" data-persona="gpt" style="background: ${PERSONA_GRADIENTS['gpt']};">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073z"/></svg>
               </div>
               <span class="cofounder-name">GPT</span>
@@ -369,28 +393,28 @@ function renderTeamNarrative(): string {
         <div class="leadership-section">
           <span class="leadership-label">Core Team</span>
           <div class="leadership-grid employees">
-            <div class="employee-card">
-              <div class="employee-avatar" style="background: linear-gradient(135deg, #2d5359, #3a6b73);">PL</div>
+            <div class="employee-card" data-persona="peter-john">
+              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['peter-john']};">PJ</div>
               <span class="employee-name">Peter</span>
               <span class="employee-role">Research</span>
             </div>
-            <div class="employee-card">
-              <div class="employee-avatar" style="background: linear-gradient(135deg, #4a5a73, #5a6b8a);">AX</div>
+            <div class="employee-card" data-persona="alex-chen">
+              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['alex-chen']};">AX</div>
               <span class="employee-name">Alex</span>
               <span class="employee-role">Communication</span>
             </div>
-            <div class="employee-card">
-              <div class="employee-avatar" style="background: linear-gradient(135deg, #8a635a, #a67a6a);">MY</div>
+            <div class="employee-card" data-persona="maya-santos">
+              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['maya-santos']};">MY</div>
               <span class="employee-name">Maya</span>
               <span class="employee-role">Wellness</span>
             </div>
-            <div class="employee-card">
-              <div class="employee-avatar" style="background: linear-gradient(135deg, #a86d55, #c4856a);">JD</div>
+            <div class="employee-card" data-persona="jordan-taylor">
+              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['jordan-taylor']};">JD</div>
               <span class="employee-name">Jordan</span>
               <span class="employee-role">Planning</span>
             </div>
-            <div class="employee-card">
-              <div class="employee-avatar" style="background: linear-gradient(135deg, #9a7a52, #b8956a);">NP</div>
+            <div class="employee-card" data-persona="nayan-patel">
+              <div class="employee-avatar" style="background: ${PERSONA_GRADIENTS['nayan-patel']};">NP</div>
               <span class="employee-name">Nayan</span>
               <span class="employee-role">Wisdom</span>
             </div>
@@ -408,14 +432,21 @@ function renderTeamNarrative(): string {
 /**
  * Render agent cards HTML (without the grid wrapper)
  * All agents show "Coming Soon" and are disabled for now
+ * 
+ * Uses CSS custom properties for colors - allows design system to control appearance
  */
 function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[]): string {
   return agents.map(agent => {
     const initials = agent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    // Check if this agent has a persona gradient defined, otherwise use their colors
+    const gradient = PERSONA_GRADIENTS[agent.id] 
+      || `linear-gradient(135deg, ${agent.colors.secondary}, ${agent.colors.primary})`;
+    
     return `
-    <article class="marketplace-agent coming-soon" data-agent-id="${agent.id}" role="listitem">
-      <div class="agent-header" style="--agent-primary: ${agent.colors.primary}; --agent-secondary: ${agent.colors.secondary};">
-        <div class="agent-avatar" style="background: linear-gradient(135deg, ${agent.colors.secondary}, ${agent.colors.primary});">
+    <article class="marketplace-agent coming-soon" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem"
+      style="--agent-primary: ${agent.colors.primary}; --agent-secondary: ${agent.colors.secondary};">
+      <div class="agent-header">
+        <div class="agent-avatar" style="background: ${gradient};">
           ${initials}
         </div>
         <div class="agent-meta">
@@ -751,9 +782,9 @@ function getMarketplaceStyles(): string {
     }
 
     .marketplace-tab.active {
-      background: var(--color-forest-green, #3D5A45);
-      border-color: var(--color-forest-green, #3D5A45);
-      color: white;
+      background: var(--persona-primary, var(--color-accent-primary, #3D5A45));
+      border-color: var(--persona-primary, var(--color-accent-primary, #3D5A45));
+      color: var(--persona-text, white);
     }
 
     .marketplace-tab:active {
@@ -794,8 +825,8 @@ function getMarketplaceStyles(): string {
     }
 
     .marketplace-search-input:focus {
-      border-color: var(--color-forest-green, #3D5A45);
-      box-shadow: 0 0 0 3px rgba(61, 90, 69, 0.15);
+      border-color: var(--persona-primary, var(--color-accent-primary));
+      box-shadow: 0 0 0 3px var(--persona-glow, var(--color-accent-glow));
     }
 
     .marketplace-search-input::placeholder {
@@ -821,7 +852,7 @@ function getMarketplaceStyles(): string {
     }
 
     .marketplace-category-select:focus {
-      border-color: var(--color-forest-green, #3D5A45);
+      border-color: var(--persona-primary, var(--color-accent-primary));
     }
 
     .marketplace-category-select option {
@@ -849,11 +880,11 @@ function getMarketplaceStyles(): string {
     .marketplace-spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid var(--color-border, rgba(255, 255, 255, 0.1));
-      border-top-color: var(--color-forest-green, #3D5A45);
+      border: 3px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      border-top-color: var(--persona-primary, var(--color-accent-primary));
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: var(--space-md, 16px);
+      animation: spin var(--duration-deliberate, 800ms) linear infinite;
+      margin-bottom: var(--space-4, 16px);
     }
 
     .marketplace-loading span {
@@ -928,8 +959,8 @@ function getMarketplaceStyles(): string {
     }
 
     .marketplace-agent.installed {
-      border-color: var(--color-forest-green, #3D5A45);
-      background: rgba(61, 90, 69, 0.1);
+      border-color: var(--persona-primary, var(--color-accent-primary));
+      background: var(--persona-tint, var(--color-accent-subtle));
     }
 
     /* Coming Soon state - disabled look */
@@ -945,9 +976,9 @@ function getMarketplaceStyles(): string {
     }
 
     .agent-badge.coming-soon-badge {
-      background: rgba(196, 162, 101, 0.15);
-      color: var(--color-warm-amber, #C4A265);
-      border: 1px solid rgba(196, 162, 101, 0.25);
+      background: var(--color-semantic-warning-glow, rgba(196, 162, 101, 0.15));
+      color: var(--color-semantic-warning, #C4A265);
+      border: 1px solid var(--color-semantic-warning-glow, rgba(196, 162, 101, 0.25));
     }
 
     .agent-action.coming-soon-btn {
@@ -1031,8 +1062,8 @@ function getMarketplaceStyles(): string {
     }
 
     .agent-badge.installed {
-      background: var(--color-forest-green, #3D5A45);
-      color: white;
+      background: var(--persona-primary, var(--color-accent-primary));
+      color: var(--persona-text, white);
     }
 
     .agent-description {
@@ -1089,16 +1120,16 @@ function getMarketplaceStyles(): string {
     }
 
     .agent-action.install {
-      background: var(--color-forest-green, #3D5A45);
+      background: var(--persona-primary, var(--color-accent-primary));
       border: none;
-      color: white;
-      box-shadow: 0 2px 8px rgba(61, 90, 69, 0.3);
+      color: var(--persona-text, white);
+      box-shadow: 0 2px 8px var(--persona-glow, var(--color-accent-glow));
     }
 
     .agent-action.install:hover {
-      background: #4a6d52;
+      background: var(--persona-secondary, var(--color-accent-hover));
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(61, 90, 69, 0.4);
+      box-shadow: 0 4px 12px var(--persona-glow, var(--color-accent-glow));
     }
 
     .agent-action.install:active {
@@ -1112,9 +1143,9 @@ function getMarketplaceStyles(): string {
     }
 
     .agent-action.uninstall:hover {
-      border-color: rgba(204, 68, 68, 0.5);
-      color: #e57373;
-      background: rgba(204, 68, 68, 0.08);
+      border-color: var(--color-semantic-error-glow, rgba(204, 68, 68, 0.5));
+      color: var(--color-semantic-error, #e57373);
+      background: var(--color-semantic-error-glow, rgba(204, 68, 68, 0.08));
     }
 
     .agent-action.uninstall:active {
@@ -1197,14 +1228,14 @@ function getMarketplaceStyles(): string {
        MEET THE TEAM - AI Company Narrative
        ======================================== */
     .team-narrative {
-      padding: var(--space-lg, 24px);
+      padding: var(--space-6, 24px);
       background: linear-gradient(135deg, 
-        rgba(61, 90, 69, 0.08) 0%, 
-        rgba(196, 162, 101, 0.05) 100%
+        var(--persona-tint, rgba(61, 90, 69, 0.08)) 0%, 
+        var(--color-semantic-warning-glow, rgba(196, 162, 101, 0.05)) 100%
       );
       border-radius: var(--radius-xl, 16px);
-      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-      margin-bottom: var(--space-lg, 24px);
+      border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+      margin-bottom: var(--space-6, 24px);
     }
 
     .team-narrative-header {

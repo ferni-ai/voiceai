@@ -118,6 +118,9 @@ export { getToolDefinitions as getPlayToolDefinitions } from './play/index.js';
 // Presence domain - grounding, mindfulness, savoring, flow
 export { getToolDefinitions as getPresenceToolDefinitions } from './presence/index.js';
 
+// Engagement domain - daily rituals, games, persona-specific activities
+export { getToolDefinitions as getEngagementToolDefinitions } from './engagement/index.js';
+
 // ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
@@ -172,6 +175,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./self-compassion/index.js').then((m) => m.getToolDefinitions()),
     import('./play/index.js').then((m) => m.getToolDefinitions()),
     import('./presence/index.js').then((m) => m.getToolDefinitions()),
+    // Engagement domain - daily rituals, games, persona activities
+    import('./engagement/index.js').then((m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -338,6 +343,12 @@ export const DOMAIN_METADATA = {
     name: 'Presence & Embodiment',
     description: 'Grounding, mindfulness, savoring, and flow',
     icon: '🧘',
+    status: 'active',
+  },
+  engagement: {
+    name: 'Engagement & Rituals',
+    description: 'Daily rituals, persona games, team interactions, and streak tracking',
+    icon: '🎮',
     status: 'active',
   },
 } as const;

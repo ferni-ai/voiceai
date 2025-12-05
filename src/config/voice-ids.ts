@@ -33,19 +33,19 @@ export const VOICE_IDS = {
   // Ferni (life coach) - Dec 2024
   FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
 
-  // Peter John (insights quant) - Fixed Dec 2024 to use JACK_BOGLE_VOICE_ID
-  PETER_JOHN: '9c10dc48-8799-42f9-a72a-0c7dfe13a06d',
+  // Peter John (insights quant) - Updated Dec 2024
+  PETER_JOHN: '3f04e815-3260-4f50-8fd9-af9c657be4c2',
 
   // Alex Chen (communications specialist) - Verified Dec 2024
   ALEX_CHEN: '81c164d9-7baa-419d-9f9a-6b18100a01ee',
 
   // Maya Santos (spend & save coach) - Updated Dec 2024
-  MAYA_SANTOS: '9329fbdb-e285-4fba-95ec-592e15f14476',
+  MAYA_SANTOS: 'eef47c0d-cb49-4160-a4a0-6b97ed4c81e6',
 
   // Jordan Taylor (event planner) - Verified Dec 2024
   JORDAN_TAYLOR: 'b2d14370-c56b-4bdd-a6a3-71abe1b6e345',
 
-  // Nayan Patel (lifetime advisor / sage) - Dec 2024
+  // Nayan Patel (lifetime advisor / sage) - Updated Dec 2024
   NAYAN_PATEL: '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
 
   // Generic advisor fallback

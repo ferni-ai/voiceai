@@ -13,6 +13,8 @@ import {
 } from '../memory/index.js';
 import { setGlobalStore } from './user-identification.js';
 import type { GlobalServices } from './types.js';
+import { validateAndLog, type StartupCapabilities } from './startup-validation.js';
+import { stopAllAutoSaves } from './intelligence-persistence.js';
 
 // ============================================================================
 // GLOBAL STATE
@@ -20,6 +22,7 @@ import type { GlobalServices } from './types.js';
 
 let globalServices: GlobalServices | null = null;
 let personaIndexed = false;
+let startupCapabilities: StartupCapabilities | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -36,6 +39,31 @@ export async function initializeServices(indexPersona: boolean = true): Promise<
   }
 
   getLogger().info('Initializing voice AI services...');
+
+  // FIX: Validate startup configuration FIRST
+  // This will fail loudly if critical config is missing in production
+  try {
+    startupCapabilities = validateAndLog({
+      // In production, require persistent memory and semantic search
+      // In development, just warn
+      requirePersistentMemory: process.env.NODE_ENV === 'production',
+      requireSemanticSearch: process.env.NODE_ENV === 'production',
+    });
+
+    getLogger().info({
+      persistentMemory: startupCapabilities.persistentMemory,
+      semanticSearch: startupCapabilities.semanticSearch,
+      storeType: startupCapabilities.storeType,
+      embeddingProvider: startupCapabilities.embeddingProvider,
+    }, '✅ Startup validation passed');
+  } catch (validationError) {
+    getLogger().error({ error: String(validationError) }, '❌ Startup validation failed');
+    // Re-throw in production, warn in development
+    if (process.env.NODE_ENV === 'production') {
+      throw validationError;
+    }
+    getLogger().warn('Continuing with limited capabilities in development mode');
+  }
 
   // Only index persona on first init, not on subsequent session creations
   const shouldIndexPersona = indexPersona && !personaIndexed;
@@ -180,8 +208,18 @@ export function getGlobalServicesSync(): GlobalServices | null {
  * Reset global services (for testing)
  */
 export function resetGlobalServices(): void {
+  // Stop all auto-saves before resetting
+  stopAllAutoSaves();
   globalServices = null;
   personaIndexed = false;
+  startupCapabilities = null;
+}
+
+/**
+ * Get startup capabilities (what features are available)
+ */
+export function getStartupCapabilities(): StartupCapabilities | null {
+  return startupCapabilities;
 }
 
 /**

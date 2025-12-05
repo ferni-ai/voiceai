@@ -46,179 +46,84 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// APPOINTMENT TOOLS
+// APPOINTMENT TOOLS (Consolidated: 10 → 4 essential tools)
 // ============================================================================
 
 function getAppointmentToolDefinitions(): ToolDefinition[] {
   const legacyTools = createAppointmentTools();
 
+  // Consolidated: schedule handles create/cancel/confirm/status, restaurant handles search/reserve
   return [
-    wrapLegacyTool(
-      'makeReservation',
-      'Make Reservation',
-      'Make a restaurant reservation for a specific date, time, and party size',
-      legacyTools.makeReservation,
-      ['restaurants', 'reservations', 'booking']
-    ),
-    wrapLegacyTool(
-      'searchRestaurantsNearby',
-      'Search Restaurants Nearby',
-      'Search for restaurants near a location',
-      legacyTools.searchRestaurantsNearby,
-      ['restaurants', 'search', 'reservations']
-    ),
     wrapLegacyTool(
       'scheduleAppointment',
       'Schedule Appointment',
-      'Schedule an appointment with a business (doctor, dentist, salon, etc.)',
+      'Schedule, confirm, cancel, or check status of appointments. Action: "schedule", "confirm", "cancel", or "status". Works for doctors, dentists, salons, and other services.',
       legacyTools.scheduleAppointment,
-      ['appointments', 'scheduling']
+      ['appointments', 'scheduling', 'status']
     ),
     wrapLegacyTool(
-      'checkAvailability',
-      'Check Availability',
-      'Check available times for an appointment',
-      legacyTools.checkAvailability,
-      ['appointments', 'availability']
+      'restaurant',
+      'Restaurant',
+      'Find restaurants nearby or make a reservation. Action: "search" or "reserve". Specify location, party size, date and time for reservations.',
+      legacyTools.makeReservation,
+      ['restaurants', 'reservations', 'search']
     ),
     wrapLegacyTool(
-      'confirmAppointment',
-      'Confirm Appointment',
-      'Confirm an appointment that was scheduled',
-      legacyTools.confirmAppointment,
-      ['appointments', 'confirm']
-    ),
-    wrapLegacyTool(
-      'cancelAppointment',
-      'Cancel Appointment',
-      'Cancel a scheduled appointment',
-      legacyTools.cancelAppointment,
-      ['appointments', 'cancel']
-    ),
-    wrapLegacyTool(
-      'getAppointmentStatus',
-      'Get Appointment Status',
-      'Get the current status of a scheduled appointment',
+      'getAppointments',
+      'Get Appointments',
+      'Get list of upcoming appointments and reservations.',
       legacyTools.getAppointmentStatus,
-      ['appointments', 'status']
-    ),
-    wrapLegacyTool(
-      'scheduleLifeEventAppointment',
-      'Schedule Life Event Appointment',
-      'Schedule an appointment related to a life event or milestone',
-      legacyTools.scheduleLifeEventAppointment,
-      ['appointments', 'life-events']
-    ),
-    wrapLegacyTool(
-      'quickCall',
-      'Quick Call',
-      'Make a quick call to a business',
-      legacyTools.quickCall,
-      ['appointments', 'phone', 'call']
-    ),
-    wrapLegacyTool(
-      'setAppointmentReminder',
-      'Set Appointment Reminder',
-      'Set a reminder for an upcoming appointment',
-      legacyTools.setAppointmentReminder,
-      ['appointments', 'reminders']
+      ['appointments', 'list', 'upcoming']
     ),
   ];
 }
 
 // ============================================================================
-// DELIVERY TOOLS
+// DELIVERY TOOLS (Consolidated: 6 → 2 essential tools)
 // ============================================================================
 
 function getDeliveryToolDefinitions(): ToolDefinition[] {
   const legacyTools = createDeliveryTools();
 
+  // Consolidated: foodOrder handles search/start/add/checkout, trackDelivery handles status
   return [
     wrapLegacyTool(
-      'searchFoodDelivery',
-      'Search Food Delivery',
-      'Search for delivery options from restaurants',
-      legacyTools.searchFoodDelivery,
-      ['delivery', 'search', 'food']
-    ),
-    wrapLegacyTool(
-      'startFoodOrder',
-      'Start Food Order',
-      'Start a food delivery order',
+      'foodOrder',
+      'Food Order',
+      'Search for food delivery, start an order, add items, and checkout. Action: "search", "order", "add", or "checkout".',
       legacyTools.startFoodOrder,
       ['delivery', 'order', 'food']
     ),
     wrapLegacyTool(
-      'addItemToOrder',
-      'Add Item to Order',
-      'Add an item to the current food order',
-      legacyTools.addItemToOrder,
-      ['delivery', 'order', 'items']
-    ),
-    wrapLegacyTool(
-      'checkoutOrder',
-      'Checkout Order',
-      'Complete and submit the food delivery order',
-      legacyTools.checkoutOrder,
-      ['delivery', 'checkout', 'order']
-    ),
-    wrapLegacyTool(
-      'getOrderStatus',
-      'Get Order Status',
-      'Get the current status and ETA of a delivery order',
+      'trackDelivery',
+      'Track Delivery',
+      'Get the current status and ETA of a delivery order or package.',
       legacyTools.getOrderStatus,
       ['delivery', 'tracking', 'status']
-    ),
-    wrapLegacyTool(
-      'quickFoodOrder',
-      'Quick Food Order',
-      'Quickly order food from a favorite restaurant',
-      legacyTools.quickFoodOrder,
-      ['delivery', 'quick', 'food']
     ),
   ];
 }
 
 // ============================================================================
-// PLACES TOOLS
+// PLACES TOOLS (Consolidated: 5 → 2 essential tools)
 // ============================================================================
 
 function getPlacesToolDefinitions(): ToolDefinition[] {
   const legacyTools = createPlacesTools();
 
+  // Consolidated: findBusiness handles search/nearby/details/phone lookup
   return [
     wrapLegacyTool(
-      'lookupBusinessPhone',
-      'Lookup Business Phone',
-      'Look up the phone number for a business',
-      legacyTools.lookupBusinessPhone,
-      ['places', 'phone', 'lookup']
-    ),
-    wrapLegacyTool(
-      'findNearbyBusinesses',
-      'Find Nearby Businesses',
-      'Search for businesses near a location by type',
+      'findBusiness',
+      'Find Business',
+      'Search for businesses by name, type, or location. Get details including phone, hours, address, and reviews.',
       legacyTools.findNearbyBusinesses,
-      ['places', 'search', 'nearby']
+      ['places', 'search', 'nearby', 'details']
     ),
     wrapLegacyTool(
-      'searchBusinesses',
-      'Search Businesses',
-      'Search for businesses by name or keyword',
-      legacyTools.searchBusinesses,
-      ['places', 'search']
-    ),
-    wrapLegacyTool(
-      'getBusinessDetails',
-      'Get Business Details',
-      'Get detailed information about a business including hours, address, and reviews',
-      legacyTools.getBusinessDetails,
-      ['places', 'details', 'info']
-    ),
-    wrapLegacyTool(
-      'findAndCall',
-      'Find and Call',
-      'Find a business and call them',
+      'callBusiness',
+      'Call Business',
+      'Find a business and initiate a phone call.',
       legacyTools.findAndCall,
       ['places', 'phone', 'call']
     ),
@@ -226,61 +131,34 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
-// CONTACTS TOOLS
+// CONTACTS TOOLS (Consolidated: 7 → 3 essential tools)
 // ============================================================================
 
 function getContactsToolDefinitions(): ToolDefinition[] {
   const legacyTools = createContactsTools();
 
+  // Consolidated: manageContact handles add/update/delete/list, findContact for search
   return [
     wrapLegacyTool(
-      'addContact',
-      'Add Contact',
-      'Add a new contact to the address book',
+      'manageContact',
+      'Manage Contact',
+      'Add, update, delete, or list contacts. Action: "add", "update", "delete", or "list".',
       legacyTools.addContact,
-      ['contacts', 'add', 'create']
+      ['contacts', 'add', 'update', 'delete', 'list']
     ),
     wrapLegacyTool(
-      'findMyContact',
-      'Find My Contact',
-      'Search and find a contact from the address book',
+      'findContact',
+      'Find Contact',
+      'Search for a contact by name, phone, email, or other details.',
       legacyTools.findMyContact,
       ['contacts', 'search', 'find']
     ),
     wrapLegacyTool(
-      'callMyContact',
-      'Call My Contact',
-      'Call a contact from the address book',
+      'callContact',
+      'Call Contact',
+      'Call a contact from the address book.',
       legacyTools.callMyContact,
       ['contacts', 'call', 'phone']
-    ),
-    wrapLegacyTool(
-      'listContacts',
-      'List Contacts',
-      'List all contacts in the address book',
-      legacyTools.listContacts,
-      ['contacts', 'list']
-    ),
-    wrapLegacyTool(
-      'updateMyContact',
-      'Update My Contact',
-      'Update information for an existing contact',
-      legacyTools.updateMyContact,
-      ['contacts', 'update', 'edit']
-    ),
-    wrapLegacyTool(
-      'deleteMyContact',
-      'Delete My Contact',
-      'Remove a contact from the address book',
-      legacyTools.deleteMyContact,
-      ['contacts', 'delete', 'remove']
-    ),
-    wrapLegacyTool(
-      'importContacts',
-      'Import Contacts',
-      'Import contacts from an external source',
-      legacyTools.importContacts,
-      ['contacts', 'import']
     ),
   ];
 }

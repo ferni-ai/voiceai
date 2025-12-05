@@ -46,188 +46,102 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// PLAID / BANKING TOOLS
+// PLAID / BANKING TOOLS (Consolidated: 7 → 3 essential tools)
 // ============================================================================
 
 function getBankingToolDefinitions(): ToolDefinition[] {
   const legacyTools = createPlaidTools();
 
+  // Consolidated: bankAccount handles link/unlink/status, bankData handles balances/transactions/analysis
   return [
     wrapLegacyTool(
-      'checkBankLinkStatus',
-      'Check Bank Link Status',
-      'Check if the user has linked their bank account',
-      legacyTools.checkBankLinkStatus,
-      { tags: ['banking', 'plaid', 'status'], requiredServices: ['plaid'] }
-    ),
-    wrapLegacyTool(
-      'linkBankAccount',
-      'Link Bank Account',
-      'Start the process of linking a bank account via Plaid',
+      'bankAccount',
+      'Bank Account',
+      'Manage bank account connection: check link status, link a new bank account via Plaid, or unlink an existing account. Actions: "status", "link", or "unlink". Required for spending analysis and balance checking.',
       legacyTools.linkBankAccount,
-      { tags: ['banking', 'plaid', 'setup'], requiredServices: ['plaid'] }
+      { tags: ['banking', 'plaid', 'setup', 'status', 'link', 'unlink'], requiredServices: ['plaid'] }
     ),
     wrapLegacyTool(
-      'unlinkBankAccount',
-      'Unlink Bank Account',
-      'Disconnect a linked bank account',
-      legacyTools.unlinkBankAccount,
-      { tags: ['banking', 'plaid', 'disconnect'], requiredServices: ['plaid'] }
-    ),
-    wrapLegacyTool(
-      'getAccountBalances',
-      'Get Account Balances',
-      'Get current balances for all linked bank accounts',
+      'bankData',
+      'Bank Data',
+      'Get financial data from linked accounts: account balances, recent transactions, or spending analysis by category. Actions: "balances", "transactions", or "spending". Requires linked bank account.',
       legacyTools.getAccountBalances,
-      { tags: ['banking', 'balances', 'accounts'], requiredServices: ['plaid'] }
+      { tags: ['banking', 'balances', 'transactions', 'spending', 'analysis'], requiredServices: ['plaid'] }
     ),
     wrapLegacyTool(
-      'getRecentTransactions',
-      'Get Recent Transactions',
-      'Get recent transactions from linked bank accounts',
-      legacyTools.getRecentTransactions,
-      { tags: ['banking', 'transactions', 'history'], requiredServices: ['plaid'] }
-    ),
-    wrapLegacyTool(
-      'getSpendingAnalysis',
-      'Get Spending Analysis',
-      'Analyze spending patterns by category and time period',
-      legacyTools.getSpendingAnalysis,
-      { tags: ['banking', 'spending', 'analysis'], requiredServices: ['plaid'] }
-    ),
-    wrapLegacyTool(
-      'checkFinancialHealth',
-      'Check Financial Health',
-      'Get an overall assessment of financial health based on account data',
+      'financialHealth',
+      'Financial Health',
+      'Get a comprehensive financial health assessment based on linked account data. Shows savings rate, spending patterns, debt-to-income, and personalized recommendations.',
       legacyTools.checkFinancialHealth,
-      { tags: ['banking', 'health', 'assessment'], requiredServices: ['plaid'] }
+      { tags: ['banking', 'health', 'assessment', 'recommendations'], requiredServices: ['plaid'] }
     ),
   ];
 }
 
 // ============================================================================
-// CALCULATOR TOOLS
+// CALCULATOR TOOLS (Consolidated: 8 → 3 essential tools)
 // ============================================================================
 
 function getCalculatorToolDefinitions(): ToolDefinition[] {
   const legacyTools = createCalculatorTools();
 
+  // Consolidated: investmentCalc for growth/fees/retirement, housingCalc for mortgage/affordability,
+  // savingsCalc for emergency fund/savings rate/years to double
   return [
     wrapLegacyTool(
-      'calculateCompoundGrowth',
-      'Calculate Compound Growth',
-      'Calculate how an investment grows over time with compound interest',
+      'investmentCalc',
+      'Investment Calculator',
+      'Calculate investment growth, fee impact, or retirement projections. Modes: "growth" (compound interest over time), "fees" (how fees reduce returns), or "retirement" (project retirement savings). Uses Rule of 72 for quick estimates.',
       legacyTools.calculateCompoundGrowth,
-      { tags: ['calculators', 'compound', 'investing'] }
+      { tags: ['calculators', 'investing', 'compound', 'fees', 'retirement'] }
     ),
     wrapLegacyTool(
-      'calculateFeeImpact',
-      'Calculate Fee Impact',
-      'See how investment fees reduce returns over time',
-      legacyTools.calculateFeeImpact,
-      { tags: ['calculators', 'fees', 'costs'] }
-    ),
-    wrapLegacyTool(
-      'calculateRetirementProjection',
-      'Calculate Retirement Projection',
-      'Project retirement savings based on contributions and growth',
-      legacyTools.calculateRetirementProjection,
-      { tags: ['calculators', 'retirement', 'planning'] }
-    ),
-    wrapLegacyTool(
-      'calculateMortgage',
-      'Calculate Mortgage',
-      'Calculate monthly mortgage payments and total interest',
+      'housingCalc',
+      'Housing Calculator',
+      'Calculate mortgage payments, total interest, or home affordability. Modes: "mortgage" (monthly payment and total cost), "affordability" (how much house you can afford based on income). Includes down payment scenarios.',
       legacyTools.calculateMortgage,
-      { tags: ['calculators', 'mortgage', 'housing'] }
+      { tags: ['calculators', 'mortgage', 'housing', 'affordability'] }
     ),
     wrapLegacyTool(
-      'calculateEmergencyFund',
-      'Calculate Emergency Fund',
-      'Determine how much to save for an emergency fund',
+      'savingsCalc',
+      'Savings Calculator',
+      'Calculate emergency fund target, savings rate, or time to reach goals. Modes: "emergency" (3-6 month fund target), "rate" (what % of income you\'re saving), or "double" (years to double money at given rate).',
       legacyTools.calculateEmergencyFund,
-      { tags: ['calculators', 'emergency', 'savings'] }
-    ),
-    wrapLegacyTool(
-      'calculateSavingsRate',
-      'Calculate Savings Rate',
-      'Calculate what percentage of income is being saved',
-      legacyTools.calculateSavingsRate,
-      { tags: ['calculators', 'savings', 'rate'] }
-    ),
-    wrapLegacyTool(
-      'calculateYearsToDouble',
-      'Calculate Years to Double',
-      'Calculate how long it takes for money to double at a given rate',
-      legacyTools.calculateYearsToDouble,
-      { tags: ['calculators', 'growth', 'rule-of-72'] }
-    ),
-    wrapLegacyTool(
-      'explainPrinciple',
-      'Explain Principle',
-      'Explain a financial principle or concept in simple terms',
-      legacyTools.explainPrinciple,
-      { tags: ['education', 'concepts', 'explanations'] }
+      { tags: ['calculators', 'savings', 'emergency', 'rate'] }
     ),
   ];
 }
 
 // ============================================================================
-// PERSONAL FINANCE TOOLS
+// PERSONAL FINANCE TOOLS (Consolidated: 7 → 3 essential tools)
 // ============================================================================
 
 function getPersonalFinanceToolDefinitions(): ToolDefinition[] {
   const legacyTools = createPersonalFinanceTools();
 
+  // Consolidated: debtPayoff for debt planning, budgetPlanner for 50/30/20 and FIRE,
+  // financeEducation for all concept explanations
   return [
     wrapLegacyTool(
-      'calculateDebtPayoff',
-      'Calculate Debt Payoff',
-      'Calculate timeline and interest for paying off debt',
+      'debtPayoff',
+      'Debt Payoff Planner',
+      'Calculate debt payoff timeline, total interest, and strategies. Supports: snowball method (smallest first), avalanche method (highest interest first), or custom. Shows monthly payment needed and payoff date.',
       legacyTools.calculateDebtPayoff,
-      { tags: ['debt', 'payoff', 'planning'] }
+      { tags: ['debt', 'payoff', 'snowball', 'avalanche', 'planning'] }
     ),
     wrapLegacyTool(
-      'calculateHomeAffordability',
-      'Calculate Home Affordability',
-      'Determine how much house you can afford based on income and expenses',
-      legacyTools.calculateHomeAffordability,
-      { tags: ['housing', 'affordability', 'planning'] }
-    ),
-    wrapLegacyTool(
-      'calculate5030Budget',
-      'Calculate 50/30/20 Budget',
-      'Apply the 50/30/20 budgeting rule to income',
+      'budgetPlanner',
+      'Budget Planner',
+      'Create a budget using the 50/30/20 rule (needs/wants/savings), or calculate your FIRE number (financial independence target). Modes: "budget" (allocate income) or "fire" (calculate retirement goal).',
       legacyTools.calculate5030Budget,
-      { tags: ['budget', '50-30-20', 'planning'] }
+      { tags: ['budget', '50-30-20', 'fire', 'independence', 'planning'] }
     ),
     wrapLegacyTool(
-      'calculateFIRENumber',
-      'Calculate FIRE Number',
-      'Calculate the amount needed for financial independence',
-      legacyTools.calculateFIRENumber,
-      { tags: ['fire', 'independence', 'retirement'] }
-    ),
-    wrapLegacyTool(
-      'explainBankingConcepts',
-      'Explain Banking Concepts',
-      'Explain banking terms and concepts in plain language',
+      'financeEducation',
+      'Finance Education',
+      'Explain financial concepts in plain language. Topics: banking (APY, overdraft, etc.), mortgage (PMI, points, ARM vs fixed), retirement accounts (401k vs IRA, Roth vs Traditional), or investing (diversification, index funds, etc.).',
       legacyTools.explainBankingConcepts,
-      { tags: ['education', 'banking', 'concepts'] }
-    ),
-    wrapLegacyTool(
-      'explainMortgageConcepts',
-      'Explain Mortgage Concepts',
-      'Explain mortgage terms and concepts clearly',
-      legacyTools.explainMortgageConcepts,
-      { tags: ['education', 'mortgage', 'concepts'] }
-    ),
-    wrapLegacyTool(
-      'explainRetirementAccounts',
-      'Explain Retirement Accounts',
-      'Explain different retirement account types (401k, IRA, etc.)',
-      legacyTools.explainRetirementAccounts,
-      { tags: ['education', 'retirement', 'accounts'] }
+      { tags: ['education', 'concepts', 'banking', 'mortgage', 'retirement'] }
     ),
   ];
 }

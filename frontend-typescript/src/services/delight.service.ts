@@ -7,6 +7,7 @@
 
 import { getElementByIdOrNull, addClass, removeClass } from '../utils/dom.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
+import { haptic as nativeHaptic, isNative, type HapticStyle } from '../utils/platform.js';
 
 // ============================================================================
 // CELEBRATION (Zen Warmth)
@@ -88,21 +89,29 @@ export function onDisconnect(): void {
 }
 
 // ============================================================================
-// HAPTIC FEEDBACK (for mobile)
+// HAPTIC FEEDBACK (Native + Web fallback)
 // ============================================================================
 
 /**
- * Trigger haptic feedback if available.
- * Safely handles iOS which doesn't support vibration API.
+ * Trigger haptic feedback.
+ * Uses native Capacitor Haptics on iOS/Android for rich feedback.
+ * Falls back to Vibration API on web (Android Chrome only).
  */
-export function haptic(style: 'light' | 'medium' | 'heavy' = 'light'): void {
+export function haptic(style: HapticStyle = 'light'): void {
+  // Use native haptics on iOS/Android - this actually works on iOS!
+  if (isNative()) {
+    void nativeHaptic(style);
+    return;
+  }
+
+  // Web fallback (mainly Android Chrome)
   try {
     if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
-    const duration = style === 'light' ? 10 : style === 'medium' ? 20 : 40;
-    navigator.vibrate(duration);
+      const duration = style === 'light' ? 10 : style === 'medium' ? 20 : 40;
+      navigator.vibrate(duration);
     }
   } catch {
-    // Vibration not supported (iOS, etc.)
+    // Vibration not supported
   }
 }
 

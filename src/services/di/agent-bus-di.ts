@@ -97,7 +97,8 @@ export interface AgentBusDeps {
 // ============================================================================
 
 export class AgentBusService extends EventEmitter {
-  private readonly getLogger: () => ReturnType<ReturnType<typeof getLogger>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly getLogger: () => any;
   private readonly config: Required<NonNullable<AgentBusDeps['rateLimitConfig']>>;
 
   private messages: Map<string, AgentMessage> = new Map();
@@ -108,7 +109,8 @@ export class AgentBusService extends EventEmitter {
 
   constructor(deps: AgentBusDeps = {}) {
     super();
-    this.getLogger = deps.logger ?? (() => getLogger());
+    const loggerDep = deps.logger;
+    this.getLogger = typeof loggerDep === 'function' ? loggerDep : () => loggerDep ?? getLogger();
     this.config = {
       windowMs: deps.rateLimitConfig?.windowMs ?? RATE_LIMIT_WINDOW_MS,
       maxPerUser: deps.rateLimitConfig?.maxPerUser ?? MAX_REQUESTS_PER_WINDOW,

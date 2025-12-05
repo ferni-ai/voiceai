@@ -14,12 +14,22 @@
  * 🆕 Persona-specific idle behaviors make each character feel unique.
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { 
+  DURATION, 
+  EASING, 
+  registerAnimation, 
+  unregisterAnimation, 
+  isAnimating,
+} from '../config/animation-constants.js';
 import {
   getPersonaAnimationProfile,
   getEasing,
   type PersonaAnimationProfile,
 } from '@design-system/tokens';
+
+// Animation target IDs for conflict prevention
+const ANIMATION_TARGET_IDLE = 'avatar-idle';
+const ANIMATION_TARGET_FEEDBACK = 'avatar-feedback';
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -43,6 +53,10 @@ let currentPersonaId: string = 'ferni';
 let personaIdleAnimation: Animation | null = null;
 let personaIdleTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
+// 🎬 FIX: Track if entrance animation is complete before starting idle behaviors
+let entranceComplete = false;
+let pendingIdleStart = false;
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -55,8 +69,24 @@ export function initAvatarFeedback(): void {
   // 🆕 Create status whisper element if it doesn't exist
   createStatusWhisperElement();
   
-  // 🆕 Start persona-specific idle behaviors
-  startPersonaIdleBehaviors();
+  // 🎬 FIX: Apply GPU hints BEFORE any animations start
+  // This prevents jank from layer promotion during animation
+  if (avatarContainer) {
+    avatarContainer.style.willChange = 'transform, opacity';
+    avatarContainer.style.transform = 'translateZ(0)'; // Force GPU layer
+  }
+  if (avatar) {
+    avatar.style.willChange = 'transform, filter, opacity';
+  }
+  if (avatarRing) {
+    avatarRing.style.willChange = 'transform, opacity, border-color';
+  }
+  
+  // 🎬 FIX: DON'T start idle behaviors immediately
+  // Wait for entrance animations to complete (signaled via setEntranceComplete)
+  // This prevents animation contention that causes the jarring effect
+  pendingIdleStart = true;
+  entranceComplete = false;
 }
 
 // ============================================================================
@@ -221,9 +251,43 @@ export function hideStatusWhisper(): void {
  */
 export function setPersona(personaId: string): void {
   currentPersonaId = personaId;
-  // Restart idle behaviors with new persona's profile
+  // Restart idle behaviors with new persona's profile (only if entrance is complete)
   stopPersonaIdleBehaviors();
-  startPersonaIdleBehaviors();
+  if (entranceComplete) {
+    startPersonaIdleBehaviors();
+  }
+}
+
+/**
+ * 🎬 FIX: Signal that entrance animations are complete.
+ * Call this after the avatar's entrance animation finishes.
+ * This unlocks the idle behaviors to prevent animation contention.
+ */
+export function setEntranceComplete(): void {
+  entranceComplete = true;
+  
+  // Start idle behaviors if they were pending
+  if (pendingIdleStart) {
+    pendingIdleStart = false;
+    // Add a small delay for smoother transition from entrance to idle
+    setTimeout(() => {
+      startPersonaIdleBehaviors();
+    }, 200);
+  }
+  
+  // 🎬 Clean up GPU hints after entrance - browser can now manage layers
+  // Keep transform for ongoing animations but remove willChange (saves memory)
+  setTimeout(() => {
+    if (avatarContainer) {
+      avatarContainer.style.willChange = 'auto';
+    }
+    if (avatar) {
+      avatar.style.willChange = 'auto';
+    }
+    if (avatarRing) {
+      avatarRing.style.willChange = 'auto';
+    }
+  }, 500);
 }
 
 /**
@@ -233,13 +297,20 @@ export function setPersona(personaId: string): void {
  * From design system:
  * - ferni: Warm, playful, curious (like WALL-E)
  * - jack-bogle: Wise, measured, deliberate (like Carl from Up)
- * - peter-lynch: Energetic, practical, quick
+ * - peter-john: Energetic, practical, quick
  * - alex-chen: Thoughtful, articulate, empathetic
  * - maya-santos: Organized, practical, steady
  * - jordan-taylor: Creative, enthusiastic, expressive
  */
 function startPersonaIdleBehaviors(): void {
   if (!avatarContainer) return;
+  
+  // 🎬 FIX: Don't start idle behaviors until entrance animations are complete
+  // This prevents animation contention that causes jarring on startup
+  if (!entranceComplete) {
+    pendingIdleStart = true;
+    return;
+  }
   
   // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -266,12 +337,20 @@ function startPersonaIdleBehaviors(): void {
 /**
  * Perform a persona-specific idle animation.
  * Animation style matches the character's personality.
+ * 
+ * 🎬 FIX: Uses animation conflict prevention to avoid contention with feedback animations.
  */
 function performPersonaIdleAnimation(profile: PersonaAnimationProfile): void {
   if (!avatarContainer || personaIdleAnimation) return;
   
   // Don't animate while dancing or doing other actions
   if (isDancing) return;
+  
+  // 🎬 FIX: Check if feedback animation is running - don't interrupt it
+  if (isAnimating(ANIMATION_TARGET_FEEDBACK)) return;
+  
+  // Register this animation
+  if (!registerAnimation(ANIMATION_TARGET_IDLE)) return;
   
   let keyframes: Keyframe[];
   let duration: number;
@@ -363,6 +442,8 @@ function performPersonaIdleAnimation(profile: PersonaAnimationProfile): void {
   
   personaIdleAnimation.onfinish = () => {
     personaIdleAnimation = null;
+    // 🎬 FIX: Unregister animation when complete
+    unregisterAnimation(ANIMATION_TARGET_IDLE);
   };
 }
 
@@ -378,11 +459,36 @@ function stopPersonaIdleBehaviors(): void {
     personaIdleAnimation.cancel();
     personaIdleAnimation = null;
   }
+  // 🎬 FIX: Unregister animation
+  unregisterAnimation(ANIMATION_TARGET_IDLE);
 }
 
 // ============================================================================
 // FEEDBACK FUNCTIONS - Avatar communicates through behavior
 // ============================================================================
+
+/**
+ * 🎬 FIX: Helper to stop idle and register feedback animation.
+ * Ensures feedback animations run smoothly without contention.
+ */
+function startFeedbackAnimation(): boolean {
+  // Stop any idle animation to prevent conflicts
+  if (personaIdleAnimation) {
+    personaIdleAnimation.cancel();
+    personaIdleAnimation = null;
+    unregisterAnimation(ANIMATION_TARGET_IDLE);
+  }
+  
+  // Register feedback animation (short-lived, auto-clears)
+  registerAnimation(ANIMATION_TARGET_FEEDBACK);
+  
+  // Auto-unregister after typical feedback duration
+  setTimeout(() => {
+    unregisterAnimation(ANIMATION_TARGET_FEEDBACK);
+  }, DURATION.DRAMATIC);
+  
+  return true;
+}
 
 /**
  * SUCCESS: Warm glow pulse + ring brightens
@@ -392,6 +498,9 @@ function stopPersonaIdleBehaviors(): void {
  */
 export function feedbackSuccess(message?: string): void {
   if (!avatar || !avatarRing) return;
+  
+  // 🎬 FIX: Ensure clean animation start
+  startFeedbackAnimation();
   
   // Avatar warm pulse
   avatar.animate([
@@ -422,6 +531,9 @@ export function feedbackSuccess(message?: string): void {
  */
 export function feedbackError(message?: string): void {
   if (!avatarContainer || !avatarRing) return;
+  
+  // 🎬 FIX: Ensure clean animation start
+  startFeedbackAnimation();
   
   // Avatar shake
   avatarContainer.animate([
@@ -458,6 +570,9 @@ export function feedbackError(message?: string): void {
 export function feedbackWarning(message?: string): void {
   if (!avatarContainer || !avatarRing) return;
   
+  // 🎬 FIX: Ensure clean animation start
+  startFeedbackAnimation();
+  
   // Curious head tilt
   avatarContainer.animate([
     { transform: 'rotate(0deg)' },
@@ -487,6 +602,9 @@ export function feedbackWarning(message?: string): void {
  */
 export function feedbackInfo(message?: string): void {
   if (!avatarContainer) return;
+  
+  // 🎬 FIX: Ensure clean animation start
+  startFeedbackAnimation();
   
   // Gentle nod
   avatarContainer.animate([
@@ -584,6 +702,14 @@ export function feedbackListening(): void {
 export function feedbackThinking(): void {
   if (!avatar || !avatarRing) return;
   
+  // 🎬 FIX: Stop idle animations for thinking (long-running)
+  if (personaIdleAnimation) {
+    personaIdleAnimation.cancel();
+    personaIdleAnimation = null;
+    unregisterAnimation(ANIMATION_TARGET_IDLE);
+  }
+  registerAnimation(ANIMATION_TARGET_FEEDBACK);
+  
   // Avatar cool tint
   avatar.animate([
     { filter: 'brightness(1) saturate(1) hue-rotate(0deg)' },
@@ -604,6 +730,9 @@ export function feedbackThinking(): void {
 export function feedbackStopThinking(): void {
   if (!avatar || !avatarRing) return;
   
+  // 🎬 FIX: Unregister feedback animation
+  unregisterAnimation(ANIMATION_TARGET_FEEDBACK);
+  
   // Reset avatar filter
   avatar.animate([
     { filter: 'brightness(1) saturate(1) hue-rotate(0deg)' },
@@ -614,23 +743,17 @@ export function feedbackStopThinking(): void {
 }
 
 // ============================================================================
-// MUSIC ANIMATIONS - Zen-inspired, meditative movement
+// MUSIC ANIMATIONS - Bass Speaker Effect
 // ============================================================================
 
 /**
- * LISTENING TO MUSIC: Subtle, meditative sway
+ * LISTENING TO MUSIC: Bass Speaker Reverberation
  * 
- * Brand Philosophy:
- * - Japanese zen aesthetics
- * - Calm, grounded, present
- * - Human but not artificial
- * 
- * This is NOT a dance party - it's a gentle acknowledgment
- * that music is playing. Like someone peacefully swaying
- * while lost in thought, or breathing deeply during meditation.
+ * The avatar pulses like an old-time bass speaker cone.
+ * Halo stays static - no movement, just the avatar responds.
  */
 export function feedbackDancing(): void {
-  if (!avatarContainer || !avatarRing || !avatar) return;
+  if (!avatarContainer || !avatar) return;
   
   // Don't double-start
   if (isDancing) return;
@@ -640,44 +763,24 @@ export function feedbackDancing(): void {
   feedbackStopThinking();
   feedbackStopConnecting();
   
-  // Zen-inspired gentle sway - slow, meditative, barely perceptible
-  // Like watching someone breathe or sway slightly to ambient music
-  dancingAnimation = avatarContainer.animate([
-    { transform: 'translateY(0) translateX(0) rotate(0deg)', offset: 0 },
-    { transform: 'translateY(-2px) translateX(1px) rotate(0.5deg)', offset: 0.25 },
-    { transform: 'translateY(0) translateX(0) rotate(0deg)', offset: 0.5 },
-    { transform: 'translateY(-1px) translateX(-1px) rotate(-0.5deg)', offset: 0.75 },
-    { transform: 'translateY(0) translateX(0) rotate(0deg)', offset: 1 },
-  ], { 
-    duration: 3000, // Slow, meditative rhythm
-    iterations: Infinity,
-    easing: 'cubic-bezier(0.45, 0, 0.55, 1)', // ease-in-out per brand
-  });
-  
-  // Ring: Very subtle glow pulse - warmth, not energy
-  dancingRingAnimation = avatarRing.animate([
-    { opacity: '0.55', boxShadow: '0 0 8px 2px var(--persona-glow)' },
-    { opacity: '0.65', boxShadow: '0 0 12px 3px var(--persona-glow)' },
-    { opacity: '0.55', boxShadow: '0 0 8px 2px var(--persona-glow)' },
-  ], { 
-    duration: 4000, // Even slower than the sway
-    iterations: Infinity,
-    easing: 'cubic-bezier(0.45, 0, 0.55, 1)',
-  });
-  
-  // Avatar: Gentle warmth - like a soft breath
-  avatar.animate([
-    { filter: 'brightness(1) saturate(1)', boxShadow: 'var(--shadow-xl)' },
-    { filter: 'brightness(1.02) saturate(1.05)', boxShadow: 'var(--shadow-xl), 0 0 8px 2px var(--persona-glow)' },
-    { filter: 'brightness(1) saturate(1)', boxShadow: 'var(--shadow-xl)' },
-  ], { 
-    duration: 4000,
-    iterations: Infinity,
-    easing: 'cubic-bezier(0.45, 0, 0.55, 1)',
-  });
-  
-  // Add class for CSS hooks
+  // Add music class for CSS hooks
   avatarContainer.classList.add('is-listening-music');
+  
+  // Avatar: Bass speaker cone pulse - subtle scale breathing
+  // Like the paper cone of a vintage speaker responding to bass
+  dancingAnimation = avatar.animate([
+    { transform: 'scale(1)', filter: 'brightness(1)' },
+    { transform: 'scale(1.012)', filter: 'brightness(1.015)' },
+    { transform: 'scale(0.997)', filter: 'brightness(0.995)' },
+    { transform: 'scale(1.008)', filter: 'brightness(1.01)' },
+    { transform: 'scale(1)', filter: 'brightness(1)' },
+  ], { 
+    duration: 800, // Quick bass pulse rhythm
+    iterations: Infinity,
+    easing: 'ease-in-out',
+  });
+  
+  // Halo stays static - no animation
 }
 
 /**
@@ -687,6 +790,7 @@ export function feedbackStopDancing(): void {
   if (!isDancing) return;
   isDancing = false;
   
+  // Cancel running animations
   if (dancingAnimation) {
     dancingAnimation.cancel();
     dancingAnimation = null;
@@ -697,30 +801,108 @@ export function feedbackStopDancing(): void {
     dancingRingAnimation = null;
   }
   
-  // Gracefully transition back to rest state
-  if (avatarContainer) {
-    avatarContainer.getAnimations().forEach(a => a.cancel());
-    avatarContainer.classList.remove('is-listening-music');
-    // Smooth return to center
-    avatarContainer.animate([
-      { transform: 'translateY(0) translateX(0) rotate(0deg)' },
-    ], { duration: DURATION.SLOW, easing: EASING.EASE_OUT, fill: 'forwards' });
-  }
-  
+  // Gracefully return avatar to normal (reset scale and brightness)
   if (avatar) {
     avatar.getAnimations().forEach(a => a.cancel());
-    // Gentle fade back to normal
     avatar.animate([
-      { filter: 'brightness(1) saturate(1)', boxShadow: 'var(--shadow-xl)' },
-    ], { duration: DURATION.SLOW, easing: EASING.EASE_OUT, fill: 'forwards' });
+      { transform: 'scale(1)', filter: 'brightness(1) saturate(1)' },
+    ], { duration: 400, easing: 'ease-out', fill: 'forwards' });
   }
   
-  if (avatarRing) {
-    avatarRing.getAnimations().forEach(a => a.cancel());
-    avatarRing.animate([
-      { opacity: '0.5', boxShadow: '0 0 0 transparent' },
-    ], { duration: DURATION.SLOW, easing: EASING.EASE_OUT, fill: 'forwards' });
+  // Remove all music classes
+  if (avatarContainer) {
+    avatarContainer.classList.remove('is-listening-music');
+    avatarContainer.classList.remove('is-fading-music');
+    avatarContainer.classList.remove('is-ducking-music');
   }
+}
+
+/**
+ * DJ-style fade out - the human touch.
+ * The bass speaker slows down as the track fades.
+ */
+export function feedbackFading(): void {
+  if (!avatarContainer || !avatar) return;
+  if (!isDancing) return; // Only fade if we were dancing
+  
+  // Cancel current avatar animation
+  if (dancingAnimation) {
+    dancingAnimation.cancel();
+    dancingAnimation = null;
+  }
+  
+  // Avatar: Slow, diminishing pulse - the speaker winding down
+  dancingAnimation = avatar.animate([
+    { transform: 'scale(1)', filter: 'brightness(1)' },
+    { transform: 'scale(1.005)', filter: 'brightness(1.008)' },
+    { transform: 'scale(1)', filter: 'brightness(0.99)' },
+  ], { 
+    duration: 2000, // Slower rhythm as track fades
+    iterations: 2, // Just a couple more gentle pulses
+    easing: 'ease-out',
+  });
+  
+  // Add a subtle class for CSS hooks
+  avatarContainer.classList.add('is-fading-music');
+}
+
+/**
+ * DJ ducking - agent speaking over music.
+ * The bass pulse becomes barely perceptible.
+ */
+export function feedbackDucking(): void {
+  if (!avatarContainer || !avatar) return;
+  if (!isDancing) return; // Only duck if music was playing
+  
+  // Cancel current avatar animation
+  if (dancingAnimation) {
+    dancingAnimation.cancel();
+    dancingAnimation = null;
+  }
+  
+  // Avatar: Very subtle pulse - music in background, focus on voice
+  dancingAnimation = avatar.animate([
+    { transform: 'scale(1)', filter: 'brightness(1)' },
+    { transform: 'scale(1.003)', filter: 'brightness(1.005)' },
+    { transform: 'scale(1)', filter: 'brightness(1)' },
+  ], { 
+    duration: 1200, // Slower, calmer
+    iterations: Infinity,
+    easing: 'ease-in-out',
+  });
+  
+  // Add class for CSS hooks
+  avatarContainer.classList.add('is-ducking-music');
+}
+
+/**
+ * Restore full music presence after ducking ends.
+ */
+export function feedbackUnduck(): void {
+  if (!avatarContainer || !avatar) return;
+  if (!isDancing) return;
+  
+  // Remove ducking class
+  avatarContainer?.classList.remove('is-ducking-music');
+  
+  // Cancel current animation
+  if (dancingAnimation) {
+    dancingAnimation.cancel();
+    dancingAnimation = null;
+  }
+  
+  // Restore full bass pulse
+  dancingAnimation = avatar.animate([
+    { transform: 'scale(1)', filter: 'brightness(1)' },
+    { transform: 'scale(1.012)', filter: 'brightness(1.015)' },
+    { transform: 'scale(0.997)', filter: 'brightness(0.995)' },
+    { transform: 'scale(1.008)', filter: 'brightness(1.01)' },
+    { transform: 'scale(1)', filter: 'brightness(1)' },
+  ], { 
+    duration: 800,
+    iterations: Infinity,
+    easing: 'ease-in-out',
+  });
 }
 
 /**
@@ -747,6 +929,10 @@ export function dispose(): void {
   avatarContainer = null;
   avatarRing = null;
   statusWhisperElement = null;
+  
+  // 🎬 FIX: Reset entrance state
+  entranceComplete = false;
+  pendingIdleStart = false;
 }
 
 // ============================================================================
@@ -950,6 +1136,8 @@ export const avatarFeedback = {
   dispose,
   // 🆕 Persona management
   setPersona,
+  // 🎬 FIX: Entrance animation coordination
+  setEntranceComplete,
   // Core feedback states
   success: feedbackSuccess,
   error: feedbackError,
@@ -961,8 +1149,11 @@ export const avatarFeedback = {
   listening: feedbackListening,
   thinking: feedbackThinking,
   stopThinking: feedbackStopThinking,
-  // ✨ Music dancing animations
+  // Music animations (the avatar is the speaker)
   dancing: feedbackDancing,
+  ducking: feedbackDucking,
+  unduck: feedbackUnduck,
+  fading: feedbackFading,
   stopDancing: feedbackStopDancing,
   isDancing: isAvatarDancing,
   // 🆕 Status whisper for subtle text feedback

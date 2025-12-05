@@ -499,12 +499,14 @@ export class ToolRegistry {
     domains: ToolDomain[],
     ctx: Partial<ToolContext> = {}
   ): Record<string, Tool> {
+    // Note: We spread ctx first, then override with defaults for missing values
+    // This ensures ctx.services = undefined doesn't overwrite our EmptyServiceRegistry
     const fullCtx: ToolContext = {
+      ...ctx,
       userId: ctx.userId || 'default',
       agentId: ctx.agentId || 'default',
       agentDisplayName: ctx.agentDisplayName || 'Agent',
       services: ctx.services || new EmptyServiceRegistry(),
-      ...ctx,
     };
 
     const result = this.buildToolSet({ domains }, fullCtx);

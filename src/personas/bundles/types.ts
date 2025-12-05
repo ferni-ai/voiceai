@@ -21,6 +21,8 @@ export interface PersonaBundleManifest {
   manifest_version: number;
 
   identity: BundleIdentity;
+  /** LLM context instructions for handoffs */
+  llm_context?: BundleLLMContext;
   voice: BundleVoice;
   speech_characteristics: BundleSpeechCharacteristics;
   personality: BundlePersonality;
@@ -33,6 +35,8 @@ export interface PersonaBundleManifest {
   metadata: BundleMetadata;
   /** Humanization configuration for natural speech patterns */
   humanization?: BundleHumanization;
+  /** NEW: Handoff transition configuration */
+  handoff?: BundleHandoffTransition;
 }
 
 export interface BundleIdentity {
@@ -42,6 +46,33 @@ export interface BundleIdentity {
   description: string;
   aliases?: string[];
   self_reference: string;
+}
+
+/**
+ * LLM context instructions for handoffs
+ * Provides identity reminders and tool guidance for agents after handoffs
+ */
+export interface BundleLLMContext {
+  /** Identity reminder injected after handoffs */
+  identity_reminder: string;
+
+  /** Brief role summary for context */
+  role_summary: string;
+
+  /** Tool guidance organized by category */
+  tool_guidance?: {
+    /** Primary specialized tools for this agent */
+    specialized?: string[];
+
+    /** Stock research tools (for Peter) */
+    stock_research?: string[];
+
+    /** Memory tools */
+    memory?: string[];
+
+    /** Handoff tools available to this agent */
+    handoffs?: string[] | Record<string, string>;
+  };
 }
 
 export interface BundleVoice {
@@ -131,6 +162,39 @@ export interface BundleTeam {
     to_coordinator?: string[]; // Phrases when handing back to coordinator
     receive?: string[]; // Phrases when receiving a handoff
   };
+}
+
+/**
+ * Handoff transition configuration
+ * Controls how this agent enters conversations during handoffs
+ */
+export interface BundleHandoffTransition {
+  /**
+   * Transition style for handoff animations
+   * - 'standard': Default team transitions
+   * - 'dramatic': Theatrical entrances with longer timing
+   * - 'subtle': Quiet transitions with shorter timing
+   * - 'warm': Welcoming transitions (typically for coach)
+   */
+  transition_style?: 'standard' | 'dramatic' | 'subtle' | 'warm';
+
+  /**
+   * Emoji to represent this agent in team displays
+   * If not specified, derived from agent's domains
+   */
+  emoji?: string;
+
+  /**
+   * Sound effect for handoffs TO this agent
+   * If not specified, uses `handoff-to-{firstName}`
+   */
+  sound?: string;
+
+  /**
+   * Delay multiplier for transition animations
+   * 1.0 = standard, >1.0 = slower, <1.0 = faster
+   */
+  delay_multiplier?: number;
 }
 
 /**

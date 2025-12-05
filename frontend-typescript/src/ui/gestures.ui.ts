@@ -57,7 +57,7 @@ let swipeIndicator: HTMLElement | null = null;
 const PERSONA_ORDER: PersonaId[] = [
   'ferni',
   'nayan-patel',
-  'peter-lynch',
+  'peter-john',
   'alex-chen',
   'maya-santos',
   'jordan-taylor',

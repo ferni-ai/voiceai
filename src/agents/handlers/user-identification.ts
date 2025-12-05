@@ -134,12 +134,15 @@ export async function identifyUser(
     logger.warn({ error: String(e) }, 'User identification failed');
   }
 
-  return {
+  const result: UserIdentificationResult = {
     userId,
-    userName,
     identificationSource,
     profile,
   };
+  if (userName !== undefined) {
+    result.userName = userName;
+  }
+  return result;
 }
 
 /**

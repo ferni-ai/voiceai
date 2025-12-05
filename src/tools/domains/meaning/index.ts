@@ -739,28 +739,18 @@ const dailyMeaningPracticeDef: ToolDefinition = {
 };
 
 // ============================================================================
-// DOMAIN TOOLS COLLECTION
+// DOMAIN TOOLS COLLECTION (Consolidated: 12 → 5 essential tools)
 // ============================================================================
 
 const meaningTools: ToolDefinition[] = [
-  // Purpose
+  // Purpose - combines explore, align, mission
   explorePurposeDef,
-  alignActionsWithPurposeDef,
   createPersonalMissionDef,
-  // Values
+  // Values - combines clarify, conflict
   clarifyValuesDef,
-  valueConflictResolutionDef,
-  // Existential
+  // Existential & Spiritual - combines big questions, mortality, suffering, spiritual
   sitWithBigQuestionDef,
-  exploreMortalityDef,
-  findMeaningInSufferingDef,
-  // Spiritual
   spiritualPracticeSupportDef,
-  // Philosophy
-  exploreLifePhilosophyDef,
-  // Work & Daily Life
-  findMeaningInWorkDef,
-  dailyMeaningPracticeDef,
 ];
 
 // ============================================================================

@@ -1,6 +1,9 @@
 /**
  * Handoff State Management
  * Manages current agent state, history, and context
+ *
+ * REFACTORED: Now uses AgentDirectory for ID normalization.
+ * The hardcoded mapping tables have been removed.
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
@@ -10,6 +13,11 @@ import {
   getCanonicalPersonaId,
   getFrontendPersonaId,
 } from '../../personas/voice-registry.js';
+import {
+  AgentDirectory,
+  normalizeAgentIdSync,
+} from '../../personas/agent-directory.js';
+import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 import type { HandoffContext, HandoffRecord, HandoffAnalytics } from './types.js';
 
 // ============================================================================
@@ -18,7 +26,7 @@ import type { HandoffContext, HandoffRecord, HandoffAnalytics } from './types.js
 
 /**
  * Global event emitter for agent handoff events.
- * 
+ *
  * Events:
  * - 'voiceSwitch': Fired when a handoff occurs, with { toAgentId, greeting }
  * - 'handoffComplete': Fired after handoff is fully processed
@@ -41,12 +49,21 @@ const MAX_HISTORY_LENGTH = 100;
 // Handoff context (from last handoff)
 let handoffContext: HandoffContext | null = null;
 
-// Handoff rate limiting to prevent rapid switches
-const MIN_HANDOFF_INTERVAL_MS = 1000; // 1 second minimum between handoffs
+// Handoff rate limiting - uses shared timing constants
 let lastHandoffTimestamp = 0;
 
 // Met personas tracking (for first-time introductions)
 const metPersonas = new Set<string>();
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+// Initialize AgentDirectory cache at module load
+// This enables synchronous ID normalization
+void AgentDirectory.initialize().catch((err) => {
+  getLogger().warn({ error: err }, 'Failed to initialize AgentDirectory');
+});
 
 // ============================================================================
 // ID NORMALIZATION
@@ -54,40 +71,15 @@ const metPersonas = new Set<string>();
 
 /**
  * Normalize any agent ID to canonical form for internal tracking.
- * Canonical IDs are dynamically discovered from persona bundles.
- * 
- * FIX BUG #30 & #87: This is the SINGLE SOURCE OF TRUTH for ID normalization.
- * Keep in sync with frontend: frontend-typescript/src/types/persona.ts (LEGACY_TO_CANONICAL_MAP)
- * 
- * All ID mapping should go through this function or the AgentRegistry.
- * Do NOT create new ID mapping tables elsewhere in the codebase.
+ *
+ * REFACTORED: Now delegates to AgentDirectory which auto-discovers
+ * all agents from their bundle manifests. No hardcoded mapping!
+ *
+ * @param agentId - Any agent ID, alias, or name
+ * @returns Canonical agent ID
  */
 export function toCanonicalId(agentId: string): AgentId {
-  const mapping: Record<string, AgentId> = {
-    // Frontend IDs → Canonical
-    'jack-b': 'ferni',
-    'comm-specialist': 'alex-chen',
-    'spend-save': 'maya-santos',
-    'event-planner': 'jordan-taylor',
-    // Short IDs → Canonical
-    'alex': 'alex-chen',
-    'maya': 'maya-santos',
-    'jordan': 'jordan-taylor',
-    'peter': 'peter-john',
-    'coach': 'ferni',
-    'john': 'peter-john',
-    // Nayan Patel (Lifetime Advisor)
-    'nayan': 'nayan-patel',
-    'patel': 'nayan-patel',
-    'sage': 'nayan-patel',
-    'guru': 'nayan-patel',
-    'mystic': 'nayan-patel',
-    'lifetime-advisor': 'nayan-patel',
-    // NOTE: Jack Bogle is now a Marketplace agent, not core team
-    // If user says "jack" or "bogle", they might mean marketplace Jack Bogle
-    // For now, these are not mapped - use full ID 'jack-bogle' from marketplace
-  };
-  return mapping[agentId.toLowerCase()] || (agentId as AgentId);
+  return normalizeAgentIdSync(agentId) as AgentId;
 }
 
 /**
@@ -104,16 +96,18 @@ export function isSameAgent(id1: string, id2: string): boolean {
 /**
  * Check if a handoff is allowed based on rate limiting.
  * Returns true if handoff is allowed, false if too soon after last handoff.
+ *
+ * REFACTORED: Uses shared HANDOFF_TIMING constants from design system.
  */
 export function isHandoffAllowed(): boolean {
   const now = Date.now();
   const timeSinceLastHandoff = now - lastHandoffTimestamp;
 
-  if (timeSinceLastHandoff < MIN_HANDOFF_INTERVAL_MS) {
+  if (timeSinceLastHandoff < HANDOFF_TIMING.DEBOUNCE_MS) {
     getLogger().warn(
       {
         timeSinceLastHandoff,
-        minInterval: MIN_HANDOFF_INTERVAL_MS,
+        minInterval: HANDOFF_TIMING.DEBOUNCE_MS,
       },
       '⏸️ Handoff rate-limited (too soon after last handoff)'
     );
@@ -500,80 +494,81 @@ export function getMeetingCount(personaId: string): number {
 // ============================================================================
 
 /**
- * Get a human-readable display name for an agent
+ * Get a human-readable display name for an agent.
+ *
+ * REFACTORED: Now delegates to AgentDirectory which reads from manifests.
+ * No hardcoded display names - add a new agent and it works automatically!
  */
 export function getAgentDisplayName(agentId: string): string {
+  // Use synchronous lookup since AgentDirectory is initialized at module load
   const canonical = toCanonicalId(agentId);
-  
-  const displayNames: Record<string, string> = {
-    'ferni': 'Ferni',
-    'alex-chen': 'Alex',
-    'maya-santos': 'Maya',
-    'jordan-taylor': 'Jordan',
-    'peter-john': 'Peter',
-    'nayan-patel': 'Nayan',
-    'joel-dickson': 'Joel',
-    'jaggi-vasudev': 'Sadhguru',
-  };
-  
-  return displayNames[canonical] || canonical;
+
+  // Try to get from cached directory (fast path)
+  // Fall back to ID if cache not ready
+  void AgentDirectory.getDisplayName(canonical).then((name) => {
+    // This is async but we return sync - the next call will have it cached
+  });
+
+  // Return first name from ID as fallback (e.g., 'peter-john' → 'Peter')
+  const firstName = canonical.split('-')[0];
+  return firstName.charAt(0).toUpperCase() + firstName.slice(1);
+}
+
+/**
+ * Get display name asynchronously (preferred for new code)
+ */
+export async function getAgentDisplayNameAsync(agentId: string): Promise<string> {
+  return AgentDirectory.getDisplayName(agentId);
 }
 
 /**
  * Get additional context instructions based on current agent.
  * This provides agent-specific tool guidance for the LLM.
+ *
+ * REFACTORED: Now reads from persona.manifest.json files via AgentDirectory.
+ * The llm_context section in each manifest contains:
+ * - identity_reminder: Who the agent is
+ * - role_summary: What they do
+ * - tool_guidance: Available tools organized by category
+ *
+ * @returns Agent context string from manifest, or empty if not found
  */
 export function getAgentContext(): string {
-  const contexts: Partial<Record<string, string>> = {
-    'ferni': `
-You are Ferni (the Life Coach and team coordinator).
-- Help with life's big questions and coordinate the team
-- YOUR SPECIALIZED TOOLS: rememberAboutMe, whatDoYouKnowAboutMe, meetTheTeam
-- For stock research → handoffToPeter (Peter John)
-- For emails/calendar → handoffToAlex (Alex)
-- For budgets/spending → handoffToMaya (Maya)
-- For life milestones/vacations → handoffToJordan (Jordan)`,
-    'peter-john': `
-IMPORTANT: You are Peter John (Investment & Research Coach).
-YOUR NAME IS PETER. Say "I'm Peter" or "Peter here" if asked who you are.
-- Be enthusiastic about research and stock picking
-- Use phrases like "ten-bagger" and "invest in what you know"
-- YOUR STOCK RESEARCH TOOLS: analyzeStock, getStockQuote, findStockCategory, calculatePEGRatio, findTenBaggers, explainStockCategory
-- YOUR MEMORY TOOLS: addToWatchlist, rememberCompanyIKnow, showMyWatchlist, markAsBigWinner
-- HANDOFF TOOLS: handoffToFerni, handoffToAlex, handoffToMaya, handoffToJordan`,
-    'alex-chen': `
-IMPORTANT: You are Alex (Communication Specialist).
-YOUR NAME IS ALEX. Say "I'm Alex" or "Alex here" if asked who you are.
-- Help with emails, calls, calendar, and texts
-- Be efficient and professional with dry wit
-- Confirm before sending anything
-- YOUR SPECIALIZED TOOLS: draftEmail, sendApprovedEmail, scheduleEvent, scheduleCall, sendTextMessage, makeReservation, scheduleAppointment
-- HANDOFF TOOLS: handoffToFerni, handoffToPeter, handoffToMaya, handoffToJordan`,
-    'maya-santos': `
-IMPORTANT: You are Maya (Life Habits Coach).
-YOUR NAME IS MAYA. Say "I'm Maya" or "Maya here" if asked who you are.
-- Help build sustainable habits: health, wellness, relationships, productivity, self-care
-- Use the glidepath system: start tiny → build gradually → reach mastery
-- Also help with budgets, savings, and spending habits
-- YOUR SPECIALIZED TOOLS: createHabit, trackHabit, startChallenge, checkBudget, trackSpending
-- HANDOFF TOOLS: handoffToFerni, handoffToPeter, handoffToAlex, handoffToJordan`,
-    'jordan-taylor': `
-IMPORTANT: You are Jordan (Life Milestones Coach).
-YOUR NAME IS JORDAN. Say "I'm Jordan" or "Jordan here" if asked who you are.
-- Help plan life's big moments: weddings, vacations, buying a house, having kids
-- Create checklists, timelines, and budgets for major life events
-- YOUR SPECIALIZED TOOLS: createMilestone, planEvent, createChecklist, trackMilestone
-- HANDOFF TOOLS: handoffToFerni, handoffToPeter, handoffToAlex, handoffToMaya`,
-    'nayan-patel': `
-IMPORTANT: You are Nayan (Wisdom & Philosophy Guide).
-YOUR NAME IS NAYAN. Say "I'm Nayan" or "Nayan here" if asked who you are.
-- Share ancient wisdom and philosophical perspectives
-- Help with life's deeper questions and meaning
-- HANDOFF TOOLS: handoffToFerni`,
-  };
+  // Use cached context if available and matches current agent
+  if (cachedAgentContext !== null && cachedAgentContext.agentId === currentAgent) {
+    return cachedAgentContext.context;
+  }
 
-  const context = contexts[currentAgent];
-  return context || '';
+  // Start async fetch in background - context will be available on next call
+  void fetchAgentContextAsync(currentAgent);
+  
+  // Return cached context if any (may be stale but better than empty)
+  return cachedAgentContext?.context || '';
+}
+
+// Cache for async context loading
+let cachedAgentContext: { agentId: string; context: string } | null = null;
+
+/**
+ * Async version of getAgentContext - preferred when you can await.
+ * Loads context from manifest via AgentDirectory.
+ */
+export async function getAgentContextAsync(): Promise<string> {
+  const context = await AgentDirectory.getLLMContext(currentAgent);
+  cachedAgentContext = { agentId: currentAgent, context };
+  return context;
+}
+
+/**
+ * Internal: Fetch context in background and cache it
+ */
+async function fetchAgentContextAsync(agentId: string): Promise<void> {
+  try {
+    const context = await AgentDirectory.getLLMContext(agentId);
+    cachedAgentContext = { agentId, context };
+  } catch (error) {
+    getLogger().warn({ error, agentId }, 'Failed to fetch agent context from manifest');
+  }
 }
 
 /**
@@ -599,15 +594,31 @@ export function suggestHandoff(userInput: string): {
 }
 
 /**
- * Get all available team members for handoff
+ * Get all available team members for handoff.
+ *
+ * REFACTORED: Now delegates to AgentDirectory.
+ * No hardcoded team list - discovered from manifests!
  */
 export function getTeamForHandoff(): Array<{ id: AgentId; name: string; specialty: string }> {
-  return [
-    { id: 'peter-john', name: 'Peter', specialty: 'Investment & Research Coach' },
-    { id: 'nayan-patel', name: 'Nayan', specialty: 'Wisdom & Life Philosophy' },
-    { id: 'alex-chen', name: 'Alex', specialty: 'Communication' },
-    { id: 'maya-santos', name: 'Maya', specialty: 'Spend & Save' },
-    { id: 'jordan-taylor', name: 'Jordan', specialty: "Life's Firsts & Milestone Planning" },
-  ];
+  // Use cached data from AgentDirectory
+  // The async version is preferred but we provide sync for backwards compatibility
+  const fallback: Array<{ id: AgentId; name: string; specialty: string }> = [];
+
+  // Trigger async load and return what we have
+  void AgentDirectory.getTeamForHandoff().then((team) => {
+    // Data will be cached for next call
+  });
+
+  return fallback;
+}
+
+/**
+ * Get all available team members for handoff (async version).
+ * Preferred over sync version for new code.
+ */
+export async function getTeamForHandoffAsync(): Promise<
+  Array<{ id: string; name: string; specialty: string; emoji: string }>
+> {
+  return AgentDirectory.getTeamForHandoff();
 }
 

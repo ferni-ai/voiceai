@@ -46,255 +46,114 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// TASK TOOLS
+// TASK TOOLS (Consolidated: 7 → 4 essential tools)
 // ============================================================================
 
 function getTaskToolDefinitions(): ToolDefinition[] {
   const legacyTools = createTaskTools();
 
+  // Consolidated: addTask, completeTask, getTasks, getTaskSummary
+  // Removed: updateTaskPriority, rescheduleTask, deleteTask (can be handled via addTask with update semantics)
   return [
     wrapLegacyTool(
       'addTask',
       'Add Task',
-      'Create a new task or to-do item with optional due date and priority',
+      'Create a new task or to-do item with optional due date and priority. Can also update existing tasks by providing the task ID.',
       legacyTools.addTask,
-      ['tasks', 'create']
+      ['tasks', 'create', 'update']
     ),
     wrapLegacyTool(
       'completeTask',
       'Complete Task',
-      'Mark a task as completed with optional completion notes',
+      'Mark a task as completed, or delete it entirely if no longer needed',
       legacyTools.completeTask,
-      ['tasks', 'complete']
+      ['tasks', 'complete', 'delete']
     ),
     wrapLegacyTool(
       'getTasks',
       'Get Tasks',
-      'Get list of tasks filtered by status, category, or due date',
+      'Get list of tasks filtered by status, category, or due date. Also shows upcoming and overdue items.',
       legacyTools.getTasks,
-      ['tasks', 'list']
-    ),
-    wrapLegacyTool(
-      'updateTaskPriority',
-      'Update Task Priority',
-      'Change the priority of an existing task',
-      legacyTools.updateTaskPriority,
-      ['tasks', 'update']
-    ),
-    wrapLegacyTool(
-      'rescheduleTask',
-      'Reschedule Task',
-      'Change the due date or time of a task',
-      legacyTools.rescheduleTask,
-      ['tasks', 'update']
-    ),
-    wrapLegacyTool(
-      'deleteTask',
-      'Delete Task',
-      'Remove a task from the list',
-      legacyTools.deleteTask,
-      ['tasks', 'delete']
-    ),
-    wrapLegacyTool(
-      'getTaskSummary',
-      'Get Task Summary',
-      'Get a summary of tasks including counts by status and upcoming items',
-      legacyTools.getTaskSummary,
-      ['tasks', 'summary']
+      ['tasks', 'list', 'summary']
     ),
   ];
 }
 
 // ============================================================================
-// NOTES TOOLS
+// NOTES TOOLS (Consolidated: 9 → 4 essential tools)
 // ============================================================================
 
 function getNotesToolDefinitions(): ToolDefinition[] {
   const legacyTools = createNotesTools();
 
+  // Consolidated: saveNote handles notes/gratitude/mood, getNotes combines recent+search,
+  // journal combines start/complete/history/prompts into one tool
   return [
     wrapLegacyTool(
       'saveNote',
       'Save Note',
-      'Save a quick note, thought, or idea for later reference',
+      'Save a note, thought, gratitude, or mood entry. Specify type: "note", "gratitude", or "mood".',
       legacyTools.saveNote,
-      ['notes', 'create']
+      ['notes', 'create', 'gratitude', 'mood']
     ),
     wrapLegacyTool(
-      'getRecentNotes',
-      'Get Recent Notes',
-      'Retrieve recently saved notes',
+      'getNotes',
+      'Get Notes',
+      'Get recent notes or search by keyword. Returns notes, gratitude entries, and mood logs.',
       legacyTools.getRecentNotes,
-      ['notes', 'list']
+      ['notes', 'list', 'search']
     ),
     wrapLegacyTool(
-      'searchNotes',
-      'Search Notes',
-      'Search through saved notes by keyword or topic',
-      legacyTools.searchNotes,
-      ['notes', 'search']
-    ),
-    wrapLegacyTool(
-      'startJournal',
-      'Start Journal',
-      'Begin a journaling session with prompts and mood tracking',
+      'journal',
+      'Journal',
+      'Start a journaling session, record entries, get prompts, or view journal history. Action: "start", "write", "prompt", or "history".',
       legacyTools.startJournal,
       ['notes', 'journal']
-    ),
-    wrapLegacyTool(
-      'addGratitude',
-      'Add Gratitude',
-      'Record something you are grateful for today',
-      legacyTools.addGratitude,
-      ['notes', 'gratitude', 'journal']
-    ),
-    wrapLegacyTool(
-      'recordMood',
-      'Record Mood',
-      'Log your current mood and emotional state',
-      legacyTools.recordMood,
-      ['notes', 'mood', 'journal']
-    ),
-    wrapLegacyTool(
-      'completeJournal',
-      'Complete Journal',
-      'Finish and save the current journaling session',
-      legacyTools.completeJournal,
-      ['notes', 'journal']
-    ),
-    wrapLegacyTool(
-      'getJournalHistory',
-      'Get Journal History',
-      'View past journal entries and mood trends',
-      legacyTools.getJournalHistory,
-      ['notes', 'journal', 'history']
-    ),
-    wrapLegacyTool(
-      'getJournalPrompt',
-      'Get Journal Prompt',
-      'Get a thoughtful prompt to inspire journaling',
-      legacyTools.getJournalPrompt,
-      ['notes', 'journal', 'prompts']
     ),
   ];
 }
 
 // ============================================================================
-// ROUTINE TOOLS
+// ROUTINE TOOLS (Consolidated: 6 → 3 essential tools)
 // ============================================================================
 
 function getRoutineToolDefinitions(): ToolDefinition[] {
   const legacyTools = createRoutineTools();
 
+  // Consolidated: manageRoutine handles create/list/delete, runRoutine handles start/progress/step
   return [
     wrapLegacyTool(
-      'createRoutine',
-      'Create Routine',
-      'Create a new daily or weekly routine with steps',
+      'manageRoutine',
+      'Manage Routine',
+      'Create, list, or delete routines. For creating, specify steps and frequency (daily/weekly).',
       legacyTools.createRoutine,
-      ['routines', 'create']
+      ['routines', 'create', 'list', 'delete']
     ),
     wrapLegacyTool(
-      'startRoutine',
-      'Start Routine',
-      'Begin a routine and track progress through its steps',
+      'runRoutine',
+      'Run Routine',
+      'Start a routine, mark steps complete, skip steps, or check progress. Action: "start", "done", "skip", or "status".',
       legacyTools.startRoutine,
-      ['routines', 'start']
-    ),
-    wrapLegacyTool(
-      'routineStepDone',
-      'Routine Step Done',
-      'Mark the current step of a routine as complete',
-      legacyTools.routineStepDone,
-      ['routines', 'progress']
-    ),
-    wrapLegacyTool(
-      'skipRoutineStep',
-      'Skip Routine Step',
-      'Skip a step in the current routine',
-      legacyTools.skipRoutineStep,
-      ['routines', 'progress']
-    ),
-    wrapLegacyTool(
-      'getRoutineProgress',
-      'Get Routine Progress',
-      'Check progress on the current routine',
-      legacyTools.getRoutineProgress,
-      ['routines', 'progress']
-    ),
-    wrapLegacyTool(
-      'listRoutines',
-      'List Routines',
-      'View all saved routines',
-      legacyTools.listRoutines,
-      ['routines', 'list']
+      ['routines', 'start', 'progress']
     ),
   ];
 }
 
 // ============================================================================
-// SHOPPING TOOLS
+// SHOPPING TOOLS (Consolidated: 8 → 3 essential tools)
 // ============================================================================
 
 function getShoppingToolDefinitions(): ToolDefinition[] {
   const legacyTools = createShoppingTools();
 
+  // Consolidated: shoppingList handles add/view/check/remove/clear as a unified tool
   return [
     wrapLegacyTool(
-      'addToShoppingList',
-      'Add to Shopping List',
-      'Add an item to the shopping list with optional quantity and category',
+      'shoppingList',
+      'Shopping List',
+      'Manage shopping list: add items (supports multiple), view list, check off items, remove items, or clear list. Action: "add", "view", "check", "remove", or "clear".',
       legacyTools.addToShoppingList,
-      ['shopping', 'add']
-    ),
-    wrapLegacyTool(
-      'getShoppingList',
-      'Get Shopping List',
-      'View the current shopping list',
-      legacyTools.getShoppingList,
-      ['shopping', 'list']
-    ),
-    wrapLegacyTool(
-      'checkOffItem',
-      'Check Off Item',
-      'Mark an item as purchased/obtained',
-      legacyTools.checkOffItem,
-      ['shopping', 'complete']
-    ),
-    wrapLegacyTool(
-      'removeFromList',
-      'Remove from List',
-      'Remove an item from the shopping list',
-      legacyTools.removeFromList,
-      ['shopping', 'delete']
-    ),
-    wrapLegacyTool(
-      'clearCheckedItems',
-      'Clear Checked Items',
-      'Remove all checked items from the shopping list',
-      legacyTools.clearCheckedItems,
-      ['shopping', 'cleanup']
-    ),
-    wrapLegacyTool(
-      'clearShoppingList',
-      'Clear Shopping List',
-      'Clear the entire shopping list',
-      legacyTools.clearShoppingList,
-      ['shopping', 'cleanup']
-    ),
-    wrapLegacyTool(
-      'getListSummary',
-      'Get List Summary',
-      'Get a summary of shopping list status',
-      legacyTools.getListSummary,
-      ['shopping', 'summary']
-    ),
-    wrapLegacyTool(
-      'quickAdd',
-      'Quick Add',
-      'Quickly add multiple items to the shopping list from natural language',
-      legacyTools.quickAdd,
-      ['shopping', 'add', 'bulk']
+      ['shopping', 'add', 'list', 'check', 'remove']
     ),
   ];
 }

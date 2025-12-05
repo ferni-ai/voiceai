@@ -351,6 +351,37 @@ export { WELLNESS_COACH_PERSONA } from './wellness-coach/index.js';
 // External agents (jack-bogle, joel-dickson) available at voiceai-agents repo.
 
 // ============================================================================
+// COGNITIVE INTELLIGENCE SYSTEM
+// ============================================================================
+
+// Export cognitive intelligence types and utilities
+export {
+  getCognitiveGuidance,
+  buildCognitivePromptInjection,
+  detectQuestionComplexity,
+  detectUserExpertise,
+  getCognitiveEngine,
+  removeCognitiveEngine,
+  resetAllCognitiveEngines,
+  getCognitiveProfile,
+  cognitiveProfiles,
+} from './cognitive-index.js';
+
+export type {
+  CognitiveProfile,
+  CognitiveContext,
+  CognitiveGuidance,
+  ReasoningStyle,
+  AttentionFocus,
+  AttentionProfile,
+  TheoryOfMindConfig,
+  CognitiveBiasConfig,
+  CognitiveBiasType,
+  MetacognitionConfig,
+  InformationProcessingStyle,
+} from './cognitive-index.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 

@@ -20,9 +20,11 @@ export * from './types.js';
 // =============================================================================
 
 // Executor - Generic handoff execution
+// NOTE: handoffEvents is no longer exported from executor.js - it's imported from state.js
+// This ensures a single shared EventEmitter instance across the entire handoff system
 export {
   executeHandoff,
-  handoffEvents as handoffEventsNew,
+  // handoffEvents removed - use the one from state.js exports below
   getCurrentAgent as getCurrentAgentNew,
   setCurrentAgent as setCurrentAgentNew,
   isSameAgent as isSameAgentNew,
@@ -93,6 +95,7 @@ export {
   getHandoffContext,
   formatHandoffContextForAgent,
   getAgentContext,
+  getAgentContextAsync,
   getAgentDisplayName,
   // Met personas tracking
   hasMetPersona,

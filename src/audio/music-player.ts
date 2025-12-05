@@ -17,6 +17,9 @@
  */
 
 import { voice } from '@livekit/agents';
+// AgentSession is the session object from voice pipeline - using any for compatibility
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AgentSession = any;
 import { getLogger } from '../utils/safe-logger.js';
 import type { Room } from '@livekit/rtc-node';
 
@@ -56,11 +59,18 @@ export interface MusicPlayerState {
 export type OnTrackEndedCallback = (track: MusicTrack, wasAmbient: boolean) => void;
 
 /**
- * Callback for music state changes (for frontend notifications)
- * State: 'playing' | 'paused' | 'stopped' | 'idle'
+ * Music playback states for frontend notifications.
+ * 
+ * - 'playing' = Music actively playing
+ * - 'ducking' = Agent speaking over music (DJ fade-down)
+ * - 'fading'  = Track ending soon (~5 seconds left)
+ * - 'paused'  = Playback paused
+ * - 'stopped' = Playback stopped
+ * - 'idle'    = No music loaded
  */
+export type MusicState = 'playing' | 'ducking' | 'fading' | 'paused' | 'stopped' | 'idle';
 export type OnMusicStateChangeCallback = (
-  state: 'playing' | 'paused' | 'stopped' | 'idle',
+  state: MusicState,
   track: MusicTrack | null,
   isAmbient: boolean
 ) => void;
@@ -87,6 +97,9 @@ export class CallMusicPlayer {
 
   // Room reference (needed to initialize BackgroundAudioPlayer)
   private room: Room | null = null;
+  
+  // Agent session reference (for proper audio mixing)
+  private agentSession: AgentSession | null = null;
 
   // Temp directory for downloaded audio
   private tempDir: string;
@@ -112,25 +125,36 @@ export class CallMusicPlayer {
   }
 
   /**
-   * Initialize the player with a LiveKit room
+   * Initialize the player with a LiveKit room and agent session
    * MUST be called before playing music
+   * 
+   * @param room - The LiveKit room to publish audio to
+   * @param agentSession - Optional agent session for better audio mixing integration
    */
-  async initialize(room: Room): Promise<void> {
+  async initialize(room: Room, agentSession?: AgentSession): Promise<void> {
     if (this.state.isInitialized) {
       getLogger().debug('Music player already initialized');
       return;
     }
 
     this.room = room;
+    this.agentSession = agentSession ?? null;
 
     // Create BackgroundAudioPlayer (no ambient sound by default)
     this.backgroundPlayer = new BackgroundAudioPlayer();
 
     // Start the player (publishes audio track to room)
-    await this.backgroundPlayer.start({ room });
+    // Pass agentSession if available for proper audio mixing
+    await this.backgroundPlayer.start({ 
+      room,
+      agentSession: agentSession 
+    });
 
     this.state.isInitialized = true;
-    getLogger().info('Music player initialized with BackgroundAudioPlayer');
+    getLogger().info(
+      { hasAgentSession: !!agentSession }, 
+      'Music player initialized with BackgroundAudioPlayer'
+    );
   }
 
   /**
@@ -152,7 +176,7 @@ export class CallMusicPlayer {
   /**
    * Notify listeners of state change
    */
-  private notifyStateChange(state: 'playing' | 'paused' | 'stopped' | 'idle'): void {
+  private notifyStateChange(state: MusicState): void {
     if (this.onMusicStateChangeCallback) {
       this.onMusicStateChangeCallback(
         state,
@@ -224,12 +248,27 @@ export class CallMusicPlayer {
         '🎵 Music playback started'
       );
 
-      // ✨ Notify frontend - time to dance!
+      // ✨ Notify frontend - music is playing!
       this.notifyStateChange('playing');
+
+      // 🎧 DJ-STYLE FADE OUT: Notify frontend to fade 5 seconds before track ends
+      // This makes the ending feel human and intentional, not abrupt
+      const trackDuration = track.duration || 30000; // Default 30s for previews
+      const fadeOutTime = Math.max(trackDuration - 5000, 10000); // Start fade 5s before end, min 10s
+      
+      // Schedule the fade notification
+      const fadeTimer = setTimeout(() => {
+        if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+          getLogger().info({ track: track.name }, '🎧 DJ fade-out starting...');
+          this.notifyStateChange('fading');
+        }
+      }, fadeOutTime);
 
       // Wait for playback to complete, then cleanup
       if (this.currentPlayHandle) {
         this.currentPlayHandle.waitForPlayout().then(() => {
+          clearTimeout(fadeTimer); // Clean up timer if track ended early
+          
           const endedTrack = this.state.currentTrack;
           const wasAmbient = this.state.isAmbientMode;
 
@@ -431,14 +470,15 @@ export class CallMusicPlayer {
       if (this.state.isAmbientMode && this.state.isPlaying) {
         this.pause();
         getLogger().debug('🔉 Paused ambient music during agent speech');
-      } else {
-        // For user-requested music, just note it's ducked (music continues at background level)
+      } else if (this.state.isPlaying) {
+        // For user-requested music, notify frontend to fade the visual (DJ ducking effect)
+        this.notifyStateChange('ducking');
         getLogger().debug(
           {
             isPlaying: this.state.isPlaying,
             currentTrack: this.state.currentTrack?.name,
           },
-          '🔉 Music playing in background during agent speech'
+          '🔉 Music ducking - agent speaking over music'
         );
       }
     }
@@ -458,13 +498,15 @@ export class CallMusicPlayer {
       if (wasAmbientPaused) {
         // Don't auto-resume ambient - let the silence detector decide
         getLogger().debug('🔊 Agent finished speaking (ambient music will resume if silence continues)');
-      } else {
+      } else if (this.state.isPlaying) {
+        // Restore visual feedback - music back to full presence
+        this.notifyStateChange('playing');
         getLogger().debug(
           {
             isPlaying: this.state.isPlaying,
             currentTrack: this.state.currentTrack?.name,
           },
-          '🔊 Agent finished speaking (user music continues)'
+          '🔊 Music back to full - agent finished speaking'
         );
       }
     }
@@ -560,10 +602,13 @@ export function resetMusicPlayer(): void {
 }
 
 /**
- * Initialize the music player with a LiveKit room
+ * Initialize the music player with a LiveKit room and agent session
  * Call this from the agent when the session starts
+ * 
+ * @param room - The LiveKit room to publish audio to
+ * @param agentSession - Optional agent session for proper audio integration
  */
-export async function initializeMusicPlayer(room: Room): Promise<void> {
+export async function initializeMusicPlayer(room: Room, agentSession?: AgentSession): Promise<void> {
   const player = getMusicPlayer();
-  await player.initialize(room);
+  await player.initialize(room, agentSession);
 }

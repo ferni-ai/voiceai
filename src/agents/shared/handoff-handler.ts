@@ -22,7 +22,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { JobContext } from '@livekit/agents';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getCurrentAgent } from '../../tools/handoff/index.js';
-import { HANDOFF_DELAYS } from './constants.js';
+import { AgentDirectory, type HandoffDirection } from '../../personas/agent-directory.js';
+import { HANDOFF_TIMING, getTransitionDelay } from '../../config/handoff-timing.js';
 import type { UserData } from './types.js';
 import type { SessionServices } from '../../services/types.js';
 
@@ -207,43 +208,51 @@ export interface HandoffHandlerConfig {
 // ============================================================================
 
 /**
- * Determine handoff direction based on persona roles
+ * Determine handoff direction based on persona roles.
+ *
+ * REFACTORED: Now uses role-based logic instead of hardcoded agent IDs.
+ * Direction is derived from agent transition styles in AgentDirectory.
  */
-function determineDirection(from: HandoffPersona, to: HandoffPersona): string {
-  // Peter John specific transitions (most dramatic)
-  if (to.id === 'peter-john') return 'team-to-peter';
-  if (from.id === 'peter-john' && to.id === 'nayan-patel') return 'peter-to-nayan';
-
-  // Coach to team
-  if (from.isCoach && !to.isCoach) return 'coach-to-team';
-
-  // Team to coach
-  if (!from.isCoach && to.isCoach) return 'team-to-coach';
-
-  // Team to team
-  return 'coach-to-team';
+async function determineDirection(from: HandoffPersona, to: HandoffPersona): Promise<string> {
+  // Use AgentDirectory for role-based direction calculation
+  try {
+    const direction = await AgentDirectory.getHandoffDirection(from.id, to.id);
+    return direction;
+  } catch {
+    // Fallback to simple role-based logic
+    if (from.isCoach && !to.isCoach) return 'coach-to-team';
+    if (!from.isCoach && to.isCoach) return 'team-to-coach';
+    return 'team-to-team';
+  }
 }
 
 /**
- * Calculate transition delay based on handoff context
+ * Calculate transition delay based on handoff context.
+ *
+ * REFACTORED: Now uses shared HANDOFF_TIMING constants and agent transition styles.
  * FIX BUG #25: Now accepts explicit isUserInitiated flag instead of parsing greeting string
  */
-function calculateTransitionDelay(
+async function calculateTransitionDelay(
   fromPersona: HandoffPersona,
   toPersona: HandoffPersona,
   isUserInitiated: boolean
-): number {
-  const isFirstMeeting = fromPersona.isCoach;
+): Promise<number> {
+  const isFirstMeeting = fromPersona.isCoach && !toPersona.isCoach;
   const isReturningToCoach = toPersona.isCoach;
 
-  if (isUserInitiated) {
-    return HANDOFF_DELAYS.USER_INITIATED;
-  } else if (isFirstMeeting && !isReturningToCoach) {
-    return HANDOFF_DELAYS.FIRST_MEETING;
-  } else if (isReturningToCoach) {
-    return HANDOFF_DELAYS.RETURNING_TO_COACH;
+  // Get transition style from AgentDirectory
+  let transitionStyle: 'standard' | 'dramatic' | 'subtle' | 'warm' = 'standard';
+  try {
+    const entry = await AgentDirectory.getEntry(toPersona.id);
+    if (entry) {
+      transitionStyle = entry.transitionStyle;
+    }
+  } catch {
+    // Use default style
   }
-  return HANDOFF_DELAYS.STANDARD;
+
+  // Use shared timing calculation
+  return getTransitionDelay(transitionStyle, isUserInitiated, isFirstMeeting, isReturningToCoach);
 }
 
 // ============================================================================
@@ -261,35 +270,53 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
   const logger = getLogger();
 
   return async (data: HandoffEventPayload) => {
-    // FIX BUG #50: Use cached PersonaRegistry to avoid redundant lookups
-    const PersonaRegistry = await getPersonaRegistryCached();
+    // FIX BUG: Add top-level error handling to prevent silent failures
+    // This ensures any error in the handoff flow is logged and notifies the frontend
+    let targetPersonaId = 'unknown';
+    
+    try {
+      // FIX BUG #50: Use cached PersonaRegistry to avoid redundant lookups
+      const PersonaRegistry = await getPersonaRegistryCached();
 
-    // ============================================================
-    // NORMALIZE: Convert any format to Persona object
-    // ============================================================
-    let persona: HandoffPersona;
-    let greeting: string | undefined;
-    let playSound: string | undefined;
-    let previousAgentId: string | undefined;
+      // ============================================================
+      // NORMALIZE: Convert any format to Persona object
+      // ============================================================
+      let persona: HandoffPersona;
+      let greeting: string | undefined;
+      let playSound: string | undefined;
+      let previousAgentId: string | undefined;
 
-    if ('persona' in data && data.persona) {
-      // New clean format - use directly
-      persona = data.persona;
-      greeting = data.greeting;
-      playSound = data.playSound;
-      previousAgentId = (data as NewHandoffData).previousAgentId;
-    } else {
-      // Legacy format - resolve via PersonaRegistry
-      const legacy = data as LegacyHandoffData;
-      persona = PersonaRegistry.get(legacy.newAgent);
-      greeting = legacy.greeting;
-      playSound = legacy.playSound;
-      previousAgentId = legacy.previousAgent;
-    }
+      if ('persona' in data && data.persona) {
+        // New clean format - use directly
+        persona = data.persona;
+        greeting = data.greeting;
+        playSound = data.playSound;
+        previousAgentId = (data as NewHandoffData).previousAgentId;
+        targetPersonaId = persona.id;
+      } else {
+        // Legacy format - resolve via PersonaRegistry
+        const legacy = data as LegacyHandoffData;
+        targetPersonaId = legacy.newAgent || 'unknown';
+        persona = PersonaRegistry.get(legacy.newAgent);
+        
+        // FIX BUG: Check if persona was found
+        if (!persona) {
+          throw new Error(`PersonaRegistry.get returned null for: ${legacy.newAgent}`);
+        }
+        
+        greeting = legacy.greeting;
+        playSound = legacy.playSound;
+        previousAgentId = legacy.previousAgent;
+      }
 
-    // Get previous persona for logging
-    const prevId = previousAgentId || getCurrentAgent();
-    const prevPersona: HandoffPersona = PersonaRegistry.get(prevId);
+      // Get previous persona for logging
+      const prevId = previousAgentId || getCurrentAgent();
+      const prevPersona: HandoffPersona = PersonaRegistry.get(prevId);
+      
+      // FIX BUG: Check if previous persona was found
+      if (!prevPersona) {
+        throw new Error(`PersonaRegistry.get returned null for previous persona: ${prevId}`);
+      }
 
     diag.entry(`🔄 HANDOFF: ${prevPersona.name} → ${persona.name}`);
 
@@ -303,13 +330,15 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       'Agent handoff triggered'
     );
 
-    const direction = determineDirection(prevPersona, persona);
+    // REFACTORED: Now uses AgentDirectory for role-based direction calculation
+    const direction = await determineDirection(prevPersona, persona);
 
     // ============================================================
     // DELIGHTFUL HANDOFF FLOW
     // ============================================================
     try {
       // STEP 1: Send handoff_started - frontend begins visual transition
+      // FIX BUG: Ensure localParticipant exists and add retry logic
       const startMessage = JSON.stringify({
         type: 'handoff_started',
         newAgent: persona.id,
@@ -319,18 +348,28 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         timestamp: Date.now(),
       });
 
-      await ctx.room.localParticipant?.publishData(new TextEncoder().encode(startMessage), {
-        reliable: true,
-      });
+      if (!ctx.room.localParticipant) {
+        logger.error('Cannot send handoff_started: localParticipant is null');
+        throw new Error('Connection lost before handoff');
+      }
 
-      diag.entry(`Handoff started: ${prevPersona.name} → ${persona.name}`);
+      try {
+        await ctx.room.localParticipant.publishData(new TextEncoder().encode(startMessage), {
+          reliable: true,
+        });
+        diag.entry(`Handoff started: ${prevPersona.name} → ${persona.name}`);
+      } catch (startErr) {
+        logger.error({ error: String(startErr) }, 'Failed to send handoff_started');
+        throw new Error(`Failed to send handoff_started: ${startErr}`);
+      }
 
       // STEP 2: Calculate and wait for transition
       // FIX BUG #25: Use explicit flag if available, fall back to string parsing for legacy data
+      // REFACTORED: Now uses shared HANDOFF_TIMING constants
       const isUserInitiated = 'isUserInitiated' in data 
         ? (data as NewHandoffData).isUserInitiated ?? false 
         : greeting?.includes('User requested') ?? false;
-      const transitionDelayMs = calculateTransitionDelay(prevPersona, persona, isUserInitiated);
+      const transitionDelayMs = await calculateTransitionDelay(prevPersona, persona, isUserInitiated);
 
       diag.entry(
         `Transition delay: ${transitionDelayMs}ms (userInitiated: ${isUserInitiated}, firstMeeting: ${prevPersona.isCoach})`
@@ -406,6 +445,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         }
 
         // STEP 5: Send handoff_complete
+        // FIX BUG: Add error handling and retry logic for handoff_complete
         const completeMessage = JSON.stringify({
           type: 'handoff_complete',
           newAgent: persona.id,
@@ -414,11 +454,32 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           timestamp: Date.now(),
         });
 
-        await ctx.room.localParticipant?.publishData(new TextEncoder().encode(completeMessage), {
-          reliable: true,
-        });
+        // Ensure localParticipant exists before sending
+        if (!ctx.room.localParticipant) {
+          logger.error('Cannot send handoff_complete: localParticipant is null');
+          throw new Error('Connection lost during handoff');
+        }
 
-        diag.entry(`Handoff complete: ${persona.name} ready to speak`);
+        // Send with retry logic
+        let sendAttempts = 0;
+        const maxSendAttempts = 3;
+        while (sendAttempts < maxSendAttempts) {
+          try {
+            await ctx.room.localParticipant.publishData(new TextEncoder().encode(completeMessage), {
+              reliable: true,
+            });
+            diag.entry(`Handoff complete: ${persona.name} ready to speak`);
+            break;
+          } catch (sendErr) {
+            sendAttempts++;
+            if (sendAttempts >= maxSendAttempts) {
+              logger.error({ error: String(sendErr), attempts: sendAttempts }, 'Failed to send handoff_complete after retries');
+              throw new Error(`Failed to send handoff_complete: ${sendErr}`);
+            }
+            logger.warn({ error: String(sendErr), attempt: sendAttempts }, 'Retrying handoff_complete send...');
+            await new Promise((resolve) => setTimeout(resolve, 100 * sendAttempts));
+          }
+        }
 
         // STEP 6: Speak greeting programmatically (no delay - voice already switched!)
         if (greeting) {
@@ -477,12 +538,16 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             const newRuntime = await createBundleRuntime(newBundle);
 
             // FIX BUG #64 & #65: Validate and merge preserved state with fresh data
-            newRuntime.updateState({
+            const stateUpdate: Partial<import('../../personas/bundles/index.js').BundleRuntimeState> = {
               ...preservedState,
               sessionCount: services?.userProfile?.totalConversations || 0,
-              userName: userData?.name || services?.userProfile?.name,
               personaId: persona.id, // Ensure personaId is always set
-            });
+            };
+            const resolvedUserName = userData?.name || services?.userProfile?.name;
+            if (resolvedUserName) {
+              stateUpdate.userName = resolvedUserName;
+            }
+            newRuntime.updateState(stateUpdate);
 
             if (voiceAgentRef) {
               voiceAgentRef.setBundleRuntime(newRuntime);
@@ -526,7 +591,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           diag.warn('Handoff validation warning', validation);
           
           // In development, also log as error for visibility
-          if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_HANDOFF === 'true') {
+          if (process.env['NODE_ENV'] !== 'production' || process.env['DEBUG_HANDOFF'] === 'true') {
             logger.error(validation, '🚨 HANDOFF IDENTITY MISMATCH - Components out of sync!');
             diag.error('Handoff validation failed', validation);
           }
@@ -555,6 +620,32 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           // Last resort - just log it
         }
       }
+    } catch (topLevelErr) {
+      // FIX BUG: Catch any uncaught errors in the handoff flow
+      // This prevents silent failures that leave the UI stuck
+      logger.error({ 
+        error: String(topLevelErr), 
+        targetPersona: targetPersonaId,
+        stack: topLevelErr instanceof Error ? topLevelErr.stack : undefined,
+      }, '🚨 HANDOFF HANDLER CRASHED - Unhandled error in handoff flow');
+      diag.error(`Handoff handler crashed: ${topLevelErr}`);
+      
+      // Try to notify frontend of the failure
+      try {
+        const crashMessage = JSON.stringify({
+          type: 'handoff_failed',
+          newAgent: targetPersonaId,
+          error: `Handoff handler error: ${topLevelErr}`,
+          timestamp: Date.now(),
+        });
+        await ctx.room.localParticipant?.publishData(new TextEncoder().encode(crashMessage), {
+          reliable: true,
+        });
+      } catch {
+        // Can't even send failure message - connection likely lost
+        logger.error('Failed to send handoff_failed after handler crash');
+      }
+    }
   };
 }
 

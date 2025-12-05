@@ -3,21 +3,29 @@
   "version": "1.0.0",
   "description": "Voice AI Desktop Application",
   "main": "main.js",
-  "author": "Seth Ford",
+  "author": {
+    "name": "Seth Ford",
+    "email": "seth@voiceai.app"
+  },
   "license": "MIT",
   "scripts": {
     "start": "electron .",
     "dev": "npm run build:frontend && electron .",
     "build:frontend": "cd ../../frontend-typescript && npm run build && cp -r dist/* ../apps/electron/web/",
+    "build:frontend:win": "cd ..\\..\\frontend-typescript && npm run build && xcopy dist\\* ..\\apps\\electron\\web\\ /E /Y",
     "build": "npm run build:frontend && electron-builder",
     "build:mac": "npm run build:frontend && electron-builder --mac",
-    "build:win": "npm run build:frontend && electron-builder --win",
+    "build:win": "electron-builder --win",
+    "build:win:full": "npm run build:frontend && electron-builder --win",
     "build:linux": "npm run build:frontend && electron-builder --linux",
-    "pack": "electron-builder --dir"
+    "build:all": "npm run build:frontend && electron-builder -mwl",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
     "@sentry/electron": "^7.4.0",
-    "electron-store": "^8.1.0"
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.7"
   },
   "devDependencies": {
     "electron": "^28.1.0",
@@ -27,6 +35,7 @@
     "appId": "com.voiceai.desktop",
     "productName": "Voice AI",
     "copyright": "Copyright © 2024 Voice AI",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "directories": {
       "output": "dist",
       "buildResources": "resources"
@@ -37,21 +46,22 @@
       "web/**/*",
       "resources/**/*"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "sethdford",
+      "repo": "voiceai-desktop"
+    },
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "resources/icon.icns",
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "universal"
-          ]
+          "arch": ["universal"]
         },
         {
           "target": "zip",
-          "arch": [
-            "universal"
-          ]
+          "arch": ["universal"]
         }
       ],
       "hardenedRuntime": true,
@@ -63,16 +73,8 @@
       "title": "${productName}",
       "icon": "resources/icon.icns",
       "contents": [
-        {
-          "x": 130,
-          "y": 220
-        },
-        {
-          "x": 410,
-          "y": 220,
-          "type": "link",
-          "path": "/Applications"
-        }
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
       ]
     },
     "win": {
@@ -80,25 +82,46 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
         }
-      ]
+      ],
+      "publisherName": "Voice AI",
+      "verifyUpdateCodeSignature": false,
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Voice AI",
+      "installerIcon": "resources/icon.ico",
+      "uninstallerIcon": "resources/icon.ico",
+      "installerHeaderIcon": "resources/icon.ico",
+      "license": "../../LICENSE"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
     },
     "linux": {
       "icon": "resources/icons",
       "category": "Utility",
       "target": [
         "AppImage",
-        "deb"
-      ]
+        "deb",
+        "rpm"
+      ],
+      "desktop": {
+        "Name": "Voice AI",
+        "Comment": "AI Life Coach",
+        "Categories": "Utility;Application;"
+      }
     }
   }
 }

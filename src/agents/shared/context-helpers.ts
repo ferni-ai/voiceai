@@ -31,10 +31,10 @@ export async function checkEasterEggs(
 ): Promise<EasterEggResult> {
   try {
     const { checkForEasterEgg } = await import('../../personas/easter-eggs.js');
-    const result = checkForEasterEgg(userText, personaId, {
-      conversationCount,
-      userSinceDate: createdAt,
-    });
+    const easterEggContext = createdAt 
+      ? { conversationCount, userSinceDate: createdAt }
+      : { conversationCount };
+    const result = checkForEasterEgg(userText, personaId, easterEggContext);
 
     if (result.type !== 'none' && result.response) {
       getLogger().info({ type: result.type }, '🎉 Easter egg triggered!');
@@ -137,11 +137,14 @@ export async function getEmotionalArcSummary(): Promise<EmotionalArcSummary> {
     const arc = tracker.getArc() as unknown as Record<string, unknown> | null;
     const transition = tracker.getTransitionPhrase();
     
-    return {
+    const summary: EmotionalArcSummary = {
       phase: String(arc?.currentPhase || arc?.phase || 'neutral'),
       intensity: Number(arc?.currentIntensity || arc?.intensity || 0.5),
-      transitionPhrase: transition || undefined,
     };
+    if (transition) {
+      summary.transitionPhrase = transition;
+    }
+    return summary;
   } catch (error) {
     getLogger().debug({ error: String(error) }, 'Emotional arc failed');
     return { phase: 'neutral', intensity: 0.5 };
@@ -165,13 +168,21 @@ export async function getActiveTaskCount(
     const { getTaskManager } = await import('../../tasks/task-manager.js');
     const { analyzeMessage } = await import('../../intelligence/index.js');
     
-    const analysis = analyzeMessage(userText, { isReturningUser });
+    const analysisOptions: { isReturningUser?: boolean } = {};
+    if (isReturningUser !== undefined) {
+      analysisOptions.isReturningUser = isReturningUser;
+    }
+    const analysis = analyzeMessage(userText, analysisOptions);
     const taskManager = getTaskManager();
     
-    taskManager.processUserTurn(analysis, userText, {
-      isReturningUser,
-      lastSummary,
-    });
+    const taskContext: { isReturningUser?: boolean; lastSummary?: string } = {};
+    if (isReturningUser !== undefined) {
+      taskContext.isReturningUser = isReturningUser;
+    }
+    if (lastSummary !== undefined) {
+      taskContext.lastSummary = lastSummary;
+    }
+    taskManager.processUserTurn(analysis, userText, taskContext);
     
     const tasks = taskManager.getActiveTasks();
     if (tasks.length > 0) {

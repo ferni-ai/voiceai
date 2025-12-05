@@ -13,7 +13,7 @@
 // EARLY STARTUP LOGGING
 // Uses console.log intentionally as LiveKit logger isn't initialized yet
 // ============================================================================
-const DEBUG_STARTUP = process.env.DEBUG_AGENT === 'true' || process.env.NODE_ENV !== 'production';
+const DEBUG_STARTUP = process.env['DEBUG_AGENT'] === 'true' || process.env['NODE_ENV'] !== 'production';
 
 // Safe early logger for before LiveKit initializes
 const earlyLog = {
@@ -29,7 +29,7 @@ const earlyLog = {
 
 earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
   nodeVersion: process.version,
-  personaId: process.env.PERSONA_ID || '(default)',
+  personaId: process.env['PERSONA_ID'] || '(default)',
 });
 
 import 'dotenv/config';
@@ -54,8 +54,8 @@ import { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 import type { ContextUserData } from '../intelligence/context-builders/index.js';
 
 // Shared Agent Utilities (used by ALL agents)
-import { type UserData, type HandoffTool, type HandoffToolResult, startHealthCheckServer } from './shared/index.js';
-import { HANDOFF_DELAYS, SILENCE_THRESHOLDS } from './shared/constants.js';
+import { type UserData, startHealthCheckServer } from './shared/index.js';
+import { SILENCE_THRESHOLDS } from './shared/constants.js';
 
 // Persona System
 import {
@@ -118,10 +118,14 @@ import {
 import {
   initializeTools,
   buildAgentTools,
-  buildAllTeamTools,
   buildEssentialTools,
   isToolRegistryInitialized,
 } from '../tools/index.js';
+
+// Advanced Tool Systems - Dynamic loading, deprecation, analytics
+import { dynamicToolLoader } from '../tools/dynamic-loader.js';
+import { deprecationService } from '../tools/deprecation.js';
+import { abTestingService } from '../tools/ab-testing.js';
 
 // Voice Manager
 import { getVoiceManager, createPersonaAwareTTS } from '../speech/voice-manager.js';
@@ -146,7 +150,6 @@ import {
   getStoryTimingEngine,
   resetAllConversationState,
   getConversationHumanizer,
-  resetConversationHumanizer,
   getActiveListeningEngine,
 } from '../conversation/index.js';
 
@@ -167,7 +170,6 @@ import {
   executeHandoff,
   updateUserContextForHandoff,
   initializeHandoffContext,
-  setLastTopicForPersona,
 } from '../tools/handoff/index.js';
 import { createHandoffHandler, type VoiceAgentRef } from './shared/handoff-handler.js';
 
@@ -180,12 +182,9 @@ import {
   buildHumanizingContext,
   formatHumanizingForPrompt,
   getHumanizingSummary,
-  mapUserProfileStageToHumanizing,
   shouldMoodShift,
   getMoodShift,
   type HumanizingResult,
-  type RelationshipStage,
-  type MoodState,
 } from '../intelligence/context-builders/humanizing.js';
 
 // Humanizing Debug - enable with DEBUG_HUMANIZING=true
@@ -203,7 +202,7 @@ import type { AudioFrame } from '@livekit/rtc-node';
 
 const PERSONA = getDefaultPersona();
 // Use a static agent name since this agent handles ALL personas via dispatch metadata
-const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
+const AGENT_NAME = process.env['AGENT_NAME'] || 'voice-agent';
 
 earlyLog.info('Persona and agent configured', {
   defaultPersona: PERSONA.id,
@@ -342,46 +341,24 @@ class VoiceAgent extends voice.Agent<UserData> {
     }
 
     // Build tools using registry-based system
-    logger.info({ personaId: persona.id }, 'Building tools using registry-based system');
+    // Each agent's manifest defines exactly which domains/tools they need
+    // This keeps tool count manageable (40-60 per agent) for optimal Gemini performance
+    logger.info({ personaId: persona.id }, 'Building tools from agent manifest');
 
+    // Build tools for the current persona based on their manifest
+    // The manifest specifies domains, required, optional, and forbidden tools
+    const personaTools = await buildAgentTools(persona.id);
+
+    // Merge with essential tools (memory, handoff) to ensure core functionality
+    // Essential tools are a minimal subset that all agents need
+    const essentialTools = await buildEssentialTools();
+    
+    // Combine: persona-specific tools take precedence over essentials
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let essentialTools: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let allTools: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let initialPersonaTools: any;
-    let teamToolStats: { totalTools: number; uniqueTools: number } = { totalTools: 0, uniqueTools: 0 };
-
-    // Build essential tools (minimal set)
-    essentialTools = await buildEssentialTools();
-
-    // Build tools for the initial persona
-    initialPersonaTools = await buildAgentTools(persona.id);
-
-    // Build tools for all team members at once (much more efficient)
-    const teamResult = await buildAllTeamTools({
-      teamMembers: [
-        'ferni',
-        'maya-santos',
-        'alex-chen',
-        'jordan-taylor',
-        'peter-john',
-        'nayan-patel',
-      ],
-      skipRegistryInit: true,
-    });
-
-    allTools = {
+    let toolsForAgent: any = {
       ...essentialTools,
-      ...initialPersonaTools,
-      ...teamResult.tools,
+      ...personaTools,
     };
-    teamToolStats = teamResult.stats;
-
-    // EXPERIMENTAL: Use only essential tools for better Google Realtime performance
-    // Too many tools (298) may overwhelm the Realtime API's function calling
-    const useReducedToolset = true; // Set to false to restore all team tools
-    let toolsForAgent = useReducedToolset ? essentialTools : allTools;
 
     // Filter out forbidden tools from the persona's manifest
     // This is important for standalone personas like Joel who shouldn't have handoff tools
@@ -397,17 +374,18 @@ class VoiceAgent extends voice.Agent<UserData> {
       );
     }
 
+    // Log final tool count - should be 40-60 per agent for optimal Gemini performance
+    const toolNames = Object.keys(toolsForAgent);
     logger.info(
       {
-        essential: Object.keys(essentialTools).length,
-        persona: Object.keys(initialPersonaTools).length,
-        total: Object.keys(allTools).length,
-        usingReduced: useReducedToolset,
-        actualToolCount: Object.keys(toolsForAgent).length,
+        personaId: persona.id,
+        essentialCount: Object.keys(essentialTools).length,
+        personaCount: Object.keys(personaTools).length,
+        finalToolCount: toolNames.length,
         forbiddenCount: forbiddenTools.length,
-        teamStats: teamToolStats,
+        sampleTools: toolNames.slice(0, 10),
       },
-      'Loaded tools for agent'
+      'Tools loaded for agent (optimized for Gemini)'
     );
 
     return new VoiceAgent(persona, {
@@ -2025,6 +2003,22 @@ export default defineAgent({
       });
 
       // ===============================================
+      // A/B TESTING: Assign user to active experiments
+      // ===============================================
+      // This enables testing different tool configurations to optimize performance
+      const activeExperiments = abTestingService.getActiveExperiments();
+      for (const experiment of activeExperiments) {
+        const assignment = abTestingService.assignUser(userId || sessionId, experiment.id);
+        if (assignment) {
+          diag.entry('User assigned to experiment', {
+            experimentId: experiment.id,
+            variantId: assignment.variantId,
+            userId: userId || sessionId,
+          });
+        }
+      }
+
+      // ===============================================
       // STEP 3b: INITIALIZE HANDOFF CONTEXT (for alive entrances)
       // FIX BUG #34: Load per-persona meeting counts from both humanizingState and customData
       // (customData is where session-manager persists them on session end)
@@ -2138,7 +2132,10 @@ export default defineAgent({
       // TOOL EXECUTION TRACKING - Orchestration Integration
       // ============================================================
       // Track tool calls in conversation state for orchestration
+      // Also record analytics for tool usage optimization
       session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, async (event) => {
+        const toolStartTime = Date.now();
+
         // Debug logging (can be disabled in production)
         if (DEBUG_STARTUP) {
           console.log('🔧 [TOOLS] FunctionToolsExecuted event');
@@ -2155,7 +2152,8 @@ export default defineAgent({
             name?: string;
             toolName?: string;
             result?: unknown;
-            tools?: Array<{ name?: string; result?: unknown }>;
+            error?: unknown;
+            tools?: Array<{ name?: string; result?: unknown; error?: unknown; startTime?: number }>;
           };
 
           // Handle single tool or multiple tools
@@ -2169,6 +2167,31 @@ export default defineAgent({
 
             // Record in conversation state
             convState.recordToolCall(toolName, resultSummary);
+
+            // Record analytics for tool usage optimization
+            try {
+              const { recordToolUsage } = await import('../services/tool-usage-analytics.js');
+              const toolWithStartTime = tool as { startTime?: number };
+              const latencyMs = toolWithStartTime.startTime ? Date.now() - toolWithStartTime.startTime : Date.now() - toolStartTime;
+              const hasError = !!tool.error || !!toolInfo.error;
+              recordToolUsage(
+                toolName,
+                'unknown', // Domain can be inferred later from registry
+                {
+                  agentId: sessionPersona?.id || 'unknown',
+                  userId: services.userId,
+                  sessionId: services.sessionId,
+                },
+                latencyMs,
+                !hasError,
+                hasError ? String(tool.error || toolInfo.error) : undefined
+              );
+
+              // Record for deprecation analysis (identifies unused/error-prone tools)
+              deprecationService.recordUsage(toolName, !hasError, latencyMs);
+            } catch {
+              // Analytics recording is non-critical, don't fail the tool execution
+            }
 
             diag.tool('Tool execution tracked', {
               tool: toolName,
@@ -2475,6 +2498,23 @@ export default defineAgent({
 
           // Update context with last user message
           silenceContext.lastUserMessage = event.transcript;
+
+          // ===============================================
+          // DYNAMIC TOOL LOADING based on conversation topic
+          // ===============================================
+          // Analyze the user's message and auto-load relevant tool domains
+          // This keeps tool count manageable while ensuring relevant tools are available
+          dynamicToolLoader.processMessage(event.transcript).then((loadedDomains) => {
+            if (loadedDomains.length > 0) {
+              diag.tool('Dynamic domains loaded based on user message', {
+                transcript: event.transcript.slice(0, 50),
+                loadedDomains,
+                totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
+              });
+            }
+          }).catch((error) => {
+            logger.warn({ error }, 'Failed to process message for dynamic tool loading');
+          });
         }
       });
 
@@ -2597,7 +2637,8 @@ export default defineAgent({
         try {
           const { initializeMusicPlayer, getMusicPlayer, getAmbientMusicEndedPhrase } =
             await import('../audio/index.js');
-          await initializeMusicPlayer(ctx.room);
+          // Pass the agent session for proper audio mixing with voice
+          await initializeMusicPlayer(ctx.room, session);
 
           // Set up callback for when ambient music ends - agent comes back in
           const player = getMusicPlayer();

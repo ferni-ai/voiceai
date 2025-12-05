@@ -53,7 +53,7 @@ export const PERSONA_COLORS: Record<string, PersonaColorConfig> = {
   },
 
   // ========== TEAM MEMBERS ==========
-  'peter-lynch': {
+  'peter-john': {
     primary: '#3a6b73',
     secondary: '#2d5359',
     text: '#ffffff',

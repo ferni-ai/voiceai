@@ -1,6 +1,6 @@
 {
   "_generated": {
-    "timestamp": "2025-12-05T00:43:36.014Z",
+    "timestamp": "2025-12-05T11:26:58.768Z",
     "source": "scripts/generate-frontend-personas.ts",
     "version": "1.0.0"
   },
@@ -41,7 +41,9 @@
         "assertive",
         "empathetic-listener",
         "thoughtful",
-        "present"
+        "present",
+        "plant-parent",
+        "oxford-comma-defender"
       ],
       "domains": [
         "calendar-management",
@@ -116,7 +118,13 @@
         "assertive",
         "communication help",
         "help me write"
-      ]
+      ],
+      "transition": {
+        "style": "standard",
+        "emoji": "📧",
+        "sound": "handoff-to-alex",
+        "delayMultiplier": 1
+      }
     },
     "ferni": {
       "id": "ferni",
@@ -181,7 +189,13 @@
         "life coach",
         "back to ferni",
         "return to ferni"
-      ]
+      ],
+      "transition": {
+        "style": "warm",
+        "emoji": "🎯",
+        "sound": "connect",
+        "delayMultiplier": 1
+      }
     },
     "jordan-taylor": {
       "id": "jordan-taylor",
@@ -222,7 +236,10 @@
         "celebratory",
         "warm",
         "visionary",
-        "future-focused"
+        "future-focused",
+        "military-brat-resilient",
+        "dog-parent",
+        "mentor"
       ],
       "domains": [
         "lifetime-planning",
@@ -348,7 +365,13 @@
         "life planner",
         "event planner",
         "lifetime planner"
-      ]
+      ],
+      "transition": {
+        "style": "standard",
+        "emoji": "🎉",
+        "sound": "handoff-to-jordan",
+        "delayMultiplier": 1
+      }
     },
     "maya-santos": {
       "id": "maya-santos",
@@ -390,7 +413,10 @@
         "celebratory",
         "genuine",
         "relatable",
-        "hopeful"
+        "hopeful",
+        "cat-mom",
+        "reluctant-runner",
+        "brazilian-roots"
       ],
       "domains": [
         "financial-wellness",
@@ -538,7 +564,13 @@
         "type of person",
         "who I am",
         "become someone who"
-      ]
+      ],
+      "transition": {
+        "style": "warm",
+        "emoji": "💰",
+        "sound": "handoff-to-maya",
+        "delayMultiplier": 1
+      }
     },
     "nayan-patel": {
       "id": "nayan-patel",
@@ -585,7 +617,9 @@
         "patient-investor-mindset",
         "simple-living-advocate",
         "poetically-profound",
-        "long-term-thinker"
+        "long-term-thinker",
+        "chai-particular",
+        "early-riser"
       ],
       "domains": [
         "inner-engineering",
@@ -626,7 +660,13 @@
         "long-term thinking",
         "big picture",
         "meaning of life"
-      ]
+      ],
+      "transition": {
+        "style": "subtle",
+        "emoji": "🧘",
+        "sound": "handoff-to-nayan",
+        "delayMultiplier": 1.2
+      }
     },
     "peter-john": {
       "id": "peter-john",
@@ -660,7 +700,9 @@
         "boston-proud",
         "self-deprecating",
         "insight-obsessed",
-        "action-oriented"
+        "action-oriented",
+        "red-sox-fanatic",
+        "carolyn-devoted"
       ],
       "domains": [
         "insights-discovery",
@@ -740,7 +782,13 @@
         "patterns across",
         "behavioral insight",
         "what's really going on"
-      ]
+      ],
+      "transition": {
+        "style": "dramatic",
+        "emoji": "📈",
+        "sound": "handoff-to-peter",
+        "delayMultiplier": 1.3
+      }
     }
   },
   "teamOrder": [

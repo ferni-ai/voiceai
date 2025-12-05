@@ -338,16 +338,19 @@ class ConnectionService {
     });
 
     // Track subscribed (audio from agent) - use simple attach() like old frontend
+    // FIX: Support MULTIPLE audio tracks per participant (voice + background music)
     const onTrackSubscribed = (
-      track: { kind: string; attach: () => HTMLMediaElement; mediaStreamTrack: MediaStreamTrack },
+      track: { kind: string; attach: () => HTMLMediaElement; mediaStreamTrack: MediaStreamTrack; sid?: string },
       _publication: unknown,
       participant: { identity: string }
     ) => {
       if (track.kind === 'audio') {
+        // Use track SID + participant identity to support multiple audio tracks
+        // (e.g., agent voice track + BackgroundAudioPlayer music track)
+        const trackKey = `${participant.identity}-${track.sid || track.mediaStreamTrack.id || Date.now()}`;
         
-        // Check if we already have an audio element for this participant
-        // (prevents duplicate creation which breaks Web Audio API)
-        let audioEl = this.audioElements.get(participant.identity);
+        // Check if we already have this specific track attached
+        let audioEl = this.audioElements.get(trackKey);
         
         if (audioEl) {
           // Just fire the callback with existing element and track
@@ -356,8 +359,11 @@ class ConnectionService {
         }
         
         // Create new audio element via LiveKit's track.attach()
+        // Each track gets its own audio element (voice and music play simultaneously)
         audioEl = track.attach() as HTMLAudioElement;
-        this.audioElements.set(participant.identity, audioEl);
+        this.audioElements.set(trackKey, audioEl);
+        
+        console.log(`🔊 Audio track attached: ${trackKey} (kind: ${track.kind})`);
         
         // iOS/Safari specific attributes
         audioEl.setAttribute('playsinline', '');

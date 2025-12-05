@@ -2046,7 +2046,7 @@
     .header {
       position: relative;
       z-index: 1;
-      /* Reduced top padding to push content up */
+      /* Apple-style padding: generous top, tighter bottom */
       padding: var(--space-md) var(--space-lg) var(--space-sm);
       text-align: center;
     }
@@ -2059,12 +2059,10 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      /* Reduced padding to keep Connect button above fold */
-      padding: var(--space-md) var(--space-lg);
-      /* Tighter gap for above-the-fold content */
-      gap: var(--space-lg);
-      /* Remove min-height to allow natural content flow */
-      /* min-height removed - Connect button must be visible! */
+      /* Minimal padding to maximize above-fold space */
+      padding: var(--space-xs) var(--space-lg);
+      /* Tight gap for compact layout */
+      gap: var(--space-sm);
       /* Contain for performance */
       contain: layout style;
     }
@@ -2105,16 +2103,16 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      /* Tighter spacing for above-the-fold layout */
-      gap: var(--space-sm);
+      /* Golden ratio spacing: φ-derived gap for visual harmony */
+      gap: var(--space-md);
     }
 
     .avatar-container {
       position: relative;
-      /* Golden ratio based sizing: 128px is our base, derived from φ (1.618) */
-      /* 128 ≈ 79.2 × φ, creating harmonious proportions */
-      width: 128px;
-      height: 128px;
+      /* Golden ratio sizing: 120px ≈ φ^4.5 from 8px base unit
+         Creates visual weight and presence - our "WALL-E" character */
+      width: 120px;
+      height: 120px;
       /* GPU acceleration - crucial for smooth animations */
       will-change: transform;
       transform: translateZ(0);
@@ -2666,7 +2664,16 @@
       100% { transform: scale(1); }
     }
 
-    /* Persona name - refined typography */
+    /* Coach info container - Apple-style vertical rhythm */
+    .coach-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      /* φ-derived spacing: subtle gap between name and subtitle */
+      gap: 4px;
+    }
+
+    /* Persona name - refined typography with presence */
     #personaName {
       font-family: var(--font-display);
       font-size: var(--text-2xl);
@@ -2674,14 +2681,16 @@
       color: var(--color-text-primary);
       letter-spacing: var(--tracking-tight);
       line-height: 1.2;
+      /* Subtle margin for visual weight */
+      margin: 0;
     }
 
     #personaSubtitle {
       font-size: var(--text-sm);
       font-weight: 500;
       color: var(--color-text-secondary);
-      margin-top: 2px;
       letter-spacing: var(--tracking-wide);
+      margin: 0;
     }
 
     /* ========================================================================
@@ -2708,8 +2717,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 80px;
-      padding: 20px 0;
+      /* Bigger waveform */
+      height: 64px;
+      padding: 8px 0;
+      /* Pull Connect button closer by reducing bottom margin */
+      margin-bottom: calc(-1 * var(--space-xs));
       opacity: 0.8;
       transition: opacity 0.3s ease;
     }
@@ -2751,7 +2763,7 @@
       align-items: flex-end;
       justify-content: center;
       gap: 4px;
-      height: 56px;
+      height: 48px;
     }
     
     /* Individual bar */
@@ -3081,6 +3093,19 @@
     /* ========================================================================
        CONTROL BUTTONS - Premium, tactile, magical design ✨
        ======================================================================== */
+    
+    /* Row container for Connect (centered) + Spotify (right) */
+    .controls-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 600px;
+      /* Pull much closer to waveform above */
+      margin-top: calc(-1 * var(--space-lg));
+    }
+    
     .controls {
       display: flex;
       gap: var(--space-md);
@@ -3616,7 +3641,7 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      margin-top: var(--space-xl);
+      margin-top: var(--space-md);
       padding: 8px 12px;
       background: var(--color-bg-glass);
       backdrop-filter: blur(12px);
@@ -3696,7 +3721,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       padding: 8px 12px;
       border-radius: var(--radius-lg);
       background: transparent;
@@ -3981,7 +4006,7 @@
       font-weight: 400;
       letter-spacing: 0.02em;
       color: rgba(255, 255, 255, 0.5);
-      margin-top: var(--space-md);
+      margin: 0;
       text-align: center;
       transition: opacity 0.3s ease, color 0.3s ease;
     }
@@ -4055,36 +4080,43 @@
     }
 
     /* ========================================================================
-       SPOTIFY LINK BUTTON - Professional, minimal design
+       SPOTIFY LINK BUTTON - Positioned to the right of centered Connect
        ======================================================================== */
     .spotify-link-button {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
+      position: absolute;
+      right: 0;
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 16px;
       background: var(--color-bg-glass);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--color-border-subtle);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-full);
       font-size: var(--text-sm);
       font-weight: 500;
       color: var(--color-text-muted);
       cursor: pointer;
       transition: all var(--transition-base);
-      z-index: 100;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      /* Part of the entrance animation */
+      opacity: 0;
+    }
+    
+    /* Entrance animation for Spotify button */
+    .app-loaded .spotify-link-button:not(.hidden) {
+      animation: entranceSlideUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: 750ms;
     }
 
     .spotify-link-button:hover {
       background: var(--color-bg-elevated);
       border-color: #1DB954;
       color: #1DB954;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
 
     .spotify-link-button:hover .spotify-icon-svg {
@@ -5639,7 +5671,7 @@
     
     /* Ensure roster has room for hint */
     #teamRoster {
-      padding-bottom: 24px;
+      padding-bottom: 16px;
       overflow: visible !important;
     }
     
@@ -6232,32 +6264,34 @@
         <div class="emotion-indicator" id="emotionIndicator"></div>
       </div>
 
-      <!-- Control Buttons -->
-      <div class="controls entrance-controls">
-        <button id="connectBtn" class="btn btn-primary btn-magnetic anticipate-btn anticipate-focus" type="button">
-          <span class="btn-content">Connect</span>
-        </button>
-        <button id="disconnectBtn" class="btn btn-secondary anticipate-btn anticipate-focus" type="button" style="display: none;">
-          <span class="btn-content">Disconnect</span>
+      <!-- Control Buttons Row -->
+      <div class="controls-row entrance-controls">
+        <div class="controls">
+          <button id="connectBtn" class="btn btn-primary btn-magnetic anticipate-btn anticipate-focus" type="button">
+            <span class="btn-content">Connect</span>
+          </button>
+          <button id="disconnectBtn" class="btn btn-secondary anticipate-btn anticipate-focus" type="button" style="display: none;">
+            <span class="btn-content">Disconnect</span>
+          </button>
+        </div>
+        
+        <!-- Spotify Link Button - To the right of connect -->
+        <button id="spotifyLinkButton" class="spotify-link-button hidden" title="Link your Spotify Premium for full songs">
+          <svg class="spotify-icon-svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+          </svg>
+          <span class="spotify-button-text">Link Spotify</span>
         </button>
       </div>
 
       <!-- Helper Text - Apple-style minimal -->
       <p id="helperText" class="entrance-helper">Your personal guide</p>
       
-      <!-- Spotify Status - Apple-style minimal -->
+      <!-- Spotify Status - Apple-style minimal (hidden, used for status updates) -->
       <div id="spotifyStatus" class="spotify-status hidden">
         <span class="spotify-icon">♪</span>
         <span id="spotifyStatusText">Initializing...</span>
       </div>
-
-      <!-- Spotify Link Button - Shows when Spotify is available but not linked -->
-      <button id="spotifyLinkButton" class="spotify-link-button hidden" title="Link your Spotify Premium for full songs">
-        <svg class="spotify-icon-svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-        </svg>
-        <span class="spotify-button-text">Link Spotify</span>
-      </button>
     </main>
 
   </div>

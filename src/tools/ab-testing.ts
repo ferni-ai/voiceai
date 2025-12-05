@@ -1,0 +1,548 @@
+/**
+ * Tool A/B Testing Framework
+ *
+ * Enables experimentation with different tool configurations to optimize:
+ * - Tool selection accuracy
+ * - User satisfaction
+ * - Task completion rates
+ *
+ * Features:
+ * - Define experiments with control/variants
+ * - Random assignment with consistent user bucketing
+ * - Track metrics and outcomes
+ * - Statistical significance calculation
+ */
+
+import { getLogger } from '../utils/safe-logger.js';
+import type { ToolDomain } from './registry/types.js';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface Experiment {
+  /** Unique experiment ID */
+  id: string;
+  /** Human-readable name */
+  name: string;
+  /** What we're testing */
+  description: string;
+  /** When the experiment started */
+  startDate: Date;
+  /** When the experiment ends (or null if ongoing) */
+  endDate: Date | null;
+  /** Is the experiment active? */
+  active: boolean;
+  /** Control configuration */
+  control: VariantConfig;
+  /** Test variants */
+  variants: VariantConfig[];
+  /** Traffic allocation (percentage per variant, must sum to 100) */
+  trafficAllocation: number[];
+  /** Success metrics to track */
+  metrics: MetricDefinition[];
+}
+
+export interface VariantConfig {
+  /** Variant ID (e.g., 'control', 'variant-a', 'variant-b') */
+  id: string;
+  /** Human-readable name */
+  name: string;
+  /** Tool domains to include */
+  domains?: ToolDomain[];
+  /** Specific tools to include */
+  includeTools?: string[];
+  /** Specific tools to exclude */
+  excludeTools?: string[];
+  /** Tool consolidation rules */
+  consolidations?: ToolConsolidation[];
+  /** Any custom configuration */
+  config?: Record<string, unknown>;
+}
+
+export interface ToolConsolidation {
+  /** New consolidated tool ID */
+  newToolId: string;
+  /** Tools being replaced */
+  replacedTools: string[];
+}
+
+export interface MetricDefinition {
+  /** Metric ID */
+  id: string;
+  /** Metric name */
+  name: string;
+  /** How to aggregate (sum, average, rate) */
+  aggregation: 'sum' | 'average' | 'rate' | 'count';
+  /** Higher is better? */
+  higherIsBetter: boolean;
+}
+
+export interface ExperimentAssignment {
+  experimentId: string;
+  variantId: string;
+  userId: string;
+  assignedAt: Date;
+}
+
+export interface MetricEvent {
+  experimentId: string;
+  variantId: string;
+  userId: string;
+  metricId: string;
+  value: number;
+  timestamp: Date;
+  context?: Record<string, unknown>;
+}
+
+export interface ExperimentResults {
+  experimentId: string;
+  totalParticipants: number;
+  byVariant: Record<
+    string,
+    {
+      participants: number;
+      metrics: Record<
+        string,
+        {
+          sum: number;
+          count: number;
+          average: number;
+        }
+      >;
+    }
+  >;
+  recommendations: string[];
+}
+
+// ============================================================================
+// PREDEFINED EXPERIMENTS
+// ============================================================================
+
+/**
+ * Example experiments for tool optimization
+ */
+export const PREDEFINED_EXPERIMENTS: Experiment[] = [
+  {
+    id: 'consolidated-vs-granular',
+    name: 'Consolidated vs Granular Tools',
+    description: 'Test if users prefer consolidated multi-action tools vs many specific tools',
+    startDate: new Date(),
+    endDate: null,
+    active: false, // Enable when ready
+    control: {
+      id: 'control',
+      name: 'Granular Tools',
+      domains: ['productivity'],
+      config: { useConsolidated: false },
+    },
+    variants: [
+      {
+        id: 'consolidated',
+        name: 'Consolidated Tools',
+        domains: ['productivity'],
+        config: { useConsolidated: true },
+        consolidations: [
+          {
+            newToolId: 'manageTasks',
+            replacedTools: ['createTask', 'updateTask', 'deleteTask', 'getTasks'],
+          },
+        ],
+      },
+    ],
+    trafficAllocation: [50, 50],
+    metrics: [
+      { id: 'tool_success_rate', name: 'Tool Success Rate', aggregation: 'rate', higherIsBetter: true },
+      { id: 'tools_per_session', name: 'Tools Used Per Session', aggregation: 'average', higherIsBetter: false },
+      { id: 'task_completion', name: 'Task Completion Rate', aggregation: 'rate', higherIsBetter: true },
+    ],
+  },
+  {
+    id: 'awareness-tools',
+    name: 'Awareness Tools Impact',
+    description: 'Test if world awareness tools improve conversation quality',
+    startDate: new Date(),
+    endDate: null,
+    active: false,
+    control: {
+      id: 'control',
+      name: 'No Awareness',
+      excludeTools: ['getCurrentContext', 'getUserContext', 'getConversationAwareness'],
+    },
+    variants: [
+      {
+        id: 'with-awareness',
+        name: 'With Awareness',
+        domains: ['awareness'],
+      },
+    ],
+    trafficAllocation: [50, 50],
+    metrics: [
+      { id: 'user_satisfaction', name: 'User Satisfaction', aggregation: 'average', higherIsBetter: true },
+      { id: 'conversation_length', name: 'Conversation Length', aggregation: 'average', higherIsBetter: true },
+      { id: 'return_rate', name: 'User Return Rate', aggregation: 'rate', higherIsBetter: true },
+    ],
+  },
+  {
+    id: 'tool-count-optimization',
+    name: 'Optimal Tool Count',
+    description: 'Find the optimal number of tools per agent',
+    startDate: new Date(),
+    endDate: null,
+    active: false,
+    control: {
+      id: 'full',
+      name: 'Full Tool Set (50+)',
+      config: { maxTools: 100 },
+    },
+    variants: [
+      {
+        id: 'medium',
+        name: 'Medium Tool Set (30-40)',
+        config: { maxTools: 40 },
+      },
+      {
+        id: 'minimal',
+        name: 'Minimal Tool Set (20-30)',
+        config: { maxTools: 30 },
+      },
+    ],
+    trafficAllocation: [34, 33, 33],
+    metrics: [
+      { id: 'tool_accuracy', name: 'Correct Tool Selection Rate', aggregation: 'rate', higherIsBetter: true },
+      { id: 'response_latency', name: 'Response Latency (ms)', aggregation: 'average', higherIsBetter: false },
+      { id: 'user_satisfaction', name: 'User Satisfaction', aggregation: 'average', higherIsBetter: true },
+    ],
+  },
+];
+
+// ============================================================================
+// A/B TESTING SERVICE
+// ============================================================================
+
+export class ABTestingService {
+  private experiments = new Map<string, Experiment>();
+  private assignments = new Map<string, ExperimentAssignment>(); // userId -> assignment
+  private metrics: MetricEvent[] = [];
+
+  constructor() {
+    // Load predefined experiments
+    for (const exp of PREDEFINED_EXPERIMENTS) {
+      this.experiments.set(exp.id, exp);
+    }
+  }
+
+  // ==========================================================================
+  // EXPERIMENT MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Register a new experiment
+   */
+  registerExperiment(experiment: Experiment): void {
+    this.experiments.set(experiment.id, experiment);
+    getLogger().info({ experimentId: experiment.id, name: experiment.name }, '🧪 Experiment registered');
+  }
+
+  /**
+   * Activate an experiment
+   */
+  activateExperiment(experimentId: string): boolean {
+    const experiment = this.experiments.get(experimentId);
+    if (!experiment) return false;
+
+    experiment.active = true;
+    experiment.startDate = new Date();
+    getLogger().info({ experimentId }, '🧪 Experiment activated');
+    return true;
+  }
+
+  /**
+   * Deactivate an experiment
+   */
+  deactivateExperiment(experimentId: string): boolean {
+    const experiment = this.experiments.get(experimentId);
+    if (!experiment) return false;
+
+    experiment.active = false;
+    experiment.endDate = new Date();
+    getLogger().info({ experimentId }, '🧪 Experiment deactivated');
+    return true;
+  }
+
+  /**
+   * Get all experiments
+   */
+  getExperiments(): Experiment[] {
+    return Array.from(this.experiments.values());
+  }
+
+  /**
+   * Get active experiments
+   */
+  getActiveExperiments(): Experiment[] {
+    return this.getExperiments().filter((e) => e.active);
+  }
+
+  // ==========================================================================
+  // USER ASSIGNMENT
+  // ==========================================================================
+
+  /**
+   * Assign a user to an experiment variant
+   * Uses consistent hashing so same user always gets same variant
+   */
+  assignUser(userId: string, experimentId: string): ExperimentAssignment | null {
+    const experiment = this.experiments.get(experimentId);
+    if (!experiment || !experiment.active) return null;
+
+    // Check for existing assignment
+    const existingKey = `${userId}:${experimentId}`;
+    if (this.assignments.has(existingKey)) {
+      return this.assignments.get(existingKey)!;
+    }
+
+    // Consistent hash based on user ID and experiment ID
+    const hash = this.hashString(`${userId}:${experimentId}`);
+    const bucket = hash % 100;
+
+    // Determine variant based on traffic allocation
+    let cumulativePercent = 0;
+    const allVariants = [experiment.control, ...experiment.variants];
+
+    for (let i = 0; i < allVariants.length; i++) {
+      cumulativePercent += experiment.trafficAllocation[i];
+      if (bucket < cumulativePercent) {
+        const assignment: ExperimentAssignment = {
+          experimentId,
+          variantId: allVariants[i].id,
+          userId,
+          assignedAt: new Date(),
+        };
+        this.assignments.set(existingKey, assignment);
+        getLogger().debug({ userId, experimentId, variantId: assignment.variantId }, '🧪 User assigned to variant');
+        return assignment;
+      }
+    }
+
+    // Fallback to control
+    const fallback: ExperimentAssignment = {
+      experimentId,
+      variantId: experiment.control.id,
+      userId,
+      assignedAt: new Date(),
+    };
+    this.assignments.set(existingKey, fallback);
+    return fallback;
+  }
+
+  /**
+   * Get user's current assignment for an experiment
+   */
+  getUserAssignment(userId: string, experimentId: string): ExperimentAssignment | null {
+    return this.assignments.get(`${userId}:${experimentId}`) || null;
+  }
+
+  /**
+   * Get the variant config for a user
+   */
+  getUserVariant(userId: string, experimentId: string): VariantConfig | null {
+    const assignment = this.assignUser(userId, experimentId);
+    if (!assignment) return null;
+
+    const experiment = this.experiments.get(experimentId);
+    if (!experiment) return null;
+
+    if (assignment.variantId === experiment.control.id) {
+      return experiment.control;
+    }
+
+    return experiment.variants.find((v) => v.id === assignment.variantId) || null;
+  }
+
+  // ==========================================================================
+  // METRICS TRACKING
+  // ==========================================================================
+
+  /**
+   * Record a metric event
+   */
+  recordMetric(
+    userId: string,
+    experimentId: string,
+    metricId: string,
+    value: number,
+    context?: Record<string, unknown>
+  ): void {
+    const assignment = this.getUserAssignment(userId, experimentId);
+    if (!assignment) return;
+
+    const event: MetricEvent = {
+      experimentId,
+      variantId: assignment.variantId,
+      userId,
+      metricId,
+      value,
+      timestamp: new Date(),
+      context,
+    };
+
+    this.metrics.push(event);
+    getLogger().debug({ experimentId, metricId, value }, '🧪 Metric recorded');
+  }
+
+  /**
+   * Record tool usage for an experiment
+   */
+  recordToolUsage(userId: string, toolId: string, success: boolean, latencyMs: number): void {
+    for (const experiment of this.getActiveExperiments()) {
+      const assignment = this.getUserAssignment(userId, experiment.id);
+      if (assignment) {
+        this.recordMetric(userId, experiment.id, 'tool_success_rate', success ? 1 : 0, { toolId });
+        this.recordMetric(userId, experiment.id, 'response_latency', latencyMs, { toolId });
+      }
+    }
+  }
+
+  // ==========================================================================
+  // RESULTS & ANALYSIS
+  // ==========================================================================
+
+  /**
+   * Get results for an experiment
+   */
+  getResults(experimentId: string): ExperimentResults | null {
+    const experiment = this.experiments.get(experimentId);
+    if (!experiment) return null;
+
+    const experimentMetrics = this.metrics.filter((m) => m.experimentId === experimentId);
+
+    // Group by variant
+    const byVariant: ExperimentResults['byVariant'] = {};
+    const participants = new Set<string>();
+
+    for (const event of experimentMetrics) {
+      participants.add(event.userId);
+
+      if (!byVariant[event.variantId]) {
+        byVariant[event.variantId] = {
+          participants: 0,
+          metrics: {},
+        };
+      }
+
+      const variant = byVariant[event.variantId];
+      if (!variant.metrics[event.metricId]) {
+        variant.metrics[event.metricId] = { sum: 0, count: 0, average: 0 };
+      }
+
+      const metric = variant.metrics[event.metricId];
+      metric.sum += event.value;
+      metric.count += 1;
+      metric.average = metric.sum / metric.count;
+    }
+
+    // Count participants per variant
+    for (const assignment of this.assignments.values()) {
+      if (assignment.experimentId === experimentId && byVariant[assignment.variantId]) {
+        byVariant[assignment.variantId].participants += 1;
+      }
+    }
+
+    // Generate recommendations
+    const recommendations = this.generateRecommendations(experiment, byVariant);
+
+    return {
+      experimentId,
+      totalParticipants: participants.size,
+      byVariant,
+      recommendations,
+    };
+  }
+
+  /**
+   * Generate recommendations based on results
+   */
+  private generateRecommendations(
+    experiment: Experiment,
+    byVariant: ExperimentResults['byVariant']
+  ): string[] {
+    const recommendations: string[] = [];
+
+    // Compare variants for each metric
+    for (const metricDef of experiment.metrics) {
+      const variantScores: Array<{ variantId: string; score: number }> = [];
+
+      for (const [variantId, data] of Object.entries(byVariant)) {
+        const metricData = data.metrics[metricDef.id];
+        if (metricData && metricData.count > 0) {
+          variantScores.push({
+            variantId,
+            score: metricDef.aggregation === 'rate' ? metricData.average : metricData.average,
+          });
+        }
+      }
+
+      if (variantScores.length >= 2) {
+        // Sort by score
+        variantScores.sort((a, b) =>
+          metricDef.higherIsBetter ? b.score - a.score : a.score - b.score
+        );
+
+        const best = variantScores[0];
+        const worst = variantScores[variantScores.length - 1];
+        const improvement = ((best.score - worst.score) / worst.score) * 100;
+
+        if (Math.abs(improvement) > 10) {
+          recommendations.push(
+            `📊 ${metricDef.name}: "${best.variantId}" outperforms "${worst.variantId}" by ${improvement.toFixed(1)}%`
+          );
+        }
+      }
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push('📊 No significant differences detected yet. Need more data.');
+    }
+
+    return recommendations;
+  }
+
+  // ==========================================================================
+  // HELPERS
+  // ==========================================================================
+
+  private hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  /**
+   * Export data for external analysis
+   */
+  exportData(): {
+    experiments: Experiment[];
+    assignments: ExperimentAssignment[];
+    metrics: MetricEvent[];
+  } {
+    return {
+      experiments: Array.from(this.experiments.values()),
+      assignments: Array.from(this.assignments.values()),
+      metrics: this.metrics,
+    };
+  }
+}
+
+// ============================================================================
+// SINGLETON
+// ============================================================================
+
+export const abTestingService = new ABTestingService();
+
+export default abTestingService;
+

@@ -18,45 +18,55 @@ import {
   getHandoffContext,
   getHandoffHistory,
   clearHandoffHistory,
-  handoffEvents,
   type HandoffResult,
 } from '../executor.js';
+
+// Import handoffEvents dynamically to avoid module resolution issues with mocks
+let handoffEvents: import('events').EventEmitter | null = null;
+async function getHandoffEvents() {
+  if (!handoffEvents) {
+    const state = await import('../state.js');
+    handoffEvents = state.handoffEvents;
+  }
+  return handoffEvents;
+}
 
 // ============================================================================
 // MOCKS
 // ============================================================================
 
-// Mock the voice registry
-vi.mock('../../../personas/voice-registry.js', () => ({
-  getCanonicalPersonaId: vi.fn((id: string) => {
-    const mapping: Record<string, string> = {
-      'peter': 'peter-john',
-      'peter-john': 'peter-john',
-      'maya': 'maya-santos',
-      'maya-santos': 'maya-santos',
-      'alex': 'alex-chen',
-      'alex-chen': 'alex-chen',
-      'jordan': 'jordan-taylor',
-      'jordan-taylor': 'jordan-taylor',
-      'nayan-patel': 'nayan-patel',
-      'ferni': 'ferni',
-      'jack-b': 'ferni',
-    };
-    return mapping[id] || id;
-  }),
-  getPersonaDisplayName: vi.fn((id: string) => {
-    const names: Record<string, string> = {
-      'peter-john': 'Peter John',
-      'maya-santos': 'Maya Santos',
-      'alex-chen': 'Alex Chen',
-      'jordan-taylor': 'Jordan Taylor',
-      'nayan-patel': 'Nayan Patel',
-      'ferni': 'Ferni',
-    };
-    return names[id] || id;
-  }),
-  getVoiceId: vi.fn((id: string) => `voice-${id}`),
-}));
+// Mock the voice registry - must define mappings inline due to vi.mock hoisting
+vi.mock('../../../personas/voice-registry.js', () => {
+  const canonicalMapping: Record<string, string> = {
+    'peter': 'peter-john',
+    'peter-john': 'peter-john',
+    'maya': 'maya-santos',
+    'maya-santos': 'maya-santos',
+    'alex': 'alex-chen',
+    'alex-chen': 'alex-chen',
+    'jordan': 'jordan-taylor',
+    'jordan-taylor': 'jordan-taylor',
+    'nayan-patel': 'nayan-patel',
+    'ferni': 'ferni',
+    'jack-b': 'ferni',
+  };
+  
+  const displayNames: Record<string, string> = {
+    'peter-john': 'Peter John',
+    'maya-santos': 'Maya Santos',
+    'alex-chen': 'Alex Chen',
+    'jordan-taylor': 'Jordan Taylor',
+    'nayan-patel': 'Nayan Patel',
+    'ferni': 'Ferni',
+  };
+  
+  return {
+    getCanonicalPersonaId: (id: string) => canonicalMapping[id] || id,
+    getPersonaDisplayName: (id: string) => displayNames[id] || id,
+    getVoiceId: (id: string) => `voice-${id}`,
+    getFrontendPersonaId: (id: string) => id,
+  };
+});
 
 // Mock the unified registry
 vi.mock('../../../personas/registry/unified-registry.js', () => ({
@@ -71,16 +81,50 @@ vi.mock('../../../personas/registry/unified-registry.js', () => ({
 
 // Mock PersonaRegistry
 vi.mock('../../../personas/PersonaRegistry.js', () => ({
-  createHandoffEvent: vi.fn((agentId, options) => ({
+  createHandoffEvent: (agentId: string, options: Record<string, unknown>) => ({
     agentId,
     ...options,
-  })),
+  }),
 }));
 
 // Mock alive entrances
 vi.mock('../../../personas/alive-entrances.js', () => ({
   getAliveEntranceForHandoff: vi.fn().mockResolvedValue(null),
-  detectUserMoodFromContext: vi.fn().mockReturnValue('neutral'),
+  detectUserMoodFromContext: () => 'neutral',
+}));
+
+// Mock agent directory (used by state.js)
+vi.mock('../../../personas/agent-directory.js', () => {
+  const canonicalMapping: Record<string, string> = {
+    'peter': 'peter-john',
+    'peter-john': 'peter-john',
+    'maya': 'maya-santos',
+    'maya-santos': 'maya-santos',
+    'alex': 'alex-chen',
+    'alex-chen': 'alex-chen',
+    'jordan': 'jordan-taylor',
+    'jordan-taylor': 'jordan-taylor',
+    'nayan-patel': 'nayan-patel',
+    'ferni': 'ferni',
+    'jack-b': 'ferni',
+  };
+  
+  return {
+    AgentDirectory: {
+      initialize: vi.fn().mockResolvedValue(undefined),
+      getDisplayName: vi.fn().mockResolvedValue('Test Agent'),
+      getTeamForHandoff: vi.fn().mockResolvedValue([]),
+    },
+    normalizeAgentIdSync: (id: string) => canonicalMapping[id] || id,
+  };
+});
+
+// Mock handoff timing config
+vi.mock('../../../config/handoff-timing.js', () => ({
+  HANDOFF_TIMING: {
+    DEBOUNCE_MS: 2000,
+    COOLDOWN_MS: 5000,
+  },
 }));
 
 // ============================================================================
@@ -88,13 +132,18 @@ vi.mock('../../../personas/alive-entrances.js', () => ({
 // ============================================================================
 
 describe('Handoff Executor', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     resetHandoffState();
     vi.clearAllMocks();
+    // Ensure handoffEvents is loaded
+    await getHandoffEvents();
   });
 
-  afterEach(() => {
-    handoffEvents.removeAllListeners();
+  afterEach(async () => {
+    const events = await getHandoffEvents();
+    if (events) {
+      events.removeAllListeners();
+    }
   });
 
   // --------------------------------------------------------------------------
@@ -234,8 +283,9 @@ describe('Handoff Executor', () => {
 
   describe('Event Emission', () => {
     it('should emit voiceSwitch event on handoff', async () => {
+      const events = await getHandoffEvents();
       const eventPromise = new Promise<any>((resolve) => {
-        handoffEvents.once('voiceSwitch', resolve);
+        events!.once('voiceSwitch', resolve);
       });
 
       await executeHandoff('peter-john', 'Stock research');

@@ -46,7 +46,7 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// COMMUNICATION TOOLS
+// COMMUNICATION TOOLS (Consolidated: 4 → 2 tools)
 // ============================================================================
 
 function getCommunicationToolDefinitions(): ToolDefinition[] {
@@ -54,38 +54,24 @@ function getCommunicationToolDefinitions(): ToolDefinition[] {
 
   return [
     wrapLegacyTool(
-      'sendEmail',
-      'Send Email',
-      'Send an email to a recipient',
+      'sendMessage',
+      'Send Message',
+      'Send a message via email or SMS. Channels: "email" (formal communication, longer messages) or "sms" (quick texts, reminders). Requires recipient contact info. Can also schedule messages for later delivery.',
       legacyTools.sendEmail,
-      { tags: ['email', 'send'], requiredServices: ['sendgrid'] }
-    ),
-    wrapLegacyTool(
-      'sendSMS',
-      'Send SMS',
-      'Send a text message to a phone number',
-      legacyTools.sendSMS,
-      { tags: ['sms', 'text', 'send'], requiredServices: ['twilio'] }
+      { tags: ['email', 'sms', 'send', 'message'], requiredServices: ['sendgrid', 'twilio'] }
     ),
     wrapLegacyTool(
       'scheduleReminder',
       'Schedule Reminder',
-      'Schedule a reminder for a future date and time',
+      'Set a reminder for yourself or schedule a calendar event. Types: "reminder" (personal notification at specific time), "event" (calendar block with optional attendees), or "follow-up" (reminder to follow up on something). Supports recurring reminders.',
       legacyTools.scheduleReminder,
-      { tags: ['reminder', 'schedule'] }
-    ),
-    wrapLegacyTool(
-      'scheduleEvent',
-      'Schedule Event',
-      'Schedule a calendar event',
-      legacyTools.scheduleEvent,
-      { tags: ['calendar', 'event', 'schedule'], requiredServices: ['google-calendar'] }
+      { tags: ['reminder', 'calendar', 'event', 'schedule', 'follow-up'] }
     ),
   ];
 }
 
 // ============================================================================
-// COACHING TOOLS (from communication-coaching.ts)
+// COACHING TOOLS (Consolidated: 10 → 4 tools)
 // ============================================================================
 
 function getCoachingToolDefinitions(): ToolDefinition[] {
@@ -93,74 +79,32 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
 
   return [
     wrapLegacyTool(
-      'draftDifficultMessage',
-      'Draft Difficult Message',
-      'Help draft a difficult message using communication frameworks (SBI, Three-Part Assertion)',
+      'draftMessage',
+      'Draft Message',
+      'Help draft any difficult message: asking for a raise, setting boundaries, giving feedback, declining requests, or resolving conflicts. Uses proven frameworks (SBI, assertion techniques). Includes tone analysis and revision suggestions. Just describe the situation and desired outcome.',
       legacyTools.draftDifficultMessage,
-      { tags: ['coaching', 'draft', 'difficult'] }
+      { tags: ['coaching', 'draft', 'difficult', 'assertive', 'boundaries'] }
     ),
     wrapLegacyTool(
       'practiceConversation',
       'Practice Conversation',
-      'Role-play a difficult conversation to build confidence',
+      'Role-play a difficult conversation before having it. Build confidence by practicing: salary negotiations, difficult feedback, boundary setting, conflict resolution. I\'ll play the other person and give you feedback on your approach.',
       legacyTools.practiceConversation,
-      { tags: ['coaching', 'practice', 'roleplay'] }
+      { tags: ['coaching', 'practice', 'roleplay', 'confidence'] }
     ),
     wrapLegacyTool(
-      'reviewMessage',
-      'Review Message',
-      'Get feedback on a draft message',
+      'analyzeMessage',
+      'Analyze Message',
+      'Analyze any message for tone, clarity, and effectiveness. Modes: "review" (get feedback on your draft), "incoming" (understand a message you received), or "transform" (rewrite in a different tone - formal, casual, assertive, diplomatic).',
       legacyTools.reviewMessage,
-      { tags: ['coaching', 'feedback', 'review'] }
+      { tags: ['coaching', 'analysis', 'tone', 'review', 'transform'] }
     ),
     wrapLegacyTool(
-      'planCommunicationStrategy',
-      'Plan Communication Strategy',
-      'Plan a communication strategy for complex situations',
+      'communicationStrategy',
+      'Communication Strategy',
+      'Plan a comprehensive communication strategy for complex situations: difficult conversations, ongoing negotiations, relationship repair, professional transitions. Includes timing, channel selection, and follow-up planning.',
       legacyTools.planCommunicationStrategy,
-      { tags: ['coaching', 'strategy', 'planning'] }
-    ),
-    wrapLegacyTool(
-      'checkTone',
-      'Check Tone',
-      'Analyze the tone of a message',
-      legacyTools.checkTone,
-      { tags: ['coaching', 'tone', 'analysis'] }
-    ),
-    wrapLegacyTool(
-      'transformTone',
-      'Transform Tone',
-      'Transform the tone of a message to a different style',
-      legacyTools.transformTone,
-      { tags: ['coaching', 'tone', 'transform'] }
-    ),
-    wrapLegacyTool(
-      'buildAssertiveResponse',
-      'Build Assertive Response',
-      'Help craft an assertive but respectful response',
-      legacyTools.buildAssertiveResponse,
-      { tags: ['coaching', 'assertive'] }
-    ),
-    wrapLegacyTool(
-      'planFollowUp',
-      'Plan Follow-Up',
-      'Plan follow-up communication after a conversation',
-      legacyTools.planFollowUp,
-      { tags: ['coaching', 'follow-up'] }
-    ),
-    wrapLegacyTool(
-      'analyzeIncomingMessage',
-      'Analyze Incoming Message',
-      'Analyze an incoming message to help craft a response',
-      legacyTools.analyzeIncomingMessage,
-      { tags: ['coaching', 'analysis'] }
-    ),
-    wrapLegacyTool(
-      'analyzeCommPattern',
-      'Analyze Communication Pattern',
-      'Analyze communication patterns and suggest improvements',
-      legacyTools.analyzeCommPattern,
-      { tags: ['coaching', 'pattern', 'analysis'] }
+      { tags: ['coaching', 'strategy', 'planning', 'follow-up'] }
     ),
   ];
 }

@@ -42,248 +42,128 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// EVENT PLANNING TOOLS
+// EVENT PLANNING TOOLS (Consolidated: 8 → 3 essential tools)
 // ============================================================================
 
 function getEventPlanningToolDefinitions(): ToolDefinition[] {
   const legacyTools = createEventPlanningTools();
 
+  // Consolidated: manageEvent handles create/summary/checklist/tasks, eventGuests for guest list,
+  // eventBudget for expenses/venues
   return [
     wrapLegacyTool(
-      'createEvent',
-      'Create Event',
-      'Create a new event or celebration to plan',
+      'manageEvent',
+      'Manage Event',
+      'Create a new event (wedding, birthday, graduation, etc.), view event summary, get planning checklist, or mark tasks complete. Actions: "create", "summary", "checklist", or "complete_task". Supports all event types: weddings, birthdays, baby showers, retirement parties, graduations, and more.',
       legacyTools.createEvent,
-      ['events', 'create']
+      ['events', 'create', 'summary', 'checklist', 'tasks']
     ),
     wrapLegacyTool(
-      'searchVenues',
-      'Search Venues',
-      'Search for venues for an event',
-      legacyTools.searchVenues,
-      ['events', 'venues', 'search']
-    ),
-    wrapLegacyTool(
-      'addGuests',
-      'Add Guests',
-      'Add guests to an event guest list',
+      'eventGuests',
+      'Event Guests',
+      'Manage the guest list for an event: add guests, view guest list, track RSVPs. Actions: "add", "list", or "rsvp".',
       legacyTools.addGuests,
-      ['events', 'guests']
+      ['events', 'guests', 'rsvp']
     ),
     wrapLegacyTool(
-      'getGuestList',
-      'Get Guest List',
-      'Get the guest list for an event',
-      legacyTools.getGuestList,
-      ['events', 'guests', 'list']
-    ),
-    wrapLegacyTool(
-      'getChecklist',
-      'Get Checklist',
-      'Get the planning checklist for an event',
-      legacyTools.getChecklist,
-      ['events', 'checklist', 'tasks']
-    ),
-    wrapLegacyTool(
-      'completeTask',
-      'Complete Task',
-      'Mark a planning task as complete',
-      legacyTools.completeTask,
-      ['events', 'tasks', 'complete']
-    ),
-    wrapLegacyTool(
-      'trackExpense',
-      'Track Expense',
-      'Track an expense for event planning',
+      'eventBudget',
+      'Event Budget',
+      'Track event budget and expenses, or search for venues. Actions: "expense" (track a purchase), "summary" (budget overview), or "venues" (find venues).',
       legacyTools.trackExpense,
-      ['events', 'expenses', 'budget']
-    ),
-    wrapLegacyTool(
-      'getEventSummary',
-      'Get Event Summary',
-      'Get a summary of event planning progress',
-      legacyTools.getEventSummary,
-      ['events', 'summary', 'status']
+      ['events', 'budget', 'expenses', 'venues']
     ),
   ];
 }
 
 // ============================================================================
-// LIFE PLANNING TOOLS
+// LIFE PLANNING TOOLS (Consolidated: 6 → 2 essential tools)
 // ============================================================================
 
 function getLifePlanningToolDefinitions(): ToolDefinition[] {
   const legacyTools = createEventPlanningTools();
 
+  // Consolidated: planPurchase handles major purchases and timing, planVacation handles travel
   return [
     wrapLegacyTool(
-      'planMajorPurchase',
+      'planPurchase',
       'Plan Major Purchase',
-      'Plan and prepare for a major purchase (car, home, etc.)',
+      'Plan a major purchase (car, home, appliances, etc.). Get a preparation checklist, best time to buy advice, and savings timeline. Supports: cars, homes, electronics, furniture, and other big-ticket items.',
       legacyTools.planMajorPurchase,
-      ['planning', 'purchases', 'major']
-    ),
-    wrapLegacyTool(
-      'getBestTimeToBuy',
-      'Get Best Time to Buy',
-      'Get advice on the best time to make a major purchase',
-      legacyTools.getBestTimeToBuy,
-      ['planning', 'timing', 'purchases']
+      ['planning', 'purchases', 'major', 'timing']
     ),
     wrapLegacyTool(
       'planVacation',
       'Plan Vacation',
-      'Plan a vacation or trip',
+      'Plan a vacation or trip: get destination suggestions based on preferences/budget, create itinerary, or check best times to travel. Actions: "suggest" (get destination ideas), "plan" (create trip plan), or "timing" (best times to go).',
       legacyTools.planVacation,
-      ['planning', 'vacation', 'travel']
+      ['planning', 'vacation', 'travel', 'destinations']
     ),
     wrapLegacyTool(
-      'suggestDestinations',
-      'Suggest Destinations',
-      'Get vacation destination suggestions',
-      legacyTools.suggestDestinations,
-      ['planning', 'vacation', 'suggestions']
-    ),
-    wrapLegacyTool(
-      'createAnnualPlan',
-      'Create Annual Plan',
-      'Create an annual life plan with goals and milestones',
+      'annualPlan',
+      'Annual Plan',
+      'Create or review your annual life plan with goals and milestones. Actions: "create" (new annual plan), "status" (check progress), or "review" (quarterly review).',
       legacyTools.createAnnualPlan,
-      ['planning', 'annual', 'goals']
-    ),
-    wrapLegacyTool(
-      'getAnnualPlanStatus',
-      'Get Annual Plan Status',
-      'Check progress on the annual life plan',
-      legacyTools.getAnnualPlanStatus,
-      ['planning', 'annual', 'status']
+      ['planning', 'annual', 'goals', 'review']
     ),
   ];
 }
 
 // ============================================================================
-// GOAL MANAGEMENT TOOLS
+// GOAL MANAGEMENT TOOLS (Consolidated: 9 → 3 essential tools)
 // ============================================================================
 
 function getGoalManagementToolDefinitions(): ToolDefinition[] {
   const legacyTools = createGoalManagementTools();
 
+  // Consolidated: manageGoal handles create/progress/milestones, goalsSummary handles list/review/ideas,
+  // lifePortfolio handles life areas and satisfaction
   return [
     wrapLegacyTool(
-      'createGoal',
-      'Create Goal',
-      'Create a new life goal to track',
+      'manageGoal',
+      'Manage Goal',
+      'Create a new goal, update progress, add milestones, or add reflections. Actions: "create" (new goal), "progress" (update %), "milestone" (add milestone), or "reflect" (journal entry). Supports any life goal: career, health, financial, relationship, personal growth, etc.',
       legacyTools.createGoal,
-      ['goals', 'create']
+      ['goals', 'create', 'progress', 'milestones', 'reflection']
     ),
     wrapLegacyTool(
-      'updateGoalProgress',
-      'Update Goal Progress',
-      'Update progress on a goal',
-      legacyTools.updateGoalProgress,
-      ['goals', 'progress', 'update']
-    ),
-    wrapLegacyTool(
-      'getGoalsSummary',
-      'Get Goals Summary',
-      'Get a summary of all goals and their status',
+      'goalsSummary',
+      'Goals Summary',
+      'View all goals and their status, get personalized goal ideas, or run a quarterly review. Actions: "list" (all goals), "ideas" (suggestions based on your life stage), or "review" (quarterly check-in).',
       legacyTools.getGoalsSummary,
-      ['goals', 'summary', 'list']
+      ['goals', 'summary', 'list', 'ideas', 'review']
     ),
     wrapLegacyTool(
-      'addGoalMilestone',
-      'Add Goal Milestone',
-      'Add a milestone to a goal',
-      legacyTools.addGoalMilestone,
-      ['goals', 'milestones', 'add']
-    ),
-    wrapLegacyTool(
-      'getLifePortfolio',
-      'Get Life Portfolio',
-      'Get the life portfolio showing all life areas and satisfaction',
+      'lifePortfolio',
+      'Life Portfolio',
+      'View or update your life portfolio - a holistic view of satisfaction across all life areas (career, health, relationships, finances, personal growth, etc.). Actions: "view" or "update" (rate satisfaction 1-10).',
       legacyTools.getLifePortfolio,
-      ['goals', 'portfolio', 'life-areas']
-    ),
-    wrapLegacyTool(
-      'updatePortfolioSatisfaction',
-      'Update Portfolio Satisfaction',
-      'Update satisfaction scores for life areas',
-      legacyTools.updatePortfolioSatisfaction,
-      ['goals', 'satisfaction', 'update']
-    ),
-    wrapLegacyTool(
-      'getGoalIdeas',
-      'Get Goal Ideas',
-      'Get personalized goal ideas based on life stage and interests',
-      legacyTools.getGoalIdeas,
-      ['goals', 'ideas', 'suggestions']
-    ),
-    wrapLegacyTool(
-      'runQuarterlyReview',
-      'Run Quarterly Review',
-      'Conduct a quarterly review of goals and progress',
-      legacyTools.runQuarterlyReview,
-      ['goals', 'review', 'quarterly']
-    ),
-    wrapLegacyTool(
-      'addGoalReflection',
-      'Add Goal Reflection',
-      'Add a reflection or journal entry about a goal',
-      legacyTools.addGoalReflection,
-      ['goals', 'reflection', 'journal']
+      ['goals', 'portfolio', 'life-areas', 'satisfaction']
     ),
   ];
 }
 
 // ============================================================================
-// LIFE MILESTONES TOOLS
+// LIFE MILESTONES TOOLS (Consolidated: 6 → 2 essential tools)
 // ============================================================================
 
 function getLifeMilestonesToolDefinitions(): ToolDefinition[] {
   const legacyTools = createLifeFirstsTools();
 
+  // Consolidated: manageMilestone handles create/view/tasks/notes, milestoneSupport handles tips/countdown
   return [
     wrapLegacyTool(
-      'createLifeMilestone',
-      'Create Life Milestone',
-      'Create a new life milestone to track (first home, first child, etc.)',
+      'manageMilestone',
+      'Manage Life Milestone',
+      'Track life milestones like first home, first child, wedding, graduation, retirement. Actions: "create" (new milestone), "list" (view all), "task" (update preparation task), or "note" (add memory/reflection). Supports all major life transitions.',
       legacyTools.createLifeMilestone,
-      ['milestones', 'create', 'firsts']
+      ['milestones', 'create', 'list', 'tasks', 'notes', 'firsts']
     ),
     wrapLegacyTool(
-      'viewLifeMilestones',
-      'View Life Milestones',
-      'View all life milestones and their status',
-      legacyTools.viewLifeMilestones,
-      ['milestones', 'list', 'view']
-    ),
-    wrapLegacyTool(
-      'updateMilestoneTask',
-      'Update Milestone Task',
-      'Update a task within a milestone',
-      legacyTools.updateMilestoneTask,
-      ['milestones', 'tasks', 'update']
-    ),
-    wrapLegacyTool(
-      'addMilestoneNote',
-      'Add Milestone Note',
-      'Add a note or memory to a milestone',
-      legacyTools.addMilestoneNote,
-      ['milestones', 'notes', 'memories']
-    ),
-    wrapLegacyTool(
-      'getMilestoneTips',
-      'Get Milestone Tips',
-      'Get tips and advice for an upcoming milestone',
+      'milestoneSupport',
+      'Milestone Support',
+      'Get tips, advice, and countdown for upcoming milestones. Actions: "tips" (preparation advice), "countdown" (days until milestone), or "checklist" (things to prepare). Great for wedding prep, new baby, home buying, retirement planning.',
       legacyTools.getMilestoneTips,
-      ['milestones', 'tips', 'advice']
-    ),
-    wrapLegacyTool(
-      'getMilestoneCountdown',
-      'Get Milestone Countdown',
-      'Get countdown to an upcoming milestone',
-      legacyTools.getMilestoneCountdown,
-      ['milestones', 'countdown', 'upcoming']
+      ['milestones', 'tips', 'countdown', 'advice', 'checklist']
     ),
   ];
 }

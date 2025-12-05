@@ -146,10 +146,19 @@ export interface SpotifyStateEvent {
 
 /**
  * Music playback state from the agent.
+ * 
+ * - 'playing' = Music actively playing
+ * - 'ducking' = Agent speaking over music (DJ fade-down)
+ * - 'fading'  = Track ending soon (~5 seconds left)
+ * - 'paused'  = Playback paused
+ * - 'stopped' = Playback stopped
+ * - 'idle'    = No music loaded
  */
 export type MusicPlaybackState = 
   | 'idle'
   | 'playing'
+  | 'ducking'
+  | 'fading'
   | 'paused'
   | 'stopped';
 

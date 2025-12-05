@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import AVFoundation
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,8 +8,78 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Configure audio session for voice chat
+        configureAudioSession()
         return true
+    }
+    
+    /// Configure AVAudioSession for optimal voice AI experience.
+    /// This enables:
+    /// - Voice chat with simultaneous playback and recording
+    /// - Bluetooth headset support
+    /// - Background audio continuation
+    /// - Proper ducking behavior when receiving calls
+    private func configureAudioSession() {
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            
+            // Use .playAndRecord for voice conversations
+            // .voiceChat mode optimizes for speech
+            try audioSession.setCategory(
+                .playAndRecord,
+                mode: .voiceChat,
+                options: [
+                    .defaultToSpeaker,      // Use speaker by default (not earpiece)
+                    .allowBluetooth,        // Support Bluetooth headsets
+                    .allowBluetoothA2DP,    // Support high-quality Bluetooth audio
+                    .mixWithOthers,         // Allow background music to play
+                    .duckOthers             // Lower other audio when speaking
+                ]
+            )
+            
+            // Activate the session
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            
+            // Set preferred sample rate for voice (8-16kHz is typical for voice)
+            try audioSession.setPreferredSampleRate(48000)
+            
+            // Set buffer duration for low latency
+            try audioSession.setPreferredIOBufferDuration(0.005) // 5ms
+            
+            print("✅ Audio session configured for voice chat")
+        } catch {
+            print("❌ Failed to configure audio session: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Handle audio interruptions (phone calls, Siri, etc.)
+    @objc private func handleAudioInterruption(notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+        
+        switch type {
+        case .began:
+            // Audio was interrupted (e.g., phone call)
+            print("🔇 Audio session interrupted")
+        case .ended:
+            // Interruption ended, try to resume
+            if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
+                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+                if options.contains(.shouldResume) {
+                    do {
+                        try AVAudioSession.sharedInstance().setActive(true)
+                        print("🔊 Audio session resumed")
+                    } catch {
+                        print("❌ Failed to resume audio session: \(error)")
+                    }
+                }
+            }
+        @unknown default:
+            break
+        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

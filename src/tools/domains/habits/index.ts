@@ -49,59 +49,39 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// CORE HABIT TOOLS
+// CORE HABIT TOOLS (Consolidated: 7 → 4 essential tools)
 // ============================================================================
 
 function getCoreHabitToolDefinitions(): ToolDefinition[] {
   const legacyTools = createHabitTools();
 
+  // Consolidated: createHabit handles add/remove, logHabit tracks completion, getHabits combines list/due/stats
   return [
     wrapLegacyTool(
-      'addHabit',
-      'Add Habit',
-      'Create a new habit to track with frequency and optional reminders',
+      'createHabit',
+      'Create Habit',
+      'Create a new habit to track, or remove an existing habit. Specify name, frequency (daily/weekly), category, and optional reminders.',
       legacyTools.addHabit,
-      ['core', 'create']
+      ['core', 'create', 'delete']
     ),
     wrapLegacyTool(
-      'logHabit',
-      'Log Habit',
-      'Log completion of a habit for today',
+      'logHabitCompletion',
+      'Log Habit Completion',
+      'Log that you completed a habit for today. Tracks streaks and awards XP.',
       legacyTools.logHabit,
       ['core', 'tracking']
     ),
     wrapLegacyTool(
-      'getDueHabits',
-      'Get Due Habits',
-      'Get habits that are due to be completed today',
+      'getHabits',
+      'Get Habits',
+      'Get habits due today, list all habits, or view stats for a specific habit. Include type: "due", "all", or "stats".',
       legacyTools.getDueHabits,
-      ['core', 'list', 'today']
-    ),
-    wrapLegacyTool(
-      'getHabitStats',
-      'Get Habit Stats',
-      'Get statistics for a habit including streak, completion rate, and history',
-      legacyTools.getHabitStats,
-      ['core', 'stats', 'analytics']
-    ),
-    wrapLegacyTool(
-      'getAllHabits',
-      'Get All Habits',
-      'List all habits being tracked',
-      legacyTools.getAllHabits,
-      ['core', 'list']
-    ),
-    wrapLegacyTool(
-      'removeHabit',
-      'Remove Habit',
-      'Stop tracking a habit',
-      legacyTools.removeHabit,
-      ['core', 'delete']
+      ['core', 'list', 'stats', 'today']
     ),
     wrapLegacyTool(
       'habitCheckIn',
       'Habit Check-In',
-      'Get a summary of habit progress and encouragement',
+      'Get a personalized check-in on your habit progress with encouragement and insights.',
       legacyTools.habitCheckIn,
       ['core', 'summary', 'checkin']
     ),
@@ -109,156 +89,61 @@ function getCoreHabitToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
-// COACHING TOOLS (from maya-habit-coach)
+// COACHING TOOLS (Consolidated: 13 → 5 essential tools)
 // ============================================================================
 
 function getCoachingToolDefinitions(): ToolDefinition[] {
   const legacyTools = createHabitCoachingTools();
 
+  // Consolidated: habitCoach handles recommendations/motivation/encouragement, setback for recovery,
+  // habitStrategy for stacking/environment/troubleshooting
   return [
     wrapLegacyTool(
-      'assessLifeDomains',
-      'Assess Life Domains',
-      'Assess satisfaction across life domains to identify areas for habit focus',
-      legacyTools.assessLifeDomains,
-      ['coaching', 'assessment']
-    ),
-    wrapLegacyTool(
-      'setLifeStage',
-      'Set Life Stage',
-      'Set the user\'s current life stage to personalize habit recommendations',
-      legacyTools.setLifeStage,
-      ['coaching', 'context']
-    ),
-    wrapLegacyTool(
-      'recommendHabits',
-      'Recommend Habits',
-      'Get personalized habit recommendations based on goals and life stage',
+      'habitCoach',
+      'Habit Coach',
+      'Get personalized habit coaching: recommendations based on life stage, motivation, encouragement, or Four Tendencies assessment. Mode: "recommend", "motivate", "encourage", or "assess".',
       legacyTools.recommendHabits,
-      ['coaching', 'recommendations']
+      ['coaching', 'recommendations', 'motivation']
     ),
     wrapLegacyTool(
-      'createEnhancedHabit',
-      'Create Enhanced Habit',
-      'Create a new habit with full coaching support and tracking',
-      legacyTools.createEnhancedHabit,
-      ['coaching', 'create']
-    ),
-    wrapLegacyTool(
-      'createHabitStack',
-      'Create Habit Stack',
-      'Create a habit stack linking new habits to existing routines',
-      legacyTools.createHabitStack,
-      ['coaching', 'stacking']
-    ),
-    wrapLegacyTool(
-      'designEnvironment',
-      'Design Environment',
-      'Get suggestions for environment changes to support habit formation',
-      legacyTools.designEnvironment,
-      ['coaching', 'environment']
-    ),
-    wrapLegacyTool(
-      'processSetback',
-      'Process Setback',
-      'Get compassionate guidance for recovering from a habit setback',
+      'habitSetback',
+      'Habit Setback',
+      'Get compassionate guidance for recovering from a habit setback or breaking a bad habit. Includes identity work and self-compassion.',
       legacyTools.processSetback,
-      ['coaching', 'setback', 'recovery']
+      ['coaching', 'setback', 'recovery', 'breaking']
     ),
     wrapLegacyTool(
-      'getEncouragement',
-      'Get Encouragement',
-      'Get personalized encouragement and motivation',
-      legacyTools.getEncouragement,
-      ['coaching', 'motivation']
-    ),
-    wrapLegacyTool(
-      'troubleshootHabit',
-      'Troubleshoot Habit',
-      'Analyze why a habit isn\'t sticking and get targeted advice',
-      legacyTools.troubleshootHabit,
-      ['coaching', 'diagnosis', 'troubleshooting']
-    ),
-    wrapLegacyTool(
-      'getMotivation',
-      'Get Motivation',
-      'Get motivational wisdom and science-backed insights about habits',
-      legacyTools.getMotivation,
-      ['coaching', 'wisdom', 'motivation']
-    ),
-    wrapLegacyTool(
-      'assessFourTendencies',
-      'Assess Four Tendencies',
-      'Determine user\'s tendency type for personalized accountability strategies',
-      legacyTools.assessFourTendencies,
-      ['coaching', 'personality']
-    ),
-    wrapLegacyTool(
-      'createIdentityShift',
-      'Create Identity Shift',
-      'Help user shift identity to become the type of person who does the habit',
-      legacyTools.createIdentityShift,
-      ['coaching', 'identity']
-    ),
-    wrapLegacyTool(
-      'breakBadHabit',
-      'Break Bad Habit',
-      'Get guidance on breaking an unwanted habit',
-      legacyTools.breakBadHabit,
-      ['coaching', 'breaking']
+      'habitStrategy',
+      'Habit Strategy',
+      'Get strategic habit advice: habit stacking, environment design, or troubleshooting why a habit isn\'t sticking. Strategy: "stack", "environment", or "troubleshoot".',
+      legacyTools.createHabitStack,
+      ['coaching', 'stacking', 'environment', 'troubleshooting']
     ),
   ];
 }
 
 // ============================================================================
-// GAMIFICATION TOOLS (from gamification-v2 - uses Firestore for persistence)
+// GAMIFICATION TOOLS (Consolidated: 6 → 2 essential tools)
 // ============================================================================
 
 function getGamificationToolDefinitions(): ToolDefinition[] {
   const legacyTools = createGamificationToolsV2();
 
+  // Consolidated: gamificationProfile handles profile/badges/awards, leaderboard handles rankings
   return [
     wrapLegacyTool(
-      'getGamificationProfile',
-      'Get Gamification Profile',
-      'Get user\'s gamification profile including level, XP, badges, and title',
+      'gamificationProfile',
+      'Gamification Profile',
+      'View gamification profile (level, XP, title), badge collection, or award XP/badges. Action: "profile", "badges", "award_xp", or "award_badge".',
       legacyTools.getGamificationProfileV2,
-      ['gamification', 'profile']
+      ['gamification', 'profile', 'badges', 'rewards']
     ),
     wrapLegacyTool(
-      'awardXP',
-      'Award XP',
-      'Award experience points for habit-related actions',
-      legacyTools.awardXPV2,
-      ['gamification', 'xp', 'rewards']
-    ),
-    wrapLegacyTool(
-      'awardBadge',
-      'Award Badge',
-      'Award a specific badge to the user',
-      legacyTools.awardBadgeV2,
-      ['gamification', 'badges', 'rewards']
-    ),
-    wrapLegacyTool(
-      'viewBadgeCollection',
-      'View Badge Collection',
-      'View all earned badges and their details',
-      legacyTools.viewBadgeCollectionV2,
-      ['gamification', 'badges', 'collection']
-    ),
-    wrapLegacyTool(
-      'getLeaderboard',
-      'Get Leaderboard',
-      'View the leaderboard rankings',
+      'leaderboard',
+      'Leaderboard',
+      'View leaderboard rankings or configure privacy settings. Action: "view" or "settings".',
       legacyTools.getLeaderboard,
       ['gamification', 'leaderboard', 'social']
-    ),
-    wrapLegacyTool(
-      'setLeaderboardPrivacy',
-      'Set Leaderboard Privacy',
-      'Configure leaderboard visibility and display name',
-      legacyTools.setLeaderboardPrivacy,
-      ['gamification', 'settings']
     ),
   ];
 }

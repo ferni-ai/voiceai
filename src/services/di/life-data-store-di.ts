@@ -102,7 +102,8 @@ export interface LifeDataStoreDeps {
 
 export class LifeDataStoreService {
   private readonly store: MemoryStoreInterface;
-  private readonly getLogger: () => ReturnType<ReturnType<typeof getLogger>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly getLogger: () => any;
 
   // In-memory caches (would be Firestore in production)
   private milestones: Map<string, LifeMilestone[]> = new Map();
@@ -111,7 +112,8 @@ export class LifeDataStoreService {
 
   constructor(deps: LifeDataStoreDeps) {
     this.store = deps.store;
-    this.getLogger = deps.logger ?? (() => getLogger());
+    const loggerDep = deps.logger;
+    this.getLogger = typeof loggerDep === 'function' ? loggerDep : () => loggerDep ?? getLogger();
     this.getLogger().info('📋 Life Data Store Service initialized (DI)');
   }
 

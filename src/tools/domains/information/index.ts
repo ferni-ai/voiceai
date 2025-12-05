@@ -43,7 +43,7 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// NEWS TOOLS
+// NEWS TOOLS (Consolidated: 4 → 1 tool with categories)
 // ============================================================================
 
 function getNewsToolDefinitions(): ToolDefinition[] {
@@ -51,38 +51,17 @@ function getNewsToolDefinitions(): ToolDefinition[] {
 
   return [
     wrapLegacyTool(
-      'getGeneralNews',
-      'Get General News',
-      'Get top headlines and general news stories',
+      'getNews',
+      'Get News',
+      'Get current news headlines. Categories: "general" (top headlines), "finance" (market news, economy), "tech" (technology, AI, startups), or "stock" (news about a specific stock ticker). For stock news, include the ticker symbol like "AAPL" or "TSLA".',
       legacyTools.getGeneralNews,
-      ['news', 'headlines']
-    ),
-    wrapLegacyTool(
-      'getFinancialNews',
-      'Get Financial News',
-      'Get financial and market news headlines',
-      legacyTools.getFinancialNews,
-      ['news', 'finance', 'markets']
-    ),
-    wrapLegacyTool(
-      'getStockNews',
-      'Get Stock News',
-      'Get news about a specific stock or company',
-      legacyTools.getStockNews,
-      ['news', 'stocks', 'company']
-    ),
-    wrapLegacyTool(
-      'getTechNews',
-      'Get Tech News',
-      'Get technology and innovation news',
-      legacyTools.getTechNews,
-      ['news', 'technology']
+      ['news', 'headlines', 'finance', 'tech', 'stocks']
     ),
   ];
 }
 
 // ============================================================================
-// WEATHER TOOLS
+// WEATHER TOOLS (Consolidated: 2 → 1 tool)
 // ============================================================================
 
 function getWeatherToolDefinitions(): ToolDefinition[] {
@@ -92,22 +71,15 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'getWeather',
       'Get Weather',
-      'Get current weather conditions for a location',
+      'Get weather for any location: current conditions (temperature, humidity, wind) or forecast (next 7 days). Modes: "current" or "forecast". Default is current. Location can be city name, zip code, or "here" for user\'s location.',
       legacyTools.getWeather,
-      ['weather', 'current']
-    ),
-    wrapLegacyTool(
-      'getWeatherForecast',
-      'Get Weather Forecast',
-      'Get weather forecast for upcoming days',
-      legacyTools.getWeatherForecast,
-      ['weather', 'forecast']
+      ['weather', 'current', 'forecast', 'temperature']
     ),
   ];
 }
 
 // ============================================================================
-// SPORTS TOOLS
+// SPORTS TOOLS (Consolidated: 4 → 1 tool)
 // ============================================================================
 
 function getSportsToolDefinitions(): ToolDefinition[] {
@@ -115,38 +87,17 @@ function getSportsToolDefinitions(): ToolDefinition[] {
 
   return [
     wrapLegacyTool(
-      'getTeamScore',
-      'Get Team Score',
-      'Get the score for a specific sports team',
+      'getSports',
+      'Get Sports',
+      'Get sports scores, standings, and schedules. Query by team name (e.g., "Eagles", "Phillies", "Lakers") or league (NFL, MLB, NBA, NHL). Returns most recent game results, next scheduled game, and current standings. Works for any major professional sports team.',
       legacyTools.getTeamScore,
-      ['sports', 'scores']
-    ),
-    wrapLegacyTool(
-      'getSportScores',
-      'Get Sport Scores',
-      'Get scores for a sport (NFL, MLB, NBA, NHL)',
-      legacyTools.getSportScores,
-      ['sports', 'scores']
-    ),
-    wrapLegacyTool(
-      'getPhilliesScore',
-      'Get Phillies Score',
-      'Get the Philadelphia Phillies game score',
-      legacyTools.getPhilliesScore,
-      ['sports', 'baseball', 'phillies']
-    ),
-    wrapLegacyTool(
-      'getEaglesScore',
-      'Get Eagles Score',
-      'Get the Philadelphia Eagles game score',
-      legacyTools.getEaglesScore,
-      ['sports', 'football', 'eagles']
+      ['sports', 'scores', 'standings', 'schedule', 'nfl', 'mlb', 'nba', 'nhl']
     ),
   ];
 }
 
 // ============================================================================
-// SEARCH TOOLS
+// SEARCH TOOLS (Consolidated: 3 → 2 essential tools)
 // ============================================================================
 
 function getSearchToolDefinitions(): ToolDefinition[] {
@@ -156,23 +107,16 @@ function getSearchToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'searchWeb',
       'Search Web',
-      'Search the web for information on any topic',
+      'Search the internet for current information, facts, how-tos, or any topic. Returns relevant web results with summaries. Great for: "What is...", "How to...", "Latest news about...", or researching any topic.',
       legacyTools.searchWeb,
-      ['search', 'web']
+      ['search', 'web', 'google', 'research']
     ),
     wrapLegacyTool(
-      'searchWikipedia',
-      'Search Wikipedia',
-      'Search Wikipedia for factual information',
+      'lookupInfo',
+      'Lookup Info',
+      'Quick lookup for definitions, facts, or encyclopedia-style information. Sources: Wikipedia for detailed topics, dictionary for word definitions. Best for: "Define...", "What does X mean?", "Who was...", factual questions.',
       legacyTools.searchWikipedia,
-      ['search', 'wikipedia', 'facts']
-    ),
-    wrapLegacyTool(
-      'defineTerm',
-      'Define Term',
-      'Get a definition for a word or term',
-      legacyTools.defineTerm,
-      ['search', 'definition', 'dictionary']
+      ['search', 'wikipedia', 'definition', 'dictionary', 'facts']
     ),
   ];
 }

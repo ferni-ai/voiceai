@@ -105,6 +105,15 @@ const EMOTION_SHAPES: Record<VoiceEmotion | 'speaking', EmotionShape> = {
   },
 };
 
+// Music listening shape - natural, reflective, NOT aggressive
+// Like a gentle meditation visualization
+const MUSIC_LISTENING_SHAPE: EmotionShape = {
+  curve: [0.35, 0.45, 0.55, 0.65, 0.7, 0.65, 0.55, 0.45, 0.35], // Gentle hill
+  jitter: 0.01,    // Almost no random jitter - smooth and reflective
+  bounce: 0.02,    // Minimal bounce - natural breathing
+  speed: 0.4,      // Slow, meditative pace
+};
+
 // ============================================================================
 // PERSONA CONFIGURATIONS
 // Uses CSS variables from design system for colors
@@ -143,6 +152,7 @@ let lastVolume = 0;
 let smoothedVolume = 0;
 let isSpeaking = false;
 let isTransitioning = false; // True during agent handoff
+let isListeningToMusic = false; // True when music is playing - gentle, reflective mode
 
 // Per-bar state - use explicit initialization
 const barHeights: number[] = [];
@@ -342,18 +352,9 @@ export function setEmotion(emotion: VoiceEmotion, intensity: number = 1): void {
   container.classList.add('has-emotion');
   container.setAttribute('data-emotion', emotion);
   
-  // Show emotion indicator
+  // Emotion indicator - pure color, no emojis (Apple-clean aesthetic)
   if (emotionIndicator) {
-    const emotionEmojis: Record<VoiceEmotion, string> = {
-      neutral: '',
-      happy: '😊',
-      excited: '🎉',
-      sad: '😢',
-      anxious: '😰',
-      frustrated: '😤',
-      calm: '😌',
-    };
-    emotionIndicator.textContent = emotionEmojis[emotion] || '';
+    emotionIndicator.textContent = ''; // No emojis - emotions shown through waveform shape/color
     emotionIndicator.style.opacity = String(intensity);
   }
   
@@ -403,6 +404,29 @@ export function setTransitioning(transitioning: boolean): void {
   } else {
     container.classList.remove('transitioning');
     // Return to speaking or neutral
+    targetShape = isSpeaking ? EMOTION_SHAPES.speaking : EMOTION_SHAPES.neutral;
+  }
+}
+
+/**
+ * Set music listening mode - natural, reflective, calm visualization.
+ * Not aggressive - like gentle waves responding to the music's mood.
+ * 
+ * @param listening - Whether music is playing
+ */
+export function setMusicPlaying(listening: boolean): void {
+  isListeningToMusic = listening;
+  if (!container) return;
+  
+  if (listening) {
+    container.classList.add('music-playing');
+    container.classList.remove('speaking', 'thinking');
+    // Use the gentle music-listening shape
+    targetShape = MUSIC_LISTENING_SHAPE;
+    startAnimation();
+  } else {
+    container.classList.remove('music-playing');
+    // Return to neutral or speaking
     targetShape = isSpeaking ? EMOTION_SHAPES.speaking : EMOTION_SHAPES.neutral;
   }
 }
@@ -479,6 +503,23 @@ function updateBars(): void {
       // Shimmer effect during handoff - gentle wave that travels across bars
       const shimmerWave = Math.sin(wavePhase * 2 + i * 0.4) * 0.5 + 0.5;
       targetHeight = MIN_BAR_HEIGHT + shimmerWave * MAX_BAR_HEIGHT * 0.4;
+    } else if (isListeningToMusic) {
+      // MUSIC LISTENING: Natural, reflective, meditative
+      // Like gentle breathing or calm water ripples
+      
+      // Very slow primary wave - the main breathing rhythm
+      const breathWave = Math.sin(wavePhase * 0.6 + i * 0.25) * 0.5 + 0.5;
+      
+      // Secondary subtle harmonic - adds natural variation without chaos
+      const harmonic = Math.sin(wavePhase * 1.2 + i * 0.5) * 0.15 + 0.5;
+      
+      // Combine for organic, non-mechanical movement
+      const combined = breathWave * 0.7 + harmonic * 0.3;
+      
+      // Use shape curve for the base, modulated by the gentle waves
+      // Keep it subtle - max 40% of full height for a calm presence
+      const musicEnergy = shapeCurve * 0.4 * combined;
+      targetHeight = MIN_BAR_HEIGHT + MAX_BAR_HEIGHT * musicEnergy;
     } else if (isSpeaking) {
       // Lower threshold - even small volume should be detected
       const hasRealVolume = smoothedVolume > 0.005;
@@ -571,14 +612,16 @@ function updateBars(): void {
   }
   
   // 🎬 Detect volume peaks for ripple effects
-  if (isSpeaking && smoothedVolume > peakVolume * 1.3 && smoothedVolume > 0.15) {
+  // Skip during music - we want calm, not flashy
+  if (!isListeningToMusic && isSpeaking && smoothedVolume > peakVolume * 1.3 && smoothedVolume > 0.15) {
     peakVolume = smoothedVolume;
     createRipple();
   }
   peakVolume *= 0.95; // Decay peak tracker
   
   // 🎬 Detect laugh patterns (rapid high-volume bursts)
-  if (isSpeaking && smoothedVolume > 0.4 && currentEmotion === 'excited') {
+  // Skip during music - maintain reflective mood
+  if (!isListeningToMusic && isSpeaking && smoothedVolume > 0.4 && currentEmotion === 'excited') {
     const now = performance.now();
     if (now - lastLaughTime > 1500) {
       lastLaughTime = now;
@@ -808,6 +851,7 @@ export const waveformUI = {
   setListening,
   setThinking,
   setTransitioning,
+  setMusicPlaying, // Gentle, reflective music visualization
   setPersona,
   setEmotion,
   setVolume,

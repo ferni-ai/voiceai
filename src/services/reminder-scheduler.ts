@@ -15,20 +15,8 @@ import { InMemoryStore } from '../memory/in-memory-store.js';
 import { MemoryStore } from '../memory/store.js';
 import { sendEmail, sendSMS, sendReminder as sendReminderSMS } from '../tools/communication.js';
 
-// Safe logger that works both inside and outside LiveKit agent context
-const getLogger = () => {
-  try {
-    return getLogger();
-  } catch {
-    // Fallback console logger when LiveKit logger isn't initialized
-    return {
-      info: (data: unknown, msg?: string) => console.log(`[INFO] ${msg || ''}`, data),
-      warn: (data: unknown, msg?: string) => console.warn(`[WARN] ${msg || ''}`, data),
-      error: (data: unknown, msg?: string) => console.error(`[ERROR] ${msg || ''}`, data),
-      debug: (data: unknown, msg?: string) => console.debug(`[DEBUG] ${msg || ''}`, data),
-    };
-  }
-};
+// Logger instance for use throughout this module
+const logger = getLogger();
 
 // ============================================================================
 // TYPES

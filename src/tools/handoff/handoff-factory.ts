@@ -388,7 +388,7 @@ Use when user asks: "Who's on your team?", "What specialists do you have?", "Who
 
       for (const agent of allAgents) {
         if (agent.isCoordinator || !agent.enabled) continue;
-        const emoji = getAgentEmoji(agent.id);
+        const emoji = await getAgentEmoji(agent.id);
         teamIntro += `${emoji} **${agent.name}** - ${agent.roleDescription}\n\n`;
       }
 
@@ -414,18 +414,14 @@ Use when user asks: "Who's on your team?", "What specialists do you have?", "Who
 }
 
 /**
- * Get an emoji for an agent based on their role
+ * Get an emoji for an agent based on their role.
+ *
+ * REFACTORED: Now uses AgentDirectory which derives emoji from agent domains.
+ * No hardcoded emoji map - new agents get emojis automatically!
  */
-function getAgentEmoji(agentId: string): string {
-  const emojiMap: Record<string, string> = {
-    'ferni': '🎯',
-    'nayan-patel': '🧘',
-    'peter-john': '📈',
-    'alex-chen': '📧',
-    'maya-santos': '💰',
-    'jordan-taylor': '🎉',
-  };
-  return emojiMap[agentId] || '✨';
+async function getAgentEmoji(agentId: string): Promise<string> {
+  const { AgentDirectory } = await import('../../personas/agent-directory.js');
+  return AgentDirectory.getEmoji(agentId);
 }
 
 /**

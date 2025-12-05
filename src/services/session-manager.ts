@@ -77,6 +77,16 @@ import { semanticSearch, ragLookup as semanticRagLookup, summarizeConversation, 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../tools/handoff-state.js';
 
+// Intelligence persistence - unified save/load for all learning engines
+import {
+  exportIntelligenceState,
+  applyIntelligenceToProfile,
+  loadIntelligenceFromProfile,
+  cleanupIntelligenceEngines,
+  startAutoSave,
+  stopAutoSave,
+} from './intelligence-persistence.js';
+
 // ============================================================================
 // SESSION STATE
 // ============================================================================
@@ -159,6 +169,16 @@ export async function createSessionServices(
       await global.store.saveProfile(userProfile);
     }
     isReturningUser = userProfile.totalConversations > 0;
+
+    // FIX: Load intelligence state from profile for returning users
+    if (isReturningUser) {
+      try {
+        loadIntelligenceFromProfile(validatedUserId, userProfile);
+        getLogger().info({ userId: validatedUserId }, '🧠 Loaded intelligence state from profile');
+      } catch (error) {
+        getLogger().warn({ error, userId: validatedUserId }, 'Failed to load intelligence state');
+      }
+    }
   } else if (userId) {
     getLogger().warn({ providedUserId: userId?.slice(0, 20) }, 'Skipping profile operations due to invalid userId');
   }
@@ -328,6 +348,33 @@ export async function createSessionServices(
   });
 
   getLogger().info('Advanced intelligence engines initialized');
+
+  // ============================================================================
+  // AUTO-SAVE SETUP
+  // FIX: Start periodic auto-save to prevent data loss on crashes
+  // ============================================================================
+
+  if (validatedUserId) {
+    const autoSaveCallback = async (uid: string) => {
+      try {
+        if (services.userProfile) {
+          // Export current intelligence state
+          const updatedProfile = applyIntelligenceToProfile(services.userProfile, uid);
+          services.userProfile = updatedProfile;
+          
+          // Save to store
+          await global.store.saveProfile(updatedProfile);
+          getLogger().debug({ userId: uid }, 'Auto-saved profile with intelligence state');
+        }
+      } catch (error) {
+        getLogger().warn({ error, userId: uid }, 'Auto-save failed');
+      }
+    };
+
+    // Start auto-save with 30 second interval
+    startAutoSave(validatedUserId, autoSaveCallback, { autoSaveIntervalMs: 30000 });
+    getLogger().info({ userId: validatedUserId }, '⏰ Started auto-save for session');
+  }
 
   // ============================================================================
   // SESSION SERVICES OBJECT
@@ -1046,6 +1093,19 @@ export async function createSessionServices(
             );
           }
 
+          // FIX: Persist ALL intelligence state to profile using unified persistence
+          // This captures humor calibration, story preferences, communication style,
+          // voice pace, response quality, and conversation patterns
+          try {
+            updatedProfile = applyIntelligenceToProfile(updatedProfile, validatedUserId);
+            getLogger().info({ userId: validatedUserId }, '🧠 Applied intelligence state to profile');
+          } catch (intelligenceError) {
+            getLogger().warn(
+              { error: String(intelligenceError), userId: validatedUserId },
+              'Failed to apply intelligence state (non-fatal)'
+            );
+          }
+
           services.userProfile = updatedProfile;
           await services.saveProfile();
 
@@ -1063,11 +1123,22 @@ export async function createSessionServices(
         }
       }
 
+      // FIX: Stop auto-save before cleanup
+      if (validatedUserId) {
+        stopAutoSave(validatedUserId);
+        getLogger().debug({ userId: validatedUserId }, 'Stopped auto-save');
+      }
+
       // Cleanup core components
       removeHistoryTracker(sessionId);
       removeContextManager(sessionId);
       resetLearningEngine();
       clearCurrentSessionMomentsGetter();
+
+      // FIX: Use unified intelligence cleanup instead of manual removal
+      if (validatedUserId) {
+        cleanupIntelligenceEngines(validatedUserId);
+      }
 
       // FIX BUG #session-5: Always cleanup session-specific intelligence engines
       // Preserving engines for authenticated users was causing memory leaks

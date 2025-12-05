@@ -40,7 +40,7 @@ function wrapLegacyTool(
 }
 
 // ============================================================================
-// EMOTIONAL WELLNESS TOOLS
+// EMOTIONAL WELLNESS TOOLS (Consolidated: 5 → 2 tools)
 // ============================================================================
 
 function getEmotionalWellnessToolDefinitions(): ToolDefinition[] {
@@ -48,45 +48,24 @@ function getEmotionalWellnessToolDefinitions(): ToolDefinition[] {
 
   return [
     wrapLegacyTool(
-      'addressFinancialAnxiety',
-      'Address Financial Anxiety',
-      'Provide compassionate support for financial anxiety and stress',
+      'emotionalSupport',
+      'Emotional Support',
+      'Provide compassionate support for difficult emotions. Handles: anxiety (especially financial), stress, overwhelm, discouragement. Also does wellbeing check-ins, encouragement, and guided gratitude practice. Modes: "support" (listen and validate), "checkin" (how are you really?), or "gratitude" (guided appreciation).',
       legacyTools.addressFinancialAnxiety,
-      ['emotional', 'anxiety', 'support']
+      ['emotional', 'anxiety', 'support', 'checkin', 'gratitude', 'encouragement']
     ),
     wrapLegacyTool(
-      'provideEncouragement',
-      'Provide Encouragement',
-      'Offer genuine encouragement and positive reinforcement',
-      legacyTools.provideEncouragement,
-      ['emotional', 'encouragement', 'motivation']
-    ),
-    wrapLegacyTool(
-      'reframeMoneyBelief',
-      'Reframe Money Belief',
-      'Help reframe unhelpful beliefs about money into healthier perspectives',
+      'reframeBelief',
+      'Reframe Belief',
+      'Help reframe unhelpful beliefs into healthier perspectives. Works for: money beliefs, self-worth, scarcity mindset, imposter syndrome, perfectionism. Uses cognitive reframing techniques to shift perspective without dismissing feelings.',
       legacyTools.reframeMoneyBelief,
-      ['emotional', 'mindset', 'beliefs']
-    ),
-    wrapLegacyTool(
-      'checkInOnWellbeing',
-      'Check In On Wellbeing',
-      'Do a gentle check-in on the user\'s overall wellbeing',
-      legacyTools.checkInOnWellbeing,
-      ['emotional', 'checkin', 'support']
-    ),
-    wrapLegacyTool(
-      'practiceGratitude',
-      'Practice Gratitude',
-      'Guide a brief gratitude practice to shift perspective',
-      legacyTools.practiceGratitude,
-      ['emotional', 'gratitude', 'mindfulness']
+      ['emotional', 'mindset', 'beliefs', 'reframe', 'cognitive']
     ),
   ];
 }
 
 // ============================================================================
-// MEDICATION TOOLS
+// MEDICATION TOOLS (Consolidated: 8 → 2 tools)
 // ============================================================================
 
 function getMedicationToolDefinitions(): ToolDefinition[] {
@@ -94,60 +73,18 @@ function getMedicationToolDefinitions(): ToolDefinition[] {
 
   return [
     wrapLegacyTool(
-      'addMedication',
-      'Add Medication',
-      'Add a medication to track with dosage and schedule',
+      'manageMedication',
+      'Manage Medication',
+      'Track medications: add new, log doses taken/skipped, update pill count, or stop tracking. Actions: "add" (new medication with dosage/schedule), "take" (log dose taken), "skip" (log skipped dose), "update" (pill count), or "stop" (remove from tracking). Includes refill reminders.',
       legacyTools.addMedication,
-      ['medications', 'add', 'tracking']
+      ['medications', 'add', 'take', 'skip', 'tracking', 'refill']
     ),
     wrapLegacyTool(
-      'takeMedication',
-      'Take Medication',
-      'Log taking a medication dose',
-      legacyTools.takeMedication,
-      ['medications', 'log', 'tracking']
-    ),
-    wrapLegacyTool(
-      'skipMedication',
-      'Skip Medication',
-      'Log that a medication dose was skipped',
-      legacyTools.skipMedication,
-      ['medications', 'skip', 'tracking']
-    ),
-    wrapLegacyTool(
-      'getMedicationSchedule',
-      'Get Medication Schedule',
-      'Get today\'s medication schedule with what\'s due',
+      'medicationSchedule',
+      'Medication Schedule',
+      'View medication schedule and adherence. Modes: "today" (what\'s due now), "all" (list all medications), or "checkin" (adherence summary with missed doses and refill alerts). Supports daily reminders and tracking patterns.',
       legacyTools.getMedicationSchedule,
-      ['medications', 'schedule', 'today']
-    ),
-    wrapLegacyTool(
-      'getAllMedications',
-      'Get All Medications',
-      'List all medications being tracked',
-      legacyTools.getAllMedications,
-      ['medications', 'list', 'all']
-    ),
-    wrapLegacyTool(
-      'updatePillCount',
-      'Update Pill Count',
-      'Update the remaining pill count for a medication',
-      legacyTools.updatePillCount,
-      ['medications', 'refill', 'inventory']
-    ),
-    wrapLegacyTool(
-      'stopMedication',
-      'Stop Medication',
-      'Stop tracking a medication',
-      legacyTools.stopMedication,
-      ['medications', 'stop', 'remove']
-    ),
-    wrapLegacyTool(
-      'medicationCheckIn',
-      'Medication Check-In',
-      'Get a summary of medication adherence and reminders',
-      legacyTools.medicationCheckIn,
-      ['medications', 'checkin', 'summary']
+      ['medications', 'schedule', 'today', 'list', 'checkin', 'adherence']
     ),
   ];
 }

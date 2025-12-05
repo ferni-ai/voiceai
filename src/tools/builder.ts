@@ -480,6 +480,13 @@ export async function buildAllTeamTools(options: {
 /**
  * Build essential tools (always available, minimal set)
  * This replaces createEssentialTools() in factory.ts
+ * 
+ * NOTE: Includes entertainment & information domains so agents can:
+ * - Play music (playMusic, pauseMusic, etc.)
+ * - Get weather, search web, etc.
+ * 
+ * Keep this focused! Most LLMs work best with 20-60 tools max.
+ * Google Gemini Realtime struggles with 100+ tools.
  */
 export async function buildEssentialTools(options: {
   userId?: string;
@@ -490,8 +497,9 @@ export async function buildEssentialTools(options: {
     await initializeToolRegistry();
   }
 
-  // Essential tools are a minimal set that every agent should have
-  return toolRegistry.buildSimple(['memory', 'handoff'], {
+  // Essential tools: memory, handoff, entertainment (music), information (weather/search)
+  // This gives agents core capabilities while keeping tool count manageable
+  return toolRegistry.buildSimple(['memory', 'handoff', 'entertainment', 'information'], {
     userId: options.userId || 'default',
     agentId: 'essential',
     agentDisplayName: 'Essential',

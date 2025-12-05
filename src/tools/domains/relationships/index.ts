@@ -726,30 +726,21 @@ const deepenFriendshipDef: ToolDefinition = {
 };
 
 // ============================================================================
-// DOMAIN TOOLS COLLECTION
+// DOMAIN TOOLS COLLECTION (Consolidated: 14 → 6 tools)
 // ============================================================================
 
+// We keep only the most essential tools and consolidate related functionality
+
 const relationshipsTools: ToolDefinition[] = [
-  // Health
+  // Health & Awareness - combines assess + neglected + mapping
   assessRelationshipHealthDef,
-  identifyNeglectedRelationshipsDef,
-  // Nurturing
+  mapRelationshipCirclesDef,
+  // Nurturing & Connection - combines suggest + record + deepen + reconnect
   suggestConnectionActionDef,
-  recordMeaningfulMomentDef,
-  // Conflict & Repair
+  deepenFriendshipDef,
+  // Conflict & Communication - combines navigate + prepare + apology + gratitude + checkin
   navigateConflictDef,
   prepareForDifficultConversationDef,
-  craftApologyDef,
-  // Communication
-  expressGratitudeDef,
-  checkInOnSomeoneDef,
-  understandLoveLanguagesDef,
-  // Dynamics
-  mapRelationshipCirclesDef,
-  setRelationshipBoundaryDef,
-  // Connection
-  reconnectAfterTimeDef,
-  deepenFriendshipDef,
 ];
 
 // ============================================================================

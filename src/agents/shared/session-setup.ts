@@ -134,9 +134,7 @@ export function initializeUserData(
   isReturningUser: boolean,
   services: SessionServices
 ): UserData {
-  return {
-    name: userName || services.userProfile?.name,
-    userId,
+  const userData: UserData = {
     isReturningUser,
     services,
     turnCount: 0,
@@ -148,6 +146,14 @@ export function initializeUserData(
       storiesToldThisSession: [],
     },
   };
+  const resolvedName = userName || services.userProfile?.name;
+  if (resolvedName !== undefined) {
+    userData.name = resolvedName;
+  }
+  if (userId !== undefined) {
+    userData.userId = userId;
+  }
+  return userData;
 }
 
 // ============================================================================

@@ -12,23 +12,25 @@
  *   import { getUserId, generateId, formatCurrency } from './utils/tool-helpers.js';
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { getLogger as getSafeLogger } from '../../utils/safe-logger.js';
 
 
 // ============================================================================
 // LOGGER
 // ============================================================================
 
+type LoggerType = ReturnType<typeof getSafeLogger>;
+
 /**
  * Get the LiveKit logger instance
  * Cached to avoid repeated calls
  */
-let _logger: ReturnType<ReturnType<typeof getLogger>> | null = null;
+let _logger: LoggerType | null = null;
 
-export function getLogger() {
+export function getLogger(): LoggerType {
   if (!_logger) {
     try {
-      _logger = getLogger();
+      _logger = getSafeLogger();
     } catch {
       // Fallback for testing or non-LiveKit environments
       _logger = {
@@ -37,7 +39,7 @@ export function getLogger() {
         warn: console.warn.bind(console),
         error: console.error.bind(console),
         child: () => _logger!,
-      } as unknown as ReturnType<ReturnType<typeof getLogger>>;
+      } as unknown as LoggerType;
     }
   }
   return _logger;

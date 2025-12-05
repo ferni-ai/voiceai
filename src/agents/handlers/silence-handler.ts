@@ -91,14 +91,17 @@ export function generateSilenceResponse(
  * Create initial silence context from user data
  */
 export function createSilenceContext(userName?: string, turnCount: number = 0): SilenceContext {
-  return {
+  const context: SilenceContext = {
     silenceDurationSeconds: 0,
     turnCount,
     topicsDiscussed: [],
     recentEmotionalTone: 'neutral',
-    userName,
     memorableMoments: [],
   };
+  if (userName !== undefined) {
+    context.userName = userName;
+  }
+  return context;
 }
 
 /**

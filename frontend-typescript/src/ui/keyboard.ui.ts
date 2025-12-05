@@ -33,7 +33,7 @@ let hintTimeout: ReturnType<typeof setTimeout> | null = null;
 const PERSONA_KEYS: Record<string, PersonaId> = {
   '1': 'ferni',
   '2': 'nayan-patel',
-  '3': 'peter-lynch',
+  '3': 'peter-john',
   '4': 'alex-chen',
   '5': 'maya-santos',
   '6': 'jordan-taylor',

@@ -427,6 +427,7 @@ async function ensureBuildersLoaded(): Promise<void> {
   try {
     await Promise.all([
       import('./celebration.js'),
+      import('./cognitive.js'), // Persona-specific cognitive intelligence
       import('./community-learning.js'), // Collective learning from all users
       import('./conversation-recap.js'), // "Where were we?" memory
       import('./crisis.js'),
@@ -453,6 +454,7 @@ async function ensureBuildersLoaded(): Promise<void> {
       import('./tasks.js'),
       import('./team-dynamics.js'), // Cross-persona team awareness
       import('./topics.js'),
+      import('./engagement-context.js'), // Daily rituals, games, team engagement
     ]);
 
     getLogger().info(`Context builders loaded: ${builders.size} registered`);

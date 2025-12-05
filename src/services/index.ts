@@ -41,7 +41,41 @@ export {
   resetGlobalServices,
   markPersonaIndexed,
   isPersonaIndexed,
+  getStartupCapabilities,
 } from './global-services.js';
+
+// ============================================================================
+// STARTUP VALIDATION
+// ============================================================================
+
+export {
+  validateStartup,
+  validateAndLog,
+  hasFullCapabilities,
+  getCapabilitySummary,
+  checkEmbeddingConsistency,
+  type ValidationResult,
+  type StartupCapabilities,
+  type ValidationConfig,
+} from './startup-validation.js';
+
+// ============================================================================
+// INTELLIGENCE PERSISTENCE
+// ============================================================================
+
+export {
+  exportIntelligenceState,
+  importIntelligenceState,
+  applyIntelligenceToProfile,
+  loadIntelligenceFromProfile,
+  cleanupIntelligenceEngines,
+  startAutoSave,
+  stopAutoSave,
+  stopAllAutoSaves,
+  getAutoSaveStatus,
+  type IntelligenceState,
+  type PersistenceConfig,
+} from './intelligence-persistence.js';
 
 // ============================================================================
 // SESSION MANAGEMENT

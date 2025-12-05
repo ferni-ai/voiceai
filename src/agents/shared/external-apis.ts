@@ -77,7 +77,7 @@ export async function getStockQuote(symbol: string): Promise<string> {
  */
 async function getStockQuoteAlphaVantage(symbol: string): Promise<string> {
   
-  const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+  const apiKey = process.env['ALPHA_VANTAGE_API_KEY'];
 
   if (!apiKey) {
     logger.warn('No Alpha Vantage API key - using fallback');
@@ -220,7 +220,7 @@ function getMarketFallback(): string {
  */
 export async function getWeather(location: string): Promise<string> {
   
-  const apiKey = process.env.OPENWEATHER_API_KEY;
+  const apiKey = process.env['OPENWEATHER_API_KEY'];
 
   if (!apiKey) {
     logger.warn('No OpenWeather API key - using fallback');
@@ -241,7 +241,11 @@ export async function getWeather(location: string): Promise<string> {
       return `I couldn't find weather data for "${location}". Could you be more specific about the location?`;
     }
 
-    const { lat, lon, name } = geoData[0];
+    const firstResult = geoData[0];
+    if (!firstResult) {
+      return `I couldn't find weather data for "${location}". Could you be more specific about the location?`;
+    }
+    const { lat, lon, name } = firstResult;
 
     const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`;
     const weatherResponse = await fetch(weatherUrl, { signal: AbortSignal.timeout(5000) });
@@ -328,7 +332,7 @@ export async function getHistoricalEvent(): Promise<string | null> {
 
       if (relevantEvents.length > 0) {
         const event = relevantEvents[Math.floor(Math.random() * relevantEvents.length)];
-        if (event.year && event.text) {
+        if (event?.year && event?.text) {
           return `On this day in ${event.year}: ${event.text}`;
         }
       }
@@ -336,7 +340,7 @@ export async function getHistoricalEvent(): Promise<string | null> {
       // Fall back to any interesting event
       if (events.length > 0) {
         const event = events[Math.floor(Math.random() * events.length)];
-        if (event.year && event.text) {
+        if (event?.year && event?.text) {
           return `On this day in ${event.year}: ${event.text}`;
         }
       }

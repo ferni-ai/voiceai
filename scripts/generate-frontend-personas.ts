@@ -70,6 +70,21 @@ interface PersonaManifest {
       to_coordinator?: string[];
     };
   };
+  // NEW: Handoff transition configuration
+  handoff?: {
+    transition?: {
+      style?: 'standard' | 'dramatic' | 'subtle' | 'warm';
+      emoji?: string;
+      sound?: string;
+      delay_multiplier?: number;
+    };
+    entrance_phrases?: string[];
+    exit_phrases?: string[];
+    triggers?: string[];
+  };
+  marketplace?: {
+    icon?: string;
+  };
 }
 
 // Frontend persona format
@@ -87,6 +102,13 @@ interface FrontendPersona {
   traits: string[];
   domains: string[];
   handoffTriggers: string[];
+  // NEW: Handoff transition config from manifest
+  transition: {
+    style: 'standard' | 'dramatic' | 'subtle' | 'warm';
+    emoji: string;
+    sound: string;
+    delayMultiplier: number;
+  };
 }
 
 interface GeneratedConfig {
@@ -215,6 +237,116 @@ async function loadEntrancePhraseFromBundle(bundlePath: string): Promise<string 
 }
 
 /**
+ * Derive transition style from manifest or agent characteristics
+ */
+function deriveTransitionStyle(manifest: PersonaManifest): 'standard' | 'dramatic' | 'subtle' | 'warm' {
+  // Explicit config takes priority
+  if (manifest.handoff?.transition?.style) {
+    return manifest.handoff.transition.style;
+  }
+
+  // Coach returns are warm
+  if (manifest.team?.coordinator) {
+    return 'warm';
+  }
+
+  // High-energy agents get dramatic entrances
+  const energy = manifest.personality?.energy || 0.5;
+  if (energy >= 0.8) {
+    return 'dramatic';
+  }
+
+  // Wisdom agents get subtle transitions
+  const domains = manifest.role?.domains || [];
+  if (domains.some(d => d.toLowerCase().includes('wisdom') || d.toLowerCase().includes('mindfulness'))) {
+    return 'subtle';
+  }
+
+  return 'standard';
+}
+
+/**
+ * Derive emoji from manifest or domains
+ */
+function deriveEmoji(manifest: PersonaManifest): string {
+  // Explicit config takes priority
+  if (manifest.handoff?.transition?.emoji) {
+    return manifest.handoff.transition.emoji;
+  }
+
+  // Marketplace icon
+  if (manifest.marketplace?.icon) {
+    return manifest.marketplace.icon;
+  }
+
+  // Coach gets target emoji
+  if (manifest.team?.coordinator) {
+    return '🎯';
+  }
+
+  // Derive from domains
+  const domains = manifest.role?.domains || [];
+  const domainLower = domains.map(d => d.toLowerCase());
+
+  if (domainLower.some(d => d.includes('research') || d.includes('invest') || d.includes('stock'))) {
+    return '📈';
+  }
+  if (domainLower.some(d => d.includes('wisdom') || d.includes('philosophy'))) {
+    return '🧘';
+  }
+  if (domainLower.some(d => d.includes('communication') || d.includes('email'))) {
+    return '📧';
+  }
+  if (domainLower.some(d => d.includes('budget') || d.includes('spend') || d.includes('habit'))) {
+    return '💰';
+  }
+  if (domainLower.some(d => d.includes('planning') || d.includes('milestone'))) {
+    return '🎉';
+  }
+
+  return '✨';
+}
+
+/**
+ * Derive handoff sound from manifest
+ */
+function deriveHandoffSound(manifest: PersonaManifest): string {
+  // Explicit config takes priority
+  if (manifest.handoff?.transition?.sound) {
+    return manifest.handoff.transition.sound;
+  }
+
+  // Coach uses connect sound
+  if (manifest.team?.coordinator) {
+    return 'connect';
+  }
+
+  // Default: persona-specific sound
+  const firstName = manifest.identity.id.split('-')[0];
+  return `handoff-to-${firstName}`;
+}
+
+/**
+ * Derive delay multiplier from manifest or transition style
+ */
+function deriveDelayMultiplier(manifest: PersonaManifest, style: string): number {
+  // Explicit config takes priority
+  if (manifest.handoff?.transition?.delay_multiplier !== undefined) {
+    return manifest.handoff.transition.delay_multiplier;
+  }
+
+  // Derive from style
+  switch (style) {
+    case 'dramatic':
+      return 1.3;
+    case 'subtle':
+      return 0.8;
+    default:
+      return 1.0;
+  }
+}
+
+/**
  * Convert a persona manifest to frontend format
  */
 async function manifestToFrontendPersona(
@@ -228,6 +360,9 @@ async function manifestToFrontendPersona(
   const bundleQuotes = await loadQuotesFromBundle(bundlePath);
   const entrancePhrase = await loadEntrancePhraseFromBundle(bundlePath);
   
+  // Derive transition config
+  const transitionStyle = deriveTransitionStyle(manifest);
+  
   return {
     id: manifest.identity.id,
     name: manifest.identity.display_name || manifest.identity.name,
@@ -238,14 +373,22 @@ async function manifestToFrontendPersona(
     helperText: manifest.team?.role_description?.split(' - ')[0] || manifest.identity.description.split('.')[0],
     skills: roleSkills[roleId] || [{ icon: '', name: 'Support' }],
     entrancePhrase: entrancePhrase || 
-      (manifest.team?.handoff_phrases?.receive?.[0]) || 
+      (manifest.team?.handoff_phrases?.receive?.[0]) ||
+      (manifest.handoff?.entrance_phrases?.[0]) ||
       `${manifest.identity.name} here. How can I help?`,
     quotes: bundleQuotes.length > 0 ? bundleQuotes : [
       `"${manifest.identity.description.split('.')[0]}."`,
     ],
     traits: manifest.personality?.traits || [],
     domains: manifest.role?.domains || [],
-    handoffTriggers: manifest.team?.handoff_triggers || [],
+    handoffTriggers: manifest.team?.handoff_triggers || manifest.handoff?.triggers || [],
+    // NEW: Transition config from manifest
+    transition: {
+      style: transitionStyle,
+      emoji: deriveEmoji(manifest),
+      sound: deriveHandoffSound(manifest),
+      delayMultiplier: deriveDelayMultiplier(manifest, transitionStyle),
+    },
   };
 }
 

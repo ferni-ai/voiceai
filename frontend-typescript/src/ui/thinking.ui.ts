@@ -54,7 +54,7 @@ const PERSONA_THINKING_MESSAGES: Record<string, string[]> = {
     'Taking a moment...',
   ],
   // Peter Lynch - energetic, practical
-  'peter-lynch': [
+  'peter-john': [
     'Great question...',
     'Let me dig into that...',
     'Analyzing...',
@@ -423,7 +423,7 @@ function getCuriousTiltIntensity(): { angle: number; duration: number } {
     'nayan-patel': { angle: 2.5, duration: 4000 },
     
     // Peter Lynch - eager, quick curiosity
-    'peter-lynch': { angle: 5, duration: 2600 },
+    'peter-john': { angle: 5, duration: 2600 },
     
     // Alex Chen - thoughtful, measured tilt
     'alex-chen': { angle: 3.5, duration: 3500 },

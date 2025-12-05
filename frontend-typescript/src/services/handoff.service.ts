@@ -19,7 +19,8 @@ import type { PersonaId } from '../types/persona.js';
 import type { HandoffEvent, NormalizedHandoff, DataMessage } from '../types/events.js';
 import { isHandoffMessage, isHandoffStarted, isHandoffComplete, isHandoffFailed, isHandoffAcknowledged, isHandoffCancelled, isStateReset } from '../types/events.js';
 import { normalizeAgentId, getPersona } from '../config/personas.js';
-import { HANDOFF_TIMING, SOUND_EFFECTS } from '../config/index.js';
+import { SOUND_EFFECTS } from '../config/index.js';
+import { HANDOFF_TIMING, getPostSoundPause, type TransitionStyle } from '../config/handoff-timing.js';
 import { appState, setActivePersona } from '../state/app.state.js';
 import { audioService, type SoundEffect } from './audio.service.js';
 
@@ -438,19 +439,28 @@ class HandoffService {
   /**
    * FIX BUG: Start a timeout for handoff transitions.
    * If backend doesn't respond within timeout, reset state to prevent stuck UI.
+   * Also restores the UI to the previous state.
    */
   private startHandoffTimeout(targetPersona: PersonaId): void {
     // Clear any existing timeout
     this.clearHandoffTimeout();
     
+    // Store the current persona before transition for recovery
+    const previousPersona = appState.get('activePersona').id;
+    
     this._handoffTimeoutId = setTimeout(() => {
       console.warn(`⏰ Handoff timeout: no response for ${targetPersona} after ${this.HANDOFF_TIMEOUT_MS}ms`);
+      console.log(`   Restoring UI to previous persona: ${previousPersona}`);
       
       // Reset transition state
       this._isTransitioning = false;
       this._targetPersona = null;
       this._handoffPhase = 'idle';
       this._soundPlayedForCurrentHandoff = false;
+      
+      // FIX BUG: Restore the UI to the previous active persona
+      // This ensures the button moves back to the correct position
+      setActivePersona(previousPersona);
       
       // Notify failed callbacks with timeout error
       for (const callback of this.failedCallbacks) {
@@ -651,8 +661,9 @@ class HandoffService {
 
   /**
    * Determine handoff direction from persona IDs.
-   * FIX BUG #22: Uses role-based logic instead of hardcoded persona IDs
-   * to be more extensible when adding new personas.
+   *
+   * REFACTORED: Now fully role-based, no hardcoded persona IDs.
+   * Direction determines sound effects and animation style.
    */
   private determineDirection(
     from: PersonaId,
@@ -661,15 +672,13 @@ class HandoffService {
     const fromPersona = getPersona(from);
     const toPersona = getPersona(to);
 
-    // FIX BUG #22: Use role-based detection instead of hardcoded IDs
-    // This allows new personas to work correctly without code changes
-    
-    // Peter Lynch has special theatrical transitions
-    if (toPersona.id === 'peter-lynch') {
-      return 'jack-to-peter';
-    }
-    if (fromPersona.id === 'peter-lynch') {
-      return 'peter-to-jack';
+    // Get transition style from persona config (if available)
+    // This allows dramatic/subtle transitions without hardcoding IDs
+    const transitionStyle = this.getTransitionStyle(toPersona.id);
+
+    // Dramatic transitions get special direction
+    if (transitionStyle === 'dramatic') {
+      return 'jack-to-peter'; // Legacy name, but now role-based
     }
 
     // Role-based direction determination
@@ -679,7 +688,7 @@ class HandoffService {
     if (fromPersona.role === 'team' && toPersona.role === 'coach') {
       return 'team-to-coach';
     }
-    
+
     // Team to team (specialist handoffs)
     if (fromPersona.role === 'team' && toPersona.role === 'team') {
       return 'coach-to-team'; // Use same sound effect for team-to-team
@@ -687,6 +696,34 @@ class HandoffService {
 
     // Default fallback
     return 'coach-to-team';
+  }
+
+  /**
+   * Get the transition style for a persona.
+   * Derived from persona energy level and role.
+   */
+  private getTransitionStyle(personaId: PersonaId): TransitionStyle {
+    const persona = getPersona(personaId);
+
+    // Coach returns are warm
+    if (persona.role === 'coach') {
+      return 'warm';
+    }
+
+    // Check for high-energy personas (dramatic entrances)
+    // This can be configured in personas.ts via a new field
+    const highEnergyPersonas = ['peter-john']; // TODO: Move to persona config
+    if (highEnergyPersonas.includes(personaId)) {
+      return 'dramatic';
+    }
+
+    // Check for calm/wisdom personas (subtle transitions)
+    const calmPersonas = ['nayan-patel'];
+    if (calmPersonas.includes(personaId)) {
+      return 'subtle';
+    }
+
+    return 'standard';
   }
 
   /**
@@ -742,23 +779,15 @@ class HandoffService {
   /**
    * Calculate appropriate pause after sound for human-like timing.
    * First meetings and dramatic entrances get longer pauses.
-   * FIX BUG #21 & #29: Uses configurable constants synchronized with backend.
+   *
+   * REFACTORED: Now uses shared timing function from handoff-timing.ts.
    */
   private calculatePauseAfterSound(direction: NormalizedHandoff['direction'], isFirstMeeting: boolean): number {
-    // Base pause after sound in ms (gives time for the sound to "land")
-    let pause = HANDOFF_TIMING.POST_SOUND_PAUSE_BASE;
-    
-    // First meetings deserve a beat of anticipation
-    if (isFirstMeeting) {
-      pause += HANDOFF_TIMING.POST_SOUND_PAUSE_FIRST_MEETING_BONUS;
-    }
-    
-    // Peter Lynch handoffs are more theatrical
-    if (direction === 'jack-to-peter') {
-      pause += HANDOFF_TIMING.POST_SOUND_PAUSE_DRAMATIC_BONUS;
-    }
-    
-    return pause;
+    // Determine transition style from direction
+    const style: TransitionStyle = direction === 'jack-to-peter' ? 'dramatic' : 'standard';
+
+    // Use shared timing calculation
+    return getPostSoundPause(style, isFirstMeeting);
   }
 
   /**

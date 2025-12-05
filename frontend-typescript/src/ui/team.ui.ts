@@ -87,10 +87,18 @@ export function initTeamUI(): void {
     cleanupFunctions.push(unsubComplete);
     
     // FIX BUG #57: Announce handoff failures
-    const unsubFailed = handoffService.onHandoffFailed((error, _targetPersona) => {
+    // FIX BUG: Also clear visual switching states when handoff fails
+    const unsubFailed = handoffService.onHandoffFailed((error, targetPersona) => {
       announceToScreenReader(`Switch failed. ${error}`);
+      clearSwitchingFeedback(targetPersona);
     });
     cleanupFunctions.push(unsubFailed);
+    
+    // FIX BUG: Handle handoff cancellation - clear visual states
+    const unsubCancelled = handoffService.onHandoffCancelled((targetPersona, _reason) => {
+      clearSwitchingFeedback(targetPersona);
+    });
+    cleanupFunctions.push(unsubCancelled);
     
     // 🍴 Setup avatar as drop zone for "eating" marketplace agents
     avatarFeedback.setupDropZone(handleAgentDropped);
@@ -118,13 +126,13 @@ function handleAgentDropped(agentId: string): void {
   // Remove from UI
   const element = teamMemberElements.get(agentId as PersonaId);
   if (element) {
-    // Animate removal
+    // Animate removal using design system constants
     element.animate([
       { transform: 'scale(1)', opacity: '1' },
       { transform: 'scale(0)', opacity: '0' },
     ], {
-      duration: 300,
-      easing: 'ease-in',
+      duration: DURATION.SLOW,
+      easing: EASING.EASE_IN,
       fill: 'forwards',
     }).finished.then(() => {
       element.remove();
@@ -363,11 +371,12 @@ function createMarketplaceAgentElement(agent: marketplaceService.InstalledAgent)
   // 🍴 Make draggable for fun "feed to avatar" uninstall
   element.setAttribute('draggable', 'true');
   
-  // Build gradient from manifest colors if available, or use a muted default
+  // Build gradient from manifest colors if available, or use design system fallback
   const marketplaceInfo = (manifest as { marketplace?: { colors?: { gradient?: string } } })?.marketplace;
   const colors = marketplaceInfo?.colors;
+  // Fallback uses CSS variables for muted earthy tones from design system
   const gradient = colors?.gradient || 
-    'linear-gradient(135deg, #7a6f63, #9a8f82)';
+    'linear-gradient(135deg, var(--color-natural-stone, #7a6f63), var(--color-natural-wood, #9a8f82))';
   
   element.innerHTML = `
     <div class="team-avatar-container">
@@ -430,13 +439,13 @@ function attachMarketplaceAgentListeners(
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        background: ${avatarEl.style.getPropertyValue('--persona-gradient') || 'linear-gradient(135deg, #7a6f63, #9a8f82)'};
+        background: ${avatarEl.style.getPropertyValue('--persona-gradient') || 'linear-gradient(135deg, var(--color-natural-stone, #7a6f63), var(--color-natural-wood, #9a8f82))'};
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 600;
-        color: white;
-        font-size: 14px;
+        color: var(--persona-text, white);
+        font-size: var(--text-sm, 14px);
       `;
       document.body.appendChild(clone);
       e.dataTransfer.setDragImage(clone, 24, 24);
@@ -465,9 +474,10 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   element.setAttribute('aria-label', `Talk to ${agent.name}`);
   element.setAttribute('aria-pressed', 'false');
     
-  // Get colors - from API or fall back to hardcoded
+  // Get colors - from API or fall back to design system persona colors
   const colors = agent.colors || getPersonaColorConfig(agent.id);
-  const gradient = colors?.gradient || `linear-gradient(135deg, ${colors?.secondary || '#3d5a35'}, ${colors?.primary || '#4a6741'})`;
+  // Use CSS variables with hardcoded fallbacks for safety
+  const gradient = colors?.gradient || `linear-gradient(135deg, ${colors?.secondary || 'var(--persona-secondary, #3d5a35)'}, ${colors?.primary || 'var(--persona-primary, #4a6741)'})`;
 
   element.innerHTML = `
     <div class="team-avatar-container">
@@ -677,6 +687,33 @@ function onTeamMemberClick(personaId: PersonaId): void {
 
   // When disconnected, preview the theme immediately
   previewPersonaTheme(personaId);
+}
+
+/**
+ * Clear the visual switching feedback states.
+ * Called when handoff fails, times out, or is cancelled.
+ */
+function clearSwitchingFeedback(targetPersonaId: PersonaId): void {
+  console.log(`🧹 Clearing switching feedback for ${targetPersonaId}`);
+  
+  // Clear switching-to from target
+  const targetElement = teamMemberElements.get(targetPersonaId);
+  if (targetElement) {
+    removeClass(targetElement, 'switching-to');
+    removeClass(targetElement, 'send-failed');
+  }
+  
+  // Clear switching-from from all elements (in case we don't know which one)
+  for (const [_id, element] of teamMemberElements.entries()) {
+    removeClass(element, 'switching-from');
+  }
+  
+  // Restore the current active persona highlighting
+  const current = appState.get('activePersona');
+  const currentElement = teamMemberElements.get(current.id);
+  if (currentElement) {
+    addClass(currentElement, 'active');
+  }
 }
 
 /**

@@ -11,17 +11,22 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { EventEmitter } from 'events';
 import { getCanonicalPersonaId, getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
 import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 import { createHandoffEvent } from '../../personas/PersonaRegistry.js';
 import { getAliveEntranceForHandoff, detectUserMoodFromContext } from '../../personas/alive-entrances.js';
 import type { AgentId } from '../../services/agent-bus.js';
 // FIX BUG: Import state management from state.ts to keep state in sync
+// FIX BUG: Import handoffEvents from state.ts instead of creating a duplicate!
+// The handler in voice-agent.ts registers on state.ts's EventEmitter,
+// so we must emit on the SAME instance.
 import {
-  getCurrentAgent as getStateCurrentAgent,
-  setCurrentAgent as setStateCurrentAgent,
-  isSameAgent as stateSameAgent,
+  getCurrentAgent,
+  setCurrentAgent,
+  isSameAgent,
+  isHandoffAllowed,
+  handoffEvents, // Use the shared EventEmitter from state.ts
+  resetHandoffState as resetStateHandoffState, // Use state.js's reset function
 } from './state.js';
 
 // ============================================================================
@@ -38,8 +43,9 @@ let lastHandoffTimestamp = 0;
 /** Minimum time between handoffs (ms) */
 const HANDOFF_COOLDOWN_MS = 2000;
 
-/** Global event emitter for handoff events */
-export const handoffEvents = new EventEmitter();
+// NOTE: handoffEvents is now imported from state.ts to ensure a single shared instance
+// Previously, this module had its own EventEmitter which caused events to be emitted
+// on a different instance than where handlers were registered.
 
 // ============================================================================
 // HANDOFF RECORD TRACKING
@@ -112,50 +118,20 @@ export function getHandoffContext(): HandoffContext | null {
 }
 
 // ============================================================================
-// AGENT STATE - Delegated to state.ts for consistency
+// AGENT STATE - Re-exported from state.ts for consistency
 // ============================================================================
 
-/**
- * Get the current active agent
- * FIX BUG: Delegates to state.ts to keep state in sync with getAgentContext()
- */
-export function getCurrentAgent(): AgentId {
-  return getStateCurrentAgent();
-}
-
-/**
- * Set the current active agent
- * FIX BUG: Delegates to state.ts to keep state in sync with getAgentContext()
- */
-export function setCurrentAgent(agentId: AgentId): void {
-  setStateCurrentAgent(agentId);
-}
-
-/**
- * Check if two agent IDs refer to the same agent
- * FIX BUG: Delegates to state.ts for consistent ID normalization
- */
-export function isSameAgent(id1: string, id2: string): boolean {
-  return stateSameAgent(id1, id2);
-}
-
-/**
- * Check if handoff is allowed (rate limiting)
- */
-export function isHandoffAllowed(): boolean {
-  const now = Date.now();
-  if (now - lastHandoffTimestamp < HANDOFF_COOLDOWN_MS) {
-    getLogger().warn({ timeSinceLastMs: now - lastHandoffTimestamp }, 'Handoff rate limited');
-    return false;
-  }
-  return true;
-}
+// Re-export state functions - they're imported above and exported here for backwards compatibility
+export { getCurrentAgent, setCurrentAgent, isSameAgent, isHandoffAllowed };
 
 /**
  * Reset handoff state
+ * Resets both executor and state.js state (including rate limiting)
  */
 export function resetHandoffState(): void {
-  setStateCurrentAgent('ferni');
+  // Reset state.js state (includes rate limiting, current agent, met personas, etc.)
+  resetStateHandoffState();
+  // Reset executor-specific state
   lastHandoffTimestamp = 0;
   handoffHistory.length = 0;
   conversationContext = null;
@@ -216,7 +192,7 @@ export async function executeHandoff(
   reason: string,
   options: ExecuteHandoffOptions = {}
 ): Promise<HandoffResult> {
-  const previousAgent = getStateCurrentAgent();
+  const previousAgent = getCurrentAgent();
 
   // Normalize the target agent ID
   const canonicalTargetId = getCanonicalPersonaId(targetAgentId);
@@ -288,14 +264,27 @@ export async function executeHandoff(
   );
 
   // Emit voiceSwitch event
-  handoffEvents.emit(
-    'voiceSwitch',
-    createHandoffEvent(canonicalTargetId, {
-      greeting,
-      playSound: options.playSound,
-      previousAgentId: previousAgent,
-    })
+  // FIX BUG: Add logging to trace event emission
+  const eventData = createHandoffEvent(canonicalTargetId, {
+    greeting,
+    playSound: options.playSound,
+    previousAgentId: previousAgent,
+  });
+  
+  getLogger().info(
+    { 
+      targetId: canonicalTargetId,
+      hasPersona: !!eventData.persona,
+      personaId: eventData.persona?.id,
+      previousAgentId: eventData.previousAgentId,
+      listenerCount: handoffEvents.listenerCount('voiceSwitch'),
+    },
+    '📡 Emitting voiceSwitch event'
   );
+  
+  handoffEvents.emit('voiceSwitch', eventData);
+  
+  getLogger().info({ targetId: canonicalTargetId }, '✅ voiceSwitch event emitted');
 
   return {
     success: true,

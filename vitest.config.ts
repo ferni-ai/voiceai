@@ -8,10 +8,12 @@ export default defineConfig({
     // Exclude design-system - it uses Playwright, not Vitest
     exclude: [
       'node_modules/**',
+      '**/node_modules/**',
       'dist/**',
       'frontend-orb/**',
       'frontend-typescript/**',
       'design-system/**',
+      'apps/**',
     ],
     coverage: {
       provider: 'v8',

@@ -53,8 +53,8 @@ export const PERSONA_EXPRESSIONS: Record<PersonaId, PersonaExpressions> = {
     ],
   },
 
-  // Peter Lynch - Stock picking energy
-  'peter-lynch': {
+  // Peter John - Stock picking energy
+  'peter-john': {
     signature: '🔥',
     expressions: [
       { emoji: '🔥', meaning: 'Hot opportunity!', triggerPhrases: ['opportunity', 'chance', 'potential', 'exciting'] },

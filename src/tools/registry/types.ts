@@ -45,7 +45,8 @@ export type ToolDomain =
   | 'play' // Playfulness and creative expression
   | 'self-compassion' // Self-compassion and self-care
   | 'presence' // Mindfulness and presence tools
-  | 'proactive'; // Proactive check-ins and follow-ups
+  | 'proactive' // Proactive check-ins and follow-ups
+  | 'awareness'; // World awareness - time, context, environment
 
 /**
  * All available tool domains
@@ -76,6 +77,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'self-compassion',
   'presence',
   'proactive',
+  'awareness',
 ] as const;
 
 // ============================================================================
@@ -124,6 +126,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'self-compassion': 'lifestyle',
   presence: 'lifestyle',
   proactive: 'core',
+  awareness: 'core',
 };
 
 // ============================================================================

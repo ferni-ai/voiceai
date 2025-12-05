@@ -194,6 +194,164 @@ function calculateHandoffTarget(
 - **Event delegation** - attach listeners to containers
 - **Cleanup listeners** - prevent memory leaks
 
+## 🎨 DESIGN SYSTEM - MANDATORY
+
+### Design System Files (Source of Truth)
+- `public/design-system/tokens.css` - CSS variables for all themes
+- `public/design-system/tokens.ts` - TypeScript constants and utilities
+- `src/config/animation-constants.ts` - Animation timing and easing
+
+### REQUIRED Imports for UI Files
+Every file in `src/ui/*.ts` MUST import from the design system:
+
+```typescript
+// ✅ REQUIRED for any UI file with animations
+import { DURATION, EASING, ANIMATION_PRESET } from '../config/animation-constants.js';
+
+// ✅ REQUIRED for any UI file with persona-specific behavior
+import { 
+  getPersonaAnimationProfile,
+  getWaveformProfile,
+  getEasing,
+  EASINGS,
+} from '@design-system/tokens';
+```
+
+### 🚫 NEVER Hardcode These Values
+
+#### Colors - Use CSS Variables
+```typescript
+// ❌ NEVER
+background: '#7a6f63'
+color: 'rgba(255, 255, 255, 0.8)'
+gradient: 'linear-gradient(135deg, #3d5a35, #4a6741)'
+
+// ✅ ALWAYS
+background: 'var(--persona-primary)'
+color: 'var(--color-text-primary)'
+gradient: 'var(--gradient-persona-glow)'
+// Or construct from CSS vars:
+`linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))`
+```
+
+#### Durations - Use DURATION Constants
+```typescript
+// ❌ NEVER
+{ duration: 300 }
+{ duration: 600 }
+{ duration: 800 }
+
+// ✅ ALWAYS
+import { DURATION } from '../config/animation-constants.js';
+{ duration: DURATION.SLOW }        // 300ms
+{ duration: DURATION.DRAMATIC }    // 600ms
+{ duration: DURATION.CELEBRATION } // 800ms
+```
+
+#### Easings - Use EASING Constants
+```typescript
+// ❌ NEVER
+easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+easing: 'ease-out'
+
+// ✅ ALWAYS
+import { EASING } from '../config/animation-constants.js';
+easing: EASING.SPRING           // Spring bounce
+easing: EASING.STANDARD         // Material standard
+easing: EASING.EXPO_OUT         // Dramatic exit
+```
+
+#### Shadows - Use CSS Variables
+```typescript
+// ❌ NEVER
+boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+
+// ✅ ALWAYS
+boxShadow: 'var(--shadow-md)'
+boxShadow: 'var(--shadow-glow)'
+```
+
+#### Spacing - Use CSS Variables
+```typescript
+// ❌ NEVER
+padding: '16px'
+gap: '8px'
+
+// ✅ ALWAYS
+padding: 'var(--space-4)'
+gap: 'var(--ma-breath)'
+```
+
+### Available Design Tokens
+
+#### Duration Constants (from animation-constants.ts)
+| Constant | Value | Use Case |
+|----------|-------|----------|
+| `DURATION.MICRO` | 50ms | Immediate feedback |
+| `DURATION.FAST` | 100ms | Hover, focus |
+| `DURATION.NORMAL` | 200ms | Standard transitions |
+| `DURATION.SLOW` | 300ms | Deliberate moves |
+| `DURATION.MODERATE` | 400ms | Panel slides |
+| `DURATION.DELIBERATE` | 500ms | Emphasis |
+| `DURATION.DRAMATIC` | 600ms | Celebrations |
+| `DURATION.CELEBRATION` | 800ms | Major events |
+| `DURATION.GLACIAL` | 1500ms | Ambient effects |
+
+#### Easing Constants (from animation-constants.ts)
+| Constant | Description |
+|----------|-------------|
+| `EASING.STANDARD` | Material standard deceleration |
+| `EASING.SPRING` | Pixar-style bounce overshoot |
+| `EASING.SPRING_GENTLE` | Subtle bounce |
+| `EASING.EXPO_OUT` | Dramatic deceleration |
+| `EASING.GENTLE` | Organic, natural |
+| `EASING.ANTICIPATE` | Wind-up before action |
+
+#### CSS Variables (from tokens.css)
+| Category | Examples |
+|----------|----------|
+| **Colors** | `--color-text-primary`, `--color-background-elevated` |
+| **Persona** | `--persona-primary`, `--persona-glow`, `--persona-tint` |
+| **Shadows** | `--shadow-sm`, `--shadow-xl`, `--shadow-glow` |
+| **Spacing** | `--space-1` to `--space-96`, `--ma-breath` to `--ma-vastness` |
+| **Radius** | `--radius-sm`, `--radius-lg`, `--radius-full` |
+| **Durations** | `--duration-fast`, `--duration-slow`, `--duration-dramatic` |
+| **Easings** | `--ease-spring`, `--ease-organic`, `--ease-gentle` |
+
+### Animation Patterns - Use Presets
+
+```typescript
+// ✅ Use ANIMATION_PRESET for common patterns
+import { ANIMATION_PRESET } from '../config/animation-constants.js';
+
+element.animate(keyframes, ANIMATION_PRESET.BUTTON_PRESS);
+element.animate(keyframes, ANIMATION_PRESET.CELEBRATION);
+element.animate(keyframes, ANIMATION_PRESET.REACTION_DRAMATIC);
+```
+
+### Persona-Aware Animations
+
+```typescript
+// ✅ Use design system utilities for persona-specific timing
+import { getPersonaAnimationProfile } from '@design-system/tokens';
+
+const profile = getPersonaAnimationProfile(personaId);
+const duration = DURATION.DELIBERATE * profile.timingMultiplier;
+const easing = getEasing(profile.easingPreference);
+```
+
+### Code Review Checklist - Design System
+Before submitting UI code, verify:
+- [ ] No hardcoded hex colors (#RRGGBB)
+- [ ] No hardcoded rgba() values
+- [ ] No hardcoded duration numbers
+- [ ] No hardcoded cubic-bezier strings
+- [ ] Uses DURATION constants from animation-constants
+- [ ] Uses EASING constants from animation-constants
+- [ ] Uses CSS variables for colors/spacing/shadows
+- [ ] Imports @design-system/tokens where needed
+- [ ] Respects `prefers-reduced-motion` media query
+
 ### Backend (Node.js)
 - **Structured logging** - JSON format with correlation IDs
 - **Circuit breakers** for external services

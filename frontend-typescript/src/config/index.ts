@@ -45,28 +45,11 @@ export const TIMING = {
 
 // ============================================================================
 // HANDOFF TIMING CONSTANTS
-// FIX BUG #21 & #29 & #95: Synchronized with backend HANDOFF_DELAYS
-// These should match src/agents/shared/constants.ts
+// REFACTORED: Now exported from handoff-timing.ts
 // ============================================================================
 
-export const HANDOFF_TIMING = {
-  /** User tapped to switch - be snappy and responsive */
-  USER_INITIATED_DELAY: 200,
-  /** First time meeting this agent - brief theatrical pause */
-  FIRST_MEETING_DELAY: 400,
-  /** Coming back to the coach - warm, familiar transition */
-  RETURNING_TO_COACH_DELAY: 300,
-  /** Standard agent-suggested handoff */
-  STANDARD_DELAY: 350,
-  /** Max delay to wait for visual feedback cleanup */
-  MAX_FEEDBACK_DELAY: 500,
-  /** Debounce time for rapid handoff prevention */
-  DEBOUNCE_MS: 800,
-  /** Post-sound pause before voice starts (human-like timing) */
-  POST_SOUND_PAUSE_BASE: 250,
-  POST_SOUND_PAUSE_FIRST_MEETING_BONUS: 150,
-  POST_SOUND_PAUSE_DRAMATIC_BONUS: 100,
-} as const;
+// Re-export from dedicated module for backwards compatibility
+export { HANDOFF_TIMING } from './handoff-timing.js';
 
 // ============================================================================
 // AUDIO CONSTANTS

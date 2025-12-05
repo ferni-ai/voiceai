@@ -240,16 +240,27 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
   }));
 
   // Convert pet peeves
-  // DEBUG: Log what pet_peeves actually is
-  if (behaviors.pet_peeves && !Array.isArray(behaviors.pet_peeves)) {
-    getLogger().error({
-      personaId: manifest.identity.id,
-      petPeevesType: typeof behaviors.pet_peeves,
-      petPeevesKeys: Object.keys(behaviors.pet_peeves as object),
-    }, 'pet_peeves is not an array!');
+  // Handle both formats:
+  // 1. Direct array: behaviors.pet_peeves = [{peeve, response}, ...]
+  // 2. Object wrapper: behaviors.pet_peeves = { pet_peeves: [{peeve, response}, ...], ... }
+  let petPeevesArray: Array<{ peeve?: string; triggers?: string[]; response: string }> = [];
+  
+  if (behaviors.pet_peeves) {
+    if (Array.isArray(behaviors.pet_peeves)) {
+      // Direct array format
+      petPeevesArray = behaviors.pet_peeves;
+    } else if (typeof behaviors.pet_peeves === 'object' && 'pet_peeves' in behaviors.pet_peeves) {
+      // Object wrapper format (e.g., from pet-peeves.json with schema_version)
+      const wrapper = behaviors.pet_peeves as { pet_peeves?: unknown[] };
+      if (Array.isArray(wrapper.pet_peeves)) {
+        petPeevesArray = wrapper.pet_peeves as typeof petPeevesArray;
+      }
+    }
   }
-  const petPeeves: PetPeeveConfig[] = (Array.isArray(behaviors.pet_peeves) ? behaviors.pet_peeves : []).map((pp) => ({
-    triggers: pp.triggers,
+  
+  const petPeeves: PetPeeveConfig[] = petPeevesArray.map((pp) => ({
+    // Handle both 'peeve' (new format) and 'triggers' (old format) field names
+    triggers: pp.triggers || (pp.peeve ? [pp.peeve] : []),
     response: pp.response,
     intensity: 0.8,
   }));

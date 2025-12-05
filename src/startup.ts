@@ -129,6 +129,16 @@ export async function startup(): Promise<AppConfig> {
     logger.warn(`Agent evolution load failed (non-fatal): ${error}`);
   }
 
+  // Initialize tool usage analytics (for optimization)
+  logger.info('Initializing tool usage analytics...');
+  try {
+    const { toolUsageAnalytics } = await import('./services/tool-usage-analytics.js');
+    await toolUsageAnalytics.initialize();
+    logger.info('✓ Tool usage analytics ready');
+  } catch (error) {
+    logger.warn(`Tool usage analytics init failed (non-fatal): ${error}`);
+  }
+
   initialized = true;
   logger.info('✅ Voice AI ready!');
 
@@ -169,6 +179,16 @@ export async function shutdown(): Promise<void> {
       logger.info('✓ Agent evolution saved');
     } catch (error) {
       logger.warn(`Agent evolution save failed (non-fatal): ${error}`);
+    }
+
+    // Flush tool usage analytics before shutdown
+    logger.info('Flushing tool usage analytics...');
+    try {
+      const { toolUsageAnalytics } = await import('./services/tool-usage-analytics.js');
+      await toolUsageAnalytics.shutdown();
+      logger.info('✓ Tool usage analytics flushed');
+    } catch (error) {
+      logger.warn(`Tool usage analytics flush failed (non-fatal): ${error}`);
     }
 
     // Cleanup team handlers and tool services

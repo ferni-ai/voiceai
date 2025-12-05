@@ -22,7 +22,7 @@ export type PersonaId =
   | 'alex-chen'
   | 'maya-santos'
   | 'jordan-taylor'
-  | 'peter-lynch'
+  | 'peter-john'
   | 'nayan-patel';
 
 /**
@@ -33,7 +33,7 @@ const KNOWN_PERSONA_IDS: readonly string[] = [
   'alex-chen',
   'maya-santos',
   'jordan-taylor',
-  'peter-lynch',
+  'peter-john',
   'nayan-patel',
 ] as const;
 
@@ -62,9 +62,11 @@ export const LEGACY_TO_CANONICAL_MAP: Record<string, PersonaId> = {
   'event-planner': 'jordan-taylor',
   'jordan': 'jordan-taylor',
   'retirement-specialist': 'jordan-taylor',
-  // Peter Lynch aliases
-  'peter': 'peter-lynch',
-  'lynch': 'peter-lynch',
+  // Peter John aliases
+  'peter': 'peter-john',
+  'peter-lynch': 'peter-john', // Legacy alias
+  'lynch': 'peter-john',
+  'john': 'peter-john',
   // Nayan Patel aliases
   'nayan': 'nayan-patel',
   'patel': 'nayan-patel',
@@ -201,7 +203,7 @@ export const DEFAULT_PERSONA_ID: PersonaId = 'ferni';
  */
 export const ALL_PERSONA_IDS: readonly PersonaId[] = [
   'ferni',
-  'peter-lynch',
+  'peter-john',
   'alex-chen',
   'maya-santos',
   'jordan-taylor',

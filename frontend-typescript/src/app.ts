@@ -75,6 +75,9 @@ import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 // Config
 import { getPersona } from './config/personas.js';
 
+// Platform Detection
+import { initPlatform, platform, isNative, hideSplashScreen } from './utils/platform.js';
+
 // ============================================================================
 // MAGNETIC HOVER EFFECT (WALL-E curiosity)
 // Buttons "reach" toward the cursor like WALL-E's curious head tilts
@@ -157,6 +160,10 @@ class VoiceAIApp {
     initSkeletonUI();
 
     try {
+      // Initialize platform detection (Electron/iOS/Web)
+      void initPlatform();
+      console.log(`🌐 Running on: ${platform()}`);
+
       // Initialize theme system first (affects all UI)
       this.initializeTheme();
 
@@ -178,6 +185,12 @@ class VoiceAIApp {
       requestAnimationFrame(() => {
         setTimeout(() => {
           skeletonUI.hide();
+          
+          // Hide native splash screen on iOS/Android
+          if (isNative()) {
+            void hideSplashScreen(300);
+          }
+          
           // Trigger entrance animations
           document.body.classList.add('app-loaded');
 
@@ -186,11 +199,16 @@ class VoiceAIApp {
           // The team roster must ALWAYS be clickable!
           // Entrance animations: avatar 700ms, roster up to 1030ms (730ms delay + 300ms anim)
           setTimeout(() => {
-            const avatarContainer = document.querySelector('.avatar-container');
-            avatarContainer?.classList.add('entrance-complete');
+            const avatarContainerEl = document.querySelector('.avatar-container');
+            avatarContainerEl?.classList.add('entrance-complete');
 
             const rosterContainer = document.querySelector('.entrance-roster');
             rosterContainer?.classList.add('entrance-complete');
+            
+            // 🎬 FIX: Signal entrance complete to avatar feedback system
+            // This unlocks idle behaviors AFTER entrance animations finish
+            // Prevents animation contention that caused jarring on startup
+            avatarFeedback.setEntranceComplete();
           }, 1100); // Buffer after all animations complete
         }, 100);
       });
@@ -515,7 +533,7 @@ class VoiceAIApp {
    */
   private updatePersonaTheme(personaId: PersonaId): void {
     // Use canonical persona IDs (CSS selectors now use these)
-    const validIds = ['ferni', 'peter-lynch', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+    const validIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
     const themePersona = validIds.includes(personaId) ? personaId : 'ferni';
     setThemePersona(themePersona as Parameters<typeof setThemePersona>[0]);
   }
@@ -1161,32 +1179,46 @@ class VoiceAIApp {
   }
 
   /**
-   * ✨ Handle music events from the agent.
-   * Makes the avatar DANCE when music is playing - pure magic!
+   * Handle music events from the agent.
+   * The avatar is the speaker - warm and human, not flashy.
+   * The waveform responds gently and reflectively.
    */
   private handleMusic(event: MusicEvent): void {
-    console.log('[App] 🎵 Music event:', event.state, event.trackName);
+    console.log('[App] Music event:', event.state, event.trackName);
     
     if (event.state === 'playing') {
-      // ✨ START DANCING! ✨
+      // Avatar: Bass speaker pulse - music is playing
       avatarFeedback.dancing();
       
-      // Also pulse the waveform with excitement
-      waveformUI.celebrate();
+      // Waveform: Gentle, reflective visualization (NOT aggressive)
+      waveformUI.setMusicPlaying(true);
       
       // Subtle haptic for music start
       delightService.haptic('light');
       
-      // Show track info briefly (optional)
+      // Show track info briefly
       if (event.trackName && event.artistName) {
-        messageUI.show(`Now playing: ${event.trackName} - ${event.artistName}`, 'info', 3000);
+        messageUI.show(`${event.trackName} by ${event.artistName}`, 'info', 3000);
       }
       
-      console.log('[App] ✨ Avatar is now dancing to:', event.trackName);
+      console.log('[App] Music playing:', event.trackName);
+    } else if (event.state === 'ducking') {
+      // Agent speaking over music - subtle the pulse
+      avatarFeedback.ducking();
+      // Waveform stays in music mode but is naturally calmer during speech
+      console.log('[App] Music ducking (agent speaking)');
+    } else if (event.state === 'fading') {
+      // DJ-style fade out - track ending soon
+      avatarFeedback.fading();
+      console.log('[App] Music fading out...');
     } else if (event.state === 'paused' || event.state === 'stopped' || event.state === 'idle') {
-      // Stop dancing
+      // Gracefully return to rest
       avatarFeedback.stopDancing();
-      console.log('[App] Avatar stopped dancing');
+      
+      // Waveform: Return to normal behavior
+      waveformUI.setMusicPlaying(false);
+      
+      console.log('[App] Music stopped');
     }
   }
 
