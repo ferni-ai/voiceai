@@ -20,7 +20,7 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
-import { getDailyRitualsService, type EmotionalWeather } from '../../../services/daily-rituals.js';
+import { getDailyRitualsService, PERSONA_RITUALS, type EmotionalWeather } from '../../../services/daily-rituals.js';
 
 // ============================================================================
 // FERNI'S GAMES
@@ -802,8 +802,8 @@ const weeklyPredictionDef: ToolDefinition = {
 Builds calibration and self-knowledge over time.`,
       parameters: z.object({
         action: z.enum(['make-predictions', 'record-actuals', 'compare']).describe('Stage'),
-        predictions: z.record(z.number()).optional().describe('Predictions by category'),
-        actuals: z.record(z.number()).optional().describe('Actual results'),
+        predictions: z.record(z.string(), z.number()).optional().describe('Predictions by category'),
+        actuals: z.record(z.string(), z.number()).optional().describe('Actual results'),
       }),
       execute: async ({ action, predictions, actuals }) => {
         const categories = [
@@ -831,8 +831,8 @@ Builds calibration and self-knowledge over time.`,
           const analysis: string[] = [];
 
           for (const cat of categories) {
-            const pred = predictions[cat] || 0;
-            const actual = actuals[cat] || 0;
+            const pred = (predictions as Record<string, number>)[cat] || 0;
+            const actual = (actuals as Record<string, number>)[cat] || 0;
             const diff = Math.abs(pred - actual);
             const accuracy = Math.max(0, 100 - (diff / Math.max(pred, actual, 1)) * 100);
             accuracyScore += accuracy;

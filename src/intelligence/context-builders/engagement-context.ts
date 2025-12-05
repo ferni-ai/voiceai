@@ -346,7 +346,7 @@ function shouldOfferTeamHuddle(profile: UserProfile | null): boolean {
   if (profile.relationshipStage === 'new_acquaintance') return false;
 
   // Check if it's been about a week since last major interaction
-  const lastConvo = profile.lastConversation ? new Date(profile.lastConversation) : null;
+  const lastConvo = profile.lastContact ? new Date(profile.lastContact) : null;
   if (!lastConvo) return false;
 
   const daysSince = Math.floor(

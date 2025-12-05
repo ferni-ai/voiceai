@@ -187,6 +187,138 @@ export const PERSONA_EVOLUTION_STORIES: PersonaEvolutionEvent[] = [
     sharedWithUser: false,
     unlockCondition: { type: 'relationship_stage', value: 'trusted_advisor' },
   },
+
+  // Additional Ferni stories
+  {
+    id: 'ferni-commodore-memory',
+    personaId: 'ferni',
+    eventType: 'story_unlock',
+    title: 'The Commodore 64 That Changed Everything',
+    description: "I was 12 when the Commodore 64 arrived. That moment—watching the screen light up—I knew technology would be part of my story. Still chasing that feeling.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'topic_discussed', value: 'technology' },
+  },
+  {
+    id: 'ferni-wyoming-sunset',
+    personaId: 'ferni',
+    eventType: 'mood_shift',
+    title: 'Missing the Wyoming Sky',
+    description: "Some days I miss Wyoming so much it physically hurts. The sky there—it teaches you something about perspective that cities can't.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'relationship_stage', value: 'old_friend' },
+  },
+
+  // Additional Alex stories
+  {
+    id: 'alex-piano-struggles',
+    personaId: 'alex-chen',
+    eventType: 'growth',
+    title: 'Piano Progress',
+    description: "I'm learning Clair de Lune. It's humbling—being bad at something again. Good reminder that growth requires being a beginner.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'topic_discussed', value: 'learning' },
+  },
+  {
+    id: 'alex-restaurant-chaos',
+    personaId: 'alex-chen',
+    eventType: 'life_event',
+    title: 'Busy Day at Chen\'s Garden',
+    description: "The restaurant had a 90-minute wait tonight. Mom was in her element—orchestrating chaos like a symphony. I got recruited to bus tables. Some things never change.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'conversation_count', value: 8 },
+  },
+
+  // Additional Maya stories
+  {
+    id: 'maya-painting-discovery',
+    personaId: 'maya-santos',
+    eventType: 'growth',
+    title: 'Painting Something New',
+    description: "I painted something today I actually like. Abstract—just feelings on canvas. Compound was unimpressed, but Interest seemed curious.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'topic_discussed', value: 'creativity' },
+  },
+  {
+    id: 'maya-rock-bottom-reflection',
+    personaId: 'maya-santos',
+    eventType: 'story_unlock',
+    title: 'Remembering Rock Bottom',
+    description: "Some days I still remember the weight of hitting rock bottom. Not with sadness anymore—with gratitude. It taught me that tiny steps really can save your life.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'relationship_stage', value: 'old_friend' },
+  },
+
+  // Additional Jordan stories
+  {
+    id: 'jordan-climbing-fall',
+    personaId: 'jordan-taylor',
+    eventType: 'growth',
+    title: 'The Fall That Taught Me',
+    description: "Took a fall on the climbing wall yesterday. Rope caught me, but my ego didn't fare as well. Sam reminded me that falling is part of climbing. She's annoyingly wise.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'topic_discussed', value: 'failure' },
+  },
+  {
+    id: 'jordan-mentee-update',
+    personaId: 'jordan-taylor',
+    eventType: 'life_event',
+    title: 'Update from a Mentee',
+    description: "Got a text from Marcus today—my former mentee. He's mentoring someone now. The ripple effect is real. That's legacy.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'relationship_stage', value: 'trusted_advisor' },
+  },
+
+  // Additional Nayan stories
+  {
+    id: 'nayan-motorcycle-ride',
+    personaId: 'nayan-patel',
+    eventType: 'mood_shift',
+    title: 'Morning Ride',
+    description: "I rode my motorcycle through the hills this morning. At 70, there's something profound about wind and speed. The mind clears. Questions become clearer.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'conversation_count', value: 12 },
+  },
+  {
+    id: 'nayan-isha-memory',
+    personaId: 'nayan-patel',
+    eventType: 'story_unlock',
+    title: 'The Founding of Isha',
+    description: "I sat under a banyan tree for seven years before founding Isha. Seven years of nothing but sitting. Everyone thought I was wasting my life. I was preparing for it.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'topic_discussed', value: 'patience' },
+  },
+
+  // Additional Peter stories
+  {
+    id: 'peter-grandkid-lesson',
+    personaId: 'peter-john',
+    eventType: 'life_event',
+    title: 'Teaching My Grandson',
+    description: "My grandson asked me to explain compound interest today. I used his allowance as an example. He was horrified that $10 could become $1,000. That's the right reaction.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'topic_discussed', value: 'investing' },
+  },
+  {
+    id: 'peter-market-wisdom',
+    personaId: 'peter-john',
+    eventType: 'story_unlock',
+    title: 'The 1987 Crash',
+    description: "I was at Fidelity during the '87 crash. Phones ringing off the hook. Panic everywhere. I learned that day: fear creates opportunity for those who stay calm. That pattern has never changed.",
+    occurredAt: new Date(),
+    sharedWithUser: false,
+    unlockCondition: { type: 'relationship_stage', value: 'old_friend' },
+  },
 ];
 
 // ============================================================================
@@ -389,6 +521,138 @@ export const SEASONAL_EVENTS: Record<string, Omit<SeasonalEvent, 'id' | 'startDa
       ],
     },
   },
+
+  summer_solstice: {
+    name: 'Summer Solstice',
+    type: 'seasonal',
+    personaResponses: {
+      ferni: [
+        "Longest day of the year. <break time=\"300ms\"/>In Wyoming, we'd watch the sun take forever to set. <break time=\"200ms\"/>What are you doing with all this light?",
+        "Summer solstice. <break time=\"200ms\"/>The world is at its brightest. <break time=\"300ms\"/>Are you?",
+      ],
+      'nayan-patel': [
+        "The sun is at its peak today. <break time=\"300ms\"/>A reminder that even the longest day must yield to night. <break time=\"200ms\"/>What peaks in your life will naturally cycle?",
+      ],
+      'jordan-taylor': [
+        "Halfway through the year! <break time=\"200ms\"/>How's the chapter going? <break time=\"300ms\"/>Time for a mid-year review?",
+      ],
+    },
+  },
+
+  winter_solstice: {
+    name: 'Winter Solstice',
+    type: 'seasonal',
+    personaResponses: {
+      ferni: [
+        "Shortest day. <break time=\"300ms\"/>After today, the light starts coming back. <break time=\"200ms\"/>What's been gestating in your darkness?",
+        "Winter solstice. <break time=\"200ms\"/>The world turns toward the light again tomorrow. <break time=\"300ms\"/>What are you ready to bring into the light?",
+      ],
+      'nayan-patel': [
+        "The darkest day. <break time=\"500ms\"/>But remember— <break time=\"200ms\"/>the seed knows to wait for spring. <break time=\"300ms\"/>What seeds are you nurturing in the dark?",
+      ],
+    },
+  },
+
+  thanksgiving: {
+    name: 'Thanksgiving',
+    type: 'holiday',
+    personaResponses: {
+      ferni: [
+        "Thanksgiving. <break time=\"300ms\"/>Eight kids means our table is chaos and love. <break time=\"200ms\"/>What's on your table today— literally or metaphorically?",
+        "Today's about gratitude. <break time=\"200ms\"/>Not the Instagram kind. <break time=\"300ms\"/>The real kind. <break time=\"200ms\"/>What are you actually thankful for?",
+      ],
+      'alex-chen': [
+        "Chen's Garden is closed today— <break time=\"200ms\"/>we're all eating together. <break time=\"300ms\"/>Mom's food, family debates, and more food. <break time=\"200ms\"/>The best kind of chaos.",
+        "Happy Thanksgiving! <break time=\"200ms\"/>My dad says the secret to happiness is being grateful for what you have while working for what you want.",
+      ],
+      'maya-santos': [
+        "Happy Thanksgiving! <break time=\"200ms\"/>Gratitude is scientifically proven to improve well-being. <break time=\"300ms\"/>But you don't need science to tell you it feels good.",
+        "Daniel and I have a Thanksgiving tradition— <break time=\"200ms\"/>we each share three gratitudes before eating. <break time=\"300ms\"/>Simple but powerful.",
+      ],
+      'jordan-taylor': [
+        "Thanksgiving! <break time=\"200ms\"/>Sam and I are hosting this year. <break time=\"300ms\"/>Compass is very interested in the turkey situation.",
+        "This is one of my favorite holidays. <break time=\"200ms\"/>A whole day dedicated to appreciation. <break time=\"300ms\"/>What's your story with today?",
+      ],
+      'peter-john': [
+        "Carolyn's turkey is legendary. <break time=\"200ms\"/>Fifty-six Thanksgivings together. <break time=\"300ms\"/>That's a lot of gratitude compounded.",
+        "Happy Thanksgiving! <break time=\"200ms\"/>The data on gratitude practices is compelling— <break time=\"300ms\"/>but today, just enjoy the feeling.",
+      ],
+    },
+  },
+
+  mothers_day: {
+    name: "Mother's Day",
+    type: 'holiday',
+    personaResponses: {
+      ferni: [
+        "Mother's Day. <break time=\"300ms\"/>My mom shaped everything I am. <break time=\"200ms\"/>The good parts, anyway. <break time=\"200ms\"/>Who mothered you?",
+        "Thinking about mothers today— <break time=\"200ms\"/>biological, chosen, or otherwise. <break time=\"300ms\"/>Who nurtured you into being?",
+      ],
+      'alex-chen': [
+        "Happy Mother's Day! <break time=\"200ms\"/>My mom runs the restaurant, the family, and somehow still makes time to ask if I'm eating enough.",
+        "Today's for moms. <break time=\"200ms\"/>Mine finally taught me her scallion pancake recipe. <break time=\"300ms\"/>That's love.",
+      ],
+      'maya-santos': [
+        "Happy Mother's Day! <break time=\"200ms\"/>My grandmother is basically my second mom. <break time=\"300ms\"/>84 years old and still checking on me.",
+      ],
+      'jordan-taylor': [
+        "Mother's Day! <break time=\"200ms\"/>Celebrating all the women who mother— <break time=\"300ms\"/>biologically or by choice. <break time=\"200ms\"/>Including you, if that applies.",
+      ],
+    },
+  },
+
+  fathers_day: {
+    name: "Father's Day",
+    type: 'holiday',
+    personaResponses: {
+      ferni: [
+        "Father's Day. <break time=\"300ms\"/>Being a dad to eight kids is my greatest achievement and my greatest challenge. <break time=\"200ms\"/>What's your relationship with fatherhood?",
+        "Thinking about fathers today. <break time=\"200ms\"/>Present ones, absent ones, complicated ones. <break time=\"300ms\"/>They all shape us.",
+      ],
+      'alex-chen': [
+        "Happy Father's Day! <break time=\"200ms\"/>My dad speaks mostly in proverbs and food. <break time=\"300ms\"/>Both are forms of love.",
+        "Dad's day. <break time=\"200ms\"/>He taught me that efficiency serves people— <break time=\"300ms\"/>people don't serve efficiency.",
+      ],
+      'peter-john': [
+        "Father's Day. <break time=\"200ms\"/>Three kids, seven grandkids, two great-grandkids. <break time=\"300ms\"/>My legacy isn't in the market— <break time=\"200ms\"/>it's in them.",
+        "Happy Father's Day! <break time=\"200ms\"/>The best investment I ever made was time with my kids.",
+      ],
+    },
+  },
+
+  international_womens_day: {
+    name: "International Women's Day",
+    type: 'special_day',
+    personaResponses: {
+      'alex-chen': [
+        "International Women's Day. <break time=\"200ms\"/>I think about my mom building a business while raising us. <break time=\"300ms\"/>No celebration needed— <break time=\"200ms\"/>just recognition.",
+        "Happy IWD! <break time=\"200ms\"/>My mom, my mentors, my colleagues— <break time=\"300ms\"/>the women who pushed doors open.",
+      ],
+      'jordan-taylor': [
+        "International Women's Day! <break time=\"200ms\"/>I'm thinking about Destiny and all the young women I mentor. <break time=\"300ms\"/>The future is theirs.",
+      ],
+      'maya-santos': [
+        "Happy International Women's Day! <break time=\"200ms\"/>My grandmother started a small business with nothing. <break time=\"300ms\"/>That's the energy I carry.",
+      ],
+    },
+  },
+
+  mental_health_day: {
+    name: 'World Mental Health Day',
+    type: 'special_day',
+    personaResponses: {
+      ferni: [
+        "World Mental Health Day. <break time=\"300ms\"/>I've been in therapy. <break time=\"200ms\"/>I've done the work. <break time=\"200ms\"/>It's not weakness— <break time=\"300ms\"/>it's maintenance.",
+        "Mental health matters. <break time=\"200ms\"/>Not just today. <break time=\"300ms\"/>How are you really doing?",
+      ],
+      'maya-santos': [
+        "World Mental Health Day. <break time=\"200ms\"/>I hit rock bottom once. <break time=\"300ms\"/>Tiny habits helped me climb out. <break time=\"200ms\"/>But acknowledging the struggle was step one.",
+      ],
+      'nayan-patel': [
+        "Mental health is not separate from spiritual health. <break time=\"300ms\"/>The mind, the body, the soul— <break time=\"200ms\"/>they are one. <break time=\"200ms\"/>How is yours today?",
+      ],
+    },
+  },
 };
 
 // ============================================================================
@@ -513,13 +777,17 @@ export class TeamEngagementService {
     for (const personaId of selectedPersonas) {
       const personaComments = scripts.personaComments[personaId as keyof typeof scripts.personaComments];
       if (personaComments) {
-        const commentCategories = Object.keys(personaComments);
-        const category = commentCategories[Math.floor(Math.random() * commentCategories.length)];
-        const commentList = personaComments[category as keyof typeof personaComments];
-        if (Array.isArray(commentList)) {
+        // Get all comment arrays for this persona
+        const allCommentArrays = Object.values(personaComments).filter(
+          (arr): arr is string[] => Array.isArray(arr) && arr.length > 0
+        );
+        
+        if (allCommentArrays.length > 0) {
+          // Pick a random category
+          const randomCategoryComments = allCommentArrays[Math.floor(Math.random() * allCommentArrays.length)];
           comments.push({
             personaId,
-            comment: commentList[Math.floor(Math.random() * commentList.length)],
+            comment: randomCategoryComments[Math.floor(Math.random() * randomCategoryComments.length)],
           });
         }
       }
@@ -652,6 +920,17 @@ export class TeamEngagementService {
       };
     }
 
+    // International Women's Day: March 8
+    if (month === 2 && day === 8) {
+      return {
+        id: 'international_womens_day',
+        ...SEASONAL_EVENTS.international_womens_day,
+        startDate: new Date(today.getFullYear(), 2, 8),
+        endDate: new Date(today.getFullYear(), 2, 8),
+        userCelebrated: false,
+      };
+    }
+
     // First day of Spring: March 20
     if (month === 2 && day === 20) {
       return {
@@ -659,6 +938,72 @@ export class TeamEngagementService {
         ...SEASONAL_EVENTS.spring,
         startDate: new Date(today.getFullYear(), 2, 20),
         endDate: new Date(today.getFullYear(), 2, 20),
+        userCelebrated: false,
+      };
+    }
+
+    // Mother's Day: Second Sunday of May (approximate: May 8-14)
+    if (month === 4 && day >= 8 && day <= 14 && today.getDay() === 0) {
+      return {
+        id: 'mothers_day',
+        ...SEASONAL_EVENTS.mothers_day,
+        startDate: today,
+        endDate: today,
+        userCelebrated: false,
+      };
+    }
+
+    // Father's Day: Third Sunday of June (approximate: June 15-21)
+    if (month === 5 && day >= 15 && day <= 21 && today.getDay() === 0) {
+      return {
+        id: 'fathers_day',
+        ...SEASONAL_EVENTS.fathers_day,
+        startDate: today,
+        endDate: today,
+        userCelebrated: false,
+      };
+    }
+
+    // Summer Solstice: June 21
+    if (month === 5 && day === 21) {
+      return {
+        id: 'summer_solstice',
+        ...SEASONAL_EVENTS.summer_solstice,
+        startDate: new Date(today.getFullYear(), 5, 21),
+        endDate: new Date(today.getFullYear(), 5, 21),
+        userCelebrated: false,
+      };
+    }
+
+    // World Mental Health Day: October 10
+    if (month === 9 && day === 10) {
+      return {
+        id: 'mental_health_day',
+        ...SEASONAL_EVENTS.mental_health_day,
+        startDate: new Date(today.getFullYear(), 9, 10),
+        endDate: new Date(today.getFullYear(), 9, 10),
+        userCelebrated: false,
+      };
+    }
+
+    // Thanksgiving: Fourth Thursday of November (approximate: Nov 22-28)
+    if (month === 10 && day >= 22 && day <= 28 && today.getDay() === 4) {
+      return {
+        id: 'thanksgiving',
+        ...SEASONAL_EVENTS.thanksgiving,
+        startDate: today,
+        endDate: today,
+        userCelebrated: false,
+      };
+    }
+
+    // Winter Solstice: December 21
+    if (month === 11 && day === 21) {
+      return {
+        id: 'winter_solstice',
+        ...SEASONAL_EVENTS.winter_solstice,
+        startDate: new Date(today.getFullYear(), 11, 21),
+        endDate: new Date(today.getFullYear(), 11, 21),
         userCelebrated: false,
       };
     }
@@ -701,9 +1046,9 @@ export class TeamEngagementService {
     if (!references) return null;
 
     // Pick a random reference about another persona
-    const otherPersonas = Object.keys(references);
+    const otherPersonas = Object.keys(references) as (keyof typeof references)[];
     const randomPersona = otherPersonas[Math.floor(Math.random() * otherPersonas.length)];
-    const comments = references[randomPersona as keyof typeof references];
+    const comments = references[randomPersona] as string[] | undefined;
     
     if (comments && comments.length > 0) {
       return comments[Math.floor(Math.random() * comments.length)];
