@@ -81,12 +81,12 @@ export async function initializeOptimizationSystem(config?: {
   analysisIntervalMs?: number;
 }): Promise<void> {
   const { autoOptimizer } = await import('../auto-optimizer.js');
-  
+
   if (config) {
     // Create new instance with config would go here
     // For now, just start with defaults
   }
-  
+
   autoOptimizer.start();
 }
 
@@ -96,7 +96,7 @@ export async function initializeOptimizationSystem(config?: {
 export async function shutdownOptimizationSystem(): Promise<void> {
   const { autoOptimizer } = await import('../auto-optimizer.js');
   const { feedbackCollector } = await import('../feedback-collector.js');
-  
+
   autoOptimizer.stop();
   await feedbackCollector.flush();
 }
@@ -132,4 +132,3 @@ export function recordToolExecution(
   const { autoOptimizer } = require('../auto-optimizer.js');
   autoOptimizer.recordToolExecution(sessionId, toolId, success, latencyMs);
 }
-

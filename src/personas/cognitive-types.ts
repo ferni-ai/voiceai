@@ -387,4 +387,3 @@ export interface CognitiveGuidance {
 }
 
 export default CognitiveProfile;
-

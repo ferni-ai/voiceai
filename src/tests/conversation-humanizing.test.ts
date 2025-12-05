@@ -20,32 +20,29 @@ import {
 } from '../conversation/speech-naturalizer.js';
 
 // Active Listening
+import type { ActiveListeningEngine } from '../conversation/active-listening.js';
 import {
-  ActiveListeningEngine,
   getActiveListeningEngine,
   resetActiveListeningEngine,
 } from '../conversation/active-listening.js';
 
 // Conversational Memory
+import type { ConversationalMemoryEngine } from '../conversation/conversational-memory.js';
 import {
-  ConversationalMemoryEngine,
   getConversationalMemory,
   resetConversationalMemory,
 } from '../conversation/conversational-memory.js';
 
 // Question Patterns
+import type { QuestionPatternEngine } from '../conversation/question-patterns.js';
 import {
-  QuestionPatternEngine,
   getQuestionPatternEngine,
   resetQuestionPatternEngine,
 } from '../conversation/question-patterns.js';
 
 // Humanizer
-import {
-  ConversationHumanizer,
-  getConversationHumanizer,
-  resetConversationHumanizer,
-} from '../conversation/humanizer.js';
+import type { ConversationHumanizer } from '../conversation/humanizer.js';
+import { getConversationHumanizer, resetConversationHumanizer } from '../conversation/humanizer.js';
 
 // ============================================================================
 // SPEECH NATURALIZER TESTS
@@ -235,7 +232,11 @@ describe('ActiveListeningEngine', () => {
 
   describe('generateEmotionalEcho()', () => {
     it('should generate echo for worried emotion', () => {
-      const echo = engine.generateEmotionalEcho('worried', 'I am worried about my savings', 'medium');
+      const echo = engine.generateEmotionalEcho(
+        'worried',
+        'I am worried about my savings',
+        'medium'
+      );
       expect(echo).toBeTruthy();
       expect(echo.length).toBeGreaterThan(0);
     });
@@ -382,10 +383,7 @@ describe('ConversationalMemoryEngine', () => {
         topic: 'risk',
       });
 
-      const contradiction = memory.checkForContradiction(
-        "I don't like risk at all",
-        'risk'
-      );
+      const contradiction = memory.checkForContradiction("I don't like risk at all", 'risk');
 
       // Should detect the sentiment flip
       if (contradiction) {
@@ -754,4 +752,3 @@ describe('Conversation Humanizing Integration', () => {
     expect(peterResponse.appliedFeatures.length).toBeGreaterThan(0);
   });
 });
-

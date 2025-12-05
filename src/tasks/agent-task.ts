@@ -8,7 +8,8 @@
  * Python source: https://github.com/livekit/agents
  */
 
-import { llm, voice, log } from '@livekit/agents';
+import type { voice } from '@livekit/agents';
+import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
@@ -150,7 +151,7 @@ export abstract class AgentTask<TResult> {
   /**
    * Make the task awaitable
    */
-  then<TResult1 = TResult, TResult2 = never>(
+  async then<TResult1 = TResult, TResult2 = never>(
     onfulfilled?: ((value: TResult) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
   ): Promise<TResult1 | TResult2> {
@@ -194,9 +195,9 @@ interface TaskInfo {
  * ```
  */
 export class TaskGroup {
-  private _tasks: Map<string, TaskInfo> = new Map();
+  private _tasks = new Map<string, TaskInfo>();
   private _taskOrder: string[] = [];
-  private _visitedTasks: Set<string> = new Set();
+  private _visitedTasks = new Set<string>();
   private _session?: voice.AgentSession<any>;
 
   /**

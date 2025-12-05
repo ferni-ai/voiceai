@@ -162,7 +162,7 @@ const INTELLIGENCE_STATE_VERSION = 1;
 export function exportIntelligenceState(userId: string): IntelligenceState {
   const startTime = Date.now();
   let engineCount = 0;
-  
+
   const state: IntelligenceState = {
     version: INTELLIGENCE_STATE_VERSION,
     savedAt: new Date(),
@@ -285,7 +285,7 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
 export function importIntelligenceState(userId: string, state: IntelligenceState): void {
   const startTime = Date.now();
   let engineCount = 0;
-  
+
   if (!state) {
     getLogger().debug({ userId }, 'No intelligence state to import');
     return;
@@ -305,7 +305,10 @@ export function importIntelligenceState(userId: string, state: IntelligenceState
       const emotionalEngine = getEmotionalMemory(userId);
       emotionalEngine.importMoments(state.emotional.moments);
       engineCount++;
-      getLogger().debug({ userId, count: state.emotional.moments.length }, 'Imported emotional memory');
+      getLogger().debug(
+        { userId, count: state.emotional.moments.length },
+        'Imported emotional memory'
+      );
     }
   } catch (error) {
     getLogger().warn({ error, userId }, 'Failed to import emotional memory');
@@ -315,17 +318,16 @@ export function importIntelligenceState(userId: string, state: IntelligenceState
     // Cross-session threads - restore open threads for continuity
     if (state.threads?.openThreads?.length || state.threads?.promisedFollowUps?.length) {
       // Getting the threader will initialize it with the persisted data
-      getCrossSessionThreader(
-        userId,
-        state.threads.openThreads,
-        state.threads.promisedFollowUps
-      );
+      getCrossSessionThreader(userId, state.threads.openThreads, state.threads.promisedFollowUps);
       engineCount++;
-      getLogger().debug({
-        userId,
-        threads: state.threads.openThreads?.length || 0,
-        followUps: state.threads.promisedFollowUps?.length || 0,
-      }, 'Imported cross-session threads');
+      getLogger().debug(
+        {
+          userId,
+          threads: state.threads.openThreads?.length || 0,
+          followUps: state.threads.promisedFollowUps?.length || 0,
+        },
+        'Imported cross-session threads'
+      );
     }
   } catch (error) {
     getLogger().warn({ error, userId }, 'Failed to import cross-session threads');
@@ -340,7 +342,10 @@ export function importIntelligenceState(userId: string, state: IntelligenceState
   const durationMs = Date.now() - startTime;
   persistenceMetrics.recordIntelligenceImport(userId, engineCount, durationMs);
 
-  getLogger().info({ userId, stateVersion: state.version, engineCount }, 'Intelligence state imported');
+  getLogger().info(
+    { userId, stateVersion: state.version, engineCount },
+    'Intelligence state imported'
+  );
 }
 
 // ============================================================================
@@ -350,10 +355,7 @@ export function importIntelligenceState(userId: string, state: IntelligenceState
 /**
  * Apply intelligence state to user profile for persistence
  */
-export function applyIntelligenceToProfile(
-  profile: UserProfile,
-  userId: string
-): UserProfile {
+export function applyIntelligenceToProfile(profile: UserProfile, userId: string): UserProfile {
   const state = exportIntelligenceState(userId);
 
   // Store in customData for persistence
@@ -381,7 +383,7 @@ export function applyIntelligenceToProfile(
   if (state.responseQuality?.preferences) {
     const prefs = state.responseQuality.preferences;
     profile.responseQuality = {
-      signals: (state.responseQuality.signals || []).map(sig => ({
+      signals: (state.responseQuality.signals || []).map((sig) => ({
         id: sig.id,
         timestamp: sig.timestamp,
         responseType: sig.responseType,
@@ -405,7 +407,7 @@ export function applyIntelligenceToProfile(
   if (state.patterns?.preferences) {
     const prefs = state.patterns.preferences;
     profile.conversationPatterns = {
-      sessions: (state.patterns.sessions || []).map(sess => ({
+      sessions: (state.patterns.sessions || []).map((sess) => ({
         id: sess.id,
         startedAt: sess.startedAt,
         endedAt: sess.endedAt,
@@ -428,7 +430,7 @@ export function applyIntelligenceToProfile(
   // Open threads and follow-ups
   if (state.threads) {
     // Map threads to profile format, excluding 'abandoned' status
-    profile.openThreads = state.threads.openThreads.map(thread => ({
+    profile.openThreads = state.threads.openThreads.map((thread) => ({
       id: thread.id,
       topic: thread.topic,
       reason: thread.reason,
@@ -438,7 +440,7 @@ export function applyIntelligenceToProfile(
       status: thread.status === 'abandoned' ? 'closed' : thread.status,
       createdAt: thread.createdAt,
     })) as UserProfile['openThreads'];
-    
+
     profile.promisedFollowUps = state.threads.promisedFollowUps;
   }
 

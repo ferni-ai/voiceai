@@ -16,8 +16,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -155,9 +153,9 @@ const DEFAULT_CONFIG: HumanizingConfig = {
   hedging: {
     enabled: true,
     // TUNED: 20% for advice - builds trust without sounding uncertain
-    adviceHedgingRate: 0.20,
+    adviceHedgingRate: 0.2,
     // TUNED: 30% for predictions - market/future uncertainty warrants more hedging
-    predictionHedgingRate: 0.30,
+    predictionHedgingRate: 0.3,
     defaultStrength: 'medium',
   },
 
@@ -192,14 +190,14 @@ const DEFAULT_CONFIG: HumanizingConfig = {
     // TUNED: 25% thread return - balances continuity with new topics
     threadReturnProbability: 0.25,
     // TUNED: 30% commitment follow-up - important for trust
-    commitmentFollowUpProbability: 0.30,
+    commitmentFollowUpProbability: 0.3,
     maxTrackedStatements: 20,
   },
 
   questions: {
     enabled: true,
     // TUNED: 30% follow-up - not every response needs a question
-    followUpProbability: 0.30,
+    followUpProbability: 0.3,
     // TUNED: Avoid same type within 4 questions - more diversity
     typeRepeatAvoidance: 4,
     // TUNED: Reflective questions after turn 6 - once rapport established
@@ -300,8 +298,8 @@ export const HUMANIZING_PRESETS = {
   minimal: {
     disfluency: { frequency: 0.04 },
     hedging: { adviceHedgingRate: 0.08 },
-    backchannel: { probability: 0.10, minIntervalMs: 6000 },
-    memory: { callbackProbability: 0.10 },
+    backchannel: { probability: 0.1, minIntervalMs: 6000 },
+    memory: { callbackProbability: 0.1 },
     questions: { followUpProbability: 0.15 },
     silence: { backchannelThresholdMs: 5000, gentlePromptThresholdMs: 8000 },
   } as DeepPartial<HumanizingConfig>,
@@ -313,10 +311,10 @@ export const HUMANIZING_PRESETS = {
    */
   natural: {
     disfluency: { frequency: 0.12 },
-    hedging: { adviceHedgingRate: 0.20 },
+    hedging: { adviceHedgingRate: 0.2 },
     backchannel: { probability: 0.25 },
     memory: { callbackProbability: 0.18 },
-    questions: { followUpProbability: 0.30 },
+    questions: { followUpProbability: 0.3 },
   } as DeepPartial<HumanizingConfig>,
 
   /**
@@ -328,7 +326,7 @@ export const HUMANIZING_PRESETS = {
     hedging: { adviceHedgingRate: 0.25 },
     backchannel: { probability: 0.35, minIntervalMs: 3500 },
     memory: { callbackProbability: 0.25, threadReturnProbability: 0.35 },
-    questions: { followUpProbability: 0.40 },
+    questions: { followUpProbability: 0.4 },
     emotional: { vocabularyMirroringEnabled: true },
   } as DeepPartial<HumanizingConfig>,
 
@@ -359,7 +357,7 @@ export const HUMANIZING_PRESETS = {
   expert: {
     disfluency: { frequency: 0.06 }, // Confident, minimal hesitation
     hedging: { adviceHedgingRate: 0.12, predictionHedgingRate: 0.25 }, // Hedge predictions more than advice
-    backchannel: { probability: 0.20 },
+    backchannel: { probability: 0.2 },
     memory: { callbackProbability: 0.22 }, // Remember what matters
     questions: { followUpProbability: 0.25 },
     global: { warmupTurns: 1, warmupReduction: 0.3 }, // Quick to personality
@@ -372,8 +370,8 @@ export const HUMANIZING_PRESETS = {
   warm: {
     disfluency: { frequency: 0.14, personaStyle: 'natural' as const },
     hedging: { adviceHedgingRate: 0.22, defaultStrength: 'soft' as const },
-    backchannel: { probability: 0.30, minIntervalMs: 3500 },
-    memory: { callbackProbability: 0.20, commitmentFollowUpProbability: 0.35 },
+    backchannel: { probability: 0.3, minIntervalMs: 3500 },
+    memory: { callbackProbability: 0.2, commitmentFollowUpProbability: 0.35 },
     questions: { followUpProbability: 0.35 },
     emotional: { echoEnabled: true, highIntensityThreshold: 0.35 },
   } as DeepPartial<HumanizingConfig>,
@@ -401,20 +399,20 @@ export function applyPreset(preset: keyof typeof HUMANIZING_PRESETS): void {
 export function getRecommendedPreset(personaId: string): keyof typeof HUMANIZING_PRESETS {
   const presetMap: Record<string, keyof typeof HUMANIZING_PRESETS> = {
     // Therapeutic personas - patience and empathy
-    'ferni': 'therapeutic',
-    
+    ferni: 'therapeutic',
+
     // Expert personas - authority and decisiveness
     'nayan-patel': 'expert',
     'jack-b': 'expert', // Alias
-    
+
     // Conversational personas - friendly and engaged
     'peter-john': 'conversational',
     'jordan-taylor': 'conversational',
-    
+
     // Warm personas - approachable and supportive
     'maya-santos': 'warm',
     'alex-chen': 'warm',
-    
+
     // Generic/fallback
     'generic-advisor': 'natural',
   };
@@ -429,7 +427,7 @@ export function getRecommendedPreset(personaId: string): keyof typeof HUMANIZING
 /**
  * Per-persona config overrides loaded from bundles
  */
-const personaConfigs: Map<string, DeepPartial<HumanizingConfig>> = new Map();
+const personaConfigs = new Map<string, DeepPartial<HumanizingConfig>>();
 
 /**
  * Register humanization config from a persona bundle.
@@ -462,8 +460,14 @@ export function registerBundleHumanization(
   const config: DeepPartial<HumanizingConfig> = {};
 
   // Apply preset first
-  if (bundleConfig.preset && HUMANIZING_PRESETS[bundleConfig.preset as keyof typeof HUMANIZING_PRESETS]) {
-    Object.assign(config, HUMANIZING_PRESETS[bundleConfig.preset as keyof typeof HUMANIZING_PRESETS]);
+  if (
+    bundleConfig.preset &&
+    HUMANIZING_PRESETS[bundleConfig.preset as keyof typeof HUMANIZING_PRESETS]
+  ) {
+    Object.assign(
+      config,
+      HUMANIZING_PRESETS[bundleConfig.preset as keyof typeof HUMANIZING_PRESETS]
+    );
   }
 
   // Apply overrides
@@ -530,7 +534,10 @@ export function registerBundleHumanization(
   }
 
   personaConfigs.set(personaId, config);
-  getLogger().debug({ personaId, hasPreset: !!bundleConfig.preset }, 'Registered bundle humanization config');
+  getLogger().debug(
+    { personaId, hasPreset: !!bundleConfig.preset },
+    'Registered bundle humanization config'
+  );
 }
 
 /**
@@ -559,11 +566,13 @@ export function getPersonaContextModifiers(personaId: string): {
   high_emotion_breathing_boost?: number;
 } {
   const personaOverrides = personaConfigs.get(personaId) as any;
-  return personaOverrides?._contextModifiers || {
-    serious_topics_reduction: 0.5,
-    personal_sharing_warmth_boost: 1.3,
-    high_emotion_breathing_boost: 1.3,
-  };
+  return (
+    personaOverrides?._contextModifiers || {
+      serious_topics_reduction: 0.5,
+      personal_sharing_warmth_boost: 1.3,
+      high_emotion_breathing_boost: 1.3,
+    }
+  );
 }
 
 /**
@@ -596,7 +605,10 @@ function deepMerge<T extends object>(target: T, source: DeepPartial<T>): T {
       typeof targetValue === 'object' &&
       targetValue !== null
     ) {
-      result[key] = deepMerge(targetValue as object, sourceValue as DeepPartial<object>) as T[keyof T];
+      result[key] = deepMerge(
+        targetValue as object,
+        sourceValue as DeepPartial<object>
+      ) as T[keyof T];
     } else if (sourceValue !== undefined) {
       result[key] = sourceValue as T[keyof T];
     }
@@ -619,4 +631,3 @@ export default {
   clearPersonaConfigs,
   HUMANIZING_PRESETS,
 };
-

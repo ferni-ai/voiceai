@@ -35,7 +35,16 @@ const processGriefDef: ToolDefinition = {
         'Provide compassionate support for someone processing grief, meeting them where they are.',
       parameters: z.object({
         lossType: z
-          .enum(['death', 'relationship', 'health', 'identity', 'dream', 'place', 'phase-of-life', 'other'])
+          .enum([
+            'death',
+            'relationship',
+            'health',
+            'identity',
+            'dream',
+            'place',
+            'phase-of-life',
+            'other',
+          ])
           .describe('Type of loss being grieved'),
         whatWasLost: z.string().describe('Who or what was lost'),
         whereTheyAre: z
@@ -146,8 +155,7 @@ const anniversarySupportDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Provide support around anniversaries of losses, deaths, or difficult dates.',
+      description: 'Provide support around anniversaries of losses, deaths, or difficult dates.',
       parameters: z.object({
         occasion: z.string().describe('What the anniversary marks'),
         approaching: z.boolean().describe('Whether it is approaching or has arrived'),
@@ -236,15 +244,19 @@ const rememberLovedDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Create space to remember, honor, and share memories of someone who has died.',
+      description: 'Create space to remember, honor, and share memories of someone who has died.',
       parameters: z.object({
         personName: z.string().describe('Name of the person'),
         relationship: z.string().describe('Relationship to the person'),
-        whatToRemember: z.enum(['their-essence', 'specific-memory', 'their-impact', 'what-you-miss']).describe('What to focus on'),
+        whatToRemember: z
+          .enum(['their-essence', 'specific-memory', 'their-impact', 'what-you-miss'])
+          .describe('What to focus on'),
       }),
       execute: async ({ personName, relationship, whatToRemember }) => {
-        getLogger().info({ agentId: ctx.agentId, personName, whatToRemember }, 'Remembering loved one');
+        getLogger().info(
+          { agentId: ctx.agentId, personName, whatToRemember },
+          'Remembering loved one'
+        );
 
         let response = `Let's remember ${personName}.\n\n`;
 
@@ -464,8 +476,7 @@ const validateGriefDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Validate grief against common dismissive messages the user may have received.',
+      description: 'Validate grief against common dismissive messages the user may have received.',
       parameters: z.object({
         dismissiveMessage: z
           .enum([
@@ -485,19 +496,20 @@ const validateGriefDef: ToolDefinition = {
 
         const responses: Record<string, string> = {
           'be-strong': `"Be strong" - as if feeling your grief is weakness.\n\nHere's the truth: Feeling deeply is not weakness. Crying is not weakness. Needing support is not weakness.\n\nStrength in grief isn't about suppression. It's about surviving the truth of your feelings and still getting through the day.\n\nYou don't have to "be strong" here. You can be exactly as you are.`,
-          
+
           'at-least': `"At least..." - as if your pain could be diminished by comparison.\n\n"At least they lived a long life." "At least you can have another child." "At least you have other family."\n\nYour loss is your loss. It doesn't need to pass a suffering threshold. Your grief is not a competition.\n\nThe "at least" doesn't touch the specific, irreplaceable loss you're feeling.`,
-          
+
           'time-heals': `"Time heals all wounds" - as if waiting is all you need to do.\n\nThe truth is more nuanced: Time helps. But time alone doesn't heal. It's what you do with the time - the processing, the support, the meaning-making - that matters.\n\nAnd "healing" doesn't mean forgetting or being "over it." It means building a life that can hold both the grief and the living.\n\nYour grief has its own timeline. Honor it.`,
-          
+
           'move-on': `"You need to move on" - as if grief has an expiration date.\n\nYou will never "move on" in the sense of leaving your love behind. You will move forward, carrying it with you.\n\nThere is no deadline. There is no "should" about how long grief takes. Anyone who tells you otherwise has either never truly lost, or has buried their own grief.\n\nYou're not stuck. You're grieving.`,
-          
+
           'in-better-place': `"They're in a better place" - said as if it should comfort you.\n\nMaybe it does comfort you. Maybe it doesn't. Both are okay.\n\nBut even if there's an afterlife, even if they are at peace, they are not *here*. And that's what hurts.\n\nYou're allowed to believe they're okay and still be devastated by their absence.`,
-          
+
           'everything-happens-for-reason': `"Everything happens for a reason" - as if your loss has a purpose that should comfort you.\n\nSome people find comfort in this. Some people find it enraging. Both are valid.\n\nYou don't have to find a reason for your loss. You don't have to justify it with meaning. Sometimes terrible things just happen.\n\nIf meaning comes later, let it come. Don't let anyone force it on you.`,
         };
 
-        let response = responses[dismissiveMessage] || 
+        let response =
+          responses[dismissiveMessage] ||
           `Someone told you: "${customMessage}"\n\nI hear how that landed wrong. People often don't know what to say, so they say things that minimize. They're trying to help, but it doesn't help.\n\nYour grief is valid. Your feelings are valid. You don't need to explain or justify them.`;
 
         response += `\n\nWhat would actually help to hear right now?`;
@@ -517,10 +529,11 @@ const companionInGriefDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Offer simple, non-fixing presence to someone in grief.',
+      description: 'Offer simple, non-fixing presence to someone in grief.',
       parameters: z.object({
-        whatTheyNeed: z.enum(['talk', 'silence', 'distraction', 'unsure']).describe('What they need right now'),
+        whatTheyNeed: z
+          .enum(['talk', 'silence', 'distraction', 'unsure'])
+          .describe('What they need right now'),
       }),
       execute: async ({ whatTheyNeed }) => {
         getLogger().info({ agentId: ctx.agentId, whatTheyNeed }, 'Companioning in grief');
@@ -568,10 +581,6 @@ const griefTools: ToolDefinition[] = [
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'grief',
-  griefTools
-);
+export const { getToolDefinitions, domain, definitions } = createDomainExport('grief', griefTools);
 
 export default getToolDefinitions;
-

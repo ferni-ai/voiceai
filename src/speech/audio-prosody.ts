@@ -114,10 +114,10 @@ export class AudioProsodyAnalyzer {
   private readonly minSamplesForAnalysis = 4410; // ~100ms at 44.1kHz
 
   // Baseline calibration (personalized over time)
-  private baselinePitch: number = 150; // Hz (average human)
-  private baselineEnergy: number = -20; // dB
-  private baselineRate: number = 4; // syllables/sec
-  private calibrated: boolean = false;
+  private baselinePitch = 150; // Hz (average human)
+  private baselineEnergy = -20; // dB
+  private baselineRate = 4; // syllables/sec
+  private calibrated = false;
 
   // Feature history for smoothing
   private featureHistory: ProsodyFeatures[] = [];
@@ -262,7 +262,7 @@ export class AudioProsodyAnalyzer {
     if (this.buffers.length === 0) return null;
 
     // Use the sample rate of the first buffer
-    const sampleRate = this.buffers[0].sampleRate;
+    const { sampleRate } = this.buffers[0];
     const totalLength = this.buffers.reduce((sum, b) => sum + b.samples.length, 0);
 
     const merged = new Float32Array(totalLength);
@@ -635,7 +635,7 @@ export class AudioProsodyAnalyzer {
 
     const smoothed = { ...history[history.length - 1] };
 
-    const numericKeys: (keyof ProsodyFeatures)[] = [
+    const numericKeys: Array<keyof ProsodyFeatures> = [
       'pitchMean',
       'pitchVariance',
       'pitchRange',

@@ -39,7 +39,7 @@ export interface GoalsResult {
  * Welcome task - get to know the person first (Jack's style)
  */
 export class WelcomeTask extends AgentTask<WelcomeResult> {
-  private _name: string = '';
+  private _name = '';
   private _mood: WelcomeResult['mood'] = 'unknown';
 
   constructor() {

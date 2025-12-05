@@ -439,18 +439,18 @@ export type EmotionalTone =
 export interface ProgressiveLoadingConfig {
   tier1: {
     // Always loaded - identity and basic config
-    includes: ('identity' | 'voice' | 'personality' | 'marketplace')[];
+    includes: Array<'identity' | 'voice' | 'personality' | 'marketplace'>;
     max_size_kb: number;
   };
   tier2: {
     // Loaded on persona activation
-    includes: ('behaviors' | 'system_prompt' | 'greetings' | 'tools')[];
+    includes: Array<'behaviors' | 'system_prompt' | 'greetings' | 'tools'>;
     max_size_kb: number;
     lazy_load?: boolean;
   };
   tier3: {
     // Loaded on demand
-    includes: ('stories' | 'knowledge' | 'extended_behaviors')[];
+    includes: Array<'stories' | 'knowledge' | 'extended_behaviors'>;
     lazy_load: true;
     cache_strategy: 'none' | 'session' | 'persistent';
   };
@@ -846,17 +846,17 @@ export interface BundleGreetingsV2 {
   /** Time-based greetings */
   time_based?: {
     early_morning?: string[]; // Before 9am
-    morning?: string[];       // 9am-12pm
-    afternoon?: string[];     // 12pm-5pm
-    evening?: string[];       // 5pm-9pm
-    late_night?: string[];    // After 9pm
+    morning?: string[]; // 9am-12pm
+    afternoon?: string[]; // 12pm-5pm
+    evening?: string[]; // 5pm-9pm
+    late_night?: string[]; // After 9pm
   };
 
   /** Relationship stage greetings */
   relationship_based?: {
-    stranger?: string[];       // First few conversations
-    acquaintance?: string[];   // Getting to know them
-    friend?: string[];         // Comfortable relationship
+    stranger?: string[]; // First few conversations
+    acquaintance?: string[]; // Getting to know them
+    friend?: string[]; // Comfortable relationship
     trusted_advisor?: string[]; // Deep relationship
   };
 
@@ -866,7 +866,7 @@ export interface BundleGreetingsV2 {
     returning_after_hard_conversation?: string[];
 
     /** When it's been a long time since last session */
-    long_time_no_see?: string[];  // Use {days} placeholder
+    long_time_no_see?: string[]; // Use {days} placeholder
 
     /** When user had a recent win */
     celebrating_recent_win?: string[];
@@ -880,9 +880,9 @@ export interface BundleGreetingsV2 {
 
   /** Memory callback templates - use {topic}, {name} placeholders */
   memory_callbacks?: {
-    last_conversation?: string[];  // "Last time we talked about {topic}..."
+    last_conversation?: string[]; // "Last time we talked about {topic}..."
     milestone_anniversary?: string[]; // "It's been a year since..."
-    progress_check?: string[];  // "How did {topic} go?"
+    progress_check?: string[]; // "How did {topic} go?"
   };
 
   /** Emotional expressions for during conversation (not just greeting) */
@@ -1534,27 +1534,27 @@ export interface LoadedPersonaBundle {
   loadedAt: Date;
 
   // Accessors for lazy-loaded content
-  getStory(id: string): Promise<BundleStory | null>;
-  getStoriesByTrigger(trigger: string): Promise<BundleStory[]>;
-  getAllStories(): Promise<BundleStory[]>;
-  getKnowledge(topic: string): Promise<BundleKnowledge | null>;
-  getBehaviors(): Promise<BundleBehaviors>;
+  getStory: (id: string) => Promise<BundleStory | null>;
+  getStoriesByTrigger: (trigger: string) => Promise<BundleStory[]>;
+  getAllStories: () => Promise<BundleStory[]>;
+  getKnowledge: (topic: string) => Promise<BundleKnowledge | null>;
+  getBehaviors: () => Promise<BundleBehaviors>;
 
   // New accessors for extended content
-  getVoiceExpressions?(): Promise<BundleVoiceExpressions | null>;
-  getSituationalResponses?(): Promise<BundleSituationalResponses | null>;
-  getRelationshipStages?(): Promise<BundleRelationshipStages | null>;
-  getMemoryPatterns?(): Promise<BundleMemoryPatterns | null>;
-  getPersonaModes?(): Promise<BundlePersonaModes | null>;
-  getStoryGraph?(): Promise<BundleStoryGraph | null>;
-  getMicroExpressions?(): Promise<BundleMicroExpressions | null>;
-  getContextualNuances?(): Promise<BundleContextualNuances | null>;
-  getConflictHandling?(): Promise<BundleConflictHandling | null>;
-  getPromptAssembly?(): Promise<BundlePromptAssembly | null>;
+  getVoiceExpressions?: () => Promise<BundleVoiceExpressions | null>;
+  getSituationalResponses?: () => Promise<BundleSituationalResponses | null>;
+  getRelationshipStages?: () => Promise<BundleRelationshipStages | null>;
+  getMemoryPatterns?: () => Promise<BundleMemoryPatterns | null>;
+  getPersonaModes?: () => Promise<BundlePersonaModes | null>;
+  getStoryGraph?: () => Promise<BundleStoryGraph | null>;
+  getMicroExpressions?: () => Promise<BundleMicroExpressions | null>;
+  getContextualNuances?: () => Promise<BundleContextualNuances | null>;
+  getConflictHandling?: () => Promise<BundleConflictHandling | null>;
+  getPromptAssembly?: () => Promise<BundlePromptAssembly | null>;
 
   // Hot reload support
-  reload(): Promise<void>;
-  onReload(callback: () => void): () => void;
+  reload: () => Promise<void>;
+  onReload: (callback: () => void) => () => void;
 }
 
 export interface BundleLoadOptions {
@@ -1746,22 +1746,25 @@ export interface BundleSensoryWorld {
   };
 
   /** Team dynamics - how this persona relates to other team members */
-  team_dynamics?: Record<string, {
-    how_we_interact?: string;
-    what_they_give_me?: string;
-    what_he_gives_me?: string;
-    what_she_gives_me?: string;
-    what_i_give_them?: string;
-    what_i_give_him?: string;
-    what_i_give_her?: string;
-    what_i_admire?: string;
-  }>;
+  team_dynamics?: Record<
+    string,
+    {
+      how_we_interact?: string;
+      what_they_give_me?: string;
+      what_he_gives_me?: string;
+      what_she_gives_me?: string;
+      what_i_give_them?: string;
+      what_i_give_him?: string;
+      what_i_give_her?: string;
+      what_i_admire?: string;
+    }
+  >;
 }
 
 /**
  * Extended loaded bundle with inner world content
  */
 export interface ExtendedLoadedBundle extends LoadedPersonaBundle {
-  getInnerWorld?(): Promise<BundleInnerWorld | null>;
-  getSensoryWorld?(): Promise<BundleSensoryWorld | null>;
+  getInnerWorld?: () => Promise<BundleInnerWorld | null>;
+  getSensoryWorld?: () => Promise<BundleSensoryWorld | null>;
 }

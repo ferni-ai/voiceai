@@ -1,6 +1,6 @@
 /**
  * Spontaneous Sharing Service
- * 
+ *
  * Surfaces persona quirks, contradictions, and personal details naturally
  * based on conversation context and relationship stage.
  */
@@ -25,7 +25,14 @@ export interface SharingContext {
 
 export interface ShareResult {
   content: string;
-  type: 'endearing_contradiction' | 'simple_joy' | 'pet_peeve' | 'growth_edge' | 'relationship_moment' | 'guilty_pleasure' | 'strong_opinion';
+  type:
+    | 'endearing_contradiction'
+    | 'simple_joy'
+    | 'pet_peeve'
+    | 'growth_edge'
+    | 'relationship_moment'
+    | 'guilty_pleasure'
+    | 'strong_opinion';
   triggered_by?: string;
 }
 
@@ -61,7 +68,7 @@ function markAsShared(personaId: string, userId: string, content: string): void 
  */
 function matchesTrigger(text: string, triggers: string[]): boolean {
   const lowerText = text.toLowerCase();
-  return triggers.some(trigger => lowerText.includes(trigger.toLowerCase()));
+  return triggers.some((trigger) => lowerText.includes(trigger.toLowerCase()));
 }
 
 /**
@@ -71,7 +78,12 @@ function meetsRelationshipGate(
   required: PersonaRelationshipStage,
   current: PersonaRelationshipStage
 ): boolean {
-  const order: PersonaRelationshipStage[] = ['stranger', 'acquaintance', 'friend', 'trusted_advisor'];
+  const order: PersonaRelationshipStage[] = [
+    'stranger',
+    'acquaintance',
+    'friend',
+    'trusted_advisor',
+  ];
   return order.indexOf(current) >= order.indexOf(required);
 }
 
@@ -99,16 +111,16 @@ export async function surfaceEnderingContradiction(
   if (Math.random() > 0.15) return null;
 
   // Find one that hasn't been shared
-  const available = contradictions.filter(c => !hasBeenShared(context.personaId, userId, c));
+  const available = contradictions.filter((c) => !hasBeenShared(context.personaId, userId, c));
   const chosen = getRandomItem(available);
 
   if (!chosen) return null;
 
   markAsShared(context.personaId, userId, chosen);
-  
+
   return {
     content: chosen,
-    type: 'endearing_contradiction'
+    type: 'endearing_contradiction',
   };
 }
 
@@ -130,7 +142,7 @@ export async function shareSimpleJoy(
   // Low chance to share spontaneously
   if (Math.random() > 0.1) return null;
 
-  const available = joys.filter(j => !hasBeenShared(context.personaId, userId, j));
+  const available = joys.filter((j) => !hasBeenShared(context.personaId, userId, j));
   const chosen = getRandomItem(available);
 
   if (!chosen) return null;
@@ -139,7 +151,7 @@ export async function shareSimpleJoy(
 
   return {
     content: chosen,
-    type: 'simple_joy'
+    type: 'simple_joy',
   };
 }
 
@@ -162,18 +174,21 @@ export async function referencePetPeeve(
 
   // Check if any peeve is relevant to current topic
   const text = `${context.userMessage || ''} ${context.currentTopic || ''}`;
-  
+
   for (const peeve of peeves) {
     // Extract key words from the peeve (simple extraction)
-    const peeveWords = peeve.toLowerCase().split(/\s+/).filter(w => w.length > 4);
-    
-    if (peeveWords.some(word => text.toLowerCase().includes(word))) {
+    const peeveWords = peeve
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 4);
+
+    if (peeveWords.some((word) => text.toLowerCase().includes(word))) {
       if (!hasBeenShared(context.personaId, userId, peeve)) {
         markAsShared(context.personaId, userId, peeve);
         return {
           content: peeve,
           type: 'pet_peeve',
-          triggered_by: context.currentTopic || context.userMessage
+          triggered_by: context.currentTopic || context.userMessage,
         };
       }
     }
@@ -205,7 +220,7 @@ export async function shareGrowthEdge(
   // Rare chance (this is vulnerable content)
   if (Math.random() > 0.05) return null;
 
-  const available = edges.filter(e => !hasBeenShared(context.personaId, userId, e));
+  const available = edges.filter((e) => !hasBeenShared(context.personaId, userId, e));
   const chosen = getRandomItem(available);
 
   if (!chosen) return null;
@@ -214,7 +229,7 @@ export async function shareGrowthEdge(
 
   return {
     content: chosen,
-    type: 'growth_edge'
+    type: 'growth_edge',
   };
 }
 
@@ -241,7 +256,7 @@ export async function shareRelationshipMoment(
   // Low chance
   if (Math.random() > 0.08) return null;
 
-  const available = moments.filter(m => !hasBeenShared(context.personaId, userId, m));
+  const available = moments.filter((m) => !hasBeenShared(context.personaId, userId, m));
   const chosen = getRandomItem(available);
 
   if (!chosen) return null;
@@ -250,7 +265,7 @@ export async function shareRelationshipMoment(
 
   return {
     content: chosen,
-    type: 'relationship_moment'
+    type: 'relationship_moment',
   };
 }
 
@@ -277,7 +292,7 @@ export async function shareGuiltyPleasure(
   // Low chance
   if (Math.random() > 0.1) return null;
 
-  const available = pleasures.filter(p => !hasBeenShared(context.personaId, userId, p));
+  const available = pleasures.filter((p) => !hasBeenShared(context.personaId, userId, p));
   const chosen = getRandomItem(available);
 
   if (!chosen) return null;
@@ -286,7 +301,7 @@ export async function shareGuiltyPleasure(
 
   return {
     content: chosen,
-    type: 'guilty_pleasure'
+    type: 'guilty_pleasure',
   };
 }
 
@@ -302,12 +317,12 @@ export async function trySpontaneousShare(
 
   // Try different types in priority order
   const attempts = [
-    () => referencePetPeeve(context, userId), // Most context-dependent
-    () => surfaceEnderingContradiction(context, userId),
-    () => shareSimpleJoy(context, userId),
-    () => shareGuiltyPleasure(context, userId),
-    () => shareRelationshipMoment(context, userId),
-    () => shareGrowthEdge(context, userId), // Most vulnerable
+    async () => referencePetPeeve(context, userId), // Most context-dependent
+    async () => surfaceEnderingContradiction(context, userId),
+    async () => shareSimpleJoy(context, userId),
+    async () => shareGuiltyPleasure(context, userId),
+    async () => shareRelationshipMoment(context, userId),
+    async () => shareGrowthEdge(context, userId), // Most vulnerable
   ];
 
   for (const attempt of attempts) {
@@ -339,4 +354,3 @@ export const SpontaneousSharingService = {
 };
 
 export default SpontaneousSharingService;
-

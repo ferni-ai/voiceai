@@ -261,7 +261,7 @@ async function createDoorDashJWT(): Promise<string> {
 // ============================================================================
 
 let uberAccessToken: string | null = null;
-let uberTokenExpiry: number = 0;
+let uberTokenExpiry = 0;
 
 /**
  * Get Uber API access token
@@ -317,12 +317,11 @@ async function searchUberEats(
     try {
       // Uber Eats API endpoint (simplified)
       const response = await fetch(
-        `https://api.uber.com/v1/eats/stores?` +
-          new URLSearchParams({
-            query,
-            latitude: '0', // Would need geocoding
-            longitude: '0',
-          }),
+        `https://api.uber.com/v1/eats/stores?${new URLSearchParams({
+          query,
+          latitude: '0', // Would need geocoding
+          longitude: '0',
+        })}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -422,7 +421,7 @@ export async function searchDeliveryRestaurants(
 // ============================================================================
 
 // In-memory order storage
-const activeOrders: Map<string, DeliveryOrder> = new Map();
+const activeOrders = new Map<string, DeliveryOrder>();
 
 /**
  * Start building an order
@@ -451,7 +450,7 @@ export function startOrder(restaurant: DeliveryRestaurant): DeliveryOrder {
 export function addToOrder(
   orderId: string,
   item: MenuItem,
-  quantity: number = 1,
+  quantity = 1,
   options?: {
     customizations?: Array<{ customizationId: string; optionIds: string[] }>;
     specialInstructions?: string;

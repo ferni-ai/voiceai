@@ -177,7 +177,7 @@ async function getRealStockQuote(symbol: string): Promise<{
  */
 async function analyzeStockLynchStyle(symbol: string): Promise<string> {
   const upperSymbol = symbol.toUpperCase();
-  
+
   // Check if we have Peter's curated analysis for this stock
   const curatedStock = SAMPLE_STOCKS.find((s) => s.symbol === upperSymbol);
 
@@ -189,7 +189,7 @@ async function analyzeStockLynchStyle(symbol: string): Promise<string> {
   }
 
   const direction = realQuote.change >= 0 ? 'up' : 'down';
-  
+
   // If we have curated data, combine it with real prices
   if (curatedStock) {
     const pegRatio = curatedStock.peRatio / curatedStock.growthRate;

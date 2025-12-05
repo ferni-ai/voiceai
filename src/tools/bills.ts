@@ -15,7 +15,11 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { sanitizePlainText, parseAmount, isValidAmount } from './validation.js';
-import { getProductivityStore, type BillData, type BillPaymentData } from '../services/productivity-store.js';
+import {
+  getProductivityStore,
+  type BillData,
+  type BillPaymentData,
+} from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
 // Bridge functions for persistence
@@ -146,22 +150,22 @@ export interface BillPayment {
 // STORAGE - Uses ProductivityStore for persistence
 // ============================================================================
 
-const billsCache: Map<string, Bill> = new Map();
-const paymentsCache: Map<string, BillPayment> = new Map();
-const loadedUsers: Set<string> = new Set();
+const billsCache = new Map<string, Bill>();
+const paymentsCache = new Map<string, BillPayment>();
+const loadedUsers = new Set<string>();
 
 async function ensureUserBillsLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-  
+
   try {
     const store = getProductivityStore();
     await store.loadUserData(userId);
-    
+
     const billDataList = store.getUserBills(userId);
     for (const data of billDataList) {
       billsCache.set(data.id, billDataToBill(data, userId));
     }
-    
+
     const paymentDataList = store.getUserBillPayments(userId);
     for (const data of paymentDataList) {
       paymentsCache.set(data.id, {
@@ -176,7 +180,7 @@ async function ensureUserBillsLoaded(userId: string): Promise<void> {
         notes: data.notes,
       });
     }
-    
+
     loadedUsers.add(userId);
     getLogger().debug({ userId, bills: billDataList.length }, 'Loaded bills from store');
   } catch (error) {
@@ -247,7 +251,7 @@ function getUserBills(userId: string): Bill[] {
     .sort((a, b) => a.nextDueDate.getTime() - b.nextDueDate.getTime());
 }
 
-function getUpcomingBills(userId: string, days: number = 14): Bill[] {
+function getUpcomingBills(userId: string, days = 14): Bill[] {
   const now = new Date();
   const future = new Date(now);
   future.setDate(future.getDate() + days);
@@ -310,9 +314,7 @@ function calculateMonthlyTotal(userId: string): number {
 
 function formatBillForSpeech(bill: Bill): string {
   const now = new Date();
-  const daysUntil = Math.ceil(
-    (bill.nextDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysUntil = Math.ceil((bill.nextDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
   let status = '';
   if (daysUntil < 0) {
@@ -381,10 +383,7 @@ export function addBill(params: {
   billsCache.set(bill.id, bill);
   persistBill(params.userId, bill);
 
-  getLogger().info(
-    { billId: bill.id, name: bill.name, amount: bill.amount },
-    '💰 Bill added'
-  );
+  getLogger().info({ billId: bill.id, name: bill.name, amount: bill.amount }, '💰 Bill added');
 
   return bill;
 }
@@ -448,7 +447,7 @@ export function updateBill(
   if (updates.notes !== undefined) bill.notes = updates.notes;
 
   bill.updatedAt = new Date();
-  
+
   // Save to cache and persist
   billsCache.set(billId, bill);
   persistBill(bill.userId, bill);
@@ -462,7 +461,7 @@ export function deactivateBill(billId: string): boolean {
 
   bill.isActive = false;
   bill.updatedAt = new Date();
-  
+
   // Save to cache and persist
   billsCache.set(billId, bill);
   persistBill(bill.userId, bill);
@@ -489,7 +488,7 @@ Use when user wants to:
         name: z.string().describe('Bill name (e.g., "Electric Bill", "Netflix")'),
         payee: z.string().describe('Who gets paid (e.g., "Con Edison", "Netflix")'),
         amount: z.number().positive().describe('Bill amount in dollars'),
-        dueDay: z.number().min(1).max(31).describe('Day of month it\'s due (1-31)'),
+        dueDay: z.number().min(1).max(31).describe("Day of month it's due (1-31)"),
         frequency: z
           .enum(['weekly', 'biweekly', 'monthly', 'quarterly', 'semi_annual', 'annual'])
           .optional()
@@ -512,11 +511,7 @@ Use when user wants to:
           .default('other')
           .describe('Category'),
         isAutoPay: z.boolean().optional().default(false).describe('Is it on autopay?'),
-        reminderDays: z
-          .number()
-          .optional()
-          .default(3)
-          .describe('Days before to remind'),
+        reminderDays: z.number().optional().default(3).describe('Days before to remind'),
       }),
       execute: async (
         { name, payee, amount, dueDay, frequency, category, isAutoPay, reminderDays },
@@ -574,9 +569,7 @@ Use when user says they paid a bill.`,
 
         await ensureUserBillsLoaded(userId);
         const userBills = getUserBills(userId);
-        const bill = userBills.find((b) =>
-          b.name.toLowerCase().includes(billName.toLowerCase())
-        );
+        const bill = userBills.find((b) => b.name.toLowerCase().includes(billName.toLowerCase()));
 
         if (!bill) {
           return `I couldn't find a bill matching "${billName}". Want me to show your bills?`;
@@ -610,11 +603,7 @@ Use when user says they paid a bill.`,
       description: `Show bills coming up soon.
 Use when user asks about upcoming payments or wants to know what's due.`,
       parameters: z.object({
-        days: z
-          .number()
-          .optional()
-          .default(14)
-          .describe('How many days ahead to look'),
+        days: z.number().optional().default(14).describe('How many days ahead to look'),
       }),
       execute: async ({ days }, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -741,9 +730,7 @@ Use when user asks about upcoming payments or wants to know what's due.`,
 
         await ensureUserBillsLoaded(userId);
         const userBills = getUserBills(userId);
-        const bill = userBills.find((b) =>
-          b.name.toLowerCase().includes(billName.toLowerCase())
-        );
+        const bill = userBills.find((b) => b.name.toLowerCase().includes(billName.toLowerCase()));
 
         if (!bill) {
           return `Couldn't find "${billName}".`;
@@ -791,9 +778,7 @@ Use when user asks about upcoming payments or wants to know what's due.`,
 
         await ensureUserBillsLoaded(userId);
         const userBills = getUserBills(userId);
-        const bill = userBills.find((b) =>
-          b.name.toLowerCase().includes(billName.toLowerCase())
-        );
+        const bill = userBills.find((b) => b.name.toLowerCase().includes(billName.toLowerCase()));
 
         if (!bill) {
           return `Couldn't find "${billName}".`;
@@ -848,4 +833,3 @@ Use when user asks about upcoming payments or wants to know what's due.`,
 }
 
 export default createBillTools;
-

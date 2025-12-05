@@ -382,4 +382,3 @@ export function getToolDocumentation(): string {
 
   return sections.join('\n');
 }
-

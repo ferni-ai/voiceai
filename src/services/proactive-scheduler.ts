@@ -101,8 +101,8 @@ const REVIEW_MESSAGES = {
 class ProactiveScheduler extends EventEmitter {
   private config: SchedulerConfig;
   private intervalId: NodeJS.Timeout | null = null;
-  private notifications: Map<string, ProactiveNotification> = new Map();
-  private userIds: Set<string> = new Set();
+  private notifications = new Map<string, ProactiveNotification>();
+  private userIds = new Set<string>();
   private running = false;
 
   constructor(config: Partial<SchedulerConfig> = {}) {
@@ -510,7 +510,7 @@ class ProactiveScheduler extends EventEmitter {
     );
   }
 
-  private hasRecentNotification(userId: string, key: string, hoursAgo: number = 24): boolean {
+  private hasRecentNotification(userId: string, key: string, hoursAgo = 24): boolean {
     const cutoff = new Date();
     cutoff.setHours(cutoff.getHours() - hoursAgo);
 
@@ -533,7 +533,7 @@ class ProactiveScheduler extends EventEmitter {
   /**
    * Get all notifications for a user
    */
-  getNotificationsForUser(userId: string, limit: number = 20): ProactiveNotification[] {
+  getNotificationsForUser(userId: string, limit = 20): ProactiveNotification[] {
     return Array.from(this.notifications.values())
       .filter((n) => n.userId === userId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())

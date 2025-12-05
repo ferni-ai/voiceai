@@ -19,7 +19,6 @@ import { toolRegistry } from './index.js';
 import type { ToolDomain, ToolDefinition } from './types.js';
 import { ALL_TOOL_DOMAINS } from './types.js';
 
-
 // ============================================================================
 // DOMAIN LOADERS
 // ============================================================================
@@ -55,11 +54,17 @@ export async function loadToolDomain(domain: ToolDomain): Promise<number> {
       if (module.getToolDefinitions) {
         const definitions = await module.getToolDefinitions();
         toolRegistry.registerAll(definitions);
-        getLogger().info({ domain, count: definitions.length }, 'Domain tools loaded via dynamic import');
+        getLogger().info(
+          { domain, count: definitions.length },
+          'Domain tools loaded via dynamic import'
+        );
         return definitions.length;
       } else if (module.default && Array.isArray(module.default)) {
         toolRegistry.registerAll(module.default);
-        getLogger().info({ domain, count: module.default.length }, 'Domain tools loaded via default export');
+        getLogger().info(
+          { domain, count: module.default.length },
+          'Domain tools loaded via default export'
+        );
         return module.default.length;
       }
     } catch (error) {
@@ -89,11 +94,13 @@ export async function loadToolDomain(domain: ToolDomain): Promise<number> {
 /**
  * Initialize the tool registry by loading all domains
  */
-export async function initializeToolRegistry(options: {
-  domains?: ToolDomain[];
-  skipDomains?: ToolDomain[];
-  parallel?: boolean;
-} = {}): Promise<{
+export async function initializeToolRegistry(
+  options: {
+    domains?: ToolDomain[];
+    skipDomains?: ToolDomain[];
+    parallel?: boolean;
+  } = {}
+): Promise<{
   loaded: number;
   byDomain: Record<ToolDomain, number>;
   errors: string[];
@@ -293,4 +300,3 @@ export default {
   registerLegacyTools,
   createDomainExport,
 };
-

@@ -152,9 +152,24 @@ export const PREDEFINED_EXPERIMENTS: Experiment[] = [
     ],
     trafficAllocation: [50, 50],
     metrics: [
-      { id: 'tool_success_rate', name: 'Tool Success Rate', aggregation: 'rate', higherIsBetter: true },
-      { id: 'tools_per_session', name: 'Tools Used Per Session', aggregation: 'average', higherIsBetter: false },
-      { id: 'task_completion', name: 'Task Completion Rate', aggregation: 'rate', higherIsBetter: true },
+      {
+        id: 'tool_success_rate',
+        name: 'Tool Success Rate',
+        aggregation: 'rate',
+        higherIsBetter: true,
+      },
+      {
+        id: 'tools_per_session',
+        name: 'Tools Used Per Session',
+        aggregation: 'average',
+        higherIsBetter: false,
+      },
+      {
+        id: 'task_completion',
+        name: 'Task Completion Rate',
+        aggregation: 'rate',
+        higherIsBetter: true,
+      },
     ],
   },
   {
@@ -178,8 +193,18 @@ export const PREDEFINED_EXPERIMENTS: Experiment[] = [
     ],
     trafficAllocation: [50, 50],
     metrics: [
-      { id: 'user_satisfaction', name: 'User Satisfaction', aggregation: 'average', higherIsBetter: true },
-      { id: 'conversation_length', name: 'Conversation Length', aggregation: 'average', higherIsBetter: true },
+      {
+        id: 'user_satisfaction',
+        name: 'User Satisfaction',
+        aggregation: 'average',
+        higherIsBetter: true,
+      },
+      {
+        id: 'conversation_length',
+        name: 'Conversation Length',
+        aggregation: 'average',
+        higherIsBetter: true,
+      },
       { id: 'return_rate', name: 'User Return Rate', aggregation: 'rate', higherIsBetter: true },
     ],
   },
@@ -209,9 +234,24 @@ export const PREDEFINED_EXPERIMENTS: Experiment[] = [
     ],
     trafficAllocation: [34, 33, 33],
     metrics: [
-      { id: 'tool_accuracy', name: 'Correct Tool Selection Rate', aggregation: 'rate', higherIsBetter: true },
-      { id: 'response_latency', name: 'Response Latency (ms)', aggregation: 'average', higherIsBetter: false },
-      { id: 'user_satisfaction', name: 'User Satisfaction', aggregation: 'average', higherIsBetter: true },
+      {
+        id: 'tool_accuracy',
+        name: 'Correct Tool Selection Rate',
+        aggregation: 'rate',
+        higherIsBetter: true,
+      },
+      {
+        id: 'response_latency',
+        name: 'Response Latency (ms)',
+        aggregation: 'average',
+        higherIsBetter: false,
+      },
+      {
+        id: 'user_satisfaction',
+        name: 'User Satisfaction',
+        aggregation: 'average',
+        higherIsBetter: true,
+      },
     ],
   },
 ];
@@ -241,7 +281,10 @@ export class ABTestingService {
    */
   registerExperiment(experiment: Experiment): void {
     this.experiments.set(experiment.id, experiment);
-    getLogger().info({ experimentId: experiment.id, name: experiment.name }, '🧪 Experiment registered');
+    getLogger().info(
+      { experimentId: experiment.id, name: experiment.name },
+      '🧪 Experiment registered'
+    );
   }
 
   /**
@@ -320,7 +363,10 @@ export class ABTestingService {
           assignedAt: new Date(),
         };
         this.assignments.set(existingKey, assignment);
-        getLogger().debug({ userId, experimentId, variantId: assignment.variantId }, '🧪 User assigned to variant');
+        getLogger().debug(
+          { userId, experimentId, variantId: assignment.variantId },
+          '🧪 User assigned to variant'
+        );
         return assignment;
       }
     }
@@ -545,4 +591,3 @@ export class ABTestingService {
 export const abTestingService = new ABTestingService();
 
 export default abTestingService;
-

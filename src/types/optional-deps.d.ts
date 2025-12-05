@@ -1,6 +1,6 @@
 /**
  * Type declarations for optional dependencies
- * 
+ *
  * These modules are dynamically imported and may not be installed.
  * These declarations prevent TypeScript errors while still allowing
  * the dynamic imports to work at runtime.
@@ -16,7 +16,7 @@ declare module '@sentry/node' {
     integrations?: unknown[];
     beforeSend?: (event: unknown) => unknown;
   }): void;
-  
+
   export function captureException(error: Error, context?: unknown): string;
   export function captureMessage(message: string, level?: string): string;
   export function setUser(user: { id: string; [key: string]: unknown } | null): void;
@@ -63,9 +63,8 @@ declare module '@google-cloud/monitoring' {
       }>;
     }): Promise<void>;
   }
-  
+
   export const Monitoring: {
     MetricServiceClient: typeof MetricServiceClient;
   };
 }
-

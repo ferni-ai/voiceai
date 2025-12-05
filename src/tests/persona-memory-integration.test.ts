@@ -23,7 +23,13 @@ import {
   type NormalizedPersonaId,
 } from '../intelligence/context-builders/persona-memory.js';
 import type { Memory } from '../services/persona-memories.js';
-import type { FerniMemory, BogleMemory, PeterMemory, MayaMemory, JordanMemory } from '../services/persona-memories.js';
+import type {
+  FerniMemory,
+  BogleMemory,
+  PeterMemory,
+  MayaMemory,
+  JordanMemory,
+} from '../services/persona-memories.js';
 
 // ============================================================================
 // PERSONA ID NORMALIZATION TESTS
@@ -518,12 +524,12 @@ describe('Greeting Repetition Prevention', () => {
 
     it('should keep only the last 20 greetings', () => {
       let state = createMockState();
-      
+
       // Add 25 different greetings
       for (let i = 0; i < 25; i++) {
         state = recordGreetingUsage(state, `Greeting number ${i}`);
       }
-      
+
       expect(state.usedGreetings.length).toBe(20);
     });
 
@@ -531,9 +537,9 @@ describe('Greeting Repetition Prevention', () => {
       const state = createMockState();
       state.totalSpontaneousShares = 5;
       state.storiesTold = ['story1', 'story2'];
-      
+
       const updatedState = recordGreetingUsage(state, 'Hey Sarah!');
-      
+
       expect(updatedState.totalSpontaneousShares).toBe(5);
       expect(updatedState.storiesTold).toEqual(['story1', 'story2']);
     });
@@ -549,10 +555,9 @@ describe('Greeting Repetition Prevention', () => {
       let state = createMockState();
       state = recordGreetingUsage(state, 'Greeting 1');
       state = recordGreetingUsage(state, 'Greeting 2');
-      
+
       const hashes = getUsedGreetingHashes(state);
       expect(hashes.length).toBe(2);
     });
   });
 });
-

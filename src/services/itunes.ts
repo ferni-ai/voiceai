@@ -59,7 +59,7 @@ const ITUNES_API_BASE = 'https://itunes.apple.com';
  * Search for tracks on iTunes.
  * No authentication required!
  */
-export async function searchItunes(query: string, limit: number = 5): Promise<iTunesSearchResult> {
+export async function searchItunes(query: string, limit = 5): Promise<iTunesSearchResult> {
   const url = `${ITUNES_API_BASE}/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=${limit}`;
 
   console.log('🎵🎵🎵 [ITUNES API DEBUG] searchItunes called:', { query, limit, url });
@@ -69,7 +69,10 @@ export async function searchItunes(query: string, limit: number = 5): Promise<iT
     console.log('🎵🎵🎵 [ITUNES API DEBUG] Making fetch request to:', url);
     const response = await fetch(url);
 
-    console.log('🎵🎵🎵 [ITUNES API DEBUG] Response:', { status: response.status, ok: response.ok });
+    console.log('🎵🎵🎵 [ITUNES API DEBUG] Response:', {
+      status: response.status,
+      ok: response.ok,
+    });
     getLogger().info(
       { status: response.status, ok: response.ok },
       '🎵 [iTunes API] Response received'
@@ -160,7 +163,7 @@ export async function findTrack(query: string): Promise<MusicSearchResult> {
 /**
  * Search for tracks by artist.
  */
-export async function searchByArtist(artist: string, limit: number = 10): Promise<iTunesTrack[]> {
+export async function searchByArtist(artist: string, limit = 10): Promise<iTunesTrack[]> {
   const results = await searchItunes(artist, limit);
   return results.results.filter((t) => t.previewUrl);
 }

@@ -13,7 +13,7 @@
  */
 
 // Type exports
-export * from './types.js';
+export type * from './types.js';
 
 // =============================================================================
 // NEW AGENT-AGNOSTIC SYSTEM

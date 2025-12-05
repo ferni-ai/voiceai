@@ -35,35 +35,27 @@ const DEFAULT_SETTLING_ACTIONS = [
   'taking a moment to focus',
 ];
 
-const DEFAULT_THINKING_ACTIONS = [
-  'pausing to think',
-  'considering that',
-  'taking a breath',
-];
+const DEFAULT_THINKING_ACTIONS = ['pausing to think', 'considering that', 'taking a breath'];
 
-const DEFAULT_ENGAGED_ACTIONS = [
-  'leaning in',
-  'nodding along',
-  'listening intently',
-];
+const DEFAULT_ENGAGED_ACTIONS = ['leaning in', 'nodding along', 'listening intently'];
 
-const DEFAULT_ENVIRONMENT = [
-  'a comfortable space',
-  'the quiet focus of the moment',
-];
+const DEFAULT_ENVIRONMENT = ['a comfortable space', 'the quiet focus of the moment'];
 
 /**
  * Persona-specific physical presence traits.
  * These make each persona feel uniquely embodied.
  */
-const PERSONA_PRESENCE: Record<string, {
-  settlingIn: string[];
-  thinking: string[];
-  engaged: string[];
-  environment: string[];
-  physicalTics: string[];
-}> = {
-  'ferni': {
+const PERSONA_PRESENCE: Record<
+  string,
+  {
+    settlingIn: string[];
+    thinking: string[];
+    engaged: string[];
+    environment: string[];
+    physicalTics: string[];
+  }
+> = {
+  ferni: {
     settlingIn: [
       'settling in with a fresh cup of coffee',
       'adjusting in the chair, getting comfortable',
@@ -180,11 +172,7 @@ const PERSONA_PRESENCE: Record<string, {
       'multiple monitors with calendars',
       'neat stacks of organized documents',
     ],
-    physicalTics: [
-      'quick typing sounds',
-      'clicking a pen',
-      'checking the watch',
-    ],
+    physicalTics: ['quick typing sounds', 'clicking a pen', 'checking the watch'],
   },
 
   'maya-santos': {
@@ -242,11 +230,7 @@ const PERSONA_PRESENCE: Record<string, {
       'destination photos everywhere',
       'a vision journal within reach',
     ],
-    physicalTics: [
-      'animated hand gestures',
-      'bouncing when excited',
-      'touching arm for emphasis',
-    ],
+    physicalTics: ['animated hand gestures', 'bouncing when excited', 'touching arm for emphasis'],
   },
 };
 
@@ -265,19 +249,19 @@ function getPresenceFromBundle(bundleRuntime: BundleRuntimeEngine | undefined): 
   physicalTics: string[];
 } | null {
   if (!bundleRuntime) return null;
-  
+
   const physicalPresence = bundleRuntime.getPhysicalPresence();
   const dailyRhythms = bundleRuntime.getDailyRhythms();
-  
+
   if (!physicalPresence) return null;
-  
+
   // Build presence data from bundle
   const settlingIn: string[] = [];
   const thinking: string[] = [];
   const engaged: string[] = [];
   const environment: string[] = [];
   const physicalTics: string[] = [];
-  
+
   // Signature gestures can be used for settling/thinking/engaged
   if (physicalPresence.signatureGestures) {
     // First few gestures for settling
@@ -293,7 +277,7 @@ function getPresenceFromBundle(bundleRuntime: BundleRuntimeEngine | undefined): 
       engaged.push(physicalPresence.signatureGestures[2]);
     }
   }
-  
+
   // Physical quirks
   if (physicalPresence.physicalQuirks) {
     physicalTics.push(...physicalPresence.physicalQuirks);
@@ -302,44 +286,44 @@ function getPresenceFromBundle(bundleRuntime: BundleRuntimeEngine | undefined): 
       thinking.push(physicalPresence.physicalQuirks[0]);
     }
   }
-  
+
   // Energy in room for settling
   if (physicalPresence.energyInRoom) {
     settlingIn.push(physicalPresence.energyInRoom);
   }
-  
+
   // How they move for engaged
   if (physicalPresence.howTheyMove) {
     engaged.push(physicalPresence.howTheyMove);
   }
-  
+
   // Eye contact behavior
   if (physicalPresence.eyeContact) {
     engaged.push(physicalPresence.eyeContact);
   }
-  
+
   // Morning ritual for settling
   if (dailyRhythms?.morningRitual) {
     settlingIn.push(dailyRhythms.morningRitual);
   }
-  
+
   // Environment where they thrive
   const envThrive = bundleRuntime.getEnvironmentWhereThrives();
   if (envThrive) {
     environment.push(envThrive);
   }
-  
+
   // Sounds that fill the soul
   const sounds = bundleRuntime.getSoulFillingSounds();
   if (sounds && sounds.length > 0) {
     environment.push(sounds[Math.floor(Math.random() * sounds.length)]);
   }
-  
+
   // Only return if we got meaningful data
   if (settlingIn.length === 0 && thinking.length === 0 && engaged.length === 0) {
     return null;
   }
-  
+
   return {
     settlingIn: settlingIn.length > 0 ? settlingIn : DEFAULT_SETTLING_ACTIONS,
     thinking: thinking.length > 0 ? thinking : DEFAULT_THINKING_ACTIONS,
@@ -356,7 +340,7 @@ function getPresenceFromBundle(bundleRuntime: BundleRuntimeEngine | undefined): 
 /**
  * Determine what physical presence injection to add.
  * This runs occasionally to add texture without being overwhelming.
- * 
+ *
  * Priority: Bundle sensory-world data > PERSONA_PRESENCE fallback > defaults
  */
 async function buildPhysicalPresence(input: ContextBuilderInput): Promise<ContextInjection[]> {
@@ -370,16 +354,16 @@ async function buildPhysicalPresence(input: ContextBuilderInput): Promise<Contex
   }
 
   const personaId = persona?.id || 'ferni';
-  
+
   // Try bundle first, then fallback to PERSONA_PRESENCE
   let presence = getPresenceFromBundle(bundleRuntime);
   let presenceSource = 'bundle';
-  
+
   if (!presence) {
     presence = PERSONA_PRESENCE[personaId];
     presenceSource = 'fallback';
   }
-  
+
   if (!presence) {
     // Last resort: use defaults
     presence = {
@@ -425,7 +409,8 @@ async function buildPhysicalPresence(input: ContextBuilderInput): Promise<Contex
       presenceAction = presence.engaged[Math.floor(Math.random() * presence.engaged.length)];
       break;
     case 'environment':
-      presenceAction = presence.environment[Math.floor(Math.random() * presence.environment.length)];
+      presenceAction =
+        presence.environment[Math.floor(Math.random() * presence.environment.length)];
       break;
   }
 
@@ -453,4 +438,3 @@ async function buildPhysicalPresence(input: ContextBuilderInput): Promise<Contex
 registerContextBuilder('physical_presence', buildPhysicalPresence);
 
 export { buildPhysicalPresence, PERSONA_PRESENCE };
-

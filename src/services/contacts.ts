@@ -90,7 +90,7 @@ export interface ContactSearchResult {
 // ============================================================================
 
 // In-memory storage (would be Firestore/DB in production)
-const contactsStore: Map<string, Contact> = new Map();
+const contactsStore = new Map<string, Contact>();
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -218,7 +218,7 @@ export function getFavoriteContacts(userId: string): Contact[] {
 /**
  * Get recent contacts
  */
-export function getRecentContacts(userId: string, limit: number = 10): Contact[] {
+export function getRecentContacts(userId: string, limit = 10): Contact[] {
   return getUserContacts(userId)
     .filter((c) => c.lastContactedAt)
     .sort((a, b) => (b.lastContactedAt?.getTime() || 0) - (a.lastContactedAt?.getTime() || 0))
@@ -768,11 +768,11 @@ function normalizePhone(phone: string): string {
 
   // Add +1 for US numbers if not present
   if (normalized.length === 10) {
-    normalized = '+1' + normalized;
+    normalized = `+1${normalized}`;
   } else if (normalized.length === 11 && normalized.startsWith('1')) {
-    normalized = '+' + normalized;
+    normalized = `+${normalized}`;
   } else if (!normalized.startsWith('+')) {
-    normalized = '+' + normalized;
+    normalized = `+${normalized}`;
   }
 
   return normalized;

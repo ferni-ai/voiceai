@@ -11,7 +11,8 @@
 export const FOUR_TENDENCIES_STRATEGIES = {
   upholder: {
     name: 'Upholder',
-    description: 'You meet both outer expectations (from others) and inner expectations (from yourself). You love schedules, to-do lists, and clear rules.',
+    description:
+      'You meet both outer expectations (from others) and inner expectations (from yourself). You love schedules, to-do lists, and clear rules.',
     habitStrategies: [
       'Set clear rules and schedules for yourself',
       'Create detailed to-do lists and check them off',
@@ -24,11 +25,13 @@ export const FOUR_TENDENCIES_STRATEGIES = {
       'Watch out for "tightening" - making rules stricter over time',
       'Remember that rest and fun are also "productive"',
     ],
-    motivationTip: 'You respond to clear expectations. Put your habits on your calendar and treat them as non-negotiable appointments.',
+    motivationTip:
+      'You respond to clear expectations. Put your habits on your calendar and treat them as non-negotiable appointments.',
   },
   questioner: {
     name: 'Questioner',
-    description: 'You question all expectations and only follow through if you have good reasons. You need to understand WHY before you commit.',
+    description:
+      'You question all expectations and only follow through if you have good reasons. You need to understand WHY before you commit.',
     habitStrategies: [
       'Research the science behind habits before starting',
       'Understand exactly WHY this habit matters',
@@ -41,11 +44,13 @@ export const FOUR_TENDENCIES_STRATEGIES = {
       'Questioning to the point of decision fatigue',
       "Rejecting good advice just because you didn't come up with it",
     ],
-    motivationTip: "You need to buy into the WHY. Once you truly believe a habit serves your goals, you'll follow through. Do the research first.",
+    motivationTip:
+      "You need to buy into the WHY. Once you truly believe a habit serves your goals, you'll follow through. Do the research first.",
   },
   obliger: {
     name: 'Obliger',
-    description: 'You meet outer expectations (for others) but struggle with inner expectations (for yourself). You need external accountability.',
+    description:
+      'You meet outer expectations (for others) but struggle with inner expectations (for yourself). You need external accountability.',
     habitStrategies: [
       'Get an accountability partner or coach',
       'Join a group or class with attendance expectations',
@@ -58,11 +63,13 @@ export const FOUR_TENDENCIES_STRATEGIES = {
       "Saying yes to everyone else's needs before your own",
       'Feeling guilty for needing external accountability',
     ],
-    motivationTip: "Your superpower is following through for others. Harness this by creating external accountability structures. This isn't weakness - it's self-knowledge.",
+    motivationTip:
+      "Your superpower is following through for others. Harness this by creating external accountability structures. This isn't weakness - it's self-knowledge.",
   },
   rebel: {
     name: 'Rebel',
-    description: 'You resist ALL expectations, both outer and inner. You want to act from freedom and choice, doing things your way.',
+    description:
+      'You resist ALL expectations, both outer and inner. You want to act from freedom and choice, doing things your way.',
     habitStrategies: [
       'Frame habits as choices, not rules ("I can" not "I must")',
       'Connect habits to your identity ("I\'m someone who...")',
@@ -72,10 +79,11 @@ export const FOUR_TENDENCIES_STRATEGIES = {
     ],
     avoid: [
       "Don't set rigid rules - they'll trigger resistance",
-      "Avoid tracking streaks - they feel like obligations",
+      'Avoid tracking streaks - they feel like obligations',
       "Don't let others tell you what to do",
     ],
-    motivationTip: 'Frame every habit as YOUR choice that expresses who you are. "I\'m the kind of person who..." works better than any rule. You do things because you WANT to, not because you should.',
+    motivationTip:
+      'Frame every habit as YOUR choice that expresses who you are. "I\'m the kind of person who..." works better than any rule. You do things because you WANT to, not because you should.',
   },
 } as const;
 
@@ -105,4 +113,3 @@ export function getTendencyMotivation(tendency: FourTendency): string {
 export function getAllTendencies(): FourTendency[] {
   return Object.keys(FOUR_TENDENCIES_STRATEGIES) as FourTendency[];
 }
-

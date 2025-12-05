@@ -24,9 +24,7 @@ import {
 /**
  * Create life planning tools with persona-specific configuration
  */
-export function createLifePlanningToolsFactory(
-  configOverrides?: Partial<LifePlanningToolsConfig>
-) {
+export function createLifePlanningToolsFactory(configOverrides?: Partial<LifePlanningToolsConfig>) {
   const config: LifePlanningToolsConfig = {
     ...DEFAULT_TOOL_BEHAVIOR,
     milestoneTracking: true,
@@ -57,16 +55,7 @@ export function createLifePlanningToolsFactory(
     parameters: z.object({
       title: z.string().describe('Milestone name'),
       type: z
-        .enum([
-          'wedding',
-          'baby',
-          'home',
-          'graduation',
-          'retirement',
-          'career',
-          'travel',
-          'other',
-        ])
+        .enum(['wedding', 'baby', 'home', 'graduation', 'retirement', 'career', 'travel', 'other'])
         .describe('Type of milestone'),
       targetDate: z.string().optional().describe('Target date'),
       budget: z.number().optional().describe('Budget if applicable'),
@@ -101,22 +90,11 @@ export function createLifePlanningToolsFactory(
     parameters: z.object({
       title: z.string().describe('Goal title'),
       category: z
-        .enum([
-          'career',
-          'health',
-          'financial',
-          'relationship',
-          'learning',
-          'personal',
-          'other',
-        ])
+        .enum(['career', 'health', 'financial', 'relationship', 'learning', 'personal', 'other'])
         .describe('Goal category'),
       description: z.string().optional().describe('Detailed description'),
       deadline: z.string().optional().describe('Target completion date'),
-      milestones: z
-        .array(z.string())
-        .optional()
-        .describe('Sub-milestones to track'),
+      milestones: z.array(z.string()).optional().describe('Sub-milestones to track'),
     }),
     execute: async ({ title, category, description, deadline, milestones }) => {
       const goal = await createGoalRecord(title, category, description, deadline, milestones);
@@ -316,10 +294,7 @@ async function getMilestoneProgressData(
   };
 }
 
-function formatProgressResponse(
-  data: ProgressData,
-  config: LifePlanningToolsConfig
-): string {
+function formatProgressResponse(data: ProgressData, config: LifePlanningToolsConfig): string {
   if (data.milestones.length === 0) {
     return 'No active milestones. Want to create one?';
   }
@@ -327,7 +302,8 @@ function formatProgressResponse(
   let response = '**Your Milestones**\n\n';
 
   data.milestones.forEach((m) => {
-    const bar = '▓'.repeat(Math.floor(m.progress / 10)) + '░'.repeat(10 - Math.floor(m.progress / 10));
+    const bar =
+      '▓'.repeat(Math.floor(m.progress / 10)) + '░'.repeat(10 - Math.floor(m.progress / 10));
     response += `${m.title}\n`;
     response += `[${bar}] ${m.progress}%\n`;
     if (m.daysRemaining) {
@@ -413,12 +389,7 @@ function getCulturalInfo(eventType: string, culture?: string): string {
   return info;
 }
 
-function manageRegistry(
-  action: string,
-  eventId?: string,
-  item?: string,
-  price?: number
-): string {
+function manageRegistry(action: string, eventId?: string, item?: string, price?: number): string {
   switch (action) {
     case 'create':
       return `Gift registry created for your event! Share it with guests when ready.`;
@@ -482,4 +453,3 @@ export function createJordanLifePlanningTools() {
 export function createFerniLifePlanningTools() {
   return createLifePlanningToolsFactory(PERSONA_LIFE_PLANNING_CONFIGS['ferni']);
 }
-

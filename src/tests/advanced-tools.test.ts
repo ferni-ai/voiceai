@@ -37,7 +37,9 @@ describe('DynamicToolLoader', () => {
 
     it('detects wellness topics', () => {
       const loader = new DynamicToolLoader();
-      const result = loader.detectTopics('I have been feeling stressed lately and it affects my health');
+      const result = loader.detectTopics(
+        'I have been feeling stressed lately and it affects my health'
+      );
 
       expect(result.detectedTopics).toContain('stress');
       expect(result.suggestedDomains).toContain('wellness');
@@ -608,4 +610,3 @@ describe('ToolVersioningService', () => {
     });
   });
 });
-

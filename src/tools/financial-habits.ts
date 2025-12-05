@@ -44,7 +44,6 @@ import {
   type SpendingLimitData,
 } from '../services/maya-financial-store.js';
 
-
 // ============================================================================
 // TYPES (for internal use - mapped to store types)
 // ============================================================================
@@ -132,7 +131,7 @@ Use when the user asks about:
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         const budget = store.getMainBudget(userId);
         const spending = analyzeSpendingFromBudget(budget);
 
@@ -169,7 +168,7 @@ Use when the user wants to:
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         const leaks = findSpendingLeaksFromStore(userId);
 
         if (leaks.length === 0) {
@@ -200,7 +199,7 @@ Use when the user asks:
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         const budget = store.getMainBudget(userId);
 
         if (!budget) {
@@ -244,10 +243,10 @@ Use when the user wants to:
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         let budget = store.getMainBudget(userId);
         const now = new Date().toISOString();
-        
+
         if (!budget) {
           budget = {
             id: `budget_main_${userId}`,
@@ -274,14 +273,16 @@ Use when the user wants to:
             name: category,
             limit: monthlyLimit,
             spent: 0,
-            color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'),
+            color: `#${Math.floor(Math.random() * 16777215)
+              .toString(16)
+              .padStart(6, '0')}`,
             isEssential,
           });
         }
 
         budget.monthlyLimit = budget.categories.reduce((sum, c) => sum + c.limit, 0);
         budget.remaining = budget.monthlyLimit - budget.spent;
-        
+
         store.setBudget(userId, budget);
         getLogger().info({ userId, category, monthlyLimit }, '📋 Budget updated (persisted)');
 
@@ -302,7 +303,7 @@ Use when the user asks about:
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         const goals = store.getActiveSavingsGoals(userId);
 
         if (goals.length === 0) {
@@ -324,9 +325,7 @@ Use when the user asks about:
 
           if (goal.deadline) {
             const deadline = new Date(goal.deadline);
-            const daysLeft = Math.ceil(
-              (deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-            );
+            const daysLeft = Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
             response += `⏰ ${daysLeft} days left\n`;
           }
 
@@ -351,18 +350,14 @@ Use when the user wants to:
         priority: z.enum(['high', 'medium', 'low']).default('medium').describe('Priority level'),
         isEmergencyFund: z.boolean().default(false).describe('Is this an emergency fund?'),
       }),
-      execute: async ({
-        name,
-        targetAmount,
-        deadline,
-        monthlyContribution,
-        priority,
-        isEmergencyFund,
-      }, { ctx }) => {
+      execute: async (
+        { name, targetAmount, deadline, monthlyContribution, priority, isEmergencyFund },
+        { ctx }
+      ) => {
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         const now = new Date().toISOString();
         const id = `goal_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
@@ -382,7 +377,10 @@ Use when the user wants to:
         };
 
         store.setSavingsGoal(userId, goal);
-        getLogger().info({ userId, name, targetAmount, monthlyContribution }, '🎯 Savings goal created (persisted)');
+        getLogger().info(
+          { userId, name, targetAmount, monthlyContribution },
+          '🎯 Savings goal created (persisted)'
+        );
 
         const monthsToGoal = Math.ceil(targetAmount / monthlyContribution);
 
@@ -413,7 +411,7 @@ Use when the user wants to:
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         const subs = store.getActiveSubscriptions(userId);
 
         if (subs.length === 0) {
@@ -959,7 +957,7 @@ Use when:
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         // Store this trigger (persisted to Firestore)
         const trigger: SpendingTriggerData = {
           id: `trigger_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -1025,9 +1023,9 @@ Use when user wants to understand their spending triggers.`,
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         const triggers = store.getUserSpendingTriggers(userId);
-        
+
         if (triggers.length === 0) {
           return `You haven't logged any spending triggers yet. Next time you make a purchase you're not sure about, tell me and we'll track what triggered it. Over time, patterns will emerge!`;
         }
@@ -1348,7 +1346,7 @@ Use when user wants to:
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         const now = new Date().toISOString();
         const limit: SpendingLimitData = {
           id: `limit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -1366,7 +1364,10 @@ Use when user wants to:
         };
 
         store.setSpendingLimit(userId, limit);
-        getLogger().info({ userId, category, weeklyLimit, monthlyLimit }, '🚨 Spending limit set (persisted)');
+        getLogger().info(
+          { userId, category, weeklyLimit, monthlyLimit },
+          '🚨 Spending limit set (persisted)'
+        );
 
         let response = `🚨 **Spending Limit Set!**\n\n`;
         response += `**Category:** ${category}\n`;
@@ -1406,7 +1407,7 @@ Use when user asks:
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         const limits = store.getUserSpendingLimits(userId);
 
         if (limits.length === 0) {
@@ -1471,7 +1472,7 @@ Use when user tells you about a purchase in a limited category.`,
         const userId = getUserId({ ctx });
         const store = getMayaFinancialStore();
         await store.loadUserData(userId);
-        
+
         // Use the store's method which handles week/month reset automatically
         const updatedLimit = store.logSpendAgainstLimit(userId, category, amount);
 

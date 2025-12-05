@@ -7,7 +7,7 @@ import type {
 import { createUserProfile } from '../../types/user-profile.js';
 
 export function createTestProfile(overrides?: Partial<UserProfile>): UserProfile {
-  const testId = 'test-user-' + Math.random().toString(36).substring(7);
+  const testId = `test-user-${Math.random().toString(36).substring(7)}`;
   const base = createUserProfile(testId, 'Test User');
 
   return {
@@ -18,8 +18,8 @@ export function createTestProfile(overrides?: Partial<UserProfile>): UserProfile
 
 export function createTestSummary(overrides?: Partial<ConversationSummary>): ConversationSummary {
   return {
-    id: 'summary-' + Math.random().toString(36).substring(7),
-    sessionId: 'session-' + Math.random().toString(36).substring(7),
+    id: `summary-${Math.random().toString(36).substring(7)}`,
+    sessionId: `session-${Math.random().toString(36).substring(7)}`,
     timestamp: new Date(),
     duration: 600,
     turnCount: 10,
@@ -34,7 +34,7 @@ export function createTestGoal(overrides?: Partial<FinancialGoal>): FinancialGoa
   const now = new Date();
 
   return {
-    id: 'goal-' + Math.random().toString(36).substring(7),
+    id: `goal-${Math.random().toString(36).substring(7)}`,
     name: 'Test Goal',
     type: 'retirement',
     targetAmount: 100000,
@@ -51,7 +51,7 @@ export function createTestGoal(overrides?: Partial<FinancialGoal>): FinancialGoa
 
 export function createTestMoment(overrides?: Partial<KeyMoment>): KeyMoment {
   return {
-    id: 'moment-' + Math.random().toString(36).substring(7),
+    id: `moment-${Math.random().toString(36).substring(7)}`,
     timestamp: new Date(),
     type: 'milestone',
     summary: 'Test moment',

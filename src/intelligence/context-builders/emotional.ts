@@ -53,7 +53,7 @@ function buildEmotionalContext(input: ContextBuilderInput): ContextInjection[] {
   // Merge voice emotion with text emotion if available
   const textDistress = analysis.emotion.distressLevel ?? 0;
   let mergedDistress = textDistress;
-  const voiceEmotion = (userData as ExtendedUserData).voiceEmotion;
+  const { voiceEmotion } = userData as ExtendedUserData;
   if (voiceEmotion) {
     // Voice prosody provides physical stress indicators
     // Weight: 60% text emotion, 40% voice (voice can detect things text can't)

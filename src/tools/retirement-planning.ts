@@ -38,7 +38,7 @@ function validatePlanName(name: unknown): { valid: boolean; sanitized?: string; 
 
 function validateAge(
   age: unknown,
-  fieldName: string = 'age'
+  fieldName = 'age'
 ): { valid: boolean; sanitized?: number; error?: string } {
   if (typeof age !== 'number' || !Number.isInteger(age)) {
     return { valid: false, error: `${fieldName} must be a whole number` };
@@ -144,13 +144,13 @@ export interface RetirementChecklistItem {
 }
 
 // In-memory storage
-const retirementPlans: Map<string, RetirementPlan> = new Map();
+const retirementPlans = new Map<string, RetirementPlan>();
 
 // ============================================================================
 // RETIREMENT CHECKLISTS BY TIMELINE
 // ============================================================================
 
-const RETIREMENT_CHECKLIST_TEMPLATES: Record<string, Omit<RetirementChecklistItem, 'id'>[]> = {
+const RETIREMENT_CHECKLIST_TEMPLATES: Record<string, Array<Omit<RetirementChecklistItem, 'id'>>> = {
   '10-years-out': [
     {
       task: 'Estimate retirement expenses and income needs',
@@ -405,7 +405,7 @@ export function createRetirementPlan(
   currentAge: number,
   targetAge: number,
   style: RetirementStyle = 'traditional',
-  monthlyIncomeGoal: number = 5000
+  monthlyIncomeGoal = 5000
 ): RetirementPlan {
   // Validate inputs
   const currentAgeValidation = validateAge(currentAge, 'current age');

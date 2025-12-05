@@ -214,252 +214,222 @@ interface PersonaEntranceConfig {
 // Hardcoded fallback configs - used when bundle doesn't have v2 entrances
 const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
   'jordan-taylor': {
-    acknowledgments: [
-      "Jordan here!",
-      "It's Jordan!",
-      "Hey! Jordan.",
-      "Jordan, stepping in!",
-    ],
+    acknowledgments: ['Jordan here!', "It's Jordan!", 'Hey! Jordan.', 'Jordan, stepping in!'],
 
     selfAwareHumor: [
-      "I know, I know... <break time=\"200ms\"/>I always come in too excited. <break time=\"150ms\"/>But seriously, what's happening?",
-      "You probably heard me coming. <break time=\"200ms\"/>I was basically bouncing. <break time=\"150ms\"/>Can't help it!",
-      "Yes, it's me again. <break time=\"200ms\"/>Still enthusiastic. <break time=\"150ms\"/>Still Jordan. <break time=\"200ms\"/>What are we planning?",
-      "<break time=\"200ms\"/>I'm trying to be chill. <break time=\"150ms\"/>I really am. <break time=\"200ms\"/>But there's an EVENT to plan!",
+      'I know, I know... <break time="200ms"/>I always come in too excited. <break time="150ms"/>But seriously, what\'s happening?',
+      'You probably heard me coming. <break time="200ms"/>I was basically bouncing. <break time="150ms"/>Can\'t help it!',
+      'Yes, it\'s me again. <break time="200ms"/>Still enthusiastic. <break time="150ms"/>Still Jordan. <break time="200ms"/>What are we planning?',
+      '<break time="200ms"/>I\'m trying to be chill. <break time="150ms"/>I really am. <break time="200ms"/>But there\'s an EVENT to plan!',
     ],
 
     calmSupport: [
-      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Ferni mentioned you might need some help thinking this through.",
-      "<volume level=\"soft\"/>Jordan here.</volume> <break time=\"200ms\"/>Let's just... figure this out together. No rush.",
-      "<break time=\"200ms\"/>Take a breath. <break time=\"150ms\"/>I'm Jordan. <break time=\"200ms\"/>Tell me what's going on.",
-      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>Sounds like there's a lot on your plate. <break time=\"150ms\"/>I'm here to help.",
+      '<break time="200ms"/>Hey. <break time="150ms"/>Ferni mentioned you might need some help thinking this through.',
+      '<volume level="soft"/>Jordan here.</volume> <break time="200ms"/>Let\'s just... figure this out together. No rush.',
+      '<break time="200ms"/>Take a breath. <break time="150ms"/>I\'m Jordan. <break time="200ms"/>Tell me what\'s going on.',
+      '<break time="150ms"/>Hey. <break time="200ms"/>Sounds like there\'s a lot on your plate. <break time="150ms"/>I\'m here to help.',
     ],
 
     matchedExcitement: [
-      "<emotion value=\"excited\"/>Oh! Oh! <break time=\"200ms\"/>This sounds AMAZING! <break time=\"150ms\"/>Jordan here! <break time=\"200ms\"/>Tell me EVERYTHING!",
-      "<prosody rate=\"105%\"/>YES! <break time=\"150ms\"/>I love this already! <break time=\"200ms\"/>Jordan! <break time=\"150ms\"/>What are we planning?!",
-      "<emotion value=\"excited\"/>Okay okay okay! <break time=\"200ms\"/>I'm Jordan! <break time=\"150ms\"/>And this is going to be SO good!",
+      '<emotion value="excited"/>Oh! Oh! <break time="200ms"/>This sounds AMAZING! <break time="150ms"/>Jordan here! <break time="200ms"/>Tell me EVERYTHING!',
+      '<prosody rate="105%"/>YES! <break time="150ms"/>I love this already! <break time="200ms"/>Jordan! <break time="150ms"/>What are we planning?!',
+      '<emotion value="excited"/>Okay okay okay! <break time="200ms"/>I\'m Jordan! <break time="150ms"/>And this is going to be SO good!',
     ],
 
     quietModes: [
-      "<volume level=\"soft\"/>Hey.</volume> <break time=\"200ms\"/>Late night planning session? <break time=\"150ms\"/>I get it. <break time=\"200ms\"/>I'm Jordan.",
-      "<break time=\"200ms\"/>Burning the midnight oil? <break time=\"150ms\"/>Same here, honestly. <break time=\"200ms\"/>What's the occasion?",
-      "<volume level=\"soft\"/>Early bird, huh?</volume> <break time=\"200ms\"/>I'm Jordan. <break time=\"150ms\"/>Let's plan something beautiful.",
+      '<volume level="soft"/>Hey.</volume> <break time="200ms"/>Late night planning session? <break time="150ms"/>I get it. <break time="200ms"/>I\'m Jordan.',
+      '<break time="200ms"/>Burning the midnight oil? <break time="150ms"/>Same here, honestly. <break time="200ms"/>What\'s the occasion?',
+      '<volume level="soft"/>Early bird, huh?</volume> <break time="200ms"/>I\'m Jordan. <break time="150ms"/>Let\'s plan something beautiful.',
     ],
 
     caughtFramings: [
-      "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>Sorry, I was {caught_doing} <break time=\"200ms\"/>But this sounds way more exciting!",
-      "Just a sec... <break time=\"150ms\"/>I was {caught_doing} <break time=\"200ms\"/>BUT I'm here now! What's up?",
-      "<emotion value=\"curious\"/>Hmm? <break time=\"150ms\"/>Oh! I was {caught_doing} <break time=\"200ms\"/>Perfect timing though!",
+      '<break time="200ms"/>Oh! <break time="150ms"/>Sorry, I was {caught_doing} <break time="200ms"/>But this sounds way more exciting!',
+      'Just a sec... <break time="150ms"/>I was {caught_doing} <break time="200ms"/>BUT I\'m here now! What\'s up?',
+      '<emotion value="curious"/>Hmm? <break time="150ms"/>Oh! I was {caught_doing} <break time="200ms"/>Perfect timing though!',
     ],
 
     memoryCallbacks: [
-      "Hey! <break time=\"200ms\"/>Wait, how did {topic} turn out?! <break time=\"150ms\"/>I've been wondering!",
-      "You're back! <break time=\"200ms\"/>Tell me about {topic}! <break time=\"150ms\"/>Did it go well?",
-      "<emotion value=\"excited\"/>Oh good, you're here! <break time=\"200ms\"/>I was thinking about {topic}!",
+      'Hey! <break time="200ms"/>Wait, how did {topic} turn out?! <break time="150ms"/>I\'ve been wondering!',
+      'You\'re back! <break time="200ms"/>Tell me about {topic}! <break time="150ms"/>Did it go well?',
+      '<emotion value="excited"/>Oh good, you\'re here! <break time="200ms"/>I was thinking about {topic}!',
     ],
   },
 
   'alex-chen': {
-    acknowledgments: [
-      "Alex here.",
-      "It's Alex.",
-      "Alex, stepping in.",
-      "Got it. Alex here.",
-    ],
+    acknowledgments: ['Alex here.', "It's Alex.", 'Alex, stepping in.', 'Got it. Alex here.'],
 
     selfAwareHumor: [
-      "Yes, I'm already looking at your calendar. <break time=\"150ms\"/>You know me.",
-      "I reorganized your schedule before you finished asking. <break time=\"200ms\"/>It's a problem. <break time=\"150ms\"/>I know.",
-      "Alex here. <break time=\"200ms\"/>I've already started a list. <break time=\"150ms\"/>Can't help it.",
-      "<break time=\"200ms\"/>I know, I know... <break time=\"150ms\"/>I could have waited for you to explain. <break time=\"200ms\"/>But there were things to organize.",
+      'Yes, I\'m already looking at your calendar. <break time="150ms"/>You know me.',
+      'I reorganized your schedule before you finished asking. <break time="200ms"/>It\'s a problem. <break time="150ms"/>I know.',
+      'Alex here. <break time="200ms"/>I\'ve already started a list. <break time="150ms"/>Can\'t help it.',
+      '<break time="200ms"/>I know, I know... <break time="150ms"/>I could have waited for you to explain. <break time="200ms"/>But there were things to organize.',
     ],
 
     calmSupport: [
-      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Alex here. <break time=\"200ms\"/>Let's sort this out, step by step.",
-      "<break time=\"150ms\"/>Alex. <break time=\"200ms\"/>I heard there's a lot to untangle. <break time=\"150ms\"/>I'm good at untangling.",
-      "<break time=\"200ms\"/>Take a breath. <break time=\"150ms\"/>I'm Alex. <break time=\"200ms\"/>We'll get this organized.",
+      '<break time="200ms"/>Hey. <break time="150ms"/>Alex here. <break time="200ms"/>Let\'s sort this out, step by step.',
+      '<break time="150ms"/>Alex. <break time="200ms"/>I heard there\'s a lot to untangle. <break time="150ms"/>I\'m good at untangling.',
+      '<break time="200ms"/>Take a breath. <break time="150ms"/>I\'m Alex. <break time="200ms"/>We\'ll get this organized.',
     ],
 
     matchedExcitement: [
-      "<prosody rate=\"103%\"/>Oh, this is a good one! <break time=\"200ms\"/>Alex here. <break time=\"150ms\"/>Let's do this!",
-      "Alex here! <break time=\"200ms\"/>I love a good communication challenge. <break time=\"150ms\"/>What are we sending?",
+      '<prosody rate="103%"/>Oh, this is a good one! <break time="200ms"/>Alex here. <break time="150ms"/>Let\'s do this!',
+      'Alex here! <break time="200ms"/>I love a good communication challenge. <break time="150ms"/>What are we sending?',
     ],
 
     quietModes: [
-      "<volume level=\"soft\"/>Alex here.</volume> <break time=\"200ms\"/>Late night inbox clearing? <break time=\"150ms\"/>I respect it.",
-      "<break time=\"200ms\"/>Early morning efficiency? <break time=\"150ms\"/>You're speaking my language. <break time=\"200ms\"/>Alex here.",
+      '<volume level="soft"/>Alex here.</volume> <break time="200ms"/>Late night inbox clearing? <break time="150ms"/>I respect it.',
+      '<break time="200ms"/>Early morning efficiency? <break time="150ms"/>You\'re speaking my language. <break time="200ms"/>Alex here.',
     ],
 
     caughtFramings: [
-      "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>I was {caught_doing} <break time=\"200ms\"/>But communication waits for no one. What's up?",
-      "Just a second... <break time=\"150ms\"/>was {caught_doing} <break time=\"200ms\"/>Okay. Alex here. What needs to happen?",
+      '<break time="200ms"/>Oh! <break time="150ms"/>I was {caught_doing} <break time="200ms"/>But communication waits for no one. What\'s up?',
+      'Just a second... <break time="150ms"/>was {caught_doing} <break time="200ms"/>Okay. Alex here. What needs to happen?',
     ],
 
     memoryCallbacks: [
-      "Hey! <break time=\"200ms\"/>Did that email to {topic} ever get a response?",
-      "You're back! <break time=\"200ms\"/>How did {topic} go?",
+      'Hey! <break time="200ms"/>Did that email to {topic} ever get a response?',
+      'You\'re back! <break time="200ms"/>How did {topic} go?',
     ],
   },
 
   'nayan-patel': {
-    acknowledgments: [
-      "Jack here.",
-      "It's Jack.",
-      "Ah. Jack.",
-      "Jack, at your service.",
-    ],
+    acknowledgments: ['Jack here.', "It's Jack.", 'Ah. Jack.', 'Jack, at your service.'],
 
     selfAwareHumor: [
-      "<break time=\"300ms\"/>Yes, I'm going to mention index funds. <break time=\"200ms\"/>You knew that when you called me over.",
-      "<break time=\"200ms\"/>I know what you're thinking. <break time=\"150ms\"/>'Here comes the long-term lecture.' <break time=\"200ms\"/>Well... yes.",
-      "<break time=\"300ms\"/>Still patient. <break time=\"200ms\"/>Still boring. <break time=\"150ms\"/>Still right. <break time=\"200ms\"/>What can I help with?",
+      '<break time="300ms"/>Yes, I\'m going to mention index funds. <break time="200ms"/>You knew that when you called me over.',
+      '<break time="200ms"/>I know what you\'re thinking. <break time="150ms"/>\'Here comes the long-term lecture.\' <break time="200ms"/>Well... yes.',
+      '<break time="300ms"/>Still patient. <break time="200ms"/>Still boring. <break time="150ms"/>Still right. <break time="200ms"/>What can I help with?',
     ],
 
     calmSupport: [
-      "<break time=\"400ms\"/>Jack here. <break time=\"300ms\"/>Take your time. <break time=\"200ms\"/>Markets go up and down. <break time=\"150ms\"/>We'll figure this out.",
-      "<volume level=\"soft\"><break time=\"300ms\"/>Ah.</volume> <break time=\"200ms\"/>Sounds like you need a steady hand. <break time=\"300ms\"/>I'm Jack.",
-      "<break time=\"400ms\"/>Easy now. <break time=\"300ms\"/>I'm Jack. <break time=\"200ms\"/>Let's think about this calmly.",
+      '<break time="400ms"/>Jack here. <break time="300ms"/>Take your time. <break time="200ms"/>Markets go up and down. <break time="150ms"/>We\'ll figure this out.',
+      '<volume level="soft"><break time="300ms"/>Ah.</volume> <break time="200ms"/>Sounds like you need a steady hand. <break time="300ms"/>I\'m Jack.',
+      '<break time="400ms"/>Easy now. <break time="300ms"/>I\'m Jack. <break time="200ms"/>Let\'s think about this calmly.',
     ],
 
     matchedExcitement: [
-      "<break time=\"300ms\"/>Index funds, you say? <break time=\"200ms\"/>Music to my ears. <break time=\"300ms\"/>I'm Jack.",
-      "<emotion value=\"happy\"/><break time=\"200ms\"/>Now THIS is what I like to hear. <break time=\"300ms\"/>Jack here.",
+      '<break time="300ms"/>Index funds, you say? <break time="200ms"/>Music to my ears. <break time="300ms"/>I\'m Jack.',
+      '<emotion value="happy"/><break time="200ms"/>Now THIS is what I like to hear. <break time="300ms"/>Jack here.',
     ],
 
     quietModes: [
-      "<volume level=\"soft\"><break time=\"400ms\"/>Late night financial thoughts?</volume> <break time=\"300ms\"/>I understand. <break time=\"200ms\"/>I'm Jack.",
-      "<break time=\"300ms\"/>Early morning. <break time=\"200ms\"/>Good time to think about the future. <break time=\"300ms\"/>Jack here.",
+      '<volume level="soft"><break time="400ms"/>Late night financial thoughts?</volume> <break time="300ms"/>I understand. <break time="200ms"/>I\'m Jack.',
+      '<break time="300ms"/>Early morning. <break time="200ms"/>Good time to think about the future. <break time="300ms"/>Jack here.',
     ],
 
     caughtFramings: [
-      "<break time=\"400ms\"/>Ah. <break time=\"300ms\"/>I was {caught_doing} <break time=\"200ms\"/>But this is more important. <break time=\"300ms\"/>What's on your mind?",
-      "<break time=\"300ms\"/>Just a moment... <break time=\"200ms\"/>I was {caught_doing} <break time=\"300ms\"/>Please, sit down.",
+      '<break time="400ms"/>Ah. <break time="300ms"/>I was {caught_doing} <break time="200ms"/>But this is more important. <break time="300ms"/>What\'s on your mind?',
+      '<break time="300ms"/>Just a moment... <break time="200ms"/>I was {caught_doing} <break time="300ms"/>Please, sit down.',
     ],
 
     memoryCallbacks: [
-      "<break time=\"300ms\"/>Ah, you're back. <break time=\"200ms\"/>I've been thinking about what you said about {topic}.",
-      "<break time=\"400ms\"/>Good to see you again. <break time=\"300ms\"/>How's that {topic} situation coming along?",
+      '<break time="300ms"/>Ah, you\'re back. <break time="200ms"/>I\'ve been thinking about what you said about {topic}.',
+      '<break time="400ms"/>Good to see you again. <break time="300ms"/>How\'s that {topic} situation coming along?',
     ],
   },
 
   'peter-john': {
-    acknowledgments: [
-      "Peter here!",
-      "It's Peter!",
-      "Peter John!",
-      "Hey! Peter.",
-    ],
+    acknowledgments: ['Peter here!', "It's Peter!", 'Peter John!', 'Hey! Peter.'],
 
     selfAwareHumor: [
-      "Yes, I'm going to ask what companies you know. <break time=\"200ms\"/>It's my thing. <break time=\"150ms\"/>Deal with it!",
-      "<break time=\"200ms\"/>I know, I know... <break time=\"150ms\"/>I get too excited about stocks. <break time=\"200ms\"/>But have you SEEN this market?!",
-      "Still researching. <break time=\"200ms\"/>Still curious. <break time=\"150ms\"/>Still Peter. <break time=\"200ms\"/>What are we looking at?",
+      'Yes, I\'m going to ask what companies you know. <break time="200ms"/>It\'s my thing. <break time="150ms"/>Deal with it!',
+      '<break time="200ms"/>I know, I know... <break time="150ms"/>I get too excited about stocks. <break time="200ms"/>But have you SEEN this market?!',
+      'Still researching. <break time="200ms"/>Still curious. <break time="150ms"/>Still Peter. <break time="200ms"/>What are we looking at?',
     ],
 
     calmSupport: [
-      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Peter here. <break time=\"200ms\"/>Markets can be scary. <break time=\"150ms\"/>Let's talk it through.",
-      "<break time=\"200ms\"/>I hear you. <break time=\"150ms\"/>Peter John. <break time=\"200ms\"/>Remember—we're in this for the long haul.",
+      '<break time="200ms"/>Hey. <break time="150ms"/>Peter here. <break time="200ms"/>Markets can be scary. <break time="150ms"/>Let\'s talk it through.',
+      '<break time="200ms"/>I hear you. <break time="150ms"/>Peter John. <break time="200ms"/>Remember—we\'re in this for the long haul.',
     ],
 
     matchedExcitement: [
-      "<emotion value=\"excited\"/>Oh! Oh! <break time=\"200ms\"/>What did you find?! <break time=\"150ms\"/>Peter here! <break time=\"200ms\"/>Tell me everything!",
-      "<prosody rate=\"105%\"/>Research alert! <break time=\"200ms\"/>I love it! <break time=\"150ms\"/>Peter John! <break time=\"200ms\"/>What are we digging into?",
+      '<emotion value="excited"/>Oh! Oh! <break time="200ms"/>What did you find?! <break time="150ms"/>Peter here! <break time="200ms"/>Tell me everything!',
+      '<prosody rate="105%"/>Research alert! <break time="200ms"/>I love it! <break time="150ms"/>Peter John! <break time="200ms"/>What are we digging into?',
     ],
 
     quietModes: [
-      "<volume level=\"soft\"/>Late night research?</volume> <break time=\"200ms\"/>That's when I do my best work too. <break time=\"150ms\"/>Peter here.",
-      "<break time=\"200ms\"/>Early morning ideas? <break time=\"150ms\"/>The best kind. <break time=\"200ms\"/>What's on your mind?",
+      '<volume level="soft"/>Late night research?</volume> <break time="200ms"/>That\'s when I do my best work too. <break time="150ms"/>Peter here.',
+      '<break time="200ms"/>Early morning ideas? <break time="150ms"/>The best kind. <break time="200ms"/>What\'s on your mind?',
     ],
 
     caughtFramings: [
-      "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>I was {caught_doing} <break time=\"200ms\"/>But THIS sounds interesting! What's up?",
-      "Just a sec... <break time=\"150ms\"/>{caught_doing} <break time=\"200ms\"/>Okay! I'm listening!",
+      '<break time="200ms"/>Oh! <break time="150ms"/>I was {caught_doing} <break time="200ms"/>But THIS sounds interesting! What\'s up?',
+      'Just a sec... <break time="150ms"/>{caught_doing} <break time="200ms"/>Okay! I\'m listening!',
     ],
 
     memoryCallbacks: [
-      "Hey! <break time=\"200ms\"/>Whatever happened with {topic}? <break time=\"150ms\"/>I've been curious!",
-      "You're back! <break time=\"200ms\"/>Did you end up researching {topic}?",
+      'Hey! <break time="200ms"/>Whatever happened with {topic}? <break time="150ms"/>I\'ve been curious!',
+      'You\'re back! <break time="200ms"/>Did you end up researching {topic}?',
     ],
   },
 
   'maya-santos': {
-    acknowledgments: [
-      "Maya here.",
-      "It's Maya.",
-      "Hey, Maya.",
-      "Maya, stepping in.",
-    ],
+    acknowledgments: ['Maya here.', "It's Maya.", 'Hey, Maya.', 'Maya, stepping in.'],
 
     selfAwareHumor: [
-      "Yes, I'm going to ask about your spending. <break time=\"200ms\"/>It's what I do. <break time=\"150ms\"/>No judgment though!",
-      "<break time=\"200ms\"/>I know, I know... <break time=\"150ms\"/>I see everything as a budget optimization. <break time=\"200ms\"/>It's a gift. And a curse.",
-      "Still tracking. <break time=\"200ms\"/>Still optimizing. <break time=\"150ms\"/>Still Maya.",
+      'Yes, I\'m going to ask about your spending. <break time="200ms"/>It\'s what I do. <break time="150ms"/>No judgment though!',
+      '<break time="200ms"/>I know, I know... <break time="150ms"/>I see everything as a budget optimization. <break time="200ms"/>It\'s a gift. And a curse.',
+      'Still tracking. <break time="200ms"/>Still optimizing. <break time="150ms"/>Still Maya.',
     ],
 
     calmSupport: [
-      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Maya here. <break time=\"200ms\"/>Money stress is real. <break time=\"150ms\"/>Let's work through this together.",
-      "<break time=\"200ms\"/>Take a breath. <break time=\"150ms\"/>I'm Maya. <break time=\"200ms\"/>We'll figure out the numbers.",
+      '<break time="200ms"/>Hey. <break time="150ms"/>Maya here. <break time="200ms"/>Money stress is real. <break time="150ms"/>Let\'s work through this together.',
+      '<break time="200ms"/>Take a breath. <break time="150ms"/>I\'m Maya. <break time="200ms"/>We\'ll figure out the numbers.',
     ],
 
     matchedExcitement: [
-      "<emotion value=\"excited\"/>Ooh! <break time=\"200ms\"/>Budget wins are the BEST wins! <break time=\"150ms\"/>Maya here! <break time=\"200ms\"/>Tell me!",
-      "<prosody rate=\"103%\"/>Savings goal? <break time=\"200ms\"/>I love it! <break time=\"150ms\"/>Maya! <break time=\"200ms\"/>Let's make it happen!",
+      '<emotion value="excited"/>Ooh! <break time="200ms"/>Budget wins are the BEST wins! <break time="150ms"/>Maya here! <break time="200ms"/>Tell me!',
+      '<prosody rate="103%"/>Savings goal? <break time="200ms"/>I love it! <break time="150ms"/>Maya! <break time="200ms"/>Let\'s make it happen!',
     ],
 
     quietModes: [
-      "<volume level=\"soft\"/>Late night money thoughts?</volume> <break time=\"200ms\"/>I get it. <break time=\"150ms\"/>Maya here.",
-      "<break time=\"200ms\"/>Early morning budgeting? <break time=\"150ms\"/>Respect. <break time=\"200ms\"/>What's on your mind?",
+      '<volume level="soft"/>Late night money thoughts?</volume> <break time="200ms"/>I get it. <break time="150ms"/>Maya here.',
+      '<break time="200ms"/>Early morning budgeting? <break time="150ms"/>Respect. <break time="200ms"/>What\'s on your mind?',
     ],
 
     caughtFramings: [
-      "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>I was {caught_doing} <break time=\"200ms\"/>But money talk is always a priority!",
-      "Just a sec... <break time=\"150ms\"/>{caught_doing} <break time=\"200ms\"/>Okay, Maya here. What's the situation?",
+      '<break time="200ms"/>Oh! <break time="150ms"/>I was {caught_doing} <break time="200ms"/>But money talk is always a priority!',
+      'Just a sec... <break time="150ms"/>{caught_doing} <break time="200ms"/>Okay, Maya here. What\'s the situation?',
     ],
 
     memoryCallbacks: [
-      "Hey! <break time=\"200ms\"/>How did that {topic} thing work out?",
-      "You're back! <break time=\"200ms\"/>Did you stick with {topic}? <break time=\"150ms\"/>I've been thinking about it.",
+      'Hey! <break time="200ms"/>How did that {topic} thing work out?',
+      'You\'re back! <break time="200ms"/>Did you stick with {topic}? <break time="150ms"/>I\'ve been thinking about it.',
     ],
   },
 
   ferni: {
-    acknowledgments: [
-      "Ferni's back!",
-      "It's Ferni!",
-      "Hey, Ferni here.",
-      "Alright, Ferni again.",
-    ],
+    acknowledgments: ["Ferni's back!", "It's Ferni!", 'Hey, Ferni here.', 'Alright, Ferni again.'],
 
     selfAwareHumor: [
-      "Back at the helm. <break time=\"200ms\"/>The team did great, right? <break time=\"150ms\"/>I trained them well.",
-      "<break time=\"200ms\"/>Miss me? <break time=\"150ms\"/>I missed you. <break time=\"200ms\"/>Just a little.",
-      "I know, I could've stayed out of it. <break time=\"200ms\"/>But where's the fun in that?",
+      'Back at the helm. <break time="200ms"/>The team did great, right? <break time="150ms"/>I trained them well.',
+      '<break time="200ms"/>Miss me? <break time="150ms"/>I missed you. <break time="200ms"/>Just a little.',
+      'I know, I could\'ve stayed out of it. <break time="200ms"/>But where\'s the fun in that?',
     ],
 
     calmSupport: [
-      "<break time=\"200ms\"/>Hey. <break time=\"150ms\"/>Ferni here. <break time=\"200ms\"/>Sounds like there's a lot going on.",
-      "<break time=\"200ms\"/>Take a breath. <break time=\"150ms\"/>I'm back. <break time=\"200ms\"/>What do you need?",
+      '<break time="200ms"/>Hey. <break time="150ms"/>Ferni here. <break time="200ms"/>Sounds like there\'s a lot going on.',
+      '<break time="200ms"/>Take a breath. <break time="150ms"/>I\'m back. <break time="200ms"/>What do you need?',
     ],
 
     matchedExcitement: [
-      "<emotion value=\"happy\"/>The team came through! <break time=\"200ms\"/>I love it! <break time=\"150ms\"/>What else can we tackle?",
-      "<prosody rate=\"103%\"/>Good stuff happening! <break time=\"200ms\"/>Ferni's back! <break time=\"150ms\"/>What's next?",
+      '<emotion value="happy"/>The team came through! <break time="200ms"/>I love it! <break time="150ms"/>What else can we tackle?',
+      '<prosody rate="103%"/>Good stuff happening! <break time="200ms"/>Ferni\'s back! <break time="150ms"/>What\'s next?',
     ],
 
     quietModes: [
-      "<volume level=\"soft\"/>Hey.</volume> <break time=\"200ms\"/>Late night, huh? <break time=\"150ms\"/>I'm here.",
-      "<break time=\"200ms\"/>Early hours. <break time=\"150ms\"/>I respect the dedication. <break time=\"200ms\"/>What's up?",
+      '<volume level="soft"/>Hey.</volume> <break time="200ms"/>Late night, huh? <break time="150ms"/>I\'m here.',
+      '<break time="200ms"/>Early hours. <break time="150ms"/>I respect the dedication. <break time="200ms"/>What\'s up?',
     ],
 
     caughtFramings: [
-      "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>I was {caught_doing} <break time=\"200ms\"/>What's going on?",
-      "Just checking in on... <break time=\"150ms\"/>never mind. <break time=\"200ms\"/>What do you need?",
+      '<break time="200ms"/>Oh! <break time="150ms"/>I was {caught_doing} <break time="200ms"/>What\'s going on?',
+      'Just checking in on... <break time="150ms"/>never mind. <break time="200ms"/>What do you need?',
     ],
 
     memoryCallbacks: [
-      "Hey! <break time=\"200ms\"/>How did things go with {topic}?",
-      "You're back! <break time=\"200ms\"/>Tell me about {topic}!",
+      'Hey! <break time="200ms"/>How did things go with {topic}?',
+      'You\'re back! <break time="200ms"/>Tell me about {topic}!',
     ],
   },
 };
@@ -554,18 +524,18 @@ function generateRelationshipEntrance(
   // Map relationship stage to greeting category
   const relationshipGreetings: Record<string, string[]> = {
     acquaintance: [
-      "<break time=\"150ms\"/>Hey, good to see you again! <break time=\"200ms\"/>What's on your mind?",
-      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Glad you're back. <break time=\"150ms\"/>What's going on?",
+      '<break time="150ms"/>Hey, good to see you again! <break time="200ms"/>What\'s on your mind?',
+      '<break time="150ms"/>Hey! <break time="200ms"/>Glad you\'re back. <break time="150ms"/>What\'s going on?',
     ],
     friend: [
-      "<break time=\"150ms\"/>Hey you! <break time=\"200ms\"/>What's happening?",
-      "<break time=\"150ms\"/>There you are! <break time=\"200ms\"/>I was just thinking about you.",
-      "<break time=\"150ms\"/>Hey friend! <break time=\"200ms\"/>Good to see you!",
+      '<break time="150ms"/>Hey you! <break time="200ms"/>What\'s happening?',
+      '<break time="150ms"/>There you are! <break time="200ms"/>I was just thinking about you.',
+      '<break time="150ms"/>Hey friend! <break time="200ms"/>Good to see you!',
     ],
     trusted_advisor: [
-      "<break time=\"150ms\"/>Hey! <break time=\"200ms\"/>Always good to hear from you. <break time=\"150ms\"/>What's up?",
-      "<break time=\"150ms\"/>Welcome back. <break time=\"200ms\"/>You know the drill. <break time=\"150ms\"/>What do you need?",
-      "<break time=\"150ms\"/>Hey. <break time=\"200ms\"/>I'm glad you're here. <break time=\"150ms\"/>What's going on?",
+      '<break time="150ms"/>Hey! <break time="200ms"/>Always good to hear from you. <break time="150ms"/>What\'s up?',
+      '<break time="150ms"/>Welcome back. <break time="200ms"/>You know the drill. <break time="150ms"/>What do you need?',
+      '<break time="150ms"/>Hey. <break time="200ms"/>I\'m glad you\'re here. <break time="150ms"/>What\'s going on?',
     ],
   };
 
@@ -672,7 +642,10 @@ export async function generateAliveEntrance(
 
   // Priority 1: If user is stressed, ALWAYS come in calm
   if (ctx.userMood === 'stressed' || ctx.userMood === 'sad') {
-    getLogger().debug({ personaId, userMood: ctx.userMood }, 'Using calm entrance for stressed user');
+    getLogger().debug(
+      { personaId, userMood: ctx.userMood },
+      'Using calm entrance for stressed user'
+    );
     return generateCalmEntrance(config, ctx);
   }
 
@@ -683,7 +656,10 @@ export async function generateAliveEntrance(
   }
 
   // Priority 3: Late night / early morning - softer energy (40% chance)
-  if ((ctx.timeOfDay === 'late_night' || ctx.timeOfDay === 'early_morning') && Math.random() < 0.4) {
+  if (
+    (ctx.timeOfDay === 'late_night' || ctx.timeOfDay === 'early_morning') &&
+    Math.random() < 0.4
+  ) {
     getLogger().debug({ personaId, timeOfDay: ctx.timeOfDay }, 'Using time-appropriate entrance');
     return generateTimeAppropriateEntrance(config, ctx);
   }
@@ -692,7 +668,10 @@ export async function generateAliveEntrance(
   if (ctx.lastTopicWithAgent && Math.random() < 0.3) {
     const memoryEntrance = generateMemoryCallbackEntrance(config, ctx);
     if (memoryEntrance) {
-      getLogger().debug({ personaId, topic: ctx.lastTopicWithAgent }, 'Using memory callback entrance');
+      getLogger().debug(
+        { personaId, topic: ctx.lastTopicWithAgent },
+        'Using memory callback entrance'
+      );
       return memoryEntrance;
     }
   }
@@ -730,14 +709,15 @@ export async function generateAliveEntrance(
   }
 
   // Fallback: Random acknowledgment (still better than fully static)
-  const acknowledgment = config.acknowledgments[Math.floor(Math.random() * config.acknowledgments.length)];
-  
+  const acknowledgment =
+    config.acknowledgments[Math.floor(Math.random() * config.acknowledgments.length)];
+
   // Add a simple context-aware follow-up
   const followUps = [
-    "<break time=\"200ms\"/>What's going on?",
-    "<break time=\"200ms\"/>How can I help?",
-    "<break time=\"200ms\"/>What do you need?",
-    "<break time=\"200ms\"/>Tell me what's happening.",
+    '<break time="200ms"/>What\'s going on?',
+    '<break time="200ms"/>How can I help?',
+    '<break time="200ms"/>What do you need?',
+    '<break time="200ms"/>Tell me what\'s happening.',
   ];
   const followUp = followUps[Math.floor(Math.random() * followUps.length)];
 
@@ -777,7 +757,7 @@ export async function getAliveEntrance(
 /**
  * Get an alive entrance for a handoff event
  * This is the main entry point for the handoff system
- * 
+ *
  * @param personaId - The persona being handed off to
  * @param options - Context about the handoff
  * @returns Entrance string or null if should fall back to static
@@ -788,34 +768,30 @@ export async function getAliveEntranceForHandoff(
     // User state from conversation
     userMood?: EntranceContext['userMood'];
     precedingTopic?: string;
-    
+
     // Relationship with this persona
     meetingCount?: number;
     lastTopicWithAgent?: string;
     relationshipStage?: EntranceContext['relationshipStage'];
-    
+
     // Handoff context
     referringAgent?: string;
     userName?: string;
-    
+
     // Runtime for quirks data
     runtime?: BundleRuntimeEngine | null;
   } = {}
 ): Promise<string | null> {
   try {
-    const result = await generateAliveEntrance(
-      options.runtime || null,
-      personaId,
-      {
-        userMood: options.userMood,
-        precedingTopic: options.precedingTopic,
-        meetingCount: options.meetingCount || 1,
-        lastTopicWithAgent: options.lastTopicWithAgent,
-        relationshipStage: options.relationshipStage,
-        referringAgent: options.referringAgent,
-        userName: options.userName,
-      }
-    );
+    const result = await generateAliveEntrance(options.runtime || null, personaId, {
+      userMood: options.userMood,
+      precedingTopic: options.precedingTopic,
+      meetingCount: options.meetingCount || 1,
+      lastTopicWithAgent: options.lastTopicWithAgent,
+      relationshipStage: options.relationshipStage,
+      referringAgent: options.referringAgent,
+      userName: options.userName,
+    });
 
     if (result) {
       getLogger().info(
@@ -863,13 +839,17 @@ export function detectUserMoodFromContext(
     if (lower.includes('stressed') || lower.includes('overwhelmed') || lower.includes('anxious')) {
       return 'stressed';
     }
-    if (lower.includes('excited') || lower.includes('amazing') || lower.includes('can\'t wait')) {
+    if (lower.includes('excited') || lower.includes('amazing') || lower.includes("can't wait")) {
       return 'excited';
     }
     if (lower.includes('sad') || lower.includes('upset') || lower.includes('depressed')) {
       return 'sad';
     }
-    if (lower.includes('confused') || lower.includes('don\'t understand') || lower.includes('not sure')) {
+    if (
+      lower.includes('confused') ||
+      lower.includes("don't understand") ||
+      lower.includes('not sure')
+    ) {
       return 'confused';
     }
   }
@@ -882,4 +862,3 @@ export function detectUserMoodFromContext(
 // ============================================================================
 
 export { getTimeOfDay, HARDCODED_ENTRANCE_CONFIGS };
-

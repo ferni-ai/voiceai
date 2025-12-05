@@ -50,8 +50,8 @@ export interface Registry {
 // STORAGE
 // ============================================================================
 
-const gifts: Map<string, Gift> = new Map();
-const registries: Map<string, Registry> = new Map();
+const gifts = new Map<string, Gift>();
+const registries = new Map<string, Registry>();
 
 // ============================================================================
 // GIFT IDEAS DATABASE
@@ -59,7 +59,7 @@ const registries: Map<string, Registry> = new Map();
 
 export const GIFT_IDEAS: Record<
   string,
-  { category: string; items: { name: string; priceRange: string }[] }[]
+  Array<{ category: string; items: Array<{ name: string; priceRange: string }> }>
 > = {
   wedding: [
     {

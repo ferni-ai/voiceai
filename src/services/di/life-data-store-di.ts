@@ -15,8 +15,10 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-import { Container, Tokens, type Factory } from './container.js';
-import { Result, success, failure, AsyncResult, NotFoundError } from '../../types/result.js';
+import type { Container } from './container.js';
+import { Tokens, type Factory } from './container.js';
+import type { AsyncResult } from '../../types/result.js';
+import { Result, success, failure, NotFoundError } from '../../types/result.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
 // ============================================================================
@@ -24,9 +26,20 @@ import type { UserProfile } from '../../types/user-profile.js';
 // ============================================================================
 
 export type MilestoneCategory =
-  | 'wedding' | 'first-baby' | 'first-home' | 'graduation' | 'retirement'
-  | 'first-solo-trip' | 'first-pet' | 'coming-of-age' | 'milestone-birthday'
-  | 'first-job' | 'first-car' | 'anniversary' | 'college-sendoff' | 'other';
+  | 'wedding'
+  | 'first-baby'
+  | 'first-home'
+  | 'graduation'
+  | 'retirement'
+  | 'first-solo-trip'
+  | 'first-pet'
+  | 'coming-of-age'
+  | 'milestone-birthday'
+  | 'first-job'
+  | 'first-car'
+  | 'anniversary'
+  | 'college-sendoff'
+  | 'other';
 
 export interface LifeMilestone {
   id: string;
@@ -36,15 +49,22 @@ export interface LifeMilestone {
   targetDate?: Date;
   status: 'dreaming' | 'planning' | 'in-progress' | 'completed' | 'postponed';
   budget?: number;
-  checklist: { id: string; task: string; completed: boolean }[];
+  checklist: Array<{ id: string; task: string; completed: boolean }>;
   notes: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type LifeGoalCategory =
-  | 'career' | 'financial' | 'health' | 'relationships'
-  | 'personal-growth' | 'home' | 'travel' | 'giving' | 'fun';
+  | 'career'
+  | 'financial'
+  | 'health'
+  | 'relationships'
+  | 'personal-growth'
+  | 'home'
+  | 'travel'
+  | 'giving'
+  | 'fun';
 
 export interface LifeGoal {
   id: string;
@@ -83,8 +103,8 @@ export interface LifePortfolio {
 // ============================================================================
 
 interface MemoryStoreInterface {
-  getProfile(userId: string): Promise<UserProfile | null>;
-  saveProfile(profile: UserProfile): Promise<void>;
+  getProfile: (userId: string) => Promise<UserProfile | null>;
+  saveProfile: (profile: UserProfile) => Promise<void>;
 }
 
 // ============================================================================
@@ -106,9 +126,9 @@ export class LifeDataStoreService {
   private readonly getLogger: () => any;
 
   // In-memory caches (would be Firestore in production)
-  private milestones: Map<string, LifeMilestone[]> = new Map();
-  private goals: Map<string, LifeGoal[]> = new Map();
-  private retirementPlans: Map<string, RetirementPlan> = new Map();
+  private milestones = new Map<string, LifeMilestone[]>();
+  private goals = new Map<string, LifeGoal[]>();
+  private retirementPlans = new Map<string, RetirementPlan>();
 
   constructor(deps: LifeDataStoreDeps) {
     this.store = deps.store;
@@ -145,11 +165,14 @@ export class LifeDataStoreService {
     }
   }
 
-  async getMilestone(userId: string, milestoneId: string): AsyncResult<LifeMilestone, NotFoundError | Error> {
+  async getMilestone(
+    userId: string,
+    milestoneId: string
+  ): AsyncResult<LifeMilestone, NotFoundError | Error> {
     try {
       const userMilestones = this.milestones.get(userId) || [];
-      const milestone = userMilestones.find(m => m.id === milestoneId);
-      
+      const milestone = userMilestones.find((m) => m.id === milestoneId);
+
       if (!milestone) {
         return failure(new NotFoundError('LifeMilestone', milestoneId));
       }
@@ -176,8 +199,8 @@ export class LifeDataStoreService {
   ): AsyncResult<LifeMilestone, NotFoundError | Error> {
     try {
       const userMilestones = this.milestones.get(userId) || [];
-      const index = userMilestones.findIndex(m => m.id === milestoneId);
-      
+      const index = userMilestones.findIndex((m) => m.id === milestoneId);
+
       if (index === -1) {
         return failure(new NotFoundError('LifeMilestone', milestoneId));
       }
@@ -200,11 +223,14 @@ export class LifeDataStoreService {
     }
   }
 
-  async deleteMilestone(userId: string, milestoneId: string): AsyncResult<void, NotFoundError | Error> {
+  async deleteMilestone(
+    userId: string,
+    milestoneId: string
+  ): AsyncResult<void, NotFoundError | Error> {
     try {
       const userMilestones = this.milestones.get(userId) || [];
-      const index = userMilestones.findIndex(m => m.id === milestoneId);
-      
+      const index = userMilestones.findIndex((m) => m.id === milestoneId);
+
       if (index === -1) {
         return failure(new NotFoundError('LifeMilestone', milestoneId));
       }
@@ -250,9 +276,9 @@ export class LifeDataStoreService {
   async listGoals(userId: string, category?: LifeGoalCategory): AsyncResult<LifeGoal[], Error> {
     try {
       let userGoals = this.goals.get(userId) || [];
-      
+
       if (category) {
-        userGoals = userGoals.filter(g => g.category === category);
+        userGoals = userGoals.filter((g) => g.category === category);
       }
 
       return success(userGoals);
@@ -268,8 +294,8 @@ export class LifeDataStoreService {
   ): AsyncResult<LifeGoal, NotFoundError | Error> {
     try {
       const userGoals = this.goals.get(userId) || [];
-      const index = userGoals.findIndex(g => g.id === goalId);
-      
+      const index = userGoals.findIndex((g) => g.id === goalId);
+
       if (index === -1) {
         return failure(new NotFoundError('LifeGoal', goalId));
       }
@@ -277,7 +303,8 @@ export class LifeDataStoreService {
       const updated: LifeGoal = {
         ...userGoals[index],
         progressPercent: Math.min(100, Math.max(0, progressPercent)),
-        status: progressPercent >= 100 ? 'completed' : progressPercent >= 50 ? 'on-track' : 'in-progress',
+        status:
+          progressPercent >= 100 ? 'completed' : progressPercent >= 50 ? 'on-track' : 'in-progress',
         updatedAt: new Date(),
       };
 
@@ -309,7 +336,7 @@ export class LifeDataStoreService {
   ): AsyncResult<RetirementPlan, Error> {
     try {
       const existing = this.retirementPlans.get(userId);
-      
+
       const plan: RetirementPlan = {
         ...data,
         id: existing?.id || `retirement_${userId}`,
@@ -334,20 +361,28 @@ export class LifeDataStoreService {
   async getLifePortfolio(userId: string): AsyncResult<LifePortfolio, Error> {
     try {
       const goals = this.goals.get(userId) || [];
-      
+
       // Calculate satisfaction per category
       const categories = {} as LifePortfolio['categories'];
       const allCategories: LifeGoalCategory[] = [
-        'career', 'financial', 'health', 'relationships',
-        'personal-growth', 'home', 'travel', 'giving', 'fun'
+        'career',
+        'financial',
+        'health',
+        'relationships',
+        'personal-growth',
+        'home',
+        'travel',
+        'giving',
+        'fun',
       ];
 
       for (const cat of allCategories) {
-        const catGoals = goals.filter(g => g.category === cat);
-        const avgProgress = catGoals.length > 0
-          ? catGoals.reduce((sum, g) => sum + g.progressPercent, 0) / catGoals.length
-          : 50; // Default satisfaction
-        
+        const catGoals = goals.filter((g) => g.category === cat);
+        const avgProgress =
+          catGoals.length > 0
+            ? catGoals.reduce((sum, g) => sum + g.progressPercent, 0) / catGoals.length
+            : 50; // Default satisfaction
+
         categories[cat] = {
           satisfaction: Math.round(avgProgress / 10),
           focus: avgProgress < 30 ? 'transform' : avgProgress < 70 ? 'improve' : 'maintain',
@@ -407,4 +442,3 @@ export function getLifeDataStoreService(container: Container): LifeDataStoreServ
   }
   return container.resolve<LifeDataStoreService>(LifeDataStoreToken);
 }
-

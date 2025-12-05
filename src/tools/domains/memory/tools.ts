@@ -24,14 +24,20 @@ interface UserProfile {
 }
 
 interface LearningEngine {
-  captureExternalKeyMoment(moment: {
+  captureExternalKeyMoment: (moment: {
     id: string;
     timestamp: Date;
-    type: 'breakthrough' | 'milestone' | 'concern' | 'celebration' | 'decision' | 'shared_vulnerability';
+    type:
+      | 'breakthrough'
+      | 'milestone'
+      | 'concern'
+      | 'celebration'
+      | 'decision'
+      | 'shared_vulnerability';
     summary: string;
     emotionalWeight: 'light' | 'medium' | 'heavy';
     topics: string[];
-  }): void;
+  }) => void;
 }
 
 interface SessionServices {
@@ -90,7 +96,7 @@ export const rememberAboutUserDef: ToolDefinition = {
         userData.keyMoments.push(`[${category}] ${fact}`);
 
         // Feed to learning engine for persistence
-        const services = userData.services;
+        const { services } = userData;
         if (services?.captureInsight) {
           const typeMap: Record<string, string> = {
             personal: 'relationship',
@@ -145,7 +151,7 @@ export const recallFromMemoryDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, topic }, 'Trying to recall');
 
         const userData = toolCtx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         if (services?.userProfile) {
           const profile = services.userProfile;
@@ -204,7 +210,7 @@ export const recallPreviousConversationDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, query }, 'Semantic recall');
 
         const userData = toolCtx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         if (services?.searchKnowledge) {
           try {
@@ -247,10 +253,13 @@ export const rememberImportantFactDef: ToolDefinition = {
         emotionalWeight: z.enum(['light', 'medium', 'heavy']).describe('Emotional significance'),
       }),
       execute: async ({ fact, type, emotionalWeight }, { ctx: toolCtx }) => {
-        getLogger().info({ agentId: ctx.agentId, fact, type, emotionalWeight }, 'Saving important fact');
+        getLogger().info(
+          { agentId: ctx.agentId, fact, type, emotionalWeight },
+          'Saving important fact'
+        );
 
         const userData = toolCtx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         // Store in session for awareness tools
         if (!userData.keyMoments) {
@@ -334,7 +343,8 @@ export const rememberImportantFactDef: ToolDefinition = {
 export const getRelationshipSummaryDef: ToolDefinition = {
   id: 'getRelationshipSummary',
   name: 'Get Relationship Summary',
-  description: "Get a summary of the relationship with this user - how long you've known them, key moments, etc.",
+  description:
+    "Get a summary of the relationship with this user - how long you've known them, key moments, etc.",
   domain: 'memory',
   tags: ['memory', 'relationship', 'summary'],
 
@@ -347,7 +357,7 @@ export const getRelationshipSummaryDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId }, 'Getting relationship summary');
 
         const userData = toolCtx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         if (services?.userProfile) {
           const profile = services.userProfile;
@@ -387,7 +397,7 @@ export const getRelationshipSummaryDef: ToolDefinition = {
         }
 
         // New user
-        const name = userData.name;
+        const { name } = userData;
         return name
           ? `I just met ${name} today. We're still getting to know each other.`
           : `This is a new conversation. I'm still getting to know this person.`;
@@ -395,4 +405,3 @@ export const getRelationshipSummaryDef: ToolDefinition = {
     });
   },
 };
-

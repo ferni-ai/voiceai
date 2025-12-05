@@ -8,8 +8,10 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { VectorStore, getVectorStore, type VectorDocument, type VectorFilter } from './vector-store.js';
-import { FirestoreVectorStore, getFirestoreVectorStore } from './firestore-vector-store.js';
+import type { VectorStore } from './vector-store.js';
+import { getVectorStore, type VectorDocument, type VectorFilter } from './vector-store.js';
+import type { FirestoreVectorStore } from './firestore-vector-store.js';
+import { getFirestoreVectorStore } from './firestore-vector-store.js';
 import { embed } from './embeddings.js';
 
 // Type for any vector store implementation
@@ -31,15 +33,15 @@ export function setActiveVectorStore(store: AnyVectorStore): void {
  */
 function getActiveStore(): AnyVectorStore {
   if (activeVectorStore) return activeVectorStore;
-  
+
   // Fallback: try to detect which store to use
   const storeType = process.env.MEMORY_STORE_TYPE;
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   if (storeType === 'firestore' || (isProduction && process.env.GOOGLE_CLOUD_PROJECT)) {
     return getFirestoreVectorStore();
   }
-  
+
   return getVectorStore();
 }
 
@@ -316,7 +318,7 @@ export function formatRAGContext(results: RAGResult[]): string {
   // Group by source
   const bySource: Record<string, RAGResult[]> = {};
   for (const result of results) {
-    const source = result.source;
+    const { source } = result;
     if (!bySource[source]) {
       bySource[source] = [];
     }

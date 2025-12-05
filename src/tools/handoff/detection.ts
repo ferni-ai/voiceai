@@ -349,4 +349,3 @@ export function shouldHandoffToFerni(userInput: string): boolean {
 
   return ferniTriggers.some((trigger) => lowerInput.includes(trigger));
 }
-

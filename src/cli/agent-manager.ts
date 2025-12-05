@@ -208,7 +208,8 @@ async function listAgents(): Promise<void> {
       : `${colors.red}✗ Invalid${colors.reset}`;
 
     const roleIcon = bundle.manifest.team?.coordinator ? '👑' : '🤖';
-    const role = bundle.manifest.team?.role_description?.slice(0, 18) || bundle.manifest.team?.role_id || '-';
+    const role =
+      bundle.manifest.team?.role_description?.slice(0, 18) || bundle.manifest.team?.role_id || '-';
 
     console.log(
       `${roleIcon} ${bundle.id.padEnd(18)} ${bundle.manifest.identity.name.padEnd(15)} ${role.padEnd(20)} ${status}`
@@ -227,9 +228,7 @@ async function listAgents(): Promise<void> {
 
 async function showAgent(agentId: string): Promise<void> {
   const bundles = await discoverBundles();
-  const bundle = bundles.find(
-    (b) => b.id === agentId || b.manifest.identity.id === agentId
-  );
+  const bundle = bundles.find((b) => b.id === agentId || b.manifest.identity.id === agentId);
 
   if (!bundle) {
     error(`Agent not found: ${agentId}`);
@@ -262,7 +261,9 @@ async function showAgent(agentId: string): Promise<void> {
   }
 
   console.log(`${colors.bold}Status${colors.reset}`);
-  console.log(`  Valid:       ${bundle.isValid ? `${colors.green}Yes${colors.reset}` : `${colors.red}No${colors.reset}`}`);
+  console.log(
+    `  Valid:       ${bundle.isValid ? `${colors.green}Yes${colors.reset}` : `${colors.red}No${colors.reset}`}`
+  );
   console.log(`  Path:        ${bundle.path}`);
   console.log(`  Files:       ${m.metadata?.content_files_count || 'Unknown'}`);
 
@@ -334,10 +335,11 @@ async function validateAgents(agentId?: string): Promise<void> {
       }
 
       // Check for missing handoff targets
-      const handoffTargets = (m as any).role?.handoff_targets || (m as any).capabilities?.handoff_targets || [];
+      const handoffTargets =
+        (m as any).role?.handoff_targets || (m as any).capabilities?.handoff_targets || [];
       const allAgentIds = toValidate.map((b) => b.manifest.identity.id);
       const allAliases = new Set<string>();
-      
+
       for (const b of toValidate) {
         allAliases.add(b.manifest.identity.id);
         const aliases = (b.manifest.identity as any).aliases || [];
@@ -401,7 +403,9 @@ interface ExternalRegistry {
   }>;
 }
 
-async function parseRepoSource(source: string): Promise<{ type: 'github' | 'url'; owner?: string; repo?: string; url?: string }> {
+async function parseRepoSource(
+  source: string
+): Promise<{ type: 'github' | 'url'; owner?: string; repo?: string; url?: string }> {
   // Parse github:owner/repo format
   if (source.startsWith('github:')) {
     const parts = source.slice(7).split('/');
@@ -445,7 +449,7 @@ async function fetchRegistry(source: string): Promise<ExternalRegistry> {
     if (!response.ok) {
       throw new Error(`Failed to fetch registry: ${response.status} ${response.statusText}`);
     }
-    return await response.json() as ExternalRegistry;
+    return (await response.json()) as ExternalRegistry;
   } catch (err) {
     throw new Error(`Could not fetch registry: ${(err as Error).message}`);
   }
@@ -465,9 +469,9 @@ async function installAgent(agentId: string, source: string): Promise<void> {
   try {
     // Fetch registry
     const registry = await fetchRegistry(source);
-    
+
     // Find agent in registry
-    const agentInfo = registry.agents.find(a => a.id === agentId);
+    const agentInfo = registry.agents.find((a) => a.id === agentId);
     if (!agentInfo) {
       error(`Agent "${agentId}" not found in registry`);
       info('Available agents:');
@@ -482,7 +486,7 @@ async function installAgent(agentId: string, source: string): Promise<void> {
     // Determine the download URL
     const parsed = await parseRepoSource(source);
     let downloadBaseUrl: string;
-    
+
     if (parsed.type === 'github') {
       downloadBaseUrl = `https://raw.githubusercontent.com/${parsed.owner}/${parsed.repo}/main/${agentInfo.path}`;
     } else {
@@ -501,26 +505,28 @@ async function installAgent(agentId: string, source: string): Promise<void> {
       // For GitHub, use git sparse-checkout for efficiency
       if (parsed.type === 'github') {
         const repoUrl = `https://github.com/${parsed.owner}/${parsed.repo}.git`;
-        
+
         info('Cloning repository (sparse checkout)...');
-        
+
         // Clone with sparse checkout
-        await execAsync(`git clone --depth 1 --filter=blob:none --sparse "${repoUrl}" "${tempDir}/repo"`);
-        
+        await execAsync(
+          `git clone --depth 1 --filter=blob:none --sparse "${repoUrl}" "${tempDir}/repo"`
+        );
+
         // Add the specific agent path to sparse checkout
         const agentPath = agentInfo.path.replace(/^\//, ''); // Remove leading slash if present
         await execAsync(`cd "${tempDir}/repo" && git sparse-checkout set "${agentPath}"`);
-        
+
         // Copy agent to bundles directory
         const sourcePath = join(tempDir, 'repo', agentPath);
-        
+
         if (!existsSync(sourcePath)) {
           throw new Error(`Agent bundle not found at ${sourcePath}`);
         }
 
         info(`Copying to ${existingPath}...`);
         await copyDirectory(sourcePath, existingPath);
-        
+
         success(`Installed ${agentInfo.name}!`);
       } else {
         // For URL-based installs, we'd need to download individual files
@@ -547,7 +553,7 @@ async function installAgent(agentId: string, source: string): Promise<void> {
     console.log('');
     success('Installation complete!');
     console.log('');
-    
+
     if (agentInfo.requirements?.voice_id_env) {
       warn(`This agent requires: ${agentInfo.requirements.voice_id_env}`);
       console.log(`  Add to your .env file:`);
@@ -560,7 +566,6 @@ async function installAgent(agentId: string, source: string): Promise<void> {
     console.log(`  2. Test:     PERSONA_ID=${agentId} npm run dev`);
     console.log('');
     info('The agent is now discoverable and can receive handoffs automatically!');
-
   } catch (err) {
     error(`Installation failed: ${(err as Error).message}`);
   }
@@ -569,11 +574,11 @@ async function installAgent(agentId: string, source: string): Promise<void> {
 async function copyDirectory(src: string, dest: string): Promise<void> {
   await mkdir(dest, { recursive: true });
   const entries = await readdir(src, { withFileTypes: true });
-  
+
   for (const entry of entries) {
     const srcPath = join(src, entry.name);
     const destPath = join(dest, entry.name);
-    
+
     if (entry.isDirectory()) {
       await copyDirectory(srcPath, destPath);
     } else {
@@ -586,7 +591,7 @@ async function uninstallAgent(agentId: string): Promise<void> {
   heading(`Uninstalling Agent: ${agentId}`);
 
   const bundlePath = join(BUNDLES_DIR, agentId);
-  
+
   if (!existsSync(bundlePath)) {
     error(`Agent "${agentId}" not found`);
     info('Use "ferni list" to see installed agents');
@@ -604,11 +609,11 @@ async function uninstallAgent(agentId: string): Promise<void> {
   }
 
   warn(`This will permanently delete: ${bundlePath}`);
-  
+
   // In a real CLI, you'd prompt for confirmation
   // For now, we'll just proceed
   info('Removing agent bundle...');
-  
+
   try {
     await rm(bundlePath, { recursive: true, force: true });
     success(`Uninstalled "${agentName}" successfully`);
@@ -624,11 +629,12 @@ async function searchAgents(query: string, source: string): Promise<void> {
 
   try {
     const registry = await fetchRegistry(source);
-    
-    const results = registry.agents.filter(a => 
-      a.id.includes(query.toLowerCase()) ||
-      a.name.toLowerCase().includes(query.toLowerCase()) ||
-      a.description.toLowerCase().includes(query.toLowerCase())
+
+    const results = registry.agents.filter(
+      (a) =>
+        a.id.includes(query.toLowerCase()) ||
+        a.name.toLowerCase().includes(query.toLowerCase()) ||
+        a.description.toLowerCase().includes(query.toLowerCase())
     );
 
     if (results.length === 0) {
@@ -636,7 +642,9 @@ async function searchAgents(query: string, source: string): Promise<void> {
       return;
     }
 
-    console.log(`${colors.dim}${'ID'.padEnd(20)} ${'Name'.padEnd(20)} ${'Description'.padEnd(40)}${colors.reset}`);
+    console.log(
+      `${colors.dim}${'ID'.padEnd(20)} ${'Name'.padEnd(20)} ${'Description'.padEnd(40)}${colors.reset}`
+    );
     console.log(`${colors.dim}${'─'.repeat(80)}${colors.reset}`);
 
     for (const agent of results) {
@@ -653,12 +661,14 @@ async function searchAgents(query: string, source: string): Promise<void> {
   }
 }
 
-async function createAgent(agentId: string, template: string = 'basic'): Promise<void> {
+async function createAgent(agentId: string, template = 'basic'): Promise<void> {
   heading(`Creating Agent: ${agentId}`);
 
   // Validate agent ID
   if (!/^[a-z][a-z0-9-]*$/.test(agentId)) {
-    error('Agent ID must start with a letter and contain only lowercase letters, numbers, and hyphens');
+    error(
+      'Agent ID must start with a letter and contain only lowercase letters, numbers, and hyphens'
+    );
     return;
   }
 
@@ -708,7 +718,9 @@ async function createAgent(agentId: string, template: string = 'basic'): Promise
 
       voice: {
         provider: 'cartesia',
-        voice_id: '${env:' + agentId.toUpperCase().replace(/-/g, '_') + '_VOICE_ID|fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc}',
+        voice_id: `\${env:${agentId
+          .toUpperCase()
+          .replace(/-/g, '_')}_VOICE_ID|fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc}`,
         default_rate: 'medium',
       },
 
@@ -728,7 +740,12 @@ async function createAgent(agentId: string, template: string = 'basic'): Promise
       },
 
       role: {
-        id: template === 'sage' ? 'sage-mentor' : template === 'specialist' ? 'specialist' : 'assistant',
+        id:
+          template === 'sage'
+            ? 'sage-mentor'
+            : template === 'specialist'
+              ? 'specialist'
+              : 'assistant',
         domains: ['general'],
         can_handoff: true,
         handoff_targets: ['ferni'],
@@ -739,7 +756,10 @@ async function createAgent(agentId: string, template: string = 'basic'): Promise
         role_id: agentId,
         role_description: `${displayName} - your ${template} assistant`,
         coordinator: false,
-        handoff_triggers: [`hey ${displayName.split(' ')[0].toLowerCase()}`, `talk to ${displayName.split(' ')[0].toLowerCase()}`],
+        handoff_triggers: [
+          `hey ${displayName.split(' ')[0].toLowerCase()}`,
+          `talk to ${displayName.split(' ')[0].toLowerCase()}`,
+        ],
         handoff_phrases: {
           to_coordinator: [`Let me hand you back to Ferni for anything else.`],
           receive: [`${displayName.split(' ')[0]} here. What can I help you with?`],
@@ -809,11 +829,17 @@ async function createAgent(agentId: string, template: string = 'basic'): Promise
 
     // Create empty content index files
     const storyIndex = { stories: [] };
-    await writeFile(join(bundlePath, 'content', 'stories', '_index.json'), JSON.stringify(storyIndex, null, 2));
+    await writeFile(
+      join(bundlePath, 'content', 'stories', '_index.json'),
+      JSON.stringify(storyIndex, null, 2)
+    );
     success('Created content/stories/_index.json');
 
     const knowledgeIndex = { topics: [] };
-    await writeFile(join(bundlePath, 'content', 'knowledge', '_index.json'), JSON.stringify(knowledgeIndex, null, 2));
+    await writeFile(
+      join(bundlePath, 'content', 'knowledge', '_index.json'),
+      JSON.stringify(knowledgeIndex, null, 2)
+    );
     success('Created content/knowledge/_index.json');
 
     // Create basic behavior files
@@ -821,14 +847,17 @@ async function createAgent(agentId: string, template: string = 'basic'): Promise
       new_user: [`Hi there! I'm ${displayName.split(' ')[0]}. How can I help you today?`],
       returning_user: [`Welcome back! ${displayName.split(' ')[0]} here. What's on your mind?`],
     };
-    await writeFile(join(bundlePath, 'content', 'behaviors', 'greetings.json'), JSON.stringify(greetings, null, 2));
+    await writeFile(
+      join(bundlePath, 'content', 'behaviors', 'greetings.json'),
+      JSON.stringify(greetings, null, 2)
+    );
     success('Created content/behaviors/greetings.json');
 
     console.log('');
     success(`Agent "${agentId}" created successfully!`);
     console.log('');
     info('Next steps:');
-    console.log('  1. Edit identity/biography.md with your agent\'s background');
+    console.log("  1. Edit identity/biography.md with your agent's background");
     console.log('  2. Edit identity/system-prompt.md with detailed instructions');
     console.log('  3. Add stories to content/stories/');
     console.log('  4. Add knowledge files to content/knowledge/');
@@ -836,7 +865,6 @@ async function createAgent(agentId: string, template: string = 'basic'): Promise
     console.log('');
     console.log(`  Validate with: npx ts-node src/cli/agent-manager.ts validate ${agentId}`);
     console.log(`  Test with:     PERSONA_ID=${agentId} npm run dev`);
-
   } catch (err) {
     error(`Failed to create agent: ${(err as Error).message}`);
   }
@@ -949,7 +977,8 @@ async function main(): Promise<void> {
         return;
       }
       const templateIndex = args.indexOf('--template');
-      const template = templateIndex > -1 && args[templateIndex + 1] ? args[templateIndex + 1] : 'basic';
+      const template =
+        templateIndex > -1 && args[templateIndex + 1] ? args[templateIndex + 1] : 'basic';
       await createAgent(args[1], template);
       break;
 
@@ -994,4 +1023,3 @@ main().catch((err) => {
   error(`Unexpected error: ${err.message}`);
   process.exit(1);
 });
-

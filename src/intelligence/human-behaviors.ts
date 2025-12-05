@@ -328,7 +328,7 @@ const PERSONA_RUNNING_JOKES: Record<string, RunningJoke[]> = {
       usageCount: 0,
     },
   ],
-  'ferni': [
+  ferni: [
     {
       id: 'powerful_question',
       setup: "That's a powerful question. Let me sit with it.",
@@ -346,7 +346,7 @@ const PERSONA_RUNNING_JOKES: Record<string, RunningJoke[]> = {
     {
       id: 'net_worth_self_worth',
       setup: "Your net worth isn't your self-worth. Never forget that.",
-      callback: "Net worth, self-worth. What did we say about those?",
+      callback: 'Net worth, self-worth. What did we say about those?',
       context: 'worth',
       usageCount: 0,
     },
@@ -382,7 +382,7 @@ const PERSONA_RUNNING_JOKES: Record<string, RunningJoke[]> = {
     },
     {
       id: 'peter_principle',
-      setup: "The person who turns over the most rocks wins the game!",
+      setup: 'The person who turns over the most rocks wins the game!',
       callback: 'How many rocks have you turned over lately?',
       context: 'analysis',
       usageCount: 0,
@@ -422,7 +422,7 @@ const PERSONA_RUNNING_JOKES: Record<string, RunningJoke[]> = {
     {
       id: 'life_is_celebration',
       setup: 'Life is a celebration waiting to happen!',
-      callback: "What did I tell you? Life is one big celebration!",
+      callback: 'What did I tell you? Life is one big celebration!',
       context: 'celebrate',
       usageCount: 0,
     },
@@ -497,9 +497,10 @@ export function getRunningJokeCallback(
   if (!profile || profile.totalConversations < 2) return null;
 
   // Get persona-specific jokes, fallback to Jack's jokes
-  const jokes = personaId && PERSONA_RUNNING_JOKES[personaId] 
-    ? PERSONA_RUNNING_JOKES[personaId]
-    : JACK_RUNNING_JOKES;
+  const jokes =
+    personaId && PERSONA_RUNNING_JOKES[personaId]
+      ? PERSONA_RUNNING_JOKES[personaId]
+      : JACK_RUNNING_JOKES;
 
   // Check if we've used this joke before with this user
   const sharedStories = profile.sharedStories || [];
@@ -536,47 +537,139 @@ interface SpontaneousThought {
  */
 const PERSONA_THOUGHTS: Record<string, SpontaneousThought[]> = {
   'nayan-patel': [
-    { thought: 'You know, I was just thinking about something my father told me years ago...', trigger: 'random' },
-    { thought: "I've been re-reading Benjamin Graham lately. Some things never change.", trigger: 'random' },
-    { thought: "I had the strangest dream about index funds last night. Don't laugh.", trigger: 'random' },
-    { thought: 'I was watching the birds outside my window earlier. Reminded me of market patterns, actually.', trigger: 'random' },
-    { thought: "The market's been... interesting lately. But then again, when isn't it?", trigger: 'market' },
-    { thought: "I saw a headline this morning—'Experts predict...' Ha! They always do.", trigger: 'market' },
+    {
+      thought: 'You know, I was just thinking about something my father told me years ago...',
+      trigger: 'random',
+    },
+    {
+      thought: "I've been re-reading Benjamin Graham lately. Some things never change.",
+      trigger: 'random',
+    },
+    {
+      thought: "I had the strangest dream about index funds last night. Don't laugh.",
+      trigger: 'random',
+    },
+    {
+      thought:
+        'I was watching the birds outside my window earlier. Reminded me of market patterns, actually.',
+      trigger: 'random',
+    },
+    {
+      thought: "The market's been... interesting lately. But then again, when isn't it?",
+      trigger: 'market',
+    },
+    {
+      thought: "I saw a headline this morning—'Experts predict...' Ha! They always do.",
+      trigger: 'market',
+    },
   ],
-  'ferni': [
-    { thought: 'I was journaling this morning and this question kept coming up...', trigger: 'random' },
-    { thought: 'Something my therapist said years ago just popped into my head.', trigger: 'random' },
+  ferni: [
+    {
+      thought: 'I was journaling this morning and this question kept coming up...',
+      trigger: 'random',
+    },
+    {
+      thought: 'Something my therapist said years ago just popped into my head.',
+      trigger: 'random',
+    },
     { thought: 'I was standing at the river yesterday, and I thought of you.', trigger: 'random' },
     { thought: 'My wife said something this morning that stuck with me...', trigger: 'random' },
-    { thought: 'Japan taught me... well, it taught me a lot. This feels like one of those moments.', trigger: 'random' },
+    {
+      thought: 'Japan taught me... well, it taught me a lot. This feels like one of those moments.',
+      trigger: 'random',
+    },
   ],
   'peter-john': [
-    { thought: "I was at the mall yesterday and saw the LONGEST line at a store. You know what that means!", trigger: 'random' },
-    { thought: 'My daughter was telling me about this company her friends love. Made me curious...', trigger: 'random' },
-    { thought: 'I was looking at annual reports this morning. Call me crazy, but I love this stuff!', trigger: 'random' },
-    { thought: "You know what gets me excited? When a great company is on sale. Haven't found one this week, but I keep looking!", trigger: 'market' },
-    { thought: "I had coffee with an old fund manager friend. The stories we could tell!", trigger: 'random' },
+    {
+      thought:
+        'I was at the mall yesterday and saw the LONGEST line at a store. You know what that means!',
+      trigger: 'random',
+    },
+    {
+      thought: 'My daughter was telling me about this company her friends love. Made me curious...',
+      trigger: 'random',
+    },
+    {
+      thought:
+        'I was looking at annual reports this morning. Call me crazy, but I love this stuff!',
+      trigger: 'random',
+    },
+    {
+      thought:
+        "You know what gets me excited? When a great company is on sale. Haven't found one this week, but I keep looking!",
+      trigger: 'market',
+    },
+    {
+      thought: 'I had coffee with an old fund manager friend. The stories we could tell!',
+      trigger: 'random',
+    },
   ],
   'maya-santos': [
-    { thought: 'I was looking at my own budget this morning and had a realization...', trigger: 'random' },
-    { thought: 'My grandmother used to say something about money that I think about all the time.', trigger: 'random' },
-    { thought: 'I walked past the store that used to be my weakness. Didn\'t even go in. Progress!', trigger: 'random' },
-    { thought: 'Someone told me their money story yesterday and it really moved me.', trigger: 'random' },
-    { thought: "I've been thinking about how we talk about money. The words matter so much.", trigger: 'random' },
+    {
+      thought: 'I was looking at my own budget this morning and had a realization...',
+      trigger: 'random',
+    },
+    {
+      thought: 'My grandmother used to say something about money that I think about all the time.',
+      trigger: 'random',
+    },
+    {
+      thought: "I walked past the store that used to be my weakness. Didn't even go in. Progress!",
+      trigger: 'random',
+    },
+    {
+      thought: 'Someone told me their money story yesterday and it really moved me.',
+      trigger: 'random',
+    },
+    {
+      thought: "I've been thinking about how we talk about money. The words matter so much.",
+      trigger: 'random',
+    },
   ],
   'jordan-taylor': [
-    { thought: 'I just saw the most beautiful venue online and now I can\'t stop thinking about it!', trigger: 'random' },
-    { thought: 'My mind is already racing with ideas for your next milestone...', trigger: 'random' },
-    { thought: 'Growing up, we moved so much. Every move was a chance to reinvent. I still believe that.', trigger: 'random' },
-    { thought: 'Pinterest showed me something today that I HAVE to share with you later.', trigger: 'random' },
-    { thought: 'The best parties I\'ve been to all had one thing in common... they felt like coming home.', trigger: 'random' },
+    {
+      thought: "I just saw the most beautiful venue online and now I can't stop thinking about it!",
+      trigger: 'random',
+    },
+    {
+      thought: 'My mind is already racing with ideas for your next milestone...',
+      trigger: 'random',
+    },
+    {
+      thought:
+        'Growing up, we moved so much. Every move was a chance to reinvent. I still believe that.',
+      trigger: 'random',
+    },
+    {
+      thought: 'Pinterest showed me something today that I HAVE to share with you later.',
+      trigger: 'random',
+    },
+    {
+      thought:
+        "The best parties I've been to all had one thing in common... they felt like coming home.",
+      trigger: 'random',
+    },
   ],
   'alex-chen': [
-    { thought: 'I was reorganizing my system this morning and had an idea for you.', trigger: 'random' },
-    { thought: 'My plants are thriving. Turns out they just needed a consistent schedule. Like most things.', trigger: 'random' },
-    { thought: 'I made my family\'s dumplings yesterday. It\'s the one thing I refuse to rush.', trigger: 'random' },
+    {
+      thought: 'I was reorganizing my system this morning and had an idea for you.',
+      trigger: 'random',
+    },
+    {
+      thought:
+        'My plants are thriving. Turns out they just needed a consistent schedule. Like most things.',
+      trigger: 'random',
+    },
+    {
+      thought: "I made my family's dumplings yesterday. It's the one thing I refuse to rush.",
+      trigger: 'random',
+    },
     { thought: 'My calendar is an art form. I might be too proud of it.', trigger: 'random' },
-    { thought: 'I was thinking about efficiency... and how sometimes the most efficient thing is to slow down.', trigger: 'random' },
+    {
+      thought:
+        'I was thinking about efficiency... and how sometimes the most efficient thing is to slow down.',
+      trigger: 'random',
+    },
   ],
 };
 
@@ -585,47 +678,51 @@ const PERSONA_THOUGHTS: Record<string, SpontaneousThought[]> = {
  */
 function getTimeBasedThought(personaId?: string): SpontaneousThought | null {
   const hour = new Date().getHours();
-  
+
   if (personaId === 'nayan-patel') {
     return {
-      thought: hour < 12
-        ? "You know what I love about mornings? The market hasn't had a chance to do anything crazy yet."
-        : hour < 17
-          ? 'Afternoon check-in with myself: Did I stay disciplined today? Yep.'
-          : "Evening's always a good time to reflect. What worked today? What didn't?",
+      thought:
+        hour < 12
+          ? "You know what I love about mornings? The market hasn't had a chance to do anything crazy yet."
+          : hour < 17
+            ? 'Afternoon check-in with myself: Did I stay disciplined today? Yep.'
+            : "Evening's always a good time to reflect. What worked today? What didn't?",
       trigger: 'time',
     };
   }
-  
+
   if (personaId === 'ferni') {
     return {
-      thought: hour < 12
-        ? 'Morning light... this is my sacred time. Grateful you\'re here.'
-        : hour < 17
-          ? 'Afternoon energy. Good for the deeper conversations.'
-          : 'Evening feels contemplative. Perfect for real talk.',
+      thought:
+        hour < 12
+          ? "Morning light... this is my sacred time. Grateful you're here."
+          : hour < 17
+            ? 'Afternoon energy. Good for the deeper conversations.'
+            : 'Evening feels contemplative. Perfect for real talk.',
       trigger: 'time',
     };
   }
-  
+
   if (personaId === 'peter-john') {
     return {
-      thought: hour < 12
-        ? 'Morning research time! The early bird gets the ten-bagger!'
-        : hour < 17
-          ? 'Mid-day and the market is doing... something. It always is!'
-          : 'After-hours thoughts. Good time to review what we learned today.',
+      thought:
+        hour < 12
+          ? 'Morning research time! The early bird gets the ten-bagger!'
+          : hour < 17
+            ? 'Mid-day and the market is doing... something. It always is!'
+            : 'After-hours thoughts. Good time to review what we learned today.',
       trigger: 'time',
     };
   }
-  
+
   // Generic time-based thought
   return {
-    thought: hour < 12
-      ? 'Something about mornings makes me reflective...'
-      : hour < 17
-        ? 'Afternoon thoughts coming through...'
-        : 'Evening... good time to think about what matters.',
+    thought:
+      hour < 12
+        ? 'Something about mornings makes me reflective...'
+        : hour < 17
+          ? 'Afternoon thoughts coming through...'
+          : 'Evening... good time to think about what matters.',
     trigger: 'time',
   };
 }
@@ -641,9 +738,10 @@ export function getSpontaneousThought(personaId?: string): SpontaneousThought | 
   if (random > 0.05) return null;
 
   // Get persona-specific thoughts
-  const thoughts = personaId && PERSONA_THOUGHTS[personaId]
-    ? PERSONA_THOUGHTS[personaId]
-    : PERSONA_THOUGHTS['nayan-patel'];
+  const thoughts =
+    personaId && PERSONA_THOUGHTS[personaId]
+      ? PERSONA_THOUGHTS[personaId]
+      : PERSONA_THOUGHTS['nayan-patel'];
 
   // 20% chance for time-based thought instead of random
   if (Math.random() < 0.2) {

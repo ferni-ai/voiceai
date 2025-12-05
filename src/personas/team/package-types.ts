@@ -485,8 +485,9 @@ export const FINANCIAL_WELLNESS_TEAM: TeamPackageManifest = {
   id: 'financial-wellness-team',
   version: '1.0.0',
   name: 'Financial Wellness Team',
-  description: 'Complete team for personal finance management, investing guidance, and financial habit building.',
-  
+  description:
+    'Complete team for personal finance management, investing guidance, and financial habit building.',
+
   members: [
     {
       personaId: 'ferni',
@@ -536,19 +537,47 @@ export const FINANCIAL_WELLNESS_TEAM: TeamPackageManifest = {
 
   routing: {
     topicRouting: [
-      { topics: ['budget', 'spending', 'savings', 'debt', 'habits'], targetRole: 'habits-coach', priority: 10 },
-      { topics: ['investing', 'portfolio', 'index funds', 'retirement'], targetRole: 'lifetime-advisor', priority: 10 },
-      { topics: ['stocks', 'analysis', 'research', 'earnings'], targetRole: 'researcher', priority: 10 },
-      { topics: ['schedule', 'meeting', 'email', 'calendar'], targetRole: 'communicator', priority: 10 },
-      { topics: ['milestone', 'event', 'wedding', 'baby', 'goals'], targetRole: 'event-planner', priority: 10 },
+      {
+        topics: ['budget', 'spending', 'savings', 'debt', 'habits'],
+        targetRole: 'habits-coach',
+        priority: 10,
+      },
+      {
+        topics: ['investing', 'portfolio', 'index funds', 'retirement'],
+        targetRole: 'lifetime-advisor',
+        priority: 10,
+      },
+      {
+        topics: ['stocks', 'analysis', 'research', 'earnings'],
+        targetRole: 'researcher',
+        priority: 10,
+      },
+      {
+        topics: ['schedule', 'meeting', 'email', 'calendar'],
+        targetRole: 'communicator',
+        priority: 10,
+      },
+      {
+        topics: ['milestone', 'event', 'wedding', 'baby', 'goals'],
+        targetRole: 'event-planner',
+        priority: 10,
+      },
     ],
     intentRouting: [
       { intents: ['analyze_spending', 'create_budget'], targetRole: 'habits-coach', priority: 5 },
-      { intents: ['invest_advice', 'portfolio_review'], targetRole: 'lifetime-advisor', priority: 5 },
+      {
+        intents: ['invest_advice', 'portfolio_review'],
+        targetRole: 'lifetime-advisor',
+        priority: 5,
+      },
       { intents: ['stock_analysis', 'research_company'], targetRole: 'researcher', priority: 5 },
     ],
     emotionRouting: [
-      { emotions: ['anxious', 'worried', 'stressed'], minIntensity: 0.6, targetRole: 'lifetime-advisor' },
+      {
+        emotions: ['anxious', 'worried', 'stressed'],
+        minIntensity: 0.6,
+        targetRole: 'lifetime-advisor',
+      },
       { emotions: ['excited', 'hopeful'], minIntensity: 0.7, targetRole: 'coordinator' },
     ],
     defaultMember: 'ferni',
@@ -573,7 +602,14 @@ export const FINANCIAL_WELLNESS_TEAM: TeamPackageManifest = {
         name: 'Professional',
         price: 2999,
         features: ['Full team', 'Advanced insights', 'Priority support', 'API access'],
-        includedMembers: ['ferni', 'nayan-patel', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor'],
+        includedMembers: [
+          'ferni',
+          'nayan-patel',
+          'peter-john',
+          'maya-santos',
+          'alex-chen',
+          'jordan-taylor',
+        ],
       },
     ],
     trial: {
@@ -592,4 +628,3 @@ export const FINANCIAL_WELLNESS_TEAM: TeamPackageManifest = {
     featured: true,
   },
 };
-

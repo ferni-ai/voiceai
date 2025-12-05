@@ -5,7 +5,7 @@
  *
  * USAGE:
  *   import { registerAllHandlers, registerFinancialHandlers } from './handlers/index.js';
- *   
+ *
  *   // Register all handlers with their default agents
  *   registerAllHandlers();
  *
@@ -104,19 +104,16 @@ export async function registerAllHandlers(options?: {
   const peterAgent = options?.peter || 'peter-john';
 
   // Register all handler sets
-  registerCoordinationHandlers(ferniAgent);   // 6 handlers
-  registerFinancialHandlers(mayaAgent);        // 5 handlers
-  registerSchedulingHandlers(alexAgent);       // 5 handlers
-  registerLifePlanningHandlers(jordanAgent);   // 6 handlers
-  registerResearchHandlers(peterAgent);        // 5 handlers
+  registerCoordinationHandlers(ferniAgent); // 6 handlers
+  registerFinancialHandlers(mayaAgent); // 5 handlers
+  registerSchedulingHandlers(alexAgent); // 5 handlers
+  registerLifePlanningHandlers(jordanAgent); // 6 handlers
+  registerResearchHandlers(peterAgent); // 5 handlers
 
   const totalHandlers = 6 + 5 + 5 + 6 + 5; // 27 handlers
   const agents = [ferniAgent, mayaAgent, alexAgent, jordanAgent, peterAgent];
 
-  getLogger().info(
-    { totalHandlers, agents },
-    'All team handlers registered'
-  );
+  getLogger().info({ totalHandlers, agents }, 'All team handlers registered');
 
   return { registered: totalHandlers, agents };
 }
@@ -126,11 +123,11 @@ export async function registerAllHandlers(options?: {
 // ============================================================================
 
 export const HANDLER_COUNTS = {
-  ferni: 6,      // Coordination
-  maya: 5,       // Financial
-  alex: 5,       // Scheduling
-  jordan: 6,     // Life Planning
-  peter: 5,      // Research
+  ferni: 6, // Coordination
+  maya: 5, // Financial
+  alex: 5, // Scheduling
+  jordan: 6, // Life Planning
+  peter: 5, // Research
   total: 27,
 } as const;
 
@@ -139,4 +136,3 @@ export const HANDLER_COUNTS = {
 // ============================================================================
 
 export default registerAllHandlers;
-

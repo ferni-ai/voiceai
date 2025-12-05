@@ -54,7 +54,7 @@ interface CoachingSession {
 }
 
 // In-memory session storage
-const coachingSessions: Map<string, CoachingSession> = new Map();
+const coachingSessions = new Map<string, CoachingSession>();
 
 // ============================================================================
 // COMMUNICATION FRAMEWORKS
@@ -196,7 +196,7 @@ Alex will apply communication frameworks (SBI, assertion, etc.) to help craft th
           case 'giving_feedback':
             draft = generateFeedbackMessage({ recipient, context, keyPoints, tone, format });
             coachingNote =
-              "Using the SBI framework here: Situation, Behavior, Impact. Facts over feelings. Specific over vague. The goal is information, not accusation.";
+              'Using the SBI framework here: Situation, Behavior, Impact. Facts over feelings. Specific over vague. The goal is information, not accusation.';
             break;
 
           case 'declining_request':
@@ -226,7 +226,7 @@ Alex will apply communication frameworks (SBI, assertion, etc.) to help craft th
           case 'following_up':
             draft = generateFollowUpMessage({ recipient, context, keyPoints, tone, format });
             coachingNote =
-              "Persistent without pushy. Each follow-up adds value or context. The third follow-up includes a graceful exit—releases pressure while leaving door open.";
+              'Persistent without pushy. Each follow-up adds value or context. The third follow-up includes a graceful exit—releases pressure while leaving door open.';
             break;
 
           case 'negotiating_deadline':
@@ -245,7 +245,7 @@ Alex will apply communication frameworks (SBI, assertion, etc.) to help craft th
               format,
             });
             coachingNote =
-              "General principle: clarity is kindness. Say what you mean, leave room for them to respond, and focus on the relationship, not just this moment.";
+              'General principle: clarity is kindness. Say what you mean, leave room for them to respond, and focus on the relationship, not just this moment.';
         }
 
         // Format the output
@@ -278,7 +278,10 @@ Use when:
         scenario: z.string().describe('What conversation are we practicing?'),
         otherPerson: z.string().describe("Who is Alex playing? (name, role, what they're like)"),
         userGoal: z.string().describe('What does the user want to achieve?'),
-        anticipatedChallenges: z.string().optional().describe('What objections or pushback to expect'),
+        anticipatedChallenges: z
+          .string()
+          .optional()
+          .describe('What objections or pushback to expect'),
       }),
       execute: async ({ scenario, otherPerson, userGoal, anticipatedChallenges }) => {
         getLogger().info({ scenario, otherPerson }, '🎭 Alex: Starting role-play practice');
@@ -372,7 +375,10 @@ Use when:
         situation: z.string().describe('What is the overall situation?'),
         stakeholders: z.string().describe('Who are the key people involved?'),
         goal: z.string().describe('What is the ultimate outcome you want?'),
-        constraints: z.string().optional().describe('Any timing, political, or relationship constraints?'),
+        constraints: z
+          .string()
+          .optional()
+          .describe('Any timing, political, or relationship constraints?'),
         timeline: z.string().optional().describe('When does this need to happen?'),
       }),
       execute: async ({ situation, stakeholders, goal, constraints, timeline }) => {
@@ -471,9 +477,15 @@ Use when:
 - User is being too passive`,
       parameters: z.object({
         situation: z.string().describe('What is happening?'),
-        currentResponse: z.string().optional().describe('How user is currently handling it (or planning to)'),
+        currentResponse: z
+          .string()
+          .optional()
+          .describe('How user is currently handling it (or planning to)'),
         whatUserWants: z.string().describe('What does user actually want/need?'),
-        fear: z.string().optional().describe("What is user afraid will happen if they're assertive?"),
+        fear: z
+          .string()
+          .optional()
+          .describe("What is user afraid will happen if they're assertive?"),
       }),
       execute: async ({ situation, currentResponse, whatUserWants, fear }) => {
         let response = `💪 **Building Assertiveness**\n\n`;
@@ -521,7 +533,10 @@ Use when:
         recipient: z.string().describe('Who are you following up with?'),
         daysSinceOriginal: z.number().describe('How many days since original message?'),
         previousFollowUps: z.number().default(0).describe('How many times have you followed up?'),
-        urgency: z.enum(['low', 'medium', 'high']).default('medium').describe('How urgent is this?'),
+        urgency: z
+          .enum(['low', 'medium', 'high'])
+          .default('medium')
+          .describe('How urgent is this?'),
       }),
       execute: async ({
         originalRequest,
@@ -566,10 +581,16 @@ Use when:
         incomingMessage: z.string().describe('The message they received'),
         sender: z.string().describe('Who sent it (name, relationship, role)'),
         userContext: z.string().optional().describe("Any context about the user's situation"),
-        userGoal: z.string().optional().describe('What outcome does user want from their response?'),
+        userGoal: z
+          .string()
+          .optional()
+          .describe('What outcome does user want from their response?'),
       }),
       execute: async ({ incomingMessage, sender, userContext, userGoal }) => {
-        getLogger().info({ sender, messageLength: incomingMessage.length }, '📨 Alex: Analyzing incoming message');
+        getLogger().info(
+          { sender, messageLength: incomingMessage.length },
+          '📨 Alex: Analyzing incoming message'
+        );
 
         // Analyze the incoming message
         const analysis = analyzeIncomingContent(incomingMessage);
@@ -601,7 +622,12 @@ Use when:
         response += `• Key things to address: ${analysis.mustAddress.join(', ')}\n\n`;
 
         // Draft response
-        const draftResponse = generateResponseToMessage(incomingMessage, sender, userGoal || 'address their request professionally', analysis);
+        const draftResponse = generateResponseToMessage(
+          incomingMessage,
+          sender,
+          userGoal || 'address their request professionally',
+          analysis
+        );
         response += `**Draft Response:**\n---\n${draftResponse}\n---\n\n`;
 
         response += `Does this capture what you want to say? I can adjust the tone or approach.`;
@@ -619,9 +645,15 @@ Use when:
 - User has ongoing issues with how messages are received
 - User wants to improve their overall communication`,
       parameters: z.object({
-        sampleMessages: z.string().describe('Examples of messages the user has sent (paste multiple)'),
-        context: z.string().describe('What kind of communications are these? Work, personal, specific relationship?'),
-        challenge: z.string().describe("What communication challenge are they experiencing?"),
+        sampleMessages: z
+          .string()
+          .describe('Examples of messages the user has sent (paste multiple)'),
+        context: z
+          .string()
+          .describe(
+            'What kind of communications are these? Work, personal, specific relationship?'
+          ),
+        challenge: z.string().describe('What communication challenge are they experiencing?'),
       }),
       execute: async ({ sampleMessages, context, challenge }) => {
         getLogger().info({ context }, '🔍 Alex: Analyzing communication patterns');
@@ -691,19 +723,39 @@ function analyzeIncomingContent(message: string): {
   let senderTone = 'Neutral/Professional';
   if (lower.includes('urgent') || lower.includes('asap') || lower.includes('immediately')) {
     senderTone = 'Urgent/Pressing';
-  } else if (lower.includes('disappointed') || lower.includes('concerned') || lower.includes('frustrated')) {
+  } else if (
+    lower.includes('disappointed') ||
+    lower.includes('concerned') ||
+    lower.includes('frustrated')
+  ) {
     senderTone = 'Concerned/Frustrated';
-  } else if (lower.includes('thank') || lower.includes('appreciate') || lower.includes('grateful')) {
+  } else if (
+    lower.includes('thank') ||
+    lower.includes('appreciate') ||
+    lower.includes('grateful')
+  ) {
     senderTone = 'Appreciative/Warm';
-  } else if (lower.includes('!') && (lower.includes('great') || lower.includes('excited') || lower.includes('love'))) {
+  } else if (
+    lower.includes('!') &&
+    (lower.includes('great') || lower.includes('excited') || lower.includes('love'))
+  ) {
     senderTone = 'Enthusiastic/Positive';
-  } else if (lower.includes('unfortunately') || lower.includes('regret') || lower.includes('unable')) {
+  } else if (
+    lower.includes('unfortunately') ||
+    lower.includes('regret') ||
+    lower.includes('unable')
+  ) {
     senderTone = 'Apologetic/Delivering bad news';
   }
 
   // Detect intent
   let likelyIntent = 'Information sharing';
-  if (lower.includes('?') || lower.includes('could you') || lower.includes('can you') || lower.includes('would you')) {
+  if (
+    lower.includes('?') ||
+    lower.includes('could you') ||
+    lower.includes('can you') ||
+    lower.includes('would you')
+  ) {
     likelyIntent = 'Request/Asking for something';
     mustAddress.push('Their request');
   }
@@ -711,7 +763,11 @@ function analyzeIncomingContent(message: string): {
     likelyIntent = 'Seeking input/feedback';
     mustAddress.push('Provide your perspective');
   }
-  if (lower.includes('following up') || lower.includes('checking in') || lower.includes('any update')) {
+  if (
+    lower.includes('following up') ||
+    lower.includes('checking in') ||
+    lower.includes('any update')
+  ) {
     likelyIntent = 'Following up on something';
     mustAddress.push('Status update');
   }
@@ -722,16 +778,29 @@ function analyzeIncomingContent(message: string): {
 
   // Detect urgency
   let urgency = 'Normal';
-  if (lower.includes('urgent') || lower.includes('asap') || lower.includes('today') || lower.includes('immediately')) {
+  if (
+    lower.includes('urgent') ||
+    lower.includes('asap') ||
+    lower.includes('today') ||
+    lower.includes('immediately')
+  ) {
     urgency = 'High';
-  } else if (lower.includes('when you get a chance') || lower.includes('no rush') || lower.includes('whenever')) {
+  } else if (
+    lower.includes('when you get a chance') ||
+    lower.includes('no rush') ||
+    lower.includes('whenever')
+  ) {
     urgency = 'Low';
   }
 
   // Extract key points (simplified)
-  const sentences = message.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  const sentences = message.split(/[.!?]+/).filter((s) => s.trim().length > 10);
   for (const sentence of sentences.slice(0, 3)) {
-    if (sentence.includes('?') || sentence.toLowerCase().includes('please') || sentence.toLowerCase().includes('need')) {
+    if (
+      sentence.includes('?') ||
+      sentence.toLowerCase().includes('please') ||
+      sentence.toLowerCase().includes('need')
+    ) {
       keyPoints.push(sentence.trim());
     }
   }
@@ -742,12 +811,13 @@ function analyzeIncomingContent(message: string): {
   // Detect subtext
   let subtext: string | null = null;
   if (lower.includes('just checking') || lower.includes('wanted to follow up')) {
-    subtext = "They may be frustrated about lack of response—consider acknowledging the delay.";
+    subtext = 'They may be frustrated about lack of response—consider acknowledging the delay.';
   }
   if (lower.includes('when you get a chance') && lower.includes('?')) {
-    subtext = "Despite the soft language, they likely need this soon. Don't let the softness fool you.";
+    subtext =
+      "Despite the soft language, they likely need this soon. Don't let the softness fool you.";
   }
-  if (lower.includes('i understand you\'re busy')) {
+  if (lower.includes("i understand you're busy")) {
     subtext = "They're being polite, but this likely matters to them. Prioritize accordingly.";
   }
 
@@ -891,12 +961,15 @@ function analyzePatterns(messages: string): {
   }
 
   // Exercise
-  let exercise = 'Take your next important email and try removing every hedge word. Read it aloud. Does it still sound like you?';
+  let exercise =
+    'Take your next important email and try removing every hedge word. Read it aloud. Does it still sound like you?';
   if (growthAreas.includes('Brevity')) {
-    exercise = 'Take your last email and cut it in half. What got lost? Probably nothing important.';
+    exercise =
+      'Take your last email and cut it in half. What got lost? Probably nothing important.';
   }
   if (sorryCount > 2) {
-    exercise = "For the next week, notice every time you're about to apologize. Ask: did I actually do something wrong? If not, rephrase.";
+    exercise =
+      "For the next week, notice every time you're about to apologize. Ask: did I actually do something wrong? If not, rephrase.";
   }
 
   return { observed, strengths, growthAreas, recommendations, exercise };
@@ -1102,7 +1175,9 @@ function analyzeMessage(message: string): {
 
   // Check for apologetic language
   if (message.toLowerCase().includes('sorry') || message.toLowerCase().includes('apologize')) {
-    suggestions.push('Watch for over-apologizing - only apologize if you actually did something wrong');
+    suggestions.push(
+      'Watch for over-apologizing - only apologize if you actually did something wrong'
+    );
   }
 
   // Check for hedging
@@ -1132,8 +1207,7 @@ function analyzeMessage(message: string): {
   const clarity = 10 - suggestions.length;
 
   // Predict reception
-  let reception =
-    'Should land well - professional and clear';
+  let reception = 'Should land well - professional and clear';
   if (suggestions.length > 2) {
     reception = 'Might be misunderstood - consider revising';
   }
@@ -1227,7 +1301,7 @@ function addressFear(fear: string): string {
   const lowerFear = fear.toLowerCase();
 
   if (lowerFear.includes('upset') || lowerFear.includes('angry')) {
-    return "Most people respect clear communication more than they resent it. Their momentary discomfort is better than ongoing resentment from unspoken issues.";
+    return 'Most people respect clear communication more than they resent it. Their momentary discomfort is better than ongoing resentment from unspoken issues.';
   }
 
   if (lowerFear.includes('fired') || lowerFear.includes('trouble')) {
@@ -1235,10 +1309,10 @@ function addressFear(fear: string): string {
   }
 
   if (lowerFear.includes('relationship') || lowerFear.includes('like me')) {
-    return "Healthy relationships can handle honest communication. If being clear damages the relationship, the relationship was already fragile.";
+    return 'Healthy relationships can handle honest communication. If being clear damages the relationship, the relationship was already fragile.';
   }
 
-  return "Fear is natural. But ask yourself: is this fear protecting you from actual harm, or just from discomfort? Discomfort is temporary.";
+  return 'Fear is natural. But ask yourself: is this fear protecting you from actual harm, or just from discomfort? Discomfort is temporary.';
 }
 
 function generateAssertiveScript(situation: string, whatUserWants: string): string {
@@ -1268,7 +1342,8 @@ function generateFollowUpStrategy(
   if (previousFollowUps === 1 && daysSince >= 5) {
     return {
       action: 'Send second follow-up',
-      script: 'Circling back on this. Is there a better time to discuss, or anything I can clarify?',
+      script:
+        'Circling back on this. Is there a better time to discuss, or anything I can clarify?',
       timing: 'Send today or tomorrow',
       tip: 'Add value - offer clarification or new information.',
     };
@@ -1300,4 +1375,3 @@ function generateFollowUpStrategy(
 export const createAlexCoachingTools = createCommunicationCoachingTools;
 
 export default createCommunicationCoachingTools;
-

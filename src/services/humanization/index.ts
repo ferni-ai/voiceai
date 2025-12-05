@@ -1,6 +1,6 @@
 /**
  * Humanization Services Index
- * 
+ *
  * Exports all humanization-related services for easy importing.
  */
 
@@ -210,4 +210,3 @@ export const HumanizationServices = {
 };
 
 export default HumanizationServices;
-

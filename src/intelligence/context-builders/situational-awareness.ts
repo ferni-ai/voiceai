@@ -223,7 +223,7 @@ function formatRelationshipStage(stage: string): string {
     new_acquaintance: "You're just getting to know each other",
     getting_to_know: "You're building rapport - they're opening up more",
     trusted_advisor: 'They trust you and value your perspective',
-    old_friend: "You have a deep, established relationship",
+    old_friend: 'You have a deep, established relationship',
   };
   return stageMap[stage] || "You're building a connection";
 }
@@ -235,4 +235,3 @@ function formatRelationshipStage(stage: string): string {
 registerContextBuilder('situational_awareness', buildSituationalAwareness);
 
 export { buildSituationalAwareness, AWARENESS_PATTERNS };
-

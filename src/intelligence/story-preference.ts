@@ -15,13 +15,13 @@ import { getLogger } from '../utils/safe-logger.js';
 // ============================================================================
 
 export type StoryType =
-  | 'personal'       // "Let me tell you about my early days..."
-  | 'client'         // "I had a client once who..."
-  | 'historical'     // "Back in 2008..."
-  | 'metaphorical'   // "Think of it like a garden..."
-  | 'educational'    // "Here's how compound interest works..."
-  | 'inspirational'  // "She went from broke to..."
-  | 'cautionary';    // "I've seen people lose everything by..."
+  | 'personal' // "Let me tell you about my early days..."
+  | 'client' // "I had a client once who..."
+  | 'historical' // "Back in 2008..."
+  | 'metaphorical' // "Think of it like a garden..."
+  | 'educational' // "Here's how compound interest works..."
+  | 'inspirational' // "She went from broke to..."
+  | 'cautionary'; // "I've seen people lose everything by..."
 
 export type StoryLength = 'brief' | 'medium' | 'detailed';
 export type EmotionalDepth = 'light' | 'moderate' | 'deep';
@@ -130,7 +130,8 @@ export class StoryPreferenceEngine {
 
   private detectStoryType(content: string): StoryType {
     const lower = content.toLowerCase();
-    if (/\b(i remember|back when i|in my|my (early|younger|first))\b/.test(lower)) return 'personal';
+    if (/\b(i remember|back when i|in my|my (early|younger|first))\b/.test(lower))
+      return 'personal';
     if (/\b(client|someone i (know|worked with))\b/.test(lower)) return 'client';
     if (/\b(in (19|20)\d\d|back in|historically)\b/.test(lower)) return 'historical';
     if (/\b(think of it like|imagine|it's like)\b/.test(lower)) return 'metaphorical';
@@ -150,7 +151,7 @@ export class StoryPreferenceEngine {
   private detectDepth(content: string): EmotionalDepth {
     const lower = content.toLowerCase();
     const emotionalWords = ['feel', 'felt', 'heart', 'scared', 'proud', 'love', 'afraid'];
-    const count = emotionalWords.filter(w => lower.includes(w)).length;
+    const count = emotionalWords.filter((w) => lower.includes(w)).length;
     if (count >= 4) return 'deep';
     if (count >= 2) return 'moderate';
     return 'light';
@@ -161,10 +162,10 @@ export class StoryPreferenceEngine {
 
     const engagement: UserEngagement = {
       responseLength: this.categorizeLength(userResponse),
-      askedFollowUp: FOLLOWUP_PATTERNS.some(p => p.test(userResponse)),
-      sharedOwn: OWN_STORY_PATTERNS.some(p => p.test(userResponse)),
-      emotionalResponse: EMOTIONAL_PATTERNS.some(p => p.test(userResponse)),
-      changedTopic: TOPIC_CHANGE_PATTERNS.some(p => p.test(userResponse)),
+      askedFollowUp: FOLLOWUP_PATTERNS.some((p) => p.test(userResponse)),
+      sharedOwn: OWN_STORY_PATTERNS.some((p) => p.test(userResponse)),
+      emotionalResponse: EMOTIONAL_PATTERNS.some((p) => p.test(userResponse)),
+      changedTopic: TOPIC_CHANGE_PATTERNS.some((p) => p.test(userResponse)),
       expressedInterest: this.extractInterestPhrases(userResponse),
     };
 
@@ -194,13 +195,23 @@ export class StoryPreferenceEngine {
 
   calculatePreferences(): StoryPreferences {
     const typeScores: Record<StoryType, number> = {
-      personal: 0.5, client: 0.5, historical: 0.5, metaphorical: 0.5,
-      educational: 0.5, inspirational: 0.5, cautionary: 0.5,
+      personal: 0.5,
+      client: 0.5,
+      historical: 0.5,
+      metaphorical: 0.5,
+      educational: 0.5,
+      inspirational: 0.5,
+      cautionary: 0.5,
     };
 
     const typeAttempts: Record<StoryType, StoryAttempt[]> = {
-      personal: [], client: [], historical: [], metaphorical: [],
-      educational: [], inspirational: [], cautionary: [],
+      personal: [],
+      client: [],
+      historical: [],
+      metaphorical: [],
+      educational: [],
+      inspirational: [],
+      cautionary: [],
     };
 
     const lengthScores: Record<StoryLength, number[]> = { brief: [], medium: [], detailed: [] };
@@ -208,7 +219,10 @@ export class StoryPreferenceEngine {
 
     const goodTopics = new Set<string>();
     const badTopics = new Set<string>();
-    let sharesCount = 0, asksCount = 0, totalEngaged = 0, totalScore = 0;
+    let sharesCount = 0,
+      asksCount = 0,
+      totalEngaged = 0,
+      totalScore = 0;
 
     for (const attempt of this.attempts) {
       typeAttempts[attempt.type].push(attempt);
@@ -226,16 +240,18 @@ export class StoryPreferenceEngine {
     }
 
     for (const [type, attempts] of Object.entries(typeAttempts)) {
-      const engaged = attempts.filter(a => a.userEngagement);
+      const engaged = attempts.filter((a) => a.userEngagement);
       if (engaged.length >= 2) {
-        const avg = engaged.reduce((sum, a) => sum + this.engagementToScore(a.userEngagement!), 0) / engaged.length;
+        const avg =
+          engaged.reduce((sum, a) => sum + this.engagementToScore(a.userEngagement!), 0) /
+          engaged.length;
         typeScores[type as StoryType] = avg;
       }
     }
 
-    const preferredLength = this.findBestOption(lengthScores) as StoryLength || 'medium';
-    const preferredDepth = this.findBestOption(depthScores) as EmotionalDepth || 'moderate';
-    const bestTypes = (Object.entries(typeScores) as [StoryType, number][])
+    const preferredLength = (this.findBestOption(lengthScores) as StoryLength) || 'medium';
+    const preferredDepth = (this.findBestOption(depthScores) as EmotionalDepth) || 'moderate';
+    const bestTypes = (Object.entries(typeScores) as Array<[StoryType, number]>)
       .filter(([_, score]) => score >= 0.6)
       .sort((a, b) => b[1] - a[1])
       .map(([type]) => type);
@@ -243,11 +259,17 @@ export class StoryPreferenceEngine {
     const averageEngagement = totalEngaged > 0 ? totalScore / totalEngaged : 0.5;
 
     return {
-      typeScores, preferredLength, preferredDepth,
-      goodTopics: Array.from(goodTopics), badTopics: Array.from(badTopics),
-      sharesTrigger: sharesCount >= 2, asksTrigger: asksCount >= 2,
-      totalAttempts: this.attempts.length, averageEngagement,
-      likesStories: averageEngagement >= 0.55, bestTypes,
+      typeScores,
+      preferredLength,
+      preferredDepth,
+      goodTopics: Array.from(goodTopics),
+      badTopics: Array.from(badTopics),
+      sharesTrigger: sharesCount >= 2,
+      asksTrigger: asksCount >= 2,
+      totalAttempts: this.attempts.length,
+      averageEngagement,
+      likesStories: averageEngagement >= 0.55,
+      bestTypes,
     };
   }
 
@@ -267,29 +289,56 @@ export class StoryPreferenceEngine {
   private findBestOption<T extends string>(scores: Record<T, number[]>): T | null {
     let best: T | null = null;
     let bestAvg = 0;
-    for (const [option, values] of Object.entries(scores) as [T, number[]][]) {
+    for (const [option, values] of Object.entries(scores) as Array<[T, number[]]>) {
       if (values.length >= 2) {
         const avg = values.reduce((a, b) => a + b, 0) / values.length;
-        if (avg > bestAvg) { bestAvg = avg; best = option; }
+        if (avg > bestAvg) {
+          bestAvg = avg;
+          best = option;
+        }
       }
     }
     return best;
   }
 
-  getStoryGuidance(currentTopic: string, currentEmotion?: string, turnCount?: number): StoryGuidance {
+  getStoryGuidance(
+    currentTopic: string,
+    currentEmotion?: string,
+    turnCount?: number
+  ): StoryGuidance {
     const prefs = this.calculatePreferences();
 
     if ((turnCount || 0) < 4) {
-      return { shouldTellStory: false, avoidTypes: [], contextNote: 'Too early for a story', confidence: 0.7 };
+      return {
+        shouldTellStory: false,
+        avoidTypes: [],
+        contextNote: 'Too early for a story',
+        confidence: 0.7,
+      };
     }
     if (this.sessionStoryCount >= 3) {
-      return { shouldTellStory: false, avoidTypes: [], contextNote: 'Already shared several stories', confidence: 0.6 };
+      return {
+        shouldTellStory: false,
+        avoidTypes: [],
+        contextNote: 'Already shared several stories',
+        confidence: 0.6,
+      };
     }
     if (!prefs.likesStories) {
-      return { shouldTellStory: false, avoidTypes: Object.keys(prefs.typeScores) as StoryType[], contextNote: 'User prefers direct info', confidence: 0.75 };
+      return {
+        shouldTellStory: false,
+        avoidTypes: Object.keys(prefs.typeScores) as StoryType[],
+        contextNote: 'User prefers direct info',
+        confidence: 0.75,
+      };
     }
     if (prefs.badTopics.includes(currentTopic)) {
-      return { shouldTellStory: false, avoidTypes: [], contextNote: `User prefers facts for "${currentTopic}"`, confidence: 0.7 };
+      return {
+        shouldTellStory: false,
+        avoidTypes: [],
+        contextNote: `User prefers facts for "${currentTopic}"`,
+        confidence: 0.7,
+      };
     }
 
     let recommendedType = prefs.bestTypes[0] || 'personal';
@@ -302,14 +351,19 @@ export class StoryPreferenceEngine {
       recommendedDepth = 'deep';
     }
 
-    const avoidTypes = (Object.entries(prefs.typeScores) as [StoryType, number][])
+    const avoidTypes = (Object.entries(prefs.typeScores) as Array<[StoryType, number]>)
       .filter(([_, score]) => score < 0.4)
       .map(([type]) => type);
 
     return {
-      shouldTellStory: true, recommendedType,
-      recommendedLength: prefs.preferredLength, recommendedDepth, avoidTypes,
-      contextNote: prefs.goodTopics.includes(currentTopic) ? `User engages well with "${currentTopic}" stories` : undefined,
+      shouldTellStory: true,
+      recommendedType,
+      recommendedLength: prefs.preferredLength,
+      recommendedDepth,
+      avoidTypes,
+      contextNote: prefs.goodTopics.includes(currentTopic)
+        ? `User engages well with "${currentTopic}" stories`
+        : undefined,
       confidence: prefs.averageEngagement,
     };
   }
@@ -321,8 +375,11 @@ export class StoryPreferenceEngine {
     if (!prefs.likesStories) {
       lines.push('[STORIES] User prefers direct answers. Keep narratives brief.');
     } else {
-      lines.push(`[STORIES] User engages well with stories (${(prefs.averageEngagement * 100).toFixed(0)}%).`);
-      if (prefs.bestTypes.length > 0) lines.push(`Best types: ${prefs.bestTypes.slice(0, 2).join(', ')}`);
+      lines.push(
+        `[STORIES] User engages well with stories (${(prefs.averageEngagement * 100).toFixed(0)}%).`
+      );
+      if (prefs.bestTypes.length > 0)
+        lines.push(`Best types: ${prefs.bestTypes.slice(0, 2).join(', ')}`);
       lines.push(`Preferred: ${prefs.preferredLength}, ${prefs.preferredDepth} depth`);
       if (prefs.sharesTrigger) lines.push('User shares their own stories - encourage this.');
     }
@@ -351,4 +408,3 @@ export function getStoryPreference(userId: string): StoryPreferenceEngine {
 export function removeStoryPreference(userId: string): void {
   engines.delete(userId);
 }
-

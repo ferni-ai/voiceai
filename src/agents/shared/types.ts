@@ -83,10 +83,10 @@ export interface UserData {
     intensity: number;
     distressLevel?: number;
   };
-  
+
   // Human-level feature tracking
-  lastResponseHadHumor?: boolean;   // For humor calibration feedback
-  lastResponseHadStory?: boolean;   // For story preference feedback
+  lastResponseHadHumor?: boolean; // For humor calibration feedback
+  lastResponseHadStory?: boolean; // For story preference feedback
 
   // Bundle runtime state (persona behaviors)
   bundleRuntimeState?: BundleRuntimeState;
@@ -173,4 +173,3 @@ export function getDayContext(): DayContext {
     season,
   };
 }
-

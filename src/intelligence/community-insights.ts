@@ -193,10 +193,10 @@ export interface PhraseEffectiveness {
 
 export class CommunityInsightsEngine {
   private responseSignals: ResponseStrategySignal[] = [];
-  private patterns: Map<string, CommunityResponsePattern> = new Map();
-  private journeyPatterns: Map<string, CommunityJourneyPattern> = new Map();
+  private patterns = new Map<string, CommunityResponsePattern>();
+  private journeyPatterns = new Map<string, CommunityJourneyPattern>();
   private effectiveQuestions: EffectiveQuestion[] = [];
-  private storyResonance: Map<string, StoryResonance> = new Map();
+  private storyResonance = new Map<string, StoryResonance>();
   private phraseEffectiveness: PhraseEffectiveness[] = [];
 
   // Minimum samples before pattern is considered reliable
@@ -310,7 +310,9 @@ export class CommunityInsightsEngine {
         turnInConversation: 0,
       },
       strategy: {
-        type: (responseType as 'story' | 'advice' | 'question' | 'empathy' | 'humor' | 'explanation') || 'advice',
+        type:
+          (responseType as 'story' | 'advice' | 'question' | 'empathy' | 'humor' | 'explanation') ||
+          'advice',
         hadPersonalShare: responseType === 'story',
         hadQuirk: false,
         hadTeamReference: false,
@@ -319,7 +321,8 @@ export class CommunityInsightsEngine {
       outcome: {
         engagementScore,
         userContinued: engagementScore > 0.5,
-        emotionalShift: engagementScore > 0.7 ? 'positive' : engagementScore < 0.3 ? 'negative' : 'neutral',
+        emotionalShift:
+          engagementScore > 0.7 ? 'positive' : engagementScore < 0.3 ? 'negative' : 'neutral',
         topicDepthened: engagementScore > 0.6,
         askFollowUp: engagementScore > 0.7,
       },
@@ -535,7 +538,7 @@ export class CommunityInsightsEngine {
       relationshipStage: string;
       userEmotion: string;
     },
-    limit: number = 3
+    limit = 3
   ): Array<{ storyId: string; expectedEffectiveness: number; reason: string }> {
     const results: Array<{ storyId: string; score: number; reason: string }> = [];
 
@@ -580,7 +583,7 @@ export class CommunityInsightsEngine {
   getEffectiveQuestions(
     personaId: string,
     topic: string,
-    limit: number = 3
+    limit = 3
   ): Array<{ question: string; expectedBreakthroughRate: number; bestContext: string }> {
     return this.effectiveQuestions
       .filter((q) => q.personaId === personaId && q.topic === topic)
@@ -657,7 +660,10 @@ export class CommunityInsightsEngine {
       let score = 0;
       if (context.userEmotion && pattern.context.userEmotion === context.userEmotion) score++;
       if (context.topic && pattern.context.topic === context.topic) score++;
-      if (context.relationshipStage && pattern.context.relationshipStage === context.relationshipStage)
+      if (
+        context.relationshipStage &&
+        pattern.context.relationshipStage === context.relationshipStage
+      )
         score++;
       if (context.personaId && pattern.context.personaId === context.personaId) score++;
 
@@ -768,7 +774,7 @@ const FIRESTORE_COLLECTION = 'community_insights';
 const FIRESTORE_DOC_ID = 'global';
 
 // Cache to prevent excessive reads
-let lastLoadTime: number = 0;
+let lastLoadTime = 0;
 const LOAD_COOLDOWN_MS = 60000; // 1 minute
 
 /**
@@ -781,21 +787,23 @@ export async function loadCommunityInsightsFromFirestore(): Promise<void> {
     getLogger().debug('Skipping community insights load (cooldown)');
     return;
   }
-  
+
   try {
     // Dynamic import to avoid circular dependencies
     const { getGlobalServices } = await import('../services/global-services.js');
     const global = await getGlobalServices();
-    
+
     // Check if store has Firestore collection access
     if (!('getFirestore' in global.store)) {
       getLogger().debug('Store does not support Firestore, skipping community insights load');
       return;
     }
-    
-    const firestore = (global.store as { getFirestore: () => FirebaseFirestore.Firestore }).getFirestore();
+
+    const firestore = (
+      global.store as { getFirestore: () => FirebaseFirestore.Firestore }
+    ).getFirestore();
     const doc = await firestore.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC_ID).get();
-    
+
     if (doc.exists) {
       const data = doc.data() as {
         patterns?: CommunityResponsePattern[];
@@ -804,7 +812,7 @@ export async function loadCommunityInsightsFromFirestore(): Promise<void> {
         storyResonance?: StoryResonance[];
         updatedAt?: FirebaseFirestore.Timestamp;
       };
-      
+
       const engine = getCommunityInsights();
       engine.importInsights({
         patterns: data.patterns,
@@ -812,21 +820,27 @@ export async function loadCommunityInsightsFromFirestore(): Promise<void> {
         effectiveQuestions: data.effectiveQuestions,
         storyResonance: data.storyResonance,
       });
-      
+
       lastLoadTime = Date.now();
-      getLogger().info({
-        patterns: data.patterns?.length || 0,
-        journeyPatterns: data.journeyPatterns?.length || 0,
-        questions: data.effectiveQuestions?.length || 0,
-        stories: data.storyResonance?.length || 0,
-        lastUpdated: data.updatedAt?.toDate()?.toISOString(),
-      }, 'Community insights loaded from Firestore');
+      getLogger().info(
+        {
+          patterns: data.patterns?.length || 0,
+          journeyPatterns: data.journeyPatterns?.length || 0,
+          questions: data.effectiveQuestions?.length || 0,
+          stories: data.storyResonance?.length || 0,
+          lastUpdated: data.updatedAt?.toDate()?.toISOString(),
+        },
+        'Community insights loaded from Firestore'
+      );
     } else {
       lastLoadTime = Date.now();
       getLogger().info('No community insights found in Firestore (new deployment)');
     }
   } catch (error) {
-    getLogger().warn({ error: String(error) }, 'Failed to load community insights from Firestore (non-fatal)');
+    getLogger().warn(
+      { error: String(error) },
+      'Failed to load community insights from Firestore (non-fatal)'
+    );
   }
 }
 
@@ -838,25 +852,27 @@ export async function saveCommunityInsightsToFirestore(): Promise<void> {
   try {
     const engine = getCommunityInsights();
     const data = engine.exportInsights();
-    
+
     // Check if we have any data worth saving
     if (data.patterns.length === 0 && data.effectiveQuestions.length === 0) {
       getLogger().debug('No community insights to save');
       return;
     }
-    
+
     // Dynamic import to avoid circular dependencies
     const { getGlobalServices } = await import('../services/global-services.js');
     const global = await getGlobalServices();
-    
+
     // Check if store has Firestore collection access
     if (!('getFirestore' in global.store)) {
       getLogger().debug('Store does not support Firestore, skipping community insights save');
       return;
     }
-    
-    const firestore = (global.store as { getFirestore: () => FirebaseFirestore.Firestore }).getFirestore();
-    
+
+    const firestore = (
+      global.store as { getFirestore: () => FirebaseFirestore.Firestore }
+    ).getFirestore();
+
     await firestore.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC_ID).set({
       patterns: data.patterns,
       journeyPatterns: data.journeyPatterns,
@@ -865,15 +881,21 @@ export async function saveCommunityInsightsToFirestore(): Promise<void> {
       updatedAt: new Date(),
       version: 1,
     });
-    
-    getLogger().info({
-      patterns: data.patterns.length,
-      journeyPatterns: data.journeyPatterns.length,
-      questions: data.effectiveQuestions.length,
-      stories: data.storyResonance.length,
-    }, 'Community insights saved to Firestore');
+
+    getLogger().info(
+      {
+        patterns: data.patterns.length,
+        journeyPatterns: data.journeyPatterns.length,
+        questions: data.effectiveQuestions.length,
+        stories: data.storyResonance.length,
+      },
+      'Community insights saved to Firestore'
+    );
   } catch (error) {
-    getLogger().warn({ error: String(error) }, 'Failed to save community insights to Firestore (non-fatal)');
+    getLogger().warn(
+      { error: String(error) },
+      'Failed to save community insights to Firestore (non-fatal)'
+    );
   }
 }
 
@@ -904,4 +926,3 @@ export function resetCommunityInsights(): void {
 }
 
 export default CommunityInsightsEngine;
-

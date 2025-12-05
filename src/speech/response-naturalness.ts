@@ -434,7 +434,7 @@ const CATCHPHRASE_CONFIG: CatchphraseConfig = {
  * FIX BUG #voice-9: Use session-scoped manager instead of global map.
  */
 export class CatchphraseTracker {
-  private usage: Map<string, { lastUsed: number; count: number }> = new Map();
+  private usage = new Map<string, { lastUsed: number; count: number }>();
   private config: CatchphraseConfig;
 
   constructor(config: Partial<CatchphraseConfig> = {}) {
@@ -466,7 +466,7 @@ export class CatchphraseTracker {
 }
 
 // Global tracker for backward compatibility (will be deprecated)
-const globalCatchphraseUsage: Map<string, { lastUsed: number; count: number }> = new Map();
+const globalCatchphraseUsage = new Map<string, { lastUsed: number; count: number }>();
 
 /**
  * Should we inject a catchphrase?
@@ -483,7 +483,9 @@ export function shouldInjectCatchphrase(
   if (usage.count >= CATCHPHRASE_CONFIG.maxPerSession) return false;
   if (turnCount - usage.lastUsed < CATCHPHRASE_CONFIG.minTurnsBetween) return false;
 
-  const chance = isPositiveMoment ? CATCHPHRASE_CONFIG.positiveChance : CATCHPHRASE_CONFIG.defaultChance;
+  const chance = isPositiveMoment
+    ? CATCHPHRASE_CONFIG.positiveChance
+    : CATCHPHRASE_CONFIG.defaultChance;
 
   if (Math.random() < chance) {
     globalCatchphraseUsage.set(personaId, {

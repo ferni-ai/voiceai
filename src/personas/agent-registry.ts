@@ -18,7 +18,7 @@
 // Log deprecation warning on first import
 console.warn(
   '⚠️ DEPRECATED: agent-registry.ts is deprecated. ' +
-  'Use AgentRegistry from registry/unified-registry.js instead.'
+    'Use AgentRegistry from registry/unified-registry.js instead.'
 );
 
 // ============================================================================
@@ -36,11 +36,11 @@ console.warn(
  */
 export const AGENT_IDS = {
   // Core team
-  COACH: 'coach',           // Ferni - Life coach, orchestrator
+  COACH: 'coach', // Ferni - Life coach, orchestrator
   RESEARCHER: 'researcher', // Peter John - Stock research
-  COMM: 'comm',             // Alex - Communication
-  BUDGET: 'budget',         // Maya - Spending & saving
-  PLANNER: 'planner',       // Jordan - Life planning
+  COMM: 'comm', // Alex - Communication
+  BUDGET: 'budget', // Maya - Spending & saving
+  PLANNER: 'planner', // Jordan - Life planning
 
   // Future agents can be added here:
   // ANALYST: 'analyst',
@@ -358,4 +358,3 @@ export default {
   buildHandoffToolMap,
   validateRegistry,
 };
-

@@ -180,9 +180,9 @@ export interface AlexMemory extends Memory {
 // ============================================================================
 
 // In-memory cache for current session (synced to DB on save)
-const memoriesCache: Map<string, Memory> = new Map();
-const dirtyUsers: Set<string> = new Set();
-const loadedUsers: Set<string> = new Set();
+const memoriesCache = new Map<string, Memory>();
+const dirtyUsers = new Set<string>();
+const loadedUsers = new Set<string>();
 
 // ============================================================================
 // PERSISTENCE FUNCTIONS
@@ -376,7 +376,7 @@ export async function recall(
   }
 
   if (options?.tags?.length) {
-    const tags = options.tags; // Store for closure - already checked for existence
+    const { tags } = options; // Store for closure - already checked for existence
     memories = memories.filter((m) => tags.some((tag) => m.tags.includes(tag.toLowerCase())));
   }
 

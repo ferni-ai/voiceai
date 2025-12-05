@@ -26,12 +26,12 @@ export interface EasterEggResult {
 export async function checkEasterEggs(
   userText: string,
   personaId: string,
-  conversationCount: number = 0,
+  conversationCount = 0,
   createdAt?: Date
 ): Promise<EasterEggResult> {
   try {
     const { checkForEasterEgg } = await import('../../personas/easter-eggs.js');
-    const easterEggContext = createdAt 
+    const easterEggContext = createdAt
       ? { conversationCount, userSinceDate: createdAt }
       : { conversationCount };
     const result = checkForEasterEgg(userText, personaId, easterEggContext);
@@ -67,7 +67,7 @@ export async function getResponseLengthGuidance(
     const { getResponseDynamicsEngine } = await import('../../conversation/index.js');
     const engine = getResponseDynamicsEngine();
     engine.recordMessage('user', userText, topics);
-    
+
     const guidance = engine.getLengthGuidance() as unknown;
     if (typeof guidance === 'string') {
       return { length: guidance, reason: '' };
@@ -105,7 +105,7 @@ export async function getTopicTransition(
     const { getResponseDynamicsEngine } = await import('../../conversation/index.js');
     const engine = getResponseDynamicsEngine();
     const transition = engine.getTopicTransition(previousTopic, currentTopic);
-    
+
     if (transition?.phrase) {
       return `[TOPIC SHIFT: Smoothly transition from ${previousTopic} to ${currentTopic}. Consider: "${transition.phrase}"]`;
     }
@@ -133,10 +133,10 @@ export async function getEmotionalArcSummary(): Promise<EmotionalArcSummary> {
   try {
     const { getEmotionalArcTracker } = await import('../../conversation/index.js');
     const tracker = getEmotionalArcTracker();
-    
+
     const arc = tracker.getArc() as unknown as Record<string, unknown> | null;
     const transition = tracker.getTransitionPhrase();
-    
+
     const summary: EmotionalArcSummary = {
       phase: String(arc?.currentPhase || arc?.phase || 'neutral'),
       intensity: Number(arc?.currentIntensity || arc?.intensity || 0.5),
@@ -167,14 +167,14 @@ export async function getActiveTaskCount(
   try {
     const { getTaskManager } = await import('../../tasks/task-manager.js');
     const { analyzeMessage } = await import('../../intelligence/index.js');
-    
+
     const analysisOptions: { isReturningUser?: boolean } = {};
     if (isReturningUser !== undefined) {
       analysisOptions.isReturningUser = isReturningUser;
     }
     const analysis = analyzeMessage(userText, analysisOptions);
     const taskManager = getTaskManager();
-    
+
     const taskContext: { isReturningUser?: boolean; lastSummary?: string } = {};
     if (isReturningUser !== undefined) {
       taskContext.isReturningUser = isReturningUser;
@@ -183,12 +183,12 @@ export async function getActiveTaskCount(
       taskContext.lastSummary = lastSummary;
     }
     taskManager.processUserTurn(analysis, userText, taskContext);
-    
+
     const tasks = taskManager.getActiveTasks();
     if (tasks.length > 0) {
       getLogger().info({ count: tasks.length }, 'Task wisdom active');
     }
-    
+
     return tasks.length;
   } catch (error) {
     getLogger().debug({ error: String(error) }, 'Task processing failed');
@@ -208,12 +208,12 @@ export async function resetAllConversationSystems(): Promise<void> {
     const { resetAllConversationState } = await import('../../conversation/index.js');
     const { resetCatchphraseTracking } = await import('../../speech/response-naturalness.js');
     const { resetHandoffState, resetMetPersonas } = await import('../../tools/handoff/index.js');
-    
+
     resetAllConversationState();
     resetCatchphraseTracking();
     resetHandoffState();
     resetMetPersonas();
-    
+
     getLogger().debug('All conversation systems reset');
   } catch (error) {
     getLogger().warn({ error: String(error) }, 'Failed to reset some systems');
@@ -232,7 +232,7 @@ export async function duckBackgroundMusic(): Promise<void> {
   try {
     const { isMusicEnabled } = await import('../../config/environment.js');
     if (!isMusicEnabled()) return;
-    
+
     const { getMusicPlayer } = await import('../../audio/index.js');
     const player = getMusicPlayer();
     if (player.isPlaying()) {
@@ -251,7 +251,7 @@ export async function unduckBackgroundMusic(): Promise<void> {
   try {
     const { isMusicEnabled } = await import('../../config/environment.js');
     if (!isMusicEnabled()) return;
-    
+
     const { getMusicPlayer } = await import('../../audio/index.js');
     const player = getMusicPlayer();
     if (player.getState().isDucked) {

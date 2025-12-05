@@ -81,7 +81,7 @@ export async function initializeVoiceRegistry(): Promise<void> {
     const result = await discoverAndLoadBundles();
 
     for (const bundle of result.bundles) {
-      const manifest = bundle.manifest;
+      const { manifest } = bundle;
       const canonicalId = manifest.identity.id;
 
       // Register the voice entry

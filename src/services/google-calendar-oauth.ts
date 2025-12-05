@@ -1,12 +1,12 @@
 /**
  * Google Calendar OAuth Service
- * 
+ *
  * Handles OAuth 2.0 authentication flow for Google Calendar:
  * - Generate authorization URL
  * - Exchange code for tokens
  * - Refresh access tokens
  * - Calendar CRUD operations
- * 
+ *
  * Supports both:
  * - User OAuth flow (for personal calendars)
  * - Service Account (for shared/team calendars)
@@ -21,7 +21,8 @@ import crypto from 'node:crypto';
 
 const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || '';
 const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '';
-const GOOGLE_OAUTH_REDIRECT_URI = process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:3003/auth/google/callback';
+const GOOGLE_OAUTH_REDIRECT_URI =
+  process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:3003/auth/google/callback';
 
 // Scopes needed for calendar operations
 const CALENDAR_SCOPES = [
@@ -78,7 +79,7 @@ export interface CalendarListEntry {
 // ============================================================================
 
 // In-memory token storage (production should use persistent storage)
-const userTokens: Map<string, GoogleTokens> = new Map();
+const userTokens = new Map<string, GoogleTokens>();
 
 /**
  * Store tokens for a user
@@ -162,7 +163,10 @@ export async function exchangeCodeForTokens(code: string): Promise<GoogleTokens>
   const tokens = (await response.json()) as GoogleTokens;
   tokens.expiry_date = Date.now() + tokens.expires_in * 1000;
 
-  getLogger().info({ hasRefreshToken: !!tokens.refresh_token }, 'Successfully exchanged code for tokens');
+  getLogger().info(
+    { hasRefreshToken: !!tokens.refresh_token },
+    'Successfully exchanged code for tokens'
+  );
   return tokens;
 }
 
@@ -339,7 +343,7 @@ export async function getEvents(
   calendarId: string,
   timeMin: Date,
   timeMax: Date,
-  maxResults: number = 50
+  maxResults = 50
 ): Promise<CalendarEvent[]> {
   const params = new URLSearchParams({
     timeMin: timeMin.toISOString(),
@@ -561,4 +565,3 @@ export default {
   isOAuthConfigured,
   getServiceAccountToken,
 };
-

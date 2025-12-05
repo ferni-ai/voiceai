@@ -59,11 +59,14 @@ export class CognitiveIntelligenceEngine {
       userExpertise: context.userExpertise,
     });
 
-    getLogger().debug({
-      personaId: this.personaId,
-      approach: guidance.recommendedApproach,
-      confidence: guidance.confidenceLevel,
-    }, 'Cognitive guidance generated');
+    getLogger().debug(
+      {
+        personaId: this.personaId,
+        approach: guidance.recommendedApproach,
+        confidence: guidance.confidenceLevel,
+      },
+      'Cognitive guidance generated'
+    );
 
     return guidance;
   }
@@ -100,7 +103,11 @@ export class CognitiveIntelligenceEngine {
 
     // Varied approaches prevent monotony (only if we have history)
     const recentApproaches = context.previousApproaches.slice(-3);
-    if (recentApproaches.length >= 3 && recentApproaches.every(a => a === reasoningStyle) && secondaryReasoning) {
+    if (
+      recentApproaches.length >= 3 &&
+      recentApproaches.every((a) => a === reasoningStyle) &&
+      secondaryReasoning
+    ) {
       // Switch to secondary occasionally for variety
       if (Math.random() < 0.2) {
         return secondaryReasoning;
@@ -119,7 +126,8 @@ export class CognitiveIntelligenceEngine {
    */
   private generateAttentionCues(context: CognitiveContext): string[] {
     const cues: string[] = [];
-    const { primaryFocus, blindSpots, curiosityTriggers, attentionMagnets } = this.profile.attention;
+    const { primaryFocus, blindSpots, curiosityTriggers, attentionMagnets } =
+      this.profile.attention;
 
     // What this persona naturally focuses on
     for (const focus of primaryFocus) {
@@ -129,7 +137,9 @@ export class CognitiveIntelligenceEngine {
     // Check if topic triggers curiosity
     for (const trigger of curiosityTriggers) {
       if (context.currentTopic.toLowerCase().includes(trigger.toLowerCase())) {
-        cues.push(`[CURIOSITY TRIGGERED] This topic deserves deeper exploration. Consider asking follow-up questions.`);
+        cues.push(
+          `[CURIOSITY TRIGGERED] This topic deserves deeper exploration. Consider asking follow-up questions.`
+        );
         break;
       }
     }
@@ -137,7 +147,9 @@ export class CognitiveIntelligenceEngine {
     // Check if it's an attention magnet
     for (const magnet of attentionMagnets) {
       if (context.currentTopic.toLowerCase().includes(magnet.toLowerCase())) {
-        cues.push(`[HIGH INTEREST] This is a topic that energizes you. Share your enthusiasm authentically.`);
+        cues.push(
+          `[HIGH INTEREST] This is a topic that energizes you. Share your enthusiasm authentically.`
+        );
         break;
       }
     }
@@ -145,7 +157,9 @@ export class CognitiveIntelligenceEngine {
     // Add blind spot awareness (metacognition)
     if (this.profile.metacognition.reflectionFrequency > 0.5 && Math.random() < 0.3) {
       const blindSpot = blindSpots[Math.floor(Math.random() * blindSpots.length)];
-      cues.push(`[SELF-AWARENESS] You might be overlooking ${this.getBlindSpotDescription(blindSpot)}. Consider whether it's relevant.`);
+      cues.push(
+        `[SELF-AWARENESS] You might be overlooking ${this.getBlindSpotDescription(blindSpot)}. Consider whether it's relevant.`
+      );
     }
 
     return cues;
@@ -207,16 +221,17 @@ export class CognitiveIntelligenceEngine {
 
     for (const bias of primaryBiases) {
       // Check if any triggers match current context
-      const triggered = bias.triggers.some(trigger =>
+      const triggered = bias.triggers.some((trigger) =>
         context.currentTopic.toLowerCase().includes(trigger.toLowerCase())
       );
 
       if (triggered && Math.random() < biasIntensity) {
         if (selfAwareness) {
           // Self-aware personas can catch themselves
-          const phrase = this.profile.biases.biasRecognitionPhrases[
-            Math.floor(Math.random() * this.profile.biases.biasRecognitionPhrases.length)
-          ];
+          const phrase =
+            this.profile.biases.biasRecognitionPhrases[
+              Math.floor(Math.random() * this.profile.biases.biasRecognitionPhrases.length)
+            ];
           alerts.push(`[BIAS AWARENESS] ${phrase} (${this.getBiasDescription(bias.type)})`);
         } else {
           // Less self-aware personas just manifest the bias
@@ -257,7 +272,13 @@ export class CognitiveIntelligenceEngine {
    * Assess and adjust for user expertise level
    */
   private assessExpertise(context: CognitiveContext): string {
-    const { adaptiveness, defaultExpertiseAssumption, comprehensionChecks, simplificationPhrases, expertiseRecognition } = this.profile.theoryOfMind;
+    const {
+      adaptiveness,
+      defaultExpertiseAssumption,
+      comprehensionChecks,
+      simplificationPhrases,
+      expertiseRecognition,
+    } = this.profile.theoryOfMind;
 
     // Low adaptiveness = don't adjust much
     if (adaptiveness < 0.3) {
@@ -266,21 +287,24 @@ export class CognitiveIntelligenceEngine {
 
     // Unknown expertise = use default
     if (context.userExpertise === 'unknown') {
-      const checkPhrase = comprehensionChecks[Math.floor(Math.random() * comprehensionChecks.length)];
+      const checkPhrase =
+        comprehensionChecks[Math.floor(Math.random() * comprehensionChecks.length)];
       return `[EXPERTISE UNKNOWN] Assume ${defaultExpertiseAssumption} level. Consider checking: "${checkPhrase}"`;
     }
 
     // Adjust based on detected expertise
     switch (context.userExpertise) {
       case 'expert':
-        const expertPhrase = expertiseRecognition[Math.floor(Math.random() * expertiseRecognition.length)];
+        const expertPhrase =
+          expertiseRecognition[Math.floor(Math.random() * expertiseRecognition.length)];
         return `[EXPERT USER] Skip basics, engage at advanced level. "${expertPhrase}"`;
 
       case 'intermediate':
         return `[INTERMEDIATE USER] Explain key concepts but don't over-simplify.`;
 
       case 'novice':
-        const simplePhrase = simplificationPhrases[Math.floor(Math.random() * simplificationPhrases.length)];
+        const simplePhrase =
+          simplificationPhrases[Math.floor(Math.random() * simplificationPhrases.length)];
         return `[NOVICE USER] Explain thoroughly, use analogies. "${simplePhrase}"`;
 
       default:
@@ -379,12 +403,18 @@ export class CognitiveIntelligenceEngine {
    */
   private confidenceMatchesLevel(confidence: number, level: string): boolean {
     switch (level) {
-      case 'very_confident': return confidence >= 0.85;
-      case 'confident': return confidence >= 0.7 && confidence < 0.85;
-      case 'uncertain': return confidence >= 0.5 && confidence < 0.7;
-      case 'speculating': return confidence >= 0.3 && confidence < 0.5;
-      case 'guessing': return confidence < 0.3;
-      default: return false;
+      case 'very_confident':
+        return confidence >= 0.85;
+      case 'confident':
+        return confidence >= 0.7 && confidence < 0.85;
+      case 'uncertain':
+        return confidence >= 0.5 && confidence < 0.7;
+      case 'speculating':
+        return confidence >= 0.3 && confidence < 0.5;
+      case 'guessing':
+        return confidence < 0.3;
+      default:
+        return false;
     }
   }
 
@@ -429,22 +459,24 @@ export class CognitiveIntelligenceEngine {
 
     // Attention cues
     if (guidance.attentionCues.length > 0) {
-      sections.push('\n' + guidance.attentionCues.join('\n'));
+      sections.push(`\n${guidance.attentionCues.join('\n')}`);
     }
 
     // Bias alerts
     if (guidance.biasAlerts.length > 0) {
-      sections.push('\n' + guidance.biasAlerts.join('\n'));
+      sections.push(`\n${guidance.biasAlerts.join('\n')}`);
     }
 
     // Expertise adjustment
     if (guidance.expertiseAdjustment) {
-      sections.push('\n' + guidance.expertiseAdjustment);
+      sections.push(`\n${guidance.expertiseAdjustment}`);
     }
 
     // Confidence and phrasing
     if (guidance.confidenceLevel < 0.6) {
-      sections.push(`\n[CONFIDENCE: ${Math.round(guidance.confidenceLevel * 100)}%] Express appropriate uncertainty.`);
+      sections.push(
+        `\n[CONFIDENCE: ${Math.round(guidance.confidenceLevel * 100)}%] Express appropriate uncertainty.`
+      );
     }
 
     // Show reasoning flag
@@ -465,11 +497,15 @@ export class CognitiveIntelligenceEngine {
    */
   private getReasoningGuidance(style: ReasoningStyle): string {
     const guidance: Record<ReasoningStyle, string> = {
-      analytical: 'Work from data and evidence. Identify patterns before conclusions. Use clear logical steps.',
-      intuitive: 'Trust your initial impressions. See the whole picture first. Connect through understanding.',
-      empathetic: 'Lead with emotional awareness. Validate feelings before problem-solving. Connect human-to-human.',
+      analytical:
+        'Work from data and evidence. Identify patterns before conclusions. Use clear logical steps.',
+      intuitive:
+        'Trust your initial impressions. See the whole picture first. Connect through understanding.',
+      empathetic:
+        'Lead with emotional awareness. Validate feelings before problem-solving. Connect human-to-human.',
       systematic: 'Break this down step by step. Consider process and structure. Be methodical.',
-      narrative: 'Think in stories and journeys. Connect this to a larger narrative. Use metaphors.',
+      narrative:
+        'Think in stories and journeys. Connect this to a larger narrative. Use metaphors.',
       pragmatic: 'Focus on what works. What are the practical outcomes? Be action-oriented.',
     };
     return guidance[style];
@@ -509,7 +545,7 @@ export class CognitiveIntelligenceEngine {
 
     return {
       approachesUsed,
-      topicsDiscussed: this.conversationHistory.map(e => e.topic),
+      topicsDiscussed: this.conversationHistory.map((e) => e.topic),
       averageExpertiseLevel: this.calculateAverageExpertise(),
     };
   }
@@ -536,7 +572,10 @@ const engines = new Map<string, CognitiveIntelligenceEngine>();
 /**
  * Get or create a cognitive intelligence engine for a persona
  */
-export function getCognitiveEngine(personaId: string, profile: CognitiveProfile): CognitiveIntelligenceEngine {
+export function getCognitiveEngine(
+  personaId: string,
+  profile: CognitiveProfile
+): CognitiveIntelligenceEngine {
   let engine = engines.get(personaId);
   if (!engine) {
     engine = new CognitiveIntelligenceEngine(personaId, profile);
@@ -562,4 +601,3 @@ export function resetAllCognitiveEngines(): void {
 }
 
 export default CognitiveIntelligenceEngine;
-

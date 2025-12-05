@@ -14,7 +14,11 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { sanitizePlainText } from './validation.js';
-import { getProductivityStore, type NoteData, type JournalEntryData } from '../services/productivity-store.js';
+import {
+  getProductivityStore,
+  type NoteData,
+  type JournalEntryData,
+} from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
 // Bridge functions for persistence
@@ -115,27 +119,27 @@ export interface JournalEntry {
 // STORAGE - Uses ProductivityStore for persistence
 // ============================================================================
 
-const notesCache: Map<string, Note> = new Map();
-const journalsCache: Map<string, JournalEntry> = new Map();
-const loadedUsers: Set<string> = new Set();
+const notesCache = new Map<string, Note>();
+const journalsCache = new Map<string, JournalEntry>();
+const loadedUsers = new Set<string>();
 
 async function ensureUserNotesLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-  
+
   try {
     const store = getProductivityStore();
     await store.loadUserData(userId);
-    
+
     const noteDataList = store.getUserNotes(userId);
     for (const data of noteDataList) {
       notesCache.set(data.id, noteDataToNote(data, userId));
     }
-    
+
     const journalDataList = store.getUserJournals(userId);
     for (const data of journalDataList) {
       journalsCache.set(data.id, journalDataToJournal(data, userId));
     }
-    
+
     loadedUsers.add(userId);
     getLogger().debug({ userId, notes: noteDataList.length }, 'Loaded notes from store');
   } catch (error) {
@@ -195,7 +199,7 @@ function getTodayJournal(userId: string): JournalEntry | null {
   );
 }
 
-function getRecentJournals(userId: string, days: number = 7): JournalEntry[] {
+function getRecentJournals(userId: string, days = 7): JournalEntry[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
 
@@ -261,7 +265,7 @@ const JOURNAL_PROMPTS: Record<string, string[]> = {
   ],
   morning: [
     'What are your top 3 priorities today?',
-    "What would make today great?",
+    'What would make today great?',
     "What's one thing you're grateful for this morning?",
     'How do you want to feel by the end of today?',
   ],
@@ -373,10 +377,7 @@ Use when user says:
       parameters: z.object({
         content: z.string().describe('The note content'),
         title: z.string().optional().describe('Optional title'),
-        type: z
-          .enum(['quick', 'idea', 'reminder', 'reflection'])
-          .optional()
-          .default('quick'),
+        type: z.enum(['quick', 'idea', 'reminder', 'reflection']).optional().default('quick'),
         tags: z.array(z.string()).optional().describe('Tags for organization'),
       }),
       execute: async ({ content, title, type, tags }, { ctx }) => {
@@ -437,7 +438,7 @@ Use when user asks "what did I note?" or "show my notes"`,
             day: 'numeric',
           });
           const preview =
-            note.content.length > 60 ? note.content.slice(0, 60) + '...' : note.content;
+            note.content.length > 60 ? `${note.content.slice(0, 60)}...` : note.content;
           response += `${i + 1}. ${note.title || preview} (${date})\n`;
         });
 
@@ -505,7 +506,9 @@ Use for daily journaling, gratitude practice, or reflection.`,
         }
 
         const prompts =
-          JOURNAL_PROMPTS[type === 'evening' ? 'reflection' : type === 'morning' ? 'morning' : 'gratitude'];
+          JOURNAL_PROMPTS[
+            type === 'evening' ? 'reflection' : type === 'morning' ? 'morning' : 'gratitude'
+          ];
         const prompt = prompts[Math.floor(Math.random() * prompts.length)];
 
         response += `**${prompt}**`;
@@ -518,11 +521,7 @@ Use for daily journaling, gratitude practice, or reflection.`,
       description: `Add gratitude items to today's journal.
 Use when user shares what they're grateful for.`,
       parameters: z.object({
-        gratitudes: z
-          .array(z.string())
-          .min(1)
-          .max(5)
-          .describe('Things to be grateful for'),
+        gratitudes: z.array(z.string()).min(1).max(5).describe('Things to be grateful for'),
       }),
       execute: async ({ gratitudes }, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -588,16 +587,13 @@ Use when user shares how they're feeling.`,
     completeJournal: llm.tool({
       description: `Complete a full journal entry with highlight, challenge, and intention.`,
       parameters: z.object({
-        highlight: z.string().optional().describe("Best part of the day"),
+        highlight: z.string().optional().describe('Best part of the day'),
         challenge: z.string().optional().describe('Biggest challenge'),
         learnings: z.string().optional().describe('What you learned'),
         tomorrowIntention: z.string().optional().describe('Intention for tomorrow'),
         mood: z.number().min(1).max(5).describe('Overall mood 1-5'),
       }),
-      execute: async (
-        { highlight, challenge, learnings, tomorrowIntention, mood },
-        { ctx }
-      ) => {
+      execute: async ({ highlight, challenge, learnings, tomorrowIntention, mood }, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'default';
 
@@ -687,4 +683,3 @@ Use when user shares how they're feeling.`,
 }
 
 export default createNotesTools;
-

@@ -70,7 +70,7 @@ describe('ProductivityStore', () => {
 
     it('should update an existing task', () => {
       store.setTask(testUserId, testTask);
-      
+
       const updatedTask = { ...testTask, status: 'completed' as const };
       store.setTask(testUserId, updatedTask);
 
@@ -284,8 +284,20 @@ describe('ProductivityStore', () => {
         name: 'Grocery List',
         type: 'groceries',
         items: [
-          { id: 'item-1', name: 'Milk', quantity: 1, isChecked: false, addedAt: new Date().toISOString() },
-          { id: 'item-2', name: 'Bread', quantity: 2, isChecked: false, addedAt: new Date().toISOString() },
+          {
+            id: 'item-1',
+            name: 'Milk',
+            quantity: 1,
+            isChecked: false,
+            addedAt: new Date().toISOString(),
+          },
+          {
+            id: 'item-2',
+            name: 'Bread',
+            quantity: 2,
+            isChecked: false,
+            addedAt: new Date().toISOString(),
+          },
         ],
         isActive: true,
         createdAt: new Date().toISOString(),
@@ -306,7 +318,7 @@ describe('ProductivityStore', () => {
     it('should mark loaded users', async () => {
       // First load should query the store
       await store.loadUserData(testUserId);
-      
+
       // Add a task
       store.setTask(testUserId, {
         id: 'task-load-test',
@@ -322,7 +334,7 @@ describe('ProductivityStore', () => {
 
       // Second load should be a no-op (already loaded)
       await store.loadUserData(testUserId);
-      
+
       // Task should still be there
       const tasks = store.getUserTasks(testUserId);
       expect(tasks).toHaveLength(1);
@@ -363,4 +375,3 @@ describe('ProductivityStore', () => {
     });
   });
 });
-

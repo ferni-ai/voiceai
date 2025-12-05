@@ -154,7 +154,7 @@ const PHASE_GUIDANCE: Record<ConversationPhase, PhaseGuidance> = {
 export class ConversationStateMachine {
   private state: ConversationState;
 
-  constructor(isReturningUser: boolean = false) {
+  constructor(isReturningUser = false) {
     this.state = this.createInitialState(isReturningUser);
   }
 
@@ -377,7 +377,7 @@ Transition when: ${guidance.transitionCue}
   /**
    * Reset state (for testing)
    */
-  reset(isReturningUser: boolean = false): void {
+  reset(isReturningUser = false): void {
     this.state = this.createInitialState(isReturningUser);
   }
 }
@@ -401,7 +401,7 @@ export function getStateMachine(isReturningUser?: boolean): ConversationStateMac
 /**
  * Reset the default state machine
  */
-export function resetStateMachine(isReturningUser: boolean = false): ConversationStateMachine {
+export function resetStateMachine(isReturningUser = false): ConversationStateMachine {
   defaultStateMachine = new ConversationStateMachine(isReturningUser);
   return defaultStateMachine;
 }

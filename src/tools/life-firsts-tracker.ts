@@ -182,7 +182,7 @@ export const MILESTONE_TEMPLATES: Record<
   {
     name: string;
     description: string;
-    defaultChecklist: Omit<MilestoneChecklistItem, 'id'>[];
+    defaultChecklist: Array<Omit<MilestoneChecklistItem, 'id'>>;
     tips: string[];
     typicalTimeline: string;
     budgetRange: { low: number; mid: number; high: number };
@@ -581,8 +581,8 @@ export const MILESTONE_TEMPLATES: Record<
 // IN-MEMORY STORAGE
 // ============================================================================
 
-const milestones: Map<string, LifeMilestone> = new Map();
-const userMilestones: Map<string, string[]> = new Map(); // userId -> milestone IDs
+const milestones = new Map<string, LifeMilestone>();
+const userMilestones = new Map<string, string[]>(); // userId -> milestone IDs
 
 // ============================================================================
 // HELPER FUNCTIONS

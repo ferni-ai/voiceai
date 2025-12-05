@@ -90,7 +90,7 @@ export function generateSilenceResponse(
 /**
  * Create initial silence context from user data
  */
-export function createSilenceContext(userName?: string, turnCount: number = 0): SilenceContext {
+export function createSilenceContext(userName?: string, turnCount = 0): SilenceContext {
   const context: SilenceContext = {
     silenceDurationSeconds: 0,
     turnCount,

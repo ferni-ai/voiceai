@@ -8,10 +8,10 @@
  *
  * NOTE: SKIPPED - Legacy team handler functions have been removed.
  * The new architecture uses teamHandlerRegistry from services/team-handler-registry.
- * 
+ *
  * These tests tested the old maya-team-handlers.js and alex-team-handlers.js files
  * which have been consolidated into the new team handler registry system.
- * 
+ *
  * See: src/services/team-handler-registry/ for the new implementation.
  */
 

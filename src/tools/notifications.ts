@@ -47,9 +47,10 @@ Shows what notifications are enabled and how they're delivered.`,
           enabled: prefs.enabled,
           preferredMethod: prefs.preferredMethod,
           preferredTime: prefs.preferredTime || 'Not set (default 9:00 AM)',
-          quietHours: prefs.quietHoursStart !== undefined 
-            ? `${prefs.quietHoursStart}:00 - ${prefs.quietHoursEnd}:00`
-            : 'Not set',
+          quietHours:
+            prefs.quietHoursStart !== undefined
+              ? `${prefs.quietHoursStart}:00 - ${prefs.quietHoursEnd}:00`
+              : 'Not set',
           enabledTypes: prefs.enabledTypes,
           frequency: prefs.frequency,
         };
@@ -74,9 +75,9 @@ Shows what notifications are enabled and how they're delivered.`,
 
         return {
           success: true,
-          message: enabled 
+          message: enabled
             ? "Notifications enabled! I'll send you helpful reminders and celebrations."
-            : "Notifications disabled. You can turn them back on anytime.",
+            : 'Notifications disabled. You can turn them back on anytime.',
         };
       },
     }),
@@ -128,9 +129,10 @@ Shows what notifications are enabled and how they're delivered.`,
 
         return {
           success: true,
-          message: method === 'sms' 
-            ? "I'll send notifications via text message!"
-            : "I'll send notifications via email!",
+          message:
+            method === 'sms'
+              ? "I'll send notifications via text message!"
+              : "I'll send notifications via email!",
         };
       },
     }),
@@ -148,9 +150,9 @@ Shows what notifications are enabled and how they're delivered.`,
         const userData = ctx.userData as { userId?: string };
         const userId = userData.userId || 'anonymous';
 
-        await service.setPreferences(userId, { 
-          quietHoursStart: startHour, 
-          quietHoursEnd: endHour 
+        await service.setPreferences(userId, {
+          quietHoursStart: startHour,
+          quietHoursEnd: endHour,
         });
 
         const formatHour = (h: number) => `${h.toString().padStart(2, '0')}:00`;
@@ -170,24 +172,28 @@ Shows what notifications are enabled and how they're delivered.`,
     configureNotificationTypes: llm.tool({
       description: `Enable or disable specific types of notifications.`,
       parameters: z.object({
-        types: z.array(z.enum([
-          'habit_reminder',
-          'streak_at_risk',
-          'streak_celebration',
-          'challenge_day',
-          'weekly_reflection',
-          'proactive_checkin',
-          'milestone_celebration',
-          'comeback_welcome',
-          'mood_checkin'
-        ])).describe('Types to enable'),
+        types: z
+          .array(
+            z.enum([
+              'habit_reminder',
+              'streak_at_risk',
+              'streak_celebration',
+              'challenge_day',
+              'weekly_reflection',
+              'proactive_checkin',
+              'milestone_celebration',
+              'comeback_welcome',
+              'mood_checkin',
+            ])
+          )
+          .describe('Types to enable'),
       }),
       execute: async ({ types }, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
         const userId = userData.userId || 'anonymous';
 
-        await service.setPreferences(userId, { 
-          enabledTypes: types as MayaNotificationType[]
+        await service.setPreferences(userId, {
+          enabledTypes: types as MayaNotificationType[],
         });
 
         getLogger().info({ userId, types }, '📋 Notification types configured');
@@ -207,7 +213,11 @@ Shows what notifications are enabled and how they're delivered.`,
       description: `Schedule a custom reminder message at a specific time.`,
       parameters: z.object({
         message: z.string().describe('The reminder message'),
-        minutesFromNow: z.number().min(1).max(10080).describe('Minutes from now to send (max 1 week)'),
+        minutesFromNow: z
+          .number()
+          .min(1)
+          .max(10080)
+          .describe('Minutes from now to send (max 1 week)'),
       }),
       execute: async ({ message, minutesFromNow }, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
@@ -224,22 +234,30 @@ Shows what notifications are enabled and how they're delivered.`,
         });
 
         if (!reminderId) {
-          return { 
-            error: 'Could not schedule reminder. Check notification preferences or contact info.' 
+          return {
+            error: 'Could not schedule reminder. Check notification preferences or contact info.',
           };
         }
 
         // Format time nicely
-        const timeStr = scheduledFor.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
+        const timeStr = scheduledFor.toLocaleTimeString('en-US', {
+          hour: 'numeric',
           minute: '2-digit',
-          hour12: true 
+          hour12: true,
         });
-        const dateStr = minutesFromNow > 60 * 24 
-          ? scheduledFor.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
-          : 'today';
+        const dateStr =
+          minutesFromNow > 60 * 24
+            ? scheduledFor.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric',
+              })
+            : 'today';
 
-        getLogger().info({ userId, reminderId, scheduledFor: scheduledFor.toISOString() }, '📅 Custom reminder scheduled');
+        getLogger().info(
+          { userId, reminderId, scheduledFor: scheduledFor.toISOString() },
+          '📅 Custom reminder scheduled'
+        );
 
         return {
           success: true,
@@ -266,7 +284,8 @@ Shows what notifications are enabled and how they're delivered.`,
 
         return {
           success: true,
-          message: "Daily habit reminders are set up! You'll get a nudge each day for your active habits.",
+          message:
+            "Daily habit reminders are set up! You'll get a nudge each day for your active habits.",
         };
       },
     }),
@@ -287,7 +306,8 @@ Shows what notifications are enabled and how they're delivered.`,
 
         return {
           success: true,
-          message: "Weekly reflection reminder set! I'll prompt you every Sunday evening to reflect on your week.",
+          message:
+            "Weekly reflection reminder set! I'll prompt you every Sunday evening to reflect on your week.",
         };
       },
     }),
@@ -302,4 +322,3 @@ Shows what notifications are enabled and how they're delivered.`,
 export const createMayaNotificationTools = createNotificationTools;
 
 export default createNotificationTools;
-

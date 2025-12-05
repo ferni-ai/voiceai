@@ -190,10 +190,7 @@ export class ToolDeprecationService {
       Date.now() + this.config.deprecationToSunsetDays * 24 * 60 * 60 * 1000
     );
 
-    getLogger().warn(
-      { toolId, sunsetsAt: record.sunsetsAt },
-      '⚠️ Tool deprecated'
-    );
+    getLogger().warn({ toolId, sunsetsAt: record.sunsetsAt }, '⚠️ Tool deprecated');
 
     return record;
   }
@@ -463,4 +460,3 @@ export class ToolDeprecationService {
 export const deprecationService = new ToolDeprecationService();
 
 export default deprecationService;
-

@@ -203,7 +203,7 @@ function normalizeAgentId(agentId: string): VoiceAgentId {
 
 class VoiceManager {
   private currentVoice: VoiceAgentId = 'ferni';
-  private ttsInstances: Map<string, cartesia.TTS> = new Map();
+  private ttsInstances = new Map<string, cartesia.TTS>();
   private initialized = false;
   private voiceSwitchHandler: ((data: { newAgent: string; voiceId: string }) => void) | null = null;
 
@@ -280,7 +280,7 @@ class VoiceManager {
   }
 
   // FIX BUG #voice-6: Voice switch subscribers for notification
-  private voiceSwitchSubscribers: Set<(from: VoiceAgentId, to: VoiceAgentId) => void> = new Set();
+  private voiceSwitchSubscribers = new Set<(from: VoiceAgentId, to: VoiceAgentId) => void>();
 
   /**
    * Subscribe to voice switch events
@@ -402,7 +402,7 @@ export function resetVoiceManager(): void {
 export class DynamicTTS extends tts.TTS {
   readonly label = 'dynamic-cartesia-tts';
 
-  private ttsInstances: Map<VoiceAgentId, cartesia.TTS> = new Map();
+  private ttsInstances = new Map<VoiceAgentId, cartesia.TTS>();
   private voiceManager: VoiceManager;
 
   constructor() {
@@ -444,7 +444,10 @@ export class DynamicTTS extends tts.TTS {
     // FIX BUG #voice-4 & #voice-8: Fallback to ferni with error handling
     const currentTTS = this.ttsInstances.get(normalizedAgent) ?? this.ttsInstances.get('ferni');
     if (!currentTTS) {
-      getLogger().error({ agent: currentAgent, normalizedAgent }, 'No TTS instance found - this should not happen');
+      getLogger().error(
+        { agent: currentAgent, normalizedAgent },
+        'No TTS instance found - this should not happen'
+      );
       throw new Error(`No TTS instance available for agent: ${currentAgent}`);
     }
 
@@ -530,9 +533,9 @@ export class PersonaAwareTTS extends tts.TTS {
   private voiceId: string;
 
   // Synchronization state for safe voice switching
-  private isSwitching: boolean = false;
+  private isSwitching = false;
   private pendingSwitch: { personaName: string; voiceId: string } | null = null;
-  private activeStreamCount: number = 0;
+  private activeStreamCount = 0;
 
   // Event handler reference for cleanup
   private voiceSwitchHandler: ((data: { newAgent: string; voiceId: string }) => void) | null = null;

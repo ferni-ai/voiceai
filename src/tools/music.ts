@@ -207,17 +207,17 @@ export async function playViaItunes(query: string): Promise<string> {
       // Try genre-specific first for extra personality
       const genreReaction = getGenreReaction(query);
       if (genreReaction && Math.random() < 0.4) {
-        intro = genreReaction + ' ';
+        intro = `${genreReaction} `;
       } else {
-        intro = getPlayfulMusicIntro(query) + ' ';
+        intro = `${getPlayfulMusicIntro(query)} `;
       }
     } else if (shouldReactToMusic()) {
-      intro = getMusicReaction('intro') + ' ';
+      intro = `${getMusicReaction('intro')} `;
     }
 
     // Sometimes add a playful comment after the track info
     const addComment = Math.random() < 0.25; // 25% chance
-    const comment = addComment ? ' ' + getPlayfulMusicComment() : '';
+    const comment = addComment ? ` ${getPlayfulMusicComment()}` : '';
 
     const baseResponse = `${intro}Here's "${track.name}" by ${track.artist}!${comment}`;
 
@@ -262,7 +262,7 @@ async function playViaSpotify(query: string): Promise<string> {
 /**
  * Search for music across sources.
  */
-export async function searchMusic(query: string, limit: number = 5): Promise<string> {
+export async function searchMusic(query: string, limit = 5): Promise<string> {
   const results = await searchItunes(query, limit);
 
   if (results.resultCount === 0) {
@@ -326,7 +326,7 @@ export async function suggestAndPlayMusic(mood: string): Promise<string> {
 
   // Sometimes add extra flavor
   const addFlavor = Math.random() < 0.3;
-  const flavor = addFlavor ? ' ' + getPlayfulMusicComment() : '';
+  const flavor = addFlavor ? ` ${getPlayfulMusicComment()}` : '';
 
   return `${moodIntro} For that ${mood} vibe, here's "${result.track.name}" by ${result.track.artist}!${flavor}`;
 }
@@ -365,7 +365,10 @@ Users with Spotify linked get full tracks.`,
         getLogger().info({ query }, '🎵 TOOL: playMusic CALLED');
         try {
           const result = await playMusicUnified(query);
-          console.log('🎵🎵🎵 [TOOL DEBUG] playMusic SUCCESS! Result preview:', result.slice(0, 150));
+          console.log(
+            '🎵🎵🎵 [TOOL DEBUG] playMusic SUCCESS! Result preview:',
+            result.slice(0, 150)
+          );
           getLogger().info(
             { query, resultPreview: result.slice(0, 100) },
             '🎵 TOOL: playMusic SUCCESS'

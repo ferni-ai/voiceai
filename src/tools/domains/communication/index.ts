@@ -88,7 +88,7 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'practiceConversation',
       'Practice Conversation',
-      'Role-play a difficult conversation before having it. Build confidence by practicing: salary negotiations, difficult feedback, boundary setting, conflict resolution. I\'ll play the other person and give you feedback on your approach.',
+      "Role-play a difficult conversation before having it. Build confidence by practicing: salary negotiations, difficult feedback, boundary setting, conflict resolution. I'll play the other person and give you feedback on your approach.",
       legacyTools.practiceConversation,
       { tags: ['coaching', 'practice', 'roleplay', 'confidence'] }
     ),
@@ -127,10 +127,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   communicationTools
 );
 
-export {
-  getCommunicationToolDefinitions,
-  getCoachingToolDefinitions,
-};
+export { getCommunicationToolDefinitions, getCoachingToolDefinitions };
 
 export default getToolDefinitions;
-

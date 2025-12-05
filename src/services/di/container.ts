@@ -236,7 +236,7 @@ export const Tokens = {
  * For classes that want to declare their dependencies
  */
 export interface Injectable<T> {
-  create(container: Container): T;
+  create: (container: Container) => T;
   dependencies: ServiceId[];
 }
 
@@ -255,4 +255,3 @@ export function defineInjectable<T, D extends ServiceId[]>(config: {
     },
   };
 }
-

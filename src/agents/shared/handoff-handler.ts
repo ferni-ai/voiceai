@@ -17,7 +17,7 @@
  * 10. Validate handoff consistency
  */
 
-import { voice } from '@livekit/agents';
+import type { voice } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { JobContext } from '@livekit/agents';
 import { diag } from '../../services/diagnostic-logger.js';
@@ -32,14 +32,16 @@ import type { SessionServices } from '../../services/types.js';
 // These are lazily loaded once and then reused for subsequent handoffs
 // ============================================================================
 
-type CachedModules = {
+interface CachedModules {
   PersonaRegistry: typeof import('../../personas/PersonaRegistry.js').PersonaRegistry | null;
   getVoiceManager: typeof import('../../speech/voice-manager.js').getVoiceManager | null;
   getMusicPlayer: typeof import('../../audio/index.js').getMusicPlayer | null;
   getPersonaAsync: typeof import('../../personas/index.js').getPersonaAsync | null;
   loadBundleById: typeof import('../../personas/bundles/index.js').loadBundleById | null;
-  createBundleRuntime: typeof import('../../personas/bundles/runtime.js').createBundleRuntime | null;
-};
+  createBundleRuntime:
+    | typeof import('../../personas/bundles/runtime.js').createBundleRuntime
+    | null;
+}
 
 const cachedModules: CachedModules = {
   PersonaRegistry: null,
@@ -81,7 +83,7 @@ async function getMusicPlayerCached() {
   if (!isMusicEnabled()) {
     return null;
   }
-  
+
   if (!cachedModules.getMusicPlayer) {
     const mod = await import('../../audio/index.js');
     cachedModules.getMusicPlayer = mod.getMusicPlayer;
@@ -184,10 +186,10 @@ export function isLegacyHandoffData(data: HandoffEventPayload): data is LegacyHa
  * Voice agent reference interface (minimal subset needed for handoffs)
  */
 export interface VoiceAgentRef {
-  setPersona(persona: unknown): void;
-  getPersona(): { id: string } | undefined;
-  setBundleRuntime(runtime: unknown): void;
-  getBundleRuntime(): { getState(): { personaId?: string } } | undefined;
+  setPersona: (persona: unknown) => void;
+  getPersona: () => { id: string } | undefined;
+  setBundleRuntime: (runtime: unknown) => void;
+  getBundleRuntime: () => { getState: () => { personaId?: string } } | undefined;
   instructions?: string;
 }
 
@@ -273,7 +275,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
     // FIX BUG: Add top-level error handling to prevent silent failures
     // This ensures any error in the handoff flow is logged and notifies the frontend
     let targetPersonaId = 'unknown';
-    
+
     try {
       // FIX BUG #50: Use cached PersonaRegistry to avoid redundant lookups
       const PersonaRegistry = await getPersonaRegistryCached();
@@ -298,12 +300,12 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         const legacy = data as LegacyHandoffData;
         targetPersonaId = legacy.newAgent || 'unknown';
         persona = PersonaRegistry.get(legacy.newAgent);
-        
+
         // FIX BUG: Check if persona was found
         if (!persona) {
           throw new Error(`PersonaRegistry.get returned null for: ${legacy.newAgent}`);
         }
-        
+
         greeting = legacy.greeting;
         playSound = legacy.playSound;
         previousAgentId = legacy.previousAgent;
@@ -312,117 +314,128 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       // Get previous persona for logging
       const prevId = previousAgentId || getCurrentAgent();
       const prevPersona: HandoffPersona = PersonaRegistry.get(prevId);
-      
+
       // FIX BUG: Check if previous persona was found
       if (!prevPersona) {
         throw new Error(`PersonaRegistry.get returned null for previous persona: ${prevId}`);
       }
 
-    diag.entry(`🔄 HANDOFF: ${prevPersona.name} → ${persona.name}`);
+      diag.entry(`🔄 HANDOFF: ${prevPersona.name} → ${persona.name}`);
 
-    logger.info(
-      {
-        from: { id: prevPersona.id, name: prevPersona.name, role: prevPersona.role },
-        to: { id: persona.id, name: persona.name, role: persona.role },
-        hasGreeting: !!greeting,
-        playSound,
-      },
-      'Agent handoff triggered'
-    );
-
-    // REFACTORED: Now uses AgentDirectory for role-based direction calculation
-    const direction = await determineDirection(prevPersona, persona);
-
-    // ============================================================
-    // DELIGHTFUL HANDOFF FLOW
-    // ============================================================
-    try {
-      // STEP 1: Send handoff_started - frontend begins visual transition
-      // FIX BUG: Ensure localParticipant exists and add retry logic
-      const startMessage = JSON.stringify({
-        type: 'handoff_started',
-        newAgent: persona.id,
-        previousAgent: prevPersona.id,
-        direction,
-        playSound,
-        timestamp: Date.now(),
-      });
-
-      if (!ctx.room.localParticipant) {
-        logger.error('Cannot send handoff_started: localParticipant is null');
-        throw new Error('Connection lost before handoff');
-      }
-
-      try {
-        await ctx.room.localParticipant.publishData(new TextEncoder().encode(startMessage), {
-          reliable: true,
-        });
-        diag.entry(`Handoff started: ${prevPersona.name} → ${persona.name}`);
-      } catch (startErr) {
-        logger.error({ error: String(startErr) }, 'Failed to send handoff_started');
-        throw new Error(`Failed to send handoff_started: ${startErr}`);
-      }
-
-      // STEP 2: Calculate and wait for transition
-      // FIX BUG #25: Use explicit flag if available, fall back to string parsing for legacy data
-      // REFACTORED: Now uses shared HANDOFF_TIMING constants
-      const isUserInitiated = 'isUserInitiated' in data 
-        ? (data as NewHandoffData).isUserInitiated ?? false 
-        : greeting?.includes('User requested') ?? false;
-      const transitionDelayMs = await calculateTransitionDelay(prevPersona, persona, isUserInitiated);
-
-      diag.entry(
-        `Transition delay: ${transitionDelayMs}ms (userInitiated: ${isUserInitiated}, firstMeeting: ${prevPersona.isCoach})`
+      logger.info(
+        {
+          from: { id: prevPersona.id, name: prevPersona.name, role: prevPersona.role },
+          to: { id: persona.id, name: persona.name, role: persona.role },
+          hasGreeting: !!greeting,
+          playSound,
+        },
+        'Agent handoff triggered'
       );
 
-      // FIX BUG #28 & #51: Use cached music player (only if music is enabled)
-      let musicWasPlaying = false;
-      let musicPlayerRef: { isPlaying(): boolean; resume(): Promise<void> } | null = null;
+      // REFACTORED: Now uses AgentDirectory for role-based direction calculation
+      const direction = await determineDirection(prevPersona, persona);
+
+      // ============================================================
+      // DELIGHTFUL HANDOFF FLOW
+      // ============================================================
       try {
-        musicPlayerRef = await getMusicPlayerCached();
-        if (musicPlayerRef) {
-          musicWasPlaying = musicPlayerRef.isPlaying();
-          if (musicWasPlaying) {
-            diag.state(`Music is playing during handoff - preserving playback`);
-          }
+        // STEP 1: Send handoff_started - frontend begins visual transition
+        // FIX BUG: Ensure localParticipant exists and add retry logic
+        const startMessage = JSON.stringify({
+          type: 'handoff_started',
+          newAgent: persona.id,
+          previousAgent: prevPersona.id,
+          direction,
+          playSound,
+          timestamp: Date.now(),
+        });
+
+        if (!ctx.room.localParticipant) {
+          logger.error('Cannot send handoff_started: localParticipant is null');
+          throw new Error('Connection lost before handoff');
         }
-      } catch {
-        // Music player not available - ignore
-      }
 
-      await new Promise((resolve) => setTimeout(resolve, transitionDelayMs));
-
-      // STEP 3: Switch the voice with retry logic
-      // FIX BUG #47: Added retry mechanism for failed voice switches
-      const MAX_VOICE_SWITCH_RETRIES = 2;
-      let voiceSwitchSuccess = false;
-      
-      for (let attempt = 0; attempt <= MAX_VOICE_SWITCH_RETRIES && !voiceSwitchSuccess; attempt++) {
         try {
-          // FIX BUG #51: Use cached voice manager
-          const voiceManager = await getVoiceManagerCached();
-          voiceManager.switchVoice(persona.id);
+          await ctx.room.localParticipant.publishData(new TextEncoder().encode(startMessage), {
+            reliable: true,
+          });
+          diag.entry(`Handoff started: ${prevPersona.name} → ${persona.name}`);
+        } catch (startErr) {
+          logger.error({ error: String(startErr) }, 'Failed to send handoff_started');
+          throw new Error(`Failed to send handoff_started: ${startErr}`);
+        }
 
-          // Also switch the session's TTS if it supports voice switching
-          if (tts && 'switchVoice' in tts) {
-            (tts as { switchVoice: (name: string, id: string) => void }).switchVoice(
-              persona.id,
-              persona.voiceId
-            );
+        // STEP 2: Calculate and wait for transition
+        // FIX BUG #25: Use explicit flag if available, fall back to string parsing for legacy data
+        // REFACTORED: Now uses shared HANDOFF_TIMING constants
+        const isUserInitiated =
+          'isUserInitiated' in data
+            ? ((data as NewHandoffData).isUserInitiated ?? false)
+            : (greeting?.includes('User requested') ?? false);
+        const transitionDelayMs = await calculateTransitionDelay(
+          prevPersona,
+          persona,
+          isUserInitiated
+        );
+
+        diag.entry(
+          `Transition delay: ${transitionDelayMs}ms (userInitiated: ${isUserInitiated}, firstMeeting: ${prevPersona.isCoach})`
+        );
+
+        // FIX BUG #28 & #51: Use cached music player (only if music is enabled)
+        let musicWasPlaying = false;
+        let musicPlayerRef: { isPlaying: () => boolean; resume: () => Promise<void> } | null = null;
+        try {
+          musicPlayerRef = await getMusicPlayerCached();
+          if (musicPlayerRef) {
+            musicWasPlaying = musicPlayerRef.isPlaying();
+            if (musicWasPlaying) {
+              diag.state(`Music is playing during handoff - preserving playback`);
+            }
           }
+        } catch {
+          // Music player not available - ignore
+        }
 
-          voiceSwitchSuccess = true;
-          diag.entry(`Voice switched to ${persona.name}, ready to speak${attempt > 0 ? ` (retry ${attempt})` : ''}`);
-        } catch (voiceSwitchErr) {
-          if (attempt < MAX_VOICE_SWITCH_RETRIES) {
-            diag.warn(`Voice switch failed (attempt ${attempt + 1}), retrying in 100ms...`);
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          } else {
-            diag.error(`Voice switch failed after ${MAX_VOICE_SWITCH_RETRIES + 1} attempts`);
-            throw voiceSwitchErr;
+        await new Promise((resolve) => setTimeout(resolve, transitionDelayMs));
+
+        // STEP 3: Switch the voice with retry logic
+        // FIX BUG #47: Added retry mechanism for failed voice switches
+        const MAX_VOICE_SWITCH_RETRIES = 2;
+        let voiceSwitchSuccess = false;
+
+        for (
+          let attempt = 0;
+          attempt <= MAX_VOICE_SWITCH_RETRIES && !voiceSwitchSuccess;
+          attempt++
+        ) {
+          try {
+            // FIX BUG #51: Use cached voice manager
+            const voiceManager = await getVoiceManagerCached();
+            voiceManager.switchVoice(persona.id);
+
+            // Also switch the session's TTS if it supports voice switching
+            if (tts && 'switchVoice' in tts) {
+              (tts as { switchVoice: (name: string, id: string) => void }).switchVoice(
+                persona.id,
+                persona.voiceId
+              );
+            }
+
+            voiceSwitchSuccess = true;
+            diag.entry(
+              `Voice switched to ${persona.name}, ready to speak${attempt > 0 ? ` (retry ${attempt})` : ''}`
+            );
+          } catch (voiceSwitchErr) {
+            if (attempt < MAX_VOICE_SWITCH_RETRIES) {
+              diag.warn(`Voice switch failed (attempt ${attempt + 1}), retrying in 100ms...`);
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            } else {
+              diag.error(`Voice switch failed after ${MAX_VOICE_SWITCH_RETRIES + 1} attempts`);
+              throw voiceSwitchErr;
+            }
           }
         }
-      }
 
         // FIX BUG #6: State sync removed - setCurrentAgent is already called in the handoff tool
         // before emitting the event. Calling it twice caused race conditions where the
@@ -473,10 +486,16 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           } catch (sendErr) {
             sendAttempts++;
             if (sendAttempts >= maxSendAttempts) {
-              logger.error({ error: String(sendErr), attempts: sendAttempts }, 'Failed to send handoff_complete after retries');
+              logger.error(
+                { error: String(sendErr), attempts: sendAttempts },
+                'Failed to send handoff_complete after retries'
+              );
               throw new Error(`Failed to send handoff_complete: ${sendErr}`);
             }
-            logger.warn({ error: String(sendErr), attempt: sendAttempts }, 'Retrying handoff_complete send...');
+            logger.warn(
+              { error: String(sendErr), attempt: sendAttempts },
+              'Retrying handoff_complete send...'
+            );
             await new Promise((resolve) => setTimeout(resolve, 100 * sendAttempts));
           }
         }
@@ -504,10 +523,13 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           }
         } catch (personaErr) {
           // FIX BUG #49: Graceful degradation - handoff proceeds but with basic instructions
-          logger.warn({ 
-            personaId: persona.id, 
-            error: String(personaErr) 
-          }, '⚠️ Persona update failed - handoff continues with existing configuration');
+          logger.warn(
+            {
+              personaId: persona.id,
+              error: String(personaErr),
+            },
+            '⚠️ Persona update failed - handoff continues with existing configuration'
+          );
           diag.warn(`Persona async load failed for ${persona.name}, using cached version`);
         }
 
@@ -522,23 +544,28 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             const voiceAgentRef = getVoiceAgentRef();
             const oldRuntime = voiceAgentRef?.getBundleRuntime?.();
             // Type the old state to access BundleRuntimeState properties
-            const oldState = oldRuntime?.getState?.() as {
-              relationshipTurns?: number;
-              storiesToldThisSession?: string[];
-              currentMode?: string;
-            } | undefined;
-            
+            const oldState = oldRuntime?.getState?.() as
+              | {
+                  relationshipTurns?: number;
+                  storiesToldThisSession?: string[];
+                  currentMode?: string;
+                }
+              | undefined;
+
             // FIX BUG #63: Preserve important state from old runtime
             const preservedState = {
-              relationshipTurns: oldState?.relationshipTurns || userData?.bundleRuntimeState?.relationshipTurns || 0,
+              relationshipTurns:
+                oldState?.relationshipTurns || userData?.bundleRuntimeState?.relationshipTurns || 0,
               storiesToldThisSession: oldState?.storiesToldThisSession || [],
               currentMode: oldState?.currentMode || 'discovery',
             };
-            
+
             const newRuntime = await createBundleRuntime(newBundle);
 
             // FIX BUG #64 & #65: Validate and merge preserved state with fresh data
-            const stateUpdate: Partial<import('../../personas/bundles/index.js').BundleRuntimeState> = {
+            const stateUpdate: Partial<
+              import('../../personas/bundles/index.js').BundleRuntimeState
+            > = {
               ...preservedState,
               sessionCount: services?.userProfile?.totalConversations || 0,
               personaId: persona.id, // Ensure personaId is always set
@@ -551,7 +578,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
 
             if (voiceAgentRef) {
               voiceAgentRef.setBundleRuntime(newRuntime);
-              diag.entry(`📦 Bundle runtime updated on voiceAgent for ${persona.name} (preserved: ${preservedState.relationshipTurns} turns)`);
+              diag.entry(
+                `📦 Bundle runtime updated on voiceAgent for ${persona.name} (preserved: ${preservedState.relationshipTurns} turns)`
+              );
             } else {
               diag.warn('voiceAgentRef not yet initialized - bundle runtime not assigned');
             }
@@ -561,10 +590,13 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         } catch (bundleErr) {
           // FIX BUG #49: Graceful degradation when bundle loading fails
           // The handoff still proceeds - persona basics work, but advanced behaviors may be limited
-          logger.warn({ 
-            personaId: persona.id,
-            error: String(bundleErr) 
-          }, '⚠️ Bundle runtime reload failed - handoff continues with basic persona capabilities');
+          logger.warn(
+            {
+              personaId: persona.id,
+              error: String(bundleErr),
+            },
+            '⚠️ Bundle runtime reload failed - handoff continues with basic persona capabilities'
+          );
           diag.warn(`Bundle not loaded for ${persona.name} - using basic configuration`);
         }
 
@@ -589,7 +621,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           // Always log mismatches - critical for debugging production issues
           logger.warn(validation, '⚠️ HANDOFF IDENTITY MISMATCH - Components may be out of sync');
           diag.warn('Handoff validation warning', validation);
-          
+
           // In development, also log as error for visibility
           if (process.env['NODE_ENV'] !== 'production' || process.env['DEBUG_HANDOFF'] === 'true') {
             logger.error(validation, '🚨 HANDOFF IDENTITY MISMATCH - Components out of sync!');
@@ -623,13 +655,16 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
     } catch (topLevelErr) {
       // FIX BUG: Catch any uncaught errors in the handoff flow
       // This prevents silent failures that leave the UI stuck
-      logger.error({ 
-        error: String(topLevelErr), 
-        targetPersona: targetPersonaId,
-        stack: topLevelErr instanceof Error ? topLevelErr.stack : undefined,
-      }, '🚨 HANDOFF HANDLER CRASHED - Unhandled error in handoff flow');
+      logger.error(
+        {
+          error: String(topLevelErr),
+          targetPersona: targetPersonaId,
+          stack: topLevelErr instanceof Error ? topLevelErr.stack : undefined,
+        },
+        '🚨 HANDOFF HANDLER CRASHED - Unhandled error in handoff flow'
+      );
       diag.error(`Handoff handler crashed: ${topLevelErr}`);
-      
+
       // Try to notify frontend of the failure
       try {
         const crashMessage = JSON.stringify({
@@ -648,4 +683,3 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
     }
   };
 }
-

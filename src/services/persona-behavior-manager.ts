@@ -1,6 +1,6 @@
 /**
  * PersonaBehaviorManager - Singleton for managing persona behaviors at runtime
- * 
+ *
  * This service loads, caches, and provides access to persona behavior content
  * for dynamic humanization during conversations.
  */
@@ -75,10 +75,10 @@ export async function loadPersonaBehaviors(
   try {
     const behaviorsPath = join(BUNDLES_PATH, personaId, 'content', 'behaviors');
     const behaviors: Record<string, unknown> = {};
-    
+
     try {
       const files = await fs.readdir(behaviorsPath);
-      
+
       for (const file of files) {
         if (file.endsWith('.json')) {
           const filePath = join(behaviorsPath, file);
@@ -186,13 +186,14 @@ export async function getComfortPhrase(
 
   // Try emotional-intelligence comfort phrases
   const ei = behaviors['emotional-intelligence'] as Record<string, unknown> | undefined;
-  const comfort = ei?.['comfort_phrases'] as { general?: string[]; after_vulnerability?: string[] } | undefined;
+  const comfort = ei?.['comfort_phrases'] as
+    | { general?: string[]; after_vulnerability?: string[] }
+    | undefined;
 
   if (comfort) {
-    const phrases = context.emotional.userMood === 'reflective' 
-      ? comfort.after_vulnerability 
-      : comfort.general;
-    
+    const phrases =
+      context.emotional.userMood === 'reflective' ? comfort.after_vulnerability : comfort.general;
+
     const phrase = getRandomPhrase(phrases);
     if (phrase) {
       return { phrase, type: 'comfort', metadata: { source: 'emotional_intelligence' } };
@@ -202,7 +203,7 @@ export async function getComfortPhrase(
   // Fallback to encouragement
   const encouragement = behaviors['encouragement'] as { general_struggles?: string[] } | undefined;
   const phrase = getRandomPhrase(encouragement?.general_struggles);
-  
+
   return phrase ? { phrase, type: 'comfort', metadata: { source: 'encouragement' } } : null;
 }
 
@@ -219,22 +220,29 @@ export async function getCelebrationPhrase(
 
   const celebrationsRaw = behaviors['celebrations'];
   if (!celebrationsRaw || typeof celebrationsRaw !== 'object') return null;
-  
+
   const celebrations = celebrationsRaw as Record<string, unknown>;
 
   // Try specific type first, then fallback to 'win'
-  const phrasesRaw = celebrations[celebrationType] || celebrations['win'] || celebrations['progress'];
-  const phrases = Array.isArray(phrasesRaw) ? phrasesRaw as string[] : undefined;
+  const phrasesRaw =
+    celebrations[celebrationType] || celebrations['win'] || celebrations['progress'];
+  const phrases = Array.isArray(phrasesRaw) ? (phrasesRaw as string[]) : undefined;
   const phrase = getRandomPhrase(phrases);
 
   if (!phrase) return null;
 
   // Check for relationship-based celebrations
-  const byRelationship = celebrations['by_relationship_stage'] as Record<string, string[]> | undefined;
+  const byRelationship = celebrations['by_relationship_stage'] as
+    | Record<string, string[]>
+    | undefined;
   if (byRelationship && Math.random() > 0.6) {
     const relationshipPhrase = getRandomPhrase(byRelationship[context.relationshipStage]);
     if (relationshipPhrase) {
-      return { phrase: relationshipPhrase, type: 'celebration', metadata: { celebrationType, relationshipBased: true } };
+      return {
+        phrase: relationshipPhrase,
+        type: 'celebration',
+        metadata: { celebrationType, relationshipBased: true },
+      };
     }
   }
 
@@ -273,21 +281,27 @@ export async function getComplimentPhrase(
 
   const complimentsRaw = behaviors['compliments'];
   if (!complimentsRaw || typeof complimentsRaw !== 'object') return null;
-  
+
   const compliments = complimentsRaw as Record<string, unknown>;
 
   // Check relationship-gated compliments
-  const byRelationship = compliments['by_relationship_stage'] as Record<string, string[]> | undefined;
+  const byRelationship = compliments['by_relationship_stage'] as
+    | Record<string, string[]>
+    | undefined;
   if (byRelationship && context.relationshipStage !== 'stranger') {
     const relationshipPhrase = getRandomPhrase(byRelationship[context.relationshipStage]);
     if (relationshipPhrase && Math.random() > 0.5) {
-      return { phrase: relationshipPhrase, type: 'compliment', metadata: { complimentType, relationshipBased: true } };
+      return {
+        phrase: relationshipPhrase,
+        type: 'compliment',
+        metadata: { complimentType, relationshipBased: true },
+      };
     }
   }
 
   // Get type-specific or character compliments
   const phrasesRaw = compliments[complimentType] || compliments['character_compliments'];
-  const phrases = Array.isArray(phrasesRaw) ? phrasesRaw as string[] : undefined;
+  const phrases = Array.isArray(phrasesRaw) ? (phrasesRaw as string[]) : undefined;
   const phrase = getRandomPhrase(phrases);
 
   return phrase ? { phrase, type: 'compliment', metadata: { complimentType } } : null;
@@ -336,10 +350,12 @@ export async function getMemoryCallbackPhrase(
       phrases = (memory['progress_tracking'] as { goal_follow_up?: string[] })?.goal_follow_up;
       break;
     case 'struggle':
-      phrases = (memory['progress_tracking'] as { struggle_follow_up?: string[] })?.struggle_follow_up;
+      phrases = (memory['progress_tracking'] as { struggle_follow_up?: string[] })
+        ?.struggle_follow_up;
       break;
     case 'person':
-      phrases = (memory['relationship_callbacks'] as { mentioned_person?: string[] })?.mentioned_person;
+      phrases = (memory['relationship_callbacks'] as { mentioned_person?: string[] })
+        ?.mentioned_person;
       break;
   }
 
@@ -347,7 +363,10 @@ export async function getMemoryCallbackPhrase(
   if (!phrase) return null;
 
   // Replace placeholder with actual topic
-  const filledPhrase = phrase.replace('{topic}', topic).replace('{goal}', topic).replace('{person}', topic);
+  const filledPhrase = phrase
+    .replace('{topic}', topic)
+    .replace('{goal}', topic)
+    .replace('{person}', topic);
 
   return { phrase: filledPhrase, type: 'memory_callback', metadata: { callbackType, topic } };
 }
@@ -376,7 +395,9 @@ export async function getContextualPhrase(
   }
 
   // Check energy adaptation
-  const energyAdaptation = nuances['user_energy_adaptation'] as Record<string, { phrases?: string[] }> | undefined;
+  const energyAdaptation = nuances['user_energy_adaptation'] as
+    | Record<string, { phrases?: string[] }>
+    | undefined;
   if (energyAdaptation && context.emotional.energyLevel) {
     const energyKey = context.emotional.energyLevel === 'low' ? 'low_energy' : 'high_energy';
     const phrase = getRandomPhrase(energyAdaptation[energyKey]?.phrases);
@@ -445,13 +466,10 @@ export async function getVulnerabilityPhrase(
 /**
  * Get SSML pacing multiplier based on persona and context
  */
-export function getPacingMultiplier(
-  personaId: string,
-  context: ConversationContext
-): number {
+export function getPacingMultiplier(personaId: string, context: ConversationContext): number {
   // Base multipliers by persona
   const personaMultipliers: Record<string, number> = {
-    'ferni': 1.0,
+    ferni: 1.0,
     'jordan-taylor': 0.85,
     'nayan-patel': 1.4,
     'peter-john': 0.75,
@@ -507,15 +525,22 @@ export function clearBehaviorCache(personaId?: string): void {
  * Preload behaviors for all personas
  */
 export async function preloadAllBehaviors(): Promise<void> {
-  const personas = ['ferni', 'jordan-taylor', 'nayan-patel', 'peter-john', 'alex-chen', 'maya-santos'];
-  
+  const personas = [
+    'ferni',
+    'jordan-taylor',
+    'nayan-patel',
+    'peter-john',
+    'alex-chen',
+    'maya-santos',
+  ];
+
   await Promise.all(
     personas.map(async (id) => {
       await loadPersonaBehaviors(id);
       logger.debug({ personaId: id }, 'Preloaded behaviors');
     })
   );
-  
+
   logger.info({ count: personas.length }, 'Preloaded all persona behaviors');
 }
 
@@ -540,4 +565,3 @@ export const PersonaBehaviorManager = {
 };
 
 export default PersonaBehaviorManager;
-

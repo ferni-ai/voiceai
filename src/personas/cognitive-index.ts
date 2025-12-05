@@ -75,43 +75,25 @@ export type {
 } from './cognitive-advanced.js';
 
 // User cognitive style detection
-export {
-  detectUserCognitiveStyle,
-} from './cognitive-advanced.js';
+export { detectUserCognitiveStyle } from './cognitive-advanced.js';
 
 // Cognitive handoff transfer
-export {
-  buildCognitiveHandoffContext,
-} from './cognitive-advanced.js';
+export { buildCognitiveHandoffContext } from './cognitive-advanced.js';
 
 // Multi-step reasoning chains
-export {
-  buildReasoningChain,
-  getReasoningChainGuidance,
-} from './cognitive-advanced.js';
+export { buildReasoningChain, getReasoningChainGuidance } from './cognitive-advanced.js';
 
 // Cognitive conflict resolution
-export {
-  detectCognitiveConflict,
-} from './cognitive-advanced.js';
+export { detectCognitiveConflict } from './cognitive-advanced.js';
 
 // Cognitive learning
-export {
-  CognitiveLearningTracker,
-  getCognitiveLearningTracker,
-} from './cognitive-advanced.js';
+export { CognitiveLearningTracker, getCognitiveLearningTracker } from './cognitive-advanced.js';
 
 // Knowledge state persistence
-export {
-  KnowledgeStateTracker,
-  getKnowledgeStateTracker,
-} from './cognitive-advanced.js';
+export { KnowledgeStateTracker, getKnowledgeStateTracker } from './cognitive-advanced.js';
 
 // Cognitive growth arc
-export {
-  getCognitiveGrowthProfile,
-  buildCognitiveGrowthContext,
-} from './cognitive-advanced.js';
+export { getCognitiveGrowthProfile, buildCognitiveGrowthContext } from './cognitive-advanced.js';
 
 // ============================================================================
 // COLLABORATIVE COGNITION
@@ -123,10 +105,7 @@ export {
   generateTeamCommentary,
 } from './collaborative-cognition.js';
 
-export type {
-  CognitivePerspective,
-  CollaborativeCognition,
-} from './collaborative-cognition.js';
+export type { CognitivePerspective, CollaborativeCognition } from './collaborative-cognition.js';
 
 // ============================================================================
 // CONVENIENCE FUNCTIONS
@@ -264,8 +243,8 @@ export function detectUserExpertise(
   // Expert signals
   const expertSignals = [
     'in my experience',
-    'from what i\'ve seen',
-    'i\'ve been doing this',
+    "from what i've seen",
+    "i've been doing this",
     'i know that',
     'actually',
     'technically',
@@ -276,9 +255,9 @@ export function detectUserExpertise(
 
   // Novice signals
   const noviceSignals = [
-    'i don\'t understand',
+    "i don't understand",
     'what does that mean',
-    'i\'m new to',
+    "i'm new to",
     'never done this',
     'first time',
     'confusing',
@@ -313,4 +292,3 @@ export default {
   detectQuestionComplexity,
   detectUserExpertise,
 };
-

@@ -58,4 +58,3 @@ export {
   type VersionComparison,
   type VersioningConfig,
 } from '../versioning.js';
-

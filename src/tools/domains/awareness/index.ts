@@ -34,7 +34,10 @@ const getCurrentContextDef: ToolDefinition = {
         'Get current contextual awareness: time of day, day of week, season, any notable dates, and environmental factors. Use this to make conversation feel grounded and natural.',
       parameters: z.object({
         includeWeather: z.boolean().optional().describe('Include weather context if available'),
-        timezone: z.string().optional().describe('Override timezone (default: user profile or UTC)'),
+        timezone: z
+          .string()
+          .optional()
+          .describe('Override timezone (default: user profile or UTC)'),
       }),
       execute: async ({ includeWeather, timezone }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Getting current context');
@@ -118,7 +121,13 @@ const getCurrentContextDef: ToolDefinition = {
           is_monday: isMonday,
           season,
           special_days: specialDays,
-          contextual_awareness: buildContextualAwareness(timeOfDay, isWeekend, isFriday, isMonday, season),
+          contextual_awareness: buildContextualAwareness(
+            timeOfDay,
+            isWeekend,
+            isFriday,
+            isMonday,
+            season
+          ),
         };
 
         return JSON.stringify(context, null, 2);
@@ -180,7 +189,7 @@ const getUserContextDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Get context about the current user: how long you\'ve known them, recent topics, emotional patterns, and relationship stage. Essential for personalized, human conversation.',
+        "Get context about the current user: how long you've known them, recent topics, emotional patterns, and relationship stage. Essential for personalized, human conversation.",
       parameters: z.object({}),
       execute: async (_, { ctx: toolCtx }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Getting user context');
@@ -229,7 +238,8 @@ const getUserContextDef: ToolDefinition = {
         // Add relationship guidance based on stage
         const relationshipGuidance: Record<string, string> = {
           new: 'New relationship - focus on learning about them, building trust, being warm but not presumptuous',
-          acquaintance: 'Getting to know them - can reference past conversations, still learning preferences',
+          acquaintance:
+            'Getting to know them - can reference past conversations, still learning preferences',
           familiar: 'Established relationship - can be more casual, reference shared history',
           trusted: 'Deep relationship - can challenge, be vulnerable, reference deep knowledge',
         };
@@ -389,7 +399,7 @@ const getTodaySignificanceDef: ToolDefinition = {
           '3-17': "St. Patrick's Day",
           '7-4': 'Independence Day',
           '10-31': 'Halloween',
-          '11-11': "Veterans Day - Gratitude for service",
+          '11-11': 'Veterans Day - Gratitude for service',
           '12-25': 'Christmas',
           '12-31': "New Year's Eve - Reflection, celebration",
         };
@@ -403,14 +413,22 @@ const getTodaySignificanceDef: ToolDefinition = {
         const openers: string[] = [];
 
         if ((significance.holidays as string[]).length > 0) {
-          openers.push(`Today is ${(significance.holidays as string[])[0]} - a great day to discuss...`);
+          openers.push(
+            `Today is ${(significance.holidays as string[])[0]} - a great day to discuss...`
+          );
         }
 
         // Day-of-week openers
         const dayOpeners: Record<string, string[]> = {
-          Monday: ['Starting a new week - what are you hoping to accomplish?', 'Monday energy - fresh start vibes!'],
+          Monday: [
+            'Starting a new week - what are you hoping to accomplish?',
+            'Monday energy - fresh start vibes!',
+          ],
           Friday: ["It's Friday! How did your week go?", 'Weekend is near - any plans?'],
-          Saturday: ['Weekend time - hope you\'re getting some rest', 'Saturday vibes - what brings you here today?'],
+          Saturday: [
+            "Weekend time - hope you're getting some rest",
+            'Saturday vibes - what brings you here today?',
+          ],
           Sunday: ['Sunday - good day for reflection', 'Winding down the weekend?'],
         };
 
@@ -494,7 +512,9 @@ const getProactiveInsightsDef: ToolDefinition = {
             for (const goal of activeGoals) {
               if (goal.deadline) {
                 const deadline = new Date(goal.deadline);
-                const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                const daysUntil = Math.ceil(
+                  (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+                );
                 if (daysUntil <= 7 && daysUntil > 0) {
                   suggestions.push(`Goal "${goal.name}" has deadline in ${daysUntil} days`);
                 }
@@ -507,7 +527,9 @@ const getProactiveInsightsDef: ToolDefinition = {
         if (focus === 'wellbeing' || focus === 'general') {
           const recentMoods = profile?.recentMoods || [];
           if (recentMoods.includes('stressed') || recentMoods.includes('anxious')) {
-            suggestions.push('User has shown stress recently - gentle wellbeing check-in might help');
+            suggestions.push(
+              'User has shown stress recently - gentle wellbeing check-in might help'
+            );
           }
         }
 
@@ -549,4 +571,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

@@ -32,10 +32,7 @@ import {
 } from '../conversation/index.js';
 
 // Proactive starters
-import {
-  generateProactiveOpener,
-  type OpenerContext,
-} from '../conversation/proactive-starters.js';
+import { generateProactiveOpener, type OpenerContext } from '../conversation/proactive-starters.js';
 
 // Mock persona config
 const mockPersonaConfig = {
@@ -63,7 +60,7 @@ describe('Conversation Integration Tests', () => {
   describe('Active Listening Engine', () => {
     it('should generate speech backchannels with persona style', () => {
       const engine = getActiveListeningEngine();
-      
+
       const context: BackchannelContext = {
         userEmotion: 'neutral',
         userEnergy: 'medium',
@@ -75,7 +72,9 @@ describe('Conversation Integration Tests', () => {
       expect(backchannel1).not.toBeNull();
       expect(backchannel1?.verbal).toBeTruthy();
       expect(backchannel1?.ssml).toBeTruthy();
-      expect(['acknowledgment', 'encouragement', 'empathy', 'curiosity', 'agreement']).toContain(backchannel1?.type);
+      expect(['acknowledgment', 'encouragement', 'empathy', 'curiosity', 'agreement']).toContain(
+        backchannel1?.type
+      );
 
       // Immediate second backchannel should be null (cooldown)
       const backchannel2 = engine.getBackchannel('ferni', context);
@@ -137,13 +136,29 @@ describe('Conversation Integration Tests', () => {
 
       // Record initial neutral state
       tracker.recordEmotion(
-        { primary: 'neutral', intensity: 0.3, valence: 'neutral', distressLevel: 0, confidence: 0.8, markers: [], suggestedTone: 'calm' },
+        {
+          primary: 'neutral',
+          intensity: 0.3,
+          valence: 'neutral',
+          distressLevel: 0,
+          confidence: 0.8,
+          markers: [],
+          suggestedTone: 'calm',
+        },
         null
       );
 
       // Record sadness (using valid PrimaryEmotion)
       tracker.recordEmotion(
-        { primary: 'sadness', intensity: 0.7, valence: 'negative', distressLevel: 0.6, confidence: 0.8, markers: ['worried'], suggestedTone: 'gentle' },
+        {
+          primary: 'sadness',
+          intensity: 0.7,
+          valence: 'negative',
+          distressLevel: 0.6,
+          confidence: 0.8,
+          markers: ['worried'],
+          suggestedTone: 'gentle',
+        },
         null
       );
 
@@ -162,7 +177,15 @@ describe('Conversation Integration Tests', () => {
       // Text says joy, voice says sad (using valid types for each)
       // PrimaryEmotion: 'joy', VoiceEmotion: 'sad'
       tracker.recordEmotion(
-        { primary: 'joy', intensity: 0.5, valence: 'positive', distressLevel: 0, confidence: 0.7, markers: [], suggestedTone: 'warm' },
+        {
+          primary: 'joy',
+          intensity: 0.5,
+          valence: 'positive',
+          distressLevel: 0,
+          confidence: 0.7,
+          markers: [],
+          suggestedTone: 'warm',
+        },
         { primary: 'sad', arousal: 0.3, confidence: 0.8 } as any // VoiceEmotionResult has different shape
       );
 
@@ -176,7 +199,15 @@ describe('Conversation Integration Tests', () => {
 
       // Record distress (using valid PrimaryEmotion: anxiety)
       tracker.recordEmotion(
-        { primary: 'anxiety', intensity: 0.8, valence: 'negative', distressLevel: 0.8, confidence: 0.9, markers: ['panic'], suggestedTone: 'gentle' },
+        {
+          primary: 'anxiety',
+          intensity: 0.8,
+          valence: 'negative',
+          distressLevel: 0.8,
+          confidence: 0.9,
+          markers: ['panic'],
+          suggestedTone: 'gentle',
+        },
         null
       );
 
@@ -230,16 +261,13 @@ describe('Conversation Integration Tests', () => {
       engine.recordStoryTold('story-2', 10);
 
       // Third story should be blocked if max is 3
-      const recommendation = engine.evaluateStoryTiming(
-        { stories: [{ id: 'story-3' }] } as any,
-        { 
-          turnCount: 15, 
-          conversationDurationMs: 600000,
-          storiesToldThisSession: ['story-1', 'story-2'],
-          userEngagement: 'medium',
-          userPacing: 'normal',
-        }
-      );
+      const recommendation = engine.evaluateStoryTiming({ stories: [{ id: 'story-3' }] } as any, {
+        turnCount: 15,
+        conversationDurationMs: 600000,
+        storiesToldThisSession: ['story-1', 'story-2'],
+        userEngagement: 'medium',
+        userPacing: 'normal',
+      });
 
       // May or may not block depending on config
       expect(recommendation).toBeDefined();
@@ -268,7 +296,7 @@ describe('Conversation Integration Tests', () => {
       const memory = getConversationalMemory();
 
       memory.recordUserMessage("Let's talk about retirement", { topic: 'retirement' });
-      
+
       const currentTopic = memory.getCurrentTopic();
       // Topic may be null initially or set to retirement
       expect(currentTopic === null || currentTopic === 'retirement').toBe(true);
@@ -279,7 +307,7 @@ describe('Conversation Integration Tests', () => {
 
       // Record message without explicit topic - should auto-detect
       memory.recordUserMessage("I'm thinking about my retirement savings");
-      
+
       const currentTopic = memory.getCurrentTopic();
       // Topic detection is best-effort, may be null
       expect(currentTopic === null || typeof currentTopic === 'string').toBe(true);
@@ -307,15 +335,12 @@ describe('Conversation Integration Tests', () => {
     it('should humanize responses', () => {
       const humanizer = getConversationHumanizer('test-persona');
 
-      const result = humanizer.humanizeResponse(
-        "Let me explain how compound interest works.",
-        {
-          personaId: 'test-persona',
-          userMessage: "I don't understand compound interest",
-          turnNumber: 5,
-          userEmotion: 'confused',
-        }
-      );
+      const result = humanizer.humanizeResponse('Let me explain how compound interest works.', {
+        personaId: 'test-persona',
+        userMessage: "I don't understand compound interest",
+        turnNumber: 5,
+        userEmotion: 'confused',
+      });
 
       expect(result).toBeDefined();
       expect(result.ssml).toBeTruthy();
@@ -369,7 +394,7 @@ describe('Conversation Integration Tests', () => {
       };
 
       const opener = generateProactiveOpener(mockPersonaConfig as any, context);
-      
+
       expect(opener).toBeDefined();
       if (opener) {
         expect(opener.greeting).toBeTruthy();
@@ -392,7 +417,10 @@ describe('Conversation Integration Tests', () => {
         primaryConcerns: ['Market volatility'],
       };
 
-      const openerWithConcerns = generateProactiveOpener(mockPersonaConfig as any, contextWithConcerns);
+      const openerWithConcerns = generateProactiveOpener(
+        mockPersonaConfig as any,
+        contextWithConcerns
+      );
 
       // Both should generate something
       expect(openerWithGoals || openerWithConcerns).toBeDefined();
@@ -406,24 +434,29 @@ describe('Conversation Integration Tests', () => {
 
       // Record high distress (using valid PrimaryEmotion: anxiety)
       emotionalTracker.recordEmotion(
-        { primary: 'anxiety', intensity: 0.9, valence: 'negative', distressLevel: 0.9, confidence: 0.9, markers: [], suggestedTone: 'gentle' },
+        {
+          primary: 'anxiety',
+          intensity: 0.9,
+          valence: 'negative',
+          distressLevel: 0.9,
+          confidence: 0.9,
+          markers: [],
+          suggestedTone: 'gentle',
+        },
         null
       );
 
       const arc = emotionalTracker.getArc();
 
       // Story timing should consider emotional state
-      const recommendation = storyEngine.evaluateStoryTiming(
-        { stories: [{ id: 'test' }] } as any,
-        {
-          turnCount: 10,
-          conversationDurationMs: 300000,
-          emotionalArc: arc,
-          userEngagement: 'low',
-          userPacing: 'normal',
-          storiesToldThisSession: [],
-        }
-      );
+      const recommendation = storyEngine.evaluateStoryTiming({ stories: [{ id: 'test' }] } as any, {
+        turnCount: 10,
+        conversationDurationMs: 300000,
+        emotionalArc: arc,
+        userEngagement: 'low',
+        userPacing: 'normal',
+        storiesToldThisSession: [],
+      });
 
       // Should be hesitant to tell stories during distress
       if (arc.needsEmotionalSupport) {
@@ -436,7 +469,7 @@ describe('Conversation Integration Tests', () => {
       const humanizer = getConversationHumanizer('test-persona');
 
       // Record a memorable statement (using correct property: wasPersonal)
-      memory.recordUserMessage("My son just graduated from college!", {
+      memory.recordUserMessage('My son just graduated from college!', {
         topic: 'family',
         emotion: 'joy',
         wasPersonal: true,
@@ -445,7 +478,7 @@ describe('Conversation Integration Tests', () => {
       // Later turn - humanizer should be able to reference it
       const guidance = humanizer.generateContextGuidance({
         personaId: 'test-persona',
-        userMessage: "I want to help him with his first apartment",
+        userMessage: 'I want to help him with his first apartment',
         turnNumber: 8,
         topic: 'family',
       });
@@ -469,11 +502,10 @@ describe('Conversation Integration Tests', () => {
           silenceDurationMs: 4000,
           turnCount: 5,
         });
-        
+
         // Should be null due to recent backchannel
         expect(silenceBackchannel).toBeNull();
       }
     });
   });
 });
-

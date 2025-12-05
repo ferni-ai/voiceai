@@ -476,7 +476,7 @@ function determinePriorityFocus(
 /**
  * Reset all intelligence components (for new session)
  */
-export function resetIntelligence(isReturningUser: boolean = false): void {
+export function resetIntelligence(isReturningUser = false): void {
   getEmotionDetector().clearHistory();
   getTopicTracker().clear();
   resetStateMachine(isReturningUser);

@@ -134,7 +134,7 @@ export function calculateMortgagePayment(
  */
 export function calculateEmergencyFund(
   monthlyExpenses: number,
-  monthsCoverage: number = 6
+  monthsCoverage = 6
 ): {
   targetAmount: number;
   description: string;

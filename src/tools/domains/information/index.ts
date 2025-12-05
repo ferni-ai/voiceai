@@ -141,7 +141,11 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   informationTools
 );
 
-export { getNewsToolDefinitions, getWeatherToolDefinitions, getSportsToolDefinitions, getSearchToolDefinitions };
+export {
+  getNewsToolDefinitions,
+  getWeatherToolDefinitions,
+  getSportsToolDefinitions,
+  getSearchToolDefinitions,
+};
 
 export default getToolDefinitions;
-

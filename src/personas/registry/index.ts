@@ -33,4 +33,3 @@ export {
 
 // Re-export as default
 export { AgentRegistry as default } from './unified-registry.js';
-

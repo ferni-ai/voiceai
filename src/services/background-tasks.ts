@@ -32,28 +32,28 @@ export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cance
 export interface BackgroundTask {
   id: string;
   userId: string;
-  
+
   // What to do
   type: string; // e.g., 'send_email', 'book_flight', 'check_package'
   description: string;
   parameters: Record<string, unknown>;
-  
+
   // When/how
   priority: TaskPriority;
   scheduledFor?: Date; // If scheduled for later
   retryCount: number;
   maxRetries: number;
-  
+
   // Status
   status: TaskStatus;
   result?: unknown;
   error?: string;
-  
+
   // Context
   createdBy: string; // Persona that created it
   conversationId?: string;
   parentWorkflowId?: string;
-  
+
   // Timestamps
   createdAt: Date;
   startedAt?: Date;
@@ -66,26 +66,26 @@ export interface BackgroundTask {
 export interface Workflow {
   id: string;
   userId: string;
-  
+
   // Definition
   name: string;
   description: string;
   steps: WorkflowStep[];
-  
+
   // State
   currentStepIndex: number;
   status: 'pending' | 'running' | 'paused' | 'completed' | 'failed';
   context: Record<string, unknown>; // Shared data between steps
-  
+
   // Control
   pauseReason?: string;
   canResume: boolean;
   requiresUserInput?: string;
-  
+
   // Persona
   createdBy: string;
   handledBy?: string; // May be different persona
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -100,7 +100,7 @@ export interface WorkflowStep {
   status: TaskStatus;
   result?: unknown;
   error?: string;
-  
+
   // Conditionals
   condition?: string; // JS expression to evaluate
   onSuccess?: string; // Step ID to go to on success
@@ -113,28 +113,28 @@ export interface WorkflowStep {
 export interface PendingAction {
   id: string;
   userId: string;
-  
+
   // What we're waiting for
   waitingFor: string; // e.g., 'package_delivered', 'flight_status_change'
   description: string;
-  
+
   // Trigger conditions
   triggerType: 'webhook' | 'polling' | 'time' | 'manual';
   triggerConfig: Record<string, unknown>;
-  
+
   // What to do when triggered
   actionType: string;
   actionParameters: Record<string, unknown>;
   notifyUser: boolean;
   notifyMethod?: 'sms' | 'email' | 'push' | 'next_conversation';
-  
+
   // Status
   status: 'watching' | 'triggered' | 'completed' | 'expired' | 'cancelled';
   expiresAt?: Date;
-  
+
   // Context
   createdBy: string;
-  
+
   // Timestamps
   createdAt: Date;
   triggeredAt?: Date;
@@ -147,23 +147,23 @@ export interface PendingAction {
 export interface ScheduledJob {
   id: string;
   userId: string;
-  
+
   // Schedule
   name: string;
   schedule: 'daily' | 'weekly' | 'monthly' | 'custom';
   customCron?: string;
   timezone: string;
-  
+
   // What to do
   jobType: string;
   parameters: Record<string, unknown>;
-  
+
   // Status
   isActive: boolean;
   lastRunAt?: Date;
   nextRunAt?: Date;
   runCount: number;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -175,19 +175,19 @@ export interface ScheduledJob {
 export interface Delegation {
   id: string;
   userId: string;
-  
+
   // What
   taskDescription: string;
   context: Record<string, unknown>;
-  
+
   // Who
   fromPersona: string;
   toPersona: string;
-  
+
   // Status
   status: 'delegated' | 'accepted' | 'in_progress' | 'completed' | 'returned';
   outcome?: string;
-  
+
   // Communication
   originalRequest: string;
   updates: Array<{
@@ -195,7 +195,7 @@ export interface Delegation {
     from: string;
     message: string;
   }>;
-  
+
   // Timestamps
   createdAt: Date;
   acceptedAt?: Date;
@@ -220,7 +220,7 @@ export interface BackgroundData {
 // ============================================================================
 
 type TaskHandler = (task: BackgroundTask) => Promise<unknown>;
-const taskHandlers: Map<string, TaskHandler> = new Map();
+const taskHandlers = new Map<string, TaskHandler>();
 
 /**
  * Register a handler for a task type
@@ -235,7 +235,7 @@ export function registerTaskHandler(taskType: string, handler: TaskHandler): voi
 // ============================================================================
 
 class BackgroundTaskService extends EventEmitter {
-  private data: Map<string, BackgroundData> = new Map();
+  private data = new Map<string, BackgroundData>();
   private taskQueue: BackgroundTask[] = [];
   private isProcessing = false;
   private checkInterval: NodeJS.Timeout | null = null;
@@ -246,27 +246,27 @@ class BackgroundTaskService extends EventEmitter {
 
   async initialize(): Promise<void> {
     getLogger().info('🔄 Background task service initializing');
-    
+
     // Start the task processor
     this.startProcessor();
-    
+
     // Start the scheduler checker
     this.startScheduleChecker();
   }
 
   async shutdown(): Promise<void> {
     getLogger().info('🔄 Background task service shutting down');
-    
+
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
-    
+
     // Persist all pending data
     for (const [userId, data] of this.data.entries()) {
       await this.persistUserData(userId, data);
     }
-    
+
     getLogger().info('✅ Background task service shutdown complete');
   }
 
@@ -305,14 +305,14 @@ class BackgroundTaskService extends EventEmitter {
 
     // Add to queue
     this.taskQueue.push(task);
-    
+
     // Store in user data
     const userData = await this.getUserData(params.userId);
     userData.tasks.push(task);
     this.markDirty(params.userId);
 
     getLogger().info({ taskId: task.id, type: task.type }, '📋 Background task created');
-    
+
     this.emit('task_created', task);
     return task;
   }
@@ -322,7 +322,7 @@ class BackgroundTaskService extends EventEmitter {
    */
   getTask(taskId: string): BackgroundTask | undefined {
     for (const data of this.data.values()) {
-      const task = data.tasks.find(t => t.id === taskId);
+      const task = data.tasks.find((t) => t.id === taskId);
       if (task) return task;
     }
     return undefined;
@@ -356,7 +356,7 @@ class BackgroundTaskService extends EventEmitter {
   async getUserTasks(userId: string, status?: TaskStatus): Promise<BackgroundTask[]> {
     const userData = await this.getUserData(userId);
     if (status) {
-      return userData.tasks.filter(t => t.status === status);
+      return userData.tasks.filter((t) => t.status === status);
     }
     return userData.tasks;
   }
@@ -372,7 +372,7 @@ class BackgroundTaskService extends EventEmitter {
     userId: string;
     name: string;
     description: string;
-    steps: Omit<WorkflowStep, 'status' | 'id'>[];
+    steps: Array<Omit<WorkflowStep, 'status' | 'id'>>;
     createdBy?: string;
     context?: Record<string, unknown>;
   }): Promise<Workflow> {
@@ -400,7 +400,7 @@ class BackgroundTaskService extends EventEmitter {
     this.markDirty(params.userId);
 
     getLogger().info({ workflowId: workflow.id, name: workflow.name }, '🔄 Workflow created');
-    
+
     this.emit('workflow_created', workflow);
     return workflow;
   }
@@ -419,7 +419,7 @@ class BackgroundTaskService extends EventEmitter {
     // Execute steps
     while (workflow.currentStepIndex < workflow.steps.length && workflow.status === 'running') {
       const step = workflow.steps[workflow.currentStepIndex];
-      
+
       try {
         // Check condition if present
         if (step.condition) {
@@ -446,30 +446,29 @@ class BackgroundTaskService extends EventEmitter {
         // Execute task
         step.status = 'running';
         const result = await this.executeTask(task);
-        
+
         step.status = 'completed';
         step.result = result;
-        
+
         // Update workflow context with step result
         workflow.context[`step_${workflow.currentStepIndex}_result`] = result;
-        
+
         workflow.currentStepIndex++;
         workflow.updatedAt = new Date();
         this.markDirty(workflow.userId);
-        
       } catch (error) {
         step.status = 'failed';
         step.error = String(error);
-        
+
         if (step.onFailure) {
           // Jump to failure step
-          const failureIndex = workflow.steps.findIndex(s => s.id === step.onFailure);
+          const failureIndex = workflow.steps.findIndex((s) => s.id === step.onFailure);
           if (failureIndex >= 0) {
             workflow.currentStepIndex = failureIndex;
             continue;
           }
         }
-        
+
         workflow.status = 'failed';
         break;
       }
@@ -497,13 +496,13 @@ class BackgroundTaskService extends EventEmitter {
     workflow.requiresUserInput = requiresInput;
     workflow.updatedAt = new Date();
     this.markDirty(workflow.userId);
-    
+
     this.emit('workflow_paused', workflow);
   }
 
   getWorkflow(workflowId: string): Workflow | undefined {
     for (const data of this.data.values()) {
-      const workflow = data.workflows.find(w => w.id === workflowId);
+      const workflow = data.workflows.find((w) => w.id === workflowId);
       if (workflow) return workflow;
     }
     return undefined;
@@ -550,8 +549,11 @@ class BackgroundTaskService extends EventEmitter {
     userData.pendingActions.push(action);
     this.markDirty(params.userId);
 
-    getLogger().info({ actionId: action.id, waitingFor: action.waitingFor }, '👀 Pending action created');
-    
+    getLogger().info(
+      { actionId: action.id, waitingFor: action.waitingFor },
+      '👀 Pending action created'
+    );
+
     this.emit('pending_action_created', action);
     return action;
   }
@@ -564,7 +566,7 @@ class BackgroundTaskService extends EventEmitter {
     let userId: string | undefined;
 
     for (const [uid, data] of this.data.entries()) {
-      const action = data.pendingActions.find(a => a.id === actionId);
+      const action = data.pendingActions.find((a) => a.id === actionId);
       if (action) {
         foundAction = action;
         userId = uid;
@@ -576,7 +578,7 @@ class BackgroundTaskService extends EventEmitter {
 
     foundAction.status = 'triggered';
     foundAction.triggeredAt = new Date();
-    
+
     // Execute the action
     try {
       await this.createTask({
@@ -600,7 +602,6 @@ class BackgroundTaskService extends EventEmitter {
           data: { actionId, triggerData },
         });
       }
-
     } catch (error) {
       getLogger().error({ error, actionId }, 'Failed to execute pending action');
     }
@@ -645,8 +646,11 @@ class BackgroundTaskService extends EventEmitter {
     userData.scheduledJobs.push(job);
     this.markDirty(params.userId);
 
-    getLogger().info({ jobId: job.id, name: job.name, schedule: job.schedule }, '⏰ Scheduled job created');
-    
+    getLogger().info(
+      { jobId: job.id, name: job.name, schedule: job.schedule },
+      '⏰ Scheduled job created'
+    );
+
     this.emit('scheduled_job_created', job);
     return job;
   }
@@ -675,11 +679,13 @@ class BackgroundTaskService extends EventEmitter {
       toPersona: params.toPersona,
       status: 'delegated',
       originalRequest: params.originalRequest,
-      updates: [{
-        timestamp: new Date(),
-        from: params.fromPersona,
-        message: `Delegated to ${params.toPersona}: ${params.taskDescription}`,
-      }],
+      updates: [
+        {
+          timestamp: new Date(),
+          from: params.fromPersona,
+          message: `Delegated to ${params.toPersona}: ${params.taskDescription}`,
+        },
+      ],
       createdAt: new Date(),
     };
 
@@ -687,12 +693,15 @@ class BackgroundTaskService extends EventEmitter {
     userData.delegations.push(delegation);
     this.markDirty(params.userId);
 
-    getLogger().info({
-      delegationId: delegation.id,
-      from: params.fromPersona,
-      to: params.toPersona,
-    }, '🤝 Task delegated');
-    
+    getLogger().info(
+      {
+        delegationId: delegation.id,
+        from: params.fromPersona,
+        to: params.toPersona,
+      },
+      '🤝 Task delegated'
+    );
+
     this.emit('delegation_created', delegation);
     return delegation;
   }
@@ -713,7 +722,7 @@ class BackgroundTaskService extends EventEmitter {
     let userId: string | undefined;
 
     for (const [uid, data] of this.data.entries()) {
-      const delegation = data.delegations.find(d => d.id === delegationId);
+      const delegation = data.delegations.find((d) => d.id === delegationId);
       if (delegation) {
         foundDelegation = delegation;
         userId = uid;
@@ -755,8 +764,10 @@ class BackgroundTaskService extends EventEmitter {
     // Try to load from storage
     const store = getDefaultStore();
     const profile = await store.getProfile(userId);
-    
-    const backgroundData: BackgroundData = (profile as UserProfile & { backgroundData?: BackgroundData })?.backgroundData || {
+
+    const backgroundData: BackgroundData = (
+      profile as UserProfile & { backgroundData?: BackgroundData }
+    )?.backgroundData || {
       userId,
       tasks: [],
       workflows: [],
@@ -775,12 +786,12 @@ class BackgroundTaskService extends EventEmitter {
     if (userData) {
       userData.lastUpdated = new Date();
     }
-    
+
     // Debounced persist
     this.schedulePersist(userId);
   }
 
-  private persistTimers: Map<string, NodeJS.Timeout> = new Map();
+  private persistTimers = new Map<string, NodeJS.Timeout>();
 
   private schedulePersist(userId: string): void {
     const existing = this.persistTimers.get(userId);
@@ -847,9 +858,9 @@ class BackgroundTaskService extends EventEmitter {
   private startProcessor(): void {
     const processQueue = async () => {
       if (this.isProcessing || this.taskQueue.length === 0) return;
-      
+
       this.isProcessing = true;
-      
+
       // Sort by priority
       this.taskQueue.sort((a, b) => {
         const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
@@ -859,16 +870,17 @@ class BackgroundTaskService extends EventEmitter {
       // Process tasks that are ready
       const now = new Date();
       const readyTasks = this.taskQueue.filter(
-        t => t.status === 'pending' && (!t.scheduledFor || t.scheduledFor <= now)
+        (t) => t.status === 'pending' && (!t.scheduledFor || t.scheduledFor <= now)
       );
 
-      for (const task of readyTasks.slice(0, 5)) { // Process up to 5 at a time
+      for (const task of readyTasks.slice(0, 5)) {
+        // Process up to 5 at a time
         try {
           await this.executeTask(task);
         } catch {
           // Error already handled in executeTask
         }
-        
+
         // Remove from queue
         const index = this.taskQueue.indexOf(task);
         if (index >= 0) this.taskQueue.splice(index, 1);
@@ -924,7 +936,7 @@ class BackgroundTaskService extends EventEmitter {
 
   private calculateNextRun(schedule: string, timezone: string): Date {
     const now = new Date();
-    
+
     switch (schedule) {
       case 'daily':
         return new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -1012,4 +1024,3 @@ registerTaskHandler('notify_user', async (task) => {
 });
 
 export default BackgroundTaskService;
-

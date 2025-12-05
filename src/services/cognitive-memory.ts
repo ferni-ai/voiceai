@@ -92,12 +92,15 @@ export async function initializeCognitiveSession(
       sessionState.userStyleConfidence = cogData.styleConfidence;
     }
 
-    getLogger().info({
-      userId,
-      personaId,
-      detectedStyle: sessionState.userStyle,
-      styleConfidence: sessionState.userStyleConfidence,
-    }, '🧠 Cognitive session initialized from profile');
+    getLogger().info(
+      {
+        userId,
+        personaId,
+        detectedStyle: sessionState.userStyle,
+        styleConfidence: sessionState.userStyleConfidence,
+      },
+      '🧠 Cognitive session initialized from profile'
+    );
   } else {
     // Try loading from Firestore directly
     const persistedProfile = await getUserCognitiveProfile(userId);
@@ -105,12 +108,15 @@ export async function initializeCognitiveSession(
       sessionState.userStyle = persistedProfile.detectedStyle;
       sessionState.userStyleConfidence = persistedProfile.styleConfidence;
 
-      getLogger().info({
-        userId,
-        personaId,
-        detectedStyle: sessionState.userStyle,
-        styleConfidence: sessionState.userStyleConfidence,
-      }, '🧠 Cognitive session initialized from Firestore');
+      getLogger().info(
+        {
+          userId,
+          personaId,
+          detectedStyle: sessionState.userStyle,
+          styleConfidence: sessionState.userStyleConfidence,
+        },
+        '🧠 Cognitive session initialized from Firestore'
+      );
     }
   }
 
@@ -121,7 +127,10 @@ export async function initializeCognitiveSession(
 /**
  * Get current cognitive session state
  */
-export function getCognitiveSession(userId: string, personaId: string): CognitiveSessionState | null {
+export function getCognitiveSession(
+  userId: string,
+  personaId: string
+): CognitiveSessionState | null {
   return activeSessions.get(`${userId}_${personaId}`) || null;
 }
 
@@ -151,7 +160,7 @@ export function recordSessionApproach(
   });
 
   // Also persist immediately for durability
-  persistApproachEffectiveness(userId, personaId, approach, engagementScore).catch(err => {
+  persistApproachEffectiveness(userId, personaId, approach, engagementScore).catch((err) => {
     getLogger().warn({ err }, 'Failed to persist approach effectiveness');
   });
 }
@@ -172,7 +181,7 @@ export function recordSessionTopicExplained(
   }
 
   // Persist
-  persistTopicExplained(userId, topic, personaId, 'explained').catch(err => {
+  persistTopicExplained(userId, topic, personaId, 'explained').catch((err) => {
     getLogger().warn({ err }, 'Failed to persist topic explained');
   });
 }
@@ -194,7 +203,7 @@ export function updateSessionUserStyle(
     session.userStyleConfidence = confidence;
 
     // Persist
-    updateUserCognitiveStyle(userId, style, confidence).catch(err => {
+    updateUserCognitiveStyle(userId, style, confidence).catch((err) => {
       getLogger().warn({ err }, 'Failed to persist user cognitive style');
     });
   }
@@ -219,14 +228,17 @@ export async function endCognitiveSession(
   }
 
   // Save session summary
-  getLogger().info({
-    userId,
-    personaId,
-    approachesUsed: session.approachesUsed.length,
-    topicsExplained: session.topicsExplained.length,
-    userStyle: session.userStyle,
-    sessionDuration: Date.now() - session.startTime.getTime(),
-  }, '🧠 Cognitive session ended');
+  getLogger().info(
+    {
+      userId,
+      personaId,
+      approachesUsed: session.approachesUsed.length,
+      topicsExplained: session.topicsExplained.length,
+      userStyle: session.userStyle,
+      sessionDuration: Date.now() - session.startTime.getTime(),
+    },
+    '🧠 Cognitive session ended'
+  );
 
   // Clean up
   activeSessions.delete(sessionKey);
@@ -372,7 +384,10 @@ export async function syncCognitiveToProfile(
   // Merge session data
   for (const session of userSessions) {
     // Update style if better confidence
-    if (session.userStyle && session.userStyleConfidence > profile.cognitiveIntelligence.styleConfidence) {
+    if (
+      session.userStyle &&
+      session.userStyleConfidence > profile.cognitiveIntelligence.styleConfidence
+    ) {
       profile.cognitiveIntelligence.detectedStyle = mapReasoningStyleToUserStyle(session.userStyle);
       profile.cognitiveIntelligence.styleConfidence = session.userStyleConfidence;
       profile.cognitiveIntelligence.styleUpdatedAt = new Date();
@@ -384,8 +399,9 @@ export async function syncCognitiveToProfile(
     }
 
     for (const used of session.approachesUsed) {
-      const existing = profile.cognitiveIntelligence.approachEffectiveness[session.personaId]
-        .find(e => e.approach === used.approach);
+      const existing = profile.cognitiveIntelligence.approachEffectiveness[session.personaId].find(
+        (e) => e.approach === used.approach
+      );
 
       if (existing) {
         existing.totalScore += used.engagementScore;
@@ -472,19 +488,29 @@ export function loadCognitiveFromProfile(
   // Load explained topics
   session.topicsExplained = Object.keys(cogData.explainedTopics);
 
-  getLogger().debug({
-    userId,
-    personaId,
-    loadedStyle: session.userStyle,
-    loadedTopics: session.topicsExplained.length,
-  }, '📥 Loaded cognitive data from profile');
+  getLogger().debug(
+    {
+      userId,
+      personaId,
+      loadedStyle: session.userStyle,
+      loadedTopics: session.topicsExplained.length,
+    },
+    '📥 Loaded cognitive data from profile'
+  );
 }
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
-type UserCognitiveStyle = 'analytical' | 'emotional' | 'practical' | 'narrative' | 'systematic' | 'intuitive' | 'unknown';
+type UserCognitiveStyle =
+  | 'analytical'
+  | 'emotional'
+  | 'practical'
+  | 'narrative'
+  | 'systematic'
+  | 'intuitive'
+  | 'unknown';
 
 function mapUserStyleToReasoningStyle(style: UserCognitiveStyle): ReasoningStyle {
   const map: Record<UserCognitiveStyle, ReasoningStyle> = {
@@ -532,4 +558,3 @@ export default {
   loadCognitiveFromProfile,
   clearAllCognitiveSessions,
 };
-

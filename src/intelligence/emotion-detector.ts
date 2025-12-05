@@ -59,7 +59,7 @@ export interface EmotionResult {
 // EMOTION LEXICONS
 // ============================================================================
 
-const EMOTION_KEYWORDS: Record<PrimaryEmotion, { words: string[]; weight: number }[]> = {
+const EMOTION_KEYWORDS: Record<PrimaryEmotion, Array<{ words: string[]; weight: number }>> = {
   joy: [
     { words: ['happy', 'excited', 'thrilled', 'delighted', 'wonderful'], weight: 1.0 },
     { words: ['great', 'good', 'nice', 'pleased', 'glad', 'best'], weight: 0.7 },
@@ -477,12 +477,12 @@ export class EmotionDetector {
 
   /**
    * Enhance detection with LLM inference for ambiguous cases
-   * 
+   *
    * This is an optional enhancement that:
    * 1. Uses keyword detection first (fast, reliable)
    * 2. Falls back to LLM only when confidence is low
    * 3. Never blocks on LLM failure
-   * 
+   *
    * @param text - The user message to analyze
    * @param llmCall - Optional async function to call LLM
    * @returns Enhanced emotion result with potentially higher confidence
@@ -519,7 +519,7 @@ Return ONLY valid JSON with no other text:
 }`;
 
       const response = await llmCall(prompt);
-      
+
       // Extract JSON from response
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
@@ -536,12 +536,23 @@ Return ONLY valid JSON with no other text:
 
       // Validate primary emotion
       const validEmotions: PrimaryEmotion[] = [
-        'joy', 'sadness', 'anger', 'fear', 'surprise', 
-        'disgust', 'trust', 'anticipation', 'anxiety', 'regret', 'neutral'
+        'joy',
+        'sadness',
+        'anger',
+        'fear',
+        'surprise',
+        'disgust',
+        'trust',
+        'anticipation',
+        'anxiety',
+        'regret',
+        'neutral',
       ];
-      
+
       if (!validEmotions.includes(llmEmotion.primary as PrimaryEmotion)) {
-        getLogger().debug(`LLM returned invalid emotion: ${llmEmotion.primary}, using keyword result`);
+        getLogger().debug(
+          `LLM returned invalid emotion: ${llmEmotion.primary}, using keyword result`
+        );
         return keywordResult;
       }
 
@@ -567,11 +578,14 @@ Return ONLY valid JSON with no other text:
         this.emotionHistory.shift();
       }
 
-      getLogger().debug({
-        keyword: keywordResult.primary,
-        llm: mergedResult.primary,
-        keywordConfidence: keywordResult.confidence.toFixed(2),
-      }, 'LLM-enhanced emotion detection');
+      getLogger().debug(
+        {
+          keyword: keywordResult.primary,
+          llm: mergedResult.primary,
+          keywordConfidence: keywordResult.confidence.toFixed(2),
+        },
+        'LLM-enhanced emotion detection'
+      );
 
       return mergedResult;
     } catch (error) {

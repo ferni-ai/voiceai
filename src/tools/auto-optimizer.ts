@@ -106,7 +106,7 @@ export class AutoToolOptimizer {
 
     // Schedule periodic analysis
     this.analysisTimer = setInterval(
-      () => this.runOptimizationCycle(),
+      async () => this.runOptimizationCycle(),
       this.config.analysisIntervalMs
     );
   }
@@ -134,11 +134,7 @@ export class AutoToolOptimizer {
    * Process a user message for feedback and patterns
    * Call this on every user turn
    */
-  processUserMessage(
-    message: string,
-    context: ConversationContext,
-    lastToolId?: string
-  ): void {
+  processUserMessage(message: string, context: ConversationContext, lastToolId?: string): void {
     // Collect feedback
     feedbackCollector.processFeedback(message, context, lastToolId);
   }
@@ -234,7 +230,7 @@ export class AutoToolOptimizer {
       // 6. Auto-implement low-risk changes
       if (this.config.enableAutoImplementation) {
         const implemented = await recommendationEngine.autoImplement(false);
-        this.recentChanges.push(...implemented.map(id => `Implemented: ${id}`));
+        this.recentChanges.push(...implemented.map((id) => `Implemented: ${id}`));
       }
 
       // 7. Check experiment results and graduate winners
@@ -243,13 +239,15 @@ export class AutoToolOptimizer {
       cycle.status = 'completed';
       cycle.endTime = new Date();
 
-      getLogger().info({
-        feedbackProcessed: cycle.feedbackProcessed,
-        patternsFound: cycle.patternsFound,
-        recommendationsCreated: cycle.recommendationsCreated,
-        experimentsStarted: cycle.experimentsStarted,
-      }, '✅ Optimization cycle completed');
-
+      getLogger().info(
+        {
+          feedbackProcessed: cycle.feedbackProcessed,
+          patternsFound: cycle.patternsFound,
+          recommendationsCreated: cycle.recommendationsCreated,
+          experimentsStarted: cycle.experimentsStarted,
+        },
+        '✅ Optimization cycle completed'
+      );
     } catch (error) {
       cycle.status = 'failed';
       cycle.error = error instanceof Error ? error.message : String(error);
@@ -285,7 +283,7 @@ export class AutoToolOptimizer {
     // Get experiment recommendations
     const experimentRecs = recommendationEngine
       .getRecommendationsByType('run_experiment')
-      .filter(r => r.status === 'pending')
+      .filter((r) => r.status === 'pending')
       .slice(0, this.config.maxConcurrentExperiments - activeExperiments.length);
 
     let started = 0;
@@ -334,7 +332,12 @@ export class AutoToolOptimizer {
       trafficAllocation: [50, 50],
       metrics: [
         { id: 'success_rate', name: 'Success Rate', aggregation: 'average', higherIsBetter: true },
-        { id: 'user_satisfaction', name: 'User Satisfaction', aggregation: 'average', higherIsBetter: true },
+        {
+          id: 'user_satisfaction',
+          name: 'User Satisfaction',
+          aggregation: 'average',
+          higherIsBetter: true,
+        },
       ],
     };
   }
@@ -394,7 +397,7 @@ export class AutoToolOptimizer {
         autoImplemented: this.recentChanges.length,
       },
       topRecommendations: recommendations.slice(0, 5),
-      activeExperiments: activeExperiments.map(e => e.id),
+      activeExperiments: activeExperiments.map((e) => e.id),
       recentChanges: this.recentChanges.slice(-10),
     };
   }
@@ -436,9 +439,10 @@ export class AutoToolOptimizer {
       report += '─────────────────────────────────────────────────────────────────\n';
       for (const cycle of recentCycles) {
         const duration = cycle.endTime
-          ? ((cycle.endTime.getTime() - cycle.startTime.getTime()) / 1000).toFixed(1) + 's'
+          ? `${((cycle.endTime.getTime() - cycle.startTime.getTime()) / 1000).toFixed(1)}s`
           : 'running';
-        const statusIcon = cycle.status === 'completed' ? '✅' : cycle.status === 'failed' ? '❌' : '🔄';
+        const statusIcon =
+          cycle.status === 'completed' ? '✅' : cycle.status === 'failed' ? '❌' : '🔄';
         report += `  ${statusIcon} ${cycle.startTime.toISOString().slice(11, 19)} - ${duration}\n`;
         report += `     Feedback: ${cycle.feedbackProcessed}, Patterns: ${cycle.patternsFound}, Recs: ${cycle.recommendationsCreated}\n`;
       }
@@ -483,4 +487,3 @@ export class AutoToolOptimizer {
 export const autoOptimizer = new AutoToolOptimizer();
 
 export default autoOptimizer;
-

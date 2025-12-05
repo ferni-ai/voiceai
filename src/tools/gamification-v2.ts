@@ -39,14 +39,20 @@ Uses Firestore subcollections for fast access.`,
         const userId = userData.userId || 'anonymous';
 
         const profile = await store.getProfile(userId);
-        const title = TITLE_PROGRESSION.find(t => t.id === profile.currentTitle) || TITLE_PROGRESSION[0];
-        
+        const title =
+          TITLE_PROGRESSION.find((t) => t.id === profile.currentTitle) || TITLE_PROGRESSION[0];
+
         // Calculate XP progress
         const currentLevelXP = Math.pow(profile.level - 1, 2) * 100;
         const nextLevelXP = Math.pow(profile.level, 2) * 100;
-        const progress = Math.round(((profile.totalXP - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100);
+        const progress = Math.round(
+          ((profile.totalXP - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100
+        );
 
-        getLogger().info({ userId, level: profile.level, xp: profile.totalXP }, '🎮 Profile retrieved');
+        getLogger().info(
+          { userId, level: profile.level, xp: profile.totalXP },
+          '🎮 Profile retrieved'
+        );
 
         return {
           profile: {
@@ -87,14 +93,15 @@ Uses Firestore subcollections for fast access.`,
         const userId = userData.userId || 'anonymous';
 
         const result = await store.addXP(userId, amount, reason);
-        
+
         // Update leaderboard
         await store.updateLeaderboardEntry(userId);
 
         getLogger().info({ userId, amount, reason, ...result }, '⭐ XP awarded');
 
         if (result.leveledUp) {
-          const title = TITLE_PROGRESSION.find(t => t.tier === result.newLevel) || TITLE_PROGRESSION[0];
+          const title =
+            TITLE_PROGRESSION.find((t) => t.tier === result.newLevel) || TITLE_PROGRESSION[0];
           return {
             xpAwarded: amount,
             reason,
@@ -129,7 +136,7 @@ Uses Firestore subcollections for fast access.`,
         const userId = userData.userId || 'anonymous';
 
         // Check if badge exists
-        const badgeDef = BADGE_DEFINITIONS.find(b => b.id === badgeId);
+        const badgeDef = BADGE_DEFINITIONS.find((b) => b.id === badgeId);
         if (!badgeDef) {
           return { error: `Badge '${badgeId}' not found` };
         }
@@ -149,10 +156,16 @@ Uses Firestore subcollections for fast access.`,
           userId,
           rarity: badgeDef.rarity,
           category: badgeDef.category,
-          xpAwarded: badgeDef.rarity === 'legendary' ? 150 : 
-                     badgeDef.rarity === 'epic' ? 100 :
-                     badgeDef.rarity === 'rare' ? 75 :
-                     badgeDef.rarity === 'uncommon' ? 60 : 50,
+          xpAwarded:
+            badgeDef.rarity === 'legendary'
+              ? 150
+              : badgeDef.rarity === 'epic'
+                ? 100
+                : badgeDef.rarity === 'rare'
+                  ? 75
+                  : badgeDef.rarity === 'uncommon'
+                    ? 60
+                    : 50,
         });
 
         getLogger().info({ userId, badgeId, rarity: badgeDef.rarity }, '🏅 Badge awarded');
@@ -177,7 +190,8 @@ Uses Firestore subcollections for fast access.`,
     viewBadgeCollectionV2: llm.tool({
       description: `View user's badge collection. Can filter by rarity or category.`,
       parameters: z.object({
-        filter: z.enum(['all', 'earned', 'common', 'uncommon', 'rare', 'epic', 'legendary'])
+        filter: z
+          .enum(['all', 'earned', 'common', 'uncommon', 'rare', 'epic', 'legendary'])
           .optional()
           .describe('Filter badges'),
       }),
@@ -186,16 +200,22 @@ Uses Firestore subcollections for fast access.`,
         const userId = userData.userId || 'anonymous';
 
         let earnedBadges: EarnedBadge[] = [];
-        
-        if (filter === 'common' || filter === 'uncommon' || filter === 'rare' || filter === 'epic' || filter === 'legendary') {
+
+        if (
+          filter === 'common' ||
+          filter === 'uncommon' ||
+          filter === 'rare' ||
+          filter === 'epic' ||
+          filter === 'legendary'
+        ) {
           earnedBadges = await store.getBadgesByRarity(userId, filter);
         } else {
           earnedBadges = await store.getUserBadges(userId);
         }
 
-        const earnedIds = new Set(earnedBadges.map(b => b.badgeId));
-        
-        const badges = BADGE_DEFINITIONS.map(def => ({
+        const earnedIds = new Set(earnedBadges.map((b) => b.badgeId));
+
+        const badges = BADGE_DEFINITIONS.map((def) => ({
           id: def.id,
           name: def.name,
           emoji: def.emoji,
@@ -203,25 +223,28 @@ Uses Firestore subcollections for fast access.`,
           rarity: def.rarity,
           category: def.category,
           earned: earnedIds.has(def.id),
-          earnedAt: earnedBadges.find(b => b.badgeId === def.id)?.earnedAt,
+          earnedAt: earnedBadges.find((b) => b.badgeId === def.id)?.earnedAt,
         }));
 
         // Filter if needed
         let filteredBadges = badges;
         if (filter === 'earned') {
-          filteredBadges = badges.filter(b => b.earned);
+          filteredBadges = badges.filter((b) => b.earned);
         }
 
         // Group by rarity for summary
         const byRarity = {
-          common: badges.filter(b => b.earned && b.rarity === 'common').length,
-          uncommon: badges.filter(b => b.earned && b.rarity === 'uncommon').length,
-          rare: badges.filter(b => b.earned && b.rarity === 'rare').length,
-          epic: badges.filter(b => b.earned && b.rarity === 'epic').length,
-          legendary: badges.filter(b => b.earned && b.rarity === 'legendary').length,
+          common: badges.filter((b) => b.earned && b.rarity === 'common').length,
+          uncommon: badges.filter((b) => b.earned && b.rarity === 'uncommon').length,
+          rare: badges.filter((b) => b.earned && b.rarity === 'rare').length,
+          epic: badges.filter((b) => b.earned && b.rarity === 'epic').length,
+          legendary: badges.filter((b) => b.earned && b.rarity === 'legendary').length,
         };
 
-        getLogger().info({ userId, earned: earnedBadges.length, filter }, '📜 Badge collection viewed');
+        getLogger().info(
+          { userId, earned: earnedBadges.length, filter },
+          '📜 Badge collection viewed'
+        );
 
         return {
           badges: filteredBadges.slice(0, 20), // Limit for response size
@@ -240,7 +263,8 @@ Uses Firestore subcollections for fast access.`,
     getLeaderboard: llm.tool({
       description: `Get the leaderboard rankings. Shows top players by XP.`,
       parameters: z.object({
-        period: z.enum(['weekly', 'monthly', 'all_time'])
+        period: z
+          .enum(['weekly', 'monthly', 'all_time'])
           .optional()
           .describe('Time period for leaderboard'),
         limit: z.number().min(1).max(50).optional().describe('Number of entries to return'),
@@ -256,7 +280,7 @@ Uses Firestore subcollections for fast access.`,
 
         return {
           period,
-          entries: leaderboard.map(entry => ({
+          entries: leaderboard.map((entry) => ({
             rank: entry.rank,
             displayName: entry.displayName,
             title: `${entry.titleEmoji} ${entry.title}`,
@@ -265,7 +289,7 @@ Uses Firestore subcollections for fast access.`,
             badges: entry.badgeCount,
           })),
           yourRank: userRank,
-          message: userRank 
+          message: userRank
             ? `You're ranked #${userRank} on the ${period.replace('_', ' ')} leaderboard!`
             : 'Keep building habits to appear on the leaderboard!',
         };
@@ -294,16 +318,20 @@ Uses Firestore subcollections for fast access.`,
 
         const profile = await store.getProfile(userId);
 
-        getLogger().info({ userId, showOnLeaderboard, displayName }, '🔒 Leaderboard privacy updated');
+        getLogger().info(
+          { userId, showOnLeaderboard, displayName },
+          '🔒 Leaderboard privacy updated'
+        );
 
         return {
           updated: true,
           preferences: profile.preferences,
-          message: showOnLeaderboard === false 
-            ? 'You\'ve been removed from leaderboards. Your progress is private.'
-            : displayName 
-              ? `Your display name is now "${displayName}"`
-              : 'Leaderboard preferences updated!',
+          message:
+            showOnLeaderboard === false
+              ? "You've been removed from leaderboards. Your progress is private."
+              : displayName
+                ? `Your display name is now "${displayName}"`
+                : 'Leaderboard preferences updated!',
         };
       },
     }),
@@ -320,11 +348,14 @@ Uses Firestore subcollections for fast access.`,
 
         const exportData = await store.exportUserData(userId);
 
-        getLogger().info({ 
-          userId, 
-          badges: exportData.badges.length,
-          challenges: exportData.challenges.length,
-        }, '📤 Data exported');
+        getLogger().info(
+          {
+            userId,
+            badges: exportData.badges.length,
+            challenges: exportData.challenges.length,
+          },
+          '📤 Data exported'
+        );
 
         return {
           exported: true,
@@ -348,7 +379,10 @@ Uses Firestore subcollections for fast access.`,
       description: `Import gamification data from a backup. Use with caution - this can overwrite existing data.`,
       parameters: z.object({
         data: z.any().describe('The exported gamification data to import'),
-        mergeMode: z.boolean().optional().describe('If true, merges with existing data. If false, overwrites.'),
+        mergeMode: z
+          .boolean()
+          .optional()
+          .describe('If true, merges with existing data. If false, overwrites.'),
       }),
       execute: async ({ data, mergeMode = true }, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
@@ -364,7 +398,7 @@ Uses Firestore subcollections for fast access.`,
         return {
           success: result.success,
           imported: result.imported,
-          message: result.success 
+          message: result.success
             ? `Successfully imported: ${result.imported.badges} badges, ${result.imported.challenges} challenges, ${result.imported.behaviorTools} tools, ${result.imported.moodLogs} mood logs`
             : 'Import failed. Please check the data format.',
         };
@@ -386,12 +420,13 @@ Uses Firestore subcollections for fast access.`,
         const challenges = await store.getCompletedChallenges(userId);
         const rank = await store.getUserRank(userId, 'all_time');
 
-        const title = TITLE_PROGRESSION.find(t => t.id === profile.currentTitle) || TITLE_PROGRESSION[0];
-        
+        const title =
+          TITLE_PROGRESSION.find((t) => t.id === profile.currentTitle) || TITLE_PROGRESSION[0];
+
         // Find rarest badge
         const rarestBadge = badges
-          .map(b => ({ ...b, def: BADGE_DEFINITIONS.find(d => d.id === b.badgeId) }))
-          .filter(b => b.def)
+          .map((b) => ({ ...b, def: BADGE_DEFINITIONS.find((d) => d.id === b.badgeId) }))
+          .filter((b) => b.def)
           .sort((a, b) => {
             const rarityOrder = { legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
             return rarityOrder[b.def!.rarity] - rarityOrder[a.def!.rarity];
@@ -399,15 +434,19 @@ Uses Firestore subcollections for fast access.`,
 
         // Build highlights
         const highlights: string[] = [];
-        
+
         if (profile.stats.longestStreak >= 30) {
-          highlights.push(`🔥 ${profile.stats.longestStreak}-day longest streak - that's dedication!`);
+          highlights.push(
+            `🔥 ${profile.stats.longestStreak}-day longest streak - that's dedication!`
+          );
         }
         if (challenges.length >= 1) {
           highlights.push(`🏆 ${challenges.length} challenge(s) completed!`);
         }
         if (profile.stats.domainsExplored.length >= 3) {
-          highlights.push(`🌈 Building habits across ${profile.stats.domainsExplored.length} life domains!`);
+          highlights.push(
+            `🌈 Building habits across ${profile.stats.domainsExplored.length} life domains!`
+          );
         }
         if (profile.stats.comebacks >= 1) {
           highlights.push(`💪 ${profile.stats.comebacks} comeback(s) - that's resilience!`);
@@ -423,7 +462,7 @@ Uses Firestore subcollections for fast access.`,
           level: profile.level,
           totalXP: profile.totalXP,
           badges: badges.length,
-          rarestBadge: rarestBadge?.def 
+          rarestBadge: rarestBadge?.def
             ? `${rarestBadge.def.emoji} ${rarestBadge.def.name} (${rarestBadge.def.rarity})`
             : null,
           highlights,
@@ -451,11 +490,13 @@ function generateCelebration(profile: GamificationProfile): string {
     `From nothing to ${profile.stats.totalHabitsCreated} habits across ${profile.stats.domainsExplored.length} life domains. That's real growth!`,
     `Your ${profile.stats.longestStreak}-day streak shows what you're capable of. That's not luck - that's you showing up!`,
   ];
-  
+
   if (profile.stats.comebacks > 0) {
-    celebrations.push(`And you've made ${profile.stats.comebacks} comeback(s). That resilience is rare!`);
+    celebrations.push(
+      `And you've made ${profile.stats.comebacks} comeback(s). That resilience is rare!`
+    );
   }
-  
+
   return celebrations[Math.floor(Math.random() * celebrations.length)];
 }
 
@@ -467,4 +508,3 @@ function generateCelebration(profile: GamificationProfile): string {
 export const createMayaGamificationToolsV2 = createGamificationToolsV2;
 
 export default createGamificationToolsV2;
-

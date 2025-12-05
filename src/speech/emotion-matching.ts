@@ -149,10 +149,7 @@ type EmotionResponseType = Omit<VoiceEmotionModulation, 'matchedEmotion' | 'conf
  * Register a custom emotion response
  * FIX BUG #voice-13: Allow extending emotion responses at runtime
  */
-export function registerEmotionResponse(
-  emotion: string,
-  response: EmotionResponseType
-): void {
+export function registerEmotionResponse(emotion: string, response: EmotionResponseType): void {
   EMOTION_RESPONSES[emotion.toLowerCase()] = response;
 }
 

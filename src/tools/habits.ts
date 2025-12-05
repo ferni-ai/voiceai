@@ -14,7 +14,11 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { sanitizePlainText } from './validation.js';
-import { getProductivityStore, type HabitData, type HabitLogData } from '../services/productivity-store.js';
+import {
+  getProductivityStore,
+  type HabitData,
+  type HabitLogData,
+} from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
 // Bridge functions for persistence
@@ -67,7 +71,15 @@ function habitLogToData(log: HabitLog): HabitLogData {
 // ============================================================================
 
 export type HabitFrequency = 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'custom';
-export type HabitCategory = 'health' | 'fitness' | 'mindfulness' | 'productivity' | 'learning' | 'social' | 'finance' | 'other';
+export type HabitCategory =
+  | 'health'
+  | 'fitness'
+  | 'mindfulness'
+  | 'productivity'
+  | 'learning'
+  | 'social'
+  | 'finance'
+  | 'other';
 
 export interface Habit {
   id: string;
@@ -98,22 +110,22 @@ export interface HabitLog {
 // STORAGE - Uses ProductivityStore for persistence
 // ============================================================================
 
-const habitsCache: Map<string, Habit> = new Map();
-const habitLogsCache: Map<string, HabitLog> = new Map();
-const loadedUsers: Set<string> = new Set();
+const habitsCache = new Map<string, Habit>();
+const habitLogsCache = new Map<string, HabitLog>();
+const loadedUsers = new Set<string>();
 
 async function ensureUserHabitsLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-  
+
   try {
     const store = getProductivityStore();
     await store.loadUserData(userId);
-    
+
     const habitDataList = store.getUserHabits(userId);
     for (const data of habitDataList) {
       habitsCache.set(data.id, habitDataToHabit(data, userId));
     }
-    
+
     const logDataList = store.getUserHabitLogs(userId);
     for (const data of logDataList) {
       habitLogsCache.set(data.id, {
@@ -126,7 +138,7 @@ async function ensureUserHabitsLoaded(userId: string): Promise<void> {
         notes: data.notes,
       });
     }
-    
+
     loadedUsers.add(userId);
     getLogger().debug({ userId, habits: habitDataList.length }, 'Loaded habits from store');
   } catch (error) {
@@ -162,7 +174,7 @@ function getUserHabitsFromCache(userId: string): Habit[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function getHabitLogs(habitId: string, days: number = 30): HabitLog[] {
+function getHabitLogs(habitId: string, days = 30): HabitLog[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
 
@@ -243,7 +255,7 @@ function shouldTrackOnDay(habit: Habit, date: Date): boolean {
   }
 }
 
-function getCompletionRate(habitId: string, days: number = 30): number {
+function getCompletionRate(habitId: string, days = 30): number {
   const habit = habitsCache.get(habitId);
   if (!habit) return 0;
 
@@ -333,7 +345,7 @@ export function logHabit(params: {
 
   if (log) {
     // Update existing
-    log.count = (params.count !== undefined ? params.count : log.count + 1);
+    log.count = params.count !== undefined ? params.count : log.count + 1;
     log.completed = log.count >= habit.targetPerDay;
     if (params.notes) log.notes = params.notes;
   } else {
@@ -363,7 +375,7 @@ export function deleteHabit(habitId: string): boolean {
 
   habit.isActive = false;
   habit.updatedAt = new Date();
-  
+
   // Save to cache and persist
   habitsCache.set(habitId, habit);
   persistHabit(habit.userId, habit);
@@ -389,22 +401,21 @@ Use when user wants to:
       parameters: z.object({
         name: z.string().describe('Habit name (e.g., "Drink 8 glasses of water")'),
         category: z
-          .enum(['health', 'fitness', 'mindfulness', 'productivity', 'learning', 'social', 'finance', 'other'])
+          .enum([
+            'health',
+            'fitness',
+            'mindfulness',
+            'productivity',
+            'learning',
+            'social',
+            'finance',
+            'other',
+          ])
           .optional()
           .default('other'),
-        frequency: z
-          .enum(['daily', 'weekdays', 'weekends', 'weekly'])
-          .optional()
-          .default('daily'),
-        targetPerDay: z
-          .number()
-          .optional()
-          .default(1)
-          .describe('Times per day to complete'),
-        reminderTime: z
-          .string()
-          .optional()
-          .describe('When to remind (e.g., "8:00 AM")'),
+        frequency: z.enum(['daily', 'weekdays', 'weekends', 'weekly']).optional().default('daily'),
+        targetPerDay: z.number().optional().default(1).describe('Times per day to complete'),
+        reminderTime: z.string().optional().describe('When to remind (e.g., "8:00 AM")'),
       }),
       execute: async ({ name, category, frequency, targetPerDay, reminderTime }, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -724,4 +735,3 @@ Use when user asks about progress or streaks.`,
 }
 
 export default createHabitTools;
-

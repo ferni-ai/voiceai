@@ -24,16 +24,16 @@ import { getLogger } from '../utils/safe-logger.js';
 // TYPES
 // ============================================================================
 
-export type FeedbackType = 
-  | 'explicit_positive'   // User said something positive
-  | 'explicit_negative'   // User said something negative
-  | 'explicit_rating'     // User gave a rating
-  | 'implicit_success'    // Tool worked (inferred from behavior)
-  | 'implicit_failure'    // Tool didn't work (inferred)
-  | 'implicit_retry'      // User tried again
-  | 'implicit_abandon'    // User gave up
-  | 'implicit_followup'   // User needed clarification
-  | 'feature_request';    // User asked for something we don't have
+export type FeedbackType =
+  | 'explicit_positive' // User said something positive
+  | 'explicit_negative' // User said something negative
+  | 'explicit_rating' // User gave a rating
+  | 'implicit_success' // Tool worked (inferred from behavior)
+  | 'implicit_failure' // Tool didn't work (inferred)
+  | 'implicit_retry' // User tried again
+  | 'implicit_abandon' // User gave up
+  | 'implicit_followup' // User needed clarification
+  | 'feature_request'; // User asked for something we don't have
 
 export interface FeedbackRecord {
   id: string;
@@ -41,23 +41,23 @@ export interface FeedbackRecord {
   userId: string;
   sessionId: string;
   agentId: string;
-  
+
   // What was the feedback about?
   toolId: string | null;
   domain: string | null;
-  
+
   // Feedback details
   type: FeedbackType;
   sentiment: 'positive' | 'negative' | 'neutral';
   score: number; // -1 to 1 normalized
-  
+
   // Context
   userMessage: string;
   toolResult?: string;
-  
+
   // For feature requests
   requestedCapability?: string;
-  
+
   // Metadata
   turnNumber: number;
   conversationLength: number;
@@ -131,26 +131,29 @@ const FEATURE_REQUEST_PATTERNS = [
   /\b(feature|capability|function)\b/i,
 ];
 
-function detectSentiment(message: string): { sentiment: 'positive' | 'negative' | 'neutral'; score: number } {
+function detectSentiment(message: string): {
+  sentiment: 'positive' | 'negative' | 'neutral';
+  score: number;
+} {
   const lowerMessage = message.toLowerCase();
-  
+
   let positiveMatches = 0;
   let negativeMatches = 0;
-  
+
   for (const pattern of POSITIVE_PATTERNS) {
     if (pattern.test(message)) positiveMatches++;
   }
-  
+
   for (const pattern of NEGATIVE_PATTERNS) {
     if (pattern.test(message)) negativeMatches++;
   }
-  
+
   if (positiveMatches > negativeMatches) {
     return { sentiment: 'positive', score: Math.min(positiveMatches * 0.3, 1) };
   } else if (negativeMatches > positiveMatches) {
     return { sentiment: 'negative', score: -Math.min(negativeMatches * 0.3, 1) };
   }
-  
+
   return { sentiment: 'neutral', score: 0 };
 }
 
@@ -159,32 +162,32 @@ function detectFeedbackType(message: string, context: ConversationContext): Feed
   for (const pattern of FEATURE_REQUEST_PATTERNS) {
     if (pattern.test(message)) return 'feature_request';
   }
-  
+
   // Check for retry patterns
   for (const pattern of RETRY_PATTERNS) {
     if (pattern.test(message)) return 'implicit_retry';
   }
-  
+
   // Check for abandon patterns
   for (const pattern of ABANDON_PATTERNS) {
     if (pattern.test(message)) return 'implicit_abandon';
   }
-  
+
   // Check for followup patterns
   for (const pattern of FOLLOWUP_PATTERNS) {
     if (pattern.test(message)) return 'implicit_followup';
   }
-  
+
   // Check for explicit feedback
   const { sentiment, score } = detectSentiment(message);
   if (sentiment === 'positive' && score > 0.5) return 'explicit_positive';
   if (sentiment === 'negative' && score < -0.5) return 'explicit_negative';
-  
+
   // Default based on whether a tool was just used
   if (context.recentTools.length > 0) {
     return sentiment === 'negative' ? 'implicit_failure' : 'implicit_success';
   }
-  
+
   return 'implicit_success';
 }
 
@@ -204,14 +207,14 @@ function extractRequestedCapability(message: string): string | undefined {
     /do you (?:have|support) (.+?)(?:\?|$)/i,
     /i (?:want|need) (?:to|you to) (.+?)(?:\.|$)/i,
   ];
-  
+
   for (const pattern of patterns) {
     const match = message.match(pattern);
     if (match) {
       return match[1].trim();
     }
   }
-  
+
   return undefined;
 }
 
@@ -223,17 +226,20 @@ export class FeedbackCollector {
   private feedbackBuffer: FeedbackRecord[] = [];
   private readonly BUFFER_SIZE = 100;
   private lastFeedbackByTool = new Map<string, FeedbackRecord>();
-  
+
   // Aggregated stats
-  private toolStats = new Map<string, {
-    positive: number;
-    negative: number;
-    neutral: number;
-    retries: number;
-    abandons: number;
-    total: number;
-  }>();
-  
+  private toolStats = new Map<
+    string,
+    {
+      positive: number;
+      negative: number;
+      neutral: number;
+      retries: number;
+      abandons: number;
+      total: number;
+    }
+  >();
+
   private featureRequests: Array<{
     capability: string;
     count: number;
@@ -254,12 +260,12 @@ export class FeedbackCollector {
   ): FeedbackRecord | null {
     const feedbackType = detectFeedbackType(message, context);
     const { sentiment, score } = detectSentiment(message);
-    
+
     // Skip if this doesn't seem like feedback
     if (feedbackType === 'implicit_success' && sentiment === 'neutral' && !lastToolId) {
       return null;
     }
-    
+
     const record: FeedbackRecord = {
       id: `fb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       timestamp: new Date(),
@@ -276,34 +282,37 @@ export class FeedbackCollector {
       turnNumber: context.turnNumber,
       conversationLength: 0, // Would be updated
     };
-    
+
     // Extract capability for feature requests
     if (feedbackType === 'feature_request') {
       record.requestedCapability = extractRequestedCapability(message);
       this.trackFeatureRequest(record.requestedCapability, message);
     }
-    
+
     // Update stats
     this.updateStats(record);
-    
+
     // Buffer the feedback
     this.feedbackBuffer.push(record);
     if (this.feedbackBuffer.length > this.BUFFER_SIZE) {
       this.flush();
     }
-    
+
     // Track last feedback per tool
     if (record.toolId) {
       this.lastFeedbackByTool.set(record.toolId, record);
     }
-    
-    getLogger().debug({
-      type: record.type,
-      sentiment: record.sentiment,
-      toolId: record.toolId,
-      score: record.score,
-    }, '📝 Feedback collected');
-    
+
+    getLogger().debug(
+      {
+        type: record.type,
+        sentiment: record.sentiment,
+        toolId: record.toolId,
+        score: record.score,
+      },
+      '📝 Feedback collected'
+    );
+
     return record;
   }
 
@@ -317,7 +326,7 @@ export class FeedbackCollector {
   ): void {
     // Normalize to -1 to 1
     const normalizedScore = rating <= 1 ? rating : (rating - 3) / 2;
-    
+
     const record: FeedbackRecord = {
       id: `fb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       timestamp: new Date(),
@@ -333,10 +342,10 @@ export class FeedbackCollector {
       turnNumber: context.turnNumber,
       conversationLength: 0,
     };
-    
+
     this.updateStats(record);
     this.feedbackBuffer.push(record);
-    
+
     getLogger().info({ toolId, rating, normalizedScore }, '⭐ Rating recorded');
   }
 
@@ -349,19 +358,19 @@ export class FeedbackCollector {
    */
   private updateStats(record: FeedbackRecord): void {
     if (!record.toolId) return;
-    
+
     let stats = this.toolStats.get(record.toolId);
     if (!stats) {
       stats = { positive: 0, negative: 0, neutral: 0, retries: 0, abandons: 0, total: 0 };
       this.toolStats.set(record.toolId, stats);
     }
-    
+
     stats.total++;
-    
+
     if (record.sentiment === 'positive') stats.positive++;
     else if (record.sentiment === 'negative') stats.negative++;
     else stats.neutral++;
-    
+
     if (record.type === 'implicit_retry') stats.retries++;
     if (record.type === 'implicit_abandon') stats.abandons++;
   }
@@ -371,16 +380,17 @@ export class FeedbackCollector {
    */
   private trackFeatureRequest(capability: string | undefined, message: string): void {
     if (!capability) return;
-    
+
     // Normalize capability
     const normalizedCapability = capability.toLowerCase().trim();
-    
+
     // Find existing or create new
-    let existing = this.featureRequests.find(
-      fr => fr.capability.toLowerCase().includes(normalizedCapability) ||
-            normalizedCapability.includes(fr.capability.toLowerCase())
+    const existing = this.featureRequests.find(
+      (fr) =>
+        fr.capability.toLowerCase().includes(normalizedCapability) ||
+        normalizedCapability.includes(fr.capability.toLowerCase())
     );
-    
+
     if (existing) {
       existing.count++;
       if (existing.examples.length < 5) {
@@ -401,10 +411,10 @@ export class FeedbackCollector {
   getToolFeedback(toolId: string): FeedbackSummary | null {
     const stats = this.toolStats.get(toolId);
     if (!stats) return null;
-    
-    const total = stats.total;
+
+    const { total } = stats;
     const avgScore = (stats.positive - stats.negative) / Math.max(total, 1);
-    
+
     return {
       toolId,
       totalFeedback: total,
@@ -423,34 +433,32 @@ export class FeedbackCollector {
    */
   getAllFeedback(): FeedbackSummary[] {
     const summaries: FeedbackSummary[] = [];
-    
+
     for (const [toolId] of this.toolStats) {
       const summary = this.getToolFeedback(toolId);
       if (summary) summaries.push(summary);
     }
-    
+
     return summaries.sort((a, b) => b.totalFeedback - a.totalFeedback);
   }
 
   /**
    * Get top feature requests
    */
-  getTopFeatureRequests(limit = 10): Array<{ capability: string; count: number; examples: string[] }> {
-    return [...this.featureRequests]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, limit);
+  getTopFeatureRequests(
+    limit = 10
+  ): Array<{ capability: string; count: number; examples: string[] }> {
+    return [...this.featureRequests].sort((a, b) => b.count - a.count).slice(0, limit);
   }
 
   /**
    * Get problematic tools (high negative feedback or retry rate)
    */
   getProblematicTools(): FeedbackSummary[] {
-    return this.getAllFeedback()
-      .filter(summary => 
-        summary.averageScore < -0.2 ||
-        summary.retryRate > 0.3 ||
-        summary.abandonRate > 0.2
-      );
+    return this.getAllFeedback().filter(
+      (summary) =>
+        summary.averageScore < -0.2 || summary.retryRate > 0.3 || summary.abandonRate > 0.2
+    );
   }
 
   /**
@@ -458,7 +466,7 @@ export class FeedbackCollector {
    */
   getTopRatedTools(limit = 10): FeedbackSummary[] {
     return this.getAllFeedback()
-      .filter(s => s.totalFeedback >= 5) // Minimum feedback threshold
+      .filter((s) => s.totalFeedback >= 5) // Minimum feedback threshold
       .sort((a, b) => b.averageScore - a.averageScore)
       .slice(0, limit);
   }
@@ -472,22 +480,22 @@ export class FeedbackCollector {
    */
   async flush(): Promise<void> {
     if (this.feedbackBuffer.length === 0) return;
-    
+
     // Import persistence service dynamically to avoid circular deps
     const { optimizationPersistence } = await import('../services/optimization-persistence.js');
-    
+
     // Buffer all feedback for batch write
     for (const feedback of this.feedbackBuffer) {
       optimizationPersistence.bufferFeedback(feedback);
     }
-    
+
     // Clear local buffer
     const count = this.feedbackBuffer.length;
     this.feedbackBuffer = [];
-    
+
     // Trigger Firestore flush
     await optimizationPersistence.flushAll();
-    
+
     // Also save aggregated summaries
     for (const [toolId] of this.toolStats) {
       const summary = this.getToolFeedback(toolId);
@@ -495,7 +503,7 @@ export class FeedbackCollector {
         await optimizationPersistence.saveFeedbackSummary(toolId, summary);
       }
     }
-    
+
     getLogger().debug({ count }, '📝 Flushed feedback to Firestore');
   }
 
@@ -514,4 +522,3 @@ export class FeedbackCollector {
 export const feedbackCollector = new FeedbackCollector();
 
 export default feedbackCollector;
-

@@ -20,16 +20,16 @@ export interface EmotionalMoment {
   id: string;
   timestamp: Date;
   sessionId: string;
-  
+
   // What was felt
   emotion: PrimaryEmotion;
   intensity: 'mild' | 'moderate' | 'strong';
-  
+
   // Context
   topic: string;
-  trigger: string;         // What caused this emotion
-  userStatement: string;   // What user said
-  
+  trigger: string; // What caused this emotion
+  userStatement: string; // What user said
+
   // Resolution
   resolved?: boolean;
   resolutionNote?: string;
@@ -46,8 +46,8 @@ export interface EmotionalPattern {
 
 export interface EmotionalCheckIn {
   type: 'follow_up' | 'celebration' | 'support' | 'curiosity';
-  reference: string;         // What to reference
-  suggestedOpener: string;   // How to bring it up
+  reference: string; // What to reference
+  suggestedOpener: string; // How to bring it up
   priority: 'high' | 'medium' | 'low';
   moment: EmotionalMoment;
 }
@@ -66,7 +66,7 @@ export interface EmotionalContext {
 
 export class EmotionalMemoryEngine {
   private moments: EmotionalMoment[] = [];
-  private currentSessionId: string = '';
+  private currentSessionId = '';
   private lastSessionEmotions: EmotionalMoment[] = [];
 
   constructor() {
@@ -91,10 +91,9 @@ export class EmotionalMemoryEngine {
     if (emotion === 'neutral') return '';
 
     // Avoid duplicates in quick succession
-    const recentSimilar = this.moments.find(m => 
-      m.topic === topic && 
-      m.emotion === emotion &&
-      Date.now() - m.timestamp.getTime() < 60000 // 1 minute
+    const recentSimilar = this.moments.find(
+      (m) =>
+        m.topic === topic && m.emotion === emotion && Date.now() - m.timestamp.getTime() < 60000 // 1 minute
     );
     if (recentSimilar) return recentSimilar.id;
 
@@ -118,11 +117,14 @@ export class EmotionalMemoryEngine {
       this.moments = this.moments.slice(-100);
     }
 
-    getLogger().debug({
-      emotion,
-      topic,
-      intensity,
-    }, 'Emotional moment recorded');
+    getLogger().debug(
+      {
+        emotion,
+        topic,
+        intensity,
+      },
+      'Emotional moment recorded'
+    );
 
     return moment.id;
   }
@@ -131,7 +133,7 @@ export class EmotionalMemoryEngine {
    * Mark a concern as resolved
    */
   resolveEmotion(momentId: string, note?: string): void {
-    const moment = this.moments.find(m => m.id === momentId);
+    const moment = this.moments.find((m) => m.id === momentId);
     if (moment) {
       moment.resolved = true;
       moment.resolutionNote = note;
@@ -143,7 +145,7 @@ export class EmotionalMemoryEngine {
    * Mark that we followed up on something
    */
   markFollowedUp(momentId: string): void {
-    const moment = this.moments.find(m => m.id === momentId);
+    const moment = this.moments.find((m) => m.id === momentId);
     if (moment) {
       moment.followedUp = true;
     }
@@ -159,9 +161,7 @@ export class EmotionalMemoryEngine {
   startSession(sessionId: string): void {
     // Store emotions from last session before resetting
     if (this.currentSessionId) {
-      this.lastSessionEmotions = this.moments.filter(
-        m => m.sessionId === this.currentSessionId
-      );
+      this.lastSessionEmotions = this.moments.filter((m) => m.sessionId === this.currentSessionId);
     }
     this.currentSessionId = sessionId;
     getLogger().debug({ sessionId }, 'Emotional memory session started');
@@ -175,7 +175,7 @@ export class EmotionalMemoryEngine {
    * Detect emotional patterns around topics
    */
   detectPatterns(): EmotionalPattern[] {
-    const topicEmotions = new Map<string, { emotions: PrimaryEmotion[], dates: Date[] }>();
+    const topicEmotions = new Map<string, { emotions: PrimaryEmotion[]; dates: Date[] }>();
 
     for (const moment of this.moments) {
       const existing = topicEmotions.get(moment.topic) || { emotions: [], dates: [] };
@@ -193,8 +193,8 @@ export class EmotionalMemoryEngine {
         const olderEmotions = data.emotions.slice(0, midpoint);
         const newerEmotions = data.emotions.slice(midpoint);
 
-        const olderPositive = olderEmotions.filter(e => this.isPositive(e)).length;
-        const newerPositive = newerEmotions.filter(e => this.isPositive(e)).length;
+        const olderPositive = olderEmotions.filter((e) => this.isPositive(e)).length;
+        const newerPositive = newerEmotions.filter((e) => this.isPositive(e)).length;
 
         let trend: 'improving' | 'stable' | 'worsening' | 'unknown' = 'unknown';
         if (data.emotions.length >= 4) {
@@ -209,7 +209,7 @@ export class EmotionalMemoryEngine {
           topic,
           emotions: [...new Set(data.emotions)], // Unique emotions
           frequency: data.emotions.length,
-          lastSeen: new Date(Math.max(...data.dates.map(d => d.getTime()))),
+          lastSeen: new Date(Math.max(...data.dates.map((d) => d.getTime()))),
           trend,
         });
       }
@@ -269,14 +269,15 @@ export class EmotionalMemoryEngine {
 
     // Look for unresolved concerns from any session
     const unresolvedConcerns = this.moments.filter(
-      m => !m.resolved && 
-           !m.followedUp &&
-           ['fear', 'anxiety', 'sadness'].includes(m.emotion) &&
-           (now - m.timestamp.getTime()) / dayMs <= 30
+      (m) =>
+        !m.resolved &&
+        !m.followedUp &&
+        ['fear', 'anxiety', 'sadness'].includes(m.emotion) &&
+        (now - m.timestamp.getTime()) / dayMs <= 30
     );
 
     for (const concern of unresolvedConcerns.slice(0, 3)) {
-      if (!suggestions.find(s => s.moment.id === concern.id)) {
+      if (!suggestions.find((s) => s.moment.id === concern.id)) {
         suggestions.push({
           type: 'support',
           reference: concern.topic,
@@ -289,7 +290,9 @@ export class EmotionalMemoryEngine {
 
     // Sort by priority
     const priorityOrder = { high: 0, medium: 1, low: 2 };
-    return suggestions.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]).slice(0, 3);
+    return suggestions
+      .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+      .slice(0, 3);
   }
 
   private generateFollowUpOpener(moment: EmotionalMoment): string {
@@ -341,27 +344,28 @@ export class EmotionalMemoryEngine {
    */
   buildEmotionalContext(): EmotionalContext {
     const checkIns = this.getCheckInSuggestions();
-    
+
     // Get recent session emotions
     const recentEmotions = this.lastSessionEmotions
       .slice(-5)
-      .map(m => `${m.emotion} about ${m.topic}`);
+      .map((m) => `${m.emotion} about ${m.topic}`);
 
     // Get unresolved concerns
     const unresolvedConcerns = this.moments
-      .filter(m => !m.resolved && ['fear', 'anxiety', 'sadness'].includes(m.emotion))
+      .filter((m) => !m.resolved && ['fear', 'anxiety', 'sadness'].includes(m.emotion))
       .slice(-3)
-      .map(m => m.topic);
+      .map((m) => m.topic);
 
     // Get celebratable wins (recent positive, intense moments)
     const celebratableWins = this.moments
-      .filter(m => 
-        ['joy', 'anticipation'].includes(m.emotion) && 
-        m.intensity !== 'mild' &&
-        Date.now() - m.timestamp.getTime() < 14 * 24 * 60 * 60 * 1000
+      .filter(
+        (m) =>
+          ['joy', 'anticipation'].includes(m.emotion) &&
+          m.intensity !== 'mild' &&
+          Date.now() - m.timestamp.getTime() < 14 * 24 * 60 * 60 * 1000
       )
       .slice(-3)
-      .map(m => m.topic);
+      .map((m) => m.topic);
 
     return {
       recentEmotions,
@@ -413,7 +417,7 @@ export class EmotionalMemoryEngine {
    * Import moments from storage
    */
   importMoments(moments: EmotionalMoment[]): void {
-    this.moments = moments.map(m => ({
+    this.moments = moments.map((m) => ({
       ...m,
       timestamp: new Date(m.timestamp),
     }));
@@ -428,8 +432,8 @@ export class EmotionalMemoryEngine {
     return {
       totalMoments: this.moments.length,
       lastSessionMoments: this.lastSessionEmotions.length,
-      unresolvedCount: this.moments.filter(m => !m.resolved).length,
-      topPatterns: patterns.slice(0, 3).map(p => ({
+      unresolvedCount: this.moments.filter((m) => !m.resolved).length,
+      topPatterns: patterns.slice(0, 3).map((p) => ({
         topic: p.topic,
         trend: p.trend,
       })),
@@ -453,4 +457,3 @@ export function getEmotionalMemory(userId: string): EmotionalMemoryEngine {
 export function removeEmotionalMemory(userId: string): void {
   engines.delete(userId);
 }
-

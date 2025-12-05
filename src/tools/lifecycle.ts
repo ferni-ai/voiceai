@@ -81,7 +81,7 @@ export async function initializeTeamHandlers(options?: {
   /** Use new registry-based system instead of legacy handlers */
   useNewSystem?: boolean;
 }): Promise<void> {
-  const useNewSystem = options?.useNewSystem ?? (process.env.USE_NEW_TEAM_HANDLERS === 'true');
+  const useNewSystem = options?.useNewSystem ?? process.env.USE_NEW_TEAM_HANDLERS === 'true';
 
   if (useNewSystem) {
     // NEW: Use the team handler registry
@@ -105,7 +105,10 @@ export async function initializeTeamHandlers(options?: {
       scheduler.start();
       getLogger().info('⏰ Proactive scheduler started');
     } catch (error) {
-      getLogger().warn({ error }, 'Error initializing team handler registry, falling back to legacy');
+      getLogger().warn(
+        { error },
+        'Error initializing team handler registry, falling back to legacy'
+      );
       await initializeLegacyTeamHandlers();
     }
   } else {
@@ -130,7 +133,9 @@ async function initializeLegacyTeamHandlers(): Promise<void> {
     scheduler.start();
 
     getLogger().info('⏰ Proactive scheduler started');
-    getLogger().warn('⚠️ Legacy team handlers have been removed. Enable USE_NEW_TEAM_HANDLERS=true for the new system.');
+    getLogger().warn(
+      '⚠️ Legacy team handlers have been removed. Enable USE_NEW_TEAM_HANDLERS=true for the new system.'
+    );
   } catch (error) {
     getLogger().warn({ error }, 'Error initializing team handlers');
   }
@@ -178,4 +183,3 @@ export async function shutdownTools(): Promise<void> {
 
   getLogger().info('Tool services shut down');
 }
-

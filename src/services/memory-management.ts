@@ -13,7 +13,12 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile, VoiceSketch, KeyMoment, ConversationSummary } from '../types/user-profile.js';
+import type {
+  UserProfile,
+  VoiceSketch,
+  KeyMoment,
+  ConversationSummary,
+} from '../types/user-profile.js';
 import { getDefaultStore, type MemoryStore } from '../memory/index.js';
 import { cosineSimilarity } from '../memory/embeddings.js';
 
@@ -219,7 +224,9 @@ export async function consolidateProfiles(
       for (const moment of moments) {
         // Avoid duplicates by checking summary similarity
         const isDupe = primaryProfile.keyMoments.some(
-          (m) => m.summary === moment.summary && Math.abs(m.timestamp.getTime() - moment.timestamp.getTime()) < 60000
+          (m) =>
+            m.summary === moment.summary &&
+            Math.abs(m.timestamp.getTime() - moment.timestamp.getTime()) < 60000
         );
         if (!isDupe) {
           await memoryStore.addKeyMoment(primaryProfile.id, moment);
@@ -230,7 +237,9 @@ export async function consolidateProfiles(
       // Merge goals
       const goals = await memoryStore.getGoals(mergeProfile.id);
       for (const goal of goals) {
-        const isDupe = primaryProfile.goals.some((g) => g.name === goal.name && g.type === goal.type);
+        const isDupe = primaryProfile.goals.some(
+          (g) => g.name === goal.name && g.type === goal.type
+        );
         if (!isDupe) {
           await memoryStore.saveGoal(primaryProfile.id, goal);
           result.mergedGoals++;
@@ -252,7 +261,10 @@ export async function consolidateProfiles(
       primaryProfile.totalMinutesTalked += mergeProfile.totalMinutesTalked;
 
       // Merge preferred topics (unique)
-      const allTopics = new Set([...primaryProfile.preferredTopics, ...mergeProfile.preferredTopics]);
+      const allTopics = new Set([
+        ...primaryProfile.preferredTopics,
+        ...mergeProfile.preferredTopics,
+      ]);
       primaryProfile.preferredTopics = Array.from(allTopics);
 
       // Merge emotional patterns
@@ -349,7 +361,7 @@ export function compareVoiceSketches(sketch1: VoiceSketch, sketch2: VoiceSketch)
 export async function findProfilesByVoice(
   voiceSketch: VoiceSketch,
   store?: MemoryStore,
-  minSimilarity: number = 0.75
+  minSimilarity = 0.75
 ): Promise<Array<{ profile: UserProfile; similarity: number }>> {
   const memoryStore = store || getDefaultStore();
   const matches: Array<{ profile: UserProfile; similarity: number }> = [];
@@ -395,7 +407,7 @@ export function generateVoiceRecognitionGreeting(
 
   if (similarity > 0.95) {
     return `Hey ${name}! I recognized your voice right away.`;
-  } else if (similarity > 0.90) {
+  } else if (similarity > 0.9) {
     return `${name}? Your voice sounds very familiar!`;
   } else if (similarity > 0.85) {
     return `Your voice sounds familiar... is this ${name}?`;
@@ -489,10 +501,13 @@ export async function getProactiveMemories(
     // Only mention if it's been a while and relevant
     if (daysSince >= 7 && daysSince <= 90) {
       // Check topic relevance
-      const isTopicRelevant = currentTopic && moment.topics.some(
-        (t) => t.toLowerCase().includes(currentTopic.toLowerCase()) ||
-               currentTopic.toLowerCase().includes(t.toLowerCase())
-      );
+      const isTopicRelevant =
+        currentTopic &&
+        moment.topics.some(
+          (t) =>
+            t.toLowerCase().includes(currentTopic.toLowerCase()) ||
+            currentTopic.toLowerCase().includes(t.toLowerCase())
+        );
 
       if (isTopicRelevant || moment.followUpNeeded) {
         memories.push({
@@ -517,9 +532,10 @@ export async function getProactiveMemories(
   const milestones = [30, 90, 180, 365, 730];
   for (const milestone of milestones) {
     if (daysSinceFirst >= milestone && daysSinceFirst <= milestone + 7) {
-      const period = milestone >= 365 
-        ? `${Math.floor(milestone / 365)} year${milestone >= 730 ? 's' : ''}`
-        : `${milestone} days`;
+      const period =
+        milestone >= 365
+          ? `${Math.floor(milestone / 365)} year${milestone >= 730 ? 's' : ''}`
+          : `${milestone} days`;
       memories.push({
         type: 'anniversary',
         priority: 'low',
@@ -701,7 +717,7 @@ export async function pruneMemorySystem(
 
       if (vectorStore.isInitialized) {
         const stats = await vectorStore.getStats();
-        
+
         // For now, we can't easily identify "low-value" vectors without a reference query
         // This would need enhancement to track vector usage/hits
         getLogger().info(
@@ -751,8 +767,8 @@ export async function initializeMemoryManagement(): Promise<void> {
   if (initialized) return;
 
   // Mark as initialized immediately - don't let Firestore block startup
-    initialized = true;
-    getLogger().info('🧠 Memory management service initialized');
+  initialized = true;
+  getLogger().info('🧠 Memory management service initialized');
 
   // Load phone cache in BACKGROUND - don't block agent startup
   // This cache is an optimization, not a requirement
@@ -803,4 +819,3 @@ export default {
   initializeMemoryManagement,
   shutdownMemoryManagement,
 };
-

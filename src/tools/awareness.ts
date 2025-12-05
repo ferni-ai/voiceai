@@ -45,7 +45,7 @@ export function createAwarenessTools() {
         getLogger().info(`Checking for drift: ${currentTopic} vs ${originalTopic}`);
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         if (services) {
           const context = services.getPromptContext();
@@ -85,7 +85,7 @@ export function createAwarenessTools() {
         getLogger().info('Suggesting relevant topic');
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         // Check user profile for interests
         if (services?.userProfile) {
@@ -188,7 +188,7 @@ export function createAwarenessTools() {
         getLogger().info('Suggesting circle back to open topic');
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         if (services) {
           const context = services.getPromptContext();
@@ -217,7 +217,7 @@ export function createAwarenessTools() {
         getLogger().info('Getting conversation summary');
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         const sections: string[] = [];
 
@@ -268,7 +268,7 @@ export function createAwarenessTools() {
         getLogger().info(`Identifying user needs from: ${recentContext.slice(0, 50)}...`);
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         // If we have services, use the analysis
         if (services) {

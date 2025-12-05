@@ -14,7 +14,11 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { sanitizePlainText } from './validation.js';
-import { getProductivityStore, type RoutineData, type RoutineCompletionData } from '../services/productivity-store.js';
+import {
+  getProductivityStore,
+  type RoutineData,
+  type RoutineCompletionData,
+} from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
 // Bridge functions for persistence
@@ -24,7 +28,7 @@ function routineDataToRoutine(data: RoutineData, userId: string): Routine {
     userId,
     name: data.name,
     type: data.type as RoutineType,
-    steps: data.steps.map(s => ({
+    steps: data.steps.map((s) => ({
       id: s.id,
       title: s.title,
       duration: s.duration,
@@ -114,22 +118,22 @@ export interface RoutineCompletion {
 // STORAGE - Uses ProductivityStore for persistence
 // ============================================================================
 
-const routinesCache: Map<string, Routine> = new Map();
-const completionsCache: Map<string, RoutineCompletion> = new Map();
-const loadedUsers: Set<string> = new Set();
+const routinesCache = new Map<string, Routine>();
+const completionsCache = new Map<string, RoutineCompletion>();
+const loadedUsers = new Set<string>();
 
 async function ensureUserRoutinesLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-  
+
   try {
     const store = getProductivityStore();
     await store.loadUserData(userId);
-    
+
     const routineDataList = store.getUserRoutines(userId);
     for (const data of routineDataList) {
       routinesCache.set(data.id, routineDataToRoutine(data, userId));
     }
-    
+
     loadedUsers.add(userId);
     getLogger().debug({ userId, routines: routineDataList.length }, 'Loaded routines from store');
   } catch (error) {
@@ -160,35 +164,77 @@ function persistCompletion(userId: string, completion: RoutineCompletion): void 
 // DEFAULT TEMPLATES
 // ============================================================================
 
-const ROUTINE_TEMPLATES: Record<RoutineType, { steps: Omit<RoutineStep, 'id'>[] }> = {
+const ROUTINE_TEMPLATES: Record<RoutineType, { steps: Array<Omit<RoutineStep, 'id'>> }> = {
   morning: {
     steps: [
       { title: 'Wake up, no snooze', duration: 1, isOptional: false, order: 1 },
-      { title: 'Drink water', duration: 2, description: 'Full glass of water', isOptional: false, order: 2 },
+      {
+        title: 'Drink water',
+        duration: 2,
+        description: 'Full glass of water',
+        isOptional: false,
+        order: 2,
+      },
       { title: 'Stretch or light movement', duration: 5, isOptional: false, order: 3 },
       { title: 'Mindfulness/meditation', duration: 10, isOptional: true, order: 4 },
       { title: 'Shower and get ready', duration: 15, isOptional: false, order: 5 },
       { title: 'Healthy breakfast', duration: 15, isOptional: false, order: 6 },
-      { title: 'Review day\'s priorities', duration: 5, description: 'Top 3 things', isOptional: false, order: 7 },
+      {
+        title: "Review day's priorities",
+        duration: 5,
+        description: 'Top 3 things',
+        isOptional: false,
+        order: 7,
+      },
     ],
   },
   evening: {
     steps: [
-      { title: 'Set tomorrow\'s clothes out', duration: 5, isOptional: true, order: 1 },
-      { title: 'Review tomorrow\'s schedule', duration: 5, isOptional: false, order: 2 },
+      { title: "Set tomorrow's clothes out", duration: 5, isOptional: true, order: 1 },
+      { title: "Review tomorrow's schedule", duration: 5, isOptional: false, order: 2 },
       { title: 'Tidy up space', duration: 10, isOptional: true, order: 3 },
-      { title: 'No screens (start)', duration: 1, description: 'Put devices away', isOptional: false, order: 4 },
-      { title: 'Journal or reflect', duration: 10, description: '3 gratitudes, 1 highlight', isOptional: true, order: 5 },
+      {
+        title: 'No screens (start)',
+        duration: 1,
+        description: 'Put devices away',
+        isOptional: false,
+        order: 4,
+      },
+      {
+        title: 'Journal or reflect',
+        duration: 10,
+        description: '3 gratitudes, 1 highlight',
+        isOptional: true,
+        order: 5,
+      },
       { title: 'Read', duration: 15, isOptional: true, order: 6 },
-      { title: 'Wind down activities', duration: 15, description: 'Tea, stretching, etc.', isOptional: true, order: 7 },
+      {
+        title: 'Wind down activities',
+        duration: 15,
+        description: 'Tea, stretching, etc.',
+        isOptional: true,
+        order: 7,
+      },
       { title: 'Lights out', duration: 1, isOptional: false, order: 8 },
     ],
   },
   workout: {
     steps: [
-      { title: 'Warm up', duration: 5, description: 'Light cardio, dynamic stretches', isOptional: false, order: 1 },
+      {
+        title: 'Warm up',
+        duration: 5,
+        description: 'Light cardio, dynamic stretches',
+        isOptional: false,
+        order: 1,
+      },
       { title: 'Main workout', duration: 30, isOptional: false, order: 2 },
-      { title: 'Cool down', duration: 5, description: 'Slow movement', isOptional: false, order: 3 },
+      {
+        title: 'Cool down',
+        duration: 5,
+        description: 'Slow movement',
+        isOptional: false,
+        order: 3,
+      },
       { title: 'Stretch', duration: 10, isOptional: false, order: 4 },
       { title: 'Hydrate', duration: 2, isOptional: false, order: 5 },
     ],
@@ -198,18 +244,36 @@ const ROUTINE_TEMPLATES: Record<RoutineType, { steps: Omit<RoutineStep, 'id'>[] 
       { title: 'Dim lights', duration: 1, isOptional: false, order: 1 },
       { title: 'Relaxing music or silence', duration: 1, isOptional: true, order: 2 },
       { title: 'Gentle stretching', duration: 10, isOptional: true, order: 3 },
-      { title: 'Deep breathing', duration: 5, description: '4-7-8 breathing', isOptional: false, order: 4 },
+      {
+        title: 'Deep breathing',
+        duration: 5,
+        description: '4-7-8 breathing',
+        isOptional: false,
+        order: 4,
+      },
       { title: 'Body scan meditation', duration: 10, isOptional: true, order: 5 },
     ],
   },
   focus: {
     steps: [
       { title: 'Clear workspace', duration: 2, isOptional: false, order: 1 },
-      { title: 'Set intention', duration: 2, description: 'What will you accomplish?', isOptional: false, order: 2 },
+      {
+        title: 'Set intention',
+        duration: 2,
+        description: 'What will you accomplish?',
+        isOptional: false,
+        order: 2,
+      },
       { title: 'Phone on DND', duration: 1, isOptional: false, order: 3 },
       { title: 'Water nearby', duration: 1, isOptional: true, order: 4 },
       { title: 'Deep work session', duration: 50, isOptional: false, order: 5 },
-      { title: 'Short break', duration: 10, description: 'Move, hydrate', isOptional: false, order: 6 },
+      {
+        title: 'Short break',
+        duration: 10,
+        description: 'Move, hydrate',
+        isOptional: false,
+        order: 6,
+      },
     ],
   },
   custom: {
@@ -224,7 +288,7 @@ function getUserRoutines(userId: string): Routine[] {
   return Array.from(routinesCache.values()).filter((r) => r.userId === userId && r.isActive);
 }
 
-function getRoutineCompletions(routineId: string, days: number = 30): RoutineCompletion[] {
+function getRoutineCompletions(routineId: string, days = 30): RoutineCompletion[] {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
 
@@ -285,7 +349,7 @@ export function createRoutine(params: {
   userId: string;
   name: string;
   type: RoutineType;
-  customSteps?: Omit<RoutineStep, 'id'>[];
+  customSteps?: Array<Omit<RoutineStep, 'id'>>;
   targetTime?: string;
   reminderEnabled?: boolean;
 }): Routine {
@@ -430,10 +494,7 @@ Use when user wants to:
         type: z
           .enum(['morning', 'evening', 'workout', 'wind_down', 'focus', 'custom'])
           .describe('Type of routine'),
-        targetTime: z
-          .string()
-          .optional()
-          .describe('When to do it (e.g., "6:30 AM", "9:00 PM")'),
+        targetTime: z.string().optional().describe('When to do it (e.g., "6:30 AM", "9:00 PM")'),
         reminderEnabled: z.boolean().optional().default(true),
       }),
       execute: async ({ name, type, targetTime, reminderEnabled }, { ctx }) => {
@@ -555,14 +616,10 @@ Use when user says "start my morning routine" etc.`,
 
         let step: RoutineStep | undefined;
         if (stepTitle) {
-          step = routine.steps.find((s) =>
-            s.title.toLowerCase().includes(stepTitle.toLowerCase())
-          );
+          step = routine.steps.find((s) => s.title.toLowerCase().includes(stepTitle.toLowerCase()));
         } else {
           // Find first incomplete step
-          step = orderedSteps.find(
-            (s) => !todayCompletion?.completedSteps.includes(s.id)
-          );
+          step = orderedSteps.find((s) => !todayCompletion?.completedSteps.includes(s.id));
         }
 
         if (!step) {
@@ -726,4 +783,3 @@ Use when user says "start my morning routine" etc.`,
 }
 
 export default createRoutineTools;
-

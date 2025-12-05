@@ -94,4 +94,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 export { getWisdomToolDefinitions };
 
 export default getToolDefinitions;
-

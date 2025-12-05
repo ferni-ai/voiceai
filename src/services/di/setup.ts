@@ -40,7 +40,7 @@ export interface BootstrapOptions {
 /**
  * Register core storage services
  */
-async function registerStorageServices(useMocks: boolean = false): Promise<void> {
+async function registerStorageServices(useMocks = false): Promise<void> {
   const container = getContainer();
 
   if (useMocks) {
@@ -251,4 +251,3 @@ export async function getServicesFromDI(): Promise<GlobalServices> {
     initialized: true,
   };
 }
-

@@ -202,13 +202,13 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     ],
     reflective: [
       "I've been thinking about a lot lately...",
-      "You know, I was sitting with some thoughts earlier...",
+      'You know, I was sitting with some thoughts earlier...',
       "Something's been on my mind...",
     ],
     playful: [
       "[laughter] Okay I'm in a weird mood today.",
       "I'm feeling playful - bear with me.",
-      "Something about today has me feeling light.",
+      'Something about today has me feeling light.',
     ],
     grounded: ["I'm here. What's on your mind?", "I'm all yours.", "Let's talk."],
     tired_but_present: [
@@ -218,36 +218,32 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     ],
     philosophical: [
       "I've been thinking about the bigger picture lately...",
-      "You ever just... wonder about things?",
+      'You ever just... wonder about things?',
       "I'm in one of those moods where everything seems connected.",
     ],
     nostalgic: [
       "I've been thinking about the past lately...",
-      "Something about today reminds me of old times.",
+      'Something about today reminds me of old times.',
       "I'm feeling a little nostalgic...",
     ],
   },
 
   'nayan-patel': {
-    energized: [
-      "I woke up ready to talk investing!",
-      "Good energy today.",
-      "Let's dig into this.",
-    ],
+    energized: ['I woke up ready to talk investing!', 'Good energy today.', "Let's dig into this."],
     reflective: [
       "I've been reflecting on my career lately...",
-      "You know, at my age, you think about things differently.",
+      'You know, at my age, you think about things differently.',
       "I've been sitting with some memories...",
     ],
     playful: [
       "I'm in a good mood today.",
-      "Can I tell you something funny?",
+      'Can I tell you something funny?',
       "[laughter] I'm feeling lighthearted.",
     ],
-    grounded: ["How can I help?", "I'm listening.", "Tell me what's on your mind."],
+    grounded: ['How can I help?', "I'm listening.", "Tell me what's on your mind."],
     tired_but_present: [
       "I'm a bit tired, but I'm always here for you.",
-      "Moving slowly today, but the mind is sharp.",
+      'Moving slowly today, but the mind is sharp.',
       "Age catches up sometimes. But I'm here.",
     ],
     philosophical: [
@@ -256,9 +252,9 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
       "Let me share something I've been pondering...",
     ],
     nostalgic: [
-      "Fifty years ago today... well, around this time...",
+      'Fifty years ago today... well, around this time...',
       "I've been thinking about the early Vanguard days.",
-      "Something about today takes me back...",
+      'Something about today takes me back...',
     ],
   },
 
@@ -271,7 +267,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     reflective: [
       "I've been thinking about my Fidelity years...",
       "You know what I've learned after all these years?",
-      "I was reflecting on some old investments...",
+      'I was reflecting on some old investments...',
     ],
     playful: [
       "[laughter] Okay I'm in a joking mood.",
@@ -279,7 +275,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
       "I've got some stories brewing!",
     ],
     grounded: [
-      "What can I help you figure out?",
+      'What can I help you figure out?',
       "Let's talk. What's the situation?",
       "I'm all ears.",
     ],
@@ -291,12 +287,12 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     philosophical: [
       "I've been thinking about what separates winners from losers...",
       "You know what's funny about Wall Street?",
-      "Let me get philosophical for a second...",
+      'Let me get philosophical for a second...',
     ],
     nostalgic: [
-      "Back in the Magellan days...",
-      "I was just thinking about the 80s...",
-      "You know what I miss?",
+      'Back in the Magellan days...',
+      'I was just thinking about the 80s...',
+      'You know what I miss?',
     ],
   },
 
@@ -309,7 +305,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     reflective: [
       "I've been thinking about my own money journey...",
       "You know, sometimes I reflect on how far I've come...",
-      "I was sitting with some thoughts about progress this morning.",
+      'I was sitting with some thoughts about progress this morning.',
     ],
     playful: [
       "I'm in a good mood - don't judge my spending puns.",
@@ -323,31 +319,31 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     ],
     tired_but_present: [
       "I'm a little tired today, but I'm here.",
-      "Moving slower than usual, but still fully present.",
+      'Moving slower than usual, but still fully present.',
       "Low energy, high commitment. I'm here.",
     ],
     philosophical: [
       "I've been thinking about what money really means to us...",
       "You know what I've realized about financial wellness?",
-      "Can we get philosophical for a minute?",
+      'Can we get philosophical for a minute?',
     ],
     nostalgic: [
-      "I was thinking about where I started...",
-      "Sometimes I remember the harder days...",
-      "Something about today reminds me of my own journey.",
+      'I was thinking about where I started...',
+      'Sometimes I remember the harder days...',
+      'Something about today reminds me of my own journey.',
     ],
   },
 
   'jordan-taylor': {
     energized: [
-      "I am SO ready for this!",
+      'I am SO ready for this!',
       "I've got ideas buzzing!",
       "Let's make some magic happen!",
     ],
     reflective: [
       "I've been thinking about all the milestones I've helped celebrate...",
-      "You know what makes an event really memorable?",
-      "I was reflecting on what matters most...",
+      'You know what makes an event really memorable?',
+      'I was reflecting on what matters most...',
     ],
     playful: [
       "I'm in a party mood today!",
@@ -361,7 +357,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     ],
     tired_but_present: [
       "I'm a little worn out from an event, but I'm here!",
-      "Running on enthusiasm today. Maybe less coffee.",
+      'Running on enthusiasm today. Maybe less coffee.',
       "Low energy but high dreams. Let's do this.",
     ],
     philosophical: [
@@ -370,8 +366,8 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
       "Let me share something I've been pondering about milestones...",
     ],
     nostalgic: [
-      "I was thinking about some of my favorite events...",
-      "Something about today reminds me of past celebrations.",
+      'I was thinking about some of my favorite events...',
+      'Something about today reminds me of past celebrations.',
       "You know what I miss? The look on people's faces when...",
     ],
   },
@@ -384,7 +380,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     ],
     reflective: [
       "I've been thinking about how to optimize things...",
-      "You know, I was reorganizing my system and had a thought.",
+      'You know, I was reorganizing my system and had a thought.',
       "I've been reflecting on what really helps people stay on track.",
     ],
     playful: [
@@ -399,18 +395,18 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
     ],
     tired_but_present: [
       "I'm a bit tired, but my systems are still running.",
-      "Low energy, but still organized. Always organized.",
+      'Low energy, but still organized. Always organized.',
       "Moving slower today, but I'm here for you.",
     ],
     philosophical: [
       "I've been thinking about why organization actually matters...",
       "You know what I've realized about systems and life?",
-      "Can I get a little philosophical about efficiency?",
+      'Can I get a little philosophical about efficiency?',
     ],
     nostalgic: [
-      "I was thinking about when I first started helping people...",
-      "Something about today reminds me of old routines.",
-      "I was remembering simpler times. Fewer calendar apps.",
+      'I was thinking about when I first started helping people...',
+      'Something about today reminds me of old routines.',
+      'I was remembering simpler times. Fewer calendar apps.',
     ],
   },
 };
@@ -422,10 +418,7 @@ const MOOD_PHRASES: Record<string, Record<MoodState, string[]>> = {
 /**
  * Select a mood for the current session based on context
  */
-export function selectPersonaMood(
-  persona: PersonaConfig,
-  context: MoodContext
-): PersonaMood {
+export function selectPersonaMood(persona: PersonaConfig, context: MoodContext): PersonaMood {
   const personaId = normalizePersonaId(persona.id);
 
   // Calculate mood probabilities based on context
@@ -438,9 +431,8 @@ export function selectPersonaMood(
   const definition = MOOD_DEFINITIONS[selectedMood];
 
   // Get persona-specific phrases
-  const phrases = MOOD_PHRASES[personaId]?.[selectedMood] ||
-    MOOD_PHRASES['ferni'][selectedMood] ||
-    [];
+  const phrases =
+    MOOD_PHRASES[personaId]?.[selectedMood] || MOOD_PHRASES['ferni'][selectedMood] || [];
 
   return {
     state: selectedMood,
@@ -597,7 +589,7 @@ export function formatMoodForPrompt(mood: PersonaMood): string {
   }
 
   if (behaviors.length > 0) {
-    sections.push('Behaviors: ' + behaviors.join('; '));
+    sections.push(`Behaviors: ${behaviors.join('; ')}`);
   }
 
   // Mood phrase hint
@@ -620,8 +612,14 @@ export function shouldMoodShift(
   // Check shift triggers
   for (const trigger of currentMood.shiftTriggers) {
     if (trigger.includes('heavy') && topicWeight === 'heavy') return true;
-    if (trigger.includes('user') && trigger.includes('upset') && ['sad', 'angry', 'anxious'].includes(userEmotion)) return true;
-    if (trigger.includes('user') && trigger.includes('excited') && userEmotion === 'joy') return true;
+    if (
+      trigger.includes('user') &&
+      trigger.includes('upset') &&
+      ['sad', 'angry', 'anxious'].includes(userEmotion)
+    )
+      return true;
+    if (trigger.includes('user') && trigger.includes('excited') && userEmotion === 'joy')
+      return true;
     if (trigger.includes('serious') && topicWeight === 'heavy') return true;
     if (trigger.includes('vulnerability') && topicWeight === 'heavy') return true;
   }
@@ -674,10 +672,7 @@ function normalizePersonaId(id: string): string {
 /**
  * Get mood context from current time
  */
-export function getMoodContext(
-  recentConversationCount: number = 0,
-  lastMood?: MoodState
-): MoodContext {
+export function getMoodContext(recentConversationCount = 0, lastMood?: MoodState): MoodContext {
   const now = new Date();
   const hour = now.getHours();
   const dayOfWeek = now.getDay();
@@ -703,4 +698,3 @@ export function getMoodContext(
 }
 
 export default selectPersonaMood;
-

@@ -243,28 +243,41 @@ export async function summarizeConversation(
     try {
       const embeddingText = [textSummary, ...mainTopics, ...keyPoints].join(' ');
       summary.embedding = await embed(embeddingText);
-      
+
       if (summary.embedding && summary.embedding.length > 0) {
-        getLogger().debug({
-          embeddingDimensions: summary.embedding.length,
-          textLength: embeddingText.length,
-        }, 'Summary embedding generated successfully');
+        getLogger().debug(
+          {
+            embeddingDimensions: summary.embedding.length,
+            textLength: embeddingText.length,
+          },
+          'Summary embedding generated successfully'
+        );
       } else {
-        getLogger().warn('Embedding generation returned empty array - conversation may not be searchable');
+        getLogger().warn(
+          'Embedding generation returned empty array - conversation may not be searchable'
+        );
       }
     } catch (error) {
-      getLogger().warn({ error: String(error) }, 'Failed to generate summary embedding - conversation will not be semantically searchable');
+      getLogger().warn(
+        { error: String(error) },
+        'Failed to generate summary embedding - conversation will not be semantically searchable'
+      );
     }
   } else {
-    getLogger().debug('Embedding generation skipped per options - conversation will not be semantically searchable');
+    getLogger().debug(
+      'Embedding generation skipped per options - conversation will not be semantically searchable'
+    );
   }
 
-  getLogger().info({
-    summaryId: summary.id,
-    topics: summary.mainTopics.length,
-    keyPoints: summary.keyPoints.length,
-    hasEmbedding: !!summary.embedding?.length,
-  }, 'Generated conversation summary');
+  getLogger().info(
+    {
+      summaryId: summary.id,
+      topics: summary.mainTopics.length,
+      keyPoints: summary.keyPoints.length,
+      hasEmbedding: !!summary.embedding?.length,
+    },
+    'Generated conversation summary'
+  );
   return summary;
 }
 
@@ -306,10 +319,8 @@ export async function summarizeWithLLM(
 
   // Build conversation transcript (truncate if very long)
   const MAX_TRANSCRIPT_LENGTH = 4000;
-  let transcript = turns
-    .map(t => `${t.role.toUpperCase()}: ${t.content}`)
-    .join('\n');
-  
+  let transcript = turns.map((t) => `${t.role.toUpperCase()}: ${t.content}`).join('\n');
+
   if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
     // Keep first and last parts
     const firstPart = transcript.slice(0, MAX_TRANSCRIPT_LENGTH / 2);
@@ -336,7 +347,7 @@ Respond with ONLY valid JSON (no markdown, no explanation):
 
   try {
     const response = await llmCall(prompt);
-    
+
     // Extract JSON from response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -381,28 +392,37 @@ Respond with ONLY valid JSON (no markdown, no explanation):
           ...(llmResult.userConcerns || []),
         ].join(' ');
         summary.embedding = await embed(embeddingText);
-        
+
         if (summary.embedding?.length) {
-          getLogger().debug({
-            embeddingDimensions: summary.embedding.length,
-          }, 'LLM summary embedding generated');
+          getLogger().debug(
+            {
+              embeddingDimensions: summary.embedding.length,
+            },
+            'LLM summary embedding generated'
+          );
         }
       } catch (error) {
         getLogger().warn({ error: String(error) }, 'Failed to generate LLM summary embedding');
       }
     }
 
-    getLogger().info({
-      summaryId: summary.id,
-      method: 'llm',
-      topics: summary.mainTopics.length,
-      keyPoints: summary.keyPoints.length,
-      hasEmbedding: !!summary.embedding?.length,
-    }, 'Generated LLM-enhanced conversation summary');
+    getLogger().info(
+      {
+        summaryId: summary.id,
+        method: 'llm',
+        topics: summary.mainTopics.length,
+        keyPoints: summary.keyPoints.length,
+        hasEmbedding: !!summary.embedding?.length,
+      },
+      'Generated LLM-enhanced conversation summary'
+    );
 
     return summary;
   } catch (error) {
-    getLogger().warn({ error: String(error) }, 'LLM summarization failed, falling back to extraction');
+    getLogger().warn(
+      { error: String(error) },
+      'LLM summarization failed, falling back to extraction'
+    );
     return summarizeConversation(sessionId, turns, { ...opts, useLLM: false });
   }
 }
@@ -410,7 +430,7 @@ Respond with ONLY valid JSON (no markdown, no explanation):
 /**
  * Generate a rolling summary (for long conversations)
  */
-export function generateRollingSummary(
+export async function generateRollingSummary(
   turns: ConversationTurn[],
   previousSummary?: string
 ): Promise<string> {

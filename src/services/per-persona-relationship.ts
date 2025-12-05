@@ -325,10 +325,7 @@ export function hasMinimumRelationship(
  * Get the warmth multiplier based on relationship stage
  * Used to adjust greeting warmth, response style, etc.
  */
-export function getWarmthMultiplier(
-  profile: UserProfile | null,
-  personaId: string
-): number {
+export function getWarmthMultiplier(profile: UserProfile | null, personaId: string): number {
   const stage = getPersonaRelationshipStage(profile, personaId);
 
   switch (stage) {
@@ -538,4 +535,3 @@ export default {
   shouldAnnounceTransition,
   logRelationshipSummary,
 };
-

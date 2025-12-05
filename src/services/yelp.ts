@@ -419,10 +419,10 @@ export function formatBusinessForSpeech(business: YelpBusiness, includeDetails =
  */
 export function formatReviewForSpeech(review: YelpReview): string {
   // Get first ~100 chars of review, ending at a sentence or word boundary
-  let text = review.text;
+  let { text } = review;
   if (text.length > 100) {
     const cutoff = text.lastIndexOf('.', 100);
-    text = cutoff > 50 ? text.slice(0, cutoff + 1) : text.slice(0, 100).trim() + '...';
+    text = cutoff > 50 ? text.slice(0, cutoff + 1) : `${text.slice(0, 100).trim()}...`;
   }
 
   return `${review.user.name} says: "${text}" - ${review.rating} stars`;

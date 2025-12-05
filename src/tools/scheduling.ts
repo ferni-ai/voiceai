@@ -98,7 +98,7 @@ export interface ScheduledAppointment {
 }
 
 // In-memory storage (production would use database)
-const appointments: Map<string, ScheduledAppointment> = new Map();
+const appointments = new Map<string, ScheduledAppointment>();
 
 // ============================================================================
 // APPOINTMENT MANAGEMENT
@@ -282,7 +282,7 @@ async function makeAppointmentCall(apt: ScheduledAppointment): Promise<string> {
         appointmentId: apt.id,
         business: apt.businessName,
         phone: sanitizePhoneForLog(validPhone),
-        script: script.slice(0, 100) + '...',
+        script: `${script.slice(0, 100)}...`,
       },
       '📞 Simulated appointment call'
     );
@@ -305,8 +305,7 @@ async function makeAppointmentCall(apt: ScheduledAppointment): Promise<string> {
       {
         method: 'POST',
         headers: {
-          Authorization:
-            'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
@@ -1454,7 +1453,7 @@ export function createPlacesTools() {
     // NOTE: The following business search tools have been disabled pending
     // implementation of the required Google Places API functions.
     // Re-enable when searchNearby, findBusiness, getBusinessPhone are implemented.
-    
+
     lookupBusinessPhone: llm.tool({
       description: `Look up a business phone number. (Feature coming soon)`,
       parameters: z.object({
@@ -1595,7 +1594,7 @@ Use when:
         }
 
         if (results.length === 1) {
-          const contact = results[0].contact;
+          const { contact } = results[0];
           let response = `📇 ${contact.displayName}`;
           if (contact.relationship) response += ` (${contact.relationship})`;
           response += '\n';
@@ -1869,10 +1868,9 @@ Guides user through the import process.`,
           case 'vcard':
             if (data) {
               const result = importFromVCard(userId, data);
-              return (
-                `✅ Imported ${result.imported} contact${result.imported !== 1 ? 's' : ''} from vCard!` +
-                (result.errors > 0 ? ` (${result.errors} couldn't be imported)` : '')
-              );
+              return `✅ Imported ${result.imported} contact${result.imported !== 1 ? 's' : ''} from vCard!${
+                result.errors > 0 ? ` (${result.errors} couldn't be imported)` : ''
+              }`;
             }
             return (
               `To import from vCard:\n\n` +
@@ -1885,10 +1883,9 @@ Guides user through the import process.`,
           case 'csv':
             if (data) {
               const result = importFromCSV(userId, data);
-              return (
-                `✅ Imported ${result.imported} contact${result.imported !== 1 ? 's' : ''} from CSV!` +
-                (result.errors > 0 ? ` (${result.errors} couldn't be imported)` : '')
-              );
+              return `✅ Imported ${result.imported} contact${result.imported !== 1 ? 's' : ''} from CSV!${
+                result.errors > 0 ? ` (${result.errors} couldn't be imported)` : ''
+              }`;
             }
             return (
               `To import from CSV:\n\n` +

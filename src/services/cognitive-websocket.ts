@@ -40,19 +40,23 @@ export function initCognitiveWebSocket(httpServer: Server): WebSocketServer {
 
     // Send current state immediately on connection
     const currentState = cognitiveBroadcast.getCurrentState();
-    ws.send(JSON.stringify({
-      type: 'initial_state',
-      data: currentState,
-      timestamp: new Date().toISOString(),
-    }));
+    ws.send(
+      JSON.stringify({
+        type: 'initial_state',
+        data: currentState,
+        timestamp: new Date().toISOString(),
+      })
+    );
 
     // Send recent history
     const history = cognitiveBroadcast.getHistory(20);
-    ws.send(JSON.stringify({
-      type: 'history',
-      data: history,
-      timestamp: new Date().toISOString(),
-    }));
+    ws.send(
+      JSON.stringify({
+        type: 'history',
+        data: history,
+        timestamp: new Date().toISOString(),
+      })
+    );
 
     // Handle incoming messages (ping/pong)
     ws.on('message', (message: Buffer) => {
@@ -144,4 +148,3 @@ export function broadcastToClients(message: unknown): void {
 }
 
 export default { initCognitiveWebSocket, getConnectedClientCount, broadcastToClients };
-

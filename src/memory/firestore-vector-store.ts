@@ -102,7 +102,7 @@ export class FirestoreVectorStore {
   private readonly EMBEDDING_DIMENSION: number;
 
   // Fallback in-memory cache for when Firestore vector search isn't available
-  private fallbackCache: Map<string, { doc: VectorDocument; embedding: number[] }> = new Map();
+  private fallbackCache = new Map<string, { doc: VectorDocument; embedding: number[] }>();
   private useFallback = false;
 
   constructor(config?: FirestoreVectorConfig) {
@@ -188,7 +188,7 @@ export class FirestoreVectorStore {
    */
   async addDocument(doc: VectorDocument): Promise<void> {
     // Generate embedding if not provided
-    let embedding = doc.embedding;
+    let { embedding } = doc;
     if (!embedding) {
       try {
         embedding = await embed(doc.text);
@@ -408,7 +408,7 @@ export class FirestoreVectorStore {
     queryEmbedding: number[],
     topK: number,
     filter?: VectorFilter,
-    minScore: number = 0
+    minScore = 0
   ): VectorSearchResult[] {
     const results: VectorSearchResult[] = [];
 
@@ -679,4 +679,3 @@ export function resetFirestoreVectorStore(): void {
 }
 
 export default FirestoreVectorStore;
-

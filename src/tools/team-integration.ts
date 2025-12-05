@@ -65,7 +65,7 @@ function validateProjectName(name: unknown): {
 
 function validateAmountField(
   amount: unknown,
-  fieldName: string = 'amount'
+  fieldName = 'amount'
 ): { valid: boolean; sanitized?: number; error?: string } {
   if (amount === undefined || amount === null) {
     return { valid: true }; // Optional

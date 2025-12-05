@@ -79,7 +79,7 @@ export class ConversationHumanizer {
   private questions = getQuestionPatternEngine();
   private emotional = getEmotionalArcTracker();
   private dynamics = getResponseDynamicsEngine();
-  
+
   // Track if last response included a memory callback
   private lastResponseHadCallback = false;
 
@@ -131,7 +131,11 @@ export class ConversationHumanizer {
     });
 
     // Record in response dynamics
-    this.dynamics.recordMessage('user', context.userMessage, context.topic ? [context.topic] : undefined);
+    this.dynamics.recordMessage(
+      'user',
+      context.userMessage,
+      context.topic ? [context.topic] : undefined
+    );
 
     // Check for topic change
     const topicChange = this.memory.analyzeTopicChange(context.userMessage);
@@ -242,7 +246,10 @@ export class ConversationHumanizer {
     // 5. Unresolved threads
     const unresolvedThreads = this.memory.getUnresolvedThreads();
     if (unresolvedThreads.length > 0 && context.turnNumber > 6) {
-      const threadTopics = unresolvedThreads.slice(0, 2).map(t => t.topic).join(', ');
+      const threadTopics = unresolvedThreads
+        .slice(0, 2)
+        .map((t) => t.topic)
+        .join(', ');
       guidance.push({
         source: 'conversational_memory',
         content: `[OPEN THREADS] Topics you could circle back to: ${threadTopics}`,
@@ -257,7 +264,8 @@ export class ConversationHumanizer {
         userEmotion: context.userEmotion,
         previousUserStatement: context.userMessage,
         personaId: this.personaId,
-        conversationDepth: context.turnNumber > 8 ? 'deep' : context.turnNumber > 4 ? 'medium' : 'surface',
+        conversationDepth:
+          context.turnNumber > 8 ? 'deep' : context.turnNumber > 4 ? 'medium' : 'surface',
       };
       const suggestedQuestion = this.questions.generateQuestion(questionContext);
       guidance.push({
@@ -268,11 +276,11 @@ export class ConversationHumanizer {
     }
 
     // 7. Thinking cue for complex questions
-    const isComplexQuestion = context.userMessage.includes('?') && (
-      context.userMessage.length > 100 ||
-      /how (do|should|can|would)/i.test(context.userMessage) ||
-      /what (should|do you think|would)/i.test(context.userMessage)
-    );
+    const isComplexQuestion =
+      context.userMessage.includes('?') &&
+      (context.userMessage.length > 100 ||
+        /how (do|should|can|would)/i.test(context.userMessage) ||
+        /what (should|do you think|would)/i.test(context.userMessage));
     if (isComplexQuestion) {
       const thinkingPhrase = this.naturalizer.getThinkingPhrase(this.personaId, 'processing');
       guidance.push({
@@ -283,8 +291,12 @@ export class ConversationHumanizer {
     }
 
     // 8. Active listening - emotional echo for personal sharing
-    const needsEmotionalSupport = context.wasPersonalSharing || (context.userEmotion && 
-      ['worried', 'anxious', 'sad', 'frustrated', 'overwhelmed'].includes(context.userEmotion.toLowerCase()));
+    const needsEmotionalSupport =
+      context.wasPersonalSharing ||
+      (context.userEmotion &&
+        ['worried', 'anxious', 'sad', 'frustrated', 'overwhelmed'].includes(
+          context.userEmotion.toLowerCase()
+        ));
     if (needsEmotionalSupport && context.userEmotion) {
       const echo = this.listening.generateEmotionalEcho(
         context.userEmotion,
@@ -324,23 +336,23 @@ export class ConversationHumanizer {
     if (guidance.length === 0) return '';
 
     const lines: string[] = [];
-    const high = guidance.filter(g => g.priority === 'high');
-    const standard = guidance.filter(g => g.priority === 'standard');
-    const hints = guidance.filter(g => g.priority === 'hint');
+    const high = guidance.filter((g) => g.priority === 'high');
+    const standard = guidance.filter((g) => g.priority === 'standard');
+    const hints = guidance.filter((g) => g.priority === 'hint');
 
     if (high.length > 0) {
       lines.push('=== IMPORTANT ===');
-      high.forEach(g => lines.push(g.content));
+      high.forEach((g) => lines.push(g.content));
     }
 
     if (standard.length > 0) {
       lines.push('=== GUIDANCE ===');
-      standard.forEach(g => lines.push(g.content));
+      standard.forEach((g) => lines.push(g.content));
     }
 
     if (hints.length > 0) {
       lines.push('=== OPTIONAL ===');
-      hints.forEach(g => lines.push(g.content));
+      hints.forEach((g) => lines.push(g.content));
     }
 
     return lines.join('\n');
@@ -350,10 +362,7 @@ export class ConversationHumanizer {
    * Humanize a response before sending
    * Applies naturalization, adds callbacks, suggests follow-ups
    */
-  humanizeResponse(
-    rawResponse: string,
-    context: HumanizationContext
-  ): HumanizedResponse {
+  humanizeResponse(rawResponse: string, context: HumanizationContext): HumanizedResponse {
     const appliedFeatures: string[] = [];
     let text = rawResponse;
     let ssml = rawResponse;
@@ -388,7 +397,10 @@ export class ConversationHumanizer {
     // 3. Check for memory callback opportunity
     let memoryCallback: HumanizedResponse['memoryCallback'];
     if (context.turnNumber > 4 && Math.random() < 0.2) {
-      const callback = this.memory.getMemoryCallback(context.topic || 'general', context.turnNumber);
+      const callback = this.memory.getMemoryCallback(
+        context.topic || 'general',
+        context.turnNumber
+      );
       if (callback) {
         memoryCallback = {
           text: callback.phrase,
@@ -407,7 +419,8 @@ export class ConversationHumanizer {
         userEmotion: context.userEmotion,
         previousUserStatement: context.userMessage,
         personaId: this.personaId,
-        conversationDepth: context.turnNumber > 8 ? 'deep' : context.turnNumber > 4 ? 'medium' : 'surface',
+        conversationDepth:
+          context.turnNumber > 8 ? 'deep' : context.turnNumber > 4 ? 'medium' : 'surface',
       };
       const question = this.questions.generateQuestion(questionContext);
       followUpQuestion = {
@@ -444,7 +457,9 @@ export class ConversationHumanizer {
   /**
    * Get a thinking phrase when processing
    */
-  getThinkingPhrase(type: 'processing' | 'recalling' | 'considering' | 'uncertain' = 'processing'): {
+  getThinkingPhrase(
+    type: 'processing' | 'recalling' | 'considering' | 'uncertain' = 'processing'
+  ): {
     text: string;
     ssml: string;
   } {
@@ -477,7 +492,7 @@ export class ConversationHumanizer {
    * Get unresolved conversation threads
    */
   getUnresolvedThreads(): string[] {
-    return this.memory.getUnresolvedThreads().map(t => t.topic);
+    return this.memory.getUnresolvedThreads().map((t) => t.topic);
   }
 
   /**
@@ -569,7 +584,7 @@ export class ConversationHumanizer {
 // FACTORY
 // ============================================================================
 
-const humanizers: Map<string, ConversationHumanizer> = new Map();
+const humanizers = new Map<string, ConversationHumanizer>();
 
 export function getConversationHumanizer(personaId: string): ConversationHumanizer {
   let humanizer = humanizers.get(personaId);
@@ -596,4 +611,3 @@ export function resetConversationHumanizer(personaId?: string): void {
 }
 
 export default ConversationHumanizer;
-

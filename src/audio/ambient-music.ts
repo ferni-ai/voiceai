@@ -178,7 +178,7 @@ export async function getAmbientTracksAsync(): Promise<MusicTrack[]> {
 /**
  * Check if ambient music is enabled
  * Note: Even if no tracks are available now, Spotify might fetch some later
- * 
+ *
  * Music is ENABLED by default. Requires MUSIC_ENABLED !== 'false' and AMBIENT_MUSIC_ENABLED !== 'false'
  */
 export function isAmbientMusicEnabled(): boolean {
@@ -186,7 +186,7 @@ export function isAmbientMusicEnabled(): boolean {
   if (process.env.MUSIC_ENABLED === 'false') {
     return false;
   }
-  
+
   // Explicitly disabled via environment
   if (process.env.AMBIENT_MUSIC_ENABLED === 'false') {
     return false;
@@ -225,7 +225,7 @@ export async function playAmbientMusic(): Promise<boolean> {
   if (!isAmbientMusicEnabled()) {
     return false;
   }
-  
+
   const player = getMusicPlayer();
 
   // Don't play if already playing

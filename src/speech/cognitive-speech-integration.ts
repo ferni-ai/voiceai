@@ -11,7 +11,11 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import type { SpeechContext } from './speech-context.js';
-import type { CognitiveGuidance, ReasoningStyle, CognitiveProfile } from '../personas/cognitive-types.js';
+import type {
+  CognitiveGuidance,
+  ReasoningStyle,
+  CognitiveProfile,
+} from '../personas/cognitive-types.js';
 import {
   calculateCognitiveSpeechAdjustments,
   applyCognitiveAdjustments,
@@ -129,10 +133,7 @@ export function applyCognitiveSpeechAdjustments(
   );
 
   // Apply to base characteristics
-  const adjustedCharacteristics = applyCognitiveAdjustments(
-    baseCharacteristics,
-    adjustments
-  );
+  const adjustedCharacteristics = applyCognitiveAdjustments(baseCharacteristics, adjustments);
 
   // Build SSML prefix/suffix
   let ssmlPrefix = '';
@@ -164,11 +165,14 @@ export function applyCognitiveSpeechAdjustments(
 
   // Track reasoning style changes
   if (sessionState.lastReasoningStyle !== cognitiveGuidance.recommendedApproach) {
-    getLogger().debug({
-      sessionId,
-      from: sessionState.lastReasoningStyle,
-      to: cognitiveGuidance.recommendedApproach,
-    }, '🧠 Cognitive reasoning style shift');
+    getLogger().debug(
+      {
+        sessionId,
+        from: sessionState.lastReasoningStyle,
+        to: cognitiveGuidance.recommendedApproach,
+      },
+      '🧠 Cognitive reasoning style shift'
+    );
     sessionState.lastReasoningStyle = cognitiveGuidance.recommendedApproach;
   }
 
@@ -193,10 +197,7 @@ export function applyCognitiveSpeechAdjustments(
 /**
  * Build cognitive-aware SSML for a text response
  */
-export function buildCognitiveSSML(
-  text: string,
-  cognitiveResult: CognitiveSpeechResult
-): string {
+export function buildCognitiveSSML(text: string, cognitiveResult: CognitiveSpeechResult): string {
   let result = text;
 
   // Add thinking sound at start if present
@@ -257,7 +258,9 @@ export function clearCognitiveSpeechState(sessionId: string): void {
  * Get speech characteristic overrides for reasoning styles
  * These can be used to quickly adjust speech for different cognitive modes
  */
-export function getReasoningStyleSpeechPreset(style: ReasoningStyle): Partial<SpeechCharacteristics> {
+export function getReasoningStyleSpeechPreset(
+  style: ReasoningStyle
+): Partial<SpeechCharacteristics> {
   switch (style) {
     case 'analytical':
       return {
@@ -275,7 +278,7 @@ export function getReasoningStyleSpeechPreset(style: ReasoningStyle): Partial<Sp
       };
     case 'systematic':
       return {
-        baseSpeedMultiplier: 0.90,
+        baseSpeedMultiplier: 0.9,
         pauseMultiplier: 1.3,
         emphasisStyle: 'moderate',
         thinkingSoundFrequency: 0.2,
@@ -313,4 +316,3 @@ export default {
   clearCognitiveSpeechState,
   getReasoningStyleSpeechPreset,
 };
-

@@ -181,7 +181,7 @@ function generateFirstMeetingOpener(
   _context: OpenerContext
 ): ConversationOpener {
   const time = getTimeOfDay();
-  const name = persona.name;
+  const { name } = persona;
 
   // Time-specific greetings
   const timeGreetings: Record<string, string[]> = {
@@ -246,7 +246,7 @@ function generateReturningFamiliarOpener(
   persona: PersonaConfig,
   context: OpenerContext
 ): ConversationOpener {
-  const userName = context.userName;
+  const { userName } = context;
   const daysSince = context.lastConversationDate
     ? daysSinceLastConversation(context.lastConversationDate)
     : 1;
@@ -283,7 +283,7 @@ function generateReconnectOpener(
   persona: PersonaConfig,
   context: OpenerContext
 ): ConversationOpener {
-  const userName = context.userName;
+  const { userName } = context;
   const daysSince = context.lastConversationDate
     ? daysSinceLastConversation(context.lastConversationDate)
     : 30;

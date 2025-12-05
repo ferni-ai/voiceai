@@ -6,7 +6,11 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { EngagementStore, type EngagementProfile, type StoredWeatherEntry } from './engagement-store.js';
+import {
+  EngagementStore,
+  type EngagementProfile,
+  type StoredWeatherEntry,
+} from './engagement-store.js';
 import { PERSONA_RITUALS } from './daily-rituals.js';
 
 // Generic interface for LiveKit room-like objects
@@ -101,7 +105,7 @@ class EngagementDataSender {
       const message: EngagementDataMessage = {
         type: 'engagement',
         ritualStreaks,
-        weatherHistory: weatherHistory.map(w => ({
+        weatherHistory: weatherHistory.map((w) => ({
           primary: w.weather.primary,
           energy: w.weather.energy,
           note: w.weather.note,
@@ -112,7 +116,10 @@ class EngagementDataSender {
       };
 
       await this.sendDataMessage(message);
-      this.logger.debug({ userId, streaks: ritualStreaks.length }, '[EngagementDataSender] Sent engagement data');
+      this.logger.debug(
+        { userId, streaks: ritualStreaks.length },
+        '[EngagementDataSender] Sent engagement data'
+      );
     } catch (error) {
       this.logger.error({ error, userId }, '[EngagementDataSender] Failed to send engagement data');
     }
@@ -121,15 +128,13 @@ class EngagementDataSender {
   /**
    * Send an engagement trigger to frontend
    */
-  async sendTrigger(
-    trigger: {
-      type: string;
-      personaId: string;
-      message: string;
-      priority: string;
-      data?: Record<string, unknown>;
-    }
-  ): Promise<void> {
+  async sendTrigger(trigger: {
+    type: string;
+    personaId: string;
+    message: string;
+    priority: string;
+    data?: Record<string, unknown>;
+  }): Promise<void> {
     if (!this.room) return;
 
     const message: EngagementTriggerMessage = {
@@ -149,11 +154,7 @@ class EngagementDataSender {
   /**
    * Send ritual completion notification
    */
-  async sendRitualComplete(
-    userId: string,
-    ritualId: string,
-    newStreak: number
-  ): Promise<void> {
+  async sendRitualComplete(userId: string, ritualId: string, newStreak: number): Promise<void> {
     // Update the engagement data to reflect the completion
     await this.sendEngagementData(userId);
 
@@ -174,10 +175,7 @@ class EngagementDataSender {
   /**
    * Send weather recorded notification
    */
-  async sendWeatherRecorded(
-    userId: string,
-    _weather: StoredWeatherEntry
-  ): Promise<void> {
+  async sendWeatherRecorded(userId: string, _weather: StoredWeatherEntry): Promise<void> {
     await this.sendEngagementData(userId);
   }
 
@@ -191,9 +189,11 @@ class EngagementDataSender {
 
     for (const [ritualId, ritual] of Object.entries(PERSONA_RITUALS)) {
       const streak = await this.store.getRitualStreak(userId, ritualId);
-      
+
       if (streak) {
-        const lastDate = streak.lastCompletedAt ? new Date(streak.lastCompletedAt).toDateString() : null;
+        const lastDate = streak.lastCompletedAt
+          ? new Date(streak.lastCompletedAt).toDateString()
+          : null;
         streaks.push({
           ritualId,
           ritualName: ritual.name,
@@ -246,7 +246,9 @@ class EngagementDataSender {
     };
   }
 
-  private async sendDataMessage(message: EngagementDataMessage | EngagementTriggerMessage): Promise<void> {
+  private async sendDataMessage(
+    message: EngagementDataMessage | EngagementTriggerMessage
+  ): Promise<void> {
     if (!this.room) return;
 
     try {

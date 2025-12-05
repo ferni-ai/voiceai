@@ -1,13 +1,13 @@
 /**
  * E2E Integration Tests for Scheduling & Appointments
- * 
+ *
  * Tests the full appointment scheduling flow:
  * - Creating appointments
  * - Making outbound calls to businesses
  * - Tracking call status
  * - Follow-up service
  * - Calendar integration
- * 
+ *
  * Requires communication integrations to be configured.
  */
 
@@ -165,10 +165,10 @@ describe('Appointment Follow-Up Service', () => {
     // Second attempt - should now be failed (2 >= 2)
     service.recordCallAttempt(appointment.id, 'no_answer');
     current = service.getAppointment(appointment.id);
-    
+
     expect(current?.callAttempts).toBe(2);
     expect(current?.status).toBe('failed');
-    expect(current?.notes.some(n => n.includes('Max call attempts'))).toBe(true);
+    expect(current?.notes.some((n) => n.includes('Max call attempts'))).toBe(true);
 
     console.log('✅ Max attempts handling works');
   });
@@ -203,9 +203,11 @@ describe('Appointment Follow-Up Service', () => {
 
   it('should get pending appointments', () => {
     const pending = service.getPendingAppointments();
-    
+
     // Should have some pending from our tests
-    expect(pending.every(a => ['pending', 'calling', 'awaiting_callback'].includes(a.status))).toBe(true);
+    expect(
+      pending.every((a) => ['pending', 'calling', 'awaiting_callback'].includes(a.status))
+    ).toBe(true);
 
     console.log(`✅ Found ${pending.length} pending appointments`);
   });
@@ -254,7 +256,7 @@ describe('Real Appointment Call Flow', () => {
         {
           method: 'POST',
           headers: {
-            Authorization: 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'),
+            Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
             'Content-Type': 'application/x-www-form-urlencoded',
           },
           body: new URLSearchParams({
@@ -266,7 +268,7 @@ describe('Real Appointment Call Flow', () => {
         }
       );
 
-      const data = await response.json() as { sid?: string; status?: string };
+      const data = (await response.json()) as { sid?: string; status?: string };
 
       expect(response.ok).toBe(true);
       expect(data.sid).toBeDefined();
@@ -274,18 +276,18 @@ describe('Real Appointment Call Flow', () => {
       console.log(`✅ Appointment call initiated - SID: ${data.sid}`);
 
       // Wait and check call status
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       const statusResponse = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${data.sid}.json`,
         {
           headers: {
-            Authorization: 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'),
+            Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
           },
         }
       );
 
-      const statusData = await statusResponse.json() as { status: string };
+      const statusData = (await statusResponse.json()) as { status: string };
       console.log(`   Call status: ${statusData.status}`);
     },
     60000 // 60 second timeout for real calls
@@ -359,7 +361,7 @@ describe('Restaurant Reservation Flow', () => {
 
   it('should handle restaurant reservation with phone fallback', () => {
     const service = getAppointmentFollowUpService();
-    
+
     // Simulate a restaurant reservation that needs a phone call
     const reservation = service.trackAppointment({
       id: `res-${Date.now()}`,
@@ -448,7 +450,7 @@ describe('Scheduling Integration Summary', () => {
   afterAll(() => {
     const config = getTestConfig();
 
-    console.log('\n' + '='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
     console.log('📊 SCHEDULING INTEGRATION STATUS');
     console.log('='.repeat(60));
 
@@ -476,11 +478,10 @@ describe('Scheduling Integration Summary', () => {
       console.log('   5. Set SCHEDULING_TEST_MODE=real');
     }
 
-    console.log('='.repeat(60) + '\n');
+    console.log(`${'='.repeat(60)}\n`);
   });
 
   it('should complete summary', () => {
     expect(true).toBe(true);
   });
 });
-

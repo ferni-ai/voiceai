@@ -3,7 +3,7 @@
  *
  * @deprecated This module delegates to intelligence/topic-tracker.ts
  * Use TopicTracker directly for new code.
- * 
+ *
  * This wrapper maintains backward compatibility while using the canonical
  * topic tracking implementation internally.
  *
@@ -35,7 +35,7 @@ export interface TopicRecord {
 // TRANSITION PHRASES (kept for this module's specific phrases)
 // ============================================================================
 
-const TRANSITION_PHRASES: Map<string, string[]> = new Map([
+const TRANSITION_PHRASES = new Map<string, string[]>([
   [
     'investing',
     [
@@ -149,7 +149,7 @@ export class TopicChangeDetector {
   analyzeForTopicChange(message: string): TopicChangeResult {
     // Use the canonical topic tracker's detection
     const result = this.tracker.detectTopicChange(message);
-    
+
     // Track history for this wrapper's API
     if (result.detected && result.newTopic) {
       this.topicHistory.push({
@@ -157,7 +157,7 @@ export class TopicChangeDetector {
         startedAt: Date.now(),
         messageCount: 1,
       });
-      
+
       // Keep history bounded
       if (this.topicHistory.length > 20) {
         this.topicHistory = this.topicHistory.slice(-20);
@@ -168,7 +168,7 @@ export class TopicChangeDetector {
     }
 
     // Add transition phrase if topic changed
-    let transitionPhrase = result.transitionPhrase;
+    let { transitionPhrase } = result;
     if (result.detected && result.newTopic && !transitionPhrase) {
       transitionPhrase = this.getTransitionPhrase(result.newTopic);
     }
@@ -206,7 +206,7 @@ export class TopicChangeDetector {
     if (topic !== current) {
       // Extract through the tracker to register it
       this.tracker.extract(`I want to discuss ${topic}`);
-      
+
       this.topicHistory.push({
         topic,
         startedAt: Date.now(),
@@ -238,7 +238,7 @@ export class TopicChangeDetector {
 
   private mapTopicToPhraseKey(topic: string): string {
     const topicLower = topic.toLowerCase();
-    
+
     // Map topic names to phrase keys
     const mappings: Record<string, string> = {
       retirement: 'retirement',

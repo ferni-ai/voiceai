@@ -64,7 +64,7 @@ describe('PersistenceMetrics', () => {
   describe('session operations', () => {
     it('should track session lifecycle', () => {
       persistenceMetrics.recordSessionStart('session-1', 'user-123', 'ferni');
-      
+
       const snapshotDuring = persistenceMetrics.getSnapshot();
       expect(snapshotDuring.sessionsStarted.count).toBe(1);
       expect(snapshotDuring.activeSessions).toBe(1);
@@ -87,9 +87,9 @@ describe('PersistenceMetrics', () => {
 
       const snapshot = persistenceMetrics.getSnapshot();
       expect(snapshot.autoSaves.count).toBe(3);
-      
+
       // Check session-specific count
-      const session = snapshot.currentSessions.find(s => s.sessionId === 'session-1');
+      const session = snapshot.currentSessions.find((s) => s.sessionId === 'session-1');
       expect(session?.autoSaveCount).toBe(3);
     });
   });
@@ -103,7 +103,7 @@ describe('PersistenceMetrics', () => {
       expect(snapshot.handoffs.count).toBe(1);
       expect(snapshot.handoffs.lastDurationMs).toBe(150);
 
-      const session = snapshot.currentSessions.find(s => s.sessionId === 'session-1');
+      const session = snapshot.currentSessions.find((s) => s.sessionId === 'session-1');
       expect(session?.handoffCount).toBe(1);
       expect(session?.personaId).toBe('maya-santos');
     });
@@ -151,11 +151,11 @@ describe('PersistenceMetrics', () => {
   describe('withMetrics helper', () => {
     it('should time async operations', async () => {
       let recordedDuration = 0;
-      
+
       await withMetrics(
         'test-operation',
         async () => {
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise((resolve) => setTimeout(resolve, 10));
           return 'result';
         },
         (durationMs) => {
@@ -188,7 +188,7 @@ describe('PersistenceMetrics', () => {
   describe('withMetricsSync helper', () => {
     it('should time sync operations', () => {
       let recordedDuration = 0;
-      
+
       const result = withMetricsSync(
         'sync-operation',
         () => {
@@ -239,4 +239,3 @@ describe('PersistenceMetrics', () => {
     });
   });
 });
-

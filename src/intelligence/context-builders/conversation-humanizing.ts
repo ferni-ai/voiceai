@@ -59,7 +59,8 @@ export function buildConversationHumanizingContext(
     userEmotion: analysis.emotion.primary,
     topic,
     isSeriousContext: distressLevel > 0.3,
-    wasPersonalSharing: input.wasPersonalSharing || distressLevel > 0.5 || analysis.emotion.intensity > 0.7,
+    wasPersonalSharing:
+      input.wasPersonalSharing || distressLevel > 0.5 || analysis.emotion.intensity > 0.7,
   };
 
   // Process the user message (records in memory, dynamics, etc.)
@@ -69,7 +70,7 @@ export function buildConversationHumanizingContext(
   const guidance = humanizer.generateContextGuidance(humanizationContext);
 
   // Convert guidance to context injections
-  const injections: ContextInjection[] = guidance.map(g => 
+  const injections: ContextInjection[] = guidance.map((g) =>
     createInjection(g.source, g.content, g.priority)
   );
 
@@ -91,7 +92,7 @@ export function buildConversationHumanizingContext(
         personaId,
         turnNumber,
         injectionsCount: injections.length,
-        sources: [...new Set(injections.map(i => i.source))],
+        sources: [...new Set(injections.map((i) => i.source))],
       },
       'Built conversation humanizing context via orchestrator'
     );
@@ -103,31 +104,29 @@ export function buildConversationHumanizingContext(
 /**
  * Format humanizing guidance for prompt injection
  */
-export function formatConversationHumanizingForPrompt(
-  injections: ContextInjection[]
-): string {
+export function formatConversationHumanizingForPrompt(injections: ContextInjection[]): string {
   if (injections.length === 0) return '';
 
   const lines: string[] = [];
 
   // Group by priority
-  const high = injections.filter(i => i.priority === 'high');
-  const standard = injections.filter(i => i.priority === 'standard');
-  const hints = injections.filter(i => i.priority === 'hint');
+  const high = injections.filter((i) => i.priority === 'high');
+  const standard = injections.filter((i) => i.priority === 'standard');
+  const hints = injections.filter((i) => i.priority === 'hint');
 
   if (high.length > 0) {
     lines.push('=== IMPORTANT ===');
-    high.forEach(i => lines.push(i.content));
+    high.forEach((i) => lines.push(i.content));
   }
 
   if (standard.length > 0) {
     lines.push('=== GUIDANCE ===');
-    standard.forEach(i => lines.push(i.content));
+    standard.forEach((i) => lines.push(i.content));
   }
 
   if (hints.length > 0) {
     lines.push('=== OPTIONAL ===');
-    hints.forEach(i => lines.push(i.content));
+    hints.forEach((i) => lines.push(i.content));
   }
 
   return lines.join('\n');

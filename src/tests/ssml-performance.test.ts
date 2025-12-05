@@ -8,11 +8,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 
 // Import from unified ssml module
-import { 
-  tagTextWithSsml, 
-  tagTextWithSsmlPersonaAware,
-  regexCache,
-} from '../ssml/index.js';
+import { tagTextWithSsml, tagTextWithSsmlPersonaAware, regexCache } from '../ssml/index.js';
 
 // ============================================================================
 // TEST DATA
@@ -56,7 +52,7 @@ const SAMPLE_TEXTS = {
 // PERFORMANCE HELPERS
 // ============================================================================
 
-function benchmark(fn: () => string, iterations: number = 100): { avgMs: number; maxMs: number } {
+function benchmark(fn: () => string, iterations = 100): { avgMs: number; maxMs: number } {
   const times: number[] = [];
 
   for (let i = 0; i < iterations; i++) {

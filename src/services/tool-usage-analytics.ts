@@ -145,7 +145,10 @@ class ToolUsageAnalyticsService {
           projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
         }) as unknown as FirestoreDB;
       } catch (error) {
-        getLogger().warn({ error }, 'Firestore not available, tool analytics will be in-memory only');
+        getLogger().warn(
+          { error },
+          'Firestore not available, tool analytics will be in-memory only'
+        );
       }
     }
 
@@ -266,7 +269,7 @@ class ToolUsageAnalyticsService {
   /**
    * Get top tools by usage
    */
-  getTopTools(limit: number = 10): Array<{ toolId: string; calls: number }> {
+  getTopTools(limit = 10): Array<{ toolId: string; calls: number }> {
     const stats = this.getAllStats();
     return stats
       .sort((a, b) => b.totalCalls - a.totalCalls)
@@ -286,7 +289,7 @@ class ToolUsageAnalyticsService {
   /**
    * Get slowest tools
    */
-  getSlowestTools(limit: number = 10): Array<{ toolId: string; avgLatencyMs: number }> {
+  getSlowestTools(limit = 10): Array<{ toolId: string; avgLatencyMs: number }> {
     const stats = this.getAllStats();
     return stats
       .filter((s) => s.totalCalls > 0)
@@ -299,8 +302,8 @@ class ToolUsageAnalyticsService {
    * Get tools with high error rates
    */
   getErrorProneTools(
-    minCalls: number = 5,
-    minErrorRate: number = 0.1
+    minCalls = 5,
+    minErrorRate = 0.1
   ): Array<{ toolId: string; errorRate: number }> {
     const stats = this.getAllStats();
     return stats
@@ -378,10 +381,13 @@ class ToolUsageAnalyticsService {
     if (this.db) {
       try {
         const reportId = `report_${Date.now()}`;
-        await this.db.collection(this.TOOL_REPORTS).doc(reportId).set({
-          ...report,
-          timestamp: report.timestamp.toISOString(),
-        });
+        await this.db
+          .collection(this.TOOL_REPORTS)
+          .doc(reportId)
+          .set({
+            ...report,
+            timestamp: report.timestamp.toISOString(),
+          });
         getLogger().info({ reportId }, 'Tool usage report saved');
       } catch (error) {
         getLogger().warn({ error }, 'Failed to save tool usage report');
@@ -478,13 +484,16 @@ class ToolUsageAnalyticsService {
     try {
       // Batch save call records
       const batchId = `batch_${Date.now()}`;
-      await this.db.collection(this.TOOL_CALLS).doc(batchId).set({
-        calls: toFlush.map((c) => ({
-          ...c,
-          timestamp: c.timestamp.toISOString(),
-        })),
-        createdAt: new Date().toISOString(),
-      });
+      await this.db
+        .collection(this.TOOL_CALLS)
+        .doc(batchId)
+        .set({
+          calls: toFlush.map((c) => ({
+            ...c,
+            timestamp: c.timestamp.toISOString(),
+          })),
+          createdAt: new Date().toISOString(),
+        });
 
       // Update stats documents
       for (const stats of statsCache.values()) {
@@ -541,4 +550,3 @@ export function recordToolUsage(
 }
 
 export default toolUsageAnalytics;
-

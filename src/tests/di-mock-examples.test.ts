@@ -11,12 +11,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  Container,
-  getContainer,
-  resetContainer,
-  Tokens,
-} from '../services/di/index.js';
+import type { Container } from '../services/di/index.js';
+import { getContainer, resetContainer, Tokens } from '../services/di/index.js';
 import { success, failure, isSuccess, isFailure, type Result } from '../types/result.js';
 
 // ============================================================================
@@ -27,15 +23,15 @@ import { success, failure, isSuccess, isFailure, type Result } from '../types/re
  * Example service interface for demonstration
  */
 interface ExampleUserService {
-  getUserById(id: string): Promise<Result<{ id: string; name: string }, Error>>;
-  createUser(name: string): Promise<Result<{ id: string; name: string }, Error>>;
+  getUserById: (id: string) => Promise<Result<{ id: string; name: string }, Error>>;
+  createUser: (name: string) => Promise<Result<{ id: string; name: string }, Error>>;
 }
 
 /**
  * Example service that depends on ExampleUserService
  */
 interface ExampleNotificationService {
-  notifyUser(userId: string, message: string): Promise<Result<boolean, Error>>;
+  notifyUser: (userId: string, message: string) => Promise<Result<boolean, Error>>;
 }
 
 // ============================================================================
@@ -351,4 +347,3 @@ describe('Result Type Testing Patterns', () => {
     });
   });
 });
-

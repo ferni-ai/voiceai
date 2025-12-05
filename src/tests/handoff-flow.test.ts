@@ -1,8 +1,8 @@
 /**
  * Handoff Flow Tests
- * 
+ *
  * FIX BUGS #71-75: Comprehensive tests for handoff system
- * 
+ *
  * Tests:
  * - #71: Concurrent handoff requests
  * - #72: Handoff during active speech
@@ -40,7 +40,7 @@ describe('Handoff Flow', () => {
     it('should debounce rapid consecutive handoff requests', async () => {
       const DEBOUNCE_MS = 800;
       let requestCount = 0;
-      
+
       const mockHandoffRequest = () => {
         const now = Date.now();
         // Simple debounce simulation
@@ -58,7 +58,7 @@ describe('Handoff Flow', () => {
 
       // Advance time past debounce
       vi.advanceTimersByTime(DEBOUNCE_MS + 100);
-      
+
       // Reset for next test
       requestCount = 0;
       const third = mockHandoffRequest();
@@ -67,23 +67,23 @@ describe('Handoff Flow', () => {
 
     it('should only allow one handoff at a time', () => {
       let isTransitioning = false;
-      
+
       const startHandoff = () => {
         if (isTransitioning) return { blocked: true };
         isTransitioning = true;
         return { blocked: false };
       };
-      
+
       const completeHandoff = () => {
         isTransitioning = false;
       };
 
       // First handoff should succeed
       expect(startHandoff().blocked).toBe(false);
-      
+
       // Second handoff should be blocked
       expect(startHandoff().blocked).toBe(true);
-      
+
       // After completion, next handoff should succeed
       completeHandoff();
       expect(startHandoff().blocked).toBe(false);
@@ -95,9 +95,9 @@ describe('Handoff Flow', () => {
   // ============================================================================
   describe('Handoff During Active Speech (#72)', () => {
     it('should queue handoff request when speech is active', () => {
-      let isSpeaking = true;
+      const isSpeaking = true;
       const pendingHandoffs: string[] = [];
-      
+
       const requestHandoff = (targetPersona: string) => {
         if (isSpeaking) {
           pendingHandoffs.push(targetPersona);
@@ -116,7 +116,7 @@ describe('Handoff Flow', () => {
       let isSpeaking = true;
       let processedHandoff: string | null = null;
       const pendingHandoffs: string[] = ['maya-santos'];
-      
+
       const onSpeechEnd = () => {
         isSpeaking = false;
         if (pendingHandoffs.length > 0) {
@@ -158,10 +158,10 @@ describe('Handoff Flow', () => {
       };
 
       const handoffPromise = simulateSlowHandoff();
-      
+
       // Advance time past timeout
       vi.advanceTimersByTime(TIMEOUT_MS + 100);
-      
+
       await expect(handoffPromise).rejects.toThrow('Handoff timed out');
       expect(handoffTimedOut).toBe(true);
       expect(handoffCompleted).toBe(false);
@@ -214,7 +214,7 @@ describe('Handoff Flow', () => {
       // Execute flow
       const request = sendHandoffRequest('maya-santos');
       const result = processBackendHandoff(request);
-      
+
       ['ack', 'started', 'complete'].forEach(handleBackendEvent);
 
       // Verify complete flow
@@ -265,7 +265,11 @@ describe('Handoff Flow', () => {
     };
 
     it('should apply correct delay for user-initiated handoff', () => {
-      const calculateDelay = (isUserInitiated: boolean, isFirstMeeting: boolean, isReturning: boolean) => {
+      const calculateDelay = (
+        isUserInitiated: boolean,
+        isFirstMeeting: boolean,
+        isReturning: boolean
+      ) => {
         if (isUserInitiated) return HANDOFF_DELAYS.USER_INITIATED;
         if (isFirstMeeting && !isReturning) return HANDOFF_DELAYS.FIRST_MEETING;
         if (isReturning) return HANDOFF_DELAYS.RETURNING_TO_COACH;
@@ -302,9 +306,9 @@ describe('Handoff Flow', () => {
       speakGreeting();
 
       // Verify timing: sound should complete before voice switch
-      const soundEnd = timeline.find(t => t.action === 'sound_end');
-      const voiceSwitch = timeline.find(t => t.action === 'voice_switch');
-      const greetingStart = timeline.find(t => t.action === 'greeting_start');
+      const soundEnd = timeline.find((t) => t.action === 'sound_end');
+      const voiceSwitch = timeline.find((t) => t.action === 'voice_switch');
+      const greetingStart = timeline.find((t) => t.action === 'greeting_start');
 
       expect(soundEnd!.time).toBeLessThanOrEqual(voiceSwitch!.time);
       expect(voiceSwitch!.time).toBeLessThanOrEqual(greetingStart!.time);
@@ -328,7 +332,7 @@ describe('Handoff Flow', () => {
           } catch {
             if (i < MAX_RETRIES) {
               // Wait before retry
-              await new Promise(r => setTimeout(r, 100));
+              await new Promise((r) => setTimeout(r, 100));
               vi.advanceTimersByTime(100);
             }
           }
@@ -388,4 +392,3 @@ describe('Handoff State Management', () => {
     expect(validateStateUpdate({ relationshipTurns: 'invalid' })).toEqual({});
   });
 });
-

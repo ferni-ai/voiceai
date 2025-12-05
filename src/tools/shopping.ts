@@ -23,7 +23,7 @@ function listToListData(list: ShoppingList): ShoppingListData {
     id: list.id,
     name: list.name,
     type: list.type,
-    items: list.items.map(i => ({
+    items: list.items.map((i) => ({
       id: i.id,
       name: i.name,
       quantity: i.quantity,
@@ -45,7 +45,7 @@ function listDataToList(data: ShoppingListData, userId: string): ShoppingList {
     userId,
     name: data.name,
     type: data.type as ListType,
-    items: data.items.map(i => ({
+    items: data.items.map((i) => ({
       id: i.id,
       name: i.name,
       quantity: i.quantity,
@@ -93,21 +93,21 @@ export interface ShoppingList {
 // STORAGE - Uses ProductivityStore for persistence
 // ============================================================================
 
-const listsCache: Map<string, ShoppingList> = new Map();
-const loadedUsers: Set<string> = new Set();
+const listsCache = new Map<string, ShoppingList>();
+const loadedUsers = new Set<string>();
 
 async function ensureUserListsLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-  
+
   try {
     const store = getProductivityStore();
     await store.loadUserData(userId);
-    
+
     const listDataList = store.getUserShoppingLists(userId);
     for (const data of listDataList) {
       listsCache.set(data.id, listDataToList(data, userId));
     }
-    
+
     loadedUsers.add(userId);
     getLogger().debug({ userId, lists: listDataList.length }, 'Loaded shopping lists from store');
   } catch (error) {
@@ -130,16 +130,69 @@ function persistList(userId: string, list: ShoppingList): void {
 // ============================================================================
 
 const GROCERY_CATEGORIES: Record<string, string[]> = {
-  produce: ['apple', 'banana', 'orange', 'lettuce', 'tomato', 'onion', 'potato', 'carrot', 'broccoli', 'spinach', 'avocado', 'lemon', 'lime', 'garlic', 'ginger', 'cucumber', 'pepper', 'celery', 'mushroom', 'berry', 'grape', 'melon', 'mango', 'pear', 'peach'],
+  produce: [
+    'apple',
+    'banana',
+    'orange',
+    'lettuce',
+    'tomato',
+    'onion',
+    'potato',
+    'carrot',
+    'broccoli',
+    'spinach',
+    'avocado',
+    'lemon',
+    'lime',
+    'garlic',
+    'ginger',
+    'cucumber',
+    'pepper',
+    'celery',
+    'mushroom',
+    'berry',
+    'grape',
+    'melon',
+    'mango',
+    'pear',
+    'peach',
+  ],
   dairy: ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'egg', 'cottage', 'sour cream'],
   meat: ['chicken', 'beef', 'pork', 'turkey', 'bacon', 'sausage', 'steak', 'ground', 'ham'],
   seafood: ['fish', 'salmon', 'tuna', 'shrimp', 'crab', 'lobster', 'cod', 'tilapia'],
   bakery: ['bread', 'bagel', 'muffin', 'croissant', 'roll', 'tortilla', 'pita', 'bun'],
   frozen: ['frozen', 'ice cream', 'pizza', 'waffle', 'frozen vegetable'],
-  pantry: ['rice', 'pasta', 'cereal', 'oatmeal', 'flour', 'sugar', 'oil', 'vinegar', 'sauce', 'soup', 'bean', 'nut', 'honey', 'jam', 'peanut butter', 'syrup'],
+  pantry: [
+    'rice',
+    'pasta',
+    'cereal',
+    'oatmeal',
+    'flour',
+    'sugar',
+    'oil',
+    'vinegar',
+    'sauce',
+    'soup',
+    'bean',
+    'nut',
+    'honey',
+    'jam',
+    'peanut butter',
+    'syrup',
+  ],
   beverages: ['water', 'juice', 'soda', 'coffee', 'tea', 'wine', 'beer', 'energy drink'],
   snacks: ['chip', 'cracker', 'cookie', 'candy', 'popcorn', 'pretzel', 'granola', 'bar'],
-  household: ['paper towel', 'toilet paper', 'napkin', 'trash bag', 'soap', 'detergent', 'sponge', 'foil', 'wrap'],
+  household: [
+    'paper towel',
+    'toilet paper',
+    'napkin',
+    'trash bag',
+    'soap',
+    'detergent',
+    'sponge',
+    'foil',
+    'wrap',
+  ],
   personal: ['shampoo', 'conditioner', 'toothpaste', 'deodorant', 'lotion', 'razor'],
 };
 
@@ -224,7 +277,7 @@ function parseItemWithQuantity(input: string): { name: string; quantity: number;
 }
 
 function formatItemForSpeech(item: ShoppingItem): string {
-  const qty = item.quantity > 1 ? `${item.quantity}${item.unit ? ' ' + item.unit : ''} ` : '';
+  const qty = item.quantity > 1 ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''} ` : '';
   const checked = item.isChecked ? '✓ ' : '';
   return `${checked}${qty}${item.name}`;
 }
@@ -233,11 +286,10 @@ function formatItemForSpeech(item: ShoppingItem): string {
 // CORE FUNCTIONS
 // ============================================================================
 
-export function addToList(params: {
-  userId: string;
-  items: string[];
-  listType?: ListType;
-}): { list: ShoppingList; addedItems: ShoppingItem[] } {
+export function addToList(params: { userId: string; items: string[]; listType?: ListType }): {
+  list: ShoppingList;
+  addedItems: ShoppingItem[];
+} {
   const list = getOrCreateList(params.userId, params.listType || 'groceries');
   const addedItems: ShoppingItem[] = [];
 
@@ -271,10 +323,7 @@ export function addToList(params: {
   listsCache.set(list.id, list);
   persistList(params.userId, list);
 
-  getLogger().info(
-    { listId: list.id, itemCount: addedItems.length },
-    '🛒 Items added to list'
-  );
+  getLogger().info({ listId: list.id, itemCount: addedItems.length }, '🛒 Items added to list');
 
   return { list, addedItems };
 }
@@ -302,9 +351,7 @@ export function checkOffItem(
 
 export function removeItem(userId: string, itemName: string, listType?: ListType): boolean {
   const list = getOrCreateList(userId, listType || 'groceries');
-  const index = list.items.findIndex((i) =>
-    i.name.toLowerCase().includes(itemName.toLowerCase())
-  );
+  const index = list.items.findIndex((i) => i.name.toLowerCase().includes(itemName.toLowerCase()));
 
   if (index >= 0) {
     list.items.splice(index, 1);
@@ -349,7 +396,9 @@ Use when user says:
 - "I need eggs and bread"
 - "Put 2 lbs chicken on my grocery list"`,
       parameters: z.object({
-        items: z.array(z.string()).describe('Items to add (can include quantities like "2 apples")'),
+        items: z
+          .array(z.string())
+          .describe('Items to add (can include quantities like "2 apples")'),
         listType: z
           .enum(['groceries', 'household', 'pharmacy', 'hardware', 'gifts', 'other'])
           .optional()
@@ -561,7 +610,7 @@ Use when user says "got the milk" or "check off eggs"`,
       description: `Quick add common items - just say what you need.
 Handles natural language like "I'm out of milk and eggs"`,
       parameters: z.object({
-        statement: z.string().describe('Natural language statement about what\'s needed'),
+        statement: z.string().describe("Natural language statement about what's needed"),
       }),
       execute: async ({ statement }, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -610,4 +659,3 @@ Handles natural language like "I'm out of milk and eggs"`,
 }
 
 export default createShoppingTools;
-

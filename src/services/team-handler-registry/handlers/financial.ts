@@ -70,7 +70,7 @@ const createSavingsGoalHandler: TeamHandlerDefinition = {
       currentAmount: 0,
       deadline: deadline ? new Date(deadline) : undefined,
       monthlyContribution,
-      linkedMilestoneId: linkedToMilestone ? request.context?.milestoneId as string : undefined,
+      linkedMilestoneId: linkedToMilestone ? (request.context?.milestoneId as string) : undefined,
       status: 'active',
       progressPercent: 0,
       createdAt: new Date(),
@@ -180,7 +180,7 @@ const createBudgetHandler: TeamHandlerDefinition = {
     const { name, totalBudget, categories, milestoneId } = request.params as {
       name: string;
       totalBudget: number;
-      categories?: { name: string; amount: number }[];
+      categories?: Array<{ name: string; amount: number }>;
       milestoneId?: string;
     };
     const userId = request.userId || 'default';
@@ -397,4 +397,3 @@ export {
 };
 
 export default registerFinancialHandlers;
-

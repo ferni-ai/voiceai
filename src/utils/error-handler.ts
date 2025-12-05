@@ -298,7 +298,7 @@ const circuits = new Map<string, CircuitState>();
  * Circuit breaker for external service calls
  * Opens circuit after threshold failures, allows retry after cooldown
  */
-export function withCircuitBreaker<T>(
+export async function withCircuitBreaker<T>(
   operation: () => Promise<T>,
   serviceName: string,
   options?: {

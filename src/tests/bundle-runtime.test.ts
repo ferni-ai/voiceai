@@ -332,7 +332,7 @@ describe('Bundle Situational Responses', () => {
   });
 
   it('should have difficult moment handlers', () => {
-    const crying = mockSituationalResponses.difficult_moments.crying;
+    const { crying } = mockSituationalResponses.difficult_moments;
     expect(crying.response).toContain('here');
     expect(crying.dont_interrupt).toBe(true);
   });
@@ -340,7 +340,7 @@ describe('Bundle Situational Responses', () => {
 
 describe('Bundle Relationship Stages', () => {
   it('should define progressive relationship stages', () => {
-    const stages = mockRelationshipStages.stages;
+    const { stages } = mockRelationshipStages;
     expect(stages.stranger.turn_threshold).toBe(0);
     expect(stages.acquaintance.turn_threshold).toBeGreaterThan(stages.stranger.turn_threshold);
     expect(stages.friend.turn_threshold).toBeGreaterThan(stages.acquaintance.turn_threshold);
@@ -348,7 +348,7 @@ describe('Bundle Relationship Stages', () => {
   });
 
   it('should have increasing warmth multipliers', () => {
-    const stages = mockRelationshipStages.stages;
+    const { stages } = mockRelationshipStages;
     expect(stages.stranger.warmth_multiplier).toBeLessThan(stages.acquaintance.warmth_multiplier);
     expect(stages.acquaintance.warmth_multiplier).toBeLessThan(stages.friend.warmth_multiplier);
     expect(stages.friend.warmth_multiplier).toBeLessThan(stages.trusted_advisor.warmth_multiplier);
@@ -454,7 +454,7 @@ describe('Bundle Story Graph', () => {
   });
 
   it('should have story references with callbacks', () => {
-    const tsunami = mockStoryGraph.story_references.tsunami;
+    const { tsunami } = mockStoryGraph.story_references;
     expect(tsunami.callback_phrases?.length).toBeGreaterThan(0);
     expect(tsunami.naturally_leads_to).toContain('kintsugi');
   });

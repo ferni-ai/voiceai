@@ -199,7 +199,7 @@ export async function identifyByPhone(phoneNumber: string): Promise<Identificati
  */
 export async function identifyByWebAuth(
   authId: string,
-  authProvider: string = 'default'
+  authProvider = 'default'
 ): Promise<IdentificationResult> {
   const store = getStore();
   const userId = `auth:${authProvider}:${authId}`;
@@ -337,7 +337,7 @@ export async function linkPhoneToProfile(userId: string, phoneNumber: string): P
 export async function linkWebAuthToPhone(
   phoneNumber: string,
   authId: string,
-  authProvider: string = 'default'
+  authProvider = 'default'
 ): Promise<boolean> {
   const normalized = normalizePhoneNumber(phoneNumber);
   const store = getStore();
@@ -446,12 +446,12 @@ export function areUsersSame(userId1: string, userId2: string): boolean {
 
 /**
  * Enhanced identification that includes natural voice authentication
- * 
+ *
  * This combines:
  * 1. Traditional identification (phone, device, auth token)
  * 2. Voice biometrics (silent, automatic)
  * 3. Conversational context hints
- * 
+ *
  * Returns an AuthContext that tells the agent how to greet the user
  * and what confidence level we have in their identity.
  */
@@ -461,7 +461,7 @@ export async function identifyWithNaturalAuth(
 ): Promise<{ identification: IdentificationResult; authContext: AuthContext }> {
   // First, do traditional identification
   const identification = await identifyFromMetadata(metadata);
-  
+
   // Perform natural authentication with metadata
   const authContext = await authenticateNaturally({
     metadata,
@@ -469,18 +469,20 @@ export async function identifyWithNaturalAuth(
   });
 
   // Log the authentication result
-  getLogger().info({
-    userId: authContext.userId,
-    userName: authContext.userName,
-    confidence: authContext.confidence,
-    action: authContext.action,
-  }, '🎤 Natural authentication complete');
+  getLogger().info(
+    {
+      userId: authContext.userId,
+      userName: authContext.userName,
+      confidence: authContext.confidence,
+      action: authContext.action,
+    },
+    '🎤 Natural authentication complete'
+  );
 
   // Check if we have a returning user
   const store = getStore();
-  const profile = authContext.userId !== 'unknown' 
-    ? await store.getProfile(authContext.userId)
-    : null;
+  const profile =
+    authContext.userId !== 'unknown' ? await store.getProfile(authContext.userId) : null;
 
   return {
     identification: {

@@ -177,8 +177,8 @@ export interface PersonaEvolutionState {
 // ============================================================================
 
 export class AgentEvolutionEngine {
-  private evolutionStates: Map<string, PersonaEvolutionState> = new Map();
-  private experiments: Map<string, PersonaExperiment> = new Map();
+  private evolutionStates = new Map<string, PersonaEvolutionState>();
+  private experiments = new Map<string, PersonaExperiment>();
 
   constructor() {
     // Initialize with empty states
@@ -294,7 +294,10 @@ export class AgentEvolutionEngine {
       { topic: 'savings', relationshipStage: 'acquaintance', userEmotion: 'hopeful' },
     ];
 
-    const storyScores = new Map<string, { total: number; count: number; byContext: Record<string, number> }>();
+    const storyScores = new Map<
+      string,
+      { total: number; count: number; byContext: Record<string, number> }
+    >();
 
     for (const ctx of contexts) {
       const resonant = insights.getResonantStories(personaId, ctx, 10);
@@ -333,7 +336,7 @@ export class AgentEvolutionEngine {
   getRecommendedStories(
     personaId: string,
     context: { topic: string; relationshipStage: string; userEmotion: string },
-    limit: number = 3
+    limit = 3
   ): Array<{ storyId: string; score: number; reason: string }> {
     const state = this.evolutionStates.get(personaId);
     if (!state || state.storyRankings.length === 0) {
@@ -364,7 +367,9 @@ export class AgentEvolutionEngine {
   /**
    * Create a new experiment
    */
-  createExperiment(experiment: Omit<PersonaExperiment, 'id' | 'metrics' | 'status'>): PersonaExperiment {
+  createExperiment(
+    experiment: Omit<PersonaExperiment, 'id' | 'metrics' | 'status'>
+  ): PersonaExperiment {
     const fullExperiment: PersonaExperiment = {
       ...experiment,
       id: `exp_${experiment.personaId}_${Date.now()}`,
@@ -392,10 +397,7 @@ export class AgentEvolutionEngine {
   /**
    * Get variant for a user in an experiment
    */
-  getExperimentVariant(
-    experimentId: string,
-    userId: string
-  ): 'control' | 'treatment' | null {
+  getExperimentVariant(experimentId: string, userId: string): 'control' | 'treatment' | null {
     const experiment = this.experiments.get(experimentId);
     if (!experiment || experiment.status !== 'running') return null;
 
@@ -578,7 +580,10 @@ export class AgentEvolutionEngine {
     const state = this.getOrCreateState(personaId);
     state.emergentPatterns.push(...patterns);
 
-    getLogger().info({ personaId, patternsDetected: patterns.length }, 'Detected emergent patterns');
+    getLogger().info(
+      { personaId, patternsDetected: patterns.length },
+      'Detected emergent patterns'
+    );
 
     return patterns;
   }
@@ -607,8 +612,8 @@ export class AgentEvolutionEngine {
 
     if (bestStrategies && bestStrategies.confidence > 0.6) {
       // Create adjustment if not already exists
-      const existingAdj = state.adjustments.find(
-        (a) => a.adjustment.content.includes(bestStrategies.strategy)
+      const existingAdj = state.adjustments.find((a) =>
+        a.adjustment.content.includes(bestStrategies.strategy)
       );
 
       if (!existingAdj) {
@@ -727,7 +732,6 @@ export class AgentEvolutionEngine {
         relationshipStage: context.relationshipStage,
       };
 
-      // eslint-disable-next-line no-new-func
       const evalFn = new Function(
         'userEmotion',
         'topic',
@@ -766,7 +770,9 @@ export class AgentEvolutionEngine {
     return new Map(this.evolutionStates);
   }
 
-  importState(states: Map<string, PersonaEvolutionState> | Record<string, PersonaEvolutionState>): void {
+  importState(
+    states: Map<string, PersonaEvolutionState> | Record<string, PersonaEvolutionState>
+  ): void {
     if (states instanceof Map) {
       this.evolutionStates = states;
     } else {
@@ -791,7 +797,7 @@ export class AgentEvolutionEngine {
 const FIRESTORE_COLLECTION = 'agent_evolution';
 
 // Cache to prevent excessive reads
-let lastLoadTime: number = 0;
+let lastLoadTime = 0;
 const LOAD_COOLDOWN_MS = 60000; // 1 minute
 
 /**
@@ -814,7 +820,9 @@ export async function loadAgentEvolutionFromFirestore(): Promise<void> {
       return;
     }
 
-    const firestore = (global.store as { getFirestore: () => FirebaseFirestore.Firestore }).getFirestore();
+    const firestore = (
+      global.store as { getFirestore: () => FirebaseFirestore.Firestore }
+    ).getFirestore();
     const snapshot = await firestore.collection(FIRESTORE_COLLECTION).get();
 
     if (snapshot.empty) {
@@ -829,19 +837,33 @@ export async function loadAgentEvolutionFromFirestore(): Promise<void> {
       states[doc.id] = {
         ...data,
         // Restore Date objects from Firestore Timestamps
-        adjustments: data.adjustments?.map(adj => ({
-          ...adj,
-          createdAt: (adj.createdAt as unknown as { toDate?: () => Date })?.toDate?.() || new Date(adj.createdAt),
-          lastApplied: (adj.lastApplied as unknown as { toDate?: () => Date })?.toDate?.() || new Date(adj.lastApplied),
-        })) || [],
-        experiments: data.experiments?.map(exp => ({
-          ...exp,
-          startedAt: (exp.startedAt as unknown as { toDate?: () => Date })?.toDate?.() || (exp.startedAt ? new Date(exp.startedAt) : undefined),
-          endedAt: exp.endedAt ? ((exp.endedAt as unknown as { toDate?: () => Date })?.toDate?.() || new Date(exp.endedAt)) : undefined,
-        })) || [],
+        adjustments:
+          data.adjustments?.map((adj) => ({
+            ...adj,
+            createdAt:
+              (adj.createdAt as unknown as { toDate?: () => Date })?.toDate?.() ||
+              new Date(adj.createdAt),
+            lastApplied:
+              (adj.lastApplied as unknown as { toDate?: () => Date })?.toDate?.() ||
+              new Date(adj.lastApplied),
+          })) || [],
+        experiments:
+          data.experiments?.map((exp) => ({
+            ...exp,
+            startedAt:
+              (exp.startedAt as unknown as { toDate?: () => Date })?.toDate?.() ||
+              (exp.startedAt ? new Date(exp.startedAt) : undefined),
+            endedAt: exp.endedAt
+              ? (exp.endedAt as unknown as { toDate?: () => Date })?.toDate?.() ||
+                new Date(exp.endedAt)
+              : undefined,
+          })) || [],
         evolutionMetrics: {
           ...data.evolutionMetrics,
-          lastEvolutionCycle: (data.evolutionMetrics?.lastEvolutionCycle as unknown as { toDate?: () => Date })?.toDate?.() || new Date(),
+          lastEvolutionCycle:
+            (
+              data.evolutionMetrics?.lastEvolutionCycle as unknown as { toDate?: () => Date }
+            )?.toDate?.() || new Date(),
         },
       };
     }
@@ -850,12 +872,21 @@ export async function loadAgentEvolutionFromFirestore(): Promise<void> {
     engine.importState(states);
 
     lastLoadTime = Date.now();
-    getLogger().info({
-      personasLoaded: Object.keys(states).length,
-      totalAdjustments: Object.values(states).reduce((sum, s) => sum + (s.adjustments?.length || 0), 0),
-    }, 'Agent evolution states loaded from Firestore');
+    getLogger().info(
+      {
+        personasLoaded: Object.keys(states).length,
+        totalAdjustments: Object.values(states).reduce(
+          (sum, s) => sum + (s.adjustments?.length || 0),
+          0
+        ),
+      },
+      'Agent evolution states loaded from Firestore'
+    );
   } catch (error) {
-    getLogger().warn({ error: String(error) }, 'Failed to load agent evolution from Firestore (non-fatal)');
+    getLogger().warn(
+      { error: String(error) },
+      'Failed to load agent evolution from Firestore (non-fatal)'
+    );
   }
 }
 
@@ -881,7 +912,9 @@ export async function saveAgentEvolutionToFirestore(): Promise<void> {
       return;
     }
 
-    const firestore = (global.store as { getFirestore: () => FirebaseFirestore.Firestore }).getFirestore();
+    const firestore = (
+      global.store as { getFirestore: () => FirebaseFirestore.Firestore }
+    ).getFirestore();
     const batch = firestore.batch();
 
     for (const [personaId, state] of states) {
@@ -894,12 +927,21 @@ export async function saveAgentEvolutionToFirestore(): Promise<void> {
 
     await batch.commit();
 
-    getLogger().info({
-      personasSaved: states.size,
-      totalAdjustments: Array.from(states.values()).reduce((sum, s) => sum + (s.adjustments?.length || 0), 0),
-    }, 'Agent evolution states saved to Firestore');
+    getLogger().info(
+      {
+        personasSaved: states.size,
+        totalAdjustments: Array.from(states.values()).reduce(
+          (sum, s) => sum + (s.adjustments?.length || 0),
+          0
+        ),
+      },
+      'Agent evolution states saved to Firestore'
+    );
   } catch (error) {
-    getLogger().warn({ error: String(error) }, 'Failed to save agent evolution to Firestore (non-fatal)');
+    getLogger().warn(
+      { error: String(error) },
+      'Failed to save agent evolution to Firestore (non-fatal)'
+    );
   }
 }
 
@@ -930,4 +972,3 @@ export function resetAgentEvolution(): void {
 }
 
 export default AgentEvolutionEngine;
-

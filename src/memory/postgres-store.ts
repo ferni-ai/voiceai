@@ -35,21 +35,21 @@ interface PoolConfig {
 }
 
 // Use any for Pool to avoid pg type dependency
-type Pool = {
+interface Pool {
   connect: () => Promise<PoolClient>;
   query: (text: string, values?: unknown[]) => Promise<QueryResult>;
   end: () => Promise<void>;
-};
+}
 
-type PoolClient = {
+interface PoolClient {
   query: (text: string, values?: unknown[]) => Promise<QueryResult>;
   release: () => void;
-};
+}
 
-type QueryResult = {
-  rows: Record<string, unknown>[];
+interface QueryResult {
+  rows: Array<Record<string, unknown>>;
   rowCount: number;
-};
+}
 
 // ============================================================================
 // POSTGRESQL STORE
@@ -354,7 +354,7 @@ export class PostgresStore extends MemoryStore {
   async searchProfiles(
     query: string,
     options?: QueryOptions
-  ): Promise<SearchResult<UserProfile>[]> {
+  ): Promise<Array<SearchResult<UserProfile>>> {
     if (!this.pool) throw new Error('PostgresStore not initialized');
 
     try {

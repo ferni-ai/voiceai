@@ -56,7 +56,7 @@ export interface Package {
 // STORAGE
 // ============================================================================
 
-const packages: Map<string, Package> = new Map();
+const packages = new Map<string, Package>();
 
 // ============================================================================
 // CARRIER DETECTION
@@ -323,7 +323,7 @@ Use when user says:
 - "Add tracking number"`,
       parameters: z.object({
         trackingNumber: z.string().describe('Tracking number'),
-        description: z.string().describe('What\'s in the package'),
+        description: z.string().describe("What's in the package"),
         carrier: z
           .enum(['ups', 'fedex', 'usps', 'amazon', 'dhl', 'other'])
           .optional()
@@ -374,9 +374,7 @@ Use when user asks "where are my packages?" or "what's being delivered?"`,
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'default';
 
-        const userPackages = includeDelivered
-          ? getUserPackages(userId)
-          : getActivePackages(userId);
+        const userPackages = includeDelivered ? getUserPackages(userId) : getActivePackages(userId);
 
         if (userPackages.length === 0) {
           return `📦 No packages being tracked. Say "track package" followed by your tracking number to add one!`;
@@ -618,4 +616,3 @@ Use when user says "I got my package" or "package arrived".`,
 }
 
 export default createPackageTools;
-

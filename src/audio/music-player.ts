@@ -60,7 +60,7 @@ export type OnTrackEndedCallback = (track: MusicTrack, wasAmbient: boolean) => v
 
 /**
  * Music playback states for frontend notifications.
- * 
+ *
  * - 'playing' = Music actively playing
  * - 'ducking' = Agent speaking over music (DJ fade-down)
  * - 'fading'  = Track ending soon (~5 seconds left)
@@ -97,7 +97,7 @@ export class CallMusicPlayer {
 
   // Room reference (needed to initialize BackgroundAudioPlayer)
   private room: Room | null = null;
-  
+
   // Agent session reference (for proper audio mixing)
   private agentSession: AgentSession | null = null;
 
@@ -127,7 +127,7 @@ export class CallMusicPlayer {
   /**
    * Initialize the player with a LiveKit room and agent session
    * MUST be called before playing music
-   * 
+   *
    * @param room - The LiveKit room to publish audio to
    * @param agentSession - Optional agent session for better audio mixing integration
    */
@@ -145,14 +145,14 @@ export class CallMusicPlayer {
 
     // Start the player (publishes audio track to room)
     // Pass agentSession if available for proper audio mixing
-    await this.backgroundPlayer.start({ 
+    await this.backgroundPlayer.start({
       room,
-      agentSession: agentSession 
+      agentSession: agentSession,
     });
 
     this.state.isInitialized = true;
     getLogger().info(
-      { hasAgentSession: !!agentSession }, 
+      { hasAgentSession: !!agentSession },
       'Music player initialized with BackgroundAudioPlayer'
     );
   }
@@ -178,11 +178,7 @@ export class CallMusicPlayer {
    */
   private notifyStateChange(state: MusicState): void {
     if (this.onMusicStateChangeCallback) {
-      this.onMusicStateChangeCallback(
-        state,
-        this.state.currentTrack,
-        this.state.isAmbientMode
-      );
+      this.onMusicStateChangeCallback(state, this.state.currentTrack, this.state.isAmbientMode);
     }
   }
 
@@ -191,7 +187,7 @@ export class CallMusicPlayer {
    * Downloads the audio first, then plays via BackgroundAudioPlayer
    * @param isAmbient - If true, this is ambient/thinking music (for callback context)
    */
-  async playFromUrl(url: string, track: MusicTrack, isAmbient: boolean = false): Promise<boolean> {
+  async playFromUrl(url: string, track: MusicTrack, isAmbient = false): Promise<boolean> {
     console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] playFromUrl called:', {
       url,
       trackName: track.name,
@@ -204,7 +200,9 @@ export class CallMusicPlayer {
     );
 
     if (!this.state.isInitialized || !this.backgroundPlayer) {
-      console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] ⚠️ NOT INITIALIZED! Falling back to simulation mode');
+      console.log(
+        '🎵🎵🎵 [MUSIC PLAYER DEBUG] ⚠️ NOT INITIALIZED! Falling back to simulation mode'
+      );
       getLogger().warn('Music player not initialized - call initialize(room) first');
       // Fallback to simulation mode if not initialized
       return this.simulatePlayback(track);
@@ -218,7 +216,11 @@ export class CallMusicPlayer {
       // Download the audio file
       console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] Downloading audio from:', url);
       const audioPath = await this.downloadAudio(url, track.name);
-      console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] Download result:', audioPath ? 'SUCCESS' : 'FAILED', audioPath);
+      console.log(
+        '🎵🎵🎵 [MUSIC PLAYER DEBUG] Download result:',
+        audioPath ? 'SUCCESS' : 'FAILED',
+        audioPath
+      );
       if (!audioPath) {
         console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] ❌ Failed to download audio!');
         getLogger().error('Failed to download audio');
@@ -233,16 +235,26 @@ export class CallMusicPlayer {
 
       // Calculate volume (consider ducking state)
       const volume = this.state.isDucked ? this.state.duckingVolume : this.state.volume;
-      console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] Playing with volume:', volume, 'isDucked:', this.state.isDucked);
+      console.log(
+        '🎵🎵🎵 [MUSIC PLAYER DEBUG] Playing with volume:',
+        volume,
+        'isDucked:',
+        this.state.isDucked
+      );
 
       // Play via BackgroundAudioPlayer
-      console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] Calling BackgroundAudioPlayer.play() with:', { source: audioPath, volume });
+      console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] Calling BackgroundAudioPlayer.play() with:', {
+        source: audioPath,
+        volume,
+      });
       this.currentPlayHandle = this.backgroundPlayer.play(
         { source: audioPath, volume },
         false // Don't loop previews
       );
 
-      console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] ✅ BackgroundAudioPlayer.play() called successfully');
+      console.log(
+        '🎵🎵🎵 [MUSIC PLAYER DEBUG] ✅ BackgroundAudioPlayer.play() called successfully'
+      );
       getLogger().info(
         { track: track.name, artist: track.artist, volume, isAmbient },
         '🎵 Music playback started'
@@ -255,7 +267,7 @@ export class CallMusicPlayer {
       // This makes the ending feel human and intentional, not abrupt
       const trackDuration = track.duration || 30000; // Default 30s for previews
       const fadeOutTime = Math.max(trackDuration - 5000, 10000); // Start fade 5s before end, min 10s
-      
+
       // Schedule the fade notification
       const fadeTimer = setTimeout(() => {
         if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
@@ -268,7 +280,7 @@ export class CallMusicPlayer {
       if (this.currentPlayHandle) {
         this.currentPlayHandle.waitForPlayout().then(() => {
           clearTimeout(fadeTimer); // Clean up timer if track ended early
-          
+
           const endedTrack = this.state.currentTrack;
           const wasAmbient = this.state.isAmbientMode;
 
@@ -393,7 +405,7 @@ export class CallMusicPlayer {
     }
     this.state.isPlaying = false;
     getLogger().debug('Music paused');
-    
+
     // ✨ Notify frontend - stop dancing
     this.notifyStateChange('paused');
   }
@@ -430,7 +442,7 @@ export class CallMusicPlayer {
     this.currentAudioPath = null;
 
     getLogger().debug('Music stopped');
-    
+
     // ✨ Notify frontend - stop dancing
     this.notifyStateChange('stopped');
   }
@@ -497,7 +509,9 @@ export class CallMusicPlayer {
 
       if (wasAmbientPaused) {
         // Don't auto-resume ambient - let the silence detector decide
-        getLogger().debug('🔊 Agent finished speaking (ambient music will resume if silence continues)');
+        getLogger().debug(
+          '🔊 Agent finished speaking (ambient music will resume if silence continues)'
+        );
       } else if (this.state.isPlaying) {
         // Restore visual feedback - music back to full presence
         this.notifyStateChange('playing');
@@ -561,7 +575,10 @@ export class CallMusicPlayer {
         await this.backgroundPlayer.close();
       } catch (err) {
         // Room may already be closed - this is fine during cleanup
-        getLogger().debug({ error: String(err) }, 'Background player close error (expected during room cleanup)');
+        getLogger().debug(
+          { error: String(err) },
+          'Background player close error (expected during room cleanup)'
+        );
       }
       this.backgroundPlayer = null;
     }
@@ -604,11 +621,14 @@ export function resetMusicPlayer(): void {
 /**
  * Initialize the music player with a LiveKit room and agent session
  * Call this from the agent when the session starts
- * 
+ *
  * @param room - The LiveKit room to publish audio to
  * @param agentSession - Optional agent session for proper audio integration
  */
-export async function initializeMusicPlayer(room: Room, agentSession?: AgentSession): Promise<void> {
+export async function initializeMusicPlayer(
+  room: Room,
+  agentSession?: AgentSession
+): Promise<void> {
   const player = getMusicPlayer();
   await player.initialize(room, agentSession);
 }

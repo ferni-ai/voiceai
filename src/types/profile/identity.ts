@@ -110,4 +110,3 @@ export function createUserIdentity(id: string, name?: string): UserIdentity {
     version: 1,
   };
 }
-

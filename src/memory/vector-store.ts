@@ -56,14 +56,14 @@ export interface VectorFilter {
  * In-memory vector store for semantic search
  */
 export class VectorStore {
-  private documents: Map<string, VectorDocument> = new Map();
-  private embeddings: Map<string, number[]> = new Map();
+  private documents = new Map<string, VectorDocument>();
+  private embeddings = new Map<string, number[]>();
   private _initialized = false;
 
   /**
    * Initialize the vector store
    */
-  initialize(): Promise<void> {
+  async initialize(): Promise<void> {
     this._initialized = true;
     getLogger().info('VectorStore initialized');
     return Promise.resolve();
@@ -194,7 +194,7 @@ export class VectorStore {
     const queryEmbedding = await embed(query);
 
     // Filter documents
-    const filteredDocs: { doc: VectorDocument; embedding: number[] }[] = [];
+    const filteredDocs: Array<{ doc: VectorDocument; embedding: number[] }> = [];
     for (const [id, doc] of this.documents) {
       if (this.matchesFilter(doc, options?.filter)) {
         const docEmbedding = this.embeddings.get(id);
@@ -236,7 +236,7 @@ export class VectorStore {
     const minScore = options?.minScore || 0;
 
     // Filter documents
-    const filteredDocs: { doc: VectorDocument; embedding: number[] }[] = [];
+    const filteredDocs: Array<{ doc: VectorDocument; embedding: number[] }> = [];
     for (const [id, doc] of this.documents) {
       if (this.matchesFilter(doc, options?.filter)) {
         const docEmbedding = this.embeddings.get(id);

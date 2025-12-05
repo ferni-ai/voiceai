@@ -48,16 +48,16 @@ export interface EngagementSignal {
 }
 
 export type EngagementSignalType =
-  | 'response_length'         // User's response length (longer = more engaged)
-  | 'response_time'           // How quickly user responded
-  | 'sentiment_shift'         // Change in user sentiment
-  | 'follow_up_question'      // User asked a follow-up
-  | 'personal_sharing'        // User shared something personal
-  | 'explicit_positive'       // "That's great", "Thank you"
-  | 'explicit_negative'       // "I don't like that", "Stop"
-  | 'topic_depth'             // How deep into a topic conversation went
-  | 'session_duration'        // Total session length
-  | 'return_rate';            // Did user return for another session?
+  | 'response_length' // User's response length (longer = more engaged)
+  | 'response_time' // How quickly user responded
+  | 'sentiment_shift' // Change in user sentiment
+  | 'follow_up_question' // User asked a follow-up
+  | 'personal_sharing' // User shared something personal
+  | 'explicit_positive' // "That's great", "Thank you"
+  | 'explicit_negative' // "I don't like that", "Stop"
+  | 'topic_depth' // How deep into a topic conversation went
+  | 'session_duration' // Total session length
+  | 'return_rate'; // Did user return for another session?
 
 export interface HumanizationMetrics {
   personaId: string;
@@ -71,9 +71,9 @@ export interface HumanizationMetrics {
 export interface FeatureEngagementCorrelation {
   featureType: HumanizationFeatureType;
   engagementSignal: EngagementSignalType;
-  correlationScore: number;   // -1 to 1 (negative = bad, positive = good)
+  correlationScore: number; // -1 to 1 (negative = bad, positive = good)
   sampleSize: number;
-  confidence: number;         // 0 to 1
+  confidence: number; // 0 to 1
 }
 
 export interface SessionAnalytics {
@@ -100,8 +100,8 @@ export interface SessionSummary {
 // ============================================================================
 
 class HumanizationAnalyticsService {
-  private sessions: Map<string, SessionAnalytics> = new Map();
-  private aggregatedMetrics: Map<string, HumanizationMetrics> = new Map();
+  private sessions = new Map<string, SessionAnalytics>();
+  private aggregatedMetrics = new Map<string, HumanizationMetrics>();
   private initialized = false;
 
   /**
@@ -224,37 +224,37 @@ class HumanizationAnalyticsService {
 
     // Calculate total turns
     const turnNumbers = new Set([
-      ...events.map(e => e.turnNumber),
-      ...signals.map(s => s.turnNumber),
+      ...events.map((e) => e.turnNumber),
+      ...signals.map((s) => s.turnNumber),
     ]);
     const totalTurns = turnNumbers.size;
 
     // Calculate average response length
     const responseLengths = signals
-      .filter(s => s.signalType === 'response_length')
-      .map(s => s.value as number);
-    const averageResponseLength = responseLengths.length > 0
-      ? responseLengths.reduce((a, b) => a + b, 0) / responseLengths.length
-      : 0;
+      .filter((s) => s.signalType === 'response_length')
+      .map((s) => s.value as number);
+    const averageResponseLength =
+      responseLengths.length > 0
+        ? responseLengths.reduce((a, b) => a + b, 0) / responseLengths.length
+        : 0;
 
     // Calculate sentiment trend
     const sentimentShifts = signals
-      .filter(s => s.signalType === 'sentiment_shift')
-      .map(s => s.value as number);
+      .filter((s) => s.signalType === 'sentiment_shift')
+      .map((s) => s.value as number);
     const sentimentTrend = this.calculateSentimentTrend(sentimentShifts);
 
     // Calculate feature effectiveness
     const featureEffectiveness = this.calculateFeatureEffectiveness(events, signals);
-    const sortedFeatures = Object.entries(featureEffectiveness)
-      .sort(([, a], [, b]) => b - a);
-    
-    const mostEffectiveFeature = sortedFeatures.length > 0
-      ? sortedFeatures[0][0] as HumanizationFeatureType
-      : undefined;
-    
-    const leastEffectiveFeature = sortedFeatures.length > 1
-      ? sortedFeatures[sortedFeatures.length - 1][0] as HumanizationFeatureType
-      : undefined;
+    const sortedFeatures = Object.entries(featureEffectiveness).sort(([, a], [, b]) => b - a);
+
+    const mostEffectiveFeature =
+      sortedFeatures.length > 0 ? (sortedFeatures[0][0] as HumanizationFeatureType) : undefined;
+
+    const leastEffectiveFeature =
+      sortedFeatures.length > 1
+        ? (sortedFeatures[sortedFeatures.length - 1][0] as HumanizationFeatureType)
+        : undefined;
 
     // Calculate overall engagement
     const overallEngagement = this.calculateOverallEngagement(signals, totalTurns);
@@ -278,7 +278,8 @@ class HumanizationAnalyticsService {
     if (shifts.length === 0) return 'stable';
 
     const avgShift = shifts.reduce((a, b) => a + b, 0) / shifts.length;
-    const variance = shifts.reduce((sum, val) => sum + Math.pow(val - avgShift, 2), 0) / shifts.length;
+    const variance =
+      shifts.reduce((sum, val) => sum + Math.pow(val - avgShift, 2), 0) / shifts.length;
 
     if (variance > 0.5) return 'volatile';
     if (avgShift > 0.1) return 'improving';
@@ -296,21 +297,24 @@ class HumanizationAnalyticsService {
     const effectiveness: Partial<Record<HumanizationFeatureType, number>> = {};
 
     // Group events by feature type
-    const featureEvents = events.reduce((acc, event) => {
-      if (!acc[event.featureType]) {
-        acc[event.featureType] = [];
-      }
-      acc[event.featureType].push(event);
-      return acc;
-    }, {} as Record<HumanizationFeatureType, HumanizationEvent[]>);
+    const featureEvents = events.reduce(
+      (acc, event) => {
+        if (!acc[event.featureType]) {
+          acc[event.featureType] = [];
+        }
+        acc[event.featureType].push(event);
+        return acc;
+      },
+      {} as Record<HumanizationFeatureType, HumanizationEvent[]>
+    );
 
     // For each feature type, calculate correlation with positive engagement
     for (const [featureType, featureEvts] of Object.entries(featureEvents)) {
-      const turnNumbers = featureEvts.map(e => e.turnNumber);
-      
+      const turnNumbers = featureEvts.map((e) => e.turnNumber);
+
       // Get engagement signals that occurred around these turns
-      const relevantSignals = signals.filter(
-        s => turnNumbers.some(t => Math.abs(s.turnNumber - t) <= 1)
+      const relevantSignals = signals.filter((s) =>
+        turnNumbers.some((t) => Math.abs(s.turnNumber - t) <= 1)
       );
 
       // Calculate effectiveness score
@@ -326,7 +330,7 @@ class HumanizationAnalyticsService {
         }
       }
 
-      effectiveness[featureType as HumanizationFeatureType] = 
+      effectiveness[featureType as HumanizationFeatureType] =
         featureEvts.length > 0 ? score / featureEvts.length : 0;
     }
 
@@ -394,8 +398,7 @@ class HumanizationAnalyticsService {
 
     // Update feature usage
     for (const event of session.events) {
-      metrics.featureUsage[event.featureType] = 
-        (metrics.featureUsage[event.featureType] || 0) + 1;
+      metrics.featureUsage[event.featureType] = (metrics.featureUsage[event.featureType] || 0) + 1;
     }
 
     metrics.lastUpdated = Date.now();
@@ -535,4 +538,3 @@ export default {
   initializeHumanizationAnalytics,
   resetHumanizationAnalytics,
 };
-

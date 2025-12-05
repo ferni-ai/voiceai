@@ -92,9 +92,9 @@ export interface SavedTrip {
 // STORAGE
 // ============================================================================
 
-const flightSearches: Map<string, FlightSearch> = new Map();
-const hotelSearches: Map<string, HotelSearch> = new Map();
-const savedTrips: Map<string, SavedTrip> = new Map();
+const flightSearches = new Map<string, FlightSearch>();
+const hotelSearches = new Map<string, HotelSearch>();
+const savedTrips = new Map<string, SavedTrip>();
 
 // ============================================================================
 // AIRPORT CODES (Common ones)
@@ -103,18 +103,18 @@ const savedTrips: Map<string, SavedTrip> = new Map();
 const AIRPORT_CODES: Record<string, string[]> = {
   'new york': ['JFK', 'LGA', 'EWR'],
   'los angeles': ['LAX'],
-  'chicago': ['ORD', 'MDW'],
+  chicago: ['ORD', 'MDW'],
   'san francisco': ['SFO', 'OAK'],
-  'miami': ['MIA', 'FLL'],
-  'boston': ['BOS'],
-  'seattle': ['SEA'],
-  'denver': ['DEN'],
-  'atlanta': ['ATL'],
-  'dallas': ['DFW', 'DAL'],
-  'london': ['LHR', 'LGW'],
-  'paris': ['CDG', 'ORY'],
-  'tokyo': ['NRT', 'HND'],
-  'sydney': ['SYD'],
+  miami: ['MIA', 'FLL'],
+  boston: ['BOS'],
+  seattle: ['SEA'],
+  denver: ['DEN'],
+  atlanta: ['ATL'],
+  dallas: ['DFW', 'DAL'],
+  london: ['LHR', 'LGW'],
+  paris: ['CDG', 'ORY'],
+  tokyo: ['NRT', 'HND'],
+  sydney: ['SYD'],
 };
 
 function findAirportCode(city: string): string {
@@ -174,8 +174,18 @@ function parseNaturalDate(expression: string): Date | null {
 
   // Handle month names
   const months = [
-    'january', 'february', 'march', 'april', 'may', 'june',
-    'july', 'august', 'september', 'october', 'november', 'december',
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december',
   ];
   for (let i = 0; i < months.length; i++) {
     if (lower.includes(months[i])) {
@@ -234,7 +244,7 @@ async function searchFlights(params: {
       airline,
       price: basePrice + priceVariation + (params.cabinClass === 'business' ? 500 : 0),
       departureTime: `${6 + i * 3}:00`,
-      arrivalTime: `${9 + i * 3 + (stops * 2)}:00`,
+      arrivalTime: `${9 + i * 3 + stops * 2}:00`,
       duration: `${3 + stops * 2}h ${Math.floor(Math.random() * 60)}m`,
       stops,
       bookingUrl: `https://www.google.com/flights?q=${params.origin}+to+${params.destination}`,
@@ -325,7 +335,7 @@ Use when user wants to:
           return `I couldn't understand "${departureDate}". Try something like "March 15" or "next Friday".`;
         }
 
-        const retDate = returnDate ? parseNaturalDate(returnDate) ?? undefined : undefined;
+        const retDate = returnDate ? (parseNaturalDate(returnDate) ?? undefined) : undefined;
 
         const originCode = findAirportCode(origin);
         const destCode = findAirportCode(destination);
@@ -370,7 +380,8 @@ Use when user wants to:
         } else {
           response += `**Best Options:**\n`;
           results.slice(0, 5).forEach((flight, i) => {
-            const stops = flight.stops === 0 ? 'Nonstop' : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`;
+            const stops =
+              flight.stops === 0 ? 'Nonstop' : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`;
             response += `${i + 1}. **${flight.airline}** - $${flight.price}\n`;
             response += `   ${flight.departureTime} → ${flight.arrivalTime} (${flight.duration}) | ${stops}\n`;
           });
@@ -662,4 +673,3 @@ Use when user wants to:
 }
 
 export default createTravelTools;
-

@@ -154,7 +154,11 @@ DON'T:
       "I'm picking up on some excitement here... <break time='200ms'/> spill it!",
       "Okay, your voice just lit up. <break time='200ms'/> What is it?",
     ],
-    avoidBehaviors: ['Being flat or clinical', 'Not matching their energy', 'Dismissing subtle excitement'],
+    avoidBehaviors: [
+      'Being flat or clinical',
+      'Not matching their energy',
+      'Dismissing subtle excitement',
+    ],
     priority: 'medium',
   },
 
@@ -236,7 +240,7 @@ DON'T:
 export function analyzeVoiceEmotionIntelligence(
   voiceEmotion: VoiceEmotionResult | null,
   textEmotion: EmotionResult | null,
-  _turnCount: number = 0
+  _turnCount = 0
 ): VoiceEmotionIntelligence {
   // Default response when no voice data
   if (!voiceEmotion || voiceEmotion.confidence < 0.4) {
@@ -336,19 +340,19 @@ function createAlignedResponse(
   voice: VoiceEmotionResult,
   text: EmotionResult
 ): VoiceEmotionIntelligence {
-  let guidance = '[VOICE-TEXT ALIGNED]\nUser\'s voice and words match. Respond naturally.';
+  let guidance = "[VOICE-TEXT ALIGNED]\nUser's voice and words match. Respond naturally.";
   const phrases: string[] = [];
 
   // Add specific guidance based on emotional state
   if (voice.valence > 0.3 && voice.arousal > 0.5) {
     guidance += '\nUser sounds genuinely positive and engaged. Match their energy!';
-    phrases.push("I love your energy right now!", "Yes! Tell me more!");
+    phrases.push('I love your energy right now!', 'Yes! Tell me more!');
   } else if (voice.valence < -0.3 && voice.arousal < 0.3) {
     guidance += '\nUser sounds genuinely down. Be present and gentle.';
-    phrases.push("I hear you.", "Take your time.");
+    phrases.push('I hear you.', 'Take your time.');
   } else if (voice.stressLevel > 0.5) {
     guidance += '\nUser sounds stressed and acknowledges it. Validate and support.';
-    phrases.push("That sounds really hard.", "I'm here. What do you need?");
+    phrases.push('That sounds really hard.', "I'm here. What do you need?");
   }
 
   return {
@@ -459,4 +463,3 @@ export function formatVoiceIntelligenceForPrompt(intelligence: VoiceEmotionIntel
 }
 
 export default analyzeVoiceEmotionIntelligence;
-

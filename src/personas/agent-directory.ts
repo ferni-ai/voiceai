@@ -117,19 +117,38 @@ function deriveEmoji(agent: Agent): string {
   const domains = agent.manifest.role?.domains || [];
   const domainLower = domains.map((d) => d.toLowerCase());
 
-  if (domainLower.some((d) => d.includes('research') || d.includes('invest') || d.includes('stock'))) {
+  if (
+    domainLower.some((d) => d.includes('research') || d.includes('invest') || d.includes('stock'))
+  ) {
     return '📈';
   }
-  if (domainLower.some((d) => d.includes('wisdom') || d.includes('philosophy') || d.includes('mindfulness'))) {
+  if (
+    domainLower.some(
+      (d) => d.includes('wisdom') || d.includes('philosophy') || d.includes('mindfulness')
+    )
+  ) {
     return '🧘';
   }
-  if (domainLower.some((d) => d.includes('communication') || d.includes('email') || d.includes('calendar'))) {
+  if (
+    domainLower.some(
+      (d) => d.includes('communication') || d.includes('email') || d.includes('calendar')
+    )
+  ) {
     return '📧';
   }
-  if (domainLower.some((d) => d.includes('budget') || d.includes('spend') || d.includes('save') || d.includes('habit'))) {
+  if (
+    domainLower.some(
+      (d) =>
+        d.includes('budget') || d.includes('spend') || d.includes('save') || d.includes('habit')
+    )
+  ) {
     return '💰';
   }
-  if (domainLower.some((d) => d.includes('planning') || d.includes('milestone') || d.includes('event'))) {
+  if (
+    domainLower.some(
+      (d) => d.includes('planning') || d.includes('milestone') || d.includes('event')
+    )
+  ) {
     return '🎉';
   }
   if (domainLower.some((d) => d.includes('entertainment') || d.includes('music'))) {
@@ -179,7 +198,11 @@ function deriveTransitionStyle(agent: Agent): TransitionStyle {
 
   // Low-energy/wisdom agents get subtle transitions
   const domains = agent.manifest.role?.domains || [];
-  if (domains.some((d) => d.toLowerCase().includes('wisdom') || d.toLowerCase().includes('mindfulness'))) {
+  if (
+    domains.some(
+      (d) => d.toLowerCase().includes('wisdom') || d.toLowerCase().includes('mindfulness')
+    )
+  ) {
     return 'subtle';
   }
 
@@ -397,10 +420,7 @@ export const AgentDirectory = {
   /**
    * Determine handoff direction based on agent roles
    */
-  async getHandoffDirection(
-    fromId: string,
-    toId: string
-  ): Promise<HandoffDirection> {
+  async getHandoffDirection(fromId: string, toId: string): Promise<HandoffDirection> {
     const fromEntry = await this.getEntryOrCoordinator(fromId);
     const toEntry = await this.getEntryOrCoordinator(toId);
 
@@ -559,4 +579,3 @@ export const AgentDirectory = {
 // ============================================================================
 
 export default AgentDirectory;
-

@@ -77,7 +77,7 @@ export function createMemoryTools() {
         userData.keyMoments.push(`[${category}] ${fact}`);
 
         // Feed to learning engine for persistence
-        const services = userData.services;
+        const { services } = userData;
         if (services?.captureInsight) {
           // Map category to insight type
           const typeMap: Record<string, string> = {
@@ -119,7 +119,7 @@ export function createMemoryTools() {
         getLogger().info(`Trying to recall: ${topic}`);
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         if (services?.userProfile) {
           const profile = services.userProfile;
@@ -165,7 +165,7 @@ export function createMemoryTools() {
         getLogger().info(`Semantic recall for: ${query}`);
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         if (services) {
           try {
@@ -198,7 +198,7 @@ export function createMemoryTools() {
         getLogger().info(`Saving important fact: ${fact} (${type}, ${emotionalWeight})`);
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         // Store in session for awareness tools
         if (!userData.keyMoments) {
@@ -281,7 +281,7 @@ export function createMemoryTools() {
         getLogger().info('Getting relationship summary');
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         if (services?.userProfile) {
           const profile = services.userProfile;
@@ -321,7 +321,7 @@ export function createMemoryTools() {
         }
 
         // New user
-        const name = userData.name;
+        const { name } = userData;
         return name
           ? `I just met ${name} today. We're still getting to know each other.`
           : `This is a new conversation. I'm still getting to know this person.`;

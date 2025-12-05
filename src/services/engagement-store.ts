@@ -13,11 +13,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type {
-  UserRitualProfile,
-  RitualStreak,
-  EmotionalWeather,
-} from './daily-rituals.js';
+import type { UserRitualProfile, RitualStreak, EmotionalWeather } from './daily-rituals.js';
 
 // ============================================================================
 // TYPES
@@ -135,7 +131,7 @@ interface Query {
 export class EngagementStore {
   private db: Firestore | null = null;
   private readonly COLLECTION = 'engagement_profiles';
-  private memoryCache: Map<string, EngagementProfile> = new Map();
+  private memoryCache = new Map<string, EngagementProfile>();
 
   /**
    * Initialize Firestore connection
@@ -240,7 +236,10 @@ export class EngagementStore {
           .doc(streak.ritualId)
           .set(streak, { merge: true });
       } catch (error) {
-        getLogger().warn({ error, userId, ritualId: streak.ritualId }, 'Failed to save ritual streak');
+        getLogger().warn(
+          { error, userId, ritualId: streak.ritualId },
+          'Failed to save ritual streak'
+        );
       }
     }
   }
@@ -272,7 +271,7 @@ export class EngagementStore {
   /**
    * Get weather history
    */
-  async getWeatherHistory(userId: string, days: number = 30): Promise<StoredWeatherEntry[]> {
+  async getWeatherHistory(userId: string, days = 30): Promise<StoredWeatherEntry[]> {
     if (!this.db) return [];
 
     try {
@@ -326,7 +325,7 @@ export class EngagementStore {
   /**
    * Get recent predictions
    */
-  async getRecentPredictions(userId: string, limit: number = 10): Promise<StoredPrediction[]> {
+  async getRecentPredictions(userId: string, limit = 10): Promise<StoredPrediction[]> {
     if (!this.db) return [];
 
     try {
@@ -416,7 +415,7 @@ export class EngagementStore {
       const data = doc.data();
       if (!data) return null;
       const prediction = data as unknown as StoredPrediction;
-      
+
       // Calculate accuracy
       let totalDiff = 0;
       let count = 0;
@@ -550,4 +549,3 @@ export function resetEngagementStore(): void {
 }
 
 export default EngagementStore;
-

@@ -37,7 +37,9 @@ export interface EmotionalContext {
   sentiment: 'positive' | 'neutral' | 'negative' | 'mixed';
 
   /** Detected emotional states (can be multiple) */
-  emotions: Array<'happy' | 'excited' | 'calm' | 'anxious' | 'frustrated' | 'sad' | 'confused' | 'grateful'>;
+  emotions: Array<
+    'happy' | 'excited' | 'calm' | 'anxious' | 'frustrated' | 'sad' | 'confused' | 'grateful'
+  >;
 
   /** Urgency level (1-5, where 5 is most urgent) */
   urgency: number;
@@ -581,7 +583,9 @@ export class ConversationStateManager {
       },
       user: {
         ...state.user,
-        preferences: new Map(Object.entries((data.user as Record<string, unknown>).preferences || {})),
+        preferences: new Map(
+          Object.entries((data.user as Record<string, unknown>).preferences || {})
+        ),
       },
     };
 
@@ -600,8 +604,8 @@ const activeConversations = new Map<string, ConversationStateManager>();
  */
 export function getConversationState(
   sessionId: string,
-  userId: string = 'default',
-  agentId: string = 'default'
+  userId = 'default',
+  agentId = 'default'
 ): ConversationStateManager {
   let state = activeConversations.get(sessionId);
 
@@ -645,7 +649,7 @@ export function getActiveSessionIds(): string[] {
 /**
  * Clean up stale conversations (older than maxAgeMinutes)
  */
-export function cleanupStaleConversations(maxAgeMinutes: number = 60): number {
+export function cleanupStaleConversations(maxAgeMinutes = 60): number {
   const now = new Date();
   let cleaned = 0;
 
@@ -674,4 +678,3 @@ export default {
   cleanupStaleConversations,
   ConversationStateManager,
 };
-

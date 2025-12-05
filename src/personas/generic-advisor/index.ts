@@ -252,7 +252,7 @@ export const GENERIC_ADVISOR_PERSONA: PersonaConfig = {
     mishearingPhrases: [
       "Sorry, I didn't quite catch that. Could you say that again?",
       'I want to make sure I understood - could you repeat that?',
-      "My apologies, I missed part of what you said. One more time?",
+      'My apologies, I missed part of what you said. One more time?',
     ],
 
     // OPTIONAL: Witty remarks and observations for natural humor
@@ -264,16 +264,16 @@ export const GENERIC_ADVISOR_PERSONA: PersonaConfig = {
     //   Parenting: ["Raising kids is like folding a fitted sheet. No one really knows how.", "Silence with kids is suspicious, not peaceful."]
     wittyRemarks: [
       "Progress looks different for everyone - and that's okay.",
-      "The hardest part is often just starting.",
-      "Sometimes the best advice is permission to trust yourself.",
+      'The hardest part is often just starting.',
+      'Sometimes the best advice is permission to trust yourself.',
     ],
 
     // OPTIONAL: Things to proactively share when relevant
     // CUSTOMIZE: What does this advisor want people to know?
     proactiveInterjections: [
-      "Oh, that reminds me of something important...",
-      "You know, this connects to something I think about a lot...",
-      "Can I share something that might be helpful here?",
+      'Oh, that reminds me of something important...',
+      'You know, this connects to something I think about a lot...',
+      'Can I share something that might be helpful here?',
     ],
   },
 
@@ -423,8 +423,8 @@ export const GENERIC_ADVISOR_PERSONA: PersonaConfig = {
   //   Executive: ['People leave managers, not companies', 'Delegate outcomes, not tasks', 'Culture eats strategy for breakfast']
   catchphrases: [
     "Progress, not perfection. That's what we're after.",
-    "Small steps still move you forward.",
-    "The best time to start was yesterday. The second best time is today.",
+    'Small steps still move you forward.',
+    'The best time to start was yesterday. The second best time is today.',
   ],
 
   // CUSTOMIZE: Topics that trigger strong responses in your domain

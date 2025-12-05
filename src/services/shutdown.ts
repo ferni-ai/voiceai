@@ -140,4 +140,3 @@ export async function shutdownServices(): Promise<void> {
 
   getLogger().info('Services shut down complete');
 }
-

@@ -1,11 +1,11 @@
 /**
  * E2E Integration Tests for Google Places API
- * 
+ *
  * Tests restaurant search and details functionality:
  * - Search for restaurants by query and location
  * - Get detailed place information
  * - Format results for voice output
- * 
+ *
  * Requires: GOOGLE_API_KEY with Places API enabled
  */
 
@@ -29,9 +29,9 @@ import {
 describe('Google Places Configuration', () => {
   it('should check if API is configured', () => {
     const configured = isGooglePlacesConfigured();
-    
+
     console.log(`📋 Google Places API configured: ${configured ? '✓' : '✗'}`);
-    
+
     if (!configured) {
       console.log('   Set GOOGLE_API_KEY and enable Places API in Google Cloud Console');
     }
@@ -47,53 +47,65 @@ describe('Google Places Configuration', () => {
 describe('Restaurant Search', () => {
   const isConfigured = isGooglePlacesConfigured();
 
-  it.skipIf(!isConfigured)('should search for restaurants by query', async () => {
-    const results = await searchRestaurants({
-      query: 'italian restaurant',
-      location: 'New York',
-    });
+  it.skipIf(!isConfigured)(
+    'should search for restaurants by query',
+    async () => {
+      const results = await searchRestaurants({
+        query: 'italian restaurant',
+        location: 'New York',
+      });
 
-    expect(Array.isArray(results)).toBe(true);
-    
-    if (results.length > 0) {
-      const first = results[0];
-      expect(first.placeId).toBeDefined();
-      expect(first.name).toBeDefined();
-      expect(first.address).toBeDefined();
-      
-      console.log(`✅ Found ${results.length} Italian restaurants`);
-      console.log(`   Top result: ${first.name}`);
-    } else {
-      console.log('⚠️ No results found (API may need Places API enabled)');
-    }
-  }, 15000);
+      expect(Array.isArray(results)).toBe(true);
 
-  it.skipIf(!isConfigured)('should search for restaurants by type', async () => {
-    const results = await searchRestaurants({
-      query: 'sushi',
-      location: 'San Francisco',
-      type: 'restaurant',
-    });
+      if (results.length > 0) {
+        const first = results[0];
+        expect(first.placeId).toBeDefined();
+        expect(first.name).toBeDefined();
+        expect(first.address).toBeDefined();
 
-    expect(Array.isArray(results)).toBe(true);
-    console.log(`✅ Found ${results.length} sushi restaurants`);
-  }, 15000);
+        console.log(`✅ Found ${results.length} Italian restaurants`);
+        console.log(`   Top result: ${first.name}`);
+      } else {
+        console.log('⚠️ No results found (API may need Places API enabled)');
+      }
+    },
+    15000
+  );
 
-  it.skipIf(!isConfigured)('should filter by open now', async () => {
-    const results = await searchRestaurants({
-      query: 'restaurant',
-      location: 'Los Angeles',
-      openNow: true,
-    });
+  it.skipIf(!isConfigured)(
+    'should search for restaurants by type',
+    async () => {
+      const results = await searchRestaurants({
+        query: 'sushi',
+        location: 'San Francisco',
+        type: 'restaurant',
+      });
 
-    expect(Array.isArray(results)).toBe(true);
-    
-    // All results should be open (if we got any)
-    if (results.length > 0) {
-      const openCount = results.filter(r => r.openNow === true).length;
-      console.log(`✅ Found ${results.length} open restaurants`);
-    }
-  }, 15000);
+      expect(Array.isArray(results)).toBe(true);
+      console.log(`✅ Found ${results.length} sushi restaurants`);
+    },
+    15000
+  );
+
+  it.skipIf(!isConfigured)(
+    'should filter by open now',
+    async () => {
+      const results = await searchRestaurants({
+        query: 'restaurant',
+        location: 'Los Angeles',
+        openNow: true,
+      });
+
+      expect(Array.isArray(results)).toBe(true);
+
+      // All results should be open (if we got any)
+      if (results.length > 0) {
+        const openCount = results.filter((r) => r.openNow === true).length;
+        console.log(`✅ Found ${results.length} open restaurants`);
+      }
+    },
+    15000
+  );
 
   it('should return empty array when not configured', async () => {
     if (isConfigured) {
@@ -128,29 +140,33 @@ describe('Place Details', () => {
     }
   });
 
-  it.skipIf(!isConfigured || !testPlaceId)('should get place details', async () => {
-    if (!testPlaceId) {
-      console.log('⚠️ No test place ID available');
-      return;
-    }
-
-    const details = await getPlaceDetails(testPlaceId);
-
-    expect(details).not.toBeNull();
-    if (details) {
-      expect(details.name).toBeDefined();
-      expect(details.formattedAddress).toBeDefined();
-      
-      console.log(`✅ Got details for: ${details.name}`);
-      console.log(`   Address: ${details.formattedAddress}`);
-      console.log(`   Phone: ${details.formattedPhoneNumber || 'Not listed'}`);
-      console.log(`   Rating: ${details.rating || 'No rating'}`);
-      
-      if (details.openingHours) {
-        console.log(`   Open now: ${details.openingHours.openNow ? 'Yes' : 'No'}`);
+  it.skipIf(!isConfigured || !testPlaceId)(
+    'should get place details',
+    async () => {
+      if (!testPlaceId) {
+        console.log('⚠️ No test place ID available');
+        return;
       }
-    }
-  }, 15000);
+
+      const details = await getPlaceDetails(testPlaceId);
+
+      expect(details).not.toBeNull();
+      if (details) {
+        expect(details.name).toBeDefined();
+        expect(details.formattedAddress).toBeDefined();
+
+        console.log(`✅ Got details for: ${details.name}`);
+        console.log(`   Address: ${details.formattedAddress}`);
+        console.log(`   Phone: ${details.formattedPhoneNumber || 'Not listed'}`);
+        console.log(`   Rating: ${details.rating || 'No rating'}`);
+
+        if (details.openingHours) {
+          console.log(`   Open now: ${details.openingHours.openNow ? 'Yes' : 'No'}`);
+        }
+      }
+    },
+    15000
+  );
 
   it('should return null for invalid place ID', async () => {
     if (!isConfigured) {
@@ -171,27 +187,35 @@ describe('Place Details', () => {
 describe('Nearby Search', () => {
   const isConfigured = isGooglePlacesConfigured();
 
-  it.skipIf(!isConfigured)('should find nearby restaurants', async () => {
-    // Coordinates for Times Square, NYC
-    const lat = 40.758896;
-    const lng = -73.985130;
+  it.skipIf(!isConfigured)(
+    'should find nearby restaurants',
+    async () => {
+      // Coordinates for Times Square, NYC
+      const lat = 40.758896;
+      const lng = -73.98513;
 
-    const results = await findNearbyRestaurants(lat, lng, 500);
+      const results = await findNearbyRestaurants(lat, lng, 500);
 
-    expect(Array.isArray(results)).toBe(true);
-    console.log(`✅ Found ${results.length} restaurants near Times Square`);
-  }, 15000);
+      expect(Array.isArray(results)).toBe(true);
+      console.log(`✅ Found ${results.length} restaurants near Times Square`);
+    },
+    15000
+  );
 
-  it.skipIf(!isConfigured)('should find nearby restaurants with keyword', async () => {
-    // Coordinates for Union Square, SF
-    const lat = 37.787994;
-    const lng = -122.407437;
+  it.skipIf(!isConfigured)(
+    'should find nearby restaurants with keyword',
+    async () => {
+      // Coordinates for Union Square, SF
+      const lat = 37.787994;
+      const lng = -122.407437;
 
-    const results = await findNearbyRestaurants(lat, lng, 1000, 'pizza');
+      const results = await findNearbyRestaurants(lat, lng, 1000, 'pizza');
 
-    expect(Array.isArray(results)).toBe(true);
-    console.log(`✅ Found ${results.length} pizza places near Union Square`);
-  }, 15000);
+      expect(Array.isArray(results)).toBe(true);
+      console.log(`✅ Found ${results.length} pizza places near Union Square`);
+    },
+    15000
+  );
 });
 
 // ============================================================================
@@ -294,7 +318,7 @@ describe('Google Places Summary', () => {
   it('should report status', () => {
     const configured = isGooglePlacesConfigured();
 
-    console.log('\n' + '═'.repeat(60));
+    console.log(`\n${'═'.repeat(60)}`);
     console.log('📊 GOOGLE PLACES INTEGRATION STATUS');
     console.log('═'.repeat(60));
 
@@ -315,9 +339,8 @@ describe('Google Places Summary', () => {
       console.log('    3. Run tests again with --send-test');
     }
 
-    console.log('═'.repeat(60) + '\n');
+    console.log(`${'═'.repeat(60)}\n`);
 
     expect(true).toBe(true);
   });
 });
-

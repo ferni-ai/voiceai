@@ -130,4 +130,3 @@ export function calculateRelationshipStage(
 
   return 'getting_to_know';
 }
-

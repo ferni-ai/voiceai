@@ -24,27 +24,27 @@ import { getLogger } from '../utils/safe-logger.js';
 // ============================================================================
 
 export type HumorType =
-  | 'callbacks'      // "Remember what I said about compound interest?"
+  | 'callbacks' // "Remember what I said about compound interest?"
   | 'self_deprecating' // "I may be AI, but even I know that's a bad idea"
-  | 'observational'  // "Isn't it funny how we always check the market at 3am?"
-  | 'dry_wit'        // "Another volatile day. How refreshing."
-  | 'puns'           // "That's quite the interest-ing situation"
-  | 'playful'        // Light teasing, banter
-  | 'absurdist';     // Unexpected, surreal observations
+  | 'observational' // "Isn't it funny how we always check the market at 3am?"
+  | 'dry_wit' // "Another volatile day. How refreshing."
+  | 'puns' // "That's quite the interest-ing situation"
+  | 'playful' // Light teasing, banter
+  | 'absurdist'; // Unexpected, surreal observations
 
 export type HumorReaction =
-  | 'laughed'        // User audibly laughed or typed "haha"
-  | 'engaged'        // User responded positively, continued topic
-  | 'acknowledged'   // User noticed but didn't engage (neutral)
-  | 'ignored'        // User changed topic or gave minimal response
-  | 'negative';      // User expressed discomfort or asked to stop
+  | 'laughed' // User audibly laughed or typed "haha"
+  | 'engaged' // User responded positively, continued topic
+  | 'acknowledged' // User noticed but didn't engage (neutral)
+  | 'ignored' // User changed topic or gave minimal response
+  | 'negative'; // User expressed discomfort or asked to stop
 
 export interface HumorAttempt {
   id: string;
   timestamp: Date;
   type: HumorType;
   content: string;
-  context: string;     // What triggered the humor (topic, emotion, etc.)
+  context: string; // What triggered the humor (topic, emotion, etc.)
   reaction?: HumorReaction;
   reactionTimestamp?: Date;
 }
@@ -52,20 +52,20 @@ export interface HumorAttempt {
 export interface HumorPreferences {
   // Effectiveness scores (0-1) for each type
   typeScores: Record<HumorType, number>;
-  
+
   // Preferred humor contexts
-  goodContexts: string[];   // Topics/situations where humor works
-  badContexts: string[];    // Topics/situations to avoid humor
-  
+  goodContexts: string[]; // Topics/situations where humor works
+  badContexts: string[]; // Topics/situations to avoid humor
+
   // Timing preferences
   preferredFrequency: 'frequent' | 'moderate' | 'rare';
   preferredTiming: 'early' | 'rapport_built' | 'tension_break';
-  
+
   // Overall metrics
   totalAttempts: number;
   positiveReactions: number;
   averageScore: number;
-  
+
   // Computed guidance
   shouldUseHumor: boolean;
   recommendedTypes: HumorType[];
@@ -124,19 +124,9 @@ const HUMOR_TYPE_PATTERNS: Record<HumorType, RegExp[]> = {
     /shocking|groundbreaking/i,
     /who would have thought/i,
   ],
-  puns: [
-    /interest-ing|cents|capital idea/i,
-    /bank on|invested in|rich (in|with)/i,
-  ],
-  playful: [
-    /oh come on|just kidding|i tease/i,
-    /between (you and|us)/i,
-    /don't tell anyone/i,
-  ],
-  absurdist: [
-    /imagine if|what if|picture this/i,
-    /alternate universe|parallel dimension/i,
-  ],
+  puns: [/interest-ing|cents|capital idea/i, /bank on|invested in|rich (in|with)/i],
+  playful: [/oh come on|just kidding|i tease/i, /between (you and|us)/i, /don't tell anyone/i],
+  absurdist: [/imagine if|what if|picture this/i, /alternate universe|parallel dimension/i],
 };
 
 // ============================================================================
@@ -148,7 +138,7 @@ export class HumorCalibrationEngine {
   private pendingAttempt: HumorAttempt | null = null;
   private userLaughsDetected = 0;
   private sessionHumorCount = 0;
-  
+
   constructor() {
     getLogger().debug('HumorCalibrationEngine initialized');
   }
@@ -160,13 +150,9 @@ export class HumorCalibrationEngine {
   /**
    * Record when humor is used in a response
    */
-  recordHumorAttempt(
-    content: string,
-    context: string,
-    type?: HumorType
-  ): string {
+  recordHumorAttempt(content: string, context: string, type?: HumorType): string {
     const detectedType = type || this.detectHumorType(content);
-    
+
     const attempt: HumorAttempt = {
       id: `humor_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       timestamp: new Date(),
@@ -184,10 +170,13 @@ export class HumorCalibrationEngine {
       this.attempts = this.attempts.slice(-100);
     }
 
-    getLogger().debug({
-      type: detectedType,
-      context,
-    }, 'Humor attempt recorded');
+    getLogger().debug(
+      {
+        type: detectedType,
+        context,
+      },
+      'Humor attempt recorded'
+    );
 
     return attempt.id;
   }
@@ -222,26 +211,24 @@ export class HumorCalibrationEngine {
     let reaction: HumorReaction;
 
     // Check for laughter (voice or text)
-    if (userLaughed || LAUGHTER_PATTERNS.some(p => p.test(userResponse))) {
+    if (userLaughed || LAUGHTER_PATTERNS.some((p) => p.test(userResponse))) {
       reaction = 'laughed';
       this.userLaughsDetected++;
     }
     // Check for positive engagement
-    else if (POSITIVE_HUMOR_REACTIONS.some(p => p.test(userResponse))) {
+    else if (POSITIVE_HUMOR_REACTIONS.some((p) => p.test(userResponse))) {
       reaction = 'engaged';
     }
     // Check for negative reaction
-    else if (NEGATIVE_HUMOR_REACTIONS.some(p => p.test(userResponse))) {
+    else if (NEGATIVE_HUMOR_REACTIONS.some((p) => p.test(userResponse))) {
       reaction = 'negative';
     }
     // Check response length/engagement
     else if (userResponse.length > 50) {
       reaction = 'engaged';
-    }
-    else if (userResponse.length < 15) {
+    } else if (userResponse.length < 15) {
       reaction = 'ignored';
-    }
-    else {
+    } else {
       reaction = 'acknowledged';
     }
 
@@ -250,10 +237,13 @@ export class HumorCalibrationEngine {
     this.pendingAttempt.reactionTimestamp = new Date();
     this.pendingAttempt = null;
 
-    getLogger().debug({
-      reaction,
-      laughCount: this.userLaughsDetected,
-    }, 'Humor reaction analyzed');
+    getLogger().debug(
+      {
+        reaction,
+        laughCount: this.userLaughsDetected,
+      },
+      'Humor reaction analyzed'
+    );
 
     return reaction;
   }
@@ -263,7 +253,7 @@ export class HumorCalibrationEngine {
    */
   recordVoiceLaughter(): void {
     this.userLaughsDetected++;
-    
+
     if (this.pendingAttempt) {
       this.pendingAttempt.reaction = 'laughed';
       this.pendingAttempt.reactionTimestamp = new Date();
@@ -313,7 +303,7 @@ export class HumorCalibrationEngine {
       if (attempt.reaction) {
         totalReacted++;
         const score = this.reactionToScore(attempt.reaction);
-        
+
         if (score >= 0.7) {
           positiveCount++;
           goodContexts.add(attempt.context);
@@ -326,34 +316,37 @@ export class HumorCalibrationEngine {
     // Calculate per-type effectiveness
     for (const [type, attempts] of Object.entries(typeAttempts)) {
       if (attempts.length >= 2) {
-        const reactedAttempts = attempts.filter(a => a.reaction);
+        const reactedAttempts = attempts.filter((a) => a.reaction);
         if (reactedAttempts.length > 0) {
-          const avgScore = reactedAttempts.reduce(
-            (sum, a) => sum + this.reactionToScore(a.reaction!),
-            0
-          ) / reactedAttempts.length;
+          const avgScore =
+            reactedAttempts.reduce((sum, a) => sum + this.reactionToScore(a.reaction!), 0) /
+            reactedAttempts.length;
           typeScores[type as HumorType] = avgScore;
         }
       }
     }
 
     // Calculate overall metrics
-    const averageScore = totalReacted > 0
-      ? this.attempts
-          .filter(a => a.reaction)
-          .reduce((sum, a) => sum + this.reactionToScore(a.reaction!), 0) / totalReacted
-      : 0.5;
+    const averageScore =
+      totalReacted > 0
+        ? this.attempts
+            .filter((a) => a.reaction)
+            .reduce((sum, a) => sum + this.reactionToScore(a.reaction!), 0) / totalReacted
+        : 0.5;
 
     // Determine frequency preference
     let preferredFrequency: 'frequent' | 'moderate' | 'rare' = 'moderate';
     if (averageScore > 0.7 && positiveCount > 3) {
       preferredFrequency = 'frequent';
-    } else if (averageScore < 0.4 || this.attempts.filter(a => a.reaction === 'negative').length > 2) {
+    } else if (
+      averageScore < 0.4 ||
+      this.attempts.filter((a) => a.reaction === 'negative').length > 2
+    ) {
       preferredFrequency = 'rare';
     }
 
     // Get recommended types (score > 0.6)
-    const recommendedTypes = (Object.entries(typeScores) as [HumorType, number][])
+    const recommendedTypes = (Object.entries(typeScores) as Array<[HumorType, number]>)
       .filter(([_, score]) => score > 0.6)
       .sort((a, b) => b[1] - a[1])
       .map(([type]) => type);
@@ -374,11 +367,16 @@ export class HumorCalibrationEngine {
 
   private reactionToScore(reaction: HumorReaction): number {
     switch (reaction) {
-      case 'laughed': return 1.0;
-      case 'engaged': return 0.8;
-      case 'acknowledged': return 0.5;
-      case 'ignored': return 0.3;
-      case 'negative': return 0.0;
+      case 'laughed':
+        return 1.0;
+      case 'engaged':
+        return 0.8;
+      case 'acknowledged':
+        return 0.5;
+      case 'ignored':
+        return 0.3;
+      case 'negative':
+        return 0.0;
     }
   }
 
@@ -447,7 +445,7 @@ export class HumorCalibrationEngine {
 
     // Recommend humor
     const recommendedType = prefs.recommendedTypes[0];
-    const avoidTypes = (Object.entries(prefs.typeScores) as [HumorType, number][])
+    const avoidTypes = (Object.entries(prefs.typeScores) as Array<[HumorType, number]>)
       .filter(([_, score]) => score < 0.4)
       .map(([type]) => type);
 
@@ -492,8 +490,10 @@ export class HumorCalibrationEngine {
     if (!prefs.shouldUseHumor) {
       lines.push('[HUMOR] User prefers minimal humor. Keep it professional.');
     } else {
-      lines.push(`[HUMOR] User responds well to humor (score: ${(prefs.averageScore * 100).toFixed(0)}%).`);
-      
+      lines.push(
+        `[HUMOR] User responds well to humor (score: ${(prefs.averageScore * 100).toFixed(0)}%).`
+      );
+
       if (prefs.recommendedTypes.length > 0) {
         lines.push(`Best types: ${prefs.recommendedTypes.slice(0, 2).join(', ')}`);
       }
@@ -554,4 +554,3 @@ export function resetAllHumorCalibration(): void {
     engine.reset();
   }
 }
-

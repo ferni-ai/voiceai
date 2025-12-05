@@ -71,11 +71,11 @@ export interface ContextOptions {
  */
 export class ContextManager {
   private turns: ConversationTurn[] = [];
-  private rollingSummary: string = '';
+  private rollingSummary = '';
   private userProfile?: UserProfile;
   private sessionId: string;
   private startedAt: Date;
-  private currentPersona: string = 'jack-b';
+  private currentPersona = 'jack-b';
   private previousPersona?: string;
 
   constructor(sessionId: string, userProfile?: UserProfile) {
@@ -466,7 +466,7 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
     // Combine and truncate
     let formatted = sections.join('\n\n');
     if (formatted.length > opts.maxLength) {
-      formatted = formatted.slice(0, opts.maxLength) + '...';
+      formatted = `${formatted.slice(0, opts.maxLength)}...`;
     }
 
     return {
@@ -489,7 +489,7 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
   /**
    * Get context window (last N turns)
    */
-  getContextWindow(maxTurns: number = 10): ConversationTurn[] {
+  getContextWindow(maxTurns = 10): ConversationTurn[] {
     return this.turns.slice(-maxTurns);
   }
 
@@ -534,7 +534,7 @@ Avoid: ${guidance.shouldAvoid.slice(0, 2).join(' | ')}
 // SINGLETON
 // ============================================================================
 
-const contextManagers: Map<string, ContextManager> = new Map();
+const contextManagers = new Map<string, ContextManager>();
 
 /**
  * Get or create a context manager for a session

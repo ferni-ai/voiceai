@@ -1,12 +1,12 @@
 /**
  * Performance Profiler
- * 
+ *
  * Monitors and optimizes voice response latency.
  * Target: < 200ms end-to-end response time.
- * 
+ *
  * Key metrics:
  * - Time to First Token (TTFT)
- * - Time to First Audio (TTFA)  
+ * - Time to First Audio (TTFA)
  * - Total Response Time (TRT)
  * - LLM API latency
  * - TTS latency
@@ -126,16 +126,22 @@ class PerformanceProfiler {
 
     // Log slow requests
     if (totalTime > this.slowThresholdMs) {
-      getLogger().warn({
-        traceId,
-        totalTimeMs: totalTime.toFixed(2),
-        marks: trace.marks.map(m => ({ name: m.name, ms: m.duration?.toFixed(2) })),
-      }, 'Slow request detected');
+      getLogger().warn(
+        {
+          traceId,
+          totalTimeMs: totalTime.toFixed(2),
+          marks: trace.marks.map((m) => ({ name: m.name, ms: m.duration?.toFixed(2) })),
+        },
+        'Slow request detected'
+      );
     } else {
-      getLogger().debug({
-        traceId,
-        totalTimeMs: totalTime.toFixed(2),
-      }, 'Performance trace completed');
+      getLogger().debug(
+        {
+          traceId,
+          totalTimeMs: totalTime.toFixed(2),
+        },
+        'Performance trace completed'
+      );
     }
 
     return trace;
@@ -145,12 +151,12 @@ class PerformanceProfiler {
    * Get timing between two marks
    */
   getInterval(traceId: string, startMark: string, endMark: string): number | null {
-    const trace = this.traces.get(traceId) || 
-                  this.completedTraces.find(t => t.traceId === traceId);
+    const trace =
+      this.traces.get(traceId) || this.completedTraces.find((t) => t.traceId === traceId);
     if (!trace) return null;
 
-    const start = trace.marks.find(m => m.name === startMark);
-    const end = trace.marks.find(m => m.name === endMark);
+    const start = trace.marks.find((m) => m.name === startMark);
+    const end = trace.marks.find((m) => m.name === endMark);
 
     if (!start || !end) return null;
 
@@ -182,9 +188,9 @@ class PerformanceProfiler {
   /**
    * Generate a latency report for a time period
    */
-  generateReport(periodMs: number = 300000): LatencyReport {
+  generateReport(periodMs = 300000): LatencyReport {
     const cutoff = performance.now() - periodMs;
-    const recentTraces = this.completedTraces.filter(t => t.endTime && t.endTime > cutoff);
+    const recentTraces = this.completedTraces.filter((t) => t.endTime && t.endTime > cutoff);
 
     // Extract timing metrics
     const ttftValues: number[] = [];
@@ -200,7 +206,7 @@ class PerformanceProfiler {
       trtValues.push(totalTime);
 
       // Extract specific metrics if marks exist
-      const markMap = new Map(trace.marks.map(m => [m.name, m]));
+      const markMap = new Map(trace.marks.map((m) => [m.name, m]));
 
       // Time to First Token (when LLM starts responding)
       const ttft = markMap.get('llm_first_token')?.duration;
@@ -275,9 +281,9 @@ class PerformanceProfiler {
     if (report.timeToFirstToken.p90 > 100) {
       suggestions.push(
         `High TTFT (p90: ${report.timeToFirstToken.p90.toFixed(0)}ms) - Consider:` +
-        '\n  - Using faster LLM models (gpt-4o-mini)' +
-        '\n  - Reducing system prompt size' +
-        '\n  - Enabling streaming responses'
+          '\n  - Using faster LLM models (gpt-4o-mini)' +
+          '\n  - Reducing system prompt size' +
+          '\n  - Enabling streaming responses'
       );
     }
 
@@ -285,19 +291,19 @@ class PerformanceProfiler {
     if (report.llmLatency.p90 > 200) {
       suggestions.push(
         `High LLM latency (p90: ${report.llmLatency.p90.toFixed(0)}ms) - Consider:` +
-        '\n  - Reducing max_tokens' +
-        '\n  - Using prompt caching' +
-        '\n  - Optimizing conversation history size'
+          '\n  - Reducing max_tokens' +
+          '\n  - Using prompt caching' +
+          '\n  - Optimizing conversation history size'
       );
     }
 
-    // TTS latency  
+    // TTS latency
     if (report.ttsLatency.p90 > 100) {
       suggestions.push(
         `High TTS latency (p90: ${report.ttsLatency.p90.toFixed(0)}ms) - Consider:` +
-        '\n  - Using lower quality TTS for speed' +
-        '\n  - Pre-generating common phrases' +
-        '\n  - Enabling TTS streaming'
+          '\n  - Using lower quality TTS for speed' +
+          '\n  - Pre-generating common phrases' +
+          '\n  - Enabling TTS streaming'
       );
     }
 
@@ -305,9 +311,9 @@ class PerformanceProfiler {
     if (report.sttLatency.p90 > 150) {
       suggestions.push(
         `High STT latency (p90: ${report.sttLatency.p90.toFixed(0)}ms) - Consider:` +
-        '\n  - Using faster STT model' +
-        '\n  - Reducing audio buffer size' +
-        '\n  - Enabling VAD for quicker end-of-speech detection'
+          '\n  - Using faster STT model' +
+          '\n  - Reducing audio buffer size' +
+          '\n  - Enabling VAD for quicker end-of-speech detection'
       );
     }
 
@@ -315,9 +321,9 @@ class PerformanceProfiler {
     if (report.totalResponseTime.p90 > 400) {
       suggestions.push(
         `High total response time (p90: ${report.totalResponseTime.p90.toFixed(0)}ms) - Review:` +
-        '\n  - Slowest requests breakdown in report' +
-        '\n  - Network latency to API providers' +
-        '\n  - Consider edge deployment'
+          '\n  - Slowest requests breakdown in report' +
+          '\n  - Network latency to API providers' +
+          '\n  - Consider edge deployment'
       );
     }
 
@@ -377,7 +383,7 @@ export function Timed(markName: string) {
     descriptor.value = async function (...args: unknown[]) {
       // Look for traceId in args or context
       const traceId = typeof args[0] === 'string' ? args[0] : 'unknown';
-      
+
       performanceProfiler.mark(traceId, `${markName}_start`);
       try {
         const result = await originalMethod.apply(this, args);
@@ -394,5 +400,3 @@ export function Timed(markName: string) {
 }
 
 export default performanceProfiler;
-
-

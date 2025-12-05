@@ -26,17 +26,28 @@ export interface UserCognitiveProfile {
   /** When style was last updated */
   styleUpdatedAt: Date;
   /** Effectiveness scores by approach (overall) */
-  approachEffectiveness: Record<ReasoningStyle, {
-    totalScore: number;
-    sampleCount: number;
-    lastUsed: Date;
-  }>;
+  approachEffectiveness: Record<
+    ReasoningStyle,
+    {
+      totalScore: number;
+      sampleCount: number;
+      lastUsed: Date;
+    }
+  >;
   /** Per-persona effectiveness scores */
-  perPersonaEffectiveness?: Record<string, Partial<Record<ReasoningStyle, {
-    totalScore: number;
-    sampleCount: number;
-    lastUsed: Date;
-  }>>>;
+  perPersonaEffectiveness?: Record<
+    string,
+    Partial<
+      Record<
+        ReasoningStyle,
+        {
+          totalScore: number;
+          sampleCount: number;
+          lastUsed: Date;
+        }
+      >
+    >
+  >;
   /** Topics user has expertise in */
   expertiseAreas: string[];
   /** Topics user is learning */
@@ -52,12 +63,15 @@ export interface UserCognitiveProfile {
 export interface UserKnowledgeState {
   userId: string;
   /** Topics that have been explained */
-  explainedTopics: Record<string, {
-    personaId: string;
-    level: 'introduced' | 'explained' | 'deep_dive';
-    lastExplained: Date;
-    revisits: number;
-  }>;
+  explainedTopics: Record<
+    string,
+    {
+      personaId: string;
+      level: 'introduced' | 'explained' | 'deep_dive';
+      lastExplained: Date;
+      revisits: number;
+    }
+  >;
   /** Concepts user has demonstrated understanding of */
   demonstratedUnderstanding: string[];
   /** Updated timestamp */
@@ -106,7 +120,10 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
     getLogger().info('Cognitive persistence Firestore initialized');
     return db;
   } catch (error) {
-    getLogger().warn({ error }, 'Firestore not available for cognitive persistence, using in-memory only');
+    getLogger().warn(
+      { error },
+      'Firestore not available for cognitive persistence, using in-memory only'
+    );
     return null;
   }
 }
@@ -118,7 +135,9 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
 /**
  * Get user cognitive profile
  */
-export async function getUserCognitiveProfile(userId: string): Promise<UserCognitiveProfile | null> {
+export async function getUserCognitiveProfile(
+  userId: string
+): Promise<UserCognitiveProfile | null> {
   // Check cache first
   if (cognitiveProfileCache.has(userId)) {
     return cognitiveProfileCache.get(userId)!;
@@ -132,7 +151,8 @@ export async function getUserCognitiveProfile(userId: string): Promise<UserCogni
       if (doc.exists) {
         const data = doc.data() as UserCognitiveProfile;
         // Convert timestamps
-        data.styleUpdatedAt = (data.styleUpdatedAt as any).toDate?.() || new Date(data.styleUpdatedAt);
+        data.styleUpdatedAt =
+          (data.styleUpdatedAt as any).toDate?.() || new Date(data.styleUpdatedAt);
         data.createdAt = (data.createdAt as any).toDate?.() || new Date(data.createdAt);
         data.updatedAt = (data.updatedAt as any).toDate?.() || new Date(data.updatedAt);
         cognitiveProfileCache.set(userId, data);
@@ -157,13 +177,22 @@ export async function saveUserCognitiveProfile(profile: UserCognitiveProfile): P
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      await firestore.collection(COGNITIVE_COLLECTION).doc(profile.userId).set({
-        ...profile,
-        updatedAt: new Date(),
-      }, { merge: true });
+      await firestore
+        .collection(COGNITIVE_COLLECTION)
+        .doc(profile.userId)
+        .set(
+          {
+            ...profile,
+            updatedAt: new Date(),
+          },
+          { merge: true }
+        );
       getLogger().debug({ userId: profile.userId }, 'Saved cognitive profile to Firestore');
     } catch (error) {
-      getLogger().warn({ userId: profile.userId, error }, 'Failed to save cognitive profile to Firestore');
+      getLogger().warn(
+        { userId: profile.userId, error },
+        'Failed to save cognitive profile to Firestore'
+      );
     }
   }
 }
@@ -189,11 +218,14 @@ export async function updateUserCognitiveStyle(
     profile.styleUpdatedAt = new Date();
     await saveUserCognitiveProfile(profile);
 
-    getLogger().info({
-      userId,
-      style,
-      confidence,
-    }, '🧠 Updated user cognitive style');
+    getLogger().info(
+      {
+        userId,
+        style,
+        confidence,
+      },
+      '🧠 Updated user cognitive style'
+    );
   }
 }
 
@@ -488,7 +520,7 @@ export async function validateUncertaintyStatement(
 ): Promise<void> {
   // Find matching record
   const record = uncertaintyRecords.find(
-    r => r.userId === userId && r.topic === topic && r.wasCorrect === undefined
+    (r) => r.userId === userId && r.topic === topic && r.wasCorrect === undefined
   );
 
   if (record) {
@@ -499,7 +531,8 @@ export async function validateUncertaintyStatement(
     const firestore = await getFirestore();
     if (firestore) {
       try {
-        const query = await firestore.collection(UNCERTAINTY_COLLECTION)
+        const query = await firestore
+          .collection(UNCERTAINTY_COLLECTION)
           .where('userId', '==', userId)
           .where('topic', '==', topic)
           .where('wasCorrect', '==', null)
@@ -517,12 +550,15 @@ export async function validateUncertaintyStatement(
       }
     }
 
-    getLogger().info({
-      userId,
-      topic,
-      wasCorrect,
-      confidenceLevel: record.confidenceLevel,
-    }, '✅ Uncertainty statement validated');
+    getLogger().info(
+      {
+        userId,
+        topic,
+        wasCorrect,
+        confidenceLevel: record.confidenceLevel,
+      },
+      '✅ Uncertainty statement validated'
+    );
   }
 }
 
@@ -534,19 +570,18 @@ export async function getUncertaintyCalibration(personaId: string): Promise<{
   validatedStatements: number;
   accuracyByConfidence: Record<string, { correct: number; total: number }>;
 }> {
-  const personaRecords = uncertaintyRecords.filter(r => r.personaId === personaId);
-  const validated = personaRecords.filter(r => r.wasCorrect !== undefined);
+  const personaRecords = uncertaintyRecords.filter((r) => r.personaId === personaId);
+  const validated = personaRecords.filter((r) => r.wasCorrect !== undefined);
 
   const accuracyByConfidence: Record<string, { correct: number; total: number }> = {
-    'high': { correct: 0, total: 0 },
-    'medium': { correct: 0, total: 0 },
-    'low': { correct: 0, total: 0 },
+    high: { correct: 0, total: 0 },
+    medium: { correct: 0, total: 0 },
+    low: { correct: 0, total: 0 },
   };
 
   for (const record of validated) {
-    const band = record.confidenceLevel >= 0.7 ? 'high'
-      : record.confidenceLevel >= 0.4 ? 'medium'
-      : 'low';
+    const band =
+      record.confidenceLevel >= 0.7 ? 'high' : record.confidenceLevel >= 0.4 ? 'medium' : 'low';
 
     accuracyByConfidence[band].total++;
     if (record.wasCorrect) {
@@ -611,4 +646,3 @@ export default {
   getUncertaintyCalibration,
   clearCognitivePeristenceCache,
 };
-

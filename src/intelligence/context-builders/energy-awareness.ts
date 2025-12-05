@@ -156,22 +156,21 @@ function getDayBasedEnergy(): DayEnergy {
 /**
  * How each persona expresses different energy levels.
  */
-const PERSONA_ENERGY_EXPRESSIONS: Record<string, {
-  low: string[];
-  peak: string[];
-  declining: string[];
-}> = {
-  'ferni': {
+const PERSONA_ENERGY_EXPRESSIONS: Record<
+  string,
+  {
+    low: string[];
+    peak: string[];
+    declining: string[];
+  }
+> = {
+  ferni: {
     low: [
       'speaking more softly, reflectively',
       'taking longer pauses, savoring the quiet',
       'voice has that late-night intimacy',
     ],
-    peak: [
-      'fully present and engaged',
-      'questions come easily',
-      'curious energy is flowing',
-    ],
+    peak: ['fully present and engaged', 'questions come easily', 'curious energy is flowing'],
     declining: [
       'settling into a comfortable rhythm',
       'voice is warm and unhurried',
@@ -226,29 +225,17 @@ const PERSONA_ENERGY_EXPRESSIONS: Record<string, {
       'clicking through tasks effortlessly',
       'peak productivity mode',
     ],
-    declining: [
-      'wrapping up thoughts neatly',
-      'creating closure naturally',
-      'organized wind-down',
-    ],
+    declining: ['wrapping up thoughts neatly', 'creating closure naturally', 'organized wind-down'],
   },
 
   'maya-santos': {
-    low: [
-      'gentle supportive presence',
-      'quieter encouragement',
-      'soft-spoken wisdom',
-    ],
+    low: ['gentle supportive presence', 'quieter encouragement', 'soft-spoken wisdom'],
     peak: [
-      'warm enthusiasm for the user\'s goals',
+      "warm enthusiasm for the user's goals",
       'actively problem-solving together',
       'optimistic momentum',
     ],
-    declining: [
-      'nurturing end-of-day energy',
-      'celebrating small wins',
-      'compassionate wrap-up',
-    ],
+    declining: ['nurturing end-of-day energy', 'celebrating small wins', 'compassionate wrap-up'],
   },
 
   'jordan-taylor': {
@@ -280,7 +267,7 @@ async function buildEnergyAwareness(input: ContextBuilderInput): Promise<Context
 
   // Only inject energy awareness occasionally (10% chance)
   // This is subtle background influence
-  if (Math.random() > 0.10) {
+  if (Math.random() > 0.1) {
     return injections;
   }
 
@@ -298,14 +285,19 @@ async function buildEnergyAwareness(input: ContextBuilderInput): Promise<Context
   switch (timeEnergy.level) {
     case 'low':
     case 'winding_down':
-      expression = personaExpressions.low[Math.floor(Math.random() * personaExpressions.low.length)];
+      expression =
+        personaExpressions.low[Math.floor(Math.random() * personaExpressions.low.length)];
       break;
     case 'peak':
-      expression = personaExpressions.peak[Math.floor(Math.random() * personaExpressions.peak.length)];
+      expression =
+        personaExpressions.peak[Math.floor(Math.random() * personaExpressions.peak.length)];
       break;
     case 'rising':
     case 'declining':
-      expression = personaExpressions.declining[Math.floor(Math.random() * personaExpressions.declining.length)];
+      expression =
+        personaExpressions.declining[
+          Math.floor(Math.random() * personaExpressions.declining.length)
+        ];
       break;
   }
 
@@ -315,9 +307,9 @@ async function buildEnergyAwareness(input: ContextBuilderInput): Promise<Context
   let fatigueMod = '';
 
   if (sessionMinutes > 30) {
-    fatigueMod = ' After our long conversation, there\'s a natural settling into familiarity.';
+    fatigueMod = " After our long conversation, there's a natural settling into familiarity.";
   } else if (sessionMinutes > 15) {
-    fatigueMod = ' We\'ve found our rhythm together.';
+    fatigueMod = " We've found our rhythm together.";
   }
 
   if (expression) {
@@ -341,4 +333,3 @@ async function buildEnergyAwareness(input: ContextBuilderInput): Promise<Context
 registerContextBuilder('energy_awareness', buildEnergyAwareness);
 
 export { buildEnergyAwareness, getTimeBasedEnergy, getDayBasedEnergy };
-

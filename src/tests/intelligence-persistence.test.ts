@@ -252,7 +252,9 @@ describe('Intelligence Persistence', () => {
     });
 
     it('should handle null state gracefully', () => {
-      expect(() => importIntelligenceState(testUserId, null as unknown as IntelligenceState)).not.toThrow();
+      expect(() =>
+        importIntelligenceState(testUserId, null as unknown as IntelligenceState)
+      ).not.toThrow();
     });
 
     it('should warn about newer version state', () => {
@@ -274,7 +276,9 @@ describe('Intelligence Persistence', () => {
 
       // Check that customData has intelligence state
       expect(updatedProfile.customData).toBeDefined();
-      expect((updatedProfile.customData as Record<string, unknown>).intelligenceState).toBeDefined();
+      expect(
+        (updatedProfile.customData as Record<string, unknown>).intelligenceState
+      ).toBeDefined();
 
       // Check that voice pace was updated
       expect(updatedProfile.voicePace).toBeDefined();
@@ -301,7 +305,9 @@ describe('Intelligence Persistence', () => {
       // Wait a tiny bit to ensure time difference
       const updatedProfile = applyIntelligenceToProfile(profile, testUserId);
 
-      expect(updatedProfile.updatedAt.getTime()).toBeGreaterThanOrEqual(originalUpdatedAt.getTime());
+      expect(updatedProfile.updatedAt.getTime()).toBeGreaterThanOrEqual(
+        originalUpdatedAt.getTime()
+      );
     });
   });
 
@@ -369,7 +375,7 @@ describe('Intelligence Persistence', () => {
       expect(status.has(testUserId)).toBe(true);
 
       // Wait for at least one auto-save
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(saveCallback).toHaveBeenCalled();
 
@@ -451,4 +457,3 @@ describe('Intelligence Round-Trip', () => {
     expect(() => loadIntelligenceFromProfile(testUserId, profileWithIntelligence)).not.toThrow();
   });
 });
-

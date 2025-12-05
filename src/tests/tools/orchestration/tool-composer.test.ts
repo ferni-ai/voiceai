@@ -125,11 +125,7 @@ describe('ToolComposer', () => {
     });
 
     it('respects override emotion', () => {
-      const result = composer.compose(
-        'unknown',
-        'Some neutral text',
-        { emotion: 'celebratory' }
-      );
+      const result = composer.compose('unknown', 'Some neutral text', { emotion: 'celebratory' });
       expect(result.emotion).toBe('celebratory');
     });
 
@@ -271,4 +267,3 @@ describe('TOOL_CHAINS', () => {
     expect(TOOL_CHAINS.wrapUp.suggestedFollowers).toEqual([]);
   });
 });
-

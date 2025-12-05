@@ -12,12 +12,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 
 import type { AgentId } from '../agent-bus.js';
 import { teamHandlerRegistry } from './index.js';
-import type {
-  TeamHandlerDefinition,
-  HandlerCapability,
-  AgentHandlerConfig,
-} from './types.js';
-
+import type { TeamHandlerDefinition, HandlerCapability, AgentHandlerConfig } from './types.js';
 
 // ============================================================================
 // AGENT CAPABILITY MAPPING
@@ -29,30 +24,30 @@ import type {
  */
 const AGENT_CAPABILITIES: Record<AgentId, HandlerCapability[]> = {
   // Maya - Financial Habits
-  'maya': ['savings-goals', 'budgets', 'expense-tracking', 'financial-status'],
+  maya: ['savings-goals', 'budgets', 'expense-tracking', 'financial-status'],
   'maya-santos': ['savings-goals', 'budgets', 'expense-tracking', 'financial-status'],
   'spend-save': ['savings-goals', 'budgets', 'expense-tracking', 'financial-status'],
 
   // Jordan - Life Planning
-  'jordan': ['milestones', 'goals', 'retirement'],
+  jordan: ['milestones', 'goals', 'retirement'],
   'jordan-taylor': ['milestones', 'goals', 'retirement'],
   'event-planner': ['milestones', 'goals', 'retirement'],
 
   // Alex - Communication
-  'alex': ['scheduling', 'reminders', 'notifications', 'contacts'],
+  alex: ['scheduling', 'reminders', 'notifications', 'contacts'],
   'alex-chen': ['scheduling', 'reminders', 'notifications', 'contacts'],
   'comm-specialist': ['scheduling', 'reminders', 'notifications', 'contacts'],
 
   // Nayan - Wisdom
-  'nayan': ['insights'],
+  nayan: ['insights'],
   'nayan-patel': ['insights'],
 
   // Peter John - Research
-  'peter': ['insights', 'analysis'],
+  peter: ['insights', 'analysis'],
   'peter-john': ['insights', 'analysis'],
 
   // Ferni - Coordinator
-  'ferni': ['team-status', 'context-sharing', 'escalation'],
+  ferni: ['team-status', 'context-sharing', 'escalation'],
   'jack-b': ['team-status', 'context-sharing', 'escalation'],
 };
 
@@ -111,9 +106,9 @@ function getDisplayName(agentId: AgentId): string {
     'alex-chen': 'Alex Chen',
     jordan: 'Jordan',
     'jordan-taylor': 'Jordan Taylor',
-    'nayan': 'Nayan',
+    nayan: 'Nayan',
     'nayan-patel': 'Nayan',
-    'peter': 'Peter',
+    peter: 'Peter',
     'peter-john': 'Peter John',
     ferni: 'Ferni',
     'jack-b': 'Ferni',
@@ -144,7 +139,7 @@ export async function loadHandlersFromManifests(): Promise<{
     const bundles = getCachedBundles();
 
     for (const bundle of bundles) {
-      const manifest = bundle.manifest;
+      const { manifest } = bundle;
       const agentId = manifest.identity.id as AgentId;
 
       // Check if manifest has team handler configuration
@@ -182,10 +177,12 @@ export async function loadHandlersFromManifests(): Promise<{
  * Initialize the team handler registry
  * Loads from both legacy handlers and manifests
  */
-export async function initializeTeamHandlerRegistry(options: {
-  loadLegacy?: boolean;
-  loadManifests?: boolean;
-} = {}): Promise<{
+export async function initializeTeamHandlerRegistry(
+  options: {
+    loadLegacy?: boolean;
+    loadManifests?: boolean;
+  } = {}
+): Promise<{
   legacy: { loaded: number; errors: string[] };
   manifests: { loaded: number; errors: string[] };
 }> {
@@ -270,4 +267,3 @@ export default {
   wrapLegacyHandler,
   AGENT_CAPABILITIES,
 };
-

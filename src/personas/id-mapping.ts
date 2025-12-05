@@ -2,7 +2,7 @@
  * Persona ID Mapping - Single Source of Truth
  *
  * This module provides centralized ID mapping for personas.
- * 
+ *
  * CANONICAL IDs (used everywhere):
  * - ferni, alex-chen, maya-santos, jordan-taylor, peter-john, nayan-patel
  *

@@ -478,7 +478,7 @@ export class IntentClassifier {
     const markers: string[] = [];
 
     // Score each intent
-    const scores: Map<Intent, number> = new Map();
+    const scores = new Map<Intent, number>();
 
     for (const pattern of INTENT_PATTERNS) {
       let score = 0;

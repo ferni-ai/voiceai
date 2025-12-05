@@ -181,8 +181,8 @@ export interface PortfolioCategory {
 }
 
 // In-memory storage
-const goals: Map<string, Goal> = new Map();
-const portfolios: Map<string, LifePortfolio> = new Map();
+const goals = new Map<string, Goal>();
+const portfolios = new Map<string, LifePortfolio>();
 
 // ============================================================================
 // GOAL TEMPLATES

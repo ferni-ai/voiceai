@@ -36,8 +36,8 @@ export interface BackchannelResult {
 // ============================================================================
 
 export class BackchannelingSystem {
-  private lastBackchannelTime: number = 0;
-  private backchannelCount: number = 0;
+  private lastBackchannelTime = 0;
+  private backchannelCount = 0;
   private readonly MIN_INTERVAL_MS = 5000; // Don't backchannel more than every 5 seconds
 
   /**

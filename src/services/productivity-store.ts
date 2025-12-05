@@ -60,7 +60,7 @@ export interface ProductivityData {
   habitStacks: HabitStackData[];
   habitCoachProfile: HabitCoachProfileData | null;
   weeklyReflections: WeeklyReflectionData[];
-  
+
   // Generic user preferences (for flexible tool storage)
   userPreferences?: Record<string, unknown>;
 }
@@ -321,29 +321,29 @@ export interface EnhancedHabitData {
   description?: string;
   domain: string;
   subdomain?: string;
-  
+
   // Glidepath
   currentLevel: number;
   targetLevel: number;
   levelStartDate: string;
   levelHistory: Array<{ level: number; achievedAt: string }>;
-  
+
   // Habit loop
   habitLoop: {
     cue: { type: string; description: string; specificity: string };
     routine: { behavior: string; duration: number; difficulty: string };
     reward: { intrinsic: string; extrinsic?: string; celebration: string };
   };
-  
+
   // Stacking
   stackedOnto?: string;
   isAnchorFor?: string[];
-  
+
   // Keystone
   isKeystone: boolean;
   keystoneScore?: number;
   cascadeEffects?: string[];
-  
+
   // Tracking
   frequency: string;
   customDays?: number[];
@@ -352,16 +352,16 @@ export interface EnhancedHabitData {
   longestStreak: number;
   totalCompletions: number;
   successRate: number;
-  
+
   // Timing
   reminderTime?: string;
   bestPerformanceTime?: string;
-  
+
   // Status
   isActive: boolean;
   isPaused: boolean;
   pauseReason?: string;
-  
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -411,35 +411,35 @@ export interface WeeklyReflectionData {
 
 class ProductivityStore {
   private store: MemoryStore | null = null;
-  private cache: Map<string, ProductivityData> = new Map();
-  private dirtyUsers: Set<string> = new Set();
-  private saveDebounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private cache = new Map<string, ProductivityData>();
+  private dirtyUsers = new Set<string>();
+  private saveDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   // In-memory stores for tools (bridge to persistence)
-  private taskMemory: Map<string, TaskData> = new Map();
-  private billMemory: Map<string, BillData> = new Map();
-  private billPaymentMemory: Map<string, BillPaymentData> = new Map();
-  private routineMemory: Map<string, RoutineData> = new Map();
-  private routineCompletionMemory: Map<string, RoutineCompletionData> = new Map();
-  private noteMemory: Map<string, NoteData> = new Map();
-  private journalMemory: Map<string, JournalEntryData> = new Map();
-  private habitMemory: Map<string, HabitData> = new Map();
-  private habitLogMemory: Map<string, HabitLogData> = new Map();
-  private shoppingListMemory: Map<string, ShoppingListData> = new Map();
-  private medicationMemory: Map<string, MedicationData> = new Map();
-  private doseLogMemory: Map<string, DoseLogData> = new Map();
-  private packageMemory: Map<string, PackageData> = new Map();
-  private tripMemory: Map<string, TripData> = new Map();
-  
+  private taskMemory = new Map<string, TaskData>();
+  private billMemory = new Map<string, BillData>();
+  private billPaymentMemory = new Map<string, BillPaymentData>();
+  private routineMemory = new Map<string, RoutineData>();
+  private routineCompletionMemory = new Map<string, RoutineCompletionData>();
+  private noteMemory = new Map<string, NoteData>();
+  private journalMemory = new Map<string, JournalEntryData>();
+  private habitMemory = new Map<string, HabitData>();
+  private habitLogMemory = new Map<string, HabitLogData>();
+  private shoppingListMemory = new Map<string, ShoppingListData>();
+  private medicationMemory = new Map<string, MedicationData>();
+  private doseLogMemory = new Map<string, DoseLogData>();
+  private packageMemory = new Map<string, PackageData>();
+  private tripMemory = new Map<string, TripData>();
+
   // Habit coaching memory (Maya)
-  private enhancedHabitMemory: Map<string, EnhancedHabitData> = new Map();
-  private habitStackMemory: Map<string, HabitStackData> = new Map();
-  private habitCoachProfileMemory: Map<string, HabitCoachProfileData> = new Map();
-  private weeklyReflectionMemory: Map<string, WeeklyReflectionData> = new Map();
-  
+  private enhancedHabitMemory = new Map<string, EnhancedHabitData>();
+  private habitStackMemory = new Map<string, HabitStackData>();
+  private habitCoachProfileMemory = new Map<string, HabitCoachProfileData>();
+  private weeklyReflectionMemory = new Map<string, WeeklyReflectionData>();
+
   // Generic user preferences (for flexible tool storage)
   // Key format: "userId:preferenceName"
-  private userPreferencesMemory: Map<string, unknown> = new Map();
+  private userPreferencesMemory = new Map<string, unknown>();
 
   async initialize(): Promise<void> {
     try {
@@ -467,14 +467,18 @@ class ProductivityStore {
       try {
         const profile = await this.store.getProfile(userId);
         if (profile) {
-          const productivityData = (profile as UserProfile & { productivityData?: ProductivityData })
-            .productivityData;
+          const { productivityData } = profile as UserProfile & {
+            productivityData?: ProductivityData;
+          };
 
           if (productivityData) {
             // Hydrate into memory maps
             this.hydrateMemoryMaps(userId, productivityData);
             this.cache.set(userId, productivityData);
-            getLogger().debug({ userId, tasks: productivityData.tasks?.length || 0 }, 'Loaded productivity data');
+            getLogger().debug(
+              { userId, tasks: productivityData.tasks?.length || 0 },
+              'Loaded productivity data'
+            );
             return productivityData;
           }
         }
@@ -502,7 +506,8 @@ class ProductivityStore {
       try {
         const profile = await this.store.getProfile(userId);
         if (profile) {
-          (profile as UserProfile & { productivityData?: ProductivityData }).productivityData = data;
+          (profile as UserProfile & { productivityData?: ProductivityData }).productivityData =
+            data;
           await this.store.saveProfile(profile);
           getLogger().debug({ userId }, 'Saved productivity data');
         }
@@ -542,7 +547,9 @@ class ProductivityStore {
     this.saveDebounceTimers.clear();
 
     // Save all dirty users
-    const savePromises = Array.from(this.dirtyUsers).map((userId) => this.saveUserData(userId));
+    const savePromises = Array.from(this.dirtyUsers).map(async (userId) =>
+      this.saveUserData(userId)
+    );
     await Promise.all(savePromises);
 
     getLogger().info({ count: this.dirtyUsers.size }, 'Flushed all productivity data');
@@ -570,7 +577,7 @@ class ProductivityStore {
   deleteTask(taskId: string): void {
     const task = this.taskMemory.get(taskId);
     if (task) {
-      const userId = (task as TaskData & { userId?: string }).userId;
+      const { userId } = task as TaskData & { userId?: string };
       this.taskMemory.delete(taskId);
       if (userId) this.markDirty(userId);
     }
@@ -596,7 +603,9 @@ class ProductivityStore {
   }
 
   setBillPayment(userId: string, payment: BillPaymentData): void {
-    this.billPaymentMemory.set(payment.id, { ...payment, userId } as BillPaymentData & { userId: string });
+    this.billPaymentMemory.set(payment.id, { ...payment, userId } as BillPaymentData & {
+      userId: string;
+    });
     this.markDirty(userId);
   }
 
@@ -626,7 +635,9 @@ class ProductivityStore {
   }
 
   setHabitLog(userId: string, logEntry: HabitLogData): void {
-    this.habitLogMemory.set(logEntry.id, { ...logEntry, userId } as HabitLogData & { userId: string });
+    this.habitLogMemory.set(logEntry.id, { ...logEntry, userId } as HabitLogData & {
+      userId: string;
+    });
     this.markDirty(userId);
   }
 
@@ -656,7 +667,9 @@ class ProductivityStore {
   }
 
   setDoseLog(userId: string, logEntry: DoseLogData): void {
-    this.doseLogMemory.set(logEntry.id, { ...logEntry, userId } as DoseLogData & { userId: string });
+    this.doseLogMemory.set(logEntry.id, { ...logEntry, userId } as DoseLogData & {
+      userId: string;
+    });
     this.markDirty(userId);
   }
 
@@ -717,7 +730,10 @@ class ProductivityStore {
   }
 
   setRoutineCompletion(userId: string, completion: RoutineCompletionData): void {
-    this.routineCompletionMemory.set(completion.id, { ...completion, userId } as RoutineCompletionData & { userId: string });
+    this.routineCompletionMemory.set(completion.id, {
+      ...completion,
+      userId,
+    } as RoutineCompletionData & { userId: string });
     this.markDirty(userId);
   }
 
@@ -726,7 +742,9 @@ class ProductivityStore {
   // ============================================================================
 
   setShoppingList(userId: string, list: ShoppingListData): void {
-    this.shoppingListMemory.set(list.id, { ...list, userId } as ShoppingListData & { userId: string });
+    this.shoppingListMemory.set(list.id, { ...list, userId } as ShoppingListData & {
+      userId: string;
+    });
     this.markDirty(userId);
   }
 
@@ -856,15 +874,22 @@ class ProductivityStore {
       this.billMemory.set(bill.id, { ...bill, userId } as BillData & { userId: string });
     }
     for (const payment of data.billPayments || []) {
-      this.billPaymentMemory.set(payment.id, { ...payment, userId } as BillPaymentData & { userId: string });
+      this.billPaymentMemory.set(payment.id, { ...payment, userId } as BillPaymentData & {
+        userId: string;
+      });
     }
 
     // Routines
     for (const routine of data.routines || []) {
-      this.routineMemory.set(routine.id, { ...routine, userId } as RoutineData & { userId: string });
+      this.routineMemory.set(routine.id, { ...routine, userId } as RoutineData & {
+        userId: string;
+      });
     }
     for (const completion of data.routineCompletions || []) {
-      this.routineCompletionMemory.set(completion.id, { ...completion, userId } as RoutineCompletionData & { userId: string });
+      this.routineCompletionMemory.set(completion.id, {
+        ...completion,
+        userId,
+      } as RoutineCompletionData & { userId: string });
     }
 
     // Notes & Journal
@@ -872,7 +897,9 @@ class ProductivityStore {
       this.noteMemory.set(note.id, { ...note, userId } as NoteData & { userId: string });
     }
     for (const entry of data.journalEntries || []) {
-      this.journalMemory.set(entry.id, { ...entry, userId } as JournalEntryData & { userId: string });
+      this.journalMemory.set(entry.id, { ...entry, userId } as JournalEntryData & {
+        userId: string;
+      });
     }
 
     // Habits
@@ -885,7 +912,9 @@ class ProductivityStore {
 
     // Shopping
     for (const list of data.shoppingLists || []) {
-      this.shoppingListMemory.set(list.id, { ...list, userId } as ShoppingListData & { userId: string });
+      this.shoppingListMemory.set(list.id, { ...list, userId } as ShoppingListData & {
+        userId: string;
+      });
     }
 
     // Medications
@@ -908,18 +937,25 @@ class ProductivityStore {
 
     // Habit coaching (Maya)
     for (const habit of data.enhancedHabits || []) {
-      this.enhancedHabitMemory.set(habit.id, { ...habit, userId } as EnhancedHabitData & { userId: string });
+      this.enhancedHabitMemory.set(habit.id, { ...habit, userId } as EnhancedHabitData & {
+        userId: string;
+      });
     }
     for (const stack of data.habitStacks || []) {
-      this.habitStackMemory.set(stack.id, { ...stack, userId } as HabitStackData & { userId: string });
+      this.habitStackMemory.set(stack.id, { ...stack, userId } as HabitStackData & {
+        userId: string;
+      });
     }
     if (data.habitCoachProfile) {
       this.habitCoachProfileMemory.set(userId, data.habitCoachProfile);
     }
     for (const reflection of data.weeklyReflections || []) {
-      this.weeklyReflectionMemory.set(reflection.id, { ...reflection, userId } as WeeklyReflectionData & { userId: string });
+      this.weeklyReflectionMemory.set(reflection.id, {
+        ...reflection,
+        userId,
+      } as WeeklyReflectionData & { userId: string });
     }
-    
+
     // User preferences
     if (data.userPreferences) {
       for (const [key, value] of Object.entries(data.userPreferences)) {
@@ -933,7 +969,9 @@ class ProductivityStore {
   // ============================================================================
 
   setEnhancedHabit(userId: string, habit: EnhancedHabitData): void {
-    this.enhancedHabitMemory.set(habit.id, { ...habit, userId } as EnhancedHabitData & { userId: string });
+    this.enhancedHabitMemory.set(habit.id, { ...habit, userId } as EnhancedHabitData & {
+      userId: string;
+    });
     this.markDirty(userId);
   }
 
@@ -950,7 +988,7 @@ class ProductivityStore {
   deleteEnhancedHabit(habitId: string): boolean {
     const habit = this.enhancedHabitMemory.get(habitId);
     if (habit) {
-      const userId = (habit as EnhancedHabitData & { userId?: string }).userId;
+      const { userId } = habit as EnhancedHabitData & { userId?: string };
       this.enhancedHabitMemory.delete(habitId);
       if (userId) this.markDirty(userId);
       return true;
@@ -959,7 +997,9 @@ class ProductivityStore {
   }
 
   setHabitStack(userId: string, stack: HabitStackData): void {
-    this.habitStackMemory.set(stack.id, { ...stack, userId } as HabitStackData & { userId: string });
+    this.habitStackMemory.set(stack.id, { ...stack, userId } as HabitStackData & {
+      userId: string;
+    });
     this.markDirty(userId);
   }
 
@@ -983,7 +1023,10 @@ class ProductivityStore {
   }
 
   addWeeklyReflection(userId: string, reflection: WeeklyReflectionData): void {
-    this.weeklyReflectionMemory.set(reflection.id, { ...reflection, userId } as WeeklyReflectionData & { userId: string });
+    this.weeklyReflectionMemory.set(reflection.id, {
+      ...reflection,
+      userId,
+    } as WeeklyReflectionData & { userId: string });
     this.markDirty(userId);
   }
 
@@ -1021,14 +1064,14 @@ class ProductivityStore {
   getAllUserPreferences(userId: string): Record<string, unknown> {
     const prefix = `${userId}:`;
     const prefs: Record<string, unknown> = {};
-    
+
     for (const [key, value] of this.userPreferencesMemory.entries()) {
       if (key.startsWith(prefix)) {
         const prefName = key.substring(prefix.length);
         prefs[prefName] = value;
       }
     }
-    
+
     return prefs;
   }
 }
@@ -1060,4 +1103,3 @@ export async function shutdownProductivityStore(): Promise<void> {
 }
 
 export default ProductivityStore;
-

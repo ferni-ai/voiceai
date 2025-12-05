@@ -76,7 +76,6 @@ export async function getStockQuote(symbol: string): Promise<string> {
  * Alpha Vantage backup for stock quotes
  */
 async function getStockQuoteAlphaVantage(symbol: string): Promise<string> {
-  
   const apiKey = process.env['ALPHA_VANTAGE_API_KEY'];
 
   if (!apiKey) {
@@ -150,8 +149,6 @@ function getStockFallback(symbol: string): string {
  * Get major index overview
  */
 export async function getMarketOverview(): Promise<string> {
-  
-
   try {
     const indices = ['^GSPC', '^DJI', '^IXIC']; // S&P 500, Dow, Nasdaq
     const promises = indices.map(async (symbol) => {
@@ -219,7 +216,6 @@ function getMarketFallback(): string {
  * Fetch weather for a location
  */
 export async function getWeather(location: string): Promise<string> {
-  
   const apiKey = process.env['OPENWEATHER_API_KEY'];
 
   if (!apiKey) {
@@ -290,8 +286,6 @@ function getWeatherFallback(location: string): string {
  * Get historical event for today's date
  */
 export async function getHistoricalEvent(): Promise<string | null> {
-  
-
   try {
     const today = new Date();
     const month = today.getMonth() + 1;

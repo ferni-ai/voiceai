@@ -118,22 +118,19 @@ class OptimizationAlertingService {
 
     try {
       // Import services dynamically
-      const [
-        { toolUsageAnalytics },
-        { feedbackCollector },
-        { recommendationEngine },
-      ] = await Promise.all([
-        import('./tool-usage-analytics.js'),
-        import('../tools/feedback-collector.js'),
-        import('../tools/recommendation-engine.js'),
-      ]);
+      const [{ toolUsageAnalytics }, { feedbackCollector }, { recommendationEngine }] =
+        await Promise.all([
+          import('./tool-usage-analytics.js'),
+          import('../tools/feedback-collector.js'),
+          import('../tools/recommendation-engine.js'),
+        ]);
 
       // Check tool error rates
       checked.push('tool_error_rates');
       const stats = await toolUsageAnalytics.getAllStats();
       for (const tool of stats) {
         if (tool.totalCalls < this.thresholds.minCalls) continue;
-        
+
         const errorRate = tool.failureCount / tool.totalCalls;
         if (errorRate > this.thresholds.errorRate) {
           const sent = await this.alert({
@@ -152,7 +149,7 @@ class OptimizationAlertingService {
       checked.push('tool_latency');
       for (const tool of stats) {
         if (tool.totalCalls < this.thresholds.minCalls) continue;
-        
+
         if (tool.avgLatencyMs > this.thresholds.latencyMs) {
           const sent = await this.alert({
             severity: tool.avgLatencyMs > 5000 ? 'warning' : 'info',
@@ -171,7 +168,7 @@ class OptimizationAlertingService {
       const feedback = feedbackCollector.getAllFeedback();
       const totalFeedback = feedback.reduce((sum, f) => sum + f.totalFeedback, 0);
       const totalPositive = feedback.reduce((sum, f) => sum + f.positiveCount, 0);
-      
+
       if (totalFeedback >= 10) {
         const positiveRate = totalPositive / totalFeedback;
         if (positiveRate < this.thresholds.feedbackRate) {
@@ -190,22 +187,24 @@ class OptimizationAlertingService {
       // Check for critical recommendations
       checked.push('critical_recommendations');
       const recommendations = await recommendationEngine.generateRecommendations();
-      const criticalRecs = recommendations.filter(r => r.priority === 'critical');
-      
+      const criticalRecs = recommendations.filter((r) => r.priority === 'critical');
+
       if (criticalRecs.length > 0) {
         const sent = await this.alert({
           severity: 'critical',
           type: 'critical_recommendations',
           title: `${criticalRecs.length} Critical Recommendations`,
-          message: criticalRecs.map(r => r.title).join(', '),
-          details: { count: criticalRecs.length, recommendations: criticalRecs.map(r => r.title) },
+          message: criticalRecs.map((r) => r.title).join(', '),
+          details: {
+            count: criticalRecs.length,
+            recommendations: criticalRecs.map((r) => r.title),
+          },
         });
         if (sent) alertsSent++;
         issues.push(`${criticalRecs.length} critical recommendations`);
       }
 
       getLogger().info({ checked, alertsSent, issues }, '🔍 Health check complete');
-
     } catch (error) {
       getLogger().error({ error }, 'Health check failed');
       issues.push(`Health check error: ${error}`);
@@ -260,12 +259,15 @@ class OptimizationAlertingService {
 
     // Send to configured channels
     const results = await Promise.all(
-      this.config.channels.map(channel => this.sendToChannel(channel, alert))
+      this.config.channels.map(async (channel) => this.sendToChannel(channel, alert))
     );
 
-    const sent = results.some(r => r);
+    const sent = results.some((r) => r);
     if (sent) {
-      getLogger().warn({ alert: alert.id, type: alert.type, severity: alert.severity }, '🚨 Alert sent');
+      getLogger().warn(
+        { alert: alert.id, type: alert.type, severity: alert.severity },
+        '🚨 Alert sent'
+      );
     }
 
     return sent;
@@ -318,42 +320,48 @@ class OptimizationAlertingService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          attachments: [{
-            color: severityColor[alert.severity],
-            blocks: [
-              {
-                type: 'header',
-                text: {
-                  type: 'plain_text',
-                  text: `${severityEmoji[alert.severity]} ${alert.title}`,
-                  emoji: true,
-                },
-              },
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: alert.message,
-                },
-              },
-              {
-                type: 'context',
-                elements: [
-                  {
-                    type: 'mrkdwn',
-                    text: `*Type:* ${alert.type} | *Severity:* ${alert.severity} | *Time:* ${alert.timestamp.toISOString()}`,
+          attachments: [
+            {
+              color: severityColor[alert.severity],
+              blocks: [
+                {
+                  type: 'header',
+                  text: {
+                    type: 'plain_text',
+                    text: `${severityEmoji[alert.severity]} ${alert.title}`,
+                    emoji: true,
                   },
-                ],
-              },
-              ...(Object.keys(alert.details).length > 0 ? [{
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: '```' + JSON.stringify(alert.details, null, 2) + '```',
                 },
-              }] : []),
-            ],
-          }],
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: alert.message,
+                  },
+                },
+                {
+                  type: 'context',
+                  elements: [
+                    {
+                      type: 'mrkdwn',
+                      text: `*Type:* ${alert.type} | *Severity:* ${alert.severity} | *Time:* ${alert.timestamp.toISOString()}`,
+                    },
+                  ],
+                },
+                ...(Object.keys(alert.details).length > 0
+                  ? [
+                      {
+                        type: 'section',
+                        text: {
+                          type: 'mrkdwn',
+                          text: `\`\`\`${JSON.stringify(alert.details, null, 2)}\`\`\``,
+                        },
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          ],
         }),
       });
 
@@ -375,7 +383,7 @@ class OptimizationAlertingService {
     try {
       // Use Google Cloud Monitoring API - optional dependency
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const Monitoring = await import('@google-cloud/monitoring').catch(() => null) as any;
+      const Monitoring = (await import('@google-cloud/monitoring').catch(() => null)) as any;
       if (!Monitoring) {
         return false;
       }
@@ -386,30 +394,34 @@ class OptimizationAlertingService {
 
       await client.createTimeSeries({
         name: projectPath,
-        timeSeries: [{
-          metric: {
-            type: `custom.googleapis.com/ferni/optimization/${alert.type}`,
-            labels: {
-              severity: alert.severity,
-            },
-          },
-          resource: {
-            type: 'global',
-            labels: {
-              project_id: this.config.gcpProject,
-            },
-          },
-          points: [{
-            interval: {
-              endTime: {
-                seconds: Math.floor(now.getTime() / 1000),
+        timeSeries: [
+          {
+            metric: {
+              type: `custom.googleapis.com/ferni/optimization/${alert.type}`,
+              labels: {
+                severity: alert.severity,
               },
             },
-            value: {
-              int64Value: 1,
+            resource: {
+              type: 'global',
+              labels: {
+                project_id: this.config.gcpProject,
+              },
             },
-          }],
-        }],
+            points: [
+              {
+                interval: {
+                  endTime: {
+                    seconds: Math.floor(now.getTime() / 1000),
+                  },
+                },
+                value: {
+                  int64Value: 1,
+                },
+              },
+            ],
+          },
+        ],
       });
 
       return true;
@@ -423,16 +435,19 @@ class OptimizationAlertingService {
    * Log alert to standard logger
    */
   private logAlert(alert: Alert): void {
-    const logFn = alert.severity === 'critical' ? 'error' : 
-                  alert.severity === 'warning' ? 'warn' : 'info';
-    
-    getLogger()[logFn]({
-      alertId: alert.id,
-      type: alert.type,
-      severity: alert.severity,
-      title: alert.title,
-      details: alert.details,
-    }, `🚨 ALERT: ${alert.message}`);
+    const logFn =
+      alert.severity === 'critical' ? 'error' : alert.severity === 'warning' ? 'warn' : 'info';
+
+    getLogger()[logFn](
+      {
+        alertId: alert.id,
+        type: alert.type,
+        severity: alert.severity,
+        title: alert.title,
+        details: alert.details,
+      },
+      `🚨 ALERT: ${alert.message}`
+    );
   }
 
   // ==========================================================================
@@ -457,7 +472,7 @@ class OptimizationAlertingService {
    * Get all active (unresolved) alerts
    */
   getActiveAlerts(): Alert[] {
-    return Array.from(this.activeAlerts.values()).filter(a => !a.resolved);
+    return Array.from(this.activeAlerts.values()).filter((a) => !a.resolved);
   }
 
   /**
@@ -515,7 +530,10 @@ class OptimizationAlertingService {
    */
   getConfig(): { config: AlertConfig; thresholds: AlertThresholds } {
     return {
-      config: { ...this.config, slackWebhookUrl: this.config.slackWebhookUrl ? '[REDACTED]' : undefined },
+      config: {
+        ...this.config,
+        slackWebhookUrl: this.config.slackWebhookUrl ? '[REDACTED]' : undefined,
+      },
       thresholds: { ...this.thresholds },
     };
   }
@@ -528,4 +546,3 @@ class OptimizationAlertingService {
 export const alertingService = new OptimizationAlertingService();
 
 export default alertingService;
-

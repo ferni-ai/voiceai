@@ -258,11 +258,10 @@ describe('TeamHandlerRegistry', () => {
         active: true,
       });
 
-      const result = await registry.routeRequest(
-        'sharedHandler',
-        createMockRequest(),
-        { fromAgent: 'ferni', preferredAgent: 'nayan-patel' }
-      );
+      const result = await registry.routeRequest('sharedHandler', createMockRequest(), {
+        fromAgent: 'ferni',
+        preferredAgent: 'nayan-patel',
+      });
 
       expect(result.executedBy).toBe('nayan-patel');
     });
@@ -279,11 +278,9 @@ describe('TeamHandlerRegistry', () => {
     });
 
     it('should route by capability', async () => {
-      const result = await registry.routeByCapability(
-        'savings-goals',
-        createMockRequest(),
-        { fromAgent: 'jordan' }
-      );
+      const result = await registry.routeByCapability('savings-goals', createMockRequest(), {
+        fromAgent: 'jordan',
+      });
 
       expect(result.success).toBe(true);
     });
@@ -477,4 +474,3 @@ describe('Handler Definition Validation', () => {
     expect(errors).toHaveLength(0);
   });
 });
-

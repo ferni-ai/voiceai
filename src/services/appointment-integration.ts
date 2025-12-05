@@ -1,13 +1,13 @@
 /**
  * Appointment Integration Service
- * 
+ *
  * Orchestrates the full appointment scheduling flow:
  * 1. User requests appointment
  * 2. Agent makes outbound call to business
  * 3. Call status is tracked via webhooks
  * 4. On confirmation, calendar event is created
  * 5. User is notified via preferred channel (SMS/email)
- * 
+ *
  * This service integrates:
  * - Twilio (calls, SMS)
  * - Google Calendar (events)
@@ -17,19 +17,13 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import { EventEmitter } from 'events';
-import {
-  getAppointmentFollowUpService,
-  type TrackedAppointment,
-} from './appointment-followup.js';
+import { getAppointmentFollowUpService, type TrackedAppointment } from './appointment-followup.js';
 import {
   getTwilioWebhookService,
   generateAppointmentTwiML,
   type CallTrackingEntry,
 } from './twilio-webhooks.js';
-import {
-  createAppointmentEvent,
-  isCalendarConfigured,
-} from './google-calendar-oauth.js';
+import { createAppointmentEvent, isCalendarConfigured } from './google-calendar-oauth.js';
 import { sendEmail, sendSMS } from '../tools/communication.js';
 
 // ============================================================================
@@ -76,7 +70,7 @@ export interface AppointmentResult {
 // ============================================================================
 
 class AppointmentIntegrationService extends EventEmitter {
-  private pendingAppointments: Map<string, AppointmentRequest> = new Map();
+  private pendingAppointments = new Map<string, AppointmentRequest>();
 
   constructor() {
     super();
@@ -154,7 +148,7 @@ class AppointmentIntegrationService extends EventEmitter {
       return callResult;
     } catch (error) {
       getLogger().error({ appointmentId, error }, 'Failed to initiate appointment call');
-      
+
       followUpService.updateStatus(appointmentId, 'failed', {
         note: `Call initiation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
@@ -171,7 +165,10 @@ class AppointmentIntegrationService extends EventEmitter {
   /**
    * Make the outbound call to the business
    */
-  private async makeAppointmentCall(appointmentId: string, request: AppointmentRequest): Promise<AppointmentResult> {
+  private async makeAppointmentCall(
+    appointmentId: string,
+    request: AppointmentRequest
+  ): Promise<AppointmentResult> {
     const twiml = generateAppointmentTwiML({
       businessName: request.businessName,
       requestedDate: request.requestedDate,
@@ -187,7 +184,7 @@ class AppointmentIntegrationService extends EventEmitter {
       {
         method: 'POST',
         headers: {
-          Authorization: 'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
@@ -238,14 +235,20 @@ class AppointmentIntegrationService extends EventEmitter {
   /**
    * Simulate appointment call when Twilio not configured
    */
-  private simulateAppointmentCall(appointmentId: string, request: AppointmentRequest): AppointmentResult {
+  private simulateAppointmentCall(
+    appointmentId: string,
+    request: AppointmentRequest
+  ): AppointmentResult {
     const followUpService = getAppointmentFollowUpService();
 
     // Simulate a successful call after a brief delay
     setTimeout(async () => {
       // Simulate getting confirmation
       const confirmationNumber = `SIM-${Date.now().toString().slice(-6)}`;
-      const confirmedDate = this.parseRequestedDateTime(request.requestedDate, request.requestedTime);
+      const confirmedDate = this.parseRequestedDateTime(
+        request.requestedDate,
+        request.requestedTime
+      );
 
       followUpService.recordCallAttempt(appointmentId, 'connected');
       followUpService.updateStatus(appointmentId, 'confirmed', {
@@ -258,7 +261,12 @@ class AppointmentIntegrationService extends EventEmitter {
       await this.createCalendarEventForAppointment(appointmentId, request, confirmedDate);
 
       // Notify user
-      await this.notifyUserOfConfirmation(appointmentId, request, confirmationNumber, confirmedDate);
+      await this.notifyUserOfConfirmation(
+        appointmentId,
+        request,
+        confirmationNumber,
+        confirmedDate
+      );
 
       this.emit('appointment_confirmed', { appointmentId, confirmationNumber, confirmedDate });
     }, 2000);
@@ -284,11 +292,17 @@ class AppointmentIntegrationService extends EventEmitter {
 
     if (entry.status === 'completed' && entry.answeredBy === 'human') {
       // Call was answered by a person - wait for transcription to determine outcome
-      getLogger().info({ appointmentId: entry.appointmentId }, 'Call answered, awaiting response analysis');
+      getLogger().info(
+        { appointmentId: entry.appointmentId },
+        'Call answered, awaiting response analysis'
+      );
     } else if (entry.status === 'no-answer' || entry.status === 'busy') {
       // Schedule retry
-      getLogger().info({ appointmentId: entry.appointmentId, status: entry.status }, 'Call not answered, will retry');
-      
+      getLogger().info(
+        { appointmentId: entry.appointmentId, status: entry.status },
+        'Call not answered, will retry'
+      );
+
       // Notify user of delay if this isn't the first attempt
       const appointment = followUpService.getAppointment(entry.appointmentId);
       if (appointment && appointment.callAttempts > 1) {
@@ -299,7 +313,7 @@ class AppointmentIntegrationService extends EventEmitter {
       followUpService.updateStatus(entry.appointmentId, 'failed', {
         note: `Call failed: ${entry.error?.message || 'Unknown error'}`,
       });
-      
+
       await this.notifyUserOfFailure(entry.appointmentId, request);
     }
   }
@@ -344,10 +358,12 @@ class AppointmentIntegrationService extends EventEmitter {
 
     if (outcome.confirmed) {
       // Appointment confirmed!
-      const confirmedDate = outcome.confirmedDateTime || 
+      const confirmedDate =
+        outcome.confirmedDateTime ||
         this.parseRequestedDateTime(request.requestedDate, request.requestedTime);
-      
-      const confirmationNumber = outcome.confirmationNumber || `CONF-${Date.now().toString().slice(-6)}`;
+
+      const confirmationNumber =
+        outcome.confirmationNumber || `CONF-${Date.now().toString().slice(-6)}`;
 
       followUpService.updateStatus(entry.appointmentId, 'confirmed', {
         confirmationNumber,
@@ -359,7 +375,12 @@ class AppointmentIntegrationService extends EventEmitter {
       await this.createCalendarEventForAppointment(entry.appointmentId, request, confirmedDate);
 
       // Notify user
-      await this.notifyUserOfConfirmation(entry.appointmentId, request, confirmationNumber, confirmedDate);
+      await this.notifyUserOfConfirmation(
+        entry.appointmentId,
+        request,
+        confirmationNumber,
+        confirmedDate
+      );
 
       this.emit('appointment_confirmed', {
         appointmentId: entry.appointmentId,
@@ -398,7 +419,7 @@ class AppointmentIntegrationService extends EventEmitter {
       'we have you down',
       'all set',
       'appointment is set',
-      'you\'re scheduled',
+      "you're scheduled",
     ];
 
     const confirmed = confirmationPhrases.some((phrase) => lower.includes(phrase));
@@ -406,7 +427,7 @@ class AppointmentIntegrationService extends EventEmitter {
     // Check for callback indicators
     const callbackPhrases = [
       'call you back',
-      'we\'ll call',
+      "we'll call",
       'give you a call',
       'check and call',
       'let you know',
@@ -433,7 +454,9 @@ class AppointmentIntegrationService extends EventEmitter {
 
     // Try to extract confirmation number
     let confirmationNumber: string | undefined;
-    const confMatch = transcription.match(/(?:confirmation|reference|booking)\s*(?:number|#|:)?\s*(\w+)/i);
+    const confMatch = transcription.match(
+      /(?:confirmation|reference|booking)\s*(?:number|#|:)?\s*(\w+)/i
+    );
     if (confMatch) {
       confirmationNumber = confMatch[1];
     }
@@ -462,7 +485,7 @@ class AppointmentIntegrationService extends EventEmitter {
     try {
       const event = await createAppointmentEvent(request.userId, {
         title: `${request.appointmentType.charAt(0).toUpperCase() + request.appointmentType.slice(1)} at ${request.businessName}`,
-        description: request.specialRequests 
+        description: request.specialRequests
           ? `Special requests: ${request.specialRequests}\n\nScheduled by Ferni`
           : 'Scheduled by Ferni',
         location: request.businessName,
@@ -520,7 +543,10 @@ class AppointmentIntegrationService extends EventEmitter {
       }
     }
 
-    getLogger().info({ appointmentId, notifyVia: request.notifyVia }, 'User notified of confirmation');
+    getLogger().info(
+      { appointmentId, notifyVia: request.notifyVia },
+      'User notified of confirmation'
+    );
   }
 
   /**
@@ -545,7 +571,10 @@ class AppointmentIntegrationService extends EventEmitter {
   /**
    * Notify user of failure
    */
-  private async notifyUserOfFailure(appointmentId: string, request: AppointmentRequest): Promise<void> {
+  private async notifyUserOfFailure(
+    appointmentId: string,
+    request: AppointmentRequest
+  ): Promise<void> {
     const message = `I wasn't able to reach ${request.businessName} for your ${request.appointmentType} appointment. Would you like me to try again or do you want to call them directly at ${request.businessPhone}?`;
 
     if (request.notifyVia && request.notifyContact) {
@@ -560,7 +589,7 @@ class AppointmentIntegrationService extends EventEmitter {
    */
   private parseRequestedDateTime(dateStr: string, timeStr: string): Date {
     const now = new Date();
-    let targetDate = new Date(now);
+    const targetDate = new Date(now);
 
     // Parse date
     const dateLower = dateStr.toLowerCase();
@@ -648,4 +677,3 @@ export function getAppointmentIntegrationService(): AppointmentIntegrationServic
 }
 
 export default AppointmentIntegrationService;
-

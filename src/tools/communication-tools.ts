@@ -74,8 +74,8 @@ interface ScheduledCall {
 }
 
 // In-memory storage for drafts (these don't persist - they're session-specific)
-const emailDrafts: Map<string, DraftedEmail> = new Map();
-const scheduledCalls: Map<string, ScheduledCall> = new Map();
+const emailDrafts = new Map<string, DraftedEmail>();
+const scheduledCalls = new Map<string, ScheduledCall>();
 
 // ============================================================================
 // EMAIL FUNCTIONS (Real SendGrid Integration)
@@ -202,8 +202,7 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
       {
         method: 'POST',
         headers: {
-          Authorization:
-            'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
@@ -819,7 +818,9 @@ export { createCommunicationCoachingTools } from './communication-coaching.js';
  * Create all communication tools - base + coaching combined
  */
 export function createAllCommunicationTools() {
-  const { createCommunicationCoachingTools: getCoachingTools } = require('./communication-coaching.js');
+  const {
+    createCommunicationCoachingTools: getCoachingTools,
+  } = require('./communication-coaching.js');
   return {
     ...createCommunicationTools(),
     ...getCoachingTools(),

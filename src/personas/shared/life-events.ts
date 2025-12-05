@@ -171,7 +171,7 @@ function randomFrom<T>(array: T[]): T {
  */
 export function getDaysUntilEvent(event: LifeEvent): number {
   const today = new Date();
-  let eventDate = new Date(event.date);
+  const eventDate = new Date(event.date);
 
   if (event.recurring) {
     // Set event year to this year
@@ -192,7 +192,7 @@ export function getDaysUntilEvent(event: LifeEvent): number {
 /**
  * Check if an event is happening soon
  */
-export function isEventSoon(event: LifeEvent, withinDays: number = 7): boolean {
+export function isEventSoon(event: LifeEvent, withinDays = 7): boolean {
   const daysUntil = getDaysUntilEvent(event);
   return daysUntil >= 0 && daysUntil <= withinDays;
 }

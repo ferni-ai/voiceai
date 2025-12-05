@@ -90,13 +90,13 @@ export interface DashboardData {
  */
 export async function getDashboardData(): Promise<DashboardData> {
   const startTime = Date.now();
-  
+
   try {
     // Get registry stats
     const registryStats = toolRegistry.getStats();
 
     // Get experiments
-    const experiments = abTestingService.getExperiments().map(exp => ({
+    const experiments = abTestingService.getExperiments().map((exp) => ({
       id: exp.id,
       name: exp.name,
       description: exp.description,
@@ -105,72 +105,87 @@ export async function getDashboardData(): Promise<DashboardData> {
 
     // Get tool usage stats
     const allStats = await toolUsageAnalytics.getAllStats();
-    
+
     const topTools = allStats
       .sort((a, b) => b.totalCalls - a.totalCalls)
       .slice(0, 10)
-      .map(s => ({
+      .map((s) => ({
         toolId: s.toolId,
         calls: s.totalCalls,
         avgLatencyMs: Math.round(s.avgLatencyMs),
       }));
 
     const slowTools = allStats
-      .filter(s => s.totalCalls > 0)
+      .filter((s) => s.totalCalls > 0)
       .sort((a, b) => b.avgLatencyMs - a.avgLatencyMs)
       .slice(0, 5)
-      .map(s => ({
+      .map((s) => ({
         toolId: s.toolId,
         avgLatencyMs: Math.round(s.avgLatencyMs),
       }));
 
     const errorTools = allStats
-      .filter(s => s.failureCount > 0)
-      .map(s => ({
+      .filter((s) => s.failureCount > 0)
+      .map((s) => ({
         toolId: s.toolId,
         errorRate: s.failureCount / s.totalCalls,
       }))
-      .filter(t => t.errorRate > 0.05)
+      .filter((t) => t.errorRate > 0.05)
       .sort((a, b) => b.errorRate - a.errorRate)
       .slice(0, 5);
 
     // Get recommendations
     const recommendations = await recommendationEngine.generateRecommendations();
-    const recStrings = recommendations.slice(0, 10).map(r => 
-      `${r.priority === 'critical' ? '🚨' : r.priority === 'high' ? '⚠️' : '💡'} ${r.title}`
-    );
+    const recStrings = recommendations
+      .slice(0, 10)
+      .map(
+        (r) =>
+          `${r.priority === 'critical' ? '🚨' : r.priority === 'high' ? '⚠️' : '💡'} ${r.title}`
+      );
 
     // Get patterns
-    const coOccurrences = patternAnalyzer.getCoOccurrences(5).slice(0, 10).map(c => ({
-      toolA: c.toolA,
-      toolB: c.toolB,
-      count: c.count,
-      correlation: c.correlation,
-    }));
-    
-    const sequences = patternAnalyzer.discoverSequences(2, 4, 3).slice(0, 10).map(s => ({
-      sequence: s.sequence,
-      count: s.count,
-      successRate: s.successRate,
-    }));
-    
-    const journeys = patternAnalyzer.identifyJourneys().slice(0, 5).map(j => ({
-      name: j.name,
-      tools: j.tools,
-      frequency: j.frequency,
-    }));
+    const coOccurrences = patternAnalyzer
+      .getCoOccurrences(5)
+      .slice(0, 10)
+      .map((c) => ({
+        toolA: c.toolA,
+        toolB: c.toolB,
+        count: c.count,
+        correlation: c.correlation,
+      }));
+
+    const sequences = patternAnalyzer
+      .discoverSequences(2, 4, 3)
+      .slice(0, 10)
+      .map((s) => ({
+        sequence: s.sequence,
+        count: s.count,
+        successRate: s.successRate,
+      }));
+
+    const journeys = patternAnalyzer
+      .identifyJourneys()
+      .slice(0, 5)
+      .map((j) => ({
+        name: j.name,
+        tools: j.tools,
+        frequency: j.frequency,
+      }));
 
     // Get feedback
     const allFeedback = feedbackCollector.getAllFeedback();
     const totalFeedback = allFeedback.reduce((sum, f) => sum + f.totalFeedback, 0);
     const totalPositive = allFeedback.reduce((sum, f) => sum + f.positiveCount, 0);
     const positiveRate = totalFeedback > 0 ? totalPositive / totalFeedback : 0;
-    
+
     const topFeatureRequests = feedbackCollector.getTopFeatureRequests(5);
-    const problematicTools = feedbackCollector.getProblematicTools().slice(0, 5).map(p => ({
-      toolId: p.toolId,
-      negativeRate: p.negativeCount / p.totalFeedback,
-    }));
+    const problematicTools = feedbackCollector
+      .getProblematicTools()
+      .slice(0, 5)
+      .map((p) => ({
+        toolId: p.toolId,
+        negativeRate: p.negativeCount / p.totalFeedback,
+      }));
 
     // Get optimizer status
     const optimizerStatus = autoOptimizer.getStatus();
@@ -221,12 +236,13 @@ export async function triggerOptimizationCycle(): Promise<{
 }> {
   try {
     const cycle = await autoOptimizer.runOptimizationCycle();
-    
+
     return {
       success: cycle.status === 'completed',
-      message: cycle.status === 'completed' 
-        ? `Cycle complete: ${cycle.recommendationsCreated} recommendations`
-        : `Cycle incomplete: ${cycle.status}`,
+      message:
+        cycle.status === 'completed'
+          ? `Cycle complete: ${cycle.recommendationsCreated} recommendations`
+          : `Cycle incomplete: ${cycle.status}`,
       recommendationsGenerated: cycle.recommendationsCreated,
     };
   } catch (error) {
@@ -303,9 +319,9 @@ export async function getRecommendations(): Promise<{
   }>;
 }> {
   const recs = await recommendationEngine.generateRecommendations();
-  
+
   return {
-    recommendations: recs.map(r => ({
+    recommendations: recs.map((r) => ({
       id: r.id,
       type: r.type,
       title: r.title,
@@ -321,7 +337,9 @@ export async function getRecommendations(): Promise<{
 /**
  * Approve a recommendation
  */
-export async function approveRecommendation(recommendationId: string): Promise<{ success: boolean; message: string }> {
+export async function approveRecommendation(
+  recommendationId: string
+): Promise<{ success: boolean; message: string }> {
   try {
     await optimizationPersistence.updateRecommendationStatus(recommendationId, 'approved');
     return { success: true, message: `Recommendation ${recommendationId} approved` };
@@ -333,7 +351,9 @@ export async function approveRecommendation(recommendationId: string): Promise<{
 /**
  * Reject a recommendation
  */
-export async function rejectRecommendation(recommendationId: string): Promise<{ success: boolean; message: string }> {
+export async function rejectRecommendation(
+  recommendationId: string
+): Promise<{ success: boolean; message: string }> {
   try {
     await optimizationPersistence.updateRecommendationStatus(recommendationId, 'rejected');
     return { success: true, message: `Recommendation ${recommendationId} rejected` };
@@ -350,7 +370,7 @@ export async function rejectRecommendation(recommendationId: string): Promise<{ 
  * Create Express router for optimization API
  * Usage: app.use('/api/tools', createOptimizationRouter())
  */
-export function createOptimizationRouter() {
+export async function createOptimizationRouter() {
   // Dynamic import to avoid requiring express if not used
   return (async () => {
     try {
@@ -501,4 +521,3 @@ export default {
   createOptimizationRouter,
   handleOptimizationRequest,
 };
-

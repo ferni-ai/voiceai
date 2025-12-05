@@ -164,7 +164,8 @@ export async function shutdown(): Promise<void> {
     // Save community insights before shutdown
     logger.info('Saving community insights...');
     try {
-      const { saveCommunityInsightsToFirestore } = await import('./intelligence/community-insights.js');
+      const { saveCommunityInsightsToFirestore } =
+        await import('./intelligence/community-insights.js');
       await saveCommunityInsightsToFirestore();
       logger.info('✓ Community insights saved');
     } catch (error) {
@@ -234,8 +235,8 @@ export function registerShutdownHandlers(): void {
     process.exit(0);
   };
 
-  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
-  process.on('SIGINT', () => handleShutdown('SIGINT'));
+  process.on('SIGTERM', async () => handleShutdown('SIGTERM'));
+  process.on('SIGINT', async () => handleShutdown('SIGINT'));
 
   process.on('uncaughtException', async (error) => {
     getLogger().error(`Uncaught exception: ${error}`);

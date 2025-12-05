@@ -68,4 +68,3 @@ export function createCommunicationProfile(): CommunicationProfile {
     financialPrivacyLevel: 'moderate',
   };
 }
-

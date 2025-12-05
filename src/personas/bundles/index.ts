@@ -26,7 +26,6 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { PersonaConfig } from '../types.js';
 import type { LoadedPersonaBundle } from './types.js';
 
-
 // Types
 export * from './types.js';
 
@@ -126,7 +125,7 @@ export async function discoverAndLoadBundles(): Promise<{
   // Process in batches of BUNDLE_LOAD_CONCURRENCY to avoid overwhelming the system
   for (let i = 0; i < bundleIds.length; i += BUNDLE_LOAD_CONCURRENCY) {
     const batch = bundleIds.slice(i, i + BUNDLE_LOAD_CONCURRENCY);
-    
+
     const batchResults = await Promise.all(
       batch.map(async (bundleId) => {
         try {
@@ -151,7 +150,10 @@ export async function discoverAndLoadBundles(): Promise<{
         getLogger().debug({ bundleId: result.bundleId }, 'Loaded bundle');
       } else if ('error' in result) {
         errors.push(`Failed to load bundle ${result.bundleId}: ${result.error}`);
-        getLogger().warn({ bundleId: result.bundleId, error: result.error }, 'Failed to load bundle');
+        getLogger().warn(
+          { bundleId: result.bundleId, error: result.error },
+          'Failed to load bundle'
+        );
       }
     }
   }

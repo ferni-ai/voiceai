@@ -18,10 +18,7 @@ import {
   getNaturalGreeting,
   generateContextForLLM,
 } from '../services/natural-auth.js';
-import {
-  identifyFromMetadata,
-  identifyWithNaturalAuth,
-} from '../services/user-identification.js';
+import { identifyFromMetadata, identifyWithNaturalAuth } from '../services/user-identification.js';
 
 // Import tools
 import { createTask, completeTask, getUserTasks } from '../tools/tasks.js';
@@ -261,7 +258,7 @@ describe('E2E Productivity Integration', () => {
       const store = getProductivityStore();
 
       // Add data directly to store
-      store.setTask(testUserId + '-persist', {
+      store.setTask(`${testUserId}-persist`, {
         id: 'persist-test-task',
         title: 'Persistence Test',
         category: 'personal',
@@ -274,7 +271,7 @@ describe('E2E Productivity Integration', () => {
       });
 
       // Retrieve it
-      const tasks = store.getUserTasks(testUserId + '-persist');
+      const tasks = store.getUserTasks(`${testUserId}-persist`);
       expect(tasks.some((t) => t.id === 'persist-test-task')).toBe(true);
     });
 
@@ -305,7 +302,7 @@ describe('E2E Productivity Integration', () => {
 
   describe('Cross-Tool Integration', () => {
     it('should handle multiple tools for same user', () => {
-      const userId = testUserId + '-multi';
+      const userId = `${testUserId}-multi`;
 
       // Create items across multiple tools
       createTask({ userId, title: 'Multi-tool task' });
@@ -322,4 +319,3 @@ describe('E2E Productivity Integration', () => {
     });
   });
 });
-

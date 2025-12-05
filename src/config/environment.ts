@@ -239,7 +239,9 @@ export function printConfigSummary(config: AppConfig): void {
   logger.info(`│ Storage:      ${config.storage.type.padEnd(33)}│`);
   logger.info(`│ Redis Cache:  ${(config.cache.enabled ? 'Enabled' : 'Disabled').padEnd(33)}│`);
   logger.info('├─────────────────────────────────────────────────┤');
-  logger.info(`│ Music:        ${(config.features.musicEnabled ? '✓ Enabled' : '✗ Disabled').padEnd(33)}│`);
+  logger.info(
+    `│ Music:        ${(config.features.musicEnabled ? '✓ Enabled' : '✗ Disabled').padEnd(33)}│`
+  );
   logger.info('├─────────────────────────────────────────────────┤');
   logger.info(
     `│ LiveKit:      ${(config.apis.livekitUrl ? '✓ Configured' : '✗ Missing').padEnd(33)}│`

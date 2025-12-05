@@ -25,7 +25,7 @@ const MUSIC_REACTIONS = {
     'Perfect.',
   ],
   appreciation: [
-    "You know, <break time=\"150ms\"/>there's something timeless about this.",
+    'You know, <break time="150ms"/>there\'s something timeless about this.',
     'Music like this... <break time="200ms"/>it feeds the soul.',
     'This takes me back.',
     'A classic for a reason.',
@@ -33,7 +33,7 @@ const MUSIC_REACTIONS = {
     'This is the good stuff.',
   ],
   mood: [
-    "Perfect mood music, <break time=\"100ms\"/>isn't it?",
+    'Perfect mood music, <break time="100ms"/>isn\'t it?',
     'This hits different at certain times.',
     'Music can really change your whole day.',
     'Sometimes you just need the right song.',
@@ -55,8 +55,8 @@ const MUSIC_REACTIONS = {
   trackEnded: [
     'That was nice! <break time="150ms"/>Want more?',
     'Song finished. <break time="100ms"/>Another one?',
-    'Good track! What\'s next?',
-    'And that\'s a wrap on that one.',
+    "Good track! What's next?",
+    "And that's a wrap on that one.",
     'The music finished. <break time="150ms"/>Want something else?',
   ],
 };

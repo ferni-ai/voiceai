@@ -135,9 +135,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 // Export individual getters for selective imports
-export {
-  getGeneralProactiveToolDefinitions,
-  getCoachingToolDefinitions,
-};
+export { getGeneralProactiveToolDefinitions, getCoachingToolDefinitions };
 
 export default getToolDefinitions;

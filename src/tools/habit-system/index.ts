@@ -32,12 +32,7 @@ export type {
 } from './types.js';
 
 // Life Domains & Stages
-export {
-  LIFE_DOMAINS,
-  LIFE_STAGES,
-  FOUR_TENDENCIES,
-  GLIDEPATH_LEVELS,
-} from './domains.js';
+export { LIFE_DOMAINS, LIFE_STAGES, FOUR_TENDENCIES, GLIDEPATH_LEVELS } from './domains.js';
 
 // 30-Day Challenges
 export {
@@ -48,9 +43,4 @@ export {
 } from './challenges.js';
 
 // Habit Bundles
-export {
-  HABIT_BUNDLES,
-  getBundleForGoal,
-  formatBundleDescription,
-} from './bundles.js';
-
+export { HABIT_BUNDLES, getBundleForGoal, formatBundleDescription } from './bundles.js';

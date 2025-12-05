@@ -1,9 +1,9 @@
 /**
  * Error Tracking Service
- * 
+ *
  * Integrates with Sentry for production error monitoring.
  * Provides structured error capture with context.
- * 
+ *
  * Environment:
  * - SENTRY_DSN: Sentry project DSN
  * - NODE_ENV: Environment name (production, staging, development)
@@ -80,7 +80,7 @@ class ErrorTrackingService {
    */
   async init(): Promise<void> {
     if (this.initialized) return;
-    
+
     if (!this.dsn) {
       getLogger().info('Sentry DSN not configured - error tracking disabled');
       return;
@@ -88,14 +88,14 @@ class ErrorTrackingService {
 
     try {
       // Dynamic import to avoid bundling Sentry when not used
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+
       const Sentry = await import('@sentry/node').catch(() => null);
-      
+
       if (!Sentry) {
         getLogger().info('Sentry not installed - error tracking disabled');
         return;
       }
-      
+
       Sentry.init({
         dsn: this.dsn,
         environment: this.environment,
@@ -116,7 +116,7 @@ class ErrorTrackingService {
 
       this.sentry = Sentry as unknown as SentryLike;
       this.initialized = true;
-      
+
       getLogger().info({ environment: this.environment }, 'Sentry initialized');
     } catch (error) {
       getLogger().warn({ error }, 'Failed to initialize Sentry - error tracking disabled');
@@ -255,7 +255,7 @@ export function withErrorTracking<T extends unknown[], R>(
     } catch (error) {
       errorTracking.captureException(error as Error, {
         ...context,
-        metadata: { args: args.map(a => typeof a) },
+        metadata: { args: args.map((a) => typeof a) },
       });
       throw error;
     }
@@ -308,5 +308,3 @@ export function trackApiCall(endpoint: string, method: string, statusCode: numbe
 }
 
 export default errorTracking;
-
-

@@ -1,12 +1,12 @@
 /**
  * Twilio Webhook Handlers
- * 
+ *
  * Handles incoming webhooks from Twilio for:
  * - Call status updates (initiated, ringing, answered, completed)
  * - SMS delivery status
  * - Voice recording completion
  * - Voicemail transcription
- * 
+ *
  * These webhooks enable real-time tracking of appointment calls
  * and communication delivery status.
  */
@@ -24,7 +24,15 @@ export interface TwilioCallStatus {
   AccountSid: string;
   From: string;
   To: string;
-  CallStatus: 'queued' | 'ringing' | 'in-progress' | 'completed' | 'busy' | 'failed' | 'no-answer' | 'canceled';
+  CallStatus:
+    | 'queued'
+    | 'ringing'
+    | 'in-progress'
+    | 'completed'
+    | 'busy'
+    | 'failed'
+    | 'no-answer'
+    | 'canceled';
   CallDuration?: string;
   Direction: 'inbound' | 'outbound-api' | 'outbound-dial';
   Timestamp?: string;
@@ -39,7 +47,14 @@ export interface TwilioCallStatus {
   ErrorCode?: string;
   ErrorMessage?: string;
   // Answering Machine Detection
-  AnsweredBy?: 'human' | 'machine_start' | 'machine_end_beep' | 'machine_end_silence' | 'machine_end_other' | 'fax' | 'unknown';
+  AnsweredBy?:
+    | 'human'
+    | 'machine_start'
+    | 'machine_end_beep'
+    | 'machine_end_silence'
+    | 'machine_end_other'
+    | 'fax'
+    | 'unknown';
 }
 
 export interface TwilioSMSStatus {
@@ -47,7 +62,14 @@ export interface TwilioSMSStatus {
   AccountSid: string;
   From: string;
   To: string;
-  MessageStatus: 'accepted' | 'queued' | 'sending' | 'sent' | 'delivered' | 'undelivered' | 'failed';
+  MessageStatus:
+    | 'accepted'
+    | 'queued'
+    | 'sending'
+    | 'sent'
+    | 'delivered'
+    | 'undelivered'
+    | 'failed';
   ErrorCode?: string;
   ErrorMessage?: string;
 }
@@ -79,8 +101,8 @@ export interface CallTrackingEntry {
 // ============================================================================
 
 class TwilioWebhookService extends EventEmitter {
-  private activeCalls: Map<string, CallTrackingEntry> = new Map();
-  private smsStatus: Map<string, TwilioSMSStatus> = new Map();
+  private activeCalls = new Map<string, CallTrackingEntry>();
+  private smsStatus = new Map<string, TwilioSMSStatus>();
 
   constructor() {
     super();
@@ -155,7 +177,12 @@ class TwilioWebhookService extends EventEmitter {
   /**
    * Handle recording webhook from Twilio
    */
-  handleRecording(data: { CallSid: string; RecordingUrl: string; RecordingSid: string; RecordingDuration: string }): void {
+  handleRecording(data: {
+    CallSid: string;
+    RecordingUrl: string;
+    RecordingSid: string;
+    RecordingDuration: string;
+  }): void {
     const entry = this.activeCalls.get(data.CallSid);
     if (!entry) return;
 
@@ -165,20 +192,30 @@ class TwilioWebhookService extends EventEmitter {
       duration: parseInt(data.RecordingDuration, 10),
     };
 
-    getLogger().info({ callSid: data.CallSid, duration: entry.recording.duration }, '🎙️ Recording received');
+    getLogger().info(
+      { callSid: data.CallSid, duration: entry.recording.duration },
+      '🎙️ Recording received'
+    );
     this.emit('recording', entry);
   }
 
   /**
    * Handle transcription webhook from Twilio
    */
-  handleTranscription(data: { CallSid: string; TranscriptionText: string; TranscriptionStatus: string }): void {
+  handleTranscription(data: {
+    CallSid: string;
+    TranscriptionText: string;
+    TranscriptionStatus: string;
+  }): void {
     const entry = this.activeCalls.get(data.CallSid);
     if (!entry) return;
 
     if (data.TranscriptionStatus === 'completed') {
       entry.transcription = data.TranscriptionText;
-      getLogger().info({ callSid: data.CallSid, text: data.TranscriptionText.slice(0, 100) }, '📝 Transcription received');
+      getLogger().info(
+        { callSid: data.CallSid, text: data.TranscriptionText.slice(0, 100) },
+        '📝 Transcription received'
+      );
       this.emit('transcription', entry);
     }
   }
@@ -189,7 +226,10 @@ class TwilioWebhookService extends EventEmitter {
   handleSMSStatus(data: TwilioSMSStatus): void {
     this.smsStatus.set(data.MessageSid, data);
 
-    getLogger().info({ MessageSid: data.MessageSid, MessageStatus: data.MessageStatus }, '📱 SMS status update');
+    getLogger().info(
+      { MessageSid: data.MessageSid, MessageStatus: data.MessageStatus },
+      '📱 SMS status update'
+    );
 
     if (data.MessageStatus === 'failed' || data.MessageStatus === 'undelivered') {
       getLogger().error({ ...data }, '❌ SMS delivery failed');
@@ -236,7 +276,10 @@ class TwilioWebhookService extends EventEmitter {
    * Handle voicemail detection
    */
   private handleVoicemailDetected(entry: CallTrackingEntry): void {
-    getLogger().info({ callSid: entry.callSid, answeredBy: entry.answeredBy }, '📞 Voicemail detected');
+    getLogger().info(
+      { callSid: entry.callSid, answeredBy: entry.answeredBy },
+      '📞 Voicemail detected'
+    );
     this.emit('voicemail', entry);
   }
 
@@ -302,7 +345,15 @@ export function generateAppointmentTwiML(options: {
   callerName?: string;
   callbackUrl?: string;
 }): string {
-  const { businessName, requestedDate, requestedTime, partySize, specialRequests, callerName, callbackUrl } = options;
+  const {
+    businessName,
+    requestedDate,
+    requestedTime,
+    partySize,
+    specialRequests,
+    callerName,
+    callbackUrl,
+  } = options;
 
   const script = [
     `Hello, I'm calling on behalf of ${callerName || 'a client'} to schedule an appointment.`,
@@ -315,7 +366,7 @@ export function generateAppointmentTwiML(options: {
     .filter(Boolean)
     .join(' ');
 
-  let twiml = `<?xml version="1.0" encoding="UTF-8"?>
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Joanna">${script}</Say>
   <Pause length="2"/>
@@ -330,7 +381,7 @@ export function generateAppointmentTwiML(options: {
 /**
  * Generate TwiML for a simple message delivery call
  */
-export function generateMessageTwiML(message: string, voice: string = 'Polly.Joanna'): string {
+export function generateMessageTwiML(message: string, voice = 'Polly.Joanna'): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="${voice}">${message}</Say>
@@ -380,7 +431,10 @@ export function getTwilioWebhookService(): TwilioWebhookService {
  * Express-compatible webhook handler for call status
  * Use: app.post('/webhooks/twilio/call-status', twilioCallStatusHandler)
  */
-export function twilioCallStatusHandler(req: { body: TwilioCallStatus }, res: { status: (code: number) => { send: (data: string) => void } }): void {
+export function twilioCallStatusHandler(
+  req: { body: TwilioCallStatus },
+  res: { status: (code: number) => { send: (data: string) => void } }
+): void {
   try {
     getTwilioWebhookService().handleCallStatus(req.body);
     res.status(200).send('<Response></Response>');
@@ -393,7 +447,10 @@ export function twilioCallStatusHandler(req: { body: TwilioCallStatus }, res: { 
 /**
  * Express-compatible webhook handler for SMS status
  */
-export function twilioSMSStatusHandler(req: { body: TwilioSMSStatus }, res: { status: (code: number) => { send: (data: string) => void } }): void {
+export function twilioSMSStatusHandler(
+  req: { body: TwilioSMSStatus },
+  res: { status: (code: number) => { send: (data: string) => void } }
+): void {
   try {
     getTwilioWebhookService().handleSMSStatus(req.body);
     res.status(200).send('<Response></Response>');
@@ -406,7 +463,17 @@ export function twilioSMSStatusHandler(req: { body: TwilioSMSStatus }, res: { st
 /**
  * Express-compatible webhook handler for recordings
  */
-export function twilioRecordingHandler(req: { body: { CallSid: string; RecordingUrl: string; RecordingSid: string; RecordingDuration: string } }, res: { status: (code: number) => { send: (data: string) => void } }): void {
+export function twilioRecordingHandler(
+  req: {
+    body: {
+      CallSid: string;
+      RecordingUrl: string;
+      RecordingSid: string;
+      RecordingDuration: string;
+    };
+  },
+  res: { status: (code: number) => { send: (data: string) => void } }
+): void {
   try {
     getTwilioWebhookService().handleRecording(req.body);
     res.status(200).send('<Response></Response>');
@@ -419,7 +486,10 @@ export function twilioRecordingHandler(req: { body: { CallSid: string; Recording
 /**
  * Express-compatible webhook handler for transcriptions
  */
-export function twilioTranscriptionHandler(req: { body: { CallSid: string; TranscriptionText: string; TranscriptionStatus: string } }, res: { status: (code: number) => { send: (data: string) => void } }): void {
+export function twilioTranscriptionHandler(
+  req: { body: { CallSid: string; TranscriptionText: string; TranscriptionStatus: string } },
+  res: { status: (code: number) => { send: (data: string) => void } }
+): void {
   try {
     getTwilioWebhookService().handleTranscription(req.body);
     res.status(200).send('<Response></Response>');
@@ -430,4 +500,3 @@ export function twilioTranscriptionHandler(req: { body: { CallSid: string; Trans
 }
 
 export default TwilioWebhookService;
-

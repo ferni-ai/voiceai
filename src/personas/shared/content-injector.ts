@@ -290,7 +290,7 @@ export function shouldTellStory(stage: string, storyWeight: 'light' | 'medium' |
  * @param daysSince - Days since last contact (0 = same day)
  * @param name - Optional user name
  */
-export function getTimeGreeting(daysSince: number = 0, name?: string): string {
+export function getTimeGreeting(daysSince = 0, name?: string): string {
   return getTimeBasedGreeting(daysSince, name);
 }
 

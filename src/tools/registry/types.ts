@@ -206,13 +206,13 @@ export interface AgentManifestRef {
  */
 export interface ServiceRegistry {
   /** Check if a service is available */
-  has(service: ExternalService): boolean;
+  has: (service: ExternalService) => boolean;
 
   /** Get service instance (throws if not available) */
-  get<T>(service: ExternalService): T;
+  get: <T>(service: ExternalService) => T;
 
   /** Get service instance or undefined */
-  getOptional<T>(service: ExternalService): T | undefined;
+  getOptional: <T>(service: ExternalService) => T | undefined;
 }
 
 /**
@@ -472,4 +472,3 @@ export default {
   validateToolSetSpec,
   EmptyServiceRegistry,
 };
-

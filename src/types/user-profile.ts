@@ -160,7 +160,7 @@ export interface FinancialGoal {
   // History
   createdAt: Date;
   updatedAt: Date;
-  milestones?: { date: Date; note: string }[];
+  milestones?: Array<{ date: Date; note: string }>;
 
   // Jack's perspective
   jackNotes?: string; // Jack's personal observations about this goal
@@ -332,9 +332,9 @@ export interface FamilyMember {
  * Different from global relationship - tracks depth with EACH team member
  */
 export type PersonaRelationshipStage =
-  | 'stranger'        // First 1-2 interactions
-  | 'acquaintance'    // Getting to know (3-5 interactions)
-  | 'friend'          // Comfortable relationship (6+ interactions, shared moments)
+  | 'stranger' // First 1-2 interactions
+  | 'acquaintance' // Getting to know (3-5 interactions)
+  | 'friend' // Comfortable relationship (6+ interactions, shared moments)
   | 'trusted_advisor'; // Deep relationship (many interactions, vulnerability shared)
 
 /**
@@ -439,7 +439,7 @@ export interface UserProfile {
   conversationSummaries: ConversationSummary[];
   lastConversationSummary?: string; // Quick access to most recent
   openQuestions: string[]; // Things they asked that weren't fully addressed
-  pendingFollowUps: { topic: string; targetDate: Date; reason: string }[];
+  pendingFollowUps: Array<{ topic: string; targetDate: Date; reason: string }>;
 
   // Session state (for current conversation)
   currentSessionId?: string;
@@ -466,7 +466,14 @@ export interface UserProfile {
     totalSpontaneousShares: number;
 
     /** Last persona mood (for continuity) */
-    lastMood?: 'energized' | 'reflective' | 'playful' | 'grounded' | 'tired_but_present' | 'philosophical' | 'nostalgic';
+    lastMood?:
+      | 'energized'
+      | 'reflective'
+      | 'playful'
+      | 'grounded'
+      | 'tired_but_present'
+      | 'philosophical'
+      | 'nostalgic';
 
     /** Mood history (last 10 moods for pattern detection) */
     moodHistory?: Array<{
@@ -790,7 +797,14 @@ export interface UserProfile {
    */
   cognitiveIntelligence?: {
     /** User's detected cognitive style */
-    detectedStyle: 'analytical' | 'emotional' | 'practical' | 'narrative' | 'systematic' | 'intuitive' | 'unknown';
+    detectedStyle:
+      | 'analytical'
+      | 'emotional'
+      | 'practical'
+      | 'narrative'
+      | 'systematic'
+      | 'intuitive'
+      | 'unknown';
 
     /** Confidence in style detection (0-1) */
     styleConfidence: number;
@@ -799,12 +813,21 @@ export interface UserProfile {
     styleUpdatedAt: Date;
 
     /** Effectiveness scores by approach per persona */
-    approachEffectiveness: Record<string, {
-      approach: 'analytical' | 'empathetic' | 'narrative' | 'systematic' | 'pragmatic' | 'intuitive';
-      totalScore: number;
-      sampleCount: number;
-      lastUsed: Date;
-    }[]>;
+    approachEffectiveness: Record<
+      string,
+      Array<{
+        approach:
+          | 'analytical'
+          | 'empathetic'
+          | 'narrative'
+          | 'systematic'
+          | 'pragmatic'
+          | 'intuitive';
+        totalScore: number;
+        sampleCount: number;
+        lastUsed: Date;
+      }>
+    >;
 
     /** Topics user has demonstrated expertise in */
     expertiseAreas: string[];
@@ -813,36 +836,45 @@ export interface UserProfile {
     noviceAreas: string[];
 
     /** Topics that have been explained (don't re-explain) */
-    explainedTopics: Record<string, {
-      personaId: string;
-      level: 'introduced' | 'explained' | 'deep_dive';
-      lastExplained: Date;
-      revisits: number;
-    }>;
+    explainedTopics: Record<
+      string,
+      {
+        personaId: string;
+        level: 'introduced' | 'explained' | 'deep_dive';
+        lastExplained: Date;
+        revisits: number;
+      }
+    >;
 
     /** Concepts user has demonstrated understanding of */
     demonstratedUnderstanding: string[];
 
     /** Cognitive approach preferences by topic */
-    topicPreferences: Record<string, {
-      preferredApproach: string;
-      confidence: number;
-    }>;
+    topicPreferences: Record<
+      string,
+      {
+        preferredApproach: string;
+        confidence: number;
+      }
+    >;
 
     /** Total cognitive interactions tracked */
     totalInteractions: number;
 
     /** Per-persona cognitive relationship data */
-    perPersonaCognitiveData?: Record<string, {
-      /** Effective approaches with this persona */
-      effectiveApproaches: string[];
-      /** Ineffective approaches with this persona */
-      ineffectiveApproaches: string[];
-      /** Topics explained by this persona */
-      explainedTopics: string[];
-      /** Relationship cognitive growth stage */
-      cognitiveGrowthStage: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
-    }>;
+    perPersonaCognitiveData?: Record<
+      string,
+      {
+        /** Effective approaches with this persona */
+        effectiveApproaches: string[];
+        /** Ineffective approaches with this persona */
+        ineffectiveApproaches: string[];
+        /** Topics explained by this persona */
+        explainedTopics: string[];
+        /** Relationship cognitive growth stage */
+        cognitiveGrowthStage: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
+      }
+    >;
 
     /** Last updated */
     updatedAt: Date;

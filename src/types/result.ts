@@ -144,10 +144,7 @@ export function mapError<T, E, F>(result: Result<T, E>, fn: (error: E) => F): Re
 /**
  * Chain results (flatMap)
  */
-export function chain<T, U, E>(
-  result: Result<T, E>,
-  fn: (data: T) => Result<U, E>
-): Result<U, E> {
+export function chain<T, U, E>(result: Result<T, E>, fn: (data: T) => Result<U, E>): Result<U, E> {
   if (isSuccess(result)) {
     return fn(result.data);
   }
@@ -194,7 +191,7 @@ export function fromThrowable<T, E = Error>(
  * Combine multiple results into one
  * Returns failure on first error, or success with array of all data
  */
-export function combine<T, E>(results: Result<T, E>[]): Result<T[], E> {
+export function combine<T, E>(results: Array<Result<T, E>>): Result<T[], E> {
   const data: T[] = [];
   for (const result of results) {
     if (isFailure(result)) {
@@ -208,7 +205,9 @@ export function combine<T, E>(results: Result<T, E>[]): Result<T[], E> {
 /**
  * Collect all successes and failures separately
  */
-export function partition<T, E>(results: Result<T, E>[]): {
+export function partition<T, E>(
+  results: Array<Result<T, E>>
+): {
   successes: T[];
   failures: E[];
 } {
@@ -276,10 +275,14 @@ export class ValidationError extends DomainError {
  */
 export class PermissionError extends DomainError {
   constructor(action: string, resource?: string) {
-    super(`Permission denied: cannot ${action}${resource ? ` on ${resource}` : ''}`, 'PERMISSION_DENIED', {
-      action,
-      resource,
-    });
+    super(
+      `Permission denied: cannot ${action}${resource ? ` on ${resource}` : ''}`,
+      'PERMISSION_DENIED',
+      {
+        action,
+        resource,
+      }
+    );
   }
 }
 
@@ -318,4 +321,3 @@ export class TimeoutError extends DomainError {
     });
   }
 }
-

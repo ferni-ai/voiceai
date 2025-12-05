@@ -89,28 +89,20 @@ function formatFerniMemories(memories: FerniMemory[], userName?: string): string
   const insideJokes = memories.filter((m) => m.type === 'inside_joke');
 
   if (preferences.length > 0) {
-    sections.push(
-      `**Things ${name} likes:** ${preferences.map((p) => p.name).join(', ')}`
-    );
+    sections.push(`**Things ${name} likes:** ${preferences.map((p) => p.name).join(', ')}`);
   }
 
   if (wins.length > 0) {
     const recentWins = wins.slice(0, 3);
-    sections.push(
-      `**Recent wins to celebrate:** ${recentWins.map((w) => w.name).join('; ')}`
-    );
+    sections.push(`**Recent wins to celebrate:** ${recentWins.map((w) => w.name).join('; ')}`);
   }
 
   if (topics.length > 0) {
-    sections.push(
-      `**Topics they enjoy:** ${topics.map((t) => t.name).join(', ')}`
-    );
+    sections.push(`**Topics they enjoy:** ${topics.map((t) => t.name).join(', ')}`);
   }
 
   if (insideJokes.length > 0) {
-    sections.push(
-      `**Inside jokes between you:** ${insideJokes.map((j) => j.name).join('; ')}`
-    );
+    sections.push(`**Inside jokes between you:** ${insideJokes.map((j) => j.name).join('; ')}`);
   }
 
   return sections.join('\n');
@@ -285,9 +277,7 @@ function formatJordanMemories(memories: JordanMemory[], userName?: string): stri
   }
 
   if (destinations.length > 0) {
-    sections.push(
-      `**✈️ Dream destinations:** ${destinations.map((d) => d.name).join(', ')}`
-    );
+    sections.push(`**✈️ Dream destinations:** ${destinations.map((d) => d.name).join(', ')}`);
   }
 
   return sections.join('\n');
@@ -323,9 +313,7 @@ function formatAlexMemories(memories: AlexMemory[], userName?: string): string {
   }
 
   if (reminderStyles.length > 0) {
-    sections.push(
-      `**⏰ Reminder preferences:** ${reminderStyles.map((r) => r.name).join('; ')}`
-    );
+    sections.push(`**⏰ Reminder preferences:** ${reminderStyles.map((r) => r.name).join('; ')}`);
   }
 
   return sections.join('\n');
@@ -540,7 +528,9 @@ function getProactiveMemoryCallback(
           `Consider: "Still watching ${ticker}? What's your gut telling you?"`,
         ];
         if (stock.reason) {
-          callbacks.push(`Remember they added ${ticker} because: "${stock.reason}". Ask if that thesis still holds.`);
+          callbacks.push(
+            `Remember they added ${ticker} because: "${stock.reason}". Ask if that thesis still holds.`
+          );
         }
         return callbacks[Math.floor(Math.random() * callbacks.length)];
       }
@@ -593,7 +583,9 @@ function getProactiveMemoryCallback(
     case 'jordan': {
       // Jordan remembers dates, venues, destinations - checks on upcoming events
       const dates = result.memories.filter((m) => (m as JordanMemory).type === 'date');
-      const destinations = result.memories.filter((m) => (m as JordanMemory).type === 'destination');
+      const destinations = result.memories.filter(
+        (m) => (m as JordanMemory).type === 'destination'
+      );
       const venues = result.memories.filter((m) => (m as JordanMemory).type === 'venue');
 
       // PRIORITY: Check for upcoming dates (within 30 days)
@@ -606,10 +598,12 @@ function getProactiveMemoryCallback(
             const dateStr = jd.date.replace(/(\d+)(st|nd|rd|th)/, '$1');
             const thisYear = new Date(`${dateStr} ${now.getFullYear()}`);
             const nextYear = new Date(`${dateStr} ${now.getFullYear() + 1}`);
-            
+
             // Check both this year and next year
             for (const parsed of [thisYear, nextYear]) {
-              const daysUntil = Math.floor((parsed.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              const daysUntil = Math.floor(
+                (parsed.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+              );
               if (daysUntil >= 0 && daysUntil <= 30) {
                 if (daysUntil === 0) {
                   return `🎉 TODAY IS THE DAY! ${jd.name}${jd.person ? ` (${jd.person})` : ''} is TODAY! Wish ${name} well!`;
@@ -645,8 +639,12 @@ function getProactiveMemoryCallback(
 
     case 'alex': {
       // Alex remembers communication preferences, scheduling notes
-      const commPrefs = result.memories.filter((m) => (m as AlexMemory).type === 'communication_preference');
-      const schedNotes = result.memories.filter((m) => (m as AlexMemory).type === 'scheduling_note');
+      const commPrefs = result.memories.filter(
+        (m) => (m as AlexMemory).type === 'communication_preference'
+      );
+      const schedNotes = result.memories.filter(
+        (m) => (m as AlexMemory).type === 'scheduling_note'
+      );
 
       // Communication preference callbacks
       if (commPrefs.length > 0 && Math.random() < 0.25) {
@@ -755,7 +753,7 @@ async function buildPersonaMemoryContext(input: ContextBuilderInput): Promise<Co
   }
 
   // Get relationship stage for memory filtering
-  const relationshipStage = userProfile.relationshipStage;
+  const { relationshipStage } = userProfile;
 
   // Retrieve persona-specific memories (filtered by relationship stage)
   const memoryResult = await getPersonaMemories(
@@ -771,7 +769,7 @@ async function buildPersonaMemoryContext(input: ContextBuilderInput): Promise<Co
       injections.push(
         createHintInjection(
           'no_memories_hint',
-          '[RELATIONSHIP BUILDING: You don\'t have specific memories stored for this user yet. Consider asking what they\'d like you to remember about them.]'
+          "[RELATIONSHIP BUILDING: You don't have specific memories stored for this user yet. Consider asking what they'd like you to remember about them.]"
         )
       );
     }
@@ -835,4 +833,3 @@ export {
   type PersonaMemoryResult,
   type NormalizedPersonaId,
 };
-

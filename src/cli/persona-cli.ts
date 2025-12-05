@@ -137,13 +137,14 @@ function discoverPersonas(): string[] {
     return [];
   }
 
-  return fs.readdirSync(BUNDLES_DIR, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
-    .filter(dirent => {
+  return fs
+    .readdirSync(BUNDLES_DIR, { withFileTypes: true })
+    .filter((dirent) => dirent.isDirectory())
+    .filter((dirent) => {
       const manifestPath = path.join(BUNDLES_DIR, dirent.name, 'persona.manifest.json');
       return fs.existsSync(manifestPath);
     })
-    .map(dirent => dirent.name);
+    .map((dirent) => dirent.name);
 }
 
 function loadManifest(personaId: string): PersonaManifest | null {
@@ -176,15 +177,18 @@ function commandList(): void {
     return;
   }
 
-  const maxIdLength = Math.max(...personas.map(p => p.length));
+  const maxIdLength = Math.max(...personas.map((p) => p.length));
 
   for (const personaId of personas.sort()) {
     const manifest = loadManifest(personaId);
     if (manifest) {
       const paddedId = personaId.padEnd(maxIdLength);
       const displayName = manifest.identity?.display_name || manifest.identity?.name || personaId;
-      const shortDesc = manifest.marketplace?.short_description || manifest.identity?.description || '';
-      log(`  ${colors.cyan}${paddedId}${colors.reset}  ${displayName} - ${shortDesc.slice(0, 60)}${shortDesc.length > 60 ? '...' : ''}`);
+      const shortDesc =
+        manifest.marketplace?.short_description || manifest.identity?.description || '';
+      log(
+        `  ${colors.cyan}${paddedId}${colors.reset}  ${displayName} - ${shortDesc.slice(0, 60)}${shortDesc.length > 60 ? '...' : ''}`
+      );
     }
   }
 
@@ -207,7 +211,9 @@ function commandInfo(personaId: string): void {
   log(`  ID:          ${manifest.identity?.id || personaId}`);
   log(`  Version:     ${manifest.version}`);
   log(`  Role:        ${manifest.role?.id || 'assistant'}`);
-  log(`  Voice:       ${manifest.voice?.provider || 'unknown'} (${manifest.voice?.voice_id?.slice(0, 20) || 'N/A'}...)`);
+  log(
+    `  Voice:       ${manifest.voice?.provider || 'unknown'} (${manifest.voice?.voice_id?.slice(0, 20) || 'N/A'}...)`
+  );
   if (manifest.metadata?.author) {
     log(`  Author:      ${manifest.metadata.author}`);
   }
@@ -217,7 +223,9 @@ function commandInfo(personaId: string): void {
 
   if (manifest.identity?.description) {
     log(`\n  Description:`, 'cyan');
-    log(`    ${manifest.identity.description.slice(0, 100)}${manifest.identity.description.length > 100 ? '...' : ''}`);
+    log(
+      `    ${manifest.identity.description.slice(0, 100)}${manifest.identity.description.length > 100 ? '...' : ''}`
+    );
   }
 
   if (manifest.personality?.traits) {
@@ -291,7 +299,12 @@ function commandCreate(personaId: string, displayName?: string): void {
   }
 
   // Create manifest (v2 format)
-  const resolvedDisplayName = displayName || personaId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const resolvedDisplayName =
+    displayName ||
+    personaId
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
   const manifest: PersonaManifest = {
     version: '1.0.0',
     manifest_version: 2,
@@ -350,16 +363,14 @@ function commandCreate(personaId: string, displayName?: string): void {
 
   // Create default behavior files
   const defaultBehaviors = {
-    greetings: [
-      { text: "Hello! I'm {name}. How can I help you today?", context: 'first-meeting' },
-    ],
+    greetings: [{ text: "Hello! I'm {name}. How can I help you today?", context: 'first-meeting' }],
     goodbyes: [
-      { text: "Take care! Looking forward to our next conversation.", context: 'default' },
+      { text: 'Take care! Looking forward to our next conversation.', context: 'default' },
     ],
     catchphrases: [],
     'witty-remarks': [],
-    backchannels: ["Mm-hmm", "I see", "Right", "Of course"],
-    'thinking-sounds': ["Let me think...", "Hmm..."],
+    backchannels: ['Mm-hmm', 'I see', 'Right', 'Of course'],
+    'thinking-sounds': ['Let me think...', 'Hmm...'],
   };
 
   for (const [name, content] of Object.entries(defaultBehaviors)) {
@@ -384,10 +395,14 @@ function commandCreate(personaId: string, displayName?: string): void {
   // Create knowledge index
   fs.writeFileSync(
     path.join(bundlePath, 'content', 'knowledge', '_index.json'),
-    JSON.stringify({
-      topics: [],
-      lastUpdated: new Date().toISOString(),
-    }, null, 2)
+    JSON.stringify(
+      {
+        topics: [],
+        lastUpdated: new Date().toISOString(),
+      },
+      null,
+      2
+    )
   );
   logSuccess('Created knowledge index');
 
@@ -461,7 +476,8 @@ function validatePersona(personaId: string): ValidationResult {
     warnings.push('Voice ID not configured');
   }
   if (!manifest.identity?.description) warnings.push('Missing identity.description');
-  if (!manifest.marketplace?.short_description) warnings.push('Missing marketplace.short_description');
+  if (!manifest.marketplace?.short_description)
+    warnings.push('Missing marketplace.short_description');
 
   // Check required directories
   const requiredDirs = ['content/behaviors', 'identity'];
@@ -482,7 +498,7 @@ function validatePersona(personaId: string): ValidationResult {
   // Check behavior files for valid JSON
   const behaviorsPath = path.join(bundlePath, 'content', 'behaviors');
   if (fs.existsSync(behaviorsPath)) {
-    const behaviorFiles = fs.readdirSync(behaviorsPath).filter(f => f.endsWith('.json'));
+    const behaviorFiles = fs.readdirSync(behaviorsPath).filter((f) => f.endsWith('.json'));
     for (const file of behaviorFiles) {
       try {
         JSON.parse(fs.readFileSync(path.join(behaviorsPath, file), 'utf-8'));
@@ -537,17 +553,11 @@ function commandBuild(personaId?: string): void {
 
     // Bundle all behaviors into single file
     const behaviors = bundleBehaviors(bundlePath);
-    fs.writeFileSync(
-      path.join(outputPath, 'behaviors.json'),
-      JSON.stringify(behaviors, null, 2)
-    );
+    fs.writeFileSync(path.join(outputPath, 'behaviors.json'), JSON.stringify(behaviors, null, 2));
 
     // Bundle all stories into single file
     const stories = bundleStories(bundlePath);
-    fs.writeFileSync(
-      path.join(outputPath, 'stories.json'),
-      JSON.stringify(stories, null, 2)
-    );
+    fs.writeFileSync(path.join(outputPath, 'stories.json'), JSON.stringify(stories, null, 2));
 
     // Copy identity files
     fs.mkdirSync(path.join(outputPath, 'identity'), { recursive: true });
@@ -566,10 +576,7 @@ function commandBuild(personaId?: string): void {
       builtAt: new Date().toISOString(),
       files: fs.readdirSync(outputPath, { recursive: true }),
     };
-    fs.writeFileSync(
-      path.join(outputPath, 'build.json'),
-      JSON.stringify(buildMeta, null, 2)
-    );
+    fs.writeFileSync(path.join(outputPath, 'build.json'), JSON.stringify(buildMeta, null, 2));
 
     logSuccess(`${id}: Built to dist/personas/${id}/`);
   }
@@ -582,7 +589,7 @@ function bundleBehaviors(bundlePath: string): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   if (fs.existsSync(behaviorsPath)) {
-    const files = fs.readdirSync(behaviorsPath).filter(f => f.endsWith('.json'));
+    const files = fs.readdirSync(behaviorsPath).filter((f) => f.endsWith('.json'));
     for (const file of files) {
       const name = path.basename(file, '.json');
       try {
@@ -601,7 +608,7 @@ function bundleStories(bundlePath: string): unknown[] {
   const result: unknown[] = [];
 
   if (fs.existsSync(storiesPath)) {
-    const files = fs.readdirSync(storiesPath).filter(f => f.endsWith('.json'));
+    const files = fs.readdirSync(storiesPath).filter((f) => f.endsWith('.json'));
     for (const file of files) {
       try {
         const story = JSON.parse(fs.readFileSync(path.join(storiesPath, file), 'utf-8'));
@@ -761,4 +768,3 @@ function main(): void {
 }
 
 main();
-

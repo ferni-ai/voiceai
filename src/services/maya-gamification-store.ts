@@ -1,9 +1,9 @@
 /**
  * Maya Gamification Store
- * 
+ *
  * Dedicated Firestore-backed storage for Maya's gamification system.
  * Uses subcollections for better querying and scalability:
- * 
+ *
  * users/{userId}/
  *   maya_gamification/
  *     profile (single doc)
@@ -12,7 +12,7 @@
  *     achievements/{achievementId}
  *     mood_logs/{logId}
  *     behavior_tools/{toolId}
- * 
+ *
  * maya_leaderboards/
  *   global/
  *     weekly_xp
@@ -48,11 +48,11 @@ export const GamificationProfileSchema = z.object({
   level: z.number().min(1).default(1),
   currentTitle: z.string().default('newcomer'),
   titleTier: z.number().min(1).max(10).default(1),
-  
+
   // Counts (for quick access without aggregations)
   badgeCount: z.number().default(0),
   challengesCompleted: z.number().default(0),
-  
+
   // Stats
   stats: z.object({
     totalHabitsCreated: z.number().default(0),
@@ -64,17 +64,19 @@ export const GamificationProfileSchema = z.object({
     comebacks: z.number().default(0),
     weeklyReflections: z.number().default(0),
   }),
-  
+
   // Preferences
-  preferences: z.object({
-    showOnLeaderboard: z.boolean().default(true),
-    displayName: z.string().optional(), // For leaderboard (privacy)
-    shareProgress: z.boolean().default(false),
-  }).default({
-    showOnLeaderboard: true,
-    shareProgress: false,
-  }),
-  
+  preferences: z
+    .object({
+      showOnLeaderboard: z.boolean().default(true),
+      displayName: z.string().optional(), // For leaderboard (privacy)
+      shareProgress: z.boolean().default(false),
+    })
+    .default({
+      showOnLeaderboard: true,
+      shareProgress: false,
+    }),
+
   // Timestamps
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -112,7 +114,7 @@ export const BehaviorToolUsageSchema = z.object({
     'setback_recovery',
     'accountability',
     'habit_audit',
-    'circle_of_influence'
+    'circle_of_influence',
   ]),
   userId: z.string(),
   createdAt: z.string().datetime(),
@@ -172,23 +174,23 @@ export type GamificationExport = z.infer<typeof GamificationExportSchema>;
 class MayaGamificationStore {
   private db: Firestore | null = null;
   private initialized = false;
-  
+
   // Cache for hot data
-  private profileCache: Map<string, { data: GamificationProfile; expires: number }> = new Map();
+  private profileCache = new Map<string, { data: GamificationProfile; expires: number }>();
   private readonly CACHE_TTL = 60 * 1000; // 1 minute cache
 
   // Collection paths
   private readonly USERS_COLLECTION = 'users';
   private readonly GAMIFICATION_SUBCOLLECTION = 'maya_gamification';
   private readonly LEADERBOARD_COLLECTION = 'maya_leaderboards';
-  
+
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    
+
     try {
       this.db = new Firestore();
       this.initialized = true;
@@ -220,7 +222,7 @@ class MayaGamificationStore {
       return cached.data;
     }
 
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return this.createDefaultProfile(userId);
     }
 
@@ -230,21 +232,21 @@ class MayaGamificationStore {
         .doc(userId)
         .collection(this.GAMIFICATION_SUBCOLLECTION)
         .doc('profile');
-      
+
       const doc = await docRef.get();
-      
+
       if (doc.exists) {
         const data = doc.data() as GamificationProfile;
         const validated = GamificationProfileSchema.parse(data);
         this.cacheProfile(userId, validated);
         return validated;
       }
-      
+
       // Create new profile
       const newProfile = this.createDefaultProfile(userId);
       await docRef.set(newProfile);
       this.cacheProfile(userId, newProfile);
-      
+
       getLogger().info({ userId }, '🎮 Created new gamification profile');
       return newProfile;
     } catch (error) {
@@ -256,20 +258,23 @@ class MayaGamificationStore {
   /**
    * Update a user's gamification profile
    */
-  async updateProfile(userId: string, updates: Partial<GamificationProfile>): Promise<GamificationProfile> {
+  async updateProfile(
+    userId: string,
+    updates: Partial<GamificationProfile>
+  ): Promise<GamificationProfile> {
     const profile = await this.getProfile(userId);
-    
+
     const updatedProfile: GamificationProfile = {
       ...profile,
       ...updates,
       updatedAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
     };
-    
+
     // Validate
     const validated = GamificationProfileSchema.parse(updatedProfile);
 
-    if (await this.ensureInitialized() && this.db) {
+    if ((await this.ensureInitialized()) && this.db) {
       try {
         await this.db
           .collection(this.USERS_COLLECTION)
@@ -281,7 +286,7 @@ class MayaGamificationStore {
         getLogger().error({ error, userId }, 'Failed to save gamification profile');
       }
     }
-    
+
     this.cacheProfile(userId, validated);
     return validated;
   }
@@ -289,21 +294,25 @@ class MayaGamificationStore {
   /**
    * Add XP to a user's profile
    */
-  async addXP(userId: string, amount: number, reason: string): Promise<{ newTotal: number; leveledUp: boolean; newLevel: number }> {
+  async addXP(
+    userId: string,
+    amount: number,
+    reason: string
+  ): Promise<{ newTotal: number; leveledUp: boolean; newLevel: number }> {
     const profile = await this.getProfile(userId);
     const oldLevel = profile.level;
-    
+
     const newTotalXP = profile.totalXP + amount;
     const newLevel = this.calculateLevel(newTotalXP);
     const leveledUp = newLevel > oldLevel;
-    
+
     await this.updateProfile(userId, {
       totalXP: newTotalXP,
       level: newLevel,
     });
-    
+
     getLogger().info({ userId, amount, reason, newTotal: newTotalXP, leveledUp }, '⭐ XP added');
-    
+
     return { newTotal: newTotalXP, leveledUp, newLevel };
   }
 
@@ -314,17 +323,20 @@ class MayaGamificationStore {
   /**
    * Award a badge to a user
    */
-  async awardBadge(userId: string, badge: Omit<EarnedBadge, 'id' | 'earnedAt'>): Promise<EarnedBadge> {
+  async awardBadge(
+    userId: string,
+    badge: Omit<EarnedBadge, 'id' | 'earnedAt'>
+  ): Promise<EarnedBadge> {
     const earnedBadge: EarnedBadge = {
       ...badge,
       id: `badge_${badge.badgeId}_${Date.now()}`,
       earnedAt: new Date().toISOString(),
     };
-    
+
     // Validate
     const validated = EarnedBadgeSchema.parse(earnedBadge);
 
-    if (await this.ensureInitialized() && this.db) {
+    if ((await this.ensureInitialized()) && this.db) {
       try {
         // Save to subcollection
         await this.db
@@ -335,22 +347,22 @@ class MayaGamificationStore {
           .collection('items')
           .doc(validated.badgeId)
           .set(validated);
-        
+
         // Update badge count in profile
         const profile = await this.getProfile(userId);
         await this.updateProfile(userId, {
           badgeCount: profile.badgeCount + 1,
         });
-        
+
         // Award XP for badge
         await this.addXP(userId, validated.xpAwarded, `Earned badge: ${validated.badgeId}`);
-        
+
         getLogger().info({ userId, badgeId: badge.badgeId }, '🏅 Badge awarded');
       } catch (error) {
         getLogger().error({ error, userId, badgeId: badge.badgeId }, 'Failed to award badge');
       }
     }
-    
+
     return validated;
   }
 
@@ -358,7 +370,7 @@ class MayaGamificationStore {
    * Get all badges for a user
    */
   async getUserBadges(userId: string): Promise<EarnedBadge[]> {
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return [];
     }
 
@@ -371,8 +383,8 @@ class MayaGamificationStore {
         .collection('items')
         .orderBy('earnedAt', 'desc')
         .get();
-      
-      return snapshot.docs.map(doc => EarnedBadgeSchema.parse(doc.data()));
+
+      return snapshot.docs.map((doc) => EarnedBadgeSchema.parse(doc.data()));
     } catch (error) {
       getLogger().error({ error, userId }, 'Failed to get user badges');
       return [];
@@ -383,7 +395,7 @@ class MayaGamificationStore {
    * Query badges by rarity
    */
   async getBadgesByRarity(userId: string, rarity: EarnedBadge['rarity']): Promise<EarnedBadge[]> {
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return [];
     }
 
@@ -396,8 +408,8 @@ class MayaGamificationStore {
         .collection('items')
         .where('rarity', '==', rarity)
         .get();
-      
-      return snapshot.docs.map(doc => EarnedBadgeSchema.parse(doc.data()));
+
+      return snapshot.docs.map((doc) => EarnedBadgeSchema.parse(doc.data()));
     } catch (error) {
       getLogger().error({ error, userId, rarity }, 'Failed to query badges by rarity');
       return [];
@@ -408,7 +420,7 @@ class MayaGamificationStore {
    * Check if user has a specific badge
    */
   async hasBadge(userId: string, badgeId: string): Promise<boolean> {
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return false;
     }
 
@@ -421,7 +433,7 @@ class MayaGamificationStore {
         .collection('items')
         .doc(badgeId)
         .get();
-      
+
       return doc.exists;
     } catch {
       return false;
@@ -435,17 +447,20 @@ class MayaGamificationStore {
   /**
    * Start a new challenge
    */
-  async startChallenge(userId: string, challenge: Omit<ChallengeProgress, 'id' | 'startDate' | 'status'>): Promise<ChallengeProgress> {
+  async startChallenge(
+    userId: string,
+    challenge: Omit<ChallengeProgress, 'id' | 'startDate' | 'status'>
+  ): Promise<ChallengeProgress> {
     const newChallenge: ChallengeProgress = {
       ...challenge,
       id: `challenge_${challenge.challengeType}_${Date.now()}`,
       startDate: new Date().toISOString(),
       status: 'active',
     };
-    
+
     const validated = ChallengeProgressSchema.parse(newChallenge);
 
-    if (await this.ensureInitialized() && this.db) {
+    if ((await this.ensureInitialized()) && this.db) {
       try {
         await this.db
           .collection(this.USERS_COLLECTION)
@@ -455,21 +470,28 @@ class MayaGamificationStore {
           .collection('items')
           .doc(validated.id)
           .set(validated);
-        
-        getLogger().info({ userId, challengeType: challenge.challengeType }, '🎯 Challenge started');
+
+        getLogger().info(
+          { userId, challengeType: challenge.challengeType },
+          '🎯 Challenge started'
+        );
       } catch (error) {
         getLogger().error({ error, userId }, 'Failed to start challenge');
       }
     }
-    
+
     return validated;
   }
 
   /**
    * Update challenge progress
    */
-  async updateChallenge(userId: string, challengeId: string, updates: Partial<ChallengeProgress>): Promise<ChallengeProgress | null> {
-    if (!await this.ensureInitialized() || !this.db) {
+  async updateChallenge(
+    userId: string,
+    challengeId: string,
+    updates: Partial<ChallengeProgress>
+  ): Promise<ChallengeProgress | null> {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return null;
     }
 
@@ -481,15 +503,15 @@ class MayaGamificationStore {
         .doc('challenges')
         .collection('items')
         .doc(challengeId);
-      
+
       const doc = await docRef.get();
       if (!doc.exists) return null;
-      
+
       const current = ChallengeProgressSchema.parse(doc.data());
       const updated = ChallengeProgressSchema.parse({ ...current, ...updates });
-      
+
       await docRef.set(updated);
-      
+
       // If completed, update profile and award XP
       if (updates.status === 'completed' && current.status !== 'completed') {
         const profile = await this.getProfile(userId);
@@ -498,7 +520,7 @@ class MayaGamificationStore {
         });
         await this.addXP(userId, 500, `Completed ${current.challengeType} challenge`);
       }
-      
+
       return updated;
     } catch (error) {
       getLogger().error({ error, userId, challengeId }, 'Failed to update challenge');
@@ -510,7 +532,7 @@ class MayaGamificationStore {
    * Get active challenges for a user
    */
   async getActiveChallenges(userId: string): Promise<ChallengeProgress[]> {
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return [];
     }
 
@@ -523,8 +545,8 @@ class MayaGamificationStore {
         .collection('items')
         .where('status', '==', 'active')
         .get();
-      
-      return snapshot.docs.map(doc => ChallengeProgressSchema.parse(doc.data()));
+
+      return snapshot.docs.map((doc) => ChallengeProgressSchema.parse(doc.data()));
     } catch (error) {
       getLogger().error({ error, userId }, 'Failed to get active challenges');
       return [];
@@ -535,7 +557,7 @@ class MayaGamificationStore {
    * Get completed challenges for a user
    */
   async getCompletedChallenges(userId: string): Promise<ChallengeProgress[]> {
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return [];
     }
 
@@ -549,8 +571,8 @@ class MayaGamificationStore {
         .where('status', '==', 'completed')
         .orderBy('endDate', 'desc')
         .get();
-      
-      return snapshot.docs.map(doc => ChallengeProgressSchema.parse(doc.data()));
+
+      return snapshot.docs.map((doc) => ChallengeProgressSchema.parse(doc.data()));
     } catch (error) {
       getLogger().error({ error, userId }, 'Failed to get completed challenges');
       return [];
@@ -564,17 +586,20 @@ class MayaGamificationStore {
   /**
    * Save behavior tool usage
    */
-  async saveBehaviorTool(userId: string, tool: Omit<BehaviorToolUsage, 'id' | 'createdAt' | 'updatedAt'>): Promise<BehaviorToolUsage> {
+  async saveBehaviorTool(
+    userId: string,
+    tool: Omit<BehaviorToolUsage, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<BehaviorToolUsage> {
     const newTool: BehaviorToolUsage = {
       ...tool,
       id: `tool_${tool.toolType}_${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    
+
     const validated = BehaviorToolUsageSchema.parse(newTool);
 
-    if (await this.ensureInitialized() && this.db) {
+    if ((await this.ensureInitialized()) && this.db) {
       try {
         await this.db
           .collection(this.USERS_COLLECTION)
@@ -584,7 +609,7 @@ class MayaGamificationStore {
           .collection('items')
           .doc(validated.id)
           .set(validated);
-        
+
         // Update profile stats
         const profile = await this.getProfile(userId);
         if (!profile.stats.behaviorToolsUsed.includes(tool.toolType)) {
@@ -597,21 +622,24 @@ class MayaGamificationStore {
           // Award XP for using a new behavior science tool
           await this.addXP(userId, 30, `Used ${tool.toolType} tool`);
         }
-        
+
         getLogger().info({ userId, toolType: tool.toolType }, '🔬 Behavior tool saved');
       } catch (error) {
         getLogger().error({ error, userId }, 'Failed to save behavior tool');
       }
     }
-    
+
     return validated;
   }
 
   /**
    * Get behavior tools by type
    */
-  async getBehaviorToolsByType(userId: string, toolType: BehaviorToolUsage['toolType']): Promise<BehaviorToolUsage[]> {
-    if (!await this.ensureInitialized() || !this.db) {
+  async getBehaviorToolsByType(
+    userId: string,
+    toolType: BehaviorToolUsage['toolType']
+  ): Promise<BehaviorToolUsage[]> {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return [];
     }
 
@@ -625,8 +653,8 @@ class MayaGamificationStore {
         .where('toolType', '==', toolType)
         .orderBy('createdAt', 'desc')
         .get();
-      
-      return snapshot.docs.map(doc => BehaviorToolUsageSchema.parse(doc.data()));
+
+      return snapshot.docs.map((doc) => BehaviorToolUsageSchema.parse(doc.data()));
     } catch (error) {
       getLogger().error({ error, userId, toolType }, 'Failed to get behavior tools');
       return [];
@@ -645,10 +673,10 @@ class MayaGamificationStore {
       ...mood,
       id: `mood_${Date.now()}`,
     };
-    
+
     const validated = MoodLogSchema.parse(newLog);
 
-    if (await this.ensureInitialized() && this.db) {
+    if ((await this.ensureInitialized()) && this.db) {
       try {
         await this.db
           .collection(this.USERS_COLLECTION)
@@ -658,13 +686,13 @@ class MayaGamificationStore {
           .collection('items')
           .doc(validated.id)
           .set(validated);
-        
+
         getLogger().debug({ userId, mood: mood.mood, energy: mood.energy }, '📊 Mood logged');
       } catch (error) {
         getLogger().error({ error, userId }, 'Failed to log mood');
       }
     }
-    
+
     return validated;
   }
 
@@ -672,7 +700,7 @@ class MayaGamificationStore {
    * Get mood logs for date range
    */
   async getMoodLogs(userId: string, startDate: Date, endDate: Date): Promise<MoodLog[]> {
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return [];
     }
 
@@ -687,8 +715,8 @@ class MayaGamificationStore {
         .where('date', '<=', endDate.toISOString())
         .orderBy('date', 'desc')
         .get();
-      
-      return snapshot.docs.map(doc => MoodLogSchema.parse(doc.data()));
+
+      return snapshot.docs.map((doc) => MoodLogSchema.parse(doc.data()));
     } catch (error) {
       getLogger().error({ error, userId }, 'Failed to get mood logs');
       return [];
@@ -703,12 +731,12 @@ class MayaGamificationStore {
    * Update user's leaderboard entry
    */
   async updateLeaderboardEntry(userId: string): Promise<void> {
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return;
     }
 
     const profile = await this.getProfile(userId);
-    
+
     // Check if user opts into leaderboard
     if (!profile.preferences.showOnLeaderboard) {
       return;
@@ -756,7 +784,6 @@ class MayaGamificationStore {
         .collection('entries')
         .doc(userId)
         .set(entry);
-
     } catch (error) {
       getLogger().error({ error, userId }, 'Failed to update leaderboard');
     }
@@ -767,9 +794,9 @@ class MayaGamificationStore {
    */
   async getLeaderboard(
     period: 'weekly' | 'monthly' | 'all_time',
-    limit: number = 10
+    limit = 10
   ): Promise<LeaderboardEntry[]> {
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return [];
     }
 
@@ -781,12 +808,12 @@ class MayaGamificationStore {
         .orderBy('xp', 'desc')
         .limit(limit)
         .get();
-      
+
       const entries = snapshot.docs.map((doc, index) => ({
         ...LeaderboardEntrySchema.parse(doc.data()),
         rank: index + 1,
       }));
-      
+
       return entries;
     } catch (error) {
       getLogger().error({ error, period }, 'Failed to get leaderboard');
@@ -797,14 +824,17 @@ class MayaGamificationStore {
   /**
    * Get user's rank on leaderboard
    */
-  async getUserRank(userId: string, period: 'weekly' | 'monthly' | 'all_time'): Promise<number | null> {
-    if (!await this.ensureInitialized() || !this.db) {
+  async getUserRank(
+    userId: string,
+    period: 'weekly' | 'monthly' | 'all_time'
+  ): Promise<number | null> {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return null;
     }
 
     try {
       const profile = await this.getProfile(userId);
-      
+
       // Count users with more XP
       const snapshot = await this.db
         .collection(this.LEADERBOARD_COLLECTION)
@@ -813,7 +843,7 @@ class MayaGamificationStore {
         .where('xp', '>', profile.totalXP)
         .count()
         .get();
-      
+
       return snapshot.data().count + 1;
     } catch (error) {
       getLogger().error({ error, userId, period }, 'Failed to get user rank');
@@ -844,9 +874,24 @@ class MayaGamificationStore {
     if (preferences.showOnLeaderboard === false && this.db) {
       try {
         await Promise.all([
-          this.db.collection(this.LEADERBOARD_COLLECTION).doc('weekly').collection('entries').doc(userId).delete(),
-          this.db.collection(this.LEADERBOARD_COLLECTION).doc('monthly').collection('entries').doc(userId).delete(),
-          this.db.collection(this.LEADERBOARD_COLLECTION).doc('all_time').collection('entries').doc(userId).delete(),
+          this.db
+            .collection(this.LEADERBOARD_COLLECTION)
+            .doc('weekly')
+            .collection('entries')
+            .doc(userId)
+            .delete(),
+          this.db
+            .collection(this.LEADERBOARD_COLLECTION)
+            .doc('monthly')
+            .collection('entries')
+            .doc(userId)
+            .delete(),
+          this.db
+            .collection(this.LEADERBOARD_COLLECTION)
+            .doc('all_time')
+            .collection('entries')
+            .doc(userId)
+            .delete(),
         ]);
         getLogger().info({ userId }, 'Removed from leaderboards');
       } catch (error) {
@@ -865,10 +910,10 @@ class MayaGamificationStore {
   async exportUserData(userId: string): Promise<GamificationExport> {
     const profile = await this.getProfile(userId);
     const badges = await this.getUserBadges(userId);
-    
+
     // Get all challenges
     let challenges: ChallengeProgress[] = [];
-    if (await this.ensureInitialized() && this.db) {
+    if ((await this.ensureInitialized()) && this.db) {
       try {
         const snapshot = await this.db
           .collection(this.USERS_COLLECTION)
@@ -877,7 +922,7 @@ class MayaGamificationStore {
           .doc('challenges')
           .collection('items')
           .get();
-        challenges = snapshot.docs.map(doc => ChallengeProgressSchema.parse(doc.data()));
+        challenges = snapshot.docs.map((doc) => ChallengeProgressSchema.parse(doc.data()));
       } catch {
         // Ignore errors, return empty
       }
@@ -894,7 +939,7 @@ class MayaGamificationStore {
           .doc('behavior_tools')
           .collection('items')
           .get();
-        behaviorTools = snapshot.docs.map(doc => BehaviorToolUsageSchema.parse(doc.data()));
+        behaviorTools = snapshot.docs.map((doc) => BehaviorToolUsageSchema.parse(doc.data()));
       } catch {
         // Ignore
       }
@@ -923,15 +968,25 @@ class MayaGamificationStore {
   /**
    * Import gamification data for a user (restore from backup)
    */
-  async importUserData(userId: string, data: GamificationExport, options: {
-    overwrite?: boolean;
-    mergeProfile?: boolean;
-  } = {}): Promise<{ success: boolean; imported: { badges: number; challenges: number; behaviorTools: number; moodLogs: number } }> {
+  async importUserData(
+    userId: string,
+    data: GamificationExport,
+    options: {
+      overwrite?: boolean;
+      mergeProfile?: boolean;
+    } = {}
+  ): Promise<{
+    success: boolean;
+    imported: { badges: number; challenges: number; behaviorTools: number; moodLogs: number };
+  }> {
     // Validate import data
     const validated = GamificationExportSchema.parse(data);
-    
-    if (!await this.ensureInitialized() || !this.db) {
-      return { success: false, imported: { badges: 0, challenges: 0, behaviorTools: 0, moodLogs: 0 } };
+
+    if (!(await this.ensureInitialized()) || !this.db) {
+      return {
+        success: false,
+        imported: { badges: 0, challenges: 0, behaviorTools: 0, moodLogs: 0 },
+      };
     }
 
     const imported = { badges: 0, challenges: 0, behaviorTools: 0, moodLogs: 0 };
@@ -944,10 +999,26 @@ class MayaGamificationStore {
           totalXP: Math.max(currentProfile.totalXP, validated.profile.totalXP),
           stats: {
             ...currentProfile.stats,
-            longestStreak: Math.max(currentProfile.stats.longestStreak, validated.profile.stats.longestStreak),
-            totalCompletions: Math.max(currentProfile.stats.totalCompletions, validated.profile.stats.totalCompletions),
-            domainsExplored: [...new Set([...currentProfile.stats.domainsExplored, ...validated.profile.stats.domainsExplored])],
-            behaviorToolsUsed: [...new Set([...currentProfile.stats.behaviorToolsUsed, ...validated.profile.stats.behaviorToolsUsed])],
+            longestStreak: Math.max(
+              currentProfile.stats.longestStreak,
+              validated.profile.stats.longestStreak
+            ),
+            totalCompletions: Math.max(
+              currentProfile.stats.totalCompletions,
+              validated.profile.stats.totalCompletions
+            ),
+            domainsExplored: [
+              ...new Set([
+                ...currentProfile.stats.domainsExplored,
+                ...validated.profile.stats.domainsExplored,
+              ]),
+            ],
+            behaviorToolsUsed: [
+              ...new Set([
+                ...currentProfile.stats.behaviorToolsUsed,
+                ...validated.profile.stats.behaviorToolsUsed,
+              ]),
+            ],
           },
         });
       } else if (options.overwrite) {
@@ -1021,7 +1092,7 @@ class MayaGamificationStore {
    * Delete all gamification data for a user
    */
   async deleteUserData(userId: string): Promise<boolean> {
-    if (!await this.ensureInitialized() || !this.db) {
+    if (!(await this.ensureInitialized()) || !this.db) {
       return false;
     }
 
@@ -1039,19 +1110,37 @@ class MayaGamificationStore {
       const subcollections = ['badges', 'challenges', 'behavior_tools', 'mood_logs'];
       for (const subcol of subcollections) {
         const snapshot = await userGamificationRef.doc(subcol).collection('items').get();
-        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        snapshot.docs.forEach((doc) => batch.delete(doc.ref));
       }
 
       // Remove from leaderboards
-      batch.delete(this.db.collection(this.LEADERBOARD_COLLECTION).doc('weekly').collection('entries').doc(userId));
-      batch.delete(this.db.collection(this.LEADERBOARD_COLLECTION).doc('monthly').collection('entries').doc(userId));
-      batch.delete(this.db.collection(this.LEADERBOARD_COLLECTION).doc('all_time').collection('entries').doc(userId));
+      batch.delete(
+        this.db
+          .collection(this.LEADERBOARD_COLLECTION)
+          .doc('weekly')
+          .collection('entries')
+          .doc(userId)
+      );
+      batch.delete(
+        this.db
+          .collection(this.LEADERBOARD_COLLECTION)
+          .doc('monthly')
+          .collection('entries')
+          .doc(userId)
+      );
+      batch.delete(
+        this.db
+          .collection(this.LEADERBOARD_COLLECTION)
+          .doc('all_time')
+          .collection('entries')
+          .doc(userId)
+      );
 
       await batch.commit();
-      
+
       // Clear cache
       this.profileCache.delete(userId);
-      
+
       getLogger().info({ userId }, '🗑️ Gamification data deleted');
       return true;
     } catch (error) {
@@ -1153,4 +1242,3 @@ export async function initializeMayaGamificationStore(): Promise<MayaGamificatio
 }
 
 export default MayaGamificationStore;
-

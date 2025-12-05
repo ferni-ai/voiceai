@@ -53,9 +53,9 @@ export interface StoryMetrics {
 // ============================================================================
 
 export class StoryTimingEngine {
-  private storiesTold: Map<string, number> = new Map(); // storyId -> turnTold
-  private lastStoryTurn: number = -10;
-  private storyOutcomes: Map<string, boolean> = new Map(); // storyId -> wasWellReceived
+  private storiesTold = new Map<string, number>(); // storyId -> turnTold
+  private lastStoryTurn = -10;
+  private storyOutcomes = new Map<string, boolean>(); // storyId -> wasWellReceived
 
   // Timing parameters
   private readonly minTurnsBeforeFirstStory = 4;

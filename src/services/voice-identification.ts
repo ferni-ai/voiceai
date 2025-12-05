@@ -506,7 +506,7 @@ function buildContextForAgent(
 // EXPORTS
 // ============================================================================
 
-export { VoiceSearchResult, VoiceSimilarityResult };
+export type { VoiceSearchResult, VoiceSimilarityResult };
 
 export default {
   identifyWithVoice,

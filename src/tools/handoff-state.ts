@@ -219,10 +219,7 @@ export function updateUserContextForHandoff(
 /**
  * Capture handoff context for continuity
  */
-export function captureHandoffContext(
-  state: HandoffState,
-  context: Partial<HandoffContext>
-): void {
+export function captureHandoffContext(state: HandoffState, context: Partial<HandoffContext>): void {
   state.conversationContext = {
     topics: context.topics || [],
     emotionalState: context.emotionalState || 'neutral',
@@ -362,7 +359,7 @@ export function getHandoffAnalytics(state: HandoffState): HandoffAnalytics {
 
   const handoffsByAgent: Record<string, number> = {};
   const timeByAgent: Record<string, number[]> = {};
-  const routes: Map<string, number> = new Map();
+  const routes = new Map<string, number>();
   let pingPongCount = 0;
 
   for (let i = 0; i < history.length; i++) {
@@ -407,4 +404,3 @@ export function getHandoffAnalytics(state: HandoffState): HandoffAnalytics {
     pingPongCount,
   };
 }
-

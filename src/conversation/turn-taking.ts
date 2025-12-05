@@ -64,7 +64,7 @@ export class TurnTakingMonitor {
     "I'd love to hear your thoughts.",
     'Does that make sense?',
     'What questions do you have?',
-    "How does that land for you?",
+    'How does that land for you?',
     'What are your thoughts on that?',
   ];
 
@@ -225,4 +225,3 @@ export function resetTurnTakingMonitor(): void {
   }
   defaultMonitor = null;
 }
-

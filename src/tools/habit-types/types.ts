@@ -183,4 +183,3 @@ export interface HabitCoachProfile {
   createdAt: string;
   updatedAt: string;
 }
-

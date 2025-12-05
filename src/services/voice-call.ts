@@ -7,8 +7,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-
-
 // Voice registry for consistent voice ID resolution
 import { getVoiceId } from '../personas/voice-registry.js';
 
@@ -264,8 +262,7 @@ export async function callWithAlexVoice(
       {
         method: 'POST',
         headers: {
-          Authorization:
-            'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
@@ -353,8 +350,7 @@ export async function configureIncomingCallWebhook(
       `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/IncomingPhoneNumbers.json?PhoneNumber=${encodeURIComponent(TWILIO_PHONE_NUMBER)}`,
       {
         headers: {
-          Authorization:
-            'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')}`,
         },
       }
     );
@@ -378,8 +374,7 @@ export async function configureIncomingCallWebhook(
       {
         method: 'POST',
         headers: {
-          Authorization:
-            'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({

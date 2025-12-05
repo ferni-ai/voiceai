@@ -16,11 +16,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getDailyRitualsService, PERSONA_RITUALS } from '../../services/daily-rituals.js';
 import { getMemoryEngagementEngine, buildMemoryEngagementContext } from '../memory-engagement.js';
 import { getTeamEngagementService } from '../../services/team-engagement.js';
-import {
-  registerContextBuilder,
-  createStandardInjection,
-  createHintInjection,
-} from './index.js';
+import { registerContextBuilder, createStandardInjection, createHintInjection } from './index.js';
 import type { ContextBuilderInput, ContextInjection } from './index.js';
 
 // ============================================================================
@@ -170,7 +166,7 @@ export function buildEngagementContext(
     sections.unshift('[ENGAGEMENT OPPORTUNITIES]');
     sections.push('');
     sections.push('Consider these engagement opportunities if they fit naturally:');
-    
+
     for (const opp of opportunities.slice(0, 3)) {
       sections.push(`• [${opp.type}] (Priority ${opp.priority}/10): ${opp.content}`);
     }
@@ -178,20 +174,23 @@ export function buildEngagementContext(
     sections.push('');
     sections.push('Guidelines:');
     sections.push('- Only use if it feels natural to the conversation');
-    sections.push('- User needs come first - don\'t force engagement');
+    sections.push("- User needs come first - don't force engagement");
     sections.push('- One engagement per conversation is usually enough');
-    sections.push("- Make it feel genuine, not scripted");
+    sections.push('- Make it feel genuine, not scripted');
   }
 
-  getLogger().debug({
-    userId,
-    personaId,
-    turnCount,
-    opportunities: opportunities.length,
-    hasActiveRitual,
-    hasMemoryCallback,
-    hasSeasonalEvent,
-  }, 'Built engagement context');
+  getLogger().debug(
+    {
+      userId,
+      personaId,
+      turnCount,
+      opportunities: opportunities.length,
+      hasActiveRitual,
+      hasMemoryCallback,
+      hasSeasonalEvent,
+    },
+    'Built engagement context'
+  );
 
   return {
     opportunities,
@@ -210,7 +209,7 @@ export function buildEngagementContext(
 
 function checkRitualOpportunity(userId: string, personaId: string): EngagementOpportunity | null {
   const service = getDailyRitualsService();
-  
+
   // Find ritual for this persona
   const ritualId = Object.keys(PERSONA_RITUALS).find(
     (id) => PERSONA_RITUALS[id].personaId === personaId
@@ -314,7 +313,7 @@ function checkCrossReferenceOpportunity(personaId: string): EngagementOpportunit
 
 function checkStreakAtRisk(userId: string, personaId: string): EngagementOpportunity | null {
   const service = getDailyRitualsService();
-  
+
   const ritualId = Object.keys(PERSONA_RITUALS).find(
     (id) => PERSONA_RITUALS[id].personaId === personaId
   );
@@ -349,9 +348,7 @@ function shouldOfferTeamHuddle(profile: UserProfile | null): boolean {
   const lastConvo = profile.lastContact ? new Date(profile.lastContact) : null;
   if (!lastConvo) return false;
 
-  const daysSince = Math.floor(
-    (Date.now() - lastConvo.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysSince = Math.floor((Date.now() - lastConvo.getTime()) / (1000 * 60 * 60 * 24));
 
   // Offer if it's been 5-10 days (natural weekly rhythm)
   return daysSince >= 5 && daysSince <= 10;
@@ -371,7 +368,7 @@ export function enhanceGreetingWithEngagement(
   personaId: string
 ): string {
   const context = buildEngagementContext(userId, profile, personaId, 1);
-  
+
   if (context.opportunities.length === 0) {
     return baseGreeting;
   }
@@ -382,13 +379,13 @@ export function enhanceGreetingWithEngagement(
   switch (topOpportunity.type) {
     case 'seasonal_event':
       return `${topOpportunity.content.split('Response: "')[1]?.replace('"', '') || baseGreeting}`;
-    
+
     case 'anniversary':
       return baseGreeting; // Let the persona handle anniversary naturally
-    
+
     case 'daily_ritual':
       return baseGreeting; // Offer ritual after greeting
-    
+
     default:
       return baseGreeting;
   }
@@ -414,12 +411,7 @@ async function buildEngagementContextBuilder(
   }
 
   // Build engagement context
-  const context = buildEngagementContext(
-    userId,
-    input.userProfile,
-    personaId,
-    turnCount
-  );
+  const context = buildEngagementContext(userId, input.userProfile, personaId, turnCount);
 
   // Add opportunities as injections
   if (context.opportunities.length > 0) {
@@ -429,20 +421,18 @@ async function buildEngagementContextBuilder(
       if (opp.priority >= 7) {
         // High priority - standard injection
         injections.push(
-          createStandardInjection(
-            'engagement',
-            `[ENGAGEMENT: ${opp.type}] ${opp.content}`,
-            { category: 'engagement', confidence: opp.priority / 10 }
-          )
+          createStandardInjection('engagement', `[ENGAGEMENT: ${opp.type}] ${opp.content}`, {
+            category: 'engagement',
+            confidence: opp.priority / 10,
+          })
         );
       } else {
         // Lower priority - hint
         injections.push(
-          createHintInjection(
-            'engagement',
-            `[ENGAGEMENT HINT: ${opp.type}] ${opp.content}`,
-            { category: 'engagement', confidence: opp.priority / 10 }
-          )
+          createHintInjection('engagement', `[ENGAGEMENT HINT: ${opp.type}] ${opp.content}`, {
+            category: 'engagement',
+            confidence: opp.priority / 10,
+          })
         );
       }
     }
@@ -451,11 +441,10 @@ async function buildEngagementContextBuilder(
   // Add memory callback context if present
   if (context.hasMemoryCallback && context.promptAddition) {
     injections.push(
-      createHintInjection(
-        'engagement-memory',
-        context.promptAddition,
-        { category: 'engagement', confidence: 0.7 }
-      )
+      createHintInjection('engagement-memory', context.promptAddition, {
+        category: 'engagement',
+        confidence: 0.7,
+      })
     );
   }
 
@@ -478,4 +467,3 @@ registerContextBuilder({
 // ============================================================================
 
 export default buildEngagementContext;
-

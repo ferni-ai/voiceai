@@ -189,7 +189,7 @@ export abstract class MemoryStore {
     userId: string,
     query: string,
     options?: QueryOptions
-  ): Promise<SearchResult<ConversationSummary>[]> {
+  ): Promise<Array<SearchResult<ConversationSummary>>> {
     // Default implementation: simple keyword match
     const summaries = await this.getSummaries(userId);
     const queryLower = query.toLowerCase();

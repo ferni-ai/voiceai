@@ -202,7 +202,11 @@ const createReminderHandler: TeamHandlerDefinition = {
   tags: ['reminder', 'notification'],
 
   execute: async (request: ToolExecutionRequest): Promise<ToolExecutionResult> => {
-    const { message, dateTime, deliveryMethod = 'voice' } = request.params as {
+    const {
+      message,
+      dateTime,
+      deliveryMethod = 'voice',
+    } = request.params as {
       message: string;
       dateTime: string;
       deliveryMethod?: 'voice' | 'sms' | 'email';
@@ -348,7 +352,11 @@ const sendNotificationHandler: TeamHandlerDefinition = {
   tags: ['notification', 'alert', 'message'],
 
   execute: async (request: ToolExecutionRequest): Promise<ToolExecutionResult> => {
-    const { message, priority = 'normal', channel = 'voice' } = request.params as {
+    const {
+      message,
+      priority = 'normal',
+      channel = 'voice',
+    } = request.params as {
       message: string;
       priority?: 'low' | 'normal' | 'high';
       channel?: 'voice' | 'sms' | 'email' | 'push';
@@ -420,4 +428,3 @@ export {
 };
 
 export default registerSchedulingHandlers;
-

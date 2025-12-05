@@ -136,23 +136,23 @@ export interface Task {
 // ============================================================================
 
 // In-memory cache for fast access (synced with persistent store)
-const tasksCache: Map<string, Task> = new Map();
-const loadedUsers: Set<string> = new Set();
+const tasksCache = new Map<string, Task>();
+const loadedUsers = new Set<string>();
 
 // Load tasks from persistent store for a user
 async function ensureUserTasksLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-  
+
   try {
     const store = getProductivityStore();
     await store.loadUserData(userId);
     const taskDataList = store.getUserTasks(userId);
-    
+
     for (const taskData of taskDataList) {
       const task = taskDataToTask(taskData, userId);
       tasksCache.set(task.id, task);
     }
-    
+
     loadedUsers.add(userId);
     getLogger().debug({ userId, count: taskDataList.length }, 'Loaded tasks from store');
   } catch (error) {
@@ -357,7 +357,9 @@ export function createTask(params: {
   reminderMinutesBefore?: number;
 }): Task {
   const sanitizedTitle = sanitizePlainText(params.title, 200);
-  const sanitizedDesc = params.description ? sanitizePlainText(params.description, 1000) : undefined;
+  const sanitizedDesc = params.description
+    ? sanitizePlainText(params.description, 1000)
+    : undefined;
 
   const dueDate =
     typeof params.dueDate === 'string' ? parseNaturalDueDate(params.dueDate) : params.dueDate;
@@ -458,7 +460,7 @@ export function updateTask(
   if (updates.notes !== undefined) task.notes = updates.notes;
 
   task.updatedAt = new Date();
-  
+
   // Save to cache and persist
   tasksCache.set(taskId, task);
   persistTask(task.userId, task);
@@ -469,10 +471,10 @@ export function updateTask(
 export function deleteTask(taskId: string): boolean {
   const task = tasksCache.get(taskId);
   if (!task) return false;
-  
+
   // Remove from cache
   tasksCache.delete(taskId);
-  
+
   // Remove from persistent store
   try {
     const store = getProductivityStore();
@@ -480,15 +482,13 @@ export function deleteTask(taskId: string): boolean {
   } catch (error) {
     getLogger().warn({ error, taskId }, 'Failed to delete task from store');
   }
-  
+
   return true;
 }
 
 export function getOverdueTasks(userId: string): Task[] {
   const now = new Date();
-  return getUserTasks(userId).filter(
-    (t) => t.status === 'pending' && t.dueDate && t.dueDate < now
-  );
+  return getUserTasks(userId).filter((t) => t.status === 'pending' && t.dueDate && t.dueDate < now);
 }
 
 export function getTodaysTasks(userId: string): Task[] {
@@ -498,19 +498,17 @@ export function getTodaysTasks(userId: string): Task[] {
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   return getUserTasks(userId).filter(
-    (t) =>
-      t.status === 'pending' && t.dueDate && t.dueDate >= today && t.dueDate < tomorrow
+    (t) => t.status === 'pending' && t.dueDate && t.dueDate >= today && t.dueDate < tomorrow
   );
 }
 
-export function getUpcomingTasks(userId: string, days: number = 7): Task[] {
+export function getUpcomingTasks(userId: string, days = 7): Task[] {
   const now = new Date();
   const future = new Date(now);
   future.setDate(future.getDate() + days);
 
   return getUserTasks(userId).filter(
-    (t) =>
-      t.status === 'pending' && t.dueDate && t.dueDate >= now && t.dueDate <= future
+    (t) => t.status === 'pending' && t.dueDate && t.dueDate >= now && t.dueDate <= future
   );
 }
 
@@ -602,8 +600,7 @@ Use when the user says things like:
         await ensureUserTasksLoaded(userId);
         const userTasks = getUserTasks(userId);
         const task = userTasks.find(
-          (t) =>
-            t.status === 'pending' && t.title.toLowerCase().includes(taskTitle.toLowerCase())
+          (t) => t.status === 'pending' && t.title.toLowerCase().includes(taskTitle.toLowerCase())
         );
 
         if (!task) {
@@ -726,9 +723,7 @@ Use when the user says things like:
 
         await ensureUserTasksLoaded(userId);
         const userTasks = getUserTasks(userId);
-        const task = userTasks.find((t) =>
-          t.title.toLowerCase().includes(taskTitle.toLowerCase())
-        );
+        const task = userTasks.find((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()));
 
         if (!task) {
           return `Couldn't find "${taskTitle}". Want me to show your tasks?`;
@@ -754,9 +749,7 @@ Use when the user says things like:
 
         await ensureUserTasksLoaded(userId);
         const userTasks = getUserTasks(userId);
-        const task = userTasks.find((t) =>
-          t.title.toLowerCase().includes(taskTitle.toLowerCase())
-        );
+        const task = userTasks.find((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()));
 
         if (!task) {
           return `Couldn't find "${taskTitle}".`;
@@ -796,9 +789,7 @@ Use when the user says things like:
 
         await ensureUserTasksLoaded(userId);
         const userTasks = getUserTasks(userId);
-        const task = userTasks.find((t) =>
-          t.title.toLowerCase().includes(taskTitle.toLowerCase())
-        );
+        const task = userTasks.find((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()));
 
         if (!task) {
           return `Couldn't find "${taskTitle}".`;
@@ -857,4 +848,3 @@ Use when the user says things like:
 }
 
 export default createTaskTools;
-

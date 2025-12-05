@@ -22,15 +22,33 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
-import { getUserId, generateId, formatDate, progressBar, ordinal } from '../../utils/tool-helpers.js';
-import { getProductivityStore, type HabitData, type HabitLogData } from '../../../services/productivity-store.js';
+import {
+  getUserId,
+  generateId,
+  formatDate,
+  progressBar,
+  ordinal,
+} from '../../utils/tool-helpers.js';
+import {
+  getProductivityStore,
+  type HabitData,
+  type HabitLogData,
+} from '../../../services/productivity-store.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 export type HabitFrequency = 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'custom';
-export type HabitCategory = 'health' | 'fitness' | 'mindfulness' | 'productivity' | 'learning' | 'social' | 'finance' | 'other';
+export type HabitCategory =
+  | 'health'
+  | 'fitness'
+  | 'mindfulness'
+  | 'productivity'
+  | 'learning'
+  | 'social'
+  | 'finance'
+  | 'other';
 export type FourTendency = 'upholder' | 'questioner' | 'obliger' | 'rebel';
 
 export interface EnhancedHabit {
@@ -43,14 +61,14 @@ export interface EnhancedHabit {
   targetPerDay: number;
   reminderTime?: string;
   isActive: boolean;
-  
+
   // Advanced coaching fields
-  cue?: string;           // What triggers this habit
-  reward?: string;        // What reward follows
-  stackedWith?: string;   // Habit it's stacked with
+  cue?: string; // What triggers this habit
+  reward?: string; // What reward follows
+  stackedWith?: string; // Habit it's stacked with
   minimumVersion?: string; // 2-minute version
-  level: number;          // 1-5 mastery level
-  
+  level: number; // 1-5 mastery level
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,12 +120,15 @@ export const LIFE_DOMAINS = {
 // FOUR TENDENCIES STRATEGIES
 // ============================================================================
 
-export const TENDENCY_STRATEGIES: Record<FourTendency, {
-  description: string;
-  strengths: string[];
-  challenges: string[];
-  strategies: string[];
-}> = {
+export const TENDENCY_STRATEGIES: Record<
+  FourTendency,
+  {
+    description: string;
+    strengths: string[];
+    challenges: string[];
+    strategies: string[];
+  }
+> = {
   upholder: {
     description: 'Meets both outer and inner expectations readily',
     strengths: ['Self-disciplined', 'Reliable', 'Follows through'],
@@ -120,7 +141,7 @@ export const TENDENCY_STRATEGIES: Record<FourTendency, {
   },
   questioner: {
     description: 'Meets inner expectations, questions outer expectations',
-    strengths: ['Research-driven', 'Efficient', 'Won\'t do pointless things'],
+    strengths: ['Research-driven', 'Efficient', "Won't do pointless things"],
     challenges: ['Analysis paralysis', 'May reject arbitrary rules'],
     strategies: [
       'Explain WHY the habit matters',
@@ -206,13 +227,11 @@ function calculateStreak(habitId: string, logs: HabitLogData[]): number {
   return streak;
 }
 
-function getCompletionRate(habitId: string, logs: HabitLogData[], days: number = 30): number {
+function getCompletionRate(habitId: string, logs: HabitLogData[], days = 30): number {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
 
-  const relevantLogs = logs.filter(
-    (l) => l.habitId === habitId && new Date(l.date) >= cutoff
-  );
+  const relevantLogs = logs.filter((l) => l.habitId === habitId && new Date(l.date) >= cutoff);
 
   const completedDays = relevantLogs.filter((l) => l.completed).length;
   return days > 0 ? Math.round((completedDays / days) * 100) : 0;
@@ -239,22 +258,30 @@ Use when user wants to:
       parameters: z.object({
         name: z.string().describe('Habit name (e.g., "Drink 8 glasses of water")'),
         category: z
-          .enum(['health', 'fitness', 'mindfulness', 'productivity', 'learning', 'social', 'finance', 'other'])
+          .enum([
+            'health',
+            'fitness',
+            'mindfulness',
+            'productivity',
+            'learning',
+            'social',
+            'finance',
+            'other',
+          ])
           .optional()
           .default('other'),
-        frequency: z
-          .enum(['daily', 'weekdays', 'weekends', 'weekly'])
+        frequency: z.enum(['daily', 'weekdays', 'weekends', 'weekly']).optional().default('daily'),
+        targetPerDay: z.number().optional().default(1).describe('Times per day to complete'),
+        cue: z
+          .string()
           .optional()
-          .default('daily'),
-        targetPerDay: z
-          .number()
-          .optional()
-          .default(1)
-          .describe('Times per day to complete'),
-        cue: z.string().optional().describe('What triggers this habit? (e.g., "After morning coffee")'),
+          .describe('What triggers this habit? (e.g., "After morning coffee")'),
         minimumVersion: z.string().optional().describe('2-minute version when motivation is low'),
       }),
-      execute: async ({ name, category, frequency, targetPerDay, cue, minimumVersion }, { ctx: toolCtx }) => {
+      execute: async (
+        { name, category, frequency, targetPerDay, cue, minimumVersion },
+        { ctx: toolCtx }
+      ) => {
         const userId = getUserId({ ctx: toolCtx });
         const store = getProductivityStore();
         await store.loadUserData(userId);
@@ -505,8 +532,8 @@ Use when user is struggling with habits or needs personalized strategies.`,
       parameters: z.object({
         tendency: z
           .enum(['upholder', 'questioner', 'obliger', 'rebel'])
-          .describe('The user\'s tendency type'),
-        challenge: z.string().optional().describe('What habit challenge they\'re facing'),
+          .describe("The user's tendency type"),
+        challenge: z.string().optional().describe("What habit challenge they're facing"),
       }),
       execute: async ({ tendency, challenge }) => {
         const info = TENDENCY_STRATEGIES[tendency];
@@ -521,16 +548,17 @@ Use when user is struggling with habits or needs personalized strategies.`,
           response += `\n\n**For your challenge ("${challenge}"):**\n`;
           switch (tendency) {
             case 'upholder':
-              response += 'Set a clear rule and schedule. You\'ll follow through.';
+              response += "Set a clear rule and schedule. You'll follow through.";
               break;
             case 'questioner':
-              response += 'Research why this habit matters. Once convinced, you\'ll commit.';
+              response += "Research why this habit matters. Once convinced, you'll commit.";
               break;
             case 'obliger':
               response += 'Find an accountability partner or make a commitment to someone else.';
               break;
             case 'rebel':
-              response += 'Focus on who you want to BE, not what you should DO. Make it your choice.';
+              response +=
+                'Focus on who you want to BE, not what you should DO. Make it your choice.';
               break;
           }
         }
@@ -589,4 +617,3 @@ export const habitToolDefinitions: ToolDefinition[] = [
 ];
 
 export default habitToolDefinitions;
-

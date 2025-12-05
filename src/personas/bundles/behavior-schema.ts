@@ -18,7 +18,14 @@
 /**
  * User's emotional state detected from conversation
  */
-export type UserMood = 'stressed' | 'neutral' | 'excited' | 'sad' | 'confused' | 'angry' | 'unknown';
+export type UserMood =
+  | 'stressed'
+  | 'neutral'
+  | 'excited'
+  | 'sad'
+  | 'confused'
+  | 'angry'
+  | 'unknown';
 
 /**
  * Time of day for energy adaptation
@@ -66,7 +73,7 @@ export interface BehaviorContext {
  */
 export interface BehaviorPhrase {
   text: string;
-  
+
   // When to use this phrase
   conditions?: {
     userMood?: UserMood | UserMood[];
@@ -75,10 +82,10 @@ export interface BehaviorPhrase {
     minMeetingCount?: number;
     maxMeetingCount?: number;
   };
-  
+
   // Probability of selection when conditions match (0-1)
   weight?: number;
-  
+
   // Tags for filtering/categorization
   tags?: string[];
 }
@@ -88,14 +95,14 @@ export interface BehaviorPhrase {
  */
 export interface BehaviorTemplate {
   template: string;
-  
+
   // Variables that can be substituted
-  variables: {
+  variables: Array<{
     name: string;
     source: 'context' | 'quirks' | 'memory' | 'runtime';
     fallback?: string;
-  }[];
-  
+  }>;
+
   conditions?: BehaviorPhrase['conditions'];
   weight?: number;
 }
@@ -285,21 +292,21 @@ export interface BackchannelBehavior {
 export interface CatchphraseBehavior {
   schema_version: 2;
 
-  catchphrases: {
+  catchphrases: Array<{
     phrase: string;
     context: string; // When to use
     frequency: number; // 0-1
-    
+
     // Enhanced conditions
     conditions?: {
       relationship_min?: RelationshipStage;
       user_mood?: UserMood[];
       topic_tags?: string[];
     };
-    
+
     // Cooldown to prevent overuse
     cooldown_turns?: number;
-  }[];
+  }>;
 
   // Maximum catchphrases per conversation
   max_per_session?: number;
@@ -456,8 +463,9 @@ export interface ThinkingSoundsBehavior {
 export interface RelationshipStagesBehavior {
   schema_version: 2;
 
-  stages: {
-    [key in RelationshipStage]: {
+  stages: Record<
+    RelationshipStage,
+    {
       // Progression thresholds
       turn_threshold: number;
       session_threshold?: number;
@@ -483,13 +491,11 @@ export interface RelationshipStagesBehavior {
         goodbyes?: string[];
         encouragement?: string[];
       };
-    };
-  };
+    }
+  >;
 
   // Announcements when stage changes
-  stage_transition_announcements?: {
-    [from_to: string]: string | null; // e.g., "stranger_to_acquaintance"
-  };
+  stage_transition_announcements?: Record<string, string | null>;
 }
 
 // ============================================================================
@@ -626,4 +632,3 @@ export function auditPersonaBehaviors(
     recommendations,
   };
 }
-

@@ -25,7 +25,11 @@ import type {
   PrimaryConcern,
   FinancialSituation,
 } from './financial.js';
-import type { ConversationMemory, ConversationSummary, PendingFollowUp } from './conversation-memory.js';
+import type {
+  ConversationMemory,
+  ConversationSummary,
+  PendingFollowUp,
+} from './conversation-memory.js';
 
 /**
  * Migrate a legacy UserProfile to the new CompositeUserProfile structure.
@@ -263,4 +267,3 @@ export function toLegacyProfile(composite: CompositeUserProfile): UserProfile {
     version: 1,
   };
 }
-

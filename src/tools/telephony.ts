@@ -115,7 +115,7 @@ async function createOutboundCall(
       {
         to: e164Number,
         trunk: SIP_TRUNK_ID,
-        announcement: announcement.slice(0, 50) + '...',
+        announcement: `${announcement.slice(0, 50)}...`,
       },
       'Creating SIP outbound call'
     );

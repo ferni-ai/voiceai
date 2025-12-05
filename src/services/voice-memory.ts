@@ -148,7 +148,7 @@ function calculateSpectralCentroid(magnitudes: Float32Array, sampleRate: number)
 function calculateSpectralRolloff(
   magnitudes: Float32Array,
   sampleRate: number,
-  percentage: number = 0.85
+  percentage = 0.85
 ): number {
   let totalEnergy = 0;
   for (let i = 0; i < magnitudes.length; i++) {
@@ -207,7 +207,7 @@ function calculateMagnitudeSpectrum(samples: Float32Array): Float32Array {
 /**
  * Detect if a frame contains speech (vs silence)
  */
-function isSpeechFrame(samples: Float32Array, threshold: number = 0.01): boolean {
+function isSpeechFrame(samples: Float32Array, threshold = 0.01): boolean {
   const rms = calculateRMS(samples);
   return rms > threshold;
 }
@@ -226,15 +226,15 @@ export class VoiceSketchBuilder {
   private energySamples: number[] = [];
   private pauseDurations: number[] = [];
 
-  private totalDurationMs: number = 0;
-  private lastSpeechTimestamp: number = 0;
-  private inPause: boolean = false;
-  private pauseStartTime: number = 0;
+  private totalDurationMs = 0;
+  private lastSpeechTimestamp = 0;
+  private inPause = false;
+  private pauseStartTime = 0;
 
   private readonly sampleRate: number;
   private readonly frameSize: number;
 
-  constructor(sampleRate: number = 16000, frameSizeMs: number = 25) {
+  constructor(sampleRate = 16000, frameSizeMs = 25) {
     this.sampleRate = sampleRate;
     this.frameSize = Math.floor((sampleRate * frameSizeMs) / 1000);
   }
@@ -499,7 +499,7 @@ function gaussianSimilarity(a: number, b: number, sigma: number): number {
  * Voice Memory Service - manages voice sketches and matching
  */
 export class VoiceMemoryService {
-  private sketchBuilders: Map<string, VoiceSketchBuilder> = new Map();
+  private sketchBuilders = new Map<string, VoiceSketchBuilder>();
 
   constructor() {
     getLogger().info('VoiceMemoryService initialized');
@@ -508,7 +508,7 @@ export class VoiceMemoryService {
   /**
    * Get or create a sketch builder for a session
    */
-  getBuilder(sessionId: string, sampleRate: number = 16000): VoiceSketchBuilder {
+  getBuilder(sessionId: string, sampleRate = 16000): VoiceSketchBuilder {
     let builder = this.sketchBuilders.get(sessionId);
     if (!builder) {
       builder = new VoiceSketchBuilder(sampleRate);
@@ -524,7 +524,7 @@ export class VoiceMemoryService {
     sessionId: string,
     samples: Float32Array,
     timestampMs: number,
-    sampleRate: number = 16000
+    sampleRate = 16000
   ): void {
     const builder = this.getBuilder(sessionId, sampleRate);
     builder.processAudioChunk(samples, timestampMs);

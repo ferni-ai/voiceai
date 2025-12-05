@@ -14,14 +14,16 @@
 import { getLogger } from './safe-logger.js';
 
 // Lazy import to avoid circular dependencies
-let broadcastMetricsFn: ((metrics: {
-  avgTotalOverhead: number;
-  p95TotalOverhead: number;
-  maxTotalOverhead: number;
-  under50msPercentage: number;
-  under100msPercentage: number;
-  samplesCount: number;
-}) => void) | null = null;
+let broadcastMetricsFn:
+  | ((metrics: {
+      avgTotalOverhead: number;
+      p95TotalOverhead: number;
+      maxTotalOverhead: number;
+      under50msPercentage: number;
+      under100msPercentage: number;
+      samplesCount: number;
+    }) => void)
+  | null = null;
 
 async function getBroadcastMetrics() {
   if (!broadcastMetricsFn) {
@@ -83,7 +85,7 @@ class CognitiveMetricsTracker {
   private metrics: CognitiveMetrics[] = [];
   private maxSamples = 1000;
   private currentMetric: Partial<CognitiveMetrics> = {};
-  private startTimes: Map<string, number> = new Map();
+  private startTimes = new Map<string, number>();
 
   /**
    * Start timing a cognitive operation
@@ -136,11 +138,14 @@ class CognitiveMetricsTracker {
 
     // Log if overhead is high
     if (metric.totalOverhead > 100) {
-      getLogger().warn({
-        totalOverhead: metric.totalOverhead,
-        contextBuildTime: metric.contextBuildTime,
-        speechAdjustTime: metric.speechAdjustTime,
-      }, '⚠️ High cognitive overhead detected');
+      getLogger().warn(
+        {
+          totalOverhead: metric.totalOverhead,
+          contextBuildTime: metric.contextBuildTime,
+          speechAdjustTime: metric.speechAdjustTime,
+        },
+        '⚠️ High cognitive overhead detected'
+      );
     }
 
     // Reset current metric
@@ -166,9 +171,9 @@ class CognitiveMetricsTracker {
       };
     }
 
-    const totalOverheads = this.metrics.map(m => m.totalOverhead).sort((a, b) => a - b);
-    const contextTimes = this.metrics.map(m => m.contextBuildTime);
-    const speechTimes = this.metrics.map(m => m.speechAdjustTime);
+    const totalOverheads = this.metrics.map((m) => m.totalOverhead).sort((a, b) => a - b);
+    const contextTimes = this.metrics.map((m) => m.contextBuildTime);
+    const speechTimes = this.metrics.map((m) => m.speechAdjustTime);
 
     const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
     const avg = (arr: number[]) => sum(arr) / arr.length;
@@ -181,15 +186,17 @@ class CognitiveMetricsTracker {
       maxTotalOverhead: Math.max(...totalOverheads),
       avgContextBuildTime: avg(contextTimes),
       avgSpeechAdjustTime: avg(speechTimes),
-      under50msPercentage: (totalOverheads.filter(t => t < 50).length / totalOverheads.length) * 100,
-      under100msPercentage: (totalOverheads.filter(t => t < 100).length / totalOverheads.length) * 100,
+      under50msPercentage:
+        (totalOverheads.filter((t) => t < 50).length / totalOverheads.length) * 100,
+      under100msPercentage:
+        (totalOverheads.filter((t) => t < 100).length / totalOverheads.length) * 100,
     };
   }
 
   /**
    * Get recent metrics
    */
-  getRecentMetrics(count: number = 10): CognitiveMetrics[] {
+  getRecentMetrics(count = 10): CognitiveMetrics[] {
     return this.metrics.slice(-count);
   }
 
@@ -207,15 +214,18 @@ class CognitiveMetricsTracker {
    */
   logSummary(): void {
     const summary = this.getSummary();
-    
-    getLogger().info({
-      sampleCount: summary.sampleCount,
-      avgOverhead: `${summary.avgTotalOverhead.toFixed(1)}ms`,
-      p95Overhead: `${summary.p95TotalOverhead.toFixed(1)}ms`,
-      maxOverhead: `${summary.maxTotalOverhead.toFixed(1)}ms`,
-      under50ms: `${summary.under50msPercentage.toFixed(1)}%`,
-      under100ms: `${summary.under100msPercentage.toFixed(1)}%`,
-    }, '🧠 Cognitive Metrics Summary');
+
+    getLogger().info(
+      {
+        sampleCount: summary.sampleCount,
+        avgOverhead: `${summary.avgTotalOverhead.toFixed(1)}ms`,
+        p95Overhead: `${summary.p95TotalOverhead.toFixed(1)}ms`,
+        maxOverhead: `${summary.maxTotalOverhead.toFixed(1)}ms`,
+        under50ms: `${summary.under50msPercentage.toFixed(1)}%`,
+        under100ms: `${summary.under100msPercentage.toFixed(1)}%`,
+      },
+      '🧠 Cognitive Metrics Summary'
+    );
   }
 }
 
@@ -321,4 +331,3 @@ export default {
   maybeLogMetrics,
   maybeBroadcastMetrics,
 };
-

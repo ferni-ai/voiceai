@@ -104,11 +104,7 @@ export {
 // PERFORMANCE PROFILING
 // ============================================================================
 
-export {
-  performanceProfiler,
-  withTiming,
-  Timed,
-} from './performance-profiler.js';
+export { performanceProfiler, withTiming, Timed } from './performance-profiler.js';
 
 // ============================================================================
 // SESSION MANAGEMENT
@@ -389,16 +385,10 @@ export {
 } from '../intelligence/index.js';
 
 // Memory re-exports
-export {
-  ragLookup as semanticRagLookup,
-  type ConversationTurn,
-} from '../memory/index.js';
+export { ragLookup as semanticRagLookup, type ConversationTurn } from '../memory/index.js';
 
 // Speech re-exports
-export {
-  tagTextWithSsmlAdaptive,
-  buildSpeechContext,
-} from '../speech/index.js';
+export { tagTextWithSsmlAdaptive, buildSpeechContext } from '../speech/index.js';
 
 // ============================================================================
 // DEFAULT EXPORT

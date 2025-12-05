@@ -5,7 +5,8 @@
  * for emotion-aware, context-aware, and adaptive task execution.
  */
 
-import { llm, voice, log } from '@livekit/agents';
+import type { llm, voice } from '@livekit/agents';
+import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { AgentTask, TaskRegressionError } from './agent-task.js';
@@ -53,8 +54,8 @@ export interface AdaptiveInstructions {
 export abstract class IntelligentTask<TResult> extends AgentTask<TResult> {
   protected _context: TaskContext = {};
   protected _adaptiveInstructions: AdaptiveInstructions;
-  protected _emotionThreshold: number = 0.5; // Distress level to trigger support mode
-  protected _inSupportMode: boolean = false;
+  protected _emotionThreshold = 0.5; // Distress level to trigger support mode
+  protected _inSupportMode = false;
 
   constructor(options: {
     instructions: string | AdaptiveInstructions;
@@ -224,7 +225,7 @@ export abstract class IntelligentTask<TResult> extends AgentTask<TResult> {
  * and can dynamically insert support tasks when needed.
  */
 export class IntelligentTaskGroup {
-  private _tasks: Map<
+  private _tasks = new Map<
     string,
     {
       factory: () => IntelligentTask<any>;
@@ -234,7 +235,7 @@ export class IntelligentTaskGroup {
       skipIfDistressed?: boolean;
       requiredIfDistressed?: boolean;
     }
-  > = new Map();
+  >();
   private _taskOrder: string[] = [];
   private _context: TaskContext = {};
   private _supportTaskFactory?: () => IntelligentTask<any>;

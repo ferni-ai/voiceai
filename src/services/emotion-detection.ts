@@ -1,6 +1,6 @@
 /**
  * Emotion Detection Service
- * 
+ *
  * Detects user emotions from text to enable emotional mirroring and adaptive responses.
  */
 
@@ -12,11 +12,11 @@ const logger = getLogger().child({ service: 'EmotionDetection' });
 // Types
 // ============================================================================
 
-export type EmotionCategory = 
-  | 'distressed' 
-  | 'excited' 
-  | 'sad' 
-  | 'angry' 
+export type EmotionCategory =
+  | 'distressed'
+  | 'excited'
+  | 'sad'
+  | 'angry'
   | 'anxious'
   | 'happy'
   | 'frustrated'
@@ -40,45 +40,120 @@ export interface EmotionResult {
 
 const EMOTION_KEYWORDS: Record<EmotionCategory, string[]> = {
   distressed: [
-    'overwhelmed', 'stressed', 'can\'t handle', 'too much', 'drowning',
-    'falling apart', 'breaking down', 'can\'t cope', 'at my limit',
-    'panic', 'panicking', 'freaking out', 'losing it'
+    'overwhelmed',
+    'stressed',
+    "can't handle",
+    'too much',
+    'drowning',
+    'falling apart',
+    'breaking down',
+    "can't cope",
+    'at my limit',
+    'panic',
+    'panicking',
+    'freaking out',
+    'losing it',
   ],
   excited: [
-    'excited', 'amazing', 'can\'t wait', 'so happy', 'thrilled',
-    'best day', 'finally', 'awesome', 'incredible', 'pumped',
-    'stoked', 'yay', 'woohoo', 'fantastic', 'love it'
+    'excited',
+    'amazing',
+    "can't wait",
+    'so happy',
+    'thrilled',
+    'best day',
+    'finally',
+    'awesome',
+    'incredible',
+    'pumped',
+    'stoked',
+    'yay',
+    'woohoo',
+    'fantastic',
+    'love it',
   ],
   sad: [
-    'sad', 'down', 'depressed', 'lost', 'empty', 'hopeless',
-    'crying', 'tears', 'heartbroken', 'devastated', 'miserable',
-    'lonely', 'alone', 'hurting', 'grief'
+    'sad',
+    'down',
+    'depressed',
+    'lost',
+    'empty',
+    'hopeless',
+    'crying',
+    'tears',
+    'heartbroken',
+    'devastated',
+    'miserable',
+    'lonely',
+    'alone',
+    'hurting',
+    'grief',
   ],
   angry: [
-    'angry', 'furious', 'mad', 'pissed', 'rage', 'hate',
-    'unfair', 'ridiculous', 'bullshit', 'unbelievable'
+    'angry',
+    'furious',
+    'mad',
+    'pissed',
+    'rage',
+    'hate',
+    'unfair',
+    'ridiculous',
+    'bullshit',
+    'unbelievable',
   ],
   anxious: [
-    'anxious', 'worried', 'nervous', 'scared', 'afraid',
-    'terrified', 'what if', 'worst case', 'fear', 'dread'
+    'anxious',
+    'worried',
+    'nervous',
+    'scared',
+    'afraid',
+    'terrified',
+    'what if',
+    'worst case',
+    'fear',
+    'dread',
   ],
   happy: [
-    'happy', 'good', 'great', 'wonderful', 'pleased',
-    'content', 'joy', 'blessed', 'grateful', 'thankful'
+    'happy',
+    'good',
+    'great',
+    'wonderful',
+    'pleased',
+    'content',
+    'joy',
+    'blessed',
+    'grateful',
+    'thankful',
   ],
   frustrated: [
-    'frustrated', 'annoyed', 'irritated', 'stuck', 'ugh',
-    'not working', 'can\'t figure', 'giving up', 'pointless'
+    'frustrated',
+    'annoyed',
+    'irritated',
+    'stuck',
+    'ugh',
+    'not working',
+    "can't figure",
+    'giving up',
+    'pointless',
   ],
   confused: [
-    'confused', 'don\'t understand', 'lost', 'makes no sense',
-    'what do you mean', 'help me understand', 'unclear'
+    'confused',
+    "don't understand",
+    'lost',
+    'makes no sense',
+    'what do you mean',
+    'help me understand',
+    'unclear',
   ],
   grateful: [
-    'thank you', 'thanks', 'grateful', 'appreciate',
-    'means a lot', 'so helpful', 'you\'re the best'
+    'thank you',
+    'thanks',
+    'grateful',
+    'appreciate',
+    'means a lot',
+    'so helpful',
+    "you're the best",
   ],
-  neutral: []
+  neutral: [],
 };
 
 const HIGH_ENERGY_PATTERNS = [
@@ -108,7 +183,8 @@ const LOW_ENERGY_PATTERNS = [
  */
 export function detectEmotion(text: string): EmotionResult {
   const lowercaseText = text.toLowerCase();
-  const detectedEmotions: { emotion: EmotionCategory; count: number; keywords: string[] }[] = [];
+  const detectedEmotions: Array<{ emotion: EmotionCategory; count: number; keywords: string[] }> =
+    [];
 
   // Check each emotion category
   for (const [emotion, keywords] of Object.entries(EMOTION_KEYWORDS)) {
@@ -126,7 +202,7 @@ export function detectEmotion(text: string): EmotionResult {
       detectedEmotions.push({
         emotion: emotion as EmotionCategory,
         count,
-        keywords: foundKeywords
+        keywords: foundKeywords,
       });
     }
   }
@@ -143,7 +219,7 @@ export function detectEmotion(text: string): EmotionResult {
       primary: 'neutral',
       confidence: 0.5,
       energy,
-      keywords: []
+      keywords: [],
     };
   }
 
@@ -160,7 +236,7 @@ export function detectEmotion(text: string): EmotionResult {
     secondary: secondary?.emotion,
     confidence,
     energy,
-    keywords: primary.keywords
+    keywords: primary.keywords,
   };
 }
 
@@ -213,10 +289,7 @@ export function isUserDistressed(text: string): boolean {
  */
 export function isUserExcited(text: string): boolean {
   const result = detectEmotion(text);
-  return (
-    (result.primary === 'excited' || result.primary === 'happy') &&
-    result.energy === 'high'
-  );
+  return (result.primary === 'excited' || result.primary === 'happy') && result.energy === 'high';
 }
 
 /**
@@ -232,25 +305,25 @@ export function getResponseStyle(emotion: EmotionResult): {
     case 'anxious':
     case 'sad':
       return { pace: 'slow', tone: 'gentle', pauseMultiplier: 1.5 };
-    
+
     case 'excited':
     case 'happy':
-      return { 
-        pace: emotion.energy === 'high' ? 'fast' : 'normal', 
-        tone: 'enthusiastic', 
-        pauseMultiplier: 0.8 
+      return {
+        pace: emotion.energy === 'high' ? 'fast' : 'normal',
+        tone: 'enthusiastic',
+        pauseMultiplier: 0.8,
       };
-    
+
     case 'angry':
     case 'frustrated':
       return { pace: 'normal', tone: 'supportive', pauseMultiplier: 1.2 };
-    
+
     case 'confused':
       return { pace: 'slow', tone: 'warm', pauseMultiplier: 1.3 };
-    
+
     case 'grateful':
       return { pace: 'normal', tone: 'warm', pauseMultiplier: 1.0 };
-    
+
     default:
       return { pace: 'normal', tone: 'warm', pauseMultiplier: 1.0 };
   }
@@ -268,18 +341,18 @@ export function analyzeConversationEmotion(messages: string[]): {
     return {
       dominantEmotion: 'neutral',
       emotionalArc: 'stable',
-      averageEnergy: 'medium'
+      averageEnergy: 'medium',
     };
   }
 
   const emotions = messages.map(detectEmotion);
-  
+
   // Count dominant emotion
   const emotionCounts = new Map<EmotionCategory, number>();
   for (const e of emotions) {
     emotionCounts.set(e.primary, (emotionCounts.get(e.primary) || 0) + 1);
   }
-  
+
   let dominantEmotion: EmotionCategory = 'neutral';
   let maxCount = 0;
   for (const [emotion, count] of emotionCounts) {
@@ -291,15 +364,21 @@ export function analyzeConversationEmotion(messages: string[]): {
 
   // Determine emotional arc (compare first half to second half)
   const positiveEmotions: EmotionCategory[] = ['excited', 'happy', 'grateful'];
-  const negativeEmotions: EmotionCategory[] = ['distressed', 'sad', 'angry', 'anxious', 'frustrated'];
+  const negativeEmotions: EmotionCategory[] = [
+    'distressed',
+    'sad',
+    'angry',
+    'anxious',
+    'frustrated',
+  ];
 
   const firstHalf = emotions.slice(0, Math.floor(emotions.length / 2));
   const secondHalf = emotions.slice(Math.floor(emotions.length / 2));
 
-  const firstHalfPositive = firstHalf.filter(e => positiveEmotions.includes(e.primary)).length;
-  const secondHalfPositive = secondHalf.filter(e => positiveEmotions.includes(e.primary)).length;
-  const firstHalfNegative = firstHalf.filter(e => negativeEmotions.includes(e.primary)).length;
-  const secondHalfNegative = secondHalf.filter(e => negativeEmotions.includes(e.primary)).length;
+  const firstHalfPositive = firstHalf.filter((e) => positiveEmotions.includes(e.primary)).length;
+  const secondHalfPositive = secondHalf.filter((e) => positiveEmotions.includes(e.primary)).length;
+  const firstHalfNegative = firstHalf.filter((e) => negativeEmotions.includes(e.primary)).length;
+  const secondHalfNegative = secondHalf.filter((e) => negativeEmotions.includes(e.primary)).length;
 
   let emotionalArc: 'improving' | 'declining' | 'stable' = 'stable';
   if (secondHalfPositive > firstHalfPositive && secondHalfNegative < firstHalfNegative) {
@@ -326,4 +405,3 @@ export const EmotionDetectionService = {
 };
 
 export default EmotionDetectionService;
-

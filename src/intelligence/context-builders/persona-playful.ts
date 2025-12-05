@@ -263,8 +263,7 @@ function detectMayaHabitTopic(text: string): string | null {
     return 'routine';
   if (/\b(productiv|focus|distract|procrastinat|screen time|phone)\b/.test(lowerText))
     return 'productivity';
-  if (/\b(self.care|take care of|rest|recharge|burnout)\b/.test(lowerText))
-    return 'selfcare';
+  if (/\b(self.care|take care of|rest|recharge|burnout)\b/.test(lowerText)) return 'selfcare';
   if (/\b(relationship|connect|friend|family|partner|lonely)\b/.test(lowerText))
     return 'relationships';
   return null;
@@ -287,10 +286,14 @@ function detectMayaMoneyTopic(text: string): string | null {
  */
 function detectMayaUserEnergy(text: string): MayaEnergy | null {
   const lowerText = text.toLowerCase();
-  if (/\b(embarrass|ashamed|bad|guilty|stupid|dumb|failed|failure)\b/.test(lowerText)) return 'ashamed';
-  if (/\b(ready|start|motivated|excited|let's do|pumped|want to change)\b/.test(lowerText)) return 'motivated';
-  if (/\b(overwhelmed|too much|can't|don't know where|stuck|hopeless)\b/.test(lowerText)) return 'overwhelmed';
-  if (/\b(saved|did it|finally|paid off|win|success|kept my streak|achieved)\b/.test(lowerText)) return 'celebrating';
+  if (/\b(embarrass|ashamed|bad|guilty|stupid|dumb|failed|failure)\b/.test(lowerText))
+    return 'ashamed';
+  if (/\b(ready|start|motivated|excited|let's do|pumped|want to change)\b/.test(lowerText))
+    return 'motivated';
+  if (/\b(overwhelmed|too much|can't|don't know where|stuck|hopeless)\b/.test(lowerText))
+    return 'overwhelmed';
+  if (/\b(saved|did it|finally|paid off|win|success|kept my streak|achieved)\b/.test(lowerText))
+    return 'celebrating';
   return null;
 }
 
@@ -300,13 +303,13 @@ function detectMayaUserEnergy(text: string): MayaEnergy | null {
 function getHabitEncouragement(topic: string): string {
   const encouragements: Record<string, string[]> = {
     exercise: [
-      "Remember: showing up is 90% of the battle. Even a 2-minute walk counts!",
+      'Remember: showing up is 90% of the battle. Even a 2-minute walk counts!',
       "Your body doesn't know the difference between a 'perfect' workout and just moving. Movement is movement.",
       "Fun fact: I hate running. But I do it anyway. Some habits aren't about loving it.",
     ],
     sleep: [
-      "Sleep is the foundation. Everything else is harder without it.",
-      "Tiny wins: what if you just put your phone in another room 10 minutes earlier?",
+      'Sleep is the foundation. Everything else is harder without it.',
+      'Tiny wins: what if you just put your phone in another room 10 minutes earlier?',
       "Your future self will thank you for tonight's sleep.",
     ],
     nutrition: [
@@ -321,18 +324,18 @@ function getHabitEncouragement(topic: string): string {
     ],
     routine: [
       "The secret is making it so small you can't say no. Two minutes. Start there.",
-      "Stack it on something you already do. After I [existing habit], I will [new habit].",
+      'Stack it on something you already do. After I [existing habit], I will [new habit].',
       "Routines aren't restrictions - they're freedom from decision fatigue.",
     ],
     productivity: [
       "Your phone isn't evil, but it IS designed by geniuses to steal your attention.",
       "Focus is a skill. Every time you choose one thing, you're training it.",
-      "Sometimes the most productive thing is to close everything and just... start.",
+      'Sometimes the most productive thing is to close everything and just... start.',
     ],
     selfcare: [
       "Self-care isn't selfish. You can't pour from an empty cup.",
-      "Rest is productive. Your brain consolidates learning while you recover.",
-      "What fills YOUR cup? Not what should - what actually does?",
+      'Rest is productive. Your brain consolidates learning while you recover.',
+      'What fills YOUR cup? Not what should - what actually does?',
     ],
     relationships: [
       "Showing up for people is a habit too. A 30-second text can change someone's day.",
@@ -349,7 +352,7 @@ function getHabitEncouragement(topic: string): string {
  */
 function buildMayaPlayfulContext(userText: string): ContextInjection[] {
   const injections = [];
-  
+
   // Energy matching first - Maya is very emotionally attuned
   const userEnergy = detectMayaUserEnergy(userText);
   if (userEnergy) {
@@ -361,7 +364,7 @@ function buildMayaPlayfulContext(userText: string): ContextInjection[] {
       )
     );
   }
-  
+
   // PRIMARY: Habit/routine topic detection
   const habitTopic = detectMayaHabitTopic(userText);
   if (habitTopic) {
@@ -373,7 +376,7 @@ function buildMayaPlayfulContext(userText: string): ContextInjection[] {
       )
     );
   }
-  
+
   // SECONDARY: Money topic detection
   const moneyTopic = detectMayaMoneyTopic(userText);
   if (moneyTopic) {
@@ -403,18 +406,19 @@ function buildMayaPlayfulContext(userText: string): ContextInjection[] {
       );
     }
   }
-  
+
   // Self-aware stories (occasional) - expanded beyond just money
   if (Math.random() < 0.12) {
     const selfAwareOptions = [
-      "Maya shares her own running journey - she hates it but does it anyway.",
+      'Maya shares her own running journey - she hates it but does it anyway.',
       "Maya mentions struggling with morning routines herself - 'not naturally a morning person'",
       "Maya relates to screen time struggles - 'my phone knows too much about me'",
       "Maya shares that building habits is HARD - she's been there",
     ];
-    const selfAware = (habitTopic && Math.random() < 0.6) 
-      ? selfAwareOptions[Math.floor(Math.random() * selfAwareOptions.length)]
-      : getSelfAwareMoney('struggles');
+    const selfAware =
+      habitTopic && Math.random() < 0.6
+        ? selfAwareOptions[Math.floor(Math.random() * selfAwareOptions.length)]
+        : getSelfAwareMoney('struggles');
     injections.push(
       createHintInjection(
         'maya_self_aware',
@@ -422,7 +426,7 @@ function buildMayaPlayfulContext(userText: string): ContextInjection[] {
       )
     );
   }
-  
+
   // Maya's cat references (Compound and Interest)
   if (Math.random() < 0.08) {
     injections.push(
@@ -432,7 +436,7 @@ function buildMayaPlayfulContext(userText: string): ContextInjection[] {
       )
     );
   }
-  
+
   // Glidepath system reminder (for habit discussions)
   if (habitTopic && Math.random() < 0.2) {
     injections.push(
@@ -442,7 +446,7 @@ function buildMayaPlayfulContext(userText: string): ContextInjection[] {
       )
     );
   }
-  
+
   return injections;
 }
 // ============================================================================

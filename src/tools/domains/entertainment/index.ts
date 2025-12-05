@@ -126,8 +126,8 @@ function getSpotifyToolDefinitions(): ToolDefinition[] {
 // ============================================================================
 
 const entertainmentTools: ToolDefinition[] = [
-  ...getUnifiedMusicToolDefinitions(),  // PRIMARY: iTunes-based, works for everyone
-  ...getSpotifyToolDefinitions(),       // SECONDARY: Spotify-specific tools
+  ...getUnifiedMusicToolDefinitions(), // PRIMARY: iTunes-based, works for everyone
+  ...getSpotifyToolDefinitions(), // SECONDARY: Spotify-specific tools
 ];
 
 // ============================================================================
@@ -139,10 +139,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   entertainmentTools
 );
 
-export {
-  getUnifiedMusicToolDefinitions,
-  getSpotifyToolDefinitions,
-};
+export { getUnifiedMusicToolDefinitions, getSpotifyToolDefinitions };
 
 export default getToolDefinitions;
-

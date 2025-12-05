@@ -34,7 +34,14 @@ export const LIFE_DOMAINS = {
     name: 'Career & Purpose',
     icon: '💼',
     description: 'Work, professional development, purpose',
-    subdomains: ['skills', 'productivity', 'leadership', 'side_projects', 'job_search', 'mentorship'],
+    subdomains: [
+      'skills',
+      'productivity',
+      'leadership',
+      'side_projects',
+      'job_search',
+      'mentorship',
+    ],
   },
   learning: {
     name: 'Learning & Growth',
@@ -155,4 +162,3 @@ export function getAllDomains(): LifeDomain[] {
 export function getAllStages(): LifeStage[] {
   return Object.keys(LIFE_STAGES) as LifeStage[];
 }
-

@@ -204,10 +204,10 @@ interface VenueOption {
 }
 
 // In-memory storage
-const events: Map<string, Event> = new Map();
-const majorPurchases: Map<string, MajorPurchase> = new Map();
-const vacations: Map<string, Vacation> = new Map();
-const annualPlans: Map<string, AnnualPlan> = new Map();
+const events = new Map<string, Event>();
+const majorPurchases = new Map<string, MajorPurchase>();
+const vacations = new Map<string, Vacation>();
+const annualPlans = new Map<string, AnnualPlan>();
 
 // Best times to buy database
 const BEST_TIMES_TO_BUY: Record<string, string[]> = {

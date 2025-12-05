@@ -35,19 +35,19 @@ export interface Badge {
   category: BadgeCategory;
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   earnedAt?: Date;
-  progress?: number;  // 0-100 for in-progress badges
+  progress?: number; // 0-100 for in-progress badges
   requirement: string;
 }
 
-export type BadgeCategory = 
-  | 'streaks'           // Consistency badges
-  | 'milestones'        // Achievement milestones
-  | 'challenges'        // Challenge completion
-  | 'domains'           // Life domain mastery
-  | 'behavior_science'  // Using the frameworks
-  | 'comebacks'         // Resilience badges
-  | 'social'            // Accountability & connection
-  | 'special';          // Rare/seasonal badges
+export type BadgeCategory =
+  | 'streaks' // Consistency badges
+  | 'milestones' // Achievement milestones
+  | 'challenges' // Challenge completion
+  | 'domains' // Life domain mastery
+  | 'behavior_science' // Using the frameworks
+  | 'comebacks' // Resilience badges
+  | 'social' // Accountability & connection
+  | 'special'; // Rare/seasonal badges
 
 export const BADGE_DEFINITIONS: Badge[] = [
   // =========== STREAK BADGES ===========
@@ -500,7 +500,7 @@ export interface UserTitle {
   emoji: string;
   description: string;
   requirement: string;
-  tier: number;  // 1-10, higher = more prestigious
+  tier: number; // 1-10, higher = more prestigious
 }
 
 export const TITLE_PROGRESSION: UserTitle[] = [
@@ -617,7 +617,12 @@ export const XP_VALUES: XPEvent[] = [
   { action: 'behavior_science_tool', xp: 30, description: 'Use behavior science tool' },
 ];
 
-export function calculateLevel(totalXP: number): { level: number; currentXP: number; xpToNext: number; progress: number } {
+export function calculateLevel(totalXP: number): {
+  level: number;
+  currentXP: number;
+  xpToNext: number;
+  progress: number;
+} {
   // XP curve: level = sqrt(totalXP / 100)
   // Level 1 = 100 XP, Level 2 = 400 XP, Level 3 = 900 XP, etc.
   const level = Math.floor(Math.sqrt(totalXP / 100)) + 1;
@@ -626,7 +631,7 @@ export function calculateLevel(totalXP: number): { level: number; currentXP: num
   const currentXP = totalXP - xpForCurrentLevel;
   const xpToNext = xpForNextLevel - totalXP;
   const progress = Math.round((currentXP / (xpForNextLevel - xpForCurrentLevel)) * 100);
-  
+
   return { level, currentXP, xpToNext, progress };
 }
 
@@ -639,7 +644,7 @@ export interface UserGamificationData {
   totalXP: number;
   currentTitle: string;
   earnedBadges: Array<{ badgeId: string; earnedAt: string }>;
-  badgeProgress: Record<string, number>;  // badgeId -> progress (0-100)
+  badgeProgress: Record<string, number>; // badgeId -> progress (0-100)
   stats: {
     totalHabitsCreated: number;
     totalCompletions: number;
@@ -669,23 +674,30 @@ Use at the start of conversations to see their status, or when they ask about pr
       execute: async (_, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
         const userId = userData.userId || 'anonymous';
-        
+
         const store = getProductivityStore();
-        let gamificationData = store.getUserPreference(userId, 'gamification') as UserGamificationData | undefined;
-        
+        let gamificationData = store.getUserPreference(userId, 'gamification') as
+          | UserGamificationData
+          | undefined;
+
         // Initialize if not exists
         if (!gamificationData) {
           gamificationData = initializeGamificationData(userId);
           store.setUserPreference(userId, 'gamification', gamificationData);
         }
-        
-        const levelInfo = calculateLevel(gamificationData.totalXP);
-        const title = TITLE_PROGRESSION.find(t => t.id === gamificationData.currentTitle) || TITLE_PROGRESSION[0];
-        const earnedBadges = gamificationData.earnedBadges.map(eb => 
-          BADGE_DEFINITIONS.find(b => b.id === eb.badgeId)
-        ).filter(Boolean);
 
-        getLogger().info({ userId, level: levelInfo.level, badges: earnedBadges.length }, '🎮 Gamification profile retrieved');
+        const levelInfo = calculateLevel(gamificationData.totalXP);
+        const title =
+          TITLE_PROGRESSION.find((t) => t.id === gamificationData.currentTitle) ||
+          TITLE_PROGRESSION[0];
+        const earnedBadges = gamificationData.earnedBadges
+          .map((eb) => BADGE_DEFINITIONS.find((b) => b.id === eb.badgeId))
+          .filter(Boolean);
+
+        getLogger().info(
+          { userId, level: levelInfo.level, badges: earnedBadges.length },
+          '🎮 Gamification profile retrieved'
+        );
 
         return {
           level: levelInfo.level,
@@ -693,7 +705,7 @@ Use at the start of conversations to see their status, or when they ask about pr
             total: gamificationData.totalXP,
             currentLevel: levelInfo.currentXP,
             toNextLevel: levelInfo.xpToNext,
-            progress: levelInfo.progress + '%',
+            progress: `${levelInfo.progress}%`,
           },
           title: {
             current: title.name,
@@ -703,7 +715,7 @@ Use at the start of conversations to see their status, or when they ask about pr
           badges: {
             earned: earnedBadges.length,
             total: BADGE_DEFINITIONS.length,
-            recent: earnedBadges.slice(-3).map(b => `${b?.emoji} ${b?.name}`),
+            recent: earnedBadges.slice(-3).map((b) => `${b?.emoji} ${b?.name}`),
           },
           stats: gamificationData.stats,
           nextMilestone: getNextMilestone(gamificationData),
@@ -718,59 +730,63 @@ Use at the start of conversations to see their status, or when they ask about pr
       description: `Award XP to the user for completing an action.
 Use when user completes habits, challenges, or other achievements.`,
       parameters: z.object({
-        action: z.enum([
-          'habit_completion',
-          'streak_maintained',
-          'streak_milestone_7',
-          'streak_milestone_14',
-          'streak_milestone_21',
-          'streak_milestone_30',
-          'streak_milestone_66',
-          'streak_milestone_100',
-          'level_up',
-          'challenge_day',
-          'challenge_week',
-          'challenge_complete',
-          'new_habit',
-          'habit_stack',
-          'weekly_reflection',
-          'comeback',
-          'badge_earned',
-          'behavior_science_tool'
-        ]).describe('The action that earned XP'),
+        action: z
+          .enum([
+            'habit_completion',
+            'streak_maintained',
+            'streak_milestone_7',
+            'streak_milestone_14',
+            'streak_milestone_21',
+            'streak_milestone_30',
+            'streak_milestone_66',
+            'streak_milestone_100',
+            'level_up',
+            'challenge_day',
+            'challenge_week',
+            'challenge_complete',
+            'new_habit',
+            'habit_stack',
+            'weekly_reflection',
+            'comeback',
+            'badge_earned',
+            'behavior_science_tool',
+          ])
+          .describe('The action that earned XP'),
         multiplier: z.number().optional().describe('Optional multiplier for bonus XP'),
       }),
       execute: async ({ action, multiplier = 1 }, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
         const userId = userData.userId || 'anonymous';
-        
+
         const store = getProductivityStore();
-        let gamificationData = store.getUserPreference(userId, 'gamification') as UserGamificationData | undefined;
-        
+        let gamificationData = store.getUserPreference(userId, 'gamification') as
+          | UserGamificationData
+          | undefined;
+
         if (!gamificationData) {
           gamificationData = initializeGamificationData(userId);
         }
-        
-        const xpEvent = XP_VALUES.find(e => e.action === action);
+
+        const xpEvent = XP_VALUES.find((e) => e.action === action);
         if (!xpEvent) {
           return { error: 'Unknown action' };
         }
-        
+
         const xpAwarded = Math.round(xpEvent.xp * multiplier);
         const oldLevel = calculateLevel(gamificationData.totalXP).level;
-        
+
         gamificationData.totalXP += xpAwarded;
         gamificationData.updatedAt = new Date().toISOString();
-        
+
         const newLevelInfo = calculateLevel(gamificationData.totalXP);
         const leveledUp = newLevelInfo.level > oldLevel;
-        
+
         // Check for title upgrade
         const newTitle = checkTitleUpgrade(gamificationData);
         if (newTitle && newTitle !== gamificationData.currentTitle) {
           gamificationData.currentTitle = newTitle;
         }
-        
+
         store.setUserPreference(userId, 'gamification', gamificationData);
 
         getLogger().info({ userId, action, xp: xpAwarded, leveledUp }, '⭐ XP awarded');
@@ -780,25 +796,25 @@ Use when user completes habits, challenges, or other achievements.`,
           reason: xpEvent.description,
           totalXP: gamificationData.totalXP,
           level: newLevelInfo.level,
-          progress: newLevelInfo.progress + '%',
+          progress: `${newLevelInfo.progress}%`,
         };
-        
+
         if (leveledUp) {
           result.levelUp = {
             newLevel: newLevelInfo.level,
             message: `🎉 LEVEL UP! You're now Level ${newLevelInfo.level}!`,
           };
         }
-        
+
         if (newTitle && newTitle !== gamificationData.currentTitle) {
-          const title = TITLE_PROGRESSION.find(t => t.id === newTitle);
+          const title = TITLE_PROGRESSION.find((t) => t.id === newTitle);
           result.titleUpgrade = {
             newTitle: title?.name,
             emoji: title?.emoji,
             message: `🏅 New Title: ${title?.emoji} ${title?.name}!`,
           };
         }
-        
+
         return result;
       },
     }),
@@ -810,51 +826,73 @@ Use when user completes habits, challenges, or other achievements.`,
       description: `Check if user has earned any new badges based on their activity.
 Call after significant actions to see if badges should be awarded.`,
       parameters: z.object({
-        checkTypes: z.array(z.enum([
-          'streaks',
-          'milestones',
-          'challenges',
-          'domains',
-          'behavior_science',
-          'comebacks',
-          'social',
-          'special',
-          'all'
-        ])).optional().describe('Badge categories to check'),
+        checkTypes: z
+          .array(
+            z.enum([
+              'streaks',
+              'milestones',
+              'challenges',
+              'domains',
+              'behavior_science',
+              'comebacks',
+              'social',
+              'special',
+              'all',
+            ])
+          )
+          .optional()
+          .describe('Badge categories to check'),
       }),
       execute: async ({ checkTypes = ['all'] }, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
         const userId = userData.userId || 'anonymous';
-        
+
         const store = getProductivityStore();
-        let gamificationData = store.getUserPreference(userId, 'gamification') as UserGamificationData | undefined;
-        
+        let gamificationData = store.getUserPreference(userId, 'gamification') as
+          | UserGamificationData
+          | undefined;
+
         if (!gamificationData) {
           gamificationData = initializeGamificationData(userId);
         }
-        
+
         // Get user's habit data
         const habits = store.getUserEnhancedHabits(userId);
         const profile = store.getHabitCoachProfile(userId);
         const reflections = store.getUserWeeklyReflections(userId);
-        
+
         const newBadges: Badge[] = [];
-        const categoriesToCheck = checkTypes.includes('all') 
-          ? ['streaks', 'milestones', 'challenges', 'domains', 'behavior_science', 'comebacks', 'social', 'special'] as BadgeCategory[]
-          : checkTypes as BadgeCategory[];
-        
+        const categoriesToCheck = checkTypes.includes('all')
+          ? ([
+              'streaks',
+              'milestones',
+              'challenges',
+              'domains',
+              'behavior_science',
+              'comebacks',
+              'social',
+              'special',
+            ] as BadgeCategory[])
+          : (checkTypes as BadgeCategory[]);
+
         for (const category of categoriesToCheck) {
-          const badgesToCheck = BADGE_DEFINITIONS.filter(b => b.category === category);
-          
+          const badgesToCheck = BADGE_DEFINITIONS.filter((b) => b.category === category);
+
           for (const badge of badgesToCheck) {
             // Skip if already earned
-            if (gamificationData.earnedBadges.some(eb => eb.badgeId === badge.id)) {
+            if (gamificationData.earnedBadges.some((eb) => eb.badgeId === badge.id)) {
               continue;
             }
-            
+
             // Check if earned
-            const earned = checkBadgeRequirement(badge, gamificationData, habits, profile, reflections);
-            
+            const earned = checkBadgeRequirement(
+              badge,
+              gamificationData,
+              habits,
+              profile,
+              reflections
+            );
+
             if (earned) {
               newBadges.push(badge);
               gamificationData.earnedBadges.push({
@@ -866,7 +904,7 @@ Call after significant actions to see if badges should be awarded.`,
             }
           }
         }
-        
+
         if (newBadges.length > 0) {
           gamificationData.updatedAt = new Date().toISOString();
           store.setUserPreference(userId, 'gamification', gamificationData);
@@ -875,16 +913,17 @@ Call after significant actions to see if badges should be awarded.`,
         getLogger().info({ userId, newBadges: newBadges.length }, '🏅 Badge check complete');
 
         return {
-          newBadges: newBadges.map(b => ({
+          newBadges: newBadges.map((b) => ({
             name: b.name,
             emoji: b.emoji,
             description: b.description,
             rarity: b.rarity,
           })),
           totalBadges: gamificationData.earnedBadges.length,
-          message: newBadges.length > 0 
-            ? `🎉 You earned ${newBadges.length} new badge(s)!`
-            : 'No new badges yet. Keep going!',
+          message:
+            newBadges.length > 0
+              ? `🎉 You earned ${newBadges.length} new badge(s)!`
+              : 'No new badges yet. Keep going!',
         };
       },
     }),
@@ -896,27 +935,32 @@ Call after significant actions to see if badges should be awarded.`,
       description: `View all available badges and the user's progress toward each.
 Use when user asks about badges or achievements.`,
       parameters: z.object({
-        category: z.enum([
-          'streaks',
-          'milestones',
-          'challenges',
-          'domains',
-          'behavior_science',
-          'comebacks',
-          'social',
-          'special',
-          'all',
-          'earned',
-          'in_progress'
-        ]).optional().describe('Filter badges by category'),
+        category: z
+          .enum([
+            'streaks',
+            'milestones',
+            'challenges',
+            'domains',
+            'behavior_science',
+            'comebacks',
+            'social',
+            'special',
+            'all',
+            'earned',
+            'in_progress',
+          ])
+          .optional()
+          .describe('Filter badges by category'),
       }),
       execute: async ({ category = 'all' }, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
         const userId = userData.userId || 'anonymous';
-        
+
         const store = getProductivityStore();
-        const gamificationData = store.getUserPreference(userId, 'gamification') as UserGamificationData | undefined;
-        
+        const gamificationData = store.getUserPreference(userId, 'gamification') as
+          | UserGamificationData
+          | undefined;
+
         if (!gamificationData) {
           return {
             earned: [],
@@ -924,24 +968,25 @@ Use when user asks about badges or achievements.`,
             message: 'Start building habits to earn badges!',
           };
         }
-        
+
         let badges = BADGE_DEFINITIONS;
-        
+
         if (category === 'earned') {
-          badges = badges.filter(b => 
-            gamificationData.earnedBadges.some(eb => eb.badgeId === b.id)
+          badges = badges.filter((b) =>
+            gamificationData.earnedBadges.some((eb) => eb.badgeId === b.id)
           );
         } else if (category === 'in_progress') {
-          badges = badges.filter(b => 
-            !gamificationData.earnedBadges.some(eb => eb.badgeId === b.id) &&
-            (gamificationData.badgeProgress[b.id] || 0) > 0
+          badges = badges.filter(
+            (b) =>
+              !gamificationData.earnedBadges.some((eb) => eb.badgeId === b.id) &&
+              (gamificationData.badgeProgress[b.id] || 0) > 0
           );
         } else if (category !== 'all') {
-          badges = badges.filter(b => b.category === category);
+          badges = badges.filter((b) => b.category === category);
         }
-        
-        const badgeInfo = badges.map(b => {
-          const earned = gamificationData.earnedBadges.find(eb => eb.badgeId === b.id);
+
+        const badgeInfo = badges.map((b) => {
+          const earned = gamificationData.earnedBadges.find((eb) => eb.badgeId === b.id);
           return {
             name: b.name,
             emoji: b.emoji,
@@ -954,7 +999,10 @@ Use when user asks about badges or achievements.`,
           };
         });
 
-        getLogger().info({ userId, category, count: badgeInfo.length }, '📜 Badge collection viewed');
+        getLogger().info(
+          { userId, category, count: badgeInfo.length },
+          '📜 Badge collection viewed'
+        );
 
         return {
           badges: badgeInfo,
@@ -962,11 +1010,11 @@ Use when user asks about badges or achievements.`,
             total: BADGE_DEFINITIONS.length,
             earned: gamificationData.earnedBadges.length,
             byRarity: {
-              common: badgeInfo.filter(b => b.earned && b.rarity === 'common').length,
-              uncommon: badgeInfo.filter(b => b.earned && b.rarity === 'uncommon').length,
-              rare: badgeInfo.filter(b => b.earned && b.rarity === 'rare').length,
-              epic: badgeInfo.filter(b => b.earned && b.rarity === 'epic').length,
-              legendary: badgeInfo.filter(b => b.earned && b.rarity === 'legendary').length,
+              common: badgeInfo.filter((b) => b.earned && b.rarity === 'common').length,
+              uncommon: badgeInfo.filter((b) => b.earned && b.rarity === 'uncommon').length,
+              rare: badgeInfo.filter((b) => b.earned && b.rarity === 'rare').length,
+              epic: badgeInfo.filter((b) => b.earned && b.rarity === 'epic').length,
+              legendary: badgeInfo.filter((b) => b.earned && b.rarity === 'legendary').length,
             },
           },
         };
@@ -983,39 +1031,47 @@ Use for milestone moments or when user wants to see how far they've come.`,
       execute: async (_, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
         const userId = userData.userId || 'anonymous';
-        
+
         const store = getProductivityStore();
-        const gamificationData = store.getUserPreference(userId, 'gamification') as UserGamificationData | undefined;
-        
+        const gamificationData = store.getUserPreference(userId, 'gamification') as
+          | UserGamificationData
+          | undefined;
+
         if (!gamificationData) {
           return {
             message: "You're just getting started! Every journey begins with a single step.",
             suggestion: 'Create your first habit to begin earning XP and badges!',
           };
         }
-        
+
         const levelInfo = calculateLevel(gamificationData.totalXP);
-        const title = TITLE_PROGRESSION.find(t => t.id === gamificationData.currentTitle) || TITLE_PROGRESSION[0];
-        const stats = gamificationData.stats;
-        
+        const title =
+          TITLE_PROGRESSION.find((t) => t.id === gamificationData.currentTitle) ||
+          TITLE_PROGRESSION[0];
+        const { stats } = gamificationData;
+
         // Generate personalized celebration
         const highlights: string[] = [];
-        
+
         if (stats.longestStreak >= 30) {
-          highlights.push(`🔥 Your longest streak is ${stats.longestStreak} days - that's incredible!`);
+          highlights.push(
+            `🔥 Your longest streak is ${stats.longestStreak} days - that's incredible!`
+          );
         }
         if (stats.challengesCompleted >= 1) {
           highlights.push(`🏆 You've completed ${stats.challengesCompleted} challenge(s)!`);
         }
         if (stats.domainsExplored.length >= 3) {
-          highlights.push(`🌈 You're building habits across ${stats.domainsExplored.length} life domains!`);
+          highlights.push(
+            `🌈 You're building habits across ${stats.domainsExplored.length} life domains!`
+          );
         }
         if (stats.comebacks >= 1) {
           highlights.push(`💪 You've made ${stats.comebacks} comeback(s) - that's resilience!`);
         }
-        
+
         const rarestBadge = gamificationData.earnedBadges
-          .map(eb => BADGE_DEFINITIONS.find(b => b.id === eb.badgeId))
+          .map((eb) => BADGE_DEFINITIONS.find((b) => b.id === eb.badgeId))
           .filter(Boolean)
           .sort((a, b) => {
             const rarityOrder = { legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
@@ -1029,7 +1085,9 @@ Use for milestone moments or when user wants to see how far they've come.`,
           level: levelInfo.level,
           totalXP: gamificationData.totalXP,
           badges: gamificationData.earnedBadges.length,
-          rarestBadge: rarestBadge ? `${rarestBadge.emoji} ${rarestBadge.name} (${rarestBadge.rarity})` : null,
+          rarestBadge: rarestBadge
+            ? `${rarestBadge.emoji} ${rarestBadge.name} (${rarestBadge.rarity})`
+            : null,
           highlights,
           stats: {
             habitsCreated: stats.totalHabitsCreated,
@@ -1050,29 +1108,35 @@ Use for milestone moments or when user wants to see how far they've come.`,
       description: `Update gamification stats after user actions.
 Call after habit completions, challenge progress, etc.`,
       parameters: z.object({
-        statType: z.enum([
-          'habit_created',
-          'habit_completed',
-          'streak_updated',
-          'challenge_completed',
-          'domain_explored',
-          'behavior_tool_used',
-          'comeback'
-        ]).describe('Type of stat to update'),
-        value: z.union([z.string(), z.number()]).optional()
+        statType: z
+          .enum([
+            'habit_created',
+            'habit_completed',
+            'streak_updated',
+            'challenge_completed',
+            'domain_explored',
+            'behavior_tool_used',
+            'comeback',
+          ])
+          .describe('Type of stat to update'),
+        value: z
+          .union([z.string(), z.number()])
+          .optional()
           .describe('Value for the stat (domain name, streak length, etc.)'),
       }),
       execute: async ({ statType, value }, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
         const userId = userData.userId || 'anonymous';
-        
+
         const store = getProductivityStore();
-        let gamificationData = store.getUserPreference(userId, 'gamification') as UserGamificationData | undefined;
-        
+        let gamificationData = store.getUserPreference(userId, 'gamification') as
+          | UserGamificationData
+          | undefined;
+
         if (!gamificationData) {
           gamificationData = initializeGamificationData(userId);
         }
-        
+
         switch (statType) {
           case 'habit_created':
             gamificationData.stats.totalHabitsCreated++;
@@ -1089,12 +1153,18 @@ Call after habit completions, challenge progress, etc.`,
             gamificationData.stats.challengesCompleted++;
             break;
           case 'domain_explored':
-            if (typeof value === 'string' && !gamificationData.stats.domainsExplored.includes(value)) {
+            if (
+              typeof value === 'string' &&
+              !gamificationData.stats.domainsExplored.includes(value)
+            ) {
               gamificationData.stats.domainsExplored.push(value);
             }
             break;
           case 'behavior_tool_used':
-            if (typeof value === 'string' && !gamificationData.stats.behaviorToolsUsed.includes(value)) {
+            if (
+              typeof value === 'string' &&
+              !gamificationData.stats.behaviorToolsUsed.includes(value)
+            ) {
               gamificationData.stats.behaviorToolsUsed.push(value);
             }
             break;
@@ -1102,7 +1172,7 @@ Call after habit completions, challenge progress, etc.`,
             gamificationData.stats.comebacks++;
             break;
         }
-        
+
         gamificationData.updatedAt = new Date().toISOString();
         store.setUserPreference(userId, 'gamification', gamificationData);
 
@@ -1143,14 +1213,17 @@ function initializeGamificationData(userId: string): UserGamificationData {
 }
 
 function checkTitleUpgrade(data: UserGamificationData): string | null {
-  const stats = data.stats;
-  const level = calculateLevel(data.totalXP).level;
-  
+  const { stats } = data;
+  const { level } = calculateLevel(data.totalXP);
+
   // Check from highest tier to lowest
   if (stats.longestStreak >= 365 && stats.domainsExplored.length >= 8) {
     return 'habit_legend';
   }
-  if (stats.longestStreak >= 365 || (stats.domainsExplored.length >= 5 && stats.challengesCompleted >= 5)) {
+  if (
+    stats.longestStreak >= 365 ||
+    (stats.domainsExplored.length >= 5 && stats.challengesCompleted >= 5)
+  ) {
     return 'habit_sage';
   }
   if (stats.longestStreak >= 100 && stats.challengesCompleted >= 3) {
@@ -1174,7 +1247,7 @@ function checkTitleUpgrade(data: UserGamificationData): string | null {
   if (stats.totalHabitsCreated >= 1) {
     return 'habit_seeker';
   }
-  
+
   return 'newcomer';
 }
 
@@ -1185,8 +1258,8 @@ function checkBadgeRequirement(
   profile: { lifeStage?: string } | null,
   reflections: Array<{ date: string }>
 ): boolean {
-  const stats = data.stats;
-  
+  const { stats } = data;
+
   switch (badge.id) {
     // Streak badges
     case 'first_streak':
@@ -1205,7 +1278,7 @@ function checkBadgeRequirement(
       return stats.longestStreak >= 100;
     case 'year_of_showing_up':
       return stats.longestStreak >= 365;
-      
+
     // Milestone badges
     case 'first_habit':
       return stats.totalHabitsCreated >= 1;
@@ -1214,16 +1287,16 @@ function checkBadgeRequirement(
     case 'habit_architect':
       return stats.totalHabitsCreated >= 10;
     case 'level_up':
-      return habits.some(h => h.currentLevel >= 2);
+      return habits.some((h) => h.currentLevel >= 2);
     case 'established':
-      return habits.some(h => h.currentLevel >= 4);
+      return habits.some((h) => h.currentLevel >= 4);
     case 'lifestyle_integration':
-      return habits.some(h => h.currentLevel >= 5);
+      return habits.some((h) => h.currentLevel >= 5);
     case 'completionist':
       return stats.totalCompletions >= 100;
     case 'thousand_club':
       return stats.totalCompletions >= 1000;
-      
+
     // Challenge badges
     case 'challenger':
       return stats.challengesCompleted >= 0 && data.badgeProgress['challenger'] === 100;
@@ -1233,7 +1306,7 @@ function checkBadgeRequirement(
       return stats.challengesCompleted >= 3;
     case 'transformation_complete':
       return stats.challengesCompleted >= 5;
-      
+
     // Domain badges
     case 'domain_dabbler':
       return stats.domainsExplored.length >= 3;
@@ -1241,11 +1314,11 @@ function checkBadgeRequirement(
       return stats.domainsExplored.length >= 5;
     case 'life_master':
       return stats.domainsExplored.length >= 8;
-      
+
     // Behavior science badges
     case 'behavior_scientist':
       return stats.behaviorToolsUsed.length >= 5;
-      
+
     // Comeback badges
     case 'the_return':
       return stats.comebacks >= 1;
@@ -1253,21 +1326,21 @@ function checkBadgeRequirement(
       return stats.comebacks >= 3;
     case 'resilience_master':
       return stats.comebacks >= 5;
-      
+
     // Social badges
     case 'reflector':
       return reflections.length >= 1;
     case 'consistent_reflector':
       return reflections.length >= 4;
-      
+
     default:
       return false;
   }
 }
 
 function getNextMilestone(data: UserGamificationData): string {
-  const stats = data.stats;
-  
+  const { stats } = data;
+
   if (stats.totalHabitsCreated === 0) {
     return 'Create your first habit';
   }
@@ -1289,8 +1362,8 @@ function getNextMilestone(data: UserGamificationData): string {
   if (stats.domainsExplored.length < 5) {
     return `Explore ${5 - stats.domainsExplored.length} more life domains`;
   }
-  
-  return 'Keep building! You\'re doing amazing!';
+
+  return "Keep building! You're doing amazing!";
 }
 
 function generateProgressCelebration(level: number, stats: UserGamificationData['stats']): string {
@@ -1299,11 +1372,11 @@ function generateProgressCelebration(level: number, stats: UserGamificationData[
     `From nothing to ${stats.totalHabitsCreated} habits across ${stats.domainsExplored.length} life domains. That's real growth!`,
     `Your ${stats.longestStreak}-day streak shows what you're capable of. That's not luck - that's you showing up!`,
   ];
-  
+
   if (stats.comebacks > 0) {
     celebrations.push(`And you've made ${stats.comebacks} comeback(s). That resilience is rare!`);
   }
-  
+
   return celebrations[Math.floor(Math.random() * celebrations.length)];
 }
 
@@ -1315,4 +1388,3 @@ function generateProgressCelebration(level: number, stats: UserGamificationData[
 export const createMayaGamificationTools = createGamificationTools;
 
 export default createGamificationTools;
-

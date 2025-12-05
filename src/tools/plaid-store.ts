@@ -26,7 +26,7 @@ interface PlaidTokenData {
 }
 
 // In-memory cache
-const tokenCache: Map<string, PlaidTokenData> = new Map();
+const tokenCache = new Map<string, PlaidTokenData>();
 let lastLoadTime = 0;
 const CACHE_TTL_MS = 5000; // Reload from file every 5 seconds
 

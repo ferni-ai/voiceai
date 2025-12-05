@@ -167,11 +167,7 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   habitsTools
 );
 
-export {
-  getCoreHabitToolDefinitions,
-  getCoachingToolDefinitions,
-  getGamificationToolDefinitions,
-};
+export { getCoreHabitToolDefinitions, getCoachingToolDefinitions, getGamificationToolDefinitions };
 
 // Export unified tools for future use
 export { unifiedHabitTools };
@@ -187,4 +183,3 @@ export {
 } from './unified-habits.js';
 
 export default getToolDefinitions;
-

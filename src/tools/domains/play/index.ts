@@ -32,7 +32,9 @@ const mapJoyDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user create a map of what brings them joy.',
       parameters: z.object({
-        category: z.enum(['all', 'simple', 'deep', 'unexpected', 'forgotten']).describe('Category of joy to explore'),
+        category: z
+          .enum(['all', 'simple', 'deep', 'unexpected', 'forgotten'])
+          .describe('Category of joy to explore'),
       }),
       execute: async ({ category }) => {
         getLogger().info({ agentId: ctx.agentId, category }, 'Mapping joy');
@@ -206,7 +208,9 @@ const cultivatePlayfulnessDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user cultivate more playfulness in their life.',
       parameters: z.object({
-        currentState: z.enum(['forgotten-how', 'rusty', 'want-more', 'blocked']).describe('Where they are with play'),
+        currentState: z
+          .enum(['forgotten-how', 'rusty', 'want-more', 'blocked'])
+          .describe('Where they are with play'),
         context: z.string().optional().describe('Context for wanting more play'),
       }),
       execute: async ({ currentState, context }) => {
@@ -270,7 +274,9 @@ const givePermissionToPlayDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user give themselves permission to play and have fun.',
       parameters: z.object({
-        whatNeedsPermission: z.string().describe('What they want to do but feel they need permission for'),
+        whatNeedsPermission: z
+          .string()
+          .describe('What they want to do but feel they need permission for'),
         whyTheyHesitate: z.string().optional().describe('Why they hesitate'),
       }),
       execute: async ({ whatNeedsPermission, whyTheyHesitate }) => {
@@ -439,7 +445,9 @@ const spontaneityChallengeDef: ToolDefinition = {
       description: 'Offer spontaneity challenges to break routine.',
       parameters: z.object({
         intensity: z.enum(['tiny', 'small', 'medium', 'bold']).describe('How adventurous'),
-        context: z.enum(['daily-life', 'social', 'solo', 'work']).describe('Context for spontaneity'),
+        context: z
+          .enum(['daily-life', 'social', 'solo', 'work'])
+          .describe('Context for spontaneity'),
       }),
       execute: async ({ intensity, context }) => {
         getLogger().info({ agentId: ctx.agentId, intensity, context }, 'Spontaneity challenge');
@@ -447,60 +455,61 @@ const spontaneityChallengeDef: ToolDefinition = {
         const challenges: Record<string, Record<string, string[]>> = {
           tiny: {
             'daily-life': [
-              "Take a different route than usual",
+              'Take a different route than usual',
               "Order something you've never tried",
               "Talk to someone you normally wouldn't",
-              "Change one small routine today",
-              "Listen to music outside your usual taste",
+              'Change one small routine today',
+              'Listen to music outside your usual taste',
             ],
             social: [
-              "Give someone an unexpected compliment",
+              'Give someone an unexpected compliment',
               "Text someone you haven't talked to in a while",
-              "Say yes to the next invitation you get",
-              "Start a conversation with a stranger",
+              'Say yes to the next invitation you get',
+              'Start a conversation with a stranger',
             ],
             solo: [
-              "Sit somewhere different than usual",
-              "Write down three random ideas, no matter how silly",
-              "Doodle for 5 minutes",
-              "Look at the sky for a full minute",
+              'Sit somewhere different than usual',
+              'Write down three random ideas, no matter how silly',
+              'Doodle for 5 minutes',
+              'Look at the sky for a full minute',
             ],
             work: [
-              "Start with your least favorite task first",
-              "Work from a different spot",
-              "Ask a colleague a non-work question",
-              "Take a 5-minute break in an unusual way",
+              'Start with your least favorite task first',
+              'Work from a different spot',
+              'Ask a colleague a non-work question',
+              'Take a 5-minute break in an unusual way',
             ],
           },
           bold: {
             'daily-life': [
-              "Do something that scares you a little",
+              'Do something that scares you a little',
               "Go somewhere you've been meaning to try",
               "Say no to something you'd normally tolerate",
-              "Break a personal rule (safely)",
+              'Break a personal rule (safely)',
             ],
             social: [
-              "Invite someone to something unexpected",
-              "Share something vulnerable with a friend",
-              "Organize a spontaneous gathering",
-              "Reach out to someone you admire",
+              'Invite someone to something unexpected',
+              'Share something vulnerable with a friend',
+              'Organize a spontaneous gathering',
+              'Reach out to someone you admire',
             ],
             solo: [
-              "Book something without overthinking",
-              "Start that creative project today",
-              "Spend a day doing only what you want",
+              'Book something without overthinking',
+              'Start that creative project today',
+              'Spend a day doing only what you want',
               "Go somewhere alone you've never been",
             ],
             work: [
               "Propose an idea you've been holding back",
-              "Ask for what you actually want",
-              "Do something a completely different way",
-              "Have a real conversation with someone you avoid",
+              'Ask for what you actually want',
+              'Do something a completely different way',
+              'Have a real conversation with someone you avoid',
             ],
           },
         };
 
-        const selectedIntensity = intensity === 'small' || intensity === 'medium' ? 'tiny' : intensity;
+        const selectedIntensity =
+          intensity === 'small' || intensity === 'medium' ? 'tiny' : intensity;
         const options = challenges[selectedIntensity][context];
 
         let response = `**Spontaneity Challenge** (${intensity} intensity)\n\n`;
@@ -529,8 +538,13 @@ const playfulCreativityDef: ToolDefinition = {
     return llm.tool({
       description: 'Guide playful, low-stakes creative expression.',
       parameters: z.object({
-        mode: z.enum(['no-talent-needed', 'with-constraints', 'collaborative', 'spontaneous']).describe('Type of creative play'),
-        medium: z.enum(['writing', 'visual', 'physical', 'sound', 'any']).optional().describe('Medium if known'),
+        mode: z
+          .enum(['no-talent-needed', 'with-constraints', 'collaborative', 'spontaneous'])
+          .describe('Type of creative play'),
+        medium: z
+          .enum(['writing', 'visual', 'physical', 'sound', 'any'])
+          .optional()
+          .describe('Medium if known'),
       }),
       execute: async ({ mode, medium }) => {
         getLogger().info({ agentId: ctx.agentId, mode, medium }, 'Playful creativity');
@@ -590,7 +604,9 @@ const reclaimLostHobbyDef: ToolDefinition = {
       description: 'Help the user reconnect with activities they used to love.',
       parameters: z.object({
         hobby: z.string().optional().describe('The hobby they miss'),
-        mode: z.enum(['explore', 'plan-return', 'address-barriers']).describe('What help they need'),
+        mode: z
+          .enum(['explore', 'plan-return', 'address-barriers'])
+          .describe('What help they need'),
       }),
       execute: async ({ hobby, mode }) => {
         getLogger().info({ agentId: ctx.agentId, hobby, mode }, 'Reclaiming lost hobby');
@@ -660,10 +676,6 @@ const playTools: ToolDefinition[] = [
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'play',
-  playTools
-);
+export const { getToolDefinitions, domain, definitions } = createDomainExport('play', playTools);
 
 export default getToolDefinitions;
-

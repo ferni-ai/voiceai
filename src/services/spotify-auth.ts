@@ -154,7 +154,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: 'Basic ' + Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64'),
+        Authorization: `Basic ${Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')}`,
       },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
@@ -206,7 +206,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
  *
  * This is the main function to call - it handles everything automatically!
  * Thread-safe: Uses mutex to prevent multiple simultaneous refresh attempts.
- * 
+ *
  * @param forceRefresh - Force a token refresh even if current token appears valid
  */
 export async function getSpotifyAccessToken(forceRefresh = false): Promise<string | null> {
@@ -224,10 +224,10 @@ export async function getSpotifyAccessToken(forceRefresh = false): Promise<strin
   if (!cachedTokens) {
     getLogger().warn(
       '🎵 No Spotify tokens available.\n' +
-      '   To set up Spotify:\n' +
-      '   1. Run: node scripts/spotify-auth.js\n' +
-      '   2. Follow the prompts to authenticate\n' +
-      '   3. Restart the agent'
+        '   To set up Spotify:\n' +
+        '   1. Run: node scripts/spotify-auth.js\n' +
+        '   2. Follow the prompts to authenticate\n' +
+        '   3. Restart the agent'
     );
     return null;
   }
@@ -247,7 +247,7 @@ export async function getSpotifyAccessToken(forceRefresh = false): Promise<strin
 
     // Start refresh with mutex
     refreshInProgress = refreshAccessToken(cachedTokens.refresh_token);
-    
+
     try {
       const newTokens = await refreshInProgress;
       if (!newTokens) {
@@ -432,9 +432,9 @@ export function getSpotifyHealthStatus(): SpotifyHealthStatus {
   const hasClientSecret = !!CLIENT_SECRET;
   const hasTokenFile = fs.existsSync(TOKEN_FILE);
   const hasRefreshToken = hasTokenFile || !!process.env.SPOTIFY_REFRESH_TOKEN;
-  
+
   const tokenStatus = getSpotifyTokenStatus();
-  
+
   return {
     configured: isSpotifyConfigured(),
     hasClientId,
@@ -454,7 +454,7 @@ export function getSpotifyHealthStatus(): SpotifyHealthStatus {
  */
 export function logSpotifyDiagnostics(): void {
   const status = getSpotifyHealthStatus();
-  
+
   getLogger().info(
     {
       configured: status.configured,
@@ -469,27 +469,25 @@ export function logSpotifyDiagnostics(): void {
     },
     '🎵 SPOTIFY DIAGNOSTICS'
   );
-  
+
   // Log actionable steps if there are issues
   if (!status.configured) {
     if (!status.hasClientId || !status.hasClientSecret) {
       getLogger().warn(
         '🎵 Missing Spotify credentials. Add to .env:\n' +
-        '   SPOTIFY_CLIENT_ID=your_client_id\n' +
-        '   SPOTIFY_CLIENT_SECRET=your_client_secret'
+          '   SPOTIFY_CLIENT_ID=your_client_id\n' +
+          '   SPOTIFY_CLIENT_SECRET=your_client_secret'
       );
     }
     if (!status.hasRefreshToken) {
-      getLogger().warn(
-        '🎵 No refresh token. Run: node scripts/spotify-auth.js'
-      );
+      getLogger().warn('🎵 No refresh token. Run: node scripts/spotify-auth.js');
     }
   }
-  
+
   if (status.circuitBreakerOpen) {
     getLogger().warn(
       `🎵 Circuit breaker OPEN after ${status.circuitBreakerFailures} failures. ` +
-      'Will retry in 1 minute.'
+        'Will retry in 1 minute.'
     );
   }
 }

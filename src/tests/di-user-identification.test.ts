@@ -301,8 +301,9 @@ describe('UserIdentificationService (DI Container)', () => {
     });
     testContainer.registerInstance(Tokens.MemoryStore, testStore);
     // Re-register in scope to use test store
-    testContainer.registerSingleton(UserIdentificationToken, (c) =>
-      new UserIdentificationService({ store: c.resolve(Tokens.MemoryStore) })
+    testContainer.registerSingleton(
+      UserIdentificationToken,
+      (c) => new UserIdentificationService({ store: c.resolve(Tokens.MemoryStore) })
     );
 
     // Test uses scoped service with test store
@@ -373,4 +374,3 @@ describe('UserIdentificationService (Result Types)', () => {
     }
   });
 });
-

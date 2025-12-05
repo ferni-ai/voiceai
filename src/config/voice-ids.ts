@@ -76,7 +76,10 @@ export function getVoiceIdForPersona(personaId: string): string {
     'alex-chen': process.env.ALEX_CHEN_VOICE_ID || process.env.COMM_SPECIALIST_VOICE_ID,
     'maya-santos': process.env.MAYA_SANTOS_VOICE_ID || process.env.SPEND_SAVE_VOICE_ID,
     'jordan-taylor': process.env.JORDAN_TAYLOR_VOICE_ID || process.env.EVENT_PLANNER_VOICE_ID,
-    'nayan-patel': process.env.NAYAN_PATEL_VOICE_ID || process.env.NAYAN_VOICE_ID || process.env.PETER_LYNCH_VOICE_ID,
+    'nayan-patel':
+      process.env.NAYAN_PATEL_VOICE_ID ||
+      process.env.NAYAN_VOICE_ID ||
+      process.env.PETER_LYNCH_VOICE_ID,
     'generic-advisor': process.env.GENERIC_ADVISOR_VOICE_ID,
   };
 
@@ -168,8 +171,15 @@ export function isValidVoiceId(voiceId: string): boolean {
  */
 export function logVoiceIdAssignments(): void {
   console.log('\n=== Voice ID Assignments ===');
-  const personas = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
-  
+  const personas = [
+    'ferni',
+    'peter-john',
+    'alex-chen',
+    'maya-santos',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
+
   for (const persona of personas) {
     const voiceId = getVoiceIdForPersona(persona);
     const isValid = isValidVoiceId(voiceId);
@@ -178,4 +188,3 @@ export function logVoiceIdAssignments(): void {
   }
   console.log('=============================\n');
 }
-

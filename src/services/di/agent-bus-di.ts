@@ -13,20 +13,31 @@
 import { getLogger } from '../../utils/safe-logger.js';
 
 import { EventEmitter } from 'events';
-import { Container, Tokens, type Factory } from './container.js';
-import { Result, success, failure, AsyncResult, RateLimitError } from '../../types/result.js';
+import type { Container } from './container.js';
+import { Tokens, type Factory } from './container.js';
+import type { Result, AsyncResult } from '../../types/result.js';
+import { success, failure, RateLimitError } from '../../types/result.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 export type AgentId =
-  | 'jordan' | 'jordan-taylor' | 'event-planner'
-  | 'maya' | 'maya-santos' | 'spend-save'
-  | 'alex' | 'alex-chen' | 'comm-specialist'
-  | 'peter' | 'peter-john'
-  | 'nayan' | 'nayan-patel'
-  | 'jack-b' | 'ferni';
+  | 'jordan'
+  | 'jordan-taylor'
+  | 'event-planner'
+  | 'maya'
+  | 'maya-santos'
+  | 'spend-save'
+  | 'alex'
+  | 'alex-chen'
+  | 'comm-specialist'
+  | 'peter'
+  | 'peter-john'
+  | 'nayan'
+  | 'nayan-patel'
+  | 'jack-b'
+  | 'ferni';
 
 export interface AgentMessage {
   id: string;
@@ -101,10 +112,13 @@ export class AgentBusService extends EventEmitter {
   private readonly getLogger: () => any;
   private readonly config: Required<NonNullable<AgentBusDeps['rateLimitConfig']>>;
 
-  private messages: Map<string, AgentMessage> = new Map();
-  private pendingRequests: Map<string, AgentMessage[]> = new Map();
-  private toolHandlers: Map<string, (request: ToolExecutionRequest) => Promise<ToolExecutionResult>> = new Map();
-  private userRateLimits: Map<string, RateLimitState> = new Map();
+  private messages = new Map<string, AgentMessage>();
+  private pendingRequests = new Map<string, AgentMessage[]>();
+  private toolHandlers = new Map<
+    string,
+    (request: ToolExecutionRequest) => Promise<ToolExecutionResult>
+  >();
+  private userRateLimits = new Map<string, RateLimitState>();
   private globalRateLimit: RateLimitState = { requestCount: 0, windowStart: Date.now() };
 
   constructor(deps: AgentBusDeps = {}) {
@@ -201,7 +215,10 @@ export class AgentBusService extends EventEmitter {
       this.pendingRequests.set(toAgent, pending);
 
       this.emit('message', message);
-      this.getLogger().debug({ messageId: message.id, from: fromAgent, to: toAgent }, 'Message sent');
+      this.getLogger().debug(
+        { messageId: message.id, from: fromAgent, to: toAgent },
+        'Message sent'
+      );
 
       return success(message);
     } catch (error) {
@@ -324,4 +341,3 @@ export function getAgentBusService(container: Container): AgentBusService {
   }
   return container.resolve<AgentBusService>(AgentBusToken);
 }
-

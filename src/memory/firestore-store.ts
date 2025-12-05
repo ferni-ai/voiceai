@@ -408,7 +408,7 @@ export class FirestoreStore extends MemoryStore {
   async searchProfiles(
     query: string,
     options?: QueryOptions
-  ): Promise<SearchResult<UserProfile>[]> {
+  ): Promise<Array<SearchResult<UserProfile>>> {
     if (!this.db) throw new Error('FirestoreStore not initialized');
 
     try {
@@ -418,12 +418,12 @@ export class FirestoreStore extends MemoryStore {
       const q: Query = this.db
         .collection(this.USERS_COLLECTION)
         .where('nameLower', '>=', queryLower)
-        .where('nameLower', '<=', queryLower + '\uf8ff')
+        .where('nameLower', '<=', `${queryLower}\uf8ff`)
         .limit(limit);
 
       const snapshot = await q.get();
 
-      const results: SearchResult<UserProfile>[] = [];
+      const results: Array<SearchResult<UserProfile>> = [];
       for (const doc of snapshot.docs) {
         const data = doc.data();
         if (!data) continue;
@@ -446,7 +446,7 @@ export class FirestoreStore extends MemoryStore {
   /**
    * Atomically update a user profile using a transaction.
    * Ensures that read-modify-write operations are safe from race conditions.
-   * 
+   *
    * @param userId - The user ID to update
    * @param updater - Function that receives current profile and returns updated profile
    * @param options - Transaction options
@@ -472,43 +472,46 @@ export class FirestoreStore extends MemoryStore {
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
 
       // Run transaction
-      const result = await db.runTransaction(async (transaction) => {
-        const doc = await transaction.get(docRef);
+      const result = await db.runTransaction(
+        async (transaction) => {
+          const doc = await transaction.get(docRef);
 
-        let currentProfile: UserProfile | null = null;
+          let currentProfile: UserProfile | null = null;
 
-        if (doc.exists) {
-          const data = doc.data();
-          if (data) {
-            const hydrated = this.hydrateData(data as Record<string, unknown>);
-            if (isValidUserProfile(hydrated)) {
-              currentProfile = hydrated;
+          if (doc.exists) {
+            const data = doc.data();
+            if (data) {
+              const hydrated = this.hydrateData(data as Record<string, unknown>);
+              if (isValidUserProfile(hydrated)) {
+                currentProfile = hydrated;
+              }
             }
           }
-        }
 
-        if (!currentProfile) {
-          if (!createIfMissing) {
-            return null;
+          if (!currentProfile) {
+            if (!createIfMissing) {
+              return null;
+            }
+            // Create a new profile
+            const { createUserProfile } = await import('../types/user-profile.js');
+            currentProfile = createUserProfile(userId);
           }
-          // Create a new profile
-          const { createUserProfile } = await import('../types/user-profile.js');
-          currentProfile = createUserProfile(userId);
-        }
 
-        // Apply the update
-        const updatedProfile = await updater(currentProfile);
-        
-        // Ensure updatedAt is set
-        updatedProfile.updatedAt = new Date();
-        updatedProfile.version = (currentProfile.version || 0) + 1;
+          // Apply the update
+          const updatedProfile = await updater(currentProfile);
 
-        // Serialize and save
-        const serialized = this.serializeForFirestore(updatedProfile);
-        transaction.set(docRef, serialized, { merge: true });
+          // Ensure updatedAt is set
+          updatedProfile.updatedAt = new Date();
+          updatedProfile.version = (currentProfile.version || 0) + 1;
 
-        return updatedProfile;
-      }, { maxAttempts: maxRetries });
+          // Serialize and save
+          const serialized = this.serializeForFirestore(updatedProfile);
+          transaction.set(docRef, serialized, { merge: true });
+
+          return updatedProfile;
+        },
+        { maxAttempts: maxRetries }
+      );
 
       if (result) {
         getLogger().debug(`Atomic update completed for profile: ${userId}`);

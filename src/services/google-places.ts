@@ -1,14 +1,14 @@
 /**
  * Google Places API Integration (New API)
- * 
+ *
  * Provides restaurant search and details using Google Places API (New):
  * - Search for restaurants by query and location
  * - Get restaurant details (phone, address, hours, reviews)
  * - Get place photos
- * 
+ *
  * This replaces OpenTable/Resy/Yelp with a single, cost-effective API.
  * Reservations are handled via phone calls through the appointment system.
- * 
+ *
  * Requires: GOOGLE_API_KEY (same key used for Gemini)
  * Enable "Places API (New)" in Google Cloud Console
  */
@@ -111,7 +111,10 @@ export async function searchRestaurants(
       searchQuery = `${query} near ${location}`;
     }
 
-    getLogger().info({ query: searchQuery, type }, '🍽️ Searching restaurants via Google Places (New)');
+    getLogger().info(
+      { query: searchQuery, type },
+      '🍽️ Searching restaurants via Google Places (New)'
+    );
 
     // Use the new Places API format
     const requestBody: Record<string, unknown> = {
@@ -129,7 +132,8 @@ export async function searchRestaurants(
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours,places.photos',
+        'X-Goog-FieldMask':
+          'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours,places.photos',
       },
       body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(10000),
@@ -137,7 +141,10 @@ export async function searchRestaurants(
 
     if (!response.ok) {
       const errorText = await response.text();
-      getLogger().error({ status: response.status, error: errorText }, 'Google Places search failed');
+      getLogger().error(
+        { status: response.status, error: errorText },
+        'Google Places search failed'
+      );
       return [];
     }
 
@@ -183,11 +190,11 @@ export async function searchRestaurants(
 function priceLevelToNumber(priceLevel?: string): number | undefined {
   if (!priceLevel) return undefined;
   const levels: Record<string, number> = {
-    'PRICE_LEVEL_FREE': 0,
-    'PRICE_LEVEL_INEXPENSIVE': 1,
-    'PRICE_LEVEL_MODERATE': 2,
-    'PRICE_LEVEL_EXPENSIVE': 3,
-    'PRICE_LEVEL_VERY_EXPENSIVE': 4,
+    PRICE_LEVEL_FREE: 0,
+    PRICE_LEVEL_INEXPENSIVE: 1,
+    PRICE_LEVEL_MODERATE: 2,
+    PRICE_LEVEL_EXPENSIVE: 3,
+    PRICE_LEVEL_VERY_EXPENSIVE: 4,
   };
   return levels[priceLevel];
 }
@@ -229,7 +236,10 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
 
     if (!response.ok) {
       const errorText = await response.text();
-      getLogger().error({ status: response.status, error: errorText }, 'Google Places details failed');
+      getLogger().error(
+        { status: response.status, error: errorText },
+        'Google Places details failed'
+      );
       return null;
     }
 
@@ -281,8 +291,16 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
             openNow: place.currentOpeningHours.openNow,
             weekdayText: place.currentOpeningHours.weekdayDescriptions,
             periods: place.currentOpeningHours.periods.map((p) => ({
-              open: { day: p.open.day, time: `${p.open.hour.toString().padStart(2, '0')}${p.open.minute.toString().padStart(2, '0')}` },
-              close: p.close ? { day: p.close.day, time: `${p.close.hour.toString().padStart(2, '0')}${p.close.minute.toString().padStart(2, '0')}` } : undefined,
+              open: {
+                day: p.open.day,
+                time: `${p.open.hour.toString().padStart(2, '0')}${p.open.minute.toString().padStart(2, '0')}`,
+              },
+              close: p.close
+                ? {
+                    day: p.close.day,
+                    time: `${p.close.hour.toString().padStart(2, '0')}${p.close.minute.toString().padStart(2, '0')}`,
+                  }
+                : undefined,
             })),
           }
         : undefined,
@@ -309,7 +327,7 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
 /**
  * Get a photo URL for a place
  */
-export function getPhotoUrl(photoReference: string, maxWidth: number = 400): string {
+export function getPhotoUrl(photoReference: string, maxWidth = 400): string {
   if (!GOOGLE_API_KEY || !photoReference) {
     return '';
   }
@@ -323,7 +341,7 @@ export function getPhotoUrl(photoReference: string, maxWidth: number = 400): str
 export async function findNearbyRestaurants(
   lat: number,
   lng: number,
-  radius: number = 1500,
+  radius = 1500,
   keyword?: string
 ): Promise<PlaceSearchResult[]> {
   if (!GOOGLE_API_KEY) {
@@ -356,7 +374,8 @@ export async function findNearbyRestaurants(
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours,places.photos',
+        'X-Goog-FieldMask':
+          'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours,places.photos',
       },
       body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(10000),
@@ -364,7 +383,10 @@ export async function findNearbyRestaurants(
 
     if (!response.ok) {
       const errorText = await response.text();
-      getLogger().error({ status: response.status, error: errorText }, 'Google Places nearby search failed');
+      getLogger().error(
+        { status: response.status, error: errorText },
+        'Google Places nearby search failed'
+      );
       return [];
     }
 
@@ -450,7 +472,7 @@ export function formatRestaurantForSpeech(place: PlaceSearchResult | PlaceDetail
 /**
  * Format multiple restaurants for speech
  */
-export function formatRestaurantListForSpeech(places: PlaceSearchResult[], limit: number = 3): string {
+export function formatRestaurantListForSpeech(places: PlaceSearchResult[], limit = 3): string {
   if (places.length === 0) {
     return "I couldn't find any restaurants matching that search.";
   }

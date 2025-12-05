@@ -51,10 +51,7 @@ export function createBackgroundTools() {
           .string()
           .optional()
           .describe('When to run (ISO date string). Omit for immediate execution.'),
-        priority: z
-          .enum(['low', 'medium', 'high', 'urgent'])
-          .optional()
-          .describe('Task priority'),
+        priority: z.enum(['low', 'medium', 'high', 'urgent']).optional().describe('Task priority'),
       }),
       execute: async ({ taskType, description, parameters, scheduledFor, priority }, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
@@ -94,7 +91,10 @@ export function createBackgroundTools() {
             z.object({
               name: z.string().describe('Step name'),
               taskType: z.string().describe('Type of task for this step'),
-              parameters: z.record(z.string(), z.unknown()).optional().describe('Parameters for the step'),
+              parameters: z
+                .record(z.string(), z.unknown())
+                .optional()
+                .describe('Parameters for the step'),
             })
           )
           .describe('Ordered list of steps to execute'),
@@ -113,7 +113,10 @@ export function createBackgroundTools() {
           createdBy: 'assistant',
         });
 
-        getLogger().info({ workflowId: workflow.id, name, stepCount: steps.length }, '🔄 Workflow created');
+        getLogger().info(
+          { workflowId: workflow.id, name, stepCount: steps.length },
+          '🔄 Workflow created'
+        );
 
         if (startImmediately) {
           // Start in background - don't await
@@ -135,9 +138,12 @@ export function createBackgroundTools() {
         'Set up a watcher for an external event (like package delivery or flight status change). When the event occurs, take action automatically.',
       parameters: z.object({
         waitingFor: z.string().describe('What event to watch for (e.g., "package_delivered")'),
-        description: z.string().describe('Description of what we\'re watching'),
+        description: z.string().describe("Description of what we're watching"),
         actionOnTrigger: z.string().describe('What to do when event occurs (e.g., "send_sms")'),
-        actionParameters: z.record(z.string(), z.unknown()).optional().describe('Parameters for the action'),
+        actionParameters: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe('Parameters for the action'),
         notifyUser: z.boolean().optional().describe('Whether to notify the user when triggered'),
         expiresIn: z.string().optional().describe('How long to watch (e.g., "7 days")'),
       }),
@@ -203,9 +209,7 @@ export function createBackgroundTools() {
         'Schedule a recurring job like daily briefings, weekly summaries, or monthly check-ins.',
       parameters: z.object({
         name: z.string().describe('Name of the job (e.g., "Morning Briefing")'),
-        schedule: z
-          .enum(['daily', 'weekly', 'monthly'])
-          .describe('How often to run'),
+        schedule: z.enum(['daily', 'weekly', 'monthly']).describe('How often to run'),
         jobType: z.string().describe('Type of job to run'),
         parameters: z.record(z.string(), z.unknown()).optional().describe('Parameters for the job'),
       }),
@@ -250,15 +254,24 @@ export function createBackgroundTools() {
         const parts: string[] = [];
 
         if (pending.length > 0) {
-          parts.push(`📋 ${pending.length} task(s) in progress:\n${pending.map((t) => `  - ${t.description}`).join('\n')}`);
+          parts.push(
+            `📋 ${pending.length} task(s) in progress:\n${pending.map((t) => `  - ${t.description}`).join('\n')}`
+          );
         }
 
         if (includeCompleted && completed.length > 0) {
-          parts.push(`✅ ${completed.length} completed:\n${completed.slice(0, 5).map((t) => `  - ${t.description}`).join('\n')}`);
+          parts.push(
+            `✅ ${completed.length} completed:\n${completed
+              .slice(0, 5)
+              .map((t) => `  - ${t.description}`)
+              .join('\n')}`
+          );
         }
 
         if (failed.length > 0) {
-          parts.push(`❌ ${failed.length} failed:\n${failed.map((t) => `  - ${t.description}: ${t.error}`).join('\n')}`);
+          parts.push(
+            `❌ ${failed.length} failed:\n${failed.map((t) => `  - ${t.description}: ${t.error}`).join('\n')}`
+          );
         }
 
         if (parts.length === 0) {
@@ -280,7 +293,10 @@ export function createBackgroundTools() {
         toPersona: z
           .string()
           .describe('Which persona to delegate to (alex, maya, jordan, jack, peter, ferni)'),
-        context: z.record(z.string(), z.unknown()).optional().describe('Context to pass to the persona'),
+        context: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe('Context to pass to the persona'),
         originalRequest: z.string().describe('What the user originally asked for'),
       }),
       execute: async ({ taskDescription, toPersona, context, originalRequest }, { ctx }) => {
@@ -320,4 +336,3 @@ export function createBackgroundTools() {
 // ============================================================================
 
 export default createBackgroundTools;
-

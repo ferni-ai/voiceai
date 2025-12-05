@@ -10,7 +10,11 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { ReasoningStyle, CognitiveProfile, CognitiveContext } from '../../personas/cognitive-types.js';
+import type {
+  ReasoningStyle,
+  CognitiveProfile,
+  CognitiveContext,
+} from '../../personas/cognitive-types.js';
 import { getCognitiveProfile } from '../../personas/cognitive-profiles.js';
 import { getCognitiveEngine } from '../../personas/cognitive-intelligence.js';
 
@@ -74,14 +78,17 @@ export interface CognitiveHandoffInput {
 // ============================================================================
 
 // Track cognitive state per session
-const sessionCognitiveState = new Map<string, {
-  detectedUserStyle?: ReasoningStyle;
-  userStyleConfidence: number;
-  effectiveApproaches: Map<ReasoningStyle, number>; // approach -> engagement score
-  explainedTopics: Set<string>;
-  userExpertiseAreas: Set<string>;
-  userNoviceAreas: Set<string>;
-}>();
+const sessionCognitiveState = new Map<
+  string,
+  {
+    detectedUserStyle?: ReasoningStyle;
+    userStyleConfidence: number;
+    effectiveApproaches: Map<ReasoningStyle, number>; // approach -> engagement score
+    explainedTopics: Set<string>;
+    userExpertiseAreas: Set<string>;
+    userNoviceAreas: Set<string>;
+  }
+>();
 
 /**
  * Get or create session cognitive state
@@ -164,7 +171,8 @@ export function buildCognitiveHandoffContext(
   input: CognitiveHandoffInput,
   sessionId: string
 ): CognitiveHandoffContext {
-  const { previousPersonaId, targetPersonaId, currentTopic, emotionalWeight, userExpertise } = input;
+  const { previousPersonaId, targetPersonaId, currentTopic, emotionalWeight, userExpertise } =
+    input;
 
   const previousProfile = getCognitiveProfile(previousPersonaId);
   const targetProfile = getCognitiveProfile(targetPersonaId);
@@ -172,12 +180,12 @@ export function buildCognitiveHandoffContext(
 
   // Get what the previous persona would have noticed
   const noticed = previousProfile
-    ? previousProfile.attention.primaryFocus.map(f => `${f}: focused`)
+    ? previousProfile.attention.primaryFocus.map((f) => `${f}: focused`)
     : [];
 
   // Get blind spots the target persona should watch
   const potentialBlindSpots = previousProfile
-    ? previousProfile.attention.blindSpots.map(b => `Previous persona may have missed: ${b}`)
+    ? previousProfile.attention.blindSpots.map((b) => `Previous persona may have missed: ${b}`)
     : [];
 
   // Calculate effective/ineffective approaches
@@ -234,7 +242,9 @@ function buildHandoffNote(
 
   // Note about user's thinking style
   if (sessionState.detectedUserStyle && sessionState.userStyleConfidence > 0.5) {
-    notes.push(`User seems to think ${sessionState.detectedUserStyle}ly - adapt your approach accordingly.`);
+    notes.push(
+      `User seems to think ${sessionState.detectedUserStyle}ly - adapt your approach accordingly.`
+    );
   }
 
   // Note about what worked
@@ -257,7 +267,7 @@ function buildHandoffNote(
     if (previousProfile.reasoningStyle !== targetProfile.reasoningStyle) {
       notes.push(
         `Transitioning from ${previousProfile.reasoningStyle} to ${targetProfile.reasoningStyle} thinking. ` +
-        `You might pick up on things ${previousProfile.attention.blindSpots.join(', ')} that were overlooked.`
+          `You might pick up on things ${previousProfile.attention.blindSpots.join(', ')} that were overlooked.`
       );
     }
   }
@@ -281,8 +291,8 @@ export function formatCognitiveHandoffForPrompt(context: CognitiveHandoffContext
   if (context.userCognitiveStyle && context.userStyleConfidence > 0.5) {
     sections.push(
       `[USER THINKING STYLE] This person thinks ${context.userCognitiveStyle}ly ` +
-      `(confidence: ${Math.round(context.userStyleConfidence * 100)}%). ` +
-      `Adapt your communication to match or complement their style.`
+        `(confidence: ${Math.round(context.userStyleConfidence * 100)}%). ` +
+        `Adapt your communication to match or complement their style.`
     );
   }
 
@@ -302,9 +312,7 @@ export function formatCognitiveHandoffForPrompt(context: CognitiveHandoffContext
 
   // Blind spots from previous persona
   if (context.potentialBlindSpots.length > 0) {
-    sections.push(
-      `[OPPORTUNITY] ${context.potentialBlindSpots.slice(0, 2).join('. ')}`
-    );
+    sections.push(`[OPPORTUNITY] ${context.potentialBlindSpots.slice(0, 2).join('. ')}`);
   }
 
   // Emotional context
@@ -364,4 +372,3 @@ export default {
   recordUserCognitiveStyle,
   clearSessionCognitiveState,
 };
-

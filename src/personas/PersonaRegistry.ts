@@ -1,10 +1,10 @@
 /**
  * PersonaRegistry - DEPRECATED
- * 
+ *
  * @deprecated This module is deprecated. Use the unified registry instead:
  *
  *   import { AgentRegistry, Agent } from './registry/unified-registry.js';
- * 
+ *
  * The unified registry:
  * - Auto-discovers agents from bundles (no hardcoding)
  * - Single source of truth for all agent lookups
@@ -17,7 +17,7 @@
  *
  *   // NEW (use this):
  *   const alex = await AgentRegistry.getAgent('alex');
- * 
+ *
  * Migration guide: See docs/AGENT-MANAGEMENT.md
  *
  * This file is kept for backwards compatibility and will be removed in a future version.
@@ -26,7 +26,7 @@
 // Log deprecation warning on first import
 console.warn(
   '⚠️ DEPRECATED: PersonaRegistry.ts is deprecated. ' +
-  'Use AgentRegistry from registry/unified-registry.js instead.'
+    'Use AgentRegistry from registry/unified-registry.js instead.'
 );
 
 import { getVoiceIdForPersona } from '../config/voice-ids.js';
@@ -61,7 +61,7 @@ export interface Persona {
 // ============================================================================
 
 const PERSONAS: Record<string, Persona> = {
-  'ferni': {
+  ferni: {
     id: 'ferni',
     name: 'Ferni',
     voiceId: getVoiceIdForPersona('ferni'),
@@ -133,26 +133,26 @@ for (const persona of Object.values(PERSONAS)) {
 
 /**
  * PersonaRegistry - Get personas by any ID/alias.
- * 
+ *
  * This is the ONLY way to look up personas. No more string ID passing!
  */
 export const PersonaRegistry = {
   /**
    * Get a persona by ANY id or alias.
    * Returns the same Persona object regardless of which alias is used.
-   * 
+   *
    * @param id - Any persona ID, alias, or variant
    * @returns Persona object (defaults to Ferni if unknown)
    */
   get(id: string): Persona {
     const normalized = id.toLowerCase().trim();
     const persona = ALIAS_MAP.get(normalized);
-    
+
     if (!persona) {
       console.warn(`⚠️ Unknown persona "${id}", returning Ferni`);
       return PERSONAS['ferni'];
     }
-    
+
     return persona;
   },
 
@@ -167,7 +167,7 @@ export const PersonaRegistry = {
    * Get all team members (excluding coach).
    */
   getTeamMembers(): Persona[] {
-    return Object.values(PERSONAS).filter(p => !p.isCoach);
+    return Object.values(PERSONAS).filter((p) => !p.isCoach);
   },
 
   /**
@@ -195,7 +195,7 @@ export const PersonaRegistry = {
    * Get persona by handoff tool name.
    */
   getByHandoffTool(toolName: string): Persona | undefined {
-    return Object.values(PERSONAS).find(p => p.handoffTool === toolName);
+    return Object.values(PERSONAS).find((p) => p.handoffTool === toolName);
   },
 };
 
@@ -231,15 +231,15 @@ export interface HandoffEventData {
 /**
  * Create a handoff event payload from any persona ID.
  * This is the ONLY way to create handoff events - ensures consistency.
- * 
+ *
  * @example
  * ```typescript
  * // Old (bad) way:
- * handoffEvents.emit('voiceSwitch', { 
+ * handoffEvents.emit('voiceSwitch', {
  *   newAgent: 'alex-chen', // or was it 'alex'? or 'comm-specialist'?
  *   voiceId: getVoiceId('alex-chen') // another lookup!
  * });
- * 
+ *
  * // New (good) way:
  * handoffEvents.emit('voiceSwitch', createHandoffEvent('alex', {
  *   greeting: 'Hey there!',
@@ -266,4 +266,3 @@ export function createHandoffEvent(
 
 // Default export for convenience
 export default PersonaRegistry;
-

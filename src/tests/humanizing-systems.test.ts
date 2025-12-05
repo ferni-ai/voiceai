@@ -371,7 +371,15 @@ describe('Persona Mood States', () => {
       const mood = selectPersonaMood(persona, context);
 
       expect(mood.state).toBeDefined();
-      expect(['energized', 'reflective', 'playful', 'grounded', 'tired_but_present', 'philosophical', 'nostalgic']).toContain(mood.state);
+      expect([
+        'energized',
+        'reflective',
+        'playful',
+        'grounded',
+        'tired_but_present',
+        'philosophical',
+        'nostalgic',
+      ]).toContain(mood.state);
       expect(mood.energyLevel).toBeGreaterThanOrEqual(0);
       expect(mood.energyLevel).toBeLessThanOrEqual(1);
     });
@@ -395,7 +403,8 @@ describe('Persona Mood States', () => {
       }
 
       // Night moods (tired, philosophical, nostalgic) should be more common
-      const nightMoods = (moodCounts.tired_but_present || 0) +
+      const nightMoods =
+        (moodCounts.tired_but_present || 0) +
         (moodCounts.philosophical || 0) +
         (moodCounts.nostalgic || 0);
 
@@ -461,7 +470,11 @@ describe('Persona Mood States', () => {
       const mood = selectPersonaMood(persona, getMoodContext(0));
 
       // Force playful mood for test
-      const playfulMood = { ...mood, state: 'playful' as const, shiftTriggers: ['serious topic', 'user upset'] };
+      const playfulMood = {
+        ...mood,
+        state: 'playful' as const,
+        shiftTriggers: ['serious topic', 'user upset'],
+      };
 
       expect(shouldMoodShift(playfulMood, 'sad', 'heavy')).toBe(true);
     });
@@ -883,7 +896,7 @@ describe('Humanizing Systems Integration', () => {
         intensity: 0.8,
         distressLevel: 0.7,
       }),
-      userMessage: "My dad passed away last week.",
+      userMessage: 'My dad passed away last week.',
       currentTopic: 'loss',
       recentTopics: ['loss', 'family'],
       turnCount: 5,
@@ -990,7 +1003,7 @@ describe('Humanizing State Service', () => {
   describe('getHumanizingState', () => {
     it('should return default state for null profile', () => {
       const state = getHumanizingState(null);
-      
+
       expect(state.usedShareTags).toEqual([]);
       expect(state.totalSpontaneousShares).toBe(0);
       expect(state.lastMood).toBeUndefined();
@@ -1009,7 +1022,7 @@ describe('Humanizing State Service', () => {
       } as unknown as UserProfile;
 
       const state = getHumanizingState(profile);
-      
+
       expect(state.usedShareTags).toEqual(['tag1', 'tag2']);
       expect(state.totalSpontaneousShares).toBe(5);
       expect(state.lastMood).toBe('energized');
@@ -1038,7 +1051,7 @@ describe('Humanizing State Service', () => {
       };
 
       const merged = mergeHumanizingStateUpdate(existing, update);
-      
+
       expect(merged.usedShareTags).toContain('tag1');
       expect(merged.usedShareTags).toContain('tag2');
       expect(merged.usedShareTags).toContain('tag3');
@@ -1064,7 +1077,7 @@ describe('Humanizing State Service', () => {
       };
 
       const merged = mergeHumanizingStateUpdate(existing, update);
-      
+
       expect(merged.usedShareTags).toEqual(['tag1', 'tag2', 'tag3']);
     });
 
@@ -1091,7 +1104,7 @@ describe('Humanizing State Service', () => {
       };
 
       const merged = mergeHumanizingStateUpdate(existing, update);
-      
+
       expect(merged.relationshipMilestones).toHaveLength(1);
       expect(merged.relationshipMilestones[0].from).toBe('acquaintance');
       expect(merged.relationshipMilestones[0].to).toBe('friend');
@@ -1200,27 +1213,38 @@ describe('Humanizing State Service', () => {
       const deepState = {
         usedShareTags: [],
         totalSpontaneousShares: 10,
-        moodHistory: Array(10).fill(null).map((_, i) => ({
-          mood: 'energized',
-          timestamp: new Date(),
-          sessionId: `s${i}`,
-        })),
+        moodHistory: Array(10)
+          .fill(null)
+          .map((_, i) => ({
+            mood: 'energized',
+            timestamp: new Date(),
+            sessionId: `s${i}`,
+          })),
         storiesTold: [],
         hotTakesShared: [],
-        innerWorldRevealed: Array(5).fill(null).map(() => ({
-          type: 'memory',
-          content: 'test',
-          sharedAt: new Date(),
-        })),
+        innerWorldRevealed: Array(5)
+          .fill(null)
+          .map(() => ({
+            type: 'memory',
+            content: 'test',
+            sharedAt: new Date(),
+          })),
         relationshipMilestones: [
-          { from: 'stranger', to: 'acquaintance', timestamp: new Date(), acknowledgmentGiven: true },
+          {
+            from: 'stranger',
+            to: 'acquaintance',
+            timestamp: new Date(),
+            acknowledgmentGiven: true,
+          },
           { from: 'acquaintance', to: 'friend', timestamp: new Date(), acknowledgmentGiven: true },
         ],
         vulnerabilityMoments: 3,
         updatedAt: new Date(),
       };
 
-      expect(getRelationshipDepthScore(deepState)).toBeGreaterThan(getRelationshipDepthScore(shallowState));
+      expect(getRelationshipDepthScore(deepState)).toBeGreaterThan(
+        getRelationshipDepthScore(shallowState)
+      );
     });
   });
 });
@@ -1275,4 +1299,3 @@ describe('Relationship Stage Mapper', () => {
     });
   });
 });
-

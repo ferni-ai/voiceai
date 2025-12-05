@@ -35,25 +35,25 @@ const MAX_TOTAL_REQUESTS_PER_WINDOW = 500; // 500 total requests per minute
 export type AgentId =
   // Jordan (Life Planning)
   | 'jordan'
-  | 'jordan-taylor'       // Canonical ID
-  | 'event-planner'       // Frontend ID
+  | 'jordan-taylor' // Canonical ID
+  | 'event-planner' // Frontend ID
   // Maya (Financial Habits)
   | 'maya'
-  | 'maya-santos'         // Canonical ID
-  | 'spend-save'          // Frontend ID
+  | 'maya-santos' // Canonical ID
+  | 'spend-save' // Frontend ID
   // Alex (Communication)
   | 'alex'
-  | 'alex-chen'           // Canonical ID
-  | 'comm-specialist'     // Frontend ID
+  | 'alex-chen' // Canonical ID
+  | 'comm-specialist' // Frontend ID
   // Peter John (Research Coach)
   | 'peter'
-  | 'peter-john'          // Canonical ID
+  | 'peter-john' // Canonical ID
   // Nayan (Lifetime Advisor/Sage)
   | 'nayan'
-  | 'nayan-patel'         // Canonical ID
+  | 'nayan-patel' // Canonical ID
   // Ferni (Life Coach - coordinator)
-  | 'jack-b'              // Frontend ID (legacy)
-  | 'ferni';              // Canonical ID
+  | 'jack-b' // Frontend ID (legacy)
+  | 'ferni'; // Canonical ID
 
 export interface AgentMessage {
   id: string;
@@ -103,15 +103,15 @@ export interface ToolExecutionResult {
 // ============================================================================
 
 class AgentBus extends EventEmitter {
-  private messages: Map<string, AgentMessage> = new Map();
-  private pendingRequests: Map<string, AgentMessage[]> = new Map();
-  private toolHandlers: Map<
+  private messages = new Map<string, AgentMessage>();
+  private pendingRequests = new Map<string, AgentMessage[]>();
+  private toolHandlers = new Map<
     string,
     (request: ToolExecutionRequest) => Promise<ToolExecutionResult>
-  > = new Map();
+  >();
 
   // Rate limiting
-  private userRateLimits: Map<string, RateLimitState> = new Map();
+  private userRateLimits = new Map<string, RateLimitState>();
   private globalRateLimit: RateLimitState = { requestCount: 0, windowStart: Date.now() };
 
   constructor() {
@@ -439,7 +439,7 @@ class AgentBus extends EventEmitter {
   /**
    * Get messages between two agents
    */
-  getMessagesBetween(agent1: AgentId, agent2: AgentId, limit: number = 10): AgentMessage[] {
+  getMessagesBetween(agent1: AgentId, agent2: AgentId, limit = 10): AgentMessage[] {
     return Array.from(this.messages.values())
       .filter(
         (m) =>
@@ -453,7 +453,7 @@ class AgentBus extends EventEmitter {
   /**
    * Get all messages for a user
    */
-  getMessagesForUser(userId: string, limit: number = 20): AgentMessage[] {
+  getMessagesForUser(userId: string, limit = 20): AgentMessage[] {
     return Array.from(this.messages.values())
       .filter((m) => m.userId === userId)
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())

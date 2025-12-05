@@ -20,11 +20,11 @@
 // Ensures correct pronunciation of financial terms, acronyms, and numbers
 // ============================================================================
 
-type PronunciationEntry = {
+interface PronunciationEntry {
   pattern: RegExp;
   replacement: string;
   description?: string;
-};
+}
 
 /**
  * Financial terms pronunciation dictionary
@@ -828,7 +828,7 @@ function addSpeedVariations(text: string, baseSpeed: number): string {
           const lastTwoWords = words.slice(-2).join(' ');
           const beforeLastTwo = words.slice(0, -2).join(' ');
           const speedRatio = isReflective ? 0.88 : 0.9;
-          return `${beforeLastTwo ? beforeLastTwo + ' ' : ''}<speed ratio="${(baseSpeed * speedRatio).toFixed(2)}"/>${lastTwoWords}<break time="100ms"/>${punct}<speed ratio="${baseSpeed.toFixed(2)}"/><break time="450ms"/>${space}`;
+          return `${beforeLastTwo ? `${beforeLastTwo} ` : ''}<speed ratio="${(baseSpeed * speedRatio).toFixed(2)}"/>${lastTwoWords}<break time="100ms"/>${punct}<speed ratio="${baseSpeed.toFixed(2)}"/><break time="450ms"/>${space}`;
         }
       }
       return match;

@@ -61,7 +61,15 @@ export function detectUserCognitiveStyle(messages: string[]): {
     return {
       primary: 'unknown',
       confidence: 0,
-      signals: { analyticalScore: 0, emotionalScore: 0, practicalScore: 0, narrativeScore: 0, systematicScore: 0, intuitiveScore: 0, totalSignals: 0 },
+      signals: {
+        analyticalScore: 0,
+        emotionalScore: 0,
+        practicalScore: 0,
+        narrativeScore: 0,
+        systematicScore: 0,
+        intuitiveScore: 0,
+        totalSignals: 0,
+      },
     };
   }
 
@@ -153,7 +161,7 @@ export function detectUserCognitiveStyle(messages: string[]): {
     signals.intuitiveScore;
 
   // Find primary and secondary
-  const scores: [UserCognitiveStyle, number][] = [
+  const scores: Array<[UserCognitiveStyle, number]> = [
     ['analytical', signals.analyticalScore],
     ['emotional', signals.emotionalScore],
     ['practical', signals.practicalScore],
@@ -165,12 +173,14 @@ export function detectUserCognitiveStyle(messages: string[]): {
   scores.sort((a, b) => b[1] - a[1]);
 
   const primary = scores[0][1] > 0 ? scores[0][0] : 'unknown';
-  const secondary = scores[1][1] > 0 && scores[1][1] >= scores[0][1] * 0.5 ? scores[1][0] : undefined;
+  const secondary =
+    scores[1][1] > 0 && scores[1][1] >= scores[0][1] * 0.5 ? scores[1][0] : undefined;
 
   // Calculate confidence
-  const confidence = signals.totalSignals > 0
-    ? Math.min(1.0, (scores[0][1] / Math.max(1, signals.totalSignals)) + (messages.length * 0.05))
-    : 0;
+  const confidence =
+    signals.totalSignals > 0
+      ? Math.min(1.0, scores[0][1] / Math.max(1, signals.totalSignals) + messages.length * 0.05)
+      : 0;
 
   return { primary, secondary, confidence, signals };
 }
@@ -232,7 +242,7 @@ export function buildCognitiveHandoffContext(
   const noticed: string[] = [];
   if (previousProfile) {
     for (const focus of previousProfile.attention.primaryFocus) {
-      if (sessionData.topics.some(t => topicMatchesFocus(t, focus))) {
+      if (sessionData.topics.some((t) => topicMatchesFocus(t, focus))) {
         noticed.push(focusToNotice(focus, sessionData.topics));
       }
     }
@@ -255,7 +265,11 @@ export function buildCognitiveHandoffContext(
   // Suggest approach for target persona
   let suggestedApproach: string | undefined;
   if (targetProfile && userStyle.primary !== 'unknown') {
-    suggestedApproach = buildApproachSuggestion(targetProfile, userStyle.primary, potentialBlindSpots);
+    suggestedApproach = buildApproachSuggestion(
+      targetProfile,
+      userStyle.primary,
+      potentialBlindSpots
+    );
   }
 
   return {
@@ -287,7 +301,7 @@ function topicMatchesFocus(topic: string, focus: AttentionFocus): boolean {
   };
 
   const keywords = focusKeywords[focus] || [];
-  return keywords.some(kw => topic.toLowerCase().includes(kw));
+  return keywords.some((kw) => topic.toLowerCase().includes(kw));
 }
 
 function focusToNotice(focus: AttentionFocus, topics: string[]): string {
@@ -327,9 +341,11 @@ function buildHandoffNote(
   // What target might want to check
   if (blindSpots.length > 0 && targetProfile) {
     const targetStrengths = targetProfile.attention.primaryFocus;
-    const overlap = blindSpots.filter(bs => targetStrengths.includes(bs));
+    const overlap = blindSpots.filter((bs) => targetStrengths.includes(bs));
     if (overlap.length > 0) {
-      notes.push(`You might want to check on ${focusToNotice(overlap[0], [])} - that's not my strong suit.`);
+      notes.push(
+        `You might want to check on ${focusToNotice(overlap[0], [])} - that's not my strong suit.`
+      );
     }
   }
 
@@ -337,12 +353,12 @@ function buildHandoffNote(
   if (userStyle !== 'unknown') {
     const styleHints: Record<UserCognitiveStyle, string> = {
       analytical: "They're pretty analytical - likes data and evidence.",
-      emotional: "They lead with feelings - emotional connection matters.",
+      emotional: 'They lead with feelings - emotional connection matters.',
       practical: "They're action-oriented - wants concrete next steps.",
-      narrative: "They think in stories - metaphors and meaning resonate.",
-      systematic: "They like structure - step-by-step works well.",
+      narrative: 'They think in stories - metaphors and meaning resonate.',
+      systematic: 'They like structure - step-by-step works well.',
       intuitive: "They're intuitive - comfortable with big picture, less detail.",
-      unknown: "",
+      unknown: '',
     };
     if (styleHints[userStyle]) {
       notes.push(styleHints[userStyle]);
@@ -371,7 +387,10 @@ function buildApproachSuggestion(
   const suggestedStyle = complementary[userStyle];
 
   // Check if target can do this style
-  if (suggestedStyle === targetProfile.reasoningStyle || suggestedStyle === targetProfile.secondaryReasoning) {
+  if (
+    suggestedStyle === targetProfile.reasoningStyle ||
+    suggestedStyle === targetProfile.secondaryReasoning
+  ) {
     return `Your ${suggestedStyle} approach should work well with this user.`;
   }
 
@@ -458,7 +477,7 @@ export function buildReasoningChain(
     // Analytical step
     steps.push({
       step: steps.length + 1,
-      approach: primaryStyle === 'analytical' ? 'analytical' : (secondaryStyle || 'analytical'),
+      approach: primaryStyle === 'analytical' ? 'analytical' : secondaryStyle || 'analytical',
       purpose: 'Analyze the options',
       duration: 'moderate',
       showReasoning: true,
@@ -561,9 +580,18 @@ export function getReasoningChainGuidance(chain: ReasoningChain): string {
 export interface CognitiveConflict {
   detected: boolean;
   personaStyle: ReasoningStyle;
-  userNeed: 'emotional_support' | 'practical_action' | 'deep_analysis' | 'exploration' | 'validation';
+  userNeed:
+    | 'emotional_support'
+    | 'practical_action'
+    | 'deep_analysis'
+    | 'exploration'
+    | 'validation';
   severity: 'mild' | 'moderate' | 'significant';
-  resolution: 'shift_to_secondary' | 'acknowledge_limitation' | 'offer_handoff' | 'blend_approaches';
+  resolution:
+    | 'shift_to_secondary'
+    | 'acknowledge_limitation'
+    | 'offer_handoff'
+    | 'blend_approaches';
   phrase: string;
 }
 
@@ -595,7 +623,11 @@ export function detectCognitiveConflict(
   }
 
   // Check for conflict
-  const conflicts: Array<{ need: CognitiveConflict['userNeed']; style: ReasoningStyle; severity: 'mild' | 'moderate' | 'significant' }> = [
+  const conflicts: Array<{
+    need: CognitiveConflict['userNeed'];
+    style: ReasoningStyle;
+    severity: 'mild' | 'moderate' | 'significant';
+  }> = [
     { need: 'emotional_support', style: 'analytical', severity: 'significant' },
     { need: 'emotional_support', style: 'systematic', severity: 'moderate' },
     { need: 'practical_action', style: 'narrative', severity: 'mild' },
@@ -604,7 +636,7 @@ export function detectCognitiveConflict(
     { need: 'deep_analysis', style: 'pragmatic', severity: 'mild' },
   ];
 
-  const conflict = conflicts.find(c => c.need === userNeed && c.style === personaStyle);
+  const conflict = conflicts.find((c) => c.need === userNeed && c.style === personaStyle);
   if (!conflict) {
     return null;
   }
@@ -648,23 +680,33 @@ function getConflictPhrase(
 ): string {
   const phrases: Record<string, Record<string, string>> = {
     analytical: {
-      emotional_support_shift: "I know I tend to jump to analysis, but let me just sit with what you're feeling first...",
-      emotional_support_acknowledge: "I notice I want to analyze this, but right now that's not what you need. Tell me more about how you're feeling.",
-      emotional_support_blend: "I hear that this is hard. Let me understand both what's happening and how it's affecting you.",
+      emotional_support_shift:
+        "I know I tend to jump to analysis, but let me just sit with what you're feeling first...",
+      emotional_support_acknowledge:
+        "I notice I want to analyze this, but right now that's not what you need. Tell me more about how you're feeling.",
+      emotional_support_blend:
+        "I hear that this is hard. Let me understand both what's happening and how it's affecting you.",
     },
     systematic: {
-      emotional_support_shift: "Before I start breaking this down into steps, I want to acknowledge how overwhelming this must feel.",
-      emotional_support_acknowledge: "My instinct is to organize this, but I sense you need me to just listen first.",
+      emotional_support_shift:
+        'Before I start breaking this down into steps, I want to acknowledge how overwhelming this must feel.',
+      emotional_support_acknowledge:
+        'My instinct is to organize this, but I sense you need me to just listen first.',
       emotional_support_blend: "This is a lot. Let's take it one piece at a time, but no rush.",
     },
     narrative: {
-      practical_action_shift: "I could share a story about this, but I think you need something more concrete right now.",
-      practical_action_acknowledge: "I'm tempted to explore the meaning here, but you need action steps. Let me focus on that.",
-      practical_action_blend: "Here's what I'd suggest doing - and I'll share a quick story about why this works.",
+      practical_action_shift:
+        'I could share a story about this, but I think you need something more concrete right now.',
+      practical_action_acknowledge:
+        "I'm tempted to explore the meaning here, but you need action steps. Let me focus on that.",
+      practical_action_blend:
+        "Here's what I'd suggest doing - and I'll share a quick story about why this works.",
     },
     intuitive: {
-      practical_action_shift: "My sense is pointing me somewhere, but let me give you something more concrete to work with.",
-      practical_action_acknowledge: "I'm seeing the big picture, but you need specifics. Let me try to be more practical.",
+      practical_action_shift:
+        'My sense is pointing me somewhere, but let me give you something more concrete to work with.',
+      practical_action_acknowledge:
+        "I'm seeing the big picture, but you need specifics. Let me try to be more practical.",
       practical_action_blend: "Here's what my instinct says, and here's the practical first step.",
     },
   };
@@ -715,7 +757,7 @@ export interface CognitiveLearning {
  * Track cognitive approach effectiveness
  */
 export class CognitiveLearningTracker {
-  private learnings: Map<string, CognitiveLearning> = new Map();
+  private learnings = new Map<string, CognitiveLearning>();
   private recentEffectiveness: CognitiveEffectiveness[] = [];
 
   /**
@@ -766,15 +808,16 @@ export class CognitiveLearningTracker {
 
     // Update approach effectiveness
     const currentScore = learning.effectiveApproaches.get(approach) || 0.5;
-    const adjustment = userResponse === 'breakthrough' ? 0.3
-      : userResponse === 'engaged' ? 0.1
-      : userResponse === 'disengaged' ? -0.15
-      : 0;
+    const adjustment =
+      userResponse === 'breakthrough'
+        ? 0.3
+        : userResponse === 'engaged'
+          ? 0.1
+          : userResponse === 'disengaged'
+            ? -0.15
+            : 0;
 
-    learning.effectiveApproaches.set(
-      approach,
-      Math.max(0, Math.min(1, currentScore + adjustment))
-    );
+    learning.effectiveApproaches.set(approach, Math.max(0, Math.min(1, currentScore + adjustment)));
 
     // Track breakthroughs
     if (userResponse === 'breakthrough' && !learning.breakthroughApproaches.includes(approach)) {
@@ -794,13 +837,16 @@ export class CognitiveLearningTracker {
       learning.userPreferredStyle = userCognitiveStyle;
     }
 
-    getLogger().debug({
-      userId,
-      personaId,
-      approach,
-      userResponse,
-      newScore: learning.effectiveApproaches.get(approach),
-    }, 'Cognitive approach effectiveness recorded');
+    getLogger().debug(
+      {
+        userId,
+        personaId,
+        approach,
+        userResponse,
+        newScore: learning.effectiveApproaches.get(approach),
+      },
+      'Cognitive approach effectiveness recorded'
+    );
   }
 
   /**
@@ -819,7 +865,7 @@ export class CognitiveLearningTracker {
     if (level === 'expert' && !learning.expertiseTopics.includes(topic)) {
       learning.expertiseTopics.push(topic);
       // Remove from novice if present
-      learning.noviceTopics = learning.noviceTopics.filter(t => t !== topic);
+      learning.noviceTopics = learning.noviceTopics.filter((t) => t !== topic);
     } else if (level === 'novice' && !learning.noviceTopics.includes(topic)) {
       learning.noviceTopics.push(topic);
     }
@@ -843,7 +889,11 @@ export class CognitiveLearningTracker {
     const learning = this.learnings.get(`${userId}_${personaId}`);
 
     if (!learning || learning.totalInteractions < 3) {
-      return { approach: defaultApproach, confidence: 0.5, reason: 'Using default - not enough data' };
+      return {
+        approach: defaultApproach,
+        confidence: 0.5,
+        reason: 'Using default - not enough data',
+      };
     }
 
     // Find best scoring approach
@@ -859,7 +909,8 @@ export class CognitiveLearningTracker {
 
     // Check if any breakthrough approaches
     if (learning.breakthroughApproaches.length > 0) {
-      const recentBreakthrough = learning.breakthroughApproaches[learning.breakthroughApproaches.length - 1];
+      const recentBreakthrough =
+        learning.breakthroughApproaches[learning.breakthroughApproaches.length - 1];
       const breakthroughScore = learning.effectiveApproaches.get(recentBreakthrough) || 0.5;
       if (breakthroughScore >= bestScore) {
         bestApproach = recentBreakthrough;
@@ -874,10 +925,11 @@ export class CognitiveLearningTracker {
       bestScore = 0.5;
     }
 
-    const confidence = Math.min(1.0, 0.5 + (learning.totalInteractions * 0.02));
-    const reason = bestApproach === defaultApproach
-      ? 'Using default approach'
-      : `${bestApproach} has worked well with this user (score: ${bestScore.toFixed(2)})`;
+    const confidence = Math.min(1.0, 0.5 + learning.totalInteractions * 0.02);
+    const reason =
+      bestApproach === defaultApproach
+        ? 'Using default approach'
+        : `${bestApproach} has worked well with this user (score: ${bestScore.toFixed(2)})`;
 
     return { approach: bestApproach, confidence, reason };
   }
@@ -899,11 +951,21 @@ export class CognitiveLearningTracker {
   /**
    * Import learnings from persistence
    */
-  importLearnings(data: Record<string, Omit<CognitiveLearning, 'effectiveApproaches'> & { effectiveApproaches: Record<string, number> }>): void {
+  importLearnings(
+    data: Record<
+      string,
+      Omit<CognitiveLearning, 'effectiveApproaches'> & {
+        effectiveApproaches: Record<string, number>;
+      }
+    >
+  ): void {
     for (const [key, learning] of Object.entries(data)) {
       this.learnings.set(key, {
         ...learning,
-        effectiveApproaches: new Map(Object.entries(learning.effectiveApproaches)) as Map<ReasoningStyle, number>,
+        effectiveApproaches: new Map(Object.entries(learning.effectiveApproaches)) as Map<
+          ReasoningStyle,
+          number
+        >,
       });
     }
   }
@@ -927,13 +989,16 @@ export interface UserKnowledgeState {
   userId: string;
 
   /** Topics we've explained to this user */
-  topicsExplained: Map<string, {
-    firstExplained: Date;
-    timesRevisited: number;
-    understandingLevel: 'introduced' | 'learning' | 'comfortable' | 'expert';
-    lastAssessedConfidence: number;
-    personaWhoExplained: string;
-  }>;
+  topicsExplained: Map<
+    string,
+    {
+      firstExplained: Date;
+      timesRevisited: number;
+      understandingLevel: 'introduced' | 'learning' | 'comfortable' | 'expert';
+      lastAssessedConfidence: number;
+      personaWhoExplained: string;
+    }
+  >;
 
   /** Don't re-explain these */
   skipExplanationFor: string[];
@@ -946,7 +1011,7 @@ export interface UserKnowledgeState {
  * Track what we've explained to users
  */
 export class KnowledgeStateTracker {
-  private states: Map<string, UserKnowledgeState> = new Map();
+  private states = new Map<string, UserKnowledgeState>();
 
   /**
    * Record that we explained a topic
@@ -1027,7 +1092,10 @@ export class KnowledgeStateTracker {
   /**
    * Get explanation guidance for a topic
    */
-  getExplanationGuidance(userId: string, topic: string): {
+  getExplanationGuidance(
+    userId: string,
+    topic: string
+  ): {
     shouldExplain: boolean;
     depth: 'skip' | 'brief_reminder' | 'moderate' | 'full';
     note: string;
@@ -1035,12 +1103,20 @@ export class KnowledgeStateTracker {
     const state = this.states.get(userId);
 
     if (!state) {
-      return { shouldExplain: true, depth: 'moderate', note: 'First time discussing with this user.' };
+      return {
+        shouldExplain: true,
+        depth: 'moderate',
+        note: 'First time discussing with this user.',
+      };
     }
 
     // Check if we should skip
     if (state.skipExplanationFor.includes(topic)) {
-      return { shouldExplain: false, depth: 'skip', note: `User already knows about ${topic} - skip the basics.` };
+      return {
+        shouldExplain: false,
+        depth: 'skip',
+        note: `User already knows about ${topic} - skip the basics.`,
+      };
     }
 
     const topicState = state.topicsExplained.get(topic);
@@ -1053,14 +1129,30 @@ export class KnowledgeStateTracker {
       case 'expert':
         return { shouldExplain: false, depth: 'skip', note: `User is comfortable with ${topic}.` };
       case 'comfortable':
-        return { shouldExplain: true, depth: 'brief_reminder', note: `User knows ${topic} - just a quick reference.` };
+        return {
+          shouldExplain: true,
+          depth: 'brief_reminder',
+          note: `User knows ${topic} - just a quick reference.`,
+        };
       case 'learning':
-        return { shouldExplain: true, depth: 'moderate', note: `User is learning ${topic} - reinforce key points.` };
+        return {
+          shouldExplain: true,
+          depth: 'moderate',
+          note: `User is learning ${topic} - reinforce key points.`,
+        };
       case 'introduced':
         if (state.confusionTopics.includes(topic)) {
-          return { shouldExplain: true, depth: 'full', note: `User has struggled with ${topic} - try a different approach.` };
+          return {
+            shouldExplain: true,
+            depth: 'full',
+            note: `User has struggled with ${topic} - try a different approach.`,
+          };
         }
-        return { shouldExplain: true, depth: 'full', note: `User is new to ${topic} - explain thoroughly.` };
+        return {
+          shouldExplain: true,
+          depth: 'full',
+          note: `User is new to ${topic} - explain thoroughly.`,
+        };
     }
   }
 
@@ -1074,15 +1166,26 @@ export class KnowledgeStateTracker {
   /**
    * Load state from persistence
    */
-  loadState(userId: string, data: Omit<UserKnowledgeState, 'topicsExplained'> & {
-    topicsExplained: Record<string, UserKnowledgeState['topicsExplained'] extends Map<string, infer V> ? V : never>
-  }): void {
+  loadState(
+    userId: string,
+    data: Omit<UserKnowledgeState, 'topicsExplained'> & {
+      topicsExplained: Record<
+        string,
+        UserKnowledgeState['topicsExplained'] extends Map<string, infer V> ? V : never
+      >;
+    }
+  ): void {
     this.states.set(userId, {
       ...data,
-      topicsExplained: new Map(Object.entries(data.topicsExplained).map(([k, v]) => [k, {
-        ...v,
-        firstExplained: new Date(v.firstExplained),
-      }])),
+      topicsExplained: new Map(
+        Object.entries(data.topicsExplained).map(([k, v]) => [
+          k,
+          {
+            ...v,
+            firstExplained: new Date(v.firstExplained),
+          },
+        ])
+      ),
     });
   }
 }
@@ -1189,10 +1292,14 @@ export function buildCognitiveGrowthContext(
   if (profile.canReferenceHistory && cognitivelearning) {
     // Reference what has worked
     if (cognitivelearning.breakthroughApproaches.length > 0) {
-      sections.push(`Past breakthroughs with ${cognitivelearning.breakthroughApproaches.join(', ')} approach.`);
+      sections.push(
+        `Past breakthroughs with ${cognitivelearning.breakthroughApproaches.join(', ')} approach.`
+      );
     }
     if (cognitivelearning.expertiseTopics.length > 0) {
-      sections.push(`They're knowledgeable about: ${cognitivelearning.expertiseTopics.slice(0, 3).join(', ')}.`);
+      sections.push(
+        `They're knowledgeable about: ${cognitivelearning.expertiseTopics.slice(0, 3).join(', ')}.`
+      );
     }
   }
 
@@ -1214,4 +1321,3 @@ export default {
   getCognitiveGrowthProfile,
   buildCognitiveGrowthContext,
 };
-

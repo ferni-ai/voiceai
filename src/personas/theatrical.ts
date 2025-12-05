@@ -742,7 +742,7 @@ export function getBundleStoryMusicOffer(personaId: string): string | null {
  * Runtime registry for bundle-loaded backchannels
  * Takes priority over hardcoded ENHANCED_BACKCHANNELS
  */
-const bundleBackchannelRegistry: Map<string, Record<string, string[]>> = new Map();
+const bundleBackchannelRegistry = new Map<string, Record<string, string[]>>();
 
 /**
  * Register backchannels from a loaded bundle

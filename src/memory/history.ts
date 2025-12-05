@@ -54,7 +54,7 @@ export class ConversationHistoryTracker {
   private turns: TrackedTurn[] = [];
   private startedAt: Date;
   private lastActivityAt: Date;
-  private topicsSet: Set<string> = new Set();
+  private topicsSet = new Set<string>();
   private emotionHistory: string[] = [];
 
   constructor(sessionId: string, userId?: string) {
@@ -255,7 +255,7 @@ export class ConversationHistoryTracker {
   /**
    * Get context window (last N turns formatted for prompt)
    */
-  getContextWindow(maxTurns: number = 10, maxChars: number = 4000): string {
+  getContextWindow(maxTurns = 10, maxChars = 4000): string {
     const recent = this.getRecentTurns(maxTurns);
     let context = '';
 
@@ -286,7 +286,7 @@ export class ConversationHistoryTracker {
 // ============================================================================
 
 // Active session trackers
-const activeTrackers: Map<string, ConversationHistoryTracker> = new Map();
+const activeTrackers = new Map<string, ConversationHistoryTracker>();
 
 /**
  * Get or create a history tracker for a session

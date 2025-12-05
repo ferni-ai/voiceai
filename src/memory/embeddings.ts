@@ -314,7 +314,7 @@ export class LocalEmbeddings extends EmbeddingProvider {
     return 'local-hash';
   }
 
-  embed(text: string): Promise<number[]> {
+  async embed(text: string): Promise<number[]> {
     // Simple hash-based embedding for development
     // NOT suitable for production - no semantic meaning
     const hash = this.hashString(text);
@@ -331,8 +331,8 @@ export class LocalEmbeddings extends EmbeddingProvider {
     return Promise.resolve(embedding.map((v) => v / magnitude));
   }
 
-  embedBatch(texts: string[]): Promise<number[][]> {
-    return Promise.all(texts.map((t) => this.embed(t)));
+  async embedBatch(texts: string[]): Promise<number[][]> {
+    return Promise.all(texts.map(async (t) => this.embed(t)));
   }
 
   private hashString(str: string): number {
@@ -399,7 +399,7 @@ export function findTopK(
   vectors: number[][],
   k: number,
   similarity: 'cosine' | 'euclidean' = 'cosine'
-): { index: number; score: number }[] {
+): Array<{ index: number; score: number }> {
   const scores = vectors.map((vector, index) => {
     const score =
       similarity === 'cosine'

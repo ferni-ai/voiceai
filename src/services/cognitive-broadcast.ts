@@ -176,10 +176,13 @@ class CognitiveBroadcastService extends EventEmitter {
       }
     }
 
-    getLogger().debug({
-      type: event.type,
-      personaId: 'personaId' in event ? event.personaId : undefined,
-    }, '📡 Cognitive event broadcast');
+    getLogger().debug(
+      {
+        type: event.type,
+        personaId: 'personaId' in event ? event.personaId : undefined,
+      },
+      '📡 Cognitive event broadcast'
+    );
   }
 
   /**
@@ -309,11 +312,7 @@ export function broadcastVoiceEmotion(
 /**
  * Broadcast confidence level
  */
-export function broadcastConfidence(
-  personaId: string,
-  level: number,
-  reason: string
-): void {
+export function broadcastConfidence(personaId: string, level: number, reason: string): void {
   cognitiveBroadcast.broadcast({
     type: 'confidence',
     personaId,
@@ -392,4 +391,3 @@ export function broadcastMetrics(metrics: Omit<MetricsEvent, 'type' | 'timestamp
 }
 
 export default cognitiveBroadcast;
-

@@ -10,7 +10,7 @@
  */
 
 import { llm } from '@livekit/agents';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { getLogger, getUserId } from '../utils/tool-helpers.js';
 
 // Re-export getUserId for backward compatibility

@@ -16,7 +16,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -58,9 +57,7 @@ const CATEGORY_EMOJIS: Record<string, string> = {
 // LOGGER IMPLEMENTATION
 // ============================================================================
 
-interface LogData {
-  [key: string]: unknown;
-}
+type LogData = Record<string, unknown>;
 
 class DiagnosticLogger {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

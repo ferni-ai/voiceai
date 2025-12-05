@@ -34,7 +34,7 @@ interface TrackedTurn {
 interface ExtendedUserData {
   turnCount?: number;
   conversationMood?: string;
-  keyMoments?: Array<unknown>;
+  keyMoments?: unknown[];
   lastPacingScore?: number;
   sessionRecoveryState?: {
     wasDisconnected?: boolean;

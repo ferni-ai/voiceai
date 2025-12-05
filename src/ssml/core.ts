@@ -1,11 +1,11 @@
 /**
  * Core SSML Tagging Module - Persona-Aware
- * 
+ *
  * This module provides persona-aware SSML tagging that adapts:
  * - Speaking speed per persona
  * - Default emotion per persona
  * - Humanization features (disfluencies, thinking sounds)
- * 
+ *
  * Uses the legacy tagTextWithSsml from ssml-tagger.ts as a base,
  * with persona-specific overlays.
  */
@@ -32,11 +32,14 @@ export interface PersonaAwareSsmlOptions {
 /**
  * Persona-specific SSML configurations
  */
-const PERSONA_CONFIGS: Record<string, {
-  baseSpeed: number;
-  defaultEmotion: string;
-  humanizeLevel: 'low' | 'medium' | 'high';
-}> = {
+const PERSONA_CONFIGS: Record<
+  string,
+  {
+    baseSpeed: number;
+    defaultEmotion: string;
+    humanizeLevel: 'low' | 'medium' | 'high';
+  }
+> = {
   'nayan-patel': {
     baseSpeed: 0.78,
     defaultEmotion: 'affectionate',
@@ -58,11 +61,11 @@ const PERSONA_CONFIGS: Record<string, {
     humanizeLevel: 'medium', // Maya is warm but focused
   },
   'jordan-taylor': {
-    baseSpeed: 0.90,
+    baseSpeed: 0.9,
     defaultEmotion: 'excited',
     humanizeLevel: 'medium', // Jordan is enthusiastic
   },
-  'ferni': {
+  ferni: {
     baseSpeed: 0.82,
     defaultEmotion: 'content',
     humanizeLevel: 'medium', // Ferni is the balanced coach
@@ -106,7 +109,7 @@ export const regexCache = new RegexCache();
 
 /**
  * Tag text with SSML, with persona-specific adaptations
- * 
+ *
  * @param text - The text to tag with SSML
  * @param options - Persona-aware options
  * @returns SSML-tagged text
@@ -181,4 +184,3 @@ export function hasSsmlTags(text: string): boolean {
 
 // Re-export sanitizeSsml for convenience
 export { sanitizeSsml } from '../ssml-tagger.js';
-

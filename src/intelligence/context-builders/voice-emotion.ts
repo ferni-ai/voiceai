@@ -9,7 +9,12 @@
  * HOW something is said, not just WHAT is said.
  */
 
-import { registerContextBuilder, createStandardInjection, createHintInjection, createCriticalInjection } from './index.js';
+import {
+  registerContextBuilder,
+  createStandardInjection,
+  createHintInjection,
+  createCriticalInjection,
+} from './index.js';
 import type { ContextBuilderInput, ContextInjection } from './index.js';
 import {
   processVoiceEmotion,
@@ -24,7 +29,7 @@ import {
 import { broadcastVoiceEmotion } from '../../services/cognitive-broadcast.js';
 
 // Session tracking for voice emotion state
-const sessionVoiceHistory: Map<string, string[]> = new Map();
+const sessionVoiceHistory = new Map<string, string[]>();
 
 /**
  * Build voice emotion context
@@ -34,7 +39,7 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
   const sessionId = input.services.sessionId || 'default';
 
   // Get voice emotion if available
-  const voiceEmotion = input.voiceEmotion;
+  const { voiceEmotion } = input;
 
   if (!voiceEmotion) {
     return injections;
@@ -83,32 +88,30 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
 
   if (voiceGuidance.length > 0) {
     // High-priority voice signals
-    const priorityGuidance = voiceGuidance.filter(g => 
-      g.includes('tremor') || g.includes('emotionally affected')
+    const priorityGuidance = voiceGuidance.filter(
+      (g) => g.includes('tremor') || g.includes('emotionally affected')
     );
 
     if (priorityGuidance.length > 0) {
       injections.push(
-        createCriticalInjection(
-          'voice-emotion-critical',
-          priorityGuidance.join('\n'),
-          { category: 'voice-emotion', confidence: 0.9 }
-        )
+        createCriticalInjection('voice-emotion-critical', priorityGuidance.join('\n'), {
+          category: 'voice-emotion',
+          confidence: 0.9,
+        })
       );
     }
 
     // Standard voice signals
-    const standardGuidance = voiceGuidance.filter(g => 
-      !g.includes('tremor') && !g.includes('emotionally affected')
+    const standardGuidance = voiceGuidance.filter(
+      (g) => !g.includes('tremor') && !g.includes('emotionally affected')
     );
 
     if (standardGuidance.length > 0) {
       injections.push(
-        createStandardInjection(
-          'voice-emotion-guidance',
-          standardGuidance.join('\n'),
-          { category: 'voice-emotion', confidence: 0.8 }
-        )
+        createStandardInjection('voice-emotion-guidance', standardGuidance.join('\n'), {
+          category: 'voice-emotion',
+          confidence: 0.8,
+        })
       );
     }
   }
@@ -159,11 +162,10 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
     if (adjustment.softenTone) adaptations.push('soften your tone');
 
     injections.push(
-      createHintInjection(
-        'voice-speech-adapt',
-        `[VOICE ADAPTATION] ${adaptations.join(', ')}`,
-        { category: 'voice-emotion', confidence: 0.75 }
-      )
+      createHintInjection('voice-speech-adapt', `[VOICE ADAPTATION] ${adaptations.join(', ')}`, {
+        category: 'voice-emotion',
+        confidence: 0.75,
+      })
     );
   }
 
@@ -209,15 +211,15 @@ function detectRushFromRate(speechRate?: number): boolean {
  */
 function detectHesitation(userText: string): boolean {
   const hesitationPatterns = [
-    /\.\.\./,           // Ellipses
-    /\bum+\b/i,         // "um"
-    /\buh+\b/i,         // "uh"
+    /\.\.\./, // Ellipses
+    /\bum+\b/i, // "um"
+    /\buh+\b/i, // "uh"
     /\bi\s+(?:don't\s+)?know\b/i, // "I don't know"
     /\blike,?\s+like\b/i, // Repeated "like"
     /\bwell,?\s+well\b/i, // Repeated "well"
   ];
 
-  return hesitationPatterns.some(pattern => pattern.test(userText));
+  return hesitationPatterns.some((pattern) => pattern.test(userText));
 }
 
 /**
@@ -240,4 +242,3 @@ registerContextBuilder({
 
 export { buildVoiceEmotionContext };
 export default buildVoiceEmotionContext;
-

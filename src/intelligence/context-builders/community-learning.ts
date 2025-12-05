@@ -25,7 +25,9 @@ import { getAgentEvolution } from '../agent-evolution.js';
 // CONTEXT BUILDER
 // ============================================================================
 
-async function buildCommunityLearningContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
+async function buildCommunityLearningContext(
+  input: ContextBuilderInput
+): Promise<ContextInjection[]> {
   const { persona, userProfile, analysis, userData } = input;
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
@@ -160,7 +162,7 @@ export function recordResponseSignal(params: {
 }): void {
   try {
     const insights = getCommunityInsights();
-    
+
     insights.recordResponseSignal({
       context: {
         ...params.context,
@@ -190,7 +192,7 @@ export function recordStoryUsage(params: {
 }): void {
   try {
     const insights = getCommunityInsights();
-    
+
     insights.recordStoryUsage(
       params.storyId,
       params.personaId,
@@ -219,7 +221,7 @@ export function recordBreakthroughQuestion(params: {
 }): void {
   try {
     const insights = getCommunityInsights();
-    
+
     insights.recordBreakthroughQuestion(
       params.questionPattern,
       params.personaId,
@@ -257,4 +259,3 @@ registerContextBuilder({
 });
 
 export { buildCommunityLearningContext };
-

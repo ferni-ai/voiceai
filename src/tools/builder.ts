@@ -31,7 +31,6 @@ import type {
 } from './registry/types.js';
 import { EmptyServiceRegistry } from './registry/types.js';
 
-
 // ============================================================================
 // MANIFEST TYPES (simplified reference to avoid circular deps)
 // ============================================================================
@@ -185,7 +184,11 @@ async function buildHandoffTools(
         const targetMatch = toolDef.name.match(/handoffTo(\w+)/i);
         if (targetMatch) {
           const targetName = targetMatch[1].toLowerCase();
-          if (targets.some((t: string) => t.toLowerCase().replace('-', '').includes(targetName.replace('-', '')))) {
+          if (
+            targets.some((t: string) =>
+              t.toLowerCase().replace('-', '').includes(targetName.replace('-', ''))
+            )
+          ) {
             tools[toolDef.name] = toolDef as unknown as Tool;
           }
         } else if (toolDef.name === 'meetTheTeam') {
@@ -248,7 +251,8 @@ export async function buildAgentTools(
 
   // Build tool spec from manifest
   const manifestSpec: ToolSetSpec = {
-    domains: manifest.tools?.domains || getDefaultDomainsForRole(manifest.role?.handoff_targets?.[0]),
+    domains:
+      manifest.tools?.domains || getDefaultDomainsForRole(manifest.role?.handoff_targets?.[0]),
     required: manifest.tools?.required || [],
     optional: manifest.tools?.optional || [],
     forbidden: manifest.tools?.forbidden || [],
@@ -389,14 +393,16 @@ export async function getAvailableToolsForAgent(
  * Build tools for all team members at once
  * This replaces the parallel createPersonaTools() calls in voice-agent.ts
  */
-export async function buildAllTeamTools(options: {
-  userId?: string;
-  services?: ServiceRegistry;
-  /** Team member agent IDs (defaults to standard Ferni team) */
-  teamMembers?: string[];
-  /** Skip registry initialization */
-  skipRegistryInit?: boolean;
-} = {}): Promise<{
+export async function buildAllTeamTools(
+  options: {
+    userId?: string;
+    services?: ServiceRegistry;
+    /** Team member agent IDs (defaults to standard Ferni team) */
+    teamMembers?: string[];
+    /** Skip registry initialization */
+    skipRegistryInit?: boolean;
+  } = {}
+): Promise<{
   tools: Record<string, Tool>;
   byAgent: Record<string, Record<string, Tool>>;
   stats: {
@@ -480,18 +486,20 @@ export async function buildAllTeamTools(options: {
 /**
  * Build essential tools (always available, minimal set)
  * This replaces createEssentialTools() in factory.ts
- * 
+ *
  * NOTE: Includes entertainment & information domains so agents can:
  * - Play music (playMusic, pauseMusic, etc.)
  * - Get weather, search web, etc.
- * 
+ *
  * Keep this focused! Most LLMs work best with 20-60 tools max.
  * Google Gemini Realtime struggles with 100+ tools.
  */
-export async function buildEssentialTools(options: {
-  userId?: string;
-  services?: ServiceRegistry;
-} = {}): Promise<Record<string, Tool>> {
+export async function buildEssentialTools(
+  options: {
+    userId?: string;
+    services?: ServiceRegistry;
+  } = {}
+): Promise<Record<string, Tool>> {
   // Initialize registry if needed
   if (!toolRegistry.isInitialized()) {
     await initializeToolRegistry();
@@ -515,4 +523,3 @@ export type { AgentManifest, AgentManifestTools };
 export { getDefaultDomainsForRole };
 
 export default buildAgentTools;
-

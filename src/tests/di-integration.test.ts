@@ -44,9 +44,9 @@ describe('DI Container', () => {
   describe('Basic Registration and Resolution', () => {
     it('should register and resolve a factory', () => {
       container.register('logger', () => ({ log: vi.fn() }));
-      
+
       const logger = container.resolve('logger');
-      
+
       expect(logger).toBeDefined();
       expect(logger).toHaveProperty('log');
     });
@@ -54,10 +54,10 @@ describe('DI Container', () => {
     it('should create new instances for non-singleton factories', () => {
       let callCount = 0;
       container.register('counter', () => ({ id: ++callCount }));
-      
+
       const first = container.resolve<{ id: number }>('counter');
       const second = container.resolve<{ id: number }>('counter');
-      
+
       expect(first.id).toBe(1);
       expect(second.id).toBe(2);
     });
@@ -65,10 +65,10 @@ describe('DI Container', () => {
     it('should reuse instances for singleton factories', () => {
       let callCount = 0;
       container.registerSingleton('counter', () => ({ id: ++callCount }));
-      
+
       const first = container.resolve<{ id: number }>('counter');
       const second = container.resolve<{ id: number }>('counter');
-      
+
       expect(first.id).toBe(1);
       expect(second.id).toBe(1);
       expect(first).toBe(second);
@@ -77,9 +77,9 @@ describe('DI Container', () => {
     it('should register and return instance directly', () => {
       const instance = { value: 42 };
       container.registerInstance('config', instance);
-      
+
       const resolved = container.resolve<{ value: number }>('config');
-      
+
       expect(resolved).toBe(instance);
       expect(resolved.value).toBe(42);
     });
@@ -88,22 +88,22 @@ describe('DI Container', () => {
   describe('Scoped Containers', () => {
     it('should create scoped containers that inherit from parent', () => {
       container.registerInstance('parentValue', { value: 'parent' });
-      
+
       const scoped = container.createScope();
-      
+
       const resolved = scoped.resolve<{ value: string }>('parentValue');
       expect(resolved.value).toBe('parent');
     });
 
     it('should allow scoped overrides', () => {
       container.registerInstance('config', { env: 'production' });
-      
+
       const testScope = container.createScope();
       testScope.registerInstance('config', { env: 'test' });
-      
+
       const prodConfig = container.resolve<{ env: string }>('config');
       const testConfig = testScope.resolve<{ env: string }>('config');
-      
+
       expect(prodConfig.env).toBe('production');
       expect(testConfig.env).toBe('test');
     });
@@ -129,10 +129,10 @@ describe('Result Types', () => {
   describe('Basic Operations', () => {
     it('should create success results', () => {
       const result = success({ name: 'test' });
-      
+
       expect(isSuccess(result)).toBe(true);
       expect(isFailure(result)).toBe(false);
-      
+
       if (isSuccess(result)) {
         expect(result.data.name).toBe('test');
       }
@@ -141,10 +141,10 @@ describe('Result Types', () => {
     it('should create failure results', () => {
       const error = new Error('Something went wrong');
       const result = failure(error);
-      
+
       expect(isSuccess(result)).toBe(false);
       expect(isFailure(result)).toBe(true);
-      
+
       if (isFailure(result)) {
         expect(result.error.message).toBe('Something went wrong');
       }
@@ -178,7 +178,7 @@ describe('Result Types', () => {
   describe('Conversion Utilities', () => {
     it('tryCatch should convert successful function to Result', () => {
       const result = tryCatch(() => 42);
-      
+
       expect(isSuccess(result)).toBe(true);
       if (isSuccess(result)) {
         expect(result.data).toBe(42);
@@ -189,7 +189,7 @@ describe('Result Types', () => {
       const result = tryCatch(() => {
         throw new Error('oops');
       });
-      
+
       expect(isFailure(result)).toBe(true);
       if (isFailure(result)) {
         expect(result.error.message).toBe('oops');
@@ -198,7 +198,7 @@ describe('Result Types', () => {
 
     it('tryCatchAsync should convert resolved promise to Result', async () => {
       const result = await tryCatchAsync(Promise.resolve(42));
-      
+
       expect(isSuccess(result)).toBe(true);
       if (isSuccess(result)) {
         expect(result.data).toBe(42);
@@ -207,7 +207,7 @@ describe('Result Types', () => {
 
     it('tryCatchAsync should convert rejected promise to Result', async () => {
       const result = await tryCatchAsync(Promise.reject(new Error('async fail')));
-      
+
       expect(isFailure(result)).toBe(true);
       if (isFailure(result)) {
         expect(result.error.message).toBe('async fail');
@@ -240,16 +240,16 @@ describe('Service Registration', () => {
   it('should get the global container', () => {
     const container1 = getContainer();
     const container2 = getContainer();
-    
+
     expect(container1).toBe(container2);
   });
 
   it('should reset the global container', () => {
     const container1 = getContainer();
     container1.registerInstance('test', { value: 1 });
-    
+
     resetContainer();
-    
+
     const container2 = getContainer();
     expect(container2.tryResolve('test')).toBeUndefined();
   });
@@ -266,4 +266,3 @@ describe.skip('Consolidated Tools', () => {
   it('should export consolidated memory tool', async () => {});
   it('should export consolidated productivity tool', async () => {});
 });
-

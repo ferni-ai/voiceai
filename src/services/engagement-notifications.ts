@@ -47,7 +47,7 @@ export interface NotificationPreferences {
   quietHoursStart: number; // 0-23
   quietHoursEnd: number; // 0-23
   maxPerDay: number;
-  allowedTypes: EngagementNotification['type'][];
+  allowedTypes: Array<EngagementNotification['type']>;
   preferredChannel: 'push' | 'in_app' | 'both';
 }
 
@@ -82,16 +82,16 @@ const NOTIFICATION_TEMPLATES = {
     title: 'Your streak needs you',
     bodies: [
       "Don't lose your {streak}-day streak with {ritual}.",
-      "Quick check-in to keep your {ritual} streak going?",
+      'Quick check-in to keep your {ritual} streak going?',
       '{streak} days strong. Keep the momentum going.',
     ],
   },
   ritual_due: {
     title: 'Daily practice ready',
     bodies: [
-      "Your {ritual} is ready when you are.",
+      'Your {ritual} is ready when you are.',
       "Time for today's {ritual}?",
-      "{persona} is here for your daily practice.",
+      '{persona} is here for your daily practice.',
     ],
   },
   milestone: {
@@ -114,14 +114,14 @@ const NOTIFICATION_TEMPLATES = {
     title: 'Something to share',
     bodies: [
       '{persona} remembered something about you.',
-      "{persona} has been thinking about something you mentioned.",
-      "Remember when we talked about this? {persona} wants to follow up.",
+      '{persona} has been thinking about something you mentioned.',
+      'Remember when we talked about this? {persona} wants to follow up.',
     ],
   },
   seasonal_event: {
     title: 'Special moment',
     bodies: [
-      "The team wants to mark this occasion with you.",
+      'The team wants to mark this occasion with you.',
       'Something special today.',
       '{persona} has something for you.',
     ],
@@ -133,8 +133,8 @@ const NOTIFICATION_TEMPLATES = {
 // ============================================================================
 
 export class EngagementNotificationService {
-  private userStates: Map<string, UserNotificationState> = new Map();
-  private pendingNotifications: Map<string, EngagementNotification[]> = new Map();
+  private userStates = new Map<string, UserNotificationState>();
+  private pendingNotifications = new Map<string, EngagementNotification[]>();
   private notificationCallback: ((notification: EngagementNotification) => void) | null = null;
 
   /**
@@ -266,8 +266,7 @@ export class EngagementNotificationService {
 
     // Only notify for rituals that match user's preferred time
     const hour = new Date().getHours();
-    const preferredTime =
-      hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+    const preferredTime = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
 
     for (const ritual of dueRituals) {
       if (ritual.preferredTime && ritual.preferredTime !== preferredTime) continue;
@@ -463,4 +462,3 @@ export function resetEngagementNotificationService(): void {
 }
 
 export default EngagementNotificationService;
-

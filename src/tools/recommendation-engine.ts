@@ -13,7 +13,11 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import { feedbackCollector, type FeedbackSummary } from './feedback-collector.js';
-import { patternAnalyzer, type GapAnalysis, type ConsolidationOpportunity } from './pattern-analyzer.js';
+import {
+  patternAnalyzer,
+  type GapAnalysis,
+  type ConsolidationOpportunity,
+} from './pattern-analyzer.js';
 import { deprecationService } from './deprecation.js';
 import { abTestingService, type Experiment, type VariantConfig } from './ab-testing.js';
 import { toolRegistry } from './registry/index.js';
@@ -22,7 +26,7 @@ import { toolRegistry } from './registry/index.js';
 // TYPES
 // ============================================================================
 
-export type RecommendationType = 
+export type RecommendationType =
   | 'create_tool'
   | 'consolidate_tools'
   | 'deprecate_tool'
@@ -139,10 +143,7 @@ export class RecommendationEngine {
         });
     }
 
-    getLogger().info(
-      { count: this.recommendations.length },
-      '💡 Generated tool recommendations'
-    );
+    getLogger().info({ count: this.recommendations.length }, '💡 Generated tool recommendations');
 
     return this.recommendations;
   }
@@ -239,7 +240,7 @@ export class RecommendationEngine {
             'Monitor for regressions',
           ],
           estimatedEffort: 'days',
-          requiredChanges: opp.tools.map(t => `Tool: ${t}`),
+          requiredChanges: opp.tools.map((t) => `Tool: ${t}`),
           testingStrategy: 'A/B test consolidated vs granular',
         },
         createdAt: new Date(),
@@ -341,7 +342,7 @@ export class RecommendationEngine {
 
     // Find tools with high usage but mediocre scores
     const improvementCandidates = allFeedback
-      .filter(f => f.totalFeedback >= 20 && f.averageScore > -0.2 && f.averageScore < 0.3)
+      .filter((f) => f.totalFeedback >= 20 && f.averageScore > -0.2 && f.averageScore < 0.3)
       .slice(0, 3);
 
     for (const tool of improvementCandidates) {
@@ -511,21 +512,21 @@ export class RecommendationEngine {
    * Get all pending recommendations
    */
   getPendingRecommendations(): Recommendation[] {
-    return this.recommendations.filter(r => r.status === 'pending');
+    return this.recommendations.filter((r) => r.status === 'pending');
   }
 
   /**
    * Get recommendations by type
    */
   getRecommendationsByType(type: RecommendationType): Recommendation[] {
-    return this.recommendations.filter(r => r.type === type);
+    return this.recommendations.filter((r) => r.type === type);
   }
 
   /**
    * Approve a recommendation
    */
   approveRecommendation(id: string): boolean {
-    const rec = this.recommendations.find(r => r.id === id);
+    const rec = this.recommendations.find((r) => r.id === id);
     if (rec) {
       rec.status = 'approved';
       getLogger().info({ id, title: rec.title }, '✅ Recommendation approved');
@@ -538,7 +539,7 @@ export class RecommendationEngine {
    * Reject a recommendation
    */
   rejectRecommendation(id: string, reason?: string): boolean {
-    const rec = this.recommendations.find(r => r.id === id);
+    const rec = this.recommendations.find((r) => r.id === id);
     if (rec) {
       rec.status = 'rejected';
       getLogger().info({ id, title: rec.title, reason }, '❌ Recommendation rejected');
@@ -551,7 +552,7 @@ export class RecommendationEngine {
    * Mark recommendation as implemented
    */
   markImplemented(id: string): boolean {
-    const rec = this.recommendations.find(r => r.id === id);
+    const rec = this.recommendations.find((r) => r.id === id);
     if (rec) {
       rec.status = 'implemented';
       getLogger().info({ id, title: rec.title }, '🚀 Recommendation implemented');
@@ -580,8 +581,8 @@ export class RecommendationEngine {
       ) {
         if (!dryRun) {
           // Create and activate the experiment
-          const hypothesis = this.generateHypotheses().find(
-            h => rec.title.includes(h.hypothesis)
+          const hypothesis = this.generateHypotheses().find((h) =>
+            rec.title.includes(h.hypothesis)
           );
 
           if (hypothesis) {
@@ -645,22 +646,23 @@ export class RecommendationEngine {
     report += `  Total Recommendations: ${this.recommendations.length}\n`;
     report += `  Pending:               ${this.getPendingRecommendations().length}\n`;
     report += `  By Priority:\n`;
-    report += `    Critical: ${this.recommendations.filter(r => r.priority === 'critical').length}\n`;
-    report += `    High:     ${this.recommendations.filter(r => r.priority === 'high').length}\n`;
-    report += `    Medium:   ${this.recommendations.filter(r => r.priority === 'medium').length}\n`;
-    report += `    Low:      ${this.recommendations.filter(r => r.priority === 'low').length}\n\n`;
+    report += `    Critical: ${this.recommendations.filter((r) => r.priority === 'critical').length}\n`;
+    report += `    High:     ${this.recommendations.filter((r) => r.priority === 'high').length}\n`;
+    report += `    Medium:   ${this.recommendations.filter((r) => r.priority === 'medium').length}\n`;
+    report += `    Low:      ${this.recommendations.filter((r) => r.priority === 'low').length}\n\n`;
 
     // By type
     for (const [type, recs] of Object.entries(byType)) {
       if (recs.length === 0) continue;
 
-      const icon = {
-        create_tool: '➕',
-        consolidate_tools: '🔗',
-        deprecate_tool: '🗑️',
-        improve_tool: '⬆️',
-        run_experiment: '🧪',
-      }[type] || '📋';
+      const icon =
+        {
+          create_tool: '➕',
+          consolidate_tools: '🔗',
+          deprecate_tool: '🗑️',
+          improve_tool: '⬆️',
+          run_experiment: '🧪',
+        }[type] || '📋';
 
       report += `${icon} ${type.toUpperCase().replace(/_/g, ' ')} (${recs.length})\n`;
       report += '─────────────────────────────────────────────────────────────────\n';
@@ -695,4 +697,3 @@ export class RecommendationEngine {
 export const recommendationEngine = new RecommendationEngine();
 
 export default recommendationEngine;
-

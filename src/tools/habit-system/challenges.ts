@@ -36,11 +36,7 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
     description: 'Build a sustainable exercise habit from zero',
     domain: 'health',
     difficulty: 'easy',
-    dailyActions: [
-      '5-10 min of any movement',
-      'Track your activity',
-      'Celebrate showing up',
-    ],
+    dailyActions: ['5-10 min of any movement', 'Track your activity', 'Celebrate showing up'],
     weeklyMilestones: [
       'Week 1: Move every day (5 min)',
       'Week 2: Build to 10 min',
@@ -72,11 +68,7 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
     description: 'Build daily money awareness and healthy financial habits',
     domain: 'finance',
     difficulty: 'medium',
-    dailyActions: [
-      'Check account balances',
-      'Track spending',
-      'Review financial goals',
-    ],
+    dailyActions: ['Check account balances', 'Track spending', 'Review financial goals'],
     weeklyMilestones: [
       'Week 1: Awareness',
       'Week 2: Understanding patterns',
@@ -90,11 +82,7 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
     description: 'Reclaim your attention from screens',
     domain: 'mind',
     difficulty: 'hard',
-    dailyActions: [
-      'No phone first/last 30 min of day',
-      'Use app time limits',
-      'Phone-free zones',
-    ],
+    dailyActions: ['No phone first/last 30 min of day', 'Use app time limits', 'Phone-free zones'],
     weeklyMilestones: [
       'Week 1: Awareness of habits',
       'Week 2: Set boundaries',
@@ -108,11 +96,7 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
     description: 'Build habits for better, more restorative sleep',
     domain: 'health',
     difficulty: 'medium',
-    dailyActions: [
-      'Consistent bedtime',
-      'Wind-down routine',
-      'Optimize sleep environment',
-    ],
+    dailyActions: ['Consistent bedtime', 'Wind-down routine', 'Optimize sleep environment'],
     weeklyMilestones: [
       'Week 1: Track baseline',
       'Week 2: Consistency',
@@ -126,11 +110,7 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
     description: 'Build a consistent water drinking habit',
     domain: 'health',
     difficulty: 'easy',
-    dailyActions: [
-      'Drink water first thing',
-      'Water before meals',
-      'Track intake',
-    ],
+    dailyActions: ['Drink water first thing', 'Water before meals', 'Track intake'],
     weeklyMilestones: [
       'Week 1: Baseline awareness',
       'Week 2: Build to 6 glasses',
@@ -144,11 +124,7 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
     description: 'Build a daily gratitude habit to shift perspective',
     domain: 'mind',
     difficulty: 'easy',
-    dailyActions: [
-      'Write 3 gratitudes',
-      'Express appreciation',
-      'Notice good things',
-    ],
+    dailyActions: ['Write 3 gratitudes', 'Express appreciation', 'Notice good things'],
     weeklyMilestones: [
       'Week 1: Simple gratitude',
       'Week 2: Specific gratitude',
@@ -162,11 +138,7 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
     description: 'Clear your space, clear your mind - one area at a time',
     domain: 'home',
     difficulty: 'medium',
-    dailyActions: [
-      'Declutter one area',
-      'Donate/discard items',
-      'Maintain cleared spaces',
-    ],
+    dailyActions: ['Declutter one area', 'Donate/discard items', 'Maintain cleared spaces'],
     weeklyMilestones: [
       'Week 1: Quick wins',
       'Week 2: Digital declutter',
@@ -180,11 +152,7 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
     description: 'Strengthen relationships through daily connection',
     domain: 'relationships',
     difficulty: 'easy',
-    dailyActions: [
-      'Reach out to someone',
-      'Quality conversation',
-      'Express appreciation',
-    ],
+    dailyActions: ['Reach out to someone', 'Quality conversation', 'Express appreciation'],
     weeklyMilestones: [
       'Week 1: Reach out',
       'Week 2: Deepen quality',
@@ -213,14 +181,18 @@ export function checkChallengeMilestones(day: number, completedDays: number): st
   if (day === 7 && completedDays >= 5) return '🌟 First Week Champion! 5+ days completed!';
   if (day === 14 && completedDays >= 10) return '⭐ Two Week Warrior! 10+ days completed!';
   if (day === 21 && completedDays >= 15) return '🏆 Three Week Titan! Habit forming!';
-  if (day === 30 && completedDays >= 25) return "🎉 30-Day Master! 25+ days! Incredible!";
+  if (day === 30 && completedDays >= 25) return '🎉 30-Day Master! 25+ days! Incredible!';
   if (completedDays === 7) return '🔥 7-day completion streak!';
   if (completedDays === 14) return '🔥🔥 14-day completion streak!';
   if (completedDays === 21) return "🔥🔥🔥 21-day streak! You're unstoppable!";
   return null;
 }
 
-export function getChallengeProgress(challengeId: string, currentDay: number, completedDays: number[]): string {
+export function getChallengeProgress(
+  challengeId: string,
+  currentDay: number,
+  completedDays: number[]
+): string {
   const challenge = THIRTY_DAY_CHALLENGES[challengeId];
   if (!challenge) return 'Challenge not found.';
 
@@ -251,4 +223,3 @@ function getStreakCount(completedDays: number[], currentDay: number): number {
   }
   return streak;
 }
-

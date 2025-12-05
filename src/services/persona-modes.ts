@@ -1,6 +1,6 @@
 /**
  * Persona Modes Service
- * 
+ *
  * Implements persona mode switching (listening, advising, exploring, etc.)
  * with mode-specific behavior modifiers and transition phrases.
  */
@@ -14,11 +14,11 @@ const logger = getLogger().child({ service: 'PersonaModes' });
 // Types
 // ============================================================================
 
-export type PersonaMode = 
-  | 'listening' 
-  | 'advising' 
-  | 'exploring' 
-  | 'challenging' 
+export type PersonaMode =
+  | 'listening'
+  | 'advising'
+  | 'exploring'
+  | 'challenging'
   | 'celebrating'
   | 'storytelling'
   | 'comforting';
@@ -54,44 +54,44 @@ const MODE_CONFIGS: Record<PersonaMode, ModeConfig> = {
     pace: 'slow',
     questionFrequency: 'minimal',
     responseStyle: 'reflective',
-    pauseMultiplier: 1.3
+    pauseMultiplier: 1.3,
   },
   advising: {
     pace: 'moderate',
     questionFrequency: 'some',
     responseStyle: 'directive',
-    pauseMultiplier: 1.0
+    pauseMultiplier: 1.0,
   },
   exploring: {
     pace: 'normal',
     questionFrequency: 'many',
     responseStyle: 'curious',
-    pauseMultiplier: 1.1
+    pauseMultiplier: 1.1,
   },
   challenging: {
     pace: 'moderate',
     questionFrequency: 'some',
     responseStyle: 'directive',
-    pauseMultiplier: 1.2
+    pauseMultiplier: 1.2,
   },
   celebrating: {
     pace: 'fast',
     questionFrequency: 'minimal',
     responseStyle: 'enthusiastic',
-    pauseMultiplier: 0.8
+    pauseMultiplier: 0.8,
   },
   storytelling: {
     pace: 'moderate',
     questionFrequency: 'none',
     responseStyle: 'reflective',
-    pauseMultiplier: 1.15
+    pauseMultiplier: 1.15,
   },
   comforting: {
     pace: 'slow',
     questionFrequency: 'minimal',
     responseStyle: 'supportive',
-    pauseMultiplier: 1.4
-  }
+    pauseMultiplier: 1.4,
+  },
 };
 
 // ============================================================================
@@ -122,13 +122,7 @@ const MODE_TRIGGERS: Record<PersonaMode, RegExp[]> = {
     /explore/i,
     /options/i,
   ],
-  challenging: [
-    /challenge me/i,
-    /push me/i,
-    /be honest/i,
-    /tough love/i,
-    /don't hold back/i,
-  ],
+  challenging: [/challenge me/i, /push me/i, /be honest/i, /tough love/i, /don't hold back/i],
   celebrating: [
     /i did it/i,
     /great news/i,
@@ -152,7 +146,7 @@ const MODE_TRIGGERS: Record<PersonaMode, RegExp[]> = {
     /scared/i,
     /worried/i,
     /anxious/i,
-  ]
+  ],
 };
 
 /**
@@ -190,17 +184,17 @@ export function getCurrentMode(sessionId: string): PersonaMode {
 export function setMode(sessionId: string, mode: PersonaMode): void {
   const previousMode = sessionModes.get(sessionId);
   sessionModes.set(sessionId, mode);
-  
+
   // Track transition
   if (previousMode && previousMode !== mode) {
     const history = modeHistory.get(sessionId) || [];
     history.push({
       from: previousMode,
       to: mode,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
     modeHistory.set(sessionId, history);
-    
+
     logger.debug({ sessionId, from: previousMode, to: mode }, 'Mode transition');
   }
 }
@@ -221,16 +215,18 @@ export async function getModeTransitionPhrase(
 ): Promise<string | null> {
   const behaviors = await loadPersonaBehaviors(personaId);
   if (!behaviors) return null;
-  
+
   const coachingModes = behaviors['coaching-modes'] as Record<string, unknown> | undefined;
   if (!coachingModes) return null;
-  
-  const modes = coachingModes['modes'] as Record<string, { transition_phrases?: string[] }> | undefined;
+
+  const modes = coachingModes['modes'] as
+    | Record<string, { transition_phrases?: string[] }>
+    | undefined;
   if (!modes) return null;
-  
+
   const targetMode = modes[toMode];
   if (!targetMode?.transition_phrases) return null;
-  
+
   const phrases = targetMode.transition_phrases;
   return phrases[Math.floor(Math.random() * phrases.length)];
 }
@@ -241,12 +237,12 @@ export async function getModeTransitionPhrase(
 export async function getModeCheckInPhrase(personaId: string): Promise<string | null> {
   const behaviors = await loadPersonaBehaviors(personaId);
   if (!behaviors) return null;
-  
+
   const coachingModes = behaviors['coaching-modes'] as Record<string, unknown> | undefined;
   const switching = coachingModes?.['mode_switching'] as { checking_in?: string[] } | undefined;
-  
+
   if (!switching?.checking_in) return null;
-  
+
   const phrases = switching.checking_in;
   return phrases[Math.floor(Math.random() * phrases.length)];
 }
@@ -265,46 +261,46 @@ export function recommendModeTransition(context: ModeContext): {
     return {
       shouldTransition: true,
       suggestedMode: triggered,
-      reason: 'user_triggered'
+      reason: 'user_triggered',
     };
   }
-  
+
   // Don't switch too often
   const recentSwitches = context.recentModes.length;
   if (recentSwitches > 3) {
     return { shouldTransition: false };
   }
-  
+
   // Stuck in one mode too long?
-  if (context.turnCount > 8 && context.recentModes.slice(-5).every(m => m === context.currentMode)) {
+  if (
+    context.turnCount > 8 &&
+    context.recentModes.slice(-5).every((m) => m === context.currentMode)
+  ) {
     // Suggest exploration if stuck
     if (context.currentMode !== 'exploring') {
       return {
         shouldTransition: true,
         suggestedMode: 'exploring',
-        reason: 'variety'
+        reason: 'variety',
       };
     }
   }
-  
+
   return { shouldTransition: false };
 }
 
 /**
  * Apply mode modifiers to a response
  */
-export function applyModeModifiers(
-  response: string,
-  mode: PersonaMode
-): string {
+export function applyModeModifiers(response: string, mode: PersonaMode): string {
   const config = getModeConfig(mode);
-  
+
   // Adjust SSML pauses based on mode
-  let modified = response.replace(/time="(\d+)ms"/g, (_, ms) => {
+  const modified = response.replace(/time="(\d+)ms"/g, (_, ms) => {
     const newMs = Math.round(parseInt(ms) * config.pauseMultiplier);
     return `time="${newMs}ms"`;
   });
-  
+
   return modified;
 }
 
@@ -338,4 +334,3 @@ export const PersonaModesService = {
 };
 
 export default PersonaModesService;
-

@@ -51,5 +51,7 @@ export type {
 } from './types.js';
 
 // Re-export the main tools from the agent-agnostic file
-export { createHabitCoachingTools, createHabitCoachingTools as createMayaHabitCoachTools } from '../habit-coaching.js';
-
+export {
+  createHabitCoachingTools,
+  createHabitCoachingTools as createMayaHabitCoachTools,
+} from '../habit-coaching.js';

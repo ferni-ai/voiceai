@@ -261,7 +261,7 @@ export function createConversationTools() {
       execute: async ({ sentiment }, { ctx }) => {
         getLogger().info(`Wrapping up with ${sentiment} tone`);
         const userData = ctx.userData as UserData;
-        const name = userData.name;
+        const { name } = userData;
         const nameStr = name ? `, ${name}` : '';
         const wrapUps: Record<string, string[]> = {
           warm: [

@@ -80,7 +80,8 @@ function generateHandoffTool(agent: Agent, coordinator: Agent): HandoffToolDefin
   const toolName = `handoffTo${firstName}`;
 
   // Generate description from agent info
-  const description = `Transfer the conversation to ${agent.name} (${agent.roleDescription}). ` +
+  const description =
+    `Transfer the conversation to ${agent.name} (${agent.roleDescription}). ` +
     `Use when the user needs help with: ${agent.handoffTriggers.slice(0, 5).join(', ') || agent.roleDescription}.`;
 
   // Parameters schema
@@ -108,12 +109,16 @@ function generateReturnToCoordinatorTool(coordinator: Agent): HandoffToolDefinit
 
   return {
     name: toolName,
-    description: `Return the conversation to ${coordinator.name}, the main coordinator. ` +
+    description:
+      `Return the conversation to ${coordinator.name}, the main coordinator. ` +
       `Use when: the user's request is outside your expertise, the user asks for another team member, ` +
       `or the conversation naturally concludes your specialty area.`,
     parameters: z.object({
       reason: z.string().describe(`Reason for returning to ${coordinator.name}`),
-      handoff_note: z.string().optional().describe('Note for the coordinator about what was discussed'),
+      handoff_note: z
+        .string()
+        .optional()
+        .describe('Note for the coordinator about what was discussed'),
       task_completed: z.boolean().optional().describe('Whether the specialist task was completed'),
     }),
     agentId: coordinator.id,
@@ -127,7 +132,7 @@ function generateReturnToCoordinatorTool(coordinator: Agent): HandoffToolDefinit
 // ============================================================================
 
 let toolSetCache: HandoffToolSet | null = null;
-let lastCacheTime: number = 0;
+let lastCacheTime = 0;
 const CACHE_TTL_MS = 60 * 1000; // 1 minute
 
 // ============================================================================
@@ -198,10 +203,7 @@ export async function createHandoffTools(currentAgentId?: string): Promise<Hando
     lastCacheTime = now;
 
     const loadTime = Date.now() - startTime;
-    getLogger().info(
-      { toolCount: tools.length, loadTimeMs: loadTime },
-      'Handoff tools generated'
-    );
+    getLogger().info({ toolCount: tools.length, loadTimeMs: loadTime }, 'Handoff tools generated');
 
     // Filter for current agent if specified
     if (currentAgentId) {
@@ -256,7 +258,9 @@ export async function getHandoffTool(toolName: string): Promise<HandoffToolDefin
 /**
  * Get the handoff tool for a specific agent
  */
-export async function getHandoffToolForAgent(agentId: string): Promise<HandoffToolDefinition | null> {
+export async function getHandoffToolForAgent(
+  agentId: string
+): Promise<HandoffToolDefinition | null> {
   const toolSet = await createHandoffTools();
   return toolSet.toolsByAgentId.get(agentId) || null;
 }
@@ -331,9 +335,7 @@ export function getAgentNameFromToolName(toolName: string): string | null {
  * @param currentAgentId - Current agent to exclude from available handoffs
  * @returns Record of tool name -> tool
  */
-export async function buildHandoffTools(
-  currentAgentId?: string
-): Promise<{
+export async function buildHandoffTools(currentAgentId?: string): Promise<{
   tools: Record<string, unknown>;
   toolCount: number;
   agentIds: string[];
@@ -401,10 +403,7 @@ Use when user asks: "Who's on your team?", "What specialists do you have?", "Who
     },
   });
 
-  getLogger().info(
-    { toolCount: Object.keys(tools).length, agentIds },
-    'Built handoff tools'
-  );
+  getLogger().info({ toolCount: Object.keys(tools).length, agentIds }, 'Built handoff tools');
 
   return {
     tools,
@@ -443,4 +442,3 @@ export async function getHandoffToolsForAgent(
 // ============================================================================
 
 export { createHandoffTools as default };
-

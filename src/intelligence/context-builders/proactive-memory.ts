@@ -29,7 +29,7 @@ import {
 } from '../../services/memory-management.js';
 
 // Track when we last surfaced a memory (per session)
-const lastMemorySurfacedTurn: Map<string, number> = new Map();
+const lastMemorySurfacedTurn = new Map<string, number>();
 
 /**
  * Format a proactive memory for injection into the prompt
@@ -63,7 +63,7 @@ async function buildProactiveMemoryContext(
   const { userProfile, userData, analysis } = input;
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
-  const sessionId = input.services.sessionId;
+  const { sessionId } = input.services;
 
   // Need a user profile to have proactive memories
   if (!userProfile) {
@@ -166,9 +166,8 @@ async function buildVoiceRecognitionContext(
   }
 
   try {
-    const { generateVoiceRecognitionGreeting } = await import(
-      '../../services/memory-management.js'
-    );
+    const { generateVoiceRecognitionGreeting } =
+      await import('../../services/memory-management.js');
 
     // If we have high confidence in voice match, suggest greeting
     if (userProfile.voiceSketch.confidence > 0.8) {
@@ -179,11 +178,9 @@ async function buildVoiceRecognitionContext(
 
       if (greeting) {
         injections.push(
-          createHintInjection(
-            'voice_recognition',
-            `[🎤 VOICE RECOGNIZED: ${greeting}]`,
-            { category: 'personalization' }
-          )
+          createHintInjection('voice_recognition', `[🎤 VOICE RECOGNIZED: ${greeting}]`, {
+            category: 'personalization',
+          })
         );
       }
     }
@@ -233,4 +230,3 @@ export default {
   buildVoiceRecognitionContext,
   buildProactiveContext,
 };
-

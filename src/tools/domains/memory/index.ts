@@ -54,4 +54,3 @@ export {
 };
 
 export default getToolDefinitions;
-

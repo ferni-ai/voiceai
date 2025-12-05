@@ -189,7 +189,7 @@ async function getAccessToken(forceRefresh = false): Promise<string | null> {
 /**
  * Sleep helper for retry delays
  */
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = async (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Make an authenticated Spotify API request with retry logic
@@ -305,10 +305,7 @@ async function spotifyRequest(
 
   // All retries exhausted
   const errorMessage = lastError?.message || 'Spotify request failed after retries';
-  getLogger().error(
-    { attempts: maxRetries, error: errorMessage },
-    '🎵 ❌ All retries exhausted'
-  );
+  getLogger().error({ attempts: maxRetries, error: errorMessage }, '🎵 ❌ All retries exhausted');
   recordSpotifyError(errorMessage);
   throw lastError || new Error(errorMessage);
 }
@@ -344,7 +341,7 @@ interface SpotifyPlaybackState {
 /**
  * Search for tracks on Spotify
  */
-async function searchTracks(query: string, limit: number = 5): Promise<string> {
+async function searchTracks(query: string, limit = 5): Promise<string> {
   try {
     const result = (await spotifyRequest(
       `/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}`
@@ -373,7 +370,7 @@ async function searchTracks(query: string, limit: number = 5): Promise<string> {
  */
 export async function searchTracksWithPreviews(
   query: string,
-  limit: number = 5
+  limit = 5
 ): Promise<
   Array<{
     name: string;
@@ -430,7 +427,7 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
   try {
     getLogger().info(
       { shouldStreamIntoCall },
-      '🎵 Mode: ' + (shouldStreamIntoCall ? 'STREAM INTO CALL' : 'SPOTIFY CONNECT')
+      `🎵 Mode: ${shouldStreamIntoCall ? 'STREAM INTO CALL' : 'SPOTIFY CONNECT'}`
     );
     // First search for the track
     const searchResult = (await spotifyRequest(
@@ -570,7 +567,7 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    
+
     // Record the error for diagnostics
     recordSpotifyError(errorMsg);
 
@@ -583,15 +580,15 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
     }
 
     if (errorMsg.includes('PREMIUM_REQUIRED')) {
-      return "Playing on Spotify requires Premium, but I can play 30-second previews through iTunes instead! Want me to try that?";
+      return 'Playing on Spotify requires Premium, but I can play 30-second previews through iTunes instead! Want me to try that?';
     }
-    
+
     if (errorMsg.includes('Token expired') || errorMsg.includes('401')) {
-      return "My Spotify session expired. Let me refresh it... Try again in a moment!";
+      return 'My Spotify session expired. Let me refresh it... Try again in a moment!';
     }
-    
+
     if (errorMsg.includes('rate limit') || errorMsg.includes('429')) {
-      return "Spotify is asking me to slow down. Let me try again in a few seconds, or I can play through iTunes!";
+      return 'Spotify is asking me to slow down. Let me try again in a few seconds, or I can play through iTunes!';
     }
 
     getLogger().error({ error, query }, 'Spotify play error');
@@ -845,10 +842,10 @@ export function createSpotifyTools() {
   } else {
     getLogger().warn(
       '🎵 Spotify not configured at startup.\n' +
-      '   To enable Spotify:\n' +
-      '   1. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to .env\n' +
-      '   2. Run: node scripts/spotify-auth.js\n' +
-      '   3. Restart the agent'
+        '   To enable Spotify:\n' +
+        '   1. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to .env\n' +
+        '   2. Run: node scripts/spotify-auth.js\n' +
+        '   3. Restart the agent'
     );
   }
 
@@ -856,35 +853,38 @@ export function createSpotifyTools() {
   const checkConfigured = (): boolean => {
     const health = getSpotifyHealthStatus();
     if (!health.configured) {
-      getLogger().debug({ 
-        hasClientId: health.hasClientId, 
-        hasClientSecret: health.hasClientSecret,
-        hasRefreshToken: health.hasRefreshToken 
-      }, 'Spotify not configured');
+      getLogger().debug(
+        {
+          hasClientId: health.hasClientId,
+          hasClientSecret: health.hasClientSecret,
+          hasRefreshToken: health.hasRefreshToken,
+        },
+        'Spotify not configured'
+      );
     }
     return health.configured;
   };
-  
+
   // Helper to build user-friendly error messages
   const buildErrorMessage = (context: string): string => {
     const health = getSpotifyHealthStatus();
-    
+
     if (health.circuitBreakerOpen) {
       return "Spotify is temporarily unavailable. I'll try again in a minute. In the meantime, I can play music through iTunes instead!";
     }
-    
+
     if (!health.hasClientId || !health.hasClientSecret) {
       return "Spotify isn't set up yet. Would you like me to play some music through iTunes instead?";
     }
-    
+
     if (!health.hasRefreshToken) {
-      return "I need to reconnect to Spotify. Would you like me to play music through iTunes for now?";
+      return 'I need to reconnect to Spotify. Would you like me to play music through iTunes for now?';
     }
-    
+
     if (!health.tokenValid) {
-      return "Let me refresh my Spotify connection... Try again in a moment, or I can play through iTunes!";
+      return 'Let me refresh my Spotify connection... Try again in a moment, or I can play through iTunes!';
     }
-    
+
     return `I'm having trouble with Spotify (${context}). Would you like me to try playing through iTunes instead?`;
   };
 
@@ -1031,7 +1031,7 @@ Use when user asks:
 
           // Sometimes start with a physical reaction or appreciation
           const preface = shouldReactToMusic()
-            ? getMusicReaction(Math.random() > 0.5 ? 'appreciation' : 'physical') + '\n\n'
+            ? `${getMusicReaction(Math.random() > 0.5 ? 'appreciation' : 'physical')}\n\n`
             : '';
 
           // Force get commentary (not random, always return something)
@@ -1228,7 +1228,7 @@ Use when user asks "what's playing?", "what song is this?", "is music playing?"`
     // ========================================
     // DIAGNOSTICS TOOL (for debugging)
     // ========================================
-    
+
     checkSpotifyHealth: llm.tool({
       description: `Check Spotify connection health. Use when:
 - User reports music isn't working
@@ -1238,57 +1238,59 @@ Use when user asks "what's playing?", "what song is this?", "is music playing?"`
       execute: async () => {
         const health = getSpotifyHealthStatus();
         logSpotifyDiagnostics();
-        
+
         const issues: string[] = [];
         const goodPoints: string[] = [];
-        
+
         // Check configuration
         if (health.hasClientId && health.hasClientSecret) {
           goodPoints.push('Spotify credentials are configured');
         } else {
           issues.push('Spotify credentials are missing');
         }
-        
+
         // Check tokens
         if (health.hasRefreshToken) {
           goodPoints.push('Refresh token is available');
         } else {
           issues.push('No refresh token - need to re-authenticate');
         }
-        
+
         if (health.tokenValid) {
-          goodPoints.push(`Access token is valid (${health.tokenMinutesRemaining} minutes remaining)`);
+          goodPoints.push(
+            `Access token is valid (${health.tokenMinutesRemaining} minutes remaining)`
+          );
         } else if (health.hasRefreshToken) {
           issues.push('Access token expired - will auto-refresh');
         }
-        
+
         // Check circuit breaker
         if (health.circuitBreakerOpen) {
           issues.push(`Circuit breaker is open after ${health.circuitBreakerFailures} failures`);
         }
-        
+
         // Check last error
         if (health.lastError) {
           issues.push(`Last error: ${health.lastError}`);
         }
-        
+
         // Build response
         let response = '';
-        
+
         if (issues.length === 0) {
           response = '✅ Spotify is healthy!\n\n';
           response += 'Status:\n';
-          response += goodPoints.map(p => `• ${p}`).join('\n');
+          response += goodPoints.map((p) => `• ${p}`).join('\n');
         } else {
           response = '⚠️ Spotify has some issues:\n\n';
           response += 'Problems:\n';
-          response += issues.map(p => `• ${p}`).join('\n');
-          
+          response += issues.map((p) => `• ${p}`).join('\n');
+
           if (goodPoints.length > 0) {
             response += '\n\nWorking:\n';
-            response += goodPoints.map(p => `• ${p}`).join('\n');
+            response += goodPoints.map((p) => `• ${p}`).join('\n');
           }
-          
+
           // Add remediation steps
           response += '\n\nTo fix:\n';
           if (!health.hasClientId || !health.hasClientSecret) {
@@ -1301,7 +1303,7 @@ Use when user asks "what's playing?", "what song is this?", "is music playing?"`
             response += '3. Wait 1 minute for circuit breaker to reset, or restart the agent\n';
           }
         }
-        
+
         return response;
       },
     }),

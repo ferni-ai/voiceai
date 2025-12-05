@@ -16,11 +16,14 @@
 import { registerContextBuilder, createHintInjection } from './index.js';
 import type { ContextBuilderInput, ContextInjection } from './index.js';
 import { getCognitiveProfile } from '../../personas/cognitive-profiles.js';
-import { detectUserCognitiveStyle, type UserCognitiveStyle } from '../../personas/cognitive-advanced.js';
+import {
+  detectUserCognitiveStyle,
+  type UserCognitiveStyle,
+} from '../../personas/cognitive-advanced.js';
 
 // Track what insights have been shared to avoid repetition
-const sharedInsights: Map<string, Set<string>> = new Map();
-const insightCooldowns: Map<string, number> = new Map();
+const sharedInsights = new Map<string, Set<string>>();
+const insightCooldowns = new Map<string, number>();
 
 // Minimum turns between sharing similar insights
 const INSIGHT_COOLDOWN_TURNS = 8;
@@ -28,7 +31,7 @@ const INSIGHT_COOLDOWN_TURNS = 8;
 /**
  * Types of cognitive insights we can share
  */
-type InsightType = 
+type InsightType =
   | 'style_match'
   | 'style_adapt'
   | 'voice_respond'
@@ -46,7 +49,9 @@ interface CognitiveInsight {
 /**
  * Build cognitive insights context
  */
-async function buildCognitiveInsightsContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
+async function buildCognitiveInsightsContext(
+  input: ContextBuilderInput
+): Promise<ContextInjection[]> {
   const injections: ContextInjection[] = [];
   const personaId = input.persona?.id;
   const userId = input.services.userId || 'anonymous';
@@ -70,12 +75,12 @@ async function buildCognitiveInsightsContext(input: ContextBuilderInput): Promis
   }
 
   // Get user's cognitive style
-  const historyTracker = input.services.historyTracker;
+  const { historyTracker } = input.services;
   let userStyle: UserCognitiveStyle = 'unknown';
 
   if (historyTracker) {
     const turns = historyTracker.getSimpleTurns();
-    const userMessages = turns.filter(t => t.role === 'user').map(t => t.content);
+    const userMessages = turns.filter((t) => t.role === 'user').map((t) => t.content);
     if (userMessages.length >= 3) {
       const detected = detectUserCognitiveStyle(userMessages);
       userStyle = detected.primary;
@@ -172,7 +177,7 @@ function generateInsights(
   // ============================================================================
   // 3. VOICE RESPONSE INSIGHT - When responding to voice signals
   // ============================================================================
-  const voiceEmotion = input.voiceEmotion;
+  const { voiceEmotion } = input;
   if (voiceEmotion && voiceEmotion.confidence > 0.7) {
     const stressEmotions = ['stressed', 'anxious', 'worried', 'overwhelmed', 'sad'];
     if (stressEmotions.includes(voiceEmotion.emotion.toLowerCase())) {
@@ -188,7 +193,7 @@ function generateInsights(
   // ============================================================================
   // 4. EMPATHY SHIFT INSIGHT - When shifting to empathetic mode
   // ============================================================================
-  const emotion = input.analysis.emotion;
+  const { emotion } = input.analysis;
   if (emotion.needsSupport || (emotion.distressLevel && emotion.distressLevel > 0.6)) {
     if (profile.reasoningStyle !== 'empathetic') {
       insights.push({
@@ -221,20 +226,20 @@ function generateInsights(
 
 function getStyleMatchPhrase(personaId: string, userStyle: UserCognitiveStyle): string {
   const phrases: Record<string, Record<UserCognitiveStyle, string>> = {
-    'ferni': {
+    ferni: {
       analytical: "I notice we're both diving into the meaning behind things",
       emotional: "I can feel we're both leading with the heart here",
       practical: "We're both focused on what really matters",
-      narrative: "I love that you think in stories too",
+      narrative: 'I love that you think in stories too',
       systematic: "You've got a good structure going",
       intuitive: "I sense we're both trusting the deeper knowing",
       unknown: '',
     },
     'peter-john': {
-      analytical: "I can tell you appreciate the data as much as I do",
+      analytical: 'I can tell you appreciate the data as much as I do',
       emotional: "I'm picking up on the importance of how this feels",
       practical: "You're focused on what works - I like that",
-      narrative: "Ah, you like the story behind the numbers",
+      narrative: 'Ah, you like the story behind the numbers',
       systematic: "You've got a good systematic approach here",
       intuitive: "I see you're trusting your gut on this",
       unknown: '',
@@ -248,13 +253,13 @@ function getStyleMatchPhrase(personaId: string, userStyle: UserCognitiveStyle): 
       intuitive: "You're trusting yourself on this",
       unknown: '',
     },
-    'default': {
-      analytical: "I can tell you think analytically",
-      emotional: "I sense the emotional depth here",
+    default: {
+      analytical: 'I can tell you think analytically',
+      emotional: 'I sense the emotional depth here',
       practical: "You're very action-oriented",
-      narrative: "You think in stories",
+      narrative: 'You think in stories',
       systematic: "You're very systematic",
-      intuitive: "You trust your intuition",
+      intuitive: 'You trust your intuition',
       unknown: '',
     },
   };
@@ -262,15 +267,19 @@ function getStyleMatchPhrase(personaId: string, userStyle: UserCognitiveStyle): 
   return (phrases[personaId] || phrases['default'])[userStyle] || '';
 }
 
-function getStyleAdaptPhrase(personaId: string, userStyle: UserCognitiveStyle, personaStyle: string): string {
+function getStyleAdaptPhrase(
+  personaId: string,
+  userStyle: UserCognitiveStyle,
+  personaStyle: string
+): string {
   const adapts: Record<string, string> = {
-    'ferni': "Let me frame this in a way that might resonate better with how you're thinking...",
+    ferni: "Let me frame this in a way that might resonate better with how you're thinking...",
     'peter-john': "I'll adjust my approach to connect with how you're processing this...",
-    'alex-chen': "Let me organize this in a way that works for you...",
+    'alex-chen': 'Let me organize this in a way that works for you...',
     'maya-santos': "I'm meeting you where you are on this...",
-    'jordan-taylor': "Let me shift gears to match your energy...",
+    'jordan-taylor': 'Let me shift gears to match your energy...',
     'nayan-patel': "I'll find a different angle that might land better...",
-    'default': "I'm adjusting my approach based on what I'm sensing from you...",
+    default: "I'm adjusting my approach based on what I'm sensing from you...",
   };
 
   return adapts[personaId] || adapts['default'];
@@ -278,13 +287,13 @@ function getStyleAdaptPhrase(personaId: string, userStyle: UserCognitiveStyle, p
 
 function getVoiceResponsePhrase(personaId: string, emotion: string): string {
   const responses: Record<string, string> = {
-    'ferni': "I hear something in your voice - let's slow down a bit.",
+    ferni: "I hear something in your voice - let's slow down a bit.",
     'peter-john': "I'm picking up on something beyond the words here.",
-    'alex-chen': "Let me take a breath here with you.",
+    'alex-chen': 'Let me take a breath here with you.',
     'maya-santos': "I'm noticing how you're feeling in this moment.",
     'jordan-taylor': "Hey, let's pause for a second.",
     'nayan-patel': "There's weight in what you're sharing.",
-    'default': "I'm paying attention to how you're feeling.",
+    default: "I'm paying attention to how you're feeling.",
   };
 
   return responses[personaId] || responses['default'];
@@ -292,13 +301,13 @@ function getVoiceResponsePhrase(personaId: string, emotion: string): string {
 
 function getEmpathyShiftPhrase(personaId: string): string {
   const shifts: Record<string, string> = {
-    'ferni': "Let me set aside the solutions for a moment and just be here with you.",
+    ferni: 'Let me set aside the solutions for a moment and just be here with you.',
     'peter-john': "Before the analysis - I just want to acknowledge what you're going through.",
-    'alex-chen': "Forget the process for a second - how are YOU doing?",
-    'maya-santos': "Let me just be with you in this.",
-    'jordan-taylor': "Plans can wait - you matter more right now.",
+    'alex-chen': 'Forget the process for a second - how are YOU doing?',
+    'maya-santos': 'Let me just be with you in this.',
+    'jordan-taylor': 'Plans can wait - you matter more right now.',
     'nayan-patel': "Sometimes there's nothing to fix, just something to hold.",
-    'default': "I'm putting everything else aside to be here with you.",
+    default: "I'm putting everything else aside to be here with you.",
   };
 
   return shifts[personaId] || shifts['default'];
@@ -306,13 +315,13 @@ function getEmpathyShiftPhrase(personaId: string): string {
 
 function getLearningPhrase(personaId: string): string {
   const learnings: Record<string, string> = {
-    'ferni': "I feel like I'm getting to know how you think...",
+    ferni: "I feel like I'm getting to know how you think...",
     'peter-john': "I've been tracking what resonates with you...",
     'alex-chen': "I've got a good sense of your style now...",
     'maya-santos': "I'm learning what helps you...",
     'jordan-taylor': "I'm picking up on what clicks for you...",
     'nayan-patel': "Over our time together, I've come to understand...",
-    'default': "I've been learning how you think...",
+    default: "I've been learning how you think...",
   };
 
   return learnings[personaId] || learnings['default'];
@@ -344,4 +353,3 @@ registerContextBuilder({
 
 export { buildCognitiveInsightsContext };
 export default buildCognitiveInsightsContext;
-

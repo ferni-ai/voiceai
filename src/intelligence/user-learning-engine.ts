@@ -112,10 +112,15 @@ export class UserLearningEngine {
   private conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = [];
   private topicsDiscussed: string[] = [];
   private turnsSinceLastCapture = 0;
-  
+
   // Voice emotion validation tracking
-  private lastVoiceEmotion: { emotion: string; confidence: number; timestamp: number } | null = null;
-  private voiceEmotionValidations: Array<{ predicted: string; confirmed: boolean; timestamp: Date }> = [];
+  private lastVoiceEmotion: { emotion: string; confidence: number; timestamp: number } | null =
+    null;
+  private voiceEmotionValidations: Array<{
+    predicted: string;
+    confirmed: boolean;
+    timestamp: Date;
+  }> = [];
   private voiceEmotionAccuracy = 0.5; // Start neutral, adjust based on validation
 
   /**
@@ -180,7 +185,7 @@ export class UserLearningEngine {
 
     // 6. Extract explicit insights
     this.extractExplicitInsights(message, analysis.intent);
-    
+
     // 7. Validate voice emotion predictions against text emotion
     this.validateVoiceEmotionPrediction(analysis.emotion);
   }
@@ -202,7 +207,7 @@ export class UserLearningEngine {
    */
   private validateVoiceEmotionPrediction(textEmotion: EmotionResult): void {
     if (!this.lastVoiceEmotion) return;
-    
+
     // Only validate if voice prediction was recent (within 30 seconds)
     if (Date.now() - this.lastVoiceEmotion.timestamp > 30000) {
       this.lastVoiceEmotion = null;
@@ -222,8 +227,9 @@ export class UserLearningEngine {
     };
 
     const expectedTextEmotions = voiceToTextMap[this.lastVoiceEmotion.emotion] || [];
-    const confirmed = expectedTextEmotions.includes(textEmotion.primary) ||
-                     (this.lastVoiceEmotion.emotion === 'stressed' && (textEmotion.distressLevel || 0) > 0.5);
+    const confirmed =
+      expectedTextEmotions.includes(textEmotion.primary) ||
+      (this.lastVoiceEmotion.emotion === 'stressed' && (textEmotion.distressLevel || 0) > 0.5);
 
     // Record validation
     this.voiceEmotionValidations.push({
@@ -234,14 +240,17 @@ export class UserLearningEngine {
 
     // Update accuracy (rolling average of last 20)
     const recent = this.voiceEmotionValidations.slice(-20);
-    const correctCount = recent.filter(v => v.confirmed).length;
+    const correctCount = recent.filter((v) => v.confirmed).length;
     this.voiceEmotionAccuracy = correctCount / recent.length;
 
     if (this.voiceEmotionValidations.length % 10 === 0) {
-      getLogger().debug({
-        accuracy: this.voiceEmotionAccuracy,
-        totalValidations: this.voiceEmotionValidations.length,
-      }, 'Voice emotion accuracy updated');
+      getLogger().debug(
+        {
+          accuracy: this.voiceEmotionAccuracy,
+          totalValidations: this.voiceEmotionValidations.length,
+        },
+        'Voice emotion accuracy updated'
+      );
     }
 
     // Clear the prediction after validation
@@ -485,7 +494,7 @@ export class UserLearningEngine {
     const sentences = message.split(/[.!?]+/).filter((s) => s.trim().length > 10);
     let core = sentences.slice(0, 2).join('. ').trim();
     if (core.length > 150) {
-      core = core.slice(0, 147) + '...';
+      core = `${core.slice(0, 147)}...`;
     }
 
     // Add context based on type
@@ -814,8 +823,8 @@ export class UserLearningEngine {
         this.topicsDiscussed,
         profile as {
           name?: string;
-          goals?: { type: string; status: string }[];
-          familyMembers?: { name: string; relationship: string }[];
+          goals?: Array<{ type: string; status: string }>;
+          familyMembers?: Array<{ name: string; relationship: string }>;
         } | null,
         { start: startEmotion, end: endEmotion }
       );

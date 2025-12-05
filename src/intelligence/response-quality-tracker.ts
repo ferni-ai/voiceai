@@ -493,7 +493,7 @@ export class ResponseQualityTracker {
     const prefs = this.calculatePreferences();
 
     // Find best/worst response types
-    const typeScores: [ResponseType, number][] = [
+    const typeScores: Array<[ResponseType, number]> = [
       ['story', prefs.storyEffectiveness],
       ['advice', prefs.adviceEffectiveness],
       ['humor', prefs.humorEffectiveness],

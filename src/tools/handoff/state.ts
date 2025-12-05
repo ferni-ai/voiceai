@@ -9,14 +9,8 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import type { AgentId } from '../../services/agent-bus.js';
-import {
-  getCanonicalPersonaId,
-  getFrontendPersonaId,
-} from '../../personas/voice-registry.js';
-import {
-  AgentDirectory,
-  normalizeAgentIdSync,
-} from '../../personas/agent-directory.js';
+import { getCanonicalPersonaId, getFrontendPersonaId } from '../../personas/voice-registry.js';
+import { AgentDirectory, normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 import type { HandoffContext, HandoffRecord, HandoffAnalytics } from './types.js';
 
@@ -161,7 +155,7 @@ export function isCurrentAgent(agentId: string): boolean {
  */
 export function recordHandoff(record: HandoffRecord): void {
   handoffHistory.push(record);
-  
+
   // Trim history if too long
   if (handoffHistory.length > MAX_HISTORY_LENGTH) {
     handoffHistory.shift();
@@ -233,7 +227,7 @@ export function formatHandoffContextForAgent(): string {
   }
 
   const parts: string[] = [];
-  
+
   if (handoffContext.reason) {
     parts.push(`Handoff reason: ${handoffContext.reason}`);
   }
@@ -296,10 +290,10 @@ export function getHandoffAnalytics(): HandoffAnalytics {
   for (const record of handoffHistory) {
     // Count by source
     bySource[record.from] = (bySource[record.from] || 0) + 1;
-    
+
     // Count by target
     byTarget[record.to] = (byTarget[record.to] || 0) + 1;
-    
+
     // Count pairs
     const pairKey = `${record.from}->${record.to}`;
     pairCounts[pairKey] = (pairCounts[pairKey] || 0) + 1;
@@ -354,7 +348,9 @@ export function logHandoffAnalytics(): void {
 
 // Mood detection state
 let lastUserMessageForMood = '';
-let lastEmotionAnalysisForMood: { primary: string; intensity: number; distressLevel?: number } | undefined;
+let lastEmotionAnalysisForMood:
+  | { primary: string; intensity: number; distressLevel?: number }
+  | undefined;
 
 // Per-persona meeting counts (for "first time" vs "returning" entrances)
 let perPersonaMeetingCount = new Map<string, number>();
@@ -390,7 +386,9 @@ export function getLastUserMessage(): string {
 /**
  * Get the last emotion analysis (for mood detection)
  */
-export function getLastEmotionAnalysis(): { primary: string; intensity: number; distressLevel?: number } | undefined {
+export function getLastEmotionAnalysis():
+  | { primary: string; intensity: number; distressLevel?: number }
+  | undefined {
   return lastEmotionAnalysisForMood;
 }
 
@@ -451,7 +449,7 @@ export function getLastTopicsPerPersona(): Record<string, string> {
  */
 export function setLastTopicForPersona(personaId: string, topic: string): void {
   perPersonaLastTopic.set(personaId, topic);
-  
+
   // Persist if callback is registered
   if (persistLastTopicsCallback) {
     persistLastTopicsCallback(Object.fromEntries(perPersonaLastTopic));
@@ -541,7 +539,7 @@ export function getAgentContext(): string {
 
   // Start async fetch in background - context will be available on next call
   void fetchAgentContextAsync(currentAgent);
-  
+
   // Return cached context if any (may be stale but better than empty)
   return cachedAgentContext?.context || '';
 }
@@ -621,4 +619,3 @@ export async function getTeamForHandoffAsync(): Promise<
 > {
   return AgentDirectory.getTeamForHandoff();
 }
-

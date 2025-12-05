@@ -259,4 +259,3 @@ describe('Convenience Functions', () => {
     expect(await resolveAgentId('peter')).toBe('peter-john');
   });
 });
-

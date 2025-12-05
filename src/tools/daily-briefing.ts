@@ -20,7 +20,12 @@ import { getTodaysTasks, getOverdueTasks, getUpcomingTasks, type Task } from './
 import { getUpcomingBills, calculateMonthlyTotal, type Bill } from './bills.js';
 import { getDueHabits, calculateStreak, type Habit } from './habits.js';
 import { getTodayJournal, getJournalStreak, type JournalEntry } from './notes.js';
-import { getDueDoses, getUpcomingDoses, getMedsNeedingRefill, type Medication } from './medications.js';
+import {
+  getDueDoses,
+  getUpcomingDoses,
+  getMedsNeedingRefill,
+  type Medication,
+} from './medications.js';
 
 // ============================================================================
 // TYPES
@@ -81,24 +86,24 @@ interface MedicationSummary {
 // ============================================================================
 
 const MORNING_QUOTES = [
-  "The secret of getting ahead is getting started. – Mark Twain",
-  "Each morning we are born again. What we do today matters most. – Buddha",
-  "The only way to do great work is to love what you do. – Steve Jobs",
-  "Success is not final, failure is not fatal: it is the courage to continue that counts. – Winston Churchill",
-  "The future depends on what you do today. – Mahatma Gandhi",
+  'The secret of getting ahead is getting started. – Mark Twain',
+  'Each morning we are born again. What we do today matters most. – Buddha',
+  'The only way to do great work is to love what you do. – Steve Jobs',
+  'Success is not final, failure is not fatal: it is the courage to continue that counts. – Winston Churchill',
+  'The future depends on what you do today. – Mahatma Gandhi',
   "Don't watch the clock; do what it does. Keep going. – Sam Levenson",
   "Believe you can and you're halfway there. – Theodore Roosevelt",
-  "Start where you are. Use what you have. Do what you can. – Arthur Ashe",
-  "The best time to plant a tree was 20 years ago. The second best time is now. – Chinese Proverb",
+  'Start where you are. Use what you have. Do what you can. – Arthur Ashe',
+  'The best time to plant a tree was 20 years ago. The second best time is now. – Chinese Proverb',
   "Your time is limited, don't waste it living someone else's life. – Steve Jobs",
 ];
 
 const EVENING_REFLECTIONS = [
-  "Rest and self-care are so important. When you take time to replenish your spirit, it allows you to serve others from the overflow.",
+  'Rest and self-care are so important. When you take time to replenish your spirit, it allows you to serve others from the overflow.',
   "What went well today is as important as what you'll do tomorrow.",
-  "Finish each day and be done with it. Tomorrow is a new day.",
-  "The day is done. Be proud of yourself for making it through.",
-  "Take a moment to appreciate your effort, not just your results.",
+  'Finish each day and be done with it. Tomorrow is a new day.',
+  'The day is done. Be proud of yourself for making it through.',
+  'Take a moment to appreciate your effort, not just your results.',
 ];
 
 // ============================================================================
@@ -142,7 +147,7 @@ Use when user says:
 - "Brief me"
 - "Start my day"`,
       parameters: z.object({
-        userName: z.string().optional().describe('User\'s name for personalization'),
+        userName: z.string().optional().describe("User's name for personalization"),
       }),
       execute: async ({ userName }, { ctx }) => {
         const userData = ctx?.userData as { userId?: string; name?: string } | undefined;
@@ -153,7 +158,7 @@ Use when user says:
         const date = getFormattedDate();
         const dayOfWeek = getDayOfWeek();
 
-        let response = `☀️ **${greeting}${name ? ', ' + name : ''}!**\n`;
+        let response = `☀️ **${greeting}${name ? `, ${name}` : ''}!**\n`;
         response += `📅 ${date}\n\n`;
 
         // Tasks
@@ -452,9 +457,9 @@ Use when user needs encouragement.`,
         if (type === 'encouragement') {
           const messages = [
             "You're doing better than you think. Keep going!",
-            "Progress, not perfection. Every step counts.",
+            'Progress, not perfection. Every step counts.',
             "Remember why you started. You've got this!",
-            "One task at a time. One day at a time.",
+            'One task at a time. One day at a time.',
             "You've overcome challenges before. You'll overcome this too.",
             "Be kind to yourself. You're doing your best.",
           ];
@@ -464,10 +469,10 @@ Use when user needs encouragement.`,
         // Reminder
         const reminders = [
           "Don't forget to take breaks. Rest is productive.",
-          "Have you had water recently? Stay hydrated!",
-          "Check your posture. Shoulders back, deep breath.",
+          'Have you had water recently? Stay hydrated!',
+          'Check your posture. Shoulders back, deep breath.',
           "When's the last time you stepped outside?",
-          "Remember: done is better than perfect.",
+          'Remember: done is better than perfect.',
         ];
         return `💡 ${getRandomQuote(reminders)}`;
       },
@@ -486,4 +491,3 @@ export {
   MORNING_QUOTES,
   EVENING_REFLECTIONS,
 };
-

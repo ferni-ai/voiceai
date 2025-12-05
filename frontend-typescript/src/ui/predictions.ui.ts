@@ -95,7 +95,7 @@ export class PredictionsUI {
     header.innerHTML = `
       <h2 class="predictions-panel__title">Predictions</h2>
       <button class="predictions-panel__close" aria-label="Close panel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="18" y1="6" x2="6" y2="18"/>
           <line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -341,26 +341,29 @@ export class PredictionsUI {
 
       .predictions-panel {
         position: fixed;
-        left: 50%;
+        left: 0;
+        right: 0;
         bottom: 0;
-        transform: translateX(-50%) translateY(100%);
+        margin: 0 auto;
         width: 420px;
         max-width: 95vw;
         max-height: 80vh;
         z-index: var(--z-modal, 1400);
         pointer-events: none;
         opacity: 0;
+        transform: translateY(100%);
       }
 
       .predictions-panel--visible {
         pointer-events: auto;
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
+        transform: translateY(0);
       }
 
       .predictions-panel__wrapper {
         display: flex;
         flex-direction: column;
+        width: 100%;
         max-height: 80vh;
         background: var(--color-background-elevated, #fffdfb);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
@@ -368,6 +371,7 @@ export class PredictionsUI {
         border-radius: var(--radius-xl, 1.5rem) var(--radius-xl, 1.5rem) 0 0;
         box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
         overflow: hidden;
+        box-sizing: border-box;
       }
 
       /* Header */
@@ -375,9 +379,12 @@ export class PredictionsUI {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 16px;
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
         border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
         flex-shrink: 0;
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .predictions-panel__title {
@@ -386,6 +393,7 @@ export class PredictionsUI {
         font-weight: var(--font-weight-semibold, 600);
         color: var(--color-text-primary, #2c2520);
         margin: 0;
+        flex: 1;
       }
 
       .predictions-panel__close {
@@ -398,14 +406,15 @@ export class PredictionsUI {
         min-width: 34px;
         flex-shrink: 0;
         padding: 0;
-        /* Visible background - darker for contrast */
-        background: #d4cdc4;
-        border: 2px solid #8b8075;
+        /* Visible background for Zen theme */
+        background: var(--color-background-tertiary, #ebe6df);
+        border: 1px solid var(--color-border-medium, rgba(44, 37, 32, 0.12));
         border-radius: var(--radius-full, 9999px);
-        color: #2c2520;
+        color: var(--color-text-primary, #2c2520);
         cursor: pointer;
         transition: all 200ms var(--ease-gentle, cubic-bezier(0.4, 0, 0.2, 1));
-        box-shadow: 0 2px 6px rgba(44, 37, 32, 0.15);
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5),
+                    0 2px 4px rgba(44, 37, 32, 0.08);
       }
 
       .predictions-panel__close:hover {

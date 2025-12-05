@@ -124,9 +124,9 @@ export type TransitionStyle = keyof typeof TRANSITION_MULTIPLIERS;
  */
 export function getTransitionDelay(
   style: TransitionStyle = 'standard',
-  isUserInitiated: boolean = false,
-  isFirstMeeting: boolean = false,
-  isReturningToCoach: boolean = false
+  isUserInitiated = false,
+  isFirstMeeting = false,
+  isReturningToCoach = false
 ): number {
   // Get base delay based on context
   let baseDelay: number;
@@ -156,7 +156,7 @@ export function getTransitionDelay(
  */
 export function getPostSoundPause(
   style: TransitionStyle = 'standard',
-  isFirstMeeting: boolean = false
+  isFirstMeeting = false
 ): number {
   let pause = HANDOFF_TIMING.POST_SOUND_PAUSE_BASE;
 
@@ -204,4 +204,3 @@ export function getRateLimitCooldown(lastHandoffTime: number): number {
 // ============================================================================
 
 export default HANDOFF_TIMING;
-

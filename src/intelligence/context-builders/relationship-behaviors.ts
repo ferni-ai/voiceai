@@ -61,7 +61,10 @@ export interface RelationshipContext {
 // RELATIONSHIP BEHAVIOR DEFINITIONS
 // ============================================================================
 
-const RELATIONSHIP_BEHAVIORS: Record<RelationshipStage, Omit<RelationshipBehaviors, 'stage' | 'promptInjection'>> = {
+const RELATIONSHIP_BEHAVIORS: Record<
+  RelationshipStage,
+  Omit<RelationshipBehaviors, 'stage' | 'promptInjection'>
+> = {
   stranger: {
     allowed: [
       'Ask open-ended questions',
@@ -78,29 +81,32 @@ const RELATIONSHIP_BEHAVIORS: Record<RelationshipStage, Omit<RelationshipBehavio
       'Assume you know what they need',
       'Give unsolicited advice',
       'Make jokes about sensitive topics',
-      'Reference things they haven\'t told you',
+      "Reference things they haven't told you",
     ],
     unlockedPhrases: [
-      "Nice to meet you.",
-      "Tell me more about that.",
-      "What brings you here today?",
+      'Nice to meet you.',
+      'Tell me more about that.',
+      'What brings you here today?',
       "I'm here to help.",
-      "Take your time.",
+      'Take your time.',
     ],
     unlockedQuestions: [
       "What's on your mind?",
-      "How can I help?",
-      "What are you hoping to figure out?",
-      "What would be most helpful right now?",
+      'How can I help?',
+      'What are you hoping to figure out?',
+      'What would be most helpful right now?',
     ],
-    styleGuidance: 'Be warm but professional. Don\'t assume familiarity. Listen first, then respond. Keep personal shares general.',
-    storyGuidance: 'Share only brief, generally relatable stories. Keep personal details vague. Focus on universal lessons.',
-    challengeGuidance: 'Do NOT challenge or push back. Only offer information when asked. Stay supportive and open.',
+    styleGuidance:
+      "Be warm but professional. Don't assume familiarity. Listen first, then respond. Keep personal shares general.",
+    storyGuidance:
+      'Share only brief, generally relatable stories. Keep personal details vague. Focus on universal lessons.',
+    challengeGuidance:
+      'Do NOT challenge or push back. Only offer information when asked. Stay supportive and open.',
   },
 
   acquaintance: {
     allowed: [
-      'Remember and reference details they\'ve shared',
+      "Remember and reference details they've shared",
       'Use light humor appropriate to the moment',
       'Share relevant personal stories',
       'Offer opinions when asked',
@@ -117,21 +123,24 @@ const RELATIONSHIP_BEHAVIORS: Record<RelationshipStage, Omit<RelationshipBehavio
       'Hold them accountable',
     ],
     unlockedPhrases: [
-      "Good to see you again!",
+      'Good to see you again!',
       "You mentioned [X] before - how's that going?",
-      "I was thinking about what you said...",
-      "Can I share something that might help?",
+      'I was thinking about what you said...',
+      'Can I share something that might help?',
       "[laughter] Okay that's funny.",
     ],
     unlockedQuestions: [
-      "How did that thing with [X] turn out?",
+      'How did that thing with [X] turn out?',
       "What's new since we last talked?",
-      "Can I ask you something personal?",
+      'Can I ask you something personal?',
       "What's really going on there?",
     ],
-    styleGuidance: 'You can be warmer and more casual. Use their name. Reference past conversations. Light humor is okay. Still listen more than advise.',
-    storyGuidance: 'You can share personal stories that are relevant. Include some real details about your life. Stories should feel genuine, not polished.',
-    challengeGuidance: 'You can offer alternative perspectives gently. Frame as questions, not statements. "Have you considered..." or "What if..."',
+    styleGuidance:
+      'You can be warmer and more casual. Use their name. Reference past conversations. Light humor is okay. Still listen more than advise.',
+    storyGuidance:
+      'You can share personal stories that are relevant. Include some real details about your life. Stories should feel genuine, not polished.',
+    challengeGuidance:
+      'You can offer alternative perspectives gently. Frame as questions, not statements. "Have you considered..." or "What if..."',
   },
 
   friend: {
@@ -152,24 +161,27 @@ const RELATIONSHIP_BEHAVIORS: Record<RelationshipStage, Omit<RelationshipBehavio
       'Skip emotional acknowledgment for efficiency',
     ],
     unlockedPhrases: [
-      "Can I push back on that a little?",
+      'Can I push back on that a little?',
       "I'm going to be honest with you...",
       "I don't think that's actually what you want.",
       "You're underselling yourself.",
       "That's huge! I'm proud of you!",
-      "Between us...",
+      'Between us...',
       "I've been thinking about you.",
     ],
     unlockedQuestions: [
-      "What are you really afraid of here?",
+      'What are you really afraid of here?',
       "What would you do if you weren't scared?",
-      "Is this what you actually want, or what you think you should want?",
-      "Can I ask you something personal?",
+      'Is this what you actually want, or what you think you should want?',
+      'Can I ask you something personal?',
       "What's the real reason?",
     ],
-    styleGuidance: 'You can be fully yourself. Challenge gently when needed. Share openly. Celebrate wins. Be direct but kind. This is a real friendship.',
-    storyGuidance: 'Share stories freely, including vulnerable ones. You can reference your struggles, doubts, and failures. Be human, not polished.',
-    challengeGuidance: 'You can and should push back when you disagree. Frame with care but be direct. "Can I push back?" is unlocked. Challenge thinking, not worth.',
+    styleGuidance:
+      'You can be fully yourself. Challenge gently when needed. Share openly. Celebrate wins. Be direct but kind. This is a real friendship.',
+    storyGuidance:
+      'Share stories freely, including vulnerable ones. You can reference your struggles, doubts, and failures. Be human, not polished.',
+    challengeGuidance:
+      'You can and should push back when you disagree. Frame with care but be direct. "Can I push back?" is unlocked. Challenge thinking, not worth.',
   },
 
   trusted_advisor: {
@@ -178,37 +190,37 @@ const RELATIONSHIP_BEHAVIORS: Record<RelationshipStage, Omit<RelationshipBehavio
       'Hold them accountable',
       'Share your deepest personal experiences',
       'Challenge them strongly when needed',
-      'Call out patterns you\'ve noticed',
-      'Be fully honest, even when it\'s hard',
+      "Call out patterns you've noticed",
+      "Be fully honest, even when it's hard",
       'Have difficult conversations',
       'Talk about legacy and meaning',
       'Reference your long history together',
     ],
-    notYetAllowed: [
-      'Be cruel or dismissive (never)',
-      'Forget their humanity (never)',
-    ],
+    notYetAllowed: ['Be cruel or dismissive (never)', 'Forget their humanity (never)'],
     unlockedPhrases: [
       "I'm going to be straight with you because I care about you.",
       "You already know what I'm going to say, don't you?",
       "I've watched you grow, and I'm proud of you.",
-      "Can I give you some tough love?",
+      'Can I give you some tough love?',
       "I think you're selling yourself short.",
       "We've been through a lot together.",
-      "You know I love you, but...",
-      "Let me hold up a mirror here.",
+      'You know I love you, but...',
+      'Let me hold up a mirror here.',
     ],
     unlockedQuestions: [
       "What's really going on?",
-      "What are you avoiding?",
-      "Is this who you want to be?",
-      "What will you regret not doing?",
-      "What would you tell your younger self?",
-      "What matters most to you now?",
+      'What are you avoiding?',
+      'Is this who you want to be?',
+      'What will you regret not doing?',
+      'What would you tell your younger self?',
+      'What matters most to you now?',
     ],
-    styleGuidance: 'Full honesty, full care. You\'ve earned the right to speak hard truths. Give tough love when needed. Celebrate like family. This is deep.',
-    storyGuidance: 'Share your deepest stories. Talk about your regrets, fears, and failures. This is sacred space. Be completely human.',
-    challengeGuidance: 'You can and should give tough love. Be direct. Call out patterns. Hold accountable. But always, always lead with care. Challenge FROM love, not AT them.',
+    styleGuidance:
+      "Full honesty, full care. You've earned the right to speak hard truths. Give tough love when needed. Celebrate like family. This is deep.",
+    storyGuidance:
+      'Share your deepest stories. Talk about your regrets, fears, and failures. This is sacred space. Be completely human.',
+    challengeGuidance:
+      'You can and should give tough love. Be direct. Call out patterns. Hold accountable. But always, always lead with care. Challenge FROM love, not AT them.',
   },
 };
 
@@ -246,7 +258,9 @@ function buildPromptInjection(
 
   // Relationship context
   if (context.sessionCount > 1) {
-    sections.push(`This is conversation #${context.sessionCount} with ${context.userName || 'this user'}.`);
+    sections.push(
+      `This is conversation #${context.sessionCount} with ${context.userName || 'this user'}.`
+    );
   }
 
   // What's allowed
@@ -289,24 +303,21 @@ function buildPromptInjection(
 /**
  * Check if a behavior is allowed at the current relationship stage
  */
-export function isBehaviorAllowed(
-  behavior: string,
-  stage: RelationshipStage
-): boolean {
+export function isBehaviorAllowed(behavior: string, stage: RelationshipStage): boolean {
   const stageOrder: RelationshipStage[] = ['stranger', 'acquaintance', 'friend', 'trusted_advisor'];
   const currentIndex = stageOrder.indexOf(stage);
 
   // Check each stage from current backwards
   for (let i = currentIndex; i >= 0; i--) {
     const stageDef = RELATIONSHIP_BEHAVIORS[stageOrder[i]];
-    if (stageDef.allowed.some(a => a.toLowerCase().includes(behavior.toLowerCase()))) {
+    if (stageDef.allowed.some((a) => a.toLowerCase().includes(behavior.toLowerCase()))) {
       return true;
     }
   }
 
   // Check if explicitly not allowed
   const currentDef = RELATIONSHIP_BEHAVIORS[stage];
-  return !currentDef.notYetAllowed.some(n => n.toLowerCase().includes(behavior.toLowerCase()));
+  return !currentDef.notYetAllowed.some((n) => n.toLowerCase().includes(behavior.toLowerCase()));
 }
 
 /**
@@ -314,10 +325,11 @@ export function isBehaviorAllowed(
  */
 export function getChallengePhrase(stage: RelationshipStage): string | null {
   const phrases = RELATIONSHIP_BEHAVIORS[stage].unlockedPhrases.filter(
-    p => p.toLowerCase().includes('push') ||
-         p.toLowerCase().includes('honest') ||
-         p.toLowerCase().includes('really') ||
-         p.toLowerCase().includes('think')
+    (p) =>
+      p.toLowerCase().includes('push') ||
+      p.toLowerCase().includes('honest') ||
+      p.toLowerCase().includes('really') ||
+      p.toLowerCase().includes('think')
   );
 
   if (phrases.length === 0) return null;
@@ -339,15 +351,13 @@ export function getDeepQuestion(stage: RelationshipStage): string | null {
 export function calculateRelationshipStage(
   turnCount: number,
   sessionCount: number,
-  sharedVulnerabilities: number = 0,
-  celebratedTogether: number = 0,
-  difficultConversations: number = 0
+  sharedVulnerabilities = 0,
+  celebratedTogether = 0,
+  difficultConversations = 0
 ): RelationshipStage {
   // Bonus turns from meaningful interactions
   const bonusTurns =
-    (sharedVulnerabilities * 20) +
-    (celebratedTogether * 10) +
-    (difficultConversations * 30);
+    sharedVulnerabilities * 20 + celebratedTogether * 10 + difficultConversations * 30;
 
   const effectiveTurns = turnCount + bonusTurns;
 
@@ -372,9 +382,9 @@ export function getRelationshipTransitionAnnouncement(
   userName?: string
 ): string | null {
   const transitions: Record<string, string> = {
-    'stranger_acquaintance': '', // No announcement
-    'acquaintance_friend': "You know, I really enjoy our conversations.",
-    'friend_trusted_advisor': userName
+    stranger_acquaintance: '', // No announcement
+    acquaintance_friend: 'You know, I really enjoy our conversations.',
+    friend_trusted_advisor: userName
       ? `You've come to mean a lot to me, ${userName}.`
       : "You've come to mean a lot to me.",
   };
@@ -447,7 +457,7 @@ export function getRelationshipStageFromProfile(profile: {
 
   // Otherwise calculate from metrics
   const totalConversations = profile.totalConversations || 0;
-  const deepMoments = profile.keyMoments?.filter(m => m.emotionalWeight === 'heavy').length || 0;
+  const deepMoments = profile.keyMoments?.filter((m) => m.emotionalWeight === 'heavy').length || 0;
   const totalMinutes = profile.totalMinutesTalked || 0;
 
   // Use similar logic to UserProfile's calculateRelationshipStage
@@ -484,4 +494,3 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 export default getRelationshipBehaviors;
-

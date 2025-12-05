@@ -137,7 +137,7 @@ export function injectTeamContext(systemPrompt: string, context: TeamContext): s
   // If no placeholders, append at the end
   if (!systemPrompt.includes('{{TEAM_SECTION}}') && !systemPrompt.includes('{{HANDOFF_SECTION}}')) {
     if (context.teamPromptSection || context.handoffPromptSection) {
-      result += '\n\n' + context.handoffPromptSection;
+      result += `\n\n${context.handoffPromptSection}`;
     }
   }
 

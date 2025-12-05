@@ -231,7 +231,7 @@ const TOPIC_DEFINITIONS: TopicDefinition[] = [
  * Topic Tracker class
  */
 export class TopicTracker {
-  private topics: Map<string, Topic> = new Map();
+  private topics = new Map<string, Topic>();
   private topicStack: string[] = []; // Stack of active topic IDs
   private lastTopic: string | null = null;
 
@@ -373,7 +373,7 @@ export class TopicTracker {
   /**
    * Get topics that haven't been discussed recently
    */
-  getNeglectedTopics(thresholdMinutes: number = 10): Topic[] {
+  getNeglectedTopics(thresholdMinutes = 10): Topic[] {
     const threshold = new Date(Date.now() - thresholdMinutes * 60 * 1000);
     return Array.from(this.topics.values())
       .filter((t) => !t.resolved && t.lastMentioned < threshold)
@@ -441,7 +441,7 @@ export class TopicTracker {
   /**
    * Generate circle-back suggestions
    */
-  getCircleBackSuggestions(): { topic: Topic; suggestion: string }[] {
+  getCircleBackSuggestions(): Array<{ topic: Topic; suggestion: string }> {
     const neglected = this.getNeglectedTopics(5);
     return neglected.map((topic) => ({
       topic,
@@ -495,14 +495,14 @@ export class TopicTracker {
     const previousTopicObj = this.getCurrentTopic();
     const previousTopic = previousTopicObj?.name;
     const result = this.extract(text);
-    
+
     if (!result.isTopicShift) {
       return {
         detected: false,
         confidence: 0.5,
       };
     }
-    
+
     return {
       detected: true,
       previousTopic: previousTopic || undefined,

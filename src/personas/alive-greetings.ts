@@ -371,7 +371,10 @@ export async function generateAliveGreeting(
  */
 function simpleHash(str: string): string {
   // Strip SSML for comparison
-  const clean = str.replace(/<[^>]+>/g, '').toLowerCase().trim();
+  const clean = str
+    .replace(/<[^>]+>/g, '')
+    .toLowerCase()
+    .trim();
   let hash = 0;
   for (let i = 0; i < clean.length; i++) {
     const char = clean.charCodeAt(i);
@@ -382,4 +385,3 @@ function simpleHash(str: string): string {
 }
 
 export { getTimeOfDay, getDayContext };
-

@@ -11,10 +11,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { cognitiveMetrics } from '../utils/cognitive-metrics.js';
 import { CognitiveIntelligenceEngine } from '../personas/cognitive-intelligence.js';
 import { detectUserCognitiveStyle } from '../personas/cognitive-advanced.js';
-import {
-  ferniCognitiveProfile,
-  cognitiveProfiles,
-} from '../personas/cognitive-profiles.js';
+import { ferniCognitiveProfile, cognitiveProfiles } from '../personas/cognitive-profiles.js';
 import type { Message } from '../personas/cognitive-types.js';
 
 describe('Cognitive Performance', () => {
@@ -69,7 +66,9 @@ describe('Cognitive Performance', () => {
       }
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
-      console.log(`Cross-persona guidance: avg=${avgTime.toFixed(2)}ms for ${profiles.length} personas`);
+      console.log(
+        `Cross-persona guidance: avg=${avgTime.toFixed(2)}ms for ${profiles.length} personas`
+      );
 
       expect(avgTime).toBeLessThan(50);
     });
@@ -109,7 +108,9 @@ describe('Cognitive Performance', () => {
       // Create a longer history (50 messages)
       const longHistory: string[] = [];
       for (let i = 0; i < 50; i++) {
-        longHistory.push(`Message ${i}: This is a test message with some analytical and emotional content.`);
+        longHistory.push(
+          `Message ${i}: This is a test message with some analytical and emotional content.`
+        );
       }
 
       const start = performance.now();
@@ -163,7 +164,7 @@ describe('Cognitive Performance', () => {
       const engine = new CognitiveIntelligenceEngine('ferni', profile);
       const history: string[] = [
         'I feel stuck in my career',
-        'I analyze the options but can\'t decide',
+        "I analyze the options but can't decide",
       ];
       const context = {
         currentTopic: 'career decisions',
@@ -189,13 +190,14 @@ describe('Cognitive Performance', () => {
       }
 
       const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
-      const under50 = times.filter(t => t < 50).length / times.length * 100;
+      const under50 = (times.filter((t) => t < 50).length / times.length) * 100;
 
-      console.log(`Full cognitive pipeline: avg=${avgTime.toFixed(2)}ms, under50ms=${under50.toFixed(1)}%`);
+      console.log(
+        `Full cognitive pipeline: avg=${avgTime.toFixed(2)}ms, under50ms=${under50.toFixed(1)}%`
+      );
 
       expect(avgTime).toBeLessThan(50);
       expect(under50).toBeGreaterThan(95);
     });
   });
 });
-

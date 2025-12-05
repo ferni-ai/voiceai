@@ -22,8 +22,8 @@ import { getToolCategories } from '../tools/index.js';
 // Skip these integration tests - they require full environment setup
 // and are better suited for E2E testing
 describe.skip('Tool Execution Integration Tests', () => {
-  let tools: Record<string, unknown> = {};
-  let toolsArray: Array<{
+  const tools: Record<string, unknown> = {};
+  const toolsArray: Array<{
     name: string;
     description?: string;
     parameters?: unknown;

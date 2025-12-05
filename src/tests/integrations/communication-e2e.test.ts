@@ -1,15 +1,15 @@
 /**
  * E2E Integration Tests for Communication Services
- * 
+ *
  * These tests validate REAL API integrations:
  * - SendGrid email delivery
  * - Twilio SMS delivery
  * - Twilio voice calls
  * - Google Calendar events
- * 
+ *
  * IMPORTANT: These tests require actual API credentials.
  * They are skipped when credentials are not available.
- * 
+ *
  * To run with real APIs:
  * ```bash
  * # Set credentials in .env.test or export them
@@ -19,7 +19,7 @@
  * export TWILIO_PHONE_NUMBER=+1xxxxxxxxxx
  * export TEST_PHONE_NUMBER=+1xxxxxxxxxx  # Your test number
  * export TEST_EMAIL=your_test@email.com
- * 
+ *
  * npx vitest run src/tests/integrations/communication-e2e.test.ts
  * ```
  */
@@ -163,7 +163,7 @@ describe('SendGrid Email Integration', () => {
   it.skipIf(!config.sendgrid.configured)('should handle rate limiting gracefully', async () => {
     // Send multiple emails to test rate handling
     const results: number[] = [];
-    
+
     for (let i = 0; i < 3; i++) {
       const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
@@ -183,7 +183,7 @@ describe('SendGrid Email Integration', () => {
     }
 
     // All should succeed (202) or some might be rate limited (429)
-    const allValid = results.every(s => s === 202 || s === 429);
+    const allValid = results.every((s) => s === 202 || s === 429);
     expect(allValid).toBe(true);
   });
 
@@ -221,7 +221,9 @@ describe('Twilio SMS Integration', () => {
   beforeAll(() => {
     if (!config.twilio.configured) {
       console.log('⚠️  Twilio not configured - skipping E2E tests');
-      console.log('   Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, TEST_PHONE_NUMBER');
+      console.log(
+        '   Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER, TEST_PHONE_NUMBER'
+      );
     }
   });
 
@@ -231,7 +233,9 @@ describe('Twilio SMS Integration', () => {
       {
         method: 'POST',
         headers: {
-          Authorization: 'Basic ' + Buffer.from(`${config.twilio.accountSid}:${config.twilio.authToken}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(
+            `${config.twilio.accountSid}:${config.twilio.authToken}`
+          ).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
@@ -243,7 +247,7 @@ describe('Twilio SMS Integration', () => {
       }
     );
 
-    const data = await response.json() as { sid?: string; error_message?: string };
+    const data = (await response.json()) as { sid?: string; error_message?: string };
 
     const status: IntegrationStatus = {
       service: 'twilio-sms',
@@ -251,7 +255,7 @@ describe('Twilio SMS Integration', () => {
       tested: true,
       working: response.ok,
       lastTested: new Date(),
-      details: { 
+      details: {
         status: response.status,
         sid: data.sid,
       },
@@ -275,7 +279,9 @@ describe('Twilio SMS Integration', () => {
       {
         method: 'POST',
         headers: {
-          Authorization: 'Basic ' + Buffer.from(`${config.twilio.accountSid}:${config.twilio.authToken}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(
+            `${config.twilio.accountSid}:${config.twilio.authToken}`
+          ).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
@@ -287,24 +293,26 @@ describe('Twilio SMS Integration', () => {
       }
     );
 
-    const sendData = await sendResponse.json() as { sid: string };
+    const sendData = (await sendResponse.json()) as { sid: string };
     expect(sendData.sid).toBeDefined();
 
     // Wait a moment then check status
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const statusResponse = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${config.twilio.accountSid}/Messages/${sendData.sid}.json`,
       {
         headers: {
-          Authorization: 'Basic ' + Buffer.from(`${config.twilio.accountSid}:${config.twilio.authToken}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(
+            `${config.twilio.accountSid}:${config.twilio.authToken}`
+          ).toString('base64')}`,
         },
         signal: AbortSignal.timeout(10000),
       }
     );
 
-    const statusData = await statusResponse.json() as { status: string };
-    
+    const statusData = (await statusResponse.json()) as { status: string };
+
     // Status should be queued, sending, sent, or delivered
     const validStatuses = ['queued', 'sending', 'sent', 'delivered'];
     expect(validStatuses.includes(statusData.status)).toBe(true);
@@ -357,7 +365,9 @@ describe('Twilio Voice Integration', () => {
       {
         method: 'POST',
         headers: {
-          Authorization: 'Basic ' + Buffer.from(`${config.twilio.accountSid}:${config.twilio.authToken}`).toString('base64'),
+          Authorization: `Basic ${Buffer.from(
+            `${config.twilio.accountSid}:${config.twilio.authToken}`
+          ).toString('base64')}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
@@ -369,7 +379,11 @@ describe('Twilio Voice Integration', () => {
       }
     );
 
-    const data = await response.json() as { sid?: string; status?: string; error_message?: string };
+    const data = (await response.json()) as {
+      sid?: string;
+      status?: string;
+      error_message?: string;
+    };
 
     const status: IntegrationStatus = {
       service: 'twilio-voice',
@@ -422,7 +436,13 @@ describe('Google Calendar Integration', () => {
 
   it.skipIf(!config.calendar.configured)('should create a calendar event', async () => {
     // Parse credentials
-    let credentials: { private_key?: string; client_email?: string; refresh_token?: string; client_id?: string; client_secret?: string };
+    let credentials: {
+      private_key?: string;
+      client_email?: string;
+      refresh_token?: string;
+      client_id?: string;
+      client_secret?: string;
+    };
     try {
       credentials = JSON.parse(config.calendar.credentials);
     } catch {
@@ -453,7 +473,7 @@ describe('Google Calendar Integration', () => {
       });
 
       if (tokenResponse.ok) {
-        const tokens = await tokenResponse.json() as { access_token: string };
+        const tokens = (await tokenResponse.json()) as { access_token: string };
         accessToken = tokens.access_token;
       }
     } else if (credentials.private_key && credentials.client_email) {
@@ -487,7 +507,8 @@ describe('Google Calendar Integration', () => {
         },
         body: JSON.stringify({
           summary: `🧪 Ferni E2E Test Event - ${Date.now()}`,
-          description: 'This is an automated test event created by Ferni E2E tests.\n\nThis event can be safely deleted.',
+          description:
+            'This is an automated test event created by Ferni E2E tests.\n\nThis event can be safely deleted.',
           start: { dateTime: eventStart.toISOString(), timeZone: 'America/New_York' },
           end: { dateTime: eventEnd.toISOString(), timeZone: 'America/New_York' },
         }),
@@ -495,7 +516,7 @@ describe('Google Calendar Integration', () => {
       }
     );
 
-    const eventData = await eventResponse.json() as { id?: string; error?: { message: string } };
+    const eventData = (await eventResponse.json()) as { id?: string; error?: { message: string } };
 
     const status: IntegrationStatus = {
       service: 'google-calendar',
@@ -556,7 +577,7 @@ describe('Google Calendar Integration', () => {
 
 describe('Integration Summary', () => {
   afterAll(() => {
-    console.log('\n' + '='.repeat(60));
+    console.log(`\n${'='.repeat(60)}`);
     console.log('📊 COMMUNICATION INTEGRATION STATUS REPORT');
     console.log('='.repeat(60));
 
@@ -570,13 +591,17 @@ describe('Integration Summary', () => {
     ];
 
     for (const service of services) {
-      const result = integrationResults.find(r => r.service === service.key && r.tested);
+      const result = integrationResults.find((r) => r.service === service.key && r.tested);
       const icon = !service.configured ? '⚪' : result?.working ? '✅' : '❌';
-      const status = !service.configured ? 'Not Configured' : result?.working ? 'Working' : result?.lastError || 'Failed';
+      const status = !service.configured
+        ? 'Not Configured'
+        : result?.working
+          ? 'Working'
+          : result?.lastError || 'Failed';
       console.log(`${icon} ${service.name}: ${status}`);
     }
 
-    console.log('\n' + '-'.repeat(60));
+    console.log(`\n${'-'.repeat(60)}`);
     console.log('Required Environment Variables:');
     console.log('-'.repeat(60));
 
@@ -595,7 +620,7 @@ describe('Integration Summary', () => {
       console.log(`  ${status} ${name}`);
     }
 
-    console.log('='.repeat(60) + '\n');
+    console.log(`${'='.repeat(60)}\n`);
   });
 
   it('should generate summary report', () => {
@@ -604,4 +629,3 @@ describe('Integration Summary', () => {
 });
 
 export { integrationResults };
-

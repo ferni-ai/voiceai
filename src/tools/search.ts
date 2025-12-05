@@ -81,7 +81,7 @@ export async function searchWikipedia(query: string): Promise<string> {
     }
 
     // Get the article extract
-    const title = results[0].title;
+    const { title } = results[0];
     const extractUrl =
       `https://en.wikipedia.org/w/api.php?` +
       `action=query&titles=${encodeURIComponent(title || '')}` +

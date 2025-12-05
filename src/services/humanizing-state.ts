@@ -138,27 +138,20 @@ export function mergeHumanizingStateUpdate(
   const now = new Date();
 
   // Merge share tags (dedupe)
-  const mergedTags = [...new Set([
-    ...existing.usedShareTags,
-    ...(update.newShareTags || []),
-  ])];
+  const mergedTags = [...new Set([...existing.usedShareTags, ...(update.newShareTags || [])])];
 
   // Merge stories (dedupe)
-  const mergedStories = [...new Set([
-    ...existing.storiesTold,
-    ...(update.storiesTold || []),
-  ])];
+  const mergedStories = [...new Set([...existing.storiesTold, ...(update.storiesTold || [])])];
 
   // Merge hot takes (dedupe)
-  const mergedHotTakes = [...new Set([
-    ...existing.hotTakesShared,
-    ...(update.hotTakesShared || []),
-  ])];
+  const mergedHotTakes = [
+    ...new Set([...existing.hotTakesShared, ...(update.hotTakesShared || [])]),
+  ];
 
   // Merge inner world revealed
   const mergedInnerWorld = [
     ...existing.innerWorldRevealed,
-    ...(update.innerWorldRevealed || []).map(item => ({
+    ...(update.innerWorldRevealed || []).map((item) => ({
       ...item,
       sharedAt: now,
     })),
@@ -245,20 +238,22 @@ export function hasStoryBeenTold(state: HumanizingState, storyId: string): boole
  * Check if a hot take has already been shared with this user
  */
 export function hasHotTakeBeenShared(state: HumanizingState, tags: string[]): boolean {
-  return tags.some(tag => state.hotTakesShared.includes(tag));
+  return tags.some((tag) => state.hotTakesShared.includes(tag));
 }
 
 /**
  * Check if share tags have been used (to avoid repetition)
  */
 export function haveShareTagsBeenUsed(state: HumanizingState, tags: string[]): boolean {
-  return tags.some(tag => state.usedShareTags.includes(tag));
+  return tags.some((tag) => state.usedShareTags.includes(tag));
 }
 
 /**
  * Get mood trend (is user's experience with persona getting better?)
  */
-export function getMoodTrend(state: HumanizingState): 'improving' | 'stable' | 'declining' | 'unknown' {
+export function getMoodTrend(
+  state: HumanizingState
+): 'improving' | 'stable' | 'declining' | 'unknown' {
   if (state.moodHistory.length < 3) {
     return 'unknown';
   }
@@ -274,7 +269,7 @@ export function getMoodTrend(state: HumanizingState): 'improving' | 'stable' | '
     tired_but_present: 0.4,
   };
 
-  const scores = recentMoods.map(m => moodScores[m.mood] || 0.5);
+  const scores = recentMoods.map((m) => moodScores[m.mood] || 0.5);
   const firstHalf = scores.slice(0, Math.floor(scores.length / 2));
   const secondHalf = scores.slice(Math.floor(scores.length / 2));
 
@@ -339,7 +334,10 @@ export function logHumanizingStateSummary(state: HumanizingState, userId: string
  */
 export function hashGreeting(greeting: string): string {
   // Simple hash: first 50 chars + length
-  const normalized = greeting.replace(/<[^>]+>/g, '').toLowerCase().trim();
+  const normalized = greeting
+    .replace(/<[^>]+>/g, '')
+    .toLowerCase()
+    .trim();
   return `${normalized.substring(0, 50)}_${normalized.length}`;
 }
 
@@ -392,4 +390,3 @@ export default {
   recordGreetingUsage,
   getUsedGreetingHashes,
 };
-

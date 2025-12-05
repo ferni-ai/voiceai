@@ -1,6 +1,6 @@
 /**
  * Cultural Awareness Service
- * 
+ *
  * Handles holiday awareness, seasonal adjustments, and cultural moment
  * integration into persona responses.
  */
@@ -38,22 +38,67 @@ export interface CulturalContext {
 function getHolidays(year: number): Holiday[] {
   return [
     // Major US holidays
-    { name: "New Year's Day", date: new Date(year, 0, 1), type: 'major', greetings: ["Happy New Year!", "New year, fresh start!"] },
-    { name: "Valentine's Day", date: new Date(year, 1, 14), type: 'minor', greetings: ["Happy Valentine's Day!"] },
-    { name: "Memorial Day", date: new Date(year, 4, 27), type: 'major' },
-    { name: "Independence Day", date: new Date(year, 6, 4), type: 'major', greetings: ["Happy Fourth of July!"] },
-    { name: "Labor Day", date: new Date(year, 8, 2), type: 'major' },
-    { name: "Thanksgiving", date: new Date(year, 10, 28), type: 'major', greetings: ["Happy Thanksgiving!", "Hope you have a wonderful Thanksgiving!"] },
-    { name: "Christmas", date: new Date(year, 11, 25), type: 'major', greetings: ["Merry Christmas!", "Happy holidays!"] },
-    { name: "New Year's Eve", date: new Date(year, 11, 31), type: 'major', greetings: ["Happy New Year's Eve!"] },
-    
+    {
+      name: "New Year's Day",
+      date: new Date(year, 0, 1),
+      type: 'major',
+      greetings: ['Happy New Year!', 'New year, fresh start!'],
+    },
+    {
+      name: "Valentine's Day",
+      date: new Date(year, 1, 14),
+      type: 'minor',
+      greetings: ["Happy Valentine's Day!"],
+    },
+    { name: 'Memorial Day', date: new Date(year, 4, 27), type: 'major' },
+    {
+      name: 'Independence Day',
+      date: new Date(year, 6, 4),
+      type: 'major',
+      greetings: ['Happy Fourth of July!'],
+    },
+    { name: 'Labor Day', date: new Date(year, 8, 2), type: 'major' },
+    {
+      name: 'Thanksgiving',
+      date: new Date(year, 10, 28),
+      type: 'major',
+      greetings: ['Happy Thanksgiving!', 'Hope you have a wonderful Thanksgiving!'],
+    },
+    {
+      name: 'Christmas',
+      date: new Date(year, 11, 25),
+      type: 'major',
+      greetings: ['Merry Christmas!', 'Happy holidays!'],
+    },
+    {
+      name: "New Year's Eve",
+      date: new Date(year, 11, 31),
+      type: 'major',
+      greetings: ["Happy New Year's Eve!"],
+    },
+
     // Financial/Investing relevant
-    { name: "Tax Day", date: new Date(year, 3, 15), type: 'observance' },
-    
+    { name: 'Tax Day', date: new Date(year, 3, 15), type: 'observance' },
+
     // Other notable days
-    { name: "Mother's Day", date: new Date(year, 4, 12), type: 'minor', greetings: ["Happy Mother's Day!"] },
-    { name: "Father's Day", date: new Date(year, 5, 16), type: 'minor', greetings: ["Happy Father's Day!"] },
-    { name: "Halloween", date: new Date(year, 9, 31), type: 'minor', greetings: ["Happy Halloween!"] },
+    {
+      name: "Mother's Day",
+      date: new Date(year, 4, 12),
+      type: 'minor',
+      greetings: ["Happy Mother's Day!"],
+    },
+    {
+      name: "Father's Day",
+      date: new Date(year, 5, 16),
+      type: 'minor',
+      greetings: ["Happy Father's Day!"],
+    },
+    {
+      name: 'Halloween',
+      date: new Date(year, 9, 31),
+      type: 'minor',
+      greetings: ['Happy Halloween!'],
+    },
   ];
 }
 
@@ -63,7 +108,7 @@ function getHolidays(year: number): Holiday[] {
 
 function getSeason(): Season {
   const month = new Date().getMonth();
-  
+
   if (month >= 2 && month <= 4) return 'spring';
   if (month >= 5 && month <= 7) return 'summer';
   if (month >= 8 && month <= 10) return 'fall';
@@ -75,9 +120,9 @@ function getSeasonalContext(season: Season): string {
     spring: ['fresh start energy', 'spring cleaning vibes', 'renewal'],
     summer: ['summer mode', 'vacation energy', 'long days'],
     fall: ['back to routine', 'harvest energy', 'cozy season approaching'],
-    winter: ['holiday season', 'reflection time', 'cozy vibes']
+    winter: ['holiday season', 'reflection time', 'cozy vibes'],
   };
-  
+
   const options = contexts[season];
   return options[Math.floor(Math.random() * options.length)];
 }
@@ -88,7 +133,7 @@ function getSeasonalContext(season: Season): string {
 
 function getMonthContext(): string {
   const month = new Date().getMonth();
-  
+
   const contexts: Record<number, string> = {
     0: 'new year resolution energy',
     1: 'still early in the year',
@@ -101,9 +146,9 @@ function getMonthContext(): string {
     8: 'back to school energy',
     9: 'fall settling in',
     10: 'end of year approaching',
-    11: 'holiday season'
+    11: 'holiday season',
   };
-  
+
   return contexts[month] || '';
 }
 
@@ -115,13 +160,13 @@ function findCurrentOrUpcomingHoliday(): { current?: Holiday; upcoming?: Holiday
   const now = new Date();
   const year = now.getFullYear();
   const holidays = getHolidays(year);
-  
+
   let current: Holiday | undefined;
   let upcoming: Holiday | undefined;
-  
+
   for (const holiday of holidays) {
     const diffDays = Math.floor((holiday.date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     // Current if within 1 day
     if (Math.abs(diffDays) <= 1) {
       current = holiday;
@@ -131,7 +176,7 @@ function findCurrentOrUpcomingHoliday(): { current?: Holiday; upcoming?: Holiday
       upcoming = holiday;
     }
   }
-  
+
   return { current, upcoming };
 }
 
@@ -144,12 +189,12 @@ function findCurrentOrUpcomingHoliday(): { current?: Holiday; upcoming?: Holiday
  */
 export function getCulturalContext(): CulturalContext {
   const { current, upcoming } = findCurrentOrUpcomingHoliday();
-  
+
   return {
     currentHoliday: current,
     upcomingHoliday: upcoming,
     season: getSeason(),
-    monthContext: getMonthContext()
+    monthContext: getMonthContext(),
   };
 }
 
@@ -158,12 +203,12 @@ export function getCulturalContext(): CulturalContext {
  */
 export function getHolidayGreeting(): string | null {
   const { current } = findCurrentOrUpcomingHoliday();
-  
+
   if (!current?.greetings) return null;
-  
+
   // Only greet on major holidays or with low probability on minor ones
   if (current.type === 'minor' && Math.random() > 0.3) return null;
-  
+
   return current.greetings[Math.floor(Math.random() * current.greetings.length)];
 }
 
@@ -172,17 +217,17 @@ export function getHolidayGreeting(): string | null {
  */
 export function getUpcomingHolidayMention(): string | null {
   const { upcoming } = findCurrentOrUpcomingHoliday();
-  
+
   if (!upcoming) return null;
-  
+
   const daysUntil = Math.floor((upcoming.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  
+
   const mentions = [
     `${upcoming.name} is coming up in ${daysUntil} days!`,
     `Almost ${upcoming.name}!`,
-    `${upcoming.name} is just around the corner.`
+    `${upcoming.name} is just around the corner.`,
   ];
-  
+
   return mentions[Math.floor(Math.random() * mentions.length)];
 }
 
@@ -194,43 +239,41 @@ export function getSeasonalAdjustment(): {
   topicSuggestions: string[];
 } {
   const season = getSeason();
-  
+
   const adjustments: Record<Season, { energyModifier: number; topicSuggestions: string[] }> = {
     spring: {
       energyModifier: 1.1,
-      topicSuggestions: ['spring cleaning finances', 'new beginnings', 'fresh goals']
+      topicSuggestions: ['spring cleaning finances', 'new beginnings', 'fresh goals'],
     },
     summer: {
       energyModifier: 1.0,
-      topicSuggestions: ['vacation planning', 'summer projects', 'mid-year review']
+      topicSuggestions: ['vacation planning', 'summer projects', 'mid-year review'],
     },
     fall: {
       energyModifier: 1.05,
-      topicSuggestions: ['year-end planning', 'back to routine', 'harvest what you\'ve planted']
+      topicSuggestions: ['year-end planning', 'back to routine', "harvest what you've planted"],
     },
     winter: {
       energyModifier: 0.95,
-      topicSuggestions: ['year reflection', 'holiday budgeting', 'new year planning']
-    }
+      topicSuggestions: ['year reflection', 'holiday budgeting', 'new year planning'],
+    },
   };
-  
+
   return adjustments[season];
 }
 
 /**
  * Get cultural moment from persona behaviors
  */
-export async function getCulturalMoment(
-  personaId: string
-): Promise<string | null> {
+export async function getCulturalMoment(personaId: string): Promise<string | null> {
   const behaviors = await loadPersonaBehaviors(personaId);
   if (!behaviors) return null;
-  
+
   const cultural = behaviors['cultural-moments'] as Record<string, unknown> | undefined;
   if (!cultural) return null;
-  
+
   const context = getCulturalContext();
-  
+
   // Try season-specific content
   const seasonal = cultural['seasonal'] as Record<string, string[]> | undefined;
   if (seasonal?.[context.season]) {
@@ -239,20 +282,32 @@ export async function getCulturalMoment(
       return phrases[Math.floor(Math.random() * phrases.length)];
     }
   }
-  
+
   // Try month-specific content
   const monthly = cultural['monthly'] as Record<string, string[]> | undefined;
-  const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 
-                      'july', 'august', 'september', 'october', 'november', 'december'];
+  const monthNames = [
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december',
+  ];
   const currentMonth = monthNames[new Date().getMonth()];
-  
+
   if (monthly?.[currentMonth]) {
     const phrases = monthly[currentMonth];
     if (Math.random() > 0.8) {
       return phrases[Math.floor(Math.random() * phrases.length)];
     }
   }
-  
+
   return null;
 }
 
@@ -267,22 +322,22 @@ export function isFinanciallyRelevantDate(): {
   const month = now.getMonth();
   const day = now.getDate();
   const dayOfWeek = now.getDay();
-  
+
   // Tax season (March 15 - April 15)
   if ((month === 2 && day >= 15) || (month === 3 && day <= 15)) {
     return { relevant: true, reason: 'tax season' };
   }
-  
+
   // End of quarter
   if ((month === 2 || month === 5 || month === 8 || month === 11) && day >= 25) {
     return { relevant: true, reason: 'end of quarter' };
   }
-  
+
   // Market closed weekends
   if (dayOfWeek === 0 || dayOfWeek === 6) {
     return { relevant: true, reason: 'market closed for weekend' };
   }
-  
+
   return { relevant: false };
 }
 
@@ -298,4 +353,3 @@ export const CulturalAwarenessService = {
 };
 
 export default CulturalAwarenessService;
-

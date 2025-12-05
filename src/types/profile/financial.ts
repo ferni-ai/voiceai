@@ -35,7 +35,7 @@ export interface FinancialGoal {
   priority: 'high' | 'medium' | 'low';
   createdAt: Date;
   updatedAt: Date;
-  milestones?: { date: Date; note: string }[];
+  milestones?: Array<{ date: Date; note: string }>;
   jackNotes?: string;
 }
 
@@ -137,4 +137,3 @@ export function createFinancialProfile(): FinancialProfile {
     financialAnxietyTriggers: [],
   };
 }
-

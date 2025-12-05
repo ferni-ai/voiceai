@@ -155,7 +155,7 @@ export function buildHumanizingContext(ctx: HumanizingContext): HumanizingResult
   // 1. RELATIONSHIP STAGE
   // Use UserProfile stage if available, otherwise calculate from metrics
   let relationshipStage: RelationshipStage;
-  
+
   if (ctx.userProfileRelationshipStage) {
     relationshipStage = mapUserProfileStageToHumanizing(ctx.userProfileRelationshipStage);
   } else {
@@ -190,7 +190,7 @@ export function buildHumanizingContext(ctx: HumanizingContext): HumanizingResult
 
   // Check for relationship transition announcement
   let relationshipTransition: string | undefined;
-  
+
   if (ctx.previousRelationshipStage && ctx.previousRelationshipStage !== relationshipStage) {
     // Relationship has deepened! Get the transition announcement
     const announcement = getRelationshipTransitionAnnouncement(
@@ -198,10 +198,10 @@ export function buildHumanizingContext(ctx: HumanizingContext): HumanizingResult
       relationshipStage,
       ctx.userName
     );
-    
+
     if (announcement) {
       relationshipTransition = announcement;
-      
+
       // Inject transition guidance
       injections.push({
         content: `[RELATIONSHIP MILESTONE]
@@ -211,23 +211,23 @@ This should feel organic, not announced.`,
         priority: 'medium',
         source: 'relationship_transition',
       });
-      
+
       summaryParts.push(`Transition: ${ctx.previousRelationshipStage}→${relationshipStage}`);
     }
   }
 
   // 2. PERSONA MOOD
-  const moodContext = getMoodContext(
-    ctx.sessionCount,
-    ctx.lastMood
-  );
+  const moodContext = getMoodContext(ctx.sessionCount, ctx.lastMood);
 
   const mood = selectPersonaMood(ctx.persona, moodContext);
 
   // Check if mood should shift based on user emotion
   const topicWeight = ctx.isVulnerableMoment ? 'heavy' : 'medium';
   if (shouldMoodShift(mood, ctx.textEmotion?.primary || '', topicWeight)) {
-    const newMoodState = getMoodShift(mood.state, `${ctx.textEmotion?.primary || ''}_${topicWeight}`);
+    const newMoodState = getMoodShift(
+      mood.state,
+      `${ctx.textEmotion?.primary || ''}_${topicWeight}`
+    );
     // Could update mood here if we want dynamic shifting
     summaryParts.push(`Mood: ${mood.state} (could shift to ${newMoodState})`);
   } else {
@@ -261,7 +261,9 @@ This should feel organic, not announced.`,
           priority: voiceIntelligence.shouldAddressDiscrepancy ? 'critical' : 'high',
           source: 'voice_emotion',
         });
-        summaryParts.push(`Voice: ${voiceIntelligence.shouldAddressDiscrepancy ? 'MISMATCH' : 'aligned'}`);
+        summaryParts.push(
+          `Voice: ${voiceIntelligence.shouldAddressDiscrepancy ? 'MISMATCH' : 'aligned'}`
+        );
       }
     }
   }
@@ -309,7 +311,7 @@ This should feel organic, not announced.`,
     userEmotion: ctx.textEmotion?.primary || 'neutral',
     userEmotionIntensity: ctx.userEmotionIntensity,
     recentShareCount: ctx.spontaneousShareCount || 0,
-    conversationFlow: ctx.isVulnerableMoment ? 'deep' as const : 'flowing' as const,
+    conversationFlow: ctx.isVulnerableMoment ? ('deep' as const) : ('flowing' as const),
     timeOfDay: moodContext.timeOfDay,
   };
 

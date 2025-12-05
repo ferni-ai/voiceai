@@ -22,11 +22,11 @@ import type { ToolDefinition, ToolDomain, Tool, ToolContext } from './registry/t
 
 export interface Embedder {
   /** Build vocabulary/initialize the embedder */
-  initialize(descriptions: string[]): Promise<void>;
+  initialize: (descriptions: string[]) => Promise<void>;
   /** Generate embedding for text */
-  embed(text: string): Promise<number[]>;
+  embed: (text: string) => Promise<number[]>;
   /** Calculate similarity between two vectors */
-  similarity(a: number[], b: number[]): number;
+  similarity: (a: number[], b: number[]) => number;
   /** Name of the embedder for logging */
   name: string;
 }
@@ -181,7 +181,10 @@ class GoogleAIEmbedder implements Embedder {
     const embeddings = await import('../memory/embeddings.js');
     this.provider = embeddings.getEmbeddingProvider();
     this.name = this.provider.model;
-    getLogger().info({ model: this.provider.model, dimensions: this.provider.dimensions }, '🤖 Embedder initialized');
+    getLogger().info(
+      { model: this.provider.model, dimensions: this.provider.dimensions },
+      '🤖 Embedder initialized'
+    );
   }
 
   async embed(text: string): Promise<number[]> {
@@ -217,7 +220,7 @@ class GoogleAIEmbedder implements Embedder {
   similarity(a: number[], b: number[]): number {
     // Use cosine similarity from embeddings module
     if (a.length !== b.length) return 0;
-    
+
     let dotProduct = 0;
     let magnitudeA = 0;
     let magnitudeB = 0;
@@ -237,7 +240,11 @@ class GoogleAIEmbedder implements Embedder {
 
   isAvailable(): boolean {
     // Check for Google AI API key or GCP environment
-    return !!(process.env.GOOGLE_API_KEY || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT);
+    return !!(
+      process.env.GOOGLE_API_KEY ||
+      process.env.GOOGLE_CLOUD_PROJECT ||
+      process.env.GCLOUD_PROJECT
+    );
   }
 }
 
@@ -268,16 +275,96 @@ function createEmbedder(): Embedder {
  * Common stop words to ignore
  */
 const STOP_WORDS = new Set([
-  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-  'of', 'with', 'by', 'from', 'up', 'about', 'into', 'through', 'during',
-  'before', 'after', 'above', 'below', 'between', 'under', 'again',
-  'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why',
-  'how', 'all', 'each', 'few', 'more', 'most', 'other', 'some', 'such',
-  'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very',
-  'can', 'will', 'just', 'should', 'now', 'use', 'this', 'that', 'these',
-  'those', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have',
-  'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'would', 'could',
-  'might', 'must', 'shall', 'get', 'gets', 'got', 'your', 'you', 'user',
+  'the',
+  'a',
+  'an',
+  'and',
+  'or',
+  'but',
+  'in',
+  'on',
+  'at',
+  'to',
+  'for',
+  'of',
+  'with',
+  'by',
+  'from',
+  'up',
+  'about',
+  'into',
+  'through',
+  'during',
+  'before',
+  'after',
+  'above',
+  'below',
+  'between',
+  'under',
+  'again',
+  'further',
+  'then',
+  'once',
+  'here',
+  'there',
+  'when',
+  'where',
+  'why',
+  'how',
+  'all',
+  'each',
+  'few',
+  'more',
+  'most',
+  'other',
+  'some',
+  'such',
+  'no',
+  'nor',
+  'not',
+  'only',
+  'own',
+  'same',
+  'so',
+  'than',
+  'too',
+  'very',
+  'can',
+  'will',
+  'just',
+  'should',
+  'now',
+  'use',
+  'this',
+  'that',
+  'these',
+  'those',
+  'is',
+  'are',
+  'was',
+  'were',
+  'be',
+  'been',
+  'being',
+  'have',
+  'has',
+  'had',
+  'having',
+  'do',
+  'does',
+  'did',
+  'doing',
+  'would',
+  'could',
+  'might',
+  'must',
+  'shall',
+  'get',
+  'gets',
+  'got',
+  'your',
+  'you',
+  'user',
 ]);
 
 // ============================================================================
@@ -344,12 +431,7 @@ export class SemanticToolRouter {
    * Build searchable text for a tool
    */
   private buildToolText(tool: ToolDefinition): string {
-    const parts = [
-      tool.name,
-      tool.description,
-      tool.domain,
-      ...(tool.tags || []),
-    ];
+    const parts = [tool.name, tool.description, tool.domain, ...(tool.tags || [])];
     return parts.join(' ');
   }
 
@@ -457,7 +539,10 @@ export class SemanticToolRouter {
    */
   private findByKeywords(query: string): SemanticMatch[] {
     const queryWords = new Set(
-      query.toLowerCase().split(/\s+/).filter(w => w.length > 2)
+      query
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length > 2)
     );
 
     const matches: SemanticMatch[] = [];
@@ -473,10 +558,7 @@ export class SemanticToolRouter {
 
       const similarity = matchCount / Math.max(queryWords.size, 1);
 
-      if (
-        similarity > 0 ||
-        this.config.alwaysIncludeDomains.includes(toolEmb.domain)
-      ) {
+      if (similarity > 0 || this.config.alwaysIncludeDomains.includes(toolEmb.domain)) {
         matches.push({
           toolId: toolEmb.toolId,
           domain: toolEmb.domain,
@@ -579,4 +661,3 @@ export class SemanticToolRouter {
 export const semanticRouter = new SemanticToolRouter();
 
 export default semanticRouter;
-

@@ -110,4 +110,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 export { getEmotionalWellnessToolDefinitions, getMedicationToolDefinitions };
 
 export default getToolDefinitions;
-

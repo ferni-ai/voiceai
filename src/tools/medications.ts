@@ -15,7 +15,11 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { sanitizePlainText } from './validation.js';
-import { getProductivityStore, type MedicationData, type DoseLogData } from '../services/productivity-store.js';
+import {
+  getProductivityStore,
+  type MedicationData,
+  type DoseLogData,
+} from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
 // Bridge functions for persistence
@@ -128,22 +132,22 @@ export interface DoseLog {
 // STORAGE - Uses ProductivityStore for persistence
 // ============================================================================
 
-const medsCache: Map<string, Medication> = new Map();
-const logsCache: Map<string, DoseLog> = new Map();
-const loadedUsers: Set<string> = new Set();
+const medsCache = new Map<string, Medication>();
+const logsCache = new Map<string, DoseLog>();
+const loadedUsers = new Set<string>();
 
 async function ensureUserMedsLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-  
+
   try {
     const store = getProductivityStore();
     await store.loadUserData(userId);
-    
+
     const medDataList = store.getUserMedications(userId);
     for (const data of medDataList) {
       medsCache.set(data.id, medDataToMed(data, userId));
     }
-    
+
     const logDataList = store.getUserDoseLogs(userId);
     for (const data of logDataList) {
       logsCache.set(data.id, {
@@ -157,7 +161,7 @@ async function ensureUserMedsLoaded(userId: string): Promise<void> {
         date: new Date(data.date),
       });
     }
-    
+
     loadedUsers.add(userId);
     getLogger().debug({ userId, meds: medDataList.length }, 'Loaded medications from store');
   } catch (error) {
@@ -193,7 +197,10 @@ function getUserMedications(userId: string): Medication[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function getScheduledTimesForFrequency(frequency: MedicationFrequency): { times: string[]; labels: DoseTime[] } {
+function getScheduledTimesForFrequency(frequency: MedicationFrequency): {
+  times: string[];
+  labels: DoseTime[];
+} {
   switch (frequency) {
     case 'once_daily':
       return { times: ['08:00'], labels: ['morning'] };
@@ -202,7 +209,10 @@ function getScheduledTimesForFrequency(frequency: MedicationFrequency): { times:
     case 'three_times_daily':
       return { times: ['08:00', '14:00', '20:00'], labels: ['morning', 'afternoon', 'evening'] };
     case 'four_times_daily':
-      return { times: ['08:00', '12:00', '18:00', '22:00'], labels: ['morning', 'afternoon', 'evening', 'bedtime'] };
+      return {
+        times: ['08:00', '12:00', '18:00', '22:00'],
+        labels: ['morning', 'afternoon', 'evening', 'bedtime'],
+      };
     case 'every_other_day':
       return { times: ['08:00'], labels: ['morning'] };
     case 'weekly':
@@ -224,7 +234,9 @@ function getTodayLogs(userId: string): DoseLog[] {
   });
 }
 
-function getDueDoses(userId: string): Array<{ medication: Medication; scheduledTime: string; label: DoseTime }> {
+function getDueDoses(
+  userId: string
+): Array<{ medication: Medication; scheduledTime: string; label: DoseTime }> {
   const userMeds = getUserMedications(userId);
   const todayLogs = getTodayLogs(userId);
   const now = new Date();
@@ -254,7 +266,9 @@ function getDueDoses(userId: string): Array<{ medication: Medication; scheduledT
   return due;
 }
 
-function getUpcomingDoses(userId: string): Array<{ medication: Medication; scheduledTime: string; label: DoseTime }> {
+function getUpcomingDoses(
+  userId: string
+): Array<{ medication: Medication; scheduledTime: string; label: DoseTime }> {
   const userMeds = getUserMedications(userId);
   const todayLogs = getTodayLogs(userId);
   const now = new Date();
@@ -338,10 +352,7 @@ export function addMedication(params: {
   medsCache.set(medication.id, medication);
   persistMed(params.userId, medication);
 
-  getLogger().info(
-    { medId: medication.id, name: medication.name },
-    '💊 Medication added'
-  );
+  getLogger().info({ medId: medication.id, name: medication.name }, '💊 Medication added');
 
   return medication;
 }
@@ -399,7 +410,7 @@ export function updateMedication(
   if (updates.pillsRemaining !== undefined) med.pillsRemaining = updates.pillsRemaining;
 
   med.updatedAt = new Date();
-  
+
   // Save to cache and persist
   medsCache.set(medId, med);
   persistMed(med.userId, med);
@@ -413,7 +424,7 @@ export function discontinueMedication(medId: string): boolean {
 
   med.isActive = false;
   med.updatedAt = new Date();
-  
+
   // Save to cache and persist
   medsCache.set(medId, med);
   persistMed(med.userId, med);
@@ -810,4 +821,3 @@ Use when user says "I refilled my [medication]" or updates count.`,
 }
 
 export default createMedicationTools;
-

@@ -258,7 +258,7 @@ describe("Jordan Life's Firsts Tools", () => {
   describe('First-Time Planning Templates', () => {
     describe('Baby Planning', () => {
       it('should have nursery essentials', () => {
-        const essentials = BABY_PLANNING.nurseryShopping.essentials;
+        const { essentials } = BABY_PLANNING.nurseryShopping;
 
         expect(essentials.length).toBeGreaterThan(5);
 
@@ -309,7 +309,7 @@ describe("Jordan Life's Firsts Tools", () => {
 
     describe('Wedding Planning', () => {
       it('should have timeline for all phases', () => {
-        const timeline = WEDDING_PLANNING.timeline;
+        const { timeline } = WEDDING_PLANNING;
 
         expect(Object.keys(timeline).length).toBeGreaterThan(4);
 

@@ -280,7 +280,7 @@ export async function getTransactions(
   accessToken: string,
   startDate: string,
   endDate: string,
-  count: number = 100
+  count = 100
 ): Promise<PlaidTransaction[]> {
   const result = await plaidRequest<PlaidTransactionsResponse>('/transactions/get', {
     access_token: accessToken,
@@ -383,7 +383,7 @@ export function formatBalancesForSpeech(accounts: PlaidAccount[]): string {
 
   for (const account of accounts) {
     const balance = account.balances.current || account.balances.available || 0;
-    const name = account.name;
+    const { name } = account;
     const lastFour = account.mask ? ` (***${account.mask})` : '';
 
     if (account.type === 'depository') {
@@ -603,9 +603,9 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
               {
                 method: 'POST',
                 headers: {
-                  Authorization:
-                    'Basic ' +
-                    Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+                  Authorization: `Basic ${Buffer.from(
+                    `${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`
+                  ).toString('base64')}`,
                   'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: new URLSearchParams({

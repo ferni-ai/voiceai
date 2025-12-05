@@ -106,12 +106,7 @@ export interface CompositeUserProfile {
   currentEnergyLevel?: 'low' | 'medium' | 'high';
 
   // Life stage (shared across aggregates)
-  lifeStage?:
-    | 'young_adult'
-    | 'early_career'
-    | 'mid_career'
-    | 'pre_retirement'
-    | 'retirement';
+  lifeStage?: 'young_adult' | 'early_career' | 'mid_career' | 'pre_retirement' | 'retirement';
 }
 
 /**
@@ -144,4 +139,3 @@ export {
   ensureCompositeProfile,
   toLegacyProfile,
 } from './migration.js';
-

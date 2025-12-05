@@ -86,7 +86,10 @@ async function buildConversationRecap(input: ContextBuilderInput): Promise<Conte
 
     injections.push(createStandardInjection('conversation_recap', recapContent));
 
-    getLogger().debug({ turnCount, topicCount: recentTopics.length }, 'Conversation recap requested');
+    getLogger().debug(
+      { turnCount, topicCount: recentTopics.length },
+      'Conversation recap requested'
+    );
     return injections;
   }
 
@@ -118,4 +121,3 @@ async function buildConversationRecap(input: ContextBuilderInput): Promise<Conte
 registerContextBuilder('conversation_recap', buildConversationRecap);
 
 export { buildConversationRecap, RECAP_PATTERNS, TOPIC_CALLBACK_PATTERNS };
-

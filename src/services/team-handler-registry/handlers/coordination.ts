@@ -225,7 +225,11 @@ const coordinateTeamHandler: TeamHandlerDefinition = {
   tags: ['coordination', 'team', 'orchestration'],
 
   execute: async (request: ToolExecutionRequest): Promise<ToolExecutionResult> => {
-    const { task, agents, priority = 'normal' } = request.params as {
+    const {
+      task,
+      agents,
+      priority = 'normal',
+    } = request.params as {
       task: string;
       agents: AgentId[];
       priority?: 'low' | 'normal' | 'high';
@@ -246,14 +250,19 @@ const coordinateTeamHandler: TeamHandlerDefinition = {
 
       // Notify each agent
       for (const agentId of agents) {
-        bus.shareContext('ferni', agentId, {
-          coordinationId,
-          task,
-          priority,
-          participants: agents,
-          initiatedBy: 'ferni',
-          timestamp: new Date().toISOString(),
-        }, userId);
+        bus.shareContext(
+          'ferni',
+          agentId,
+          {
+            coordinationId,
+            task,
+            priority,
+            participants: agents,
+            initiatedBy: 'ferni',
+            timestamp: new Date().toISOString(),
+          },
+          userId
+        );
 
         // Update status
         teamStatus.set(agentId, {
@@ -263,10 +272,7 @@ const coordinateTeamHandler: TeamHandlerDefinition = {
         });
       }
 
-      getLogger().info(
-        { coordinationId, task, agents, priority },
-        'Team coordination initiated'
-      );
+      getLogger().info({ coordinationId, task, agents, priority }, 'Team coordination initiated');
 
       return {
         success: true,
@@ -296,7 +302,12 @@ const handleEscalationHandler: TeamHandlerDefinition = {
   tags: ['escalation', 'support', 'help'],
 
   execute: async (request: ToolExecutionRequest): Promise<ToolExecutionResult> => {
-    const { fromAgent, issue, severity = 'medium', context } = request.params as {
+    const {
+      fromAgent,
+      issue,
+      severity = 'medium',
+      context,
+    } = request.params as {
       fromAgent: AgentId;
       issue: string;
       severity?: 'low' | 'medium' | 'high' | 'critical';
@@ -310,10 +321,7 @@ const handleEscalationHandler: TeamHandlerDefinition = {
 
     const escalationId = `esc_${Date.now()}`;
 
-    getLogger().info(
-      { escalationId, fromAgent, issue, severity },
-      'Escalation received'
-    );
+    getLogger().info({ escalationId, fromAgent, issue, severity }, 'Escalation received');
 
     // In a full implementation, this might:
     // - Store the escalation
@@ -384,10 +392,7 @@ const requestSpecialistHandler: TeamHandlerDefinition = {
 
     const selectedAgent = capableAgents[0] || 'ferni';
 
-    getLogger().info(
-      { capability, selectedAgent, reason },
-      'Specialist requested'
-    );
+    getLogger().info({ capability, selectedAgent, reason }, 'Specialist requested');
 
     return {
       success: true,
@@ -442,4 +447,3 @@ export {
 };
 
 export default registerCoordinationHandlers;
-

@@ -11,10 +11,17 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getCanonicalPersonaId, getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
+import {
+  getCanonicalPersonaId,
+  getPersonaDisplayName,
+  getVoiceId,
+} from '../../personas/voice-registry.js';
 import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 import { createHandoffEvent } from '../../personas/PersonaRegistry.js';
-import { getAliveEntranceForHandoff, detectUserMoodFromContext } from '../../personas/alive-entrances.js';
+import {
+  getAliveEntranceForHandoff,
+  detectUserMoodFromContext,
+} from '../../personas/alive-entrances.js';
 import type { AgentId } from '../../services/agent-bus.js';
 import {
   buildCognitiveHandoffContext,
@@ -128,37 +135,49 @@ export function captureHandoffContextWithCognition(
   targetPersonaId: string
 ): void {
   // Calculate emotional weight from emotional state
-  const emotionalWeight = context.emotionalState === 'distressed' ? 0.9
-    : context.emotionalState === 'anxious' ? 0.7
-    : context.emotionalState === 'sad' ? 0.6
-    : context.emotionalState === 'excited' ? 0.4
-    : context.emotionalState === 'happy' ? 0.3
-    : 0.2;
+  const emotionalWeight =
+    context.emotionalState === 'distressed'
+      ? 0.9
+      : context.emotionalState === 'anxious'
+        ? 0.7
+        : context.emotionalState === 'sad'
+          ? 0.6
+          : context.emotionalState === 'excited'
+            ? 0.4
+            : context.emotionalState === 'happy'
+              ? 0.3
+              : 0.2;
 
   // Build cognitive handoff context
-  const cognitiveContext = buildCognitiveHandoffContext({
-    previousPersonaId,
-    targetPersonaId,
-    conversationHistory: (context.recentMessages || []).map(m => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    })),
-    currentTopic: context.topics?.[0] || 'general',
-    emotionalWeight,
-    userExpertise: 'unknown', // Would come from analysis
-  }, sessionId);
+  const cognitiveContext = buildCognitiveHandoffContext(
+    {
+      previousPersonaId,
+      targetPersonaId,
+      conversationHistory: (context.recentMessages || []).map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+      currentTopic: context.topics?.[0] || 'general',
+      emotionalWeight,
+      userExpertise: 'unknown', // Would come from analysis
+    },
+    sessionId
+  );
 
   captureHandoffContext({
     ...context,
     cognitiveContext,
   });
 
-  getLogger().info({
-    previousPersona: previousPersonaId,
-    targetPersona: targetPersonaId,
-    userStyle: cognitiveContext.userCognitiveStyle,
-    effectiveApproaches: cognitiveContext.effectiveApproaches,
-  }, '🧠 Cognitive handoff context captured');
+  getLogger().info(
+    {
+      previousPersona: previousPersonaId,
+      targetPersona: targetPersonaId,
+      userStyle: cognitiveContext.userCognitiveStyle,
+      effectiveApproaches: cognitiveContext.effectiveApproaches,
+    },
+    '🧠 Cognitive handoff context captured'
+  );
 }
 
 /**
@@ -321,9 +340,9 @@ export async function executeHandoff(
     playSound: options.playSound,
     previousAgentId: previousAgent,
   });
-  
+
   getLogger().info(
-    { 
+    {
       targetId: canonicalTargetId,
       hasPersona: !!eventData.persona,
       personaId: eventData.persona?.id,
@@ -332,9 +351,9 @@ export async function executeHandoff(
     },
     '📡 Emitting voiceSwitch event'
   );
-  
+
   handoffEvents.emit('voiceSwitch', eventData);
-  
+
   getLogger().info({ targetId: canonicalTargetId }, '✅ voiceSwitch event emitted');
 
   return {
@@ -371,17 +390,11 @@ async function generateHandoffGreeting(
       mood: detectUserMoodFromContext(reason),
     };
 
-    const aliveEntrance = await getAliveEntranceForHandoff(
-      targetAgentId,
-      entranceContext as any
-    );
+    const aliveEntrance = await getAliveEntranceForHandoff(targetAgentId, entranceContext as any);
 
     if (aliveEntrance) {
       // Enhance with cognitive collaboration if context available
-      const cognitiveEnhancement = getCognitiveCollaborationGreeting(
-        targetAgentId,
-        previousAgent
-      );
+      const cognitiveEnhancement = getCognitiveCollaborationGreeting(targetAgentId, previousAgent);
 
       if (cognitiveEnhancement) {
         return `${aliveEntrance} ${cognitiveEnhancement}`;
@@ -394,10 +407,7 @@ async function generateHandoffGreeting(
   }
 
   // Fall back to a generic greeting with cognitive enhancement
-  const cognitiveEnhancement = getCognitiveCollaborationGreeting(
-    targetAgentId,
-    previousAgent
-  );
+  const cognitiveEnhancement = getCognitiveCollaborationGreeting(targetAgentId, previousAgent);
 
   const baseGreeting = `Hi there! ${targetName} here. ${getReasonAcknowledgment(reason)}`;
 
@@ -420,21 +430,27 @@ function getCognitiveCollaborationGreeting(
     return null;
   }
 
-  const { userCognitiveStyle, effectiveApproaches, previousPersonaStyle } = conversationContext.cognitiveContext;
+  const { userCognitiveStyle, effectiveApproaches, previousPersonaStyle } =
+    conversationContext.cognitiveContext;
 
   // Cognitive collaboration greetings by persona
   const collaborationPhrases: Record<string, Record<string, string>> = {
     'peter-john': {
-      narrative: "Ferni mentioned you like the story behind things - I'll make sure to frame the data that way.",
-      empathetic: "Maya told me you're processing some feelings here - I'll keep that in mind with the numbers.",
-      pragmatic: "Jordan said you're ready for action - let me show you the data that matters most.",
+      narrative:
+        "Ferni mentioned you like the story behind things - I'll make sure to frame the data that way.",
+      empathetic:
+        "Maya told me you're processing some feelings here - I'll keep that in mind with the numbers.",
+      pragmatic:
+        "Jordan said you're ready for action - let me show you the data that matters most.",
     },
     'maya-santos': {
-      analytical: "Peter shared his analysis - but I want to check in on how you're feeling about all that.",
-      narrative: "Ferni set the stage beautifully - let's explore what this means for you personally.",
+      analytical:
+        "Peter shared his analysis - but I want to check in on how you're feeling about all that.",
+      narrative:
+        "Ferni set the stage beautifully - let's explore what this means for you personally.",
       systematic: "Alex organized things well - now let's see what feels right for you.",
     },
-    'ferni': {
+    ferni: {
       analytical: "Peter's given me the data picture - let me help you find the meaning in it.",
       empathetic: "Maya's been holding space with you - let's see where the story goes from here.",
       pragmatic: "Jordan's got the action plan - I'm curious about the deeper why behind it all.",
@@ -478,17 +494,29 @@ function getReasonAcknowledgment(reason: string): string {
   if (reasonLower.includes('stock') || reasonLower.includes('invest')) {
     return "I hear we're talking investments!";
   }
-  if (reasonLower.includes('budget') || reasonLower.includes('save') || reasonLower.includes('spend')) {
+  if (
+    reasonLower.includes('budget') ||
+    reasonLower.includes('save') ||
+    reasonLower.includes('spend')
+  ) {
     return "Let's talk about your finances!";
   }
-  if (reasonLower.includes('calendar') || reasonLower.includes('schedule') || reasonLower.includes('email')) {
+  if (
+    reasonLower.includes('calendar') ||
+    reasonLower.includes('schedule') ||
+    reasonLower.includes('email')
+  ) {
     return 'I can help with that scheduling!';
   }
-  if (reasonLower.includes('goal') || reasonLower.includes('plan') || reasonLower.includes('milestone')) {
+  if (
+    reasonLower.includes('goal') ||
+    reasonLower.includes('plan') ||
+    reasonLower.includes('milestone')
+  ) {
     return "Let's work on your plans!";
   }
 
-  return "How can I help you?";
+  return 'How can I help you?';
 }
 
 // ============================================================================
@@ -573,4 +601,3 @@ export function clearHandoffHistory(): void {
 // ============================================================================
 
 export default executeHandoff;
-

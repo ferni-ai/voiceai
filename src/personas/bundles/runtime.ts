@@ -90,16 +90,22 @@ export class BundleRuntimeEngine {
    */
   async initialize(): Promise<void> {
     const startTime = Date.now();
-    
+
     // Helper to wrap promises with timeout
-    const withTimeout = <T>(promise: Promise<T> | undefined, name: string): Promise<T | null> => {
+    const withTimeout = async <T>(
+      promise: Promise<T> | undefined,
+      name: string
+    ): Promise<T | null> => {
       if (!promise) return Promise.resolve(null);
-      
+
       return Promise.race([
-        promise.then(result => result ?? null),
+        promise.then((result) => result ?? null),
         new Promise<null>((resolve) => {
           setTimeout(() => {
-            getLogger().warn({ personaId: this.state.personaId, operation: name }, 'Content load timed out');
+            getLogger().warn(
+              { personaId: this.state.personaId, operation: name },
+              'Content load timed out'
+            );
             resolve(null);
           }, BundleRuntimeEngine.CONTENT_LOAD_TIMEOUT_MS);
         }),
@@ -162,20 +168,20 @@ export class BundleRuntimeEngine {
   /**
    * Update time context for the current session
    * FIX BUG #bundle-8: Support user timezone offset
-   * 
+   *
    * @param userTimezoneOffset - Offset in minutes from UTC (e.g., -480 for PST)
    */
   updateTimeContext(userTimezoneOffset?: number): void {
     let now = new Date();
-    
+
     // FIX BUG #bundle-8: Adjust for user's timezone if provided
     if (userTimezoneOffset !== undefined) {
       // Get UTC time
-      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
       // Apply user's timezone offset
-      now = new Date(utc + (userTimezoneOffset * 60000));
+      now = new Date(utc + userTimezoneOffset * 60000);
     }
-    
+
     const hour = now.getHours();
     this.state.timeOfDay =
       hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
@@ -349,7 +355,10 @@ export class BundleRuntimeEngine {
         }
       }
       // Wrapper format is invalid/stale, log and skip
-      getLogger().warn({ emotionType, wrapper: wrapper.slice(0, 50) }, 'Invalid SSML wrapper format');
+      getLogger().warn(
+        { emotionType, wrapper: wrapper.slice(0, 50) },
+        'Invalid SSML wrapper format'
+      );
     }
     return phrase;
   }
@@ -384,7 +393,7 @@ export class BundleRuntimeEngine {
 
     // FIX BUG #bundle-18: Type-safe property access with validation
     const rawResponse = response as unknown as Record<string, unknown>;
-    
+
     // Extract immediate response (supports both 'immediate' and legacy 'response' keys)
     let immediate = '';
     if (typeof rawResponse['immediate'] === 'string') {
@@ -392,13 +401,15 @@ export class BundleRuntimeEngine {
     } else if (typeof rawResponse['response'] === 'string') {
       immediate = rawResponse['response'];
     }
-    
+
     if (!immediate) return null; // No valid response found
 
     return {
       immediate,
       followUp: typeof rawResponse['follow_up'] === 'string' ? rawResponse['follow_up'] : undefined,
-      dontSay: Array.isArray(rawResponse['dont_say']) ? rawResponse['dont_say'].filter(s => typeof s === 'string') : undefined,
+      dontSay: Array.isArray(rawResponse['dont_say'])
+        ? rawResponse['dont_say'].filter((s) => typeof s === 'string')
+        : undefined,
     };
   }
 
@@ -475,7 +486,10 @@ export class BundleRuntimeEngine {
         const arc = emotionalArc.getArc();
 
         // Check if user needs emotional support
-        if (arc.needsEmotionalSupport && rules.never_tell_story_when.includes('user_is_distressed')) {
+        if (
+          arc.needsEmotionalSupport &&
+          rules.never_tell_story_when.includes('user_is_distressed')
+        ) {
           return { should: false, reason: 'user_needs_emotional_support' };
         }
 
@@ -489,7 +503,7 @@ export class BundleRuntimeEngine {
     // Now consult the StoryTimingEngine for more nuanced decision
     const storyEngine = getStoryTimingEngine();
     const emotionalArc = getEmotionalArcTracker();
-    
+
     // Determine user engagement based on emotional arc and pacing
     let userEngagement: 'high' | 'medium' | 'low' | 'unknown' = 'unknown';
     const arc = emotionalArc.getArc();
@@ -509,7 +523,7 @@ export class BundleRuntimeEngine {
       storiesToldThisSession: this.state.storiesToldThisSession,
       emotionalArc: arc,
       userEngagement,
-      userPacing: arc.conversationTemperature > 0.7 ? 'rushed' as const : 'normal' as const,
+      userPacing: arc.conversationTemperature > 0.7 ? ('rushed' as const) : ('normal' as const),
     };
 
     // Note: We don't have persona config here, so we use the engine's gating only
@@ -519,10 +533,10 @@ export class BundleRuntimeEngine {
     );
 
     if (!result.shouldTell && result.reason) {
-      return { 
-        should: false, 
+      return {
+        should: false,
         reason: result.reason,
-        confidence: result.confidenceScore
+        confidence: result.confidenceScore,
       };
     }
 
@@ -554,17 +568,17 @@ export class BundleRuntimeEngine {
    */
   async getRecommendedStoriesWithEvolution(
     context: { topic: string; userEmotion: string; relationshipStage?: string },
-    limit: number = 3
+    limit = 3
   ): Promise<Array<{ storyId: string; score: number; reason: string }>> {
     const personaId = this.getPersonaId();
-    
+
     try {
       // Import dynamically to avoid circular dependencies
       const { getAgentEvolution } = await import('../../intelligence/agent-evolution.js');
       const evolution = getAgentEvolution();
-      
+
       const relationshipStage = context.relationshipStage || this.getRelationshipStageName();
-      
+
       // Get evolution-ranked recommendations
       const evolutionRecs = evolution.getRecommendedStories(
         personaId,
@@ -575,35 +589,41 @@ export class BundleRuntimeEngine {
         },
         limit * 2 // Get more to filter
       );
-      
+
       // Filter out already-told stories
       const filteredRecs = evolutionRecs.filter(
-        rec => !this.state.storiesToldThisSession.includes(rec.storyId)
+        (rec) => !this.state.storiesToldThisSession.includes(rec.storyId)
       );
-      
+
       // If evolution has recommendations, use them
       if (filteredRecs.length > 0) {
-        getLogger().debug({
-          evolutionRecs: filteredRecs.length,
-          context: context.topic,
-        }, 'Using evolution-enhanced story recommendations');
+        getLogger().debug(
+          {
+            evolutionRecs: filteredRecs.length,
+            context: context.topic,
+          },
+          'Using evolution-enhanced story recommendations'
+        );
         return filteredRecs.slice(0, limit);
       }
-      
+
       // Fall back to bundle triggers
       const bundleRecs = this.getRecommendedStories(context.topic);
-      return bundleRecs.slice(0, limit).map(storyId => ({
+      return bundleRecs.slice(0, limit).map((storyId) => ({
         storyId,
         score: 0.5,
-        reason: 'Bundle context trigger'
+        reason: 'Bundle context trigger',
       }));
     } catch (error) {
-      getLogger().debug({ error: String(error) }, 'Evolution story recommendation unavailable, using bundle fallback');
+      getLogger().debug(
+        { error: String(error) },
+        'Evolution story recommendation unavailable, using bundle fallback'
+      );
       const bundleRecs = this.getRecommendedStories(context.topic);
-      return bundleRecs.slice(0, limit).map(storyId => ({
+      return bundleRecs.slice(0, limit).map((storyId) => ({
         storyId,
         score: 0.5,
-        reason: 'Bundle context trigger'
+        reason: 'Bundle context trigger',
       }));
     }
   }
@@ -611,7 +631,7 @@ export class BundleRuntimeEngine {
   recordStoryTold(storyId: string, turn: number): void {
     this.state.storiesToldThisSession.push(storyId);
     this.state.lastStoryTurn = turn;
-    
+
     // Sync with StoryTimingEngine for cross-module consistency
     const storyEngine = getStoryTimingEngine();
     storyEngine.recordStoryTold(storyId, turn);
@@ -621,32 +641,35 @@ export class BundleRuntimeEngine {
    * Record story usage with feedback for evolution learning
    */
   async recordStoryUsage(
-    storyId: string, 
+    storyId: string,
     turn: number,
-    userReaction?: { 
+    userReaction?: {
       engagement: 'positive' | 'neutral' | 'negative';
       continued: boolean;
       emotionalShift?: string;
     }
   ): Promise<void> {
     const personaId = this.getPersonaId();
-    
+
     // Record locally first
     this.recordStoryTold(storyId, turn);
-    
+
     // Feed to community insights for evolution learning
     if (userReaction) {
       try {
         const { getCommunityInsights } = await import('../../intelligence/community-insights.js');
         const insights = getCommunityInsights();
-        
+
         // Record story resonance for future recommendations
-        const reactionMap: Record<string, 'moved' | 'inspired' | 'connected' | 'curious' | 'indifferent'> = {
+        const reactionMap: Record<
+          string,
+          'moved' | 'inspired' | 'connected' | 'curious' | 'indifferent'
+        > = {
           positive: 'inspired',
           neutral: 'indifferent',
           negative: 'indifferent',
         };
-        
+
         insights.recordStoryUsage(
           storyId,
           personaId,
@@ -656,15 +679,21 @@ export class BundleRuntimeEngine {
             userEmotion: userReaction.emotionalShift || 'neutral',
           },
           reactionMap[userReaction.engagement],
-          userReaction.engagement === 'positive' ? 0.9 : 
-          userReaction.engagement === 'neutral' ? 0.5 : 0.2
+          userReaction.engagement === 'positive'
+            ? 0.9
+            : userReaction.engagement === 'neutral'
+              ? 0.5
+              : 0.2
         );
-        
-        getLogger().debug({
-          storyId,
-          personaId,
-          engagement: userReaction.engagement,
-        }, 'Recorded story usage to community insights');
+
+        getLogger().debug(
+          {
+            storyId,
+            personaId,
+            engagement: userReaction.engagement,
+          },
+          'Recorded story usage to community insights'
+        );
       } catch (error) {
         getLogger().debug({ error: String(error) }, 'Failed to record story usage (non-fatal)');
       }
@@ -768,7 +797,7 @@ export class BundleRuntimeEngine {
 
     // Check for weekend
     if (today === 'saturday' || today === 'sunday') {
-      const weekend = this.contextualNuances.day_of_week.weekend;
+      const { weekend } = this.contextualNuances.day_of_week;
       if (weekend?.acknowledgments?.length) {
         return weekend.acknowledgments[Math.floor(Math.random() * weekend.acknowledgments.length)];
       }
@@ -848,7 +877,10 @@ export class BundleRuntimeEngine {
         // FIX BUG #bundle-4: Log specific file path on error (only at debug level)
         const e = err as NodeJS.ErrnoException;
         if (e.code !== 'ENOENT') {
-          getLogger().debug({ path: innerWorldPath, error: String(err) }, 'Failed to load inner-world.json');
+          getLogger().debug(
+            { path: innerWorldPath, error: String(err) },
+            'Failed to load inner-world.json'
+          );
         }
       }
 
@@ -865,17 +897,15 @@ export class BundleRuntimeEngine {
       } catch (err) {
         const e = err as NodeJS.ErrnoException;
         if (e.code !== 'ENOENT') {
-          getLogger().debug({ path: sensoryWorldPath, error: String(err) }, 'Failed to load sensory-world.json');
+          getLogger().debug(
+            { path: sensoryWorldPath, error: String(err) },
+            'Failed to load sensory-world.json'
+          );
         }
       }
 
       // Try to load quirks.json
-      const quirksPath = path.join(
-        this.bundle.bundlePath,
-        'content',
-        'behaviors',
-        'quirks.json'
-      );
+      const quirksPath = path.join(this.bundle.bundlePath, 'content', 'behaviors', 'quirks.json');
       try {
         const content = await fs.readFile(quirksPath, 'utf-8');
         this.quirks = JSON.parse(content);
@@ -886,7 +916,10 @@ export class BundleRuntimeEngine {
         }
       }
     } catch (error) {
-      getLogger().debug({ error: String(error), personaId: this.state.personaId }, 'Failed to load inner world content');
+      getLogger().debug(
+        { error: String(error), personaId: this.state.personaId },
+        'Failed to load inner world content'
+      );
     }
   }
 
@@ -975,7 +1008,7 @@ export class BundleRuntimeEngine {
     const matchesTrigger = (text: string, trigger: string): boolean => {
       const lowerTrigger = trigger.toLowerCase().trim();
       if (!lowerTrigger) return false;
-      
+
       // Check for exact phrase match or word boundary match
       // This handles "my mother passed" matching "mother" without false positives
       return text.includes(lowerTrigger);
@@ -1013,7 +1046,7 @@ export class BundleRuntimeEngine {
    */
   getRegret(): string | null {
     if (!this.innerWorld?.unfinished_business?.regrets?.length) return null;
-    const regrets = this.innerWorld.unfinished_business.regrets;
+    const { regrets } = this.innerWorld.unfinished_business;
     return regrets[Math.floor(Math.random() * regrets.length)];
   }
 
@@ -1247,16 +1280,17 @@ export class BundleRuntimeEngine {
   } | null {
     const dynamics = this.sensoryWorld?.team_dynamics;
     if (!dynamics) return null;
-    
+
     // Normalize ID (handle both "jack_bogle" and "nayan-patel" formats)
     const normalizedId = teamMemberId.replace(/-/g, '_');
     const member = dynamics[normalizedId];
-    
+
     if (!member) return null;
-    
+
     return {
       howWeInteract: member.how_we_interact,
-      whatTheyGiveMe: member.what_they_give_me || member.what_he_gives_me || member.what_she_gives_me,
+      whatTheyGiveMe:
+        member.what_they_give_me || member.what_he_gives_me || member.what_she_gives_me,
       whatIGiveThem: member.what_i_give_them || member.what_i_give_him || member.what_i_give_her,
       whatIAdmire: member.what_i_admire,
     };
@@ -1304,7 +1338,9 @@ export class BundleRuntimeEngine {
    */
   getGuiltyPleasure(): string | null {
     if (!this.quirks?.guilty_pleasures?.length) return null;
-    return this.quirks.guilty_pleasures[Math.floor(Math.random() * this.quirks.guilty_pleasures.length)];
+    return this.quirks.guilty_pleasures[
+      Math.floor(Math.random() * this.quirks.guilty_pleasures.length)
+    ];
   }
 
   /**
@@ -1312,7 +1348,9 @@ export class BundleRuntimeEngine {
    */
   getStrongOpinion(): string | null {
     if (!this.quirks?.strong_opinions?.length) return null;
-    return this.quirks.strong_opinions[Math.floor(Math.random() * this.quirks.strong_opinions.length)];
+    return this.quirks.strong_opinions[
+      Math.floor(Math.random() * this.quirks.strong_opinions.length)
+    ];
   }
 
   /**
@@ -1335,7 +1373,9 @@ export class BundleRuntimeEngine {
   /**
    * Get all quirks for a specific category
    */
-  getQuirksCategory(category: 'habits' | 'guilty_pleasures' | 'strong_opinions' | 'not_good_at'): string[] {
+  getQuirksCategory(
+    category: 'habits' | 'guilty_pleasures' | 'strong_opinions' | 'not_good_at'
+  ): string[] {
     return this.quirks?.[category] || [];
   }
 
@@ -1423,7 +1463,10 @@ export class BundleRuntimeEngine {
       return;
     }
     if (trimmed.length > 100) {
-      getLogger().warn({ length: trimmed.length }, 'setUserName received unusually long name, truncating');
+      getLogger().warn(
+        { length: trimmed.length },
+        'setUserName received unusually long name, truncating'
+      );
       this.state.userName = trimmed.slice(0, 100);
       return;
     }
@@ -1478,7 +1521,9 @@ export class BundleRuntimeEngine {
     userName?: string;
   }): void {
     if (Array.isArray(persisted.storiesToldThisSession)) {
-      this.state.storiesToldThisSession = persisted.storiesToldThisSession.filter(s => typeof s === 'string');
+      this.state.storiesToldThisSession = persisted.storiesToldThisSession.filter(
+        (s) => typeof s === 'string'
+      );
     }
     if (typeof persisted.sessionCount === 'number' && persisted.sessionCount >= 0) {
       this.state.sessionCount = persisted.sessionCount;
@@ -1495,7 +1540,10 @@ export class BundleRuntimeEngine {
     if (typeof persisted.userName === 'string') {
       this.state.userName = persisted.userName;
     }
-    getLogger().debug({ personaId: this.state.personaId }, 'Restored bundle runtime state from persistence');
+    getLogger().debug(
+      { personaId: this.state.personaId },
+      'Restored bundle runtime state from persistence'
+    );
   }
 
   /**
@@ -1505,27 +1553,32 @@ export class BundleRuntimeEngine {
   updateState(updates: Partial<BundleRuntimeState>): void {
     // FIX BUG #65: Basic validation of incoming state updates
     const validatedUpdates: Partial<BundleRuntimeState> = {};
-    
+
     // Validate each field that's being updated
     if (updates.relationshipTurns !== undefined) {
       const turns = Number(updates.relationshipTurns);
-      validatedUpdates.relationshipTurns = Number.isFinite(turns) && turns >= 0 ? turns : this.state.relationshipTurns;
+      validatedUpdates.relationshipTurns =
+        Number.isFinite(turns) && turns >= 0 ? turns : this.state.relationshipTurns;
     }
     if (updates.sessionCount !== undefined) {
       const count = Number(updates.sessionCount);
-      validatedUpdates.sessionCount = Number.isFinite(count) && count >= 0 ? count : this.state.sessionCount;
+      validatedUpdates.sessionCount =
+        Number.isFinite(count) && count >= 0 ? count : this.state.sessionCount;
     }
     if (updates.currentMode !== undefined && typeof updates.currentMode === 'string') {
       validatedUpdates.currentMode = updates.currentMode;
     }
     if (updates.userName !== undefined) {
-      validatedUpdates.userName = typeof updates.userName === 'string' ? updates.userName : undefined;
+      validatedUpdates.userName =
+        typeof updates.userName === 'string' ? updates.userName : undefined;
     }
     if (updates.personaId !== undefined && typeof updates.personaId === 'string') {
       validatedUpdates.personaId = updates.personaId;
     }
     if (Array.isArray(updates.storiesToldThisSession)) {
-      validatedUpdates.storiesToldThisSession = updates.storiesToldThisSession.filter(s => typeof s === 'string');
+      validatedUpdates.storiesToldThisSession = updates.storiesToldThisSession.filter(
+        (s) => typeof s === 'string'
+      );
     }
     if (updates.detectedEmotion !== undefined && typeof updates.detectedEmotion === 'string') {
       validatedUpdates.detectedEmotion = updates.detectedEmotion;
@@ -1533,7 +1586,7 @@ export class BundleRuntimeEngine {
     if (updates.moodState !== undefined && typeof updates.moodState === 'object') {
       validatedUpdates.moodState = updates.moodState;
     }
-    
+
     Object.assign(this.state, validatedUpdates);
   }
 }
@@ -1547,7 +1600,7 @@ export class BundleRuntimeEngine {
  * NOTE: For session isolation, use SessionBundleRuntimeManager instead.
  * This global cache is suitable for read-only operations or when session
  * isolation is not critical (e.g., fetching static persona content).
- * 
+ *
  * @deprecated Prefer session-scoped runtimes via SessionBundleRuntimeManager
  */
 const globalRuntimeEngines = new Map<string, BundleRuntimeEngine>();

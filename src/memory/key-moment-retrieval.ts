@@ -139,7 +139,7 @@ export class KeyMomentRetrieval {
    * Match current emotion to moment type
    */
   private matchEmotionToMomentType(emotion: string, momentType: KeyMoment['type']): number {
-    const emotionMomentMap: Record<string, KeyMoment['type'][]> = {
+    const emotionMomentMap: Record<string, Array<KeyMoment['type']>> = {
       fear: ['concern', 'shared_vulnerability'],
       sadness: ['shared_vulnerability', 'concern'],
       anxiety: ['concern', 'shared_vulnerability'],
@@ -190,7 +190,7 @@ export class KeyMomentRetrieval {
 
     // Reference the moment by summary
     const references = [
-      `${userName ? userName + ', ' : ''}${timeAgo} we talked about ${moment.summary}. How's that been going?`,
+      `${userName ? `${userName}, ` : ''}${timeAgo} we talked about ${moment.summary}. How's that been going?`,
       `I've been thinking about what you shared ${timeAgo}—${moment.summary}. Tell me more.`,
       `${timeAgo}, ${moment.summary}. I wanted to circle back to that.`,
       `Do you remember ${timeAgo} when ${moment.summary}? I've been reflecting on that.`,

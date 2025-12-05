@@ -326,7 +326,8 @@ export async function initializeMemorySystem(
   // Determine if we should use persistent vectors
   // Default to true in production with Firestore
   const usePersistentVectors =
-    config?.usePersistentVectors ?? (storeType === 'firestore' || process.env.NODE_ENV === 'production');
+    config?.usePersistentVectors ??
+    (storeType === 'firestore' || process.env.NODE_ENV === 'production');
 
   // Initialize primary store
   const store = config?.store || (await createStore(storeType));

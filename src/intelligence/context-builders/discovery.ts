@@ -29,7 +29,7 @@ function buildDiscoveryContext(input: ContextBuilderInput): ContextInjection[] {
   const injections: ContextInjection[] = [];
   const isNewUser = !userData.isReturningUser;
   const turnCount = userData.turnCount || 0;
-  const userProfile = services.userProfile;
+  const { userProfile } = services;
   const hasGoals = userProfile?.goals && userProfile.goals.length > 0;
   const hasLifeStage = !!userProfile?.lifeStage;
   const hasName = !!(userData.name || userProfile?.name);

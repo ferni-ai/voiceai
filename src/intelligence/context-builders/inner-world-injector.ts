@@ -274,26 +274,26 @@ const TRANSITION_PHRASES: Record<InnerWorldInjection['depth'], string[]> = {
     'You know what that reminds me of?',
     'That makes me think of...',
     'I was just thinking about...',
-    "Speaking of which...",
+    'Speaking of which...',
   ],
   medium: [
-    "You know, that brings up something...",
-    "Can I share something?",
-    "That takes me back to...",
+    'You know, that brings up something...',
+    'Can I share something?',
+    'That takes me back to...',
     "I've been thinking about this lately...",
     "Here's something I don't talk about often...",
   ],
   deep: [
     "I'm going to share something personal here...",
     "This is something I've been wrestling with...",
-    "Can I be honest about something?",
+    'Can I be honest about something?',
     "I don't usually say this, but...",
-    "You know what keeps me up at night?",
+    'You know what keeps me up at night?',
   ],
   sacred: [
     "<break time='300ms'/>",
-    "I want to share something with you...",
-    "This is hard to talk about, but...",
+    'I want to share something with you...',
+    'This is hard to talk about, but...',
     "<volume level='soft'/>You know what I've never really processed?</volume>",
     "There's something I carry...",
   ],
@@ -348,9 +348,7 @@ export function findInnerWorldInjections(
   }
 
   // Sort by probability and limit to avoid overwhelming
-  return injections
-    .sort((a, b) => b.probability - a.probability)
-    .slice(0, 2);
+  return injections.sort((a, b) => b.probability - a.probability).slice(0, 2);
 }
 
 /**
@@ -371,7 +369,10 @@ function getInnerWorldContent(
       if (randomMemory) return randomMemory.memory;
     }
 
-    if (path.includes('what_they_tell_themselves_when_struggling') || path.includes('inner_voice')) {
+    if (
+      path.includes('what_they_tell_themselves_when_struggling') ||
+      path.includes('inner_voice')
+    ) {
       return bundleRuntime.getSelfTalk('struggling');
     }
 
@@ -394,7 +395,8 @@ function getInnerWorldContent(
 
     if (path.includes('public_vs_private')) {
       const publicPrivate = bundleRuntime.getPublicPrivateSelf();
-      if (publicPrivate) return `People see me as ${publicPrivate.public_self}, but really ${publicPrivate.private_self}`;
+      if (publicPrivate)
+        return `People see me as ${publicPrivate.public_self}, but really ${publicPrivate.private_self}`;
     }
 
     if (path.includes('regret')) {
@@ -589,16 +591,12 @@ export function formatInnerWorldForPrompt(
 
   const sections: string[] = [];
   sections.push('[PERSONAL SHARE OPPORTUNITY]');
-  sections.push(
-    'If the moment feels right, you could naturally share something personal:'
-  );
+  sections.push('If the moment feels right, you could naturally share something personal:');
   sections.push('');
 
   for (const injection of validInjections.slice(0, 2)) {
     const transition =
-      injection.transitionPhrases[
-        Math.floor(Math.random() * injection.transitionPhrases.length)
-      ];
+      injection.transitionPhrases[Math.floor(Math.random() * injection.transitionPhrases.length)];
     sections.push(`Transition: "${transition}"`);
     sections.push(`Share: "${injection.content}"`);
     sections.push(`(Depth: ${injection.depth} - ${Math.round(injection.probability * 100)}% fit)`);
@@ -606,9 +604,7 @@ export function formatInnerWorldForPrompt(
   }
 
   sections.push("IMPORTANT: Only share if it feels NATURAL. Don't force it.");
-  sections.push(
-    "These personal moments should feel spontaneous, not scripted."
-  );
+  sections.push('These personal moments should feel spontaneous, not scripted.');
 
   return sections.join('\n');
 }
@@ -621,4 +617,3 @@ export function shouldInject(injection: InnerWorldInjection): boolean {
 }
 
 export default findInnerWorldInjections;
-

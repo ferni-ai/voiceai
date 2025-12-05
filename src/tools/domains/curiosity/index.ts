@@ -34,17 +34,20 @@ const captureQuestionDef: ToolDefinition = {
       parameters: z.object({
         question: z.string().describe('The question to capture'),
         context: z.string().optional().describe('What sparked this question'),
-        urgency: z.enum(['burning', 'curious', 'someday']).optional().describe('How urgently they want to explore'),
+        urgency: z
+          .enum(['burning', 'curious', 'someday'])
+          .optional()
+          .describe('How urgently they want to explore'),
       }),
       execute: async ({ question, context, urgency }) => {
         getLogger().info({ agentId: ctx.agentId, urgency }, 'Capturing question');
 
         let response = `What a beautiful question to carry: "${question}"\n\n`;
         if (context) response += `Sparked by: ${context}\n\n`;
-        
+
         response += `Questions are gifts. They keep us alive to the world.\n\n`;
         response += `Some questions are meant to be answered. Some are meant to be lived with. Some are meant to change us just by asking them.\n\n`;
-        
+
         if (urgency === 'burning') {
           response += `This one feels urgent. Would you like to explore it now?`;
         } else if (urgency === 'curious') {
@@ -71,7 +74,9 @@ const exploreQuestionDef: ToolDefinition = {
       description: 'Guide deep exploration of a question without rushing to answers.',
       parameters: z.object({
         question: z.string().describe('The question to explore'),
-        approach: z.enum(['philosophical', 'practical', 'personal', 'playful', 'open']).describe('How to approach'),
+        approach: z
+          .enum(['philosophical', 'practical', 'personal', 'playful', 'open'])
+          .describe('How to approach'),
       }),
       execute: async ({ question, approach }) => {
         getLogger().info({ agentId: ctx.agentId, approach }, 'Exploring question');
@@ -128,7 +133,9 @@ const experienceWonderDef: ToolDefinition = {
       description: 'Help the user cultivate and capture experiences of wonder and awe.',
       parameters: z.object({
         wonderAbout: z.string().optional().describe('What sparked wonder'),
-        mode: z.enum(['capture', 'cultivate', 'remember']).describe('Whether capturing, cultivating, or remembering wonder'),
+        mode: z
+          .enum(['capture', 'cultivate', 'remember'])
+          .describe('Whether capturing, cultivating, or remembering wonder'),
       }),
       execute: async ({ wonderAbout, mode }) => {
         getLogger().info({ agentId: ctx.agentId, mode }, 'Experiencing wonder');
@@ -218,7 +225,10 @@ const intellectualExplorationDef: ToolDefinition = {
         depth: z.enum(['surface', 'deep', 'comprehensive']).describe('How deep they want to go'),
       }),
       execute: async ({ curiosityAbout, depth }) => {
-        getLogger().info({ agentId: ctx.agentId, curiosityAbout, depth }, 'Intellectual exploration');
+        getLogger().info(
+          { agentId: ctx.agentId, curiosityAbout, depth },
+          'Intellectual exploration'
+        );
 
         let response = `Your curiosity is reaching toward: ${curiosityAbout}\n\n`;
         response += `Curiosity is how humans grow. Let's follow this thread.\n\n`;
@@ -263,7 +273,9 @@ const embraceMysteryDef: ToolDefinition = {
       description: 'Help the user embrace mystery and find comfort in not-knowing.',
       parameters: z.object({
         mystery: z.string().describe('What remains mysterious'),
-        struggle: z.enum(['needing-answers', 'uncomfortable', 'curious', 'at-peace']).describe('How they relate to the mystery'),
+        struggle: z
+          .enum(['needing-answers', 'uncomfortable', 'curious', 'at-peace'])
+          .describe('How they relate to the mystery'),
       }),
       execute: async ({ mystery, struggle }) => {
         getLogger().info({ agentId: ctx.agentId, struggle }, 'Embracing mystery');
@@ -355,4 +367,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

@@ -103,7 +103,7 @@ const createGoalHandler: TeamHandlerDefinition = {
       category: string;
       deadline?: string;
       description?: string;
-      milestones?: { title: string; deadline?: string }[];
+      milestones?: Array<{ title: string; deadline?: string }>;
     };
     const userId = request.userId || 'default';
 
@@ -171,7 +171,7 @@ const getMilestoneStatusHandler: TeamHandlerDefinition = {
 
     try {
       const store = getLifeDataStore();
-      let milestones = await store.getMilestones(userId);
+      const milestones = await store.getMilestones(userId);
 
       // Filter by milestone ID
       if (milestoneId) {
@@ -201,7 +201,7 @@ const getMilestoneStatusHandler: TeamHandlerDefinition = {
 
       let result = `📍 **Active Milestones (${activeMilestones.length})**\n\n`;
       for (const m of activeMilestones.slice(0, 5)) {
-        result += formatMilestone(m) + '\n';
+        result += `${formatMilestone(m)}\n`;
       }
 
       if (activeMilestones.length > 5) {
@@ -260,9 +260,13 @@ const updateMilestoneProgressHandler: TeamHandlerDefinition = {
       await store.saveMilestone(userId, milestone);
 
       // Calculate progress from checklist
-      const progress = milestone.checklist.length > 0
-        ? Math.round((milestone.checklist.filter(c => c.completed).length / milestone.checklist.length) * 100)
-        : 0;
+      const progress =
+        milestone.checklist.length > 0
+          ? Math.round(
+              (milestone.checklist.filter((c) => c.completed).length / milestone.checklist.length) *
+                100
+            )
+          : 0;
 
       getLogger().info({ userId, milestoneId, status }, 'Milestone updated');
 
@@ -327,7 +331,7 @@ const getRetirementPlanHandler: TeamHandlerDefinition = {
 /**
  * Handler: Link savings to milestone
  * Capability: milestones
- * 
+ *
  * Coordinates with Maya to create a savings goal for a milestone
  */
 const linkSavingsToMilestoneHandler: TeamHandlerDefinition = {
@@ -387,9 +391,10 @@ const linkSavingsToMilestoneHandler: TeamHandlerDefinition = {
 
 function formatMilestone(m: LifeMilestone): string {
   // Calculate progress from checklist
-  const progress = m.checklist.length > 0
-    ? Math.round((m.checklist.filter(c => c.completed).length / m.checklist.length) * 100)
-    : 0;
+  const progress =
+    m.checklist.length > 0
+      ? Math.round((m.checklist.filter((c) => c.completed).length / m.checklist.length) * 100)
+      : 0;
 
   let result = `**${m.name}**\n`;
   result += `- Status: ${m.status}\n`;
@@ -444,4 +449,3 @@ export {
 };
 
 export default registerLifePlanningHandlers;
-

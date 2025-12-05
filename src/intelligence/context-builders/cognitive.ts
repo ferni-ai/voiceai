@@ -20,7 +20,12 @@
  * - Integrates team cognitive perspectives
  */
 
-import { registerContextBuilder, createStandardInjection, createHintInjection, createInjection } from './index.js';
+import {
+  registerContextBuilder,
+  createStandardInjection,
+  createHintInjection,
+  createInjection,
+} from './index.js';
 import type { ContextBuilderInput, ContextInjection } from './index.js';
 import {
   getCognitiveProfile,
@@ -64,13 +69,13 @@ import {
 } from '../../utils/cognitive-metrics.js';
 
 // Track reasoning styles used in this session
-const sessionReasoningHistory: Map<string, ReasoningStyle[]> = new Map();
+const sessionReasoningHistory = new Map<string, ReasoningStyle[]>();
 
 // Track user messages for cognitive style detection
-const sessionUserMessages: Map<string, string[]> = new Map();
+const sessionUserMessages = new Map<string, string[]>();
 
 // Track active reasoning chains
-const activeReasoningChains: Map<string, ReturnType<typeof buildReasoningChain>> = new Map();
+const activeReasoningChains = new Map<string, ReturnType<typeof buildReasoningChain>>();
 
 /**
  * Build cognitive intelligence context
@@ -154,11 +159,10 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
     // Learned approach has high confidence - consider it
     finalApproach = learnedRecommendation.approach;
     injections.push(
-      createHintInjection(
-        'cognitive-learning',
-        `[LEARNED] ${learnedRecommendation.reason}`,
-        { category: 'cognitive', confidence: learnedRecommendation.confidence }
-      )
+      createHintInjection('cognitive-learning', `[LEARNED] ${learnedRecommendation.reason}`, {
+        category: 'cognitive',
+        confidence: learnedRecommendation.confidence,
+      })
     );
   }
 
@@ -188,36 +192,39 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   // ============================================================================
   const reasoningPrompt = buildReasoningPrompt(finalApproach, profile.reasoningStyle);
   injections.push(
-    createStandardInjection(
-      'cognitive-reasoning',
-      reasoningPrompt,
-      { category: 'cognitive', confidence: 0.9 }
-    )
+    createStandardInjection('cognitive-reasoning', reasoningPrompt, {
+      category: 'cognitive',
+      confidence: 0.9,
+    })
   );
 
   // ============================================================================
   // 2. USER COGNITIVE STYLE MATCHING
   // ============================================================================
   if (userCognitiveStyle.primary !== 'unknown' && userCognitiveStyle.confidence > 0.5) {
-    const styleGuidance = buildUserStyleGuidance(userCognitiveStyle.primary, profile.reasoningStyle);
+    const styleGuidance = buildUserStyleGuidance(
+      userCognitiveStyle.primary,
+      profile.reasoningStyle
+    );
     injections.push(
-      createHintInjection(
-        'cognitive-user-style',
-        styleGuidance,
-        { category: 'cognitive', confidence: userCognitiveStyle.confidence }
-      )
+      createHintInjection('cognitive-user-style', styleGuidance, {
+        category: 'cognitive',
+        confidence: userCognitiveStyle.confidence,
+      })
     );
 
     // 📡 Broadcast user style detection for dashboard
     // Convert CognitiveSignals to Record<string, number> for broadcast
-    const signalsAsRecord: Record<string, number> = userCognitiveStyle.signals ? {
-      analytical: userCognitiveStyle.signals.analyticalScore,
-      emotional: userCognitiveStyle.signals.emotionalScore,
-      practical: userCognitiveStyle.signals.practicalScore,
-      narrative: userCognitiveStyle.signals.narrativeScore,
-      systematic: userCognitiveStyle.signals.systematicScore,
-      intuitive: userCognitiveStyle.signals.intuitiveScore,
-    } : {};
+    const signalsAsRecord: Record<string, number> = userCognitiveStyle.signals
+      ? {
+          analytical: userCognitiveStyle.signals.analyticalScore,
+          emotional: userCognitiveStyle.signals.emotionalScore,
+          practical: userCognitiveStyle.signals.practicalScore,
+          narrative: userCognitiveStyle.signals.narrativeScore,
+          systematic: userCognitiveStyle.signals.systematicScore,
+          intuitive: userCognitiveStyle.signals.intuitiveScore,
+        }
+      : {};
 
     broadcastUserStyle(
       userId,
@@ -273,11 +280,10 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
     const chainGuidance = getReasoningChainGuidance(activeChain);
     if (chainGuidance) {
       injections.push(
-        createStandardInjection(
-          'cognitive-chain',
-          chainGuidance,
-          { category: 'cognitive', confidence: 0.9 }
-        )
+        createStandardInjection('cognitive-chain', chainGuidance, {
+          category: 'cognitive',
+          confidence: 0.9,
+        })
       );
     }
     // Advance chain
@@ -291,15 +297,17 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   // 5. KNOWLEDGE STATE - Avoid re-explaining
   // ============================================================================
   const knowledgeTracker = getKnowledgeStateTracker();
-  const topicGuidance = knowledgeTracker.getExplanationGuidance(userId, cognitiveContext.currentTopic);
+  const topicGuidance = knowledgeTracker.getExplanationGuidance(
+    userId,
+    cognitiveContext.currentTopic
+  );
 
   if (topicGuidance.depth !== 'moderate') {
     injections.push(
-      createHintInjection(
-        'cognitive-knowledge',
-        `[KNOWLEDGE] ${topicGuidance.note}`,
-        { category: 'cognitive', confidence: 0.8 }
-      )
+      createHintInjection('cognitive-knowledge', `[KNOWLEDGE] ${topicGuidance.note}`, {
+        category: 'cognitive',
+        confidence: 0.8,
+      })
     );
   }
 
@@ -317,11 +325,10 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   const growthContext = buildCognitiveGrowthContext(growthProfile, learning);
   if (growthContext) {
     injections.push(
-      createHintInjection(
-        'cognitive-growth',
-        growthContext,
-        { category: 'cognitive', confidence: 0.75 }
-      )
+      createHintInjection('cognitive-growth', growthContext, {
+        category: 'cognitive',
+        confidence: 0.75,
+      })
     );
   }
 
@@ -331,11 +338,10 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   if (guidance.attentionCues.length > 0) {
     const attentionContent = guidance.attentionCues.slice(0, 2).join('\n');
     injections.push(
-      createHintInjection(
-        'cognitive-attention',
-        attentionContent,
-        { category: 'cognitive', confidence: 0.8 }
-      )
+      createHintInjection('cognitive-attention', attentionContent, {
+        category: 'cognitive',
+        confidence: 0.8,
+      })
     );
   }
 
@@ -345,11 +351,7 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   if (guidance.biasAlerts.length > 0) {
     const biasContent = guidance.biasAlerts[0];
     injections.push(
-      createHintInjection(
-        'cognitive-bias',
-        biasContent,
-        { category: 'cognitive', confidence: 0.7 }
-      )
+      createHintInjection('cognitive-bias', biasContent, { category: 'cognitive', confidence: 0.7 })
     );
   }
 
@@ -364,13 +366,15 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   );
 
   if (guidance.confidenceLevel < 0.6) {
-    const confidenceContent = buildConfidencePrompt(guidance.confidenceLevel, guidance.suggestedPhrases);
+    const confidenceContent = buildConfidencePrompt(
+      guidance.confidenceLevel,
+      guidance.suggestedPhrases
+    );
     injections.push(
-      createHintInjection(
-        'cognitive-confidence',
-        confidenceContent,
-        { category: 'cognitive', confidence: 0.85 }
-      )
+      createHintInjection('cognitive-confidence', confidenceContent, {
+        category: 'cognitive',
+        confidence: 0.85,
+      })
     );
   }
 
@@ -401,14 +405,17 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   // 11. TEAM COGNITIVE PERSPECTIVE (occasional)
   // ============================================================================
   if (turnCount > 5 && Math.random() < 0.15) {
-    const teamCommentary = generateTeamCommentary(personaId, cognitiveContext.currentTopic, 'reflection');
+    const teamCommentary = generateTeamCommentary(
+      personaId,
+      cognitiveContext.currentTopic,
+      'reflection'
+    );
     if (teamCommentary.length > 0) {
       injections.push(
-        createHintInjection(
-          'cognitive-team',
-          `[TEAM PERSPECTIVE] ${teamCommentary[0]}`,
-          { category: 'cognitive', confidence: 0.6 }
-        )
+        createHintInjection('cognitive-team', `[TEAM PERSPECTIVE] ${teamCommentary[0]}`, {
+          category: 'cognitive',
+          confidence: 0.6,
+        })
       );
     }
   }
@@ -417,9 +424,10 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   // 12. SIGNATURE PHRASES - Persona's unique thinking expressions
   // ============================================================================
   if (profile.signatureThinkingPhrases.length > 0 && Math.random() < 0.25) {
-    const phrase = profile.signatureThinkingPhrases[
-      Math.floor(Math.random() * profile.signatureThinkingPhrases.length)
-    ];
+    const phrase =
+      profile.signatureThinkingPhrases[
+        Math.floor(Math.random() * profile.signatureThinkingPhrases.length)
+      ];
     injections.push(
       createHintInjection(
         'cognitive-signature',
@@ -446,7 +454,10 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
 /**
  * Build guidance for matching user's cognitive style
  */
-function buildUserStyleGuidance(userStyle: UserCognitiveStyle, personaStyle: ReasoningStyle): string {
+function buildUserStyleGuidance(
+  userStyle: UserCognitiveStyle,
+  personaStyle: ReasoningStyle
+): string {
   const styleDescriptions: Record<UserCognitiveStyle, string> = {
     analytical: 'They think analytically - use data, evidence, and clear logic.',
     emotional: 'They lead with feelings - acknowledge emotions before analysis.',
@@ -458,12 +469,13 @@ function buildUserStyleGuidance(userStyle: UserCognitiveStyle, personaStyle: Rea
   };
 
   const description = styleDescriptions[userStyle];
-  const isMatch = (userStyle === 'analytical' && personaStyle === 'analytical') ||
-                  (userStyle === 'emotional' && personaStyle === 'empathetic') ||
-                  (userStyle === 'practical' && personaStyle === 'pragmatic') ||
-                  (userStyle === 'narrative' && personaStyle === 'narrative') ||
-                  (userStyle === 'systematic' && personaStyle === 'systematic') ||
-                  (userStyle === 'intuitive' && personaStyle === 'intuitive');
+  const isMatch =
+    (userStyle === 'analytical' && personaStyle === 'analytical') ||
+    (userStyle === 'emotional' && personaStyle === 'empathetic') ||
+    (userStyle === 'practical' && personaStyle === 'pragmatic') ||
+    (userStyle === 'narrative' && personaStyle === 'narrative') ||
+    (userStyle === 'systematic' && personaStyle === 'systematic') ||
+    (userStyle === 'intuitive' && personaStyle === 'intuitive');
 
   if (isMatch) {
     return `[USER STYLE] ${description} Your styles match well.`;
@@ -479,7 +491,7 @@ function determineRequestType(
   input: ContextBuilderInput
 ): 'question' | 'venting' | 'seeking_advice' | 'sharing' | 'celebrating' {
   const intent = input.analysis.intent.primary.toLowerCase();
-  const emotion = input.analysis.emotion;
+  const { emotion } = input.analysis;
 
   if (emotion.isVenting || (emotion.distressLevel && emotion.distressLevel > 0.6)) {
     return 'venting';
@@ -543,10 +555,10 @@ function detectUserExpertiseFromContext(
   }
 
   // Check conversation history
-  const historyTracker = input.services.historyTracker;
+  const { historyTracker } = input.services;
   if (historyTracker) {
     const turns = historyTracker.getSimpleTurns();
-    const userMessages = turns.filter(t => t.role === 'user').map(t => t.content);
+    const userMessages = turns.filter((t) => t.role === 'user').map((t) => t.content);
 
     if (userMessages.length >= 2) {
       const topic = input.analysis.topics.primary || 'general';
@@ -561,7 +573,7 @@ function detectUserExpertiseFromContext(
  * Calculate emotional weight of the conversation
  */
 function calculateEmotionalWeight(input: ContextBuilderInput): number {
-  const emotion = input.analysis.emotion;
+  const { emotion } = input.analysis;
 
   let weight = emotion.intensity || 0.3;
 
@@ -593,12 +605,18 @@ function calculateEmotionalWeight(input: ContextBuilderInput): number {
  */
 function buildReasoningPrompt(approach: ReasoningStyle, primaryStyle: ReasoningStyle): string {
   const approachDescriptions: Record<ReasoningStyle, string> = {
-    analytical: 'Think through this analytically. Work from evidence and patterns to conclusions. Use clear logical steps.',
-    intuitive: 'Trust your intuitive sense here. See the whole picture before the parts. Connect through understanding.',
-    empathetic: 'Lead with emotional awareness. Validate feelings before moving to problem-solving. Connect human-to-human.',
-    systematic: 'Approach this systematically. Break it into clear steps. Consider the process and structure.',
-    narrative: 'Think in stories and journeys. Connect this to a larger narrative. Use metaphors and meaning.',
-    pragmatic: 'Focus on what works. What are the practical outcomes? Be action-oriented and results-focused.',
+    analytical:
+      'Think through this analytically. Work from evidence and patterns to conclusions. Use clear logical steps.',
+    intuitive:
+      'Trust your intuitive sense here. See the whole picture before the parts. Connect through understanding.',
+    empathetic:
+      'Lead with emotional awareness. Validate feelings before moving to problem-solving. Connect human-to-human.',
+    systematic:
+      'Approach this systematically. Break it into clear steps. Consider the process and structure.',
+    narrative:
+      'Think in stories and journeys. Connect this to a larger narrative. Use metaphors and meaning.',
+    pragmatic:
+      'Focus on what works. What are the practical outcomes? Be action-oriented and results-focused.',
   };
 
   const isSwitching = approach !== primaryStyle;
@@ -614,7 +632,7 @@ function buildReasoningPrompt(approach: ReasoningStyle, primaryStyle: ReasoningS
  */
 function buildConfidencePrompt(confidence: number, suggestedPhrases: string[]): string {
   const level = confidence < 0.3 ? 'low' : confidence < 0.5 ? 'moderate' : 'uncertain';
-  const phrase = suggestedPhrases[0] || 'I\'m not entirely sure about this...';
+  const phrase = suggestedPhrases[0] || "I'm not entirely sure about this...";
 
   return `[CONFIDENCE: ${Math.round(confidence * 100)}% - ${level}]\nExpress appropriate uncertainty. Consider: "${phrase}"`;
 }
@@ -632,4 +650,3 @@ registerContextBuilder({
 
 export { buildCognitiveContext };
 export default buildCognitiveContext;
-

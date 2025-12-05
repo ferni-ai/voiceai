@@ -738,13 +738,13 @@ export async function generateGreeting(
       };
 
       const opener = generateProactiveOpener(persona, openerContext);
-      
+
       if (opener) {
-        let greeting = opener.greeting;
+        let { greeting } = opener;
         if (opener.followUp) {
           greeting = `${greeting} ${opener.followUp}`;
         }
-        
+
         getLogger().info(
           { persona: persona.id, type: opener.type, reason: opener.reason },
           '🚀 Using PROACTIVE opener - context-aware greeting'
@@ -752,7 +752,10 @@ export async function generateGreeting(
         return greeting;
       }
     } catch (err) {
-      getLogger().debug({ error: String(err) }, 'Proactive opener generation failed, continuing...');
+      getLogger().debug(
+        { error: String(err) },
+        'Proactive opener generation failed, continuing...'
+      );
     }
   }
 

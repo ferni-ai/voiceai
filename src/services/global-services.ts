@@ -6,11 +6,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import {
-  initializeMemorySystem,
-  getDefaultStore,
-  getVectorStore,
-} from '../memory/index.js';
+import { initializeMemorySystem, getDefaultStore, getVectorStore } from '../memory/index.js';
 import { setGlobalStore } from './user-identification.js';
 import type { GlobalServices } from './types.js';
 import { validateAndLog, type StartupCapabilities } from './startup-validation.js';
@@ -32,7 +28,7 @@ let startupCapabilities: StartupCapabilities | null = null;
  * Initialize all global services
  * @param indexPersona - Whether to index persona content (expensive, should only do once)
  */
-export async function initializeServices(indexPersona: boolean = true): Promise<GlobalServices> {
+export async function initializeServices(indexPersona = true): Promise<GlobalServices> {
   if (globalServices?.initialized) {
     getLogger().info('Services already initialized');
     return globalServices;
@@ -50,12 +46,15 @@ export async function initializeServices(indexPersona: boolean = true): Promise<
       requireSemanticSearch: process.env.NODE_ENV === 'production',
     });
 
-    getLogger().info({
-      persistentMemory: startupCapabilities.persistentMemory,
-      semanticSearch: startupCapabilities.semanticSearch,
-      storeType: startupCapabilities.storeType,
-      embeddingProvider: startupCapabilities.embeddingProvider,
-    }, '✅ Startup validation passed');
+    getLogger().info(
+      {
+        persistentMemory: startupCapabilities.persistentMemory,
+        semanticSearch: startupCapabilities.semanticSearch,
+        storeType: startupCapabilities.storeType,
+        embeddingProvider: startupCapabilities.embeddingProvider,
+      },
+      '✅ Startup validation passed'
+    );
   } catch (validationError) {
     getLogger().error({ error: String(validationError) }, '❌ Startup validation failed');
     // Re-throw in production, warn in development
@@ -198,7 +197,7 @@ export async function initializeServices(indexPersona: boolean = true): Promise<
 /**
  * Get global services (initializes if needed, but skips persona indexing if already done)
  */
-export function getGlobalServices(): Promise<GlobalServices> {
+export async function getGlobalServices(): Promise<GlobalServices> {
   if (!globalServices) {
     // Don't re-index persona - it should have been done in prewarm
     return initializeServices(false);
@@ -244,4 +243,3 @@ export function markPersonaIndexed(): void {
 export function isPersonaIndexed(): boolean {
   return personaIndexed;
 }
-

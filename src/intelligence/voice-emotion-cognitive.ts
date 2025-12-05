@@ -208,9 +208,7 @@ const EMOTION_TO_COGNITIVE_MAP: Record<string, Partial<CognitiveStateAdjustment>
 /**
  * Process voice emotion signals and return cognitive adjustments
  */
-export function processVoiceEmotion(
-  signals: VoiceEmotionSignals
-): CognitiveStateAdjustment {
+export function processVoiceEmotion(signals: VoiceEmotionSignals): CognitiveStateAdjustment {
   const emotionLower = signals.emotion.toLowerCase();
   const baseAdjustment = EMOTION_TO_COGNITIVE_MAP[emotionLower] || {};
 
@@ -281,15 +279,18 @@ export function processVoiceEmotion(
   adjustment.suggestionStrength = Math.max(0, Math.min(1, adjustment.suggestionStrength));
   adjustment.emotionalWeightBoost = Math.max(-0.2, Math.min(0.5, adjustment.emotionalWeightBoost));
 
-  getLogger().debug({
-    emotion: signals.emotion,
-    confidence: signals.confidence,
-    adjustment: {
-      suggestedStyle: adjustment.suggestedStyle,
-      prioritizeEmpathy: adjustment.prioritizeEmpathy,
-      emotionalWeightBoost: adjustment.emotionalWeightBoost,
+  getLogger().debug(
+    {
+      emotion: signals.emotion,
+      confidence: signals.confidence,
+      adjustment: {
+        suggestedStyle: adjustment.suggestedStyle,
+        prioritizeEmpathy: adjustment.prioritizeEmpathy,
+        emotionalWeightBoost: adjustment.emotionalWeightBoost,
+      },
     },
-  }, '🎤 Voice emotion processed');
+    '🎤 Voice emotion processed'
+  );
 
   return adjustment;
 }
@@ -346,9 +347,7 @@ export function getCombinedCognitiveStyle(
 /**
  * Generate voice-aware response guidance
  */
-export function generateVoiceAwareGuidance(
-  signals: VoiceEmotionSignals
-): string[] {
+export function generateVoiceAwareGuidance(signals: VoiceEmotionSignals): string[] {
   const guidance: string[] = [];
   const adjustment = processVoiceEmotion(signals);
 
@@ -373,7 +372,9 @@ export function generateVoiceAwareGuidance(
   }
 
   if (signals.hasTremor) {
-    guidance.push('[VOICE SIGNAL] Voice tremor detected - this person may be struggling. Be gentle.');
+    guidance.push(
+      '[VOICE SIGNAL] Voice tremor detected - this person may be struggling. Be gentle.'
+    );
   }
 
   return guidance;
@@ -417,7 +418,15 @@ export function trackSessionVoiceEmotion(
   }
 
   // Calculate stress level from emotion
-  const stressEmotions = ['stressed', 'anxious', 'frustrated', 'angry', 'overwhelmed', 'sad', 'grief'];
+  const stressEmotions = [
+    'stressed',
+    'anxious',
+    'frustrated',
+    'angry',
+    'overwhelmed',
+    'sad',
+    'grief',
+  ];
   const calmEmotions = ['happy', 'excited', 'relaxed', 'content', 'peaceful'];
 
   const isStress = stressEmotions.includes(signals.emotion.toLowerCase());
@@ -425,7 +434,8 @@ export function trackSessionVoiceEmotion(
 
   // Update average stress
   const stressScore = isStress ? 0.8 : isCalm ? 0.2 : 0.4;
-  state.averageStress = (state.averageStress * state.totalSamples + stressScore) / (state.totalSamples + 1);
+  state.averageStress =
+    (state.averageStress * state.totalSamples + stressScore) / (state.totalSamples + 1);
   state.totalSamples++;
 
   // Determine trend (last 5 vs previous)
@@ -433,8 +443,8 @@ export function trackSessionVoiceEmotion(
     const recent = state.recentEmotions.slice(-3);
     const earlier = state.recentEmotions.slice(-6, -3);
 
-    const recentStress = recent.filter(e => stressEmotions.includes(e.toLowerCase())).length;
-    const earlierStress = earlier.filter(e => stressEmotions.includes(e.toLowerCase())).length;
+    const recentStress = recent.filter((e) => stressEmotions.includes(e.toLowerCase())).length;
+    const earlierStress = earlier.filter((e) => stressEmotions.includes(e.toLowerCase())).length;
 
     if (recentStress < earlierStress) {
       state.emotionalTrend = 'improving';
@@ -472,4 +482,3 @@ export default {
   getSessionVoiceState,
   clearSessionVoiceState,
 };
-

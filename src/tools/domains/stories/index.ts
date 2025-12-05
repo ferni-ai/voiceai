@@ -32,8 +32,21 @@ const captureLifeStoryDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user capture and preserve a meaningful part of their life story.',
       parameters: z.object({
-        focus: z.enum(['childhood', 'defining-moments', 'relationships', 'challenges', 'joys', 'lessons', 'open']).describe('Area to explore'),
-        forWhom: z.enum(['self', 'family', 'children', 'posterity', 'anyone']).optional().describe('Who this is for'),
+        focus: z
+          .enum([
+            'childhood',
+            'defining-moments',
+            'relationships',
+            'challenges',
+            'joys',
+            'lessons',
+            'open',
+          ])
+          .describe('Area to explore'),
+        forWhom: z
+          .enum(['self', 'family', 'children', 'posterity', 'anyone'])
+          .optional()
+          .describe('Who this is for'),
       }),
       execute: async ({ focus, forWhom }) => {
         getLogger().info({ agentId: ctx.agentId, focus, forWhom }, 'Capturing life story');
@@ -41,45 +54,45 @@ const captureLifeStoryDef: ToolDefinition = {
         const prompts: Record<string, string[]> = {
           childhood: [
             "What's your earliest memory?",
-            "What was your childhood home like?",
-            "Who were the important people in your early life?",
-            "What did you dream of being when you grew up?",
-            "What shaped who you became?",
+            'What was your childhood home like?',
+            'Who were the important people in your early life?',
+            'What did you dream of being when you grew up?',
+            'What shaped who you became?',
           ],
           'defining-moments': [
             "What moments divided your life into 'before' and 'after'?",
-            "When did you become who you are today?",
-            "What decision changed everything?",
-            "What unexpected turn shaped your path?",
+            'When did you become who you are today?',
+            'What decision changed everything?',
+            'What unexpected turn shaped your path?',
           ],
           relationships: [
-            "Who has loved you most in your life?",
-            "Which relationship taught you the most?",
-            "Who did you lose too soon?",
-            "What relationship are you most proud of?",
+            'Who has loved you most in your life?',
+            'Which relationship taught you the most?',
+            'Who did you lose too soon?',
+            'What relationship are you most proud of?',
           ],
           challenges: [
             "What's the hardest thing you've overcome?",
-            "What failure taught you the most?",
+            'What failure taught you the most?',
             "What did you survive that you didn't think you could?",
-            "How did difficulty shape your strength?",
+            'How did difficulty shape your strength?',
           ],
           joys: [
-            "What are the happiest moments of your life?",
-            "What are you most proud of?",
-            "When have you felt most alive?",
-            "What brings you the deepest joy?",
+            'What are the happiest moments of your life?',
+            'What are you most proud of?',
+            'When have you felt most alive?',
+            'What brings you the deepest joy?',
           ],
           lessons: [
             "What do you know now that you wish you'd known at 20?",
             "What's the most important thing life taught you?",
-            "What advice would you give your younger self?",
-            "What truth took you a long time to learn?",
+            'What advice would you give your younger self?',
+            'What truth took you a long time to learn?',
           ],
           open: [
-            "What story from your life most wants to be told right now?",
-            "What would people be surprised to learn about you?",
-            "What do you want to be remembered for?",
+            'What story from your life most wants to be told right now?',
+            'What would people be surprised to learn about you?',
+            'What do you want to be remembered for?',
           ],
         };
 
@@ -90,7 +103,9 @@ const captureLifeStoryDef: ToolDefinition = {
 
         const questions = prompts[focus];
         response += `**Questions to explore:**\n`;
-        questions.forEach((q, i) => { response += `\n${i + 1}. ${q}`; });
+        questions.forEach((q, i) => {
+          response += `\n${i + 1}. ${q}`;
+        });
         response += `\n\nWhich question calls to you? Or feel free to start wherever you'd like.`;
 
         return response;
@@ -150,9 +165,12 @@ const defineLegacyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user think deeply about their legacy - what they want to leave behind.',
+      description:
+        'Help the user think deeply about their legacy - what they want to leave behind.',
       parameters: z.object({
-        approach: z.enum(['values', 'impact', 'wisdom', 'relationships', 'comprehensive']).describe('Approach to legacy'),
+        approach: z
+          .enum(['values', 'impact', 'wisdom', 'relationships', 'comprehensive'])
+          .describe('Approach to legacy'),
       }),
       execute: async ({ approach }) => {
         getLogger().info({ agentId: ctx.agentId, approach }, 'Defining legacy');
@@ -198,10 +216,13 @@ const writeEthicalWillDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user write an ethical will - a letter of values, hopes, and wisdom for loved ones.',
+      description:
+        'Help the user write an ethical will - a letter of values, hopes, and wisdom for loved ones.',
       parameters: z.object({
         forWhom: z.string().describe('Who this is for'),
-        section: z.enum(['gratitude', 'values', 'lessons', 'hopes', 'forgiveness', 'love', 'overview']).describe('Section to work on'),
+        section: z
+          .enum(['gratitude', 'values', 'lessons', 'hopes', 'forgiveness', 'love', 'overview'])
+          .describe('Section to work on'),
       }),
       execute: async ({ forWhom, section }) => {
         getLogger().info({ agentId: ctx.agentId, forWhom, section }, 'Writing ethical will');
@@ -238,9 +259,12 @@ const findNarrativeThreadDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user discover the recurring themes and narrative threads in their life.',
+      description:
+        'Help the user discover the recurring themes and narrative threads in their life.',
       parameters: z.object({
-        lookedFor: z.enum(['patterns', 'themes', 'heroes-journey', 'central-question']).describe('What to look for'),
+        lookedFor: z
+          .enum(['patterns', 'themes', 'heroes-journey', 'central-question'])
+          .describe('What to look for'),
       }),
       execute: async ({ lookedFor }) => {
         getLogger().info({ agentId: ctx.agentId, lookedFor }, 'Finding narrative thread');
@@ -289,7 +313,8 @@ const rewriteStoryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user reframe a painful or limiting story into a more empowering narrative.',
+      description:
+        'Help the user reframe a painful or limiting story into a more empowering narrative.',
       parameters: z.object({
         oldStory: z.string().describe('The story as currently told'),
         whatHurts: z.string().describe('What about this story is painful or limiting'),
@@ -329,7 +354,9 @@ const createTimeCapsuleDef: ToolDefinition = {
     return llm.tool({
       description: 'Guide creation of a time capsule message.',
       parameters: z.object({
-        recipient: z.enum(['future-self', 'children', 'grandchildren', 'unborn', 'world']).describe('Who the time capsule is for'),
+        recipient: z
+          .enum(['future-self', 'children', 'grandchildren', 'unborn', 'world'])
+          .describe('Who the time capsule is for'),
         yearsAhead: z.string().describe('How far in the future to open'),
       }),
       execute: async ({ recipient, yearsAhead }) => {
@@ -382,8 +409,19 @@ const familyStoryPromptsDef: ToolDefinition = {
     return llm.tool({
       description: 'Provide prompts for interviewing family members about their stories.',
       parameters: z.object({
-        relationship: z.enum(['parent', 'grandparent', 'elder', 'sibling', 'other-relative']).describe('Who you want to interview'),
-        focus: z.enum(['childhood', 'family-history', 'wisdom', 'relationships', 'life-events', 'general']).describe('What to focus on'),
+        relationship: z
+          .enum(['parent', 'grandparent', 'elder', 'sibling', 'other-relative'])
+          .describe('Who you want to interview'),
+        focus: z
+          .enum([
+            'childhood',
+            'family-history',
+            'wisdom',
+            'relationships',
+            'life-events',
+            'general',
+          ])
+          .describe('What to focus on'),
       }),
       execute: async ({ relationship, focus }) => {
         getLogger().info({ agentId: ctx.agentId, relationship, focus }, 'Family story prompts');
@@ -394,49 +432,49 @@ const familyStoryPromptsDef: ToolDefinition = {
         const prompts: Record<string, string[]> = {
           childhood: [
             "What's your earliest memory?",
-            "What was your childhood home like?",
-            "What games did you play? What did you do for fun?",
-            "What were your parents like?",
-            "What got you in trouble as a kid?",
-            "What did you dream of being when you grew up?",
-            "What was school like for you?",
+            'What was your childhood home like?',
+            'What games did you play? What did you do for fun?',
+            'What were your parents like?',
+            'What got you in trouble as a kid?',
+            'What did you dream of being when you grew up?',
+            'What was school like for you?',
           ],
           'family-history': [
-            "What do you know about where our family came from?",
-            "What stories did your parents tell you about their parents?",
-            "Are there any family secrets or mysteries?",
-            "What family traditions have been passed down?",
-            "Who were the characters in our family?",
-            "What should future generations know about our family?",
+            'What do you know about where our family came from?',
+            'What stories did your parents tell you about their parents?',
+            'Are there any family secrets or mysteries?',
+            'What family traditions have been passed down?',
+            'Who were the characters in our family?',
+            'What should future generations know about our family?',
           ],
           wisdom: [
             "What's the most important thing life taught you?",
             "What do you know now that you wish you'd known at 20?",
             "What's your biggest regret? Your proudest moment?",
-            "What advice would you give to your younger self?",
-            "What do you want people to remember about you?",
-            "What matters most to you now?",
+            'What advice would you give to your younger self?',
+            'What do you want people to remember about you?',
+            'What matters most to you now?',
           ],
           relationships: [
-            "How did you meet the love of your life?",
-            "What made your marriage work? (Or not work?)",
+            'How did you meet the love of your life?',
+            'What made your marriage work? (Or not work?)',
             "What's the best parenting decision you made?",
-            "Who has influenced you most in your life?",
+            'Who has influenced you most in your life?',
             "What do you wish you'd said to someone who's gone?",
           ],
           'life-events': [
-            "What were the major turning points in your life?",
+            'What were the major turning points in your life?',
             "What's the hardest thing you've overcome?",
-            "What historical events do you remember living through?",
-            "What changed you as a person?",
+            'What historical events do you remember living through?',
+            'What changed you as a person?',
             "What's the closest you came to a different life?",
           ],
           general: [
             "Tell me a story I've never heard before.",
             "What's something most people don't know about you?",
-            "What are you most proud of?",
-            "If you could relive one day, which would it be?",
-            "What do you want me to remember?",
+            'What are you most proud of?',
+            'If you could relive one day, which would it be?',
+            'What do you want me to remember?',
           ],
         };
 
@@ -469,7 +507,9 @@ const recordOralHistoryDef: ToolDefinition = {
       description: 'Guide the user in recording and preserving oral history.',
       parameters: z.object({
         subject: z.string().describe('Whose history to record'),
-        purpose: z.enum(['family-archive', 'memoir-help', 'legacy-project', 'history-project']).describe('Purpose of the recording'),
+        purpose: z
+          .enum(['family-archive', 'memoir-help', 'legacy-project', 'history-project'])
+          .describe('Purpose of the recording'),
       }),
       execute: async ({ subject, purpose }) => {
         getLogger().info({ agentId: ctx.agentId, subject, purpose }, 'Recording oral history');
@@ -538,4 +578,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

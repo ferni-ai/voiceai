@@ -272,15 +272,18 @@ function buildAuthContext(
   voiceResult: VoiceIdentificationResult,
   requireVerification: boolean
 ): AuthContext {
-  const profile = voiceResult.profile;
-  const isNew = voiceResult.isNew;
-  const isReturning = voiceResult.isReturning;
+  const { profile } = voiceResult;
+  const { isNew } = voiceResult;
+  const { isReturning } = voiceResult;
 
   // Determine confidence level
   let confidence: ConfidenceLevel;
   if (voiceResult.identificationMethod === 'both') {
     confidence = 'certain';
-  } else if (voiceResult.identificationMethod === 'voice' && (voiceResult.voice?.matchConfidence ?? 0) > 0.8) {
+  } else if (
+    voiceResult.identificationMethod === 'voice' &&
+    (voiceResult.voice?.matchConfidence ?? 0) > 0.8
+  ) {
     confidence = 'certain';
   } else if (voiceResult.identificationMethod === 'device' && profile?.name) {
     confidence = 'likely';
@@ -346,7 +349,7 @@ function buildAuthContext(
   const rememberedTopics = extractRememberedTopics(profile);
 
   // Find last milestone from key moments
-  const lastMilestoneEvent = profile?.keyMoments?.find(m => m.type === 'milestone');
+  const lastMilestoneEvent = profile?.keyMoments?.find((m) => m.type === 'milestone');
   const lastMilestone = lastMilestoneEvent?.summary;
 
   return {
@@ -395,7 +398,7 @@ function buildConfirmationGreeting(name?: string): string {
   if (name) {
     return `Your voice sounds familiar... is this ${name}?`;
   }
-  return "Your voice sounds familiar - have we talked before?";
+  return 'Your voice sounds familiar - have we talked before?';
 }
 
 function extractRememberedTopics(profile: UserProfile | null): string[] {
@@ -437,20 +440,22 @@ function buildSecurityContext(profile: UserProfile): SecurityContext {
 
   // Use family members if known (from familyMembers array)
   if (profile.familyMembers?.length) {
-    const spouse = profile.familyMembers.find(m => 
-      m.relationship.toLowerCase().includes('spouse') || 
-      m.relationship.toLowerCase().includes('wife') || 
-      m.relationship.toLowerCase().includes('husband')
+    const spouse = profile.familyMembers.find(
+      (m) =>
+        m.relationship.toLowerCase().includes('spouse') ||
+        m.relationship.toLowerCase().includes('wife') ||
+        m.relationship.toLowerCase().includes('husband')
     );
     if (spouse?.name) {
       questions.push("What's your spouse's name?");
       answers.push(spouse.name);
     }
 
-    const children = profile.familyMembers.filter(m => 
-      m.relationship.toLowerCase().includes('son') || 
-      m.relationship.toLowerCase().includes('daughter') || 
-      m.relationship.toLowerCase().includes('child')
+    const children = profile.familyMembers.filter(
+      (m) =>
+        m.relationship.toLowerCase().includes('son') ||
+        m.relationship.toLowerCase().includes('daughter') ||
+        m.relationship.toLowerCase().includes('child')
     );
     if (children.length > 0) {
       questions.push("What's one of your children's names?");
@@ -459,10 +464,11 @@ function buildSecurityContext(profile: UserProfile): SecurityContext {
       }
     }
 
-    const pets = profile.familyMembers.filter(m => 
-      m.relationship.toLowerCase().includes('pet') || 
-      m.relationship.toLowerCase().includes('dog') || 
-      m.relationship.toLowerCase().includes('cat')
+    const pets = profile.familyMembers.filter(
+      (m) =>
+        m.relationship.toLowerCase().includes('pet') ||
+        m.relationship.toLowerCase().includes('dog') ||
+        m.relationship.toLowerCase().includes('cat')
     );
     if (pets.length > 0) {
       questions.push("What's your pet's name?");
@@ -504,8 +510,7 @@ function getVerificationQuestion(profile: UserProfile | null): string | undefine
  */
 export function getNaturalGreeting(authContext: AuthContext): string {
   const hour = new Date().getHours();
-  const timeGreeting =
-    hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   const { userName, relationshipStage, lastConversation, greeting } = authContext;
 
@@ -602,4 +607,3 @@ export default {
   getNaturalGreeting,
   generateContextForLLM,
 };
-

@@ -138,7 +138,7 @@ export function calculateCDLadder(
  */
 export function calculateFIRENumber(
   annualExpenses: number,
-  withdrawalRate: number = 4
+  withdrawalRate = 4
 ): {
   fireNumber: number;
   safeAnnualWithdrawal: number;

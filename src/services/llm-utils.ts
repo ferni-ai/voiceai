@@ -1,15 +1,15 @@
 /**
  * LLM Utility Functions
- * 
+ *
  * Provides supplementary LLM capabilities for:
  * - Emotion inference (when keyword detection is uncertain)
  * - Conversation summarization (richer than extraction)
  * - Intent disambiguation
  * - Context enrichment
- * 
+ *
  * These are NOT for main conversation - that goes through the realtime model.
  * These are for background analysis that enhances the agent's understanding.
- * 
+ *
  * @module services/llm-utils
  */
 
@@ -39,7 +39,7 @@ async function getGoogleAIClient(): Promise<unknown> {
   try {
     const { GoogleGenAI } = await import('@google/genai');
     const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_API_KEY;
-    
+
     if (!apiKey) {
       getLogger().warn('No Google AI API key found, LLM utilities will be disabled');
       return null;
@@ -56,10 +56,7 @@ async function getGoogleAIClient(): Promise<unknown> {
 /**
  * Call Google AI (Gemini) for supplementary analysis
  */
-async function callGoogleAI(
-  prompt: string,
-  options: LLMCallOptions = {}
-): Promise<string | null> {
+async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
   try {
     const client = await getGoogleAIClient();
     if (!client) return null;
@@ -71,15 +68,17 @@ async function callGoogleAI(
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const response = await (client as {
-        models: {
-          generateContent: (params: {
-            model: string;
-            contents: string;
-            config: { maxOutputTokens: number; temperature: number };
-          }) => Promise<{ text: string }>;
-        };
-      }).models.generateContent({
+      const response = await (
+        client as {
+          models: {
+            generateContent: (params: {
+              model: string;
+              contents: string;
+              config: { maxOutputTokens: number; temperature: number };
+            }) => Promise<{ text: string }>;
+          };
+        }
+      ).models.generateContent({
         model: 'gemini-1.5-flash',
         contents: prompt,
         config: {
@@ -116,7 +115,7 @@ async function getOpenAIClient(): Promise<unknown> {
   try {
     const OpenAI = (await import('openai')).default;
     const apiKey = process.env.OPENAI_API_KEY;
-    
+
     if (!apiKey) {
       return null;
     }
@@ -128,10 +127,7 @@ async function getOpenAIClient(): Promise<unknown> {
   }
 }
 
-async function callOpenAI(
-  prompt: string,
-  options: LLMCallOptions = {}
-): Promise<string | null> {
+async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
   try {
     const client = await getOpenAIClient();
     if (!client) return null;
@@ -139,18 +135,20 @@ async function callOpenAI(
     const { maxTokens = 500, temperature = 0.3, timeout = 5000 } = options;
 
     const response = await Promise.race([
-      (client as {
-        chat: {
-          completions: {
-            create: (params: {
-              model: string;
-              messages: Array<{ role: string; content: string }>;
-              max_tokens: number;
-              temperature: number;
-            }) => Promise<{ choices: Array<{ message: { content: string } }> }>;
+      (
+        client as {
+          chat: {
+            completions: {
+              create: (params: {
+                model: string;
+                messages: Array<{ role: string; content: string }>;
+                max_tokens: number;
+                temperature: number;
+              }) => Promise<{ choices: Array<{ message: { content: string } }> }>;
+            };
           };
-        };
-      }).chat.completions.create({
+        }
+      ).chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: maxTokens,
@@ -173,14 +171,14 @@ async function callOpenAI(
 
 /**
  * Make a supplementary LLM call with automatic fallback
- * 
+ *
  * Priority: Google AI → OpenAI → null
- * 
+ *
  * Use this for:
  * - Emotion inference when keyword detection is uncertain
  * - Conversation summarization
  * - Intent disambiguation
- * 
+ *
  * DO NOT use for main conversation responses (those go through realtime model)
  */
 export async function callLLM(
@@ -285,11 +283,14 @@ export async function initializeLLMUtils(): Promise<{
 
   initialized = true;
 
-  getLogger().info({
-    googleAI,
-    openAI,
-    anyAvailable: googleAI || openAI,
-  }, 'LLM utilities initialized');
+  getLogger().info(
+    {
+      googleAI,
+      openAI,
+      anyAvailable: googleAI || openAI,
+    },
+    'LLM utilities initialized'
+  );
 
   return { googleAI, openAI };
 }
@@ -301,4 +302,3 @@ export default {
   createSummarizationLLMCaller,
   initializeLLMUtils,
 };
-

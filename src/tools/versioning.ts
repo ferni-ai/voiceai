@@ -104,10 +104,7 @@ function compareVersions(a: string, b: string): number {
 /**
  * Increment version
  */
-function incrementVersion(
-  version: string,
-  type: 'major' | 'minor' | 'patch'
-): string {
+function incrementVersion(version: string, type: 'major' | 'minor' | 'patch'): string {
   const v = parseVersion(version);
 
   switch (type) {
@@ -216,10 +213,7 @@ export class ToolVersioningService {
 
     this.versions.set(def.id, toolVersions);
 
-    getLogger().info(
-      { toolId: def.id, version, breaking },
-      '📦 New tool version created'
-    );
+    getLogger().info({ toolId: def.id, version, breaking }, '📦 New tool version created');
 
     return toolVersion;
   }
@@ -435,9 +429,7 @@ export class ToolVersioningService {
 
     // Determine if breaking
     const isBreaking = changes.some(
-      (c) =>
-        c.changeType === 'removed' ||
-        (c.field === 'domain' && c.changeType === 'modified')
+      (c) => c.changeType === 'removed' || (c.field === 'domain' && c.changeType === 'modified')
     );
 
     // Generate summary
@@ -553,4 +545,3 @@ export class ToolVersioningService {
 export const versioningService = new ToolVersioningService();
 
 export default versioningService;
-

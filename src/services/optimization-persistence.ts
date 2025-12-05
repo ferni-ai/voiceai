@@ -119,7 +119,10 @@ class OptimizationPersistenceService {
           projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
         }) as unknown as FirestoreDB;
       } catch (error) {
-        getLogger().warn({ error }, 'Firestore not available, optimization data will be in-memory only');
+        getLogger().warn(
+          { error },
+          'Firestore not available, optimization data will be in-memory only'
+        );
       }
     }
 
@@ -154,9 +157,7 @@ class OptimizationPersistenceService {
   bufferFeedback(feedback: FeedbackRecord): void {
     this.feedbackBuffer.push(feedback);
     if (this.feedbackBuffer.length >= this.BUFFER_SIZE) {
-      this.flushFeedback().catch((err) =>
-        getLogger().warn({ err }, 'Failed to flush feedback')
-      );
+      this.flushFeedback().catch((err) => getLogger().warn({ err }, 'Failed to flush feedback'));
     }
   }
 
@@ -167,7 +168,7 @@ class OptimizationPersistenceService {
     if (this.feedbackBuffer.length === 0 || !this.db) return;
 
     const toFlush = this.feedbackBuffer.splice(0, this.feedbackBuffer.length);
-    
+
     try {
       const batch = this.db.batch();
       const collection = this.db.collection(this.COLLECTIONS.FEEDBACK);
@@ -197,13 +198,16 @@ class OptimizationPersistenceService {
     if (!this.db) return;
 
     try {
-      await this.db.collection(this.COLLECTIONS.FEEDBACK_SUMMARY).doc(toolId).set(
-        {
-          ...summary,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+      await this.db
+        .collection(this.COLLECTIONS.FEEDBACK_SUMMARY)
+        .doc(toolId)
+        .set(
+          {
+            ...summary,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
     } catch (error) {
       getLogger().error({ error, toolId }, 'Failed to save feedback summary');
     }
@@ -252,9 +256,7 @@ class OptimizationPersistenceService {
   bufferSession(session: SessionData): void {
     this.sessionBuffer.push(session);
     if (this.sessionBuffer.length >= this.BUFFER_SIZE) {
-      this.flushSessions().catch((err) =>
-        getLogger().warn({ err }, 'Failed to flush sessions')
-      );
+      this.flushSessions().catch((err) => getLogger().warn({ err }, 'Failed to flush sessions'));
     }
   }
 
@@ -307,10 +309,13 @@ class OptimizationPersistenceService {
 
     try {
       const docId = `analysis_${Date.now()}`;
-      await this.db.collection(this.COLLECTIONS.PATTERNS).doc(docId).set({
-        ...analysis,
-        analyzedAt: analysis.analyzedAt.toISOString(),
-      });
+      await this.db
+        .collection(this.COLLECTIONS.PATTERNS)
+        .doc(docId)
+        .set({
+          ...analysis,
+          analyzedAt: analysis.analyzedAt.toISOString(),
+        });
 
       getLogger().info('📊 Saved pattern analysis to Firestore');
     } catch (error) {
@@ -405,10 +410,13 @@ class OptimizationPersistenceService {
     if (!this.db) return;
 
     try {
-      await this.db.collection(this.COLLECTIONS.RECOMMENDATIONS).doc(recommendation.id).set({
-        ...recommendation,
-        createdAt: recommendation.createdAt.toISOString(),
-      });
+      await this.db
+        .collection(this.COLLECTIONS.RECOMMENDATIONS)
+        .doc(recommendation.id)
+        .set({
+          ...recommendation,
+          createdAt: recommendation.createdAt.toISOString(),
+        });
     } catch (error) {
       getLogger().error({ error }, 'Failed to save recommendation');
     }
@@ -489,12 +497,15 @@ class OptimizationPersistenceService {
     if (!this.db) return;
 
     try {
-      await this.db.collection(this.COLLECTIONS.EXPERIMENTS).doc(experiment.id).set({
-        ...experiment,
-        startedAt: experiment.startedAt?.toISOString(),
-        completedAt: experiment.completedAt?.toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      await this.db
+        .collection(this.COLLECTIONS.EXPERIMENTS)
+        .doc(experiment.id)
+        .set({
+          ...experiment,
+          startedAt: experiment.startedAt?.toISOString(),
+          completedAt: experiment.completedAt?.toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
     } catch (error) {
       getLogger().error({ error, experimentId: experiment.id }, 'Failed to save experiment');
     }
@@ -519,12 +530,15 @@ class OptimizationPersistenceService {
         .where('status', '==', 'active')
         .get();
 
-      return snapshot.docs.map((doc) => doc.data() as {
-        id: string;
-        name: string;
-        description: string;
-        status: string;
-      });
+      return snapshot.docs.map(
+        (doc) =>
+          doc.data() as {
+            id: string;
+            name: string;
+            description: string;
+            status: string;
+          }
+      );
     } catch (error) {
       getLogger().error({ error }, 'Failed to get active experiments');
       return [];
@@ -564,7 +578,7 @@ class OptimizationPersistenceService {
     try {
       // Get feedback count
       const feedbackSnapshot = await this.db.collection(this.COLLECTIONS.FEEDBACK).get();
-      
+
       // Count by type
       const feedbackByType: Record<string, number> = {};
       feedbackSnapshot.docs.forEach((doc) => {
@@ -626,11 +640,7 @@ class OptimizationPersistenceService {
    * Flush all buffers
    */
   async flushAll(): Promise<void> {
-    await Promise.all([
-      this.flushFeedback(),
-      this.flushSessions(),
-      this.flushRecommendations(),
-    ]);
+    await Promise.all([this.flushFeedback(), this.flushSessions(), this.flushRecommendations()]);
   }
 
   /**
@@ -648,4 +658,3 @@ class OptimizationPersistenceService {
 export const optimizationPersistence = new OptimizationPersistenceService();
 
 export default optimizationPersistence;
-

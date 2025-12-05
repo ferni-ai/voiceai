@@ -83,7 +83,7 @@ export interface InsightGenerationResult {
 export class ProactiveInsightEngine {
   private userId: string;
   private generatedInsights: ProactiveInsight[] = [];
-  private deliveredInsightIds: Set<string> = new Set();
+  private deliveredInsightIds = new Set<string>();
 
   constructor(userId: string, existingInsights?: ProactiveInsight[]) {
     this.userId = userId;

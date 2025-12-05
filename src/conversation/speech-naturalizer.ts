@@ -47,18 +47,21 @@ export interface ThinkingPattern {
  * Persona-specific disfluency patterns
  * Each persona has characteristic speech patterns
  */
-const PERSONA_DISFLUENCIES: Record<string, {
-  fillers: string[];
-  hedges: string[];
-  repairs: string[];
-  thinkingPhrases: string[];
-}> = {
+const PERSONA_DISFLUENCIES: Record<
+  string,
+  {
+    fillers: string[];
+    hedges: string[];
+    repairs: string[];
+    thinkingPhrases: string[];
+  }
+> = {
   'nayan-patel': {
     fillers: ['Well...', 'Now...', 'You see...', 'Look...'],
     hedges: ['I believe', 'In my view', 'Generally speaking', 'As I see it'],
     repairs: [
-      "Let me rephrase that.",
-      "Actually, let me put it differently.",
+      'Let me rephrase that.',
+      'Actually, let me put it differently.',
       "No, wait—here's a better way to say it.",
     ],
     thinkingPhrases: [
@@ -67,13 +70,13 @@ const PERSONA_DISFLUENCIES: Record<string, {
       'Now, that brings up an important point...',
     ],
   },
-  'ferni': {
-    fillers: ['You know...', 'I mean...', 'It\'s like...'],
+  ferni: {
+    fillers: ['You know...', 'I mean...', "It's like..."],
     hedges: ['I sense', 'It feels like', 'Perhaps', 'Maybe'],
     repairs: [
-      "Wait, let me say that differently.",
+      'Wait, let me say that differently.',
       "Actually—no, that's not quite it.",
-      "Let me try again.",
+      'Let me try again.',
     ],
     thinkingPhrases: [
       'Hmm... let me sit with that.',
@@ -86,58 +89,46 @@ const PERSONA_DISFLUENCIES: Record<string, {
     fillers: ['You know...', 'So...', 'I mean...', 'Look...'],
     hedges: ['I think', 'Probably', 'It seems like', 'My guess is'],
     repairs: [
-      "Wait, wait—let me back up.",
+      'Wait, wait—let me back up.',
       "No, here's the thing—",
       "Actually, forget that—here's what matters:",
     ],
     thinkingPhrases: [
-      "Let me think about this...",
+      'Let me think about this...',
       "You know what's interesting?",
       "Here's what jumps out at me...",
-      "Okay, so...",
+      'Okay, so...',
     ],
   },
   'maya-santos': {
     fillers: ['So...', 'Like...', 'You know...'],
     hedges: ['I feel like', 'It seems', 'Maybe', 'Possibly'],
-    repairs: [
-      "Wait, let me rephrase.",
-      "Actually, that came out wrong.",
-      "Let me try that again.",
-    ],
+    repairs: ['Wait, let me rephrase.', 'Actually, that came out wrong.', 'Let me try that again.'],
     thinkingPhrases: [
       "Hmm, that's interesting...",
-      "Let me think about how to say this...",
-      "You know what I mean?",
+      'Let me think about how to say this...',
+      'You know what I mean?',
       "Here's the thing...",
     ],
   },
   'alex-chen': {
     fillers: ['So...', 'Right...', 'Okay...'],
     hedges: ['I think', 'Probably', 'Usually', 'In general'],
-    repairs: [
-      "Wait—let me be clearer.",
-      "Actually, scratch that.",
-      "Let me start over.",
-    ],
+    repairs: ['Wait—let me be clearer.', 'Actually, scratch that.', 'Let me start over.'],
     thinkingPhrases: [
-      "Let me check on that...",
-      "Hmm, one second...",
+      'Let me check on that...',
+      'Hmm, one second...',
       "Okay, so here's the situation...",
     ],
   },
   'jordan-taylor': {
     fillers: ['Oh!', 'So...', 'Like...', 'You know...'],
     hedges: ['I think', 'Probably', 'Maybe', 'I feel like'],
-    repairs: [
-      "Wait, no—even better:",
-      "Actually, you know what?",
-      "Oh! Let me rephrase that—",
-    ],
+    repairs: ['Wait, no—even better:', 'Actually, you know what?', 'Oh! Let me rephrase that—'],
     thinkingPhrases: [
-      "Ooh, let me think...",
-      "You know what would be amazing?",
-      "Oh! I just thought of something!",
+      'Ooh, let me think...',
+      'You know what would be amazing?',
+      'Oh! I just thought of something!',
     ],
   },
 };
@@ -147,15 +138,11 @@ const DEFAULT_DISFLUENCIES = {
   fillers: ['Um...', 'Uh...', 'Well...', 'So...'],
   hedges: ['I think', 'Maybe', 'Probably', 'It seems like'],
   repairs: [
-    "Actually, let me rephrase.",
-    "Wait—let me think about this.",
+    'Actually, let me rephrase.',
+    'Wait—let me think about this.',
     "No, here's what I mean:",
   ],
-  thinkingPhrases: [
-    "Hmm...",
-    "Let me think...",
-    "That's interesting...",
-  ],
+  thinkingPhrases: ['Hmm...', 'Let me think...', "That's interesting..."],
 };
 
 // ============================================================================
@@ -165,7 +152,7 @@ const DEFAULT_DISFLUENCIES = {
 export class SpeechNaturalizer {
   private config: DisfluencyConfig;
   private recentDisfluencies: string[] = [];
-  private lastRepairTurn: number = -10;
+  private lastRepairTurn = -10;
 
   constructor(config?: Partial<DisfluencyConfig>) {
     this.config = {
@@ -180,11 +167,7 @@ export class SpeechNaturalizer {
   /**
    * Add natural disfluencies to a response
    */
-  naturalize(
-    text: string,
-    personaId: string,
-    context: NaturalizationContext = {}
-  ): string {
+  naturalize(text: string, personaId: string, context: NaturalizationContext = {}): string {
     if (!this.config.enabled) return text;
 
     const patterns = PERSONA_DISFLUENCIES[personaId] || DEFAULT_DISFLUENCIES;
@@ -224,11 +207,7 @@ export class SpeechNaturalizer {
   /**
    * Generate a self-correction/repair
    */
-  generateRepair(
-    originalStatement: string,
-    correctedStatement: string,
-    personaId: string
-  ): string {
+  generateRepair(originalStatement: string, correctedStatement: string, personaId: string): string {
     const patterns = PERSONA_DISFLUENCIES[personaId] || DEFAULT_DISFLUENCIES;
     const repair = patterns.repairs[Math.floor(Math.random() * patterns.repairs.length)];
 
@@ -245,25 +224,17 @@ export class SpeechNaturalizer {
     const patterns = PERSONA_DISFLUENCIES[personaId] || DEFAULT_DISFLUENCIES;
 
     const typeSpecific: Record<ThinkingPattern['type'], string[]> = {
-      processing: [
-        "Let me think about that...",
-        "Hmm...",
-        "That's an interesting point...",
-      ],
-      recalling: [
-        "You know, that reminds me...",
-        "Now that you mention it...",
-        "I remember...",
-      ],
+      processing: ['Let me think about that...', 'Hmm...', "That's an interesting point..."],
+      recalling: ['You know, that reminds me...', 'Now that you mention it...', 'I remember...'],
       considering: [
-        "Let me consider this...",
-        "There are a few ways to look at this...",
-        "On one hand...",
+        'Let me consider this...',
+        'There are a few ways to look at this...',
+        'On one hand...',
       ],
       uncertain: [
         "I'm not entirely sure, but...",
-        "This is tricky...",
-        "I want to be careful here...",
+        'This is tricky...',
+        'I want to be careful here...',
       ],
     };
 
@@ -287,13 +258,12 @@ export class SpeechNaturalizer {
     const hedgesByStrength = {
       soft: ['I think', 'Maybe', 'Perhaps'],
       medium: ['It seems like', 'In my view', 'Generally'],
-      strong: ["I'm not certain, but", "If I had to guess,", "This could be wrong, but"],
+      strong: ["I'm not certain, but", 'If I had to guess,', 'This could be wrong, but'],
     };
 
     const personalHedge = patterns.hedges[Math.floor(Math.random() * patterns.hedges.length)];
-    const strengthHedge = hedgesByStrength[strength][
-      Math.floor(Math.random() * hedgesByStrength[strength].length)
-    ];
+    const strengthHedge =
+      hedgesByStrength[strength][Math.floor(Math.random() * hedgesByStrength[strength].length)];
 
     // Randomly pick between personal and strength-based
     return Math.random() < 0.6 ? personalHedge : strengthHedge;
@@ -303,7 +273,10 @@ export class SpeechNaturalizer {
    * Wrap text with uncertainty markers
    */
   addUncertainty(text: string, personaId: string, level: 'low' | 'medium' | 'high'): string {
-    const hedge = this.getHedge(personaId, level === 'high' ? 'strong' : level === 'medium' ? 'medium' : 'soft');
+    const hedge = this.getHedge(
+      personaId,
+      level === 'high' ? 'strong' : level === 'medium' ? 'medium' : 'soft'
+    );
 
     // Determine where to add hedge
     if (level === 'high') {
@@ -330,7 +303,7 @@ export class SpeechNaturalizer {
 
   private addOpeningFiller(text: string, patterns: typeof DEFAULT_DISFLUENCIES): string {
     // Avoid repeating recent fillers
-    const available = patterns.fillers.filter(f => !this.recentDisfluencies.includes(f));
+    const available = patterns.fillers.filter((f) => !this.recentDisfluencies.includes(f));
     if (available.length === 0) {
       this.recentDisfluencies = [];
       return text;
@@ -359,7 +332,10 @@ export class SpeechNaturalizer {
     for (const point of insertPoints) {
       if (point.pattern.test(text)) {
         if (point.replace) {
-          return text.replace(point.pattern, `${hedge}, ${text.match(point.pattern)?.[0].toLowerCase() || ''}`);
+          return text.replace(
+            point.pattern,
+            `${hedge}, ${text.match(point.pattern)?.[0].toLowerCase() || ''}`
+          );
         }
         return text; // Already has a hedge-like pattern
       }
@@ -374,9 +350,8 @@ export class SpeechNaturalizer {
     patterns: typeof DEFAULT_DISFLUENCIES,
     context: NaturalizationContext
   ): string {
-    const thinkingPhrase = patterns.thinkingPhrases[
-      Math.floor(Math.random() * patterns.thinkingPhrases.length)
-    ];
+    const thinkingPhrase =
+      patterns.thinkingPhrases[Math.floor(Math.random() * patterns.thinkingPhrases.length)];
 
     // Add SSML breaks for natural pacing
     return `<break time="100ms"/>${thinkingPhrase}<break time="200ms"/> ${text}`;
@@ -403,24 +378,18 @@ export function generateFragment(context: 'trailing' | 'interrupted' | 'rethinki
   const fragments = {
     trailing: [
       "It's just that...",
-      "The thing is...",
-      "What I mean is...",
-      "You know how...",
-      "Sometimes I wonder if...",
+      'The thing is...',
+      'What I mean is...',
+      'You know how...',
+      'Sometimes I wonder if...',
     ],
-    interrupted: [
-      "Wait—",
-      "Oh, hold on—",
-      "Actually—",
-      "No, wait—",
-      "Hmm—",
-    ],
+    interrupted: ['Wait—', 'Oh, hold on—', 'Actually—', 'No, wait—', 'Hmm—'],
     rethinking: [
-      "Well, actually...",
-      "On second thought...",
-      "Then again...",
-      "But then...",
-      "Although...",
+      'Well, actually...',
+      'On second thought...',
+      'Then again...',
+      'But then...',
+      'Although...',
     ],
   };
 
@@ -449,4 +418,3 @@ export function resetSpeechNaturalizer(): void {
 }
 
 export default SpeechNaturalizer;
-

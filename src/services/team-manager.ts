@@ -24,10 +24,10 @@ import type {
 
 export class TeamManager {
   /** Registered team packages */
-  private packages: Map<string, TeamPackageManifest> = new Map();
+  private packages = new Map<string, TeamPackageManifest>();
 
   /** Active team instances by user */
-  private instances: Map<string, TeamInstance> = new Map();
+  private instances = new Map<string, TeamInstance>();
 
   // ==========================================================================
   // PACKAGE MANAGEMENT
@@ -59,7 +59,7 @@ export class TeamManager {
    * Get packages by category
    */
   getPackagesByCategory(category: string): TeamPackageManifest[] {
-    return this.listPackages().filter(pkg => pkg.metadata.category === category);
+    return this.listPackages().filter((pkg) => pkg.metadata.category === category);
   }
 
   // ==========================================================================
@@ -89,7 +89,7 @@ export class TeamManager {
     }
 
     // Check tier includes required members
-    const tier = pkg.pricing.tiers.find(t => t.id === license.tierId);
+    const tier = pkg.pricing.tiers.find((t) => t.id === license.tierId);
     if (!tier) {
       throw new Error(`Invalid tier: ${license.tierId}`);
     }
@@ -119,10 +119,7 @@ export class TeamManager {
     };
 
     this.instances.set(instanceId, instance);
-    getLogger().info(
-      { instanceId, packageId, userId, tier: license.tierId },
-      'Team activated'
-    );
+    getLogger().info({ instanceId, packageId, userId, tier: license.tierId }, 'Team activated');
 
     return instance;
   }
@@ -181,7 +178,11 @@ export class TeamManager {
 
     const pkg = this.packages.get(instance.packageId);
     if (!pkg) {
-      return { targetMember: instance.state.activeMember, confidence: 0.5, reason: 'Package not found' };
+      return {
+        targetMember: instance.state.activeMember,
+        confidence: 0.5,
+        reason: 'Package not found',
+      };
     }
 
     // Merge routing overrides with package defaults
@@ -273,7 +274,7 @@ export class TeamManager {
 
     for (const route of routing.topicRouting) {
       for (const topic of topics) {
-        if (route.topics.some(t => topic.toLowerCase().includes(t.toLowerCase()))) {
+        if (route.topics.some((t) => topic.toLowerCase().includes(t.toLowerCase()))) {
           if (!bestMatch || route.priority > bestMatch.priority) {
             bestMatch = { targetRole: route.targetRole, priority: route.priority };
           }
@@ -286,11 +287,11 @@ export class TeamManager {
 
   private resolveRoleToMember(pkg: TeamPackageManifest, role: TeamRole | string): string {
     // If it's already a member ID, return it
-    const memberById = pkg.members.find(m => m.personaId === role);
+    const memberById = pkg.members.find((m) => m.personaId === role);
     if (memberById) return role;
 
     // Find member by role
-    const memberByRole = pkg.members.find(m => m.roleId === role);
+    const memberByRole = pkg.members.find((m) => m.roleId === role);
     if (memberByRole) return memberByRole.personaId;
 
     // Fall back to coordinator
@@ -373,10 +374,7 @@ export class TeamManager {
   /**
    * Update shared context for a team instance
    */
-  updateSharedContext(
-    instanceId: string,
-    updates: Partial<TeamSharedContext>
-  ): void {
+  updateSharedContext(instanceId: string, updates: Partial<TeamSharedContext>): void {
     const instance = this.instances.get(instanceId);
     if (!instance) return;
 
@@ -416,7 +414,7 @@ export class TeamManager {
     return {
       activeMember: instance.state.activeMember,
       recentHandoffs: instance.state.handoffHistory.filter(
-        h => Date.now() - h.timestamp.getTime() < 3600000 // Last hour
+        (h) => Date.now() - h.timestamp.getTime() < 3600000 // Last hour
       ).length,
       topicsDiscussed: instance.state.sharedContext.activeTopics,
       memberActivity: Object.fromEntries(
@@ -495,4 +493,3 @@ export function resetTeamManager(): void {
 }
 
 export default TeamManager;
-

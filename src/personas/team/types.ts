@@ -55,22 +55,22 @@ export interface HandoffTemplate {
  */
 export interface TeamCoordination {
   /** How team members reference each other */
-  teammateReferences: {
+  teammateReferences: Array<{
     /** Role ID */
     roleId: RoleId;
     /** How other members refer to this role */
     informalReference: string;
     /** Formal reference */
     formalReference: string;
-  }[];
+  }>;
 
   /** Cross-team task routing */
-  taskRouting?: {
+  taskRouting?: Array<{
     /** Task type keyword */
     taskType: string;
     /** Target role ID */
     targetRole: RoleId;
-  }[];
+  }>;
 }
 
 /**

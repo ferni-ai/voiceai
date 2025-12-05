@@ -72,7 +72,7 @@ const AGENT_SPECIALTIES: Record<string, string> = {
 // Legacy ID mappings (for compatibility with existing handoff tools)
 // NOTE: Now that handoff.ts uses canonical IDs internally, these should match!
 const CANONICAL_TO_LEGACY: Record<string, string> = {
-  ferni: 'ferni',           // Canonical ID (was jack-b)
+  ferni: 'ferni', // Canonical ID (was jack-b)
   'nayan-patel': 'nayan-patel',
   'peter-john': 'peter-john',
   'alex-chen': 'alex-chen', // Canonical ID (was alex)
@@ -226,10 +226,10 @@ function detectWakeWord(userText: string): WakeWordResult {
       // Check if message starts with trigger or IS the trigger
       if (
         lowerText === lowerTrigger ||
-        lowerText.startsWith(lowerTrigger + ' ') ||
-        lowerText.startsWith(lowerTrigger + ',') ||
-        lowerText.startsWith(lowerTrigger + '!') ||
-        lowerText.startsWith(lowerTrigger + '?')
+        lowerText.startsWith(`${lowerTrigger} `) ||
+        lowerText.startsWith(`${lowerTrigger},`) ||
+        lowerText.startsWith(`${lowerTrigger}!`) ||
+        lowerText.startsWith(`${lowerTrigger}?`)
       ) {
         const displayName = getPersonaDisplayName(canonicalId);
         const tool = AGENT_TOOLS[canonicalId] || `handoffTo${displayName}`;
@@ -276,14 +276,14 @@ function legacyToCanonical(agentId: string): string {
     'spend-save': 'maya-santos',
     'event-planner': 'jordan-taylor',
     // Short IDs → Canonical
-    'alex': 'alex-chen',
-    'maya': 'maya-santos',
-    'jordan': 'jordan-taylor',
-    'nayan': 'nayan-patel',
-    'peter': 'peter-john',
-    'coach': 'ferni',
+    alex: 'alex-chen',
+    maya: 'maya-santos',
+    jordan: 'jordan-taylor',
+    nayan: 'nayan-patel',
+    peter: 'peter-john',
+    coach: 'ferni',
     // Canonical → Canonical (pass-through)
-    'ferni': 'ferni',
+    ferni: 'ferni',
     'alex-chen': 'alex-chen',
     'maya-santos': 'maya-santos',
     'jordan-taylor': 'jordan-taylor',
@@ -317,10 +317,14 @@ function buildHandoffContext(input: ContextBuilderInput): ContextInjection[] {
   // WAKE WORD DETECTION - IMMEDIATE MANDATORY HANDOFF
   // -----------------------------------------------
   const wakeWord = detectWakeWord(userText);
-  console.log(`🔍 [Handoff Context] Wake word check: userText="${userText.slice(0, 50)}", isWakeWord=${wakeWord.isWakeWord}, target=${wakeWord.targetAgent}, currentAgent=${currentAgent}`);
-  
+  console.log(
+    `🔍 [Handoff Context] Wake word check: userText="${userText.slice(0, 50)}", isWakeWord=${wakeWord.isWakeWord}, target=${wakeWord.targetAgent}, currentAgent=${currentAgent}`
+  );
+
   if (wakeWord.isWakeWord && wakeWord.targetAgent !== currentAgent) {
-    console.log(`🚨 [Handoff Context] WAKE WORD DETECTED! Target: ${wakeWord.targetName}, Tool: ${wakeWord.tool}`);
+    console.log(
+      `🚨 [Handoff Context] WAKE WORD DETECTED! Target: ${wakeWord.targetName}, Tool: ${wakeWord.tool}`
+    );
     // This is a CRITICAL injection - the LLM MUST call the handoff tool immediately
     injections.push(
       createCriticalInjection(

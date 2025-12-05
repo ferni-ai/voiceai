@@ -39,19 +39,47 @@ interface QuirkTrigger {
 
 const QUIRK_TRIGGERS: QuirkTrigger[] = [
   // Coffee/tea triggers habits
-  { keywords: ['coffee', 'caffeine', 'morning', 'tired', 'energy'], quirkType: 'habit', minRelationshipDepth: 0 },
+  {
+    keywords: ['coffee', 'caffeine', 'morning', 'tired', 'energy'],
+    quirkType: 'habit',
+    minRelationshipDepth: 0,
+  },
   // Opinions triggers
-  { keywords: ['think', 'opinion', 'believe', 'feel about', 'what do you'], quirkType: 'strong_opinion', minRelationshipDepth: 1 },
+  {
+    keywords: ['think', 'opinion', 'believe', 'feel about', 'what do you'],
+    quirkType: 'strong_opinion',
+    minRelationshipDepth: 1,
+  },
   // Weakness triggers (vulnerability)
-  { keywords: ['hard', 'difficult', 'struggle', 'bad at', 'help me'], quirkType: 'weakness', minRelationshipDepth: 1 },
+  {
+    keywords: ['hard', 'difficult', 'struggle', 'bad at', 'help me'],
+    quirkType: 'weakness',
+    minRelationshipDepth: 1,
+  },
   // Guilty pleasure triggers (intimate)
-  { keywords: ['guilty', 'secret', 'confession', 'admit', 'between us'], quirkType: 'guilty_pleasure', minRelationshipDepth: 2 },
+  {
+    keywords: ['guilty', 'secret', 'confession', 'admit', 'between us'],
+    quirkType: 'guilty_pleasure',
+    minRelationshipDepth: 2,
+  },
   // Work/productivity triggers
-  { keywords: ['organize', 'schedule', 'calendar', 'email', 'meeting'], quirkType: 'habit', minRelationshipDepth: 0 },
+  {
+    keywords: ['organize', 'schedule', 'calendar', 'email', 'meeting'],
+    quirkType: 'habit',
+    minRelationshipDepth: 0,
+  },
   // Food/lifestyle triggers
-  { keywords: ['eat', 'food', 'dinner', 'lunch', 'restaurant'], quirkType: 'guilty_pleasure', minRelationshipDepth: 1 },
+  {
+    keywords: ['eat', 'food', 'dinner', 'lunch', 'restaurant'],
+    quirkType: 'guilty_pleasure',
+    minRelationshipDepth: 1,
+  },
   // Hobby/entertainment triggers
-  { keywords: ['watch', 'read', 'book', 'movie', 'show', 'weekend'], quirkType: 'guilty_pleasure', minRelationshipDepth: 1 },
+  {
+    keywords: ['watch', 'read', 'book', 'movie', 'show', 'weekend'],
+    quirkType: 'guilty_pleasure',
+    minRelationshipDepth: 1,
+  },
 ];
 
 function getRelationshipDepth(stage?: string): number {
@@ -198,7 +226,9 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
 
     if (Math.random() < baseProbability) {
       // Choose quirk type based on relationship depth
-      const quirkTypes: Array<'habit' | 'strong_opinion' | 'weakness' | 'guilty_pleasure'> = ['habit'];
+      const quirkTypes: Array<'habit' | 'strong_opinion' | 'weakness' | 'guilty_pleasure'> = [
+        'habit',
+      ];
 
       if (relationshipDepth >= 1) {
         quirkTypes.push('strong_opinion', 'weakness');
@@ -268,4 +298,3 @@ async function buildPersonaQuirksContext(input: ContextBuilderInput): Promise<Co
 registerContextBuilder('persona_quirks', buildPersonaQuirksContext);
 
 export { buildPersonaQuirksContext };
-

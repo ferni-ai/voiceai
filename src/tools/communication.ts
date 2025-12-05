@@ -108,7 +108,7 @@ export async function sendEmail(
   to: string,
   subject: string,
   body: string,
-  isHtml: boolean = false
+  isHtml = false
 ): Promise<string> {
   // Validate email address
   const emailValidation = validateEmail(to);
@@ -283,9 +283,9 @@ export async function sendSMS(to: string, message: string): Promise<string> {
           {
             method: 'POST',
             headers: {
-              Authorization:
-                'Basic ' +
-                Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64'),
+              Authorization: `Basic ${Buffer.from(
+                `${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`
+              ).toString('base64')}`,
               'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
@@ -476,8 +476,8 @@ export async function createCalendarEvent(
   summary: string,
   description: string,
   startTime: Date,
-  durationMinutes: number = 30,
-  timeZone: string = 'America/New_York'
+  durationMinutes = 30,
+  timeZone = 'America/New_York'
 ): Promise<string> {
   const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
 

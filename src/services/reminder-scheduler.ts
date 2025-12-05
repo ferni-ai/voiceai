@@ -10,9 +10,10 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-import { getFirestoreStore, FirestoreStore } from '../memory/firestore-store.js';
+import type { FirestoreStore } from '../memory/firestore-store.js';
+import { getFirestoreStore } from '../memory/firestore-store.js';
 import { InMemoryStore } from '../memory/in-memory-store.js';
-import { MemoryStore } from '../memory/store.js';
+import type { MemoryStore } from '../memory/store.js';
 import { sendEmail, sendSMS, sendReminder as sendReminderSMS } from '../tools/communication.js';
 
 // Logger instance for use throughout this module
@@ -366,7 +367,7 @@ let schedulerInterval: NodeJS.Timeout | null = null;
  * Start the reminder scheduler
  * Checks for due reminders every minute
  */
-export function startReminderScheduler(intervalMs: number = 60000): void {
+export function startReminderScheduler(intervalMs = 60000): void {
   if (schedulerInterval) {
     getLogger().warn('Reminder scheduler already running');
     return;
@@ -448,10 +449,7 @@ export function cleanupOldReminders(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000):
 /**
  * Parse natural language time expressions
  */
-export function parseNaturalTime(
-  expression: string,
-  timezone: string = 'America/New_York'
-): Date | null {
+export function parseNaturalTime(expression: string, timezone = 'America/New_York'): Date | null {
   const now = new Date();
   const lower = expression.toLowerCase().trim();
 

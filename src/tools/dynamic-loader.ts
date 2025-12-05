@@ -673,10 +673,7 @@ export class DynamicToolLoader {
     const loadedDomainList = Array.from(this.loadedDomains.keys());
 
     // Build tools from loaded domains
-    const result = toolRegistry.buildToolSet(
-      { domains: loadedDomainList },
-      this.toolContext
-    );
+    const result = toolRegistry.buildToolSet({ domains: loadedDomainList }, this.toolContext);
 
     return result.tools;
   }
@@ -718,10 +715,7 @@ export class DynamicToolLoader {
   } {
     return {
       loadedDomains: Array.from(this.loadedDomains.values()),
-      totalTools: Array.from(this.loadedDomains.values()).reduce(
-        (sum, s) => sum + s.toolCount,
-        0
-      ),
+      totalTools: Array.from(this.loadedDomains.values()).reduce((sum, s) => sum + s.toolCount, 0),
       config: this.config,
     };
   }
@@ -748,4 +742,3 @@ export class DynamicToolLoader {
 export const dynamicToolLoader = new DynamicToolLoader();
 
 export default dynamicToolLoader;
-

@@ -624,7 +624,9 @@ Alex tracks how people like to be contacted and communicated with.`,
       parameters: z.object({
         preference: z
           .string()
-          .describe('The communication preference (e.g., "prefers text over calls", "likes brief updates")'),
+          .describe(
+            'The communication preference (e.g., "prefers text over calls", "likes brief updates")'
+          ),
         context: z.string().optional().describe('When this applies'),
       }),
       execute: async ({ preference, context }, { ctx }) => {
@@ -647,7 +649,9 @@ Alex tracks how people like to be contacted and communicated with.`,
       description: `Remember a scheduling preference or note.
 Alex tracks when people are available and their scheduling quirks.`,
       parameters: z.object({
-        note: z.string().describe('The scheduling note (e.g., "busy on Tuesdays", "prefers morning meetings")'),
+        note: z
+          .string()
+          .describe('The scheduling note (e.g., "busy on Tuesdays", "prefers morning meetings")'),
         recurring: z.boolean().optional().describe('Is this recurring?'),
       }),
       execute: async ({ note, recurring }, { ctx }) => {

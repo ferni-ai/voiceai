@@ -5,16 +5,8 @@
  * Makes it easier to adopt Result types incrementally.
  */
 
-import { 
-  Result, 
-  Success, 
-  Failure, 
-  success, 
-  failure, 
-  isSuccess, 
-  isFailure,
-  DomainError,
-} from './result.js';
+import type { Result, Success, Failure } from './result.js';
+import { success, failure, isSuccess, isFailure, DomainError } from './result.js';
 
 // ============================================================================
 // CONVERSION UTILITIES
@@ -86,10 +78,7 @@ export function expectFailure<T, E>(result: Result<T, E>): E {
 /**
  * Assert that a result matches expected success value
  */
-export function assertSuccessEquals<T, E>(
-  result: Result<T, E>,
-  expected: T
-): void {
+export function assertSuccessEquals<T, E>(result: Result<T, E>, expected: T): void {
   const data = expectSuccess(result);
   if (JSON.stringify(data) !== JSON.stringify(expected)) {
     throw new Error(
@@ -107,9 +96,7 @@ export function assertFailureType<T, E extends Error>(
 ): void {
   const error = expectFailure(result);
   if (!(error instanceof expectedType)) {
-    throw new Error(
-      `Expected error type ${expectedType.name} but got ${error.constructor.name}`
-    );
+    throw new Error(`Expected error type ${expectedType.name} but got ${error.constructor.name}`);
   }
 }
 
@@ -133,11 +120,11 @@ export function mockFailure<E = Error>(error: E): Failure<E> {
 
 /**
  * Custom matchers for use with expect()
- * 
+ *
  * Usage in test setup:
  *   import { resultMatchers } from '../types/result-utils.js';
  *   expect.extend(resultMatchers);
- * 
+ *
  * Then in tests:
  *   expect(result).toBeSuccess();
  *   expect(result).toBeFailure();
@@ -213,10 +200,7 @@ export const resultMatchers = {
  * Pipe multiple Result-returning functions
  * Stops at first failure
  */
-export function pipe<A, B, E>(
-  a: Result<A, E>,
-  fn: (a: A) => Result<B, E>
-): Result<B, E> {
+export function pipe<A, B, E>(a: Result<A, E>, fn: (a: A) => Result<B, E>): Result<B, E> {
   if (isFailure(a)) return a;
   return fn(a.data);
 }
@@ -254,23 +238,22 @@ export async function retryResult<T, E>(
   } = {}
 ): Promise<Result<T, E>> {
   const { maxAttempts = 3, delayMs = 1000, shouldRetry = () => true } = options;
-  
+
   let lastError: E | undefined;
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const result = await operation();
-    
+
     if (isSuccess(result)) {
       return result;
     }
-    
+
     lastError = result.error;
-    
+
     if (attempt < maxAttempts && shouldRetry(result.error)) {
-      await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
     }
   }
-  
+
   return failure(lastError!);
 }
-

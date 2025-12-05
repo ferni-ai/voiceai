@@ -381,7 +381,7 @@ export interface UserLifeData {
 
 class LifeDataStore {
   private store: MemoryStore | null = null;
-  private cache: Map<string, UserLifeData> = new Map();
+  private cache = new Map<string, UserLifeData>();
   private initialized = false;
 
   async initialize(): Promise<void> {
@@ -622,7 +622,7 @@ class LifeDataStore {
   /**
    * Get milestones with upcoming dates
    */
-  async getUpcomingMilestones(userId: string, daysAhead: number = 30): Promise<LifeMilestone[]> {
+  async getUpcomingMilestones(userId: string, daysAhead = 30): Promise<LifeMilestone[]> {
     const milestones = await this.getMilestones(userId);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() + daysAhead);

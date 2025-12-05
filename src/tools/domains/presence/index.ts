@@ -33,7 +33,9 @@ const groundInBodyDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user ground in physical, bodily awareness.',
       parameters: z.object({
-        state: z.enum(['anxious', 'scattered', 'disconnected', 'overwhelmed', 'neutral']).describe('Current state'),
+        state: z
+          .enum(['anxious', 'scattered', 'disconnected', 'overwhelmed', 'neutral'])
+          .describe('Current state'),
       }),
       execute: async ({ state }) => {
         getLogger().info({ agentId: ctx.agentId, state }, 'Grounding in body');
@@ -72,7 +74,9 @@ const groundingExerciseDef: ToolDefinition = {
     return llm.tool({
       description: 'Guide the user through a grounding exercise.',
       parameters: z.object({
-        type: z.enum(['feet-on-ground', 'body-scan', 'breath', 'anchor']).describe('Type of grounding'),
+        type: z
+          .enum(['feet-on-ground', 'body-scan', 'breath', 'anchor'])
+          .describe('Type of grounding'),
         duration: z.enum(['quick', 'medium', 'extended']).optional().describe('How long'),
       }),
       execute: async ({ type, duration = 'quick' }) => {
@@ -136,7 +140,9 @@ const returnToPresentDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user return to the present moment when lost in past or future.',
       parameters: z.object({
-        whereLost: z.enum(['past', 'future', 'both', 'unsure']).describe('Where attention has gone'),
+        whereLost: z
+          .enum(['past', 'future', 'both', 'unsure'])
+          .describe('Where attention has gone'),
         whatAbout: z.string().optional().describe('What the mind is caught on'),
       }),
       execute: async ({ whereLost, whatAbout }) => {
@@ -192,7 +198,9 @@ const noticeThisMomentDef: ToolDefinition = {
     return llm.tool({
       description: 'Guide simple present-moment awareness practice.',
       parameters: z.object({
-        focus: z.enum(['open', 'sensory', 'breath', 'body', 'sounds']).describe('Focus of attention'),
+        focus: z
+          .enum(['open', 'sensory', 'breath', 'body', 'sounds'])
+          .describe('Focus of attention'),
       }),
       execute: async ({ focus }) => {
         getLogger().info({ agentId: ctx.agentId, focus }, 'Noticing this moment');
@@ -258,7 +266,10 @@ const breatheWithMeDef: ToolDefinition = {
       description: 'Guide the user through breathing for presence and calm.',
       parameters: z.object({
         technique: z.enum(['simple', 'box', '4-7-8', 'coherent']).describe('Breathing technique'),
-        purpose: z.enum(['calm', 'energize', 'presence', 'sleep']).optional().describe('Purpose of breathing'),
+        purpose: z
+          .enum(['calm', 'energize', 'presence', 'sleep'])
+          .optional()
+          .describe('Purpose of breathing'),
       }),
       execute: async ({ technique, purpose = 'presence' }) => {
         getLogger().info({ agentId: ctx.agentId, technique, purpose }, 'Breathing together');
@@ -460,7 +471,9 @@ const protectPresenceDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user protect their presence and attention from fragmentation.',
       parameters: z.object({
-        threat: z.enum(['devices', 'overthinking', 'multitasking', 'worry', 'busyness', 'general']).describe('What threatens presence'),
+        threat: z
+          .enum(['devices', 'overthinking', 'multitasking', 'worry', 'busyness', 'general'])
+          .describe('What threatens presence'),
       }),
       execute: async ({ threat }) => {
         getLogger().info({ agentId: ctx.agentId, threat }, 'Protecting presence');
@@ -592,8 +605,12 @@ const naturePrescriptionDef: ToolDefinition = {
     return llm.tool({
       description: 'Guide the user in using nature for presence and grounding.',
       parameters: z.object({
-        access: z.enum(['full-nature', 'park', 'yard', 'window', 'none']).describe('Nature access level'),
-        need: z.enum(['grounding', 'calm', 'perspective', 'energy', 'general']).describe('What they need'),
+        access: z
+          .enum(['full-nature', 'park', 'yard', 'window', 'none'])
+          .describe('Nature access level'),
+        need: z
+          .enum(['grounding', 'calm', 'perspective', 'energy', 'general'])
+          .describe('What they need'),
       }),
       execute: async ({ access, need }) => {
         getLogger().info({ agentId: ctx.agentId, access, need }, 'Nature prescription');
@@ -609,28 +626,28 @@ const naturePrescriptionDef: ToolDefinition = {
             energy: `Move through nature. Walk, hike, run if you can. Let your body experience being an animal in the world.\n\nNotice how your body wants to move when it's not in boxes and chairs.`,
             general: `Immerse yourself. Use all senses. What do you see, hear, smell, feel? Let nature fill your attention.\n\nThis is what your nervous system evolved for. It knows what to do here.`,
           },
-          'park': {
+          park: {
             grounding: `Find grass and stand or sit on it. Feel the earth beneath you. Watch the ground-level world for a moment - ants, grass blades, tiny flowers.`,
             calm: `Find a bench. Sit. Watch. Don't check your phone. Just observe the park happening around you - people, animals, trees, clouds.`,
             perspective: `Look at the biggest tree in the park. How many seasons has it seen? How many people have sat beneath it?`,
             energy: `Walk the perimeter. Notice what's blooming, what's green, what's changing. Move your body through the space.`,
             general: `Even a small green space is medicine. Spend 20 minutes here and notice how you feel compared to when you arrived.`,
           },
-          'yard': {
+          yard: {
             grounding: `Go outside, even briefly. Feel the air on your skin. Notice the temperature. Stand still and just be outside.`,
             calm: `Sit outside if you can. Close your eyes and listen to whatever sounds are there - birds, wind, distant traffic.`,
             perspective: `Look at the sky. Watch clouds move. Notice that there's a whole world happening above your usual eye level.`,
             energy: `Do something physical outside - garden, clean up, stretch. Let your body be outdoors and moving.`,
             general: `Your yard is nature. Pay attention to what's growing, what creatures visit, what the weather is doing. Engage with it.`,
           },
-          'window': {
+          window: {
             grounding: `Look out the window. Find something natural - a tree, the sky, birds. Focus on it for a full minute.`,
             calm: `Watch weather happening. Rain, clouds moving, light changing. Nature is always doing something if you look.`,
             perspective: `Notice how the world outside doesn't care about your to-do list. It just continues. There's freedom in that.`,
             energy: `Open the window if you can. Let fresh air in. Even the air from outside is different from indoor air.`,
             general: `A window is a portal to the natural world. Use it. Look through it consciously instead of past it.`,
           },
-          'none': {
+          none: {
             grounding: `Plants count. Touch a houseplant's leaves. Notice texture. This is a living thing sharing your space.`,
             calm: `Listen for any natural sounds - birds outside, rain on the roof. They're there if you listen for them.`,
             perspective: `Close your eyes and imagine your favorite natural place. Your brain responds similarly to imagined nature.`,
@@ -674,4 +691,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

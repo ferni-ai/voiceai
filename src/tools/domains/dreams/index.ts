@@ -33,7 +33,9 @@ const captureDreamDef: ToolDefinition = {
       description: 'Help the user capture a dream without editing it for practicality.',
       parameters: z.object({
         dream: z.string().describe('The dream or aspiration'),
-        type: z.enum(['life-dream', 'career', 'creative', 'adventure', 'relationship', 'being', 'other']).describe('Type of dream'),
+        type: z
+          .enum(['life-dream', 'career', 'creative', 'adventure', 'relationship', 'being', 'other'])
+          .describe('Type of dream'),
         howItFeels: z.string().optional().describe('How thinking about this dream feels'),
       }),
       execute: async ({ dream, type, howItFeels }) => {
@@ -41,7 +43,7 @@ const captureDreamDef: ToolDefinition = {
 
         let response = `Your dream: "${dream}"\n\n`;
         if (howItFeels) response += `It feels: ${howItFeels}\n\n`;
-        
+
         response += `I want to honor this dream.\n\n`;
         response += `Dreams don't need to be practical to be valid. They don't need to be achievable to matter. Sometimes dreams are meant to be lived. Sometimes they're meant to guide us. Sometimes they're just meant to be held with tenderness.\n\n`;
         response += `This dream tells me something about who you are and what you long for.\n\n`;
@@ -65,7 +67,9 @@ const exploreDreamDef: ToolDefinition = {
       description: 'Help the user explore what their dream really means at a deeper level.',
       parameters: z.object({
         dream: z.string().describe('The dream to explore'),
-        question: z.enum(['why-this', 'what-beneath', 'what-if', 'obstacles', 'small-step']).describe('Angle of exploration'),
+        question: z
+          .enum(['why-this', 'what-beneath', 'what-if', 'obstacles', 'small-step'])
+          .describe('Angle of exploration'),
       }),
       execute: async ({ dream, question }) => {
         getLogger().info({ agentId: ctx.agentId, question }, 'Exploring dream');
@@ -163,9 +167,19 @@ const playWithPossibilityDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Create space for imaginative play with possibilities unconstrained by practicality.',
+      description:
+        'Create space for imaginative play with possibilities unconstrained by practicality.',
       parameters: z.object({
-        prompt: z.enum(['unlimited-money', 'no-fear', 'ten-lives', 'magic-wand', 'guaranteed-success', 'custom']).describe('Imaginative prompt'),
+        prompt: z
+          .enum([
+            'unlimited-money',
+            'no-fear',
+            'ten-lives',
+            'magic-wand',
+            'guaranteed-success',
+            'custom',
+          ])
+          .describe('Imaginative prompt'),
         customPrompt: z.string().optional().describe('Custom prompt if chosen'),
       }),
       execute: async ({ prompt, customPrompt }) => {
@@ -179,7 +193,10 @@ const playWithPossibilityDef: ToolDefinition = {
           'guaranteed-success': `**If success were guaranteed...**\n\nImagine you knew you couldn't fail. Whatever you tried, you'd succeed.\n\n- What would you attempt?\n- What would you finally start?\n- What risk would you take?\n\nSometimes fear of failure keeps us from trying. What's waiting on the other side of that fear?`,
         };
 
-        return prompts[prompt] || `Let's explore: ${customPrompt}\n\nGive yourself permission to imagine freely. What comes up?`;
+        return (
+          prompts[prompt] ||
+          `Let's explore: ${customPrompt}\n\nGive yourself permission to imagine freely. What comes up?`
+        );
       },
     });
   },
@@ -231,11 +248,18 @@ const futureSelfDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user connect with and learn from their future self.',
       parameters: z.object({
-        howFarAhead: z.enum(['5-years', '10-years', '20-years', 'end-of-life']).describe('How far ahead to imagine'),
-        mode: z.enum(['visualize', 'receive-wisdom', 'ask-question', 'get-encouragement']).describe('Mode of connection'),
+        howFarAhead: z
+          .enum(['5-years', '10-years', '20-years', 'end-of-life'])
+          .describe('How far ahead to imagine'),
+        mode: z
+          .enum(['visualize', 'receive-wisdom', 'ask-question', 'get-encouragement'])
+          .describe('Mode of connection'),
       }),
       execute: async ({ howFarAhead, mode }) => {
-        getLogger().info({ agentId: ctx.agentId, howFarAhead, mode }, 'Connecting with future self');
+        getLogger().info(
+          { agentId: ctx.agentId, howFarAhead, mode },
+          'Connecting with future self'
+        );
 
         let response = `**Meeting Your Future Self**\n\n`;
         response += `Imagine yourself ${howFarAhead.replace('-', ' ')} from now - the wisest, most realized version of you that could exist.\n\n`;
@@ -281,7 +305,9 @@ const bucketListDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user explore and articulate their bucket list.',
       parameters: z.object({
-        mode: z.enum(['add', 'explore', 'prioritize', 'why-not-now']).describe('Mode of engagement'),
+        mode: z
+          .enum(['add', 'explore', 'prioritize', 'why-not-now'])
+          .describe('Mode of engagement'),
         item: z.string().optional().describe('Specific item if adding or exploring'),
       }),
       execute: async ({ mode, item }) => {
@@ -338,7 +364,9 @@ const reconnectWithDreamsDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user reconnect with dreams they may have forgotten or suppressed.',
       parameters: z.object({
-        timeOfLife: z.enum(['childhood', 'teens', 'young-adult', 'before-responsibilities', 'recent']).describe('When the dreams lived'),
+        timeOfLife: z
+          .enum(['childhood', 'teens', 'young-adult', 'before-responsibilities', 'recent'])
+          .describe('When the dreams lived'),
       }),
       execute: async ({ timeOfLife }) => {
         getLogger().info({ agentId: ctx.agentId, timeOfLife }, 'Reconnecting with dreams');
@@ -385,4 +413,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

@@ -72,7 +72,12 @@ import { getGlobalServices } from './global-services.js';
 import { getPersonalizer } from './profile-personalizer.js';
 import type { SessionServices, CreateSessionOptions } from './types.js';
 import type { HumanizingStateUpdate } from './humanizing-state.js';
-import { semanticSearch, ragLookup as semanticRagLookup, summarizeConversation, indexConversationSummary } from '../memory/index.js';
+import {
+  semanticSearch,
+  ragLookup as semanticRagLookup,
+  summarizeConversation,
+  indexConversationSummary,
+} from '../memory/index.js';
 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../tools/handoff-state.js';
@@ -94,7 +99,7 @@ import { persistenceMetrics } from './persistence-metrics.js';
 // SESSION STATE
 // ============================================================================
 
-const activeSessions: Map<string, SessionServices> = new Map();
+const activeSessions = new Map<string, SessionServices>();
 
 // ============================================================================
 // SESSION CREATION
@@ -112,7 +117,9 @@ export async function createSessionServices(
   personaId?: string
 ): Promise<SessionServices>;
 
-export async function createSessionServices(options: CreateSessionOptions): Promise<SessionServices>;
+export async function createSessionServices(
+  options: CreateSessionOptions
+): Promise<SessionServices>;
 
 export async function createSessionServices(
   sessionIdOrOptions: string | CreateSessionOptions,
@@ -144,7 +151,7 @@ export async function createSessionServices(
   let lastUserEmotion: string | undefined = undefined;
 
   // Track humanizing state updates during session
-  const humanizingStateUpdates: Array<HumanizingStateUpdate> = [];
+  const humanizingStateUpdates: HumanizingStateUpdate[] = [];
 
   // FIX BUG #session-13: Validate userId format before profile operations
   const isValidUserId = (id: string | undefined): id is string => {
@@ -183,7 +190,10 @@ export async function createSessionServices(
       }
     }
   } else if (userId) {
-    getLogger().warn({ providedUserId: userId?.slice(0, 20) }, 'Skipping profile operations due to invalid userId');
+    getLogger().warn(
+      { providedUserId: userId?.slice(0, 20) },
+      'Skipping profile operations due to invalid userId'
+    );
   }
 
   // Create session-specific components
@@ -255,18 +265,21 @@ export async function createSessionServices(
   const storyPreference = getStoryPreference(engineKey);
   const communicationMirroring = getCommunicationMirroring(engineKey);
   const emotionalMemory = getEmotionalMemory(engineKey);
-  
+
   // Start emotional memory session
   emotionalMemory.startSession(sessionId);
-  
+
   // Load emotional memory from profile for returning users
   if (userProfile?.customData && isReturningUser) {
     const customData = userProfile.customData as {
-      emotionalMoments?: import('../intelligence/emotional-memory.js').EmotionalMoment[];
+      emotionalMoments?: Array<import('../intelligence/emotional-memory.js').EmotionalMoment>;
     };
     if (customData.emotionalMoments?.length) {
       emotionalMemory.importMoments(customData.emotionalMoments);
-      getLogger().info({ count: customData.emotionalMoments.length }, 'Loaded emotional memory from profile');
+      getLogger().info(
+        { count: customData.emotionalMoments.length },
+        'Loaded emotional memory from profile'
+      );
     }
   }
 
@@ -274,33 +287,42 @@ export async function createSessionServices(
   // CROSS-SESSION THREADER (with persistence from user profile)
   // FIX: Load existing threads and follow-ups for returning users
   // ============================================================================
-  
-  let existingThreads: import('../intelligence/cross-session-threader.js').OpenThread[] | undefined;
-  let existingFollowUps: import('../intelligence/cross-session-threader.js').PromisedFollowUp[] | undefined;
-  
+
+  let existingThreads:
+    | Array<import('../intelligence/cross-session-threader.js').OpenThread>
+    | undefined;
+  let existingFollowUps:
+    | Array<import('../intelligence/cross-session-threader.js').PromisedFollowUp>
+    | undefined;
+
   if (userProfile?.customData && isReturningUser) {
     const customData = userProfile.customData as {
-      openThreads?: import('../intelligence/cross-session-threader.js').OpenThread[];
-      promisedFollowUps?: import('../intelligence/cross-session-threader.js').PromisedFollowUp[];
+      openThreads?: Array<import('../intelligence/cross-session-threader.js').OpenThread>;
+      promisedFollowUps?: Array<
+        import('../intelligence/cross-session-threader.js').PromisedFollowUp
+      >;
     };
-    
+
     existingThreads = customData.openThreads;
     existingFollowUps = customData.promisedFollowUps;
-    
+
     if (existingThreads?.length || existingFollowUps?.length) {
-      getLogger().info({
-        openThreads: existingThreads?.filter(t => t.status === 'open').length || 0,
-        pendingFollowUps: existingFollowUps?.filter(f => !f.delivered).length || 0,
-      }, 'Loaded cross-session threads from user profile');
+      getLogger().info(
+        {
+          openThreads: existingThreads?.filter((t) => t.status === 'open').length || 0,
+          pendingFollowUps: existingFollowUps?.filter((f) => !f.delivered).length || 0,
+        },
+        'Loaded cross-session threads from user profile'
+      );
     }
   }
-  
+
   const crossSessionThreader = getCrossSessionThreader(
     engineKey,
     existingThreads,
     existingFollowUps
   );
-  
+
   // Set current session ID for thread tracking
   crossSessionThreader.setCurrentSession(sessionId);
 
@@ -313,22 +335,28 @@ export async function createSessionServices(
     try {
       const patternData = patternAnalyzer.analyzePatterns();
       const responsePrefs = responseQualityTracker.calculatePreferences();
-      
+
       const insightResult = proactiveEngine.generateInsights(
         userProfile,
         patternData,
         responsePrefs
       );
-      
+
       if (insightResult.highPriorityCount > 0) {
-        getLogger().info({
-          totalInsights: insightResult.insights.length,
-          highPriority: insightResult.highPriorityCount,
-          suggestedStarter: insightResult.suggestedConversationStarter?.slice(0, 50),
-        }, 'Generated proactive insights for returning user');
+        getLogger().info(
+          {
+            totalInsights: insightResult.insights.length,
+            highPriority: insightResult.highPriorityCount,
+            suggestedStarter: insightResult.suggestedConversationStarter?.slice(0, 50),
+          },
+          'Generated proactive insights for returning user'
+        );
       }
     } catch (insightError) {
-      getLogger().debug({ error: String(insightError) }, 'Failed to generate proactive insights (non-blocking)');
+      getLogger().debug(
+        { error: String(insightError) },
+        'Failed to generate proactive insights (non-blocking)'
+      );
     }
   }
 
@@ -365,13 +393,16 @@ export async function createSessionServices(
           // Export current intelligence state
           const updatedProfile = applyIntelligenceToProfile(services.userProfile, uid);
           services.userProfile = updatedProfile;
-          
+
           // Save to store
           await global.store.saveProfile(updatedProfile);
-          
+
           const durationMs = Date.now() - startTime;
           persistenceMetrics.recordAutoSave(sessionId, durationMs);
-          getLogger().debug({ userId: uid, durationMs }, 'Auto-saved profile with intelligence state');
+          getLogger().debug(
+            { userId: uid, durationMs },
+            'Auto-saved profile with intelligence state'
+          );
         }
       } catch (error) {
         const durationMs = Date.now() - startTime;
@@ -384,7 +415,7 @@ export async function createSessionServices(
     // Start auto-save with 30 second interval
     startAutoSave(validatedUserId, autoSaveCallback, { autoSaveIntervalMs: 30000 });
     getLogger().info({ userId: validatedUserId }, '⏰ Started auto-save for session');
-    
+
     // Record session start in metrics
     persistenceMetrics.recordSessionStart(sessionId, validatedUserId, personaId || 'unknown');
   }
@@ -444,14 +475,17 @@ export async function createSessionServices(
             const emotionDetector = getEmotionDetector();
             const llmCaller = createEmotionLLMCaller();
             const enhancedEmotion = await emotionDetector.detectWithLLM(message, llmCaller);
-            
+
             // Update the last emotion if LLM got better result
             if (enhancedEmotion.confidence > analysis.emotion.confidence) {
               lastUserEmotion = enhancedEmotion.primary;
-              getLogger().debug({
-                keyword: analysis.emotion.primary,
-                llm: enhancedEmotion.primary,
-              }, 'LLM-enhanced emotion detection');
+              getLogger().debug(
+                {
+                  keyword: analysis.emotion.primary,
+                  llm: enhancedEmotion.primary,
+                },
+                'LLM-enhanced emotion detection'
+              );
             }
           } catch {
             // Non-blocking, ignore errors
@@ -614,7 +648,7 @@ export async function createSessionServices(
     // MEMORY METHODS
     // ========================================================================
 
-    searchKnowledge: (query: string) => {
+    searchKnowledge: async (query: string) => {
       return semanticRagLookup(query);
     },
 
@@ -800,7 +834,7 @@ export async function createSessionServices(
         suggestedInsightId: nextInsight?.id,
       };
     },
-    
+
     /**
      * Mark a proactive insight as delivered
      */
@@ -833,13 +867,13 @@ export async function createSessionServices(
      */
     updateHumanizingState: (update: HumanizingStateUpdate) => {
       const MAX_HUMANIZING_UPDATES = 100; // Reasonable limit for a single session
-      
+
       if (humanizingStateUpdates.length >= MAX_HUMANIZING_UPDATES) {
         // Remove oldest updates when limit reached
         humanizingStateUpdates.shift();
         getLogger().debug({ sessionId }, 'Evicted oldest humanizing state update (limit reached)');
       }
-      
+
       humanizingStateUpdates.push(update);
       getLogger().debug(
         { sessionId, updateCount: humanizingStateUpdates.length },
@@ -883,7 +917,8 @@ export async function createSessionServices(
             } else {
               updated.averageWPM = sessionWPM;
             }
-            updated.speakingPace = sessionWPM < 120 ? 'slow' : sessionWPM > 180 ? 'fast' : 'moderate';
+            updated.speakingPace =
+              sessionWPM < 120 ? 'slow' : sessionWPM > 180 ? 'fast' : 'moderate';
           }
 
           await global.store.saveProfile(updated);
@@ -904,16 +939,23 @@ export async function createSessionServices(
     endSession: async () => {
       getLogger().info(`Ending session: ${sessionId}`);
       const sessionEndStartTime = Date.now();
-      
+
       // FIX BUG #session-6: Timeout for summarization to prevent blocking cleanup
       const SUMMARIZE_TIMEOUT_MS = 10000; // 10 seconds
-      
-      const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, name: string): Promise<T | null> => {
+
+      const withTimeout = async <T>(
+        promise: Promise<T>,
+        timeoutMs: number,
+        name: string
+      ): Promise<T | null> => {
         return Promise.race([
           promise,
           new Promise<null>((resolve) => {
             setTimeout(() => {
-              getLogger().warn({ sessionId, operation: name }, 'Operation timed out during session end');
+              getLogger().warn(
+                { sessionId, operation: name },
+                'Operation timed out during session end'
+              );
               resolve(null);
             }, timeoutMs);
           }),
@@ -923,13 +965,13 @@ export async function createSessionServices(
       if (validatedUserId && userProfile) {
         try {
           const turns = historyTracker.getSimpleTurns();
-          
+
           // FIX BUG #session-20: Handle empty turns gracefully
           // Still finalize learning even if no turns (may have session-level insights)
           if (turns.length === 0) {
             getLogger().debug({ sessionId }, 'No conversation turns to summarize');
           }
-          
+
           let summary = null;
           if (turns.length > 0) {
             // FIX BUG #session-6: Generate conversation summary with timeout
@@ -938,20 +980,20 @@ export async function createSessionServices(
               const { createSummarizationLLMCaller } = await import('./llm-utils.js');
               const { summarizeWithLLM } = await import('../memory/index.js');
               const llmCaller = createSummarizationLLMCaller();
-              
+
               summary = await withTimeout(
                 summarizeWithLLM(sessionId, turns, llmCaller),
                 SUMMARIZE_TIMEOUT_MS,
                 'summarizeWithLLM'
               );
-              
+
               if (summary) {
                 getLogger().debug('Used LLM summarization');
               }
             } catch {
               // LLM failed, fall through to extraction
             }
-            
+
             // Fall back to extraction-based summarization
             if (!summary) {
               summary = await withTimeout(
@@ -960,7 +1002,7 @@ export async function createSessionServices(
                 'summarizeConversation'
               );
             }
-            
+
             if (!summary) {
               getLogger().warn({ sessionId }, 'Skipping summary persistence due to timeout');
             } else {
@@ -1005,10 +1047,7 @@ export async function createSessionServices(
           );
 
           // Apply learning to profile
-          let updatedProfile = UserLearningEngine.applyLearningToProfile(
-            userProfile,
-            learningData
-          );
+          let updatedProfile = UserLearningEngine.applyLearningToProfile(userProfile, learningData);
 
           // Apply humanizing state updates
           if (humanizingStateUpdates.length > 0) {
@@ -1042,16 +1081,18 @@ export async function createSessionServices(
 
           // Persist handoff state to profile for cross-session continuity
           try {
-            const { getMeetingCounts, getLastTopicsPerPersona } = await import('../tools/handoff-state.js');
+            const { getMeetingCounts, getLastTopicsPerPersona } =
+              await import('../tools/handoff-state.js');
             const meetingCounts = getMeetingCounts(handoffState);
             const lastTopicsPerPersona = getLastTopicsPerPersona(handoffState);
-            
+
             if (!updatedProfile.customData) {
               updatedProfile.customData = {};
             }
             (updatedProfile.customData as Record<string, unknown>).meetingCounts = meetingCounts;
-            (updatedProfile.customData as Record<string, unknown>).lastTopicsPerPersona = lastTopicsPerPersona;
-            
+            (updatedProfile.customData as Record<string, unknown>).lastTopicsPerPersona =
+              lastTopicsPerPersona;
+
             getLogger().debug(
               { meetingCounts: Object.keys(meetingCounts).length },
               'Persisted handoff state to profile'
@@ -1067,13 +1108,15 @@ export async function createSessionServices(
           // This enables "Where were we?" moments across sessions
           try {
             const threadData = crossSessionThreader.getAllData();
-            const openThreadCount = threadData.threads.filter(t => t.status === 'open').length;
-            const pendingFollowUps = threadData.followUps.filter(f => !f.delivered).length;
-            
+            const openThreadCount = threadData.threads.filter((t) => t.status === 'open').length;
+            const pendingFollowUps = threadData.followUps.filter((f) => !f.delivered).length;
+
             if (openThreadCount > 0 || pendingFollowUps > 0) {
-              (updatedProfile.customData as Record<string, unknown>).openThreads = threadData.threads;
-              (updatedProfile.customData as Record<string, unknown>).promisedFollowUps = threadData.followUps;
-              
+              (updatedProfile.customData as Record<string, unknown>).openThreads =
+                threadData.threads;
+              (updatedProfile.customData as Record<string, unknown>).promisedFollowUps =
+                threadData.followUps;
+
               getLogger().info(
                 { openThreads: openThreadCount, pendingFollowUps },
                 'Persisted cross-session threads to profile'
@@ -1093,8 +1136,9 @@ export async function createSessionServices(
             if (moments.length > 0) {
               // Keep only recent moments (last 50) to avoid profile bloat
               const recentMoments = moments.slice(-50);
-              (updatedProfile.customData as Record<string, unknown>).emotionalMoments = recentMoments;
-              
+              (updatedProfile.customData as Record<string, unknown>).emotionalMoments =
+                recentMoments;
+
               getLogger().info(
                 { momentCount: recentMoments.length },
                 'Persisted emotional memory to profile'
@@ -1112,7 +1156,10 @@ export async function createSessionServices(
           // voice pace, response quality, and conversation patterns
           try {
             updatedProfile = applyIntelligenceToProfile(updatedProfile, validatedUserId);
-            getLogger().info({ userId: validatedUserId }, '🧠 Applied intelligence state to profile');
+            getLogger().info(
+              { userId: validatedUserId },
+              '🧠 Applied intelligence state to profile'
+            );
           } catch (intelligenceError) {
             getLogger().warn(
               { error: String(intelligenceError), userId: validatedUserId },
@@ -1164,13 +1211,13 @@ export async function createSessionServices(
       removeFinancialJourneyTracker(cleanupEngineKey);
       removeCrossSessionThreader(cleanupEngineKey);
       removeVoicePaceAdapter(cleanupEngineKey);
-      
+
       // Cleanup human-level interaction engines
       removeHumorCalibration(cleanupEngineKey);
       removeStoryPreference(cleanupEngineKey);
       removeCommunicationMirroring(cleanupEngineKey);
       removeEmotionalMemory(cleanupEngineKey);
-      
+
       // FIX BUG #session-12: Clean up task manager callback
       try {
         const { resetTaskManager } = await import('../tasks/task-manager.js');
@@ -1178,7 +1225,7 @@ export async function createSessionServices(
       } catch {
         // Task manager may not be loaded
       }
-      
+
       getLogger().info({ userId: validatedUserId }, 'Intelligence engines cleaned up');
 
       activeSessions.delete(sessionId);
@@ -1196,7 +1243,7 @@ export async function createSessionServices(
       // Record session end in metrics
       const sessionEndDurationMs = Date.now() - sessionEndStartTime;
       persistenceMetrics.recordSessionEnd(sessionId, sessionEndDurationMs);
-      
+
       getLogger().info(`Session ${sessionId} ended and cleaned up`);
     },
   };
@@ -1238,20 +1285,20 @@ export function getActiveSessionCount(): number {
  */
 export async function clearAllSessions(): Promise<number> {
   const count = activeSessions.size;
-  
+
   if (count === 0) {
     return 0;
   }
 
   getLogger().info({ count }, 'Ending all active sessions');
-  
+
   // End all sessions in parallel with timeout to prevent blocking shutdown
   const SHUTDOWN_TIMEOUT_MS = 5000;
-  const endPromises: Promise<void>[] = [];
-  
+  const endPromises: Array<Promise<void>> = [];
+
   for (const [sessionId, services] of activeSessions) {
     const endPromise = Promise.race([
-      services.endSession().catch(err => {
+      services.endSession().catch((err) => {
         getLogger().warn({ sessionId, error: String(err) }, 'Error ending session during shutdown');
       }),
       new Promise<void>((resolve) => {
@@ -1266,7 +1313,7 @@ export async function clearAllSessions(): Promise<number> {
 
   await Promise.all(endPromises);
   activeSessions.clear();
-  
+
   getLogger().info({ count }, 'All sessions ended');
   return count;
 }
@@ -1281,4 +1328,3 @@ export function clearAllSessionsSync(): number {
   activeSessions.clear();
   return count;
 }
-

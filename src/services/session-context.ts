@@ -1,22 +1,22 @@
 /**
  * Session Context
- * 
+ *
  * Unified session state management that replaces fragmented singletons.
  * This provides a single object containing all session-scoped state and services.
- * 
+ *
  * Benefits:
  * - Single source of truth for session state
  * - Clean lifecycle management (create → use → cleanup)
  * - Easy testing via dependency injection
  * - Clear ownership of all session data
- * 
+ *
  * STATUS: Architecture draft - interfaces defined, implementation pending migration
- * The createSessionContext function is a reference implementation. 
+ * The createSessionContext function is a reference implementation.
  * To fully migrate, we need to:
  * 1. Align interfaces with actual service implementations
  * 2. Update voice-agent.ts to use SessionContext
  * 3. Deprecate SessionServices in favor of SessionContext
- * 
+ *
  * @module services/session-context
  */
 
@@ -32,15 +32,29 @@ import { summarizeConversation, indexConversationSummary } from '../memory/index
 // Intelligence imports
 import type { ConversationAnalysis, DynamicUserContext } from '../intelligence/index.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
-import type { UserLearningEngine, ConversationLearningData } from '../intelligence/user-learning-engine.js';
-import type { CrossSessionThreader, OpenThread, PromisedFollowUp, SessionEndContext } from '../intelligence/cross-session-threader.js';
+import type {
+  UserLearningEngine,
+  ConversationLearningData,
+} from '../intelligence/user-learning-engine.js';
+import type {
+  CrossSessionThreader,
+  OpenThread,
+  PromisedFollowUp,
+  SessionEndContext,
+} from '../intelligence/cross-session-threader.js';
 import type { ResponseQualityTracker } from '../intelligence/response-quality-tracker.js';
 import type { ConversationPatternAnalyzer } from '../intelligence/conversation-pattern-analyzer.js';
 import type { ProactiveInsightEngine } from '../intelligence/proactive-insight-engine.js';
 import type { VoicePaceAdapter } from '../intelligence/voice-pace-adapter.js';
 
 // Conversation imports
-import type { ConversationHumanizer, HumanizedResponse, HumanizationContext, PreResponseActions, ContextGuidance } from '../conversation/humanizer.js';
+import type {
+  ConversationHumanizer,
+  HumanizedResponse,
+  HumanizationContext,
+  PreResponseActions,
+  ContextGuidance,
+} from '../conversation/humanizer.js';
 import type { EmotionalArcTracker } from '../conversation/emotional-arc.js';
 import type { ResponseDynamicsEngine } from '../conversation/response-dynamics.js';
 import type { ConversationalMemoryEngine } from '../conversation/conversational-memory.js';
@@ -125,13 +139,13 @@ export interface SessionContext {
   readonly historyTracker: ConversationHistoryTracker;
   readonly learningEngine: UserLearningEngine;
   readonly contextManager: ContextManager;
-  
+
   // Conversation engines
   readonly humanizer: ConversationHumanizer;
   readonly emotionalArc: EmotionalArcTracker;
   readonly responseDynamics: ResponseDynamicsEngine;
   readonly conversationalMemory: ConversationalMemoryEngine;
-  
+
   // Advanced intelligence
   readonly responseQualityTracker: ResponseQualityTracker;
   readonly patternAnalyzer: ConversationPatternAnalyzer;
@@ -142,66 +156,66 @@ export interface SessionContext {
   // ============================================================================
   // CORE METHODS
   // ============================================================================
-  
+
   /**
    * Analyze a user message with full context
    * Includes emotion, intent, topic, and humanization guidance
    */
-  analyzeUserMessage(message: string): EnhancedAnalysis;
+  analyzeUserMessage: (message: string) => EnhancedAnalysis;
 
   /**
    * Record a user turn and update all tracking systems
    */
-  recordUserTurn(message: string, analysis: EnhancedAnalysis): void;
+  recordUserTurn: (message: string, analysis: EnhancedAnalysis) => void;
 
   /**
    * Humanize a response before sending
    * Applies naturalness, callbacks, questions, etc.
    */
-  humanizeResponse(rawResponse: string): HumanizedResponse;
+  humanizeResponse: (rawResponse: string) => HumanizedResponse;
 
   /**
    * Record an assistant turn
    */
-  recordAssistantTurn(message: string): void;
+  recordAssistantTurn: (message: string) => void;
 
   /**
    * Get all open threads that should be surfaced
    */
-  getOpenThreads(): ThreadWithStarter[];
+  getOpenThreads: () => ThreadWithStarter[];
 
   /**
    * Get proactive insights for the current turn
    */
-  getProactiveInsight(): string | null;
+  getProactiveInsight: () => string | null;
 
   /**
    * Track response quality for learning
    */
-  trackResponseQuality(
-    response: string, 
+  trackResponseQuality: (
+    response: string,
     userReaction: 'positive' | 'neutral' | 'negative'
-  ): void;
+  ) => void;
 
   /**
    * Get prompt context for LLM
    */
-  getPromptContext(): PromptContext;
+  getPromptContext: () => PromptContext;
 
   /**
    * Get dynamic context from learning engine
    */
-  getDynamicContext(): DynamicUserContext;
+  getDynamicContext: () => DynamicUserContext;
 
   /**
    * Get session statistics
    */
-  getStats(): SessionStats;
+  getStats: () => SessionStats;
 
   /**
    * End session - persist learning, cleanup
    */
-  endSession(): Promise<SessionCleanupResult>;
+  endSession: () => Promise<SessionCleanupResult>;
 }
 
 /**
@@ -240,7 +254,10 @@ export function createSessionContext(
     voicePaceAdapter: VoicePaceAdapter;
   },
   callbacks: {
-    analyzeMessage: (message: string, options?: { userName?: string; isReturningUser?: boolean }) => ConversationAnalysis;
+    analyzeMessage: (
+      message: string,
+      options?: { userName?: string; isReturningUser?: boolean }
+    ) => ConversationAnalysis;
     saveProfile: (profile: UserProfile) => Promise<void>;
   }
 ): SessionContext {
@@ -322,11 +339,15 @@ export function createSessionContext(
       services.historyTracker.addTurn('user', message);
 
       // Feed to learning engine
-      services.learningEngine.processUserTurn(message, {
-        emotion: analysis.emotion,
-        intent: analysis.intent,
-        state: analysis.state,
-      }, context.userProfile);
+      services.learningEngine.processUserTurn(
+        message,
+        {
+          emotion: analysis.emotion,
+          intent: analysis.intent,
+          state: analysis.state,
+        },
+        context.userProfile
+      );
 
       // Feed to conversational memory
       services.conversationalMemory.recordUserMessage(message, {
@@ -357,12 +378,15 @@ export function createSessionContext(
         emotionalState: analysis.emotion.primary,
       });
 
-      getLogger().debug({
-        turnCount: context.turnCount,
-        emotion: analysis.emotion.primary,
-        topic: context.lastTopic,
-        mode: context.currentMode,
-      }, 'User turn recorded');
+      getLogger().debug(
+        {
+          turnCount: context.turnCount,
+          emotion: analysis.emotion.primary,
+          topic: context.lastTopic,
+          mode: context.currentMode,
+        },
+        'User turn recorded'
+      );
     },
 
     humanizeResponse(rawResponse: string): HumanizedResponse {
@@ -383,12 +407,15 @@ export function createSessionContext(
         appliedHumanizationFeatures.add(feature);
       }
 
-      getLogger().debug({
-        features: result.appliedFeatures,
-        pacing: result.pacing,
-        hasCallback: !!result.memoryCallback,
-        hasFollowUp: !!result.followUpQuestion,
-      }, 'Response humanized');
+      getLogger().debug(
+        {
+          features: result.appliedFeatures,
+          pacing: result.pacing,
+          hasCallback: !!result.memoryCallback,
+          hasFollowUp: !!result.followUpQuestion,
+        },
+        'Response humanized'
+      );
 
       return result;
     },
@@ -409,17 +436,14 @@ export function createSessionContext(
 
     getOpenThreads(): ThreadWithStarter[] {
       const threads = services.crossSessionThreader.getOpenThreads();
-      return threads.map(thread => ({
+      return threads.map((thread) => ({
         thread,
         suggestedStarter: thread.suggestedResumption,
       }));
     },
 
     getProactiveInsight(): string | null {
-      return services.learningEngine.getProactiveInsight(
-        context.userProfile,
-        context.turnCount
-      );
+      return services.learningEngine.getProactiveInsight(context.userProfile, context.turnCount);
     },
 
     trackResponseQuality(
@@ -449,7 +473,7 @@ export function createSessionContext(
 
     getStats(): SessionStats {
       const learningStats = services.learningEngine.getSessionStats();
-      
+
       return {
         turnCount: context.turnCount,
         durationMs: Date.now() - context.startTime,
@@ -478,7 +502,7 @@ export function createSessionContext(
         // 1. Generate conversation summary
         let summary: ConversationSummary | undefined;
         try {
-          const turns = services.historyTracker.getSimpleTurns().map(t => ({
+          const turns = services.historyTracker.getSimpleTurns().map((t) => ({
             role: t.role as 'user' | 'assistant',
             content: t.content,
           }));
@@ -529,10 +553,10 @@ export function createSessionContext(
         if (context.userProfile && context.userId) {
           try {
             const learningData = services.learningEngine.finalizeSession(context.userProfile);
-            
+
             // Import and use the static method
             const { UserLearningEngine } = await import('../intelligence/user-learning-engine.js');
-            let updatedProfile = UserLearningEngine.applyLearningToProfile(
+            const updatedProfile = UserLearningEngine.applyLearningToProfile(
               context.userProfile,
               learningData
             );
@@ -543,7 +567,8 @@ export function createSessionContext(
               updatedProfile.customData = {};
             }
             (updatedProfile.customData as Record<string, unknown>).openThreads = threadData.threads;
-            (updatedProfile.customData as Record<string, unknown>).promisedFollowUps = threadData.followUps;
+            (updatedProfile.customData as Record<string, unknown>).promisedFollowUps =
+              threadData.followUps;
 
             // Update summary
             if (summary?.keyPoints) {
@@ -554,7 +579,8 @@ export function createSessionContext(
             updatedProfile.updatedAt = new Date();
             updatedProfile.lastSessionAt = new Date();
             updatedProfile.totalConversations = (updatedProfile.totalConversations || 0) + 1;
-            updatedProfile.totalMinutesTalked = (updatedProfile.totalMinutesTalked || 0) + 
+            updatedProfile.totalMinutesTalked =
+              (updatedProfile.totalMinutesTalked || 0) +
               Math.floor((Date.now() - context.startTime) / 60000);
 
             // Save
@@ -563,12 +589,15 @@ export function createSessionContext(
             result.learningApplied = true;
             result.profileSaved = true;
 
-            logger.info({
-              userId: context.userId,
-              keyMoments: learningData.keyMoments.length,
-              insights: learningData.insights.length,
-              threads: threadData.threads.filter(t => t.status === 'open').length,
-            }, 'Learning applied to profile');
+            logger.info(
+              {
+                userId: context.userId,
+                keyMoments: learningData.keyMoments.length,
+                insights: learningData.insights.length,
+                threads: threadData.threads.filter((t) => t.status === 'open').length,
+              },
+              'Learning applied to profile'
+            );
           } catch (error) {
             result.errors.push(`Learning application failed: ${error}`);
             logger.warn({ error }, 'Learning application failed');
@@ -576,7 +605,6 @@ export function createSessionContext(
         }
 
         result.success = result.errors.length === 0;
-
       } catch (error) {
         result.success = false;
         result.errors.push(`Session end failed: ${error}`);
@@ -625,4 +653,3 @@ export type {
   OpenThread,
   PromisedFollowUp,
 };
-

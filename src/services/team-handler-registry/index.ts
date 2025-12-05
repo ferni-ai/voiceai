@@ -26,11 +26,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 
 import { EventEmitter } from 'events';
-import type {
-  AgentId,
-  ToolExecutionRequest,
-  ToolExecutionResult,
-} from '../agent-bus.js';
+import type { AgentId, ToolExecutionRequest, ToolExecutionResult } from '../agent-bus.js';
 import { getAgentBus } from '../agent-bus.js';
 import type {
   TeamHandlerDefinition,
@@ -47,7 +43,6 @@ import type {
   RouteRequestOptions,
 } from './types.js';
 import { validateHandlerDefinition, ALL_HANDLER_CAPABILITIES } from './types.js';
-
 
 // ============================================================================
 // TEAM HANDLER REGISTRY CLASS
@@ -341,10 +336,7 @@ export class TeamHandlerRegistry {
   /**
    * Find an agent that can handle a specific handler
    */
-  private findHandlingAgent(
-    handlerId: string,
-    options: RouteRequestOptions
-  ): AgentId | undefined {
+  private findHandlingAgent(handlerId: string, options: RouteRequestOptions): AgentId | undefined {
     const definition = this.handlers.get(handlerId);
     if (!definition) return undefined;
 
@@ -587,10 +579,7 @@ export const teamHandlerRegistry = new TeamHandlerRegistry({
 /**
  * Register a handler with the global registry
  */
-export function registerTeamHandler(
-  definition: TeamHandlerDefinition,
-  agentId: AgentId
-): void {
+export function registerTeamHandler(definition: TeamHandlerDefinition, agentId: AgentId): void {
   teamHandlerRegistry.registerHandler(definition, agentId);
 }
 
@@ -627,4 +616,3 @@ export type {
 export { ALL_HANDLER_CAPABILITIES, validateHandlerDefinition } from './types.js';
 
 export default teamHandlerRegistry;
-

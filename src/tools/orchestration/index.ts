@@ -98,4 +98,3 @@ export function composeToolResult(
     extractFacts: options?.extractFacts ?? true,
   });
 }
-

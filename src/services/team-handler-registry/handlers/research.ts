@@ -52,37 +52,51 @@ const synthesizeInsightsHandler: TeamHandlerDefinition = {
       const activeMilestones = milestones.filter((m) => m.status === 'in-progress');
 
       if (activeGoals.length > 0 && activeMilestones.length === 0) {
-        insights.push('📊 You have active goals but no milestones. Consider breaking goals into smaller milestones.');
+        insights.push(
+          '📊 You have active goals but no milestones. Consider breaking goals into smaller milestones.'
+        );
       }
 
       // Financial-goal alignment
       if (activeGoals.length > savingsGoals.length) {
-        insights.push('💰 Some goals may benefit from linked savings plans. Consider setting up dedicated savings goals.');
+        insights.push(
+          '💰 Some goals may benefit from linked savings plans. Consider setting up dedicated savings goals.'
+        );
       }
 
       // Budget utilization
       const overBudget = budgets.filter((b) => (b.spent || 0) > b.totalBudget);
       if (overBudget.length > 0) {
-        insights.push(`⚠️ ${overBudget.length} budget(s) are over limit. Review spending in: ${overBudget.map((b) => b.name).join(', ')}`);
+        insights.push(
+          `⚠️ ${overBudget.length} budget(s) are over limit. Review spending in: ${overBudget.map((b) => b.name).join(', ')}`
+        );
       }
 
       // Progress patterns
       const lowProgressMilestones = activeMilestones.filter((m) => {
-        const progress = m.checklist.length > 0
-          ? (m.checklist.filter(c => c.completed).length / m.checklist.length)
-          : 0;
+        const progress =
+          m.checklist.length > 0
+            ? m.checklist.filter((c) => c.completed).length / m.checklist.length
+            : 0;
         return progress < 0.25 && m.targetDate;
       });
       if (lowProgressMilestones.length > 0) {
-        insights.push(`📅 ${lowProgressMilestones.length} milestone(s) have low progress with upcoming target dates.`);
+        insights.push(
+          `📅 ${lowProgressMilestones.length} milestone(s) have low progress with upcoming target dates.`
+        );
       }
 
       // Savings momentum
-      const onTrackSavings = savingsGoals.filter((s) => s.status === 'on-track' || s.status === 'active');
+      const onTrackSavings = savingsGoals.filter(
+        (s) => s.status === 'on-track' || s.status === 'active'
+      );
       if (onTrackSavings.length > 0) {
-        const totalProgress = onTrackSavings.reduce((sum, s) => sum + s.progressPercent, 0) / onTrackSavings.length;
+        const totalProgress =
+          onTrackSavings.reduce((sum, s) => sum + s.progressPercent, 0) / onTrackSavings.length;
         if (totalProgress > 50) {
-          insights.push(`🎉 Great progress! Your savings goals are ${Math.round(totalProgress)}% complete on average.`);
+          insights.push(
+            `🎉 Great progress! Your savings goals are ${Math.round(totalProgress)}% complete on average.`
+          );
         }
       }
 
@@ -148,7 +162,9 @@ const spotAnomaliesHandler: TeamHandlerDefinition = {
       const totalBudget = budgets.reduce((sum, b) => sum + b.totalBudget, 0);
       const totalSpent = budgets.reduce((sum, b) => sum + (b.spent || 0), 0);
       if (totalBudget > 0 && totalSpent / totalBudget > 0.9) {
-        anomalies.push(`💸 Budget utilization is at ${Math.round((totalSpent / totalBudget) * 100)}% - consider reviewing spending`);
+        anomalies.push(
+          `💸 Budget utilization is at ${Math.round((totalSpent / totalBudget) * 100)}% - consider reviewing spending`
+        );
       }
 
       // Target date clustering
@@ -165,7 +181,9 @@ const spotAnomaliesHandler: TeamHandlerDefinition = {
 
       const busyWeeks = Object.entries(weekCounts).filter(([_, count]) => count >= 3);
       if (busyWeeks.length > 0) {
-        anomalies.push(`📆 Heavy target date clustering detected - ${busyWeeks.length} week(s) with 3+ milestones`);
+        anomalies.push(
+          `📆 Heavy target date clustering detected - ${busyWeeks.length} week(s) with 3+ milestones`
+        );
       }
 
       if (anomalies.length === 0) {
@@ -215,34 +233,49 @@ const findCorrelationsHandler: TeamHandlerDefinition = {
 
       // Goals with linked savings tend to have better progress
       // Check if any savings goal has a linked milestone
-      const linkedMilestoneIds = new Set(savingsGoals.map(s => s.linkedMilestoneId).filter(Boolean));
+      const linkedMilestoneIds = new Set(
+        savingsGoals.map((s) => s.linkedMilestoneId).filter(Boolean)
+      );
       const goalsWithLinkedSavings = goals.filter((g) => linkedMilestoneIds.size > 0);
       const goalsWithoutLinkedSavings = goals.filter((g) => linkedMilestoneIds.size === 0);
 
       if (goalsWithLinkedSavings.length > 0 && goalsWithoutLinkedSavings.length > 0) {
-        const avgWithSavings = goalsWithLinkedSavings.reduce((sum, g) => sum + (g.progressPercent || 0), 0) / goalsWithLinkedSavings.length;
-        const avgWithoutSavings = goalsWithoutLinkedSavings.reduce((sum, g) => sum + (g.progressPercent || 0), 0) / goalsWithoutLinkedSavings.length;
+        const avgWithSavings =
+          goalsWithLinkedSavings.reduce((sum, g) => sum + (g.progressPercent || 0), 0) /
+          goalsWithLinkedSavings.length;
+        const avgWithoutSavings =
+          goalsWithoutLinkedSavings.reduce((sum, g) => sum + (g.progressPercent || 0), 0) /
+          goalsWithoutLinkedSavings.length;
 
         if (avgWithSavings > avgWithoutSavings) {
-          correlations.push(`📈 Goals with linked savings show ${Math.round(avgWithSavings - avgWithoutSavings)}% higher progress`);
+          correlations.push(
+            `📈 Goals with linked savings show ${Math.round(avgWithSavings - avgWithoutSavings)}% higher progress`
+          );
         }
       }
 
       // Milestone completion patterns by category
       const completedMilestones = milestones.filter((m) => m.status === 'completed');
       if (completedMilestones.length >= 3) {
-        correlations.push(`✅ You've completed ${completedMilestones.length} milestones - momentum is building!`);
+        correlations.push(
+          `✅ You've completed ${completedMilestones.length} milestones - momentum is building!`
+        );
       }
 
       // Savings consistency
-      const activeSavings = savingsGoals.filter((s) => s.status === 'active' || s.status === 'on-track');
+      const activeSavings = savingsGoals.filter(
+        (s) => s.status === 'active' || s.status === 'on-track'
+      );
       if (activeSavings.length >= 2) {
-        const avgProgress = activeSavings.reduce((sum, s) => sum + s.progressPercent, 0) / activeSavings.length;
+        const avgProgress =
+          activeSavings.reduce((sum, s) => sum + s.progressPercent, 0) / activeSavings.length;
         correlations.push(`💰 Active savings goals average ${Math.round(avgProgress)}% progress`);
       }
 
       if (correlations.length === 0) {
-        correlations.push('📊 Not enough data yet to identify meaningful correlations. Keep tracking your progress!');
+        correlations.push(
+          '📊 Not enough data yet to identify meaningful correlations. Keep tracking your progress!'
+        );
       }
 
       const result = `🔗 **Correlations Found**\n\n${correlations.join('\n\n')}`;
@@ -283,7 +316,9 @@ const projectTrendsHandler: TeamHandlerDefinition = {
       const projections: string[] = [];
 
       // Project savings completion
-      for (const savings of savingsGoals.filter((s) => s.status === 'active' || s.status === 'on-track')) {
+      for (const savings of savingsGoals.filter(
+        (s) => s.status === 'active' || s.status === 'on-track'
+      )) {
         const remaining = savings.targetAmount - savings.currentAmount;
         const monthlyRate = savings.monthlyContribution || 0;
 
@@ -292,7 +327,9 @@ const projectTrendsHandler: TeamHandlerDefinition = {
           const completionDate = new Date();
           completionDate.setMonth(completionDate.getMonth() + monthsToComplete);
 
-          projections.push(`💰 "${savings.name}": On track to complete in ${monthsToComplete} months (${completionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})`);
+          projections.push(
+            `💰 "${savings.name}": On track to complete in ${monthsToComplete} months (${completionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})`
+          );
         }
       }
 
@@ -303,11 +340,15 @@ const projectTrendsHandler: TeamHandlerDefinition = {
 
       if (totalSpent > 0 && totalRemaining > 0) {
         const burnRate = totalSpent / (budgets.length || 1); // Average spend per budget
-        projections.push(`📊 Budget remaining: $${totalRemaining.toLocaleString()} across ${budgets.length} budget(s)`);
+        projections.push(
+          `📊 Budget remaining: $${totalRemaining.toLocaleString()} across ${budgets.length} budget(s)`
+        );
       }
 
       // Project goal completion based on current progress
-      const activeGoals = goals.filter((g) => g.status === 'in-progress' && (g.progressPercent || 0) > 0);
+      const activeGoals = goals.filter(
+        (g) => g.status === 'in-progress' && (g.progressPercent || 0) > 0
+      );
       for (const goal of activeGoals.slice(0, 3)) {
         const progress = goal.progressPercent || 0;
         if (progress > 0 && progress < 100) {
@@ -318,7 +359,9 @@ const projectTrendsHandler: TeamHandlerDefinition = {
           const daysRemaining = (100 - progress) / dailyProgress;
           const completionDate = new Date(Date.now() + daysRemaining * 24 * 60 * 60 * 1000);
 
-          projections.push(`🎯 "${goal.title}": Projected completion ${completionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`);
+          projections.push(
+            `🎯 "${goal.title}": Projected completion ${completionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+          );
         }
       }
 
@@ -359,7 +402,7 @@ const runProactiveInsightScanHandler: TeamHandlerDefinition = {
       let result = '🔎 **Proactive Insight Scan Complete**\n\n';
 
       if (synthesizeResult.success) {
-        result += synthesizeResult.result + '\n\n---\n\n';
+        result += `${synthesizeResult.result}\n\n---\n\n`;
       }
 
       if (anomaliesResult.success) {
@@ -418,4 +461,3 @@ export {
 };
 
 export default registerResearchHandlers;
-

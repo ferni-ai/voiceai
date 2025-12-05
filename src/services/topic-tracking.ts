@@ -1,6 +1,6 @@
 /**
  * Topic Tracking Service
- * 
+ *
  * Tracks topics discussed with each persona for memory callbacks
  * and proactive memory surfacing.
  */
@@ -56,17 +56,15 @@ export function trackTopic(
 ): void {
   const key = getKey(userId, personaId);
   let topics = topicHistory.get(key);
-  
+
   if (!topics) {
     topics = [];
     topicHistory.set(key, topics);
   }
-  
+
   // Check if topic already exists
-  const existing = topics.find(t => 
-    t.topic.toLowerCase() === topic.toLowerCase()
-  );
-  
+  const existing = topics.find((t) => t.topic.toLowerCase() === topic.toLowerCase());
+
   if (existing) {
     // Update existing topic
     existing.discussedAt = new Date();
@@ -80,29 +78,25 @@ export function trackTopic(
       discussedAt: new Date(),
       emotionalContext: options?.emotionalContext,
       significance: options?.significance || 'casual',
-      resolved: options?.resolved
+      resolved: options?.resolved,
     });
   }
-  
+
   // Keep only last 50 topics per persona
   if (topics.length > 50) {
     topics.splice(0, topics.length - 50);
   }
-  
+
   logger.debug({ userId, personaId, topic }, 'Tracked topic');
 }
 
 /**
  * Get recent topics for a user-persona pair
  */
-export function getRecentTopics(
-  userId: string,
-  personaId: string,
-  limit: number = 10
-): TrackedTopic[] {
+export function getRecentTopics(userId: string, personaId: string, limit = 10): TrackedTopic[] {
   const key = getKey(userId, personaId);
   const topics = topicHistory.get(key) || [];
-  
+
   // Sort by date descending and return limit
   return [...topics]
     .sort((a, b) => b.discussedAt.getTime() - a.discussedAt.getTime())
@@ -112,10 +106,7 @@ export function getRecentTopics(
 /**
  * Get the last topic discussed
  */
-export function getLastTopic(
-  userId: string,
-  personaId: string
-): TrackedTopic | null {
+export function getLastTopic(userId: string, personaId: string): TrackedTopic | null {
   const recent = getRecentTopics(userId, personaId, 1);
   return recent[0] || null;
 }
@@ -123,29 +114,21 @@ export function getLastTopic(
 /**
  * Get unresolved/open topics
  */
-export function getOpenTopics(
-  userId: string,
-  personaId: string
-): TrackedTopic[] {
+export function getOpenTopics(userId: string, personaId: string): TrackedTopic[] {
   const key = getKey(userId, personaId);
   const topics = topicHistory.get(key) || [];
-  
-  return topics.filter(t => t.resolved === false);
+
+  return topics.filter((t) => t.resolved === false);
 }
 
 /**
  * Get important topics (for memory callbacks)
  */
-export function getImportantTopics(
-  userId: string,
-  personaId: string
-): TrackedTopic[] {
+export function getImportantTopics(userId: string, personaId: string): TrackedTopic[] {
   const key = getKey(userId, personaId);
   const topics = topicHistory.get(key) || [];
-  
-  return topics.filter(t => 
-    t.significance === 'important' || t.significance === 'breakthrough'
-  );
+
+  return topics.filter((t) => t.significance === 'important' || t.significance === 'breakthrough');
 }
 
 /**
@@ -158,28 +141,20 @@ export function findTopicsByKeyword(
 ): TrackedTopic[] {
   const key = getKey(userId, personaId);
   const topics = topicHistory.get(key) || [];
-  
+
   const lowerKeyword = keyword.toLowerCase();
-  return topics.filter(t => 
-    t.topic.toLowerCase().includes(lowerKeyword)
-  );
+  return topics.filter((t) => t.topic.toLowerCase().includes(lowerKeyword));
 }
 
 /**
  * Mark a topic as resolved
  */
-export function markTopicResolved(
-  userId: string,
-  personaId: string,
-  topic: string
-): void {
+export function markTopicResolved(userId: string, personaId: string, topic: string): void {
   const key = getKey(userId, personaId);
   const topics = topicHistory.get(key) || [];
-  
-  const existing = topics.find(t => 
-    t.topic.toLowerCase() === topic.toLowerCase()
-  );
-  
+
+  const existing = topics.find((t) => t.topic.toLowerCase() === topic.toLowerCase());
+
   if (existing) {
     existing.resolved = true;
     logger.debug({ userId, personaId, topic }, 'Marked topic resolved');
@@ -190,33 +165,31 @@ export function markTopicResolved(
  * Get topic for proactive memory surfacing
  * Returns an old topic worth bringing up
  */
-export function getTopicForProactiveMemory(
-  userId: string,
-  personaId: string
-): TrackedTopic | null {
+export function getTopicForProactiveMemory(userId: string, personaId: string): TrackedTopic | null {
   const key = getKey(userId, personaId);
   const topics = topicHistory.get(key) || [];
-  
+
   // Look for important unresolved topics from > 1 week ago
-  const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-  
-  const candidates = topics.filter(t => {
+  const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+  const candidates = topics.filter((t) => {
     if (t.resolved) return false;
     if (t.significance === 'casual') return false;
     if (t.discussedAt.getTime() > oneWeekAgo) return false;
     return true;
   });
-  
+
   if (candidates.length === 0) {
     // Fall back to any important topic from > 3 days ago
-    const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
-    const fallback = topics.find(t => 
-      (t.significance === 'important' || t.significance === 'breakthrough') &&
-      t.discussedAt.getTime() < threeDaysAgo
+    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+    const fallback = topics.find(
+      (t) =>
+        (t.significance === 'important' || t.significance === 'breakthrough') &&
+        t.discussedAt.getTime() < threeDaysAgo
     );
     return fallback || null;
   }
-  
+
   // Return random candidate
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
@@ -230,19 +203,19 @@ export function loadTopicsFromProfile(
   topics: TrackedTopic[]
 ): void {
   const key = getKey(userId, personaId);
-  topicHistory.set(key, topics.map(t => ({
-    ...t,
-    discussedAt: new Date(t.discussedAt) // Ensure Date objects
-  })));
+  topicHistory.set(
+    key,
+    topics.map((t) => ({
+      ...t,
+      discussedAt: new Date(t.discussedAt), // Ensure Date objects
+    }))
+  );
 }
 
 /**
  * Get all topics for saving to profile
  */
-export function getTopicsForSaving(
-  userId: string,
-  personaId: string
-): TrackedTopic[] {
+export function getTopicsForSaving(userId: string, personaId: string): TrackedTopic[] {
   const key = getKey(userId, personaId);
   return topicHistory.get(key) || [];
 }
@@ -250,10 +223,7 @@ export function getTopicsForSaving(
 /**
  * Clear topic history
  */
-export function clearTopicHistory(
-  userId: string,
-  personaId?: string
-): void {
+export function clearTopicHistory(userId: string, personaId?: string): void {
   if (personaId) {
     const key = getKey(userId, personaId);
     topicHistory.delete(key);
@@ -283,4 +253,3 @@ export const TopicTrackingService = {
 };
 
 export default TopicTrackingService;
-

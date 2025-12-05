@@ -52,4 +52,3 @@ export interface HandoffAnalytics {
   /** Most common handoff pair */
   mostCommonPair?: { from: string; to: string; count: number };
 }
-

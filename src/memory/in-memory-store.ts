@@ -20,10 +20,10 @@ import type {
  * In-memory storage implementation
  */
 export class InMemoryStore extends MemoryStore {
-  private profiles: Map<string, UserProfile> = new Map();
-  private summaries: Map<string, ConversationSummary[]> = new Map();
-  private moments: Map<string, KeyMoment[]> = new Map();
-  private goals: Map<string, FinancialGoal[]> = new Map();
+  private profiles = new Map<string, UserProfile>();
+  private summaries = new Map<string, ConversationSummary[]>();
+  private moments = new Map<string, KeyMoment[]>();
+  private goals = new Map<string, FinancialGoal[]>();
 
   /**
    * Create a new in-memory store
@@ -35,7 +35,7 @@ export class InMemoryStore extends MemoryStore {
   /**
    * Initialize the store (no-op for in-memory)
    */
-  initialize(): Promise<void> {
+  async initialize(): Promise<void> {
     this._initialized = true;
     getLogger().info('InMemoryStore initialized');
     return Promise.resolve();
@@ -44,7 +44,7 @@ export class InMemoryStore extends MemoryStore {
   /**
    * Close the store (clears all data)
    */
-  close(): Promise<void> {
+  async close(): Promise<void> {
     this.profiles.clear();
     this.summaries.clear();
     this.moments.clear();
@@ -58,17 +58,17 @@ export class InMemoryStore extends MemoryStore {
   // USER PROFILE OPERATIONS
   // ============================================================================
 
-  getProfile(userId: string): Promise<UserProfile | null> {
+  async getProfile(userId: string): Promise<UserProfile | null> {
     return Promise.resolve(this.profiles.get(userId) || null);
   }
 
-  saveProfile(profile: UserProfile): Promise<void> {
+  async saveProfile(profile: UserProfile): Promise<void> {
     this.profiles.set(profile.id, { ...profile, updatedAt: new Date() });
     getLogger().debug(`Saved profile: ${profile.id}`);
     return Promise.resolve();
   }
 
-  deleteProfile(userId: string): Promise<boolean> {
+  async deleteProfile(userId: string): Promise<boolean> {
     const existed = this.profiles.has(userId);
     this.profiles.delete(userId);
     this.summaries.delete(userId);
@@ -81,11 +81,11 @@ export class InMemoryStore extends MemoryStore {
     return Promise.resolve(existed);
   }
 
-  hasProfile(userId: string): Promise<boolean> {
+  async hasProfile(userId: string): Promise<boolean> {
     return Promise.resolve(this.profiles.has(userId));
   }
 
-  listProfiles(options?: QueryOptions): Promise<UserProfile[]> {
+  async listProfiles(options?: QueryOptions): Promise<UserProfile[]> {
     const profiles = Array.from(this.profiles.values());
 
     // Sort
@@ -111,7 +111,7 @@ export class InMemoryStore extends MemoryStore {
   // CONVERSATION SUMMARY OPERATIONS
   // ============================================================================
 
-  saveSummary(userId: string, summary: ConversationSummary): Promise<void> {
+  async saveSummary(userId: string, summary: ConversationSummary): Promise<void> {
     const existing = this.summaries.get(userId) || [];
 
     // Check if updating existing summary
@@ -127,7 +127,7 @@ export class InMemoryStore extends MemoryStore {
     return Promise.resolve();
   }
 
-  getSummaries(userId: string, options?: QueryOptions): Promise<ConversationSummary[]> {
+  async getSummaries(userId: string, options?: QueryOptions): Promise<ConversationSummary[]> {
     const summaries = this.summaries.get(userId) || [];
 
     // Sort by timestamp by default
@@ -147,7 +147,7 @@ export class InMemoryStore extends MemoryStore {
   // KEY MOMENT OPERATIONS
   // ============================================================================
 
-  addKeyMoment(userId: string, moment: KeyMoment): Promise<void> {
+  async addKeyMoment(userId: string, moment: KeyMoment): Promise<void> {
     const existing = this.moments.get(userId) || [];
 
     // Check for duplicate
@@ -163,7 +163,7 @@ export class InMemoryStore extends MemoryStore {
     return Promise.resolve();
   }
 
-  getKeyMoments(userId: string, options?: QueryOptions): Promise<KeyMoment[]> {
+  async getKeyMoments(userId: string, options?: QueryOptions): Promise<KeyMoment[]> {
     const moments = this.moments.get(userId) || [];
 
     // Sort by timestamp by default (most recent first)
@@ -183,7 +183,7 @@ export class InMemoryStore extends MemoryStore {
   // GOAL OPERATIONS
   // ============================================================================
 
-  saveGoal(userId: string, goal: FinancialGoal): Promise<void> {
+  async saveGoal(userId: string, goal: FinancialGoal): Promise<void> {
     const existing = this.goals.get(userId) || [];
 
     // Update or add
@@ -199,11 +199,11 @@ export class InMemoryStore extends MemoryStore {
     return Promise.resolve();
   }
 
-  getGoals(userId: string): Promise<FinancialGoal[]> {
+  async getGoals(userId: string): Promise<FinancialGoal[]> {
     return Promise.resolve(this.goals.get(userId) || []);
   }
 
-  deleteGoal(userId: string, goalId: string): Promise<boolean> {
+  async deleteGoal(userId: string, goalId: string): Promise<boolean> {
     const existing = this.goals.get(userId) || [];
     const index = existing.findIndex((g) => g.id === goalId);
 

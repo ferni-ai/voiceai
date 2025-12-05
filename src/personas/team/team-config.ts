@@ -4,19 +4,19 @@
  * ARCHITECTURE:
  * =============
  * SINGLE SOURCE OF TRUTH: Each persona's `persona.manifest.json` file.
- * 
+ *
  * The PRIMARY method for getting team config is `getTeamConfig()` which calls
  * `generateTeamConfigFromBundles()` to dynamically build team configuration
  * from bundle manifests.
- * 
+ *
  * The hardcoded DEFAULT_* constants below are FALLBACKS ONLY, used when:
  * - Bundle discovery fails
  * - Running in environments without filesystem access
  * - Testing scenarios that don't load full bundles
- * 
+ *
  * To update team member info, edit the persona's manifest file at:
  *   src/personas/bundles/{persona-id}/persona.manifest.json
- * 
+ *
  * Then run `npm run generate:personas` to update frontend config.
  */
 
@@ -41,35 +41,40 @@ export const DEFAULT_TEAM_MEMBERS: TeamMember[] = [
     roleId: 'researcher',
     characterId: 'peter-john',
     displayName: 'Peter',
-    roleDescription: 'The Quant. Spots patterns nobody else sees across your spending, habits, and calendar. Turns data into insights that actually change behavior.',
+    roleDescription:
+      'The Quant. Spots patterns nobody else sees across your spending, habits, and calendar. Turns data into insights that actually change behavior.',
     active: true,
   },
   {
     roleId: 'communicator',
     characterId: 'alex-chen',
     displayName: 'Alex',
-    roleDescription: 'Your Chief of Staff and communication coach. Manages your calendar and email, and helps you navigate difficult conversations with confidence.',
+    roleDescription:
+      'Your Chief of Staff and communication coach. Manages your calendar and email, and helps you navigate difficult conversations with confidence.',
     active: true,
   },
   {
     roleId: 'habits-coach',
     characterId: 'maya-santos',
     displayName: 'Maya',
-    roleDescription: 'Start embarrassingly small. Helps you build habits that stick through systems, not willpower. One habit at a time, one day at a time.',
+    roleDescription:
+      'Start embarrassingly small. Helps you build habits that stick through systems, not willpower. One habit at a time, one day at a time.',
     active: true,
   },
   {
     roleId: 'lifetime-planner',
     characterId: 'jordan-taylor',
     displayName: 'Jordan',
-    roleDescription: 'Your lifetime planner. Turns vague dreams into lived experiences. From vacations to life transitions, helps you design every chapter intentionally.',
+    roleDescription:
+      'Your lifetime planner. Turns vague dreams into lived experiences. From vacations to life transitions, helps you design every chapter intentionally.',
     active: true,
   },
   {
     roleId: 'lifetime-advisor',
     characterId: 'nayan-patel',
     displayName: 'Nayan',
-    roleDescription: 'Your lifetime advisor. Combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results.',
+    roleDescription:
+      'Your lifetime advisor. Combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results.',
     active: true,
   },
 ];
@@ -149,16 +154,29 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
     fromRole: 'life-coach',
     toRole: 'lifetime-advisor',
     phrases: [
-      "This one needs deep wisdom - let me bring in Nayan.",
+      'This one needs deep wisdom - let me bring in Nayan.',
       "Nayan's perfect for the big picture stuff. Hold on...",
-      "You need the sage perspective. Let me get Nayan.",
+      'You need the sage perspective. Let me get Nayan.',
       "Bogle, Gandhi, Buffett wisdom? That's Nayan's domain. One sec.",
     ],
     triggers: [
-      'meaning of life', 'deep wisdom', 'long-term perspective', 'patience',
-      'compounding', 'simple living', 'what matters', 'big picture',
-      'spiritual', 'meditation', 'inner peace', 'enlightenment',
-      'sage advice', 'bogle wisdom', 'gandhi', 'buffett', 'lifetime advice'
+      'meaning of life',
+      'deep wisdom',
+      'long-term perspective',
+      'patience',
+      'compounding',
+      'simple living',
+      'what matters',
+      'big picture',
+      'spiritual',
+      'meditation',
+      'inner peace',
+      'enlightenment',
+      'sage advice',
+      'bogle wisdom',
+      'gandhi',
+      'buffett',
+      'lifetime advice',
     ],
   },
 
@@ -193,14 +211,14 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
     phrases: [
       "Plan's looking amazing! Let me hand you back to Ferni.",
       "Passing you back to Ferni - we're making this happen!",
-      "Your vision is coming together! Ferni will take it from here.",
+      'Your vision is coming together! Ferni will take it from here.',
     ],
   },
   {
     fromRole: 'lifetime-advisor',
     toRole: 'life-coach',
     phrases: [
-      "Ferni will help with the practical next steps. Namaskaram.",
+      'Ferni will help with the practical next steps. Namaskaram.',
       "The wisdom lands when you're ready. Ferni will take it from here.",
       "Stay the course. Ferni's got the daily roadmap.",
     ],
@@ -223,11 +241,19 @@ export const DEFAULT_TEAM_COORDINATION: TeamCoordination = {
       formalReference: 'our communications specialist',
     },
     { roleId: 'habits-coach', informalReference: 'Maya', formalReference: 'our habits coach' },
-    { roleId: 'lifetime-planner', informalReference: 'Jordan', formalReference: 'our lifetime planner' },
-    { roleId: 'lifetime-advisor', informalReference: 'Nayan', formalReference: 'our lifetime advisor and sage' },
+    {
+      roleId: 'lifetime-planner',
+      informalReference: 'Jordan',
+      formalReference: 'our lifetime planner',
+    },
+    {
+      roleId: 'lifetime-advisor',
+      informalReference: 'Nayan',
+      formalReference: 'our lifetime advisor and sage',
+    },
   ],
   taskRouting: [
-    // NOTE: Jack Bogle (sage-mentor) moved to Agent Marketplace. 
+    // NOTE: Jack Bogle (sage-mentor) moved to Agent Marketplace.
     // These tasks now route to Nayan (lifetime-advisor) for deep wisdom.
     { taskType: 'investing philosophy', targetRole: 'lifetime-advisor' },
     { taskType: 'life wisdom', targetRole: 'lifetime-advisor' },
@@ -378,8 +404,8 @@ export async function generateTeamConfigFromBundles(forceRefresh = false): Promi
   let coordinatorId = 'ferni';
 
   for (const bundle of result.bundles) {
-    const manifest = bundle.manifest;
-    const team = manifest.team;
+    const { manifest } = bundle;
+    const { team } = manifest;
 
     if (!team) continue;
 
@@ -451,8 +477,8 @@ async function generateHandoffTemplatesFromBundles(
   const coordinatorRoleId = coordinatorBundle?.manifest.team?.role_id || 'life-coach';
 
   for (const bundle of bundles) {
-    const manifest = bundle.manifest;
-    const team = manifest.team;
+    const { manifest } = bundle;
+    const { team } = manifest;
 
     if (!team) continue;
 
@@ -486,9 +512,7 @@ async function generateHandoffTemplatesFromBundles(
   }
 
   // Merge with defaults (defaults take precedence for existing routes)
-  const existingRoutes = new Set(
-    templates.map((t) => `${t.fromRole}:${t.toRole}`)
-  );
+  const existingRoutes = new Set(templates.map((t) => `${t.fromRole}:${t.toRole}`));
 
   for (const defaultTemplate of DEFAULT_HANDOFF_TEMPLATES) {
     const route = `${defaultTemplate.fromRole}:${defaultTemplate.toRole}`;
@@ -509,7 +533,7 @@ function generateTaskRoutingFromBundles(
   const routing: Array<{ taskType: string; targetRole: string }> = [];
 
   for (const bundle of bundles) {
-    const manifest = bundle.manifest;
+    const { manifest } = bundle;
     const roleId = manifest.team?.role_id || manifest.role?.id || manifest.identity.id;
     const domains = manifest.role?.domains || [];
 
@@ -557,7 +581,7 @@ export async function getHandoffTriggersForPersona(personaId: string): Promise<s
   const result = await discoverAndLoadBundles();
 
   for (const bundle of result.bundles) {
-    const manifest = bundle.manifest;
+    const { manifest } = bundle;
     if (manifest.identity.id === personaId || manifest.identity.aliases?.includes(personaId)) {
       return manifest.team?.handoff_triggers || [];
     }
@@ -575,7 +599,7 @@ export async function getAllHandoffTriggers(): Promise<Map<string, string[]>> {
   const triggerMap = new Map<string, string[]>();
 
   for (const bundle of result.bundles) {
-    const manifest = bundle.manifest;
+    const { manifest } = bundle;
     const triggers = manifest.team?.handoff_triggers;
 
     if (triggers && triggers.length > 0) {

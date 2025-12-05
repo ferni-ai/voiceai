@@ -18,11 +18,16 @@
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'node:http';
 
 // Debug flag for startup logging
-const DEBUG_STARTUP = process.env['DEBUG_AGENT'] === 'true' || process.env['NODE_ENV'] !== 'production';
+const DEBUG_STARTUP =
+  process.env['DEBUG_AGENT'] === 'true' || process.env['NODE_ENV'] !== 'production';
 
 // Lazy imports to avoid circular dependencies
-let cognitiveBroadcast: typeof import('../../services/cognitive-broadcast.js').cognitiveBroadcast | null = null;
-let persistenceMetrics: typeof import('../../services/persistence-metrics.js').persistenceMetrics | null = null;
+let cognitiveBroadcast:
+  | typeof import('../../services/cognitive-broadcast.js').cognitiveBroadcast
+  | null = null;
+let persistenceMetrics:
+  | typeof import('../../services/persistence-metrics.js').persistenceMetrics
+  | null = null;
 let cognitiveWebSocket: typeof import('../../services/cognitive-websocket.js') | null = null;
 
 async function getCognitiveBroadcast() {
@@ -85,11 +90,13 @@ async function handleCognitiveAPI(url: string, res: ServerResponse): Promise<voi
     // Return current cognitive state
     const state = broadcast.getCurrentState();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      success: true,
-      data: state,
-      timestamp: new Date().toISOString(),
-    }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: state,
+        timestamp: new Date().toISOString(),
+      })
+    );
     return;
   }
 
@@ -97,12 +104,14 @@ async function handleCognitiveAPI(url: string, res: ServerResponse): Promise<voi
     // Return recent event history
     const history = broadcast.getHistory(50);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      success: true,
-      data: history,
-      count: history.length,
-      timestamp: new Date().toISOString(),
-    }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: history,
+        count: history.length,
+        timestamp: new Date().toISOString(),
+      })
+    );
     return;
   }
 
@@ -132,11 +141,13 @@ async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void>
     // Return full metrics snapshot
     const snapshot = metrics.getSnapshot();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      success: true,
-      data: snapshot,
-      timestamp: new Date().toISOString(),
-    }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: snapshot,
+        timestamp: new Date().toISOString(),
+      })
+    );
     return;
   }
 
@@ -144,11 +155,13 @@ async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void>
     // Return summary report (more concise)
     const summary = metrics.getSummaryReport();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      success: true,
-      data: summary,
-      timestamp: new Date().toISOString(),
-    }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: summary,
+        timestamp: new Date().toISOString(),
+      })
+    );
     return;
   }
 
@@ -156,14 +169,16 @@ async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void>
     // Return only active sessions
     const snapshot = metrics.getSnapshot();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      success: true,
-      data: {
-        activeSessions: snapshot.activeSessions,
-        sessions: snapshot.currentSessions,
-      },
-      timestamp: new Date().toISOString(),
-    }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: {
+          activeSessions: snapshot.activeSessions,
+          sessions: snapshot.currentSessions,
+        },
+        timestamp: new Date().toISOString(),
+      })
+    );
     return;
   }
 
@@ -178,7 +193,7 @@ async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void>
  *
  * @param serviceName - Name of the service (e.g., 'voice-agent', 'jack-bogle-agent')
  */
-export function startHealthCheckServer(serviceName: string = 'voice-agent'): void {
+export function startHealthCheckServer(serviceName = 'voice-agent'): void {
   const port = process.env['PORT'] ? parseInt(process.env['PORT'], 10) : 8080;
 
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {

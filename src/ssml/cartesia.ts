@@ -1,6 +1,6 @@
 /**
  * Cartesia SSML Tag Helpers
- * 
+ *
  * Utility functions for generating valid Cartesia Sonic-3 SSML tags.
  * @see https://docs.cartesia.ai/build-with-cartesia/sonic-3/ssml-tags
  */
@@ -78,4 +78,3 @@ export const CARTESIA_EMOTIONS = [
 ] as const;
 
 export type CartesiaEmotion = (typeof CARTESIA_EMOTIONS)[number];
-

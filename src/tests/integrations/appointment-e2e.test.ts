@@ -1,11 +1,11 @@
 /**
  * E2E Integration Tests for Appointment Scheduling
- * 
+ *
  * Tests the complete appointment flow:
  * - Twilio webhooks (call status, recordings, transcriptions)
  * - Google Calendar OAuth and event creation
  * - Full appointment integration (call → calendar → notification)
- * 
+ *
  * Run with:
  *   npx vitest run src/tests/integrations/appointment-e2e.test.ts
  */
@@ -243,9 +243,9 @@ describe('Google Calendar OAuth Service', () => {
   describe('OAuth Configuration', () => {
     it('should check OAuth configuration', () => {
       const configured = isOAuthConfigured();
-      
+
       console.log(`📋 Google OAuth configured: ${configured ? '✓' : '✗'}`);
-      
+
       if (!configured) {
         console.log('   Set GOOGLE_CALENDAR_CLIENT_ID and GOOGLE_CALENDAR_CLIENT_SECRET');
       }
@@ -309,7 +309,7 @@ describe('Google Calendar OAuth Service', () => {
   describe('Calendar Event Creation', () => {
     it('should create appointment event (when configured)', async () => {
       const testUserId = `cal-test-${Date.now()}`;
-      
+
       // Store mock tokens
       storeUserTokens(testUserId, {
         access_token: 'mock-token',
@@ -330,7 +330,7 @@ describe('Google Calendar OAuth Service', () => {
       // Without real credentials, this returns null
       // In production with real tokens, this would return the event
       console.log(`📅 Event creation result: ${event ? 'Created' : 'Skipped (mock tokens)'}`);
-      
+
       expect(true).toBe(true); // Test passes either way
     });
   });
@@ -378,10 +378,10 @@ describe('Appointment Integration Service', () => {
       };
 
       const result = await integrationService.scheduleAppointment(request);
-      
+
       // Check status
       const status = integrationService.getAppointmentStatus(result.appointmentId);
-      
+
       expect(status).toBeDefined();
       expect(status?.businessName).toBe('Test Restaurant');
       expect(status?.partySize).toBe(4);
@@ -425,10 +425,10 @@ describe('Appointment Integration Service', () => {
       const result = await integrationService.scheduleAppointment(request);
 
       // Wait for simulation to complete
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       const status = integrationService.getAppointmentStatus(result.appointmentId);
-      
+
       // In simulation mode, status should be confirmed
       expect(status?.status).toBe('confirmed');
       expect(status?.confirmationNumber).toBeDefined();
@@ -463,7 +463,7 @@ describe('Full Appointment Flow Integration', () => {
 
     console.log('\n📋 FULL FLOW TEST');
     console.log('═'.repeat(50));
-    
+
     // Step 1: Schedule
     console.log('\n1️⃣ Scheduling appointment...');
     const result = await integrationService.scheduleAppointment(request);
@@ -473,7 +473,7 @@ describe('Full Appointment Flow Integration', () => {
 
     // Step 2: Wait for simulation
     console.log('\n2️⃣ Waiting for call simulation...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // Step 3: Check confirmation
     console.log('\n3️⃣ Checking confirmation...');
@@ -490,9 +490,9 @@ describe('Full Appointment Flow Integration', () => {
     console.log('\n5️⃣ User notification...');
     console.log('   📱 Would be sent if Twilio configured');
 
-    console.log('\n' + '═'.repeat(50));
+    console.log(`\n${'═'.repeat(50)}`);
     console.log('✅ FULL FLOW TEST COMPLETE');
-    console.log('═'.repeat(50) + '\n');
+    console.log(`${'═'.repeat(50)}\n`);
   }, 15000);
 });
 
@@ -505,7 +505,7 @@ describe('Appointment Integration Summary', () => {
     const twilioConfigured = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
     const calendarConfigured = isOAuthConfigured();
 
-    console.log('\n' + '═'.repeat(60));
+    console.log(`\n${'═'.repeat(60)}`);
     console.log('📊 APPOINTMENT INTEGRATION STATUS');
     console.log('═'.repeat(60));
 
@@ -517,8 +517,12 @@ describe('Appointment Integration Summary', () => {
     console.log('  ✅ Full Flow (Simulated)');
 
     console.log('\nProduction Readiness:');
-    console.log(`  ${twilioConfigured ? '✅' : '⚠️ '} Twilio calls ${twilioConfigured ? '' : '(simulated)'}`);
-    console.log(`  ${calendarConfigured ? '✅' : '⚠️ '} Google Calendar ${calendarConfigured ? '' : '(not configured)'}`);
+    console.log(
+      `  ${twilioConfigured ? '✅' : '⚠️ '} Twilio calls ${twilioConfigured ? '' : '(simulated)'}`
+    );
+    console.log(
+      `  ${calendarConfigured ? '✅' : '⚠️ '} Google Calendar ${calendarConfigured ? '' : '(not configured)'}`
+    );
 
     if (!twilioConfigured || !calendarConfigured) {
       console.log('\nTo enable production features:');
@@ -530,11 +534,10 @@ describe('Appointment Integration Summary', () => {
       }
     }
 
-    console.log('═'.repeat(60) + '\n');
+    console.log(`${'═'.repeat(60)}\n`);
   });
 
   it('should complete summary', () => {
     expect(true).toBe(true);
   });
 });
-

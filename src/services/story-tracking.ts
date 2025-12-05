@@ -1,6 +1,6 @@
 /**
  * Story Tracking Service
- * 
+ *
  * Tracks which stories have been told to which users, gates stories by
  * relationship stage, and manages narrative arcs.
  */
@@ -64,11 +64,7 @@ function getTrackingKey(userId: string, personaId: string): string {
 /**
  * Check if a story has been told to a user by a specific persona
  */
-export function hasStoryBeenTold(
-  userId: string,
-  personaId: string,
-  storyId: string
-): boolean {
+export function hasStoryBeenTold(userId: string, personaId: string, storyId: string): boolean {
   const key = getTrackingKey(userId, personaId);
   const told = storiesToldMap.get(key);
   return told?.has(storyId) ?? false;
@@ -77,11 +73,7 @@ export function hasStoryBeenTold(
 /**
  * Mark a story as told to a user
  */
-export function markStoryTold(
-  userId: string,
-  personaId: string,
-  storyId: string
-): void {
+export function markStoryTold(userId: string, personaId: string, storyId: string): void {
   const key = getTrackingKey(userId, personaId);
   let told = storiesToldMap.get(key);
   if (!told) {
@@ -89,17 +81,14 @@ export function markStoryTold(
     storiesToldMap.set(key, told);
   }
   told.add(storyId);
-  
+
   logger.debug({ userId, personaId, storyId }, 'Marked story as told');
 }
 
 /**
  * Get all stories told to a user by a persona
  */
-export function getStoriesTold(
-  userId: string,
-  personaId: string
-): string[] {
+export function getStoriesTold(userId: string, personaId: string): string[] {
   const key = getTrackingKey(userId, personaId);
   const told = storiesToldMap.get(key);
   return told ? Array.from(told) : [];
@@ -108,20 +97,17 @@ export function getStoriesTold(
 /**
  * Check if user qualifies for a story based on relationship stage
  */
-export function canTellStory(
-  story: Story,
-  relationshipStage: PersonaRelationshipStage
-): boolean {
+export function canTellStory(story: Story, relationshipStage: PersonaRelationshipStage): boolean {
   const stageOrder: PersonaRelationshipStage[] = [
     'stranger',
     'acquaintance',
     'friend',
-    'trusted_advisor'
+    'trusted_advisor',
   ];
-  
+
   const userStageIndex = stageOrder.indexOf(relationshipStage);
   const requiredStageIndex = stageOrder.indexOf(story.relationshipGate);
-  
+
   return userStageIndex >= requiredStageIndex;
 }
 
@@ -133,62 +119,64 @@ export function findStoryForContext(
   availableStories: Story[]
 ): StoryResult | null {
   const { userId, personaId, relationshipStage, userMood, currentTopic } = context;
-  
+
   // Filter stories that can be told
-  const eligibleStories = availableStories.filter(story => {
+  const eligibleStories = availableStories.filter((story) => {
     // Must be from this persona
     if (story.personaId !== personaId) return false;
-    
+
     // Must not have been told already
     if (hasStoryBeenTold(userId, personaId, story.id)) return false;
-    
+
     // Must meet relationship gate
     if (!canTellStory(story, relationshipStage)) return false;
-    
+
     return true;
   });
-  
+
   if (eligibleStories.length === 0) {
     return null;
   }
-  
+
   // Score stories by relevance
-  const scoredStories = eligibleStories.map(story => {
+  const scoredStories = eligibleStories.map((story) => {
     let score = 0;
-    
+
     // Mood matching
     if (userMood && story.emotionalTags.includes(userMood)) {
       score += 3;
     }
-    
+
     // Topic relevance (basic keyword matching)
     if (currentTopic) {
       const topicLower = currentTopic.toLowerCase();
-      if (story.title.toLowerCase().includes(topicLower) ||
-          story.content.toLowerCase().includes(topicLower)) {
+      if (
+        story.title.toLowerCase().includes(topicLower) ||
+        story.content.toLowerCase().includes(topicLower)
+      ) {
         score += 2;
       }
     }
-    
+
     // Prefer stories that follow from previous ones
     const toldStories = getStoriesTold(userId, personaId);
     if (story.followsFrom && toldStories.includes(story.followsFrom)) {
       score += 4; // Strong preference for narrative continuity
     }
-    
+
     // Slight randomness
     score += Math.random();
-    
+
     return { story, score };
   });
-  
+
   // Sort by score and pick best
   scoredStories.sort((a, b) => b.score - a.score);
   const bestStory = scoredStories[0].story;
-  
+
   return {
     story: bestStory,
-    canTell: true
+    canTell: true,
   };
 }
 
@@ -200,21 +188,21 @@ export function getContinuationStories(
   context: StoryTellingContext,
   allStories: Story[]
 ): Story[] {
-  const justTold = allStories.find(s => s.id === storyId);
+  const justTold = allStories.find((s) => s.id === storyId);
   if (!justTold?.leadsTo || justTold.leadsTo.length === 0) {
     return [];
   }
-  
-  return allStories.filter(story => {
+
+  return allStories.filter((story) => {
     // Must be in the leads-to list
     if (!justTold.leadsTo?.includes(story.id)) return false;
-    
+
     // Must not have been told
     if (hasStoryBeenTold(context.userId, context.personaId, story.id)) return false;
-    
+
     // Must meet relationship gate
     if (!canTellStory(story, context.relationshipStage)) return false;
-    
+
     return true;
   });
 }
@@ -231,7 +219,7 @@ export function registerStory(story: Story): void {
  * Get all registered stories for a persona
  */
 export function getPersonaStories(personaId: string): Story[] {
-  return Array.from(storyRegistry.values()).filter(s => s.personaId === personaId);
+  return Array.from(storyRegistry.values()).filter((s) => s.personaId === personaId);
 }
 
 /**
@@ -265,23 +253,23 @@ export function getStoryStats(
 } {
   const told = getStoriesTold(userId, personaId);
   const available = getPersonaStories(personaId);
-  
+
   // Count completed arcs (stories that have no leadsTo or all leadsTo are told)
   let completedArcs = 0;
   for (const story of available) {
     if (told.includes(story.id)) {
       if (!story.leadsTo || story.leadsTo.length === 0) {
         completedArcs++;
-      } else if (story.leadsTo.every(id => told.includes(id))) {
+      } else if (story.leadsTo.every((id) => told.includes(id))) {
         completedArcs++;
       }
     }
   }
-  
+
   return {
     totalTold: told.length,
     availableStories: available.length,
-    completedArcs
+    completedArcs,
   };
 }
 
@@ -300,4 +288,3 @@ export const StoryTrackingService = {
 };
 
 export default StoryTrackingService;
-

@@ -40,7 +40,7 @@ describe('Startup Validation', () => {
 
   afterEach(() => {
     // Restore original env
-    Object.keys(process.env).forEach(key => {
+    Object.keys(process.env).forEach((key) => {
       if (!(key in originalEnv)) {
         delete process.env[key];
       }
@@ -72,7 +72,7 @@ describe('Startup Validation', () => {
       const { validateStartup } = await getValidationModule();
       const result = validateStartup();
 
-      expect(result.warnings.some(w => w.includes('GOOGLE_CLOUD_PROJECT'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('GOOGLE_CLOUD_PROJECT'))).toBe(true);
       expect(result.capabilities.storeType).toBe('memory');
     });
 
@@ -83,7 +83,7 @@ describe('Startup Validation', () => {
       const { validateStartup } = await getValidationModule();
       const result = validateStartup();
 
-      expect(result.warnings.some(w => w.includes('embedding API key'))).toBe(true);
+      expect(result.warnings.some((w) => w.includes('embedding API key'))).toBe(true);
       expect(result.capabilities.semanticSearch).toBe(false);
       expect(result.capabilities.embeddingProvider).toBe('local');
     });
@@ -92,7 +92,7 @@ describe('Startup Validation', () => {
       const { validateStartup } = await getValidationModule();
       const result = validateStartup();
 
-      expect(result.errors.some(e => e.includes('LLM API key'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('LLM API key'))).toBe(true);
       expect(result.valid).toBe(false);
     });
 
@@ -102,7 +102,7 @@ describe('Startup Validation', () => {
       const { validateStartup } = await getValidationModule();
       const result = validateStartup();
 
-      expect(result.errors.some(e => e.includes('LIVEKIT_URL'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('LIVEKIT_URL'))).toBe(true);
       expect(result.valid).toBe(false);
     });
 
@@ -165,7 +165,7 @@ describe('Startup Validation', () => {
         requirePersistentMemory: true,
       });
 
-      expect(result.errors.some(e => e.includes('persistent memory'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('persistent memory'))).toBe(true);
       expect(result.valid).toBe(false);
     });
 
@@ -183,7 +183,7 @@ describe('Startup Validation', () => {
         requireSemanticSearch: true,
       });
 
-      expect(result.errors.some(e => e.includes('semantic search'))).toBe(true);
+      expect(result.errors.some((e) => e.includes('semantic search'))).toBe(true);
       expect(result.valid).toBe(false);
     });
   });
@@ -209,9 +209,9 @@ describe('Startup Validation', () => {
       process.env.NODE_ENV = 'production';
 
       const { validateAndLog } = await getValidationModule();
-      expect(() =>
-        validateAndLog({ environment: 'production' })
-      ).toThrow('Startup validation failed');
+      expect(() => validateAndLog({ environment: 'production' })).toThrow(
+        'Startup validation failed'
+      );
     });
   });
 
@@ -320,4 +320,3 @@ describe('Startup Validation', () => {
     });
   });
 });
-

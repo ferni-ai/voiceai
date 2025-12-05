@@ -84,7 +84,7 @@ function validateGoogleCloud(): { valid: boolean; errors: string[]; warnings: st
   if (projectId && !hasCredentials && process.env.NODE_ENV !== 'production') {
     warnings.push(
       'Google Cloud project set but no credentials found. ' +
-      'Set GOOGLE_APPLICATION_CREDENTIALS for local Firestore access.'
+        'Set GOOGLE_APPLICATION_CREDENTIALS for local Firestore access.'
     );
   }
 
@@ -115,7 +115,7 @@ function validateEmbeddings(): {
     provider = 'local';
     warnings.push(
       'No embedding API key found (GOOGLE_API_KEY or OPENAI_API_KEY). ' +
-      'Semantic search will NOT work - using hash-based fallback.'
+        'Semantic search will NOT work - using hash-based fallback.'
     );
   }
 
@@ -136,7 +136,7 @@ function validateTTS(): { valid: boolean; errors: string[]; warnings: string[] }
   if (!hasGoogleKey && !hasCartesiaKey && !hasElevenLabsKey) {
     warnings.push(
       'No TTS API key found. Voice responses may not work. ' +
-      'Set GOOGLE_API_KEY, CARTESIA_API_KEY, or ELEVENLABS_API_KEY.'
+        'Set GOOGLE_API_KEY, CARTESIA_API_KEY, or ELEVENLABS_API_KEY.'
     );
   }
 
@@ -157,7 +157,7 @@ function validateLLM(): { valid: boolean; errors: string[]; warnings: string[] }
   if (!hasGoogleKey && !hasOpenAIKey && !hasAnthropicKey) {
     errors.push(
       'No LLM API key found. The AI cannot function. ' +
-      'Set GOOGLE_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY.'
+        'Set GOOGLE_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY.'
     );
   }
 
@@ -182,15 +182,11 @@ function validatePersistence(): {
   const hasPostgres = !!process.env.DATABASE_URL;
 
   if (explicitType === 'firestore' && !hasFirestore) {
-    errors.push(
-      'MEMORY_STORE_TYPE=firestore but GOOGLE_CLOUD_PROJECT not set'
-    );
+    errors.push('MEMORY_STORE_TYPE=firestore but GOOGLE_CLOUD_PROJECT not set');
   }
 
   if (explicitType === 'postgres' && !hasPostgres) {
-    errors.push(
-      'MEMORY_STORE_TYPE=postgres but DATABASE_URL not set'
-    );
+    errors.push('MEMORY_STORE_TYPE=postgres but DATABASE_URL not set');
   }
 
   // Determine actual store type
@@ -207,7 +203,7 @@ function validatePersistence(): {
   if (storeType === 'memory') {
     warnings.push(
       'Using in-memory storage - USER DATA WILL NOT PERSIST across restarts! ' +
-      'Set GOOGLE_CLOUD_PROJECT for Firestore or DATABASE_URL for PostgreSQL.'
+        'Set GOOGLE_CLOUD_PROJECT for Firestore or DATABASE_URL for PostgreSQL.'
     );
   }
 
@@ -272,9 +268,7 @@ export function validateStartup(config: Partial<ValidationConfig> = {}): Validat
     }
 
     if (mergedConfig.requireSemanticSearch && embeddingResult.provider === 'local') {
-      allErrors.push(
-        'Production requires semantic search. Set GOOGLE_API_KEY or OPENAI_API_KEY.'
-      );
+      allErrors.push('Production requires semantic search. Set GOOGLE_API_KEY or OPENAI_API_KEY.');
     }
   }
 
@@ -283,7 +277,7 @@ export function validateStartup(config: Partial<ValidationConfig> = {}): Validat
     persistentMemory: persistenceResult.storeType !== 'memory',
     semanticSearch: embeddingResult.provider !== 'local',
     voiceRecognition: ttsResult.valid, // Simplified - assumes STT works with TTS keys
-    textToSpeech: ttsResult.valid && allErrors.filter(e => e.includes('TTS')).length === 0,
+    textToSpeech: ttsResult.valid && allErrors.filter((e) => e.includes('TTS')).length === 0,
     llmAvailable: llmResult.valid,
     storeType: persistenceResult.storeType,
     embeddingProvider: embeddingResult.provider,
@@ -314,13 +308,16 @@ export function validateAndLog(config: Partial<ValidationConfig> = {}): StartupC
   }
 
   // Log capabilities summary
-  getLogger().info({
-    storeType: result.capabilities.storeType,
-    embeddingProvider: result.capabilities.embeddingProvider,
-    persistentMemory: result.capabilities.persistentMemory,
-    semanticSearch: result.capabilities.semanticSearch,
-    llmAvailable: result.capabilities.llmAvailable,
-  }, '🔧 Startup capabilities');
+  getLogger().info(
+    {
+      storeType: result.capabilities.storeType,
+      embeddingProvider: result.capabilities.embeddingProvider,
+      persistentMemory: result.capabilities.persistentMemory,
+      semanticSearch: result.capabilities.semanticSearch,
+      llmAvailable: result.capabilities.llmAvailable,
+    },
+    '🔧 Startup capabilities'
+  );
 
   if (!result.valid) {
     const errorSummary = result.errors.join('\n  - ');
@@ -331,18 +328,18 @@ export function validateAndLog(config: Partial<ValidationConfig> = {}): StartupC
   if (!result.capabilities.persistentMemory) {
     getLogger().warn(
       '⚠️  ========================================\n' +
-      '⚠️  WARNING: MEMORY IS NOT PERSISTENT!\n' +
-      '⚠️  User data will be LOST on restart.\n' +
-      '⚠️  ========================================'
+        '⚠️  WARNING: MEMORY IS NOT PERSISTENT!\n' +
+        '⚠️  User data will be LOST on restart.\n' +
+        '⚠️  ========================================'
     );
   }
 
   if (!result.capabilities.semanticSearch) {
     getLogger().warn(
       '⚠️  ========================================\n' +
-      '⚠️  WARNING: SEMANTIC SEARCH DISABLED!\n' +
-      '⚠️  RAG and memory retrieval will not work.\n' +
-      '⚠️  ========================================'
+        '⚠️  WARNING: SEMANTIC SEARCH DISABLED!\n' +
+        '⚠️  RAG and memory retrieval will not work.\n' +
+        '⚠️  ========================================'
     );
   }
 
@@ -368,8 +365,12 @@ export function getCapabilitySummary(): string {
   const result = validateStartup();
   const lines: string[] = ['Ferni AI Capabilities:'];
 
-  lines.push(`  Memory: ${result.capabilities.persistentMemory ? '✅ Persistent' : '❌ Ephemeral (will lose data)'}`);
-  lines.push(`  Semantic Search: ${result.capabilities.semanticSearch ? '✅ Enabled' : '❌ Disabled (hash fallback)'}`);
+  lines.push(
+    `  Memory: ${result.capabilities.persistentMemory ? '✅ Persistent' : '❌ Ephemeral (will lose data)'}`
+  );
+  lines.push(
+    `  Semantic Search: ${result.capabilities.semanticSearch ? '✅ Enabled' : '❌ Disabled (hash fallback)'}`
+  );
   lines.push(`  LLM: ${result.capabilities.llmAvailable ? '✅ Available' : '❌ Not configured'}`);
   lines.push(`  TTS: ${result.capabilities.textToSpeech ? '✅ Available' : '⚠️ May not work'}`);
   lines.push(`  Store: ${result.capabilities.storeType}`);
@@ -399,14 +400,14 @@ export async function checkEmbeddingConsistency(): Promise<{
   warning?: string;
 }> {
   const embeddingResult = validateEmbeddings();
-  
+
   // Determine current dimensions based on provider
   const dimensionMap = {
     google: 768,
     openai: 1536,
     local: 384,
   };
-  
+
   const currentDimensions = dimensionMap[embeddingResult.provider];
 
   // Try to detect stored dimensions
@@ -453,4 +454,3 @@ export default {
   getCapabilitySummary,
   checkEmbeddingConsistency,
 };
-

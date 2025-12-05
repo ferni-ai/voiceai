@@ -441,8 +441,8 @@ export const TASK_WISDOM: TaskWisdom[] = [
 // ============================================================================
 
 export class TaskManager {
-  private activeTasks: Map<string, ActiveTask> = new Map();
-  private completedTasks: Set<string> = new Set();
+  private activeTasks = new Map<string, ActiveTask>();
+  private completedTasks = new Set<string>();
   private logger = getLogger();
 
   // Callback for feeding task insights to the learning engine
@@ -529,17 +529,17 @@ export class TaskManager {
     );
 
     for (const activeTask of sortedTasks) {
-      const wisdom = activeTask.wisdom;
+      const { wisdom } = activeTask;
       let instructions = wisdom.instructions.base;
 
       // Add conditional instructions
       if (analysis.emotion.distressLevel > 0.5 && wisdom.instructions.ifDistressed) {
-        instructions += '\n\n' + wisdom.instructions.ifDistressed;
+        instructions += `\n\n${wisdom.instructions.ifDistressed}`;
       } else if (analysis.emotion.valence === 'positive' && wisdom.instructions.ifPositive) {
-        instructions += '\n\n' + wisdom.instructions.ifPositive;
+        instructions += `\n\n${wisdom.instructions.ifPositive}`;
       }
       if (context?.isReturningUser && wisdom.instructions.ifReturning) {
-        instructions += '\n\n' + wisdom.instructions.ifReturning;
+        instructions += `\n\n${wisdom.instructions.ifReturning}`;
       }
 
       // Add entry transition on first turn
@@ -563,7 +563,7 @@ export class TaskManager {
     analysis: ConversationAnalysis,
     userText: string
   ): boolean {
-    const triggers = wisdom.triggers;
+    const { triggers } = wisdom;
 
     // Check distress threshold
     if (triggers.distressThreshold !== undefined) {
@@ -631,7 +631,7 @@ export class TaskManager {
     analysis: ConversationAnalysis,
     userText: string
   ): boolean {
-    const completion = activeTask.wisdom.completion;
+    const { completion } = activeTask.wisdom;
     if (!completion) return false;
 
     // Check turn count

@@ -9,21 +9,15 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import type { EmotionalArcTracker } from '../conversation/emotional-arc.js';
+import { getEmotionalArcTracker, resetEmotionalArcTracker } from '../conversation/emotional-arc.js';
+import type { ResponseDynamicsEngine } from '../conversation/response-dynamics.js';
 import {
-  EmotionalArcTracker,
-  getEmotionalArcTracker,
-  resetEmotionalArcTracker,
-} from '../conversation/emotional-arc.js';
-import {
-  ResponseDynamicsEngine,
   getResponseDynamicsEngine,
   resetResponseDynamicsEngine,
 } from '../conversation/response-dynamics.js';
-import {
-  StoryTimingEngine,
-  getStoryTimingEngine,
-  resetStoryTimingEngine,
-} from '../conversation/story-timing.js';
+import type { StoryTimingEngine } from '../conversation/story-timing.js';
+import { getStoryTimingEngine, resetStoryTimingEngine } from '../conversation/story-timing.js';
 import { generateProactiveOpener, buildOpenerContext } from '../conversation/proactive-starters.js';
 import type { PersonaConfig } from '../personas/types.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';

@@ -179,7 +179,11 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 // Export individual tool groups for selective imports
-export { getTaskToolDefinitions, getNotesToolDefinitions, getRoutineToolDefinitions, getShoppingToolDefinitions };
+export {
+  getTaskToolDefinitions,
+  getNotesToolDefinitions,
+  getRoutineToolDefinitions,
+  getShoppingToolDefinitions,
+};
 
 export default getToolDefinitions;
-

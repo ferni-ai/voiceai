@@ -90,7 +90,7 @@ export class PatternAnalyzer {
   // Store session data for analysis
   private sessions = new Map<string, SessionData>();
   private completedSessions: SessionData[] = [];
-  
+
   // Cached analysis results
   private coOccurrenceMatrix = new Map<string, Map<string, number>>();
   private sequenceCache: ToolSequence[] = [];
@@ -118,22 +118,17 @@ export class PatternAnalyzer {
   /**
    * Record a tool call in a session
    */
-  recordToolCall(
-    sessionId: string,
-    toolId: string,
-    success: boolean,
-    latencyMs: number
-  ): void {
+  recordToolCall(sessionId: string, toolId: string, success: boolean, latencyMs: number): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
-    
+
     session.toolCalls.push({
       toolId,
       timestamp: new Date(),
       success,
       latencyMs,
     });
-    
+
     // Update co-occurrence matrix
     this.updateCoOccurrence(session);
   }
@@ -157,7 +152,7 @@ export class PatternAnalyzer {
       session.endTime = new Date();
       this.completedSessions.push(session);
       this.sessions.delete(sessionId);
-      
+
       // Persist session to Firestore (async, fire-and-forget)
       import('../services/optimization-persistence.js')
         .then(({ optimizationPersistence }) => {
@@ -166,7 +161,7 @@ export class PatternAnalyzer {
         .catch(() => {
           // Persistence failure is non-critical
         });
-      
+
       // Keep only last 1000 sessions in memory
       if (this.completedSessions.length > 1000) {
         this.completedSessions = this.completedSessions.slice(-1000);
@@ -182,21 +177,21 @@ export class PatternAnalyzer {
    * Update co-occurrence matrix when tools are used in same session
    */
   private updateCoOccurrence(session: SessionData): void {
-    const tools = session.toolCalls.map(tc => tc.toolId);
+    const tools = session.toolCalls.map((tc) => tc.toolId);
     const uniqueTools = [...new Set(tools)];
-    
+
     for (let i = 0; i < uniqueTools.length; i++) {
       for (let j = i + 1; j < uniqueTools.length; j++) {
         const toolA = uniqueTools[i];
         const toolB = uniqueTools[j];
-        
+
         if (!this.coOccurrenceMatrix.has(toolA)) {
           this.coOccurrenceMatrix.set(toolA, new Map());
         }
         if (!this.coOccurrenceMatrix.has(toolB)) {
           this.coOccurrenceMatrix.set(toolB, new Map());
         }
-        
+
         const countAB = (this.coOccurrenceMatrix.get(toolA)?.get(toolB) || 0) + 1;
         this.coOccurrenceMatrix.get(toolA)!.set(toolB, countAB);
         this.coOccurrenceMatrix.get(toolB)!.set(toolA, countAB);
@@ -210,13 +205,13 @@ export class PatternAnalyzer {
   getCoOccurrences(minCount = 5): ToolCoOccurrence[] {
     const results: ToolCoOccurrence[] = [];
     const seen = new Set<string>();
-    
+
     for (const [toolA, innerMap] of this.coOccurrenceMatrix) {
       for (const [toolB, count] of innerMap) {
         const key = [toolA, toolB].sort().join('|');
         if (seen.has(key) || count < minCount) continue;
         seen.add(key);
-        
+
         results.push({
           toolA,
           toolB,
@@ -226,30 +221,30 @@ export class PatternAnalyzer {
         });
       }
     }
-    
+
     return results.sort((a, b) => b.count - a.count);
   }
 
   private calculateAvgGap(toolA: string, toolB: string): number {
     let totalGap = 0;
     let gapCount = 0;
-    
+
     for (const session of this.completedSessions) {
       const calls = session.toolCalls;
       let lastA = -1;
       let lastB = -1;
-      
+
       for (let i = 0; i < calls.length; i++) {
         if (calls[i].toolId === toolA) lastA = i;
         if (calls[i].toolId === toolB) lastB = i;
-        
+
         if (lastA >= 0 && lastB >= 0 && lastA !== lastB) {
           totalGap += Math.abs(lastA - lastB);
           gapCount++;
         }
       }
     }
-    
+
     return gapCount > 0 ? totalGap / gapCount : 0;
   }
 
@@ -258,26 +253,28 @@ export class PatternAnalyzer {
     let onlyA = 0;
     let onlyB = 0;
     let neither = 0;
-    
+
     for (const session of this.completedSessions) {
-      const tools = new Set(session.toolCalls.map(tc => tc.toolId));
+      const tools = new Set(session.toolCalls.map((tc) => tc.toolId));
       const hasA = tools.has(toolA);
       const hasB = tools.has(toolB);
-      
+
       if (hasA && hasB) bothPresent++;
       else if (hasA) onlyA++;
       else if (hasB) onlyB++;
       else neither++;
     }
-    
+
     const total = bothPresent + onlyA + onlyB + neither;
     if (total === 0) return 0;
-    
+
     // Phi coefficient
     const ad = bothPresent * neither;
     const bc = onlyA * onlyB;
-    const denom = Math.sqrt((bothPresent + onlyA) * (bothPresent + onlyB) * (neither + onlyA) * (neither + onlyB));
-    
+    const denom = Math.sqrt(
+      (bothPresent + onlyA) * (bothPresent + onlyB) * (neither + onlyA) * (neither + onlyB)
+    );
+
     return denom > 0 ? (ad - bc) / denom : 0;
   }
 
@@ -290,39 +287,45 @@ export class PatternAnalyzer {
    */
   discoverSequences(minLength = 2, maxLength = 5, minCount = 3): ToolSequence[] {
     // Check cache
-    if (Date.now() - this.lastAnalysisTime < this.ANALYSIS_CACHE_TTL && this.sequenceCache.length > 0) {
+    if (
+      Date.now() - this.lastAnalysisTime < this.ANALYSIS_CACHE_TTL &&
+      this.sequenceCache.length > 0
+    ) {
       return this.sequenceCache;
     }
-    
-    const sequenceCounts = new Map<string, { count: number; durations: number[]; successes: boolean[] }>();
-    
+
+    const sequenceCounts = new Map<
+      string,
+      { count: number; durations: number[]; successes: boolean[] }
+    >();
+
     for (const session of this.completedSessions) {
       const tools = session.toolCalls;
-      
+
       // Extract all subsequences
       for (let start = 0; start < tools.length; start++) {
         for (let len = minLength; len <= Math.min(maxLength, tools.length - start); len++) {
           const subseq = tools.slice(start, start + len);
-          const key = subseq.map(tc => tc.toolId).join('→');
-          
+          const key = subseq.map((tc) => tc.toolId).join('→');
+
           const existing = sequenceCounts.get(key) || { count: 0, durations: [], successes: [] };
           existing.count++;
           existing.durations.push(len);
-          existing.successes.push(subseq.every(tc => tc.success));
+          existing.successes.push(subseq.every((tc) => tc.success));
           sequenceCounts.set(key, existing);
         }
       }
     }
-    
+
     // Convert to results
     const results: ToolSequence[] = [];
-    
+
     for (const [key, data] of sequenceCounts) {
       if (data.count < minCount) continue;
-      
+
       const avgDuration = data.durations.reduce((a, b) => a + b, 0) / data.durations.length;
-      const successRate = data.successes.filter(s => s).length / data.successes.length;
-      
+      const successRate = data.successes.filter((s) => s).length / data.successes.length;
+
       results.push({
         sequence: key.split('→'),
         count: data.count,
@@ -330,10 +333,10 @@ export class PatternAnalyzer {
         successRate,
       });
     }
-    
+
     this.sequenceCache = results.sort((a, b) => b.count - a.count);
     this.lastAnalysisTime = Date.now();
-    
+
     return this.sequenceCache;
   }
 
@@ -347,13 +350,13 @@ export class PatternAnalyzer {
   identifyJourneys(): UserJourney[] {
     const sequences = this.discoverSequences(3, 6, 5);
     const journeys: UserJourney[] = [];
-    
+
     // Cluster sequences into journeys
     const clusters = this.clusterSequences(sequences);
-    
+
     for (const cluster of clusters) {
       const representativeSeq = cluster[0];
-      
+
       journeys.push({
         name: this.generateJourneyName(representativeSeq.sequence),
         description: `Common journey involving ${representativeSeq.sequence.length} tools`,
@@ -362,7 +365,7 @@ export class PatternAnalyzer {
         avgSuccess: cluster.reduce((sum, s) => sum + s.successRate, 0) / cluster.length,
       });
     }
-    
+
     return journeys.sort((a, b) => b.frequency - a.frequency);
   }
 
@@ -370,36 +373,36 @@ export class PatternAnalyzer {
     // Simple clustering by shared tools
     const clusters: ToolSequence[][] = [];
     const assigned = new Set<ToolSequence>();
-    
+
     for (const seq of sequences) {
       if (assigned.has(seq)) continue;
-      
+
       const cluster = [seq];
       assigned.add(seq);
-      
+
       for (const other of sequences) {
         if (assigned.has(other)) continue;
-        
+
         // Check overlap
-        const overlap = seq.sequence.filter(t => other.sequence.includes(t)).length;
+        const overlap = seq.sequence.filter((t) => other.sequence.includes(t)).length;
         const similarity = overlap / Math.max(seq.sequence.length, other.sequence.length);
-        
+
         if (similarity > 0.5) {
           cluster.push(other);
           assigned.add(other);
         }
       }
-      
+
       clusters.push(cluster);
     }
-    
-    return clusters.filter(c => c.length > 0);
+
+    return clusters.filter((c) => c.length > 0);
   }
 
   private generateJourneyName(tools: string[]): string {
     // Simple heuristic based on tool names
     const domains = new Set<string>();
-    
+
     for (const tool of tools) {
       if (tool.includes('budget') || tool.includes('finance')) domains.add('Financial');
       if (tool.includes('calendar') || tool.includes('schedule')) domains.add('Planning');
@@ -408,7 +411,7 @@ export class PatternAnalyzer {
       if (tool.includes('wellness') || tool.includes('health')) domains.add('Wellness');
       if (tool.includes('goal') || tool.includes('habit')) domains.add('Growth');
     }
-    
+
     if (domains.size === 0) return `${tools.length}-Step Journey`;
     return `${Array.from(domains).join(' + ')} Journey`;
   }
@@ -420,16 +423,18 @@ export class PatternAnalyzer {
   /**
    * Identify gaps in tool coverage
    */
-  analyzeGaps(featureRequests: Array<{ capability: string; count: number; examples: string[] }>): GapAnalysis[] {
+  analyzeGaps(
+    featureRequests: Array<{ capability: string; count: number; examples: string[] }>
+  ): GapAnalysis[] {
     const gaps: GapAnalysis[] = [];
-    
+
     for (const request of featureRequests) {
       if (request.count < 3) continue;
-      
+
       const gap = this.categorizeGap(request);
       if (gap) gaps.push(gap);
     }
-    
+
     return gaps.sort((a, b) => {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
@@ -439,11 +444,19 @@ export class PatternAnalyzer {
     });
   }
 
-  private categorizeGap(request: { capability: string; count: number; examples: string[] }): GapAnalysis | null {
+  private categorizeGap(request: {
+    capability: string;
+    count: number;
+    examples: string[];
+  }): GapAnalysis | null {
     const capability = request.capability.toLowerCase();
-    
+
     // Financial gaps
-    if (capability.includes('invest') || capability.includes('stock') || capability.includes('portfolio')) {
+    if (
+      capability.includes('invest') ||
+      capability.includes('stock') ||
+      capability.includes('portfolio')
+    ) {
       return {
         description: `Users want: ${request.capability}`,
         requestCount: request.count,
@@ -453,9 +466,13 @@ export class PatternAnalyzer {
         priority: request.count > 10 ? 'high' : request.count > 5 ? 'medium' : 'low',
       };
     }
-    
+
     // Calendar/scheduling gaps
-    if (capability.includes('schedule') || capability.includes('appointment') || capability.includes('remind')) {
+    if (
+      capability.includes('schedule') ||
+      capability.includes('appointment') ||
+      capability.includes('remind')
+    ) {
       return {
         description: `Users want: ${request.capability}`,
         requestCount: request.count,
@@ -465,9 +482,14 @@ export class PatternAnalyzer {
         priority: request.count > 10 ? 'high' : request.count > 5 ? 'medium' : 'low',
       };
     }
-    
+
     // Communication gaps
-    if (capability.includes('email') || capability.includes('message') || capability.includes('text') || capability.includes('call')) {
+    if (
+      capability.includes('email') ||
+      capability.includes('message') ||
+      capability.includes('text') ||
+      capability.includes('call')
+    ) {
       return {
         description: `Users want: ${request.capability}`,
         requestCount: request.count,
@@ -477,7 +499,7 @@ export class PatternAnalyzer {
         priority: request.count > 10 ? 'high' : request.count > 5 ? 'medium' : 'low',
       };
     }
-    
+
     // Generic gap
     return {
       description: `Users want: ${request.capability}`,
@@ -493,9 +515,12 @@ export class PatternAnalyzer {
     // Extract key action/noun
     const words = capability.split(/\s+/);
     const verbs = ['manage', 'track', 'create', 'get', 'analyze', 'send', 'find'];
-    const verb = words.find(w => verbs.some(v => w.startsWith(v))) || 'manage';
-    const noun = words.filter(w => !verbs.some(v => w.startsWith(v))).slice(0, 2).join('');
-    
+    const verb = words.find((w) => verbs.some((v) => w.startsWith(v))) || 'manage';
+    const noun = words
+      .filter((w) => !verbs.some((v) => w.startsWith(v)))
+      .slice(0, 2)
+      .join('');
+
     return `${verb}${noun.charAt(0).toUpperCase()}${noun.slice(1)}`;
   }
 
@@ -509,7 +534,7 @@ export class PatternAnalyzer {
   findConsolidationOpportunities(): ConsolidationOpportunity[] {
     const opportunities: ConsolidationOpportunity[] = [];
     const coOccurrences = this.getCoOccurrences(10);
-    
+
     // High correlation = consolidation candidate
     for (const coOcc of coOccurrences) {
       if (coOcc.correlation > 0.6 && coOcc.avgGap < 2) {
@@ -522,7 +547,7 @@ export class PatternAnalyzer {
         });
       }
     }
-    
+
     return opportunities.sort((a, b) => b.confidence - a.confidence);
   }
 
@@ -530,15 +555,15 @@ export class PatternAnalyzer {
     // Find common prefix
     let i = 0;
     while (i < toolA.length && i < toolB.length && toolA[i] === toolB[i]) i++;
-    
+
     if (i > 3) {
-      return toolA.slice(0, i) + 'Manager';
+      return `${toolA.slice(0, i)}Manager`;
     }
-    
+
     // Combine key parts
     const partA = toolA.replace(/^(manage|get|create|track)/, '');
     const partB = toolB.replace(/^(manage|get|create|track)/, '');
-    
+
     return `manage${partA}And${partB.charAt(0).toUpperCase()}${partB.slice(1)}`;
   }
 
@@ -553,14 +578,14 @@ export class PatternAnalyzer {
     let report = '═══════════════════════════════════════════════════════════════\n';
     report += '                  INTERACTION PATTERN ANALYSIS                   \n';
     report += '═══════════════════════════════════════════════════════════════\n\n';
-    
+
     // Summary
     report += '📊 DATA SUMMARY\n';
     report += '─────────────────────────────────────────────────────────────────\n';
     report += `  Active Sessions:    ${this.sessions.size}\n`;
     report += `  Completed Sessions: ${this.completedSessions.length}\n`;
     report += `  Tools Tracked:      ${this.coOccurrenceMatrix.size}\n\n`;
-    
+
     // Top co-occurrences
     const coOccs = this.getCoOccurrences(5).slice(0, 5);
     if (coOccs.length > 0) {
@@ -572,7 +597,7 @@ export class PatternAnalyzer {
       }
       report += '\n';
     }
-    
+
     // Top sequences
     const seqs = this.discoverSequences().slice(0, 5);
     if (seqs.length > 0) {
@@ -584,7 +609,7 @@ export class PatternAnalyzer {
       }
       report += '\n';
     }
-    
+
     // Journeys
     const journeys = this.identifyJourneys().slice(0, 3);
     if (journeys.length > 0) {
@@ -597,7 +622,7 @@ export class PatternAnalyzer {
       }
       report += '\n';
     }
-    
+
     // Consolidation opportunities
     const consolidations = this.findConsolidationOpportunities().slice(0, 3);
     if (consolidations.length > 0) {
@@ -608,9 +633,9 @@ export class PatternAnalyzer {
         report += `    ${opp.reason}\n`;
       }
     }
-    
+
     report += '\n═══════════════════════════════════════════════════════════════\n';
-    
+
     return report;
   }
 }
@@ -622,4 +647,3 @@ export class PatternAnalyzer {
 export const patternAnalyzer = new PatternAnalyzer();
 
 export default patternAnalyzer;
-

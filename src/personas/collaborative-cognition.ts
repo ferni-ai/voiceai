@@ -68,175 +68,167 @@ interface PerspectiveTemplate {
 const PERSPECTIVE_TEMPLATES: Record<ReasoningStyle, PerspectiveTemplate> = {
   analytical: {
     noticeTemplates: [
-      "the pattern in {topic} - {detail}",
-      "a correlation between {topic} and {factor}",
-      "the numbers suggest {insight}",
-      "historical precedent for {topic}",
+      'the pattern in {topic} - {detail}',
+      'a correlation between {topic} and {factor}',
+      'the numbers suggest {insight}',
+      'historical precedent for {topic}',
     ],
     missTemplates: [
-      "the emotional weight this carries",
-      "the relationship dynamics at play",
-      "the human story behind the data",
+      'the emotional weight this carries',
+      'the relationship dynamics at play',
+      'the human story behind the data',
     ],
     takeTemplates: [
-      "The data shows {insight}, which suggests {implication}.",
-      "Looking at the patterns, I see {pattern}.",
-      "Historically, this kind of {topic} tends to {trend}.",
+      'The data shows {insight}, which suggests {implication}.',
+      'Looking at the patterns, I see {pattern}.',
+      'Historically, this kind of {topic} tends to {trend}.',
     ],
     questionTemplates: [
-      "What does the data say about {topic}?",
-      "How does this compare to the baseline?",
+      'What does the data say about {topic}?',
+      'How does this compare to the baseline?',
       "What's the trend over time?",
     ],
     suggestionTemplates: [
       "Let's look at the numbers first",
       "I'd want to see more data before deciding",
-      "The analysis suggests {action}",
+      'The analysis suggests {action}',
     ],
   },
 
   empathetic: {
     noticeTemplates: [
-      "the stress this is causing",
-      "an underlying fear about {topic}",
-      "the emotional weight of this decision",
-      "how {topic} is affecting their wellbeing",
+      'the stress this is causing',
+      'an underlying fear about {topic}',
+      'the emotional weight of this decision',
+      'how {topic} is affecting their wellbeing',
     ],
     missTemplates: [
-      "the practical timeline",
-      "the specific numbers",
-      "the systematic approach needed",
+      'the practical timeline',
+      'the specific numbers',
+      'the systematic approach needed',
     ],
     takeTemplates: [
       "There's a lot of emotion wrapped up in {topic}.",
-      "I sense this is about more than just {topic}.",
+      'I sense this is about more than just {topic}.',
       "The feeling I'm getting is {emotion}.",
     ],
     questionTemplates: [
-      "How is this making you feel?",
+      'How is this making you feel?',
       "What's the hardest part of {topic}?",
       "Who else knows you're going through this?",
     ],
     suggestionTemplates: [
       "Let's make sure you're taking care of yourself first",
       "It's okay to sit with this feeling",
-      "What would feel supportive right now?",
+      'What would feel supportive right now?',
     ],
   },
 
   narrative: {
     noticeTemplates: [
-      "a deeper story about {topic}",
-      "how this connects to their larger journey",
+      'a deeper story about {topic}',
+      'how this connects to their larger journey',
       "the meaning they're making of {topic}",
-      "a pattern in their life story around {topic}",
+      'a pattern in their life story around {topic}',
     ],
     missTemplates: [
-      "the immediate practical steps",
-      "the specific numbers and timeline",
-      "the systematic process needed",
+      'the immediate practical steps',
+      'the specific numbers and timeline',
+      'the systematic process needed',
     ],
     takeTemplates: [
       "There's a story here about {theme}.",
-      "This feels like a chapter in a larger {narrative}.",
-      "What I hear is a journey toward {aspiration}.",
+      'This feels like a chapter in a larger {narrative}.',
+      'What I hear is a journey toward {aspiration}.',
     ],
     questionTemplates: [
       "What's the story behind {topic}?",
-      "What does this mean to you?",
-      "Who do you want to become through this?",
+      'What does this mean to you?',
+      'Who do you want to become through this?',
     ],
     suggestionTemplates: [
       "Let's explore what this means in your larger story",
       "There's something deeper here worth examining",
-      "This might be a turning point",
+      'This might be a turning point',
     ],
   },
 
   systematic: {
     noticeTemplates: [
-      "the process breakdown for {topic}",
-      "organizational gaps in their approach",
-      "where the system could be improved",
-      "steps that are out of order",
+      'the process breakdown for {topic}',
+      'organizational gaps in their approach',
+      'where the system could be improved',
+      'steps that are out of order',
     ],
     missTemplates: [
-      "the emotional motivation",
-      "the bigger picture meaning",
-      "the intuitive aspects",
+      'the emotional motivation',
+      'the bigger picture meaning',
+      'the intuitive aspects',
     ],
     takeTemplates: [
-      "The current process for {topic} has some gaps.",
+      'The current process for {topic} has some gaps.',
       "There's a more organized way to approach this.",
-      "Breaking this down, I see {steps}.",
+      'Breaking this down, I see {steps}.',
     ],
     questionTemplates: [
       "What's your current process?",
-      "Where does {topic} fit in your system?",
+      'Where does {topic} fit in your system?',
       "What's the first step?",
     ],
     suggestionTemplates: [
       "Let's organize this step by step",
       "Here's a structured approach",
-      "If we break this into phases, it becomes manageable",
+      'If we break this into phases, it becomes manageable',
     ],
   },
 
   pragmatic: {
     noticeTemplates: [
-      "a clear action needed on {topic}",
+      'a clear action needed on {topic}',
       "what's blocking progress",
-      "the quickest path forward",
-      "what success looks like",
+      'the quickest path forward',
+      'what success looks like',
     ],
-    missTemplates: [
-      "the emotional processing needed",
-      "the deeper meaning",
-      "historical context",
-    ],
+    missTemplates: ['the emotional processing needed', 'the deeper meaning', 'historical context'],
     takeTemplates: [
-      "The key thing is to {action} on {topic}.",
-      "What matters most right now is {priority}.",
-      "The simplest path forward is {approach}.",
+      'The key thing is to {action} on {topic}.',
+      'What matters most right now is {priority}.',
+      'The simplest path forward is {approach}.',
     ],
     questionTemplates: [
-      "What needs to happen next?",
+      'What needs to happen next?',
       "What's stopping you?",
-      "When will you do this?",
+      'When will you do this?',
     ],
     suggestionTemplates: [
       "Let's just get started",
       "Here's what to do next",
-      "The deadline is {timeline}, so we need to {action}",
+      'The deadline is {timeline}, so we need to {action}',
     ],
   },
 
   intuitive: {
     noticeTemplates: [
-      "something deeper trying to emerge around {topic}",
-      "a pattern that connects to larger themes",
-      "intuitive resistance to {topic}",
-      "wisdom trying to surface",
+      'something deeper trying to emerge around {topic}',
+      'a pattern that connects to larger themes',
+      'intuitive resistance to {topic}',
+      'wisdom trying to surface',
     ],
-    missTemplates: [
-      "the practical details",
-      "the immediate timeline",
-      "the systematic approach",
-    ],
+    missTemplates: ['the practical details', 'the immediate timeline', 'the systematic approach'],
     takeTemplates: [
       "There's something trying to emerge here.",
-      "My sense is that {insight}.",
-      "Beneath the surface, I notice {pattern}.",
+      'My sense is that {insight}.',
+      'Beneath the surface, I notice {pattern}.',
     ],
     questionTemplates: [
       "What's your gut telling you?",
-      "What would wisdom suggest?",
+      'What would wisdom suggest?',
       "What's the deeper pattern?",
     ],
     suggestionTemplates: [
       "Trust what's emerging",
       "Let's sit with this possibility",
-      "Consider the larger pattern at play",
+      'Consider the larger pattern at play',
     ],
   },
 };
@@ -259,7 +251,7 @@ export function generatePerspective(
 
   const templates = PERSPECTIVE_TEMPLATES[profile.reasoningStyle];
   const personaNames: Record<string, string> = {
-    'ferni': 'Ferni',
+    ferni: 'Ferni',
     'peter-john': 'Peter',
     'alex-chen': 'Alex',
     'maya-santos': 'Maya',
@@ -270,28 +262,32 @@ export function generatePerspective(
   // Generate notices based on attention focus
   const notices: string[] = [];
   for (const focus of profile.attention.primaryFocus.slice(0, 2)) {
-    const template = templates.noticeTemplates[Math.floor(Math.random() * templates.noticeTemplates.length)];
+    const template =
+      templates.noticeTemplates[Math.floor(Math.random() * templates.noticeTemplates.length)];
     notices.push(fillTemplate(template, { topic, ...details }));
   }
 
   // Generate misses based on blind spots
   const misses: string[] = [];
   for (const blindSpot of profile.attention.blindSpots.slice(0, 2)) {
-    const template = templates.missTemplates[Math.floor(Math.random() * templates.missTemplates.length)];
+    const template =
+      templates.missTemplates[Math.floor(Math.random() * templates.missTemplates.length)];
     misses.push(template);
   }
 
   // Generate initial take
-  const takeTemplate = templates.takeTemplates[Math.floor(Math.random() * templates.takeTemplates.length)];
+  const takeTemplate =
+    templates.takeTemplates[Math.floor(Math.random() * templates.takeTemplates.length)];
   const initialTake = fillTemplate(takeTemplate, { topic, ...details });
 
   // Generate questions
   const questions = templates.questionTemplates
     .slice(0, 2)
-    .map(q => fillTemplate(q, { topic, ...details }));
+    .map((q) => fillTemplate(q, { topic, ...details }));
 
   // Generate suggestion
-  const suggestionTemplate = templates.suggestionTemplates[Math.floor(Math.random() * templates.suggestionTemplates.length)];
+  const suggestionTemplate =
+    templates.suggestionTemplates[Math.floor(Math.random() * templates.suggestionTemplates.length)];
   const suggestion = fillTemplate(suggestionTemplate, { topic, ...details });
 
   return {
@@ -324,7 +320,14 @@ function fillTemplate(template: string, values: Record<string, string>): string 
 export function generateCollaborativePerspectives(
   situation: string,
   topic: string,
-  personaIds: string[] = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel']
+  personaIds: string[] = [
+    'ferni',
+    'peter-john',
+    'alex-chen',
+    'maya-santos',
+    'jordan-taylor',
+    'nayan-patel',
+  ]
 ): CollaborativeCognition {
   const perspectives = new Map<string, CognitivePerspective>();
 
@@ -368,12 +371,16 @@ function synthesizePerspectives(perspectives: Map<string, CognitivePerspective>)
 
   // Data + Emotion synthesis
   if (analytical && empathetic) {
-    synthesis.push(`Peter sees the patterns while Maya senses the emotional undercurrent - both are real.`);
+    synthesis.push(
+      `Peter sees the patterns while Maya senses the emotional undercurrent - both are real.`
+    );
   }
 
   // Action + Meaning synthesis
   if (pragmatic && narrative) {
-    synthesis.push(`Jordan focuses on what to do while Ferni explores why it matters - the answer includes both.`);
+    synthesis.push(
+      `Jordan focuses on what to do while Ferni explores why it matters - the answer includes both.`
+    );
   }
 
   // Multiple attention focuses catch more
@@ -384,7 +391,9 @@ function synthesizePerspectives(perspectives: Map<string, CognitivePerspective>)
     }
   }
   if (allNotices.size > 4) {
-    synthesis.push(`Together, the team notices ${allNotices.size} distinct aspects of this situation.`);
+    synthesis.push(
+      `Together, the team notices ${allNotices.size} distinct aspects of this situation.`
+    );
   }
 
   return synthesis;
@@ -420,8 +429,8 @@ function noticeMatchesMiss(notice: string, miss: string): boolean {
   const noticeKeywords = notice.toLowerCase().split(/\s+/);
   const missKeywords = miss.toLowerCase().split(/\s+/);
 
-  const overlap = noticeKeywords.filter(kw =>
-    missKeywords.some(mk => mk.includes(kw) || kw.includes(mk))
+  const overlap = noticeKeywords.filter((kw) =>
+    missKeywords.some((mk) => mk.includes(kw) || kw.includes(mk))
   );
 
   return overlap.length >= 1;
@@ -439,8 +448,12 @@ function recommendCognitiveHandoff(
   const topicLower = topic.toLowerCase();
 
   // Emotional situations → Maya
-  if (situationLower.includes('stress') || situationLower.includes('worried') ||
-      situationLower.includes('overwhelm') || situationLower.includes('anxious')) {
+  if (
+    situationLower.includes('stress') ||
+    situationLower.includes('worried') ||
+    situationLower.includes('overwhelm') ||
+    situationLower.includes('anxious')
+  ) {
     return {
       toPersona: 'maya-santos',
       reason: "This needs Maya's empathetic approach - there's emotional weight here.",
@@ -448,8 +461,12 @@ function recommendCognitiveHandoff(
   }
 
   // Data/analysis situations → Peter
-  if (topicLower.includes('data') || topicLower.includes('pattern') ||
-      topicLower.includes('trend') || topicLower.includes('research')) {
+  if (
+    topicLower.includes('data') ||
+    topicLower.includes('pattern') ||
+    topicLower.includes('trend') ||
+    topicLower.includes('research')
+  ) {
     return {
       toPersona: 'peter-john',
       reason: "Peter's analytical lens would help here - there are patterns to uncover.",
@@ -457,8 +474,12 @@ function recommendCognitiveHandoff(
   }
 
   // Planning/milestone situations → Jordan
-  if (topicLower.includes('plan') || topicLower.includes('event') ||
-      topicLower.includes('milestone') || topicLower.includes('deadline')) {
+  if (
+    topicLower.includes('plan') ||
+    topicLower.includes('event') ||
+    topicLower.includes('milestone') ||
+    topicLower.includes('deadline')
+  ) {
     return {
       toPersona: 'jordan-taylor',
       reason: "Jordan's pragmatic approach would get this moving.",
@@ -466,8 +487,12 @@ function recommendCognitiveHandoff(
   }
 
   // Meaning/purpose situations → Nayan
-  if (topicLower.includes('meaning') || topicLower.includes('purpose') ||
-      topicLower.includes('why') || topicLower.includes('wisdom')) {
+  if (
+    topicLower.includes('meaning') ||
+    topicLower.includes('purpose') ||
+    topicLower.includes('why') ||
+    topicLower.includes('wisdom')
+  ) {
     return {
       toPersona: 'nayan-patel',
       reason: "Nayan's intuitive depth could illuminate what's beneath the surface.",
@@ -475,8 +500,12 @@ function recommendCognitiveHandoff(
   }
 
   // Organization situations → Alex
-  if (topicLower.includes('organize') || topicLower.includes('schedule') ||
-      topicLower.includes('email') || topicLower.includes('calendar')) {
+  if (
+    topicLower.includes('organize') ||
+    topicLower.includes('schedule') ||
+    topicLower.includes('email') ||
+    topicLower.includes('calendar')
+  ) {
     return {
       toPersona: 'alex-chen',
       reason: "Alex's systematic approach would bring order to this.",
@@ -505,14 +534,14 @@ export function generateTeamCommentary(
   if (!currentProfile) return commentary;
 
   // Generate commentary about other team members' perspectives
-  const otherPersonas = Object.keys(cognitiveProfiles).filter(id => id !== personaId);
+  const otherPersonas = Object.keys(cognitiveProfiles).filter((id) => id !== personaId);
 
   for (const otherId of otherPersonas.slice(0, 2)) {
     const otherProfile = getCognitiveProfile(otherId);
     if (!otherProfile) continue;
 
     const personaNames: Record<string, string> = {
-      'ferni': 'Ferni',
+      ferni: 'Ferni',
       'peter-john': 'Peter',
       'alex-chen': 'Alex',
       'maya-santos': 'Maya',
@@ -524,32 +553,56 @@ export function generateTeamCommentary(
 
     // Generate context-appropriate commentary
     if (context === 'handoff') {
-      commentary.push(generateHandoffCommentary(currentProfile.reasoningStyle, otherProfile.reasoningStyle, otherName, topic));
+      commentary.push(
+        generateHandoffCommentary(
+          currentProfile.reasoningStyle,
+          otherProfile.reasoningStyle,
+          otherName,
+          topic
+        )
+      );
     } else if (context === 'reflection') {
-      commentary.push(generateReflectionCommentary(currentProfile.reasoningStyle, otherProfile.reasoningStyle, otherName));
+      commentary.push(
+        generateReflectionCommentary(
+          currentProfile.reasoningStyle,
+          otherProfile.reasoningStyle,
+          otherName
+        )
+      );
     } else {
-      commentary.push(generateCollaborationCommentary(currentProfile.reasoningStyle, otherProfile.reasoningStyle, otherName));
+      commentary.push(
+        generateCollaborationCommentary(
+          currentProfile.reasoningStyle,
+          otherProfile.reasoningStyle,
+          otherName
+        )
+      );
     }
   }
 
-  return commentary.filter(c => c.length > 0);
+  return commentary.filter((c) => c.length > 0);
 }
 
-function generateHandoffCommentary(from: ReasoningStyle, to: ReasoningStyle, toName: string, topic: string): string {
+function generateHandoffCommentary(
+  from: ReasoningStyle,
+  to: ReasoningStyle,
+  toName: string,
+  topic: string
+): string {
   const handoffPhrases: Record<string, string[]> = {
-    'analytical_empathetic': [
+    analytical_empathetic: [
       `${toName} will catch the emotional dimensions I might have missed.`,
       `Let me pass this to ${toName} - they're better with the human side.`,
     ],
-    'empathetic_analytical': [
+    empathetic_analytical: [
       `${toName} can help with the data side of this.`,
       `${toName}'s analytical lens will add structure to what we've explored.`,
     ],
-    'narrative_pragmatic': [
+    narrative_pragmatic: [
       `${toName} will help turn this into action steps.`,
       `We've explored the meaning - ${toName} will help you execute.`,
     ],
-    'pragmatic_narrative': [
+    pragmatic_narrative: [
       `${toName} might help you see the bigger picture.`,
       `${toName} could help you understand why this matters so much.`,
     ],
@@ -564,7 +617,11 @@ function generateHandoffCommentary(from: ReasoningStyle, to: ReasoningStyle, toN
   return `${toName} brings a different perspective that could help here.`;
 }
 
-function generateReflectionCommentary(style: ReasoningStyle, otherStyle: ReasoningStyle, otherName: string): string {
+function generateReflectionCommentary(
+  style: ReasoningStyle,
+  otherStyle: ReasoningStyle,
+  otherName: string
+): string {
   const reflections: Record<string, string[]> = {
     analytical: [`${otherName} would probably point out the emotional angle.`],
     empathetic: [`${otherName} would want to see the data.`],
@@ -582,7 +639,11 @@ function generateReflectionCommentary(style: ReasoningStyle, otherStyle: Reasoni
   return '';
 }
 
-function generateCollaborationCommentary(style: ReasoningStyle, otherStyle: ReasoningStyle, otherName: string): string {
+function generateCollaborationCommentary(
+  style: ReasoningStyle,
+  otherStyle: ReasoningStyle,
+  otherName: string
+): string {
   return `${otherName} and I see this differently - that's actually useful.`;
 }
 
@@ -591,4 +652,3 @@ export default {
   generateCollaborativePerspectives,
   generateTeamCommentary,
 };
-

@@ -81,22 +81,22 @@ function hasMalformedSsml(text: string): boolean {
   const openTags = (text.match(/<(?!\/)[^>]+(?<!\/)>/g) || []).length;
   const closeTags = (text.match(/<\/[^>]+>/g) || []).length;
   const selfClosingTags = (text.match(/<[^>]+\/>/g) || []).length;
-  
+
   // Simple heuristic: more open tags than close + self-closing is suspicious
   if (openTags > closeTags + selfClosingTags + 2) {
     return true;
   }
-  
+
   // Check for nested angle brackets (common SSML error)
   if (text.includes('<<') || text.includes('>>')) {
     return true;
   }
-  
+
   // Check for broken emotion tags
   if (/<emotion[^>]*>[^<]*<emotion/i.test(text)) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -144,7 +144,10 @@ function adjustExistingSsml(text: string, context: SpeechContext): string {
     });
   } catch (error) {
     // FIX BUG #voice-14: Graceful degradation on regex errors
-    getLogger().warn({ error: String(error) }, 'SSML adjustment regex failed, returning sanitized text');
+    getLogger().warn(
+      { error: String(error) },
+      'SSML adjustment regex failed, returning sanitized text'
+    );
     return sanitizeSsml(text);
   }
 
@@ -620,7 +623,14 @@ export function tagTextWithCognitiveSsml(
   text: string,
   options: CognitiveSsmlOptions
 ): { ssml: string; cognitiveResult?: CognitiveSpeechResult } {
-  const { speechContext, cognitiveGuidance, personaId, sessionId, emotionalWeight, baseCharacteristics } = options;
+  const {
+    speechContext,
+    cognitiveGuidance,
+    personaId,
+    sessionId,
+    emotionalWeight,
+    baseCharacteristics,
+  } = options;
 
   if (!text || text.trim().length === 0) {
     return { ssml: text };
@@ -646,13 +656,16 @@ export function tagTextWithCognitiveSsml(
     tagged = buildCognitiveSSML(tagged, cognitiveResult);
 
     // Log cognitive speech adjustments
-    getLogger().debug({
-      personaId,
-      cognitiveMode: cognitiveResult.debug.cognitiveMode,
-      confidence: cognitiveResult.debug.confidence,
-      speedMult: cognitiveResult.debug.adjustments.speedMultiplier,
-      pauseMult: cognitiveResult.debug.adjustments.pauseMultiplier,
-    }, '🧠 Cognitive SSML applied');
+    getLogger().debug(
+      {
+        personaId,
+        cognitiveMode: cognitiveResult.debug.cognitiveMode,
+        confidence: cognitiveResult.debug.confidence,
+        speedMult: cognitiveResult.debug.adjustments.speedMultiplier,
+        pauseMult: cognitiveResult.debug.adjustments.pauseMultiplier,
+      },
+      '🧠 Cognitive SSML applied'
+    );
   }
 
   return { ssml: tagged, cognitiveResult };
@@ -661,7 +674,10 @@ export function tagTextWithCognitiveSsml(
 /**
  * Get cognitive speech stats for monitoring
  */
-export { getCognitiveSpeechStats, clearCognitiveSpeechState } from './cognitive-speech-integration.js';
+export {
+  getCognitiveSpeechStats,
+  clearCognitiveSpeechState,
+} from './cognitive-speech-integration.js';
 
 export default {
   tagTextWithSsmlAdaptive,

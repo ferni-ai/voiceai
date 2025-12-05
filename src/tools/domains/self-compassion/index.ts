@@ -34,7 +34,10 @@ const practiceSelfKindnessDef: ToolDefinition = {
       description: 'Guide the user through a practice of self-kindness.',
       parameters: z.object({
         struggle: z.string().describe('What they are struggling with'),
-        howTheyreeTreatingThemselves: z.string().optional().describe('How they are treating themselves'),
+        howTheyreeTreatingThemselves: z
+          .string()
+          .optional()
+          .describe('How they are treating themselves'),
       }),
       execute: async ({ struggle, howTheyreeTreatingThemselves }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Practicing self-kindness');
@@ -69,7 +72,8 @@ const speakToYourselfAsAFriendDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user speak to themselves with the same kindness they would show a friend.',
+      description:
+        'Help the user speak to themselves with the same kindness they would show a friend.',
       parameters: z.object({
         whatYouToldYourself: z.string().describe('What the harsh self-talk sounds like'),
         situation: z.string().describe('The situation prompting this'),
@@ -187,7 +191,8 @@ const practiceSelfAcceptanceDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId }, 'Practicing self-acceptance');
 
         let response = `You're working to accept: ${whatToAccept}\n`;
-        if (howLongTheyveStruggled) response += `This has been hard for: ${howLongTheyveStruggled}\n`;
+        if (howLongTheyveStruggled)
+          response += `This has been hard for: ${howLongTheyveStruggled}\n`;
         response += `\n`;
         response += `**Self-acceptance doesn't mean:**\n`;
         response += `- Giving up on growth\n`;
@@ -260,7 +265,8 @@ const enoughnessDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId }, 'Exploring enoughness');
 
         let response = `You feel not enough in: ${notEnoughIn}\n`;
-        if (whatWouldBeEnough) response += `You think "${whatWouldBeEnough}" would make you enough.\n`;
+        if (whatWouldBeEnough)
+          response += `You think "${whatWouldBeEnough}" would make you enough.\n`;
         response += `\n`;
         response += `But here's the thing: "enough" is a moving target. If you hit that goal, you'd find a new way to feel not enough.\n\n`;
         response += `**What if enoughness isn't earned?**\n\n`;
@@ -339,7 +345,9 @@ const giveYourselfCreditDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user give themselves credit for things they typically overlook.',
       parameters: z.object({
-        context: z.enum(['daily', 'hard-time', 'growth', 'invisible-labor']).describe('Context for giving credit'),
+        context: z
+          .enum(['daily', 'hard-time', 'growth', 'invisible-labor'])
+          .describe('Context for giving credit'),
       }),
       execute: async ({ context }) => {
         getLogger().info({ agentId: ctx.agentId, context }, 'Giving self credit');
@@ -364,13 +372,13 @@ const giveYourselfCreditDef: ToolDefinition = {
 const selfCompassionBreakDef: ToolDefinition = {
   id: 'selfCompassionBreak',
   name: 'Self Compassion Break',
-  description: 'Kristin Neff\'s three-step self-compassion break',
+  description: "Kristin Neff's three-step self-compassion break",
   domain: 'self-compassion',
   tags: ['self-compassion', 'neff', 'practice'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide through Kristin Neff\'s self-compassion break practice.',
+      description: "Guide through Kristin Neff's self-compassion break practice.",
       parameters: z.object({
         difficultSituation: z.string().describe('What is causing difficulty'),
       }),
@@ -419,7 +427,9 @@ const compassionateLetterDef: ToolDefinition = {
       description: 'Guide the user in writing a compassionate letter to themselves.',
       parameters: z.object({
         topic: z.string().describe('What they are struggling with or criticizing themselves for'),
-        writtenFrom: z.enum(['loving-friend', 'wise-mentor', 'future-self', 'compassionate-observer']).describe('Perspective to write from'),
+        writtenFrom: z
+          .enum(['loving-friend', 'wise-mentor', 'future-self', 'compassionate-observer'])
+          .describe('Perspective to write from'),
       }),
       execute: async ({ topic, writtenFrom }) => {
         getLogger().info({ agentId: ctx.agentId, writtenFrom }, 'Compassionate letter');
@@ -516,4 +526,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

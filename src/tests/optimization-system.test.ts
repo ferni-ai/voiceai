@@ -36,10 +36,10 @@ describe('FeedbackCollector', () => {
         lastToolResult: 'Playing jazz music',
       };
 
-      collector.processFeedback("thanks, that was really helpful!", context, 'playMusic');
+      collector.processFeedback('thanks, that was really helpful!', context, 'playMusic');
       const allFeedback = collector.getAllFeedback();
 
-      expect(allFeedback.some(f => f.positiveCount > 0)).toBe(true);
+      expect(allFeedback.some((f) => f.positiveCount > 0)).toBe(true);
     });
 
     it('detects negative feedback', () => {
@@ -55,7 +55,7 @@ describe('FeedbackCollector', () => {
       collector.processFeedback("that didn't work at all", context, 'searchWeb');
       const allFeedback = collector.getAllFeedback();
 
-      expect(allFeedback.some(f => f.negativeCount > 0)).toBe(true);
+      expect(allFeedback.some((f) => f.negativeCount > 0)).toBe(true);
     });
 
     it('detects feature requests', () => {
@@ -67,7 +67,7 @@ describe('FeedbackCollector', () => {
         recentTools: [],
       };
 
-      collector.processFeedback("I wish you could order food for me", context);
+      collector.processFeedback('I wish you could order food for me', context);
       const featureRequests = collector.getTopFeatureRequests();
 
       expect(featureRequests.length).toBeGreaterThanOrEqual(1);
@@ -85,9 +85,9 @@ describe('FeedbackCollector', () => {
       };
 
       // First attempt
-      collector.processFeedback("search for restaurants", context, 'searchWeb');
+      collector.processFeedback('search for restaurants', context, 'searchWeb');
       // Retry (same tool mentioned)
-      collector.processFeedback("can you try that search again", context, 'searchWeb');
+      collector.processFeedback('can you try that search again', context, 'searchWeb');
 
       const toolFeedback = collector.getToolFeedback('searchWeb');
       // Retry detection may or may not trigger depending on heuristics
@@ -106,13 +106,13 @@ describe('FeedbackCollector', () => {
       };
 
       // Mix of feedback
-      collector.processFeedback("perfect, exactly what I wanted!", context, 'playMusic');
-      collector.processFeedback("hmm, not quite right", context, 'playMusic');
-      collector.processFeedback("thanks!", context, 'playMusic');
+      collector.processFeedback('perfect, exactly what I wanted!', context, 'playMusic');
+      collector.processFeedback('hmm, not quite right', context, 'playMusic');
+      collector.processFeedback('thanks!', context, 'playMusic');
 
       const allFeedback = collector.getAllFeedback();
       // Should have some positive sentiment since 2/3 are positive
-      expect(allFeedback.some(f => f.positiveCount > 0)).toBe(true);
+      expect(allFeedback.some((f) => f.positiveCount > 0)).toBe(true);
     });
   });
 });
@@ -256,7 +256,7 @@ describe('RecommendationEngine', () => {
         turnNumber: 5,
         recentTools: ['playMusic'],
       };
-      localFeedbackCollector.processFeedback("perfect, thanks!", context, 'playMusic');
+      localFeedbackCollector.processFeedback('perfect, thanks!', context, 'playMusic');
 
       const recommendations = await engine.generateRecommendations();
       expect(Array.isArray(recommendations)).toBe(true);
@@ -274,7 +274,7 @@ describe('RecommendationEngine', () => {
 
       // Multiple negative feedback for same tool = high impact recommendation
       for (let i = 0; i < 5; i++) {
-        localFeedbackCollector.processFeedback("that search was terrible", context, 'searchWeb');
+        localFeedbackCollector.processFeedback('that search was terrible', context, 'searchWeb');
       }
 
       const recommendations = await engine.generateRecommendations();
@@ -296,11 +296,14 @@ describe('RecommendationEngine', () => {
         recentTools: [],
       };
 
-      localFeedbackCollector.processFeedback("I wish you could book restaurant reservations", context);
-      localFeedbackCollector.processFeedback("can you order food delivery?", context);
+      localFeedbackCollector.processFeedback(
+        'I wish you could book restaurant reservations',
+        context
+      );
+      localFeedbackCollector.processFeedback('can you order food delivery?', context);
 
       const recommendations = await engine.generateRecommendations();
-      const createRecs = recommendations.filter(r => r.type === 'create');
+      const createRecs = recommendations.filter((r) => r.type === 'create');
 
       // May or may not generate CREATE depending on threshold
       expect(Array.isArray(createRecs)).toBe(true);
@@ -316,12 +319,12 @@ describe('RecommendationEngine', () => {
       };
 
       // Mix of feedback (not all negative, not all positive)
-      localFeedbackCollector.processFeedback("ok, that kind of worked", context, 'searchWeb');
-      localFeedbackCollector.processFeedback("close but not quite", context, 'searchWeb');
-      localFeedbackCollector.processFeedback("better this time", context, 'searchWeb');
+      localFeedbackCollector.processFeedback('ok, that kind of worked', context, 'searchWeb');
+      localFeedbackCollector.processFeedback('close but not quite', context, 'searchWeb');
+      localFeedbackCollector.processFeedback('better this time', context, 'searchWeb');
 
       const recommendations = await engine.generateRecommendations();
-      const improveRecs = recommendations.filter(r => r.type === 'improve');
+      const improveRecs = recommendations.filter((r) => r.type === 'improve');
 
       expect(Array.isArray(improveRecs)).toBe(true);
     });
@@ -330,7 +333,7 @@ describe('RecommendationEngine', () => {
       // No tool calls recorded = unused tools
 
       const recommendations = await engine.generateRecommendations();
-      const deprecateRecs = recommendations.filter(r => r.type === 'deprecate');
+      const deprecateRecs = recommendations.filter((r) => r.type === 'deprecate');
 
       // With no data, may or may not generate deprecate recs
       expect(Array.isArray(deprecateRecs)).toBe(true);
@@ -346,7 +349,7 @@ describe('RecommendationEngine', () => {
       }
 
       const recommendations = await engine.generateRecommendations();
-      const consolidateRecs = recommendations.filter(r => r.type === 'consolidate');
+      const consolidateRecs = recommendations.filter((r) => r.type === 'consolidate');
 
       expect(Array.isArray(consolidateRecs)).toBe(true);
     });
@@ -394,7 +397,7 @@ describe('AutoToolOptimizer', () => {
         lastToolResult: 'Playing jazz',
       };
 
-      optimizer.processUserMessage("thanks, love it!", context, 'playMusic');
+      optimizer.processUserMessage('thanks, love it!', context, 'playMusic');
 
       // Should process without error
       expect(true).toBe(true);
@@ -409,7 +412,7 @@ describe('AutoToolOptimizer', () => {
         recentTools: [],
       };
 
-      optimizer.processUserMessage("I wish you could track my flights", context);
+      optimizer.processUserMessage('I wish you could track my flights', context);
 
       // Should process without error
       expect(true).toBe(true);
@@ -429,7 +432,7 @@ describe('AutoToolOptimizer', () => {
         turnNumber: 5,
         recentTools: ['playMusic'],
       };
-      optimizer.processUserMessage("great!", context, 'playMusic');
+      optimizer.processUserMessage('great!', context, 'playMusic');
       optimizer.endSession('session1');
 
       // Run a cycle
@@ -446,7 +449,7 @@ describe('AutoToolOptimizer', () => {
       optimizer.start();
 
       // Wait a bit
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       optimizer.stop();
 
@@ -488,7 +491,10 @@ describe('Optimization System Integration', () => {
   beforeEach(() => {
     integrationFeedbackCollector = new FeedbackCollector();
     integrationPatternAnalyzer = new PatternAnalyzer();
-    integrationRecommendationEngine = new RecommendationEngine(integrationPatternAnalyzer, integrationFeedbackCollector);
+    integrationRecommendationEngine = new RecommendationEngine(
+      integrationPatternAnalyzer,
+      integrationFeedbackCollector
+    );
     integrationAutoOptimizer = new AutoToolOptimizer({
       enableAutoRecommendations: true,
       enableAutoExperiments: false,
@@ -528,8 +534,8 @@ describe('Optimization System Integration', () => {
       lastToolResult: 'Playing jazz music',
     };
 
-    integrationFeedbackCollector.processFeedback("perfect, love it!", context, 'playMusic');
-    integrationAutoOptimizer.processUserMessage("perfect, love it!", context, 'playMusic');
+    integrationFeedbackCollector.processFeedback('perfect, love it!', context, 'playMusic');
+    integrationAutoOptimizer.processUserMessage('perfect, love it!', context, 'playMusic');
 
     // End session
     integrationPatternAnalyzer.endSession(sessionId);
@@ -557,7 +563,12 @@ describe('Optimization System Integration', () => {
     for (let i = 0; i < 100; i++) {
       const tools = ['playMusic', 'searchWeb', 'getCurrentContext', 'sendEmail', 'getWeather'];
       const tool = tools[i % tools.length];
-      integrationPatternAnalyzer.recordToolCall(sessionId, tool, Math.random() > 0.1, Math.random() * 500);
+      integrationPatternAnalyzer.recordToolCall(
+        sessionId,
+        tool,
+        Math.random() > 0.1,
+        Math.random() * 500
+      );
     }
 
     integrationPatternAnalyzer.endSession(sessionId);
@@ -570,4 +581,3 @@ describe('Optimization System Integration', () => {
     expect(Array.isArray(sequences)).toBe(true);
   });
 });
-

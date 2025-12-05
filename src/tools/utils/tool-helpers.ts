@@ -14,7 +14,6 @@
 
 import { getLogger as getSafeLogger } from '../../utils/safe-logger.js';
 
-
 // ============================================================================
 // LOGGER
 // ============================================================================
@@ -80,7 +79,7 @@ export interface ToolExecutionContext {
  */
 export function getUserId(
   context: ToolExecutionContext | { ctx?: unknown },
-  fallback: string = 'default'
+  fallback = 'default'
 ): string {
   const ctx = context?.ctx as ToolExecutionContext['ctx'];
   return ctx?.userData?.userId || fallback;
@@ -143,7 +142,7 @@ export function generateUUID(): string {
  * @param currency - Currency code (default: 'USD')
  * @returns Formatted currency string (e.g., "$1,234.56")
  */
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
+export function formatCurrency(amount: number, currency = 'USD'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
@@ -155,7 +154,7 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
 /**
  * Format a number as a percentage
  */
-export function formatPercent(value: number, decimals: number = 0): string {
+export function formatPercent(value: number, decimals = 0): string {
   return `${value.toFixed(decimals)}%`;
 }
 
@@ -171,7 +170,10 @@ export function ordinal(n: number): string {
 /**
  * Format a date for display
  */
-export function formatDate(date: Date | string, style: 'short' | 'medium' | 'long' = 'medium'): string {
+export function formatDate(
+  date: Date | string,
+  style: 'short' | 'medium' | 'long' = 'medium'
+): string {
   const d = typeof date === 'string' ? new Date(date) : date;
 
   switch (style) {
@@ -243,7 +245,7 @@ export function calculateProgress(current: number, target: number): number {
  * @param width - Width in characters (default: 10)
  * @returns Progress bar string (e.g., "████████░░")
  */
-export function progressBar(percent: number, width: number = 10): string {
+export function progressBar(percent: number, width = 10): string {
   const filled = Math.round((percent / 100) * width);
   const empty = width - filled;
   return '█'.repeat(filled) + '░'.repeat(empty);
@@ -307,7 +309,7 @@ export function formatWithEmoji(message: string, emoji?: string): string {
 /**
  * Format an array as a bulleted list
  */
-export function bulletList(items: string[], bullet: string = '•'): string {
+export function bulletList(items: string[], bullet = '•'): string {
   return items.map((item) => `${bullet} ${item}`).join('\n');
 }
 
@@ -327,7 +329,7 @@ export function numberedList(items: string[]): string {
  */
 export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;
-  return str.slice(0, maxLength - 3) + '...';
+  return `${str.slice(0, maxLength - 3)}...`;
 }
 
 /**
@@ -405,4 +407,3 @@ export default {
   isNonEmptyString,
   isPositiveNumber,
 };
-

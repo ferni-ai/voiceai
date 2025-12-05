@@ -260,10 +260,7 @@ function detectEmotion(result: unknown, toolName: string): ComposedResult['emoti
 /**
  * Extract facts from result
  */
-function extractFacts(
-  result: unknown,
-  toolName: string
-): ComposedResult['factsToRemember'] {
+function extractFacts(result: unknown, toolName: string): ComposedResult['factsToRemember'] {
   const facts: ComposedResult['factsToRemember'] = [];
 
   // Tool-specific extraction
@@ -309,7 +306,7 @@ function extractFacts(
 
 export class ToolComposer {
   private state: ConversationStateManager;
-  private context: Map<string, unknown> = new Map();
+  private context = new Map<string, unknown>();
   private logger = getLogger();
 
   constructor(sessionId: string, userId?: string, agentId?: string) {
@@ -347,11 +344,7 @@ export class ToolComposer {
   /**
    * Compose a tool result with metadata
    */
-  compose(
-    toolName: string,
-    result: unknown,
-    options: ComposeOptions = {}
-  ): ComposedResult {
+  compose(toolName: string, result: unknown, options: ComposeOptions = {}): ComposedResult {
     const chain = TOOL_CHAINS[toolName];
 
     // Extract speech from result
@@ -371,9 +364,7 @@ export class ToolComposer {
     const suggestedNext = chain?.suggestedFollowers || [];
 
     // Extract facts if requested
-    const factsToRemember = options.extractFacts
-      ? extractFacts(result, toolName)
-      : undefined;
+    const factsToRemember = options.extractFacts ? extractFacts(result, toolName) : undefined;
 
     // Store context keys for next tools
     if (options.shareContext && chain?.contextKeys) {
@@ -486,4 +477,3 @@ export default {
   createToolComposer,
   TOOL_CHAINS,
 };
-

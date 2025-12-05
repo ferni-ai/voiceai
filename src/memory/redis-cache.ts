@@ -22,9 +22,7 @@ import { getLogger } from '../utils/safe-logger.js';
 /**
  * Session cache data structure
  */
-interface SessionCacheData {
-  [key: string]: unknown;
-}
+type SessionCacheData = Record<string, unknown>;
 
 // ============================================================================
 // TYPES
@@ -293,7 +291,7 @@ export class RedisCache {
    */
   async getRecentTurns(
     sessionId: string,
-    count: number = 20
+    count = 20
   ): Promise<Array<{ role: string; content: string; timestamp: Date }>> {
     if (!this.client) {
       return [];
@@ -446,7 +444,7 @@ export class RedisCache {
    */
   async checkRateLimit(
     userId: string,
-    limit: number = 60
+    limit = 60
   ): Promise<{ allowed: boolean; current: number; remaining: number }> {
     if (!this.client) {
       // Fail open - allow request when cache unavailable

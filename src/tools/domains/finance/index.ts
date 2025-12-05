@@ -59,14 +59,20 @@ function getBankingToolDefinitions(): ToolDefinition[] {
       'Bank Account',
       'Manage bank account connection: check link status, link a new bank account via Plaid, or unlink an existing account. Actions: "status", "link", or "unlink". Required for spending analysis and balance checking.',
       legacyTools.linkBankAccount,
-      { tags: ['banking', 'plaid', 'setup', 'status', 'link', 'unlink'], requiredServices: ['plaid'] }
+      {
+        tags: ['banking', 'plaid', 'setup', 'status', 'link', 'unlink'],
+        requiredServices: ['plaid'],
+      }
     ),
     wrapLegacyTool(
       'bankData',
       'Bank Data',
       'Get financial data from linked accounts: account balances, recent transactions, or spending analysis by category. Actions: "balances", "transactions", or "spending". Requires linked bank account.',
       legacyTools.getAccountBalances,
-      { tags: ['banking', 'balances', 'transactions', 'spending', 'analysis'], requiredServices: ['plaid'] }
+      {
+        tags: ['banking', 'balances', 'transactions', 'spending', 'analysis'],
+        requiredServices: ['plaid'],
+      }
     ),
     wrapLegacyTool(
       'financialHealth',
@@ -172,4 +178,3 @@ export {
 };
 
 export default getToolDefinitions;
-

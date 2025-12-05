@@ -44,7 +44,7 @@ describe('Input Validation', () => {
     });
 
     it('should reject very long emails', () => {
-      const longEmail = 'a'.repeat(300) + '@example.com';
+      const longEmail = `${'a'.repeat(300)}@example.com`;
       expect(isValidEmail(longEmail)).toBe(false);
     });
 

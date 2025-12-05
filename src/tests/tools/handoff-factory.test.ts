@@ -73,7 +73,7 @@ vi.mock('../../personas/registry/unified-registry.js', () => ({
     }),
     getAgentOrNull: vi.fn().mockImplementation(async (id) => {
       const agents = {
-        'ferni': { id: 'ferni', name: 'Ferni' },
+        ferni: { id: 'ferni', name: 'Ferni' },
         'peter-john': { id: 'peter-john', name: 'Peter John' },
         'maya-santos': { id: 'maya-santos', name: 'Maya Santos' },
       };
@@ -234,4 +234,3 @@ describe('Handoff Factory', () => {
     });
   });
 });
-

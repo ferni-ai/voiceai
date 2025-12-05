@@ -35,7 +35,6 @@ import type { LoadedPersonaBundle, PersonaBundleManifest } from '../bundles/type
 import type { PersonaConfig } from '../types.js';
 import { bundleToPersonaConfig } from '../bundles/adapter.js';
 
-
 // ============================================================================
 // AGENT INTERFACE - Combines manifest + runtime info
 // ============================================================================
@@ -108,7 +107,7 @@ let agentCache: Map<string, Agent> | null = null;
 let aliasMap: Map<string, string> | null = null;
 
 /** Last discovery timestamp */
-let lastDiscoveryTime: number = 0;
+let lastDiscoveryTime = 0;
 
 /** Cache TTL in milliseconds (5 minutes in production, 10 seconds in dev) */
 const CACHE_TTL_MS = process.env.NODE_ENV === 'development' ? 10_000 : 5 * 60 * 1000;
@@ -155,20 +154,16 @@ function getAgentRole(manifest: PersonaBundleManifest): 'coach' | 'team' | 'stan
  * Convert a loaded bundle to an Agent object
  */
 function bundleToAgent(bundle: LoadedPersonaBundle): Agent {
-  const manifest = bundle.manifest;
-  const identity = manifest.identity;
-  const team = manifest.team;
-  const voice = manifest.voice;
+  const { manifest } = bundle;
+  const { identity } = manifest;
+  const { team } = manifest;
+  const { voice } = manifest;
 
-  const id = identity.id;
+  const { id } = identity;
   const role = getAgentRole(manifest);
 
   // Build aliases list
-  const aliases: string[] = [
-    id,
-    identity.name.toLowerCase(),
-    ...(identity.aliases || []),
-  ];
+  const aliases: string[] = [id, identity.name.toLowerCase(), ...(identity.aliases || [])];
 
   // Add role-based aliases
   if (team?.role_id) {
@@ -242,7 +237,7 @@ function buildAliasMap(agents: Map<string, Agent>): Map<string, string> {
  * Discover and load all agents from bundles
  * Results are cached for performance
  */
-async function discoverAgents(forceRefresh: boolean = false): Promise<Map<string, Agent>> {
+async function discoverAgents(forceRefresh = false): Promise<Map<string, Agent>> {
   const now = Date.now();
 
   // Return cached result if still valid
@@ -284,10 +279,7 @@ async function discoverAgents(forceRefresh: boolean = false): Promise<Map<string
   lastDiscoveryTime = now;
 
   const loadTime = Date.now() - startTime;
-  getLogger().info(
-    { agentCount: agents.size, loadTimeMs: loadTime },
-    'Agent discovery complete'
-  );
+  getLogger().info({ agentCount: agents.size, loadTimeMs: loadTime }, 'Agent discovery complete');
 
   return agents;
 }
@@ -484,7 +476,10 @@ export const AgentRegistry = {
         const config = await bundleToPersonaConfig(agent.bundle);
         configs.push(config);
       } catch (err) {
-        getLogger().warn({ agentId: agent.id, error: err }, 'Failed to convert agent to PersonaConfig');
+        getLogger().warn(
+          { agentId: agent.id, error: err },
+          'Failed to convert agent to PersonaConfig'
+        );
       }
     }
 
@@ -493,7 +488,7 @@ export const AgentRegistry = {
 
   /**
    * Resolve handoff target patterns to actual agent IDs
-   * 
+   *
    * Supported patterns:
    * - `@coordinator` - The team coordinator
    * - `@team` - All active team members (excluding coordinator)
@@ -501,7 +496,7 @@ export const AgentRegistry = {
    * - `@role:<role-id>` - Agents with specific role
    * - `@domain:<domain>` - Agents handling specific domain
    * - `<agent-id>` - Specific agent ID (passed through)
-   * 
+   *
    * @param patterns Array of patterns or agent IDs from manifest
    * @param excludeAgentId Optional agent to exclude (e.g., current agent)
    * @returns Array of resolved canonical agent IDs
@@ -545,7 +540,7 @@ export const AgentRegistry = {
         const domain = trimmed.slice(8);
         for (const agent of agents.values()) {
           const domains = agent.manifest.role?.domains || [];
-          if (domains.some(d => d.toLowerCase() === domain) && agent.enabled) {
+          if (domains.some((d) => d.toLowerCase() === domain) && agent.enabled) {
             resolved.add(agent.id);
           }
         }
@@ -577,9 +572,9 @@ export const AgentRegistry = {
     const agents = await discoverAgents();
     const domainLower = domain.toLowerCase();
 
-    return Array.from(agents.values()).filter(agent => {
+    return Array.from(agents.values()).filter((agent) => {
       const domains = agent.manifest.role?.domains || [];
-      return domains.some(d => d.toLowerCase() === domainLower) && agent.enabled;
+      return domains.some((d) => d.toLowerCase() === domainLower) && agent.enabled;
     });
   },
 
@@ -591,7 +586,7 @@ export const AgentRegistry = {
     const roleLower = roleId.toLowerCase();
 
     return Array.from(agents.values()).filter(
-      agent => agent.roleId.toLowerCase() === roleLower && agent.enabled
+      (agent) => agent.roleId.toLowerCase() === roleLower && agent.enabled
     );
   },
 
@@ -668,4 +663,3 @@ export async function resolveAgentId(idOrAlias: string): Promise<string | null> 
 
 // Default export
 export default AgentRegistry;
-

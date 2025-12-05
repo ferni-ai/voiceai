@@ -13,7 +13,8 @@
 // EARLY STARTUP LOGGING
 // Uses console.log intentionally as LiveKit logger isn't initialized yet
 // ============================================================================
-const DEBUG_STARTUP = process.env['DEBUG_AGENT'] === 'true' || process.env['NODE_ENV'] !== 'production';
+const DEBUG_STARTUP =
+  process.env['DEBUG_AGENT'] === 'true' || process.env['NODE_ENV'] !== 'production';
 
 // Safe early logger for before LiveKit initializes
 const earlyLog = {
@@ -33,13 +34,13 @@ earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
 });
 
 import 'dotenv/config';
+import type { llm } from '@livekit/agents';
 import {
   type JobContext,
   type JobProcess,
   WorkerOptions,
   cli,
   defineAgent,
-  llm,
   log,
   voice,
 } from '@livekit/agents';
@@ -133,7 +134,10 @@ import { dynamicToolLoader } from '../tools/dynamic-loader.js';
 import { deprecationService } from '../tools/deprecation.js';
 import { abTestingService } from '../tools/ab-testing.js';
 import { autoOptimizer } from '../tools/auto-optimizer.js';
-import { feedbackCollector, type ConversationContext as FeedbackContext } from '../tools/feedback-collector.js';
+import {
+  feedbackCollector,
+  type ConversationContext as FeedbackContext,
+} from '../tools/feedback-collector.js';
 import { patternAnalyzer } from '../tools/pattern-analyzer.js';
 
 // Voice Manager
@@ -361,7 +365,7 @@ class VoiceAgent extends voice.Agent<UserData> {
     // Merge with essential tools (memory, handoff) to ensure core functionality
     // Essential tools are a minimal subset that all agents need
     const essentialTools = await buildEssentialTools();
-    
+
     // Combine: persona-specific tools take precedence over essentials
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let toolsForAgent: any = {
@@ -371,14 +375,18 @@ class VoiceAgent extends voice.Agent<UserData> {
 
     // Filter out forbidden tools from the persona's manifest
     // This is important for standalone personas like Joel who shouldn't have handoff tools
-    const forbiddenTools = (persona as { tools?: { forbidden?: string[] } })?.tools?.forbidden || [];
+    const forbiddenTools =
+      (persona as { tools?: { forbidden?: string[] } })?.tools?.forbidden || [];
     if (forbiddenTools.length > 0) {
       const beforeCount = Object.keys(toolsForAgent).length;
       toolsForAgent = Object.fromEntries(
         Object.entries(toolsForAgent).filter(([name]) => !forbiddenTools.includes(name))
       );
       logger.info(
-        { forbidden: forbiddenTools, removedCount: beforeCount - Object.keys(toolsForAgent).length },
+        {
+          forbidden: forbiddenTools,
+          removedCount: beforeCount - Object.keys(toolsForAgent).length,
+        },
         'Filtered out forbidden tools for persona'
       );
     }
@@ -405,14 +413,14 @@ class VoiceAgent extends voice.Agent<UserData> {
 
   /**
    * Intercept LLM output stream to add ADAPTIVE SSML tags and humanization before TTS
-   * 
+   *
    * This is the post-LLM humanization hook where we:
    * 1. Apply speech naturalization (disfluencies, hedging)
    * 2. Mirror user vocabulary
    * 3. Apply emotional SSML
    * 4. Add memory callbacks
    */
-  transcriptionNode(
+  async transcriptionNode(
     text: ReadableStream<string>,
     modelSettings: Parameters<voice.Agent['transcriptionNode']>[1]
   ): Promise<ReadableStream<string> | null> {
@@ -444,7 +452,7 @@ class VoiceAgent extends voice.Agent<UserData> {
               const humanizer = getConversationHumanizer(agent.persona.id);
               const lastUserMessage = userData?.lastUserMessage || '';
               const turnNumber = userData?.turnCount || 0;
-              
+
               // Build humanization context
               const humanizationContext = {
                 personaId: agent.persona.id,
@@ -455,13 +463,13 @@ class VoiceAgent extends voice.Agent<UserData> {
                 isSeriousContext: (userData?.lastEmotionAnalysis?.distressLevel ?? 0) > 0.3,
                 wasPersonalSharing: (userData?.lastEmotionAnalysis?.intensity ?? 0) > 0.7,
               };
-              
+
               // Apply humanization to the raw LLM output
               const humanized = humanizer.humanizeResponse(accumulatedText, humanizationContext);
-              
+
               // Use the humanized text
               taggedText = humanized.text;
-              
+
               // Log what was applied
               if (humanized.appliedFeatures.length > 0) {
                 agent.logger.debug(
@@ -469,23 +477,26 @@ class VoiceAgent extends voice.Agent<UserData> {
                   'Post-LLM humanization applied'
                 );
               }
-              
+
               // If we have a memory callback to prepend, add it
               if (humanized.memoryCallback && Math.random() < 0.3) {
                 taggedText = `${humanized.memoryCallback.text} ${taggedText}`;
               }
-              
+
               // If we have a follow-up question to append, add it
               if (humanized.followUpQuestion && !taggedText.includes('?')) {
                 taggedText = `${taggedText} ${humanized.followUpQuestion.text}`;
               }
-              
+
               // Use the SSML version if it has enhancements
               if (humanized.ssml && humanized.ssml !== humanized.text) {
                 taggedText = humanized.ssml;
               }
             } catch (humanizeError) {
-              agent.logger.warn({ error: String(humanizeError) }, 'Post-LLM humanization failed (non-fatal)');
+              agent.logger.warn(
+                { error: String(humanizeError) },
+                'Post-LLM humanization failed (non-fatal)'
+              );
               // Fall through to original SSML processing
             }
 
@@ -515,19 +526,26 @@ class VoiceAgent extends voice.Agent<UserData> {
                 // Store for response quality tracking when user responds
                 if (userData) {
                   userData.lastAgentResponse = accumulatedText;
-                  
+
                   // Track if this response contained humor or story for calibration
                   const lowerText = accumulatedText.toLowerCase();
-                  const humorIndicators = /\b(haha|joke|kidding|😄|😂|funny|amusing|ironic)\b|!.*!/.test(lowerText);
-                  const storyIndicators = /\b(remember when|back when|once upon|let me tell you|there was|i knew a|story|reminds me)\b/.test(lowerText);
-                  
+                  const humorIndicators =
+                    /\b(haha|joke|kidding|😄|😂|funny|amusing|ironic)\b|!.*!/.test(lowerText);
+                  const storyIndicators =
+                    /\b(remember when|back when|once upon|let me tell you|there was|i knew a|story|reminds me)\b/.test(
+                      lowerText
+                    );
+
                   if (humorIndicators) {
                     userData.lastResponseHadHumor = true;
                     // Record the humor attempt for calibration
                     const topic = userData.lastTopic || 'general';
-                    services.humorCalibration.recordHumorAttempt(accumulatedText.slice(0, 200), topic);
+                    services.humorCalibration.recordHumorAttempt(
+                      accumulatedText.slice(0, 200),
+                      topic
+                    );
                   }
-                  
+
                   if (storyIndicators) {
                     userData.lastResponseHadStory = true;
                     // Record the story for preference learning
@@ -582,7 +600,7 @@ class VoiceAgent extends voice.Agent<UserData> {
   /**
    * Override sttNode to tap into user audio frames for prosody analysis
    */
-  sttNode(
+  async sttNode(
     audio: ReadableStream<AudioFrame>,
     modelSettings: Parameters<voice.Agent['sttNode']>[1]
   ): ReturnType<voice.Agent['sttNode']> {
@@ -642,9 +660,9 @@ class VoiceAgent extends voice.Agent<UserData> {
                 excited: 'anticipation',
                 stressed: 'anxiety',
               };
-              
+
               const mappedEmotion = emotionMap[voiceEmotion.primary] || 'neutral';
-              
+
               // Capture voice-based emotional pattern
               services.captureInsight(
                 'emotional_pattern',
@@ -657,7 +675,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                 },
                 voiceEmotion.confidence
               );
-              
+
               // Record for validation against future text emotion
               services.learningEngine.recordVoiceEmotion(
                 voiceEmotion.primary,
@@ -845,19 +863,22 @@ class VoiceAgent extends voice.Agent<UserData> {
         convState.incrementTurn();
 
         // Update emotional context from analysis
-        const emotionMap: Record<string, 'happy' | 'excited' | 'calm' | 'anxious' | 'frustrated' | 'sad' | 'confused' | 'grateful'> = {
-          'happy': 'happy',
-          'excited': 'excited',
-          'content': 'calm',
-          'neutral': 'calm',
-          'anxious': 'anxious',
-          'worried': 'anxious',
-          'frustrated': 'frustrated',
-          'angry': 'frustrated',
-          'sad': 'sad',
-          'confused': 'confused',
-          'grateful': 'grateful',
-          'thankful': 'grateful',
+        const emotionMap: Record<
+          string,
+          'happy' | 'excited' | 'calm' | 'anxious' | 'frustrated' | 'sad' | 'confused' | 'grateful'
+        > = {
+          happy: 'happy',
+          excited: 'excited',
+          content: 'calm',
+          neutral: 'calm',
+          anxious: 'anxious',
+          worried: 'anxious',
+          frustrated: 'frustrated',
+          angry: 'frustrated',
+          sad: 'sad',
+          confused: 'confused',
+          grateful: 'grateful',
+          thankful: 'grateful',
         };
 
         const mappedEmotion = emotionMap[analysis.emotion.primary.toLowerCase()];
@@ -868,9 +889,15 @@ class VoiceAgent extends voice.Agent<UserData> {
         // Update sentiment
         const intensity = analysis.emotion.intensity || 0.5;
         let sentiment: 'positive' | 'neutral' | 'negative' | 'mixed' = 'neutral';
-        if (['happy', 'excited', 'grateful', 'content'].includes(analysis.emotion.primary.toLowerCase())) {
+        if (
+          ['happy', 'excited', 'grateful', 'content'].includes(
+            analysis.emotion.primary.toLowerCase()
+          )
+        ) {
           sentiment = 'positive';
-        } else if (['sad', 'frustrated', 'angry', 'anxious'].includes(analysis.emotion.primary.toLowerCase())) {
+        } else if (
+          ['sad', 'frustrated', 'angry', 'anxious'].includes(analysis.emotion.primary.toLowerCase())
+        ) {
           sentiment = 'negative';
         } else if (intensity > 0.7) {
           sentiment = 'mixed';
@@ -884,13 +911,25 @@ class VoiceAgent extends voice.Agent<UserData> {
         }
 
         // Store the user message
-        convState.addKeyMoment(`User said: ${userText.slice(0, 100)}${userText.length > 100 ? '...' : ''}`);
+        convState.addKeyMoment(
+          `User said: ${userText.slice(0, 100)}${userText.length > 100 ? '...' : ''}`
+        );
 
         // Check for wrap-up signals in user text
         const wrapUpPhrases = [
-          'gotta go', 'have to go', 'need to go', 'i should go',
-          'bye', 'goodbye', 'see you', 'talk later', 'later',
-          'that\'s all', 'that\'s it', 'i\'m done', 'thanks for',
+          'gotta go',
+          'have to go',
+          'need to go',
+          'i should go',
+          'bye',
+          'goodbye',
+          'see you',
+          'talk later',
+          'later',
+          "that's all",
+          "that's it",
+          "i'm done",
+          'thanks for',
         ];
         if (wrapUpPhrases.some((phrase) => userText.toLowerCase().includes(phrase))) {
           convState.markUserWantsToLeave();
@@ -971,16 +1010,22 @@ class VoiceAgent extends voice.Agent<UserData> {
         isSeriousContext: (analysis.emotion.distressLevel || 0) > 0.5,
         wasPersonalSharing: analysis.state.userNeedsSupport || false,
       };
-      
+
       // This records to memory, dynamics, detects topic changes, etc.
       const preResponseActions = humanizer.processUserMessage(humanizationContext);
-      
+
       // Track callback reaction from previous turn
       if (humanizer.wasLastResponseCallback()) {
         // User responded - check if they engaged with the callback
         // Engagement signals: longer response, sharing more, or continuing the topic
-        const engagementIntents: string[] = ['sharing_news', 'confiding', 'seeking_advice', 'venting'];
-        const wasEngaged = userText.length > 30 || engagementIntents.includes(analysis.intent.primary);
+        const engagementIntents: string[] = [
+          'sharing_news',
+          'confiding',
+          'seeking_advice',
+          'venting',
+        ];
+        const wasEngaged =
+          userText.length > 30 || engagementIntents.includes(analysis.intent.primary);
         humanizer.recordUserReactionToCallback(userText.length, wasEngaged);
       }
 
@@ -996,7 +1041,7 @@ class VoiceAgent extends voice.Agent<UserData> {
       if (userData?.lastAgentResponse) {
         const currentTopic = analysis.topics.detected[0] || 'general';
         const conversationPhase = services.getPromptContext().phase || 'building';
-        
+
         services.recordResponseSignal({
           agentResponse: userData.lastAgentResponse,
           userResponse: userText,
@@ -1018,7 +1063,10 @@ class VoiceAgent extends voice.Agent<UserData> {
       let topicTransition: string | undefined;
 
       // Use humanizer's topic change detection (more sophisticated)
-      if (preResponseActions.topicChange?.detected && preResponseActions.topicChange.transitionPhrase) {
+      if (
+        preResponseActions.topicChange?.detected &&
+        preResponseActions.topicChange.transitionPhrase
+      ) {
         topicTransition = `[TOPIC SHIFT: ${preResponseActions.topicChange.transitionPhrase}]`;
       } else if (previousTopic && currentTopic && previousTopic !== currentTopic) {
         const transition = responseDynamics.getTopicTransition(previousTopic, currentTopic);
@@ -1037,15 +1085,18 @@ class VoiceAgent extends voice.Agent<UserData> {
       if (paceContext) {
         paceContextForInjection = paceContext;
         paceLengthForInjection = services.voicePaceAdapter.getRecommendedResponseLength();
-        
-        this.logger.debug({
-          paceContext: paceContext.slice(0, 100),
-          recommendedLength: paceLengthForInjection,
-        }, 'Voice pace adaptation prepared');
+
+        this.logger.debug(
+          {
+            paceContext: paceContext.slice(0, 100),
+            recommendedLength: paceLengthForInjection,
+          },
+          'Voice pace adaptation prepared'
+        );
       }
       if (userData) {
         userData.lastTopic = currentTopic;
-        
+
         // Store for post-LLM humanization in transcriptionNode
         userData.lastUserMessage = userText;
         userData.lastEmotionAnalysis = {
@@ -1067,13 +1118,13 @@ class VoiceAgent extends voice.Agent<UserData> {
       // Feed BOTH text and voice emotion for complete picture
       // ============================================================
       const emotionalArc = getEmotionalArcTracker();
-      
+
       // Record text emotion from analysis (voice emotion recorded in sttNode)
       // This combines semantic understanding (text) with tonal cues (voice)
       // Feed combined text + voice emotion into arc tracker
       // Voice emotion may already be recorded from sttNode, text emotion adds semantic context
       emotionalArc.recordEmotion(analysis.emotion || null, userData?.voiceEmotion || null);
-      
+
       const arc = emotionalArc.getArc();
       const emotionalResponse = emotionalArc.getResponseRecommendation();
 
@@ -1370,7 +1421,7 @@ CRITICAL REMINDERS:
 
       // Add task wisdom if any (NEW)
       if (taskContext.length > 0) {
-        allContext.push('\n[TASK GUIDANCE]\n' + taskContext.join('\n\n'));
+        allContext.push(`\n[TASK GUIDANCE]\n${taskContext.join('\n\n')}`);
         this.logger.debug(`Injected ${taskContext.length} task wisdom elements`);
       }
 
@@ -1390,7 +1441,9 @@ CRITICAL REMINDERS:
       if (paceContextForInjection) {
         allContext.push(`[PACING GUIDANCE]\n${paceContextForInjection}`);
         if (paceLengthForInjection) {
-          allContext.push(`[RESPONSE LENGTH] Aim for ${paceLengthForInjection.min}-${paceLengthForInjection.max} words based on user's pace preferences.`);
+          allContext.push(
+            `[RESPONSE LENGTH] Aim for ${paceLengthForInjection.min}-${paceLengthForInjection.max} words based on user's pace preferences.`
+          );
         }
       }
 
@@ -1410,12 +1463,12 @@ CRITICAL REMINDERS:
         // 2. Humor Calibration - Analyze reaction to previous humor
         if (userData?.lastResponseHadHumor) {
           // Detect if user laughed (from voice or text)
-          const userLaughed = userData?.voiceEmotion?.primary === 'happy' && 
-                              userData?.voiceEmotion?.confidence > 0.6;
+          const userLaughed =
+            userData?.voiceEmotion?.primary === 'happy' && userData?.voiceEmotion?.confidence > 0.6;
           services.humorCalibration.analyzeReaction(userText, userLaughed);
           userData.lastResponseHadHumor = false;
         }
-        
+
         // Get humor guidance for this turn
         const humorGuidance = services.humorCalibration.getHumorGuidance(
           currentTopic || 'general',
@@ -1425,8 +1478,8 @@ CRITICAL REMINDERS:
         if (humorGuidance.shouldAttempt) {
           allContext.push(
             `[HUMOR OK] ${humorGuidance.recommendedType ? `Try ${humorGuidance.recommendedType} humor.` : ''} ` +
-            `${humorGuidance.suggestedApproach || ''} ` +
-            `${humorGuidance.avoidTypes.length > 0 ? `Avoid: ${humorGuidance.avoidTypes.join(', ')}` : ''}`
+              `${humorGuidance.suggestedApproach || ''} ` +
+              `${humorGuidance.avoidTypes.length > 0 ? `Avoid: ${humorGuidance.avoidTypes.join(', ')}` : ''}`
           );
         } else if (humorGuidance.contextNote) {
           allContext.push(`[HUMOR NOTE] ${humorGuidance.contextNote}`);
@@ -1437,7 +1490,7 @@ CRITICAL REMINDERS:
           services.storyPreference.analyzeEngagement(userText);
           userData.lastResponseHadStory = false;
         }
-        
+
         // Get story guidance
         const storyPrefGuidance = services.storyPreference.getStoryGuidance(
           currentTopic || 'general',
@@ -1447,35 +1500,38 @@ CRITICAL REMINDERS:
         if (storyPrefGuidance.shouldTellStory && storyPrefGuidance.recommendedType) {
           allContext.push(
             `[STORY PREFERENCE] User responds well to ${storyPrefGuidance.recommendedType} stories. ` +
-            `Preferred: ${storyPrefGuidance.recommendedLength || 'medium'} length, ${storyPrefGuidance.recommendedDepth || 'moderate'} depth.`
+              `Preferred: ${storyPrefGuidance.recommendedLength || 'medium'} length, ${storyPrefGuidance.recommendedDepth || 'moderate'} depth.`
           );
         }
 
         // 4. Emotional Memory - Record significant emotions and generate check-ins
-        if (analysis.emotion.primary !== 'neutral' && 
-            (analysis.emotion.intensity || 0.5) > 0.5) {
+        if (analysis.emotion.primary !== 'neutral' && (analysis.emotion.intensity || 0.5) > 0.5) {
           const intensity = (analysis.emotion.intensity || 0.5) >= 0.7 ? 'strong' : 'moderate';
           services.emotionalMemory.recordMoment(
-            analysis.emotion.primary as import('../intelligence/emotion-detector.js').PrimaryEmotion,
+            analysis.emotion
+              .primary as import('../intelligence/emotion-detector.js').PrimaryEmotion,
             currentTopic || 'general',
             userText.slice(0, 50),
             userText,
             intensity
           );
         }
-        
+
         // Get emotional memory context for check-ins
         const emotionalContext = services.emotionalMemory.formatForPrompt();
         if (emotionalContext) {
           allContext.push(emotionalContext);
         }
 
-        this.logger.debug({
-          styleConfidence: services.communicationMirroring.getStats().confidence,
-          humorShouldAttempt: humorGuidance.shouldAttempt,
-          storyShouldTell: storyPrefGuidance.shouldTellStory,
-          emotionalMoments: services.emotionalMemory.getStats().totalMoments,
-        }, '🎭 Human-level features processed');
+        this.logger.debug(
+          {
+            styleConfidence: services.communicationMirroring.getStats().confidence,
+            humorShouldAttempt: humorGuidance.shouldAttempt,
+            storyShouldTell: storyPrefGuidance.shouldTellStory,
+            emotionalMoments: services.emotionalMemory.getStats().totalMoments,
+          },
+          '🎭 Human-level features processed'
+        );
       } catch (humanLevelError) {
         this.logger.warn(
           { error: String(humanLevelError) },
@@ -1875,7 +1931,7 @@ export default defineAgent({
       diag.user('Step 1: Identifying user');
       let userId: string | undefined;
       let userName: string | undefined;
-      let identificationSource: string = 'anonymous';
+      let identificationSource = 'anonymous';
 
       // Helper to filter out placeholder/generated usernames - we should NEVER guess a name!
       const isRealName = (name: string | undefined): boolean => {
@@ -1940,11 +1996,13 @@ export default defineAgent({
       // FIX BUG #33: Notify frontend of state reset so UI can sync
       try {
         await ctx.room.localParticipant?.publishData(
-          new TextEncoder().encode(JSON.stringify({
-            type: 'state_reset',
-            activePersona: 'ferni',
-            timestamp: Date.now(),
-          })),
+          new TextEncoder().encode(
+            JSON.stringify({
+              type: 'state_reset',
+              activePersona: 'ferni',
+              timestamp: Date.now(),
+            })
+          ),
           { reliable: true }
         );
         logger.debug('Notified frontend of state reset');
@@ -1980,7 +2038,11 @@ export default defineAgent({
 
       // Initialize conversation state for tool orchestration
       // This provides shared context across all tools for human-level conversation
-      const conversationState = getConversationState(sessionId, userId || 'default', sessionPersona.id);
+      const conversationState = getConversationState(
+        sessionId,
+        userId || 'default',
+        sessionPersona.id
+      );
 
       // Set user name if known
       if (userName || services.userProfile?.name) {
@@ -2042,10 +2104,10 @@ export default defineAgent({
       // ===============================================
       const customData = services.userProfile?.customData as Record<string, unknown> | undefined;
       initializeHandoffContext({
-        meetingCounts: 
+        meetingCounts:
           services.userProfile?.humanizingState?.perPersonaMeetingCounts ||
           (customData?.meetingCounts as Record<string, number> | undefined),
-        lastTopics: 
+        lastTopics:
           services.userProfile?.humanizingState?.perPersonaLastTopic ||
           (customData?.lastTopicsPerPersona as Record<string, string> | undefined),
         persistMeetingCounts: (counts) => {
@@ -2083,7 +2145,7 @@ export default defineAgent({
       // ===============================================
       // STEP 4: LOAD VAD AND CREATE SESSION
       // ===============================================
-      let vad = ctx.proc.userData.vad;
+      let { vad } = ctx.proc.userData;
 
       if (!vad) {
         vad = await silero.VAD.load();
@@ -2178,9 +2240,10 @@ export default defineAgent({
 
           for (const tool of toolCalls) {
             const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown';
-            const resultSummary = typeof tool.result === 'string'
-              ? tool.result.slice(0, 200)
-              : JSON.stringify(tool.result).slice(0, 200);
+            const resultSummary =
+              typeof tool.result === 'string'
+                ? tool.result.slice(0, 200)
+                : JSON.stringify(tool.result).slice(0, 200);
 
             // Record in conversation state
             convState.recordToolCall(toolName, resultSummary);
@@ -2189,7 +2252,9 @@ export default defineAgent({
             try {
               const { recordToolUsage } = await import('../services/tool-usage-analytics.js');
               const toolWithStartTime = tool as { startTime?: number };
-              const latencyMs = toolWithStartTime.startTime ? Date.now() - toolWithStartTime.startTime : Date.now() - toolStartTime;
+              const latencyMs = toolWithStartTime.startTime
+                ? Date.now() - toolWithStartTime.startTime
+                : Date.now() - toolStartTime;
               const hasError = !!tool.error || !!toolInfo.error;
               recordToolUsage(
                 toolName,
@@ -2208,10 +2273,20 @@ export default defineAgent({
               deprecationService.recordUsage(toolName, !hasError, latencyMs);
 
               // Record for pattern analysis (co-occurrence, sequences, journeys)
-              patternAnalyzer.recordToolCall(services.sessionId || sessionId, toolName, !hasError, latencyMs);
-              
+              patternAnalyzer.recordToolCall(
+                services.sessionId || sessionId,
+                toolName,
+                !hasError,
+                latencyMs
+              );
+
               // Record for auto-optimizer (feeds recommendation engine)
-              autoOptimizer.recordToolExecution(services.sessionId || sessionId, toolName, !hasError, latencyMs);
+              autoOptimizer.recordToolExecution(
+                services.sessionId || sessionId,
+                toolName,
+                !hasError,
+                latencyMs
+              );
             } catch {
               // Analytics recording is non-critical, don't fail the tool execution
             }
@@ -2230,7 +2305,7 @@ export default defineAgent({
 
           // Duck background music when agent speaks (only if music is enabled)
           import('../config/environment.js')
-            .then(({ isMusicEnabled }) => {
+            .then(async ({ isMusicEnabled }) => {
               if (!isMusicEnabled()) return;
               return import('../audio/index.js');
             })
@@ -2249,7 +2324,7 @@ export default defineAgent({
 
           // Unduck background music when agent stops speaking (only if music is enabled)
           import('../config/environment.js')
-            .then(({ isMusicEnabled }) => {
+            .then(async ({ isMusicEnabled }) => {
               if (!isMusicEnabled()) return;
               return import('../audio/index.js');
             })
@@ -2309,10 +2384,10 @@ export default defineAgent({
             // Say the backchannel with SSML - allow interruption
             await session.say(backchannel.ssml, { allowInterruptions: true });
             lastBackchannelAt = Date.now();
-            
+
             // Track that we gave a backchannel (for reaction analysis)
             pendingBackchannelReaction = true;
-            
+
             diag.state('Backchannel fired', {
               text: backchannel.verbal,
               type: backchannel.type,
@@ -2323,7 +2398,7 @@ export default defineAgent({
           }
         }
       };
-      
+
       // Track backchannel reactions for frequency tuning
       let pendingBackchannelReaction = false;
 
@@ -2331,7 +2406,7 @@ export default defineAgent({
         if (event.newState === 'speaking') {
           userLastSpokeAt = Date.now();
           userData.userSpeakingStartTime = userLastSpokeAt;
-          
+
           // Check if user responded to our backchannel (within 10 seconds)
           if (pendingBackchannelReaction && Date.now() - lastBackchannelAt < 10000) {
             // User continued speaking after backchannel - positive reaction!
@@ -2358,7 +2433,7 @@ export default defineAgent({
             clearTimeout(backchannelTimer);
             backchannelTimer = null;
           }
-          
+
           if (userData.userSpeakingStartTime) {
             conversationManager.handleUserFinishedSpeaking(
               Date.now() - userData.userSpeakingStartTime
@@ -2371,7 +2446,7 @@ export default defineAgent({
         if (event.newState === 'away') {
           const silenceDurationMs = Date.now() - userLastSpokeAt;
           const silenceDurationSec = silenceDurationMs / 1000;
-          
+
           // Track negative backchannel reaction if user went silent after our backchannel
           if (pendingBackchannelReaction && Date.now() - lastBackchannelAt > 5000) {
             // User went silent 5+ seconds after backchannel - might be negative
@@ -2386,7 +2461,7 @@ export default defineAgent({
           // ----------------------------------------------------------------
           const MEDIUM_SILENCE_THRESHOLD_SEC = 4; // 4 seconds of silence
           const MEDIUM_SILENCE_COOLDOWN_MS = 12000; // Only one per 12 seconds
-          
+
           if (
             silenceDurationSec >= MEDIUM_SILENCE_THRESHOLD_SEC &&
             silenceDurationSec < 10 && // Before meaningful silence kicks in
@@ -2397,7 +2472,7 @@ export default defineAgent({
           ) {
             // Check if this was a vulnerable/emotional moment - give more space
             const isEmotionalMoment = silenceContext.recentEmotionalTone === 'heavy';
-            
+
             // For emotional moments, wait longer (6 seconds) before gentle acknowledgment
             if (!isEmotionalMoment || silenceDurationSec >= 6) {
               const silenceBackchannel = activeListening.getSilenceBackchannel(sessionPersona.id, {
@@ -2407,7 +2482,7 @@ export default defineAgent({
                 lastUserEmotion: userData.lastEmotionAnalysis?.primary,
                 turnCount: userData.turnCount || 0,
               });
-              
+
               if (silenceBackchannel) {
                 try {
                   session.say(silenceBackchannel.ssml, { allowInterruptions: true });
@@ -2527,17 +2602,20 @@ export default defineAgent({
           // ===============================================
           // Analyze the user's message and auto-load relevant tool domains
           // This keeps tool count manageable while ensuring relevant tools are available
-          dynamicToolLoader.processMessage(event.transcript).then((loadedDomains) => {
-            if (loadedDomains.length > 0) {
-              diag.tool('Dynamic domains loaded based on user message', {
-                transcript: event.transcript.slice(0, 50),
-                loadedDomains,
-                totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
-              });
-            }
-          }).catch((error) => {
-            logger.warn({ error }, 'Failed to process message for dynamic tool loading');
-          });
+          dynamicToolLoader
+            .processMessage(event.transcript)
+            .then((loadedDomains) => {
+              if (loadedDomains.length > 0) {
+                diag.tool('Dynamic domains loaded based on user message', {
+                  transcript: event.transcript.slice(0, 50),
+                  loadedDomains,
+                  totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
+                });
+              }
+            })
+            .catch((error) => {
+              logger.warn({ error }, 'Failed to process message for dynamic tool loading');
+            });
 
           // ===============================================
           // FEEDBACK COLLECTION for tool optimization
@@ -2550,7 +2628,7 @@ export default defineAgent({
             const recentTools = toolExecData?.recentlyUsedTools || [];
             const lastToolResult = toolExecData?.lastToolResult;
             const lastToolId = toolExecData?.lastToolCalled;
-            
+
             const feedbackContext: FeedbackContext = {
               userId: userData.userId || 'anonymous',
               sessionId,
@@ -2559,10 +2637,9 @@ export default defineAgent({
               recentTools,
               lastToolResult,
             };
-            
+
             // Process feedback asynchronously
             autoOptimizer.processUserMessage(event.transcript, feedbackContext, lastToolId);
-            
           } catch (feedbackError) {
             // Feedback collection is non-critical
             diag.warn('Feedback collection error', { error: String(feedbackError) });
@@ -2725,8 +2802,12 @@ export default defineAgent({
 
           // ✨ Set up callback for music state changes - notify frontend for avatar dancing!
           player.setOnMusicStateChangeCallback(async (state, track, isAmbient) => {
-            diag.state('Music state changed, notifying frontend', { state, track: track?.name, isAmbient });
-            
+            diag.state('Music state changed, notifying frontend', {
+              state,
+              track: track?.name,
+              isAmbient,
+            });
+
             try {
               const musicMessage = JSON.stringify({
                 type: 'music',
@@ -2737,12 +2818,11 @@ export default defineAgent({
                 isAmbient,
                 timestamp: Date.now(),
               });
-              
-              await ctx.room.localParticipant?.publishData(
-                new TextEncoder().encode(musicMessage),
-                { reliable: true }
-              );
-              
+
+              await ctx.room.localParticipant?.publishData(new TextEncoder().encode(musicMessage), {
+                reliable: true,
+              });
+
               diag.state('🎵 Music state sent to frontend - avatar should dance!', { state });
             } catch (e) {
               diag.warn('Failed to send music state to frontend', { error: String(e) });
@@ -2835,7 +2915,7 @@ export default defineAgent({
         } else {
           // Fall back to standard greeting generator with persona memories + bundleRuntime
           // Include proactive opener context for intelligent greetings
-          
+
           // Get open thread conversation starter for proactive greeting
           let threadStarter: string | undefined;
           const openThreads = services.getOpenThreads();
@@ -2848,12 +2928,10 @@ export default defineAgent({
               });
             }
           }
-          
+
           // Get open questions from threads
-          const openQuestions = openThreads
-            .flatMap(t => t.questionsToAnswer || [])
-            .slice(0, 3);
-          
+          const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
+
           greeting = await generateGreeting(sessionPersona, {
             isReturningUser,
             userName: userData.name,
@@ -2875,7 +2953,7 @@ export default defineAgent({
             primaryConcerns: services.userProfile?.primaryConcerns,
             openQuestions, // Questions from cross-session threads
           });
-          
+
           // If we have a thread starter and didn't use it in greeting, append it
           if (threadStarter && !greeting.toLowerCase().includes('last time')) {
             greeting = `${greeting} <break time="400ms"/> ${threadStarter}`;
@@ -2889,19 +2967,17 @@ export default defineAgent({
         }
       } else {
         // Standard greeting without bundle - include persona memories and proactive context
-        
+
         // Get open thread conversation starter for proactive greeting
         let threadStarter: string | undefined;
         const openThreads = services.getOpenThreads();
         if (openThreads.length > 0 && isReturningUser) {
           threadStarter = services.getThreadConversationStarter() || undefined;
         }
-        
+
         // Get open questions from threads
-        const openQuestions = openThreads
-          .flatMap(t => t.questionsToAnswer || [])
-          .slice(0, 3);
-        
+        const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
+
         // Get high-priority proactive insights for check-ins
         let proactiveInsight: string | undefined;
         let proactiveInsightId: string | undefined;
@@ -2919,7 +2995,7 @@ export default defineAgent({
             // Non-blocking
           }
         }
-        
+
         // Get emotional memory check-in suggestions for returning users
         let emotionalCheckIn: string | undefined;
         if (isReturningUser && !threadStarter && !proactiveInsight) {
@@ -2939,7 +3015,7 @@ export default defineAgent({
             // Non-blocking
           }
         }
-        
+
         greeting = await generateGreeting(sessionPersona, {
           isReturningUser,
           userName: userData.name,
@@ -2960,21 +3036,21 @@ export default defineAgent({
           primaryConcerns: services.userProfile?.primaryConcerns,
           openQuestions, // Questions from cross-session threads
         });
-        
+
         // If we have a thread starter and didn't use it in greeting, append it
         if (threadStarter && !greeting.toLowerCase().includes('last time')) {
           greeting = `${greeting} <break time="400ms"/> ${threadStarter}`;
         }
-        
+
         // If we have an emotional memory check-in, append it
         if (emotionalCheckIn && !greeting.toLowerCase().includes('last time')) {
           greeting = `${greeting} <break time="400ms"/> ${emotionalCheckIn}`;
         }
-        
+
         // Or append proactive insight if we have one
         if (proactiveInsight && !threadStarter && !greeting.toLowerCase().includes('checking in')) {
           greeting = `${greeting} <break time="400ms"/> ${proactiveInsight}`;
-          
+
           // Mark insight as delivered for tracking
           if (proactiveInsightId) {
             services.markInsightDelivered(proactiveInsightId);
@@ -3041,7 +3117,10 @@ export default defineAgent({
         const theirIdentity = participant?.identity;
 
         // Enhanced debugging for handoff requests
-        logger.info({ ourIdentity, theirIdentity, dataLength: data?.length }, '📩 Data received from participant');
+        logger.info(
+          { ourIdentity, theirIdentity, dataLength: data?.length },
+          '📩 Data received from participant'
+        );
 
         // Only process messages from our user (not from ourselves)
         if (!participant) {
@@ -3056,7 +3135,7 @@ export default defineAgent({
         try {
           const rawText = new TextDecoder().decode(data);
           logger.info({ rawText: rawText.slice(0, 200) }, '📝 Raw data message received');
-          
+
           const message = JSON.parse(rawText);
           logger.info(
             { messageType: message.type, target: message.target, timestamp: message.timestamp },
@@ -3073,11 +3152,11 @@ export default defineAgent({
             // =====================================================
             // Get handoff tools using the new factory
             const handoffToolSet = await createHandoffTools();
-            
+
             // Map persona IDs to canonical IDs for lookup
             const personaToCanonical: Record<string, string> = {
               // Canonical IDs
-              'ferni': 'ferni',
+              ferni: 'ferni',
               'peter-john': 'peter-john',
               'alex-chen': 'alex-chen',
               'maya-santos': 'maya-santos',
@@ -3089,11 +3168,11 @@ export default defineAgent({
               'spend-save': 'maya-santos',
               'event-planner': 'jordan-taylor',
               // Short names
-              'alex': 'alex-chen',
-              'maya': 'maya-santos',
-              'jordan': 'jordan-taylor',
-              'peter': 'peter-john',
-              'nayan': 'nayan-patel',
+              alex: 'alex-chen',
+              maya: 'maya-santos',
+              jordan: 'jordan-taylor',
+              peter: 'peter-john',
+              nayan: 'nayan-patel',
             };
 
             const canonicalId = personaToCanonical[targetPersona] || targetPersona;
@@ -3102,7 +3181,15 @@ export default defineAgent({
             const displayName = canonicalId.split('-')[0];
             const toolName = `handoffTo${displayName.charAt(0).toUpperCase()}${displayName.slice(1)}`;
             const toolNameLower = toolName.toLowerCase();
-            logger.info({ targetPersona, canonicalId, toolName, availableTools: Array.from(handoffToolSet.toolsByName.keys()) }, '🔧 Looking up handoff tool');
+            logger.info(
+              {
+                targetPersona,
+                canonicalId,
+                toolName,
+                availableTools: Array.from(handoffToolSet.toolsByName.keys()),
+              },
+              '🔧 Looking up handoff tool'
+            );
 
             // =====================================================
             // FIX BUG #17: Send acknowledgment to frontend
@@ -3116,10 +3203,9 @@ export default defineAgent({
                   error,
                   timestamp: Date.now(),
                 });
-                await ctx.room.localParticipant?.publishData(
-                  new TextEncoder().encode(ackMessage),
-                  { reliable: true }
-                );
+                await ctx.room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+                  reliable: true,
+                });
               } catch (ackErr) {
                 logger.warn({ error: String(ackErr) }, 'Failed to send handoff ack');
               }
@@ -3148,10 +3234,15 @@ export default defineAgent({
 
             // Check if we have a valid handoff target
             // FIX BUG: toolsByName uses lowercase keys, so lookup with toolNameLower
-            const toolDefinition = handoffToolSet.toolsByAgentId.get(canonicalId) || handoffToolSet.toolsByName.get(toolNameLower);
-            
+            const toolDefinition =
+              handoffToolSet.toolsByAgentId.get(canonicalId) ||
+              handoffToolSet.toolsByName.get(toolNameLower);
+
             if (toolDefinition) {
-              logger.info({ targetPersona, toolName, currentAgent: getCurrentAgent() }, '🔄 Executing user-requested handoff');
+              logger.info(
+                { targetPersona, toolName, currentAgent: getCurrentAgent() },
+                '🔄 Executing user-requested handoff'
+              );
 
               try {
                 // Use the new executeHandoff function
@@ -3160,7 +3251,10 @@ export default defineAgent({
                 logger.info({ result: JSON.stringify(result).slice(0, 500) }, '📦 Handoff result');
 
                 if (!result.success) {
-                  logger.warn({ error: result.error, rateLimited: result.rateLimited }, '⚠️ Handoff blocked');
+                  logger.warn(
+                    { error: result.error, rateLimited: result.rateLimited },
+                    '⚠️ Handoff blocked'
+                  );
                   // FIX BUG #13 & #17: Send failure/ack for blocked handoffs
                   await sendAck(false, result.error || 'Handoff failed');
                   if (!result.rateLimited) {
@@ -3185,7 +3279,9 @@ export default defineAgent({
                         // setPersona() internally updates _instructions with the new systemPrompt
                         if (voiceAgentRef) {
                           voiceAgentRef.setPersona(newPersona);
-                          diag.entry(`🎭 VoiceAgent persona AND instructions updated to ${newPersona.name}`);
+                          diag.entry(
+                            `🎭 VoiceAgent persona AND instructions updated to ${newPersona.name}`
+                          );
                         }
 
                         diag.entry(`🎭 Identity switch complete for ${newPersona.name}`);
@@ -3328,12 +3424,12 @@ import { initializeVoiceRegistry } from '../personas/voice-registry.js';
     await initializeVoiceRegistry();
     // This will use the cached result from voice registry
     const bundleResult = await initializeFromBundles();
-  if (bundleResult) {
-    diag.info('Personas initialized from bundles', {
-      loaded: bundleResult.loaded,
-      failed: bundleResult.failed,
-    });
-  }
+    if (bundleResult) {
+      diag.info('Personas initialized from bundles', {
+        loaded: bundleResult.loaded,
+        failed: bundleResult.failed,
+      });
+    }
   } catch (e) {
     diag.warn('Bundle init warning', { error: String(e) });
   }
@@ -3371,8 +3467,8 @@ async function gracefulShutdown(signal: string) {
 }
 
 // Register shutdown handlers
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', async () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', async () => gracefulShutdown('SIGINT'));
 
 cli.runApp(
   new WorkerOptions({

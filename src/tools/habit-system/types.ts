@@ -8,24 +8,24 @@
 // LIFE DOMAIN TYPES
 // ============================================================================
 
-export type LifeDomain = 
-  | 'health' 
-  | 'mind' 
-  | 'relationships' 
-  | 'career' 
-  | 'learning' 
-  | 'finance' 
-  | 'home' 
+export type LifeDomain =
+  | 'health'
+  | 'mind'
+  | 'relationships'
+  | 'career'
+  | 'learning'
+  | 'finance'
+  | 'home'
   | 'selfCare';
 
-export type LifeStage = 
-  | 'student' 
-  | 'young_professional' 
-  | 'new_parent' 
-  | 'established_career' 
-  | 'caregiver' 
-  | 'pre_retirement' 
-  | 'retired' 
+export type LifeStage =
+  | 'student'
+  | 'young_professional'
+  | 'new_parent'
+  | 'established_career'
+  | 'caregiver'
+  | 'pre_retirement'
+  | 'retired'
   | 'life_transition';
 
 export type FourTendency = 'upholder' | 'questioner' | 'obliger' | 'rebel';
@@ -35,8 +35,8 @@ export type FourTendency = 'upholder' | 'questioner' | 'obliger' | 'rebel';
 // ============================================================================
 
 export interface IdentityShift {
-  oldIdentity: string;   // "I'm not a morning person"
-  newIdentity: string;   // "I'm someone who starts my day with intention"
+  oldIdentity: string; // "I'm not a morning person"
+  newIdentity: string; // "I'm someone who starts my day with intention"
   supportingBehaviors: string[]; // Evidence that builds new identity
   dailyAffirmation: string;
 }
@@ -78,9 +78,9 @@ export interface EnvironmentDesign {
 }
 
 export interface TemptationBundle {
-  temptation: string;        // "Watching Netflix"
-  habitToBundle: string;     // "Stretching"
-  bundleRule: string;        // "I can watch Netflix while stretching"
+  temptation: string; // "Watching Netflix"
+  habitToBundle: string; // "Stretching"
+  bundleRule: string; // "I can watch Netflix while stretching"
   effectiveness?: number;
 }
 
@@ -198,7 +198,7 @@ export interface HabitLoop {
   cue: string;
   routine: string;
   reward: string;
-  craving?: string;  // What drives the loop
+  craving?: string; // What drives the loop
 }
 
 export interface HabitStack {
@@ -229,36 +229,36 @@ export interface EnhancedHabit {
   name: string;
   domain: LifeDomain;
   subdomain?: string;
-  
+
   // Behavior design
   cue: string;
   routine: string;
   reward: string;
-  
+
   // Glidepath
   currentLevel: number;
   levelDetails: {
-    tiny: string;       // 2 min version
-    small: string;      // 5 min version
-    standard: string;   // 15 min version
-    expanded: string;   // 30 min version
+    tiny: string; // 2 min version
+    small: string; // 5 min version
+    standard: string; // 15 min version
+    expanded: string; // 30 min version
   };
-  
+
   // Tracking
   streakDays: number;
   totalCompletions: number;
   lastCompleted?: string;
-  
+
   // Connection
   stackedWith?: string[];
   bundledWith?: string[];
-  
+
   // Identity
   identityStatement: string;
-  
+
   // Status
   status: 'building' | 'established' | 'automatic' | 'struggling' | 'paused';
-  
+
   // Notes
   notes?: string;
 }
@@ -291,4 +291,3 @@ export interface TendencyStrategy {
   habitApproach: string;
   accountabilityStyle: string;
 }
-

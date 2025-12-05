@@ -26,7 +26,11 @@ import {
   isTeamMember,
   getDisplayName,
 } from '../personas/persona-ids.js';
-import { getVoiceId, getCanonicalPersonaId, getFrontendPersonaId } from '../personas/voice-registry.js';
+import {
+  getVoiceId,
+  getCanonicalPersonaId,
+  getFrontendPersonaId,
+} from '../personas/voice-registry.js';
 
 describe('Persona ID System', () => {
   describe('Canonical IDs', () => {
@@ -230,7 +234,14 @@ describe('Handoff ID Consistency', () => {
   });
 
   it('should resolve all frontend IDs to canonical via both systems', () => {
-    const frontendIds = ['jack-b', 'nayan-patel', 'peter-john', 'comm-specialist', 'spend-save', 'event-planner'];
+    const frontendIds = [
+      'jack-b',
+      'nayan-patel',
+      'peter-john',
+      'comm-specialist',
+      'spend-save',
+      'event-planner',
+    ];
 
     for (const frontendId of frontendIds) {
       const canonicalFromPersonaIds = toCanonical(frontendId);
@@ -260,4 +271,3 @@ describe('Edge Cases', () => {
     expect(toCanonical('Maya-Santos')).toBe('maya-santos');
   });
 });
-

@@ -5,7 +5,7 @@
  * and build lasting relationships with the personas.
  *
  * DOMAIN: engagement
- * 
+ *
  * GAMES BY PERSONA:
  *   Ferni: Morning Sky Check, Kintsugi Moments, Question of the Week
  *   Alex: Inbox Zero Challenge, Meeting Bingo, Sunday Prep
@@ -20,7 +20,11 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
-import { getDailyRitualsService, PERSONA_RITUALS, type EmotionalWeather } from '../../../services/daily-rituals.js';
+import {
+  getDailyRitualsService,
+  PERSONA_RITUALS,
+  type EmotionalWeather,
+} from '../../../services/daily-rituals.js';
 
 // ============================================================================
 // FERNI'S GAMES
@@ -39,7 +43,8 @@ const morningSkyCheckDef: ToolDefinition = {
 Use this to start conversations with returning users or when they want to check in.`,
       parameters: z.object({
         mode: z.enum(['start', 'record-weather', 'view-trends']).describe('Mode of sky check'),
-        weather: z.enum(['sunny', 'partly-cloudy', 'cloudy', 'rainy', 'stormy', 'foggy', 'rainbow'])
+        weather: z
+          .enum(['sunny', 'partly-cloudy', 'cloudy', 'rainy', 'stormy', 'foggy', 'rainbow'])
           .optional()
           .describe('User reported emotional weather'),
         energy: z.enum(['high', 'medium', 'low']).optional().describe('User energy level'),
@@ -70,7 +75,7 @@ Use this to start conversations with returning users or when they want to check 
           });
 
           const response = service.getWeatherResponse(weather);
-          
+
           getLogger().info({ userId, weather, streak: result.newStreak }, '🌅 Sky check recorded');
 
           return {
@@ -84,10 +89,10 @@ Use this to start conversations with returning users or when they want to check 
 
         if (mode === 'view-trends') {
           const trends = service.getWeatherTrends(userId, 7);
-          
+
           if (!trends.dominantWeather) {
             return {
-              message: "We need a few more sky checks to see patterns. Keep checking in!",
+              message: 'We need a few more sky checks to see patterns. Keep checking in!',
               hasEnoughData: false,
             };
           }
@@ -125,7 +130,8 @@ Based on Japanese art of repairing pottery with gold.`,
       execute: async ({ setback, mode, goldFound }) => {
         if (mode === 'explore') {
           return {
-            response: `You shared: "${setback}"\n\n` +
+            response:
+              `You shared: "${setback}"\n\n` +
               `In Japanese culture, there's an art called kintsugi— <break time="300ms"/>` +
               `when pottery breaks, they repair it with gold. <break time="200ms"/>` +
               `The cracks become part of the beauty. <break time="300ms"/>` +
@@ -139,7 +145,8 @@ Based on Japanese art of repairing pottery with gold.`,
 
         if (mode === 'find-gold' && goldFound) {
           return {
-            response: `The gold you found: "${goldFound}"\n\n` +
+            response:
+              `The gold you found: "${goldFound}"\n\n` +
               `That's real. <break time="300ms"/>` +
               `The setback was: ${setback}\n` +
               `But it gave you: ${goldFound}\n\n` +
@@ -156,7 +163,8 @@ Based on Japanese art of repairing pottery with gold.`,
 
         if (mode === 'save') {
           return {
-            response: `Kintsugi moment saved. <break time="200ms"/>` +
+            response:
+              `Kintsugi moment saved. <break time="200ms"/>` +
               `You can look back at your collection of gilded cracks anytime. <break time="300ms"/>` +
               `They're proof that breaking doesn't mean broken.`,
             saved: true,
@@ -184,29 +192,32 @@ const questionOfTheWeekDef: ToolDefinition = {
         answer: z.string().optional().describe('User answer to the question'),
       }),
       execute: async ({ mode, answer }) => {
-        const weekOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (7 * 24 * 60 * 60 * 1000));
-        
+        const weekOfYear = Math.floor(
+          (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) /
+            (7 * 24 * 60 * 60 * 1000)
+        );
+
         const questions = [
-          "What are you not saying that needs to be said?",
+          'What are you not saying that needs to be said?',
           "What would you do if you knew you couldn't fail?",
           "What is your relationship with 'enough'?",
-          "Who do you become when no one is watching?",
-          "What are you pretending not to know?",
-          "What would your 80-year-old self tell you?",
+          'Who do you become when no one is watching?',
+          'What are you pretending not to know?',
+          'What would your 80-year-old self tell you?',
           "What are you tolerating that you shouldn't?",
-          "Where in your life are you playing small?",
-          "What would you attempt if you had 10x confidence?",
-          "What truth are you avoiding?",
-          "When do you feel most like yourself?",
-          "What would you do differently if no one would judge?",
+          'Where in your life are you playing small?',
+          'What would you attempt if you had 10x confidence?',
+          'What truth are you avoiding?',
+          'When do you feel most like yourself?',
+          'What would you do differently if no one would judge?',
           "What is the question you're afraid to ask yourself?",
-          "Where are you giving your power away?",
-          "What do you need to forgive yourself for?",
+          'Where are you giving your power away?',
+          'What do you need to forgive yourself for?',
           "What are you holding onto that's holding you back?",
-          "When did you last do something for the first time?",
-          "What would make you feel proud at the end of this year?",
+          'When did you last do something for the first time?',
+          'What would make you feel proud at the end of this year?',
           "What story are you telling yourself that isn't serving you?",
-          "Who would you be without your biggest fear?",
+          'Who would you be without your biggest fear?',
         ];
 
         const currentQuestion = questions[weekOfYear % questions.length];
@@ -214,7 +225,8 @@ const questionOfTheWeekDef: ToolDefinition = {
         if (mode === 'get-question') {
           return {
             question: currentQuestion,
-            intro: `This week's question: <break time="300ms"/>\n\n"${currentQuestion}"\n\n` +
+            intro:
+              `This week's question: <break time="300ms"/>\n\n"${currentQuestion}"\n\n` +
               `Take your time with this one. <break time="200ms"/>` +
               `There's no right answer. <break time="200ms"/>` +
               `Just what's true for you.`,
@@ -224,7 +236,8 @@ const questionOfTheWeekDef: ToolDefinition = {
 
         if (mode === 'submit-answer' && answer) {
           return {
-            response: `Thank you for sharing that. <break time="300ms"/>` +
+            response:
+              `Thank you for sharing that. <break time="300ms"/>` +
               `"${answer}"\n\n` +
               `I'll remember this. <break time="200ms"/>` +
               `These answers, over time, they paint a picture of who you're becoming.`,
@@ -257,7 +270,9 @@ const compoundInterestGameDef: ToolDefinition = {
 Compound represents slow, steady growth. Interest is chaotic and demanding.
 Users "feed" their habits daily and watch the cats thrive.`,
       parameters: z.object({
-        action: z.enum(['check-in', 'feed-habit', 'view-cats', 'cat-wisdom']).describe('Action to take'),
+        action: z
+          .enum(['check-in', 'feed-habit', 'view-cats', 'cat-wisdom'])
+          .describe('Action to take'),
         habitName: z.string().optional().describe('Name of habit being fed'),
       }),
       execute: async ({ action, habitName }, { ctx: toolCtx }) => {
@@ -268,7 +283,7 @@ Users "feed" their habits daily and watch the cats thrive.`,
         if (action === 'check-in') {
           const opening = service.getRitualOpening('maya-habit-heartbeat');
           const cats = service.getCatCommentary();
-          
+
           return {
             message: opening,
             catStatus: cats,
@@ -291,12 +306,14 @@ Users "feed" their habits daily and watch the cats thrive.`,
           return {
             compound: {
               status: 'Content and growing',
-              message: "Compound is lounging peacefully. <break time=\"200ms\"/>Your consistency is his comfort.",
+              message:
+                'Compound is lounging peacefully. <break time="200ms"/>Your consistency is his comfort.',
               mood: 'serene',
             },
             interest: {
               status: 'Energetically curious',
-              message: "Interest is bouncing around! <break time=\"200ms\"/>She wants to see what you'll do today.",
+              message:
+                'Interest is bouncing around! <break time="200ms"/>She wants to see what you\'ll do today.',
               mood: 'excited',
             },
           };
@@ -311,7 +328,7 @@ Users "feed" their habits daily and watch the cats thrive.`,
             "Compound says: 'Patience. The formula always works.'",
             "Interest says: 'I DEMAND you celebrate that win!'",
           ];
-          
+
           return {
             wisdom: wisdoms[Math.floor(Math.random() * wisdoms.length)],
           };
@@ -343,7 +360,8 @@ If they miss, Maya offers compassionate reset. Track success rate over time.`,
         if (action === 'make-bet' && habit) {
           return {
             bet: habit,
-            response: `Tiny bet placed: "${habit}"\n\n` +
+            response:
+              `Tiny bet placed: "${habit}"\n\n` +
               `This is a bet you can't really lose. <break time=\"200ms\"/>` +
               `If you do it: <break time=\"150ms\"/>celebration. <break time=\"200ms\"/>` +
               `If you miss: <break time=\"150ms\"/>learning. <break time=\"300ms\"/>` +
@@ -356,7 +374,8 @@ If they miss, Maya offers compassionate reset. Track success rate over time.`,
         if (action === 'report-outcome' && outcome) {
           if (outcome === 'success') {
             return {
-              response: `You did it! <break time=\"200ms\"/>` +
+              response:
+                `You did it! <break time=\"200ms\"/>` +
                 `That's not nothing. <break time=\"300ms\"/>` +
                 `Small wins compound. <break time=\"200ms\"/>` +
                 `Ready for another tiny bet?`,
@@ -364,7 +383,8 @@ If they miss, Maya offers compassionate reset. Track success rate over time.`,
             };
           } else {
             return {
-              response: `Missed this one. <break time=\"300ms\"/>` +
+              response:
+                `Missed this one. <break time=\"300ms\"/>` +
                 `That's okay. <break time=\"200ms\"/>Really. <break time=\"300ms\"/>` +
                 `What got in the way? <break time=\"200ms\"/>` +
                 `Understanding the obstacle is progress too.\n\n` +
@@ -387,7 +407,7 @@ If they miss, Maya offers compassionate reset. Track success rate over time.`,
 const futureSelfLetterDef: ToolDefinition = {
   id: 'futureSelfLetter',
   name: 'Future Self Letter',
-  description: "Write a letter to your future self that Jordan delivers later",
+  description: 'Write a letter to your future self that Jordan delivers later',
   domain: 'engagement',
   tags: ['engagement', 'jordan', 'time-capsule', 'reflection'],
 
@@ -398,12 +418,16 @@ Creates anticipation and a powerful moment when delivered.`,
       parameters: z.object({
         action: z.enum(['write', 'seal', 'check-pending', 'deliver']).describe('Action'),
         content: z.string().optional().describe('Letter content'),
-        deliveryDate: z.string().optional().describe('When to deliver (1-month, 3-months, 6-months, 1-year)'),
+        deliveryDate: z
+          .string()
+          .optional()
+          .describe('When to deliver (1-month, 3-months, 6-months, 1-year)'),
       }),
       execute: async ({ action, content, deliveryDate }) => {
         if (action === 'write') {
           return {
-            response: `Let's write a letter to future you. <break time=\"300ms\"/>` +
+            response:
+              `Let's write a letter to future you. <break time=\"300ms\"/>` +
               `Think about who you want to be when this letter arrives.\n\n` +
               `Some prompts:\n` +
               `- What do you hope will be different?\n` +
@@ -421,25 +445,27 @@ Creates anticipation and a powerful moment when delivered.`,
             '6-months': 180,
             '1-year': 365,
           };
-          
+
           const days = deliveryDates[deliveryDate] || 30;
           const deliveryDateObj = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
           return {
-            response: `Letter sealed. <break time=\"500ms\"/>` +
+            response:
+              `Letter sealed. <break time=\"500ms\"/>` +
               `I'll hold onto this until ${deliveryDateObj.toLocaleDateString()}.\n\n` +
               `When the time comes, I'll deliver it. <break time=\"200ms\"/>` +
               `It'll be like hearing from a friend you haven't talked to in a while— <break time=\"200ms\"/>` +
               `yourself.`,
             sealed: true,
             deliveryDate: deliveryDateObj.toISOString(),
-            preview: content.slice(0, 50) + '...',
+            preview: `${content.slice(0, 50)}...`,
           };
         }
 
         if (action === 'deliver') {
           return {
-            response: `A letter has arrived from past-you. <break time=\"500ms\"/>` +
+            response:
+              `A letter has arrived from past-you. <break time=\"500ms\"/>` +
               `They wrote this for exactly this moment. <break time=\"300ms\"/>` +
               `Ready to read what they had to say?`,
             hasLetter: true,
@@ -464,7 +490,9 @@ const lifePorfolioReviewDef: ToolDefinition = {
       description: `Quarterly review of all life domains. Rate each area 1-10 and track over time.
 Jordan helps identify where to focus next.`,
       parameters: z.object({
-        action: z.enum(['start-review', 'rate-domain', 'complete-review', 'view-history']).describe('Action'),
+        action: z
+          .enum(['start-review', 'rate-domain', 'complete-review', 'view-history'])
+          .describe('Action'),
         domain: z.string().optional().describe('Life domain being rated'),
         rating: z.number().min(1).max(10).optional().describe('Rating 1-10'),
         note: z.string().optional().describe('Note about the domain'),
@@ -484,7 +512,8 @@ Jordan helps identify where to focus next.`,
 
         if (action === 'start-review') {
           return {
-            response: `Time for a life portfolio review! <break time=\"300ms\"/>` +
+            response:
+              `Time for a life portfolio review! <break time=\"300ms\"/>` +
               `We'll go through each domain of your life. <break time=\"200ms\"/>` +
               `Rate each one 1-10 based on how satisfied you are right now.\n\n` +
               `The domains:\n${domains.map((d, i) => `${i + 1}. ${d}`).join('\n')}\n\n` +
@@ -497,7 +526,7 @@ Jordan helps identify where to focus next.`,
 
         if (action === 'rate-domain' && domain && rating !== undefined) {
           const insight = generateDomainInsight(domain, rating);
-          
+
           return {
             domain,
             rating,
@@ -509,7 +538,8 @@ Jordan helps identify where to focus next.`,
 
         if (action === 'complete-review') {
           return {
-            response: `Portfolio review complete! <break time=\"300ms\"/>` +
+            response:
+              `Portfolio review complete! <break time=\"300ms\"/>` +
               `Looking at your ratings, here's what I notice:\n\n` +
               `The areas calling for attention are the ones below 7. <break time=\"200ms\"/>` +
               `But here's the thing— <break time=\"200ms\"/>don't try to fix everything at once.\n\n` +
@@ -541,12 +571,16 @@ Fun way to build self-knowledge about what you'll actually do.`,
         action: z.enum(['make-prediction', 'check-prediction', 'view-accuracy']).describe('Action'),
         prediction: z.string().optional().describe('The prediction'),
         checkDate: z.string().optional().describe('When to check (e.g., "1-week", "1-month")'),
-        outcome: z.enum(['correct', 'incorrect', 'partial']).optional().describe('How prediction turned out'),
+        outcome: z
+          .enum(['correct', 'incorrect', 'partial'])
+          .optional()
+          .describe('How prediction turned out'),
       }),
       execute: async ({ action, prediction, checkDate, outcome }) => {
         if (action === 'make-prediction' && prediction) {
           return {
-            response: `Prediction registered: "${prediction}"\n\n` +
+            response:
+              `Prediction registered: "${prediction}"\n\n` +
               `We'll check back on this ${checkDate || 'soon'}. <break time=\"200ms\"/>` +
               `Here's the fun part— <break time=\"200ms\"/>over time, you'll learn how well you know yourself.\n\n` +
               `Some people overestimate. <break time=\"200ms\"/>` +
@@ -559,13 +593,16 @@ Fun way to build self-knowledge about what you'll actually do.`,
 
         if (action === 'check-prediction' && outcome) {
           const responses = {
-            correct: `You called it! <break time=\"200ms\"/>` +
+            correct:
+              `You called it! <break time=\"200ms\"/>` +
               `Your prediction accuracy is improving. <break time=\"300ms\"/>` +
               `You're getting to know yourself better.`,
-            incorrect: `Didn't go as predicted. <break time=\"300ms\"/>` +
+            incorrect:
+              `Didn't go as predicted. <break time=\"300ms\"/>` +
               `That's actually valuable data. <break time=\"200ms\"/>` +
               `What got in the way? What does this tell you?`,
-            partial: `Partially there. <break time=\"200ms\"/>` +
+            partial:
+              `Partially there. <break time=\"200ms\"/>` +
               `You were directionally right. <break time=\"200ms\"/>` +
               `What would have made it fully accurate?`,
           };
@@ -603,21 +640,21 @@ Paradoxes stretch the mind and create openings for insight.`,
       }),
       execute: async ({ action, reflection }) => {
         const paradoxes = [
-          "The more you try to control, the less control you have.",
-          "To find yourself, you must lose yourself.",
-          "The only constant is change.",
-          "You must be willing to fail completely to succeed completely.",
-          "The quieter you become, the more you can hear.",
-          "When you let go, you get more than you gave up.",
-          "The obstacle is the way.",
-          "You cannot step in the same river twice.",
-          "To teach is to learn twice.",
+          'The more you try to control, the less control you have.',
+          'To find yourself, you must lose yourself.',
+          'The only constant is change.',
+          'You must be willing to fail completely to succeed completely.',
+          'The quieter you become, the more you can hear.',
+          'When you let go, you get more than you gave up.',
+          'The obstacle is the way.',
+          'You cannot step in the same river twice.',
+          'To teach is to learn twice.',
           "The more you know, the more you know you don't know.",
-          "Happiness can only exist in acceptance.",
-          "The wound is where the light enters.",
-          "What you resist, persists.",
-          "Less is more.",
-          "In the middle of difficulty lies opportunity.",
+          'Happiness can only exist in acceptance.',
+          'The wound is where the light enters.',
+          'What you resist, persists.',
+          'Less is more.',
+          'In the middle of difficulty lies opportunity.',
         ];
 
         const dayOfYear = Math.floor(
@@ -628,7 +665,8 @@ Paradoxes stretch the mind and create openings for insight.`,
         if (action === 'get-paradox') {
           return {
             paradox: todaysParadox,
-            response: `Today's paradox: <break time=\"500ms\"/>\n\n` +
+            response:
+              `Today's paradox: <break time=\"500ms\"/>\n\n` +
               `"${todaysParadox}"\n\n` +
               `<break time=\"300ms\"/>Sit with this. <break time=\"200ms\"/>` +
               `Let it work on you. <break time=\"300ms\"/>` +
@@ -638,7 +676,8 @@ Paradoxes stretch the mind and create openings for insight.`,
 
         if (action === 'reflect' && reflection) {
           return {
-            response: `Your reflection: "${reflection}"\n\n` +
+            response:
+              `Your reflection: "${reflection}"\n\n` +
               `<break time=\"300ms\"/>Good. <break time=\"200ms\"/>` +
               `The paradox is doing its work. <break time=\"300ms\"/>` +
               `Truth often lives in contradiction. <break time=\"200ms\"/>` +
@@ -671,16 +710,17 @@ const questionBeneathDef: ToolDefinition = {
       }),
       execute: async ({ surfaceQuestion, depth, response }) => {
         const prompts = [
-          "Why does that matter to you?",
-          "And why is that important?",
-          "What is beneath that?",
-          "And under that?",
-          "What is the question you are really asking?",
+          'Why does that matter to you?',
+          'And why is that important?',
+          'What is beneath that?',
+          'And under that?',
+          'What is the question you are really asking?',
         ];
 
         if (depth === 1) {
           return {
-            response: `You're asking about: "${surfaceQuestion}"\n\n` +
+            response:
+              `You're asking about: "${surfaceQuestion}"\n\n` +
               `<break time=\"300ms\"/>But I'm curious about the question beneath the question. ` +
               `<break time=\"200ms\"/>${prompts[0]}`,
             currentDepth: 1,
@@ -698,7 +738,8 @@ const questionBeneathDef: ToolDefinition = {
 
         if (depth === 5 && response) {
           return {
-            response: `"${response}"\n\n<break time=\"500ms\"/>` +
+            response:
+              `"${response}"\n\n<break time=\"500ms\"/>` +
               `There it is. <break time=\"300ms\"/>` +
               `The real question. <break time=\"400ms\"/>\n\n` +
               `You started asking about ${surfaceQuestion}. <break time=\"200ms\"/>` +
@@ -733,22 +774,27 @@ const patternDetectiveDef: ToolDefinition = {
 Builds self-knowledge and makes data fun.`,
       parameters: z.object({
         action: z.enum(['show-data', 'guess-pattern', 'reveal-pattern']).describe('Game stage'),
-        dataType: z.enum(['productivity', 'habits', 'mood', 'spending', 'time']).optional().describe('Type of data'),
+        dataType: z
+          .enum(['productivity', 'habits', 'mood', 'spending', 'time'])
+          .optional()
+          .describe('Type of data'),
         userGuess: z.string().optional().describe('User guess about the pattern'),
       }),
       execute: async ({ action, dataType, userGuess }) => {
         if (action === 'show-data') {
           // In real implementation, would pull actual user data
           const mockDataDescriptions: Record<string, string> = {
-            productivity: "Your deep work hours: Mon 2.5h, Tue 3h, Wed 1h, Thu 4h, Fri 1.5h",
-            habits: "Completion rates: Morning routine 80%, Exercise 45%, Reading 90%, Meditation 30%",
-            mood: "Energy levels tracked: Morning avg 7/10, Afternoon avg 5/10, Evening avg 6/10",
-            spending: "This week: Groceries $120, Coffee $45, Entertainment $80, Transport $35",
-            time: "Screen time: Social 2h, Work 6h, Learning 1h, Entertainment 3h",
+            productivity: 'Your deep work hours: Mon 2.5h, Tue 3h, Wed 1h, Thu 4h, Fri 1.5h',
+            habits:
+              'Completion rates: Morning routine 80%, Exercise 45%, Reading 90%, Meditation 30%',
+            mood: 'Energy levels tracked: Morning avg 7/10, Afternoon avg 5/10, Evening avg 6/10',
+            spending: 'This week: Groceries $120, Coffee $45, Entertainment $80, Transport $35',
+            time: 'Screen time: Social 2h, Work 6h, Learning 1h, Entertainment 3h',
           };
 
           return {
-            response: `Here's some data about you. <break time=\"300ms\"/>\n\n` +
+            response:
+              `Here's some data about you. <break time=\"300ms\"/>\n\n` +
               `${mockDataDescriptions[dataType || 'productivity']}\n\n` +
               `Before I tell you what I see— <break time=\"200ms\"/>` +
               `what pattern do YOU notice?`,
@@ -760,7 +806,8 @@ Builds self-knowledge and makes data fun.`,
         if (action === 'guess-pattern' && userGuess) {
           return {
             userGuess,
-            response: `Your hypothesis: "${userGuess}"\n\n` +
+            response:
+              `Your hypothesis: "${userGuess}"\n\n` +
               `Interesting. <break time=\"300ms\"/>Let me show you what I found...`,
             nextStep: 'Call reveal-pattern',
           };
@@ -768,15 +815,19 @@ Builds self-knowledge and makes data fun.`,
 
         if (action === 'reveal-pattern') {
           const mockPatterns: Record<string, string> = {
-            productivity: "Your best deep work happens on Thursdays. Mid-week slump on Wednesdays. Start of week momentum, end of week fatigue.",
-            habits: "You're crushing knowledge habits (reading 90%) but struggling with physical ones (exercise 45%, meditation 30%). Mind over body pattern.",
-            mood: "Classic energy dip in afternoon. Your mornings are your superpower.",
-            spending: "Coffee spending is 37% of your grocery budget. That's either a passion or a problem!",
-            time: "Entertainment + Social = 5 hours. Work + Learning = 7 hours. Not bad ratio, but notice the gap.",
+            productivity:
+              'Your best deep work happens on Thursdays. Mid-week slump on Wednesdays. Start of week momentum, end of week fatigue.',
+            habits:
+              "You're crushing knowledge habits (reading 90%) but struggling with physical ones (exercise 45%, meditation 30%). Mind over body pattern.",
+            mood: 'Classic energy dip in afternoon. Your mornings are your superpower.',
+            spending:
+              "Coffee spending is 37% of your grocery budget. That's either a passion or a problem!",
+            time: 'Entertainment + Social = 5 hours. Work + Learning = 7 hours. Not bad ratio, but notice the gap.',
           };
 
           return {
-            response: `Here's what I see: <break time=\"300ms\"/>\n\n` +
+            response:
+              `Here's what I see: <break time=\"300ms\"/>\n\n` +
               `${mockPatterns.productivity}\n\n` +
               `The question is— <break time=\"200ms\"/>now that you see it, what will you do with it?`,
             patternRevealed: mockPatterns.productivity,
@@ -802,7 +853,10 @@ const weeklyPredictionDef: ToolDefinition = {
 Builds calibration and self-knowledge over time.`,
       parameters: z.object({
         action: z.enum(['make-predictions', 'record-actuals', 'compare']).describe('Stage'),
-        predictions: z.record(z.string(), z.number()).optional().describe('Predictions by category'),
+        predictions: z
+          .record(z.string(), z.number())
+          .optional()
+          .describe('Predictions by category'),
         actuals: z.record(z.string(), z.number()).optional().describe('Actual results'),
       }),
       execute: async ({ action, predictions, actuals }) => {
@@ -816,10 +870,11 @@ Builds calibration and self-knowledge over time.`,
 
         if (action === 'make-predictions') {
           return {
-            response: `It's prediction time! <break time=\"300ms\"/>\n\n` +
+            response:
+              `It's prediction time! <break time=\"300ms\"/>\n\n` +
               `I want you to predict your week. <break time=\"200ms\"/>` +
               `Be honest— <break time=\"200ms\"/>what do you THINK will happen, not what you WANT.\n\n` +
-              `Categories to predict:\n${categories.map(c => `• ${c}`).join('\n')}\n\n` +
+              `Categories to predict:\n${categories.map((c) => `• ${c}`).join('\n')}\n\n` +
               `Give me your numbers. <break time=\"200ms\"/>We'll see how well you know yourself.`,
             categories,
             instruction: 'Collect predictions for each category',
@@ -849,12 +904,17 @@ Builds calibration and self-knowledge over time.`,
           const avgAccuracy = accuracyScore / categories.length;
 
           return {
-            response: `Let's see how you did: <break time=\"300ms\"/>\n\n` +
+            response:
+              `Let's see how you did: <break time=\"300ms\"/>\n\n` +
               `${analysis.join('\n')}\n\n` +
               `Overall accuracy: ${avgAccuracy.toFixed(0)}%\n\n` +
-              `${avgAccuracy > 75 ? 'You know yourself well!' : 
-                avgAccuracy > 50 ? 'Room to improve your self-prediction.' : 
-                'Big gap between prediction and reality. What does that tell you?'}`,
+              `${
+                avgAccuracy > 75
+                  ? 'You know yourself well!'
+                  : avgAccuracy > 50
+                    ? 'Room to improve your self-prediction.'
+                    : 'Big gap between prediction and reality. What does that tell you?'
+              }`,
             accuracyScore: avgAccuracy,
             analysis,
           };
@@ -896,13 +956,14 @@ const inboxZeroChallengeDef: ToolDefinition = {
 
         if (action === 'report-status' && inboxCount !== undefined) {
           const isZero = inboxCount === 0;
-          const result = isZero 
+          const result = isZero
             ? service.recordCompletion(userId, 'alex-inbox-pulse')
             : { newStreak: 0, isNewRecord: false };
 
           if (isZero) {
             return {
-              response: `Inbox zero! <break time=\"200ms\"/>` +
+              response:
+                `Inbox zero! <break time=\"200ms\"/>` +
                 `That's not just organization— <break time=\"200ms\"/>that's respect for yourself and others. ` +
                 `<break time=\"300ms\"/>Day ${result.newStreak} of inbox clarity.`,
               streak: result.newStreak,
@@ -910,7 +971,8 @@ const inboxZeroChallengeDef: ToolDefinition = {
             };
           } else if (inboxCount < 10) {
             return {
-              response: `${inboxCount} emails. <break time=\"200ms\"/>` +
+              response:
+                `${inboxCount} emails. <break time=\"200ms\"/>` +
                 `Manageable. <break time=\"200ms\"/>` +
                 `Can you knock those out in the next hour?`,
               inboxCount,
@@ -918,7 +980,8 @@ const inboxZeroChallengeDef: ToolDefinition = {
             };
           } else {
             return {
-              response: `${inboxCount} emails. <break time=\"300ms\"/>` +
+              response:
+                `${inboxCount} emails. <break time=\"300ms\"/>` +
                 `Okay, triage time. <break time=\"200ms\"/>` +
                 `Here's the rule: Delete what you can, respond to what's quick, defer what needs thought. ` +
                 `<break time=\"200ms\"/>What can you delete right now without reading?`,
@@ -930,11 +993,11 @@ const inboxZeroChallengeDef: ToolDefinition = {
 
         if (action === 'tips') {
           const tips = [
-            "The 2-minute rule: If it takes less than 2 minutes, do it NOW.",
+            'The 2-minute rule: If it takes less than 2 minutes, do it NOW.',
             "Unsubscribe from 3 newsletters today. You won't miss them.",
             "Create a 'Waiting On' folder. Reduces mental load.",
-            "Schedule email time instead of checking constantly.",
-            "Use templates for common responses. Your time matters.",
+            'Schedule email time instead of checking constantly.',
+            'Use templates for common responses. Your time matters.',
           ];
 
           return {
@@ -959,14 +1022,17 @@ const sundayPrepGameDef: ToolDefinition = {
     return llm.tool({
       description: `5-minute Sunday planning session where Alex helps design the upcoming week.`,
       parameters: z.object({
-        action: z.enum(['start', 'set-priorities', 'identify-blockers', 'complete']).describe('Stage'),
+        action: z
+          .enum(['start', 'set-priorities', 'identify-blockers', 'complete'])
+          .describe('Stage'),
         priorities: z.array(z.string()).optional().describe('Top 3 priorities'),
         blockers: z.array(z.string()).optional().describe('Potential blockers'),
       }),
       execute: async ({ action, priorities, blockers }) => {
         if (action === 'start') {
           return {
-            response: `Sunday Prep time! <break time=\"200ms\"/>` +
+            response:
+              `Sunday Prep time! <break time=\"200ms\"/>` +
               `Five minutes to set up your week for success.\n\n` +
               `First question: <break time=\"200ms\"/>` +
               `What are the THREE things that, if you accomplish them, would make this week a win?\n\n` +
@@ -977,7 +1043,8 @@ const sundayPrepGameDef: ToolDefinition = {
 
         if (action === 'set-priorities' && priorities) {
           return {
-            response: `Your three priorities:\n${priorities.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n` +
+            response:
+              `Your three priorities:\n${priorities.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n` +
               `Good. <break time=\"200ms\"/>Now: <break time=\"200ms\"/>` +
               `What could get in the way of these? <break time=\"300ms\"/>` +
               `What meetings, tasks, or distractions might derail you?`,
@@ -988,7 +1055,8 @@ const sundayPrepGameDef: ToolDefinition = {
 
         if (action === 'identify-blockers' && blockers) {
           return {
-            response: `Potential blockers:\n${blockers.map((b, i) => `• ${b}`).join('\n')}\n\n` +
+            response:
+              `Potential blockers:\n${blockers.map((b, i) => `• ${b}`).join('\n')}\n\n` +
               `Now you see them coming. <break time=\"300ms\"/>` +
               `For each blocker, what's one thing you can do to prevent or minimize it?`,
             blockers,
@@ -998,7 +1066,8 @@ const sundayPrepGameDef: ToolDefinition = {
 
         if (action === 'complete') {
           return {
-            response: `Week designed. <break time=\"300ms\"/>` +
+            response:
+              `Week designed. <break time=\"300ms\"/>` +
               `You've got your three priorities. <break time=\"200ms\"/>` +
               `You've anticipated the blockers. <break time=\"200ms\"/>` +
               `Now go make it happen.\n\n` +
@@ -1036,31 +1105,36 @@ Used for weekly check-ins or special celebrations.`,
       execute: async ({ type, topic }) => {
         // Build team huddle with multiple perspectives
         const huddle = {
-          intro: type === 'milestone'
-            ? "The whole team wanted to be here for this moment. <break time=\"300ms\"/>"
-            : "Quick team huddle! <break time=\"200ms\"/>Here's what we're all seeing:",
+          intro:
+            type === 'milestone'
+              ? 'The whole team wanted to be here for this moment. <break time="300ms"/>'
+              : 'Quick team huddle! <break time="200ms"/>Here\'s what we\'re all seeing:',
           comments: [
             {
               personaId: 'ferni',
-              comment: "I've watched you grow. <break time=\"200ms\"/>The person I'm talking to now has more confidence than a month ago.",
+              comment:
+                'I\'ve watched you grow. <break time="200ms"/>The person I\'m talking to now has more confidence than a month ago.',
             },
             {
               personaId: 'maya-santos',
-              comment: "Your habit consistency is up this week. <break time=\"200ms\"/>Compound and Interest are proud.",
+              comment:
+                'Your habit consistency is up this week. <break time="200ms"/>Compound and Interest are proud.',
             },
             {
               personaId: 'peter-john',
-              comment: "The data tells a story. <break time=\"200ms\"/>You're making progress even when it doesn't feel like it.",
+              comment:
+                'The data tells a story. <break time="200ms"/>You\'re making progress even when it doesn\'t feel like it.',
             },
           ],
-          outro: "<break time=\"500ms\"/>That's the team's take. <break time=\"200ms\"/>What stands out to you?",
+          outro:
+            '<break time="500ms"/>That\'s the team\'s take. <break time="200ms"/>What stands out to you?',
         };
 
         return {
           huddle,
-          response: `${huddle.intro}\n\n` +
-            huddle.comments.map(c => `**${c.personaId}**: ${c.comment}`).join('\n\n') +
-            `\n\n${huddle.outro}`,
+          response: `${huddle.intro}\n\n${huddle.comments
+            .map((c) => `**${c.personaId}**: ${c.comment}`)
+            .join('\n\n')}\n\n${huddle.outro}`,
         };
       },
     });
@@ -1079,59 +1153,54 @@ const quickChallengesDef: ToolDefinition = {
       description: `Offer quick, fun challenges that take < 5 minutes.
 Good for breaking routine or adding spontaneity.`,
       parameters: z.object({
-        category: z.enum([
-          'gratitude',
-          'movement',
-          'creativity',
-          'connection',
-          'mindfulness',
-          'random',
-        ]).describe('Category of challenge'),
+        category: z
+          .enum(['gratitude', 'movement', 'creativity', 'connection', 'mindfulness', 'random'])
+          .describe('Category of challenge'),
       }),
       execute: async ({ category }) => {
         const challenges: Record<string, string[]> = {
           gratitude: [
             "Name 3 things you can see right now that you're grateful for.",
-            "Text one person to thank them for something specific.",
+            'Text one person to thank them for something specific.',
             "What's something from this week that made you smile?",
           ],
           movement: [
-            "Stand up and stretch for 30 seconds. Right now.",
-            "Take 10 deep breaths. Count them out loud.",
-            "Walk to a window and look outside for 1 minute.",
+            'Stand up and stretch for 30 seconds. Right now.',
+            'Take 10 deep breaths. Count them out loud.',
+            'Walk to a window and look outside for 1 minute.',
           ],
           creativity: [
-            "Describe your current mood as a weather pattern.",
-            "If your day was a song, what would the title be?",
-            "Draw something simple with your non-dominant hand.",
+            'Describe your current mood as a weather pattern.',
+            'If your day was a song, what would the title be?',
+            'Draw something simple with your non-dominant hand.',
           ],
           connection: [
             "Send a voice note to someone you haven't talked to in a while.",
-            "Compliment a stranger today.",
+            'Compliment a stranger today.',
             "Ask someone how they're REALLY doing, and actually listen.",
           ],
           mindfulness: [
-            "Name 5 things you can hear right now.",
-            "Hold an object and describe its texture for 30 seconds.",
-            "Close your eyes and take 3 breaths, noticing the pause between inhale and exhale.",
+            'Name 5 things you can hear right now.',
+            'Hold an object and describe its texture for 30 seconds.',
+            'Close your eyes and take 3 breaths, noticing the pause between inhale and exhale.',
           ],
           random: [
-            "What would your superhero name be based on today?",
-            "If you could teleport anywhere for 5 minutes, where would you go?",
-            "Rate your current outfit 1-10 and justify it.",
+            'What would your superhero name be based on today?',
+            'If you could teleport anywhere for 5 minutes, where would you go?',
+            'Rate your current outfit 1-10 and justify it.',
           ],
         };
 
-        const categoryList = category === 'random'
-          ? Object.values(challenges).flat()
-          : challenges[category];
-        
+        const categoryList =
+          category === 'random' ? Object.values(challenges).flat() : challenges[category];
+
         const challenge = categoryList[Math.floor(Math.random() * categoryList.length)];
 
         return {
           challenge,
           category,
-          response: `Quick challenge! <break time=\"300ms\"/>\n\n${challenge}\n\n` +
+          response:
+            `Quick challenge! <break time=\"300ms\"/>\n\n${challenge}\n\n` +
             `Ready? <break time=\"200ms\"/>Go!`,
         };
       },
@@ -1151,53 +1220,55 @@ const reflectionPromptsDef: ToolDefinition = {
       description: `Offer thoughtful reflection prompts that invite deeper conversation.
 Good for when user wants to go deeper or seems ready for introspection.`,
       parameters: z.object({
-        theme: z.enum([
-          'identity',
-          'relationships',
-          'growth',
-          'purpose',
-          'fear',
-          'joy',
-          'legacy',
-          'random',
-        ]).describe('Theme for reflection'),
+        theme: z
+          .enum([
+            'identity',
+            'relationships',
+            'growth',
+            'purpose',
+            'fear',
+            'joy',
+            'legacy',
+            'random',
+          ])
+          .describe('Theme for reflection'),
       }),
       execute: async ({ theme }) => {
         const prompts: Record<string, string[]> = {
           identity: [
             "What part of yourself have you outgrown but haven't let go of yet?",
-            "When do you feel most like yourself?",
-            "What story do you tell yourself that might not be true?",
+            'When do you feel most like yourself?',
+            'What story do you tell yourself that might not be true?',
           ],
           relationships: [
-            "Who in your life makes you feel most seen?",
-            "What relationship needs more attention right now?",
-            "Who have you been meaning to forgive?",
+            'Who in your life makes you feel most seen?',
+            'What relationship needs more attention right now?',
+            'Who have you been meaning to forgive?',
           ],
           growth: [
-            "What would you tell your younger self about this moment?",
+            'What would you tell your younger self about this moment?',
             "What's a hard truth you've been avoiding?",
-            "Where are you playing small?",
+            'Where are you playing small?',
           ],
           purpose: [
             "What would you do if money wasn't a factor?",
-            "What problem in the world makes you angry enough to try to fix it?",
-            "When do you lose track of time doing something?",
+            'What problem in the world makes you angry enough to try to fix it?',
+            'When do you lose track of time doing something?',
           ],
           fear: [
-            "What are you afraid to want?",
+            'What are you afraid to want?',
             "What would you attempt if you knew you couldn't fail?",
             "What's the worst-case scenario you're avoiding, and is it really that bad?",
           ],
           joy: [
-            "When was the last time you laughed until you cried?",
-            "What simple pleasure have you been denying yourself?",
-            "What would make today feel complete?",
+            'When was the last time you laughed until you cried?',
+            'What simple pleasure have you been denying yourself?',
+            'What would make today feel complete?',
           ],
           legacy: [
-            "What do you want to be remembered for?",
-            "What wisdom do you want to pass on?",
-            "If you could leave a letter for someone important, what would it say?",
+            'What do you want to be remembered for?',
+            'What wisdom do you want to pass on?',
+            'If you could leave a letter for someone important, what would it say?',
           ],
           random: [], // Will be filled from all themes
         };
@@ -1211,7 +1282,8 @@ Good for when user wants to go deeper or seems ready for introspection.`,
         return {
           prompt,
           theme,
-          response: `<break time=\"300ms\"/>Here's something to sit with:\n\n` +
+          response:
+            `<break time=\"300ms\"/>Here's something to sit with:\n\n` +
             `"${prompt}"\n\n` +
             `<break time=\"500ms\"/>Take your time. <break time=\"200ms\"/>There's no rush.`,
         };
@@ -1244,7 +1316,7 @@ Tracks daily rituals, habits, and engagement patterns.`,
         if (action === 'check') {
           if (!profile || Object.keys(profile.streaks).length === 0) {
             return {
-              response: "No active streaks yet. <break time=\"200ms\"/>Want to start one?",
+              response: 'No active streaks yet. <break time="200ms"/>Want to start one?',
               hasStreaks: false,
             };
           }
@@ -1267,21 +1339,22 @@ Tracks daily rituals, habits, and engagement patterns.`,
         if (action === 'celebrate' && streakType) {
           const streak = profile?.streaks[streakType];
           if (!streak) {
-            return { response: "No streak found for that type." };
+            return { response: 'No streak found for that type.' };
           }
 
           const celebrations: Record<number, string> = {
-            7: "A full week! <break time=\"200ms\"/>You're building something real.",
-            14: "Two weeks of consistency! <break time=\"200ms\"/>The habit is taking root.",
-            21: "21 days! <break time=\"200ms\"/>Psychology says it's a habit now.",
-            30: "A month! <break time=\"300ms\"/>That's commitment. <break time=\"200ms\"/>That's you showing up.",
-            66: "66 days! <break time=\"200ms\"/>Research says this is when habits become automatic. <break time=\"300ms\"/>You've made it.",
-            100: "100 days! <break time=\"500ms\"/>Triple digits. <break time=\"300ms\"/>You should be incredibly proud.",
+            7: 'A full week! <break time="200ms"/>You\'re building something real.',
+            14: 'Two weeks of consistency! <break time="200ms"/>The habit is taking root.',
+            21: '21 days! <break time="200ms"/>Psychology says it\'s a habit now.',
+            30: 'A month! <break time="300ms"/>That\'s commitment. <break time="200ms"/>That\'s you showing up.',
+            66: '66 days! <break time="200ms"/>Research says this is when habits become automatic. <break time="300ms"/>You\'ve made it.',
+            100: '100 days! <break time="500ms"/>Triple digits. <break time="300ms"/>You should be incredibly proud.',
           };
 
-          const milestone = [100, 66, 30, 21, 14, 7].find(m => streak.currentStreak >= m);
-          const celebration = milestone ? celebrations[milestone] : 
-            `${streak.currentStreak} days and counting! <break time=\"200ms\"/>Keep it going.`;
+          const milestone = [100, 66, 30, 21, 14, 7].find((m) => streak.currentStreak >= m);
+          const celebration = milestone
+            ? celebrations[milestone]
+            : `${streak.currentStreak} days and counting! <break time=\"200ms\"/>Keep it going.`;
 
           return {
             streak: streak.currentStreak,
@@ -1301,16 +1374,16 @@ Tracks daily rituals, habits, and engagement patterns.`,
 
           if (atRisk.length === 0) {
             return {
-              response: "All your streaks are safe! <break time=\"200ms\"/>Keep it up.",
+              response: 'All your streaks are safe! <break time="200ms"/>Keep it up.',
               atRisk: [],
             };
           }
 
           return {
             atRisk,
-            response: `Streak alert! <break time=\"200ms\"/>` +
-              atRisk.map(s => `Your ${s.days}-day ${s.name} streak is at risk!`).join(' ') +
-              ` <break time=\"300ms\"/>Still time to protect them today.`,
+            response: `Streak alert! <break time=\"200ms\"/>${atRisk
+              .map((s) => `Your ${s.days}-day ${s.name} streak is at risk!`)
+              .join(' ')} <break time=\"300ms\"/>Still time to protect them today.`,
           };
         }
 
@@ -1334,7 +1407,9 @@ Makes wins feel special and memorable.`,
       parameters: z.object({
         achievement: z.string().describe('What the user achieved'),
         scale: z.enum(['small', 'medium', 'big', 'epic']).describe('Scale of celebration'),
-        personaStyle: z.enum(['ferni', 'maya', 'jordan', 'alex', 'nayan', 'peter']).optional()
+        personaStyle: z
+          .enum(['ferni', 'maya', 'jordan', 'alex', 'nayan', 'peter'])
+          .optional()
           .describe('Style of celebration'),
       }),
       execute: async ({ achievement, scale, personaStyle }) => {
@@ -1400,21 +1475,27 @@ function generateWeatherInsight(trends: {
 
   if (trends.dominantWeather) {
     const weatherMeanings: Record<string, string> = {
-      sunny: "Your dominant weather is sunny— <break time=\"200ms\"/>you're in a good place overall.",
-      'partly-cloudy': "Partly cloudy is your norm— <break time=\"200ms\"/>realistic, grounded, neither extreme.",
-      cloudy: "There's been a lot of cloud cover. <break time=\"200ms\"/>What's weighing on you?",
-      rainy: "Rain has been frequent. <break time=\"200ms\"/>That's data, not judgment. <break time=\"200ms\"/>What do you need?",
-      stormy: "Storms have been brewing. <break time=\"200ms\"/>Let's talk about what's creating the turbulence.",
-      foggy: "Lots of fog— <break time=\"200ms\"/>uncertainty, unclear direction. <break time=\"200ms\"/>That's worth exploring.",
-      rainbow: "Rainbows showing up— <break time=\"200ms\"/>you're finding beauty even in difficulty.",
+      sunny:
+        'Your dominant weather is sunny— <break time="200ms"/>you\'re in a good place overall.',
+      'partly-cloudy':
+        'Partly cloudy is your norm— <break time="200ms"/>realistic, grounded, neither extreme.',
+      cloudy: 'There\'s been a lot of cloud cover. <break time="200ms"/>What\'s weighing on you?',
+      rainy:
+        'Rain has been frequent. <break time="200ms"/>That\'s data, not judgment. <break time="200ms"/>What do you need?',
+      stormy:
+        'Storms have been brewing. <break time="200ms"/>Let\'s talk about what\'s creating the turbulence.',
+      foggy:
+        'Lots of fog— <break time="200ms"/>uncertainty, unclear direction. <break time="200ms"/>That\'s worth exploring.',
+      rainbow:
+        'Rainbows showing up— <break time="200ms"/>you\'re finding beauty even in difficulty.',
     };
     insights.push(weatherMeanings[trends.dominantWeather] || '');
   }
 
   if (trends.energyTrend === 'increasing') {
-    insights.push("Your energy is trending up. <break time=\"200ms\"/>Something's working.");
+    insights.push('Your energy is trending up. <break time="200ms"/>Something\'s working.');
   } else if (trends.energyTrend === 'decreasing') {
-    insights.push("Energy is trending down. <break time=\"200ms\"/>What's draining you?");
+    insights.push('Energy is trending down. <break time="200ms"/>What\'s draining you?');
   }
 
   if (trends.pattern) {
@@ -1475,4 +1556,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

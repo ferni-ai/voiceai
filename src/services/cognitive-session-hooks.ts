@@ -19,9 +19,7 @@ import {
   loadCognitiveFromProfile,
   getCognitiveSession,
 } from './cognitive-memory.js';
-import {
-  cognitiveBroadcast,
-} from './cognitive-broadcast.js';
+import { cognitiveBroadcast } from './cognitive-broadcast.js';
 
 const logger = getLogger();
 
@@ -47,11 +45,7 @@ export async function onCognitiveSessionStart(
 
   try {
     // Initialize cognitive session (loads from profile or Firestore)
-    const sessionState = await initializeCognitiveSession(
-      userId,
-      personaId,
-      userProfile ?? null
-    );
+    const sessionState = await initializeCognitiveSession(userId, personaId, userProfile ?? null);
 
     // If we have a profile, also load from it for completeness
     if (userProfile) {
@@ -68,14 +62,16 @@ export async function onCognitiveSessionStart(
       timestamp: new Date(),
     });
 
-    logger.info({
-      userId,
-      personaId,
-      sessionId,
-      detectedStyle: sessionState.userStyle,
-      styleConfidence: sessionState.userStyleConfidence,
-    }, '🧠 Cognitive session started');
-
+    logger.info(
+      {
+        userId,
+        personaId,
+        sessionId,
+        detectedStyle: sessionState.userStyle,
+        styleConfidence: sessionState.userStyleConfidence,
+      },
+      '🧠 Cognitive session started'
+    );
   } catch (error) {
     logger.warn({ error, userId, personaId }, 'Failed to initialize cognitive session');
     // Non-fatal - cognitive features will work without persistence
@@ -99,9 +95,7 @@ export interface CognitiveSessionEndOptions {
  *
  * @returns Updated cognitive data to merge into user profile
  */
-export async function onCognitiveSessionEnd(
-  options: CognitiveSessionEndOptions
-): Promise<{
+export async function onCognitiveSessionEnd(options: CognitiveSessionEndOptions): Promise<{
   approachesUsed: number;
   topicsExplained: number;
   userStyle?: ReasoningStyle;
@@ -123,18 +117,20 @@ export async function onCognitiveSessionEnd(
       timestamp: new Date(),
     });
 
-    logger.info({
-      userId,
-      personaId,
-      sessionId,
-      approachesUsed: sessionSummary.approachesUsed,
-      topicsExplained: sessionSummary.topicsExplained,
-      userStyle: sessionSummary.userStyle,
-      durationMs: sessionDurationMs,
-    }, '🧠 Cognitive session ended');
+    logger.info(
+      {
+        userId,
+        personaId,
+        sessionId,
+        approachesUsed: sessionSummary.approachesUsed,
+        topicsExplained: sessionSummary.topicsExplained,
+        userStyle: sessionSummary.userStyle,
+        durationMs: sessionDurationMs,
+      },
+      '🧠 Cognitive session ended'
+    );
 
     return sessionSummary;
-
   } catch (error) {
     logger.warn({ error, userId, personaId }, 'Failed to end cognitive session');
     return null;
@@ -169,7 +165,10 @@ export async function syncCognitiveDataToProfile(
  * Get current cognitive session info for a user/persona.
  * Useful for debugging or displaying in UI.
  */
-export function getCognitiveSessionInfo(userId: string, personaId: string): {
+export function getCognitiveSessionInfo(
+  userId: string,
+  personaId: string
+): {
   active: boolean;
   userStyle?: ReasoningStyle;
   styleConfidence: number;
@@ -202,4 +201,3 @@ export default {
   syncCognitiveDataToProfile,
   getCognitiveSessionInfo,
 };
-

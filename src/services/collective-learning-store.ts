@@ -99,7 +99,10 @@ export class CollectiveLearningStore {
         getLogger().debug({ error }, 'Background collective learning load failed (non-blocking)');
       });
     } catch (error) {
-      getLogger().warn({ error }, 'Collective learning store initialization skipped (no Firestore)');
+      getLogger().warn(
+        { error },
+        'Collective learning store initialization skipped (no Firestore)'
+      );
       // Not a fatal error - we can operate without persistence
     }
   }
@@ -125,10 +128,7 @@ export class CollectiveLearningStore {
     try {
       // Load in parallel with timeout
       const result = await Promise.race([
-        Promise.all([
-          this.loadCommunityInsights(),
-          this.loadAgentEvolution(),
-        ]),
+        Promise.all([this.loadCommunityInsights(), this.loadAgentEvolution()]),
         timeoutPromise,
       ]);
 
@@ -167,28 +167,36 @@ export class CollectiveLearningStore {
       if (patternsSnap.exists) {
         const patternData = patternsSnap.data();
         if (patternData?.patterns) {
-          data.patterns = this.hydrateArray(patternData.patterns as unknown[]) as CommunityResponsePattern[];
+          data.patterns = this.hydrateArray(
+            patternData.patterns as unknown[]
+          ) as CommunityResponsePattern[];
         }
       }
 
       if (questionsSnap.exists) {
         const questionData = questionsSnap.data();
         if (questionData?.questions) {
-          data.effectiveQuestions = this.hydrateArray(questionData.questions as unknown[]) as EffectiveQuestion[];
+          data.effectiveQuestions = this.hydrateArray(
+            questionData.questions as unknown[]
+          ) as EffectiveQuestion[];
         }
       }
 
       if (storiesSnap.exists) {
         const storyData = storiesSnap.data();
         if (storyData?.stories) {
-          data.storyResonance = this.hydrateArray(storyData.stories as unknown[]) as StoryResonance[];
+          data.storyResonance = this.hydrateArray(
+            storyData.stories as unknown[]
+          ) as StoryResonance[];
         }
       }
 
       if (journeysSnap.exists) {
         const journeyData = journeysSnap.data();
         if (journeyData?.journeys) {
-          data.journeyPatterns = this.hydrateArray(journeyData.journeys as unknown[]) as CommunityJourneyPattern[];
+          data.journeyPatterns = this.hydrateArray(
+            journeyData.journeys as unknown[]
+          ) as CommunityJourneyPattern[];
         }
       }
 
@@ -266,34 +274,46 @@ export class CollectiveLearningStore {
     try {
       // Save patterns
       if (exported.patterns.length > 0) {
-        await this.db.collection(this.COMMUNITY_INSIGHTS).doc('patterns').set(
-          { patterns: exported.patterns, updatedAt: new Date().toISOString() },
-          { merge: true }
-        );
+        await this.db
+          .collection(this.COMMUNITY_INSIGHTS)
+          .doc('patterns')
+          .set(
+            { patterns: exported.patterns, updatedAt: new Date().toISOString() },
+            { merge: true }
+          );
       }
 
       // Save questions
       if (exported.effectiveQuestions.length > 0) {
-        await this.db.collection(this.COMMUNITY_INSIGHTS).doc('questions').set(
-          { questions: exported.effectiveQuestions, updatedAt: new Date().toISOString() },
-          { merge: true }
-        );
+        await this.db
+          .collection(this.COMMUNITY_INSIGHTS)
+          .doc('questions')
+          .set(
+            { questions: exported.effectiveQuestions, updatedAt: new Date().toISOString() },
+            { merge: true }
+          );
       }
 
       // Save stories
       if (exported.storyResonance.length > 0) {
-        await this.db.collection(this.COMMUNITY_INSIGHTS).doc('stories').set(
-          { stories: exported.storyResonance, updatedAt: new Date().toISOString() },
-          { merge: true }
-        );
+        await this.db
+          .collection(this.COMMUNITY_INSIGHTS)
+          .doc('stories')
+          .set(
+            { stories: exported.storyResonance, updatedAt: new Date().toISOString() },
+            { merge: true }
+          );
       }
 
       // Save journeys
       if (exported.journeyPatterns.length > 0) {
-        await this.db.collection(this.COMMUNITY_INSIGHTS).doc('journeys').set(
-          { journeys: exported.journeyPatterns, updatedAt: new Date().toISOString() },
-          { merge: true }
-        );
+        await this.db
+          .collection(this.COMMUNITY_INSIGHTS)
+          .doc('journeys')
+          .set(
+            { journeys: exported.journeyPatterns, updatedAt: new Date().toISOString() },
+            { merge: true }
+          );
       }
 
       getLogger().debug(
@@ -317,10 +337,10 @@ export class CollectiveLearningStore {
 
     try {
       for (const [personaId, state] of states.entries()) {
-        await this.db.collection(this.AGENT_EVOLUTION).doc(personaId).set(
-          { ...state, updatedAt: new Date().toISOString() },
-          { merge: true }
-        );
+        await this.db
+          .collection(this.AGENT_EVOLUTION)
+          .doc(personaId)
+          .set({ ...state, updatedAt: new Date().toISOString() }, { merge: true });
       }
 
       getLogger().debug({ personaCount: states.size }, 'Agent evolution saved');
@@ -372,7 +392,7 @@ export class CollectiveLearningStore {
     collection: string,
     docId: string,
     field: string,
-    amount: number = 1
+    amount = 1
   ): Promise<void> {
     if (!this.db) return;
 
@@ -381,8 +401,12 @@ export class CollectiveLearningStore {
 
       await this.db.runTransaction(async (transaction) => {
         const doc = await transaction.get(docRef);
-        const current = doc.exists ? ((doc.data()?.[field] as number) || 0) : 0;
-        transaction.set(docRef, { [field]: current + amount, updatedAt: new Date().toISOString() }, { merge: true });
+        const current = doc.exists ? (doc.data()?.[field] as number) || 0 : 0;
+        transaction.set(
+          docRef,
+          { [field]: current + amount, updatedAt: new Date().toISOString() },
+          { merge: true }
+        );
       });
     } catch (error) {
       getLogger().debug({ error }, 'Failed to increment counter');
@@ -413,7 +437,14 @@ export class CollectiveLearningStore {
     const personaIds = Array.from(states.keys());
 
     // Add standard personas if not present
-    const standardPersonas = ['ferni', 'nayan-patel', 'peter-john', 'maya-santos', 'jordan-taylor', 'alex-chen'];
+    const standardPersonas = [
+      'ferni',
+      'nayan-patel',
+      'peter-john',
+      'maya-santos',
+      'jordan-taylor',
+      'alex-chen',
+    ];
     for (const id of standardPersonas) {
       if (!personaIds.includes(id)) {
         personaIds.push(id);
@@ -527,4 +558,3 @@ export async function shutdownCollectiveLearning(): Promise<void> {
 }
 
 export default CollectiveLearningStore;
-

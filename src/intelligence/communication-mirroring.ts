@@ -27,22 +27,22 @@ export interface CommunicationStyle {
   formality: FormalityLevel;
   energy: EnergyLevel;
   vocabulary: VocabularyLevel;
-  
+
   // Patterns
   avgSentenceLength: number;
   usesEmoji: boolean;
   usesExclamation: boolean;
   usesColloquialisms: boolean;
   usesSlang: boolean;
-  
+
   // Preferences
-  prefersDirect: boolean;      // "What should I do?" vs "What are my options?"
-  prefersStories: boolean;     // Uses narrative in explanations
-  prefersNumbers: boolean;     // Data-driven responses
-  
+  prefersDirect: boolean; // "What should I do?" vs "What are my options?"
+  prefersStories: boolean; // Uses narrative in explanations
+  prefersNumbers: boolean; // Data-driven responses
+
   // Detected phrases
-  commonPhrases: string[];     // Frequently used expressions
-  
+  commonPhrases: string[]; // Frequently used expressions
+
   // Confidence
   confidence: number;
   sampleCount: number;
@@ -52,18 +52,18 @@ export interface StyleGuidance {
   formality: FormalityLevel;
   energy: EnergyLevel;
   vocabulary: VocabularyLevel;
-  
+
   // Specific recommendations
   useEmoji: boolean;
   useExclamation: boolean;
   sentenceStyle: 'short' | 'medium' | 'long';
-  
+
   // Tone guidance
   toneNote: string;
-  
+
   // Phrases to mirror
   phrasesToMirror: string[];
-  
+
   confidence: number;
 }
 
@@ -94,7 +94,7 @@ const ANIMATED_INDICATORS = [
 
 const CALM_INDICATORS = [
   /\b(perhaps|possibly|might|could|generally|typically)\b/i,
-  /\.$/,  // Ends with period (not ! or ?)
+  /\.$/, // Ends with period (not ! or ?)
   /\b(steady|calm|peaceful|measured)\b/i,
 ];
 
@@ -152,16 +152,19 @@ export class CommunicationMirroringEngine {
     // Track common phrases
     this.extractPhrases(message);
 
-    getLogger().debug({
-      formality: sample.formality,
-      energy: sample.energy,
-      vocabulary: sample.vocabulary,
-    }, 'Message style analyzed');
+    getLogger().debug(
+      {
+        formality: sample.formality,
+        energy: sample.energy,
+        vocabulary: sample.vocabulary,
+      },
+      'Message style analyzed'
+    );
   }
 
   private extractFeatures(message: string): MessageSample {
     const words = message.split(/\s+/);
-    const sentences = message.split(/[.!?]+/).filter(s => s.trim());
+    const sentences = message.split(/[.!?]+/).filter((s) => s.trim());
 
     // Formality detection
     let formalityScore = 0.5;
@@ -199,8 +202,8 @@ export class CommunicationMirroringEngine {
       vocabulary: this.scoreToVocab(vocabScore),
       hasEmoji: EMOJI_PATTERN.test(message),
       hasExclamation: message.includes('!'),
-      hasColloquialisms: COLLOQUIALISM_PATTERNS.some(p => p.test(message)),
-      hasSlang: SLANG_PATTERNS.some(p => p.test(message)),
+      hasColloquialisms: COLLOQUIALISM_PATTERNS.some((p) => p.test(message)),
+      hasSlang: SLANG_PATTERNS.some((p) => p.test(message)),
       endsWithQuestion: message.trim().endsWith('?'),
     };
   }
@@ -300,7 +303,7 @@ export class CommunicationMirroringEngine {
       prefersStories: false, // Would need deeper analysis
       prefersNumbers: false, // Would need deeper analysis
       commonPhrases,
-      confidence: Math.min(0.5 + (n * 0.05), 0.95),
+      confidence: Math.min(0.5 + n * 0.05, 0.95),
       sampleCount: n,
     };
   }
@@ -308,7 +311,7 @@ export class CommunicationMirroringEngine {
   private getMostCommon<T extends string>(counts: Record<T, number>): T {
     let maxKey: T = Object.keys(counts)[0] as T;
     let maxCount = 0;
-    for (const [key, count] of Object.entries(counts) as [T, number][]) {
+    for (const [key, count] of Object.entries(counts) as Array<[T, number]>) {
       if (count > maxCount) {
         maxCount = count;
         maxKey = key;
@@ -353,7 +356,7 @@ export class CommunicationMirroringEngine {
 
     // Build tone note
     const toneNotes: string[] = [];
-    
+
     if (style.formality === 'casual') {
       toneNotes.push('Keep it casual and friendly');
     } else if (style.formality === 'professional') {
@@ -393,9 +396,9 @@ export class CommunicationMirroringEngine {
   formatGuidanceForPrompt(): string {
     const guidance = this.getStyleGuidance();
     const style = this.calculateStyle();
-    
+
     if (style.sampleCount < 3) {
-      return '[STYLE] Still learning user\'s communication style. Default to friendly, balanced tone.';
+      return "[STYLE] Still learning user's communication style. Default to friendly, balanced tone.";
     }
 
     const lines: string[] = [];
@@ -405,7 +408,7 @@ export class CommunicationMirroringEngine {
 
     // Specific guidance
     const specifics: string[] = [];
-    
+
     if (guidance.useEmoji) specifics.push('emoji ok');
     if (guidance.useExclamation) specifics.push('enthusiasm ok');
     if (guidance.sentenceStyle === 'short') specifics.push('keep sentences short');
@@ -428,7 +431,7 @@ export class CommunicationMirroringEngine {
    */
   adaptResponse(response: string): string {
     const style = this.calculateStyle();
-    
+
     if (style.sampleCount < 5) {
       return response; // Not enough data yet
     }
@@ -521,4 +524,3 @@ export function getCommunicationMirroring(userId: string): CommunicationMirrorin
 export function removeCommunicationMirroring(userId: string): void {
   engines.delete(userId);
 }
-

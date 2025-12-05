@@ -86,9 +86,9 @@ export interface EmotionalResponse {
 export class EmotionalArcTracker {
   private history: EmotionalSnapshot[] = [];
   private readonly maxHistory = 20;
-  private lastSignificantEvent: number = 0;
-  private peakArousal: number = 0;
-  private distressCount: number = 0;
+  private lastSignificantEvent = 0;
+  private peakArousal = 0;
+  private distressCount = 0;
 
   // Smoothing parameters
   private readonly smoothingFactor = 0.3; // Higher = more responsive to changes

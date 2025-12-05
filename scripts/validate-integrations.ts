@@ -293,28 +293,33 @@ async function checkGooglePlaces(sendTest: boolean): Promise<void> {
 
   if (sendTest) {
     try {
-      // Test with a simple search
-      const params = new URLSearchParams({
-        query: 'restaurant near me',
-        type: 'restaurant',
-        key: apiKey,
-      });
-
-      const response = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?${params}`, {
+      // Test with the new Places API (v1)
+      const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName',
+        },
+        body: JSON.stringify({
+          textQuery: 'restaurant',
+          maxResultCount: 5,
+        }),
         signal: AbortSignal.timeout(10000),
       });
 
-      const data = await response.json() as { status: string; results?: unknown[]; error_message?: string };
-
-      if (data.status === 'OK' || data.status === 'ZERO_RESULTS') {
+      if (response.ok) {
+        const data = await response.json() as { places?: unknown[] };
         check.status = 'validated';
-        check.message = `API working - found ${data.results?.length || 0} restaurants`;
-      } else if (data.status === 'REQUEST_DENIED') {
-        check.status = 'failed';
-        check.message = 'Places API not enabled - enable it in Google Cloud Console';
+        check.message = `API working - found ${data.places?.length || 0} restaurants`;
       } else {
+        const errorData = await response.json() as { error?: { message: string; status: string } };
         check.status = 'failed';
-        check.message = data.error_message || `API error: ${data.status}`;
+        if (errorData.error?.status === 'PERMISSION_DENIED') {
+          check.message = 'Places API (New) not enabled - enable at console.cloud.google.com/apis/library/places.googleapis.com';
+        } else {
+          check.message = errorData.error?.message || `API error: ${response.status}`;
+        }
       }
     } catch (error) {
       check.status = 'failed';

@@ -4,7 +4,14 @@
  * Defines the domains of life Maya can help with and life stage contexts.
  */
 
-import type { LifeDomain, LifeStage, FourTendency, DomainDefinition, StageDefinition, TendencyStrategy } from './types.js';
+import type {
+  LifeDomain,
+  LifeStage,
+  FourTendency,
+  DomainDefinition,
+  StageDefinition,
+  TendencyStrategy,
+} from './types.js';
 
 // ============================================================================
 // LIFE DOMAINS - All areas Maya can help with
@@ -33,7 +40,14 @@ export const LIFE_DOMAINS: Record<LifeDomain, DomainDefinition> = {
     name: 'Career & Purpose',
     icon: '💼',
     description: 'Work, professional development, purpose',
-    subdomains: ['skills', 'productivity', 'leadership', 'side_projects', 'job_search', 'mentorship'],
+    subdomains: [
+      'skills',
+      'productivity',
+      'leadership',
+      'side_projects',
+      'job_search',
+      'mentorship',
+    ],
   },
   learning: {
     name: 'Learning & Growth',
@@ -112,7 +126,12 @@ export const LIFE_STAGES: Record<LifeStage, StageDefinition> = {
     priorities: ['finance', 'health', 'relationships', 'selfCare'],
     constraints: ['retirement_planning', 'health_optimization', 'meaning'],
     opportunities: ['wealth_building', 'legacy', 'bucket_list'],
-    keyHabits: ['health optimization', 'financial review', 'hobby cultivation', 'social investment'],
+    keyHabits: [
+      'health optimization',
+      'financial review',
+      'hobby cultivation',
+      'social investment',
+    ],
   },
   retired: {
     name: 'Retired',
@@ -138,7 +157,8 @@ export const LIFE_STAGES: Record<LifeStage, StageDefinition> = {
 
 export const FOUR_TENDENCIES: Record<FourTendency, TendencyStrategy> = {
   upholder: {
-    description: 'You meet both outer expectations (from others) and inner expectations (from yourself). You love schedules, to-do lists, and clear rules.',
+    description:
+      'You meet both outer expectations (from others) and inner expectations (from yourself). You love schedules, to-do lists, and clear rules.',
     motivators: ['Clear expectations', 'Rules and systems', 'Schedules', 'Self-discipline'],
     strategies: [
       'Set clear rules and schedules for yourself',
@@ -152,11 +172,13 @@ export const FOUR_TENDENCIES: Record<FourTendency, TendencyStrategy> = {
       'Watch out for "tightening" - making rules stricter over time',
       'Remember that rest and fun are also "productive"',
     ],
-    habitApproach: 'You respond to clear expectations. Put your habits on your calendar and treat them as non-negotiable appointments.',
+    habitApproach:
+      'You respond to clear expectations. Put your habits on your calendar and treat them as non-negotiable appointments.',
     accountabilityStyle: 'Self-accountability works well; tracking and schedules are your friends.',
   },
   questioner: {
-    description: 'You question all expectations and only follow through if you have good reasons. You need to understand WHY before you commit.',
+    description:
+      'You question all expectations and only follow through if you have good reasons. You need to understand WHY before you commit.',
     motivators: ['Logic and reason', 'Research and data', 'Efficiency', 'Personal goals'],
     strategies: [
       'Research the science behind habits before starting',
@@ -170,12 +192,20 @@ export const FOUR_TENDENCIES: Record<FourTendency, TendencyStrategy> = {
       'Questioning to the point of decision fatigue',
       "Rejecting good advice just because you didn't come up with it",
     ],
-    habitApproach: "You need to buy into the WHY. Once you truly believe a habit serves your goals, you'll follow through. Do the research first.",
-    accountabilityStyle: 'Self-directed with data; external accountability only if it makes sense to you.',
+    habitApproach:
+      "You need to buy into the WHY. Once you truly believe a habit serves your goals, you'll follow through. Do the research first.",
+    accountabilityStyle:
+      'Self-directed with data; external accountability only if it makes sense to you.',
   },
   obliger: {
-    description: 'You meet outer expectations (for others) but struggle with inner expectations (for yourself). You need external accountability.',
-    motivators: ['Others depending on you', 'Appointments and commitments', 'Not letting people down', 'Team membership'],
+    description:
+      'You meet outer expectations (for others) but struggle with inner expectations (for yourself). You need external accountability.',
+    motivators: [
+      'Others depending on you',
+      'Appointments and commitments',
+      'Not letting people down',
+      'Team membership',
+    ],
     strategies: [
       'Get an accountability partner or coach',
       'Join a group or class with attendance expectations',
@@ -188,11 +218,14 @@ export const FOUR_TENDENCIES: Record<FourTendency, TendencyStrategy> = {
       "Saying yes to everyone else's needs before your own",
       'Feeling guilty for needing external accountability',
     ],
-    habitApproach: "Your superpower is following through for others. Harness this by creating external accountability structures. This isn't weakness - it's self-knowledge.",
-    accountabilityStyle: 'External accountability is essential - partners, groups, coaches, public commitments.',
+    habitApproach:
+      "Your superpower is following through for others. Harness this by creating external accountability structures. This isn't weakness - it's self-knowledge.",
+    accountabilityStyle:
+      'External accountability is essential - partners, groups, coaches, public commitments.',
   },
   rebel: {
-    description: 'You resist ALL expectations, both outer and inner. You want to act from freedom and choice, doing things your way.',
+    description:
+      'You resist ALL expectations, both outer and inner. You want to act from freedom and choice, doing things your way.',
     motivators: ['Freedom and choice', 'Identity', 'Challenge', 'Defying limitations'],
     strategies: [
       'Frame habits as choices, not rules ("I can" not "I must")',
@@ -206,8 +239,10 @@ export const FOUR_TENDENCIES: Record<FourTendency, TendencyStrategy> = {
       'Avoid tracking streaks - they feel like obligations',
       "Don't let others tell you what to do",
     ],
-    habitApproach: 'Frame every habit as YOUR choice that expresses who you are. "I\'m the kind of person who..." works better than any rule. You do things because you WANT to, not because you should.',
-    accountabilityStyle: 'Identity-based motivation; avoid external pressure which triggers resistance.',
+    habitApproach:
+      'Frame every habit as YOUR choice that expresses who you are. "I\'m the kind of person who..." works better than any rule. You do things because you WANT to, not because you should.',
+    accountabilityStyle:
+      'Identity-based motivation; avoid external pressure which triggers resistance.',
   },
 };
 
@@ -219,7 +254,7 @@ export const GLIDEPATH_LEVELS = [
   {
     level: 1,
     name: 'Tiny',
-    description: '2-minute version - so easy you can\'t say no',
+    description: "2-minute version - so easy you can't say no",
     durationWeeks: 2,
     dailyCommitmentMinutes: 2,
   },
@@ -252,4 +287,3 @@ export const GLIDEPATH_LEVELS = [
     dailyCommitmentMinutes: 30,
   },
 ];
-

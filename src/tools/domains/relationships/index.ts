@@ -39,15 +39,30 @@ const assessRelationshipHealthDef: ToolDefinition = {
         relationshipType: z
           .enum(['partner', 'family', 'friend', 'colleague', 'mentor', 'other'])
           .describe('Type of relationship'),
-        specificConcern: z.string().optional().describe('Any specific concern prompting this reflection'),
+        specificConcern: z
+          .string()
+          .optional()
+          .describe('Any specific concern prompting this reflection'),
       }),
       execute: async ({ personName, relationshipType, specificConcern }) => {
-        getLogger().info({ agentId: ctx.agentId, personName, relationshipType }, 'Assessing relationship health');
+        getLogger().info(
+          { agentId: ctx.agentId, personName, relationshipType },
+          'Assessing relationship health'
+        );
 
         const dimensions = [
-          { name: 'Trust', question: `How much do you trust ${personName}? How much do they trust you?` },
-          { name: 'Communication', question: `How openly can you communicate? Are there topics you avoid?` },
-          { name: 'Reciprocity', question: `Does the giving and receiving feel balanced over time?` },
+          {
+            name: 'Trust',
+            question: `How much do you trust ${personName}? How much do they trust you?`,
+          },
+          {
+            name: 'Communication',
+            question: `How openly can you communicate? Are there topics you avoid?`,
+          },
+          {
+            name: 'Reciprocity',
+            question: `Does the giving and receiving feel balanced over time?`,
+          },
           { name: 'Emotional Safety', question: `Can you be vulnerable without fear of judgment?` },
           { name: 'Growth', question: `Does this relationship help you both grow as people?` },
           { name: 'Joy', question: `How often do you feel genuine joy in each other's company?` },
@@ -58,7 +73,7 @@ const assessRelationshipHealthDef: ToolDefinition = {
           response += `You mentioned: "${specificConcern}" - let's explore that. `;
         }
         response += `\n\nConsider these dimensions:\n`;
-        
+
         dimensions.forEach((d, i) => {
           response += `\n${i + 1}. **${d.name}**: ${d.question}`;
         });
@@ -83,31 +98,37 @@ const identifyNeglectedRelationshipsDef: ToolDefinition = {
       description:
         'Help the user recognize relationships they may have unintentionally neglected and explore what reconnection might look like.',
       parameters: z.object({
-        timeframe: z.enum(['weeks', 'months', 'years']).describe('How long since meaningful contact'),
+        timeframe: z
+          .enum(['weeks', 'months', 'years'])
+          .describe('How long since meaningful contact'),
         category: z
           .enum(['all', 'family', 'friends', 'mentors', 'old-friends'])
           .optional()
           .describe('Category to focus on'),
       }),
       execute: async ({ timeframe, category }) => {
-        getLogger().info({ agentId: ctx.agentId, timeframe, category }, 'Exploring neglected relationships');
+        getLogger().info(
+          { agentId: ctx.agentId, timeframe, category },
+          'Exploring neglected relationships'
+        );
 
         const prompts: Record<string, string> = {
-          weeks: "Who haven't you connected with in a few weeks that you'd normally talk to more often?",
+          weeks:
+            "Who haven't you connected with in a few weeks that you'd normally talk to more often?",
           months: "Who comes to mind when you think about people you've lost touch with recently?",
           years: "Is there someone from your past you've been meaning to reach out to but haven't?",
         };
 
-        let response = prompts[timeframe] + '\n\n';
-        
+        let response = `${prompts[timeframe]}\n\n`;
+
         response += `Sometimes life gets busy and connections fade unintentionally. `;
         response += `There's no guilt here - just an invitation to notice.\n\n`;
-        
+
         response += `**Reflection questions:**\n`;
         response += `- Who would be genuinely happy to hear from you?\n`;
         response += `- Is there someone you've been thinking about lately?\n`;
         response += `- What relationship, if nurtured, would add richness to your life?\n\n`;
-        
+
         response += `Would you like to talk about someone specific, or explore what's been getting in the way of connection?`;
 
         return response;
@@ -140,7 +161,10 @@ const suggestConnectionActionDef: ToolDefinition = {
           .describe('How much effort/energy available'),
       }),
       execute: async ({ personName, context, effortLevel = 'meaningful-effort' }) => {
-        getLogger().info({ agentId: ctx.agentId, personName, effortLevel }, 'Suggesting connection actions');
+        getLogger().info(
+          { agentId: ctx.agentId, personName, effortLevel },
+          'Suggesting connection actions'
+        );
 
         const suggestions: Record<string, string[]> = {
           'small-gesture': [
@@ -166,7 +190,7 @@ const suggestConnectionActionDef: ToolDefinition = {
 
         const options = suggestions[effortLevel];
         let response = `Here are some ways to connect with ${personName}:\n\n`;
-        
+
         options.forEach((suggestion, i) => {
           response += `${i + 1}. ${suggestion}\n`;
         });
@@ -205,7 +229,7 @@ const recordMeaningfulMomentDef: ToolDefinition = {
 
         let response = `What a gift to pause and capture this moment with ${personName}.\n\n`;
         response += `**The moment:** ${moment}\n`;
-        
+
         if (whyItMatters) {
           response += `**Why it matters:** ${whyItMatters}\n`;
         }
@@ -247,7 +271,7 @@ const navigateConflictDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, personName }, 'Navigating conflict');
 
         let response = `Conflict is hard, especially with someone who matters to you. Let me help you think this through.\n\n`;
-        
+
         response += `**What happened:** ${situation}\n`;
         response += `**How you feel:** ${yourFeeling}\n`;
         if (whatYouWant) {
@@ -286,7 +310,10 @@ const prepareForDifficultConversationDef: ToolDefinition = {
         fear: z.string().optional().describe('What you are afraid might happen'),
       }),
       execute: async ({ personName, topic, whatYouNeedToSay, fear }) => {
-        getLogger().info({ agentId: ctx.agentId, personName, topic }, 'Preparing for difficult conversation');
+        getLogger().info(
+          { agentId: ctx.agentId, personName, topic },
+          'Preparing for difficult conversation'
+        );
 
         let response = `Difficult conversations take courage. The fact that you're preparing shows you care about doing this well.\n\n`;
 
@@ -330,7 +357,10 @@ const craftApologyDef: ToolDefinition = {
         personName: z.string().describe('Person to apologize to'),
         whatYouDid: z.string().describe('What you did or said that caused harm'),
         impact: z.string().describe('How it affected them'),
-        whatYouUnderstandNow: z.string().optional().describe('What you understand now that you may not have before'),
+        whatYouUnderstandNow: z
+          .string()
+          .optional()
+          .describe('What you understand now that you may not have before'),
       }),
       execute: async ({ personName, whatYouDid, impact, whatYouUnderstandNow }) => {
         getLogger().info({ agentId: ctx.agentId, personName }, 'Crafting apology');
@@ -421,10 +451,15 @@ const checkInOnSomeoneDef: ToolDefinition = {
       parameters: z.object({
         personName: z.string().describe('Person to check in on'),
         concern: z.string().describe('What prompted your concern'),
-        relationshipCloseness: z.enum(['very-close', 'close', 'acquaintance']).describe('How close you are'),
+        relationshipCloseness: z
+          .enum(['very-close', 'close', 'acquaintance'])
+          .describe('How close you are'),
       }),
       execute: async ({ personName, concern, relationshipCloseness }) => {
-        getLogger().info({ agentId: ctx.agentId, personName, relationshipCloseness }, 'Check in guidance');
+        getLogger().info(
+          { agentId: ctx.agentId, personName, relationshipCloseness },
+          'Check in guidance'
+        );
 
         let response = `It's caring of you to want to reach out to ${personName}.\n\n`;
         response += `**Your concern:** ${concern}\n\n`;
@@ -435,12 +470,12 @@ const checkInOnSomeoneDef: ToolDefinition = {
             `Show up: Sometimes presence matters more than words. Offer to just be with them.`,
             `Name what you see: "I may be wrong, but you seem like you're carrying something heavy."`,
           ],
-          'close': [
+          close: [
             `Open the door gently: "I've been thinking about you. How are things going?"`,
             `Share your care: "I noticed [what you noticed] and wanted you to know I'm here if you want to talk."`,
             `Offer specific help: "Can I bring you dinner this week?" is better than "Let me know if you need anything."`,
           ],
-          'acquaintance': [
+          acquaintance: [
             `Keep it light but real: "Hey, I just wanted to check in. How are you doing?"`,
             `Reference something specific: "I saw your [post/message/etc] and wanted to see how you're holding up."`,
             `Don't push: Let them know the door is open without demanding they walk through it.`,
@@ -544,7 +579,7 @@ const setRelationshipBoundaryDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, personName }, 'Setting boundary');
 
         let response = `Boundaries aren't walls - they're clarity about what you need to stay healthy in relationship.\n\n`;
-        
+
         response += `**The situation:** ${situation}\n`;
         response += `**What you need to protect:** ${whatYouNeed}\n\n`;
 
@@ -582,7 +617,9 @@ const understandLoveLanguagesDef: ToolDefinition = {
       description:
         'Help the user understand love languages and how to better give and receive love.',
       parameters: z.object({
-        mode: z.enum(['discover-mine', 'understand-theirs', 'bridge-gap']).describe('What to explore'),
+        mode: z
+          .enum(['discover-mine', 'understand-theirs', 'bridge-gap'])
+          .describe('What to explore'),
         personName: z.string().optional().describe('Person to understand better'),
       }),
       execute: async ({ mode, personName }) => {
@@ -604,7 +641,7 @@ const understandLoveLanguagesDef: ToolDefinition = {
           response += `- What do you request most often?\n\n`;
           response += `Which resonates most strongly with you?`;
         } else if (mode === 'understand-theirs') {
-          response = `**Understanding ${personName || "Their"} Love Language**\n\n`;
+          response = `**Understanding ${personName || 'Their'} Love Language**\n\n`;
           response += `Observe what they:\n`;
           response += `- Complain about not getting enough of\n`;
           response += `- Request most often\n`;
@@ -637,8 +674,7 @@ const reconnectAfterTimeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help navigate reconnecting with someone after significant time apart.',
+      description: 'Help navigate reconnecting with someone after significant time apart.',
       parameters: z.object({
         personName: z.string().describe('Person to reconnect with'),
         timePassed: z.string().describe('How long since connection'),
@@ -646,7 +682,10 @@ const reconnectAfterTimeDef: ToolDefinition = {
         whatYouWant: z.string().optional().describe('What you hope for from reconnecting'),
       }),
       execute: async ({ personName, timePassed, whyDisconnected, whatYouWant }) => {
-        getLogger().info({ agentId: ctx.agentId, personName, timePassed }, 'Reconnecting after time');
+        getLogger().info(
+          { agentId: ctx.agentId, personName, timePassed },
+          'Reconnecting after time'
+        );
 
         let response = `Reconnecting with ${personName} after ${timePassed}.\n\n`;
 
@@ -688,15 +727,19 @@ const deepenFriendshipDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user deepen an existing friendship beyond surface-level connection.',
+      description: 'Help the user deepen an existing friendship beyond surface-level connection.',
       parameters: z.object({
         personName: z.string().describe('Friend to deepen connection with'),
-        currentLevel: z.enum(['acquaintance', 'casual', 'friend', 'close']).describe('Current closeness'),
+        currentLevel: z
+          .enum(['acquaintance', 'casual', 'friend', 'close'])
+          .describe('Current closeness'),
         barrier: z.string().optional().describe('What seems to keep it surface-level'),
       }),
       execute: async ({ personName, currentLevel, barrier }) => {
-        getLogger().info({ agentId: ctx.agentId, personName, currentLevel }, 'Deepening friendship');
+        getLogger().info(
+          { agentId: ctx.agentId, personName, currentLevel },
+          'Deepening friendship'
+        );
 
         let response = `Deepening your friendship with ${personName}.\n\n`;
         response += `Current level: ${currentLevel}\n`;
@@ -753,4 +796,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

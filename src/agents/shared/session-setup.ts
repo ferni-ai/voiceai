@@ -56,7 +56,7 @@ export async function identifyUserFromMetadata(
 
   try {
     const parsed = JSON.parse(metadata);
-    
+
     const { identifyFromMetadata } = await import('../../services/user-identification.js');
     const identification = await identifyFromMetadata(parsed);
 
@@ -190,4 +190,3 @@ export async function configureMusicPlayback(identificationSource: string): Prom
     getLogger().debug('Music configured for phone call streaming');
   }
 }
-

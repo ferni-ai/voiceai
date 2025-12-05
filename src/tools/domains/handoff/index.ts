@@ -5,7 +5,7 @@
  * This domain enables multi-agent collaboration.
  *
  * DOMAIN: handoff
- * 
+ *
  * IMPORTANT: This domain loads tools asynchronously from the AgentRegistry.
  * The getToolDefinitions() function MUST be called after AgentRegistry is initialized.
  */
@@ -48,7 +48,7 @@ let cachedHandoffTools: ToolDefinition[] | null = null;
 
 /**
  * Get handoff tool definitions.
- * 
+ *
  * FIX BUG: This now returns cached tools if available, or an empty array if not yet loaded.
  * The registry loader calls this asynchronously, so tools will be loaded.
  */
@@ -56,7 +56,7 @@ async function getToolDefinitions(): Promise<ToolDefinition[]> {
   if (cachedHandoffTools) {
     return cachedHandoffTools;
   }
-  
+
   // Load and cache the tools
   cachedHandoffTools = await getHandoffToolDefinitionsAsync();
   return cachedHandoffTools;
@@ -81,7 +81,7 @@ export const definitions: ToolDefinition[] = []; // Populated async via getToolD
 // EXPORTS
 // ============================================================================
 
-export { 
+export {
   getToolDefinitions,
   getHandoffToolDefinitionsAsync as getNewHandoffToolDefinitions,
   getHandoffToolDefinitionsSync as getHandoffToolDefinitions,

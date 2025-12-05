@@ -136,7 +136,7 @@ export async function getCurrentWeather(location: string): Promise<string> {
     }
 
     const data = (await response.json()) as { current?: CurrentWeather };
-    const current = data.current;
+    const { current } = data;
 
     if (!current) {
       return `No weather data available for ${geo.name}.`;
@@ -162,7 +162,7 @@ export async function getCurrentWeather(location: string): Promise<string> {
 /**
  * Get weather forecast for a location
  */
-export async function getWeatherForecast(location: string, days: number = 5): Promise<string> {
+export async function getWeatherForecast(location: string, days = 5): Promise<string> {
   const geo = await geocodeLocation(location);
 
   if (!geo) {
@@ -183,7 +183,7 @@ export async function getWeatherForecast(location: string, days: number = 5): Pr
     }
 
     const data = (await response.json()) as { daily?: DailyForecast };
-    const daily = data.daily;
+    const { daily } = data;
 
     if (!daily || !daily.time?.length) {
       return `No forecast data available for ${geo.name}.`;

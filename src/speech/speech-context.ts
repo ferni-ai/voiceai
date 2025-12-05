@@ -57,7 +57,7 @@ export interface SpeechContext {
  * Tracks user words per minute from transcriptions
  */
 export class WPMTracker {
-  private samples: { wordCount: number; durationMs: number }[] = [];
+  private samples: Array<{ wordCount: number; durationMs: number }> = [];
   private maxSamples = 10;
 
   /**
@@ -321,7 +321,7 @@ export function buildSpeechContext(input: {
   // FIX BUG #voice-19: Ensure energyMultiplier stays within safe bounds
   const ENERGY_MIN = 0.8;
   const ENERGY_MAX = 1.3;
-  
+
   let energyMultiplier: number;
   switch (userEnergy) {
     case 'low':
@@ -337,7 +337,7 @@ export function buildSpeechContext(input: {
     default:
       energyMultiplier = 1.0;
   }
-  
+
   // FIX BUG #voice-19: Final bounds check to prevent extreme values
   energyMultiplier = Math.max(ENERGY_MIN, Math.min(ENERGY_MAX, energyMultiplier));
 
@@ -346,7 +346,7 @@ export function buildSpeechContext(input: {
     topicWeight !== 'heavy' && phase !== 'supporting' && input.emotion?.valence !== 'negative';
 
   // Calculate pause multiplier (incorporate persona's base pause style)
-  let pauseMultiplier = personaSpeech.pauseMultiplier;
+  let { pauseMultiplier } = personaSpeech;
   if (topicWeight === 'heavy') {
     pauseMultiplier *= 1.25; // Add pauses for heavy topics
   } else if (phase === 'supporting') {

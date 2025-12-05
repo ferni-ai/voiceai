@@ -235,7 +235,7 @@ describe('Productivity Tools', () => {
 
     it('should calculate monthly total', () => {
       addBill({
-        userId: testUserId + '-total',
+        userId: `${testUserId}-total`,
         name: 'Bill A',
         payee: 'A',
         amount: 100,
@@ -244,7 +244,7 @@ describe('Productivity Tools', () => {
       });
 
       addBill({
-        userId: testUserId + '-total',
+        userId: `${testUserId}-total`,
         name: 'Bill B',
         payee: 'B',
         amount: 50,
@@ -252,7 +252,7 @@ describe('Productivity Tools', () => {
         frequency: 'monthly',
       });
 
-      const total = calculateMonthlyTotal(testUserId + '-total');
+      const total = calculateMonthlyTotal(`${testUserId}-total`);
       expect(total).toBe(150);
     });
 
@@ -320,7 +320,7 @@ describe('Productivity Tools', () => {
       });
 
       const meds = getUserMedications(testUserId);
-      const updatedMed = meds.find(m => m.id === med.id);
+      const updatedMed = meds.find((m) => m.id === med.id);
       expect(updatedMed?.pillsRemaining).toBe(29);
     });
 
@@ -366,14 +366,14 @@ describe('Productivity Tools', () => {
     it('should update existing journal for today', () => {
       // Create first entry
       createJournalEntry({
-        userId: testUserId + '-journal',
+        userId: `${testUserId}-journal`,
         gratitudes: ['First'],
         mood: 3,
       });
 
       // Update same day
       const updated = createJournalEntry({
-        userId: testUserId + '-journal',
+        userId: `${testUserId}-journal`,
         gratitudes: ['Updated'],
         mood: 5,
       });
@@ -384,35 +384,37 @@ describe('Productivity Tools', () => {
 
     it('should get today journal', () => {
       createJournalEntry({
-        userId: testUserId + '-today',
+        userId: `${testUserId}-today`,
         mood: 4,
       });
 
-      const today = getTodayJournal(testUserId + '-today');
+      const today = getTodayJournal(`${testUserId}-today`);
       expect(today).not.toBeNull();
       expect(today!.mood).toBe(4);
     });
 
     it('should calculate journal streak', () => {
       createJournalEntry({
-        userId: testUserId + '-streak',
+        userId: `${testUserId}-streak`,
         mood: 4,
       });
 
-      const streak = getJournalStreak(testUserId + '-streak');
+      const streak = getJournalStreak(`${testUserId}-streak`);
       expect(streak).toBeGreaterThanOrEqual(0);
     });
   });
 
   describe('Tool Integration', () => {
     it('should handle concurrent operations', async () => {
-      const userId = testUserId + '-concurrent';
+      const userId = `${testUserId}-concurrent`;
 
       // Create multiple items concurrently
       const [task, habit, bill] = await Promise.all([
         Promise.resolve(createTask({ userId, title: 'Concurrent Task' })),
         Promise.resolve(createHabit({ userId, name: 'Concurrent Habit' })),
-        Promise.resolve(addBill({ userId, name: 'Concurrent Bill', payee: 'Test', amount: 100, dueDay: 1 })),
+        Promise.resolve(
+          addBill({ userId, name: 'Concurrent Bill', payee: 'Test', amount: 100, dueDay: 1 })
+        ),
       ]);
 
       expect(task.id).toBeDefined();
@@ -430,9 +432,8 @@ describe('Productivity Tools', () => {
       const user1Tasks = getUserTasks(user1);
       const user2Tasks = getUserTasks(user2);
 
-      expect(user1Tasks.every(t => t.userId === user1)).toBe(true);
-      expect(user2Tasks.every(t => t.userId === user2)).toBe(true);
+      expect(user1Tasks.every((t) => t.userId === user1)).toBe(true);
+      expect(user2Tasks.every((t) => t.userId === user2)).toBe(true);
     });
   });
 });
-

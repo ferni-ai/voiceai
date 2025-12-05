@@ -258,8 +258,14 @@ export {
 
 export { createHandoffTools } from './handoff/index.js';
 export { createTelephonyTools } from './telephony.js';
-export { createResearchTools, createResearchTools as createPeterLynchTools } from './research-tools.js';
-export { createInsightsAnalysisTools, createInsightsAnalysisTools as createPeterInsightsTools } from './insights-analysis.js';
+export {
+  createResearchTools,
+  createResearchTools as createPeterLynchTools,
+} from './research-tools.js';
+export {
+  createInsightsAnalysisTools,
+  createInsightsAnalysisTools as createPeterInsightsTools,
+} from './insights-analysis.js';
 
 // ============================================================================
 // ENTERTAINMENT DOMAIN
@@ -287,7 +293,12 @@ export {
 
 // Financial & Habit tools
 export { createFinancialHabitsTools } from './financial-habits.js';
-export { createHabitCoachingTools, LIFE_DOMAINS, LIFE_STAGES, HABIT_TEMPLATES } from './habit-coaching.js';
+export {
+  createHabitCoachingTools,
+  LIFE_DOMAINS,
+  LIFE_STAGES,
+  HABIT_TEMPLATES,
+} from './habit-coaching.js';
 export { createProactiveCoachingTools } from './proactive-coaching.js';
 
 // Gamification - V2 is the preferred version (uses Firestore)
@@ -325,7 +336,10 @@ export { createHabitCoachingTools as createMayaHabitCoachTools } from './habit-c
 /** @deprecated Use createProactiveCoachingTools instead */
 export { createProactiveCoachingTools as createMayaProactiveTools } from './proactive-coaching.js';
 /** @deprecated Use createGamificationToolsV2 instead (gamification v1 is deprecated) */
-export { createGamificationTools, createGamificationTools as createMayaGamificationTools } from './gamification.js';
+export {
+  createGamificationTools,
+  createGamificationTools as createMayaGamificationTools,
+} from './gamification.js';
 /** @deprecated Use createGamificationToolsV2 instead */
 export { createGamificationToolsV2 as createMayaGamificationToolsV2 } from './gamification-v2.js';
 /** @deprecated Use createNotificationTools instead */
@@ -434,7 +448,12 @@ import { getToolCategories, getToolDocumentation } from './categories.js';
 import { initializeTeamHandlers, shutdownTools } from './lifecycle.js';
 import { toolRegistry } from './registry/index.js';
 import { initializeToolRegistry } from './registry/loader.js';
-import { buildAgentTools, buildToolsForDomains, buildEssentialTools, buildAllTeamTools } from './builder.js';
+import {
+  buildAgentTools,
+  buildToolsForDomains,
+  buildEssentialTools,
+  buildAllTeamTools,
+} from './builder.js';
 import { createToolComposer, composeToolResult } from './orchestration/index.js';
 import { getConversationState, cleanupStaleConversations } from './orchestration/index.js';
 

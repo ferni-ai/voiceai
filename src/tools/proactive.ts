@@ -110,7 +110,7 @@ export function createProactiveTools() {
         getLogger().info(`Scheduling follow-up: ${topic} (${urgency})`);
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         // Persist follow-up to user profile
         if (services?.userProfile && userData.userId) {
@@ -172,7 +172,7 @@ export function createProactiveTools() {
         getLogger().info(`Setting goal: ${name}`);
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
         const now = new Date();
 
         // Create a proper FinancialGoal object
@@ -240,7 +240,7 @@ export function createProactiveTools() {
         getLogger().info(`Checking goal progress: ${goalName || 'all'}`);
 
         const userData = ctx.userData as UserData;
-        const userId = userData.userId;
+        const { userId } = userData;
 
         // Try to load goals from storage
         let goals: FinancialGoal[] = [];
@@ -305,7 +305,7 @@ export function createProactiveTools() {
         getLogger().info(`Updating goal: ${goalName}`);
 
         const userData = ctx.userData as UserData;
-        const userId = userData.userId;
+        const { userId } = userData;
 
         if (!userId) {
           return `I'd love to update your ${goalName} goal, but I need you to be logged in to track progress across sessions.`;
@@ -429,7 +429,7 @@ export function createProactiveTools() {
         }
 
         const userData = ctx.userData as UserData;
-        const services = userData.services;
+        const { services } = userData;
 
         if (services) {
           const context = services.getPromptContext();

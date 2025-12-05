@@ -223,11 +223,21 @@ describe('Migration Compatibility', () => {
   it('should resolve ALL legacy IDs used in the codebase', () => {
     // From handoff.ts and voice-agent.ts
     const legacyIds = [
-      'jack-b', 'ferni', 'peter-john',
-      'comm-specialist', 'alex-chen', 'alex',
-      'spend-save', 'maya-santos', 'maya',
-      'event-planner', 'jordan-taylor', 'jordan',
-      'peter', 'coach', 'life-coach',
+      'jack-b',
+      'ferni',
+      'peter-john',
+      'comm-specialist',
+      'alex-chen',
+      'alex',
+      'spend-save',
+      'maya-santos',
+      'maya',
+      'event-planner',
+      'jordan-taylor',
+      'jordan',
+      'peter',
+      'coach',
+      'life-coach',
     ];
 
     for (const id of legacyIds) {
@@ -237,4 +247,3 @@ describe('Migration Compatibility', () => {
     }
   });
 });
-

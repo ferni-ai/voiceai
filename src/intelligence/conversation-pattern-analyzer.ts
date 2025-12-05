@@ -353,7 +353,7 @@ export class ConversationPatternAnalyzer {
 
     let totalDuration = 0;
     let rushCount = 0;
-    const engagementCurves: [number, number, number, number][] = [];
+    const engagementCurves: Array<[number, number, number, number]> = [];
     const engagementByTopic: Record<string, number[]> = {};
 
     for (const session of this.sessions) {

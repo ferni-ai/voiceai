@@ -31,10 +31,7 @@ interface FREDResponse {
 /**
  * Fetch data from FRED API
  */
-async function fetchFREDData(
-  seriesId: string,
-  limit: number = 1
-): Promise<FREDObservation[] | null> {
+async function fetchFREDData(seriesId: string, limit = 1): Promise<FREDObservation[] | null> {
   try {
     const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
     const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
@@ -61,7 +58,7 @@ export async function getFedFundsRate(): Promise<string> {
 
   if (observations && observations.length > 0) {
     const rate = observations[0].value;
-    const date = observations[0].date;
+    const { date } = observations[0];
     return `The Federal Funds Rate is currently ${rate}% as of ${date}. That's what banks charge each other for overnight loans, and it affects everything from mortgages to savings accounts.`;
   }
 
@@ -122,7 +119,7 @@ export async function getMortgageRate(): Promise<string> {
 
   if (observations && observations.length > 0) {
     const rate = observations[0].value;
-    const date = observations[0].date;
+    const { date } = observations[0];
     return `The 30-year fixed mortgage rate is averaging ${rate}% as of ${date}. That's the rate most home buyers get.`;
   }
 
@@ -138,7 +135,7 @@ export async function getGDPGrowth(): Promise<string> {
 
   if (observations && observations.length > 0) {
     const rate = observations[0].value;
-    const date = observations[0].date;
+    const { date } = observations[0];
     const direction = parseFloat(rate) >= 0 ? 'growing' : 'contracting';
     return `The U.S. economy is ${direction} at a ${Math.abs(parseFloat(rate))}% annual rate as of ${date}. GDP measures the total output of the economy.`;
   }

@@ -19,10 +19,10 @@ export interface InterruptionEvent {
 }
 
 export class InterruptionHandler {
-  private agentCurrentlySpeaking: boolean = false;
-  private currentAgentUtterance: string = '';
-  private interruptionCount: number = 0;
-  private lastInterruptionTime: number = 0;
+  private agentCurrentlySpeaking = false;
+  private currentAgentUtterance = '';
+  private interruptionCount = 0;
+  private lastInterruptionTime = 0;
   private interruptionHistory: InterruptionEvent[] = [];
 
   /**
@@ -46,7 +46,7 @@ export class InterruptionHandler {
       this.interruptionHistory.push(event);
       getLogger().info('User interrupted agent', {
         count: this.interruptionCount,
-        utterance: this.currentAgentUtterance.substring(0, 50) + '...',
+        utterance: `${this.currentAgentUtterance.substring(0, 50)}...`,
       });
 
       return event;
@@ -218,12 +218,12 @@ export class InterruptionHandler {
   private estimateEnergy(frame: AudioFrame): number {
     try {
       // Get audio data buffer
-      const data = frame.data;
+      const { data } = frame;
       if (!data || data.length === 0) {
         return 0;
       }
 
-      const samplesPerChannel = frame.samplesPerChannel;
+      const { samplesPerChannel } = frame;
       const channels = frame.channels || 1;
       const totalSamples = samplesPerChannel * channels;
 
@@ -267,7 +267,7 @@ export class InterruptionHandler {
   /**
    * Check if audio level indicates speech (above silence threshold)
    */
-  isSpeechDetected(frame: AudioFrame, silenceThreshold: number = 0.15): boolean {
+  isSpeechDetected(frame: AudioFrame, silenceThreshold = 0.15): boolean {
     const energy = this.estimateEnergy(frame);
     return energy > silenceThreshold;
   }

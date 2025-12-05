@@ -20,13 +20,15 @@ import {
 } from '../../personas/cognitive-quirks.js';
 
 // Track quirks used in session to avoid repetition
-const sessionQuirksUsed: Map<string, Set<string>> = new Map();
-const sessionMentalHabitsUsed: Map<string, Set<string>> = new Map();
+const sessionQuirksUsed = new Map<string, Set<string>>();
+const sessionMentalHabitsUsed = new Map<string, Set<string>>();
 
 /**
  * Build cognitive quirks context
  */
-async function buildCognitiveQuirksContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
+async function buildCognitiveQuirksContext(
+  input: ContextBuilderInput
+): Promise<ContextInjection[]> {
   const injections: ContextInjection[] = [];
   const personaId = input.persona?.id;
 
@@ -61,9 +63,8 @@ async function buildCognitiveQuirksContext(input: ContextBuilderInput): Promise<
   if (activeQuirk && !usedQuirks.has(activeQuirk.name)) {
     // Don't use same quirk too often
     if (Math.random() < activeQuirk.frequency) {
-      const quirkPhrase = activeQuirk.examplePhrases[
-        Math.floor(Math.random() * activeQuirk.examplePhrases.length)
-      ];
+      const quirkPhrase =
+        activeQuirk.examplePhrases[Math.floor(Math.random() * activeQuirk.examplePhrases.length)];
 
       injections.push(
         createHintInjection(
@@ -101,15 +102,15 @@ async function buildCognitiveQuirksContext(input: ContextBuilderInput): Promise<
     const activePattern = findActivePattern(quirks, input);
 
     if (activePattern) {
-      const patternGuide = `[THOUGHT PATTERN: ${activePattern.name}]\n` +
+      const patternGuide =
+        `[THOUGHT PATTERN: ${activePattern.name}]\n` +
         `Follow this sequence: ${activePattern.sequence.slice(0, 3).join(' → ')}`;
 
       injections.push(
-        createHintInjection(
-          'cognitive-pattern',
-          patternGuide,
-          { category: 'personality', confidence: 0.6 }
-        )
+        createHintInjection('cognitive-pattern', patternGuide, {
+          category: 'personality',
+          confidence: 0.6,
+        })
       );
     }
   }
@@ -149,7 +150,11 @@ async function buildCognitiveQuirksContext(input: ContextBuilderInput): Promise<
   // ============================================================================
   // 6. COGNITIVE FRUSTRATION - When encountering typical frustration triggers
   // ============================================================================
-  const frustrationMatch = findCognitiveFrustration(quirks, input.userText, input.analysis.intent.primary);
+  const frustrationMatch = findCognitiveFrustration(
+    quirks,
+    input.userText,
+    input.analysis.intent.primary
+  );
 
   if (frustrationMatch) {
     injections.push(
@@ -191,7 +196,7 @@ function findActiveHabit(
   usedHabits: Set<string>
 ): PersonaCognitiveQuirks['mentalHabits'][0] | null {
   const userText = input.userText.toLowerCase();
-  const emotion = input.analysis.emotion;
+  const { emotion } = input.analysis;
 
   for (const habit of quirks.mentalHabits) {
     if (usedHabits.has(habit.habit)) continue;
@@ -199,16 +204,22 @@ function findActiveHabit(
     const whenLower = habit.when.toLowerCase();
 
     // Check if the "when" condition matches
-    if (whenLower.includes('difficulty') && (emotion.needsSupport || emotion.distressLevel && emotion.distressLevel > 0.5)) {
+    if (
+      whenLower.includes('difficulty') &&
+      (emotion.needsSupport || (emotion.distressLevel && emotion.distressLevel > 0.5))
+    ) {
       return habit;
     }
-    if (whenLower.includes('stuck') && (userText.includes('stuck') || userText.includes('can\'t'))) {
+    if (whenLower.includes('stuck') && (userText.includes('stuck') || userText.includes("can't"))) {
       return habit;
     }
     if (whenLower.includes('complex') && input.userText.length > 100) {
       return habit;
     }
-    if (whenLower.includes('self-criticism') && (userText.includes('should have') || userText.includes('i\'m bad'))) {
+    if (
+      whenLower.includes('self-criticism') &&
+      (userText.includes('should have') || userText.includes("i'm bad"))
+    ) {
       return habit;
     }
     if (whenLower.includes('heavy') && emotion.distressLevel && emotion.distressLevel > 0.6) {
@@ -227,12 +238,12 @@ function findActivePattern(
   input: ContextBuilderInput
 ): PersonaCognitiveQuirks['thoughtPatterns'][0] | null {
   const userText = input.userText.toLowerCase();
-  const topics = input.analysis.topics.detected.map(t => t.toLowerCase());
+  const topics = input.analysis.topics.detected.map((t) => t.toLowerCase());
 
   for (const pattern of quirks.thoughtPatterns) {
     for (const trigger of pattern.triggers) {
       const triggerLower = trigger.toLowerCase();
-      if (userText.includes(triggerLower) || topics.some(t => t.includes(triggerLower))) {
+      if (userText.includes(triggerLower) || topics.some((t) => t.includes(triggerLower))) {
         return pattern;
       }
     }
@@ -253,8 +264,10 @@ function findCognitiveJoy(
 
   for (const joy of quirks.cognitiveJoys) {
     // Extract key words from joy description
-    const joyWords = joy.toLowerCase().split(/\s+/)
-      .filter(w => w.length > 4);
+    const joyWords = joy
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 4);
 
     for (const word of joyWords) {
       if (combined.includes(word)) {
@@ -277,16 +290,22 @@ function findCognitiveFrustration(
   const combined = `${userText} ${intent}`.toLowerCase();
 
   // Check for quick fix requests when persona finds that frustrating
-  if (quirks.cognitiveFrustrations.some(f => f.toLowerCase().includes('quick fix'))) {
-    if (combined.includes('just tell me') || combined.includes('quick answer') || combined.includes('simple solution')) {
-      return quirks.cognitiveFrustrations.find(f => f.toLowerCase().includes('quick fix')) || null;
+  if (quirks.cognitiveFrustrations.some((f) => f.toLowerCase().includes('quick fix'))) {
+    if (
+      combined.includes('just tell me') ||
+      combined.includes('quick answer') ||
+      combined.includes('simple solution')
+    ) {
+      return (
+        quirks.cognitiveFrustrations.find((f) => f.toLowerCase().includes('quick fix')) || null
+      );
     }
   }
 
   // Check for rushing
-  if (quirks.cognitiveFrustrations.some(f => f.toLowerCase().includes('rush'))) {
+  if (quirks.cognitiveFrustrations.some((f) => f.toLowerCase().includes('rush'))) {
     if (combined.includes('hurry') || combined.includes('fast') || combined.includes('quickly')) {
-      return quirks.cognitiveFrustrations.find(f => f.toLowerCase().includes('rush')) || null;
+      return quirks.cognitiveFrustrations.find((f) => f.toLowerCase().includes('rush')) || null;
     }
   }
 
@@ -314,4 +333,3 @@ registerContextBuilder({
 
 export { buildCognitiveQuirksContext };
 export default buildCognitiveQuirksContext;
-

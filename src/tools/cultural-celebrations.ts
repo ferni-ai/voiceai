@@ -455,7 +455,7 @@ Use when someone isn't sure what type of celebration or wants ideas.`,
 
         // Match by age
         for (const [key, celebration] of Object.entries(CULTURAL_CELEBRATIONS)) {
-          const typicalAge = celebration.typicalAge;
+          const { typicalAge } = celebration;
           if (typeof typicalAge === 'number' && Math.abs(typicalAge - age) <= 2) {
             suggestions.push(
               `**${celebration.name}** (${celebration.culture}) - typically age ${typicalAge}`

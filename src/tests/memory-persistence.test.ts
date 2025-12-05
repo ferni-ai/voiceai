@@ -148,9 +148,8 @@ describe('Memory Persistence', () => {
     it('should store and search documents in FirestoreVectorStore', async () => {
       // This test uses FirestoreVectorStore which gracefully falls back
       // to in-memory when credentials aren't available
-      const { getFirestoreVectorStore, resetFirestoreVectorStore } = await import(
-        '../memory/firestore-vector-store.js'
-      );
+      const { getFirestoreVectorStore, resetFirestoreVectorStore } =
+        await import('../memory/firestore-vector-store.js');
 
       // Reset to ensure clean state
       resetFirestoreVectorStore();
@@ -206,9 +205,8 @@ describe('Memory Persistence', () => {
 
       // First "session" - add document
       {
-        const { getFirestoreVectorStore, resetFirestoreVectorStore } = await import(
-          '../memory/firestore-vector-store.js'
-        );
+        const { getFirestoreVectorStore, resetFirestoreVectorStore } =
+          await import('../memory/firestore-vector-store.js');
 
         const vectorStore = getFirestoreVectorStore();
         await vectorStore.initialize();
@@ -256,12 +254,10 @@ describe('Memory Persistence', () => {
 
   describe('Rehydration', () => {
     it('should rehydrate conversation embeddings on startup', async () => {
-      const { createStore, detectStoreType, rehydrateConversationEmbeddings } = await import(
-        '../memory/index.js'
-      );
-      const { getFirestoreVectorStore, resetFirestoreVectorStore } = await import(
-        '../memory/firestore-vector-store.js'
-      );
+      const { createStore, detectStoreType, rehydrateConversationEmbeddings } =
+        await import('../memory/index.js');
+      const { getFirestoreVectorStore, resetFirestoreVectorStore } =
+        await import('../memory/firestore-vector-store.js');
       const { createUserProfile } = await import('../types/user-profile.js');
 
       // Setup: Create store and save a conversation summary with embedding
@@ -305,9 +301,8 @@ describe('Memory Persistence', () => {
 
   describe('Semantic Search', () => {
     it('should find relevant conversations via semantic search', async () => {
-      const { initializeMemorySystem, shutdownMemorySystem, semanticSearch } = await import(
-        '../memory/index.js'
-      );
+      const { initializeMemorySystem, shutdownMemorySystem, semanticSearch } =
+        await import('../memory/index.js');
       const { createUserProfile } = await import('../types/user-profile.js');
 
       // Initialize memory system
@@ -343,7 +338,9 @@ describe('Memory Persistence', () => {
         minScore: 0.1,
       });
 
-      console.log(`Semantic search found ${results.length} results (persistent: ${usePersistentVectors})`);
+      console.log(
+        `Semantic search found ${results.length} results (persistent: ${usePersistentVectors})`
+      );
 
       // In dev mode with local embeddings, results may vary
       // The important thing is it doesn't crash
@@ -363,9 +360,8 @@ describe('Memory Persistence', () => {
 
 describe('Phone Number Lookup', () => {
   it('should identify user by phone number', async () => {
-    const { identifyByPhone, normalizePhoneNumber } = await import(
-      '../services/user-identification.js'
-    );
+    const { identifyByPhone, normalizePhoneNumber } =
+      await import('../services/user-identification.js');
 
     const result = await identifyByPhone(TEST_PHONE);
 
@@ -391,9 +387,8 @@ describe('Phone Number Lookup', () => {
 describe('Full Memory System Integration', () => {
   it('should handle complete conversation lifecycle', async () => {
     const { initializeMemorySystem, shutdownMemorySystem } = await import('../memory/index.js');
-    const { createUserProfile, updateProfileFromSession } = await import(
-      '../types/user-profile.js'
-    );
+    const { createUserProfile, updateProfileFromSession } =
+      await import('../types/user-profile.js');
 
     console.log('Starting full integration test...');
 

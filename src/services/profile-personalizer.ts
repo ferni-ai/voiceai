@@ -244,8 +244,7 @@ export class ProfilePersonalizer {
       const wordCount = filtered.split(/\s+/).length;
       if (wordCount > 200) {
         // This is a signal to the LLM - in practice, we'd want to truncate or regenerate
-        filtered =
-          '[REMINDER: User prefers concise responses - keep under 150 words]\n\n' + filtered;
+        filtered = `[REMINDER: User prefers concise responses - keep under 150 words]\n\n${filtered}`;
       }
     }
 

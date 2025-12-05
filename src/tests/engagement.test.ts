@@ -10,22 +10,22 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type { DailyRitualsService } from '../services/daily-rituals.js';
 import {
-  DailyRitualsService,
   getDailyRitualsService,
   resetDailyRitualsService,
   PERSONA_RITUALS,
   RITUAL_PROMPTS,
   type EmotionalWeather,
 } from '../services/daily-rituals.js';
+import type { MemoryEngagementEngine } from '../intelligence/memory-engagement.js';
 import {
-  MemoryEngagementEngine,
   getMemoryEngagementEngine,
   resetMemoryEngagementEngine,
   buildMemoryEngagementContext,
 } from '../intelligence/memory-engagement.js';
+import type { TeamEngagementService } from '../services/team-engagement.js';
 import {
-  TeamEngagementService,
   getTeamEngagementService,
   resetTeamEngagementService,
 } from '../services/team-engagement.js';
@@ -56,11 +56,9 @@ describe('DailyRitualsService', () => {
         'nayan-patel',
         'peter-john',
       ];
-      
+
       for (const personaId of personaIds) {
-        const ritual = Object.values(PERSONA_RITUALS).find(
-          (r) => r.personaId === personaId
-        );
+        const ritual = Object.values(PERSONA_RITUALS).find((r) => r.personaId === personaId);
         expect(ritual, `Missing ritual for ${personaId}`).toBeDefined();
       }
     });
@@ -87,7 +85,7 @@ describe('DailyRitualsService', () => {
     it('should return existing profile for known user', () => {
       const profile1 = service.getOrCreateProfile('test-user-2');
       profile1.totalRitualDays = 5;
-      
+
       const profile2 = service.getOrCreateProfile('test-user-2');
       expect(profile2.totalRitualDays).toBe(5);
     });
@@ -97,7 +95,7 @@ describe('DailyRitualsService', () => {
     it('should activate a ritual', async () => {
       await service.activateRitual('test-user-3', 'ferni-sky-check');
       const profile = service.getOrCreateProfile('test-user-3');
-      
+
       expect(profile.activeRituals).toContain('ferni-sky-check');
       expect(profile.streaks['ferni-sky-check']).toBeDefined();
     });
@@ -106,7 +104,7 @@ describe('DailyRitualsService', () => {
       await service.activateRitual('test-user-4', 'ferni-sky-check');
       await service.activateRitual('test-user-4', 'ferni-sky-check');
       const profile = service.getOrCreateProfile('test-user-4');
-      
+
       expect(profile.activeRituals.filter((r) => r === 'ferni-sky-check')).toHaveLength(1);
     });
   });
@@ -115,22 +113,22 @@ describe('DailyRitualsService', () => {
     it('should start a new streak on first completion', async () => {
       await service.activateRitual('test-user-5', 'ferni-sky-check');
       const result = await service.recordCompletionAsync('test-user-5', 'ferni-sky-check');
-      
+
       expect(result.newStreak).toBe(1);
       expect(result.isNewRecord).toBe(true);
     });
 
     it('should increment streak on consecutive days', async () => {
       await service.activateRitual('test-user-6', 'ferni-sky-check');
-      
+
       // First completion
       await service.recordCompletionAsync('test-user-6', 'ferni-sky-check');
-      
+
       // Simulate next day
       const profile = service.getOrCreateProfile('test-user-6');
       const streak = profile.streaks['ferni-sky-check'];
       streak.lastCompletedAt = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      
+
       // Second completion
       const result = await service.recordCompletionAsync('test-user-6', 'ferni-sky-check');
       expect(result.newStreak).toBe(2);
@@ -139,11 +137,11 @@ describe('DailyRitualsService', () => {
     it('should record emotional weather', async () => {
       await service.activateRitual('test-user-7', 'ferni-sky-check');
       const weather: EmotionalWeather = { primary: 'sunny', energy: 'high' };
-      
+
       await service.recordCompletionAsync('test-user-7', 'ferni-sky-check', {
         emotionalWeather: weather,
       });
-      
+
       const profile = service.getOrCreateProfile('test-user-7');
       expect(profile.emotionalWeatherHistory).toHaveLength(1);
       expect(profile.emotionalWeatherHistory[0].weather.primary).toBe('sunny');
@@ -158,7 +156,7 @@ describe('DailyRitualsService', () => {
     });
 
     it('should return weather-specific responses', () => {
-      const weathers: EmotionalWeather['primary'][] = [
+      const weathers: Array<EmotionalWeather['primary']> = [
         'sunny',
         'partly-cloudy',
         'cloudy',
@@ -167,7 +165,7 @@ describe('DailyRitualsService', () => {
         'foggy',
         'rainbow',
       ];
-      
+
       for (const weather of weathers) {
         const response = service.getWeatherResponse(weather);
         expect(response, `Missing response for ${weather}`).toBeDefined();
@@ -191,7 +189,7 @@ describe('DailyRitualsService', () => {
   describe('Weather Trends', () => {
     it('should calculate weather trends', async () => {
       await service.activateRitual('test-user-8', 'ferni-sky-check');
-      
+
       // Add some weather history
       const profile = service.getOrCreateProfile('test-user-8');
       for (let i = 0; i < 7; i++) {
@@ -200,7 +198,7 @@ describe('DailyRitualsService', () => {
           weather: { primary: 'sunny', energy: 'high' },
         });
       }
-      
+
       const trends = service.getWeatherTrends('test-user-8');
       expect(trends.dominantWeather).toBe('sunny');
       expect(trends.energyTrend).toBe('stable');
@@ -211,7 +209,7 @@ describe('DailyRitualsService', () => {
     it('should return due rituals', async () => {
       await service.activateRitual('test-user-9', 'ferni-sky-check');
       await service.activateRitual('test-user-9', 'maya-habit-heartbeat');
-      
+
       const due = service.getDueRituals('test-user-9');
       expect(due.length).toBe(2);
     });
@@ -219,7 +217,7 @@ describe('DailyRitualsService', () => {
     it('should not return completed rituals', async () => {
       await service.activateRitual('test-user-10', 'ferni-sky-check');
       await service.recordCompletionAsync('test-user-10', 'ferni-sky-check');
-      
+
       const due = service.getDueRituals('test-user-10');
       expect(due.find((r) => r.id === 'ferni-sky-check')).toBeUndefined();
     });
@@ -250,18 +248,14 @@ describe('MemoryEngagementEngine', () => {
 
     it('should generate callbacks for a user', () => {
       const callbacks = engine.generateCallbacks('test-user-callback', null, 'ferni');
-      
+
       // Empty array for null profile is expected
       expect(Array.isArray(callbacks)).toBe(true);
     });
 
     it('should build memory engagement context', async () => {
-      const context = await buildMemoryEngagementContext(
-        'test-user-callback',
-        [],
-        'ferni'
-      );
-      
+      const context = await buildMemoryEngagementContext('test-user-callback', [], 'ferni');
+
       // Context may be empty string if no callbacks, but should not error
       expect(context).toBeDefined();
     });
@@ -279,9 +273,9 @@ describe('MemoryEngagementEngine', () => {
         keyMoments: [],
         conversationSummaries: [],
       };
-      
+
       const callbacks = engine.generateCallbacks('test-user-priority', mockProfile as any, 'ferni');
-      
+
       // If callbacks exist, they should be sorted by priority (highest first)
       for (let i = 1; i < callbacks.length; i++) {
         expect(callbacks[i - 1].priority).toBeGreaterThanOrEqual(callbacks[i].priority);
@@ -309,7 +303,7 @@ describe('TeamEngagementService', () => {
   describe('Team Huddles', () => {
     it('should generate team huddles', () => {
       const huddle = service.generateTeamHuddle('test-user-huddle', null, 'weekly');
-      
+
       expect(huddle).toBeDefined();
       expect(huddle.intro).toBeDefined();
       expect(huddle.comments).toBeDefined();
@@ -318,14 +312,14 @@ describe('TeamEngagementService', () => {
 
     it('should include Ferni in all huddles', () => {
       const huddle = service.generateTeamHuddle('test-user-huddle-2', null, 'weekly');
-      
+
       const ferniComment = huddle.comments.find((c) => c.personaId === 'ferni');
       expect(ferniComment).toBeDefined();
     });
 
     it('should include 3-4 personas total in huddles', () => {
       const huddle = service.generateTeamHuddle('test-user-huddle-3', null, 'weekly');
-      
+
       expect(huddle.comments.length).toBeGreaterThanOrEqual(3);
       expect(huddle.comments.length).toBeLessThanOrEqual(4);
     });
@@ -334,7 +328,7 @@ describe('TeamEngagementService', () => {
   describe('Cross-Persona References', () => {
     it('should generate cross-persona references', () => {
       const reference = service.getCrossPersonaReference('ferni');
-      
+
       // May or may not return a reference
       if (reference) {
         expect(typeof reference).toBe('string');
@@ -346,7 +340,7 @@ describe('TeamEngagementService', () => {
   describe('Seasonal Events', () => {
     it('should return active seasonal event if applicable', () => {
       const event = service.getActiveSeasonalEvent();
-      
+
       // Event may or may not be active depending on date
       if (event) {
         expect(event).toHaveProperty('id');
@@ -359,19 +353,18 @@ describe('TeamEngagementService', () => {
   describe('Persona Evolution Stories', () => {
     it('should return unlocked evolution events', () => {
       const events = service.getUnlockedEvolutions('test-user-evolutions', null, 'ferni');
-      
+
       expect(Array.isArray(events)).toBe(true);
     });
 
     it('should filter by persona when specified', () => {
       const events = service.getUnlockedEvolutions('test-user-evolutions-2', null, 'alex-chen');
-      
+
       for (const event of events) {
         expect(event.personaId).toBe('alex-chen');
       }
     });
   });
-
 });
 
 // ============================================================================
@@ -381,9 +374,8 @@ describe('TeamEngagementService', () => {
 describe('Engagement Context Builder', () => {
   it('should build engagement context', async () => {
     // Import the builder
-    const { buildEngagementContext } = await import(
-      '../intelligence/context-builders/engagement-context.js'
-    );
+    const { buildEngagementContext } =
+      await import('../intelligence/context-builders/engagement-context.js');
 
     const context = await buildEngagementContext({
       personaId: 'ferni',
@@ -398,9 +390,8 @@ describe('Engagement Context Builder', () => {
   });
 
   it('should handle missing user gracefully', async () => {
-    const { buildEngagementContext } = await import(
-      '../intelligence/context-builders/engagement-context.js'
-    );
+    const { buildEngagementContext } =
+      await import('../intelligence/context-builders/engagement-context.js');
 
     // Should not throw
     const context = await buildEngagementContext({
@@ -420,12 +411,12 @@ describe('Engagement Context Builder', () => {
 describe('Streak Celebrations', () => {
   it('should have celebrations at key milestones', () => {
     const milestones = [3, 7, 14, 21, 30, 66, 100];
-    
+
     for (const ritualId of Object.keys(RITUAL_PROMPTS)) {
       const prompts = RITUAL_PROMPTS[ritualId as keyof typeof RITUAL_PROMPTS];
       if ('streakCelebrations' in prompts) {
         const celebrations = prompts.streakCelebrations as Record<number, string>;
-        
+
         // Check that some milestones have celebrations
         const hasCelebrations = milestones.some((m) => celebrations[m] !== undefined);
         expect(hasCelebrations, `No celebrations for ${ritualId}`).toBe(true);
@@ -433,4 +424,3 @@ describe('Streak Celebrations', () => {
     }
   });
 });
-

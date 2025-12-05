@@ -71,7 +71,7 @@ export class ConversationalMemoryEngine {
   private threads: ConversationThread[] = [];
   private userStatements: UserStatement[] = [];
   private commitments: ConversationCommitment[] = [];
-  private currentTurn: number = 0;
+  private currentTurn = 0;
   private notableQuotes: string[] = [];
   private currentTopic: string | null = null;
   private topicHistory: string[] = [];
@@ -102,22 +102,25 @@ export class ConversationalMemoryEngine {
     // After 3+ callbacks, tune frequency based on reaction rate
     if (this.callbacksGiven >= 3) {
       const positiveRate = this.positiveCallbackReactions / this.callbacksGiven;
-      
+
       if (positiveRate > 0.7) {
         // User loves callbacks - increase frequency
         this.callbackMultiplier = 1.5;
       } else if (positiveRate < 0.3) {
-        // User doesn't engage with callbacks - reduce frequency  
+        // User doesn't engage with callbacks - reduce frequency
         this.callbackMultiplier = 0.5;
       } else {
         this.callbackMultiplier = 1.0;
       }
 
-      getLogger().debug({
-        callbackMultiplier: this.callbackMultiplier,
-        positiveRate,
-        totalCallbacks: this.callbacksGiven,
-      }, 'Updated memory callback frequency');
+      getLogger().debug(
+        {
+          callbackMultiplier: this.callbackMultiplier,
+          positiveRate,
+          totalCallbacks: this.callbacksGiven,
+        },
+        'Updated memory callback frequency'
+      );
     }
   }
 
@@ -202,13 +205,10 @@ export class ConversationalMemoryEngine {
    * Returns null if nothing appropriate to reference
    * Uses dynamic frequency based on user preference
    */
-  getMemoryCallback(
-    currentTopic: string,
-    currentTurn: number
-  ): MemoryCallback | null {
+  getMemoryCallback(currentTopic: string, currentTurn: number): MemoryCallback | null {
     // Don't callback too early
     if (currentTurn < 4) return null;
-    
+
     // Minimum turns between callbacks (adjusted by multiplier)
     const minTurnsBetweenCallbacks = Math.max(2, Math.floor(4 / this.callbackMultiplier));
     if (currentTurn - this.lastCallbackTurn < minTurnsBetweenCallbacks) return null;
@@ -218,10 +218,11 @@ export class ConversationalMemoryEngine {
 
     // Strategy 1: Return to an unresolved thread
     const unresolvedThread = this.threads.find(
-      t => !t.resolved &&
-           t.userInitiated &&
-           t.topic !== currentTopic &&
-           currentTurn - t.lastMentionedTurn > 3
+      (t) =>
+        !t.resolved &&
+        t.userInitiated &&
+        t.topic !== currentTopic &&
+        currentTurn - t.lastMentionedTurn > 3
     );
 
     if (unresolvedThread && Math.random() < 0.3 * m) {
@@ -232,9 +233,7 @@ export class ConversationalMemoryEngine {
 
     // Strategy 2: Reference a related statement
     const relatedStatement = this.userStatements.find(
-      s => s.topic === currentTopic &&
-           currentTurn - s.turn > 2 &&
-           s.importance > 0.5
+      (s) => s.topic === currentTopic && currentTurn - s.turn > 2 && s.importance > 0.5
     );
 
     if (relatedStatement && Math.random() < 0.25 * m) {
@@ -244,7 +243,7 @@ export class ConversationalMemoryEngine {
 
     // Strategy 3: Follow up on commitments
     const unfulfilledCommitment = this.commitments.find(
-      c => !c.fulfilled && currentTurn - c.turn > 4
+      (c) => !c.fulfilled && currentTurn - c.turn > 4
     );
 
     if (unfulfilledCommitment && Math.random() < 0.2 * m) {
@@ -270,14 +269,14 @@ export class ConversationalMemoryEngine {
    * Get unresolved threads that could be revisited
    */
   getUnresolvedThreads(): ConversationThread[] {
-    return this.threads.filter(t => !t.resolved);
+    return this.threads.filter((t) => !t.resolved);
   }
 
   /**
    * Get unfulfilled commitments
    */
   getUnfulfilledCommitments(): ConversationCommitment[] {
-    return this.commitments.filter(c => !c.fulfilled);
+    return this.commitments.filter((c) => !c.fulfilled);
   }
 
   /**
@@ -300,7 +299,7 @@ export class ConversationalMemoryEngine {
    * Mark a thread as resolved
    */
   resolveThread(topic: string): void {
-    const thread = this.threads.find(t => t.topic === topic);
+    const thread = this.threads.find((t) => t.topic === topic);
     if (thread) {
       thread.resolved = true;
     }
@@ -310,9 +309,10 @@ export class ConversationalMemoryEngine {
    * Mark a commitment as fulfilled
    */
   fulfillCommitment(what: string): void {
-    const commitment = this.commitments.find(c =>
-      c.what.toLowerCase().includes(what.toLowerCase()) ||
-      what.toLowerCase().includes(c.what.toLowerCase())
+    const commitment = this.commitments.find(
+      (c) =>
+        c.what.toLowerCase().includes(what.toLowerCase()) ||
+        what.toLowerCase().includes(c.what.toLowerCase())
     );
     if (commitment) {
       commitment.fulfilled = true;
@@ -328,19 +328,23 @@ export class ConversationalMemoryEngine {
     // In production, would use NLP/LLM for semantic comparison
 
     const relatedStatements = this.userStatements.filter(
-      s => s.topic === topic && s.type === 'fact'
+      (s) => s.topic === topic && s.type === 'fact'
     );
 
     // Look for opposite sentiment indicators
     const negativeIndicators = ['not', "don't", "won't", 'never', 'hate', 'dislike'];
     const positiveIndicators = ['love', 'like', 'always', 'want', 'need', 'should'];
 
-    const newHasNegative = negativeIndicators.some(w => newStatement.toLowerCase().includes(w));
-    const newHasPositive = positiveIndicators.some(w => newStatement.toLowerCase().includes(w));
+    const newHasNegative = negativeIndicators.some((w) => newStatement.toLowerCase().includes(w));
+    const newHasPositive = positiveIndicators.some((w) => newStatement.toLowerCase().includes(w));
 
     for (const statement of relatedStatements) {
-      const oldHasNegative = negativeIndicators.some(w => statement.text.toLowerCase().includes(w));
-      const oldHasPositive = positiveIndicators.some(w => statement.text.toLowerCase().includes(w));
+      const oldHasNegative = negativeIndicators.some((w) =>
+        statement.text.toLowerCase().includes(w)
+      );
+      const oldHasPositive = positiveIndicators.some((w) =>
+        statement.text.toLowerCase().includes(w)
+      );
 
       // Detect polarity flip
       if ((newHasNegative && oldHasPositive) || (newHasPositive && oldHasNegative)) {
@@ -359,20 +363,20 @@ export class ConversationalMemoryEngine {
     newStatement: string,
     topic: string,
     profile?: {
-      preferences?: { [key: string]: unknown };
+      preferences?: Record<string, unknown>;
       goals?: Array<{ name: string; type: string }>;
       primaryConcerns?: string[];
       smallDetails?: Array<{ type: string; value: string }>;
       keyMoments?: Array<{ type: string; description: string }>;
     }
-  ): { 
-    contradiction: UserStatement | null; 
-    profileContradiction?: { 
-      field: string; 
-      storedValue: string; 
+  ): {
+    contradiction: UserStatement | null;
+    profileContradiction?: {
+      field: string;
+      storedValue: string;
       newClaim: string;
       confidence: number;
-    } 
+    };
   } {
     // First check current session
     const sessionContradiction = this.checkForContradiction(newStatement, topic);
@@ -386,8 +390,16 @@ export class ConversationalMemoryEngine {
     }
 
     const newLower = newStatement.toLowerCase();
-    const result: { contradiction: null; profileContradiction?: { field: string; storedValue: string; newClaim: string; confidence: number } } = { 
-      contradiction: null 
+    const result: {
+      contradiction: null;
+      profileContradiction?: {
+        field: string;
+        storedValue: string;
+        newClaim: string;
+        confidence: number;
+      };
+    } = {
+      contradiction: null,
     };
 
     // Check against stored preferences
@@ -395,16 +407,20 @@ export class ConversationalMemoryEngine {
       // Risk tolerance contradiction
       if (profile.preferences.riskTolerance) {
         const storedRisk = String(profile.preferences.riskTolerance).toLowerCase();
-        if (storedRisk === 'conservative' && 
-            (newLower.includes('aggressive') || newLower.includes('take more risk'))) {
+        if (
+          storedRisk === 'conservative' &&
+          (newLower.includes('aggressive') || newLower.includes('take more risk'))
+        ) {
           result.profileContradiction = {
             field: 'riskTolerance',
             storedValue: storedRisk,
             newClaim: 'aggressive/more risk',
             confidence: 0.7,
           };
-        } else if (storedRisk === 'aggressive' && 
-            (newLower.includes('conservative') || newLower.includes('play it safe'))) {
+        } else if (
+          storedRisk === 'aggressive' &&
+          (newLower.includes('conservative') || newLower.includes('play it safe'))
+        ) {
           result.profileContradiction = {
             field: 'riskTolerance',
             storedValue: storedRisk,
@@ -417,8 +433,10 @@ export class ConversationalMemoryEngine {
       // Verbosity contradiction
       if (profile.preferences.verbosity) {
         const storedVerbosity = String(profile.preferences.verbosity).toLowerCase();
-        if (storedVerbosity === 'concise' && 
-            (newLower.includes('more detail') || newLower.includes('explain more'))) {
+        if (
+          storedVerbosity === 'concise' &&
+          (newLower.includes('more detail') || newLower.includes('explain more'))
+        ) {
           result.profileContradiction = {
             field: 'verbosity',
             storedValue: storedVerbosity,
@@ -434,10 +452,12 @@ export class ConversationalMemoryEngine {
       for (const goal of profile.goals) {
         const goalLower = goal.name.toLowerCase();
         // Check if they're now saying they don't want this goal
-        if (newLower.includes(goalLower) && 
-            (newLower.includes("don't want") || 
-             newLower.includes('not interested') ||
-             newLower.includes('changed my mind'))) {
+        if (
+          newLower.includes(goalLower) &&
+          (newLower.includes("don't want") ||
+            newLower.includes('not interested') ||
+            newLower.includes('changed my mind'))
+        ) {
           result.profileContradiction = {
             field: 'goal',
             storedValue: goal.name,
@@ -455,9 +475,11 @@ export class ConversationalMemoryEngine {
         if (detail.type === 'person_name' || detail.type === 'pet_name') {
           const storedName = detail.value.toLowerCase();
           // Check if they're correcting a name
-          if (newLower.includes(`not ${storedName}`) || 
-              newLower.includes(`isn't ${storedName}`) ||
-              (newLower.includes('name is') && !newLower.includes(storedName))) {
+          if (
+            newLower.includes(`not ${storedName}`) ||
+            newLower.includes(`isn't ${storedName}`) ||
+            (newLower.includes('name is') && !newLower.includes(storedName))
+          ) {
             result.profileContradiction = {
               field: detail.type,
               storedValue: detail.value,
@@ -477,9 +499,11 @@ export class ConversationalMemoryEngine {
    * Generate a gentle clarification for a profile contradiction
    * The agent should NOT be accusatory - just curious
    */
-  generateContradictionClarification(
-    profileContradiction: { field: string; storedValue: string; newClaim: string }
-  ): string {
+  generateContradictionClarification(profileContradiction: {
+    field: string;
+    storedValue: string;
+    newClaim: string;
+  }): string {
     const phrases: Record<string, string[]> = {
       riskTolerance: [
         `Hmm, I remember you mentioning you were more ${profileContradiction.storedValue}—has something changed?`,
@@ -534,10 +558,10 @@ export class ConversationalMemoryEngine {
     commitments: ConversationCommitment[];
   } {
     return {
-      keyTopics: [...new Set(this.threads.map(t => t.topic))],
-      userStatements: this.userStatements.filter(s => s.importance > 0.5),
-      unresolvedThreads: this.threads.filter(t => !t.resolved).map(t => t.topic),
-      commitments: this.commitments.filter(c => !c.fulfilled),
+      keyTopics: [...new Set(this.threads.map((t) => t.topic))],
+      userStatements: this.userStatements.filter((s) => s.importance > 0.5),
+      unresolvedThreads: this.threads.filter((t) => !t.resolved).map((t) => t.topic),
+      commitments: this.commitments.filter((c) => !c.fulfilled),
     };
   }
 
@@ -573,7 +597,8 @@ export class ConversationalMemoryEngine {
     }
 
     // Augment with our own transition phrases if not provided
-    const transitionPhrase = result.transitionPhrase || 
+    const transitionPhrase =
+      result.transitionPhrase ||
       (result.detected && result.previousTopic && result.newTopic
         ? this.getTopicTransitionPhrase(result.previousTopic, result.newTopic)
         : undefined);
@@ -617,7 +642,7 @@ export class ConversationalMemoryEngine {
 
     const generic = [
       "Oh, okay—let's talk about that.",
-      "Right, I hear you.",
+      'Right, I hear you.',
       "Yes, that's important too.",
       "Okay, I'm with you.",
     ];
@@ -676,7 +701,7 @@ export class ConversationalMemoryEngine {
       /let me think about/i,
       /i need to/i,
     ];
-    if (commitmentPatterns.some(p => p.test(text))) return 'commitment';
+    if (commitmentPatterns.some((p) => p.test(text))) return 'commitment';
 
     // Feeling patterns
     const feelingPatterns = [
@@ -685,7 +710,7 @@ export class ConversationalMemoryEngine {
       /makes me feel/i,
       /i('ve| have) been feeling/i,
     ];
-    if (feelingPatterns.some(p => p.test(text)) || context.emotion) return 'feeling';
+    if (feelingPatterns.some((p) => p.test(text)) || context.emotion) return 'feeling';
 
     // Notable patterns (strong opinions, revelations)
     const notablePatterns = [
@@ -696,7 +721,7 @@ export class ConversationalMemoryEngine {
       /i realized/i,
       /it hit me/i,
     ];
-    if (notablePatterns.some(p => p.test(text))) return 'notable';
+    if (notablePatterns.some((p) => p.test(text))) return 'notable';
 
     return 'fact';
   }
@@ -756,7 +781,7 @@ export class ConversationalMemoryEngine {
       if (match) {
         const what = extract(match);
         // Avoid duplicate commitments
-        if (!this.commitments.some(c => c.what === what)) {
+        if (!this.commitments.some((c) => c.what === what)) {
           this.commitments.push({
             what,
             who,
@@ -779,11 +804,11 @@ export class ConversationalMemoryEngine {
       /^if there's one thing/i,
     ];
 
-    return quotePatterns.some(p => p.test(text.trim()));
+    return quotePatterns.some((p) => p.test(text.trim()));
   }
 
   private updateThread(topic: string, userInitiated: boolean): void {
-    const existing = this.threads.find(t => t.topic.toLowerCase() === topic.toLowerCase());
+    const existing = this.threads.find((t) => t.topic.toLowerCase() === topic.toLowerCase());
 
     if (existing) {
       existing.lastMentionedTurn = this.currentTurn;
@@ -803,7 +828,7 @@ export class ConversationalMemoryEngine {
     // Trim old threads
     if (this.threads.length > 10) {
       this.threads = this.threads
-        .filter(t => !t.resolved || this.currentTurn - t.lastMentionedTurn < 10)
+        .filter((t) => !t.resolved || this.currentTurn - t.lastMentionedTurn < 10)
         .slice(-10);
     }
   }
@@ -845,16 +870,17 @@ export class ConversationalMemoryEngine {
 
   private createCommitmentCallback(commitment: ConversationCommitment): MemoryCallback {
     const who = commitment.who === 'user' ? 'you' : 'I';
-    const phrases = commitment.who === 'user'
-      ? [
-          `By the way, you mentioned "${commitment.what}"—did you get a chance to do that?`,
-          `How did it go with "${commitment.what}"?`,
-          `I remember you said "${commitment.what}"—any update?`,
-        ]
-      : [
-          `I said "${commitment.what}"—let me follow through on that.`,
-          `I promised "${commitment.what}"—here's what I found.`,
-        ];
+    const phrases =
+      commitment.who === 'user'
+        ? [
+            `By the way, you mentioned "${commitment.what}"—did you get a chance to do that?`,
+            `How did it go with "${commitment.what}"?`,
+            `I remember you said "${commitment.what}"—any update?`,
+          ]
+        : [
+            `I said "${commitment.what}"—let me follow through on that.`,
+            `I promised "${commitment.what}"—here's what I found.`,
+          ];
 
     const phrase = phrases[Math.floor(Math.random() * phrases.length)];
 
@@ -887,4 +913,3 @@ export function resetConversationalMemory(): void {
 }
 
 export default ConversationalMemoryEngine;
-

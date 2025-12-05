@@ -17,19 +17,21 @@
 import { getLogger } from '../../utils/safe-logger.js';
 
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
-import { Container, Tokens, type Factory } from './container.js';
-import { Result, success, failure, NotFoundError, ValidationError } from '../../types/index.js';
+import type { Container } from './container.js';
+import { Tokens, type Factory } from './container.js';
+import type { Result } from '../../types/index.js';
+import { success, failure, NotFoundError, ValidationError } from '../../types/index.js';
 
 /**
  * Extended MemoryStore interface with user lookup methods
  * These methods may not exist on all store implementations
  */
 interface ExtendedMemoryStore {
-  getProfile(userId: string): Promise<UserProfile | null>;
-  saveProfile(profile: UserProfile): Promise<void>;
+  getProfile: (userId: string) => Promise<UserProfile | null>;
+  saveProfile: (profile: UserProfile) => Promise<void>;
   // Optional lookup methods - not all stores support these
-  getProfileByPhone?(phone: string): Promise<UserProfile | null>;
-  getProfileByLinkedId?(linkedId: string): Promise<UserProfile | null>;
+  getProfileByPhone?: (phone: string) => Promise<UserProfile | null>;
+  getProfileByLinkedId?: (linkedId: string) => Promise<UserProfile | null>;
 }
 
 // ============================================================================
@@ -156,9 +158,7 @@ export class UserIdentificationService {
   /**
    * Identify user by device ID
    */
-  async identifyByDevice(
-    deviceId: string
-  ): Promise<Result<IdentificationResult, Error>> {
+  async identifyByDevice(deviceId: string): Promise<Result<IdentificationResult, Error>> {
     if (!deviceId) {
       return failure(new ValidationError('Device ID is required', 'deviceId'));
     }
@@ -198,9 +198,7 @@ export class UserIdentificationService {
   /**
    * Identify user by web session token
    */
-  async identifyByWebSession(
-    sessionToken: string
-  ): Promise<Result<IdentificationResult, Error>> {
+  async identifyByWebSession(sessionToken: string): Promise<Result<IdentificationResult, Error>> {
     if (!sessionToken) {
       return failure(new ValidationError('Session token is required', 'sessionToken'));
     }
@@ -266,7 +264,10 @@ export class UserIdentificationService {
         }
 
         await this.store.saveProfile(profile);
-        this.getLogger().info({ userId, identifier: normalized, type }, 'Linked identifier to profile');
+        this.getLogger().info(
+          { userId, identifier: normalized, type },
+          'Linked identifier to profile'
+        );
       }
 
       return success(undefined);
@@ -327,4 +328,3 @@ export function getUserIdentificationService(container: Container): UserIdentifi
   }
   return container.resolve<UserIdentificationService>(UserIdentificationToken);
 }
-

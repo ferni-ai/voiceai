@@ -35,37 +35,104 @@ const TEAM_MEMBERS: TeamMemberPattern[] = [
   {
     id: 'ferni',
     aliases: ['ferni', 'coach', 'life coach'],
-    expertiseKeywords: ['life', 'purpose', 'meaning', 'motivation', 'goals', 'values', 'clarity', 'direction', 'coaching', 'mindset'],
+    expertiseKeywords: [
+      'life',
+      'purpose',
+      'meaning',
+      'motivation',
+      'goals',
+      'values',
+      'clarity',
+      'direction',
+      'coaching',
+      'mindset',
+    ],
     description: 'life coach and coordinator',
   },
   {
     id: 'jack_bogle',
     aliases: ['jack', 'bogle', 'jack bogle', 'vanguard'],
-    expertiseKeywords: ['index', 'fund', 'expense ratio', 'long-term', 'stay the course', 'passive', 'vanguard', 'diversification', 'asset allocation'],
+    expertiseKeywords: [
+      'index',
+      'fund',
+      'expense ratio',
+      'long-term',
+      'stay the course',
+      'passive',
+      'vanguard',
+      'diversification',
+      'asset allocation',
+    ],
     description: 'index investing sage',
   },
   {
     id: 'peter_lynch',
     aliases: ['peter', 'john', 'peter john'],
-    expertiseKeywords: ['stock', 'research', 'company', 'ten-bagger', 'growth', 'industry', 'business', 'pick', 'analyze', 'earnings'],
+    expertiseKeywords: [
+      'stock',
+      'research',
+      'company',
+      'ten-bagger',
+      'growth',
+      'industry',
+      'business',
+      'pick',
+      'analyze',
+      'earnings',
+    ],
     description: 'stock picking enthusiast',
   },
   {
     id: 'maya_santos',
     aliases: ['maya', 'santos', 'maya santos'],
-    expertiseKeywords: ['budget', 'spending', 'saving', 'debt', 'expense', 'money', 'bills', 'afford', 'splurge', 'frugal', 'emergency fund'],
+    expertiseKeywords: [
+      'budget',
+      'spending',
+      'saving',
+      'debt',
+      'expense',
+      'money',
+      'bills',
+      'afford',
+      'splurge',
+      'frugal',
+      'emergency fund',
+    ],
     description: 'personal finance guide',
   },
   {
     id: 'jordan_taylor',
     aliases: ['jordan', 'taylor', 'jordan taylor'],
-    expertiseKeywords: ['event', 'wedding', 'party', 'celebration', 'milestone', 'birthday', 'anniversary', 'trip', 'vacation', 'travel', 'plan'],
+    expertiseKeywords: [
+      'event',
+      'wedding',
+      'party',
+      'celebration',
+      'milestone',
+      'birthday',
+      'anniversary',
+      'trip',
+      'vacation',
+      'travel',
+      'plan',
+    ],
     description: "life's milestone planner",
   },
   {
     id: 'alex_chen',
     aliases: ['alex', 'chen', 'alex chen'],
-    expertiseKeywords: ['schedule', 'calendar', 'organize', 'reminder', 'contact', 'communication', 'email', 'meeting', 'task', 'follow-up'],
+    expertiseKeywords: [
+      'schedule',
+      'calendar',
+      'organize',
+      'reminder',
+      'contact',
+      'communication',
+      'email',
+      'meeting',
+      'task',
+      'follow-up',
+    ],
     description: 'communications coordinator',
   },
 ];
@@ -79,7 +146,7 @@ const TEAM_MEMBERS: TeamMemberPattern[] = [
  */
 function detectTeamMemberMention(text: string): TeamMemberPattern | null {
   const lowerText = text.toLowerCase();
-  
+
   for (const member of TEAM_MEMBERS) {
     for (const alias of member.aliases) {
       if (lowerText.includes(alias.toLowerCase())) {
@@ -87,7 +154,7 @@ function detectTeamMemberMention(text: string): TeamMemberPattern | null {
       }
     }
   }
-  
+
   return null;
 }
 
@@ -96,22 +163,23 @@ function detectTeamMemberMention(text: string): TeamMemberPattern | null {
  */
 function detectExpertiseMatch(text: string, topics: string[]): TeamMemberPattern | null {
   const combinedText = `${text} ${topics.join(' ')}`.toLowerCase();
-  
+
   // Score each team member by keyword matches
   let bestMatch: TeamMemberPattern | null = null;
   let bestScore = 0;
-  
+
   for (const member of TEAM_MEMBERS) {
-    const score = member.expertiseKeywords.filter(kw => 
+    const score = member.expertiseKeywords.filter((kw) =>
       combinedText.includes(kw.toLowerCase())
     ).length;
-    
-    if (score > bestScore && score >= 2) { // Need at least 2 keyword matches
+
+    if (score > bestScore && score >= 2) {
+      // Need at least 2 keyword matches
       bestScore = score;
       bestMatch = member;
     }
   }
-  
+
   return bestMatch;
 }
 
@@ -130,94 +198,94 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
   const { userText, bundleRuntime, persona, userData, analysis } = input;
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
-  
+
   // Skip on early turns to let conversation establish
   if (turnCount < 2) {
     return injections;
   }
-  
+
   // Don't over-inject team dynamics
   if (Math.random() > 0.4) {
     return injections;
   }
-  
+
   const currentPersonaId = normalizeTeamMemberId(persona.id);
-  
+
   // Check if user mentioned a team member
   const mentionedMember = detectTeamMemberMention(userText);
-  
+
   if (mentionedMember && mentionedMember.id !== currentPersonaId) {
     // User mentioned a different team member - inject how we feel about them
     if (bundleRuntime) {
       const dynamic = bundleRuntime.getTeamDynamic(mentionedMember.id);
-      
+
       if (dynamic) {
-        const content = dynamic.whatIAdmire 
+        const content = dynamic.whatIAdmire
           ? `[TEAM MENTION: User mentioned ${mentionedMember.description}. Your perspective: "${dynamic.whatIAdmire}" How you work together: "${dynamic.howWeInteract}"]`
           : `[TEAM MENTION: User mentioned ${mentionedMember.description}. How you work together: "${dynamic.howWeInteract}"]`;
-        
+
         injections.push(createHintInjection('team_mention', content));
-        
+
         getLogger().debug(
           { personaId: persona.id, mentioned: mentionedMember.id },
           'Team member mentioned - injecting dynamics'
         );
       }
     }
-    
+
     return injections;
   }
-  
+
   // Check if topic relates to another team member's expertise
   const expertMatch = detectExpertiseMatch(userText, analysis.topics?.detected || []);
-  
+
   if (expertMatch && expertMatch.id !== currentPersonaId) {
     // Only suggest handoff occasionally (25% chance)
     if (Math.random() < 0.25 && bundleRuntime) {
       const dynamic = bundleRuntime.getTeamDynamic(expertMatch.id);
-      
+
       if (dynamic) {
         const handoffHint = `[EXPERTISE OPPORTUNITY: This topic relates to ${expertMatch.description}'s area. ${dynamic.howWeInteract} If appropriate, you could mention them naturally or offer to connect the user.]`;
-        
+
         injections.push(createHintInjection('team_expertise', handoffHint));
-        
+
         getLogger().debug(
           { personaId: persona.id, expertMatch: expertMatch.id, reason: 'expertise' },
           'Team expertise match - suggesting natural reference'
         );
       }
     }
-    
+
     return injections;
   }
-  
+
   // Occasional organic team reference (10% chance after turn 5)
   if (turnCount > 5 && Math.random() < 0.1 && bundleRuntime) {
     const teamMembers = bundleRuntime.getTeamMemberIds();
-    
+
     if (teamMembers.length > 0) {
       // Pick a random team member (not self)
-      const otherMembers = teamMembers.filter(id => 
-        id !== currentPersonaId && id !== persona.id
-      );
-      
+      const otherMembers = teamMembers.filter((id) => id !== currentPersonaId && id !== persona.id);
+
       if (otherMembers.length > 0) {
         const randomMember = otherMembers[Math.floor(Math.random() * otherMembers.length)];
         const dynamic = bundleRuntime.getTeamDynamic(randomMember);
-        
+
         if (dynamic?.whatIAdmire) {
-          const teamMemberInfo = TEAM_MEMBERS.find(m => m.id === randomMember);
+          const teamMemberInfo = TEAM_MEMBERS.find((m) => m.id === randomMember);
           const memberDesc = teamMemberInfo?.description || randomMember;
-          
-          injections.push(createHintInjection(
-            'team_organic',
-            `[TEAM COLOR: If natural, you might briefly reference ${memberDesc}: "${dynamic.whatIAdmire}" - don't force it, only if it fits.]`
-          ));
+
+          injections.push(
+            createHintInjection(
+              'team_organic',
+              `[TEAM COLOR: If natural, you might briefly reference ${memberDesc}: "${dynamic.whatIAdmire}" - don't force it, only if it fits.]`
+            )
+          );
         }
       }
     }
   }
-  
+
   return injections;
 }
 
@@ -233,4 +301,3 @@ registerContextBuilder({
 });
 
 export { buildTeamDynamicsContext, detectTeamMemberMention, detectExpertiseMatch, TEAM_MEMBERS };
-

@@ -112,11 +112,7 @@ describe('ConversationStateManager', () => {
 
       const topic = manager.getTopicContext();
       expect(topic.history.length).toBe(3);
-      expect(topic.history.map((h) => h.topic)).toEqual([
-        'budgeting',
-        'savings',
-        'investing',
-      ]);
+      expect(topic.history.map((h) => h.topic)).toEqual(['budgeting', 'savings', 'investing']);
     });
 
     it('deepens topic depth', () => {
@@ -412,4 +408,3 @@ describe('Global State Functions', () => {
     });
   });
 });
-

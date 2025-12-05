@@ -73,10 +73,10 @@ const DEFAULT_CONFIG: FollowUpConfig = {
 // ============================================================================
 
 class AppointmentFollowUpService extends EventEmitter {
-  private appointments: Map<string, TrackedAppointment> = new Map();
-  private followUpTimers: Map<string, NodeJS.Timeout> = new Map();
+  private appointments = new Map<string, TrackedAppointment>();
+  private followUpTimers = new Map<string, NodeJS.Timeout>();
   private config: FollowUpConfig;
-  private isRunning: boolean = false;
+  private isRunning = false;
   private checkInterval: NodeJS.Timeout | null = null;
 
   constructor(config: Partial<FollowUpConfig> = {}) {

@@ -90,7 +90,7 @@ export class RateLimiter {
   /**
    * Wait until a token is available (with timeout)
    */
-  async acquire(timeoutMs: number = 5000): Promise<boolean> {
+  async acquire(timeoutMs = 5000): Promise<boolean> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
@@ -147,7 +147,7 @@ export class RateLimiter {
 // ============================================================================
 
 // API-specific rate limiters
-const limiters: Map<string, RateLimiter> = new Map();
+const limiters = new Map<string, RateLimiter>();
 
 /**
  * Get or create a rate limiter for a service
@@ -272,7 +272,7 @@ export async function withRateLimit<T>(
 export async function withRateLimitWait<T>(
   service: string,
   fn: () => Promise<T>,
-  timeoutMs: number = 5000
+  timeoutMs = 5000
 ): Promise<T> {
   const limiter = getRateLimiter(service);
 

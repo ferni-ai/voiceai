@@ -46,7 +46,6 @@ import {
   EmptyServiceRegistry,
 } from './types.js';
 
-
 // ============================================================================
 // TOOL REGISTRY CLASS
 // ============================================================================
@@ -403,7 +402,9 @@ export class ToolRegistry {
 
       // Check deprecated
       if (def.deprecated) {
-        warnings.push(`Tool ${def.id} is deprecated: ${def.deprecationMessage || 'No reason given'}`);
+        warnings.push(
+          `Tool ${def.id} is deprecated: ${def.deprecationMessage || 'No reason given'}`
+        );
       }
 
       // Create the tool instance
@@ -495,10 +496,7 @@ export class ToolRegistry {
   /**
    * Build a simple tool set (convenience method)
    */
-  buildSimple(
-    domains: ToolDomain[],
-    ctx: Partial<ToolContext> = {}
-  ): Record<string, Tool> {
+  buildSimple(domains: ToolDomain[], ctx: Partial<ToolContext> = {}): Record<string, Tool> {
     // Note: We spread ctx first, then override with defaults for missing values
     // This ensures ctx.services = undefined doesn't overwrite our EmptyServiceRegistry
     const fullCtx: ToolContext = {
@@ -666,4 +664,3 @@ export {
 } from './types.js';
 
 export default toolRegistry;
-

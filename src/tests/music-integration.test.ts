@@ -134,15 +134,30 @@ describe('Music Integration', () => {
     });
 
     it('should maintain queue order', () => {
-      const track1: MusicTrack = { name: 'Song 1', artist: 'Artist', previewUrl: 'url1', duration: 30000 };
-      const track2: MusicTrack = { name: 'Song 2', artist: 'Artist', previewUrl: 'url2', duration: 30000 };
-      const track3: MusicTrack = { name: 'Song 3', artist: 'Artist', previewUrl: 'url3', duration: 30000 };
+      const track1: MusicTrack = {
+        name: 'Song 1',
+        artist: 'Artist',
+        previewUrl: 'url1',
+        duration: 30000,
+      };
+      const track2: MusicTrack = {
+        name: 'Song 2',
+        artist: 'Artist',
+        previewUrl: 'url2',
+        duration: 30000,
+      };
+      const track3: MusicTrack = {
+        name: 'Song 3',
+        artist: 'Artist',
+        previewUrl: 'url3',
+        duration: 30000,
+      };
 
       player.addToQueue(track1);
       player.addToQueue(track2);
       player.addToQueue(track3);
 
-      const queue = player.getState().queue;
+      const { queue } = player.getState();
       expect(queue[0].name).toBe('Song 1');
       expect(queue[1].name).toBe('Song 2');
       expect(queue[2].name).toBe('Song 3');
@@ -222,4 +237,3 @@ describe('Music Player UX', () => {
     });
   });
 });
-

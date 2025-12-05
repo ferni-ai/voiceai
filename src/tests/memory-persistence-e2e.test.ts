@@ -14,7 +14,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { InMemoryStore, getDefaultStore, resetDefaultStore } from '../memory/in-memory-store.js';
+import type { InMemoryStore } from '../memory/in-memory-store.js';
+import { getDefaultStore, resetDefaultStore } from '../memory/in-memory-store.js';
 import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 import {
   exportIntelligenceState,
@@ -55,8 +56,22 @@ vi.mock('../intelligence/story-preference.js', () => ({
       preferences: { prefersShort: true },
       recentAttempts: mockStoryAttempts,
     }),
-    recordStoryAttempt: (id: string, type: string, length: string, depth: string, topic: string, engagement: any) => {
-      mockStoryAttempts.push({ storyId: id, type, length, emotionalDepth: depth, topic, engagement });
+    recordStoryAttempt: (
+      id: string,
+      type: string,
+      length: string,
+      depth: string,
+      topic: string,
+      engagement: any
+    ) => {
+      mockStoryAttempts.push({
+        storyId: id,
+        type,
+        length,
+        emotionalDepth: depth,
+        topic,
+        engagement,
+      });
     },
   })),
   removeStoryPreference: vi.fn(() => {
@@ -300,7 +315,7 @@ describe('Memory Persistence E2E', () => {
   describe('Auto-Save Integration', () => {
     it('should auto-save profile at intervals', async () => {
       // Create profile
-      let profile = createUserProfile(testUserId);
+      const profile = createUserProfile(testUserId);
       await store.saveProfile(profile);
 
       // Track save calls
@@ -323,7 +338,7 @@ describe('Memory Persistence E2E', () => {
       startAutoSave(testUserId, autoSaveCallback, { autoSaveIntervalMs: 50 });
 
       // Wait for a few auto-saves
-      await new Promise(resolve => setTimeout(resolve, 180));
+      await new Promise((resolve) => setTimeout(resolve, 180));
 
       // Should have auto-saved at least twice
       expect(saveCount).toBeGreaterThanOrEqual(2);
@@ -333,7 +348,7 @@ describe('Memory Persistence E2E', () => {
 
     it('should persist data even if session crashes after auto-save', async () => {
       // Create profile
-      let profile = createUserProfile(testUserId);
+      const profile = createUserProfile(testUserId);
       await store.saveProfile(profile);
 
       // Add learning data
@@ -401,7 +416,7 @@ describe('Memory Persistence E2E', () => {
         userStatement: 'Hit my first milestone!',
       });
 
-      profile = await store.getProfile(testUserId) as UserProfile;
+      profile = (await store.getProfile(testUserId)) as UserProfile;
       profile = applyIntelligenceToProfile(profile, testUserId);
       await store.saveProfile(profile);
 
@@ -409,7 +424,7 @@ describe('Memory Persistence E2E', () => {
       cleanupIntelligenceEngines(testUserId);
 
       // Second session - add another emotional moment
-      profile = await store.getProfile(testUserId) as UserProfile;
+      profile = (await store.getProfile(testUserId)) as UserProfile;
       loadIntelligenceFromProfile(testUserId, profile);
 
       mockEmotionalMoments.push({
@@ -490,12 +505,14 @@ describe('Concurrent Access', () => {
     await store.saveProfile(profile);
 
     // Simulate 10 concurrent reads
-    const reads = Array(10).fill(null).map(() => store.getProfile(testUserId));
+    const reads = Array(10)
+      .fill(null)
+      .map(() => store.getProfile(testUserId));
     const results = await Promise.all(reads);
 
     // All reads should succeed
-    expect(results.every(r => r !== null)).toBe(true);
-    expect(results.every(r => r?.id === testUserId)).toBe(true);
+    expect(results.every((r) => r !== null)).toBe(true);
+    expect(results.every((r) => r?.id === testUserId)).toBe(true);
   });
 
   it('should handle rapid save/load cycles', async () => {
@@ -504,7 +521,7 @@ describe('Concurrent Access', () => {
 
     // Rapid save/load cycles
     for (let i = 0; i < 20; i++) {
-      profile = await store.getProfile(testUserId) as UserProfile;
+      profile = (await store.getProfile(testUserId)) as UserProfile;
       profile.totalConversations++;
       await store.saveProfile(profile);
     }
@@ -513,4 +530,3 @@ describe('Concurrent Access', () => {
     expect(final?.totalConversations).toBe(20);
   });
 });
-

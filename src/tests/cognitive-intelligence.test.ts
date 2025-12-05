@@ -124,16 +124,24 @@ describe('Cognitive Intelligence - Differentiation', () => {
   });
 
   it('should have different confidence signaling phrases', () => {
-    const ferniConfident = ferniCognitiveProfile.metacognition.confidenceSignaling.find(c => c.name === 'confident');
-    const peterConfident = peterCognitiveProfile.metacognition.confidenceSignaling.find(c => c.name === 'confident');
+    const ferniConfident = ferniCognitiveProfile.metacognition.confidenceSignaling.find(
+      (c) => c.name === 'confident'
+    );
+    const peterConfident = peterCognitiveProfile.metacognition.confidenceSignaling.find(
+      (c) => c.name === 'confident'
+    );
 
     expect(ferniConfident?.markers).not.toEqual(peterConfident?.markers);
 
     // Ferni uses softer language
-    expect(ferniConfident?.markers.some(m => m.includes('sense') || m.includes('think'))).toBe(true);
+    expect(ferniConfident?.markers.some((m) => m.includes('sense') || m.includes('think'))).toBe(
+      true
+    );
 
     // Peter uses data-driven language
-    expect(peterConfident?.markers.some(m => m.includes('evidence') || m.includes('pattern'))).toBe(true);
+    expect(
+      peterConfident?.markers.some((m) => m.includes('evidence') || m.includes('pattern'))
+    ).toBe(true);
   });
 
   it('should have different signature thinking phrases', () => {
@@ -251,16 +259,24 @@ describe('Cognitive Intelligence - Bias Awareness', () => {
 
   it('should have unique biases per persona', () => {
     // Ferni has optimism bias
-    expect(ferniCognitiveProfile.biases.primaryBiases.some(b => b.type === 'optimism_bias')).toBe(true);
+    expect(ferniCognitiveProfile.biases.primaryBiases.some((b) => b.type === 'optimism_bias')).toBe(
+      true
+    );
 
     // Peter has data over feeling bias
-    expect(peterCognitiveProfile.biases.primaryBiases.some(b => b.type === 'data_over_feeling')).toBe(true);
+    expect(
+      peterCognitiveProfile.biases.primaryBiases.some((b) => b.type === 'data_over_feeling')
+    ).toBe(true);
 
     // Alex has efficiency tunnel bias
-    expect(alexCognitiveProfile.biases.primaryBiases.some(b => b.type === 'efficiency_tunnel')).toBe(true);
+    expect(
+      alexCognitiveProfile.biases.primaryBiases.some((b) => b.type === 'efficiency_tunnel')
+    ).toBe(true);
 
     // Jordan has planning fallacy
-    expect(jordanCognitiveProfile.biases.primaryBiases.some(b => b.type === 'planning_fallacy')).toBe(true);
+    expect(
+      jordanCognitiveProfile.biases.primaryBiases.some((b) => b.type === 'planning_fallacy')
+    ).toBe(true);
   });
 });
 
@@ -282,17 +298,20 @@ describe('Cognitive Intelligence - Handoff Context', () => {
     recordApproachEffectiveness(testSessionId, 'analytical', 0.3);
     recordUserCognitiveStyle(testSessionId, 'empathetic', 0.7);
 
-    const context = buildCognitiveHandoffContext({
-      previousPersonaId: 'ferni',
-      targetPersonaId: 'peter-john',
-      conversationHistory: [
-        { role: 'user', content: 'I feel stuck in my career' },
-        { role: 'assistant', content: 'That sounds difficult. Tell me more.' },
-      ],
-      currentTopic: 'career',
-      emotionalWeight: 0.6,
-      userExpertise: 'intermediate',
-    }, testSessionId);
+    const context = buildCognitiveHandoffContext(
+      {
+        previousPersonaId: 'ferni',
+        targetPersonaId: 'peter-john',
+        conversationHistory: [
+          { role: 'user', content: 'I feel stuck in my career' },
+          { role: 'assistant', content: 'That sounds difficult. Tell me more.' },
+        ],
+        currentTopic: 'career',
+        emotionalWeight: 0.6,
+        userExpertise: 'intermediate',
+      },
+      testSessionId
+    );
 
     expect(context.userCognitiveStyle).toBe('empathetic');
     // effectiveApproaches may be empty if not enough data - check structure exists
@@ -301,17 +320,20 @@ describe('Cognitive Intelligence - Handoff Context', () => {
   });
 
   it('should identify blind spots from previous persona', () => {
-    const context = buildCognitiveHandoffContext({
-      previousPersonaId: 'ferni',
-      targetPersonaId: 'peter-john',
-      conversationHistory: [],
-      currentTopic: 'investment',
-      emotionalWeight: 0.3,
-      userExpertise: 'novice',
-    }, 'test-session-2');
+    const context = buildCognitiveHandoffContext(
+      {
+        previousPersonaId: 'ferni',
+        targetPersonaId: 'peter-john',
+        conversationHistory: [],
+        currentTopic: 'investment',
+        emotionalWeight: 0.3,
+        userExpertise: 'novice',
+      },
+      'test-session-2'
+    );
 
     // Ferni's blind spots should be highlighted
-    expect(context.potentialBlindSpots.some(b => b.includes('details'))).toBe(true);
+    expect(context.potentialBlindSpots.some((b) => b.includes('details'))).toBe(true);
   });
 });
 
@@ -345,8 +367,14 @@ describe('Cognitive Intelligence - Speech Adjustments', () => {
       showingReasoning: false,
     };
 
-    const showingAdj = calculateCognitiveSpeechAdjustments(baseCharacteristics, showingReasoningContext);
-    const notShowingAdj = calculateCognitiveSpeechAdjustments(baseCharacteristics, notShowingContext);
+    const showingAdj = calculateCognitiveSpeechAdjustments(
+      baseCharacteristics,
+      showingReasoningContext
+    );
+    const notShowingAdj = calculateCognitiveSpeechAdjustments(
+      baseCharacteristics,
+      notShowingContext
+    );
 
     expect(showingAdj.speedMultiplier).toBeLessThan(notShowingAdj.speedMultiplier);
     expect(showingAdj.pauseMultiplier).toBeGreaterThan(notShowingAdj.pauseMultiplier);
@@ -361,7 +389,10 @@ describe('Cognitive Intelligence - Speech Adjustments', () => {
       inReasoningChain: false,
     };
 
-    const adjustments = calculateCognitiveSpeechAdjustments(baseCharacteristics, highEmotionContext);
+    const adjustments = calculateCognitiveSpeechAdjustments(
+      baseCharacteristics,
+      highEmotionContext
+    );
 
     expect(adjustments.pauseMultiplier).toBeGreaterThan(1.0);
     expect(adjustments.speedMultiplier).toBeLessThan(1.0);
@@ -402,7 +433,7 @@ describe('Cognitive Intelligence - Speech Adjustments', () => {
 
     const adjustments = calculateCognitiveSpeechAdjustments(baseCharacteristics, inChainContext);
 
-    expect(adjustments.additionalPauses.some(p => p.type === 'transition')).toBe(true);
+    expect(adjustments.additionalPauses.some((p) => p.type === 'transition')).toBe(true);
   });
 });
 
@@ -466,8 +497,11 @@ describe('Cognitive Intelligence - Information Processing', () => {
 
   it('should have thinking aloud phrases', () => {
     // All personas should have thinking aloud phrases
-    expect(ferniCognitiveProfile.informationProcessing.thinkingAloudPhrases.length).toBeGreaterThan(0);
-    expect(peterCognitiveProfile.informationProcessing.thinkingAloudPhrases.length).toBeGreaterThan(0);
+    expect(ferniCognitiveProfile.informationProcessing.thinkingAloudPhrases.length).toBeGreaterThan(
+      0
+    );
+    expect(peterCognitiveProfile.informationProcessing.thinkingAloudPhrases.length).toBeGreaterThan(
+      0
+    );
   });
 });
-

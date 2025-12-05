@@ -31,7 +31,7 @@ export function isValidEmail(email: string): boolean {
 export function sanitizeEmailForLog(email: string): string {
   if (!email || !email.includes('@')) return '[invalid]';
   const [local, domain] = email.split('@');
-  const maskedLocal = local.length > 2 ? local.slice(0, 2) + '***' : '***';
+  const maskedLocal = local.length > 2 ? `${local.slice(0, 2)}***` : '***';
   return `${maskedLocal}@${domain}`;
 }
 
@@ -65,11 +65,11 @@ export function normalizePhone(phone: string): string | null {
 
   // Handle US numbers without country code
   if (cleaned.length === 10 && !cleaned.startsWith('+')) {
-    cleaned = '+1' + cleaned;
+    cleaned = `+1${cleaned}`;
   } else if (cleaned.length === 11 && cleaned.startsWith('1')) {
-    cleaned = '+' + cleaned;
+    cleaned = `+${cleaned}`;
   } else if (!cleaned.startsWith('+') && cleaned.length > 10) {
-    cleaned = '+' + cleaned;
+    cleaned = `+${cleaned}`;
   }
 
   // Validate the result
@@ -134,7 +134,7 @@ export function normalizeStockSymbol(symbol: string): string | null {
 /**
  * Sanitize text input to prevent injection attacks
  */
-export function sanitizeText(text: string, maxLength: number = 1000): string {
+export function sanitizeText(text: string, maxLength = 1000): string {
   if (!text || typeof text !== 'string') return '';
 
   // Trim and limit length
@@ -157,7 +157,7 @@ export function sanitizeText(text: string, maxLength: number = 1000): string {
 /**
  * Sanitize for plain text output (no HTML escaping needed)
  */
-export function sanitizePlainText(text: string, maxLength: number = 1000): string {
+export function sanitizePlainText(text: string, maxLength = 1000): string {
   if (!text || typeof text !== 'string') return '';
 
   // Trim and limit length
@@ -214,7 +214,7 @@ export function parseAmount(input: string | number): number | null {
 /**
  * Validate amount is within reasonable bounds
  */
-export function isValidAmount(amount: number, min: number = 0, max: number = 1e12): boolean {
+export function isValidAmount(amount: number, min = 0, max = 1e12): boolean {
   return typeof amount === 'number' && isFinite(amount) && amount >= min && amount <= max;
 }
 

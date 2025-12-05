@@ -113,32 +113,31 @@ export interface ProactiveInsight {
 async function getSpendingSignalsFromMaya(userId: string): Promise<SpendingSignal[]> {
   const store = getMayaFinancialStore();
   await store.loadUserData(userId);
-  
+
   const budget = store.getMainBudget(userId);
   const triggers = store.getUserSpendingTriggers(userId);
   const limits = store.getUserSpendingLimits(userId);
-  
+
   // If we have real budget data, use it
   if (budget && budget.categories.length > 0) {
-    return budget.categories.map(cat => {
-      const limit = limits.find(l => l.category.toLowerCase() === cat.name.toLowerCase());
+    return budget.categories.map((cat) => {
+      const limit = limits.find((l) => l.category.toLowerCase() === cat.name.toLowerCase());
       const overBudget = cat.spent > cat.limit;
-      const categoryTriggers = triggers.filter(t => 
+      const categoryTriggers = triggers.filter((t) =>
         t.purchase.toLowerCase().includes(cat.name.toLowerCase())
       );
-      
+
       return {
         category: cat.name,
         amount: cat.spent,
         trend: overBudget ? 'up' : cat.spent < cat.limit * 0.5 ? 'down' : 'stable',
         anomaly: overBudget || categoryTriggers.length > 2,
-        triggerPattern: categoryTriggers.length > 0 
-          ? `${categoryTriggers[0].emotion}-driven` 
-          : undefined,
+        triggerPattern:
+          categoryTriggers.length > 0 ? `${categoryTriggers[0].emotion}-driven` : undefined,
       };
     });
   }
-  
+
   // Fall back to sample data if no real data available
   return generateSampleSpendingSignals();
 }
@@ -147,7 +146,13 @@ function generateSampleSpendingSignals(): SpendingSignal[] {
   return [
     { category: 'Dining', amount: 450, trend: 'up', anomaly: false },
     { category: 'Entertainment', amount: 180, trend: 'stable', anomaly: false },
-    { category: 'Shopping', amount: 320, trend: 'up', anomaly: true, triggerPattern: 'weekend-evenings' },
+    {
+      category: 'Shopping',
+      amount: 320,
+      trend: 'up',
+      anomaly: true,
+      triggerPattern: 'weekend-evenings',
+    },
     { category: 'Groceries', amount: 380, trend: 'stable', anomaly: false },
     { category: 'Transport', amount: 150, trend: 'down', anomaly: false },
     { category: 'Subscriptions', amount: 145, trend: 'stable', anomaly: false },
@@ -160,29 +165,30 @@ function generateSampleSpendingSignals(): SpendingSignal[] {
 async function getHabitSignalsFromMaya(userId: string): Promise<HabitSignal> {
   const store = getMayaFinancialStore();
   await store.loadUserData(userId);
-  
+
   const triggers = store.getUserSpendingTriggers(userId);
   const recentTriggers = store.getRecentSpendingTriggers(userId, 14);
-  
+
   // Analyze trigger patterns to infer habit health
-  const emotionCounts = recentTriggers.reduce((acc, t) => {
-    acc[t.emotion] = (acc[t.emotion] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  
+  const emotionCounts = recentTriggers.reduce(
+    (acc, t) => {
+      acc[t.emotion] = (acc[t.emotion] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
   const negativeEmotions = ['stressed', 'bored', 'sad', 'anxious', 'lonely', 'tired'];
   const negativeCount = negativeEmotions.reduce((sum, e) => sum + (emotionCounts[e] || 0), 0);
-  
+
   // Infer habit consistency from trigger patterns
-  const consistencyScore = Math.max(0.3, 1 - (negativeCount / Math.max(1, recentTriggers.length)));
-  
+  const consistencyScore = Math.max(0.3, 1 - negativeCount / Math.max(1, recentTriggers.length));
+
   return {
     activeHabits: 4, // Would come from habit tracking system
     averageStreak: Math.round(consistencyScore * 20),
     consistencyScore,
-    recentSetbacks: negativeCount > 3 
-      ? ['Elevated stress-driven spending detected'] 
-      : [],
+    recentSetbacks: negativeCount > 3 ? ['Elevated stress-driven spending detected'] : [],
     keystoneHabitActive: consistencyScore > 0.7,
   };
 }
@@ -193,11 +199,11 @@ async function getHabitSignalsFromMaya(userId: string): Promise<HabitSignal> {
 async function getGoalSignalsFromMaya(userId: string): Promise<GoalSignal> {
   const store = getMayaFinancialStore();
   await store.loadUserData(userId);
-  
+
   const goals = store.getActiveSavingsGoals(userId);
-  
+
   if (goals.length > 0) {
-    const onTrack = goals.filter(g => {
+    const onTrack = goals.filter((g) => {
       if (!g.deadline) return true;
       const deadline = new Date(g.deadline);
       const now = new Date();
@@ -207,14 +213,14 @@ async function getGoalSignalsFromMaya(userId: string): Promise<GoalSignal> {
       const actualProgress = g.currentAmount / g.targetAmount;
       return actualProgress >= expectedProgress * 0.8;
     });
-    
+
     const upcomingMilestones = goals
-      .filter(g => {
+      .filter((g) => {
         const progress = g.currentAmount / g.targetAmount;
         return progress > 0.75 && progress < 1;
       })
-      .map(g => `${g.name} (${Math.round(g.currentAmount / g.targetAmount * 100)}% complete)`);
-    
+      .map((g) => `${g.name} (${Math.round((g.currentAmount / g.targetAmount) * 100)}% complete)`);
+
     return {
       activeGoals: goals.length,
       onTrackGoals: onTrack.length,
@@ -222,7 +228,7 @@ async function getGoalSignalsFromMaya(userId: string): Promise<GoalSignal> {
       upcomingMilestones,
     };
   }
-  
+
   return generateSampleGoalSignal();
 }
 
@@ -275,7 +281,7 @@ function findCorrelations(snapshot: CrossDomainSnapshot): CorrelationInsight[] {
 
   // Calendar density + spending correlation
   if (snapshot.time.calendarDensity === 'heavy' || snapshot.time.calendarDensity === 'overloaded') {
-    const diningSpend = snapshot.spending.find(s => s.category === 'Dining');
+    const diningSpend = snapshot.spending.find((s) => s.category === 'Dining');
     if (diningSpend && diningSpend.trend === 'up') {
       correlations.push({
         domains: ['time', 'money'],
@@ -289,7 +295,7 @@ function findCorrelations(snapshot: CrossDomainSnapshot): CorrelationInsight[] {
 
   // Habit setbacks + shopping anomaly
   if (snapshot.habits.recentSetbacks.length > 0) {
-    const shoppingAnomaly = snapshot.spending.find(s => s.category === 'Shopping' && s.anomaly);
+    const shoppingAnomaly = snapshot.spending.find((s) => s.category === 'Shopping' && s.anomaly);
     if (shoppingAnomaly) {
       correlations.push({
         domains: ['habits', 'money'],
@@ -302,14 +308,18 @@ function findCorrelations(snapshot: CrossDomainSnapshot): CorrelationInsight[] {
   }
 
   // Portfolio anxiety + stress indicators
-  if (snapshot.wealth.checkFrequency === 'anxious' || snapshot.wealth.checkFrequency === 'elevated') {
+  if (
+    snapshot.wealth.checkFrequency === 'anxious' ||
+    snapshot.wealth.checkFrequency === 'elevated'
+  ) {
     if (snapshot.time.calendarDensity === 'heavy' || snapshot.habits.consistencyScore < 0.7) {
       correlations.push({
         domains: ['wealth', 'time', 'habits'],
         pattern: 'Portfolio checking elevated during high-stress period',
         confidence: 'high',
         actionable: true,
-        recommendation: 'The portfolio anxiety is a symptom. Address the calendar/habit stress first.',
+        recommendation:
+          'The portfolio anxiety is a symptom. Address the calendar/habit stress first.',
       });
     }
   }
@@ -335,7 +345,7 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
   const insights: ProactiveInsight[] = [];
 
   // Spending anomaly detection
-  const anomalies = snapshot.spending.filter(s => s.anomaly);
+  const anomalies = snapshot.spending.filter((s) => s.anomaly);
   for (const anomaly of anomalies) {
     insights.push({
       type: 'anomaly',
@@ -354,7 +364,8 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
       type: 'warning',
       severity: 'urgent',
       title: 'Calendar Overload Detected',
-      insight: 'Your calendar is unsustainably packed. This affects EVERYTHING - spending, habits, goals, decisions.',
+      insight:
+        'Your calendar is unsustainably packed. This affects EVERYTHING - spending, habits, goals, decisions.',
       evidence: [
         `${snapshot.time.meetingHeavyDays} heavy meeting days per week`,
         `Only ${snapshot.time.freeTimeBlocks} free time blocks`,
@@ -374,7 +385,7 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
       title: 'Milestone Approaching',
       insight: `${milestone} is coming up. Based on patterns, you may need to adjust spending or time allocation.`,
       evidence: [`Upcoming: ${milestone}`],
-      recommendation: 'Review progress and identify any gaps now while there\'s time.',
+      recommendation: "Review progress and identify any gaps now while there's time.",
       connectedDomains: ['goals', 'money', 'time'],
     });
   }
@@ -385,13 +396,14 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
       type: 'warning',
       severity: snapshot.wealth.checkFrequency === 'anxious' ? 'urgent' : 'attention',
       title: 'Investment Behavior Pattern',
-      insight: 'Your portfolio checking frequency suggests anxiety. This often leads to worse investment decisions.',
+      insight:
+        'Your portfolio checking frequency suggests anxiety. This often leads to worse investment decisions.',
       evidence: [
         `Check frequency: ${snapshot.wealth.checkFrequency}`,
         `Recent trades: ${snapshot.wealth.recentTrades}`,
         `Risk behavior match: ${snapshot.wealth.riskBehaviorMatch ? 'Yes' : 'No'}`,
       ],
-      recommendation: 'Reduce checking to weekly. Focus on what\'s actually stressing you.',
+      recommendation: "Reduce checking to weekly. Focus on what's actually stressing you.",
       connectedDomains: ['wealth', 'habits'],
     });
   }
@@ -402,13 +414,15 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
       type: 'opportunity',
       severity: 'attention',
       title: 'Keystone Habit Opportunity',
-      insight: 'You don\'t have a keystone habit active. This is the highest-leverage change you could make.',
+      insight:
+        "You don't have a keystone habit active. This is the highest-leverage change you could make.",
       evidence: [
         `Current consistency: ${Math.round(snapshot.habits.consistencyScore * 100)}%`,
         `Active habits: ${snapshot.habits.activeHabits}`,
         `Recent setbacks: ${snapshot.habits.recentSetbacks.length}`,
       ],
-      recommendation: 'Choose ONE habit (exercise, morning routine, or sleep) to make non-negotiable.',
+      recommendation:
+        'Choose ONE habit (exercise, morning routine, or sleep) to make non-negotiable.',
       connectedDomains: ['habits', 'goals', 'money', 'time'],
     });
   }
@@ -420,7 +434,7 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
  * Generate the main insight synthesis
  */
 function synthesizeInsights(snapshot: CrossDomainSnapshot): string {
-  const correlations = snapshot.correlations;
+  const { correlations } = snapshot;
   const proactiveInsights = generateProactiveInsights(snapshot);
 
   let synthesis = `🔬 **CROSS-DOMAIN INSIGHT SYNTHESIS**\n\n`;
@@ -430,8 +444,8 @@ function synthesizeInsights(snapshot: CrossDomainSnapshot): string {
   synthesis += `I looked across your spending, calendar, habits, goals, and investment behavior. Here's what I see:\n\n`;
 
   // Key findings
-  const urgentInsights = proactiveInsights.filter(i => i.severity === 'urgent');
-  const attentionInsights = proactiveInsights.filter(i => i.severity === 'attention');
+  const urgentInsights = proactiveInsights.filter((i) => i.severity === 'urgent');
+  const attentionInsights = proactiveInsights.filter((i) => i.severity === 'attention');
 
   if (urgentInsights.length > 0) {
     synthesis += `🚨 **Needs Immediate Attention:**\n`;
@@ -459,7 +473,7 @@ function synthesizeInsights(snapshot: CrossDomainSnapshot): string {
   }
 
   // Top recommendation
-  const actionableCorrelation = correlations.find(c => c.actionable && c.confidence === 'high');
+  const actionableCorrelation = correlations.find((c) => c.actionable && c.confidence === 'high');
   if (actionableCorrelation) {
     synthesis += `💡 **My Top Recommendation:**\n`;
     synthesis += `${actionableCorrelation.recommendation}\n\n`;
@@ -505,7 +519,10 @@ Use when user asks for:
       }),
       execute: async ({ focusDomains, timeframe }, { ctx }) => {
         const userId = getUserId({ ctx });
-        getLogger().info({ focusDomains, timeframe, userId }, '🔬 Peter synthesizing cross-domain insights');
+        getLogger().info(
+          { focusDomains, timeframe, userId },
+          '🔬 Peter synthesizing cross-domain insights'
+        );
 
         // Build the snapshot from REAL data where available
         const [spendingData, habitData, goalData] = await Promise.all([
@@ -562,16 +579,24 @@ Use when user asks:
 
         // Sample anomaly detection (would use real data in production)
         if (domain === 'all' || domain === 'spending') {
-          anomalies.push('📊 **Shopping spending:** Up 40% on weekend evenings - looks like a stress response pattern');
+          anomalies.push(
+            '📊 **Shopping spending:** Up 40% on weekend evenings - looks like a stress response pattern'
+          );
         }
         if (domain === 'all' || domain === 'habits') {
-          anomalies.push('💔 **Exercise habit:** Broke after 15 days - this often cascades to other areas');
+          anomalies.push(
+            '💔 **Exercise habit:** Broke after 15 days - this often cascades to other areas'
+          );
         }
         if (domain === 'all' || domain === 'time') {
-          anomalies.push('📅 **Calendar density:** Jumped 30% this week - potential burnout incoming');
+          anomalies.push(
+            '📅 **Calendar density:** Jumped 30% this week - potential burnout incoming'
+          );
         }
         if (domain === 'all' || domain === 'goals') {
-          anomalies.push('🎯 **Q1 savings goal:** Stalled for 2 weeks - usually a sign the approach needs adjusting');
+          anomalies.push(
+            '🎯 **Q1 savings goal:** Stalled for 2 weeks - usually a sign the approach needs adjusting'
+          );
         }
         if (domain === 'all' || domain === 'wealth') {
           anomalies.push('📈 **Portfolio checking:** 3x normal frequency - anxiety indicator');
@@ -607,7 +632,9 @@ Use when user asks:
 - "What's the relationship between..."`,
       parameters: z.object({
         domain1: z.enum(['spending', 'time', 'habits', 'goals', 'wealth']).describe('First domain'),
-        domain2: z.enum(['spending', 'time', 'habits', 'goals', 'wealth']).describe('Second domain'),
+        domain2: z
+          .enum(['spending', 'time', 'habits', 'goals', 'wealth'])
+          .describe('Second domain'),
       }),
       execute: async ({ domain1, domain2 }) => {
         getLogger().info({ domain1, domain2 }, '🔗 Peter finding cross-domain correlation');
@@ -680,7 +707,7 @@ Your investment behavior changes based on goal progress. Watch this:
         };
 
         const key = [domain1, domain2].sort().join('-');
-        
+
         // Check for the correlation or generate a generic response
         if (correlations[key]) {
           return correlations[key];
@@ -722,9 +749,7 @@ Use when user asks:
 - "Am I going to hit my goal?"
 - "What should I watch for?"`,
       parameters: z.object({
-        domain: z
-          .enum(['spending', 'habits', 'goals', 'overall'])
-          .describe('What to project'),
+        domain: z.enum(['spending', 'habits', 'goals', 'overall']).describe('What to project'),
         timeframe: z
           .enum(['week', 'month', 'quarter'])
           .default('month')
@@ -897,12 +922,13 @@ Use when user is:
 - Stuck despite multiple attempts
 - Looking for the "one thing"`,
       parameters: z.object({
-        currentChallenges: z
-          .array(z.string())
-          .describe('List of challenges they are facing'),
+        currentChallenges: z.array(z.string()).describe('List of challenges they are facing'),
       }),
       execute: async ({ currentChallenges }) => {
-        getLogger().info({ challengeCount: currentChallenges.length }, '🎯 Peter finding the lever');
+        getLogger().info(
+          { challengeCount: currentChallenges.length },
+          '🎯 Peter finding the lever'
+        );
 
         let response = `🎯 **THE LEVER FINDER**\n\n`;
 
@@ -985,13 +1011,13 @@ Use when:
         // Check spending patterns
         const budget = store.getMainBudget(userId);
         if (budget) {
-          const overCategories = budget.categories.filter(c => c.spent > c.limit);
+          const overCategories = budget.categories.filter((c) => c.spent > c.limit);
           if (overCategories.length > 0) {
             insights.push({
               type: 'warning',
               severity: overCategories.length > 2 ? 'high' : 'medium',
               title: 'Budget Categories Over Limit',
-              insight: `${overCategories.length} categories are over budget: ${overCategories.map(c => c.name).join(', ')}`,
+              insight: `${overCategories.length} categories are over budget: ${overCategories.map((c) => c.name).join(', ')}`,
               action: 'Review spending in these categories or adjust budget expectations',
             });
           }
@@ -999,7 +1025,7 @@ Use when:
           const percentUsed = (budget.spent / budget.monthlyLimit) * 100;
           const dayOfMonth = new Date().getDate();
           const expectedPercent = (dayOfMonth / 30) * 100;
-          
+
           if (percentUsed > expectedPercent + 20) {
             insights.push({
               type: 'warning',
@@ -1013,9 +1039,9 @@ Use when:
 
         // Check goals
         const goals = store.getActiveSavingsGoals(userId);
-        goals.forEach(goal => {
+        goals.forEach((goal) => {
           const progress = goal.currentAmount / goal.targetAmount;
-          
+
           if (progress > 0.9 && progress < 1) {
             insights.push({
               type: 'milestone',
@@ -1025,12 +1051,14 @@ Use when:
               action: 'Celebrate the progress and push to the finish line',
             });
           }
-          
+
           if (goal.deadline) {
             const deadline = new Date(goal.deadline);
             const now = new Date();
-            const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            
+            const daysLeft = Math.ceil(
+              (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+            );
+
             if (daysLeft <= 14 && progress < 0.8) {
               insights.push({
                 type: 'warning',
@@ -1046,13 +1074,15 @@ Use when:
         // Check spending triggers for behavioral patterns
         const triggers = store.getRecentSpendingTriggers(userId, 14);
         if (triggers.length >= 3) {
-          const emotionCounts = triggers.reduce((acc, t) => {
-            acc[t.emotion] = (acc[t.emotion] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
+          const emotionCounts = triggers.reduce(
+            (acc, t) => {
+              acc[t.emotion] = (acc[t.emotion] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>
+          );
 
-          const dominantEmotion = Object.entries(emotionCounts)
-            .sort((a, b) => b[1] - a[1])[0];
+          const dominantEmotion = Object.entries(emotionCounts).sort((a, b) => b[1] - a[1])[0];
 
           if (dominantEmotion && dominantEmotion[1] >= 3) {
             insights.push({
@@ -1076,13 +1106,13 @@ Use when:
         }
 
         // Sort by severity
-        const highPriority = insights.filter(i => i.severity === 'high');
-        const mediumPriority = insights.filter(i => i.severity === 'medium');
-        const lowPriority = insights.filter(i => i.severity === 'low');
+        const highPriority = insights.filter((i) => i.severity === 'high');
+        const mediumPriority = insights.filter((i) => i.severity === 'medium');
+        const lowPriority = insights.filter((i) => i.severity === 'low');
 
         if (highPriority.length > 0) {
           response += `🚨 **HIGH PRIORITY:**\n`;
-          highPriority.forEach(i => {
+          highPriority.forEach((i) => {
             response += `\n**${i.title}**\n`;
             response += `${i.insight}\n`;
             if (i.action) response += `→ *${i.action}*\n`;
@@ -1092,7 +1122,7 @@ Use when:
 
         if (mediumPriority.length > 0) {
           response += `⚠️ **WORTH WATCHING:**\n`;
-          mediumPriority.forEach(i => {
+          mediumPriority.forEach((i) => {
             response += `\n**${i.title}**\n`;
             response += `${i.insight}\n`;
             if (i.action) response += `→ *${i.action}*\n`;
@@ -1102,7 +1132,7 @@ Use when:
 
         if (lowPriority.length > 0) {
           response += `📌 **GOOD TO KNOW:**\n`;
-          lowPriority.forEach(i => {
+          lowPriority.forEach((i) => {
             response += `\n**${i.title}**\n`;
             response += `${i.insight}\n`;
             if (i.action) response += `→ *${i.action}*\n`;
@@ -1112,9 +1142,10 @@ Use when:
 
         response += `\n**Peter's Take:**\n`;
         response += `Found ${insights.length} insights worth mentioning. `;
-        response += highPriority.length > 0 
-          ? `The high-priority items need attention soon.`
-          : `Nothing urgent, but staying aware keeps you ahead of problems.`;
+        response +=
+          highPriority.length > 0
+            ? `The high-priority items need attention soon.`
+            : `Nothing urgent, but staying aware keeps you ahead of problems.`;
 
         return response;
       },
@@ -1135,7 +1166,16 @@ Use when:
       parameters: z.object({
         observation: z.string().describe('What the user noticed'),
         domain: z
-          .enum(['spending', 'time', 'habits', 'energy', 'relationships', 'work', 'health', 'other'])
+          .enum([
+            'spending',
+            'time',
+            'habits',
+            'energy',
+            'relationships',
+            'work',
+            'health',
+            'other',
+          ])
           .describe('Which area of life'),
         potentialPattern: z.string().optional().describe('Any pattern hypothesis'),
         triggerContext: z.string().optional().describe('What was happening when noticed'),
@@ -1143,7 +1183,7 @@ Use when:
       execute: async ({ observation, domain, potentialPattern, triggerContext }, { ctx }) => {
         const userId = getUserId({ ctx });
         const timestamp = new Date().toISOString();
-        
+
         getLogger().info({ observation, domain, userId }, '📓 Peter logging pattern observation');
 
         // In production, this would persist to a pattern journal store
@@ -1153,31 +1193,31 @@ Use when:
         response += `**Date:** ${new Date().toLocaleDateString()}\n`;
         response += `**Domain:** ${domain}\n`;
         response += `**Observation:** "${observation}"\n`;
-        
+
         if (triggerContext) {
           response += `**Context:** ${triggerContext}\n`;
         }
-        
+
         if (potentialPattern) {
           response += `**Your Hypothesis:** ${potentialPattern}\n`;
         }
-        
+
         response += `\n---\n\n`;
-        
+
         response += `**Peter's Feedback:**\n\n`;
         response += `Good eye! This is exactly how pattern recognition develops. `;
         response += `Most observations go nowhere—but the practice of NOTICING builds the muscle.\n\n`;
-        
+
         response += `**Questions to Explore:**\n`;
         response += `1. Have you noticed this before? If so, how many times?\n`;
         response += `2. What else was happening when you noticed this?\n`;
         response += `3. Does this connect to anything in other areas of your life?\n`;
         response += `4. If this IS a pattern, what would you do differently?\n\n`;
-        
+
         response += `**Next Step:**\n`;
         response += `Watch for this again over the next week. `;
         response += `If you see it 3+ more times, we might have a real pattern worth investigating.\n\n`;
-        
+
         response += `**Peter's Wisdom:**\n`;
         response += `"95% of my journal entries go nowhere. But that 5%? That 5% contains the insights that change everything."`;
 
@@ -1245,7 +1285,7 @@ Use when:
         response += `Counter: Actively seek disconfirming evidence\n\n`;
 
         response += `---\n\n`;
-        
+
         response += `**Peter's Analysis:**\n`;
         response += `Based on your situation, I'd guess these biases are most likely at play: `;
         response += `**Present Bias** and **Status Quo Bias**. `;
@@ -1273,7 +1313,10 @@ Use when:
 - Starting a coaching session
 - Monthly/quarterly review`,
       parameters: z.object({
-        includeRecommendations: z.boolean().default(true).describe('Include action recommendations'),
+        includeRecommendations: z
+          .boolean()
+          .default(true)
+          .describe('Include action recommendations'),
       }),
       execute: async ({ includeRecommendations }, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -1299,7 +1342,7 @@ Use when:
           response += `Status: ${statusIcon} ${percentUsed}% of monthly budget used\n`;
           response += `Spent: $${budget.spent.toLocaleString()} / $${budget.monthlyLimit.toLocaleString()}\n`;
           response += `Categories: ${budget.categories.length} tracked\n`;
-          const overCount = budget.categories.filter(c => c.spent > c.limit).length;
+          const overCount = budget.categories.filter((c) => c.spent > c.limit).length;
           if (overCount > 0) response += `⚠️ ${overCount} categories over budget\n`;
         } else {
           response += `Status: ⚪ No budget data\n`;
@@ -1312,9 +1355,10 @@ Use when:
         response += `═══════════════════════════════════\n`;
         if (goals.length > 0) {
           response += `Active Goals: ${goals.length}\n`;
-          goals.forEach(g => {
+          goals.forEach((g) => {
             const progress = Math.round((g.currentAmount / g.targetAmount) * 100);
-            const statusIcon = progress >= 100 ? '✅' : progress >= 75 ? '🟢' : progress >= 50 ? '🟡' : '🔴';
+            const statusIcon =
+              progress >= 100 ? '✅' : progress >= 75 ? '🟢' : progress >= 50 ? '🟡' : '🔴';
             response += `${statusIcon} ${g.name}: ${progress}%\n`;
           });
         } else {
@@ -1328,10 +1372,13 @@ Use when:
         response += `═══════════════════════════════════\n`;
         if (triggers.length > 0) {
           response += `Triggers Logged: ${triggers.length}\n`;
-          const emotions = triggers.reduce((acc, t) => {
-            acc[t.emotion] = (acc[t.emotion] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
+          const emotions = triggers.reduce(
+            (acc, t) => {
+              acc[t.emotion] = (acc[t.emotion] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>
+          );
           const topEmotions = Object.entries(emotions)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3);
@@ -1345,22 +1392,26 @@ Use when:
         response += `═══════════════════════════════════\n`;
         response += `🔗 **CROSS-DOMAIN INSIGHTS**\n`;
         response += `═══════════════════════════════════\n`;
-        
+
         // Generate some cross-domain observations
         const crossInsights: string[] = [];
-        
+
         if (budget && triggers.length > 3) {
-          crossInsights.push('Spending patterns show emotional correlation - triggers are affecting budget');
+          crossInsights.push(
+            'Spending patterns show emotional correlation - triggers are affecting budget'
+          );
         }
         if (goals.length > 0 && budget) {
-          const savingsGoal = goals.find(g => g.name.toLowerCase().includes('sav') || g.isEmergencyFund);
+          const savingsGoal = goals.find(
+            (g) => g.name.toLowerCase().includes('sav') || g.isEmergencyFund
+          );
           if (savingsGoal && budget.spent > budget.monthlyLimit * 0.9) {
             crossInsights.push('High spending may be impacting savings goal progress');
           }
         }
-        
+
         if (crossInsights.length > 0) {
-          crossInsights.forEach(i => {
+          crossInsights.forEach((i) => {
             response += `• ${i}\n`;
           });
         } else {
@@ -1393,4 +1444,3 @@ Use when:
 export const createPeterInsightsTools = createInsightsAnalysisTools;
 
 export default createInsightsAnalysisTools;
-

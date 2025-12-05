@@ -233,7 +233,10 @@ export function applyCognitiveAdjustments(
     ...base,
     baseSpeedMultiplier: base.baseSpeedMultiplier * adjustments.speedMultiplier,
     pauseMultiplier: base.pauseMultiplier * adjustments.pauseMultiplier,
-    thinkingSoundFrequency: Math.min(1.0, base.thinkingSoundFrequency + adjustments.thinkingSoundBoost),
+    thinkingSoundFrequency: Math.min(
+      1.0,
+      base.thinkingSoundFrequency + adjustments.thinkingSoundBoost
+    ),
     emphasisStyle: adjustments.emphasisStyle || base.emphasisStyle,
   };
 }
@@ -243,9 +246,12 @@ export function applyCognitiveAdjustments(
  */
 export function getPauseDuration(duration: 'short' | 'medium' | 'long'): string {
   switch (duration) {
-    case 'short': return '200ms';
-    case 'medium': return '400ms';
-    case 'long': return '700ms';
+    case 'short':
+      return '200ms';
+    case 'medium':
+      return '400ms';
+    case 'long':
+      return '700ms';
   }
 }
 
@@ -277,7 +283,7 @@ export function getCognitiveThinkingSound(
 
   // Low confidence → more hesitant sounds
   if (confidence < 0.4) {
-    return options[0] + '...';
+    return `${options[0]}...`;
   }
 
   return options[Math.floor(Math.random() * options.length)];
@@ -290,4 +296,3 @@ export default {
   buildPauseSSML,
   getCognitiveThinkingSound,
 };
-

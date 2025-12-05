@@ -198,7 +198,7 @@ export type { UserProfile, PersonaConfig };
 // REGISTRY
 // ============================================================================
 
-const builders: Map<string, ContextBuilder> = new Map();
+const builders = new Map<string, ContextBuilder>();
 
 /**
  * Register a context builder.
@@ -302,7 +302,7 @@ export function formatContextForPrompt(
   const maxLength = options?.maxLength ?? 4000;
   const includeHints = options?.includeHints ?? true;
 
-  let filtered = injections.filter((i) => includeHints || i.priority !== 'hint');
+  const filtered = injections.filter((i) => includeHints || i.priority !== 'hint');
   filtered.sort((a, b) => PRIORITY_ORDER[b.priority] - PRIORITY_ORDER[a.priority]);
 
   const sections: string[] = [];

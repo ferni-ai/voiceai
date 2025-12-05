@@ -147,17 +147,17 @@ export interface WeeklyCheckInData {
 
 class MayaFinancialStore {
   private store: MemoryStore | null = null;
-  private cache: Map<string, MayaFinancialData> = new Map();
-  private dirtyUsers: Set<string> = new Set();
-  private saveDebounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private cache = new Map<string, MayaFinancialData>();
+  private dirtyUsers = new Set<string>();
+  private saveDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   // In-memory stores for fast tool access
-  private budgetMemory: Map<string, BudgetData> = new Map();
-  private savingsGoalMemory: Map<string, SavingsGoalData> = new Map();
-  private subscriptionMemory: Map<string, SubscriptionData> = new Map();
-  private spendingTriggerMemory: Map<string, SpendingTriggerData> = new Map();
-  private spendingLimitMemory: Map<string, SpendingLimitData> = new Map();
-  private weeklyCheckInMemory: Map<string, WeeklyCheckInData> = new Map();
+  private budgetMemory = new Map<string, BudgetData>();
+  private savingsGoalMemory = new Map<string, SavingsGoalData>();
+  private subscriptionMemory = new Map<string, SubscriptionData>();
+  private spendingTriggerMemory = new Map<string, SpendingTriggerData>();
+  private spendingLimitMemory = new Map<string, SpendingLimitData>();
+  private weeklyCheckInMemory = new Map<string, WeeklyCheckInData>();
 
   async initialize(): Promise<void> {
     try {
@@ -264,7 +264,9 @@ class MayaFinancialStore {
     this.saveDebounceTimers.clear();
 
     // Save all dirty users
-    const savePromises = Array.from(this.dirtyUsers).map((userId) => this.saveUserData(userId));
+    const savePromises = Array.from(this.dirtyUsers).map(async (userId) =>
+      this.saveUserData(userId)
+    );
     await Promise.all(savePromises);
 
     getLogger().info({ count: this.dirtyUsers.size }, 'Flushed all Maya financial data');
@@ -432,7 +434,7 @@ class MayaFinancialStore {
     return Array.from(this.spendingTriggerMemory.values()).filter((t) => t.userId === userId);
   }
 
-  getRecentSpendingTriggers(userId: string, limit: number = 10): SpendingTriggerData[] {
+  getRecentSpendingTriggers(userId: string, limit = 10): SpendingTriggerData[] {
     return this.getUserSpendingTriggers(userId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, limit);
@@ -492,7 +494,10 @@ class MayaFinancialStore {
     }
 
     // Reset monthly if we're in a new month
-    if (now.getMonth() !== lastMonthReset.getMonth() || now.getFullYear() !== lastMonthReset.getFullYear()) {
+    if (
+      now.getMonth() !== lastMonthReset.getMonth() ||
+      now.getFullYear() !== lastMonthReset.getFullYear()
+    ) {
       limit.currentMonthSpend = 0;
       limit.lastMonthReset = now.toISOString();
     }
@@ -632,4 +637,3 @@ export function getMayaFinancialStore(): MayaFinancialStore {
 
 // Export the store class for testing
 export { MayaFinancialStore };
-

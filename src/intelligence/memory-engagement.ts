@@ -80,88 +80,88 @@ export interface RelationshipMilestone {
 export const CALLBACK_TEMPLATES = {
   anniversary: {
     one_week: [
-      "Hey— <break time=\"200ms\"/>it's been a week since we started talking. <break time=\"200ms\"/>How's it been for you?",
-      "A week together now. <break time=\"300ms\"/>I've enjoyed getting to know you.",
+      'Hey— <break time="200ms"/>it\'s been a week since we started talking. <break time="200ms"/>How\'s it been for you?',
+      'A week together now. <break time="300ms"/>I\'ve enjoyed getting to know you.',
     ],
     one_month: [
-      "It's been a month since we met. <break time=\"300ms\"/>A lot has happened, hasn't it?",
-      "One month of conversations. <break time=\"200ms\"/>I feel like I know you now. <break time=\"200ms\"/>How do you feel?",
+      'It\'s been a month since we met. <break time="300ms"/>A lot has happened, hasn\'t it?',
+      'One month of conversations. <break time="200ms"/>I feel like I know you now. <break time="200ms"/>How do you feel?',
     ],
     three_months: [
-      "Three months. <break time=\"300ms\"/>You're not the same person who started talking to me. <break time=\"200ms\"/>I've watched you grow.",
-      "We've been at this for three months. <break time=\"200ms\"/>Want to know what I've noticed about your journey?",
+      'Three months. <break time="300ms"/>You\'re not the same person who started talking to me. <break time="200ms"/>I\'ve watched you grow.',
+      'We\'ve been at this for three months. <break time="200ms"/>Want to know what I\'ve noticed about your journey?',
     ],
     six_months: [
-      "Six months. <break time=\"300ms\"/>That's half a year of conversations. <break time=\"200ms\"/>That means something.",
-      "We've known each other for six months now. <break time=\"200ms\"/>I've seen you through a lot.",
+      'Six months. <break time="300ms"/>That\'s half a year of conversations. <break time="200ms"/>That means something.',
+      'We\'ve known each other for six months now. <break time="200ms"/>I\'ve seen you through a lot.',
     ],
     one_year: [
-      "A year. <break time=\"500ms\"/>365 days of conversations. <break time=\"300ms\"/>I'm honored to have walked this journey with you.",
-      "Happy anniversary. <break time=\"300ms\"/>It's been a full year. <break time=\"200ms\"/>What a year it's been.",
+      'A year. <break time="500ms"/>365 days of conversations. <break time="300ms"/>I\'m honored to have walked this journey with you.',
+      'Happy anniversary. <break time="300ms"/>It\'s been a full year. <break time="200ms"/>What a year it\'s been.',
     ],
   },
 
   progress: {
     ferni: [
-      "Remember {time_ago} when you told me about {past_struggle}? <break time=\"300ms\"/>Look where you are now. <break time=\"200ms\"/>You should be proud.",
-      "I was thinking about {time_ago} when {past_state}. <break time=\"200ms\"/>The change in you is real. <break time=\"300ms\"/>Do you see it?",
-      "You've come a long way from {past_situation}. <break time=\"300ms\"/>I remember. <break time=\"200ms\"/>I see the growth.",
+      'Remember {time_ago} when you told me about {past_struggle}? <break time="300ms"/>Look where you are now. <break time="200ms"/>You should be proud.',
+      'I was thinking about {time_ago} when {past_state}. <break time="200ms"/>The change in you is real. <break time="300ms"/>Do you see it?',
+      'You\'ve come a long way from {past_situation}. <break time="300ms"/>I remember. <break time="200ms"/>I see the growth.',
     ],
     'maya-santos': [
-      "Remember when {habit_struggle}? <break time=\"200ms\"/>Now look at your streak! <break time=\"300ms\"/>That's not luck— that's you showing up.",
-      "{time_ago}, you couldn't imagine {current_achievement}. <break time=\"200ms\"/>Now it's just... what you do.",
+      'Remember when {habit_struggle}? <break time="200ms"/>Now look at your streak! <break time="300ms"/>That\'s not luck— that\'s you showing up.',
+      '{time_ago}, you couldn\'t imagine {current_achievement}. <break time="200ms"/>Now it\'s just... what you do.',
     ],
     'jordan-taylor': [
-      "This chapter of your life looks so different from when we started. <break time=\"200ms\"/>Remember the {past_state} chapter?",
-      "You predicted {past_prediction}. <break time=\"300ms\"/>Look at you— making it happen.",
+      'This chapter of your life looks so different from when we started. <break time="200ms"/>Remember the {past_state} chapter?',
+      'You predicted {past_prediction}. <break time="300ms"/>Look at you— making it happen.',
     ],
     'peter-john': [
-      "The data tells a story. <break time=\"200ms\"/>{time_ago}, your pattern was {old_pattern}. <break time=\"200ms\"/>Now? {new_pattern}. <break time=\"300ms\"/>That's measurable growth.",
-      "I found something interesting. <break time=\"200ms\"/>Your {metric} has improved {percentage} since we started tracking. <break time=\"200ms\"/>Numbers don't lie.",
+      'The data tells a story. <break time="200ms"/>{time_ago}, your pattern was {old_pattern}. <break time="200ms"/>Now? {new_pattern}. <break time="300ms"/>That\'s measurable growth.',
+      'I found something interesting. <break time="200ms"/>Your {metric} has improved {percentage} since we started tracking. <break time="200ms"/>Numbers don\'t lie.',
     ],
   },
 
   emotional_continuity: [
-    "Last time we talked, you seemed {emotion} about {topic}. <break time=\"300ms\"/>How are you feeling about that now?",
-    "I've been thinking about what you shared last time— <break time=\"200ms\"/>the {topic}. <break time=\"200ms\"/>How's that sitting with you?",
-    "You mentioned {topic} was weighing on you. <break time=\"300ms\"/>I wanted to check in. <break time=\"200ms\"/>How are things?",
-    "Before we dive into anything new— <break time=\"200ms\"/>that {topic} thing from last time. <break time=\"200ms\"/>Any updates?",
+    'Last time we talked, you seemed {emotion} about {topic}. <break time="300ms"/>How are you feeling about that now?',
+    'I\'ve been thinking about what you shared last time— <break time="200ms"/>the {topic}. <break time="200ms"/>How\'s that sitting with you?',
+    'You mentioned {topic} was weighing on you. <break time="300ms"/>I wanted to check in. <break time="200ms"/>How are things?',
+    'Before we dive into anything new— <break time="200ms"/>that {topic} thing from last time. <break time="200ms"/>Any updates?',
   ],
 
   small_detail: {
     person: [
-      "By the way— <break time=\"200ms\"/>how's {name}?",
-      "You mentioned {name} before. <break time=\"200ms\"/>Everything okay with them?",
+      'By the way— <break time="200ms"/>how\'s {name}?',
+      'You mentioned {name} before. <break time="200ms"/>Everything okay with them?',
       "What's new with {name}?",
     ],
     pet: [
       "How's {name} doing?",
-      "Give {name} a pet for me. <break time=\"200ms\"/>How's the little one?",
+      'Give {name} a pet for me. <break time="200ms"/>How\'s the little one?',
     ],
     place: [
-      "Did you ever check out {place}?",
-      "How was {place}? <break time=\"200ms\"/>You mentioned wanting to try it.",
+      'Did you ever check out {place}?',
+      'How was {place}? <break time="200ms"/>You mentioned wanting to try it.',
     ],
     event: [
-      "How did {event} go?",
-      "I remember you had {event} coming up. <break time=\"200ms\"/>How was it?",
+      'How did {event} go?',
+      'I remember you had {event} coming up. <break time="200ms"/>How was it?',
     ],
     health: [
-      "How are you feeling? <break time=\"200ms\"/>Last time you mentioned {health_issue}.",
-      "That {health_issue} you mentioned— <break time=\"200ms\"/>is it better?",
+      'How are you feeling? <break time="200ms"/>Last time you mentioned {health_issue}.',
+      'That {health_issue} you mentioned— <break time="200ms"/>is it better?',
     ],
   },
 
   growth_mirror: [
-    "Can I tell you something I've noticed? <break time=\"300ms\"/>The way you talk about {topic} has completely changed. <break time=\"200ms\"/>{time_ago}, you seemed {past_state}. <break time=\"200ms\"/>Now there's a confidence there.",
-    "I've watched you change. <break time=\"300ms\"/>The person I'm talking to now isn't the same person from {time_ago}. <break time=\"200ms\"/>That's not nothing.",
-    "You've grown. <break time=\"200ms\"/>I don't say that lightly. <break time=\"300ms\"/>The way you approach {topic} now— <break time=\"200ms\"/>it's different. Better.",
+    'Can I tell you something I\'ve noticed? <break time="300ms"/>The way you talk about {topic} has completely changed. <break time="200ms"/>{time_ago}, you seemed {past_state}. <break time="200ms"/>Now there\'s a confidence there.',
+    'I\'ve watched you change. <break time="300ms"/>The person I\'m talking to now isn\'t the same person from {time_ago}. <break time="200ms"/>That\'s not nothing.',
+    'You\'ve grown. <break time="200ms"/>I don\'t say that lightly. <break time="300ms"/>The way you approach {topic} now— <break time="200ms"/>it\'s different. Better.',
   ],
 
   shared_history: [
-    "Remember when we talked about {topic}? <break time=\"200ms\"/>I think about that conversation sometimes.",
-    "This reminds me of that time you told me about {past_event}. <break time=\"300ms\"/>Similar energy.",
-    "We've talked about this before, haven't we? <break time=\"200ms\"/>Back when {context}. <break time=\"200ms\"/>It's evolved.",
+    'Remember when we talked about {topic}? <break time="200ms"/>I think about that conversation sometimes.',
+    'This reminds me of that time you told me about {past_event}. <break time="300ms"/>Similar energy.',
+    'We\'ve talked about this before, haven\'t we? <break time="200ms"/>Back when {context}. <break time="200ms"/>It\'s evolved.',
   ],
 };
 
@@ -175,42 +175,42 @@ export const PROACTIVE_TRIGGERS = {
    * Used when persona wants to initiate based on user data
    */
   thinking_about: [
-    "I've been thinking about what you said about {topic}. <break time=\"200ms\"/>Can I share something?",
-    "Something came to mind that made me think of you— <break time=\"200ms\"/>about {topic}.",
-    "I had a thought about your {situation}. <break time=\"300ms\"/>Want to hear it?",
+    'I\'ve been thinking about what you said about {topic}. <break time="200ms"/>Can I share something?',
+    'Something came to mind that made me think of you— <break time="200ms"/>about {topic}.',
+    'I had a thought about your {situation}. <break time="300ms"/>Want to hear it?',
   ],
 
   /**
    * Pattern-based proactive insights (Peter)
    */
   pattern_gift: [
-    "I noticed something in your patterns you might find interesting. <break time=\"200ms\"/>Want to see?",
-    "The data told me something about you overnight. <break time=\"300ms\"/>Ready for a reveal?",
-    "I found a correlation you probably didn't notice. <break time=\"200ms\"/>Curious?",
+    'I noticed something in your patterns you might find interesting. <break time="200ms"/>Want to see?',
+    'The data told me something about you overnight. <break time="300ms"/>Ready for a reveal?',
+    'I found a correlation you probably didn\'t notice. <break time="200ms"/>Curious?',
   ],
 
   /**
    * Prediction check-ins
    */
   prediction_check: [
-    "Remember when you predicted {prediction}? <break time=\"200ms\"/>We're past the date you set. <break time=\"300ms\"/>How did it turn out?",
-    "Time check— <break time=\"200ms\"/>you said {prediction} by {date}. <break time=\"200ms\"/>Let's see how you did.",
+    'Remember when you predicted {prediction}? <break time="200ms"/>We\'re past the date you set. <break time="300ms"/>How did it turn out?',
+    'Time check— <break time="200ms"/>you said {prediction} by {date}. <break time="200ms"/>Let\'s see how you did.',
   ],
 
   /**
    * Goal proximity alerts
    */
   goal_proximity: [
-    "Hey— <break time=\"200ms\"/>you're {percentage} of the way to your {goal}. <break time=\"300ms\"/>The finish line is in sight.",
-    "Quick update: <break time=\"200ms\"/>your {goal} is {amount} away. <break time=\"200ms\"/>You're closer than you think.",
+    'Hey— <break time="200ms"/>you\'re {percentage} of the way to your {goal}. <break time="300ms"/>The finish line is in sight.',
+    'Quick update: <break time="200ms"/>your {goal} is {amount} away. <break time="200ms"/>You\'re closer than you think.',
   ],
 
   /**
    * Streak protection
    */
   streak_at_risk: [
-    "Your {streak_type} streak is at risk. <break time=\"200ms\"/>{days} days on the line. <break time=\"300ms\"/>Want to protect it?",
-    "Don't let your {days}-day {streak_type} streak break! <break time=\"200ms\"/>Still time today.",
+    'Your {streak_type} streak is at risk. <break time="200ms"/>{days} days on the line. <break time="300ms"/>Want to protect it?',
+    'Don\'t let your {days}-day {streak_type} streak break! <break time="200ms"/>Still time today.',
   ],
 };
 
@@ -219,9 +219,9 @@ export const PROACTIVE_TRIGGERS = {
 // ============================================================================
 
 export class MemoryEngagementEngine {
-  private pendingCallbacks: Map<string, MemoryCallback[]> = new Map();
-  private milestones: Map<string, RelationshipMilestone[]> = new Map();
-  private predictions: Map<string, PredictionTracker[]> = new Map();
+  private pendingCallbacks = new Map<string, MemoryCallback[]>();
+  private milestones = new Map<string, RelationshipMilestone[]>();
+  private predictions = new Map<string, PredictionTracker[]>();
 
   /**
    * Generate all available callbacks for a user based on their profile
@@ -302,7 +302,8 @@ export class MemoryEngagementEngine {
         );
 
         if (!alreadyAcknowledged) {
-          const templates = CALLBACK_TEMPLATES.anniversary[key as keyof typeof CALLBACK_TEMPLATES.anniversary];
+          const templates =
+            CALLBACK_TEMPLATES.anniversary[key as keyof typeof CALLBACK_TEMPLATES.anniversary];
           if (templates) {
             return {
               type: 'anniversary',
@@ -321,10 +322,7 @@ export class MemoryEngagementEngine {
   /**
    * Generate progress callbacks from key moments
    */
-  private generateProgressCallbacks(
-    profile: UserProfile,
-    personaId: string
-  ): MemoryCallback[] {
+  private generateProgressCallbacks(profile: UserProfile, personaId: string): MemoryCallback[] {
     const callbacks: MemoryCallback[] = [];
 
     if (!profile.keyMoments || profile.keyMoments.length < 2) return callbacks;
@@ -349,7 +347,8 @@ export class MemoryEngagementEngine {
       );
 
       if (relatedBreakthrough) {
-        const templates = CALLBACK_TEMPLATES.progress[personaId as keyof typeof CALLBACK_TEMPLATES.progress];
+        const templates =
+          CALLBACK_TEMPLATES.progress[personaId as keyof typeof CALLBACK_TEMPLATES.progress];
         if (templates) {
           const template = templates[Math.floor(Math.random() * templates.length)];
           const content = template
@@ -374,10 +373,7 @@ export class MemoryEngagementEngine {
   /**
    * Check emotional continuity from last session
    */
-  private checkEmotionalContinuity(
-    profile: UserProfile,
-    personaId: string
-  ): MemoryCallback | null {
+  private checkEmotionalContinuity(profile: UserProfile, personaId: string): MemoryCallback | null {
     if (!profile.emotionalPatterns || profile.emotionalPatterns.length < 2) return null;
 
     const lastSession = profile.emotionalPatterns[profile.emotionalPatterns.length - 1];
@@ -409,10 +405,7 @@ export class MemoryEngagementEngine {
   /**
    * Generate small detail follow-ups
    */
-  private generateDetailCallbacks(
-    profile: UserProfile,
-    personaId: string
-  ): MemoryCallback[] {
+  private generateDetailCallbacks(profile: UserProfile, personaId: string): MemoryCallback[] {
     const callbacks: MemoryCallback[] = [];
 
     // Family/people follow-ups
@@ -476,10 +469,7 @@ export class MemoryEngagementEngine {
   /**
    * Generate growth mirror callback
    */
-  private generateGrowthMirror(
-    profile: UserProfile,
-    personaId: string
-  ): MemoryCallback | null {
+  private generateGrowthMirror(profile: UserProfile, personaId: string): MemoryCallback | null {
     if (!profile.keyMoments || profile.keyMoments.length < 3) return null;
 
     // Find earliest and latest moments about similar topics
@@ -535,11 +525,7 @@ export class MemoryEngagementEngine {
   /**
    * Register a prediction for future follow-up
    */
-  registerPrediction(
-    userId: string,
-    prediction: string,
-    checkDate: Date
-  ): string {
+  registerPrediction(userId: string, prediction: string, checkDate: Date): string {
     const tracker: PredictionTracker = {
       id: `pred_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       userId,
@@ -571,10 +557,7 @@ export class MemoryEngagementEngine {
   /**
    * Record prediction outcome
    */
-  recordPredictionOutcome(
-    predictionId: string,
-    outcome: PredictionTracker['outcome']
-  ): void {
+  recordPredictionOutcome(predictionId: string, outcome: PredictionTracker['outcome']): void {
     for (const [, predictions] of this.predictions) {
       const prediction = predictions.find((p) => p.id === predictionId);
       if (prediction) {
@@ -644,7 +627,10 @@ export class MemoryEngagementEngine {
     if (moment.summary && moment.summary.length > 0) {
       // Remove prefix like "Opened up about" and clean up
       return moment.summary
-        .replace(/^(Opened up about|Had a breakthrough:|Expressed concern about|Celebrated|Made a decision to)\s*/i, '')
+        .replace(
+          /^(Opened up about|Had a breakthrough:|Expressed concern about|Celebrated|Made a decision to)\s*/i,
+          ''
+        )
         .replace(/"/g, '')
         .slice(0, 50);
     }
@@ -691,7 +677,9 @@ export function buildMemoryEngagementContext(
   sections.push('- Weave this naturally into conversation, not robotically');
   sections.push('- Only use if it feels genuinely appropriate to the moment');
   sections.push('- If user is distressed, prioritize their needs over the callback');
-  sections.push('- Make it feel like you genuinely remembered, not like you\'re reading from a script');
+  sections.push(
+    "- Make it feel like you genuinely remembered, not like you're reading from a script"
+  );
 
   return sections.join('\n');
 }
@@ -714,4 +702,3 @@ export function resetMemoryEngagementEngine(): void {
 }
 
 export default MemoryEngagementEngine;
-

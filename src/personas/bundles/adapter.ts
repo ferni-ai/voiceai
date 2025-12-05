@@ -33,10 +33,7 @@ import {
   registerBundleGoodbyes,
   registerBundleStorytelling,
 } from '../theatrical.js';
-import {
-  registerBundleHumanization,
-} from '../../conversation/humanizing-config.js';
-
+import { registerBundleHumanization } from '../../conversation/humanizing-config.js';
 
 // ============================================================================
 // HELPER FUNCTIONS FOR TYPE CONVERSION
@@ -47,12 +44,12 @@ import {
  */
 function extractCatchphrases(catchphrases: BundleBehaviors['catchphrases']): string[] {
   if (!catchphrases) return [];
-  
+
   // Legacy array format
   if (Array.isArray(catchphrases)) {
     return catchphrases;
   }
-  
+
   // New structured format - extract from catchphrases array
   const result: string[] = [];
   if (catchphrases.catchphrases) {
@@ -60,14 +57,14 @@ function extractCatchphrases(catchphrases: BundleBehaviors['catchphrases']): str
       result.push(cp.phrase);
     }
   }
-  
+
   // Also include natural_responses if available
   if (catchphrases.natural_responses) {
     for (const phrases of Object.values(catchphrases.natural_responses)) {
       result.push(...phrases.slice(0, 2)); // Add first 2 from each category
     }
   }
-  
+
   return result;
 }
 
@@ -75,19 +72,15 @@ function extractCatchphrases(catchphrases: BundleBehaviors['catchphrases']): str
  * Extract thinking sounds from either array format or structured format
  */
 function extractThinkingSounds(thinkingSounds: BundleBehaviors['thinking_sounds']): string[] {
-  const defaults = [
-    'Let me think about that...',
-    'Hmm, good question.',
-    "Here's how I see it...",
-  ];
-  
+  const defaults = ['Let me think about that...', 'Hmm, good question.', "Here's how I see it..."];
+
   if (!thinkingSounds) return defaults;
-  
+
   // Legacy array format
   if (Array.isArray(thinkingSounds)) {
     return thinkingSounds.length > 0 ? thinkingSounds : defaults;
   }
-  
+
   // New structured format - combine thinking and processing
   const result: string[] = [];
   if (thinkingSounds.thinking) {
@@ -99,7 +92,7 @@ function extractThinkingSounds(thinkingSounds: BundleBehaviors['thinking_sounds'
   if (thinkingSounds.transition) {
     result.push(...thinkingSounds.transition);
   }
-  
+
   return result.length > 0 ? result : defaults;
 }
 
@@ -111,7 +104,7 @@ function extractThinkingSounds(thinkingSounds: BundleBehaviors['thinking_sounds'
  * Convert a loaded bundle to PersonaConfig
  */
 export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promise<PersonaConfig> {
-  const manifest = bundle.manifest;
+  const { manifest } = bundle;
   const behaviors = await bundle.getBehaviors();
   const stories = await bundle.getAllStories();
 
@@ -244,7 +237,7 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
   // 1. Direct array: behaviors.pet_peeves = [{peeve, response}, ...]
   // 2. Object wrapper: behaviors.pet_peeves = { pet_peeves: [{peeve, response}, ...], ... }
   let petPeevesArray: Array<{ peeve?: string; triggers?: string[]; response: string }> = [];
-  
+
   if (behaviors.pet_peeves) {
     if (Array.isArray(behaviors.pet_peeves)) {
       // Direct array format
@@ -257,7 +250,7 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
       }
     }
   }
-  
+
   const petPeeves: PetPeeveConfig[] = petPeevesArray.map((pp) => ({
     // Handle both 'peeve' (new format) and 'triggers' (old format) field names
     triggers: pp.triggers || (pp.peeve ? [pp.peeve] : []),

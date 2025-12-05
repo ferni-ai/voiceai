@@ -23,7 +23,7 @@ const mockFerniPersona: PersonaConfig = {
     greetingStyle: 'warm-friend',
     tone: 'conversational',
     personalityTraits: ['warm', 'curious', 'grounded'],
-    catchphrases: ['What\'s on your mind?'],
+    catchphrases: ["What's on your mind?"],
     emotionalRange: {
       baseline: 'warm',
       excited: 'enthusiastic',
@@ -45,8 +45,8 @@ function createMockRuntime(overrides: Partial<BundleRuntimeEngine> = {}): Bundle
     loadInnerWorld: vi.fn().mockResolvedValue(undefined),
     getCaughtDoing: vi.fn().mockReturnValue('just refilling my coffee... again'),
     getHabit: vi.fn().mockReturnValue('I drink too much coffee. My wife says so anyway.'),
-    getGuiltyPleasure: vi.fn().mockReturnValue('I watch too much golf on TV. It\'s hypnotic.'),
-    getWeakness: vi.fn().mockReturnValue('I\'m terrible at small talk.'),
+    getGuiltyPleasure: vi.fn().mockReturnValue("I watch too much golf on TV. It's hypnotic."),
+    getWeakness: vi.fn().mockReturnValue("I'm terrible at small talk."),
     getStrongOpinion: vi.fn().mockReturnValue('Morning is the best time of day.'),
     getRechargeMethod: vi.fn().mockReturnValue('A quiet morning with coffee and a notebook'),
     hasQuirks: vi.fn().mockReturnValue(true),
@@ -59,7 +59,9 @@ describe('Alive Greetings', () => {
   describe('Time Context', () => {
     it('should correctly identify time of day', () => {
       const timeOfDay = getTimeOfDay();
-      expect(['early_morning', 'morning', 'afternoon', 'evening', 'late_night']).toContain(timeOfDay);
+      expect(['early_morning', 'morning', 'afternoon', 'evening', 'late_night']).toContain(
+        timeOfDay
+      );
     });
 
     it('should get day context', () => {
@@ -125,9 +127,12 @@ describe('Alive Greetings', () => {
 
       expect(result?.components).toBeDefined();
       expect(result?.style).toBeDefined();
-      expect(['caught_moment', 'warm_recognition', 'curious_stranger', 'physical_awareness']).toContain(
-        result?.style
-      );
+      expect([
+        'caught_moment',
+        'warm_recognition',
+        'curious_stranger',
+        'physical_awareness',
+      ]).toContain(result?.style);
     });
 
     it('should adapt greeting depth based on relationship stage', async () => {
@@ -269,7 +274,10 @@ describe('Alive Greetings', () => {
 
 // Helper function to match the one in alive-greetings.ts
 function simpleHash(str: string): string {
-  const clean = str.replace(/<[^>]+>/g, '').toLowerCase().trim();
+  const clean = str
+    .replace(/<[^>]+>/g, '')
+    .toLowerCase()
+    .trim();
   let hash = 0;
   for (let i = 0; i < clean.length; i++) {
     const char = clean.charCodeAt(i);
@@ -278,4 +286,3 @@ function simpleHash(str: string): string {
   }
   return hash.toString(36);
 }
-

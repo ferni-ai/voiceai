@@ -38,28 +38,28 @@ async function getHandoffEvents() {
 // Mock the voice registry - must define mappings inline due to vi.mock hoisting
 vi.mock('../../../personas/voice-registry.js', () => {
   const canonicalMapping: Record<string, string> = {
-    'peter': 'peter-john',
+    peter: 'peter-john',
     'peter-john': 'peter-john',
-    'maya': 'maya-santos',
+    maya: 'maya-santos',
     'maya-santos': 'maya-santos',
-    'alex': 'alex-chen',
+    alex: 'alex-chen',
     'alex-chen': 'alex-chen',
-    'jordan': 'jordan-taylor',
+    jordan: 'jordan-taylor',
     'jordan-taylor': 'jordan-taylor',
     'nayan-patel': 'nayan-patel',
-    'ferni': 'ferni',
+    ferni: 'ferni',
     'jack-b': 'ferni',
   };
-  
+
   const displayNames: Record<string, string> = {
     'peter-john': 'Peter John',
     'maya-santos': 'Maya Santos',
     'alex-chen': 'Alex Chen',
     'jordan-taylor': 'Jordan Taylor',
     'nayan-patel': 'Nayan Patel',
-    'ferni': 'Ferni',
+    ferni: 'Ferni',
   };
-  
+
   return {
     getCanonicalPersonaId: (id: string) => canonicalMapping[id] || id,
     getPersonaDisplayName: (id: string) => displayNames[id] || id,
@@ -96,19 +96,19 @@ vi.mock('../../../personas/alive-entrances.js', () => ({
 // Mock agent directory (used by state.js)
 vi.mock('../../../personas/agent-directory.js', () => {
   const canonicalMapping: Record<string, string> = {
-    'peter': 'peter-john',
+    peter: 'peter-john',
     'peter-john': 'peter-john',
-    'maya': 'maya-santos',
+    maya: 'maya-santos',
     'maya-santos': 'maya-santos',
-    'alex': 'alex-chen',
+    alex: 'alex-chen',
     'alex-chen': 'alex-chen',
-    'jordan': 'jordan-taylor',
+    jordan: 'jordan-taylor',
     'jordan-taylor': 'jordan-taylor',
     'nayan-patel': 'nayan-patel',
-    'ferni': 'ferni',
+    ferni: 'ferni',
     'jack-b': 'ferni',
   };
-  
+
   return {
     AgentDirectory: {
       initialize: vi.fn().mockResolvedValue(undefined),
@@ -374,8 +374,22 @@ describe('Handoff Factory', () => {
 
     // Mock the AgentRegistry to return test agents
     const mockAgents = [
-      { id: 'peter-john', name: 'Peter', roleDescription: 'Research', isCoordinator: false, enabled: true, handoffTriggers: ['stocks'] },
-      { id: 'ferni', name: 'Ferni', roleDescription: 'Coach', isCoordinator: true, enabled: true, handoffTriggers: [] },
+      {
+        id: 'peter-john',
+        name: 'Peter',
+        roleDescription: 'Research',
+        isCoordinator: false,
+        enabled: true,
+        handoffTriggers: ['stocks'],
+      },
+      {
+        id: 'ferni',
+        name: 'Ferni',
+        roleDescription: 'Coach',
+        isCoordinator: true,
+        enabled: true,
+        handoffTriggers: [],
+      },
     ];
 
     vi.doMock('../../../personas/registry/unified-registry.js', () => ({
@@ -390,4 +404,3 @@ describe('Handoff Factory', () => {
     expect(buildHandoffTools).toBeDefined();
   });
 });
-

@@ -42,7 +42,7 @@ export function getVerbalBackchannel(
   if (userMessageLength < 30) return null;
   if (Math.random() > 0.4) return null;
 
-  const backchannels = persona.communication.backchannels;
+  const { backchannels } = persona.communication;
 
   if (emotion === 'sadness' || emotion === 'fear' || emotion === 'anxiety') {
     return backchannels.empathetic[Math.floor(Math.random() * backchannels.empathetic.length)];
@@ -87,7 +87,7 @@ export function getSelfCorrection(persona: PersonaConfig): string {
  * Get trailing off phrase
  */
 export function getTrailingOff(persona: PersonaConfig): string {
-  const trailingOffs = persona.communication.trailingOffs;
+  const { trailingOffs } = persona.communication;
   return trailingOffs[Math.floor(Math.random() * trailingOffs.length)];
 }
 
@@ -158,7 +158,7 @@ export function getRelevantStory(persona: PersonaConfig, text: string): string |
 // ============================================================================
 
 // Cache for story embeddings (persona-id -> story-id -> embedding)
-const storyEmbeddingCache: Map<string, Map<string, number[]>> = new Map();
+const storyEmbeddingCache = new Map<string, Map<string, number[]>>();
 
 /**
  * Find a semantically relevant story using embeddings
@@ -173,7 +173,7 @@ const storyEmbeddingCache: Map<string, Map<string, number[]>> = new Map();
 export async function findSemanticStory(
   persona: PersonaConfig,
   userText: string,
-  threshold: number = 0.65,
+  threshold = 0.65,
   excludeStoryIds: string[] = []
 ): Promise<{ story: StoryConfig; similarity: number } | null> {
   if (!persona.stories || persona.stories.length === 0) return null;
@@ -570,17 +570,17 @@ export function getReturningUserWarmth(
   if (lastSummary) {
     const summaryPiece = lastSummary.split('.')[0];
     const warmIntros = [
-      `${name ? name + ', ' : ''}so glad you're back. I've been thinking about what we discussed—${summaryPiece.toLowerCase()}.`,
-      `Well, look who it is! ${name ? name + ', ' : ''}Last time we talked about ${summaryPiece.toLowerCase()}. How's that going?`,
-      `${name ? 'Hey ' + name + '. ' : ''}Good to hear from you again. After our last chat, I wondered how you were doing.`,
+      `${name ? `${name}, ` : ''}so glad you're back. I've been thinking about what we discussed—${summaryPiece.toLowerCase()}.`,
+      `Well, look who it is! ${name ? `${name}, ` : ''}Last time we talked about ${summaryPiece.toLowerCase()}. How's that going?`,
+      `${name ? `Hey ${name}. ` : ''}Good to hear from you again. After our last chat, I wondered how you were doing.`,
     ];
     return warmIntros[Math.floor(Math.random() * warmIntros.length)];
   }
 
   const warmGenerics = [
-    `${name ? name + '! ' : ''}Good to have you back. I was hoping we'd talk again.`,
+    `${name ? `${name}! ` : ''}Good to have you back. I was hoping we'd talk again.`,
     `Ah, ${name ? name : 'there you are'}! Always nice to continue a conversation.`,
-    `${name ? name + ', ' : ''}Welcome back. I remember our talks. What's on your mind today?`,
+    `${name ? `${name}, ` : ''}Welcome back. I remember our talks. What's on your mind today?`,
   ];
   return warmGenerics[Math.floor(Math.random() * warmGenerics.length)];
 }

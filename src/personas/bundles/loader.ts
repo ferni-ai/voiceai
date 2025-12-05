@@ -12,7 +12,6 @@ import { readFile, readdir, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
 
-
 import type {
   PersonaBundleManifest,
   LoadedPersonaBundle,
@@ -34,7 +33,6 @@ import type {
   BundlePromptAssembly,
 } from './types.js';
 
-
 // ============================================================================
 // BUNDLE CACHE
 // ============================================================================
@@ -42,7 +40,7 @@ import type {
 /**
  * Global bundle cache for static persona content.
  * FIX BUG #bundle-2 & #bundle-3: Added cache metadata for invalidation.
- * 
+ *
  * NOTE: Bundle content (manifest, stories, knowledge) is read-only and safe to cache globally.
  * Session-specific state (relationship turns, stories told) should use SessionBundleRuntimeManager.
  */
@@ -74,8 +72,9 @@ function evictOldestEntries(): void {
   if (bundleCache.size <= MAX_BUNDLE_CACHE_SIZE) return;
 
   // Sort by lastAccessed, remove oldest
-  const entries = Array.from(bundleCache.entries())
-    .sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed);
+  const entries = Array.from(bundleCache.entries()).sort(
+    ([, a], [, b]) => a.lastAccessed - b.lastAccessed
+  );
 
   const toRemove = entries.slice(0, bundleCache.size - MAX_BUNDLE_CACHE_SIZE);
   for (const [path] of toRemove) {
@@ -100,7 +99,7 @@ const warnedEnvVars = new Set<string>();
  * Supports:
  *   ${env:MY_VAR}              - returns env var or empty string
  *   ${env:MY_VAR|default}      - returns env var or default value
- * 
+ *
  * FIX BUG #bundle-14: Only log warning once per missing env var
  */
 function substituteEnvVars(value: string): string {
@@ -117,7 +116,10 @@ function substituteEnvVars(value: string): string {
     // FIX BUG #bundle-14: Only warn once per env var to prevent log spam
     if (!warnedEnvVars.has(varName)) {
       warnedEnvVars.add(varName);
-      getLogger().warn({ varName }, `Environment variable ${varName} not found and no default provided`);
+      getLogger().warn(
+        { varName },
+        `Environment variable ${varName} not found and no default provided`
+      );
     }
     return '';
   });
@@ -184,7 +186,7 @@ export async function loadBundle(
     cached.lastAccessed = Date.now();
     return cached.bundle;
   }
-  
+
   // Remove stale entry if exists
   if (cached) {
     bundleCache.delete(bundlePath);
@@ -220,7 +222,7 @@ export async function loadBundle(
   let promptAssemblyCache: BundlePromptAssembly | null = null;
 
   // Reload callbacks
-  const reloadCallbacks: Set<() => void> = new Set();
+  const reloadCallbacks = new Set<() => void>();
 
   // Load story index if exists
   async function loadStoryIndex(): Promise<StoryIndex | null> {
@@ -320,8 +322,10 @@ export async function loadBundle(
         s.triggers.some((t) => {
           const normalizedStoryTrigger = t.toLowerCase().trim();
           // Bidirectional matching for flexibility
-          return normalizedTrigger.includes(normalizedStoryTrigger) ||
-                 normalizedStoryTrigger.includes(normalizedTrigger);
+          return (
+            normalizedTrigger.includes(normalizedStoryTrigger) ||
+            normalizedStoryTrigger.includes(normalizedTrigger)
+          );
         })
       );
 
@@ -534,8 +538,9 @@ export async function loadBundle(
       // Load relationship transitions
       const relationshipTransitionsPath = join(behaviorsPath, 'relationship-transitions.json');
       if (await fileExists(relationshipTransitionsPath)) {
-        behaviors.relationship_transitions =
-          await loadJsonFile<BundleBehaviors['relationship_transitions']>(relationshipTransitionsPath);
+        behaviors.relationship_transitions = await loadJsonFile<
+          BundleBehaviors['relationship_transitions']
+        >(relationshipTransitionsPath);
       }
 
       behaviorsCache = behaviors;
@@ -788,7 +793,7 @@ export function clearBundleCache(bundleId?: string): void {
  * Get all cached bundles
  */
 export function getCachedBundles(): LoadedPersonaBundle[] {
-  return Array.from(bundleCache.values()).map(entry => entry.bundle);
+  return Array.from(bundleCache.values()).map((entry) => entry.bundle);
 }
 
 /**
@@ -800,7 +805,7 @@ export function getBundleCacheStats(): {
 } {
   return {
     size: bundleCache.size,
-    entries: Array.from(bundleCache.values()).map(entry => ({
+    entries: Array.from(bundleCache.values()).map((entry) => ({
       bundleId: entry.bundle.manifest.identity.id,
       loadedAt: new Date(entry.loadedAt),
       lastAccessed: new Date(entry.lastAccessed),

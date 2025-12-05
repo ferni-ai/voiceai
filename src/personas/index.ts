@@ -47,7 +47,7 @@ import { WELLNESS_COACH_PERSONA } from './wellness-coach/index.js';
 // ============================================================================
 
 // Re-export types
-export * from './types.js';
+export type * from './types.js';
 
 // Voice Registry - single source of truth for voice IDs and persona ID normalization
 export {

@@ -98,7 +98,9 @@ const alignActionsWithPurposeDef: ToolDefinition = {
         'Help the user examine how well their current actions and choices align with their sense of purpose.',
       parameters: z.object({
         statedPurpose: z.string().describe('What they believe their purpose to be'),
-        areaToExamine: z.enum(['work', 'time', 'relationships', 'energy', 'money']).describe('Area to examine'),
+        areaToExamine: z
+          .enum(['work', 'time', 'relationships', 'energy', 'money'])
+          .describe('Area to examine'),
       }),
       execute: async ({ statedPurpose, areaToExamine }) => {
         getLogger().info({ agentId: ctx.agentId, areaToExamine }, 'Checking purpose alignment');
@@ -235,7 +237,7 @@ const valueConflictResolutionDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, value1, value2 }, 'Resolving value conflict');
 
         let response = `Value conflicts are some of the hardest decisions because there's no "wrong" choice - just trade-offs.\n\n`;
-        
+
         response += `**Your tension:** ${value1} vs. ${value2}\n`;
         response += `**The situation:** ${situation}\n\n`;
 
@@ -293,17 +295,19 @@ const sitWithBigQuestionDef: ToolDefinition = {
 
         const reflections: Record<string, string> = {
           'why-am-i-here': `"Why am I here?" has been asked by every human who ever lived. You're in ancient company.\n\nSome find answers in service to others. Some in creative expression. Some in love. Some in God. Some in simply being alive to the mystery.\n\nWhat if the question itself is the point? The asking opens us. What does asking this question stir in you?`,
-          
+
           'what-happens-when-we-die': `This question has shaped religions, philosophies, and countless lives.\n\nSome find comfort in continuation - heaven, reincarnation, energy returning to the universe. Some find peace in finitude - making this life matter because it's the only one. Some find it beautiful to simply not know.\n\nWhat feels true to you? And how does your answer change how you want to live?`,
-          
+
           'does-anything-matter': `When we zoom out far enough, we're tiny. And that can feel crushing or liberating.\n\nMaybe nothing matters cosmically. And maybe everything matters personally - your love, your kindness, your presence. Maybe meaning isn't found, but made.\n\nWhat would you *want* to matter?`,
-          
+
           'what-is-the-point': `"The point" might be different for everyone. Or there might not be "a" point at all.\n\nBut here's what I notice: you're still asking. There's something in you that wants there to be a point, that reaches for meaning. That reaching itself might be the most human thing there is.\n\nWhat would make life feel meaningful to you?`,
-          
+
           'am-i-living-right': `This question can be a gift or a burden. It depends on where it comes from.\n\nIf it comes from growth - a desire to live more fully, more authentically - that's beautiful.\n\nIf it comes from shame - a sense you're failing some standard - be gentle with yourself.\n\nNo one figures it out completely. We're all improvising. What would "living right" look like to you?`,
         };
 
-        response += reflections[question] || `"${customQuestion}"\n\nThat's a profound question. What stirred it? And what would help - sitting with it together, exploring different perspectives, or something else?`;
+        response +=
+          reflections[question] ||
+          `"${customQuestion}"\n\nThat's a profound question. What stirred it? And what would help - sitting with it together, exploring different perspectives, or something else?`;
 
         return response;
       },
@@ -464,7 +468,10 @@ const spiritualPracticeSupportDef: ToolDefinition = {
           .describe('What support they need'),
       }),
       execute: async ({ practiceType, need }) => {
-        getLogger().info({ agentId: ctx.agentId, practiceType, need }, 'Supporting spiritual practice');
+        getLogger().info(
+          { agentId: ctx.agentId, practiceType, need },
+          'Supporting spiritual practice'
+        );
 
         let response = '';
 
@@ -521,8 +528,7 @@ const exploreLifePhilosophyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user explore different life philosophies and find what resonates.',
+      description: 'Help the user explore different life philosophies and find what resonates.',
       parameters: z.object({
         interest: z
           .enum(['stoicism', 'buddhism', 'existentialism', 'humanism', 'taoism', 'explore-many'])
@@ -533,15 +539,15 @@ const exploreLifePhilosophyDef: ToolDefinition = {
 
         const philosophies: Record<string, string> = {
           stoicism: `**Stoicism** - The ancient art of resilience\n\n"You have power over your mind, not outside events. Realize this, and you will find strength." - Marcus Aurelius\n\n**Core ideas:**\n- Focus on what you can control, accept what you can't\n- Our judgments, not events, create our suffering\n- Virtue is the highest good\n- We're all connected, part of a larger whole\n\n**Practices:**\n- Morning reflection on potential challenges\n- Evening review of how you responded to the day\n- Negative visualization (appreciating what you have)\n- Voluntary discomfort (building resilience)\n\nDoes this resonate with you?`,
-          
+
           buddhism: `**Buddhism** - The path of awakening\n\n"Pain is inevitable; suffering is optional."\n\n**Core ideas:**\n- Life involves suffering (dukkha)\n- Suffering comes from attachment and craving\n- Freedom from suffering is possible\n- The path involves wisdom, ethics, and meditation\n\n**Practices:**\n- Meditation (various forms)\n- Mindfulness in daily life\n- Compassion for self and others\n- Non-attachment to outcomes\n\nDoes this path call to you?`,
-          
+
           existentialism: `**Existentialism** - Radical freedom and responsibility\n\n"Man is condemned to be free." - Sartre\n\n**Core ideas:**\n- Existence precedes essence (you create your own meaning)\n- Freedom is absolute, and so is responsibility\n- Anxiety arises from freedom and finitude\n- Authenticity means living true to yourself\n\n**What it asks of you:**\n- Don't hide behind roles or expectations\n- Create meaning; don't wait to find it\n- Face mortality honestly\n- Own your choices completely\n\nDoes this resonate?`,
-          
+
           humanism: `**Humanism** - Human flourishing without supernatural claims\n\n"The only meaning of life is whatever meaning you can give it."\n\n**Core ideas:**\n- Human beings have inherent dignity and worth\n- Ethics can be grounded in reason and compassion\n- This life is what we have; make it count\n- Progress is possible through human effort\n\n**What it offers:**\n- A grounded, evidence-based worldview\n- Ethics based on well-being, not authority\n- Community and belonging without creed\n- Celebrating human achievement and potential\n\nDoes this worldview fit you?`,
-          
+
           taoism: `**Taoism** - The way of flow and harmony\n\n"Nature does not hurry, yet everything is accomplished." - Lao Tzu\n\n**Core ideas:**\n- The Tao (way) is the natural order of things\n- Wu wei: effortless action, going with the flow\n- Balance of opposites (yin/yang)\n- Simplicity and naturalness\n\n**Practices:**\n- Observing nature for wisdom\n- Letting go of forcing and striving\n- Embracing paradox and mystery\n- Cultivating stillness\n\nDoes this resonate with you?`,
-          
+
           'explore-many': `Each philosophy offers a different lens:\n\n- **Stoicism**: Focus on what you control; build resilience\n- **Buddhism**: Understand suffering; cultivate presence\n- **Existentialism**: Embrace freedom; create meaning\n- **Humanism**: Celebrate humanity; ground in reason\n- **Taoism**: Flow with nature; embrace simplicity\n\nYou don't have to pick one. Many people find wisdom across traditions.\n\nWhich calls to you? Or what questions are you trying to answer?`,
         };
 
@@ -636,7 +642,9 @@ const findMeaningInWorkDef: ToolDefinition = {
     return llm.tool({
       description: 'Help the user find or create meaning in their work.',
       parameters: z.object({
-        workSituation: z.enum(['love-it', 'tolerate-it', 'hate-it', 'searching', 'unsure']).describe('Current relationship with work'),
+        workSituation: z
+          .enum(['love-it', 'tolerate-it', 'hate-it', 'searching', 'unsure'])
+          .describe('Current relationship with work'),
         jobDescription: z.string().optional().describe('What they do'),
       }),
       execute: async ({ workSituation, jobDescription }) => {
@@ -703,7 +711,10 @@ const dailyMeaningPracticeDef: ToolDefinition = {
         durationMinutes: z.number().optional().describe('How much time they have'),
       }),
       execute: async ({ timeOfDay, durationMinutes = 5 }) => {
-        getLogger().info({ agentId: ctx.agentId, timeOfDay, durationMinutes }, 'Daily meaning practice');
+        getLogger().info(
+          { agentId: ctx.agentId, timeOfDay, durationMinutes },
+          'Daily meaning practice'
+        );
 
         let response = `**Daily Meaning Practice** (${timeOfDay}, ~${durationMinutes} minutes)\n\n`;
         response += `Meaning isn't found once - it's cultivated through attention.\n\n`;
@@ -763,4 +774,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

@@ -1,6 +1,6 @@
 /**
  * Peter John's Insights & Discovery Tools - Unit Tests
- * 
+ *
  * Tests for The Quant's cross-domain analysis capabilities:
  * - Insight synthesis
  * - Pattern detection
@@ -8,12 +8,12 @@
  * - Correlation finding
  * - Behavioral bias detection
  * - Proactive scanning
- * 
+ *
  * NOTE: SKIPPED - This test file requires complex @livekit/agents mocking.
  * The audio module imports BackgroundAudioPlayer from voice namespace which
  * needs special handling. This test suite was written for the legacy tool
  * structure.
- * 
+ *
  * TODO: Rewrite these tests to work with the new domain-based architecture
  * and proper mock setup for @livekit/agents.
  */

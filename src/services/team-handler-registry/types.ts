@@ -46,7 +46,7 @@ export type HandlerCapability =
 
   // Research
   | 'insights' // Provide insights
-  | 'analysis' // Analyze data;
+  | 'analysis'; // Analyze data;
 
 /**
  * All handler capabilities
@@ -77,9 +77,7 @@ export const ALL_HANDLER_CAPABILITIES: readonly HandlerCapability[] = [
 /**
  * Handler function signature
  */
-export type TeamHandlerFunction = (
-  request: ToolExecutionRequest
-) => Promise<ToolExecutionResult>;
+export type TeamHandlerFunction = (request: ToolExecutionRequest) => Promise<ToolExecutionResult>;
 
 /**
  * Definition for a team handler
@@ -298,4 +296,3 @@ export default {
   ALL_HANDLER_CAPABILITIES,
   validateHandlerDefinition,
 };
-

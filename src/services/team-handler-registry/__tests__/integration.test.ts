@@ -115,10 +115,7 @@ describe('Tool + Handler Integration', () => {
         createTestHandler('createSavingsGoal', 'savings-goals', 'maya'),
         'maya'
       );
-      handlerRegistry.registerHandler(
-        createTestHandler('createBudget', 'budgets', 'maya'),
-        'maya'
-      );
+      handlerRegistry.registerHandler(createTestHandler('createBudget', 'budgets', 'maya'), 'maya');
       handlerRegistry.configureAgent({
         agentId: 'maya',
         displayName: 'Maya',
@@ -432,4 +429,3 @@ describe('Handler Registration Flow', () => {
     expect(result.agents).toContain('peter-john');
   });
 });
-
