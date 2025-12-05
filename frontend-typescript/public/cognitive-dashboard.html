@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cognitive Intelligence Dashboard | Ferni</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: #1a1a24;
+      --bg-elevated: #222230;
+      --text-primary: #f0f0f5;
+      --text-secondary: #8888a0;
+      --text-muted: #55556a;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.3);
+      --success: #22c55e;
+      --success-glow: rgba(34, 197, 94, 0.2);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.2);
+      --error: #ef4444;
+      --error-glow: rgba(239, 68, 68, 0.2);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      
+      /* Cognitive style colors */
+      --analytical: #3b82f6;
+      --empathetic: #ec4899;
+      --narrative: #8b5cf6;
+      --systematic: #06b6d4;
+      --pragmatic: #f59e0b;
+      --intuitive: #10b981;
+      
+      /* Gradients */
+      --gradient-accent: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+      --gradient-cognitive: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f59e0b 100%);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139, 92, 246, 0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(236, 72, 153, 0.1), transparent);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+    .dashboard {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      background: var(--gradient-cognitive);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Grid Layout */
+    .grid { display: grid; gap: 1.5rem; }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+    @media (max-width: 1200px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .card-label {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Cognitive Mode Display */
+    .cognitive-mode {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .mode-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      margin: 0 auto 1rem;
+      box-shadow: 0 8px 32px var(--accent-glow);
+    }
+
+    .mode-analytical .mode-icon { background: var(--analytical); }
+    .mode-empathetic .mode-icon { background: var(--empathetic); }
+    .mode-narrative .mode-icon { background: var(--narrative); }
+    .mode-systematic .mode-icon { background: var(--systematic); }
+    .mode-pragmatic .mode-icon { background: var(--pragmatic); }
+    .mode-intuitive .mode-icon { background: var(--intuitive); }
+
+    .mode-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      margin-bottom: 0.5rem;
+    }
+
+    .mode-description {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    /* User Style */
+    .user-style {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .style-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: capitalize;
+    }
+
+    .style-analytical { background: rgba(59, 130, 246, 0.2); color: var(--analytical); }
+    .style-emotional { background: rgba(236, 72, 153, 0.2); color: var(--empathetic); }
+    .style-narrative { background: rgba(139, 92, 246, 0.2); color: var(--narrative); }
+    .style-systematic { background: rgba(6, 182, 212, 0.2); color: var(--systematic); }
+    .style-practical { background: rgba(245, 158, 11, 0.2); color: var(--pragmatic); }
+    .style-intuitive { background: rgba(16, 185, 129, 0.2); color: var(--intuitive); }
+
+    /* Voice Emotion */
+    .voice-emotion {
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .emotion-wave {
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .wave-bar {
+      width: 4px;
+      background: var(--gradient-accent);
+      border-radius: 2px;
+      animation: wave 1s ease-in-out infinite;
+    }
+
+    .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+    .wave-bar:nth-child(6) { animation-delay: 0.5s; }
+    .wave-bar:nth-child(7) { animation-delay: 0.6s; }
+
+    @keyframes wave {
+      0%, 100% { height: 20px; }
+      50% { height: 50px; }
+    }
+
+    .emotion-label {
+      font-size: 1.25rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .emotion-confidence {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Trend Indicator */
+    .trend {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .trend-improving { background: var(--success-glow); color: var(--success); }
+    .trend-worsening { background: var(--error-glow); color: var(--error); }
+    .trend-stable { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); }
+
+    /* Quirk Display */
+    .quirk-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .quirk-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--bg-elevated);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .quirk-icon {
+      font-size: 1.25rem;
+    }
+
+    .quirk-name {
+      font-weight: 500;
+    }
+
+    .quirk-frequency {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 0.25rem 0.5rem;
+      background: var(--bg-primary);
+      border-radius: 4px;
+    }
+
+    /* Performance Metrics */
+    .metric-bar {
+      height: 8px;
+      background: var(--bg-elevated);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .metric-fill {
+      height: 100%;
+      background: var(--gradient-accent);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .metric-fill.good { background: var(--success); }
+    .metric-fill.warning { background: var(--warning); }
+    .metric-fill.error { background: var(--error); }
+
+    /* History */
+    .history-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .history-item:last-child { border-bottom: none; }
+
+    .history-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .history-approach {
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+
+    /* Insights */
+    .insight-item {
+      padding: 1rem;
+      background: var(--bg-elevated);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      border-left: 3px solid var(--accent);
+    }
+
+    .insight-type {
+      font-size: 0.75rem;
+      color: var(--accent-light);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .insight-phrase {
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    /* Section Headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 2rem 0 1rem;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* No data state */
+    .no-data {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+    }
+
+    .no-data-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <header>
+      <h1>
+        <div class="logo">🧠</div>
+        Cognitive Intelligence
+      </h1>
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span id="connection-status">Connecting...</span>
+      </div>
+    </header>
+
+    <!-- Current State Section -->
+    <div class="grid grid-4">
+      <!-- Current Cognitive Mode -->
+      <div class="card cognitive-mode mode-narrative" id="cognitive-mode-card">
+        <div class="card-title">Current Cognitive Mode</div>
+        <div class="mode-icon">🎭</div>
+        <div class="mode-name" id="mode-name">Narrative</div>
+        <div class="mode-description" id="mode-description">Thinking in stories and meaning</div>
+      </div>
+
+      <!-- User Cognitive Style -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">User Style</div>
+        </div>
+        <div class="user-style">
+          <span class="style-badge style-analytical" id="user-style-badge">Analytical</span>
+          <div>
+            <div id="user-style-confidence">72% confidence</div>
+            <div class="card-label">Detected thinking style</div>
+          </div>
+        </div>
+        <div class="card-label">Match: <span id="style-match">Adapting</span></div>
+      </div>
+
+      <!-- Voice Emotion -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Voice Emotion</div>
+        </div>
+        <div class="voice-emotion">
+          <div class="emotion-wave">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+          <div class="emotion-label" id="voice-emotion">Neutral</div>
+          <div class="emotion-confidence" id="voice-confidence">85% confidence</div>
+        </div>
+        <div class="trend trend-stable" id="emotion-trend">
+          <span>→</span> Stable
+        </div>
+      </div>
+
+      <!-- Confidence Level -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Response Confidence</div>
+        </div>
+        <div class="card-value" id="confidence-level">78%</div>
+        <div class="card-label">Current response certainty</div>
+        <div class="metric-bar">
+          <div class="metric-fill good" id="confidence-bar" style="width: 78%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Persona Section -->
+    <div class="section-header">
+      <h2 class="section-title">Active Persona</h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid grid-3">
+      <!-- Active Quirks -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Active Cognitive Quirks</div>
+        </div>
+        <div class="quirk-list" id="active-quirks">
+          <div class="quirk-item">
+            <span class="quirk-icon">🎯</span>
+            <span class="quirk-name">Question Cascade</span>
+            <span class="quirk-frequency">40%</span>
+          </div>
+          <div class="quirk-item">
+            <span class="quirk-icon">📖</span>
+            <span class="quirk-name">Story Weaving</span>
+            <span class="quirk-frequency">50%</span>
+          </div>
+          <div class="quirk-item">
+            <span class="quirk-icon">💭</span>
+            <span class="quirk-name">Emotional Echo</span>
+            <span class="quirk-frequency">60%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mental Habits -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Mental Habits</div>
+        </div>
+        <div class="quirk-list" id="mental-habits">
+          <div class="quirk-item">
+            <span class="quirk-icon">💡</span>
+            <span class="quirk-name">Finding the lesson</span>
+          </div>
+          <div class="quirk-item">
+            <span class="quirk-icon">🔄</span>
+            <span class="quirk-name">Seeking the positive reframe</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shareable Insights -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Available Insights</div>
+        </div>
+        <div id="shareable-insights">
+          <div class="insight-item">
+            <div class="insight-type">Style Adaptation</div>
+            <div class="insight-phrase">"I notice we're both diving into the meaning behind things"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Section -->
+    <div class="section-header">
+      <h2 class="section-title">Performance Metrics</h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid grid-4">
+      <div class="card">
+        <div class="card-title">Avg Cognitive Overhead</div>
+        <div class="card-value" id="avg-overhead">12ms</div>
+        <div class="card-label">Target: &lt;50ms</div>
+        <div class="metric-bar">
+          <div class="metric-fill good" style="width: 24%"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">P95 Overhead</div>
+        <div class="card-value" id="p95-overhead">28ms</div>
+        <div class="card-label">Target: &lt;100ms</div>
+        <div class="metric-bar">
+          <div class="metric-fill good" style="width: 28%"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Under 50ms</div>
+        <div class="card-value" id="under-50">96%</div>
+        <div class="card-label">Of cognitive operations</div>
+        <div class="metric-bar">
+          <div class="metric-fill good" style="width: 96%"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Under 100ms</div>
+        <div class="card-value" id="under-100">99%</div>
+        <div class="card-label">Of cognitive operations</div>
+        <div class="metric-bar">
+          <div class="metric-fill good" style="width: 99%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Section -->
+    <div class="section-header">
+      <h2 class="section-title">Session History</h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Reasoning Approach History -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Reasoning Approaches Used</div>
+        </div>
+        <div class="history-list" id="approach-history">
+          <div class="history-item">
+            <span class="history-time">14:32:15</span>
+            <span class="history-approach style-narrative">Narrative</span>
+            <span>Topic: career change</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:33:42</span>
+            <span class="history-approach style-emotional">Empathetic</span>
+            <span>High emotional weight</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:35:08</span>
+            <span class="history-approach style-narrative">Narrative</span>
+            <span>Topic: finding purpose</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voice Emotion History -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Voice Emotion History</div>
+        </div>
+        <div class="history-list" id="emotion-history">
+          <div class="history-item">
+            <span class="history-time">14:32:00</span>
+            <span class="style-badge style-practical">Neutral</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:33:30</span>
+            <span class="style-badge style-emotional">Stressed</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:35:00</span>
+            <span class="style-badge style-practical">Calm</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Learning Section -->
+    <div class="section-header">
+      <h2 class="section-title">Cognitive Learning</h2>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="card-title">Effective Approaches</div>
+        <div class="card-value" id="effective-count">3</div>
+        <div class="card-label">Resonating with user</div>
+        <div id="effective-list" style="margin-top: 1rem">
+          <span class="style-badge style-narrative" style="margin-right: 0.5rem">Narrative</span>
+          <span class="style-badge style-emotional" style="margin-right: 0.5rem">Empathetic</span>
+          <span class="style-badge style-intuitive">Intuitive</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Topics Explained</div>
+        <div class="card-value" id="topics-count">5</div>
+        <div class="card-label">Won't repeat basics</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Relationship Stage</div>
+        <div class="card-value" id="relationship-stage">Friend</div>
+        <div class="card-label">With Ferni (12 conversations)</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Cognitive mode configurations
+    const modeConfig = {
+      analytical: { icon: '🔬', description: 'Working from data and evidence' },
+      empathetic: { icon: '💝', description: 'Leading with emotional awareness' },
+      narrative: { icon: '🎭', description: 'Thinking in stories and meaning' },
+      systematic: { icon: '⚙️', description: 'Step-by-step process thinking' },
+      pragmatic: { icon: '🎯', description: 'Focus on practical outcomes' },
+      intuitive: { icon: '✨', description: 'Trusting deeper knowing' },
+    };
+
+    // Update cognitive mode display
+    function updateCognitiveMode(mode) {
+      const card = document.getElementById('cognitive-mode-card');
+      const icon = document.querySelector('.mode-icon');
+      const name = document.getElementById('mode-name');
+      const desc = document.getElementById('mode-description');
+
+      // Remove old mode class
+      card.className = card.className.replace(/mode-\w+/g, '');
+      card.classList.add(`mode-${mode}`);
+
+      const config = modeConfig[mode] || modeConfig.narrative;
+      icon.textContent = config.icon;
+      name.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+      desc.textContent = config.description;
+    }
+
+    // Update user style
+    function updateUserStyle(style, confidence) {
+      const badge = document.getElementById('user-style-badge');
+      badge.className = `style-badge style-${style}`;
+      badge.textContent = style.charAt(0).toUpperCase() + style.slice(1);
+      document.getElementById('user-style-confidence').textContent = `${Math.round(confidence * 100)}% confidence`;
+    }
+
+    // Update voice emotion
+    function updateVoiceEmotion(emotion, confidence, trend) {
+      document.getElementById('voice-emotion').textContent = emotion;
+      document.getElementById('voice-confidence').textContent = `${Math.round(confidence * 100)}% confidence`;
+
+      const trendEl = document.getElementById('emotion-trend');
+      trendEl.className = `trend trend-${trend}`;
+      const icons = { improving: '↑', worsening: '↓', stable: '→' };
+      trendEl.innerHTML = `<span>${icons[trend]}</span> ${trend.charAt(0).toUpperCase() + trend.slice(1)}`;
+    }
+
+    // Update confidence
+    function updateConfidence(level) {
+      document.getElementById('confidence-level').textContent = `${Math.round(level * 100)}%`;
+      const bar = document.getElementById('confidence-bar');
+      bar.style.width = `${level * 100}%`;
+      bar.className = `metric-fill ${level > 0.7 ? 'good' : level > 0.4 ? 'warning' : 'error'}`;
+    }
+
+    // Update metrics
+    function updateMetrics(metrics) {
+      document.getElementById('avg-overhead').textContent = `${metrics.avgTotalOverhead.toFixed(1)}ms`;
+      document.getElementById('p95-overhead').textContent = `${metrics.p95TotalOverhead.toFixed(1)}ms`;
+      document.getElementById('under-50').textContent = `${metrics.under50msPercentage.toFixed(0)}%`;
+      document.getElementById('under-100').textContent = `${metrics.under100msPercentage.toFixed(0)}%`;
+    }
+
+    // Add history item
+    function addApproachHistory(time, approach, topic) {
+      const list = document.getElementById('approach-history');
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `
+        <span class="history-time">${time}</span>
+        <span class="history-approach style-${approach === 'empathetic' ? 'emotional' : approach}">${approach.charAt(0).toUpperCase() + approach.slice(1)}</span>
+        <span>Topic: ${topic}</span>
+      `;
+      list.insertBefore(item, list.firstChild);
+      if (list.children.length > 20) list.removeChild(list.lastChild);
+    }
+
+    // API polling for cognitive state updates
+    let pollInterval = null;
+    let apiBaseUrl = '';
+    let lastEventTimestamp = null;
+    
+    // Detect API base URL
+    function detectApiUrl() {
+      // Check for environment-specific URLs
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        // Local development - try common ports
+        return 'http://localhost:8080';
+      }
+      // Production - use same origin
+      return '';
+    }
+
+    async function fetchCognitiveState() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/cognitive/state`);
+        if (!response.ok) throw new Error('API not available');
+        
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error);
+        
+        const state = result.data;
+        
+        // Update UI with state
+        if (state.cognitiveMode) {
+          updateCognitiveMode(state.cognitiveMode.mode);
+        }
+        if (state.userStyle) {
+          updateUserStyle(state.userStyle.style, state.userStyle.confidence);
+        }
+        if (state.voiceEmotion) {
+          updateVoiceEmotion(state.voiceEmotion.emotion, state.voiceEmotion.confidence, state.voiceEmotion.trend);
+        }
+        if (state.confidence) {
+          updateConfidence(state.confidence.level);
+        }
+        if (state.metrics) {
+          updateMetrics(state.metrics);
+        }
+        
+        // Update history
+        if (state.recentApproaches && state.recentApproaches.length > 0) {
+          updateApproachHistory(state.recentApproaches);
+        }
+        
+        // Update connection status
+        document.getElementById('connection-status').textContent = 'Connected';
+        document.querySelector('.status-dot').style.background = 'var(--success)';
+        
+      } catch (error) {
+        console.warn('Cognitive API not available:', error.message);
+        document.getElementById('connection-status').textContent = 'API Unavailable';
+        document.querySelector('.status-dot').style.background = 'var(--warning)';
+      }
+    }
+    
+    function updateApproachHistory(approaches) {
+      const list = document.getElementById('approach-history');
+      list.innerHTML = '';
+      
+      for (const approach of approaches.slice(-10).reverse()) {
+        const time = new Date(approach.timestamp).toLocaleTimeString();
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        const styleClass = approach.approach === 'empathetic' ? 'emotional' : approach.approach;
+        item.innerHTML = `
+          <span class="history-time">${time}</span>
+          <span class="history-approach style-${styleClass}">${approach.approach.charAt(0).toUpperCase() + approach.approach.slice(1)}</span>
+          <span>Topic: ${approach.topic}</span>
+        `;
+        list.appendChild(item);
+      }
+    }
+
+    function startPolling() {
+      if (pollInterval) return;
+      
+      // Initial fetch
+      fetchCognitiveState();
+      
+      // Poll every 2 seconds
+      pollInterval = setInterval(fetchCognitiveState, 2000);
+    }
+    
+    function stopPolling() {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      apiBaseUrl = detectApiUrl();
+      
+      // Start polling for updates
+      startPolling();
+      
+      // Demo mode toggle (for testing without backend)
+      let demoMode = false;
+      let demoInterval = null;
+      const modes = ['narrative', 'empathetic', 'analytical', 'systematic', 'pragmatic', 'intuitive'];
+      let modeIndex = 0;
+      
+      // Add keyboard shortcut for demo mode
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'd' && e.ctrlKey) {
+          demoMode = !demoMode;
+          if (demoMode) {
+            stopPolling();
+            document.getElementById('connection-status').textContent = 'Demo Mode';
+            document.querySelector('.status-dot').style.background = 'var(--accent)';
+            demoInterval = setInterval(() => {
+              updateCognitiveMode(modes[modeIndex]);
+              updateConfidence(0.5 + Math.random() * 0.4);
+              modeIndex = (modeIndex + 1) % modes.length;
+            }, 3000);
+          } else {
+            if (demoInterval) clearInterval(demoInterval);
+            startPolling();
+          }
+        }
+      });
+    });
+    
+    // Stop polling when page is hidden
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    });
+  </script>
+</body>
+</html>
+

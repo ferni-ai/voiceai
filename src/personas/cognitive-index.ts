@@ -3,6 +3,19 @@
  *
  * Central export for the cognitive intelligence system that makes
  * each persona think differently.
+ *
+ * Includes:
+ * - Core cognitive profiles and engine
+ * - User cognitive style detection
+ * - Cognitive handoff transfer
+ * - Multi-step reasoning chains
+ * - Cognitive conflict resolution
+ * - Cognitive learning and adaptation
+ * - Knowledge state persistence
+ * - Cognitive growth arcs
+ * - Cognitive questions
+ * - Collaborative cognition (team perspectives)
+ * - Speech × cognition integration
  */
 
 // Types
@@ -43,6 +56,77 @@ export {
   jordanCognitiveProfile,
   nayanCognitiveProfile,
 } from './cognitive-profiles.js';
+
+// ============================================================================
+// ADVANCED COGNITIVE FEATURES
+// ============================================================================
+
+// Advanced types
+export type {
+  UserCognitiveStyle,
+  CognitiveHandoffContext,
+  ReasoningStep,
+  ReasoningChain,
+  CognitiveConflict,
+  CognitiveEffectiveness,
+  CognitiveLearning,
+  UserKnowledgeState,
+  CognitiveGrowthProfile,
+} from './cognitive-advanced.js';
+
+// User cognitive style detection
+export {
+  detectUserCognitiveStyle,
+} from './cognitive-advanced.js';
+
+// Cognitive handoff transfer
+export {
+  buildCognitiveHandoffContext,
+} from './cognitive-advanced.js';
+
+// Multi-step reasoning chains
+export {
+  buildReasoningChain,
+  getReasoningChainGuidance,
+} from './cognitive-advanced.js';
+
+// Cognitive conflict resolution
+export {
+  detectCognitiveConflict,
+} from './cognitive-advanced.js';
+
+// Cognitive learning
+export {
+  CognitiveLearningTracker,
+  getCognitiveLearningTracker,
+} from './cognitive-advanced.js';
+
+// Knowledge state persistence
+export {
+  KnowledgeStateTracker,
+  getKnowledgeStateTracker,
+} from './cognitive-advanced.js';
+
+// Cognitive growth arc
+export {
+  getCognitiveGrowthProfile,
+  buildCognitiveGrowthContext,
+} from './cognitive-advanced.js';
+
+// ============================================================================
+// COLLABORATIVE COGNITION
+// ============================================================================
+
+export {
+  generatePerspective,
+  generateCollaborativePerspectives,
+  generateTeamCommentary,
+} from './collaborative-cognition.js';
+
+export type {
+  CognitivePerspective,
+  CollaborativeCognition,
+} from './collaborative-cognition.js';
 
 // ============================================================================
 // CONVENIENCE FUNCTIONS

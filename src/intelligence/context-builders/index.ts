@@ -428,6 +428,7 @@ async function ensureBuildersLoaded(): Promise<void> {
     await Promise.all([
       import('./celebration.js'),
       import('./cognitive.js'), // Persona-specific cognitive intelligence
+      import('./cognitive-quirks.js'), // Cognitive quirks, mental habits, thought patterns
       import('./community-learning.js'), // Collective learning from all users
       import('./conversation-recap.js'), // "Where were we?" memory
       import('./crisis.js'),
@@ -455,6 +456,8 @@ async function ensureBuildersLoaded(): Promise<void> {
       import('./team-dynamics.js'), // Cross-persona team awareness
       import('./topics.js'),
       import('./engagement-context.js'), // Daily rituals, games, team engagement
+      import('./voice-emotion.js'), // Voice emotion → cognitive state integration
+      import('./cognitive-insights.js'), // Shareable cognitive insights for transparency
     ]);
 
     getLogger().info(`Context builders loaded: ${builders.size} registered`);
