@@ -98,9 +98,9 @@ export class CognitiveIntelligenceEngine {
       return secondaryReasoning || reasoningStyle;
     }
 
-    // Varied approaches prevent monotony
+    // Varied approaches prevent monotony (only if we have history)
     const recentApproaches = context.previousApproaches.slice(-3);
-    if (recentApproaches.every(a => a === reasoningStyle) && secondaryReasoning) {
+    if (recentApproaches.length >= 3 && recentApproaches.every(a => a === reasoningStyle) && secondaryReasoning) {
       // Switch to secondary occasionally for variety
       if (Math.random() < 0.2) {
         return secondaryReasoning;
