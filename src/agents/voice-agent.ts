@@ -172,6 +172,11 @@ import {
   formatConversationHumanizingForPrompt,
 } from '../intelligence/context-builders/conversation-humanizing.js';
 
+// Engagement System - Real-time engagement data and conversation triggers
+import { getEngagementDataSender } from '../services/engagement-data-sender.js';
+import { buildEngagementContextPrompt } from '../services/engagement-conversation-triggers.js';
+import { getRitualOnboardingService } from '../services/ritual-onboarding.js';
+
 // Handoff system (for multi-persona support)
 import {
   handoffEvents,
@@ -731,7 +736,7 @@ class VoiceAgent extends voice.Agent<UserData> {
    * who the AI thinks it is. Without updating _instructions, the LLM
    * continues thinking it's the original persona (usually Ferni).
    */
-  setPersona(newPersona: PersonaConfig): void {
+  setPersona(newPersona: PersonaConfig, userId?: string): void {
     const oldPersona = this.persona;
     this.persona = newPersona;
 
@@ -740,6 +745,12 @@ class VoiceAgent extends voice.Agent<UserData> {
     // The _instructions property is from voice.Agent base class.
     if (newPersona.systemPrompt) {
       this._instructions = newPersona.systemPrompt;
+      
+      // Inject engagement context if user is known
+      if (userId) {
+        this.injectEngagementContext(userId, newPersona.id);
+      }
+      
       this.logger.info(
         {
           oldPersona: oldPersona.id,
@@ -750,6 +761,39 @@ class VoiceAgent extends voice.Agent<UserData> {
       );
     } else {
       this.logger.warn({ personaId: newPersona.id }, '⚠️ New persona has no systemPrompt!');
+    }
+  }
+  
+  /**
+   * Inject engagement context into LLM instructions
+   * Adds persona-specific engagement opportunities naturally
+   */
+  private async injectEngagementContext(
+    userId: string,
+    personaId: string,
+    userProfile?: { totalConversations?: number } | null
+  ): Promise<void> {
+    try {
+      // Inject engagement triggers (streaks, predictions, etc.)
+      const engagementContext = await buildEngagementContextPrompt(userId, personaId);
+      if (engagementContext) {
+        this._instructions = `${this._instructions}\n${engagementContext}`;
+        this.logger.debug('Engagement context injected into instructions');
+      }
+      
+      // Inject ritual onboarding for newer users
+      const onboardingService = getRitualOnboardingService();
+      const onboardingContext = onboardingService.buildOnboardingContext(
+        userId,
+        personaId,
+        userProfile as Parameters<typeof onboardingService.buildOnboardingContext>[2]
+      );
+      if (onboardingContext) {
+        this._instructions = `${this._instructions}\n${onboardingContext}`;
+        this.logger.debug('Ritual onboarding context injected into instructions');
+      }
+    } catch (error) {
+      this.logger.warn({ error: String(error) }, 'Failed to inject engagement context');
     }
   }
 
@@ -2760,7 +2804,24 @@ export default defineAgent({
       diag.state('Session started', { isPhoneCall, hasNoiseCancellation: isPhoneCall });
 
       // ===============================================
-      // STEP 6b: INITIALIZE COGNITIVE INTELLIGENCE
+      // STEP 6b: INITIALIZE ENGAGEMENT DATA SENDER
+      // ===============================================
+      // Wire up real-time engagement data to frontend
+      try {
+        const engagementDataSender = getEngagementDataSender();
+        engagementDataSender.setRoom(ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]);
+        
+        // Send initial engagement data to frontend
+        if (userId) {
+          await engagementDataSender.sendEngagementData(userId);
+          diag.state('Engagement data sent to frontend');
+        }
+      } catch (engageError) {
+        diag.warn('Engagement data init failed (non-fatal)', { error: String(engageError) });
+      }
+
+      // ===============================================
+      // STEP 6c: INITIALIZE COGNITIVE INTELLIGENCE
       // ===============================================
       try {
         await onCognitiveSessionStart({

@@ -5,11 +5,13 @@
  * - communication.ts: Base email, SMS, calendar integration
  * - communication-tools.ts: Alex-specific advanced communication
  * - communication-coaching.ts: Communication coaching and frameworks
+ * - proactive-outreach.ts: Agent-initiated contact (texts, emails, calls)
  *
  * DOMAIN: communication
  * TOOLS:
  *   Core: sendEmail, sendSMS, scheduleReminder, scheduleEvent
  *   Advanced: makePhoneCall, sendVoiceMessage, createReminderSchedule
+ *   Proactive: save_user_contact, send_text_now, send_email_now, schedule_reminder, call_user_now
  *   Coaching: draftDifficultMessage, practiceConversation, reviewCommunication
  */
 
@@ -19,6 +21,7 @@ import type { ToolDefinition, ToolContext, ExternalService } from '../../registr
 // Import legacy tool creators
 import { createCommunicationTools } from '../../communication.js';
 import { createCommunicationCoachingTools } from '../../communication-coaching.js';
+import { proactiveOutreachTools } from '../../proactive-outreach.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -110,11 +113,33 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// PROACTIVE OUTREACH TOOLS
+// ============================================================================
+
+function getProactiveOutreachToolDefinitions(): ToolDefinition[] {
+  return proactiveOutreachTools.map((tool) => ({
+    id: tool.name,
+    name: tool.name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    description: tool.description,
+    domain: 'communication' as const,
+    tags: ['proactive', 'outreach', 'contact', 'reminder'],
+    requiredServices: ['twilio', 'sendgrid'] as ExternalService[],
+    create: (ctx: ToolContext) => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+      execute: async (params: Record<string, unknown>) => tool.handler(params, ctx),
+    }),
+  }));
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
 const communicationTools: ToolDefinition[] = [
   ...getCommunicationToolDefinitions(),
+  ...getProactiveOutreachToolDefinitions(),
   ...getCoachingToolDefinitions(),
 ];
 
@@ -127,6 +152,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   communicationTools
 );
 
-export { getCommunicationToolDefinitions, getCoachingToolDefinitions };
+export { getCommunicationToolDefinitions, getCoachingToolDefinitions, getProactiveOutreachToolDefinitions };
 
 export default getToolDefinitions;

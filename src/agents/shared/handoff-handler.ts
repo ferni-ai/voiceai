@@ -26,6 +26,8 @@ import { AgentDirectory, type HandoffDirection } from '../../personas/agent-dire
 import { HANDOFF_TIMING, getTransitionDelay } from '../../config/handoff-timing.js';
 import type { UserData } from './types.js';
 import type { SessionServices } from '../../services/types.js';
+// Cross-persona banter for warm handoffs
+import { getHandoffBanter } from '../../services/team-engagement.js';
 
 // ============================================================================
 // FIX BUG #50 & #51: Cached imports to reduce handoff latency
@@ -500,11 +502,24 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           }
         }
 
-        // STEP 6: Speak greeting programmatically (no delay - voice already switched!)
+        // STEP 6: Speak greeting with optional banter (no delay - voice already switched!)
         if (greeting) {
           try {
+            // Add cross-persona banter if available (30% chance for natural feel)
+            let finalGreeting = greeting;
+            const shouldUseBanter = Math.random() < 0.3;
+            
+            if (shouldUseBanter && prevPersona?.id) {
+              const banter = getHandoffBanter(prevPersona.id, persona.id);
+              if (banter) {
+                // The outgoing persona's warm intro, then the new persona's greeting
+                finalGreeting = `${banter} <break time="400ms"/> ${greeting}`;
+                diag.entry(`🎭 Handoff with banter from ${prevPersona.name}`);
+              }
+            }
+            
             // NOTE: Removed 150ms delay - voice is already switched, speak immediately!
-            session.say(greeting, { allowInterruptions: true });
+            session.say(finalGreeting, { allowInterruptions: true });
             diag.entry(`🎤 ${persona.name} greeting spoken: "${greeting.slice(0, 50)}..."`);
           } catch (greetingErr) {
             logger.warn({ error: String(greetingErr) }, 'Failed to speak handoff greeting');
