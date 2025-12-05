@@ -33,8 +33,8 @@ export const VOICE_IDS = {
   // Ferni (life coach) - Dec 2024
   FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
 
-  // Peter John (stock storyteller) - Updated Dec 2024
-  PETER_JOHN: '9c44c765-7edc-4bf4-9f5b-8adc0aed2c8c',
+  // Peter John (insights quant) - Fixed Dec 2024 to use JACK_BOGLE_VOICE_ID
+  PETER_JOHN: '9c10dc48-8799-42f9-a72a-0c7dfe13a06d',
 
   // Alex Chen (communications specialist) - Verified Dec 2024
   ALEX_CHEN: '81c164d9-7baa-419d-9f9a-6b18100a01ee',
@@ -71,11 +71,12 @@ export function getVoiceIdForPersona(personaId: string): string {
   const envOverrides: Record<string, string | undefined> = {
     ferni: process.env.FERNI_VOICE_ID || process.env.JACK_B_VOICE_ID,
     'jack-b': process.env.FERNI_VOICE_ID || process.env.JACK_B_VOICE_ID,
-    'peter-john': process.env.PETER_JOHN_VOICE_ID,
+    // Peter John: check canonical name, then legacy JACK_BOGLE_VOICE_ID as temporary fallback
+    'peter-john': process.env.PETER_JOHN_VOICE_ID || process.env.JACK_BOGLE_VOICE_ID,
     'alex-chen': process.env.ALEX_CHEN_VOICE_ID || process.env.COMM_SPECIALIST_VOICE_ID,
     'maya-santos': process.env.MAYA_SANTOS_VOICE_ID || process.env.SPEND_SAVE_VOICE_ID,
     'jordan-taylor': process.env.JORDAN_TAYLOR_VOICE_ID || process.env.EVENT_PLANNER_VOICE_ID,
-    'nayan-patel': process.env.NAYAN_PATEL_VOICE_ID || process.env.NAYAN_VOICE_ID,
+    'nayan-patel': process.env.NAYAN_PATEL_VOICE_ID || process.env.NAYAN_VOICE_ID || process.env.PETER_LYNCH_VOICE_ID,
     'generic-advisor': process.env.GENERIC_ADVISOR_VOICE_ID,
   };
 

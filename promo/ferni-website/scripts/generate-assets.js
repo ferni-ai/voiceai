@@ -45,47 +45,57 @@ const CONFIG = {
 // ============================================================================
 
 const IMAGE_PROMPTS = {
-  // ===== TEAM AVATARS =====
+  // ===== LIVING AVATAR ORBS - The human spirit visualization =====
+  // Each avatar is a glowing orb with waveform bars inside
+  
   'avatar-ferni': {
-    prompt: `Abstract geometric portrait representing a wise, grounded AI life coach. Soft overlapping organic shapes in deep sage green (#4a6741) forming a friendly, approachable composition - like leaves or river stones. Warm cream (#F5F1E8) accents and subtle golden amber highlights. Feels like a wise friend in a garden, natural and trustworthy. Circular composition with soft warm shadow. Premium minimal aesthetic, Japanese zen influence. NOT cold or robotic. Clean warm cream background.`,
+    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is deep sage green (#4a6741) with subtle gradient from darker bottom (#3d5a35) to lighter top (#5a7a4d). Inside the orb, 9 white vertical bars form a waveform pattern - taller in center, shorter at edges, like voice visualization. Soft highlight on top-left creates glass-like depth. Outer glow emanates in rings of translucent sage green. Warm cream (#F5F1E8) background. The orb feels alive, breathing, attentive - like Pixar's WALL-E soul. Premium 3D render, soft volumetric lighting. NOT flat or robotic.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-ferni.png'
   },
   
-  'avatar-nayan': {
-    prompt: `Abstract geometric portrait representing wisdom, steadiness, and calm mentorship. Soft geometric shapes in warm cedar brown (#9a7b5a) suggesting tree rings, aged wood, or stacked stones. Cream highlights and subtle amber accents. Feels like a trusted elder, warm and reliable - the kind of person you'd sit with on a porch at sunset. Organic shapes, not sharp or cold. Circular composition, zen aesthetic. Clean warm cream background.`,
-    aspectRatio: '1:1',
-    folder: 'avatars',
-    filename: 'avatar-nayan.png'
-  },
-  
   'avatar-peter': {
-    prompt: `Abstract geometric portrait representing curiosity, depth, and discovery. Flowing shapes in ocean teal (#3a6b73) suggesting water, depth, exploration - like looking into a calm deep pool. Warm cream and soft golden accents suggesting light filtering through water. Curious but calm energy, thoughtful depth. NOT cold blue - warm teal with green undertones. Circular composition, organic shapes, zen aesthetic. Clean warm cream background.`,
+    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is ocean teal (#3a6b73) with depth gradient like calm water. Inside, 9 white waveform bars pulse with curious energy - slightly asymmetric, leaning as if listening intently. Glass-like highlight creates dimension. Soft teal glow rings emanate outward. Warm cream (#F5F1E8) background. The orb feels curious, deep-thinking, like diving into interesting questions. Warm teal with green undertones, NOT cold blue. Premium 3D render.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-peter.png'
   },
   
   'avatar-alex': {
-    prompt: `Abstract geometric portrait representing clarity, flow, and communication. Soft flowing shapes in muted indigo slate (#5a6b8a) suggesting gentle waves or flowing conversation. Warm cream highlights. Feels clear and calm, like a mountain stream - communication that flows naturally. Organic, soft shapes - NOT sharp or corporate. Warm undertones despite the cooler color. Circular composition, zen aesthetic. Clean warm cream background.`,
+    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is soft indigo slate (#5a6b8a) with warm violet undertones. Inside, 9 white waveform bars flow smoothly, suggesting clear communication. Gentle highlight creates depth. Soft indigo glow rings pulse outward. Warm cream (#F5F1E8) background. The orb feels clear, articulate, like a calm voice cutting through noise. Warm indigo, NOT cold blue. Premium 3D render, living presence.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-alex.png'
   },
   
   'avatar-maya': {
-    prompt: `Abstract geometric portrait representing gentle growth, consistency, and nurturing routine. Soft rounded shapes in warm terracotta coral (#a67a6a) suggesting stacked pebbles or growing plants. Cream and soft sage green accents. Feels like a patient gardener, someone who celebrates small wins. Organic, flowing composition - cycles and gentle progress. Circular composition, zen aesthetic. Clean warm cream background.`,
+    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is dusty terracotta (#a67a6a) like sun-baked clay or autumn leaves. Inside, 9 white waveform bars pulse with gentle, nurturing rhythm - steady, patient. Warm highlight creates earthy depth. Soft terracotta glow rings emanate warmth. Warm cream (#F5F1E8) background. The orb feels nurturing, patient, like a yoga instructor or gardener. Earth mother energy. Premium 3D render.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-maya.png'
   },
   
   'avatar-jordan': {
-    prompt: `Abstract geometric portrait representing vision, planning, and celebration. Warm shapes in sunset coral (#c4856a) suggesting horizons, paths, and destinations. Cream and golden amber accents like warm sunlight. Feels like the excitement of planning a great adventure - hopeful and forward-looking. Organic shapes suggesting movement and journey. Circular composition, zen aesthetic. Clean warm cream background.`,
+    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is warm sunset coral (#c4856a) glowing like a sunset. Inside, 9 white waveform bars dance with optimistic energy - celebratory but warm, not manic. Bright highlight creates joyful depth. Soft coral glow rings pulse with anticipation. Warm cream (#F5F1E8) background. The orb feels like the warmth before something wonderful. Premium 3D render.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-jordan.png'
+  },
+  
+  'avatar-nayan': {
+    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is warm gold (#b8956a) like aged honey or polished wood. Inside, 9 white waveform bars pulse with deep, knowing rhythm - steady, certain, unhurried. Rich highlight creates wise depth. Soft golden glow rings emanate timeless warmth. Warm cream (#F5F1E8) background. The orb feels like accumulated wisdom, trusted counsel. Elder energy. Premium 3D render.`,
+    aspectRatio: '1:1',
+    folder: 'avatars',
+    filename: 'avatar-nayan.png'
+  },
+  
+  // ===== TEAM ASSEMBLY =====
+  'avatar-team': {
+    prompt: `Six glowing 3D orbs floating in warm cream space, arranged in gentle arc. Each orb distinct color: deep sage green (center front), ocean teal, soft indigo, dusty terracotta, warm coral, warm gold. All orbs have white waveform bars inside. Occasionally golden threads of light connect between orbs suggesting collaboration. Warm cream (#F5F1E8) background. The feeling is a trusted team working in harmony. Premium 3D render, soft volumetric lighting.`,
+    aspectRatio: '16:9',
+    folder: 'avatars',
+    filename: 'avatar-team.png'
   },
   
   // ===== HERO BACKGROUNDS =====
@@ -327,11 +337,11 @@ function listPrompts() {
   });
   
   console.log('Batch options:');
-  console.log('  --batch=avatars       (6 images)');
+  console.log('  --batch=avatars       (7 images - Living Avatar Orbs)');
   console.log('  --batch=hero          (3 images)');
   console.log('  --batch=testimonials  (3 images)');
   console.log('  --batch=social        (1 image)');
-  console.log('  --batch=images        (all 13 images)');
+  console.log('  --batch=images        (all 14 images)');
 }
 
 // ============================================================================
