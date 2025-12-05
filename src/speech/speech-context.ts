@@ -8,7 +8,6 @@
  * so each agent sounds distinctly different (pacing, pauses, energy).
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { ConversationPhase } from '../intelligence/conversation-state.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';

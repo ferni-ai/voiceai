@@ -14,7 +14,6 @@
  * Good conversationalists vary their question styles.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

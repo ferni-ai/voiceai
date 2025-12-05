@@ -17,7 +17,6 @@
  * - REDIS_PASSWORD: Redis password (if required)
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 /**

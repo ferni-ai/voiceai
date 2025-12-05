@@ -5,7 +5,6 @@
  * Each session gets its own set of services and state.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
 import type { SpeechCharacteristics } from '../personas/types.js';

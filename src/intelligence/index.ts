@@ -291,7 +291,6 @@ export {
 // COMBINED ANALYSIS
 // ============================================================================
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { getEmotionDetector, type EmotionResult } from './emotion-detector.js';
 import { getIntentClassifier, type IntentResult } from './intent-classifier.js';

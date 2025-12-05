@@ -23,7 +23,6 @@ import type {
   PersonaMode,
   VoiceExpression,
 } from './types.js';
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getStoryTimingEngine, getEmotionalArcTracker } from '../../conversation/index.js';
 

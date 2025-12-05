@@ -10,7 +10,6 @@
  *
  * Extracted from jack-bogle.ts lines 647-666, 897-917, 1102-1118
  */
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,

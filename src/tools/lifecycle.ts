@@ -9,7 +9,6 @@
  * - Service shutdown and cleanup
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { initializeToolRegistry } from './registry/loader.js';
 import { toolRegistry } from './registry/index.js';

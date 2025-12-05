@@ -13,7 +13,6 @@
  * 5. Provide feedback loops on conversation quality
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, KeyMoment, EmotionalPattern } from '../types/user-profile.js';
 import type { EmotionResult } from './emotion-detector.js';

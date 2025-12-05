@@ -1,25 +1,32 @@
 /**
  * Persona Configuration
  *
- * Defines all available AI personas and their UI configurations.
- * This is the single source of truth for persona data in the frontend.
- * Each persona has unique colors, skills, and personality traits.
- *
- * CANONICAL IDs (used everywhere):
- * - ferni (Life Coach)
- * - jack-bogle (Sage and Personal Mentor)
- * - peter-lynch (Research & Discovery)
- * - alex-chen (Communications)
+ * UI-specific persona configurations with colors, skills, and display settings.
+ * 
+ * ARCHITECTURE (Single Source of Truth):
+ * ======================================
+ * PRIMARY SOURCE: Backend persona.manifest.json files at:
+ *   src/personas/bundles/{persona-id}/persona.manifest.json
+ * 
+ * GENERATED DATA: Run `npm run generate:personas` to create:
+ *   frontend-typescript/src/config/personas.generated.json
+ * 
+ * This file (personas.ts) contains:
+ *   - UI-specific configs (colors, theme classes, sound effects)
+ *   - Display settings not in manifest (quotes formatting, skill icons)
+ * 
+ * The generated JSON contains core persona data (names, descriptions,
+ * domains, handoff triggers, traits) pulled from bundle manifests.
+ * 
+ * CANONICAL IDs (core team):
+ * - ferni (Life Coach / Coordinator)
+ * - peter-john (Research & Discovery / The Quant)
+ * - alex-chen (Communications & Coaching)
  * - maya-santos (Habits & Routines)
- * - jordan-taylor (Event Planner)
+ * - jordan-taylor (Lifetime Planning)
+ * - nayan-patel (Lifetime Advisor / Sage)
  *
- * HANDOFF TOOLS:
- * - handoffToJack → Jack Bogle (sage/mentor)
- * - handoffToPeter → Peter Lynch (research)
- * - handoffToAlex → Alex Chen (communication)
- * - handoffToMaya → Maya Santos (habits/routines)
- * - handoffToJordan → Jordan Taylor (life planning)
- * - handoffToFerni → Ferni (coach) - returns to coordinator
+ * NOTE: Jack Bogle is a marketplace agent, not core team.
  */
 
 import type { PersonaConfig, PersonaRegistry, PersonaId } from '../types/persona.js';

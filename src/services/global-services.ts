@@ -5,7 +5,6 @@
  * These services are shared across all sessions.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import {
   initializeMemorySystem,

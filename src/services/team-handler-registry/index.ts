@@ -23,7 +23,10 @@
  * );
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import { EventEmitter } from 'events';
 import type {
   AgentId,

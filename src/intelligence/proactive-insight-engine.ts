@@ -11,7 +11,6 @@
  * - "It's been 2 weeks since we talked - just checking in!"
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, FinancialGoal, KeyMoment } from '../types/user-profile.js';
 import type { LearnedConversationPatterns } from './conversation-pattern-analyzer.js';

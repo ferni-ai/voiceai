@@ -11,7 +11,6 @@
  * These "imperfections" are what make human speech feel authentic.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

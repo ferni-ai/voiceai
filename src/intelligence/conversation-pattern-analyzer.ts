@@ -12,7 +12,6 @@
  *              always starts with weather then moves to portfolio"
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

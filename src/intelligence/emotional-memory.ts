@@ -9,7 +9,6 @@
  * Creates deeper human connection through emotional continuity.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { PrimaryEmotion } from './emotion-detector.js';
 

@@ -12,7 +12,6 @@
  * - Topic relevance scoring
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { PersonaConfig, StoryConfig } from '../personas/types.js';
 import type { EmotionalArc } from './emotional-arc.js';

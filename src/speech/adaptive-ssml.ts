@@ -7,7 +7,6 @@
  * Now supports persona-aware SSML via the new modular ssml/ system.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { tagTextWithSsml, sanitizeSsml, tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 import type { SpeechContext } from './speech-context.js';

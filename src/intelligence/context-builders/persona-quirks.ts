@@ -17,7 +17,6 @@
  * 4. Turn count - don't reveal everything at once
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,

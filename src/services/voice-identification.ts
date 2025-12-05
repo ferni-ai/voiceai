@@ -12,7 +12,6 @@
  * 4. Present natural confirmation UX
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, VoiceSketch } from '../types/user-profile.js';
 import { identifyFromMetadata, type IdentificationResult } from './user-identification.js';

@@ -13,7 +13,10 @@
  * 3. Registered with DI container
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import { Container, Tokens, type Factory } from './container.js';
 import { Result, success, failure, AsyncResult, NotFoundError } from '../../types/result.js';
 import type { UserProfile } from '../../types/user-profile.js';

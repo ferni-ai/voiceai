@@ -9,7 +9,6 @@
 
 import type { UserProfile, KeyMoment } from '../types/user-profile.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // Optional integration with learning engine for current session

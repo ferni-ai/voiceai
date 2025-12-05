@@ -8,7 +8,6 @@
  * provide full type safety when imported directly.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================

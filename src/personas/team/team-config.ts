@@ -1,15 +1,31 @@
 /**
  * Team Configuration
  *
- * Defines the default team structure and how personas work together.
- * This is the injectable layer that keeps team awareness decoupled
- * from individual persona definitions.
+ * ARCHITECTURE:
+ * =============
+ * SINGLE SOURCE OF TRUTH: Each persona's `persona.manifest.json` file.
+ * 
+ * The PRIMARY method for getting team config is `getTeamConfig()` which calls
+ * `generateTeamConfigFromBundles()` to dynamically build team configuration
+ * from bundle manifests.
+ * 
+ * The hardcoded DEFAULT_* constants below are FALLBACKS ONLY, used when:
+ * - Bundle discovery fails
+ * - Running in environments without filesystem access
+ * - Testing scenarios that don't load full bundles
+ * 
+ * To update team member info, edit the persona's manifest file at:
+ *   src/personas/bundles/{persona-id}/persona.manifest.json
+ * 
+ * Then run `npm run generate:personas` to update frontend config.
  */
 
 import type { TeamConfig, TeamMember, HandoffTemplate, TeamCoordination } from './types.js';
 
 /**
- * Default team members
+ * FALLBACK team members - used only when bundle loading fails.
+ * PRIMARY SOURCE: persona.manifest.json files in each bundle.
+ * @deprecated Prefer using getTeamConfig() which loads from bundles.
  */
 export const DEFAULT_TEAM_MEMBERS: TeamMember[] = [
   {
@@ -59,7 +75,9 @@ export const DEFAULT_TEAM_MEMBERS: TeamMember[] = [
 ];
 
 /**
- * Default handoff templates
+ * FALLBACK handoff templates - used only when bundle loading fails.
+ * PRIMARY SOURCE: team.handoff_phrases in persona.manifest.json files.
+ * @deprecated Prefer using getTeamConfig() which generates from bundles.
  */
 export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
   // From Life Coach to others
@@ -190,7 +208,9 @@ export const DEFAULT_HANDOFF_TEMPLATES: HandoffTemplate[] = [
 ];
 
 /**
- * Default team coordination rules
+ * FALLBACK team coordination rules - used only when bundle loading fails.
+ * PRIMARY SOURCE: role.domains and team.handoff_triggers in persona.manifest.json files.
+ * @deprecated Prefer using getTeamConfig() which generates from bundles.
  */
 export const DEFAULT_TEAM_COORDINATION: TeamCoordination = {
   teammateReferences: [
@@ -250,7 +270,9 @@ export const DEFAULT_TEAM_COORDINATION: TeamCoordination = {
 };
 
 /**
- * Default team configuration
+ * FALLBACK team configuration - used only when bundle loading fails.
+ * Use getTeamConfig() as the primary method to get team configuration.
+ * @deprecated Prefer using getTeamConfig() which generates from bundles.
  */
 export const DEFAULT_TEAM_CONFIG: TeamConfig = {
   id: 'ferni-team',

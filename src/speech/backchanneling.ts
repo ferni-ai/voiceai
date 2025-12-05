@@ -7,7 +7,6 @@
  * NOW USES PERSONA-SPECIFIC BACKCHANNELS for distinct personalities!
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { TopicWeight } from './speech-context.js';

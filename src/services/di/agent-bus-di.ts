@@ -10,7 +10,10 @@
  * 3. Registered with DI container
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import { EventEmitter } from 'events';
 import { Container, Tokens, type Factory } from './container.js';
 import { Result, success, failure, AsyncResult, RateLimitError } from '../../types/result.js';

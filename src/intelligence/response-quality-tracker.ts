@@ -10,7 +10,6 @@
  * Over time, Jack learns: "This user loves stories but wants brief advice"
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

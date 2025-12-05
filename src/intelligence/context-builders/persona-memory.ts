@@ -14,7 +14,6 @@
  * This makes conversations feel like talking to a friend who ACTUALLY remembers you.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,

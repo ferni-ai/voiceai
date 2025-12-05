@@ -21,7 +21,6 @@
  *   by_domain/{domainId}
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { Firestore, FieldValue, Query, DocumentData } from '@google-cloud/firestore';

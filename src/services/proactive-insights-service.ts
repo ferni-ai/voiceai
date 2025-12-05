@@ -16,7 +16,6 @@
  * - Surfaces insights via proactive notifications
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { getAgentBus } from './agent-bus.js';
 import { getMayaFinancialStore } from './maya-financial-store.js';

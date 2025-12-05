@@ -15,7 +15,6 @@
  * "Your voice sounds familiar - is this Seth?" rather than requiring login.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

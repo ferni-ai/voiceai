@@ -8,7 +8,6 @@
  * - Response warmth markers
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { breakTag } from '../ssml/cartesia.js';
 

@@ -10,7 +10,6 @@
  * See: src/intelligence/topic-tracker.ts for the canonical implementation.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { getTopicTracker, type TopicTracker } from '../intelligence/topic-tracker.js';
 

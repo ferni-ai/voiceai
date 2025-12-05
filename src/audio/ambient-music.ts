@@ -14,7 +14,6 @@
  */
 
 import { getMusicPlayer, type MusicTrack } from './music-player.js';
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // Cache for Spotify ambient tracks (fetched once per session)

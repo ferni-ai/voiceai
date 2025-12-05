@@ -6,7 +6,6 @@
  * instead of generic "still there?" prompts.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   getMeaningfulSilenceResponse,

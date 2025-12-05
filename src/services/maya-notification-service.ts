@@ -14,7 +14,10 @@
  * - Weekly reflection nudges
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import { EventEmitter } from 'events';
 import { createReminder, ScheduledReminder } from './reminder-scheduler.js';
 import { getProductivityStore } from './productivity-store.js';

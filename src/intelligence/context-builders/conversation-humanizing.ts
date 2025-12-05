@@ -13,7 +13,6 @@
  * This bridges the conversation module with the LLM prompt injection system.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ContextBuilderInput, ContextInjection } from './index.js';
 import { createInjection } from './index.js';

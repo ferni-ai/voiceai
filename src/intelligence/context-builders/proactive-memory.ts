@@ -14,7 +14,6 @@
  * This makes conversations feel continuous and deeply personal.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,

@@ -13,7 +13,6 @@
  * SAFETY: All changes are logged and can be rolled back.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { getCommunityInsights } from './community-insights.js';
 

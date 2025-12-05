@@ -12,7 +12,6 @@
  * not just responding to the immediate message.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { getTopicTracker } from '../intelligence/topic-tracker.js';
 

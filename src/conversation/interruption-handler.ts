@@ -5,7 +5,10 @@
  * to make Jack feel responsive and natural.
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import type { AudioFrame } from '@livekit/rtc-node';
 import { getCanonicalPersonaId } from '../personas/voice-registry.js';
 

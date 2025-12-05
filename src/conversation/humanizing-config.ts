@@ -14,7 +14,10 @@
  *   updateHumanizingConfig({ disfluency: { frequency: 0.2 } });
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 
 // Safe logger that doesn't throw if not initialized
 const getLogger = () => {

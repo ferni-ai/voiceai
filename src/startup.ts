@@ -5,7 +5,6 @@
  * Initializes storage, cache, and services based on detected config.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from './utils/safe-logger.js';
 import { getConfig, validateConfig, printConfigSummary, type AppConfig } from './config/index.js';
 import {

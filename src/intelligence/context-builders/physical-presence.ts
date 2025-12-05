@@ -12,7 +12,6 @@
  * PRIORITY: Bundle data > PERSONA_PRESENCE fallback > DEFAULT actions
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,

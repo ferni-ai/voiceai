@@ -22,7 +22,6 @@
 
 // @ts-nocheck - Architecture draft, full implementation pending
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, ConversationSummary } from '../types/user-profile.js';
 

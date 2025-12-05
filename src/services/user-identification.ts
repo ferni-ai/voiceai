@@ -11,7 +11,6 @@
  * - Cross-platform profile resolution
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, VoiceSketch } from '../types/user-profile.js';
 import { getDefaultStore, type MemoryStore } from '../memory/index.js';

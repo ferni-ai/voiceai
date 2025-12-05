@@ -14,7 +14,10 @@
  *   const voiceId = getVoiceId('maya-santos'); // or 'maya', 'spend-save'
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import { discoverAndLoadBundles } from './bundles/index.js';
 import { VOICE_IDS, getVoiceIdForPersona, isValidVoiceId } from '../config/voice-ids.js';
 

@@ -5,7 +5,10 @@
  * Replaces Jack-specific hardcoded greetings with persona-driven ones.
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import type { PersonaConfig, GreetingStyle } from './types.js';
 import { getDayContext, getTimeContext, getSeasonalContext } from './behaviors.js';
 

@@ -14,7 +14,6 @@
  * Persistence: Stored with user profile in Firestore
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import { getDefaultStore } from '../memory/index.js';

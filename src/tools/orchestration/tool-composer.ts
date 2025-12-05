@@ -18,7 +18,10 @@
  *   const suggestions = composer.getSuggestedTools();
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import {
   getConversationState,
   type ConversationStateManager,

@@ -7,7 +7,6 @@
  * For production, use a persistent store like Redis, PostgreSQL, or file-based.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions } from './store.js';
 import type {

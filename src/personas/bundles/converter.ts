@@ -13,7 +13,6 @@
 
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { PersonaConfig } from '../types.js';
 import type { PersonaBundleManifest, BundleStory, BundleBehaviors, StoryIndex } from './types.js';

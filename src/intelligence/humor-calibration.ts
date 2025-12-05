@@ -17,7 +17,6 @@
  * - absurdist: Unexpected/surreal humor
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

@@ -12,7 +12,6 @@
  *   await bootstrapServices({ useMocks: true });
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getContainer, Tokens, resetContainer } from './container.js';
 import {

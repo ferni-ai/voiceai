@@ -5,7 +5,6 @@
  * that Jack would share when music plays.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

@@ -5,7 +5,6 @@
  * Prevents API abuse and handles graceful degradation.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

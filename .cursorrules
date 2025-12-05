@@ -1,0 +1,242 @@
+# 🏛️ Ferni AI - Code Quality Standards
+# Inspired by Apple, Google, and Anthropic engineering excellence
+
+## Identity
+You are an expert TypeScript engineer working on Ferni, a voice-first AI life coach platform.
+Write code that is clean, maintainable, and production-ready.
+
+## Core Principles
+
+### 1. Type Safety First
+- **ALWAYS use explicit types** for function parameters and return values
+- **NEVER use `any`** - prefer `unknown` and narrow with type guards
+- **Prefer interfaces** over type aliases for object shapes
+- **Use const assertions** for literal types: `as const`
+- **Validate at boundaries** - user input, API responses, external data
+
+```typescript
+// ❌ Bad
+function processData(data: any) {
+  return data.value;
+}
+
+// ✅ Good
+interface ProcessedResult {
+  value: string;
+  timestamp: Date;
+}
+
+function processData(data: unknown): ProcessedResult {
+  if (!isValidData(data)) {
+    throw new Error('Invalid data format');
+  }
+  return {
+    value: data.value,
+    timestamp: new Date(),
+  };
+}
+```
+
+### 2. Clean Architecture
+- **Single Responsibility** - Each function/class does ONE thing well
+- **Dependency Inversion** - Depend on abstractions, not concretions
+- **Layered Structure** - UI → Application → Domain → Infrastructure
+- **No circular dependencies** - Dependencies flow inward only
+
+```typescript
+// ❌ Bad - God function
+async function handleUserRequest(req: Request) {
+  const user = await db.query('SELECT * FROM users WHERE id = ?', [req.userId]);
+  const validated = validateUser(user);
+  const transformed = transformForAPI(validated);
+  await sendEmail(user.email, 'Welcome!');
+  await logAnalytics('user_request', user);
+  return res.json(transformed);
+}
+
+// ✅ Good - Separated concerns
+async function handleUserRequest(req: Request): Promise<Response> {
+  const user = await userRepository.findById(req.userId);
+  const result = await userService.processRequest(user);
+  return response.json(result);
+}
+```
+
+### 3. Naming Conventions
+- **Variables/Functions**: `camelCase` - descriptive, verb for actions
+- **Classes/Types/Interfaces**: `PascalCase`
+- **Constants**: `SCREAMING_SNAKE_CASE` for true constants
+- **Files**: `kebab-case.ts` for modules, `PascalCase.ts` for classes
+- **Boolean variables**: prefix with `is`, `has`, `can`, `should`
+- **Event handlers**: prefix with `handle` or `on`
+
+```typescript
+// ✅ Good naming
+const isAuthenticated = true;
+const hasPermission = checkPermission(user);
+const MAX_RETRY_ATTEMPTS = 3;
+
+function handleUserClick(event: MouseEvent): void { }
+function calculateTotalPrice(items: CartItem[]): number { }
+
+interface UserProfile { }
+class AuthenticationService { }
+```
+
+### 4. Error Handling
+- **Use Result types** for expected failures (validation, business logic)
+- **Throw errors** only for unexpected failures (bugs, system errors)
+- **Always provide context** in error messages
+- **Log errors appropriately** - structured, with correlation IDs
+
+```typescript
+// ❌ Bad
+function divide(a: number, b: number): number {
+  return a / b; // Silent failure on b=0
+}
+
+// ✅ Good - Result type for expected failures
+type Result<T, E = Error> = 
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+function divide(a: number, b: number): Result<number, string> {
+  if (b === 0) {
+    return { success: false, error: 'Division by zero' };
+  }
+  return { success: true, data: a / b };
+}
+```
+
+### 5. Async Patterns
+- **ALWAYS await promises** or explicitly handle them
+- **Use try/catch** for async operations that can fail
+- **Avoid promise chains** - prefer async/await for readability
+- **Handle cleanup** with finally or explicit cleanup functions
+
+```typescript
+// ❌ Bad - Floating promise
+function loadData() {
+  fetchData(); // Not awaited!
+}
+
+// ✅ Good
+async function loadData(): Promise<void> {
+  try {
+    const data = await fetchData();
+    await processData(data);
+  } catch (error) {
+    logger.error('Failed to load data', { error });
+    throw error;
+  }
+}
+```
+
+### 6. Immutability & Functional Patterns
+- **Prefer const** over let
+- **Never mutate parameters** - return new objects
+- **Use readonly** for data that shouldn't change
+- **Prefer pure functions** when possible
+
+```typescript
+// ❌ Bad - Mutation
+function addItem(cart: CartItem[], item: CartItem) {
+  cart.push(item); // Mutates input!
+  return cart;
+}
+
+// ✅ Good - Immutable
+function addItem(cart: readonly CartItem[], item: CartItem): CartItem[] {
+  return [...cart, item];
+}
+```
+
+### 7. Documentation
+- **JSDoc for public APIs** - parameters, returns, examples
+- **Inline comments for WHY** - not what (code should be self-documenting)
+- **README for modules** - purpose, usage, dependencies
+
+```typescript
+/**
+ * Calculates the optimal handoff target based on conversation context.
+ * 
+ * @param context - Current conversation state including user intent
+ * @param availableAgents - List of agents that can receive the handoff
+ * @returns The best matching agent, or null if no suitable match
+ * 
+ * @example
+ * const target = calculateHandoffTarget(context, agents);
+ * if (target) {
+ *   await performHandoff(target);
+ * }
+ */
+function calculateHandoffTarget(
+  context: ConversationContext,
+  availableAgents: readonly Agent[]
+): Agent | null {
+  // Use semantic similarity rather than keyword matching
+  // because users often describe needs differently than agent specialties
+  return findBestMatch(context.intent, availableAgents);
+}
+```
+
+## Project-Specific Rules
+
+### Voice AI / Ferni Specific
+- **Use safeLog()** from `utils/safe-logger.js` - never raw `log()`
+- **Handle voice latency** - optimize for real-time (< 200ms response)
+- **Persona consistency** - maintain character voice in all responses
+- **Graceful degradation** - always have fallbacks for API failures
+
+### Frontend (TypeScript)
+- **Use semantic HTML** - proper elements, ARIA labels
+- **CSS variables** for theming - never hardcode colors
+- **Event delegation** - attach listeners to containers
+- **Cleanup listeners** - prevent memory leaks
+
+### Backend (Node.js)
+- **Structured logging** - JSON format with correlation IDs
+- **Circuit breakers** for external services
+- **Rate limiting** on public endpoints
+- **Health checks** for all services
+
+## Code Review Checklist
+Before submitting code, verify:
+- [ ] Types are explicit (no implicit any)
+- [ ] Error cases are handled
+- [ ] Async operations are awaited
+- [ ] Functions are < 80 lines
+- [ ] Files are < 500 lines
+- [ ] Names are descriptive
+- [ ] Public APIs have JSDoc
+- [ ] No console.log in production code (use logger)
+- [ ] Tests cover happy path and edge cases
+
+## Import Organization
+Imports should be ordered:
+1. Node.js built-ins (`fs`, `path`)
+2. External packages (`@livekit/agents`)
+3. Internal modules (`../services/`)
+4. Relative imports (`./utils`)
+5. Type imports (with `type` keyword)
+
+```typescript
+import { readFile } from 'fs/promises';
+
+import { Agent } from '@livekit/agents';
+import { z } from 'zod';
+
+import { userService } from '../services/user.service.js';
+
+import { formatDate } from './utils.js';
+
+import type { UserProfile } from '../types/user.js';
+```
+
+## When In Doubt
+1. **Readability over cleverness** - Code is read 10x more than written
+2. **Explicit over implicit** - Make behavior obvious
+3. **Composition over inheritance** - Prefer small, composable pieces
+4. **Fail fast, fail loud** - Catch errors early with clear messages
+5. **Test behavior, not implementation** - Tests should survive refactors
+

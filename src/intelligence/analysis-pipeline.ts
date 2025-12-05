@@ -20,7 +20,6 @@
  * @module intelligence/analysis-pipeline
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { EmotionResult } from './emotion-detector.js';
 import type { IntentResult } from './intent-classifier.js';

@@ -8,7 +8,10 @@
  * Fallback messages can be customized per persona if needed.
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 
 // ============================================================================
 // STOCK MARKET DATA

@@ -1,11 +1,7 @@
 /**
- * Logger utility - wraps LiveKit's log for service usage
+ * Logger utility - re-exports from safe-logger for backwards compatibility
+ * 
+ * DEPRECATED: Import directly from './safe-logger.js' instead.
  */
-import { log } from '@livekit/agents';
-
-export function getLogger() {
-  return log();
-}
-
-export default getLogger;
-
+export { getLogger, safeLog } from './safe-logger.js';
+export { getLogger as default } from './safe-logger.js';

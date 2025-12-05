@@ -31,6 +31,8 @@
     "persona:list": "npx tsx src/cli/persona-cli.ts list",
     "persona:validate": "npx tsx src/cli/persona-cli.ts validate",
     "persona:build": "npx tsx src/cli/persona-cli.ts build",
+    "generate:personas": "npx tsx scripts/generate-frontend-personas.ts",
+    "prebuild:frontend": "npm run generate:personas",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "build:tokens": "node design-system/build.js",

@@ -10,7 +10,6 @@
  * Replaces silent catch blocks with proper error management.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from './safe-logger.js';
 
 // ============================================================================

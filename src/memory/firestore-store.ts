@@ -10,7 +10,6 @@
  * - GOOGLE_APPLICATION_CREDENTIALS: Path to service account JSON
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
 import type {

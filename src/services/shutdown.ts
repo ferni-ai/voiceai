@@ -5,7 +5,6 @@
  * Separated for clarity and to avoid bloating the main module.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { clearAllSessions } from './session-manager.js';
 import { resetGlobalServices, markPersonaIndexed } from './global-services.js';

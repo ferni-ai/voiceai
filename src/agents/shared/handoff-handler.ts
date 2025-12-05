@@ -17,7 +17,7 @@
  * 10. Validate handoff consistency
  */
 
-import { log, voice } from '@livekit/agents';
+import { voice } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { JobContext } from '@livekit/agents';
 import { diag } from '../../services/diagnostic-logger.js';

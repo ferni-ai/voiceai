@@ -5,7 +5,6 @@
  * Supports multi-label classification (a message can have multiple intents).
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

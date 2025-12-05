@@ -10,7 +10,6 @@
  * - learning_signals: Raw signals for batch processing
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import {
   getCommunityInsights,

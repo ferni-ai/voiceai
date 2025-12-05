@@ -10,7 +10,6 @@
  * This ensures no appointment request falls through the cracks.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import { getAgentBus } from './agent-bus.js';

@@ -13,7 +13,6 @@
  * - Celebration moments
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, FinancialGoal, InvestmentEvent } from '../types/user-profile.js';
 

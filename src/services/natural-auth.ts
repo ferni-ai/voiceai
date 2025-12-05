@@ -14,7 +14,6 @@
  * not like logging into a bank.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, VoiceSketch } from '../types/user-profile.js';
 import {

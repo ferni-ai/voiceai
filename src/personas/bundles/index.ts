@@ -21,7 +21,10 @@
 
 import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
-import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import type { PersonaConfig } from '../types.js';
 import type { LoadedPersonaBundle } from './types.js';
 

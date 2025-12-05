@@ -10,7 +10,6 @@
  * This allows Alex to book tables instantly without calling when possible.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // API Keys

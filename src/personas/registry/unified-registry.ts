@@ -28,7 +28,10 @@
  *   3. Done! Agent is automatically discovered.
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import { discoverAndLoadBundles, loadBundleById, clearBundleCache } from '../bundles/index.js';
 import type { LoadedPersonaBundle, PersonaBundleManifest } from '../bundles/types.js';
 import type { PersonaConfig } from '../types.js';

@@ -5,7 +5,6 @@
  * to prevent injection attacks and API misuse.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

@@ -5,7 +5,6 @@
  * Fails fast if critical variables are missing.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

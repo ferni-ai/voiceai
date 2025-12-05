@@ -17,7 +17,6 @@
  * - Send order link to user's phone to complete payment
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { getConfig } from '../config/environment.js';
 

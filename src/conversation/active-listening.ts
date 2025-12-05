@@ -11,7 +11,6 @@
  * These behaviors make the AI feel like a genuinely attentive listener.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

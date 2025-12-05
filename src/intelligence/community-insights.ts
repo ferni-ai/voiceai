@@ -13,7 +13,6 @@
  * PRIVACY: All data is anonymized before aggregation. No PII stored.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

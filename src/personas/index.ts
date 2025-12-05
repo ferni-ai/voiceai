@@ -19,7 +19,6 @@
  *     ferni               # Life coach (team coordinator)
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { PersonaConfig, PersonaId, PersonaRegistry, PartialPersonaConfig } from './types.js';
 

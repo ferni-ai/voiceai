@@ -15,7 +15,6 @@
  * - Story/advice that was promised but not delivered
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { ConversationSummary, KeyMoment } from '../types/user-profile.js';
 

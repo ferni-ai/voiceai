@@ -8,7 +8,10 @@
  * Scheduling: In-memory polling (production would use Cloud Tasks/Scheduler)
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import { getFirestoreStore, FirestoreStore } from '../memory/firestore-store.js';
 import { InMemoryStore } from '../memory/in-memory-store.js';
 import { MemoryStore } from '../memory/store.js';

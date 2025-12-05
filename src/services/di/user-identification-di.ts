@@ -14,7 +14,10 @@
  * - Gradual migration as files are touched
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { Container, Tokens, type Factory } from './container.js';
 import { Result, success, failure, NotFoundError, ValidationError } from '../../types/index.js';

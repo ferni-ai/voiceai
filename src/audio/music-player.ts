@@ -16,7 +16,7 @@
  * - Manages playback state and queue
  */
 
-import { log, voice } from '@livekit/agents';
+import { voice } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { Room } from '@livekit/rtc-node';
 

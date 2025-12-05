@@ -14,7 +14,10 @@
  *   diag.tool('Tool executed', { name: 'getWeather', elapsed: 150 });
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 
 // ============================================================================
 // CONFIGURATION

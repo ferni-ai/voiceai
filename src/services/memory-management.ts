@@ -12,7 +12,6 @@
  * users across sessions, devices, and even voice recognition.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, VoiceSketch, KeyMoment, ConversationSummary } from '../types/user-profile.js';
 import { getDefaultStore, type MemoryStore } from '../memory/index.js';

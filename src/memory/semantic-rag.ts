@@ -7,7 +7,6 @@
  * Now supports both ephemeral VectorStore and persistent FirestoreVectorStore.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { VectorStore, getVectorStore, type VectorDocument, type VectorFilter } from './vector-store.js';
 import { FirestoreVectorStore, getFirestoreVectorStore } from './firestore-vector-store.js';

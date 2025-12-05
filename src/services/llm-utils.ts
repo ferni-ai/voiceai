@@ -13,7 +13,6 @@
  * @module services/llm-utils
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

@@ -10,7 +10,6 @@
  * and energy fluctuations just like real people.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,

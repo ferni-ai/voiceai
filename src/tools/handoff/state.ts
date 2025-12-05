@@ -3,7 +3,6 @@
  * Manages current agent state, history, and context
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import type { AgentId } from '../../services/agent-bus.js';

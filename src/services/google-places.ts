@@ -12,7 +12,6 @@
  * API Docs: https://developers.google.com/maps/documentation/places/web-service
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { getConfig } from '../config/environment.js';
 

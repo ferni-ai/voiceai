@@ -5,7 +5,6 @@
  * Uses OpenAI's embedding API by default, but supports other providers.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

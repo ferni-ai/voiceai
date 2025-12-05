@@ -10,7 +10,6 @@
  * of the conversation rather than just responding to the last message.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,

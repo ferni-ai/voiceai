@@ -21,7 +21,10 @@
  *   // and can be recovered on server restart
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import type { Firestore } from 'firebase-admin/firestore';
 
 // ============================================================================

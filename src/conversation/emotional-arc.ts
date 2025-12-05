@@ -11,7 +11,6 @@
  * - Empathy calibration (match intensity to user's emotional state)
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';

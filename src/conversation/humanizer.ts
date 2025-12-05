@@ -11,7 +11,6 @@
  * This is the high-level API for making AI conversations feel human.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // Import all conversation modules

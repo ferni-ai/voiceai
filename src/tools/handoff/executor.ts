@@ -10,7 +10,6 @@
  *   await executeHandoff('peter-john', 'User wants stock research', { userId: '123' });
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import { getCanonicalPersonaId, getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';

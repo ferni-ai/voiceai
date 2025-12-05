@@ -9,7 +9,6 @@
  * - Building genuine connection over time
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
 import type { MoodState, RelationshipStage } from '../intelligence/context-builders/humanizing.js';

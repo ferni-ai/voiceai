@@ -9,7 +9,6 @@
  * 4. Manages task priority and transitions
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { ConversationAnalysis } from '../services/index.js';
 

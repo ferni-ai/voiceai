@@ -5,7 +5,6 @@
  * history persistence across sessions.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { ConversationTurn } from './summarizer.js';
 

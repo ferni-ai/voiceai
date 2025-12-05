@@ -5,7 +5,6 @@
  * Uses keyword matching, pattern recognition, and linguistic markers.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

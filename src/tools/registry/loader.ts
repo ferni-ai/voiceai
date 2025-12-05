@@ -13,7 +13,10 @@
  * await loadToolDomain('calendar');
  */
 
-import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
+
+// Alias for backwards compatibility
+const log = getLogger;
 import { toolRegistry } from './index.js';
 import type { ToolDomain, ToolDefinition } from './types.js';
 import { ALL_TOOL_DOMAINS } from './types.js';

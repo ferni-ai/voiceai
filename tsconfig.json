@@ -1,20 +1,61 @@
 {
   "compilerOptions": {
+    // ========================================================================
+    // TARGET & MODULE
+    // ========================================================================
     "target": "ES2022",
     "module": "ESNext",
     "lib": ["ES2022"],
     "moduleResolution": "node",
+    
+    // ========================================================================
+    // OUTPUT
+    // ========================================================================
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "allowSyntheticDefaultImports": true
+    
+    // ========================================================================
+    // 🔒 STRICT TYPE CHECKING (Google/Anthropic Style)
+    // These catch bugs at compile time
+    // ========================================================================
+    "strict": true,                          // Enable all strict type-checking options
+    "noImplicitAny": true,                   // Error on implicit 'any' types
+    "strictNullChecks": true,                // Strict null checking
+    "strictFunctionTypes": true,             // Strict function type checking
+    "strictBindCallApply": true,             // Strict 'bind', 'call', 'apply' checking
+    "strictPropertyInitialization": true,    // Ensure class properties are initialized
+    "noImplicitThis": true,                  // Error on 'this' with implicit 'any'
+    "useUnknownInCatchVariables": true,      // Catch variables are 'unknown' not 'any'
+    "alwaysStrict": true,                    // Emit 'use strict' in all files
+    
+    // ========================================================================
+    // 🎯 ADDITIONAL CHECKS (Clean Code)
+    // ========================================================================
+    "noUnusedLocals": true,                  // Error on unused local variables
+    "noUnusedParameters": true,              // Error on unused parameters
+    "exactOptionalPropertyTypes": true,      // Distinguish undefined vs optional
+    "noImplicitReturns": true,               // All code paths must return
+    "noFallthroughCasesInSwitch": true,      // No fallthrough in switch
+    "noUncheckedIndexedAccess": true,        // Add undefined to index signatures
+    "noImplicitOverride": true,              // Require 'override' keyword
+    "noPropertyAccessFromIndexSignature": true, // Require bracket notation for index sigs
+    
+    // ========================================================================
+    // INTEROP
+    // ========================================================================
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,                 // Ensure safe transpilation
+    
+    // ========================================================================
+    // BUILD OPTIMIZATION
+    // ========================================================================
+    "skipLibCheck": true,                    // Skip .d.ts checking for speed
+    "forceConsistentCasingInFileNames": true // Catch case-sensitivity issues
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "src/tests/**/*"]

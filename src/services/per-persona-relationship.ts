@@ -9,7 +9,6 @@
  * - Persona-specific memory and vulnerability sharing
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type {
   UserProfile,

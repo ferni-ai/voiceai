@@ -12,7 +12,7 @@
  * Voice IDs are now sourced from the voice-registry (single source of truth).
  */
 
-import { log, tts } from '@livekit/agents';
+import { tts } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { handoffEvents, getCurrentAgent } from '../tools/handoff/index.js';

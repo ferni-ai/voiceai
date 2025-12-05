@@ -19,7 +19,6 @@ import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import type { BundleEntrancesV2 } from './bundles/types.js';
 import { isEntrancesV2 } from './bundles/types.js';
 import { loadBundleById } from './bundles/loader.js';
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

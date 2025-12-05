@@ -5,7 +5,6 @@
  * Handles rolling summaries, relationship context, and cross-session continuity.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
 import type { ConversationState, PhaseGuidance } from '../intelligence/conversation-state.js';

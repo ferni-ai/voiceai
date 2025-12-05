@@ -12,7 +12,6 @@
  * This creates subconscious rapport by speaking "their language"
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

@@ -5,7 +5,6 @@
  * and backchanneling for natural conversation flow.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { getInterruptionHandler } from '../conversation/interruption-handler.js';

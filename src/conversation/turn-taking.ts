@@ -11,7 +11,6 @@
  * - Signal when agent should keep responses brief
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================

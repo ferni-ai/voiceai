@@ -11,7 +11,6 @@
  * - Celebrating what the team brings together
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,

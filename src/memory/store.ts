@@ -5,7 +5,6 @@
  * Supports multiple backends: in-memory, file-based, Redis, etc.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import type {
   UserProfile,

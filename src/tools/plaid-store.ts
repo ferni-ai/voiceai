@@ -10,7 +10,6 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // File-based storage (shared with ui-server.js)

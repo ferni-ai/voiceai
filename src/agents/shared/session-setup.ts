@@ -5,7 +5,6 @@
  * Used by voice-agent.ts to reduce file size and improve maintainability.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { createSessionServices, type SessionServices } from '../../services/index.js';

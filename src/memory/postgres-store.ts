@@ -9,7 +9,6 @@
  * - DATABASE_URL: PostgreSQL connection string
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
 import type {

@@ -5,7 +5,6 @@
  * Enables Jack to circle back to topics and maintain conversation coherence.
  */
 
-import { log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
