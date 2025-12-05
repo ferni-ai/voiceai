@@ -1,7 +1,7 @@
 /**
  * Health Check Server
  *
- * Simple HTTP server for Cloud Run health checks and cognitive API.
+ * Simple HTTP server for Cloud Run health checks, cognitive API, and metrics.
  * Starts immediately so health checks pass while LiveKit agent initializes.
  *
  * Used by ALL agents regardless of persona.
@@ -10,6 +10,9 @@
  * - GET /health - Health check
  * - GET /api/cognitive - Current cognitive state (for dashboard)
  * - GET /api/cognitive/history - Recent cognitive events
+ * - GET /api/metrics - Full persistence metrics snapshot
+ * - GET /api/metrics/summary - Concise metrics summary
+ * - GET /api/metrics/sessions - Active sessions only
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -17,8 +20,9 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 // Debug flag for startup logging
 const DEBUG_STARTUP = process.env['DEBUG_AGENT'] === 'true' || process.env['NODE_ENV'] !== 'production';
 
-// Lazy import cognitive broadcast to avoid circular dependencies
+// Lazy imports to avoid circular dependencies
 let cognitiveBroadcast: typeof import('../../services/cognitive-broadcast.js').cognitiveBroadcast | null = null;
+let persistenceMetrics: typeof import('../../services/persistence-metrics.js').persistenceMetrics | null = null;
 
 async function getCognitiveBroadcast() {
   if (!cognitiveBroadcast) {
@@ -30,6 +34,18 @@ async function getCognitiveBroadcast() {
     }
   }
   return cognitiveBroadcast;
+}
+
+async function getPersistenceMetrics() {
+  if (!persistenceMetrics) {
+    try {
+      const module = await import('../../services/persistence-metrics.js');
+      persistenceMetrics = module.persistenceMetrics;
+    } catch {
+      return null;
+    }
+  }
+  return persistenceMetrics;
 }
 
 /**
@@ -80,6 +96,67 @@ async function handleCognitiveAPI(url: string, res: ServerResponse): Promise<voi
 }
 
 /**
+ * Handle persistence metrics API requests
+ */
+async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void> {
+  const metrics = await getPersistenceMetrics();
+
+  // CORS headers for dashboard
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (!metrics) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Metrics service not available' }));
+    return;
+  }
+
+  if (url === '/api/metrics' || url === '/api/metrics/snapshot') {
+    // Return full metrics snapshot
+    const snapshot = metrics.getSnapshot();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      data: snapshot,
+      timestamp: new Date().toISOString(),
+    }));
+    return;
+  }
+
+  if (url === '/api/metrics/summary') {
+    // Return summary report (more concise)
+    const summary = metrics.getSummaryReport();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      data: summary,
+      timestamp: new Date().toISOString(),
+    }));
+    return;
+  }
+
+  if (url === '/api/metrics/sessions') {
+    // Return only active sessions
+    const snapshot = metrics.getSnapshot();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      data: {
+        activeSessions: snapshot.activeSessions,
+        sessions: snapshot.currentSessions,
+      },
+      timestamp: new Date().toISOString(),
+    }));
+    return;
+  }
+
+  // Unknown metrics endpoint
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Unknown metrics endpoint' }));
+}
+
+/**
  * Start a simple HTTP health check server for Cloud Run
  * This starts immediately so Cloud Run health checks pass while LiveKit agent initializes
  *
@@ -107,6 +184,12 @@ export function startHealthCheckServer(serviceName: string = 'voice-agent'): voi
     // Cognitive API endpoints
     if (url.startsWith('/api/cognitive')) {
       await handleCognitiveAPI(url, res);
+      return;
+    }
+
+    // Persistence metrics API endpoints
+    if (url.startsWith('/api/metrics')) {
+      await handleMetricsAPI(url, res);
       return;
     }
 

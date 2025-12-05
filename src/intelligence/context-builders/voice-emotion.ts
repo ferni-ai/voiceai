@@ -20,6 +20,9 @@ import {
   type CognitiveStateAdjustment,
 } from '../voice-emotion-cognitive.js';
 
+// Broadcast service for real-time dashboard updates
+import { broadcastVoiceEmotion } from '../../services/cognitive-broadcast.js';
+
 // Session tracking for voice emotion state
 const sessionVoiceHistory: Map<string, string[]> = new Map();
 
@@ -61,6 +64,14 @@ async function buildVoiceEmotionContext(input: ContextBuilderInput): Promise<Con
 
   // Track session voice emotion
   const sessionState = trackSessionVoiceEmotion(sessionId, signals);
+
+  // 📡 Broadcast voice emotion for dashboard
+  broadcastVoiceEmotion(
+    input.services.userId || 'anonymous',
+    signals.emotion,
+    signals.confidence || 0.5,
+    sessionState.emotionalTrend || 'stable'
+  );
 
   // Process voice emotion for cognitive adjustments
   const adjustment = processVoiceEmotion(signals);

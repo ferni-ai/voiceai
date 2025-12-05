@@ -13,6 +13,28 @@
 
 import { getLogger } from './safe-logger.js';
 
+// Lazy import to avoid circular dependencies
+let broadcastMetricsFn: ((metrics: {
+  avgTotalOverhead: number;
+  p95TotalOverhead: number;
+  maxTotalOverhead: number;
+  under50msPercentage: number;
+  under100msPercentage: number;
+  samplesCount: number;
+}) => void) | null = null;
+
+async function getBroadcastMetrics() {
+  if (!broadcastMetricsFn) {
+    try {
+      const { broadcastMetrics } = await import('../services/cognitive-broadcast.js');
+      broadcastMetricsFn = broadcastMetrics;
+    } catch {
+      // Broadcast not available
+    }
+  }
+  return broadcastMetricsFn;
+}
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -256,12 +278,37 @@ export function getCognitiveMetricsSummary(): CognitiveMetricsSummary {
  */
 let turnsSinceLog = 0;
 const LOG_INTERVAL = 50;
+const BROADCAST_INTERVAL = 10;
 
 export function maybeLogMetrics(): void {
   turnsSinceLog++;
   if (turnsSinceLog >= LOG_INTERVAL) {
     cognitiveMetrics.logSummary();
     turnsSinceLog = 0;
+  }
+}
+
+/**
+ * Broadcast metrics to dashboard (every 10 turns)
+ */
+let turnsSinceBroadcast = 0;
+
+export async function maybeBroadcastMetrics(): Promise<void> {
+  turnsSinceBroadcast++;
+  if (turnsSinceBroadcast >= BROADCAST_INTERVAL) {
+    const broadcast = await getBroadcastMetrics();
+    if (broadcast) {
+      const summary = cognitiveMetrics.getSummary();
+      broadcast({
+        avgTotalOverhead: summary.avgTotalOverhead,
+        p95TotalOverhead: summary.p95TotalOverhead,
+        maxTotalOverhead: summary.maxTotalOverhead,
+        under50msPercentage: summary.under50msPercentage,
+        under100msPercentage: summary.under100msPercentage,
+        samplesCount: summary.sampleCount,
+      });
+    }
+    turnsSinceBroadcast = 0;
   }
 }
 
@@ -272,5 +319,6 @@ export default {
   recordTurnMetrics,
   getCognitiveMetricsSummary,
   maybeLogMetrics,
+  maybeBroadcastMetrics,
 };
 

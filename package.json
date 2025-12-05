@@ -42,6 +42,8 @@
     "tools:recommendations": "npx tsx src/cli/tools-report.ts recommendations",
     "tools:patterns": "npx tsx src/cli/tools-report.ts patterns",
     "tools:optimizer": "npx tsx src/cli/tools-report.ts optimizer",
+    "tools:health": "npx tsx src/cli/tools-report.ts health",
+    "tools:alerts": "npx tsx src/cli/tools-report.ts alerts",
     "tools:help": "npx tsx src/cli/tools-report.ts help",
     "generate:personas": "npx tsx scripts/generate-frontend-personas.ts",
     "prebuild:frontend": "npm run generate:personas",

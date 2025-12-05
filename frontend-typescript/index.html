@@ -4001,10 +4001,10 @@
        ======================================================================== */
     #helperText {
       font-family: var(--font-primary);
-      font-size: 13px;
-      font-weight: 400;
-      letter-spacing: 0.02em;
-      color: rgba(255, 255, 255, 0.5);
+      font-size: 14px;
+      font-weight: 450;
+      letter-spacing: 0.01em;
+      color: var(--color-text-secondary, #5c544a);
       margin: 0;
       text-align: center;
       transition: opacity 0.3s ease, color 0.3s ease;
@@ -4012,7 +4012,16 @@
     
     /* On hover - subtle emphasis */
     #helperText:hover {
-      color: rgba(255, 255, 255, 0.65);
+      color: var(--color-text-primary, #2c2520);
+    }
+
+    /* Dark theme (Cedar Night) */
+    [data-theme="midnight"] #helperText {
+      color: var(--color-text-muted, #d0c4b4);
+    }
+
+    [data-theme="midnight"] #helperText:hover {
+      color: var(--color-text-secondary, #e0d5c8);
     }
     
     @keyframes helperFade {

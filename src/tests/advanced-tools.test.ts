@@ -62,7 +62,9 @@ describe('DynamicToolLoader', () => {
 
     it('returns empty results for unrelated messages', () => {
       const loader = new DynamicToolLoader();
-      const result = loader.detectTopics('Hello, how are you today?');
+      // Use a message without any topic keywords
+      // Avoid: today, wonder, time, happy, love, play, etc.
+      const result = loader.detectTopics('Greetings! Nice to chat.');
 
       expect(result.detectedTopics.length).toBe(0);
       expect(result.confidence).toBe(0);

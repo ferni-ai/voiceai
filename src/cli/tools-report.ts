@@ -755,6 +755,11 @@ function showHelp(): void {
   console.log('  npm run tools:optimizer start     Start auto-optimizer');
   console.log('  npm run tools:optimizer run       Run single optimization cycle');
 
+  console.log(color('\n🏥 MONITORING', 'bright'));
+  console.log(color('─'.repeat(40), 'dim'));
+  console.log('  npm run tools:health              Run health check (errors, latency, feedback)');
+  console.log('  npm run tools:alerts              View active alerts & configuration');
+
   console.log(color('\n🎯 UTILITIES', 'bright'));
   console.log(color('─'.repeat(40), 'dim'));
   console.log('  npm run tools:route "query"       Semantic routing demo');
@@ -856,10 +861,103 @@ async function main(): Promise<void> {
       showHelp();
       break;
     
+    case 'health':
+      await runHealthCheck();
+      break;
+    
+    case 'alerts':
+      await showAlerts();
+      break;
+    
     case 'report':
     default:
       await generateReport();
       break;
+  }
+}
+
+// ============================================================================
+// HEALTH CHECK
+// ============================================================================
+
+async function runHealthCheck(): Promise<void> {
+  console.log(color('\n🏥 HEALTH CHECK\n', 'bright'));
+  console.log(color('═'.repeat(60), 'dim'));
+
+  try {
+    const { alertingService } = await import('../services/optimization-alerting.js');
+    
+    console.log(color('\n📊 Running health checks...', 'cyan'));
+    const result = await alertingService.runHealthCheck();
+    
+    console.log(color('\n✅ CHECKS COMPLETED', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    console.log(`  Checks Run:      ${result.checked.length}`);
+    console.log(`  Alerts Sent:     ${result.alertsSent}`);
+    
+    if (result.issues.length > 0) {
+      console.log(color('\n⚠️ ISSUES FOUND', 'yellow'));
+      console.log(color('─'.repeat(40), 'dim'));
+      result.issues.forEach(issue => {
+        console.log(`  • ${issue}`);
+      });
+    } else {
+      console.log(color('\n✅ No issues found!', 'green'));
+    }
+    
+    console.log(color('\n' + '═'.repeat(60), 'dim'));
+  } catch (error) {
+    console.error(color('\n❌ Health check failed:', 'red'), error);
+  }
+}
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+
+async function showAlerts(): Promise<void> {
+  console.log(color('\n🚨 ACTIVE ALERTS\n', 'bright'));
+  console.log(color('═'.repeat(60), 'dim'));
+
+  try {
+    const { alertingService } = await import('../services/optimization-alerting.js');
+    
+    const activeAlerts = alertingService.getActiveAlerts();
+    const config = alertingService.getConfig();
+    
+    console.log(color('\n⚙️ CONFIGURATION', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    console.log(`  Enabled:         ${config.config.enabled ? color('✅ Yes', 'green') : color('❌ No', 'red')}`);
+    console.log(`  Min Severity:    ${config.config.minSeverity}`);
+    console.log(`  Channels:        ${config.config.channels.join(', ')}`);
+    console.log(`  Slack:           ${config.config.slackWebhookUrl ? color('✅ Configured', 'green') : color('❌ Not set', 'yellow')}`);
+    
+    console.log(color('\n📊 THRESHOLDS', 'bright'));
+    console.log(color('─'.repeat(40), 'dim'));
+    console.log(`  Error Rate:      ${(config.thresholds.errorRate * 100).toFixed(0)}%`);
+    console.log(`  Latency:         ${config.thresholds.latencyMs}ms`);
+    console.log(`  Feedback Rate:   ${(config.thresholds.feedbackRate * 100).toFixed(0)}%`);
+    console.log(`  Min Calls:       ${config.thresholds.minCalls}`);
+    
+    if (activeAlerts.length === 0) {
+      console.log(color('\n✅ No active alerts!', 'green'));
+    } else {
+      console.log(color(`\n⚠️ ${activeAlerts.length} ACTIVE ALERTS`, 'yellow'));
+      console.log(color('─'.repeat(40), 'dim'));
+      
+      activeAlerts.forEach(alert => {
+        const severityColor = alert.severity === 'critical' ? 'red' : 
+                              alert.severity === 'warning' ? 'yellow' : 'blue';
+        console.log(`\n  ${color(alert.severity.toUpperCase(), severityColor)} | ${alert.title}`);
+        console.log(`  ${color(alert.message, 'dim')}`);
+        console.log(`  Type: ${alert.type} | Time: ${alert.timestamp.toISOString()}`);
+      });
+    }
+    
+    console.log(color('\n' + '═'.repeat(60), 'dim'));
+    console.log(color('\n💡 Run health check: npm run tools:health', 'dim'));
+  } catch (error) {
+    console.error(color('\n❌ Failed to show alerts:', 'red'), error);
   }
 }
 

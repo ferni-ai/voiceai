@@ -56,6 +56,13 @@ import {
   broadcastInsightGenerated,
 } from '../../services/cognitive-broadcast.js';
 
+// Cognitive metrics for performance tracking
+import {
+  cognitiveMetrics,
+  recordTurnMetrics,
+  maybeBroadcastMetrics,
+} from '../../utils/cognitive-metrics.js';
+
 // Track reasoning styles used in this session
 const sessionReasoningHistory: Map<string, ReasoningStyle[]> = new Map();
 
@@ -69,11 +76,15 @@ const activeReasoningChains: Map<string, ReturnType<typeof buildReasoningChain>>
  * Build cognitive intelligence context
  */
 async function buildCognitiveContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
+  // Start timing cognitive context building
+  cognitiveMetrics.startTiming('contextBuildTime');
+
   const injections: ContextInjection[] = [];
   const personaId = input.persona?.id;
   const userId = input.services.userId || 'anonymous';
 
   if (!personaId) {
+    cognitiveMetrics.endTiming('contextBuildTime');
     return injections;
   }
 
@@ -81,6 +92,7 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   const profile = getCognitiveProfile(personaId);
   if (!profile) {
     // No cognitive profile defined for this persona - skip
+    cognitiveMetrics.endTiming('contextBuildTime');
     return injections;
   }
 
@@ -197,11 +209,21 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
     );
 
     // 📡 Broadcast user style detection for dashboard
+    // Convert CognitiveSignals to Record<string, number> for broadcast
+    const signalsAsRecord: Record<string, number> = userCognitiveStyle.signals ? {
+      analytical: userCognitiveStyle.signals.analyticalScore,
+      emotional: userCognitiveStyle.signals.emotionalScore,
+      practical: userCognitiveStyle.signals.practicalScore,
+      narrative: userCognitiveStyle.signals.narrativeScore,
+      systematic: userCognitiveStyle.signals.systematicScore,
+      intuitive: userCognitiveStyle.signals.intuitiveScore,
+    } : {};
+
     broadcastUserStyle(
       userId,
       userCognitiveStyle.primary as ReasoningStyle,
       userCognitiveStyle.confidence,
-      userCognitiveStyle.signals || {}
+      signalsAsRecord
     );
   }
 
@@ -406,6 +428,13 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
       )
     );
   }
+
+  // End timing and record metrics
+  cognitiveMetrics.endTiming('contextBuildTime');
+  recordTurnMetrics();
+
+  // 📡 Broadcast metrics to dashboard (every 10 turns)
+  void maybeBroadcastMetrics();
 
   return injections;
 }

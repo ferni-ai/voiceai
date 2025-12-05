@@ -649,12 +649,23 @@ export class PredictionsUI {
       }
 
       [data-theme="midnight"] .predictions-panel__close {
+        background: var(--color-background-tertiary, #685852);
+        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
         color: var(--color-text-secondary, #e0d5c8);
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05),
+                    0 1px 3px rgba(0, 0, 0, 0.15);
       }
 
       [data-theme="midnight"] .predictions-panel__close:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-secondary, #60504a);
+        border-color: var(--color-border-medium, rgba(215, 185, 145, 0.20));
         color: var(--color-text-primary, #faf6f0);
+        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08),
+                    0 2px 6px rgba(0, 0, 0, 0.2);
+      }
+
+      [data-theme="midnight"] .predictions-panel__close:active {
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
       }
 
       [data-theme="midnight"] .predictions-stats {

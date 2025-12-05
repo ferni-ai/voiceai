@@ -32,11 +32,11 @@ export interface UserCognitiveProfile {
     lastUsed: Date;
   }>;
   /** Per-persona effectiveness scores */
-  perPersonaEffectiveness?: Record<string, Record<ReasoningStyle, {
+  perPersonaEffectiveness?: Record<string, Partial<Record<ReasoningStyle, {
     totalScore: number;
     sampleCount: number;
     lastUsed: Date;
-  }>>;
+  }>>>;
   /** Topics user has expertise in */
   expertiseAreas: string[];
   /** Topics user is learning */

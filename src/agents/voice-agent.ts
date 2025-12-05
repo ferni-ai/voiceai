@@ -108,6 +108,12 @@ import { tagGreeting, applyPhasePersonality } from '../speech/adaptive-ssml.js';
 // Conversation Manager
 import { getConversationManager } from '../services/conversation-manager.js';
 
+// Cognitive Intelligence - Session lifecycle hooks for persistent learning
+import {
+  onCognitiveSessionStart,
+  onCognitiveSessionEnd,
+} from '../services/cognitive-session-hooks.js';
+
 // Conversation State - Shared context for human-level tool orchestration
 import {
   getConversationState,
@@ -2674,6 +2680,21 @@ export default defineAgent({
 
       diag.state('Session started', { isPhoneCall, hasNoiseCancellation: isPhoneCall });
 
+      // ===============================================
+      // STEP 6b: INITIALIZE COGNITIVE INTELLIGENCE
+      // ===============================================
+      try {
+        await onCognitiveSessionStart({
+          userId: userId || 'anonymous',
+          personaId: sessionPersona.id,
+          userProfile: services.userProfile,
+          sessionId,
+        });
+        diag.state('Cognitive session initialized');
+      } catch (cogError) {
+        diag.warn('Cognitive session init failed (non-fatal)', { error: String(cogError) });
+      }
+
       // Initialize music player for ALL users (phone: in-call streaming, web: preview fallback)
       // Only initialize if MUSIC_ENABLED=true
       const { isMusicEnabled } = await import('../config/environment.js');
@@ -3219,6 +3240,25 @@ export default defineAgent({
               keyMoments: finalConvState.user.keyMoments.length,
               finalSentiment: finalConvState.emotional.sentiment,
             });
+          }
+
+          // End cognitive intelligence session and save learnings
+          try {
+            const cognitiveResult = await onCognitiveSessionEnd({
+              userId: userId || 'anonymous',
+              personaId: sessionPersona.id,
+              sessionId,
+              sessionDurationMs: Date.now() - services.sessionStartTime,
+            });
+            if (cognitiveResult) {
+              diag.session('Cognitive session ended', {
+                approachesUsed: cognitiveResult.approachesUsed,
+                topicsExplained: cognitiveResult.topicsExplained,
+                userStyle: cognitiveResult.userStyle,
+              });
+            }
+          } catch (cogError) {
+            diag.warn('Cognitive session end failed (non-fatal)', { error: String(cogError) });
           }
 
           await services.endSession();
