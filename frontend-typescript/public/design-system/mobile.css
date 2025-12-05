@@ -1,0 +1,453 @@
+/**
+ * Ferni AI - Mobile-Specific Styles
+ * 
+ * Optimizations and polish for native mobile apps.
+ * Applied via Capacitor platform detection.
+ */
+
+/* ============================================================================
+   SAFE AREA INSETS
+   ============================================================================ */
+
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+}
+
+/* Container with safe areas */
+.app-container {
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
+}
+
+/* Fixed bottom elements - above home indicator */
+.fixed-bottom,
+.action-bar,
+.bottom-sheet {
+  padding-bottom: calc(var(--safe-area-bottom) + var(--ma-breath));
+}
+
+/* Fixed top elements - below status bar */
+.fixed-top,
+.header-bar,
+.navigation-bar {
+  padding-top: calc(var(--safe-area-top) + var(--ma-breath));
+}
+
+/* ============================================================================
+   TOUCH OPTIMIZATIONS
+   ============================================================================ */
+
+/* Larger touch targets (44pt minimum per Apple HIG) */
+.mobile-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Remove tap highlight on mobile */
+.no-tap-highlight {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Touch feedback styles */
+.touch-feedback {
+  -webkit-tap-highlight-color: var(--persona-tint);
+  transition: transform var(--duration-micro) var(--ease-spring);
+}
+
+.touch-feedback:active {
+  transform: scale(0.97);
+}
+
+/* Disable selection on interactive elements */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ============================================================================
+   SCROLL BEHAVIOR
+   ============================================================================ */
+
+/* Native scroll physics */
+.native-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Pull to refresh area */
+.pull-to-refresh {
+  overscroll-behavior-y: none;
+}
+
+/* Scroll snap for carousels */
+.scroll-snap-x {
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-snap-item {
+  scroll-snap-align: start;
+}
+
+/* Hide scrollbars on mobile */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============================================================================
+   TYPOGRAPHY - DYNAMIC TYPE SUPPORT
+   ============================================================================ */
+
+/* Respect system font size (iOS Dynamic Type) */
+body.dynamic-type {
+  font-size: clamp(14px, 1rem, 24px);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Scale everything with em units */
+.dynamic-scale {
+  font-size: 1em;
+  line-height: 1.5em;
+}
+
+/* Minimum readable size */
+.min-readable {
+  font-size: max(12px, 0.75rem);
+}
+
+/* ============================================================================
+   KEYBOARD HANDLING
+   ============================================================================ */
+
+/* When keyboard is visible */
+body.keyboard-visible {
+  /* Reduce bottom padding when keyboard is up */
+  --safe-area-bottom: 0px;
+}
+
+/* Input that should stay above keyboard */
+.keyboard-aware {
+  transition: transform 200ms ease-out;
+}
+
+body.keyboard-visible .keyboard-aware {
+  transform: translateY(calc(-1 * var(--keyboard-height, 0px)));
+}
+
+/* ============================================================================
+   GESTURE AREAS
+   ============================================================================ */
+
+/* Swipe from edge detection area */
+.edge-swipe-area {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.edge-swipe-area.left {
+  left: 0;
+}
+
+.edge-swipe-area.right {
+  right: 0;
+}
+
+/* Swipe indicator */
+.swipe-indicator {
+  width: 40px;
+  height: 4px;
+  background: var(--color-text-muted);
+  border-radius: var(--radius-full);
+  margin: var(--ma-whisper) auto;
+  opacity: 0.5;
+}
+
+/* ============================================================================
+   BOTTOM SHEET
+   ============================================================================ */
+
+.bottom-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--glass-background);
+  backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  transform: translateY(100%);
+  transition: transform var(--duration-slow) var(--ease-spring);
+  z-index: 100;
+}
+
+.bottom-sheet.open {
+  transform: translateY(0);
+}
+
+.bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--color-text-muted);
+  border-radius: var(--radius-full);
+  margin: var(--ma-whisper) auto var(--ma-breath);
+  opacity: 0.4;
+}
+
+/* ============================================================================
+   VOICE UI MOBILE OPTIMIZATIONS
+   ============================================================================ */
+
+/* Large voice button for mobile */
+.voice-button-mobile {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--persona-primary), var(--persona-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  transition: 
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.voice-button-mobile:active {
+  transform: scale(0.95);
+  box-shadow: var(--shadow-md);
+}
+
+.voice-button-mobile.listening {
+  animation: voice-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+  0%, 100% { 
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: var(--shadow-xl), 0 0 40px var(--persona-glow);
+    transform: scale(1.05);
+  }
+}
+
+/* Waveform visualization */
+.waveform-mobile {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.waveform-bar-mobile {
+  width: 4px;
+  min-height: 4px;
+  background: var(--persona-primary);
+  border-radius: var(--radius-full);
+  transition: height var(--duration-micro) var(--ease-spring);
+}
+
+/* ============================================================================
+   PERSONA SELECTOR MOBILE
+   ============================================================================ */
+
+.persona-carousel {
+  display: flex;
+  gap: var(--ma-breath);
+  padding: var(--ma-breath);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.persona-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.persona-card-mobile {
+  flex: 0 0 auto;
+  width: 140px;
+  scroll-snap-align: center;
+  background: var(--glass-background);
+  border-radius: var(--radius-lg);
+  padding: var(--ma-breath);
+  text-align: center;
+  border: 2px solid transparent;
+  transition: 
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-spring);
+}
+
+.persona-card-mobile.selected {
+  border-color: var(--persona-primary);
+}
+
+.persona-card-mobile:active {
+  transform: scale(0.97);
+}
+
+/* ============================================================================
+   LOADING & SKELETON SCREENS
+   ============================================================================ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-background-subtle) 25%,
+    var(--color-background-elevated) 50%,
+    var(--color-background-subtle) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+}
+
+.skeleton-line {
+  height: 16px;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton-line.w-80 { width: 80%; }
+.skeleton-line.w-60 { width: 60%; }
+.skeleton-line.w-40 { width: 40%; }
+
+/* ============================================================================
+   OFFLINE STATE
+   ============================================================================ */
+
+.offline-banner {
+  position: fixed;
+  top: var(--safe-area-top);
+  left: 0;
+  right: 0;
+  background: var(--color-warning);
+  color: var(--color-background);
+  text-align: center;
+  padding: var(--space-2) var(--ma-breath);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  z-index: 1000;
+  transform: translateY(-100%);
+  transition: transform var(--duration-normal) var(--ease-spring);
+}
+
+.offline-banner.visible {
+  transform: translateY(0);
+}
+
+/* ============================================================================
+   NATIVE NAVIGATION
+   ============================================================================ */
+
+/* Large title style (iOS) */
+.nav-large-title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  padding: var(--ma-breath);
+  padding-top: calc(var(--safe-area-top) + var(--ma-pause));
+}
+
+/* Compact navigation */
+.nav-compact {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--ma-breath);
+  padding-top: var(--safe-area-top);
+  background: var(--glass-background);
+  backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--glass-border);
+}
+
+/* Tab bar */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(56px + var(--safe-area-bottom));
+  padding-bottom: var(--safe-area-bottom);
+  background: var(--glass-background);
+  backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  color: var(--color-text-muted);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.tab-item.active {
+  color: var(--persona-primary);
+}
+
+.tab-item svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.5;
+}
+
+.tab-label {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-button-mobile.listening,
+  .skeleton {
+    animation: none;
+  }
+  
+  .touch-feedback:active,
+  .bottom-sheet,
+  .keyboard-aware {
+    transition: none;
+  }
+}
+
