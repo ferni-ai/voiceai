@@ -9,14 +9,13 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import { z } from 'zod';
 import {
   type LifePlanningToolsConfig,
   DEFAULT_TOOL_BEHAVIOR,
   PERSONA_LIFE_PLANNING_CONFIGS,
 } from './types.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // FACTORY

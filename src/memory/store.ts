@@ -6,6 +6,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type {
   UserProfile,
   ConversationSummary,
@@ -14,7 +15,6 @@ import type {
 } from '../types/user-profile.js';
 
 // Lazy logger to avoid initialization before CLI runs
-const getLogger = () => log();
 
 // ============================================================================
 // STORE INTERFACE

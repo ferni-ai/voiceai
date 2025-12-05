@@ -10,12 +10,11 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolExecutionRequest, ToolExecutionResult, AgentId } from '../../agent-bus.js';
 import { getAgentBus } from '../../agent-bus.js';
 import { registerTeamHandler, teamHandlerRegistry } from '../index.js';
 import type { TeamHandlerDefinition } from '../types.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TEAM STATUS TRACKING

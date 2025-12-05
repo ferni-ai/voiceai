@@ -6,10 +6,9 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { ConversationSummary } from '../types/user-profile.js';
 import { embed } from './embeddings.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

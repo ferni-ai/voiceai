@@ -14,6 +14,7 @@
  * Extracted from jack-bogle.ts lines 1052-1064, 1389-1411
  */
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -24,7 +25,6 @@ import {
 import { verifyTopicThreading, getProactiveGoalReference } from '../human-behaviors.js';
 import { getConversationManager } from '../../services/conversation-manager.js';
 import type { TopicWeight } from '../../speech/speech-context.js';
-const getLogger = () => log();
 
 // Extended services interface for topics
 interface TopicServices {

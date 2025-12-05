@@ -12,6 +12,7 @@
  * Extracted from jack-bogle.ts lines 1494-1508
  */
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -20,7 +21,7 @@ import {
   type ContextInjection,
 } from './index.js';
 import { semanticSearch } from '../../memory/semantic-rag.js';
-const getLogger = () => log();
+
 // ============================================================================
 // RAG CONTEXT BUILDER
 // ============================================================================

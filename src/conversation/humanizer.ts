@@ -12,6 +12,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 
 // Import all conversation modules
 import { getSpeechNaturalizer, type NaturalizationContext } from './speech-naturalizer.js';
@@ -20,8 +21,6 @@ import { getConversationalMemory } from './conversational-memory.js';
 import { getQuestionPatternEngine, type QuestionContext } from './question-patterns.js';
 import { getEmotionalArcTracker, type EmotionalResponse } from './emotional-arc.js';
 import { getResponseDynamicsEngine } from './response-dynamics.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

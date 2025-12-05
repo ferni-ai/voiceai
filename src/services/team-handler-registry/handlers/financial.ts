@@ -11,12 +11,11 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolExecutionRequest, ToolExecutionResult, AgentId } from '../../agent-bus.js';
 import { teamHandlerRegistry, registerTeamHandler } from '../index.js';
 import type { TeamHandlerDefinition, HandlerCapability } from '../types.js';
 import { getLifeDataStore, type MilestoneSavingsGoal } from '../../life-data-store.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // SAVINGS GOALS HANDLERS

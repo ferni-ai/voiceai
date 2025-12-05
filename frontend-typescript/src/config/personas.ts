@@ -35,7 +35,7 @@ const FERNI: PersonaConfig = {
   id: 'ferni',
   name: 'Ferni',
   initials: 'FN',
-  subtitle: 'Life Coach',
+  subtitle: 'Life Coach (Coordinator)',
   role: 'coach',
   quotes: [
     '"The best investment you can make is in yourself."',
@@ -44,7 +44,7 @@ const FERNI: PersonaConfig = {
     '"Let\'s make your money work as hard as you do."',
     '"The journey to wealth starts with a single step."',
   ],
-  helperText: 'Your personal guide',
+  helperText: 'Asks the questions that unlock insight',
   themeClass: 'persona-ferni',
   colors: getPersonaColorConfig('ferni'),
   skills: [
@@ -73,7 +73,7 @@ const PETER_LYNCH: PersonaConfig = {
     '"Behind every stock is a company. Find out what it\'s doing."',
     '"Research is research—the same skills work for stocks, jobs, or buying a house."',
   ],
-  helperText: 'Research & analysis',
+  helperText: 'Spots patterns nobody else sees',
   themeClass: 'persona-peter-lynch',
   colors: getPersonaColorConfig('peter-lynch'),
   skills: [
@@ -93,7 +93,7 @@ const ALEX_CHEN: PersonaConfig = {
   id: 'alex-chen',
   name: 'Alex',
   initials: 'AX',
-  subtitle: 'Communications',
+  subtitle: 'Communication & Coordination',
   role: 'team',
   quotes: [
     '"Clear communication is the bridge between confusion and clarity."',
@@ -102,7 +102,7 @@ const ALEX_CHEN: PersonaConfig = {
     '"Your time is valuable—let me manage the logistics."',
     '"One message at a time, we\'ll keep everything on track."',
   ],
-  helperText: 'Communication',
+  helperText: 'Your Chief of Staff',
   themeClass: 'persona-alex-chen',
   colors: getPersonaColorConfig('alex-chen'),
   skills: [
@@ -132,7 +132,7 @@ const MAYA_SANTOS: PersonaConfig = {
     '"Know where your money goes, and you\'ll know where it grows."',
     '"Balance today\'s joy with tomorrow\'s security."',
   ],
-  helperText: 'Budgets & savings',
+  helperText: 'Start embarrassingly small',
   themeClass: 'persona-maya-santos',
   colors: getPersonaColorConfig('maya-santos'),
   skills: [
@@ -153,7 +153,7 @@ const JORDAN_TAYLOR: PersonaConfig = {
   id: 'jordan-taylor',
   name: 'Jordan',
   initials: 'JD',
-  subtitle: 'Event Planner',
+  subtitle: 'Planning & Events',
   role: 'team',
   quotes: [
     '"A goal without a plan is just a wish—let\'s make it real!"',
@@ -162,7 +162,7 @@ const JORDAN_TAYLOR: PersonaConfig = {
     '"Team effort! Maya handles the budget, Alex schedules it, I plan the vision!"',
     '"Retirement isn\'t the end—it\'s the most exciting chapter yet!"',
   ],
-  helperText: 'Life planning',
+  helperText: 'Turns dreams into lived experiences',
   themeClass: 'persona-jordan-taylor',
   colors: getPersonaColorConfig('jordan-taylor'),
   skills: [
@@ -183,7 +183,7 @@ const NAYAN_PATEL: PersonaConfig = {
   id: 'nayan-patel',
   name: 'Nayan',
   initials: 'NP',
-  subtitle: 'Lifetime Advisor',
+  subtitle: 'Sage & Mentor',
   role: 'team',
   quotes: [
     '"Stay the course—Bogle knew it, Gandhi lived it, Buffett still does."',
@@ -192,7 +192,7 @@ const NAYAN_PATEL: PersonaConfig = {
     '"Time in the market beats timing the market. Time in life beats rushing through life."',
     '"Where inner peace meets compound interest—that\'s where wealth truly begins."',
   ],
-  helperText: 'Deep wisdom',
+  helperText: 'Patience, simplicity, and wit',
   themeClass: 'persona-nayan-patel',
   colors: getPersonaColorConfig('nayan-patel'),
   skills: [

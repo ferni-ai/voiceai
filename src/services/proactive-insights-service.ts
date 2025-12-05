@@ -17,11 +17,10 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { getAgentBus } from './agent-bus.js';
 import { getMayaFinancialStore } from './maya-financial-store.js';
 import { getLifeDataStore } from './life-data-store.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

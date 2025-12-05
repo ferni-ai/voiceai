@@ -25,7 +25,20 @@ import { z } from 'zod';
 import { AgentRegistry, type Agent } from '../../personas/registry/unified-registry.js';
 import { executeHandoff, getCurrentAgent, isSameAgent } from './executor.js';
 
-const getLogger = () => log();
+// Safe logger that doesn't throw if not initialized
+const getLogger = () => {
+  try {
+    return log();
+  } catch {
+    // Fall back to console if LiveKit logger not initialized
+    return {
+      debug: console.debug.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console),
+      error: console.error.bind(console),
+    };
+  }
+};
 
 // ============================================================================
 // TYPES

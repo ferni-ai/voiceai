@@ -6,9 +6,8 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { ConversationTurn } from './summarizer.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

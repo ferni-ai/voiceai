@@ -14,8 +14,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { log } from '@livekit/agents';
-
-const getLogger = () => log();
+import { getLogger } from '../utils/safe-logger.js';
 
 // File to store tokens (gitignored)
 const TOKEN_FILE = path.join(process.cwd(), '.spotify-tokens.json');

@@ -11,8 +11,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { log } from '@livekit/agents';
-
-const getLogger = () => log();
+import { getLogger } from '../utils/safe-logger.js';
 
 // File-based storage (shared with ui-server.js)
 const TOKENS_FILE = path.join(process.cwd(), '.plaid-tokens.json');

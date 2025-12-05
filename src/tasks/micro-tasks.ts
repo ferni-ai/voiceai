@@ -13,10 +13,9 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // QUICK ACKNOWLEDGE TASK

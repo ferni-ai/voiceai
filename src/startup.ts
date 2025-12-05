@@ -6,6 +6,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from './utils/safe-logger.js';
 import { getConfig, validateConfig, printConfigSummary, type AppConfig } from './config/index.js';
 import {
   initializeMemorySystem,
@@ -22,8 +23,6 @@ import {
 } from './services/index.js';
 import { initializeFromBundles, listPersonas } from './personas/index.js';
 import { initializeTeamHandlers, shutdownTools } from './tools/index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // STATE

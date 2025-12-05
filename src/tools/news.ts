@@ -11,10 +11,10 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { withRateLimit } from './rate-limiter.js';
 
-const getLogger = () => log();
 const FINNHUB_KEY = process.env.FINNHUB_API_KEY || '';
 const _GNEWS_KEY = process.env.GNEWS_API_KEY || '';
 

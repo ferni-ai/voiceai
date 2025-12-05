@@ -11,6 +11,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import { getCanonicalPersonaId, getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
 import { AgentRegistry } from '../../personas/registry/unified-registry.js';
@@ -23,8 +24,6 @@ import {
   setCurrentAgent as setStateCurrentAgent,
   isSameAgent as stateSameAgent,
 } from './state.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // HANDOFF STATE

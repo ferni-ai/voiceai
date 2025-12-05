@@ -11,6 +11,7 @@
  * Extracted from jack-bogle.ts lines 538-558
  */
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
@@ -19,7 +20,7 @@ import {
 } from './index.js';
 import { getTaskManager } from '../../tasks/task-manager.js';
 import type { ConversationAnalysis as TaskManagerAnalysis } from '../../services/index.js';
-const getLogger = () => log();
+
 // ============================================================================
 // TASKS CONTEXT BUILDER
 // ============================================================================

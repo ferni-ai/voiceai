@@ -21,6 +21,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import {
   getProductivityStore,
@@ -29,8 +30,6 @@ import {
   type HabitCoachProfileData,
   type WeeklyReflectionData,
 } from '../services/productivity-store.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // LIFE DOMAINS - All areas Maya can help with

@@ -15,6 +15,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import {
   getUserId,
@@ -61,8 +62,6 @@ import {
   type MayaMemory,
   type JordanMemory,
 } from '../services/persona-memories.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // JACKIE (COACH) MEMORY TOOLS

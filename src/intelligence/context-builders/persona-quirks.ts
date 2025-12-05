@@ -18,6 +18,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
@@ -26,8 +27,6 @@ import {
   type ContextInjection,
 } from './index.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // QUIRK TRIGGER DETECTION

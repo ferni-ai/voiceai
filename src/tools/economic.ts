@@ -9,9 +9,8 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
-
-const getLogger = () => log();
 
 // FRED API key - get a free key at https://fred.stlouisfed.org/docs/api/api_key.html
 const FRED_API_KEY = process.env.FRED_API_KEY || 'DEMO';

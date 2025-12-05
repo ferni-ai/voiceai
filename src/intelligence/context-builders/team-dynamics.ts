@@ -12,6 +12,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
@@ -19,8 +20,6 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TEAM MEMBER PATTERNS

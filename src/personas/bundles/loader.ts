@@ -11,6 +11,20 @@
 import { readFile, readdir, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { log } from '@livekit/agents';
+
+// Safe logger that doesn't throw if not initialized
+const safeLog = () => {
+  try {
+    return log();
+  } catch {
+    return {
+      debug: console.debug.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console),
+      error: console.error.bind(console),
+    };
+  }
+};
 import type {
   PersonaBundleManifest,
   LoadedPersonaBundle,
@@ -32,7 +46,7 @@ import type {
   BundlePromptAssembly,
 } from './types.js';
 
-const getLogger = () => log();
+const getLogger = () => safeLog();
 
 // ============================================================================
 // BUNDLE CACHE

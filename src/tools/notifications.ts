@@ -13,13 +13,12 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import {
   getMayaNotificationService,
   type MayaNotificationType,
 } from '../services/maya-notification-service.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // NOTIFICATION TOOLS

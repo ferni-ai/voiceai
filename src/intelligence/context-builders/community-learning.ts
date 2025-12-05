@@ -11,6 +11,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
@@ -20,8 +21,6 @@ import {
 } from './index.js';
 import { getCommunityInsights } from '../community-insights.js';
 import { getAgentEvolution } from '../agent-evolution.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // CONTEXT BUILDER

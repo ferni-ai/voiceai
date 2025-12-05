@@ -11,6 +11,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
 // Import from other tools to aggregate data
@@ -20,8 +21,6 @@ import { getUpcomingBills, calculateMonthlyTotal, type Bill } from './bills.js';
 import { getDueHabits, calculateStreak, type Habit } from './habits.js';
 import { getTodayJournal, getJournalStreak, type JournalEntry } from './notes.js';
 import { getDueDoses, getUpcomingDoses, getMedsNeedingRefill, type Medication } from './medications.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

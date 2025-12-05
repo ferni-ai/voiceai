@@ -69,7 +69,8 @@ export interface TeamMember {
  */
 export type TeamRole =
   | 'coordinator' // Orchestrates team, handles handoffs
-  | 'sage-mentor' // Wisdom, life advice, big picture
+  | 'sage-mentor' // Wisdom, life advice, big picture (marketplace agent: Jack Bogle)
+  | 'lifetime-advisor' // Deep wisdom and mentorship (core team: Nayan Patel)
   | 'researcher' // Deep analysis, insights
   | 'communicator' // Scheduling, emails, contacts
   | 'habits-coach' // Financial habits, routines

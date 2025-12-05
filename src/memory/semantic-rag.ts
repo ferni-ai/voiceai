@@ -8,11 +8,10 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { VectorStore, getVectorStore, type VectorDocument, type VectorFilter } from './vector-store.js';
 import { FirestoreVectorStore, getFirestoreVectorStore } from './firestore-vector-store.js';
 import { embed } from './embeddings.js';
-
-const getLogger = () => log();
 
 // Type for any vector store implementation
 type AnyVectorStore = VectorStore | FirestoreVectorStore;

@@ -6,10 +6,9 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import type { SessionServices } from '../services/index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPE DEFINITIONS

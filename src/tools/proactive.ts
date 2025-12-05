@@ -12,12 +12,11 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import type { SessionServices } from '../services/index.js';
 import type { FinancialGoal } from '../types/user-profile.js';
 import { getDefaultStore } from '../memory/index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPE DEFINITIONS

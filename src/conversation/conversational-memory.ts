@@ -13,9 +13,8 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { getTopicTracker } from '../intelligence/topic-tracker.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

@@ -11,6 +11,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import {
   getCommunityInsights,
   getAgentEvolution,
@@ -20,8 +21,6 @@ import {
   type StoryResonance,
   type PersonaEvolutionState,
 } from '../intelligence/index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

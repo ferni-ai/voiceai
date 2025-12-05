@@ -161,7 +161,7 @@ export const HANDOFF_WARMTH = {
       'Peter told me you\'ve been having a great conversation! <break time="200ms"/>',
       'I heard from Peter you were chatting— <break time="150ms"/>sounds like good stuff!',
     ],
-    'nayan-patel': ['Jack mentioned you two talked. <break time="200ms"/>Good foundation there.'],
+    'nayan-patel': ['Nayan mentioned you two talked. <break time="200ms"/>Good foundation there.'],
     'comm-specialist': [
       'Alex filled me in— <break time="200ms"/>I\'m up to speed.',
       'Got the brief from Alex. <break time="200ms"/>Let\'s keep going.',

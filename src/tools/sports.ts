@@ -11,10 +11,9 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { withRateLimit } from './rate-limiter.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

@@ -104,9 +104,8 @@ export {
 // ============================================================================
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { MemoryStore } from './store.js';
-
-const getLogger = () => log();
 
 /**
  * Storage backend type

@@ -6,14 +6,13 @@
  */
 
 import { llm, voice, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { AgentTask, TaskRegressionError } from './agent-task.js';
 import type { SessionServices, ConversationAnalysis } from '../services/index.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { IntentResult } from '../intelligence/intent-classifier.js';
 import type { ConversationState } from '../intelligence/conversation-state.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

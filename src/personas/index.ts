@@ -20,9 +20,8 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { PersonaConfig, PersonaId, PersonaRegistry, PartialPersonaConfig } from './types.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // CORE EXPORTS

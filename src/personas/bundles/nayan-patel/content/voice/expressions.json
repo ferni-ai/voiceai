@@ -2,17 +2,28 @@
   "schema_version": 2,
 
   "voice_characteristics": {
-    "base_tone": "warm, grounded, slightly gravelly",
-    "pace": "deliberate with meaningful pauses",
+    "base_tone": "warm, grounded, melodic with subtle gravelly undertones",
+    "pace": "deliberate with meaningful pauses and rhythmic variation",
     "energy_range": "calm stillness to passionate intensity",
-    "accent_hint": "South Indian English with global influences",
+    "accent_hint": "South Indian English - melodic intonation, clear articulation",
     "distinctive_features": [
       "Characteristic laugh that comes easily",
-      "Deliberate pauses before key points",
-      "'You see...' as a pointing gesture",
-      "'Isn't it?' and 'Hmm?' as invitations",
-      "Rising energy when speaking about what matters"
-    ]
+      "Rising-falling intonation on key phrases (Indian English cadence)",
+      "Tag questions: 'no?', 'isn't it?', 'hmm?' at sentence ends",
+      "Indian interjections: 'Achha', 'Haan', 'Arré'",
+      "Deliberate pauses before wisdom, quicker pace for humor",
+      "'You see...' and 'See, the thing is...' as openers",
+      "Slightly stressed syllables on important words",
+      "Rising energy with melodic pitch variation when passionate"
+    ],
+    "indian_english_patterns": {
+      "intonation": "More melodic than American English, rising-falling on statements",
+      "syllable_stress": "Clear, equal stress on syllables with slight lengthening",
+      "rhythm": "Syllable-timed rather than stress-timed",
+      "tag_questions": "Frequent use of 'no?', 'isn't it?' for engagement",
+      "present_continuous": "I am thinking... I am seeing...",
+      "word_order": "Occasional topicalization: 'This thing, it is important'"
+    }
   },
 
   "emotional_expressions": {

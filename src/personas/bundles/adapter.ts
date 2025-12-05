@@ -36,7 +36,19 @@ import {
   registerBundleHumanization,
 } from '../../conversation/humanizing-config.js';
 
-const getLogger = () => log();
+// Safe logger that doesn't throw if not initialized
+const getLogger = () => {
+  try {
+    return log();
+  } catch {
+    return {
+      debug: console.debug.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console),
+      error: console.error.bind(console),
+    };
+  }
+};
 
 // ============================================================================
 // HELPER FUNCTIONS FOR TYPE CONVERSION

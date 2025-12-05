@@ -14,14 +14,13 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // AWARENESS TRIGGER PATTERNS

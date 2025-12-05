@@ -6,10 +6,9 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { clearAllSessions } from './session-manager.js';
 import { resetGlobalServices, markPersonaIndexed } from './global-services.js';
-
-const getLogger = () => log();
 
 /**
  * Gracefully shut down all services

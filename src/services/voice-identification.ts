@@ -13,6 +13,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, VoiceSketch } from '../types/user-profile.js';
 import { identifyFromMetadata, type IdentificationResult } from './user-identification.js';
 import {
@@ -21,8 +22,6 @@ import {
   type VoiceSearchResult,
   type VoiceSimilarityResult,
 } from './voice-memory.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

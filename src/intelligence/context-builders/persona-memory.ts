@@ -15,6 +15,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -40,8 +41,6 @@ import {
   type Memory,
 } from '../../services/persona-memories.js';
 import type { UserProfile } from '../../types/user-profile.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // PERSONA ID NORMALIZATION

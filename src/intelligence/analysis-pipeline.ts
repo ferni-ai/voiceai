@@ -21,14 +21,13 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { EmotionResult } from './emotion-detector.js';
 import type { IntentResult } from './intent-classifier.js';
 import type { TopicExtractionResult } from './topic-tracker.js';
 import type { ConversationState } from './conversation-state.js';
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';
 import type { UserProfile } from '../types/user-profile.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

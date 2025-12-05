@@ -11,9 +11,8 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { VoiceEmotionResult } from './audio-prosody.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

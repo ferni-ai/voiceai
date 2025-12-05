@@ -10,13 +10,12 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type {
   UserProfile,
   PersonaRelationshipStage,
   PerPersonaRelationshipData,
 } from '../types/user-profile.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // RELATIONSHIP STAGE THRESHOLDS

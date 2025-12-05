@@ -13,6 +13,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { validatePhone, sanitizePhoneForLog } from './validation.js';
 import { parseNaturalTime, createReminder } from '../services/reminder-scheduler.js';
@@ -29,8 +30,6 @@ import {
   getAppointmentFollowUpService,
   type TrackedAppointment,
 } from '../services/appointment-followup.js';
-
-const getLogger = () => log();
 
 // Twilio credentials
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';

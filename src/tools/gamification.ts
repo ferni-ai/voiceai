@@ -19,10 +19,9 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { getProductivityStore } from '../services/productivity-store.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // BADGE SYSTEM

@@ -18,6 +18,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../../utils/safe-logger.js';
 import type { AgentId } from '../../agent-bus.js';
 
 // Financial handlers (Maya)
@@ -76,8 +77,6 @@ export {
   handleEscalationHandler,
   requestSpecialistHandler,
 } from './coordination.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // REGISTER ALL HANDLERS

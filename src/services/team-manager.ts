@@ -6,6 +6,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type {
   TeamPackageManifest,
   TeamInstance,
@@ -17,8 +18,6 @@ import type {
   TeamRouting,
   TeamRole,
 } from '../personas/team/package-types.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TEAM MANAGER

@@ -4,6 +4,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import type { AgentId } from '../../services/agent-bus.js';
 import {
@@ -11,8 +12,6 @@ import {
   getFrontendPersonaId,
 } from '../../personas/voice-registry.js';
 import type { HandoffContext, HandoffRecord, HandoffAnalytics } from './types.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // HANDOFF EVENTS

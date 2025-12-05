@@ -8,6 +8,12 @@ node_modules
 .cursor
 reference/
 
+# Secrets - prevent accidental inclusion in Docker images
+.livekit-secrets.env
+.plaid-tokens.json
+.spotify-tokens.json
+.spotify-device.json
+
 # Ignore root-level markdown but NOT persona bundle content
 /*.md
 /docs/*.md

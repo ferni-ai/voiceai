@@ -8,6 +8,7 @@
  * - Enhances the storytelling experience
  */
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
@@ -19,7 +20,7 @@ import {
   getStorytellingIntro,
   getStorytellingConfig,
 } from '../../personas/theatrical.js';
-const getLogger = () => log();
+
 // ============================================================================
 // STORYTELLING PATTERNS
 // ============================================================================

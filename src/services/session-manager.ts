@@ -6,6 +6,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
 import type { SpeechCharacteristics } from '../personas/types.js';
 
@@ -76,8 +77,6 @@ import { semanticSearch, ragLookup as semanticRagLookup, summarizeConversation, 
 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../tools/handoff-state.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // SESSION STATE

@@ -9,6 +9,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import {
   getMayaGamificationStore,
@@ -17,8 +18,6 @@ import {
   type LeaderboardEntry,
 } from '../services/maya-gamification-store.js';
 import { BADGE_DEFINITIONS, TITLE_PROGRESSION } from './gamification.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // GAMIFICATION TOOLS V2

@@ -10,9 +10,8 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
-
-const getLogger = () => log();
 
 // ============================================================================
 // PUBLIC API FUNCTIONS

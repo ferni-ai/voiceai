@@ -18,14 +18,13 @@
  */
 
 import { log, voice } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import type { JobContext } from '@livekit/agents';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getCurrentAgent } from '../../tools/handoff/index.js';
 import { HANDOFF_DELAYS } from './constants.js';
 import type { UserData } from './types.js';
 import type { SessionServices } from '../../services/types.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // FIX BUG #50 & #51: Cached imports to reduce handoff latency

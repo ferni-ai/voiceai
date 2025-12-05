@@ -8,6 +8,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions } from './store.js';
 import type {
   UserProfile,
@@ -15,8 +16,6 @@ import type {
   KeyMoment,
   FinancialGoal,
 } from '../types/user-profile.js';
-
-const getLogger = () => log();
 
 /**
  * In-memory storage implementation

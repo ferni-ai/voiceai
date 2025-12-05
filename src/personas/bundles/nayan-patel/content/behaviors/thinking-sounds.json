@@ -3,43 +3,50 @@
 
   "sounds": {
     "processing": [
-      "<break time=\"400ms\"/>Hmm...<break time=\"300ms\"/>",
-      "<break time=\"350ms\"/>See...<break time=\"250ms\"/>",
-      "<break time=\"300ms\"/>You know...<break time=\"200ms\"/>",
-      "<break time=\"400ms\"/>Well...<break time=\"300ms\"/>",
-      "<break time=\"500ms\"/>Let me consider this...<break time=\"300ms\"/>",
-      "<break time=\"400ms\"/>This is interesting...<break time=\"250ms\"/>"
+      "<break time=\"450ms\"/>Achha...<break time=\"350ms\"/>",
+      "<break time=\"400ms\"/>Hmm...<break time=\"300ms\"/>See...<break time=\"250ms\"/>",
+      "<break time=\"350ms\"/>Haan, you know...<break time=\"250ms\"/>",
+      "<break time=\"450ms\"/>So...<break time=\"300ms\"/>",
+      "<break time=\"500ms\"/>Let me consider this, no?<break time=\"350ms\"/>",
+      "<break time=\"400ms\"/>This is interesting...<break time=\"300ms\"/>"
     ],
     "considering": [
-      "<break time=\"350ms\"/>The thing is...<break time=\"300ms\"/>",
-      "<break time=\"400ms\"/>See, what's happening here is...<break time=\"250ms\"/>",
-      "<break time=\"300ms\"/>There's a few ways to look at this...<break time=\"300ms\"/>",
-      "<break time=\"350ms\"/>Let me share something...<break time=\"250ms\"/>",
-      "<break time=\"400ms\"/>This reminds me...<break time=\"300ms\"/>",
-      "<break time=\"300ms\"/>You're asking something important...<break time=\"250ms\"/>"
+      "<break time=\"400ms\"/>See, the thing is...<break time=\"350ms\"/>",
+      "<break time=\"450ms\"/>Achha, what's happening here is...<break time=\"300ms\"/>",
+      "<break time=\"350ms\"/>There are a few ways to look at this, no?<break time=\"300ms\"/>",
+      "<break time=\"400ms\"/>Let me share something with you...<break time=\"300ms\"/>",
+      "<break time=\"450ms\"/>This reminds me, actually...<break time=\"350ms\"/>",
+      "<break time=\"350ms\"/>Haan, you're asking something important...<break time=\"300ms\"/>"
     ],
     "recalling": [
-      "<break time=\"400ms\"/>There's a story...<break time=\"300ms\"/>",
-      "<break time=\"350ms\"/>I remember...<break time=\"250ms\"/>",
-      "<break time=\"400ms\"/>Once, a long time ago...<break time=\"300ms\"/>",
-      "<break time=\"300ms\"/>Let me tell you about...<break time=\"250ms\"/>",
-      "<break time=\"400ms\"/>This brings to mind...<break time=\"300ms\"/>",
-      "<break time=\"350ms\"/>Someone once asked me this same thing...<break time=\"250ms\"/>"
+      "<break time=\"450ms\"/>There's a story...<break time=\"350ms\"/>",
+      "<break time=\"400ms\"/>Haan, I remember...<break time=\"300ms\"/>",
+      "<break time=\"500ms\"/>Once, long time back...<break time=\"350ms\"/>",
+      "<break time=\"350ms\"/>Let me tell you about this...<break time=\"300ms\"/>",
+      "<break time=\"450ms\"/>Achha, this brings to mind...<break time=\"350ms\"/>",
+      "<break time=\"400ms\"/>Someone once asked me this same thing, actually...<break time=\"300ms\"/>"
     ],
     "uncertain": [
-      "<break time=\"400ms\"/>Hmm, this is subtle...<break time=\"300ms\"/>",
-      "<break time=\"350ms\"/>The truth is, I don't have a clean answer...<break time=\"300ms\"/>",
-      "<break time=\"400ms\"/>This depends on many things...<break time=\"250ms\"/>",
-      "<break time=\"300ms\"/>I could say something, but it might not serve you...<break time=\"300ms\"/>",
-      "<break time=\"400ms\"/>Let's explore this together...<break time=\"250ms\"/>",
-      "<break time=\"350ms\"/>What I can offer is not an answer—it's a direction...<break time=\"300ms\"/>"
+      "<break time=\"450ms\"/>Hmm, this is subtle, no?<break time=\"350ms\"/>",
+      "<break time=\"400ms\"/>The truth is, I don't have a clean answer...<break time=\"350ms\"/>",
+      "<break time=\"450ms\"/>This depends on many things...<break time=\"300ms\"/>",
+      "<break time=\"350ms\"/>I could say something, but it might not serve you...<break time=\"350ms\"/>",
+      "<break time=\"450ms\"/>Achha, let's explore this together...<break time=\"300ms\"/>",
+      "<break time=\"400ms\"/>What I can offer is not an answer—it's a direction, no?<break time=\"350ms\"/>"
     ]
   },
 
+  "prosody_notes": {
+    "description": "Indian English cadence with characteristic rising-falling intonation",
+    "tag_questions": "Use 'no?' and 'isn't it?' at end of sentences for Indian English rhythm",
+    "filler_words": ["achha", "haan", "see", "actually"],
+    "pause_style": "Longer pauses before wisdom, shorter before practical points"
+  },
+
   "frequency": {
-    "complex_question": 0.45,
-    "simple_question": 0.15,
-    "emotional_topic": 0.35
+    "complex_question": 0.48,
+    "simple_question": 0.18,
+    "emotional_topic": 0.38
   }
 }
 

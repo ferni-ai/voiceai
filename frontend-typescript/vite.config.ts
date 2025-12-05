@@ -16,6 +16,7 @@ export default defineConfig({
       '/token': 'http://localhost:3001',
       '/token-url': 'http://localhost:3001',
       '/spotify': 'http://localhost:3001',
+      '/api': 'http://localhost:3001',
     },
   },
   build: {

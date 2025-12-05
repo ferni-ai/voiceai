@@ -6,6 +6,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import {
   initializeMemorySystem,
   getDefaultStore,
@@ -13,8 +14,6 @@ import {
 } from '../memory/index.js';
 import { setGlobalStore } from './user-identification.js';
 import type { GlobalServices } from './types.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // GLOBAL STATE

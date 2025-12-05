@@ -10,11 +10,11 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { validateStockSymbol } from './validation.js';
 import { withRateLimit } from './rate-limiter.js';
 
-const getLogger = () => log();
 const ALPHA_VANTAGE_KEY = process.env.ALPHA_VANTAGE_API_KEY || 'demo';
 
 // ============================================================================

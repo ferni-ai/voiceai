@@ -10,6 +10,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { initializeToolRegistry } from './registry/loader.js';
 import { toolRegistry } from './registry/index.js';
 import type { ToolDomain } from './registry/types.js';
@@ -17,8 +18,6 @@ import type { ToolDomain } from './registry/types.js';
 // Team handler registry (new generic system)
 import { teamHandlerRegistry } from '../services/team-handler-registry/index.js';
 import { initializeTeamHandlerRegistry } from '../services/team-handler-registry/loader.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TOOL REGISTRY INITIALIZATION

@@ -11,6 +11,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolExecutionRequest, ToolExecutionResult, AgentId } from '../../agent-bus.js';
 import { registerTeamHandler } from '../index.js';
 import type { TeamHandlerDefinition } from '../types.js';
@@ -19,8 +20,6 @@ import {
   type CalendarEvent,
   type RecurringCheckIn,
 } from '../../life-data-store.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // EVENT SCHEDULING HANDLERS

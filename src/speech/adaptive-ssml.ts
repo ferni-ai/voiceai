@@ -8,11 +8,10 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { tagTextWithSsml, sanitizeSsml, tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 import type { SpeechContext } from './speech-context.js';
 import type { ConversationPhase } from '../intelligence/conversation-state.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // ADAPTIVE TAGGING

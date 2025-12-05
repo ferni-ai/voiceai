@@ -6,6 +6,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
 import type { ConversationState, PhaseGuidance } from '../intelligence/conversation-state.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
@@ -16,8 +17,6 @@ import {
   type SharedContentContext,
   type InjectedContent,
 } from '../personas/shared/index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

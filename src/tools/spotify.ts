@@ -12,6 +12,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -28,8 +29,6 @@ import {
 } from '../services/spotify-auth.js';
 import { getMusicCommentary, hasArtistInfo } from './music-commentary.js';
 import { getMusicReaction, shouldReactToMusic } from '../speech/music-reactions.js';
-
-const getLogger = () => log();
 
 // Flag to control playback mode
 let streamIntoCall = false; // If true, stream music INTO the call (phone users)

@@ -7,6 +7,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   getMeaningfulSilenceResponse,
   type SilenceContext,
@@ -14,8 +15,6 @@ import {
 } from '../../personas/meaningful-silence.js';
 import { SILENCE_THRESHOLDS } from '../shared/constants.js';
 import type { PersonaConfig } from '../../personas/types.js';
-
-const getLogger = () => log();
 
 // Re-export types for convenience
 export type { SilenceContext, SilenceResponse };

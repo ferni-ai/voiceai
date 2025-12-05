@@ -12,10 +12,9 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { getUserMilestones, type LifeMilestone } from './life-firsts-tracker.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // URGENCY LEVELS

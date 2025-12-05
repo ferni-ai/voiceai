@@ -5,13 +5,16 @@
  * This domain enables multi-agent collaboration.
  *
  * DOMAIN: handoff
+ * 
+ * IMPORTANT: This domain loads tools asynchronously from the AgentRegistry.
+ * The getToolDefinitions() function MUST be called after AgentRegistry is initialized.
  */
 
-import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 
 // Agent-agnostic handoff factory
-import { buildHandoffTools, createHandoffTools } from '../../handoff/index.js';
+// NOTE: Path is relative from tools/domains/handoff/ to tools/handoff/
+import { createHandoffTools } from '../../handoff/index.js';
 
 // ============================================================================
 // HANDOFF TOOLS
@@ -19,8 +22,9 @@ import { buildHandoffTools, createHandoffTools } from '../../handoff/index.js';
 
 /**
  * Get handoff tool definitions dynamically from the agent registry.
+ * This is the primary function - it loads tools asynchronously.
  */
-async function getNewHandoffToolDefinitions(): Promise<ToolDefinition[]> {
+async function getHandoffToolDefinitionsAsync(): Promise<ToolDefinition[]> {
   const handoffToolSet = await createHandoffTools();
 
   const definitions: ToolDefinition[] = [];
@@ -39,31 +43,48 @@ async function getNewHandoffToolDefinitions(): Promise<ToolDefinition[]> {
   return definitions;
 }
 
+// Cache for loaded tools (populated on first async call)
+let cachedHandoffTools: ToolDefinition[] | null = null;
+
 /**
  * Get handoff tool definitions.
- * Returns an empty array synchronously - use getNewHandoffToolDefinitions for async.
+ * 
+ * FIX BUG: This now returns cached tools if available, or an empty array if not yet loaded.
+ * The registry loader calls this asynchronously, so tools will be loaded.
  */
-function getHandoffToolDefinitions(): ToolDefinition[] {
-  // Return empty for sync compatibility - the async version should be used
-  return [];
+async function getToolDefinitions(): Promise<ToolDefinition[]> {
+  if (cachedHandoffTools) {
+    return cachedHandoffTools;
+  }
+  
+  // Load and cache the tools
+  cachedHandoffTools = await getHandoffToolDefinitionsAsync();
+  return cachedHandoffTools;
+}
+
+/**
+ * Synchronous getter for compatibility - returns cached or empty
+ * @deprecated Use getToolDefinitions() instead
+ */
+function getHandoffToolDefinitionsSync(): ToolDefinition[] {
+  return cachedHandoffTools || [];
 }
 
 // ============================================================================
-// DOMAIN TOOLS COLLECTION
+// DOMAIN METADATA
 // ============================================================================
 
-// Note: This is empty synchronously. Use buildHandoffTools() directly for dynamic tools.
-const handoffTools: ToolDefinition[] = [];
+export const domain = 'handoff';
+export const definitions: ToolDefinition[] = []; // Populated async via getToolDefinitions
 
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'handoff',
-  handoffTools
-);
-
-export { getHandoffToolDefinitions, getNewHandoffToolDefinitions };
+export { 
+  getToolDefinitions,
+  getHandoffToolDefinitionsAsync as getNewHandoffToolDefinitions,
+  getHandoffToolDefinitionsSync as getHandoffToolDefinitions,
+};
 
 export default getToolDefinitions;

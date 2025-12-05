@@ -14,6 +14,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import {
   validateEmail,
@@ -32,8 +33,6 @@ import {
   parseNaturalTime,
   type ReminderDeliveryMethod,
 } from '../services/reminder-scheduler.js';
-
-const getLogger = () => log();
 
 // Twilio for phone calls
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';

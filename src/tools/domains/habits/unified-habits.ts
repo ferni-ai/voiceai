@@ -19,12 +19,11 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getUserId, generateId, formatDate, progressBar, ordinal } from '../../utils/tool-helpers.js';
 import { getProductivityStore, type HabitData, type HabitLogData } from '../../../services/productivity-store.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

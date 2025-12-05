@@ -18,9 +18,8 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { AgentId } from '../services/agent-bus.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

@@ -13,11 +13,10 @@
  */
 
 import { log, tts } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { handoffEvents, getCurrentAgent } from '../tools/handoff/index.js';
 import { getVoiceId, getCanonicalPersonaId } from '../personas/voice-registry.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

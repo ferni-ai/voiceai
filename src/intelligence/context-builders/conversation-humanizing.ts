@@ -14,6 +14,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import type { ContextBuilderInput, ContextInjection } from './index.js';
 import { createInjection } from './index.js';
 import {
@@ -22,8 +23,6 @@ import {
   type HumanizationContext,
   type ContextGuidance,
 } from '../../conversation/index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

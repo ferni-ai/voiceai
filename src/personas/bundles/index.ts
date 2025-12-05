@@ -7,13 +7,13 @@
  *   import { loadBundle, loadBundleById, convertLegacyToBundle } from './bundles/index.js';
  *
  *   // Load a bundle
- *   const jack = await loadBundleById('nayan-patel');
+ *   const nayan = await loadBundleById('nayan-patel');
  *
  *   // Get stories
- *   const stories = await jack.getStoriesByTrigger('market crash');
+ *   const stories = await nayan.getStoriesByTrigger('life wisdom');
  *
  *   // Convert legacy persona to bundle format (for migration)
- *   const bundlePath = await convertLegacyToBundle(JACK_BOGLE_PERSONA, './output');
+ *   const bundlePath = await convertLegacyToBundle(PERSONA_CONFIG, './output');
  *
  *   // Load all bundles and register them
  *   const personas = await discoverAndLoadBundles();
@@ -25,7 +25,19 @@ import { log } from '@livekit/agents';
 import type { PersonaConfig } from '../types.js';
 import type { LoadedPersonaBundle } from './types.js';
 
-const getLogger = () => log();
+// Safe logger that doesn't throw if not initialized
+const getLogger = () => {
+  try {
+    return log();
+  } catch {
+    return {
+      debug: console.debug.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console),
+      error: console.error.bind(console),
+    };
+  }
+};
 
 // Types
 export * from './types.js';

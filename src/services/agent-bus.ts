@@ -9,9 +9,8 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { EventEmitter } from 'events';
-
-const getLogger = () => log();
 
 // ============================================================================
 // RATE LIMITING

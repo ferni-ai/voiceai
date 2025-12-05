@@ -11,11 +11,10 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import { getLifeDataStore, type LifeMilestone, type LifeGoal } from './life-data-store.js';
 import { getAgentBus, type AgentId } from './agent-bus.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

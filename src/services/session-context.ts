@@ -23,6 +23,7 @@
 // @ts-nocheck - Architecture draft, full implementation pending
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, ConversationSummary } from '../types/user-profile.js';
 
 // Memory imports
@@ -47,8 +48,6 @@ import type { ConversationalMemoryEngine } from '../conversation/conversational-
 
 // Context imports
 import type { ContextManager, PromptContext } from '../context/index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // SESSION CONTEXT TYPES

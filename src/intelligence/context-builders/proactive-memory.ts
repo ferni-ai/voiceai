@@ -15,6 +15,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -27,8 +28,6 @@ import {
   shouldSurfaceMemory,
   type ProactiveMemory,
 } from '../../services/memory-management.js';
-
-const getLogger = () => log();
 
 // Track when we last surfaced a memory (per session)
 const lastMemorySurfacedTurn: Map<string, number> = new Map();

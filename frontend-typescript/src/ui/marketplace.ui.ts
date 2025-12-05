@@ -407,12 +407,13 @@ function renderTeamNarrative(): string {
 
 /**
  * Render agent cards HTML (without the grid wrapper)
+ * All agents show "Coming Soon" and are disabled for now
  */
 function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[]): string {
   return agents.map(agent => {
     const initials = agent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
     return `
-    <article class="marketplace-agent ${agent.isInstalled ? 'installed' : ''}" data-agent-id="${agent.id}" role="listitem">
+    <article class="marketplace-agent coming-soon" data-agent-id="${agent.id}" role="listitem">
       <div class="agent-header" style="--agent-primary: ${agent.colors.primary}; --agent-secondary: ${agent.colors.secondary};">
         <div class="agent-avatar" style="background: linear-gradient(135deg, ${agent.colors.secondary}, ${agent.colors.primary});">
           ${initials}
@@ -421,7 +422,7 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
           <h3 class="agent-name">${agent.name}</h3>
           <span class="agent-category">${getCategoryLabel(agent.category)}</span>
         </div>
-        ${agent.isInstalled ? '<span class="agent-badge installed">Installed</span>' : ''}
+        <span class="agent-badge coming-soon-badge">Coming Soon</span>
       </div>
       <p class="agent-description">${agent.short_description}</p>
       <div class="agent-tags">
@@ -429,8 +430,8 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       </div>
       <footer class="agent-footer">
         <span class="agent-author">by ${agent.author}</span>
-        <button class="agent-action ${agent.isInstalled ? 'uninstall' : 'install'}" data-agent-id="${agent.id}">
-          ${agent.isInstalled ? 'Uninstall' : 'Install'}
+        <button class="agent-action coming-soon-btn" disabled>
+          Coming Soon
         </button>
       </footer>
     </article>
@@ -929,6 +930,38 @@ function getMarketplaceStyles(): string {
     .marketplace-agent.installed {
       border-color: var(--color-forest-green, #3D5A45);
       background: rgba(61, 90, 69, 0.1);
+    }
+
+    /* Coming Soon state - disabled look */
+    .marketplace-agent.coming-soon {
+      opacity: 0.75;
+      pointer-events: auto;
+    }
+
+    .marketplace-agent.coming-soon:hover {
+      transform: none;
+      box-shadow: none;
+      border-color: var(--color-border, rgba(255, 255, 255, 0.08));
+    }
+
+    .agent-badge.coming-soon-badge {
+      background: rgba(196, 162, 101, 0.15);
+      color: var(--color-warm-amber, #C4A265);
+      border: 1px solid rgba(196, 162, 101, 0.25);
+    }
+
+    .agent-action.coming-soon-btn {
+      background: transparent;
+      border: 1.5px solid var(--color-border, rgba(255, 255, 255, 0.12));
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.4));
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .agent-action.coming-soon-btn:hover {
+      background: transparent;
+      transform: none;
+      box-shadow: none;
     }
 
     .agent-header {
@@ -1511,6 +1544,90 @@ function getMarketplaceStyles(): string {
     }
 
     [data-theme="zen"] .marketplace-powered-by {
+      color: rgba(44, 37, 32, 0.4);
+    }
+
+    /* Zen theme - Team Narrative section (Your Team tab) */
+    [data-theme="zen"] .team-narrative {
+      background: linear-gradient(135deg, 
+        rgba(74, 103, 65, 0.08) 0%, 
+        rgba(196, 162, 101, 0.06) 100%
+      );
+      border-color: rgba(44, 37, 32, 0.12);
+    }
+
+    [data-theme="zen"] .team-narrative-title {
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .team-narrative-subtitle {
+      color: rgba(74, 103, 65, 0.9);
+    }
+
+    [data-theme="zen"] .leadership-label {
+      color: rgba(44, 37, 32, 0.5);
+    }
+
+    [data-theme="zen"] .ceo-card {
+      background: rgba(44, 37, 32, 0.04);
+      border-color: rgba(44, 37, 32, 0.1);
+    }
+
+    [data-theme="zen"] .leader-name {
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .leader-title {
+      color: rgba(74, 103, 65, 0.85);
+    }
+
+    [data-theme="zen"] .leader-bio {
+      color: rgba(44, 37, 32, 0.7);
+    }
+
+    [data-theme="zen"] .cofounder-name {
+      color: rgba(44, 37, 32, 0.75);
+    }
+
+    [data-theme="zen"] .employee-card {
+      background: rgba(44, 37, 32, 0.03);
+    }
+
+    [data-theme="zen"] .employee-card:hover {
+      background: rgba(44, 37, 32, 0.06);
+    }
+
+    [data-theme="zen"] .employee-name {
+      color: #2c2520;
+    }
+
+    [data-theme="zen"] .employee-role {
+      color: rgba(44, 37, 32, 0.55);
+    }
+
+    [data-theme="zen"] .team-narrative-footer {
+      color: rgba(44, 37, 32, 0.6);
+      border-top-color: rgba(44, 37, 32, 0.1);
+    }
+
+    [data-theme="zen"] .team-section-divider::before,
+    [data-theme="zen"] .team-section-divider::after {
+      background: rgba(44, 37, 32, 0.15);
+    }
+
+    [data-theme="zen"] .team-section-divider span {
+      color: rgba(44, 37, 32, 0.5);
+    }
+
+    /* Zen theme - Coming Soon state */
+    [data-theme="zen"] .agent-badge.coming-soon-badge {
+      background: rgba(196, 162, 101, 0.12);
+      color: rgba(139, 115, 65, 0.9);
+      border-color: rgba(196, 162, 101, 0.25);
+    }
+
+    [data-theme="zen"] .agent-action.coming-soon-btn {
+      border-color: rgba(44, 37, 32, 0.15);
       color: rgba(44, 37, 32, 0.4);
     }
 

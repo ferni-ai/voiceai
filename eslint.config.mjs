@@ -79,6 +79,20 @@ export default [
       'no-process-exit': 'error',
       'no-throw-literal': 'error',
       'require-await': 'warn',
+
+      // CUSTOM: Prevent unsafe LiveKit logger usage
+      // Use `import { getLogger } from '../utils/safe-logger.js'` instead
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "VariableDeclarator[init.type='ArrowFunctionExpression'][init.body.type='CallExpression'][init.body.callee.name='log']",
+          message: '❌ Unsafe logger pattern detected! Use `import { getLogger } from "utils/safe-logger.js"` instead of `const getLogger = () => log()`. The LiveKit log() function throws if called before initialization.',
+        },
+        {
+          selector: "CallExpression[callee.name='log'][parent.type!='TryStatement']",
+          message: '⚠️ Direct log() call may fail if logger not initialized. Consider using safeLog() from utils/safe-logger.js',
+        },
+      ],
     },
   },
   {

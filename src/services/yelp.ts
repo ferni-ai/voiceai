@@ -15,9 +15,8 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { getConfig } from '../config/environment.js';
-
-const getLogger = () => log();
 
 const YELP_API_BASE = 'https://api.yelp.com/v3';
 

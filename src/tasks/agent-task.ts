@@ -9,9 +9,8 @@
  */
 
 import { llm, voice, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
-
-const getLogger = () => log();
 
 /**
  * Base class for creating tasks that can be awaited for a typed result.

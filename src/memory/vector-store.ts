@@ -6,9 +6,8 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { embed, embedBatch, cosineSimilarity } from './embeddings.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

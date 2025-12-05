@@ -283,6 +283,16 @@ const MICRO_STORIES = {
     '<emotion value="excited"/><break time="400ms"/>I\'ve planned trips I\'ll probably never take. <break time="200ms"/>But the planning? <break time="300ms"/>That\'s half the joy.',
     '<break time="500ms"/>My friends call me when they need to make a decision. <break time="200ms"/>Not for advice. <break time="300ms"/>Just to watch me make a pros and cons list. <break time="200ms"/>It\'s become a ritual.',
   ],
+  nayan: [
+    '<break time="500ms"/>A seed does not hurry to become a tree. <break time="300ms"/>Growth has its own rhythm.',
+    '<break time="400ms"/>My grandmother would say: <break time="200ms"/>silence is not empty. <break time="300ms"/>It is full of answers.',
+    '<break time="500ms"/>I once sat by a river for an entire afternoon. <break time="300ms"/>The river taught me about time. <break time="200ms"/>It never rushes.',
+    '<break time="400ms"/>Compound interest is patient. <break time="200ms"/>So is wisdom. <break time="300ms"/>Both work quietly.',
+    '<break time="500ms"/>Simple living, high thinking. <break time="300ms"/>Gandhi knew this. <break time="200ms"/>Buffett knows this.',
+    '<break time="400ms"/>The richest person is not the one with the most. <break time="300ms"/>But the one who needs the least.',
+    '<break time="500ms"/>A man once asked me what the meaning of life was. <break time="300ms"/>I asked him why he was looking for it outside himself.',
+    '<break time="400ms"/>Patience is the most powerful force. <break time="200ms"/>Mountains were made by it.',
+  ],
 };
 
 // ============================================================================
@@ -684,7 +694,7 @@ function getPersonaObservations(persona: PersonaConfig): string[] {
 
   // Map canonical IDs to observation sets
   const observationMap: Record<string, string[]> = {
-    'nayan-patel': GENTLE_OBSERVATIONS.jackBogle,
+    'nayan-patel': GENTLE_OBSERVATIONS.nayan,
     'peter-john': GENTLE_OBSERVATIONS.peterLynch,
     ferni: GENTLE_OBSERVATIONS.jackB,
     'alex-chen': GENTLE_OBSERVATIONS.alex,
@@ -774,7 +784,7 @@ function getPersonaMicroStory(persona: PersonaConfig): string | null {
   const canonicalId = getCanonicalPersonaId(persona.id);
 
   const storyMap: Record<string, string[]> = {
-    'nayan-patel': MICRO_STORIES.jackBogle,
+    'nayan-patel': MICRO_STORIES.nayan,
     'peter-john': MICRO_STORIES.peterLynch,
     ferni: MICRO_STORIES.jackB,
     'alex-chen': MICRO_STORIES.alex,

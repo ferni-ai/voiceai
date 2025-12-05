@@ -13,14 +13,13 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import { getContainer, Tokens, resetContainer } from './container.js';
 import {
   registerUserIdentificationService,
   UserIdentificationToken,
 } from './user-identification-di.js';
 import type { GlobalServices } from '../types.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // BOOTSTRAP OPTIONS

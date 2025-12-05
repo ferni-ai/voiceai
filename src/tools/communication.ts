@@ -14,6 +14,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import {
   validateEmail,
@@ -22,8 +23,6 @@ import {
   sanitizeEmailForLog,
   sanitizePhoneForLog,
 } from './validation.js';
-
-const getLogger = () => log();
 
 // API Keys from environment
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';

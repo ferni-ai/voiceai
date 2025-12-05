@@ -10,6 +10,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { MemoryStore, type QueryOptions, type SearchResult } from './store.js';
 import type {
   UserProfile,
@@ -17,8 +18,6 @@ import type {
   KeyMoment,
   FinancialGoal,
 } from '../types/user-profile.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

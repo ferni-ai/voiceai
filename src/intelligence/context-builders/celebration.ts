@@ -13,6 +13,7 @@
  * Extracted from jack-bogle.ts lines 847-884
  */
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -21,8 +22,6 @@ import {
   type ContextInjection,
 } from './index.js';
 import { getCelebration, type CelebrationType } from '../../personas/theatrical.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // EXTENDED TYPES

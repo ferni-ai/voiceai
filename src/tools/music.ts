@@ -10,6 +10,7 @@
  */
 
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { getMusicPlayer, type MusicTrack } from '../audio/index.js';
 import { findTrack, searchItunes, searchByMood, isItunesAvailable } from '../services/itunes.js';
@@ -22,8 +23,6 @@ import {
   getMoodMusicReaction,
   getPlayfulMusicComment,
 } from '../speech/music-reactions.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // MUSIC SOURCE CONFIGURATION

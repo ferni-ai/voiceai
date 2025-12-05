@@ -34,7 +34,20 @@ import type { LoadedPersonaBundle, PersonaBundleManifest } from '../bundles/type
 import type { PersonaConfig } from '../types.js';
 import { bundleToPersonaConfig } from '../bundles/adapter.js';
 
-const getLogger = () => log();
+// Safe logger that doesn't throw if not initialized
+const getLogger = () => {
+  try {
+    return log();
+  } catch {
+    // Fall back to console if LiveKit logger not initialized
+    return {
+      debug: console.debug.bind(console),
+      info: console.info.bind(console),
+      warn: console.warn.bind(console),
+      error: console.error.bind(console),
+    };
+  }
+};
 
 // ============================================================================
 // AGENT INTERFACE - Combines manifest + runtime info

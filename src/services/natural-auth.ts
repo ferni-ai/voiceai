@@ -15,6 +15,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, VoiceSketch } from '../types/user-profile.js';
 import {
   identifyWithVoice,
@@ -22,8 +23,6 @@ import {
   type VoiceIdentificationResult,
 } from './voice-identification.js';
 import { getDefaultStore } from '../memory/index.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

@@ -12,11 +12,10 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, FinancialGoal, KeyMoment } from '../types/user-profile.js';
 import type { LearnedConversationPatterns } from './conversation-pattern-analyzer.js';
 import type { LearnedResponsePreferences } from './response-quality-tracker.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

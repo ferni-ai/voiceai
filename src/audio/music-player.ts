@@ -17,6 +17,7 @@
  */
 
 import { log, voice } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { Room } from '@livekit/rtc-node';
 
 // Extract BackgroundAudioPlayer from the voice namespace
@@ -25,8 +26,6 @@ type PlayHandle = ReturnType<InstanceType<typeof BackgroundAudioPlayer>['play']>
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES
@@ -514,9 +513,14 @@ export class CallMusicPlayer {
     this.stop();
     this.state.queue = [];
 
-    // Close background player
+    // Close background player (handle room already closed gracefully)
     if (this.backgroundPlayer) {
-      await this.backgroundPlayer.close();
+      try {
+        await this.backgroundPlayer.close();
+      } catch (err) {
+        // Room may already be closed - this is fine during cleanup
+        getLogger().debug({ error: String(err) }, 'Background player close error (expected during room cleanup)');
+      }
       this.backgroundPlayer = null;
     }
 

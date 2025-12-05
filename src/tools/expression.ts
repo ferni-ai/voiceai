@@ -7,8 +7,7 @@
 
 import { z } from 'zod';
 import { llm, log } from '@livekit/agents';
-
-const getLogger = () => log();
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // PERSONA EXPRESSIONS - What each agent can express

@@ -12,6 +12,7 @@
  * Extracted from jack-bogle.ts lines 709-720, 1261-1270, 1413-1439
  */
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createHintInjection,
@@ -22,7 +23,6 @@ import {
 import { extractSmallDetails, getDetailCallback } from '../conversation-quality.js';
 import type { UserProfile, FamilyMember } from '../../types/user-profile.js';
 
-const getLogger = () => log();
 // ============================================================================
 // PERSONAL HELPERS
 // ============================================================================

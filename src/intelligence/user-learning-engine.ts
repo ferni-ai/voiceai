@@ -14,6 +14,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, KeyMoment, EmotionalPattern } from '../types/user-profile.js';
 import type { EmotionResult } from './emotion-detector.js';
 import type { IntentResult } from './intent-classifier.js';
@@ -35,8 +36,6 @@ import {
   generateFarewellSummary,
   type FollowUpItem,
 } from './conversation-quality.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

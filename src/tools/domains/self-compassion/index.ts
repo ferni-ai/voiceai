@@ -15,9 +15,8 @@
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm, log } from '@livekit/agents';
+import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
-
-const getLogger = () => log();
 
 // ============================================================================
 // SELF-KINDNESS TOOLS

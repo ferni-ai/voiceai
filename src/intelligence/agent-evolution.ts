@@ -14,9 +14,8 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import { getCommunityInsights } from './community-insights.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

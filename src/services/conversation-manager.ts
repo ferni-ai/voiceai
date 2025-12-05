@@ -6,6 +6,7 @@
  */
 
 import { log } from '@livekit/agents';
+import { getLogger } from '../utils/safe-logger.js';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { getInterruptionHandler } from '../conversation/interruption-handler.js';
 import { getTurnTakingMonitor } from '../conversation/turn-taking.js';
@@ -13,8 +14,6 @@ import { getTopicChangeDetector } from '../conversation/topic-change-detector.js
 import { getBackchannelingSystem } from '../speech/backchanneling.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { TopicWeight } from '../speech/speech-context.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // TYPES

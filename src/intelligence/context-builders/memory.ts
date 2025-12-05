@@ -16,6 +16,7 @@
  * Extracted from jack-bogle.ts lines 561-612, 959-1005, 1066-1100, 1241-1259
  */
 import { log } from '@livekit/agents';
+import { getLogger } from '../../utils/safe-logger.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -28,8 +29,6 @@ import { getKeyMomentRetrieval } from '../../memory/key-moment-retrieval.js';
 import type { EmotionResult } from '../../intelligence/emotion-detector.js';
 import { getConversationManager } from '../../services/conversation-manager.js';
 import type { UserProfile } from '../../types/user-profile.js';
-
-const getLogger = () => log();
 
 // ============================================================================
 // EXTENDED TYPES

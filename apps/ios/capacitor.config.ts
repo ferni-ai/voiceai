@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.voiceai.app',
+  appId: 'com.sethdford.voiceai',
   appName: 'Voice AI',
   webDir: '../../frontend-typescript/dist',
   bundledWebRuntime: false,
