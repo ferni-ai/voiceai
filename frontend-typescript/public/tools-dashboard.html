@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tool Analytics Dashboard | Ferni</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: #1a1a24;
+      --bg-elevated: #222230;
+      --text-primary: #f0f0f5;
+      --text-secondary: #8888a0;
+      --text-muted: #55556a;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-glow: rgba(99, 102, 241, 0.3);
+      --success: #22c55e;
+      --success-glow: rgba(34, 197, 94, 0.2);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.2);
+      --error: #ef4444;
+      --error-glow: rgba(239, 68, 68, 0.2);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      
+      /* Gradients */
+      --gradient-accent: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+      --gradient-success: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
+      --gradient-card: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 92, 246, 0.1), transparent);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    code, .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .dashboard {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      background: var(--gradient-accent);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.875rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.active { background: var(--success); }
+    .status-dot.inactive { background: var(--text-muted); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .refresh-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: inherit;
+    }
+
+    .refresh-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      background-image: var(--gradient-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gradient-accent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-hover);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .stat-card:hover::before {
+      opacity: 1;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 2.25rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .stat-value.success { color: var(--success); }
+    .stat-value.warning { color: var(--warning); }
+    .stat-value.error { color: var(--error); }
+
+    .stat-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    /* Tab Navigation */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+
+    .tab {
+      padding: 0.75rem 1.25rem;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tab.active {
+      color: var(--accent-light);
+      background: var(--bg-card);
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    /* Panels Grid */
+    .panels {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .panel:hover {
+      border-color: var(--border-hover);
+    }
+
+    .panel-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .panel-badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      background: var(--accent-glow);
+      color: var(--accent-light);
+      border-radius: 4px;
+    }
+
+    .panel-content {
+      padding: 1rem;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    .panel-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .panel-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .panel-content::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    /* Tool Items */
+    .tool-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.875rem 1rem;
+      border-radius: 10px;
+      margin-bottom: 0.5rem;
+      background: var(--bg-secondary);
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .tool-item:hover {
+      background: var(--bg-elevated);
+      border-color: var(--border);
+    }
+
+    .tool-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tool-name {
+      font-weight: 500;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tool-domain {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .tool-stats {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .tool-calls {
+      font-weight: 600;
+      color: var(--accent-light);
+      font-size: 0.9rem;
+    }
+
+    .tool-latency {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .progress-bar {
+      height: 3px;
+      background: var(--bg-primary);
+      border-radius: 2px;
+      margin-top: 0.5rem;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--gradient-accent);
+      border-radius: 2px;
+      transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Patterns Section */
+    .pattern-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+
+    .pattern-tools {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+    }
+
+    .pattern-tool {
+      padding: 0.25rem 0.5rem;
+      background: var(--bg-elevated);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .pattern-arrow {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .pattern-stats {
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .pattern-count {
+      font-weight: 600;
+      color: var(--accent-light);
+    }
+
+    .pattern-rate {
+      font-size: 0.7rem;
+      color: var(--success);
+    }
+
+    /* Journey Cards */
+    .journey-card {
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+      border-left: 3px solid var(--accent);
+    }
+
+    .journey-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .journey-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .journey-freq {
+      font-size: 0.8rem;
+      color: var(--accent-light);
+    }
+
+    .journey-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+    }
+
+    .journey-tool {
+      padding: 0.2rem 0.5rem;
+      background: var(--bg-elevated);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-secondary);
+    }
+
+    /* Experiment Cards */
+    .experiment-card {
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+      transition: all 0.2s;
+    }
+
+    .experiment-card:hover {
+      background: var(--bg-elevated);
+    }
+
+    .experiment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .experiment-name {
+      font-weight: 600;
+    }
+
+    .experiment-status {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .experiment-status.active {
+      background: var(--success-glow);
+      color: var(--success);
+    }
+
+    .experiment-status.inactive {
+      background: rgba(136, 136, 160, 0.15);
+      color: var(--text-secondary);
+    }
+
+    .experiment-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* Recommendations */
+    .recommendation {
+      padding: 0.875rem 1rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      border-left: 3px solid var(--accent);
+      transition: all 0.2s;
+    }
+
+    .recommendation:hover {
+      background: var(--bg-elevated);
+      transform: translateX(4px);
+    }
+
+    /* Feature Requests */
+    .feature-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-name {
+      font-weight: 500;
+    }
+
+    .feature-count {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.6rem;
+      background: var(--warning-glow);
+      color: var(--warning);
+      border-radius: 4px;
+    }
+
+    /* Domain Chart */
+    .domain-chart {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .domain-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+
+    .domain-badge:hover {
+      background: var(--bg-elevated);
+      transform: scale(1.02);
+    }
+
+    .domain-count {
+      font-weight: 600;
+      color: var(--accent-light);
+      min-width: 1.5rem;
+      text-align: center;
+    }
+
+    /* Empty/Loading States */
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem;
+      gap: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer code {
+      color: var(--accent-light);
+      background: var(--bg-card);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .dashboard {
+        padding: 1rem;
+      }
+
+      .panels {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <header>
+      <h1>
+        <div class="logo">🔧</div>
+        Tool Analytics Dashboard
+      </h1>
+      <div class="header-actions">
+        <div class="status-badge">
+          <div class="status-dot" id="optimizer-status"></div>
+          <span id="optimizer-label">Optimizer</span>
+        </div>
+        <button class="refresh-btn" onclick="loadData()">
+          <span>↻</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- Summary Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Tools</div>
+        <div class="stat-value" id="total-tools">--</div>
+        <div class="stat-subtitle" id="tools-subtitle"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Domains</div>
+        <div class="stat-value" id="total-domains">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Tools/Domain</div>
+        <div class="stat-value" id="avg-tools">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Experiments</div>
+        <div class="stat-value" id="active-experiments">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Feedback Score</div>
+        <div class="stat-value success" id="feedback-score">--</div>
+        <div class="stat-subtitle" id="feedback-count"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Opt. Cycles</div>
+        <div class="stat-value" id="opt-cycles">--</div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('usage')">📊 Usage</button>
+      <button class="tab" onclick="switchTab('patterns')">🔗 Patterns</button>
+      <button class="tab" onclick="switchTab('experiments')">🧪 Experiments</button>
+      <button class="tab" onclick="switchTab('feedback')">💬 Feedback</button>
+    </div>
+
+    <!-- Usage Tab -->
+    <div class="tab-content active" id="tab-usage">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📊 Top Used Tools</div>
+            <span class="panel-badge">TOP 10</span>
+          </div>
+          <div class="panel-content" id="top-tools">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📦 Tools by Domain</div>
+          </div>
+          <div class="panel-content" id="domains-chart">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🐢 Slowest Tools</div>
+            <span class="panel-badge">LATENCY</span>
+          </div>
+          <div class="panel-content" id="slow-tools">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">⚠️ Error-Prone Tools</div>
+          </div>
+          <div class="panel-content" id="error-tools">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Patterns Tab -->
+    <div class="tab-content" id="tab-patterns">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🔗 Tool Co-occurrences</div>
+            <span class="panel-badge">CORRELATION</span>
+          </div>
+          <div class="panel-content" id="co-occurrences">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">➡️ Common Sequences</div>
+          </div>
+          <div class="panel-content" id="sequences">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+
+        <div class="panel" style="grid-column: 1 / -1;">
+          <div class="panel-header">
+            <div class="panel-title">🗺️ User Journeys</div>
+          </div>
+          <div class="panel-content" id="journeys">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Experiments Tab -->
+    <div class="tab-content" id="tab-experiments">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🧪 A/B Experiments</div>
+          </div>
+          <div class="panel-content" id="experiments">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">💡 AI Recommendations</div>
+          </div>
+          <div class="panel-content" id="recommendations">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback Tab -->
+    <div class="tab-content" id="tab-feedback">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">✨ Top Feature Requests</div>
+            <span class="panel-badge">USER VOICE</span>
+          </div>
+          <div class="panel-content" id="feature-requests">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">👎 Problematic Tools</div>
+          </div>
+          <div class="panel-content" id="problematic-tools">
+            <div class="loading"><div class="spinner"></div> Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Tool Analytics Dashboard v2.0 | Ferni AI Platform</p>
+      <p style="margin-top: 0.5rem;">CLI: <code>npm run tools:report</code> | <code>npm run tools:optimizer</code> | <code>npm run tools:recommendations</code></p>
+    </footer>
+  </div>
+
+  <script>
+    // Tab switching
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // Data loading
+    async function loadData() {
+      // In production, fetch from API. For now, use mock data.
+      const data = await getMockData();
+      renderData(data);
+    }
+
+    function getMockData() {
+      return Promise.resolve({
+        registry: {
+          totalTools: 208,
+          byDomain: {
+            memory: 5, calendar: 11, communication: 6, habits: 10, finance: 9,
+            research: 8, productivity: 10, 'life-planning': 12, wellness: 4,
+            entertainment: 7, information: 5, wisdom: 4, handoff: 6, telephony: 2,
+            grief: 10, meaning: 5, relationships: 6, stories: 9, curiosity: 7,
+            vulnerability: 8, dreams: 8, play: 11, 'self-compassion': 12,
+            presence: 5, proactive: 8, awareness: 5
+          }
+        },
+        experiments: [
+          { id: 'consolidated-vs-granular', name: 'Consolidated vs Granular Tools', description: 'Test if users prefer consolidated multi-action tools vs many specific tools', active: false },
+          { id: 'awareness-tools', name: 'Awareness Tools Impact', description: 'Test if world awareness tools improve conversation quality', active: true },
+          { id: 'tool-count-optimization', name: 'Optimal Tool Count', description: 'Find the optimal number of tools per agent', active: false }
+        ],
+        topTools: [
+          { toolId: 'playMusic', calls: 342, avgLatencyMs: 156 },
+          { toolId: 'rememberAboutUser', calls: 287, avgLatencyMs: 89 },
+          { toolId: 'recallFromMemory', calls: 256, avgLatencyMs: 67 },
+          { toolId: 'getCurrentContext', calls: 234, avgLatencyMs: 12 },
+          { toolId: 'getNews', calls: 198, avgLatencyMs: 234 },
+          { toolId: 'getWeather', calls: 187, avgLatencyMs: 189 },
+          { toolId: 'manageTasks', calls: 156, avgLatencyMs: 145 },
+          { toolId: 'budgetPlanner', calls: 134, avgLatencyMs: 178 },
+          { toolId: 'scheduleEvent', calls: 123, avgLatencyMs: 201 },
+          { toolId: 'sendCommunication', calls: 98, avgLatencyMs: 312 }
+        ],
+        slowTools: [
+          { toolId: 'searchWeb', avgLatencyMs: 2340 },
+          { toolId: 'analyzeStock', avgLatencyMs: 1890 },
+          { toolId: 'synthesizeInsights', avgLatencyMs: 1456 },
+          { toolId: 'sendCommunication', avgLatencyMs: 1234 },
+          { toolId: 'practiceConversation', avgLatencyMs: 987 }
+        ],
+        errorTools: [
+          { toolId: 'spotifyAdvanced', errorRate: 0.23 },
+          { toolId: 'telephonyCallback', errorRate: 0.15 },
+          { toolId: 'searchWeb', errorRate: 0.12 }
+        ],
+        recommendations: [
+          '🎯 Tool count optimized! Average 8.0 tools per domain',
+          '📊 Consider consolidating "self-compassion" domain (12 tools)',
+          '🔄 "life-planning" domain has 12 tools - review for consolidation',
+          '⚡ 3 tools have >10% error rate - investigate stability',
+          '💡 Users frequently request "flight tracking" - consider adding'
+        ],
+        patterns: {
+          coOccurrences: [
+            { toolA: 'playMusic', toolB: 'getCurrentContext', count: 156, correlation: 0.72 },
+            { toolA: 'rememberAboutUser', toolB: 'recallFromMemory', count: 134, correlation: 0.85 },
+            { toolA: 'getWeather', toolB: 'getCurrentContext', count: 98, correlation: 0.67 },
+            { toolA: 'manageHabit', toolB: 'habitProgress', count: 87, correlation: 0.91 },
+            { toolA: 'scheduleEvent', toolB: 'sendCommunication', count: 76, correlation: 0.58 }
+          ],
+          sequences: [
+            { sequence: ['getCurrentContext', 'playMusic'], count: 89, successRate: 0.94 },
+            { sequence: ['rememberAboutUser', 'recallFromMemory'], count: 67, successRate: 0.89 },
+            { sequence: ['getWeather', 'getCurrentContext'], count: 45, successRate: 0.92 }
+          ],
+          journeys: [
+            { name: 'Morning Routine', tools: ['getCurrentContext', 'getWeather', 'manageTasks', 'playMusic'], frequency: 234 },
+            { name: 'Entertainment Flow', tools: ['playMusic', 'musicControl', 'musicInfo'], frequency: 189 },
+            { name: 'Memory Recall', tools: ['recallFromMemory', 'rememberAboutUser'], frequency: 156 },
+            { name: 'Planning Session', tools: ['scheduleEvent', 'manageTasks', 'sendCommunication'], frequency: 98 }
+          ]
+        },
+        feedback: {
+          totalFeedback: 1247,
+          positiveRate: 0.78,
+          topFeatureRequests: [
+            { capability: 'flight tracking', count: 23 },
+            { capability: 'food ordering', count: 18 },
+            { capability: 'smart home control', count: 15 },
+            { capability: 'package tracking', count: 12 },
+            { capability: 'translation', count: 9 }
+          ],
+          problematicTools: [
+            { toolId: 'searchWeb', negativeRate: 0.34 },
+            { toolId: 'spotifyAdvanced', negativeRate: 0.28 },
+            { toolId: 'telephonyCallback', negativeRate: 0.22 }
+          ]
+        },
+        optimizer: {
+          isRunning: true,
+          cycleCount: 47
+        }
+      });
+    }
+
+    function renderData(data) {
+      // Update summary stats
+      document.getElementById('total-tools').textContent = data.registry.totalTools;
+      const domainCount = Object.keys(data.registry.byDomain).length;
+      document.getElementById('total-domains').textContent = domainCount;
+      document.getElementById('avg-tools').textContent = (data.registry.totalTools / domainCount).toFixed(1);
+      document.getElementById('active-experiments').textContent = data.experiments.filter(e => e.active).length;
+      
+      // Feedback
+      document.getElementById('feedback-score').textContent = `${Math.round(data.feedback.positiveRate * 100)}%`;
+      document.getElementById('feedback-count').textContent = `${data.feedback.totalFeedback} responses`;
+      
+      // Optimizer status
+      document.getElementById('opt-cycles').textContent = data.optimizer.cycleCount;
+      const statusDot = document.getElementById('optimizer-status');
+      const statusLabel = document.getElementById('optimizer-label');
+      statusDot.className = `status-dot ${data.optimizer.isRunning ? 'active' : 'inactive'}`;
+      statusLabel.textContent = data.optimizer.isRunning ? 'Running' : 'Stopped';
+
+      // Tools subtitle
+      document.getElementById('tools-subtitle').textContent = `Target: 50/agent`;
+
+      // Top tools
+      const topToolsHtml = data.topTools.map(tool => {
+        const maxCalls = data.topTools[0].calls;
+        const width = (tool.calls / maxCalls) * 100;
+        return `
+          <div class="tool-item">
+            <div class="tool-info">
+              <div class="tool-name">${tool.toolId}</div>
+              <div class="progress-bar"><div class="progress-fill" style="width: ${width}%"></div></div>
+            </div>
+            <div class="tool-stats">
+              <div class="tool-calls">${tool.calls}</div>
+              <div class="tool-latency">${tool.avgLatencyMs}ms</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('top-tools').innerHTML = topToolsHtml;
+
+      // Domains
+      const sortedDomains = Object.entries(data.registry.byDomain).sort(([,a], [,b]) => b - a);
+      document.getElementById('domains-chart').innerHTML = `
+        <div class="domain-chart">
+          ${sortedDomains.map(([domain, count]) => `
+            <div class="domain-badge">
+              ${domain}
+              <span class="domain-count">${count}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      // Slow tools
+      document.getElementById('slow-tools').innerHTML = data.slowTools.map(tool => `
+        <div class="tool-item">
+          <div class="tool-name">${tool.toolId}</div>
+          <div class="tool-stats">
+            <div class="tool-latency" style="color: ${tool.avgLatencyMs > 1000 ? 'var(--warning)' : 'var(--text-secondary)'}">
+              ${tool.avgLatencyMs}ms
+            </div>
+          </div>
+        </div>
+      `).join('') || '<div class="empty-state"><div class="empty-icon">🎉</div>No slow tools!</div>';
+
+      // Error tools
+      document.getElementById('error-tools').innerHTML = data.errorTools.map(tool => `
+        <div class="tool-item">
+          <div class="tool-name">${tool.toolId}</div>
+          <div class="tool-stats">
+            <div class="tool-latency" style="color: var(--error)">${(tool.errorRate * 100).toFixed(1)}%</div>
+          </div>
+        </div>
+      `).join('') || '<div class="empty-state"><div class="empty-icon">🎉</div>No errors!</div>';
+
+      // Co-occurrences
+      document.getElementById('co-occurrences').innerHTML = data.patterns.coOccurrences.map(co => `
+        <div class="pattern-item">
+          <div class="pattern-tools">
+            <span class="pattern-tool">${co.toolA}</span>
+            <span class="pattern-arrow">↔</span>
+            <span class="pattern-tool">${co.toolB}</span>
+          </div>
+          <div class="pattern-stats">
+            <div class="pattern-count">${co.count}×</div>
+            <div class="pattern-rate">${(co.correlation * 100).toFixed(0)}% corr</div>
+          </div>
+        </div>
+      `).join('') || '<div class="empty-state">No patterns yet</div>';
+
+      // Sequences
+      document.getElementById('sequences').innerHTML = data.patterns.sequences.map(seq => `
+        <div class="pattern-item">
+          <div class="pattern-tools">
+            ${seq.sequence.map((t, i) => `
+              <span class="pattern-tool">${t}</span>
+              ${i < seq.sequence.length - 1 ? '<span class="pattern-arrow">→</span>' : ''}
+            `).join('')}
+          </div>
+          <div class="pattern-stats">
+            <div class="pattern-count">${seq.count}×</div>
+            <div class="pattern-rate">${(seq.successRate * 100).toFixed(0)}% success</div>
+          </div>
+        </div>
+      `).join('') || '<div class="empty-state">No sequences yet</div>';
+
+      // Journeys
+      document.getElementById('journeys').innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+          ${data.patterns.journeys.map(j => `
+            <div class="journey-card">
+              <div class="journey-header">
+                <span class="journey-name">${j.name}</span>
+                <span class="journey-freq">${j.frequency}× used</span>
+              </div>
+              <div class="journey-tools">
+                ${j.tools.map(t => `<span class="journey-tool">${t}</span>`).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` || '<div class="empty-state">No journeys identified yet</div>';
+
+      // Experiments
+      document.getElementById('experiments').innerHTML = data.experiments.map(exp => `
+        <div class="experiment-card">
+          <div class="experiment-header">
+            <span class="experiment-name">${exp.name}</span>
+            <span class="experiment-status ${exp.active ? 'active' : 'inactive'}">${exp.active ? 'ACTIVE' : 'INACTIVE'}</span>
+          </div>
+          <div class="experiment-desc">${exp.description}</div>
+        </div>
+      `).join('');
+
+      // Recommendations
+      document.getElementById('recommendations').innerHTML = data.recommendations.map(rec => `
+        <div class="recommendation">${rec}</div>
+      `).join('') || '<div class="empty-state">No recommendations</div>';
+
+      // Feature requests
+      document.getElementById('feature-requests').innerHTML = data.feedback.topFeatureRequests.map(f => `
+        <div class="feature-item">
+          <span class="feature-name">${f.capability}</span>
+          <span class="feature-count">${f.count} requests</span>
+        </div>
+      `).join('') || '<div class="empty-state">No feature requests yet</div>';
+
+      // Problematic tools
+      document.getElementById('problematic-tools').innerHTML = data.feedback.problematicTools.map(t => `
+        <div class="tool-item">
+          <div class="tool-name">${t.toolId}</div>
+          <div class="tool-stats">
+            <div class="tool-latency" style="color: var(--error)">${(t.negativeRate * 100).toFixed(0)}% negative</div>
+          </div>
+        </div>
+      `).join('') || '<div class="empty-state"><div class="empty-icon">🎉</div>No problematic tools!</div>';
+    }
+
+    // Load on page load
+    loadData();
+  </script>
+</body>
+</html>
