@@ -9,8 +9,6 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import type { LoadedPersonaBundle, BundleBehaviors, BundleStory } from './types.js';
 import type {
   PersonaConfig,
@@ -39,19 +37,6 @@ import {
   registerBundleHumanization,
 } from '../../conversation/humanizing-config.js';
 
-// Safe logger that doesn't throw if not initialized
-const getLogger = () => {
-  try {
-    return log();
-  } catch {
-    return {
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-    };
-  }
-};
 
 // ============================================================================
 // HELPER FUNCTIONS FOR TYPE CONVERSION

@@ -23,24 +23,9 @@ import { readdir, stat } from 'fs/promises';
 import { join } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import type { PersonaConfig } from '../types.js';
 import type { LoadedPersonaBundle } from './types.js';
 
-// Safe logger that doesn't throw if not initialized
-const getLogger = () => {
-  try {
-    return log();
-  } catch {
-    return {
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-    };
-  }
-};
 
 // Types
 export * from './types.js';

@@ -16,8 +16,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 
 // ============================================================================
 // CONFIGURATION
@@ -65,7 +63,7 @@ interface LogData {
 }
 
 class DiagnosticLogger {
-  private _logger: ReturnType<typeof log> | null = null;
+  private _logger: ReturnType<ReturnType<typeof getLogger>> | null = null;
 
   /**
    * Lazy getter for logger - only initializes when needed
@@ -73,7 +71,7 @@ class DiagnosticLogger {
   private get logger() {
     if (!this._logger) {
       try {
-        this._logger = log();
+        this._logger = getLogger();
       } catch {
         // Logger not initialized yet - use console fallback
         return null;

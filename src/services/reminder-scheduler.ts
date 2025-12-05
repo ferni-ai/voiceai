@@ -10,8 +10,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import { getFirestoreStore, FirestoreStore } from '../memory/firestore-store.js';
 import { InMemoryStore } from '../memory/in-memory-store.js';
 import { MemoryStore } from '../memory/store.js';
@@ -20,7 +18,7 @@ import { sendEmail, sendSMS, sendReminder as sendReminderSMS } from '../tools/co
 // Safe logger that works both inside and outside LiveKit agent context
 const getLogger = () => {
   try {
-    return log();
+    return getLogger();
   } catch {
     // Fallback console logger when LiveKit logger isn't initialized
     return {

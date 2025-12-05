@@ -15,26 +15,11 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-
-// Alias for backwards compatibility
-const log = getLogger;
 import { discoverAndLoadBundles } from './bundles/index.js';
 import { VOICE_IDS, getVoiceIdForPersona, isValidVoiceId } from '../config/voice-ids.js';
 
-// Safe logger that doesn't throw if not initialized
-const getLogger = () => {
-  try {
-    return log();
-  } catch {
-    // Return a console-based fallback logger
-    return {
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-    };
-  }
-};
+// Logger instance for this module
+const logger = getLogger();
 
 // ============================================================================
 // FALLBACK VOICE IDS
@@ -88,7 +73,7 @@ let initialized = false;
  */
 export async function initializeVoiceRegistry(): Promise<void> {
   if (initialized) {
-    getLogger().debug('Voice registry already initialized');
+    logger.debug('Voice registry already initialized');
     return;
   }
 
@@ -126,7 +111,7 @@ export async function initializeVoiceRegistry(): Promise<void> {
 
     initialized = true;
 
-    getLogger().info(
+    logger.info(
       {
         voiceCount: voiceRegistry.size,
         aliasCount: aliasToCanonical.size,
@@ -135,7 +120,7 @@ export async function initializeVoiceRegistry(): Promise<void> {
       'Voice registry initialized from bundles'
     );
   } catch (error) {
-    getLogger().error({ error }, 'Failed to initialize voice registry from bundles');
+    logger.error({ error }, 'Failed to initialize voice registry from bundles');
     // Fall back to hardcoded defaults
     initializeFallbacks();
   }
@@ -217,7 +202,7 @@ function initializeFallbacks(): void {
   }
 
   initialized = true;
-  getLogger().warn('Voice registry initialized with fallback values');
+  logger.warn('Voice registry initialized with fallback values');
 }
 
 // ============================================================================
@@ -265,7 +250,7 @@ export function getVoiceId(personaId: string): string {
     return fallback;
   }
 
-  getLogger().warn({ personaId }, 'Unknown persona ID, using default voice');
+  logger.warn({ personaId }, 'Unknown persona ID, using default voice');
   return DEFAULT_VOICE_ID;
 }
 

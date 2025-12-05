@@ -7,23 +7,7 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 
-// Safe logger
-const getLogger = () => {
-  try {
-    return log();
-  } catch {
-    return {
-      info: (data: unknown, msg?: string) =>
-        console.log(`[INFO] ${msg || ''}`, typeof data === 'object' ? JSON.stringify(data) : data),
-      warn: (data: unknown, msg?: string) => console.warn(`[WARN] ${msg || ''}`, data),
-      error: (data: unknown, msg?: string) => console.error(`[ERROR] ${msg || ''}`, data),
-      debug: (data: unknown, msg?: string) => console.debug(`[DEBUG] ${msg || ''}`, data),
-    };
-  }
-};
 
 // Voice registry for consistent voice ID resolution
 import { getVoiceId } from '../personas/voice-registry.js';

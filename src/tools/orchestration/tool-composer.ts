@@ -20,8 +20,6 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import {
   getConversationState,
   type ConversationStateManager,
@@ -312,7 +310,7 @@ function extractFacts(
 export class ToolComposer {
   private state: ConversationStateManager;
   private context: Map<string, unknown> = new Map();
-  private logger = log();
+  private logger = getLogger();
 
   constructor(sessionId: string, userId?: string, agentId?: string) {
     this.state = getConversationState(sessionId, userId, agentId);

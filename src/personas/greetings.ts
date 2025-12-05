@@ -7,8 +7,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import type { PersonaConfig, GreetingStyle } from './types.js';
 import { getDayContext, getTimeContext, getSeasonalContext } from './behaviors.js';
 
@@ -511,13 +509,13 @@ Generate ONE greeting (2-4 sentences max). Be warm and natural.`;
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!text || text.length < 10) return null;
 
-    log().info(
+    getLogger().info(
       { source: 'gemini', length: text.length, persona: persona.id },
       'Dynamic greeting generated'
     );
     return text;
   } catch (error) {
-    log().debug({ error }, 'Dynamic greeting failed, using static');
+    getLogger().debug({ error }, 'Dynamic greeting failed, using static');
     return null;
   }
 }
@@ -712,14 +710,14 @@ export async function generateGreeting(
       });
 
       if (aliveResult) {
-        log().info(
+        getLogger().info(
           { persona: persona.id, style: aliveResult.style, components: aliveResult.components },
           '✨ Using ALIVE greeting - persona feels real!'
         );
         return aliveResult.greeting;
       }
     } catch (err) {
-      log().debug({ error: String(err) }, 'Alive greeting generation failed, continuing...');
+      getLogger().debug({ error: String(err) }, 'Alive greeting generation failed, continuing...');
     }
   }
 
@@ -747,14 +745,14 @@ export async function generateGreeting(
           greeting = `${greeting} ${opener.followUp}`;
         }
         
-        log().info(
+        getLogger().info(
           { persona: persona.id, type: opener.type, reason: opener.reason },
           '🚀 Using PROACTIVE opener - context-aware greeting'
         );
         return greeting;
       }
     } catch (err) {
-      log().debug({ error: String(err) }, 'Proactive opener generation failed, continuing...');
+      getLogger().debug({ error: String(err) }, 'Proactive opener generation failed, continuing...');
     }
   }
 
@@ -767,7 +765,7 @@ export async function generateGreeting(
         options.personaMemories
       );
       if (memoryGreeting) {
-        log().info(
+        getLogger().info(
           { persona: persona.id, type: 'memory-based' },
           '🧠 Using memory-enhanced greeting'
         );
@@ -778,14 +776,14 @@ export async function generateGreeting(
 
   // 4. 30% chance to try DYNAMIC generation
   if (Math.random() > 0.3) {
-    log().debug({ persona: persona.id }, 'Using static greeting (random skip)');
+    getLogger().debug({ persona: persona.id }, 'Using static greeting (random skip)');
     return staticGreeting;
   }
 
   try {
     const dynamicGreeting = await generateDynamicGreeting(persona, options);
     if (dynamicGreeting) {
-      log().info(
+      getLogger().info(
         { persona: persona.id, dynamicLength: dynamicGreeting.length },
         'Using dynamic Gemini greeting'
       );
@@ -796,7 +794,7 @@ export async function generateGreeting(
   }
 
   // 5. STATIC fallback
-  log().debug({ persona: persona.id }, 'Using static greeting (fallback)');
+  getLogger().debug({ persona: persona.id }, 'Using static greeting (fallback)');
   return staticGreeting;
 }
 

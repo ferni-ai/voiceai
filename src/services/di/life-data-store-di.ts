@@ -15,8 +15,6 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import { Container, Tokens, type Factory } from './container.js';
 import { Result, success, failure, AsyncResult, NotFoundError } from '../../types/result.js';
 import type { UserProfile } from '../../types/user-profile.js';
@@ -95,7 +93,7 @@ interface MemoryStoreInterface {
 
 export interface LifeDataStoreDeps {
   store: MemoryStoreInterface;
-  logger?: typeof log;
+  logger?: ReturnType<typeof getLogger>;
 }
 
 // ============================================================================
@@ -104,7 +102,7 @@ export interface LifeDataStoreDeps {
 
 export class LifeDataStoreService {
   private readonly store: MemoryStoreInterface;
-  private readonly getLogger: () => ReturnType<typeof log>;
+  private readonly getLogger: () => ReturnType<ReturnType<typeof getLogger>>;
 
   // In-memory caches (would be Firestore in production)
   private milestones: Map<string, LifeMilestone[]> = new Map();
@@ -113,7 +111,7 @@ export class LifeDataStoreService {
 
   constructor(deps: LifeDataStoreDeps) {
     this.store = deps.store;
-    this.getLogger = deps.logger ?? (() => log());
+    this.getLogger = deps.logger ?? (() => getLogger());
     this.getLogger().info('📋 Life Data Store Service initialized (DI)');
   }
 

@@ -10,8 +10,6 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import type { AgentId } from '../agent-bus.js';
 import { teamHandlerRegistry } from './index.js';
 import type {
@@ -20,19 +18,6 @@ import type {
   AgentHandlerConfig,
 } from './types.js';
 
-// Safe logger
-const getLogger = () => {
-  try {
-    return log();
-  } catch {
-    return {
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-    };
-  }
-};
 
 // ============================================================================
 // AGENT CAPABILITY MAPPING

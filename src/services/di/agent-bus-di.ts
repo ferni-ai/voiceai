@@ -12,8 +12,6 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import { EventEmitter } from 'events';
 import { Container, Tokens, type Factory } from './container.js';
 import { Result, success, failure, AsyncResult, RateLimitError } from '../../types/result.js';
@@ -86,7 +84,7 @@ const MAX_TOTAL_REQUESTS_PER_WINDOW = 500;
 // ============================================================================
 
 export interface AgentBusDeps {
-  logger?: typeof log;
+  logger?: ReturnType<typeof getLogger>;
   rateLimitConfig?: {
     windowMs: number;
     maxPerUser: number;
@@ -99,7 +97,7 @@ export interface AgentBusDeps {
 // ============================================================================
 
 export class AgentBusService extends EventEmitter {
-  private readonly getLogger: () => ReturnType<typeof log>;
+  private readonly getLogger: () => ReturnType<ReturnType<typeof getLogger>>;
   private readonly config: Required<NonNullable<AgentBusDeps['rateLimitConfig']>>;
 
   private messages: Map<string, AgentMessage> = new Map();
@@ -110,7 +108,7 @@ export class AgentBusService extends EventEmitter {
 
   constructor(deps: AgentBusDeps = {}) {
     super();
-    this.getLogger = deps.logger ?? (() => log());
+    this.getLogger = deps.logger ?? (() => getLogger());
     this.config = {
       windowMs: deps.rateLimitConfig?.windowMs ?? RATE_LIMIT_WINDOW_MS,
       maxPerUser: deps.rateLimitConfig?.maxPerUser ?? MAX_REQUESTS_PER_WINDOW,

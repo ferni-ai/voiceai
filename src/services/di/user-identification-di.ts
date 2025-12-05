@@ -16,8 +16,6 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { Container, Tokens, type Factory } from './container.js';
 import { Result, success, failure, NotFoundError, ValidationError } from '../../types/index.js';
@@ -43,7 +41,7 @@ interface ExtendedMemoryStore {
  */
 export interface UserIdentificationDeps {
   store: ExtendedMemoryStore;
-  logger?: typeof log;
+  logger?: ReturnType<typeof getLogger>;
 }
 
 /**
@@ -72,11 +70,11 @@ export interface IdentificationResult {
  */
 export class UserIdentificationService {
   private readonly store: ExtendedMemoryStore;
-  private readonly getLogger: () => ReturnType<typeof log>;
+  private readonly getLogger: () => ReturnType<ReturnType<typeof getLogger>>;
 
   constructor(deps: UserIdentificationDeps) {
     this.store = deps.store;
-    this.getLogger = deps.logger ?? (() => log());
+    this.getLogger = deps.logger ?? (() => getLogger());
   }
 
   /**

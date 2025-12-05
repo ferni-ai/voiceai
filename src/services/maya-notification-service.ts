@@ -16,8 +16,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import { EventEmitter } from 'events';
 import { createReminder, ScheduledReminder } from './reminder-scheduler.js';
 import { getProductivityStore } from './productivity-store.js';
@@ -26,7 +24,7 @@ import { getDefaultStore } from '../memory/index.js';
 
 const getLogger = () => {
   try {
-    return log();
+    return getLogger();
   } catch {
     return {
       info: (data: unknown, msg?: string) => console.log(`[INFO] ${msg || ''}`, data),

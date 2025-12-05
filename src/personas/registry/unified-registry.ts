@@ -30,27 +30,11 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import { discoverAndLoadBundles, loadBundleById, clearBundleCache } from '../bundles/index.js';
 import type { LoadedPersonaBundle, PersonaBundleManifest } from '../bundles/types.js';
 import type { PersonaConfig } from '../types.js';
 import { bundleToPersonaConfig } from '../bundles/adapter.js';
 
-// Safe logger that doesn't throw if not initialized
-const getLogger = () => {
-  try {
-    return log();
-  } catch {
-    // Fall back to console if LiveKit logger not initialized
-    return {
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-    };
-  }
-};
 
 // ============================================================================
 // AGENT INTERFACE - Combines manifest + runtime info

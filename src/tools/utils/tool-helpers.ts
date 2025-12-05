@@ -14,8 +14,6 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 
 // ============================================================================
 // LOGGER
@@ -25,12 +23,12 @@ const log = getLogger;
  * Get the LiveKit logger instance
  * Cached to avoid repeated calls
  */
-let _logger: ReturnType<typeof log> | null = null;
+let _logger: ReturnType<ReturnType<typeof getLogger>> | null = null;
 
 export function getLogger() {
   if (!_logger) {
     try {
-      _logger = log();
+      _logger = getLogger();
     } catch {
       // Fallback for testing or non-LiveKit environments
       _logger = {
@@ -39,7 +37,7 @@ export function getLogger() {
         warn: console.warn.bind(console),
         error: console.error.bind(console),
         child: () => _logger!,
-      } as unknown as ReturnType<typeof log>;
+      } as unknown as ReturnType<ReturnType<typeof getLogger>>;
     }
   }
   return _logger;

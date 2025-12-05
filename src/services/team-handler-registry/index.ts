@@ -25,8 +25,6 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import { EventEmitter } from 'events';
 import type {
   AgentId,
@@ -50,19 +48,6 @@ import type {
 } from './types.js';
 import { validateHandlerDefinition, ALL_HANDLER_CAPABILITIES } from './types.js';
 
-// Safe logger
-const getLogger = () => {
-  try {
-    return log();
-  } catch {
-    return {
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-    };
-  }
-};
 
 // ============================================================================
 // TEAM HANDLER REGISTRY CLASS

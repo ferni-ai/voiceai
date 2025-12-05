@@ -19,8 +19,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import { toolRegistry } from './registry/index.js';
 import { initializeToolRegistry } from './registry/loader.js';
 import type {
@@ -33,19 +31,6 @@ import type {
 } from './registry/types.js';
 import { EmptyServiceRegistry } from './registry/types.js';
 
-// Safe logger
-const getLogger = () => {
-  try {
-    return log();
-  } catch {
-    return {
-      debug: console.debug.bind(console),
-      info: console.info.bind(console),
-      warn: console.warn.bind(console),
-      error: console.error.bind(console),
-    };
-  }
-};
 
 // ============================================================================
 // MANIFEST TYPES (simplified reference to avoid circular deps)

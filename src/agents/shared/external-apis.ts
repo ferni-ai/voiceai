@@ -10,8 +10,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
+const logger = getLogger();
 
 // ============================================================================
 // STOCK MARKET DATA
@@ -21,7 +20,6 @@ const log = getLogger;
  * Fetch stock quote - uses Yahoo Finance with fallback
  */
 export async function getStockQuote(symbol: string): Promise<string> {
-  const logger = log();
   logger.info(`getStockQuote called for: ${symbol}`);
 
   try {
@@ -78,7 +76,7 @@ export async function getStockQuote(symbol: string): Promise<string> {
  * Alpha Vantage backup for stock quotes
  */
 async function getStockQuoteAlphaVantage(symbol: string): Promise<string> {
-  const logger = log();
+  
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
   if (!apiKey) {
@@ -152,7 +150,7 @@ function getStockFallback(symbol: string): string {
  * Get major index overview
  */
 export async function getMarketOverview(): Promise<string> {
-  const logger = log();
+  
 
   try {
     const indices = ['^GSPC', '^DJI', '^IXIC']; // S&P 500, Dow, Nasdaq
@@ -221,7 +219,7 @@ function getMarketFallback(): string {
  * Fetch weather for a location
  */
 export async function getWeather(location: string): Promise<string> {
-  const logger = log();
+  
   const apiKey = process.env.OPENWEATHER_API_KEY;
 
   if (!apiKey) {
@@ -288,7 +286,7 @@ function getWeatherFallback(location: string): string {
  * Get historical event for today's date
  */
 export async function getHistoricalEvent(): Promise<string | null> {
-  const logger = log();
+  
 
   try {
     const today = new Date();

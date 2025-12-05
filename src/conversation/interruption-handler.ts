@@ -7,8 +7,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import type { AudioFrame } from '@livekit/rtc-node';
 import { getCanonicalPersonaId } from '../personas/voice-registry.js';
 
@@ -46,7 +44,7 @@ export class InterruptionHandler {
       };
 
       this.interruptionHistory.push(event);
-      log().info('User interrupted agent', {
+      getLogger().info('User interrupted agent', {
         count: this.interruptionCount,
         utterance: this.currentAgentUtterance.substring(0, 50) + '...',
       });
@@ -260,7 +258,7 @@ export class InterruptionHandler {
 
       return normalized;
     } catch (error) {
-      log().warn({ error }, 'Error estimating audio energy');
+      getLogger().warn({ error }, 'Error estimating audio energy');
       // Fallback to moderate energy on error
       return 0.5;
     }

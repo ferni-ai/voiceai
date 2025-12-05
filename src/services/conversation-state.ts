@@ -23,8 +23,6 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-// Alias for backwards compatibility
-const log = getLogger;
 import type { Firestore } from 'firebase-admin/firestore';
 
 // ============================================================================
@@ -221,7 +219,7 @@ function createDefaultToolExecutionData(): ToolExecutionData {
  */
 export class ConversationStateManager {
   private state: ConversationState;
-  private logger = log();
+  private logger = getLogger();
 
   constructor(sessionId: string, userId: string, agentId: string) {
     const now = new Date();
