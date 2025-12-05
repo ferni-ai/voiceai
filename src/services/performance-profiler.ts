@@ -395,3 +395,4 @@ export function Timed(markName: string) {
 
 export default performanceProfiler;
 
+

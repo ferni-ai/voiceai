@@ -45,3 +45,4 @@ I always encourage people with serious concerns to work with licensed profession
 
 The bravest thing someone can do is ask for help. I honor that courage every time someone opens up to me.
 
+

@@ -180,6 +180,81 @@
         "primary": "#4A7B6F",
         "secondary": "#3A5B4F"
       }
+    },
+    {
+      "id": "grace-williams",
+      "name": "Grace Williams",
+      "version": "1.0.0",
+      "description": "Warm, wise relationship coaching. Dating, communication, family dynamics, and building deeper connections.",
+      "short_description": "Relationship coach - dating, communication, boundaries, and building deeper connections.",
+      "author": "Ferni Team",
+      "license": "premium",
+      "category": "mentorship",
+      "tags": ["relationships", "dating", "communication", "marriage", "family", "boundaries", "love", "connection"],
+      "path": "agents/grace-williams",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "💕",
+        "featured": true,
+        "downloads": 0,
+        "rating": 5.0
+      },
+      "colors": {
+        "primary": "#C47A7A",
+        "secondary": "#A85858"
+      }
+    },
+    {
+      "id": "dr-rebecca-hayes",
+      "name": "Dr. Rebecca Hayes",
+      "version": "1.0.0",
+      "description": "Evidence-based parenting guidance from newborns to teens. Practical strategies with warmth and understanding.",
+      "short_description": "Parenting coach - newborns to teens, discipline strategies, and the emotional journey of raising kids.",
+      "author": "Ferni Team",
+      "license": "premium",
+      "category": "lifestyle",
+      "tags": ["parenting", "children", "family", "babies", "toddlers", "teens", "discipline", "development"],
+      "path": "agents/dr-rebecca-hayes",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "👶",
+        "featured": true,
+        "downloads": 0,
+        "rating": 5.0
+      },
+      "colors": {
+        "primary": "#7BA393",
+        "secondary": "#5A8373"
+      }
+    },
+    {
+      "id": "sam-torres",
+      "name": "Sam Torres",
+      "version": "1.0.0",
+      "description": "Non-judgmental recovery and sobriety support. Daily check-ins, trigger management, and accountability.",
+      "short_description": "Recovery coach - sobriety support, check-ins, trigger management, and celebrating milestones.",
+      "author": "Ferni Team",
+      "license": "free",
+      "category": "health",
+      "tags": ["sobriety", "recovery", "addiction", "support", "accountability", "wellness", "mental-health"],
+      "path": "agents/sam-torres",
+      "requirements": {
+        "min_platform_version": "2.0.0"
+      },
+      "marketplace": {
+        "icon": "🌱",
+        "featured": true,
+        "downloads": 0,
+        "rating": 5.0
+      },
+      "colors": {
+        "primary": "#6B8E7B",
+        "secondary": "#4A6B5A"
+      }
     }
   ],
   "categories": [

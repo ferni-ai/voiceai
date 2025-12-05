@@ -100,7 +100,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       id: exp.id,
       name: exp.name,
       description: exp.description,
-      active: exp.status === 'active',
+      active: exp.active,
     }));
 
     // Get tool usage stats
@@ -223,8 +223,8 @@ export async function triggerOptimizationCycle(): Promise<{
     const cycle = await autoOptimizer.runOptimizationCycle();
     
     return {
-      success: cycle.status === 'success',
-      message: cycle.status === 'success' 
+      success: cycle.status === 'completed',
+      message: cycle.status === 'completed' 
         ? `Cycle complete: ${cycle.recommendationsCreated} recommendations`
         : `Cycle incomplete: ${cycle.status}`,
       recommendationsGenerated: cycle.recommendationsCreated,
@@ -311,8 +311,8 @@ export async function getRecommendations(): Promise<{
       title: r.title,
       description: r.description,
       priority: r.priority,
-      impact: r.impact.level,
-      effort: r.implementation.effort,
+      impact: r.impact.riskLevel,
+      effort: r.implementation.estimatedEffort,
       status: r.status,
     })),
   };

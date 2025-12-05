@@ -295,3 +295,4 @@ export async function initializeHaptics(): Promise<void> {
 
 export default MobileHaptics;
 
+

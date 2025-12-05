@@ -73,7 +73,7 @@ export function initCognitiveWebSocket(httpServer: Server): WebSocketServer {
     });
 
     // Handle errors
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
       logger.warn({ error }, 'Cognitive WebSocket client error');
       clients.delete(ws);
     });

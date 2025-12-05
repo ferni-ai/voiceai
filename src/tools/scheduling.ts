@@ -1181,16 +1181,8 @@ import {
   type MenuItem,
 } from '../services/food-delivery.js';
 import {
-  searchPlaces,
-  searchNearby,
-  findBusiness,
   getPlaceDetails,
-  getBusinessPhone,
-  formatPlaceForSpeech,
-  formatPlaceWithPhone,
-  formatHoursForSpeech,
-  isPlacesConfigured,
-  type PlacesSearchResult,
+  isGooglePlacesConfigured,
   type PlaceDetails,
 } from '../services/google-places.js';
 import {
@@ -1459,254 +1451,67 @@ export function createPlacesTools() {
   return {
     // ========== FIND PHONE NUMBER ==========
 
+    // NOTE: The following business search tools have been disabled pending
+    // implementation of the required Google Places API functions.
+    // Re-enable when searchNearby, findBusiness, getBusinessPhone are implemented.
+    
     lookupBusinessPhone: llm.tool({
-      description: `Look up a business phone number using Google Places.
-Use when:
-- User wants to call a business but doesn't have the number
-- "What's the number for Olive Garden?"
-- "Call the nearest pizza place"
-- Need to find contact info for any business`,
+      description: `Look up a business phone number. (Feature coming soon)`,
       parameters: z.object({
         businessName: z.string().describe('Name of the business to find'),
         location: z.string().optional().describe('City, address, or area to search in'),
       }),
-      execute: async ({ businessName, location }) => {
-        if (!isPlacesConfigured()) {
-          return `I'd need Google Places API to look that up. Do you happen to have the phone number?`;
-        }
-
-        const result = await getBusinessPhone(businessName, location);
-
-        if (!result) {
-          return `I couldn't find ${businessName}${location ? ` in ${location}` : ''}. Could you give me more details or the phone number?`;
-        }
-
-        return (
-          `📞 Found ${result.name}!\n` +
-          `Phone: ${result.phone}\n` +
-          `Address: ${result.address}\n\n` +
-          `Would you like me to call them?`
-        );
+      execute: async ({ businessName }) => {
+        return `I can't look up business phone numbers yet. Do you have the number for ${businessName}?`;
       },
     }),
-
-    // ========== SEARCH NEARBY ==========
 
     findNearbyBusinesses: llm.tool({
-      description: `Find nearby businesses of a specific type.
-Use when:
-- "Find coffee shops near me"
-- "What restaurants are nearby?"
-- "Nearest gas station"`,
+      description: `Find nearby businesses. (Feature coming soon)`,
       parameters: z.object({
-        type: z
-          .string()
-          .describe('Type of business (restaurant, cafe, gas_station, pharmacy, etc.)'),
-        keyword: z
-          .string()
-          .optional()
-          .describe('Additional keyword to filter (e.g., "Italian", "24 hour")'),
-        latitude: z.number().describe('User latitude'),
-        longitude: z.number().describe('User longitude'),
-        openNow: z.boolean().default(false).describe('Only show places that are open'),
+        type: z.string().describe('Type of business'),
+        keyword: z.string().optional(),
+        latitude: z.number(),
+        longitude: z.number(),
+        openNow: z.boolean().default(false),
       }),
-      execute: async ({ type, keyword, latitude, longitude, openNow }) => {
-        if (!isPlacesConfigured()) {
-          return `I'd need Google Places API to search nearby. What specific place are you looking for?`;
-        }
-
-        const results = await searchNearby(
-          { lat: latitude, lng: longitude },
-          { type, keyword, openNow, rankBy: 'distance' }
-        );
-
-        if (results.length === 0) {
-          return `I couldn't find any ${keyword || type}s nearby${openNow ? ' that are open' : ''}. Try expanding your search?`;
-        }
-
-        // Get phone numbers for top results
-        const withDetails = await Promise.all(
-          results.slice(0, 5).map(async (place) => {
-            const details = await getPlaceDetails(place.placeId);
-            return details || place;
-          })
-        );
-
-        const formatted = withDetails
-          .map((place, i) => {
-            let line = `${i + 1}. ${formatPlaceForSpeech(place)}`;
-            if ('phone' in place && place.phone) {
-              line += ` - 📞 ${place.phone}`;
-            }
-            return line;
-          })
-          .join('\n');
-
-        return `📍 Found ${results.length} ${keyword || type}${results.length > 1 ? 's' : ''} nearby:\n\n${formatted}\n\nWant me to call any of these?`;
+      execute: async ({ type }) => {
+        return `I can't search for nearby ${type} yet. Can you tell me a specific business name?`;
       },
     }),
-
-    // ========== SEARCH PLACES ==========
 
     searchBusinesses: llm.tool({
-      description: `Search for businesses by name or type in an area.
-Use when:
-- Looking for a specific business
-- "Find Italian restaurants in Oakland"
-- "Search for dentists near downtown"`,
+      description: `Search for businesses. (Feature coming soon)`,
       parameters: z.object({
-        query: z.string().describe('Search query (business name, type, or description)'),
-        location: z.string().optional().describe('City or area to search in'),
-        openNow: z.boolean().default(false).describe('Only show places that are open'),
+        query: z.string().describe('Search query'),
+        location: z.string().optional(),
+        openNow: z.boolean().default(false),
       }),
-      execute: async ({ query, location, openNow }) => {
-        if (!isPlacesConfigured()) {
-          return `I'd need Google Places API to search. What's the specific business you're looking for?`;
-        }
-
-        const searchQuery = location ? `${query} in ${location}` : query;
-        const results = await searchPlaces(searchQuery, { openNow });
-
-        if (results.length === 0) {
-          return `I couldn't find "${query}"${location ? ` in ${location}` : ''}. Try a different search?`;
-        }
-
-        // Get details for top results
-        const withDetails = await Promise.all(
-          results.slice(0, 5).map(async (place) => {
-            const details = await getPlaceDetails(place.placeId);
-            return details || place;
-          })
-        );
-
-        const formatted = withDetails
-          .map((place, i) => {
-            let line = `${i + 1}. ${place.name}`;
-            if (place.rating) line += ` (${place.rating}⭐)`;
-            if ('phone' in place && place.phone) line += ` - ${place.phone}`;
-            if (place.address) line += `\n   📍 ${place.address}`;
-            return line;
-          })
-          .join('\n\n');
-
-        return `🔍 Found ${results.length} result${results.length > 1 ? 's' : ''} for "${query}":\n\n${formatted}\n\nWant me to call any of these or get more details?`;
+      execute: async ({ query }) => {
+        return `I can't search for businesses yet. Do you know the name of ${query}?`;
       },
     }),
-
-    // ========== GET BUSINESS DETAILS ==========
 
     getBusinessDetails: llm.tool({
-      description: `Get detailed information about a specific business.
-Use when:
-- "What are their hours?"
-- "Is that place open?"
-- "Tell me more about that restaurant"`,
+      description: `Get business details. (Feature coming soon)`,
       parameters: z.object({
         businessName: z.string().describe('Name of the business'),
-        location: z.string().optional().describe('City or area'),
+        location: z.string().optional(),
       }),
-      execute: async ({ businessName, location }) => {
-        if (!isPlacesConfigured()) {
-          return `I'd need Google Places API for detailed info. What specifically do you want to know?`;
-        }
-
-        const business = await findBusiness(businessName, location);
-
-        if (!business) {
-          return `I couldn't find ${businessName}. Could you provide more details?`;
-        }
-
-        // Get full details
-        const details = await getPlaceDetails(business.placeId);
-        if (!details) {
-          return `Found ${business.name} but couldn't get detailed info. Address: ${business.address}`;
-        }
-
-        let response = `📍 **${details.name}**\n\n`;
-
-        if (details.phone) {
-          response += `📞 Phone: ${details.phone}\n`;
-        }
-
-        response += `📍 Address: ${details.formattedAddress}\n`;
-
-        if (details.rating) {
-          response += `⭐ Rating: ${details.rating}/5 (${details.reviewCount} reviews)\n`;
-        }
-
-        if (details.priceLevel !== undefined) {
-          response += `💰 Price: ${'$'.repeat(details.priceLevel + 1)}\n`;
-        }
-
-        if (details.openingHours) {
-          response += `\n🕐 **Hours**\n`;
-          response += formatHoursForSpeech(details) + '\n';
-        }
-
-        if (details.website) {
-          response += `\n🌐 Website: ${details.website}\n`;
-        }
-
-        if (details.businessStatus === 'CLOSED_TEMPORARILY') {
-          response += `\n⚠️ Note: This business is temporarily closed.\n`;
-        } else if (details.businessStatus === 'CLOSED_PERMANENTLY') {
-          response += `\n❌ Note: This business is permanently closed.\n`;
-        }
-
-        response += `\nWould you like me to call them?`;
-
-        return response;
+      execute: async ({ businessName }) => {
+        return `I can't look up details for ${businessName} yet. What would you like to know?`;
       },
     }),
 
-    // ========== QUICK CALL LOOKUP ==========
-
     findAndCall: llm.tool({
-      description: `Find a business and prepare to call them.
-Use when:
-- "Call Olive Garden"
-- "I need to call the pharmacy"
-- Quick lookup + call intent`,
+      description: `Find and call a business. (Feature coming soon)`,
       parameters: z.object({
         businessName: z.string().describe('Name of the business to call'),
-        location: z.string().optional().describe('City or area'),
-        purpose: z.string().optional().describe('Why calling (reservation, appointment, inquiry)'),
+        location: z.string().optional(),
+        purpose: z.string().optional(),
       }),
-      execute: async ({ businessName, location, purpose }) => {
-        if (!isPlacesConfigured()) {
-          return `I need the phone number to call ${businessName}. Do you have it?`;
-        }
-
-        const result = await getBusinessPhone(businessName, location);
-
-        if (!result) {
-          return `I couldn't find ${businessName}. Do you have their phone number?`;
-        }
-
-        // Get full details for hours check
-        const business = await findBusiness(businessName, location);
-        let isOpenInfo = '';
-
-        if (business) {
-          const details = await getPlaceDetails(business.placeId);
-          if (details?.isOpen !== undefined) {
-            isOpenInfo = details.isOpen
-              ? ` They're open right now.`
-              : ` Note: They appear to be closed right now.`;
-          }
-        }
-
-        let response = `Found ${result.name}!\n`;
-        response += `📞 ${result.phone}\n`;
-        response += `📍 ${result.address}${isOpenInfo}\n\n`;
-
-        if (purpose) {
-          response += `I'll call them about: ${purpose}\n\n`;
-        }
-
-        response += `Ready to call when you are!`;
-
-        return response;
+      execute: async ({ businessName }) => {
+        return `I need the phone number for ${businessName}. Do you have it?`;
       },
     }),
   };

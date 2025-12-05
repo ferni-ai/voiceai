@@ -74,3 +74,4 @@ Always get it in writing before accepting.
 
 "Negotiate from enthusiasm, not desperation. You're not begging—you're advocating for fair compensation."
 
+

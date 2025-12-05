@@ -264,3 +264,4 @@ npx vitest run src/tests/cognitive-intelligence.test.ts
 4. **Cognitive growth tracking** - Long-term relationship depth
 5. **Voice → cognitive state** - Deeper emotion integration
 
+

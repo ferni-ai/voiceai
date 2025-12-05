@@ -88,21 +88,27 @@ class ErrorTrackingService {
 
     try {
       // Dynamic import to avoid bundling Sentry when not used
-      const Sentry = await import('@sentry/node');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const Sentry = await import('@sentry/node').catch(() => null);
+      
+      if (!Sentry) {
+        getLogger().info('Sentry not installed - error tracking disabled');
+        return;
+      }
       
       Sentry.init({
         dsn: this.dsn,
         environment: this.environment,
         tracesSampleRate: this.environment === 'production' ? 0.1 : 1.0,
         profilesSampleRate: this.environment === 'production' ? 0.1 : 1.0,
-        integrations: [
-          // Add Node-specific integrations
-        ],
-        beforeSend(event) {
+        integrations: [],
+        beforeSend(event: unknown) {
           // Scrub sensitive data
-          if (event.request?.headers) {
-            delete event.request.headers['authorization'];
-            delete event.request.headers['cookie'];
+          const evt = event as Record<string, unknown>;
+          const request = evt['request'] as { headers?: Record<string, unknown> } | undefined;
+          if (request?.headers) {
+            delete request.headers['authorization'];
+            delete request.headers['cookie'];
           }
           return event;
         },
@@ -302,4 +308,5 @@ export function trackApiCall(endpoint: string, method: string, statusCode: numbe
 }
 
 export default errorTracking;
+
 

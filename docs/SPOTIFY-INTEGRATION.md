@@ -51,24 +51,28 @@ Ask Ferni: "Play some relaxing jazz music"
 
 ## Production Setup (ferni.ai)
 
-### Step 1: Add Production Redirect URI
+### Step 1: Add ALL Redirect URIs to Spotify Dashboard
 
 In [Spotify Developer Dashboard](https://developer.spotify.com/dashboard):
 1. Select your app → Settings
-2. Add redirect URI:
-   ```
-   https://john-bogle-ui-1031920444452.us-central1.run.app/spotify/callback
-   ```
-   Or if using custom domain:
-   ```
-   https://app.ferni.ai/spotify/callback
-   ```
+2. Add ALL these redirect URIs:
+
+```
+# Local development
+https://example.com/callback
+
+# Web (Cloud Run)
+https://john-bogle-ui-1031920444452.us-central1.run.app/spotify/callback
+
+# iOS & Android mobile apps
+voiceai://spotify-callback
+```
 
 ### Step 2: Set Environment Variable
 
 Add to your `.env` and upload to GCP:
 ```bash
-SPOTIFY_REDIRECT_URI=https://your-production-url/spotify/callback
+SPOTIFY_REDIRECT_URI=https://john-bogle-ui-1031920444452.us-central1.run.app/spotify/callback
 ```
 
 Then run:
@@ -80,6 +84,25 @@ Then run:
 ```bash
 ./scripts/deploy-all.sh --ui
 ```
+
+---
+
+## Mobile App Setup
+
+The iOS and Android apps are already configured to handle the `voiceai://` URL scheme.
+
+### App Identifiers
+| Platform | Identifier |
+|----------|------------|
+| Android Package | `com.sethdford.voiceai` |
+| iOS Bundle ID | `com.sethdford.voiceai` |
+
+### Redirect URI for Mobile
+```
+voiceai://spotify-callback
+```
+
+This works for both iOS and Android through Capacitor's deep link handling.
 
 ---
 

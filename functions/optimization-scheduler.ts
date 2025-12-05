@@ -13,6 +13,10 @@ import { Firestore, FieldValue, Timestamp } from '@google-cloud/firestore';
 
 const db = new Firestore();
 
+// Slack webhook URLs - set via environment variables or Cloud Run secrets
+const SLACK_ALERTS_URL = process.env.SLACK_ALERTS_WEBHOOK_URL || 'https://hooks.slack.com/services/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';
+const SLACK_REPORTS_URL = process.env.SLACK_WEBHOOK_URL || 'https://hooks.slack.com/services/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';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -296,9 +300,9 @@ export const weeklyRecommendationsReport = onSchedule({
     await db.collection('optimization_weekly_reports').add(report);
 
     // Send to Slack if configured
-    const slackWebhook = process.env.SLACK_WEBHOOK_URL;
-    if (slackWebhook) {
-      await sendSlackReport(slackWebhook, report);
+    const webhook = slackWebhook.value() || process.env.SLACK_WEBHOOK_URL;
+    if (webhook) {
+      await sendSlackReport(webhook, report);
     }
 
     console.log('Weekly report generated', { recommendations: recommendations.length });
@@ -568,8 +572,7 @@ async function generateRecommendations(
 }
 
 async function checkAndSendAlerts(stats: ToolStats[]): Promise<number> {
-  const slackWebhook = process.env.SLACK_ALERTS_WEBHOOK_URL;
-  if (!slackWebhook) return 0;
+  if (!SLACK_ALERTS_URL) return 0;
 
   let alertsSent = 0;
 
@@ -579,7 +582,7 @@ async function checkAndSendAlerts(stats: ToolStats[]): Promise<number> {
   );
 
   if (criticalTools.length > 0) {
-    await sendSlackAlert(slackWebhook, {
+    await sendSlackAlert(SLACK_ALERTS_URL, {
       type: 'critical_errors',
       message: `🚨 ${criticalTools.length} tools have >25% error rate`,
       tools: criticalTools.map(t => ({

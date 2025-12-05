@@ -2545,18 +2545,20 @@ export default defineAgent({
           // Collect implicit and explicit feedback from user messages
           // This powers the automated recommendation system
           try {
+            // Get tool execution data from conversation state
+            const toolExecData = userData.conversationState?.getToolExecutionData?.();
+            const recentTools = toolExecData?.recentlyUsedTools || [];
+            const lastToolResult = toolExecData?.lastToolResult;
+            const lastToolId = toolExecData?.lastToolCalled;
+            
             const feedbackContext: FeedbackContext = {
               userId: userData.userId || 'anonymous',
               sessionId,
               agentId: sessionPersona.id,
               turnNumber: userData.turnCount || 0,
-              recentTools: userData.conversationState?.getRecentToolCalls?.()?.map(tc => tc.toolName) || [],
-              lastToolResult: userData.conversationState?.getLastToolResult?.(),
+              recentTools,
+              lastToolResult,
             };
-            
-            // Get the last tool that was called (if any)
-            const lastToolCalls = userData.conversationState?.getRecentToolCalls?.() || [];
-            const lastToolId = lastToolCalls.length > 0 ? lastToolCalls[lastToolCalls.length - 1]?.toolName : undefined;
             
             // Process feedback asynchronously
             autoOptimizer.processUserMessage(event.transcript, feedbackContext, lastToolId);

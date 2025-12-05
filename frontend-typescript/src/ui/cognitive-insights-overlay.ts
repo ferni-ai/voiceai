@@ -22,7 +22,7 @@
  * ```
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING } from '../config/animation-constants';
 
 // ============================================================================
 // TYPES
@@ -333,4 +333,5 @@ export const cognitiveInsights = {
 };
 
 export default { showCognitiveInsight, hideCognitiveInsight, cognitiveInsights };
+
 

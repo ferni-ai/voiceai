@@ -373,8 +373,12 @@ class OptimizationAlertingService {
     }
 
     try {
-      // Use Google Cloud Monitoring API
-      const { Monitoring } = await import('@google-cloud/monitoring');
+      // Use Google Cloud Monitoring API - optional dependency
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const Monitoring = await import('@google-cloud/monitoring').catch(() => null) as any;
+      if (!Monitoring) {
+        return false;
+      }
       const client = new Monitoring.MetricServiceClient();
 
       const projectPath = client.projectPath(this.config.gcpProject);

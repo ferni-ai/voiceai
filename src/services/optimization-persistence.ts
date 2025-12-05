@@ -217,7 +217,8 @@ class OptimizationPersistenceService {
 
     try {
       const doc = await this.db.collection(this.COLLECTIONS.FEEDBACK_SUMMARY).doc(toolId).get();
-      return doc.exists ? (doc.data() as FeedbackSummary) : null;
+      const data = doc.data();
+      return doc.exists && data ? (data as unknown as FeedbackSummary) : null;
     } catch (error) {
       getLogger().error({ error, toolId }, 'Failed to get feedback summary');
       return null;
@@ -232,7 +233,9 @@ class OptimizationPersistenceService {
 
     try {
       const snapshot = await this.db.collection(this.COLLECTIONS.FEEDBACK_SUMMARY).get();
-      return snapshot.docs.map((doc) => doc.data() as FeedbackSummary);
+      return snapshot.docs
+        .map((doc) => doc.data() as unknown as FeedbackSummary | undefined)
+        .filter((data): data is FeedbackSummary => data !== undefined);
     } catch (error) {
       getLogger().error({ error }, 'Failed to get all feedback summaries');
       return [];
@@ -384,7 +387,6 @@ class OptimizationPersistenceService {
         batch.set(docRef, {
           ...rec,
           createdAt: rec.createdAt.toISOString(),
-          implementedAt: rec.implementedAt?.toISOString(),
         });
       }
 
@@ -406,7 +408,6 @@ class OptimizationPersistenceService {
       await this.db.collection(this.COLLECTIONS.RECOMMENDATIONS).doc(recommendation.id).set({
         ...recommendation,
         createdAt: recommendation.createdAt.toISOString(),
-        implementedAt: recommendation.implementedAt?.toISOString(),
       });
     } catch (error) {
       getLogger().error({ error }, 'Failed to save recommendation');
@@ -427,14 +428,16 @@ class OptimizationPersistenceService {
         .limit(50)
         .get();
 
-      return snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          ...data,
-          createdAt: new Date(data.createdAt as string),
-          implementedAt: data.implementedAt ? new Date(data.implementedAt as string) : undefined,
-        } as Recommendation;
-      });
+      return snapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          if (!data) return null;
+          return {
+            ...data,
+            createdAt: new Date(data['createdAt'] as string),
+          } as Recommendation;
+        })
+        .filter((rec): rec is Recommendation => rec !== null);
     } catch (error) {
       getLogger().error({ error }, 'Failed to get pending recommendations');
       return [];
@@ -565,8 +568,11 @@ class OptimizationPersistenceService {
       // Count by type
       const feedbackByType: Record<string, number> = {};
       feedbackSnapshot.docs.forEach((doc) => {
-        const type = doc.data().type as string;
-        feedbackByType[type] = (feedbackByType[type] || 0) + 1;
+        const data = doc.data();
+        if (data) {
+          const type = data['type'] as string;
+          feedbackByType[type] = (feedbackByType[type] || 0) + 1;
+        }
       });
 
       // Get session count

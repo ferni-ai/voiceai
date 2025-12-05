@@ -267,43 +267,62 @@ async function checkGoogleCalendar(sendTest: boolean): Promise<void> {
 }
 
 // ============================================================================
-// RESTAURANT APIs CHECK
+// GOOGLE PLACES CHECK (Restaurant Search)
 // ============================================================================
 
-function checkRestaurantAPIs(): void {
-  const openTable: IntegrationCheck = {
-    name: 'OpenTable',
+async function checkGooglePlaces(sendTest: boolean): Promise<void> {
+  const apiKey = process.env.GOOGLE_API_KEY;
+
+  const check: IntegrationCheck = {
+    name: 'Google Places (Restaurants)',
     category: 'reservations',
-    configured: checkEnvVar('OPENTABLE_API_KEY'),
-    required: ['OPENTABLE_API_KEY'],
+    configured: !!apiKey,
+    required: ['GOOGLE_API_KEY'],
     optional: [],
-    status: checkEnvVar('OPENTABLE_API_KEY') ? 'configured' : 'not_configured',
-    message: checkEnvVar('OPENTABLE_API_KEY') ? 'API key present' : 'Missing OPENTABLE_API_KEY',
+    status: 'not_configured',
   };
 
-  const resy: IntegrationCheck = {
-    name: 'Resy',
-    category: 'reservations',
-    configured: checkEnvVar('RESY_API_KEY'),
-    required: ['RESY_API_KEY'],
-    optional: [],
-    status: checkEnvVar('RESY_API_KEY') ? 'configured' : 'not_configured',
-    message: checkEnvVar('RESY_API_KEY') ? 'API key present' : 'Missing RESY_API_KEY',
-  };
+  if (!apiKey) {
+    check.message = 'Missing GOOGLE_API_KEY (same key used for Gemini)';
+    addCheck(check);
+    return;
+  }
 
-  const yelp: IntegrationCheck = {
-    name: 'Yelp',
-    category: 'reservations',
-    configured: checkEnvVar('YELP_API_KEY'),
-    required: ['YELP_API_KEY'],
-    optional: [],
-    status: checkEnvVar('YELP_API_KEY') ? 'configured' : 'not_configured',
-    message: checkEnvVar('YELP_API_KEY') ? 'API key present' : 'Missing YELP_API_KEY',
-  };
+  check.status = 'configured';
+  check.message = 'Using GOOGLE_API_KEY for restaurant search';
 
-  addCheck(openTable);
-  addCheck(resy);
-  addCheck(yelp);
+  if (sendTest) {
+    try {
+      // Test with a simple search
+      const params = new URLSearchParams({
+        query: 'restaurant near me',
+        type: 'restaurant',
+        key: apiKey,
+      });
+
+      const response = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?${params}`, {
+        signal: AbortSignal.timeout(10000),
+      });
+
+      const data = await response.json() as { status: string; results?: unknown[]; error_message?: string };
+
+      if (data.status === 'OK' || data.status === 'ZERO_RESULTS') {
+        check.status = 'validated';
+        check.message = `API working - found ${data.results?.length || 0} restaurants`;
+      } else if (data.status === 'REQUEST_DENIED') {
+        check.status = 'failed';
+        check.message = 'Places API not enabled - enable it in Google Cloud Console';
+      } else {
+        check.status = 'failed';
+        check.message = data.error_message || `API error: ${data.status}`;
+      }
+    } catch (error) {
+      check.status = 'failed';
+      check.message = error instanceof Error ? error.message : 'API request failed';
+    }
+  }
+
+  addCheck(check);
 }
 
 // ============================================================================
@@ -471,7 +490,7 @@ async function main(): Promise<void> {
   await checkSendGrid(sendTest);
   await checkTwilio(sendTest);
   await checkGoogleCalendar(sendTest);
-  checkRestaurantAPIs();
+  await checkGooglePlaces(sendTest);
   checkLiveKitSIP();
   checkAppointmentIntegration();
 

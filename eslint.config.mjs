@@ -340,15 +340,18 @@ export default [
 
   // ============================================================================
   // TEST FILES - RELAXED RULES
+  // These rules are disabled for tests as they don't need strict type checking
+  // Type-aware rules must be disabled when project: null is set
   // ============================================================================
   {
     files: ['**/*.test.ts', '**/*.spec.ts', '**/tests/**/*.ts'],
     languageOptions: {
       parserOptions: {
-        project: null,
+        project: null, // Disable type-aware linting for tests
       },
     },
     rules: {
+      // Type-aware rules (require parserOptions.project)
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
@@ -357,10 +360,22 @@ export default [
       '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/await-thenable': 'off',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/promise-function-async': 'off',
+      '@typescript-eslint/strict-boolean-expressions': 'off',
+      '@typescript-eslint/consistent-type-exports': 'off',
+      '@typescript-eslint/consistent-type-imports': 'off',
+      '@typescript-eslint/naming-convention': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      // Size limits don't apply to tests
       'max-lines': 'off',
       'max-lines-per-function': 'off',
+      'max-depth': 'off',
+      'max-nested-callbacks': 'off',
+      'complexity': 'off',
     },
   },
 

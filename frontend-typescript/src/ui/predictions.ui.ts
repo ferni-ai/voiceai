@@ -395,16 +395,17 @@ export class PredictionsUI {
         /* Golden ratio: 34px button / 1.618 ≈ 21px icon */
         width: 34px;
         height: 34px;
+        min-width: 34px;
+        flex-shrink: 0;
         padding: 0;
-        background: var(--color-background-secondary, #f5f2ed);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        /* Visible background - darker for contrast */
+        background: #d4cdc4;
+        border: 2px solid #8b8075;
         border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
+        color: #2c2520;
         cursor: pointer;
         transition: all 200ms var(--ease-gentle, cubic-bezier(0.4, 0, 0.2, 1));
-        /* Subtle inner shadow for depth */
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5),
-                    0 1px 3px rgba(44, 37, 32, 0.04);
+        box-shadow: 0 2px 6px rgba(44, 37, 32, 0.15);
       }
 
       .predictions-panel__close:hover {
@@ -431,7 +432,8 @@ export class PredictionsUI {
         width: 16px;
         height: 16px;
         stroke-width: 2.5;
-        opacity: 0.8;
+        /* Full opacity for visibility */
+        opacity: 1;
         transition: opacity 200ms ease;
       }
 
