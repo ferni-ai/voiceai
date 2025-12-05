@@ -78,6 +78,17 @@ export {
 } from './intelligence-persistence.js';
 
 // ============================================================================
+// PERSISTENCE METRICS
+// ============================================================================
+
+export {
+  persistenceMetrics,
+  withMetrics,
+  withMetricsSync,
+  type PersistenceMetricsSnapshot,
+} from './persistence-metrics.js';
+
+// ============================================================================
 // SESSION MANAGEMENT
 // ============================================================================
 

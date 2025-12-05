@@ -87,6 +87,9 @@ import {
   stopAutoSave,
 } from './intelligence-persistence.js';
 
+// Persistence metrics for observability
+import { persistenceMetrics } from './persistence-metrics.js';
+
 // ============================================================================
 // SESSION STATE
 // ============================================================================
@@ -356,6 +359,7 @@ export async function createSessionServices(
 
   if (validatedUserId) {
     const autoSaveCallback = async (uid: string) => {
+      const startTime = Date.now();
       try {
         if (services.userProfile) {
           // Export current intelligence state
@@ -364,9 +368,15 @@ export async function createSessionServices(
           
           // Save to store
           await global.store.saveProfile(updatedProfile);
-          getLogger().debug({ userId: uid }, 'Auto-saved profile with intelligence state');
+          
+          const durationMs = Date.now() - startTime;
+          persistenceMetrics.recordAutoSave(sessionId, durationMs);
+          getLogger().debug({ userId: uid, durationMs }, 'Auto-saved profile with intelligence state');
         }
       } catch (error) {
+        const durationMs = Date.now() - startTime;
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        persistenceMetrics.recordAutoSave(sessionId, durationMs, errorMsg);
         getLogger().warn({ error, userId: uid }, 'Auto-save failed');
       }
     };
@@ -374,6 +384,9 @@ export async function createSessionServices(
     // Start auto-save with 30 second interval
     startAutoSave(validatedUserId, autoSaveCallback, { autoSaveIntervalMs: 30000 });
     getLogger().info({ userId: validatedUserId }, '⏰ Started auto-save for session');
+    
+    // Record session start in metrics
+    persistenceMetrics.recordSessionStart(sessionId, validatedUserId, personaId || 'unknown');
   }
 
   // ============================================================================
@@ -890,6 +903,7 @@ export async function createSessionServices(
 
     endSession: async () => {
       getLogger().info(`Ending session: ${sessionId}`);
+      const sessionEndStartTime = Date.now();
       
       // FIX BUG #session-6: Timeout for summarization to prevent blocking cleanup
       const SUMMARIZE_TIMEOUT_MS = 10000; // 10 seconds
@@ -1179,6 +1193,10 @@ export async function createSessionServices(
         }
       }
 
+      // Record session end in metrics
+      const sessionEndDurationMs = Date.now() - sessionEndStartTime;
+      persistenceMetrics.recordSessionEnd(sessionId, sessionEndDurationMs);
+      
       getLogger().info(`Session ${sessionId} ended and cleaned up`);
     },
   };

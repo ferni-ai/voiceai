@@ -12,6 +12,9 @@
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
 
+// Import metrics for observability
+import { persistenceMetrics } from './persistence-metrics.js';
+
 // Intelligence Engines
 import {
   getHumorCalibration,
@@ -157,6 +160,9 @@ const INTELLIGENCE_STATE_VERSION = 1;
  * Export all intelligence state for a user
  */
 export function exportIntelligenceState(userId: string): IntelligenceState {
+  const startTime = Date.now();
+  let engineCount = 0;
+  
   const state: IntelligenceState = {
     version: INTELLIGENCE_STATE_VERSION,
     savedAt: new Date(),
@@ -168,6 +174,7 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
     state.humor = {
       preferences: humorEngine.calculatePreferences(),
     };
+    engineCount++;
   } catch (error) {
     getLogger().debug({ error, userId }, 'No humor calibration data');
   }
@@ -178,6 +185,7 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
     state.stories = {
       preferences: storyEngine.calculatePreferences(),
     };
+    engineCount++;
   } catch (error) {
     getLogger().debug({ error, userId }, 'No story preference data');
   }
@@ -191,6 +199,7 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
       energy: commStats.style.energy,
       vocabulary: commStats.style.vocabulary,
     };
+    engineCount++;
   } catch (error) {
     getLogger().debug({ error, userId }, 'No communication mirroring data');
   }
@@ -206,6 +215,7 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
         unresolvedCount: emotionalStats.unresolvedCount,
       },
     };
+    engineCount++;
   } catch (error) {
     getLogger().debug({ error, userId }, 'No emotional memory data');
   }
@@ -216,6 +226,7 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
     state.voicePace = {
       preferences: paceEngine.calculatePreferences(),
     };
+    engineCount++;
   } catch (error) {
     getLogger().debug({ error, userId }, 'No voice pace data');
   }
@@ -227,6 +238,7 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
       preferences: qualityTracker.calculatePreferences(),
       signals: qualityTracker.getSignals().slice(-50), // Keep last 50
     };
+    engineCount++;
   } catch (error) {
     getLogger().debug({ error, userId }, 'No response quality data');
   }
@@ -238,6 +250,7 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
       preferences: patternAnalyzer.analyzePatterns(),
       sessions: patternAnalyzer.getSessions().slice(-20), // Keep last 20
     };
+    engineCount++;
   } catch (error) {
     getLogger().debug({ error, userId }, 'No conversation pattern data');
   }
@@ -250,9 +263,14 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
       openThreads: threadData.threads,
       promisedFollowUps: threadData.followUps,
     };
+    engineCount++;
   } catch (error) {
     getLogger().debug({ error, userId }, 'No cross-session thread data');
   }
+
+  // Record metrics
+  const durationMs = Date.now() - startTime;
+  persistenceMetrics.recordIntelligenceExport(userId, engineCount, durationMs);
 
   return state;
 }
@@ -265,6 +283,9 @@ export function exportIntelligenceState(userId: string): IntelligenceState {
  * Import intelligence state for a user from their profile
  */
 export function importIntelligenceState(userId: string, state: IntelligenceState): void {
+  const startTime = Date.now();
+  let engineCount = 0;
+  
   if (!state) {
     getLogger().debug({ userId }, 'No intelligence state to import');
     return;
@@ -283,6 +304,7 @@ export function importIntelligenceState(userId: string, state: IntelligenceState
     if (state.emotional?.moments?.length) {
       const emotionalEngine = getEmotionalMemory(userId);
       emotionalEngine.importMoments(state.emotional.moments);
+      engineCount++;
       getLogger().debug({ userId, count: state.emotional.moments.length }, 'Imported emotional memory');
     }
   } catch (error) {
@@ -298,6 +320,7 @@ export function importIntelligenceState(userId: string, state: IntelligenceState
         state.threads.openThreads,
         state.threads.promisedFollowUps
       );
+      engineCount++;
       getLogger().debug({
         userId,
         threads: state.threads.openThreads?.length || 0,
@@ -313,7 +336,11 @@ export function importIntelligenceState(userId: string, state: IntelligenceState
   // We only persist the preferences (learned outcomes), not the raw observations.
   // This is intentional - we want fresh calculations each session.
 
-  getLogger().info({ userId, stateVersion: state.version }, 'Intelligence state imported');
+  // Record metrics
+  const durationMs = Date.now() - startTime;
+  persistenceMetrics.recordIntelligenceImport(userId, engineCount, durationMs);
+
+  getLogger().info({ userId, stateVersion: state.version, engineCount }, 'Intelligence state imported');
 }
 
 // ============================================================================

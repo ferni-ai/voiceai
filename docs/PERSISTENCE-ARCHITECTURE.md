@@ -1,116 +1,59 @@
-# Persistence Architecture
+# Ferni AI - Persistence Architecture
 
-This document describes how Ferni AI persists user data and intelligence state across sessions.
+This document describes how Ferni AI persists user learning, intelligence state, and session data to enable human-level conversational continuity across sessions.
 
 ## Overview
 
-The persistence system ensures that everything the AI learns about a user is saved and restored when they return. This includes:
+The persistence system ensures that everything Ferni learns about a user is saved and restored across sessions:
 
-- **Emotional memories** - What emotions the user has shared and their context
-- **Conversation patterns** - When they prefer to talk, how long, their style
-- **Response preferences** - What types of responses they engage with
-- **Open threads** - Unfinished conversations to resume
-- **Promised follow-ups** - Commitments made to check in later
-- **Voice pace preferences** - How fast/slow they speak
-- **Humor calibration** - What types of humor work for them
-- **Story preferences** - What types of stories they engage with
+- **User Profile** - Core user data, preferences, and identified traits
+- **Intelligence State** - Learned patterns from 8+ specialized intelligence engines
+- **Conversation History** - Summaries, key moments, and emotional memories
+- **Cross-Session Threads** - Open topics and promised follow-ups
 
-## Architecture
-
-### Three-Layer System
+## Architecture Layers
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Intelligence Engines                      │
-│  (In-Memory during session - fast real-time processing)      │
-│                                                              │
-│  • HumorCalibration    • StoryPreference                    │
-│  • EmotionalMemory     • VoicePaceAdapter                   │
-│  • ResponseQualityTracker  • ConversationPatternAnalyzer    │
-│  • CommunicationMirroring  • CrossSessionThreader           │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                    Intelligence Persistence
-                    (Export/Import/Auto-save)
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      User Profile                            │
-│     (Persistent storage - survives restarts)                 │
-│                                                              │
-│  • profile.customData.intelligenceState                     │
-│  • profile.voicePace                                         │
-│  • profile.responseQuality                                   │
-│  • profile.conversationPatterns                              │
-│  • profile.openThreads                                       │
-│  • profile.promisedFollowUps                                 │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                    Memory Store
-                   (Firestore/Postgres/Memory)
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Google Cloud Firestore                    │
-│              (Production persistent storage)                 │
-│                                                              │
-│  • /users/{userId} - User profiles                          │
-│  • /users/{userId}/summaries - Conversation summaries       │
-│  • /users/{userId}/key_moments - Notable moments            │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                     Session Manager                              │
+│         (creates sessions, orchestrates save/load)               │
+├─────────────────────────────────────────────────────────────────┤
+│                Intelligence Persistence                          │
+│    (unified export/import for all intelligence engines)          │
+├─────────────────────────────────────────────────────────────────┤
+│                   Memory Store                                   │
+│    (MemoryStore interface: InMemory, Firestore, PostgreSQL)      │
+├─────────────────────────────────────────────────────────────────┤
+│              Persistence Metrics                                 │
+│    (observability: timing, success rates, active sessions)       │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Key Components
+## Intelligence Engines
 
-#### 1. Intelligence Persistence (`src/services/intelligence-persistence.ts`)
+The following engines learn from user interactions and persist their state:
 
-This module handles the export/import of all intelligence engine state:
+| Engine | What It Learns | Persistence Key |
+|--------|---------------|-----------------|
+| **Humor Calibration** | What makes the user laugh, humor style preferences | `intelligenceState.humor` |
+| **Story Preference** | Preferred story types, length, themes | `intelligenceState.stories` |
+| **Communication Mirroring** | Formality, energy level, vocabulary | `intelligenceState.communication` |
+| **Emotional Memory** | Key emotional moments, unresolved issues | `intelligenceState.emotional` |
+| **Voice Pace Adapter** | Speaking speed preferences | `intelligenceState.voicePace` |
+| **Response Quality Tracker** | What response styles work best | `intelligenceState.responseQuality` |
+| **Conversation Pattern Analyzer** | Session patterns, topic sequences | `intelligenceState.patterns` |
+| **Cross-Session Threader** | Open threads, promised follow-ups | `intelligenceState.threads` |
 
-```typescript
-// Export all intelligence state for a user
-exportIntelligenceState(userId: string): IntelligenceState
+## Key Files
 
-// Import intelligence state from stored data
-importIntelligenceState(userId: string, state: IntelligenceState): void
-
-// Apply intelligence to profile before saving
-applyIntelligenceToProfile(profile: UserProfile, userId: string): UserProfile
-
-// Load intelligence from profile on session start
-loadIntelligenceFromProfile(userId: string, profile: UserProfile): void
-```
-
-#### 2. Auto-Save System
-
-Prevents data loss if a session crashes:
-
-```typescript
-// Start auto-save (30 second interval by default)
-startAutoSave(userId, saveCallback, { autoSaveIntervalMs: 30000 })
-
-// Stop auto-save when session ends
-stopAutoSave(userId)
-```
-
-#### 3. Startup Validation (`src/services/startup-validation.ts`)
-
-Validates configuration at startup to prevent silent data loss:
-
-```typescript
-// Validate and get capabilities
-const capabilities = validateAndLog({
-  requirePersistentMemory: process.env.NODE_ENV === 'production',
-  requireSemanticSearch: process.env.NODE_ENV === 'production',
-})
-
-// Capabilities returned:
-{
-  persistentMemory: boolean,   // true if using Firestore/Postgres
-  semanticSearch: boolean,     // true if embeddings API available
-  storeType: 'firestore' | 'postgres' | 'memory',
-  embeddingProvider: 'google' | 'openai' | 'local'
-}
-```
+| File | Purpose |
+|------|---------|
+| `src/services/intelligence-persistence.ts` | Unified export/import for all intelligence engines |
+| `src/services/session-manager.ts` | Session lifecycle, auto-save orchestration |
+| `src/services/startup-validation.ts` | Validates persistence configuration at startup |
+| `src/services/persistence-metrics.ts` | Observability and monitoring |
+| `src/memory/firestore-store.ts` | Google Firestore implementation |
+| `src/memory/in-memory-store.ts` | Development/testing store |
 
 ## Session Lifecycle
 
@@ -118,144 +61,223 @@ const capabilities = validateAndLog({
 
 ```typescript
 // In session-manager.ts
-if (isReturningUser) {
-  loadIntelligenceFromProfile(userId, userProfile);
-  // Emotional memories, open threads, etc. are restored
-}
-
-// Start auto-save
-startAutoSave(userId, autoSaveCallback, { autoSaveIntervalMs: 30000 });
+const services = await createSessionServices({
+  sessionId: 'session-123',
+  userId: 'user-abc',
+  personaId: 'ferni',
+});
 ```
+
+What happens:
+1. Load user profile from store
+2. Import intelligence state from profile via `loadIntelligenceFromProfile()`
+3. Initialize all intelligence engines with persisted data
+4. Start auto-save timer (30-second interval)
+5. Record session start in metrics
 
 ### 2. During Session
 
-Intelligence engines collect data in memory:
-- User emotions are tracked
-- Response quality is measured
-- Voice pace is calibrated
-- Threads and follow-ups are updated
-
-Every 30 seconds, auto-save persists current state to prevent data loss.
+- Intelligence engines observe user behavior
+- Auto-save fires every 30 seconds, exporting current intelligence state
+- Metrics track auto-save success/failure
 
 ### 3. Session End
 
 ```typescript
-// Apply all intelligence to profile
-updatedProfile = applyIntelligenceToProfile(profile, userId);
+await services.endSession();
+```
 
-// Save to persistent store
-await store.saveProfile(updatedProfile);
+What happens:
+1. Generate conversation summary
+2. Finalize learning engine data
+3. Export ALL intelligence state via `applyIntelligenceToProfile()`
+4. Save emotional moments, cross-session threads
+5. Stop auto-save timer
+6. Cleanup engine instances
+7. Record session end in metrics
 
-// Stop auto-save
+## Configuration
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GOOGLE_CLOUD_PROJECT` | For Firestore | GCP project ID for persistent storage |
+| `DATABASE_URL` | For PostgreSQL | Connection string for PostgreSQL storage |
+| `GOOGLE_API_KEY` | Yes | For embeddings (semantic search) |
+| `LIVEKIT_*` | Yes | LiveKit connection (voice) |
+
+### Store Types
+
+```
+GOOGLE_CLOUD_PROJECT set  →  Firestore (production)
+DATABASE_URL set          →  PostgreSQL (self-hosted)
+Neither set               →  In-Memory (development/testing)
+```
+
+### Startup Validation
+
+The system validates configuration at startup:
+
+```typescript
+import { validateAndLog } from './services/startup-validation.js';
+
+// In global-services.ts initialization
+const capabilities = await validateAndLog({
+  store,
+  vectorStore,
+  isProduction: process.env.NODE_ENV === 'production',
+});
+```
+
+Warnings are logged for:
+- In-memory store in production (data won't persist)
+- Missing embedding provider (no semantic search)
+- Missing LLM API keys
+
+## Auto-Save Mechanism
+
+Auto-save prevents data loss from crashes or unexpected disconnections:
+
+```typescript
+// Starts automatically when session is created
+startAutoSave(userId, async (uid) => {
+  const updatedProfile = applyIntelligenceToProfile(userProfile, uid);
+  await store.saveProfile(updatedProfile);
+}, { autoSaveIntervalMs: 30000 });
+
+// Stops when session ends
 stopAutoSave(userId);
-
-// Cleanup in-memory engines
-cleanupIntelligenceEngines(userId);
 ```
 
-## Environment Configuration
+## Metrics & Monitoring
 
-### Required for Production
+The `persistence-metrics.ts` module tracks:
 
-| Variable | Purpose |
-|----------|---------|
-| `GOOGLE_CLOUD_PROJECT` | Firestore project ID |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account key |
-| `GOOGLE_API_KEY` or `OPENAI_API_KEY` | Embeddings for semantic search |
-| `LIVEKIT_URL` | Voice connection URL |
-| `LIVEKIT_API_KEY` | LiveKit authentication |
-| `LIVEKIT_API_SECRET` | LiveKit authentication |
+### Profile Operations
+- Load/save counts and durations
+- Error rates
 
-### Auto-Detection
+### Intelligence Operations
+- Export/import counts per user
+- Engine counts per operation
 
-The system auto-detects the appropriate store:
+### Session Operations
+- Active sessions
+- Auto-save frequency and success rate
 
-1. If `GOOGLE_CLOUD_PROJECT` is set → Firestore
-2. If `DATABASE_URL` is set → PostgreSQL
-3. Otherwise → In-Memory (⚠️ data lost on restart)
+### Handoff Operations
+- Cross-agent handoffs
+- Context transfer timing
 
-You can override with `MEMORY_STORE_TYPE=firestore|postgres|memory`.
-
-## Warnings
-
-### ⚠️ In-Memory Store Warning
-
-If using in-memory storage, you'll see:
-
-```
-⚠️ WARNING: MEMORY IS NOT PERSISTENT!
-⚠️ User data will be LOST on restart.
-```
-
-This is acceptable for development but **never for production**.
-
-### ⚠️ Semantic Search Disabled Warning
-
-If no embedding API key is configured:
-
-```
-⚠️ WARNING: SEMANTIC SEARCH DISABLED!
-⚠️ RAG and memory retrieval will not work.
-```
-
-The AI will still work but won't be able to recall past conversations semantically.
-
-## Firestore Transaction Safety
-
-For production reliability, use atomic profile updates:
+### Get Metrics Snapshot
 
 ```typescript
-// In firestore-store.ts
-await store.atomicProfileUpdate(userId, (profile) => {
-  // Modify profile
-  return updatedProfile;
-}, { createIfMissing: true, maxRetries: 3 });
+import { persistenceMetrics } from './services/persistence-metrics.js';
+
+// Get full snapshot
+const snapshot = persistenceMetrics.getSnapshot();
+
+// Get summary for logging
+const summary = persistenceMetrics.getSummaryReport();
+persistenceMetrics.logSummary();
 ```
 
-This prevents race conditions when multiple processes update the same profile.
+## Data Flow Example
 
-## Debugging Persistence
-
-### Check Current Capabilities
-
-```typescript
-import { getCapabilitySummary } from './services/startup-validation.js';
-console.log(getCapabilitySummary());
+```
+User says: "I hate long explanations"
+         ↓
+CommunicationMirroring engine observes this
+         ↓
+Records preference for brevity
+         ↓
+[30 seconds later]
+         ↓
+Auto-save triggers
+         ↓
+exportIntelligenceState() collects all engine data
+         ↓
+applyIntelligenceToProfile() merges into profile
+         ↓
+store.saveProfile() persists to Firestore
+         ↓
+[Next session]
+         ↓
+loadIntelligenceFromProfile() restores state
+         ↓
+importIntelligenceState() initializes engines
+         ↓
+Ferni remembers user prefers brief responses
 ```
 
-### Check Auto-Save Status
+## Troubleshooting
 
-```typescript
-import { getAutoSaveStatus } from './services/intelligence-persistence.js';
-const status = getAutoSaveStatus();
-for (const [userId, { lastSave }] of status) {
-  console.log(`User ${userId}: last saved at ${lastSave}`);
-}
-```
+### Data Not Persisting
 
-### Verify Intelligence State
+1. Check startup logs for warnings:
+   ```
+   ⚠️ WARNING: MEMORY IS NOT PERSISTENT!
+   ```
 
-```typescript
-import { exportIntelligenceState } from './services/intelligence-persistence.js';
-const state = exportIntelligenceState(userId);
-console.log(JSON.stringify(state, null, 2));
-```
+2. Verify environment variables:
+   ```bash
+   echo $GOOGLE_CLOUD_PROJECT
+   ```
+
+3. Check metrics for errors:
+   ```typescript
+   const snapshot = persistenceMetrics.getSnapshot();
+   console.log('Save errors:', snapshot.profileSaves.errors);
+   console.log('Last error:', snapshot.profileSaves.lastError);
+   ```
+
+### Intelligence Not Loading
+
+1. Check profile has intelligence state:
+   ```typescript
+   const profile = await store.getProfile(userId);
+   console.log('Has intelligence:', !!profile?.intelligenceState);
+   ```
+
+2. Check import logs for errors
+
+### Auto-Save Not Running
+
+1. Verify session was created with valid userId:
+   ```typescript
+   const status = getAutoSaveStatus();
+   console.log('Active auto-saves:', status);
+   ```
 
 ## Testing
 
-The persistence system has comprehensive tests:
-
+Run persistence tests:
 ```bash
-# Run persistence tests
-npm test -- --run src/tests/intelligence-persistence.test.ts
-npm test -- --run src/tests/startup-validation.test.ts
-npm test -- --run src/tests/memory-persistence-e2e.test.ts
+# Unit tests
+npm run test src/tests/intelligence-persistence.test.ts
+npm run test src/tests/persistence-metrics.test.ts
+
+# E2E tests
+npm run test src/tests/memory-persistence-e2e.test.ts
 ```
 
-These tests cover:
-- Export/import round-trips
-- Auto-save functionality
-- Profile integration
-- Startup validation
-- E2E persistence lifecycle
+## Best Practices
 
+1. **Always use validated userIds** - The session manager validates format before persistence operations
+
+2. **Don't skip endSession()** - Ensures final intelligence state is persisted
+
+3. **Monitor metrics in production** - Set up alerts for high error rates
+
+4. **Use atomic operations for critical updates** - Firestore store provides `atomicProfileUpdate()`
+
+5. **Test with realistic data** - E2E tests simulate real conversation patterns
+
+## Future Enhancements
+
+- [ ] Redis caching layer for frequently accessed profiles
+- [ ] Batch profile updates for high-traffic scenarios
+- [ ] Cross-device sync for user profile
+- [ ] Data export/import for GDPR compliance
+- [ ] Automatic profile migration for schema changes
