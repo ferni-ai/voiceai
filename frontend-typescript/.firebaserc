@@ -7,6 +7,9 @@
       "hosting": {
         "ferni-prod": [
           "ferni-prod"
+        ],
+        "johnb-app": [
+          "johnb-2025"
         ]
       }
     }
