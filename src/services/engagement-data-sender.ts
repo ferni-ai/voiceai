@@ -10,6 +10,7 @@ import {
   EngagementStore,
   type EngagementProfile,
   type StoredWeatherEntry,
+  type StoredPrediction,
 } from './engagement-store.js';
 import { PERSONA_RITUALS } from './daily-rituals.js';
 
@@ -40,6 +41,15 @@ export interface EngagementDataMessage {
     energy: string;
     note?: string;
     recordedAt: string;
+  }>;
+  predictions: Array<{
+    id: string;
+    category: string;
+    question: string;
+    userPrediction: number;
+    actualOutcome?: number;
+    status: 'pending' | 'resolved';
+    createdAt: string;
   }>;
   stats: {
     totalRitualDays: number;
@@ -101,6 +111,7 @@ class EngagementDataSender {
       const profile = await this.store.getProfile(userId);
       const weatherHistory = await this.store.getWeatherHistory(userId, 7);
       const ritualStreaks = await this.getRitualStreaks(userId);
+      const predictions = await this.getPredictions(userId);
 
       const message: EngagementDataMessage = {
         type: 'engagement',
@@ -111,13 +122,14 @@ class EngagementDataSender {
           note: w.weather.note,
           recordedAt: w.date,
         })),
+        predictions,
         stats: this.calculateStats(profile, ritualStreaks),
         timestamp: Date.now(),
       };
 
       await this.sendDataMessage(message);
       this.logger.debug(
-        { userId, streaks: ritualStreaks.length },
+        { userId, streaks: ritualStreaks.length, predictions: predictions.length },
         '[EngagementDataSender] Sent engagement data'
       );
     } catch (error) {
@@ -179,9 +191,91 @@ class EngagementDataSender {
     await this.sendEngagementData(userId);
   }
 
+  /**
+   * Send prediction created/updated notification
+   */
+  async sendPredictionUpdate(userId: string): Promise<void> {
+    // Just resend all engagement data (includes predictions)
+    await this.sendEngagementData(userId);
+  }
+
+  /**
+   * Send prediction resolved notification with trigger
+   */
+  async sendPredictionResolved(
+    userId: string,
+    predictionId: string,
+    accuracy: number
+  ): Promise<void> {
+    await this.sendEngagementData(userId);
+
+    // Send trigger for remarkable accuracy
+    if (accuracy >= 90) {
+      await this.sendTrigger({
+        type: 'prediction_result',
+        personaId: 'peter-john',
+        message: `You called it! ${accuracy}% accuracy on that prediction.`,
+        priority: 'high',
+        data: { predictionId, accuracy },
+      });
+    } else if (accuracy < 50) {
+      await this.sendTrigger({
+        type: 'prediction_result',
+        personaId: 'peter-john',
+        message: `Interesting - that prediction was off by quite a bit. What got in the way?`,
+        priority: 'medium',
+        data: { predictionId, accuracy },
+      });
+    }
+  }
+
   // ============================================================================
   // HELPER METHODS
   // ============================================================================
+
+  private async getPredictions(userId: string): Promise<EngagementDataMessage['predictions']> {
+    try {
+      const storedPredictions = await this.store.getRecentPredictions(userId, 20);
+
+      return storedPredictions.map((p) => ({
+        id: p.id,
+        category: this.extractCategoryFromPrediction(p),
+        question: this.formatPredictionQuestion(p),
+        userPrediction: this.extractMainPrediction(p),
+        actualOutcome: p.accuracy,
+        status: p.completedAt ? 'resolved' as const : 'pending' as const,
+        createdAt: p.createdAt,
+      }));
+    } catch (error) {
+      this.logger.warn({ error, userId }, '[EngagementDataSender] Failed to get predictions');
+      return [];
+    }
+  }
+
+  private extractCategoryFromPrediction(p: StoredPrediction): string {
+    // Extract category from prediction keys
+    const keys = Object.keys(p.predictions);
+    if (keys.includes('Mood average (1-10)')) return 'mood';
+    if (keys.includes('Deep work hours')) return 'productivity';
+    if (keys.includes('Exercise sessions')) return 'health';
+    if (keys.includes('Social time (hours)')) return 'social';
+    return 'overall';
+  }
+
+  private formatPredictionQuestion(p: StoredPrediction): string {
+    const keys = Object.keys(p.predictions);
+    if (keys.length === 1) {
+      return `Week of ${p.weekOf}: ${keys[0]}`;
+    }
+    return `Week of ${p.weekOf}: Weekly behavior prediction`;
+  }
+
+  private extractMainPrediction(p: StoredPrediction): number {
+    const values = Object.values(p.predictions);
+    // Return first value as representative, or average
+    if (values.length === 1) return values[0];
+    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  }
 
   private async getRitualStreaks(userId: string): Promise<EngagementDataMessage['ritualStreaks']> {
     const streaks: EngagementDataMessage['ritualStreaks'] = [];

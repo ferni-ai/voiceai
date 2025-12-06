@@ -1,18 +1,14 @@
 /**
- * @deprecated Use the registry-based communication tools from `domains/communication/index.ts` instead.
- * This file is being phased out to consolidate communication functionality.
+ * Communication Coaching Tools
  *
- * Alex Communication Coaching Tools
- *
- * Tools for Alex Chen to help users with communication challenges:
+ * Tools to help users with communication challenges:
  * - Draft difficult messages with proper frameworks
  * - Practice conversations with role-play scenarios
  * - Get feedback on existing communications
  * - Navigate workplace relationships
  * - Build assertive communication skills
  *
- * These tools position Alex as not just an admin assistant,
- * but a trusted communication coach and chief of staff.
+ * NOTE: For new code, use `tools/domains/communication/index.ts` instead.
  */
 
 import { llm, log } from '@livekit/agents';
@@ -1370,8 +1366,5 @@ function generateFollowUpStrategy(
 // ============================================================================
 // EXPORTS
 // ============================================================================
-
-// Legacy alias for backward compatibility
-export const createAlexCoachingTools = createCommunicationCoachingTools;
 
 export default createCommunicationCoachingTools;

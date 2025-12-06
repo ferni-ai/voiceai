@@ -4,6 +4,10 @@
  * Type-safe localStorage helpers with JSON serialization.
  */
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('Storage');
+
 // ============================================================================
 // TYPE-SAFE STORAGE
 // ============================================================================
@@ -15,7 +19,7 @@ export function getString(key: string): string | null {
   try {
     return localStorage.getItem(key);
   } catch {
-    console.warn(`Failed to read localStorage key: ${key}`);
+    log.warn(`Failed to read localStorage key: ${key}`);
     return null;
   }
 }
@@ -34,7 +38,7 @@ export function setString(key: string, value: string): void {
   try {
     localStorage.setItem(key, value);
   } catch {
-    console.warn(`Failed to write localStorage key: ${key}`);
+    log.warn(`Failed to write localStorage key: ${key}`);
   }
 }
 
@@ -48,7 +52,7 @@ export function getJSON<T>(key: string): T | null {
   try {
     return JSON.parse(value) as T;
   } catch {
-    console.warn(`Failed to parse localStorage key: ${key}`);
+    log.warn(`Failed to parse localStorage key: ${key}`);
     return null;
   }
 }
@@ -67,7 +71,7 @@ export function setJSON<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    console.warn(`Failed to write localStorage key: ${key}`);
+    log.warn(`Failed to write localStorage key: ${key}`);
   }
 }
 
@@ -78,7 +82,7 @@ export function remove(key: string): void {
   try {
     localStorage.removeItem(key);
   } catch {
-    console.warn(`Failed to remove localStorage key: ${key}`);
+    log.warn(`Failed to remove localStorage key: ${key}`);
   }
 }
 
@@ -89,7 +93,7 @@ export function clearAll(): void {
   try {
     localStorage.clear();
   } catch {
-    console.warn('Failed to clear localStorage');
+    log.warn('Failed to clear localStorage');
   }
 }
 

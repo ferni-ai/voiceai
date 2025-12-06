@@ -7,6 +7,8 @@
  * USAGE:
  *   import { registerCoordinationHandlers } from './handlers/coordination.js';
  *   registerCoordinationHandlers('ferni');
+ *
+ * PERSISTENCE: Team status persists to Firestore for cross-session awareness.
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
@@ -14,9 +16,34 @@ import type { ToolExecutionRequest, ToolExecutionResult, AgentId } from '../../a
 import { getAgentBus } from '../../agent-bus.js';
 import { registerTeamHandler, teamHandlerRegistry } from '../index.js';
 import type { TeamHandlerDefinition } from '../types.js';
+import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 // ============================================================================
-// TEAM STATUS TRACKING
+// FIRESTORE SETUP
+// ============================================================================
+
+let db: FirestoreType | null = null;
+const TEAM_STATUS_COLLECTION = 'team_member_status';
+
+async function getFirestore(): Promise<FirestoreType | null> {
+  if (db) return db;
+
+  try {
+    const { Firestore } = await import('@google-cloud/firestore');
+    db = new Firestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    });
+    getLogger().info('Team coordination Firestore initialized');
+    return db;
+  } catch (error) {
+    getLogger().warn({ error }, 'Firestore not available for team coordination, using in-memory only');
+    return null;
+  }
+}
+
+// ============================================================================
+// TEAM STATUS TRACKING (In-memory cache with Firestore persistence)
 // ============================================================================
 
 interface TeamMemberStatus {
@@ -26,8 +53,50 @@ interface TeamMemberStatus {
   lastContext?: Record<string, unknown>;
 }
 
-// In-memory team status (could be persisted)
 const teamStatus = new Map<AgentId, TeamMemberStatus>();
+let statusLoaded = false;
+
+/**
+ * Load team status from Firestore
+ */
+async function loadTeamStatus(): Promise<void> {
+  if (statusLoaded) return;
+
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      const snapshot = await firestore.collection(TEAM_STATUS_COLLECTION).get();
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        teamStatus.set(doc.id as AgentId, {
+          ...data,
+          lastActivity: data.lastActivity?.toDate?.() || (data.lastActivity ? new Date(data.lastActivity) : undefined),
+        } as TeamMemberStatus);
+      }
+      getLogger().debug({ count: snapshot.size }, 'Loaded team status from Firestore');
+    } catch (err) {
+      getLogger().warn({ err }, 'Failed to load team status from Firestore');
+    }
+  }
+  statusLoaded = true;
+}
+
+/**
+ * Save team member status to Firestore
+ */
+async function saveTeamMemberStatus(agentId: AgentId, status: TeamMemberStatus): Promise<void> {
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      await firestore.collection(TEAM_STATUS_COLLECTION).doc(agentId).set({
+        ...status,
+        updatedAt: new Date(),
+      }, { merge: true });
+    } catch (err) {
+      getLogger().warn({ err, agentId }, 'Failed to save team member status');
+    }
+  }
+}
 
 // ============================================================================
 // STATUS HANDLERS
@@ -46,6 +115,9 @@ const getTeamStatusHandler: TeamHandlerDefinition = {
 
   execute: async (request: ToolExecutionRequest): Promise<ToolExecutionResult> => {
     const userId = request.userId || 'default';
+
+    // Ensure team status is loaded from Firestore
+    await loadTeamStatus();
 
     const teamMembers: Array<{ id: AgentId; name: string; role: string }> = [
       { id: 'jordan', name: 'Jordan', role: 'Life Planning' },
@@ -188,12 +260,14 @@ const shareContextHandler: TeamHandlerDefinition = {
       const bus = getAgentBus();
       bus.shareContext(fromAgent, toAgent, context, userId);
 
-      // Update local status
-      teamStatus.set(toAgent, {
+      // Update local status and persist
+      const newStatus = {
         ...teamStatus.get(toAgent),
         lastContext: context,
         lastActivity: new Date(),
-      });
+      };
+      teamStatus.set(toAgent, newStatus);
+      void saveTeamMemberStatus(toAgent, newStatus);
 
       getLogger().info(
         { fromAgent, toAgent, contextKeys: Object.keys(context) },
@@ -264,12 +338,14 @@ const coordinateTeamHandler: TeamHandlerDefinition = {
           userId
         );
 
-        // Update status
-        teamStatus.set(agentId, {
+        // Update status and persist
+        const newStatus = {
           ...teamStatus.get(agentId),
           currentTask: task,
           lastActivity: new Date(),
-        });
+        };
+        teamStatus.set(agentId, newStatus);
+        void saveTeamMemberStatus(agentId, newStatus);
       }
 
       getLogger().info({ coordinationId, task, agents, priority }, 'Team coordination initiated');

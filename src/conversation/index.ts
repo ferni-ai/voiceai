@@ -20,7 +20,6 @@ import { resetEmotionalArcTracker as _resetEmotionalArc } from './emotional-arc.
 import { resetResponseDynamicsEngine as _resetResponseDynamics } from './response-dynamics.js';
 import { resetInterruptionHandler as _resetInterruption } from './interruption-handler.js';
 import { resetTurnTakingMonitor as _resetTurnTaking } from './turn-taking.js';
-import { resetTopicChangeDetector as _resetTopicChange } from './topic-change-detector.js';
 import { resetStoryTimingEngine as _resetStoryTiming } from './story-timing.js';
 import { resetSpeechNaturalizer as _resetSpeechNaturalizer } from './speech-naturalizer.js';
 import { resetActiveListeningEngine as _resetActiveListening } from './active-listening.js';
@@ -66,14 +65,8 @@ export {
   type TurnTakingStats,
 } from './turn-taking.js';
 
-// Topic Change Detection
-export {
-  TopicChangeDetector,
-  getTopicChangeDetector,
-  resetTopicChangeDetector,
-  type TopicChangeResult,
-  type TopicRecord,
-} from './topic-change-detector.js';
+// Topic Tracking - Use TopicTracker from intelligence/topic-tracker.js
+// (TopicChangeDetector wrapper has been removed - use the canonical tracker directly)
 
 // Story Timing Intelligence
 export {
@@ -174,7 +167,6 @@ export function resetAllConversationState(): void {
   _resetResponseDynamics();
   _resetInterruption();
   _resetTurnTaking();
-  _resetTopicChange();
   _resetStoryTiming();
   _resetSpeechNaturalizer();
   _resetActiveListening();

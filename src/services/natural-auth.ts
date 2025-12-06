@@ -149,8 +149,8 @@ export async function verifyIdentity(
   // Check against known facts about user
   const securityContext = buildSecurityContext(profile);
 
-  for (let i = 0; i < securityContext.answers.length; i++) {
-    const answer = securityContext.answers[i].toLowerCase();
+  for (const answerItem of securityContext.answers) {
+    const answer = answerItem.toLowerCase();
     const response = userResponse.toLowerCase();
 
     // Fuzzy match

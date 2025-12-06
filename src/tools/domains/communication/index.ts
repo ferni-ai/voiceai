@@ -18,7 +18,9 @@
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, ExternalService } from '../../registry/types.js';
 
-// Import legacy tool creators
+// Import from new service layer
+import { sendEmail, sendSMS, sendReminder } from '../../../services/communication-service.js';
+// Import legacy tool creators (until fully migrated)
 import { createCommunicationTools } from '../../communication.js';
 import { createCommunicationCoachingTools } from '../../communication-coaching.js';
 import { proactiveOutreachTools } from '../../proactive-outreach.js';
@@ -119,7 +121,7 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
 function getProactiveOutreachToolDefinitions(): ToolDefinition[] {
   return proactiveOutreachTools.map((tool) => ({
     id: tool.name,
-    name: tool.name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+    name: tool.name.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
     description: tool.description,
     domain: 'communication' as const,
     tags: ['proactive', 'outreach', 'contact', 'reminder'],

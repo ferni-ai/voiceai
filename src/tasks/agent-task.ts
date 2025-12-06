@@ -8,8 +8,7 @@
  * Python source: https://github.com/livekit/agents
  */
 
-import type { voice } from '@livekit/agents';
-import { llm, log } from '@livekit/agents';
+import { type voice, llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 

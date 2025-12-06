@@ -85,12 +85,19 @@ export interface StoredTeamHuddle {
 // FIRESTORE INTERFACES
 // ============================================================================
 
+interface WriteBatch {
+  delete: (ref: DocumentReference) => WriteBatch;
+  commit: () => Promise<unknown>;
+}
+
 interface Firestore {
   collection: (path: string) => CollectionReference;
+  batch: () => WriteBatch;
 }
 
 interface CollectionReference {
   doc: (id: string) => DocumentReference;
+  add: (data: unknown) => Promise<DocumentReference>;
   orderBy: (field: string, direction?: 'asc' | 'desc') => Query;
   limit: (n: number) => Query;
   where: (field: string, op: string, value: unknown) => Query;
@@ -102,6 +109,7 @@ interface DocumentReference {
   set: (data: unknown, options?: { merge?: boolean }) => Promise<unknown>;
   get: () => Promise<DocumentSnapshot>;
   delete: () => Promise<unknown>;
+  update: (data: unknown) => Promise<unknown>;
   collection: (name: string) => CollectionReference;
 }
 
@@ -109,6 +117,7 @@ interface DocumentSnapshot {
   exists: boolean;
   data: () => Record<string, unknown> | undefined;
   id: string;
+  ref: DocumentReference;
 }
 
 interface QuerySnapshot {
@@ -527,6 +536,151 @@ export class EngagementStore {
       totalRitualDays: profile.totalRitualDays,
       preferences: profile.preferences,
     };
+  }
+
+  // ============================================================================
+  // CONVERSATION SESSION METHODS (for conversation-history.ts)
+  // ============================================================================
+
+  async addConversationSession(userId: string, session: Record<string, unknown>): Promise<void> {
+    if (!this.db) return;
+    try {
+      const docRef = this.db.collection(this.COLLECTION).doc(userId);
+      const sessionsRef = docRef.collection('conversation_sessions');
+      await sessionsRef.add({
+        ...session,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to add conversation session');
+    }
+  }
+
+  async getConversationSessions(
+    userId: string,
+    limit = 50
+  ): Promise<Array<Record<string, unknown>>> {
+    if (!this.db) return [];
+    try {
+      const docRef = this.db.collection(this.COLLECTION).doc(userId);
+      const sessionsRef = docRef.collection('conversation_sessions');
+      const snapshot = await sessionsRef.orderBy('createdAt', 'desc').limit(limit).get();
+      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to get conversation sessions');
+      return [];
+    }
+  }
+
+  async getConversationSession(
+    userId: string,
+    sessionId: string
+  ): Promise<Record<string, unknown> | null> {
+    if (!this.db) return null;
+    try {
+      const docRef = this.db.collection(this.COLLECTION).doc(userId);
+      const sessionDoc = await docRef.collection('conversation_sessions').doc(sessionId).get();
+      if (!sessionDoc.exists) return null;
+      return { id: sessionDoc.id, ...sessionDoc.data() };
+    } catch (error) {
+      getLogger().warn({ error, userId, sessionId }, 'Failed to get conversation session');
+      return null;
+    }
+  }
+
+  async addInsightToLatestSession(userId: string, insight: string): Promise<void> {
+    if (!this.db) return;
+    try {
+      const sessions = await this.getConversationSessions(userId, 1);
+      if (sessions.length === 0) return;
+      const latestSession = sessions[0];
+      const docRef = this.db.collection(this.COLLECTION).doc(userId);
+      const sessionRef = docRef.collection('conversation_sessions').doc(latestSession.id as string);
+      const existingInsights = (latestSession.insights as string[]) || [];
+      await sessionRef.update({ insights: [...existingInsights, insight] });
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to add insight to session');
+    }
+  }
+
+  async addHighlightToLatestSession(userId: string, highlight: string): Promise<void> {
+    if (!this.db) return;
+    try {
+      const sessions = await this.getConversationSessions(userId, 1);
+      if (sessions.length === 0) return;
+      const latestSession = sessions[0];
+      const docRef = this.db.collection(this.COLLECTION).doc(userId);
+      const sessionRef = docRef.collection('conversation_sessions').doc(latestSession.id as string);
+      const existingHighlights = (latestSession.highlights as string[]) || [];
+      await sessionRef.update({ highlights: [...existingHighlights, highlight] });
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to add highlight to session');
+    }
+  }
+
+  async updateSessionMood(
+    userId: string,
+    sessionId: string,
+    mood: string,
+    energy?: string
+  ): Promise<void> {
+    if (!this.db) return;
+    try {
+      const docRef = this.db.collection(this.COLLECTION).doc(userId);
+      const sessionRef = docRef.collection('conversation_sessions').doc(sessionId);
+      const update: Record<string, string> = { mood };
+      if (energy) update.energy = energy;
+      await sessionRef.update(update);
+    } catch (error) {
+      getLogger().warn({ error, userId, sessionId }, 'Failed to update session mood');
+    }
+  }
+
+  // Alias for getRecentPredictions for data-export.ts compatibility
+  async getPredictions(userId: string, limit = 100): Promise<StoredPrediction[]> {
+    return this.getRecentPredictions(userId, limit);
+  }
+
+  // Alias for getAllStreaks for data-export.ts compatibility
+  async getRitualStreaks(userId: string): Promise<StoredRitualStreak[]> {
+    return this.getAllStreaks(userId);
+  }
+
+  async deleteUserData(userId: string): Promise<void> {
+    if (!this.db) {
+      // Clear from memory cache
+      this.memoryCache.delete(userId);
+      return;
+    }
+    try {
+      const docRef = this.db.collection(this.COLLECTION).doc(userId);
+
+      // Delete subcollections
+      const subcollections = [
+        'conversation_sessions',
+        'ritual_streaks',
+        'weather_entries',
+        'predictions',
+        'team_huddles',
+      ];
+      for (const subcol of subcollections) {
+        const snapshot = await docRef.collection(subcol).get();
+        const batch = this.db.batch();
+        snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+      }
+
+      // Delete main document
+      await docRef.delete();
+
+      // Clear from cache
+      this.memoryCache.delete(userId);
+
+      getLogger().info({ userId }, 'User data deleted successfully');
+    } catch (error) {
+      getLogger().error({ error, userId }, 'Failed to delete user data');
+      throw error;
+    }
   }
 }
 

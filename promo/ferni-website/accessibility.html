@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accessibility — Ferni | Your AI Life Coach</title>
+  <meta name="description" content="Ferni is committed to making AI life coaching accessible to everyone. Learn about our accessibility features and commitment.">
+  <meta name="theme-color" content="#faf8f5">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://ferni.ai/accessibility">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Accessibility — Ferni">
+  <meta property="og:description" content="Ferni is committed to making AI life coaching accessible to everyone.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ferni.ai/accessibility">
+  
+  <!-- Favicon - Forest Green -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234a6741' rx='20' width='100' height='100'/><text x='50' y='68' font-family='system-ui' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>FN</text></svg>">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/design-tokens.css?v=1">
+  <link rel="stylesheet" href="css/styles.css?v=30">
+  
+  <style>
+    .accessibility-page {
+      padding: 140px 24px 100px;
+      min-height: 100vh;
+    }
+    
+    .accessibility-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .accessibility-header {
+      margin-bottom: 60px;
+    }
+    
+    .accessibility-eyebrow {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-accent);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 16px;
+    }
+    
+    .accessibility-title {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 6vw, 56px);
+      font-weight: 800;
+      color: var(--color-text);
+      margin-bottom: 16px;
+      line-height: 1.1;
+    }
+    
+    .accessibility-updated {
+      font-size: 14px;
+      color: var(--color-text-muted);
+    }
+    
+    .commitment-card {
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.08), rgba(74, 103, 65, 0.03));
+      border: 1px solid rgba(74, 103, 65, 0.15);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 48px;
+    }
+    
+    .commitment-card p {
+      font-size: 18px;
+      color: var(--color-text);
+      line-height: 1.7;
+      margin: 0;
+    }
+    
+    .accessibility-content h2 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-text);
+      margin: 48px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .accessibility-content h2:first-of-type {
+      margin-top: 0;
+    }
+    
+    .section-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--color-accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex-shrink: 0;
+    }
+    
+    .accessibility-content p {
+      font-size: 16px;
+      color: var(--color-text-secondary);
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+    
+    .accessibility-content ul {
+      margin: 16px 0 24px;
+      padding-left: 0;
+      list-style: none;
+    }
+    
+    .accessibility-content li {
+      font-size: 16px;
+      color: var(--color-text-secondary);
+      line-height: 1.8;
+      margin-bottom: 12px;
+      padding-left: 32px;
+      position: relative;
+    }
+    
+    .accessibility-content li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 8px;
+      height: 8px;
+      background: var(--color-accent);
+      border-radius: 50%;
+    }
+    
+    .accessibility-content a {
+      color: var(--color-accent);
+      text-decoration: underline;
+    }
+    
+    .accessibility-content a:hover {
+      color: var(--color-accent-light);
+    }
+    
+    /* Feature Cards */
+    .feature-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin: 24px 0 32px;
+    }
+    
+    @media (max-width: 600px) {
+      .feature-cards {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .feature-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    
+    .feature-card h3 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .feature-card h3 svg {
+      color: var(--color-accent);
+    }
+    
+    .feature-card p {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      margin: 0;
+    }
+    
+    /* Contact Section */
+    .contact-section {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-top: 48px;
+    }
+    
+    .contact-section h2 {
+      margin-top: 0 !important;
+    }
+    
+    .contact-methods {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    
+    .contact-method {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: var(--color-bg);
+      border-radius: 10px;
+      color: var(--color-text);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .contact-method:hover {
+      background: var(--color-accent);
+      color: white;
+    }
+    
+    .contact-method svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      margin-bottom: 40px;
+      transition: color 0.2s;
+      text-decoration: none;
+    }
+    
+    .back-link:hover {
+      color: var(--color-accent);
+    }
+  </style>
+</head>
+<body>
+  
+  <!-- Navigation -->
+  <nav class="nav scrolled">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/" class="nav-logo">
+          <span class="nav-logo-icon">FN</span>
+          Ferni
+        </a>
+        <div class="nav-actions">
+          <a href="https://app.ferni.ai" class="btn btn-primary nav-cta">Get Started</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="accessibility-page">
+    <div class="accessibility-container">
+      <a href="/" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to Home
+      </a>
+      
+      <header class="accessibility-header">
+        <p class="accessibility-eyebrow">Our Commitment</p>
+        <h1 class="accessibility-title">Accessibility</h1>
+        <p class="accessibility-updated">Last updated: December 5, 2025</p>
+      </header>
+      
+      <div class="commitment-card">
+        <p>Ferni believes that everyone deserves access to support and guidance. We're committed to making our AI life coaching platform accessible to people of all abilities, and we're continuously working to improve the experience for all users.</p>
+      </div>
+      
+      <div class="accessibility-content">
+        <h2>
+          <span class="section-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
+          Voice-First Design
+        </h2>
+        <p>Ferni is built around voice interaction, making it naturally accessible to users who find typing difficult or prefer spoken communication.</p>
+        
+        <div class="feature-cards">
+          <div class="feature-card">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+              </svg>
+              Voice Input
+            </h3>
+            <p>Speak naturally to Ferni without needing to type. Just talk like you would to a friend.</p>
+          </div>
+          
+          <div class="feature-card">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+              Voice Output
+            </h3>
+            <p>Ferni responds with natural speech, making conversations feel human and easy to follow.</p>
+          </div>
+          
+          <div class="feature-card">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/>
+              </svg>
+              Phone Access
+            </h3>
+            <p>Call Ferni directly on the phone—no app or screen required.</p>
+          </div>
+          
+          <div class="feature-card">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              Text Alternative
+            </h3>
+            <p>Prefer typing? Full text chat is available for those who want it.</p>
+          </div>
+        </div>
+        
+        <h2>
+          <span class="section-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4"/>
+              <path d="M12 8h.01"/>
+            </svg>
+          </span>
+          Web Accessibility Standards
+        </h2>
+        <p>We strive to meet WCAG 2.1 Level AA standards. Our website and web app include:</p>
+        <ul>
+          <li><strong>Keyboard Navigation:</strong> All interactive elements can be accessed using only a keyboard.</li>
+          <li><strong>Screen Reader Support:</strong> Proper ARIA labels and semantic HTML for screen reader compatibility.</li>
+          <li><strong>Color Contrast:</strong> Text and interactive elements meet minimum contrast ratios for readability.</li>
+          <li><strong>Focus Indicators:</strong> Clear visual focus states for keyboard navigation.</li>
+          <li><strong>Responsive Design:</strong> Works across devices and supports zoom up to 200%.</li>
+          <li><strong>Reduced Motion:</strong> Respects user preferences for reduced motion when set in system settings.</li>
+        </ul>
+        
+        <h2>
+          <span class="section-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          </span>
+          Ongoing Improvements
+        </h2>
+        <p>Accessibility is an ongoing journey. We're actively working on:</p>
+        <ul>
+          <li>Expanding language support for voice interactions</li>
+          <li>Improving compatibility with more assistive technologies</li>
+          <li>Adding more customization options for visual preferences</li>
+          <li>Regular accessibility audits and user testing</li>
+        </ul>
+        
+        <h2>
+          <span class="section-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </span>
+          Known Limitations
+        </h2>
+        <p>We're transparent about areas where we're still improving:</p>
+        <ul>
+          <li>Some complex animations may not fully respect reduced-motion preferences yet</li>
+          <li>Voice recognition works best with clear speech in quiet environments</li>
+          <li>Some third-party integrations may have their own accessibility limitations</li>
+        </ul>
+        <p>We're actively working to address these limitations.</p>
+        
+        <div class="contact-section">
+          <h2>
+            <span class="section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </span>
+            Feedback & Assistance
+          </h2>
+          <p>If you encounter any accessibility barriers or have suggestions for improvement, we want to hear from you. Your feedback helps us make Ferni better for everyone.</p>
+          
+          <div class="contact-methods">
+            <a href="mailto:accessibility@ferni.ai" class="contact-method">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+              </svg>
+              accessibility@ferni.ai
+            </a>
+            <a href="tel:+14844813081" class="contact-method">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/>
+              </svg>
+              1 (484) 481-3081
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
+        <p>© 2025 Ferni. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
+

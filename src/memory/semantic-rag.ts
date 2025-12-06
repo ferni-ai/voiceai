@@ -8,10 +8,16 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { VectorStore } from './vector-store.js';
-import { getVectorStore, type VectorDocument, type VectorFilter } from './vector-store.js';
-import type { FirestoreVectorStore } from './firestore-vector-store.js';
-import { getFirestoreVectorStore } from './firestore-vector-store.js';
+import {
+  getVectorStore,
+  type VectorStore,
+  type VectorDocument,
+  type VectorFilter,
+} from './vector-store.js';
+import {
+  getFirestoreVectorStore,
+  type FirestoreVectorStore,
+} from './firestore-vector-store.js';
 import { embed } from './embeddings.js';
 
 // Type for any vector store implementation

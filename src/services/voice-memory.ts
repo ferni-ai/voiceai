@@ -151,8 +151,8 @@ function calculateSpectralRolloff(
   percentage = 0.85
 ): number {
   let totalEnergy = 0;
-  for (let i = 0; i < magnitudes.length; i++) {
-    totalEnergy += magnitudes[i] * magnitudes[i];
+  for (const magnitude of magnitudes) {
+    totalEnergy += magnitude * magnitude;
   }
 
   const threshold = totalEnergy * percentage;
@@ -174,8 +174,8 @@ function calculateSpectralRolloff(
  */
 function calculateRMS(samples: Float32Array): number {
   let sum = 0;
-  for (let i = 0; i < samples.length; i++) {
-    sum += samples[i] * samples[i];
+  for (const sample of samples) {
+    sum += sample * sample;
   }
   return Math.sqrt(sum / samples.length);
 }

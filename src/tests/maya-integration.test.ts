@@ -180,8 +180,8 @@ describe('Maya Habit Coaching', () => {
 
   describe('Four Tendencies', () => {
     it('should have assessFourTendencies tool', async () => {
-      const { createMayaHabitCoachTools } = await import('../tools/habit-coaching.js');
-      const tools = createMayaHabitCoachTools();
+      const { createHabitCoachingTools } = await import('../tools/habit-coaching.js');
+      const tools = createHabitCoachingTools();
 
       // The Four Tendencies framework is implemented as a tool
       expect(tools.assessFourTendencies).toBeDefined();
@@ -190,8 +190,8 @@ describe('Maya Habit Coaching', () => {
     it('should have Four Tendencies as internal constant', async () => {
       // The FOUR_TENDENCIES constant is internal to the tool
       // We verify the tool exists and works through the tool definition
-      const { createMayaHabitCoachTools } = await import('../tools/habit-coaching.js');
-      const tools = createMayaHabitCoachTools();
+      const { createHabitCoachingTools } = await import('../tools/habit-coaching.js');
+      const tools = createHabitCoachingTools();
 
       // Check the tool has proper configuration
       expect(tools.assessFourTendencies.description).toBeDefined();
@@ -238,8 +238,8 @@ describe('Maya Proactive Coaching', () => {
   describe('Opportunity Detection', () => {
     it('should define multiple opportunity types', async () => {
       // Import tools
-      const { createMayaProactiveTools } = await import('../tools/proactive-coaching.js');
-      const tools = createMayaProactiveTools();
+      const { createProactiveCoachingTools } = await import('../tools/proactive-coaching.js');
+      const tools = createProactiveCoachingTools();
 
       expect(tools.checkForProactiveOpportunities).toBeDefined();
       expect(tools.generateProactiveMessage).toBeDefined();
@@ -257,8 +257,8 @@ describe('Maya Proactive Coaching', () => {
 describe('Maya Notification System', () => {
   describe('Notification Tools', () => {
     it('should provide all notification configuration tools', async () => {
-      const { createMayaNotificationTools } = await import('../tools/notifications.js');
-      const tools = createMayaNotificationTools();
+      const { createNotificationTools } = await import('../tools/notifications.js');
+      const tools = createNotificationTools();
 
       expect(tools.getNotificationPreferences).toBeDefined();
       expect(tools.setNotificationsEnabled).toBeDefined();
@@ -293,33 +293,33 @@ describe('Maya Tool Integration', () => {
   // Verify individual tool modules can be imported
   it('should import habit coach tools', async () => {
     const module = await import('../tools/habit-coaching.js');
-    expect(module.createMayaHabitCoachTools).toBeDefined();
-    expect(typeof module.createMayaHabitCoachTools).toBe('function');
+    expect(module.createHabitCoachingTools).toBeDefined();
+    expect(typeof module.createHabitCoachingTools).toBe('function');
   });
 
   it('should import gamification tools', async () => {
     const module = await import('../tools/gamification.js');
-    expect(module.createMayaGamificationTools).toBeDefined();
+    expect(module.createGamificationTools).toBeDefined();
     expect(module.BADGE_DEFINITIONS).toBeDefined();
     expect(module.TITLE_PROGRESSION).toBeDefined();
   });
 
   it('should import gamification v2 tools', async () => {
     const module = await import('../tools/gamification-v2.js');
-    expect(module.createMayaGamificationToolsV2).toBeDefined();
-    expect(typeof module.createMayaGamificationToolsV2).toBe('function');
+    expect(module.createGamificationToolsV2).toBeDefined();
+    expect(typeof module.createGamificationToolsV2).toBe('function');
   });
 
   it('should import proactive coach tools', async () => {
     const module = await import('../tools/proactive-coaching.js');
-    expect(module.createMayaProactiveTools).toBeDefined();
-    expect(typeof module.createMayaProactiveTools).toBe('function');
+    expect(module.createProactiveCoachingTools).toBeDefined();
+    expect(typeof module.createProactiveCoachingTools).toBe('function');
   });
 
   it('should import notification tools', async () => {
     const module = await import('../tools/notifications.js');
-    expect(module.createMayaNotificationTools).toBeDefined();
-    expect(typeof module.createMayaNotificationTools).toBe('function');
+    expect(module.createNotificationTools).toBeDefined();
+    expect(typeof module.createNotificationTools).toBe('function');
   });
 });
 
@@ -516,8 +516,8 @@ describe('Maya Gamification Store V2', () => {
 
 describe('Maya End-to-End Flows', () => {
   it('should support a complete habit creation flow', async () => {
-    const { createMayaHabitCoachTools } = await import('../tools/habit-coaching.js');
-    const tools = createMayaHabitCoachTools();
+    const { createHabitCoachingTools } = await import('../tools/habit-coaching.js');
+    const tools = createHabitCoachingTools();
 
     // 1. Assess life domains
     expect(tools.assessLifeDomains).toBeDefined();
@@ -539,8 +539,8 @@ describe('Maya End-to-End Flows', () => {
   });
 
   it('should support a complete challenge flow', async () => {
-    const { createMayaHabitCoachTools } = await import('../tools/habit-coaching.js');
-    const tools = createMayaHabitCoachTools();
+    const { createHabitCoachingTools } = await import('../tools/habit-coaching.js');
+    const tools = createHabitCoachingTools();
 
     // 1. Start challenge
     expect(tools.start30DayChallenge).toBeDefined();
@@ -556,8 +556,8 @@ describe('Maya End-to-End Flows', () => {
   });
 
   it('should support a complete gamification flow', async () => {
-    const { createMayaGamificationToolsV2 } = await import('../tools/gamification-v2.js');
-    const tools = createMayaGamificationToolsV2();
+    const { createGamificationToolsV2 } = await import('../tools/gamification-v2.js');
+    const tools = createGamificationToolsV2();
 
     // 1. Get profile
     expect(tools.getGamificationProfileV2).toBeDefined();

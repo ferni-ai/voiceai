@@ -207,6 +207,46 @@ Without these, reservations fall back to phone calls via Twilio.
 
 ---
 
+## Push Notifications (Web Push)
+
+Required for: Browser push notifications, engagement reminders, streak celebrations
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VAPID_PUBLIC_KEY` | ✓ | VAPID public key for web push |
+| `VAPID_PRIVATE_KEY` | ✓ | VAPID private key (keep secret!) |
+| `VAPID_SUBJECT` | | Contact email/URL (default: `mailto:hello@ferni.ai`) |
+
+**Generate Keys:**
+```bash
+npx ts-node scripts/generate-vapid-keys.ts
+```
+
+**Frontend Environment:**
+Also set in your frontend build:
+```bash
+VITE_VAPID_PUBLIC_KEY=<your-public-key>
+```
+
+---
+
+## Agent Marketplace
+
+Required for: Installing agents from the voiceai-agents GitHub repository
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GITHUB_MARKETPLACE_TOKEN` | ✓ | GitHub Personal Access Token with `repo` scope |
+
+**Setup:**
+1. Go to [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens)
+2. Create a new token with `repo` scope (for private repos) or `public_repo` (for public only)
+3. Add to `.env`
+
+Without this token, the marketplace uses local files (dev mode) instead of the GitHub repo.
+
+---
+
 ## Server Configuration
 
 | Variable | Description | Default |
@@ -250,30 +290,67 @@ This allows different voice IDs per environment:
 ## Example .env File
 
 ```bash
-# Required
+# ============================================================================
+# REQUIRED - Core Services
+# ============================================================================
+
+# LiveKit (Voice Communication)
 LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=APIxxxxxxxx
 LIVEKIT_API_SECRET=xxxxxxxxxxxx
+
+# AI Services
 GOOGLE_API_KEY=AIza...
 CARTESIA_API_KEY=sk-...
 
-# Voice IDs (optional - defaults in manifests)
+# ============================================================================
+# RECOMMENDED - Production Features
+# ============================================================================
+
+# Push Notifications (generate with: npx ts-node scripts/generate-vapid-keys.ts)
+VAPID_PUBLIC_KEY=BEl62iUYgUivxIkv69yViEuiBIa...
+VAPID_PRIVATE_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+VAPID_SUBJECT=mailto:hello@ferni.ai
+
+# Agent Marketplace (GitHub PAT with repo scope)
+GITHUB_MARKETPLACE_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+
+# Communication (SendGrid + Twilio)
+SENDGRID_API_KEY=SG.xxxxx
+SENDGRID_FROM_EMAIL=hello@ferni.ai
+TWILIO_ACCOUNT_SID=ACxxxxx
+TWILIO_AUTH_TOKEN=xxxxx
+TWILIO_PHONE_NUMBER=+1234567890
+
+# ============================================================================
+# OPTIONAL - Additional Features
+# ============================================================================
+
+# Voice IDs (defaults in manifests)
 JACK_B_VOICE_ID=fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc
 JACK_BOGLE_VOICE_ID=9c10dc48-8799-42f9-a72a-0c7dfe13a06d
 
-# Database (optional)
+# Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/voiceai
 REDIS_URL=redis://localhost:6379
 
-# Integrations (optional)
+# Plaid (Banking)
 PLAID_CLIENT_ID=...
 PLAID_SECRET=...
+PLAID_ENV=sandbox
+
+# Spotify (Music)
 SPOTIFY_CLIENT_ID=...
 SPOTIFY_CLIENT_SECRET=...
 
-# Development
+# ============================================================================
+# DEVELOPMENT
+# ============================================================================
+
 NODE_ENV=development
+PORT=3003
 DEBUG_CONTEXT=false
+LOG_LEVEL=info
 ```
 
 ---
@@ -357,6 +434,8 @@ echo $TWILIO_ACCOUNT_SID
 - [ ] `DATABASE_URL` or `GOOGLE_CLOUD_PROJECT` (persistence)
 - [ ] `GOOGLE_CALENDAR_CREDENTIALS` (scheduling)
 - [ ] `REDIS_URL` (caching)
+- [ ] `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (push notifications)
+- [ ] `GITHUB_MARKETPLACE_TOKEN` (agent marketplace)
 
 ### ⚪ Optional
 - [ ] `PLAID_*` (banking)

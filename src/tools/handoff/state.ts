@@ -124,19 +124,28 @@ export function getCurrentAgent(): AgentId {
 }
 
 /**
- * Get the current agent as a frontend ID (for UI updates)
- */
-export function getCurrentAgentFrontendId(): string {
-  return getFrontendPersonaId(currentAgent);
-}
-
-/**
  * Set the current active agent (normalizes to canonical ID)
+ * FIX BUG: Now clears stale identity cache and pre-fetches new agent context
  */
 export function setCurrentAgent(agent: AgentId): void {
   const canonical = toCanonicalId(agent);
+  const previousAgent = currentAgent;
   currentAgent = canonical;
-  getLogger().info({ agent, canonical }, 'Active agent changed');
+  
+  // FIX BUG: Clear stale identity cache to prevent identity confusion
+  // (e.g., Alex thinking he's Nayan because old context was cached)
+  if (cachedAgentContext && cachedAgentContext.agentId !== canonical) {
+    getLogger().debug(
+      { previousAgent, newAgent: canonical, cachedAgent: cachedAgentContext.agentId },
+      'Clearing stale agent context cache on handoff'
+    );
+    cachedAgentContext = null;
+  }
+  
+  // Pre-fetch new agent context in background for faster subsequent lookups
+  void fetchAgentContextAsync(canonical);
+  
+  getLogger().info({ agent, canonical, previousAgent }, 'Active agent changed');
 }
 
 /**
@@ -529,10 +538,14 @@ export async function getAgentDisplayNameAsync(agentId: string): Promise<string>
  * - role_summary: What they do
  * - tool_guidance: Available tools organized by category
  *
- * @returns Agent context string from manifest, or empty if not found
+ * FIX BUG: Previously returned stale cached context from WRONG persona after handoffs!
+ * Now returns empty string if cache is stale (forces async refresh).
+ *
+ * @returns Agent context string from manifest, or empty if not found/stale
  */
 export function getAgentContext(): string {
-  // Use cached context if available and matches current agent
+  // Use cached context ONLY if it matches current agent
+  // FIX BUG: Previously returned stale context causing identity confusion (Alex thinks he's Nayan)
   if (cachedAgentContext !== null && cachedAgentContext.agentId === currentAgent) {
     return cachedAgentContext.context;
   }
@@ -540,8 +553,14 @@ export function getAgentContext(): string {
   // Start async fetch in background - context will be available on next call
   void fetchAgentContextAsync(currentAgent);
 
-  // Return cached context if any (may be stale but better than empty)
-  return cachedAgentContext?.context || '';
+  // FIX BUG: Return EMPTY instead of stale context!
+  // Stale context from a different agent causes identity confusion.
+  // Empty is safe - the LLM will use its base instructions until cache is updated.
+  getLogger().debug(
+    { currentAgent, cachedAgent: cachedAgentContext?.agentId },
+    'Agent context cache miss - returning empty (async fetch started)'
+  );
+  return '';
 }
 
 // Cache for async context loading

@@ -6,6 +6,9 @@
  */
 
 import type { PersonaId } from './persona.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Events');
 
 // ============================================================================
 // CONNECTION EVENTS
@@ -239,7 +242,7 @@ export function isHandoffMessage(data: unknown): data is HandoffEvent {
   if (!validTypes.includes(msg['type'] as string)) return false;
   
   // DEBUG: Log handoff messages to help diagnose issues
-  console.log(`🔍 [Handoff] Checking message type=${msg['type']}, newAgent=${msg['newAgent']}, target=${msg['target']}`);
+  log.debug(`Checking handoff message type=${msg['type']}, newAgent=${msg['newAgent']}, target=${msg['target']}`);
   
   // Accept either 'target' OR 'newAgent' for all handoff types (backend may use either)
   const hasAgent = (typeof msg['target'] === 'string' && msg['target'] !== '') ||

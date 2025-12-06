@@ -5,46 +5,37 @@
  * These tests verify validation and error handling without actually sending.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  sendEmail,
-  sendSMS,
-  parseScheduleTime,
-  createCommunicationTools,
-} from '../tools/communication.js';
+import { describe, it, expect } from 'vitest';
+import { sendEmail, sendSMS } from '../services/communication-service.js';
+import { parseScheduleTime, createCommunicationTools } from '../tools/communication.js';
 
 describe('Communication Tools', () => {
   describe('Email Validation', () => {
     it('should reject invalid email addresses', async () => {
-      const result = await sendEmail('invalid-email', 'Subject', 'Body');
-      expect(result).toContain("doesn't look quite right");
+      // Service throws errors for invalid inputs
+      await expect(sendEmail('invalid-email', 'Subject', 'Body')).rejects.toThrow('Invalid email');
     });
 
     it('should reject emails with no @ symbol', async () => {
-      const result = await sendEmail('notanemail.com', 'Subject', 'Body');
-      expect(result).toContain("doesn't look quite right");
+      await expect(sendEmail('notanemail.com', 'Subject', 'Body')).rejects.toThrow('Invalid email');
     });
 
     it('should reject empty email addresses', async () => {
-      const result = await sendEmail('', 'Subject', 'Body');
-      expect(result).toContain("doesn't look quite right");
+      await expect(sendEmail('', 'Subject', 'Body')).rejects.toThrow('Invalid email');
     });
   });
 
   describe('SMS Validation', () => {
     it('should reject invalid phone numbers', async () => {
-      const result = await sendSMS('123', 'Test message');
-      expect(result).toContain("doesn't look quite right");
+      await expect(sendSMS('123', 'Test message')).rejects.toThrow('Invalid phone');
     });
 
     it('should reject empty phone numbers', async () => {
-      const result = await sendSMS('', 'Test message');
-      expect(result).toContain("doesn't look quite right");
+      await expect(sendSMS('', 'Test message')).rejects.toThrow('Invalid phone');
     });
 
     it('should reject non-numeric phone numbers', async () => {
-      const result = await sendSMS('not-a-phone', 'Test message');
-      expect(result).toContain("doesn't look quite right");
+      await expect(sendSMS('not-a-phone', 'Test message')).rejects.toThrow('Invalid phone');
     });
   });
 

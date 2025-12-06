@@ -1,17 +1,14 @@
 /**
- * @deprecated Use the registry-based proactive tools from `domains/proactive/index.ts` instead.
- * This file is being phased out to consolidate proactive functionality.
+ * Proactive Coaching System
  *
- * Maya's Proactive Coaching System
+ * Makes coaches REAL partners who:
+ * - Notice when you haven't shown up
+ * - Celebrate your milestones before you forget
+ * - Spot patterns and offer help
+ * - Check in during life transitions
+ * - Know when to push and when to give space
  *
- * Makes Maya a REAL coach who:
- * - Notices when you haven't shown up
- * - Celebrates your milestones before you forget
- * - Spots patterns and offers help
- * - Checks in during life transitions
- * - Knows when to push and when to give space
- *
- * This transforms Maya from reactive tool to proactive partner.
+ * NOTE: For new code, use `tools/domains/proactive/index.ts` instead.
  */
 
 import { llm, log } from '@livekit/agents';
@@ -959,8 +956,5 @@ Use when:
 // ============================================================================
 // EXPORTS
 // ============================================================================
-
-// Legacy alias for backward compatibility
-export const createMayaProactiveTools = createProactiveCoachingTools;
 
 export default createProactiveCoachingTools;

@@ -544,6 +544,56 @@ export function clearAllCognitiveSessions(): void {
   activeSessions.clear();
 }
 
+// ============================================================================
+// SERVICE INTERFACE (for data-export.ts compatibility)
+// ============================================================================
+
+export interface CognitiveMemoryService {
+  getMemories: (userId: string) => Promise<Array<Record<string, unknown>>>;
+  getProfile: (userId: string) => Promise<Record<string, unknown>>;
+}
+
+let cognitiveMemoryServiceInstance: CognitiveMemoryService | null = null;
+
+/**
+ * Get the cognitive memory service (singleton)
+ */
+export function getCognitiveMemoryService(): CognitiveMemoryService {
+  if (!cognitiveMemoryServiceInstance) {
+    cognitiveMemoryServiceInstance = {
+      async getMemories(userId: string): Promise<Array<Record<string, unknown>>> {
+        // Return cognitive session data as memories
+        const session = getCognitiveSession(userId, 'default');
+        if (!session) return [];
+        return [
+          {
+            type: 'reasoning_style',
+            data: session.userStyle || null,
+          },
+          {
+            type: 'topics_explained',
+            data: session.topicsExplained,
+          },
+          {
+            type: 'approaches_used',
+            data: session.approachesUsed,
+          },
+        ];
+      },
+      async getProfile(userId: string): Promise<Record<string, unknown>> {
+        const session = getCognitiveSession(userId, 'default');
+        return {
+          userId,
+          userStyle: session?.userStyle || null,
+          topicsExplained: session?.topicsExplained || [],
+          approachesUsed: session?.approachesUsed || [],
+        };
+      },
+    };
+  }
+  return cognitiveMemoryServiceInstance;
+}
+
 export default {
   initializeCognitiveSession,
   getCognitiveSession,

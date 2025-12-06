@@ -7,10 +7,7 @@
  */
 
 export { createHandoffTools, normalizeAgentId, getAgentDisplayName } from '../handoff/index.js';
-export {
-  createResearchTools,
-  createResearchTools as createPeterLynchTools,
-} from '../research-tools.js';
+export { createResearchTools } from '../research-tools.js';
 
 // Re-export voice ID retrieval from voice-registry (preferred over deprecated constants)
 export { getVoiceId, getCanonicalPersonaId } from '../../personas/voice-registry.js';

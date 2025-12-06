@@ -10,6 +10,9 @@ import path from 'path';
 import fs from 'fs';
 import { AccessToken, RoomServiceClient, AgentDispatchClient } from 'livekit-server-sdk';
 
+// Engagement API routes (conversations, analytics, predictions, etc.)
+import { handleEngagementRoutes } from './dist/api/engagement-routes.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -308,8 +311,18 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  const parsedUrl = url.parse(req.url, true);
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
+
+  // ============================================================================
+  // ENGAGEMENT API ROUTES (conversations, analytics, predictions, rituals, etc.)
+  // ============================================================================
+  try {
+    const handled = await handleEngagementRoutes(req, res, pathname, parsedUrl);
+    if (handled) return;
+  } catch (err) {
+    console.error('❌ Engagement route error:', err);
+  }
 
   // Health check endpoint
   if (pathname === '/health') {
@@ -401,7 +414,7 @@ const server = http.createServer(async (req, res) => {
   
   // Check if user has Plaid linked
   if (pathname === '/plaid/status') {
-    const { user_id } = parsedUrl.query;
+    const user_id = parsedUrl.searchParams.get('user_id');
     
     if (!user_id) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -426,7 +439,7 @@ const server = http.createServer(async (req, res) => {
   
   // Get Spotify access token for Web Playback SDK
   if (pathname === '/spotify/token') {
-    const forceRefresh = parsedUrl.query.force === '1';
+    const forceRefresh = parsedUrl.searchParams.get('force') === '1';
     console.log('🎵 /spotify/token requested', forceRefresh ? '(force refresh)' : '');
     const refreshToken = getSpotifyRefreshToken();
     
@@ -739,8 +752,8 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ 
         error: 'Failed to load agents',
         message: err.message,
-        // Provide fallback agent IDs for graceful degradation
-        fallback: ['ferni', 'jack-bogle', 'peter-lynch', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel', 'joel-dickson'],
+        // Provide fallback agent IDs for graceful degradation (canonical IDs)
+        fallback: ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'],
       }));
     }
     return;
@@ -942,12 +955,192 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ============================================================================
+  // TOOLS ANALYTICS API
+  // ============================================================================
+  
+  // GET /api/tools/analytics - Dashboard data for tool analytics
+  if (pathname === '/api/tools/analytics' && req.method === 'GET') {
+    try {
+      // Dynamic import of the optimization API
+      const { getDashboardData } = await import('./dist/services/optimization-api.js');
+      const data = await getDashboardData();
+      
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'private, max-age=30'
+      });
+      res.end(JSON.stringify(data));
+    } catch (err) {
+      console.error('❌ Failed to get tools analytics:', err.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Failed to get analytics',
+        message: err.message
+      }));
+    }
+    return;
+  }
+  
+  // POST /api/tools/optimize - Trigger optimization cycle
+  if (pathname === '/api/tools/optimize' && req.method === 'POST') {
+    try {
+      const { triggerOptimizationCycle } = await import('./dist/services/optimization-api.js');
+      const result = await triggerOptimizationCycle();
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      console.error('❌ Failed to trigger optimization:', err.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ============================================================================
+  // PUSH NOTIFICATIONS API
+  // ============================================================================
+  
+  const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+  const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+  
+  // In-memory push subscription storage (production would use database)
+  if (!global.pushSubscriptions) {
+    global.pushSubscriptions = new Map();
+  }
+  
+  // GET /api/push/vapid-key - Get VAPID public key for web push
+  if (pathname === '/api/push/vapid-key' && req.method === 'GET') {
+    if (!VAPID_PUBLIC_KEY) {
+      console.warn('⚠️ VAPID_PUBLIC_KEY not set - push notifications unavailable');
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Push notifications not configured',
+        message: 'VAPID_PUBLIC_KEY environment variable not set. Run: node scripts/generate-vapid-keys.js'
+      }));
+      return;
+    }
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      publicKey: VAPID_PUBLIC_KEY 
+    }));
+    return;
+  }
+  
+  // POST /api/push/subscribe - Register push subscription
+  if (pathname === '/api/push/subscribe' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const subscription = JSON.parse(body);
+        
+        if (!subscription.endpoint || !subscription.keys) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid subscription format' }));
+          return;
+        }
+        
+        // Store subscription (in production, this would go to database)
+        const userId = subscription.userId || 'anonymous';
+        const userSubs = global.pushSubscriptions.get(userId) || [];
+        
+        // Avoid duplicates
+        const exists = userSubs.some(s => s.endpoint === subscription.endpoint);
+        if (!exists) {
+          userSubs.push({
+            ...subscription,
+            createdAt: new Date().toISOString(),
+          });
+          global.pushSubscriptions.set(userId, userSubs);
+          console.log(`🔔 Push subscription registered for user: ${userId}`);
+        }
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (err) {
+        console.error('❌ Failed to register push subscription:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to register subscription' }));
+      }
+    });
+    return;
+  }
+  
+  // POST /api/push/unsubscribe - Remove push subscription
+  if (pathname === '/api/push/unsubscribe' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { endpoint, userId } = JSON.parse(body);
+        const userSubs = global.pushSubscriptions.get(userId || 'anonymous') || [];
+        const filtered = userSubs.filter(s => s.endpoint !== endpoint);
+        
+        if (filtered.length > 0) {
+          global.pushSubscriptions.set(userId || 'anonymous', filtered);
+        } else {
+          global.pushSubscriptions.delete(userId || 'anonymous');
+        }
+        
+        console.log(`🔕 Push subscription removed for user: ${userId || 'anonymous'}`);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to unsubscribe' }));
+      }
+    });
+    return;
+  }
+  
+  // POST /api/push/send - Send a push notification (for testing/admin)
+  if (pathname === '/api/push/send' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { userId, title, body: notificationBody, type } = JSON.parse(body);
+        
+        // Try to use backend service if available
+        try {
+          const { getPushNotificationsService } = await import('./dist/services/push-notifications.js');
+          const service = getPushNotificationsService();
+          const success = await service.sendNotification(userId || 'anonymous', {
+            title: title || 'Test Notification',
+            body: notificationBody || 'This is a test notification',
+            type: type || 'general',
+          });
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success, message: success ? 'Notification sent' : 'No subscriptions found' }));
+        } catch (err) {
+          // Service not available, return placeholder response
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: false, 
+            message: 'Push notification service not available (web-push module not installed)'
+          }));
+        }
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to send notification' }));
+      }
+    });
+    return;
+  }
+
+  // ============================================================================
   // LIVEKIT ROUTES
   // ============================================================================
 
   // Token generation endpoint
   if (pathname === '/token') {
-    const { room, username, device_id, persona_id } = parsedUrl.query;
+    const room = parsedUrl.searchParams.get('room');
+    const username = parsedUrl.searchParams.get('username');
+    const device_id = parsedUrl.searchParams.get('device_id');
+    const persona_id = parsedUrl.searchParams.get('persona_id');
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });

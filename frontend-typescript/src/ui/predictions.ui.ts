@@ -1,16 +1,24 @@
 /**
- * Predictions UI Component
+ * Predictions UI Component - "Predictions"
  *
- * Displays weekly prediction games, accuracy tracking, and prediction history.
- * Brand-aligned: warm, organic, zen aesthetic. No emojis.
+ * A centered floating modal for prediction games, accuracy tracking, and history.
+ * Redesigned to match the Menu/Engagement modal treatment.
  *
  * Design System Compliance:
  * - Uses CSS variables from tokens.css
  * - Uses DURATION/EASING from animation-constants.ts
+ * - Uses shared components from engagement-components.ts
  * - Respects prefers-reduced-motion
+ * - Centered floating modal with backdrop blur
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import {
+  ICONS,
+  injectSharedStyles,
+  escapeHtml,
+  renderCloseButton,
+} from './engagement-components.js';
 import type { PredictionData } from '../services/engagement.service.js';
 
 // ============================================================================
@@ -25,23 +33,16 @@ export interface PredictionsUIData {
 }
 
 // ============================================================================
-// CATEGORY ICONS (SVG-based, no emojis)
+// CATEGORY ICONS (Using shared icons where possible)
 // ============================================================================
 
 const CATEGORY_ICONS: Record<string, string> = {
-  mood: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>
-    <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-    <line x1="9" y1="9" x2="9.01" y2="9"/>
-    <line x1="15" y1="9" x2="15.01" y2="9"/>
-  </svg>`,
+  mood: ICONS.sunny,
   productivity: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
     <polyline points="22 4 12 14.01 9 11.01"/>
   </svg>`,
-  health: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-  </svg>`,
+  health: ICONS.heart,
   social: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
     <circle cx="9" cy="7" r="4"/>
@@ -52,11 +53,7 @@ const CATEGORY_ICONS: Record<string, string> = {
     <line x1="12" y1="1" x2="12" y2="23"/>
     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
   </svg>`,
-  default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-    <circle cx="12" cy="12" r="10"/>
-    <line x1="12" y1="8" x2="12" y2="12"/>
-    <line x1="12" y1="16" x2="12.01" y2="16"/>
-  </svg>`,
+  default: ICONS.clock,
 };
 
 // ============================================================================
@@ -66,71 +63,91 @@ const CATEGORY_ICONS: Record<string, string> = {
 export class PredictionsUI {
   private container: HTMLElement | null = null;
   private panelVisible: boolean = false;
+  private styleElement: HTMLStyleElement | null = null;
+  private currentPredictions: PredictionData[] = [];
+  private onResolutionSubmit: ((id: string, actual: number) => Promise<void>) | null = null;
 
   /**
    * Initialize the predictions UI
    */
   initialize(): void {
+    // HMR protection
+    if (this.container) return;
+    
+    // Clean up orphaned elements
+    const existingPanel = document.getElementById('predictions-panel');
+    if (existingPanel) existingPanel.remove();
+    
+    injectSharedStyles();
     this.createStyles();
     this.createPanel();
   }
 
   /**
-   * Create the predictions panel
+   * Create the predictions panel - CENTERED FLOATING MODAL
    */
   private createPanel(): void {
     this.container = document.createElement('div');
     this.container.id = 'predictions-panel';
     this.container.className = 'predictions-panel';
     this.container.setAttribute('role', 'dialog');
-    this.container.setAttribute('aria-label', 'Prediction games');
+    this.container.setAttribute('aria-modal', 'true');
+    this.container.setAttribute('aria-label', 'Predictions');
     this.container.setAttribute('aria-hidden', 'true');
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'predictions-panel__wrapper';
-
-    // Header
-    const header = document.createElement('header');
-    header.className = 'predictions-panel__header';
-    header.innerHTML = `
-      <h2 class="predictions-panel__title">Predictions</h2>
-      <button class="predictions-panel__close" aria-label="Close panel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+    this.container.innerHTML = `
+      <div class="predictions-panel__backdrop"></div>
+      <div class="predictions-panel__card">
+        <header class="predictions-panel__header">
+          <h2 class="predictions-panel__title">Predictions</h2>
+          ${renderCloseButton('Close panel')}
+        </header>
+        <div class="predictions-panel__content" id="predictions-content">
+          ${this.renderEmptyState()}
+        </div>
+      </div>
     `;
 
-    // Content
-    const content = document.createElement('div');
-    content.className = 'predictions-panel__content';
-    content.id = 'predictions-content';
-    content.innerHTML = this.renderEmptyState();
-
-    wrapper.appendChild(header);
-    wrapper.appendChild(content);
-    this.container.appendChild(wrapper);
     document.body.appendChild(this.container);
 
-    // Bind close button
-    const closeBtn = header.querySelector('.predictions-panel__close');
+    // Bind events
+    const backdrop = this.container.querySelector('.predictions-panel__backdrop');
+    backdrop?.addEventListener('click', () => this.hide());
+    
+    const closeBtn = this.container.querySelector('.engagement-close-btn');
     closeBtn?.addEventListener('click', () => this.hide());
+    
+    // Close on escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.panelVisible) {
+        this.hide();
+      }
+    });
   }
 
   /**
-   * Render empty state
+   * Render empty state - encouraging
    */
   private renderEmptyState(): string {
     return `
       <div class="predictions-empty">
         <div class="predictions-empty__icon">
-          ${CATEGORY_ICONS['default']}
+          ${ICONS.clock}
         </div>
-        <p class="predictions-empty__title">No predictions yet</p>
-        <p class="predictions-empty__text">Ask your coach to start a prediction game during your next conversation</p>
+        <h3 class="predictions-empty__title">Test Your Intuition</h3>
+        <p class="predictions-empty__text">
+          Prediction games help you calibrate your self-awareness. 
+          Ask Ferni to start a prediction during your next conversation.
+        </p>
       </div>
     `;
+  }
+
+  /**
+   * Set callback for resolution submissions
+   */
+  setOnResolutionSubmit(callback: (id: string, actual: number) => Promise<void>): void {
+    this.onResolutionSubmit = callback;
   }
 
   /**
@@ -138,6 +155,8 @@ export class PredictionsUI {
    */
   update(data: PredictionsUIData): void {
     if (!this.container) return;
+
+    this.currentPredictions = data.predictions;
 
     const content = this.container.querySelector('#predictions-content');
     if (!content) return;
@@ -155,16 +174,26 @@ export class PredictionsUI {
     // Pending predictions
     const pending = data.predictions.filter(p => p.status === 'pending');
     if (pending.length > 0) {
-      sections.push(this.renderPredictionGroup('Pending', pending, true));
+      sections.push(this.renderPredictionGroup('Active Predictions', pending, true));
     }
 
     // Resolved predictions
     const resolved = data.predictions.filter(p => p.status === 'resolved');
     if (resolved.length > 0) {
-      sections.push(this.renderPredictionGroup('History', resolved.slice(0, 10), false));
+      sections.push(this.renderPredictionGroup('Recent Results', resolved.slice(0, 10), false));
     }
 
     content.innerHTML = sections.join('');
+
+    // Bind resolve buttons
+    content.querySelectorAll('.prediction-resolve-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const predictionId = (e.currentTarget as HTMLElement).dataset.predictionId;
+        if (predictionId) {
+          this.showResolutionModal(predictionId);
+        }
+      });
+    });
 
     // Add entrance animations
     if (!prefersReducedMotion()) {
@@ -173,6 +202,94 @@ export class PredictionsUI {
         (card as HTMLElement).style.animationDelay = `${index * 60}ms`;
       });
     }
+  }
+
+  /**
+   * Show resolution modal for a prediction
+   */
+  private showResolutionModal(predictionId: string): void {
+    const prediction = this.currentPredictions.find(p => p.id === predictionId);
+    if (!prediction) return;
+
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.className = 'prediction-resolution-modal';
+    modal.innerHTML = `
+      <div class="prediction-resolution-modal__backdrop"></div>
+      <div class="prediction-resolution-modal__card">
+        <header class="prediction-resolution-modal__header">
+          <h3>Record Actual Result</h3>
+          <button class="engagement-close-btn" aria-label="Close">
+            ${ICONS.close}
+          </button>
+        </header>
+        <div class="prediction-resolution-modal__content">
+          <p class="prediction-resolution-modal__question">${escapeHtml(prediction.question)}</p>
+          <p class="prediction-resolution-modal__prediction">You predicted: <strong>${prediction.userPrediction}</strong></p>
+          <div class="prediction-resolution-modal__input-group">
+            <label for="actual-result">What was the actual result?</label>
+            <input 
+              type="number" 
+              id="actual-result" 
+              class="prediction-resolution-modal__input"
+              placeholder="Enter actual value"
+              min="0"
+              max="100"
+            />
+          </div>
+        </div>
+        <footer class="prediction-resolution-modal__footer">
+          <button class="prediction-resolution-modal__cancel">Cancel</button>
+          <button class="prediction-resolution-modal__submit engagement-btn-primary">Save Result</button>
+        </footer>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Animate in
+    requestAnimationFrame(() => {
+      modal.classList.add('prediction-resolution-modal--visible');
+    });
+
+    // Bind events
+    const closeModal = () => {
+      modal.classList.remove('prediction-resolution-modal--visible');
+      setTimeout(() => modal.remove(), prefersReducedMotion() ? 0 : DURATION.NORMAL);
+    };
+
+    modal.querySelector('.prediction-resolution-modal__backdrop')?.addEventListener('click', closeModal);
+    modal.querySelector('.engagement-close-btn')?.addEventListener('click', closeModal);
+    modal.querySelector('.prediction-resolution-modal__cancel')?.addEventListener('click', closeModal);
+
+    const input = modal.querySelector('#actual-result') as HTMLInputElement;
+    const submitBtn = modal.querySelector('.prediction-resolution-modal__submit');
+
+    submitBtn?.addEventListener('click', async () => {
+      const actualValue = parseInt(input.value, 10);
+      if (isNaN(actualValue)) {
+        input.classList.add('prediction-resolution-modal__input--error');
+        return;
+      }
+
+      if (this.onResolutionSubmit) {
+        submitBtn.textContent = 'Saving...';
+        (submitBtn as HTMLButtonElement).disabled = true;
+        
+        try {
+          await this.onResolutionSubmit(predictionId, actualValue);
+          closeModal();
+        } catch (err) {
+          submitBtn.textContent = 'Error - Try Again';
+          (submitBtn as HTMLButtonElement).disabled = false;
+        }
+      } else {
+        closeModal();
+      }
+    });
+
+    // Focus input
+    input.focus();
   }
 
   /**
@@ -205,7 +322,7 @@ export class PredictionsUI {
 
     return `
       <section class="predictions-group">
-        <h3 class="predictions-group__title">${title}</h3>
+        <h3 class="predictions-group__title">${escapeHtml(title)}</h3>
         <div class="predictions-group__items">${items}</div>
       </section>
     `;
@@ -229,15 +346,17 @@ export class PredictionsUI {
       statusClass = error <= 10 ? 'prediction-card--accurate' : error <= 25 ? 'prediction-card--close' : 'prediction-card--off';
       resultHtml = `
         <div class="prediction-card__result">
-          <span class="prediction-card__predicted">You: ${prediction.userPrediction}%</span>
+          <span class="prediction-card__predicted">You predicted: ${prediction.userPrediction}%</span>
           <span class="prediction-card__actual">Actual: ${prediction.actualOutcome}%</span>
         </div>
       `;
     } else if (isPending) {
       resultHtml = `
         <div class="prediction-card__pending">
-          <span class="prediction-card__predicted">Your prediction: ${prediction.userPrediction}%</span>
-          <span class="prediction-card__waiting">Awaiting result</span>
+          <span class="prediction-card__predicted">Your prediction: ${prediction.userPrediction}</span>
+          <button class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">
+            Record Actual
+          </button>
         </div>
       `;
     }
@@ -246,7 +365,7 @@ export class PredictionsUI {
       <div class="prediction-card ${statusClass}">
         <div class="prediction-card__icon">${icon}</div>
         <div class="prediction-card__content">
-          <p class="prediction-card__question">${this.escapeHtml(prediction.question)}</p>
+          <p class="prediction-card__question">${escapeHtml(prediction.question)}</p>
           ${resultHtml}
           <span class="prediction-card__date">${date}</span>
         </div>
@@ -263,20 +382,6 @@ export class PredictionsUI {
     this.panelVisible = true;
     this.container.classList.add('predictions-panel--visible');
     this.container.setAttribute('aria-hidden', 'false');
-
-    if (!prefersReducedMotion()) {
-      this.container.animate(
-        [
-          { transform: 'translateY(100%)', opacity: 0 },
-          { transform: 'translateY(0)', opacity: 1 },
-        ],
-        {
-          duration: DURATION.MODERATE,
-          easing: EASING.EXPO_OUT,
-          fill: 'forwards',
-        }
-      );
-    }
   }
 
   /**
@@ -287,22 +392,11 @@ export class PredictionsUI {
 
     this.panelVisible = false;
     this.container.setAttribute('aria-hidden', 'true');
-
-    const animation = this.container.animate(
-      [
-        { transform: 'translateY(0)', opacity: 1 },
-        { transform: 'translateY(100%)', opacity: 0 },
-      ],
-      {
-        duration: DURATION.SLOW,
-        easing: EASING.STANDARD,
-        fill: 'forwards',
-      }
-    );
-
-    animation.onfinish = () => {
+    
+    // Wait for animation before hiding
+    setTimeout(() => {
       this.container?.classList.remove('predictions-panel--visible');
-    };
+    }, prefersReducedMotion() ? 0 : DURATION.NORMAL);
   }
 
   /**
@@ -317,61 +411,69 @@ export class PredictionsUI {
   }
 
   /**
-   * Escape HTML
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  /**
-   * Create styles
+   * Create styles - CENTERED FLOATING MODAL
    */
   private createStyles(): void {
     const styleId = 'predictions-ui-styles';
     if (document.getElementById(styleId)) return;
 
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
+    this.styleElement = document.createElement('style');
+    this.styleElement.id = styleId;
+    this.styleElement.textContent = `
       /* ========================================
-         PREDICTIONS PANEL
+         PREDICTIONS PANEL - CENTERED FLOATING MODAL
+         Matches Menu/Engagement treatment
          ======================================== */
 
       .predictions-panel {
         position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        margin: 0 auto;
-        width: 420px;
-        max-width: 95vw;
-        max-height: 80vh;
+        inset: 0;
         z-index: var(--z-modal, 1400);
-        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--ma-silence, 34px);
         opacity: 0;
-        transform: translateY(100%);
+        visibility: hidden;
+        transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD},
+                    visibility ${DURATION.NORMAL}ms ${EASING.STANDARD};
       }
 
       .predictions-panel--visible {
-        pointer-events: auto;
         opacity: 1;
-        transform: translateY(0);
+        visibility: visible;
       }
 
-      .predictions-panel__wrapper {
+      /* Backdrop */
+      .predictions-panel__backdrop {
+        position: absolute;
+        inset: 0;
+        background: var(--color-background-overlay);
+        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+      }
+
+      /* Card */
+      .predictions-panel__card {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        max-height: 80vh;
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-2xl, 1.5rem);
+        box-shadow: var(--shadow-2xl);
+        border: 1px solid var(--color-border-subtle);
         display: flex;
         flex-direction: column;
-        width: 100%;
-        max-height: 80vh;
-        background: var(--color-background-elevated, #fffdfb);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        border-bottom: none;
-        border-radius: var(--radius-xl, 1.5rem) var(--radius-xl, 1.5rem) 0 0;
-        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
         overflow: hidden;
-        box-sizing: border-box;
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+        transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
+                    opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
+      }
+
+      .predictions-panel--visible .predictions-panel__card {
+        transform: translateY(0) scale(1);
+        opacity: 1;
       }
 
       /* Header */
@@ -379,92 +481,37 @@ export class PredictionsUI {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
-        padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        padding: var(--space-5, 20px) var(--space-6, 24px);
+        border-bottom: 1px solid var(--color-border-subtle);
         flex-shrink: 0;
-        width: 100%;
-        box-sizing: border-box;
       }
 
       .predictions-panel__title {
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-lg, 1.0625rem);
+        font-family: var(--font-display);
+        font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         margin: 0;
-        flex: 1;
-      }
-
-      .predictions-panel__close {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        /* Golden ratio: 34px button / 1.618 ≈ 21px icon */
-        width: 34px;
-        height: 34px;
-        min-width: 34px;
-        flex-shrink: 0;
-        padding: 0;
-        /* Visible background for Zen theme */
-        background: var(--color-background-tertiary, #ebe6df);
-        border: 1px solid var(--color-border-medium, rgba(44, 37, 32, 0.12));
-        border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-primary, #2c2520);
-        cursor: pointer;
-        transition: all 200ms var(--ease-gentle, cubic-bezier(0.4, 0, 0.2, 1));
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5),
-                    0 2px 4px rgba(44, 37, 32, 0.08);
-      }
-
-      .predictions-panel__close:hover {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-primary, #2c2520);
-        border-color: var(--color-border-medium, rgba(44, 37, 32, 0.10));
-        transform: scale(1.05);
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6),
-                    0 2px 6px rgba(44, 37, 32, 0.08);
-      }
-
-      .predictions-panel__close:active {
-        transform: scale(0.95);
-        box-shadow: inset 0 2px 4px rgba(44, 37, 32, 0.08);
-      }
-
-      .predictions-panel__close:focus-visible {
-        outline: 2px solid var(--color-accent-primary, #2d5a3d);
-        outline-offset: 2px;
-      }
-
-      .predictions-panel__close svg {
-        /* Golden ratio to button: 34/1.618 ≈ 21px */
-        width: 16px;
-        height: 16px;
-        stroke-width: 2.5;
-        /* Full opacity for visibility */
-        opacity: 1;
-        transition: opacity 200ms ease;
-      }
-
-      .predictions-panel__close:hover svg {
-        opacity: 1;
       }
 
       /* Content */
       .predictions-panel__content {
         flex: 1;
         overflow-y: auto;
-        padding: var(--ma-rest, 21px);
+        padding: var(--space-5, 20px);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4, 16px);
       }
 
       /* Stats */
       .predictions-stats {
-        display: flex;
-        justify-content: space-around;
-        padding: var(--ma-pause, 13px);
-        background: var(--color-background-secondary, #f5f2ed);
-        border-radius: var(--radius-lg, 1rem);
-        margin-bottom: var(--ma-rest, 21px);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-3, 12px);
+        padding: var(--space-4, 16px);
+        background: var(--color-background-secondary);
+        border-radius: var(--radius-xl, 1.25rem);
       }
 
       .predictions-stat {
@@ -475,49 +522,52 @@ export class PredictionsUI {
       }
 
       .predictions-stat__value {
-        font-family: var(--font-accent, 'Sora', sans-serif);
-        font-size: var(--text-xl, 1.25rem);
+        font-family: var(--font-display);
+        font-size: var(--text-2xl, 1.5rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
+        line-height: 1;
       }
 
       .predictions-stat__label {
         font-size: var(--text-2xs, 0.625rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-transform: uppercase;
-        letter-spacing: var(--tracking-wider, 0.05em);
+        letter-spacing: var(--tracking-wide);
       }
 
       /* Groups */
       .predictions-group {
-        margin-bottom: var(--ma-rest, 21px);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3, 12px);
       }
 
       .predictions-group__title {
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-transform: uppercase;
         letter-spacing: var(--tracking-wider, 0.05em);
-        margin-bottom: var(--ma-pause, 13px);
+        margin: 0;
       }
 
       .predictions-group__items {
         display: flex;
         flex-direction: column;
-        gap: var(--ma-breath, 8px);
+        gap: var(--space-2, 8px);
       }
 
       /* Cards */
       .prediction-card {
         display: flex;
-        gap: var(--ma-pause, 13px);
-        padding: var(--ma-pause, 13px);
-        background: var(--color-background-primary, #faf8f5);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        border-radius: var(--radius-md, 0.75rem);
-        animation: predictionSlideIn 350ms var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px);
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-lg, 1rem);
+        animation: predictionSlideIn ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
         opacity: 0;
         transform: translateY(8px);
       }
@@ -530,27 +580,27 @@ export class PredictionsUI {
       }
 
       .prediction-card--accurate {
-        border-left: 3px solid var(--color-semantic-success, #3d7a52);
+        border-left: 3px solid var(--color-semantic-success);
       }
 
       .prediction-card--close {
-        border-left: 3px solid var(--color-semantic-warning, #b8860b);
+        border-left: 3px solid var(--color-semantic-warning);
       }
 
       .prediction-card--off {
-        border-left: 3px solid var(--color-text-dimmed, #a89d90);
+        border-left: 3px solid var(--color-text-dimmed);
       }
 
       .prediction-card__icon {
         flex-shrink: 0;
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-tertiary, #ebe6df);
-        border-radius: var(--radius-md, 0.75rem);
-        color: var(--color-text-secondary, #5c544a);
+        background: var(--color-background-tertiary);
+        border-radius: var(--radius-lg, 1rem);
+        color: var(--color-text-secondary);
       }
 
       .prediction-card__icon svg {
@@ -564,38 +614,227 @@ export class PredictionsUI {
       }
 
       .prediction-card__question {
-        font-size: var(--text-sm, 0.8125rem);
+        font-size: var(--text-sm);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
-        margin: 0 0 var(--ma-breath, 8px) 0;
-        line-height: var(--leading-snug, 1.4);
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-2, 8px) 0;
+        line-height: var(--leading-snug);
       }
 
       .prediction-card__result,
       .prediction-card__pending {
         display: flex;
-        gap: var(--ma-pause, 13px);
-        font-size: var(--text-xs, 0.75rem);
-        margin-bottom: 4px;
+        gap: var(--space-3, 12px);
+        font-size: var(--text-xs);
+        margin-bottom: var(--space-1, 4px);
       }
 
       .prediction-card__predicted {
-        color: var(--color-text-secondary, #5c544a);
+        color: var(--color-text-secondary);
       }
 
       .prediction-card__actual {
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .prediction-card__waiting {
-        color: var(--color-text-dimmed, #a89d90);
+        color: var(--color-text-dimmed);
         font-style: italic;
       }
 
       .prediction-card__date {
         font-size: var(--text-2xs, 0.625rem);
-        color: var(--color-text-dimmed, #a89d90);
+        color: var(--color-text-dimmed);
+      }
+
+      /* Resolve Button */
+      .prediction-resolve-btn {
+        padding: var(--space-1, 4px) var(--space-3, 12px);
+        font-size: var(--text-xs);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--persona-primary, var(--color-accent-primary));
+        background: var(--persona-tint, var(--color-accent-subtle));
+        border: none;
+        border-radius: var(--radius-md, 0.5rem);
+        cursor: pointer;
+        transition: background ${DURATION.FAST}ms ${EASING.STANDARD},
+                    transform ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .prediction-resolve-btn:hover {
+        background: var(--persona-primary, var(--color-accent-primary));
+        color: white;
+        transform: translateY(-1px);
+      }
+
+      .prediction-resolve-btn:active {
+        transform: translateY(0);
+      }
+
+      /* Resolution Modal */
+      .prediction-resolution-modal {
+        position: fixed;
+        inset: 0;
+        z-index: calc(var(--z-modal, 1400) + 10);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-4, 16px);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD},
+                    visibility ${DURATION.NORMAL}ms ${EASING.STANDARD};
+      }
+
+      .prediction-resolution-modal--visible {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .prediction-resolution-modal__backdrop {
+        position: absolute;
+        inset: 0;
+        background: var(--backdrop-heavy);
+        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+      }
+
+      .prediction-resolution-modal__card {
+        position: relative;
+        width: 100%;
+        max-width: 360px;
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-xl, 1.25rem);
+        box-shadow: var(--shadow-2xl);
+        overflow: hidden;
+        transform: scale(0.95);
+        opacity: 0;
+        transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
+                    opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
+      }
+
+      .prediction-resolution-modal--visible .prediction-resolution-modal__card {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      .prediction-resolution-modal__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--space-4, 16px);
+        border-bottom: 1px solid var(--color-border-subtle);
+      }
+
+      .prediction-resolution-modal__header h3 {
+        font-family: var(--font-display);
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary);
+        margin: 0;
+      }
+
+      .prediction-resolution-modal__content {
+        padding: var(--space-4, 16px);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3, 12px);
+      }
+
+      .prediction-resolution-modal__question {
+        font-size: var(--text-sm);
+        color: var(--color-text-primary);
+        font-weight: var(--font-weight-medium, 500);
+        margin: 0;
+      }
+
+      .prediction-resolution-modal__prediction {
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        margin: 0;
+      }
+
+      .prediction-resolution-modal__input-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+      }
+
+      .prediction-resolution-modal__input-group label {
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary);
+      }
+
+      .prediction-resolution-modal__input {
+        padding: var(--space-3, 12px);
+        font-size: var(--text-base);
+        color: var(--color-text-primary);
+        background: var(--color-background-secondary);
+        border: 1px solid var(--color-border-medium);
+        border-radius: var(--radius-md, 0.5rem);
+        outline: none;
+        transition: border-color ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .prediction-resolution-modal__input:focus {
+        border-color: var(--persona-primary, var(--color-accent-primary));
+      }
+
+      .prediction-resolution-modal__input--error {
+        border-color: var(--color-semantic-error);
+        animation: shake ${DURATION.NORMAL}ms ${EASING.STANDARD};
+      }
+
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-4px); }
+        75% { transform: translateX(4px); }
+      }
+
+      .prediction-resolution-modal__footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-2, 8px);
+        padding: var(--space-4, 16px);
+        border-top: 1px solid var(--color-border-subtle);
+      }
+
+      .prediction-resolution-modal__cancel {
+        padding: var(--space-2, 8px) var(--space-4, 16px);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-secondary);
+        background: transparent;
+        border: 1px solid var(--color-border-medium);
+        border-radius: var(--radius-md, 0.5rem);
+        cursor: pointer;
+        transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .prediction-resolution-modal__cancel:hover {
+        background: var(--color-background-secondary);
+      }
+
+      .prediction-resolution-modal__submit {
+        padding: var(--space-2, 8px) var(--space-4, 16px);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-medium, 500);
+        color: white;
+        background: var(--persona-primary, var(--color-accent-primary));
+        border: none;
+        border-radius: var(--radius-md, 0.5rem);
+        cursor: pointer;
+        transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .prediction-resolution-modal__submit:hover {
+        opacity: 0.9;
+      }
+
+      .prediction-resolution-modal__submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
       /* Empty state */
@@ -603,143 +842,95 @@ export class PredictionsUI {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        padding: var(--ma-meditation, 55px) var(--ma-rest, 21px);
         text-align: center;
+        padding: var(--space-8, 32px) var(--space-4, 16px);
       }
 
       .predictions-empty__icon {
-        width: 56px;
-        height: 56px;
+        width: 64px;
+        height: 64px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-tertiary, #ebe6df);
-        border-radius: 50%;
-        color: var(--color-text-dimmed, #a89d90);
-        margin-bottom: var(--ma-pause, 13px);
+        background: var(--persona-tint, var(--color-accent-subtle));
+        border-radius: var(--radius-full);
+        color: var(--persona-primary, var(--color-accent-primary));
+        margin-bottom: var(--space-4, 16px);
       }
 
       .predictions-empty__icon svg {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
       }
 
       .predictions-empty__title {
-        font-size: var(--text-base, 0.9375rem);
-        font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
-        margin: 0 0 var(--ma-breath, 8px) 0;
+        font-family: var(--font-display);
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-2, 8px) 0;
       }
 
       .predictions-empty__text {
-        font-size: var(--text-sm, 0.8125rem);
-        color: var(--color-text-secondary, #5c544a);
-        max-width: 240px;
-        line-height: var(--leading-normal, 1.6);
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        line-height: var(--leading-relaxed);
+        max-width: 280px;
         margin: 0;
       }
 
-      /* Reduced motion */
-      @media (prefers-reduced-motion: reduce) {
-        .prediction-card {
-          animation: none;
-          opacity: 1;
-          transform: none;
-        }
+      /* Dark Theme */
+      [data-theme="midnight"] .predictions-panel__backdrop {
+        background: var(--backdrop-heavy);
       }
 
-      /* Dark theme (Cedar Night) */
-      [data-theme="midnight"] .predictions-panel__wrapper {
-        background: var(--color-background-elevated, #70605a);
-        border-color: var(--color-border-medium, rgba(215, 185, 145, 0.20));
-      }
-
-      [data-theme="midnight"] .predictions-panel__title {
-        color: var(--color-text-primary, #faf6f0);
-      }
-
-      [data-theme="midnight"] .predictions-panel__close {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
-        color: var(--color-text-secondary, #e0d5c8);
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05),
-                    0 1px 3px rgba(0, 0, 0, 0.15);
-      }
-
-      [data-theme="midnight"] .predictions-panel__close:hover {
-        background: var(--color-background-secondary, #60504a);
-        border-color: var(--color-border-medium, rgba(215, 185, 145, 0.20));
-        color: var(--color-text-primary, #faf6f0);
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08),
-                    0 2px 6px rgba(0, 0, 0, 0.2);
-      }
-
-      [data-theme="midnight"] .predictions-panel__close:active {
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+      [data-theme="midnight"] .predictions-panel__card {
+        background: var(--color-background-elevated);
+        border-color: var(--color-border-medium);
       }
 
       [data-theme="midnight"] .predictions-stats {
-        background: var(--color-background-tertiary, #685852);
-      }
-
-      [data-theme="midnight"] .predictions-stat__value {
-        color: var(--color-text-primary, #faf6f0);
-      }
-
-      [data-theme="midnight"] .predictions-stat__label {
-        color: var(--color-text-muted, #d0c4b4);
-      }
-
-      [data-theme="midnight"] .predictions-group__title {
-        color: var(--color-text-muted, #d0c4b4);
+        background: var(--color-background-tertiary);
       }
 
       [data-theme="midnight"] .prediction-card {
-        background: var(--color-background-secondary, #60504a);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
+        background: var(--color-background-secondary);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .prediction-card__icon {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-secondary, #e0d5c8);
+        background: var(--color-background-tertiary);
       }
 
-      [data-theme="midnight"] .prediction-card__question {
-        color: var(--color-text-primary, #faf6f0);
+      /* Responsive */
+      @media (max-width: 480px) {
+        .predictions-panel {
+          padding: var(--space-4, 16px);
+        }
+
+        .predictions-panel__card {
+          max-height: 90vh;
+          border-radius: var(--radius-xl, 1.25rem);
+        }
+
+        .predictions-panel__header {
+          padding: var(--space-4, 16px);
+        }
       }
 
-      [data-theme="midnight"] .prediction-card__predicted {
-        color: var(--color-text-secondary, #e0d5c8);
-      }
-
-      [data-theme="midnight"] .prediction-card__actual {
-        color: var(--color-text-primary, #faf6f0);
-      }
-
-      [data-theme="midnight"] .prediction-card__waiting {
-        color: var(--color-text-muted, #d0c4b4);
-      }
-
-      [data-theme="midnight"] .prediction-card__date {
-        color: var(--color-text-muted, #d0c4b4);
-      }
-
-      [data-theme="midnight"] .predictions-empty__icon {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-muted, #d0c4b4);
-      }
-
-      [data-theme="midnight"] .predictions-empty__title {
-        color: var(--color-text-primary, #faf6f0);
-      }
-
-      [data-theme="midnight"] .predictions-empty__text {
-        color: var(--color-text-secondary, #e0d5c8);
+      /* Reduced Motion */
+      @media (prefers-reduced-motion: reduce) {
+        .predictions-panel,
+        .predictions-panel__card,
+        .prediction-card {
+          animation: none !important;
+          transition: opacity ${DURATION.FAST}ms linear !important;
+          transform: none !important;
+        }
       }
     `;
 
-    document.head.appendChild(style);
+    document.head.appendChild(this.styleElement);
   }
 
   /**
@@ -751,9 +942,9 @@ export class PredictionsUI {
       this.container = null;
     }
 
-    const style = document.getElementById('predictions-ui-styles');
-    if (style) {
-      style.remove();
+    if (this.styleElement) {
+      this.styleElement.remove();
+      this.styleElement = null;
     }
   }
 }
@@ -777,4 +968,3 @@ export function initializePredictionsUI(): void {
 }
 
 export default PredictionsUI;
-

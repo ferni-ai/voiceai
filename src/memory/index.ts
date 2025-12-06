@@ -425,7 +425,7 @@ export async function shutdownMemorySystem(): Promise<void> {
       case 'memory':
       default: {
         const { resetDefaultStore } = await import('./in-memory-store.js');
-        resetDefaultStore();
+        await resetDefaultStore();
         break;
       }
     }
@@ -443,7 +443,7 @@ export async function shutdownMemorySystem(): Promise<void> {
 
   try {
     const { resetFirestoreVectorStore } = await import('./firestore-vector-store.js');
-    resetFirestoreVectorStore();
+    void resetFirestoreVectorStore();
   } catch (error) {
     getLogger().warn(`Error closing Firestore vector store: ${error}`);
   }

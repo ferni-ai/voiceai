@@ -10,24 +10,24 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { DailyRitualsService } from '../services/daily-rituals.js';
 import {
   getDailyRitualsService,
   resetDailyRitualsService,
   PERSONA_RITUALS,
   RITUAL_PROMPTS,
   type EmotionalWeather,
+  type DailyRitualsService,
 } from '../services/daily-rituals.js';
-import type { MemoryEngagementEngine } from '../intelligence/memory-engagement.js';
 import {
   getMemoryEngagementEngine,
   resetMemoryEngagementEngine,
   buildMemoryEngagementContext,
+  type MemoryEngagementEngine,
 } from '../intelligence/memory-engagement.js';
-import type { TeamEngagementService } from '../services/team-engagement.js';
 import {
   getTeamEngagementService,
   resetTeamEngagementService,
+  type TeamEngagementService,
 } from '../services/team-engagement.js';
 
 // ============================================================================

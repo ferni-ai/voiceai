@@ -1,7 +1,4 @@
 /**
- * @deprecated Use domains/research/index.ts for registry-based insights tools.
- * This file is being phased out to consolidate into the research domain.
- *
  * Insights & Analysis Tools
  *
  * Cross-domain analysis capabilities:
@@ -11,8 +8,7 @@
  * - Connect insights to actionable goals
  * - Generate behavior-change recommendations
  *
- * NOTE: This is the agent-agnostic version. The original peter-insights-tools.ts
- * re-exports from this file for backward compatibility.
+ * NOTE: For new code, use `tools/domains/research/index.ts` instead.
  *
  * INTEGRATIONS:
  * - Financial Store (spending, habits, triggers)
@@ -1439,8 +1435,5 @@ Use when:
     }),
   };
 }
-
-// Legacy alias for backward compatibility
-export const createPeterInsightsTools = createInsightsAnalysisTools;
 
 export default createInsightsAnalysisTools;

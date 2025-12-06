@@ -29,6 +29,7 @@ import {
   spotifyService,
   moodService,
   engagementService,
+  relationshipStageService,
 } from './services/index.js';
 import { delightService } from './services/delight.service.js';
 
@@ -38,7 +39,7 @@ import { teamUI, initTeamUI } from './ui/team.ui.js';
 import { messageUI, initMessageUI } from './ui/message.ui.js';
 import { waveformUI, initWaveformUI } from './ui/waveform.ui.js';
 import { controlsUI, initControlsUI } from './ui/controls.ui.js';
-import { initSpotifyUI } from './ui/spotify.ui.js';
+import { initSpotifyUI, triggerSpotifyLinkToggle, onSpotifyLinkStateChange, getSpotifyLinkStatus } from './ui/spotify.ui.js';
 
 // Premium UI Features
 import { soundUI, initSoundUI } from './ui/sound.ui.js';
@@ -66,6 +67,37 @@ import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
 import { getEngagementUI, initializeEngagementUI } from './ui/engagement.ui.js';
 import { getPredictionsUI, initializePredictionsUI } from './ui/predictions.ui.js';
 import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
+// Notifications & Celebrations
+import { initNotificationsUI, showStreakMilestone } from './ui/notifications.ui.js';
+import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.js';
+// Demo data for testing without backend
+import { getDemoEngagementData, getDemoPredictions, getDemoTeamHuddle, enableDemoData, disableDemoData, isDemoDataEnabled } from './services/engagement-demo-data.js';
+// Environment detection
+import { shouldUseDemoData } from './utils/environment.js';
+
+// New Feature UIs (v2)
+import { initSettingsMenuUI, getSettingsMenuUI } from './ui/settings-menu.ui.js';
+import { getConversationHistoryUI, initConversationHistoryUI } from './ui/conversation-history.ui.js';
+import { getAnalyticsDashboardUI, initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
+import { getCognitiveInsightsUI, initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
+import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
+import { getPredictionTrackerUI, initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
+import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
+// Services for feature persistence
+import { ritualsService, initRitualsService } from './services/rituals.service.js';
+import { dataExportService } from './services/data-export.service.js';
+import { conversationTracker, initConversationTracker } from './services/conversation-tracker.service.js';
+import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui/onboarding.ui.js';
+import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
+import { initTeamHuddleUI, showTeamHuddle } from './ui/team-huddle.ui.js';
+import { initRelationshipProgressUI, showProgressPanel as showRelationshipProgress } from './ui/relationship-progress.ui.js';
+// Push Notifications
+import { initPushNotifications } from './services/push-notifications.service.js';
+import { initNotificationSettingsUI, showNotificationSettings } from './ui/notification-settings.ui.js';
+// Structured logger
+import { createLogger } from './utils/logger.js';
+const log = createLogger('App');
+
 // 🎬 Pixar-quality Animation Orchestrator
 import { 
   initAnimationOrchestrator, 
@@ -151,7 +183,7 @@ class VoiceAIApp {
    */
   initialize(): void {
     if (this.isInitialized) {
-      console.warn('App already initialized');
+      log.warn('App already initialized');
       return;
     }
 
@@ -167,7 +199,7 @@ class VoiceAIApp {
     try {
       // Initialize platform detection (Electron/iOS/Web)
       void initPlatform();
-      console.log(`🌐 Running on: ${platform()}`);
+      log.info('Running on:', platform());
 
       // Initialize theme system first (affects all UI)
       this.initializeTheme();
@@ -219,7 +251,7 @@ class VoiceAIApp {
       });
 
     } catch (error) {
-      console.error('❌ Initialization failed:', error);
+      log.error('Initialization failed:', error);
       skeletonUI.hide();
       messageUI.show('Failed to initialize. Please refresh.', 'error');
     }
@@ -243,14 +275,14 @@ class VoiceAIApp {
         await tempCtx.resume();
       }
     } catch (e) {
-      console.debug('AudioContext pre-init:', e);
+      log.debug('AudioContext pre-init:', e);
     }
     
     // Play connect sound (soundUI only - has debouncing for mobile)
     try {
       soundUI.play('connect');
     } catch (e) {
-      console.debug('Sound play failed (OK on iOS):', e);
+      log.debug('Sound play failed (OK on iOS):', e);
     }
     
     // Show thinking indicator with connection progress
@@ -262,7 +294,7 @@ class VoiceAIApp {
     try {
       await audioService.resumeContext();
     } catch (e) {
-      console.debug('Audio resume failed:', e);
+      log.debug('Audio resume failed:', e);
     }
 
     // Step 1: Joining room
@@ -284,7 +316,7 @@ class VoiceAIApp {
       
       success = await Promise.race([connectionPromise, timeoutPromise]);
     } catch (error) {
-      console.error('Connection failed:', error);
+      log.error('Connection failed:', error);
       thinkingUI.hideProgress();
       thinkingUI.hide();
       waveformUI.setThinking(false);
@@ -362,6 +394,9 @@ class VoiceAIApp {
       // Show success message
       messageUI.show(`Connected to ${persona.name}!`, 'success', 2000);
       
+      // 📝 Start tracking this conversation for history
+      conversationTracker.startSession(persona.id, persona.name);
+      
       // Celebrate the connection! 🎉
       delightService.celebrateConnection();
       delightService.haptic('medium');
@@ -382,6 +417,9 @@ class VoiceAIApp {
       
       // Record conversation for engagement tracking
       greetingUI.recordConversation();
+      
+      // 🎭 Track relationship progression for dynamic Ferni subtitle
+      relationshipStageService.recordConversation();
       
       // Check conversation milestones - zen aesthetic, no visual effects
       const convCount = greetingUI.getConversationCount();
@@ -422,6 +460,9 @@ class VoiceAIApp {
     
     // End session stats
     statsUI.endSession();
+    
+    // 📝 End conversation tracking and persist
+    await conversationTracker.endSession();
     
     // Pause Spotify if playing
     await spotifyService.pause();
@@ -470,7 +511,7 @@ class VoiceAIApp {
    * Initialize admin dashboard (alternate route).
    */
   private async initializeAdmin(): Promise<void> {
-    console.log('🔧 Initializing Admin Dashboard...');
+    log.info('Initializing Admin Dashboard...');
     
     // Clear the main app content and show admin container
     const appContent = document.getElementById('app') || document.body;
@@ -556,7 +597,7 @@ class VoiceAIApp {
     try {
       audioService.initialize();
     } catch (err) {
-      console.warn('⚠️ Audio service init failed:', err);
+      log.warn('Audio service init failed:', err);
       // Continue anyway - sounds are nice but not critical
     }
 
@@ -579,7 +620,7 @@ class VoiceAIApp {
     try {
       initFn();
     } catch (error) {
-      console.error(`Failed to initialize ${name}:`, error);
+      log.error(`Failed to initialize ${name}:`, error);
       // Continue loading other modules
     }
   }
@@ -625,11 +666,155 @@ class VoiceAIApp {
     
     // 📊 Engagement UI - Daily practice, streaks, predictions
     this.safeInit('EngagementUI', () => initializeEngagementUI());
-    this.safeInit('PredictionsUI', () => initializePredictionsUI());
+    this.safeInit('PredictionsUI', () => {
+      initializePredictionsUI();
+      // Wire up prediction resolution callback
+      getPredictionsUI().setOnResolutionSubmit(async (predictionId, actualValue) => {
+        try {
+          const response = await fetch(`/api/predictions/${predictionId}/actuals`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ actuals: { result: actualValue } }),
+          });
+          if (!response.ok) throw new Error('Failed to save');
+          
+          // Refresh predictions data
+          const refreshResponse = await fetch('/api/predictions');
+          if (refreshResponse.ok) {
+            const data = await refreshResponse.json();
+            const predictions = data.predictions || [];
+            getPredictionsUI().update({
+              predictions: predictions.map((p: Record<string, unknown>) => ({
+                id: p.id as string,
+                category: 'overall',
+                question: `Week of ${p.weekOf}`,
+                userPrediction: 50,
+                actualOutcome: p.accuracy as number | undefined,
+                status: p.completedAt ? 'resolved' as const : 'pending' as const,
+                createdAt: p.createdAt as string,
+              })),
+              accuracy: data.stats?.averageAccuracy || null,
+              totalResolved: predictions.filter((p: Record<string, unknown>) => p.completedAt).length,
+              currentStreak: 0,
+            });
+          }
+          
+          messageUI.show('Result recorded! Nice work tracking your predictions.', 'success', 3000);
+        } catch (err) {
+          log.error('Failed to save prediction result', err);
+          throw err;
+        }
+      });
+    });
     this.safeInit('EngagementTriggerUI', () => initEngagementTriggerUI({
       onEngagementClick: () => getEngagementUI().toggle(),
       onPredictionsClick: () => getPredictionsUI().toggle(),
     }));
+    
+    // 🔔 Notifications UI - Proactive engagement notifications
+    this.safeInit('NotificationsUI', () => initNotificationsUI());
+    
+    // 🆕 New Feature UIs (v2)
+    this.safeInit('ConversationHistoryUI', () => initConversationHistoryUI());
+    this.safeInit('AnalyticsDashboardUI', () => initAnalyticsDashboardUI());
+    this.safeInit('CognitiveInsightsUI', () => initCognitiveInsightsUI());
+    
+    // 🔥 Ritual Builder - with persistence callbacks
+    this.safeInit('RitualsService', () => initRitualsService());
+    
+    // 📝 Conversation Tracker - for history persistence
+    this.safeInit('ConversationTracker', () => initConversationTracker());
+    this.safeInit('RitualBuilderUI', () => {
+      initRitualBuilderUI();
+      getRitualBuilderUI().setCallbacks({
+        onSave: async (ritual) => {
+          const saved = await ritualsService.createRitual(ritual);
+          messageUI.show(`"${saved.name}" created! You've got this.`, 'success', 4000);
+          log.info('Ritual created via builder', { id: saved.id, name: saved.name });
+        },
+        onClose: () => log.debug('Ritual builder closed'),
+      });
+    });
+    
+    this.safeInit('PredictionTrackerUI', () => initPredictionTrackerUI());
+    
+    // 📦 Data Export - with actual export/delete functionality
+    this.safeInit('DataExportUI', () => {
+      initDataExportUI();
+      getDataExportUI().setCallbacks({
+        onExport: async (format, categories) => {
+          try {
+            messageUI.show('Preparing your data...', 'info', 2000);
+            await dataExportService.exportData(format, categories);
+            messageUI.show('Your data has been downloaded!', 'success', 4000);
+          } catch (err) {
+            log.error('Export failed', err);
+            messageUI.show('Export failed. Please try again.', 'error', 4000);
+          }
+        },
+        onDeleteData: async () => {
+          try {
+            await dataExportService.deleteAllData();
+            messageUI.show('All your data has been deleted.', 'info', 4000);
+            // Optionally reload to reset state
+            setTimeout(() => window.location.reload(), 2000);
+          } catch (err) {
+            log.error('Deletion failed', err);
+            messageUI.show('Deletion failed. Please try again.', 'error', 4000);
+          }
+        },
+        onClose: () => log.debug('Data export closed'),
+      });
+    });
+    this.safeInit('OnboardingUI', () => initOnboardingUI());
+    this.safeInit('PersonaTransitionUI', () => initPersonaTransitionUI());
+    this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
+    this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
+    
+    // 📋 Settings Menu - Central navigation hub
+    this.safeInit('SettingsMenuUI', () => {
+      initSettingsMenuUI({
+        onHistoryClick: () => this.showConversationHistory(),
+        onAnalyticsClick: () => this.showAnalyticsDashboard(),
+        onCognitiveClick: () => this.showCognitiveInsights(),
+        onRitualBuilderClick: () => getRitualBuilderUI().show(),
+        onPredictionTrackerClick: () => this.showPredictionTracker(),
+        onExportDataClick: () => this.showDataExport(),
+        onOnboardingClick: () => getOnboardingUI().start(),
+        onThemeToggle: () => toggleTheme(),
+        onRelationshipProgressClick: () => showRelationshipProgress(),
+        onNotificationSettingsClick: () => showNotificationSettings(),
+        onSpotifyClick: () => void triggerSpotifyLinkToggle(),
+        onTeamHuddleClick: () => this.showTeamHuddle(),
+      });
+      
+      // Wire up Spotify state changes to menu
+      onSpotifyLinkStateChange((linked, configured) => {
+        getSettingsMenuUI().updateSpotifyState(linked, configured);
+      });
+      
+      // Initialize menu with current Spotify state
+      const spotifyStatus = getSpotifyLinkStatus();
+      getSettingsMenuUI().updateSpotifyState(spotifyStatus.linked, spotifyStatus.configured);
+    });
+    
+    // 🔔 Push Notifications
+    this.safeInit('NotificationSettingsUI', () => initNotificationSettingsUI());
+    this.safeInit('PushNotifications', () => void initPushNotifications());
+    
+    // 📬 Listen for push notification navigation events
+    window.addEventListener('ferni:open-engagement', () => {
+      getEngagementUI().show();
+    });
+    window.addEventListener('ferni:open-predictions', () => {
+      getPredictionsUI().show();
+    });
+    window.addEventListener('ferni:open-team-huddle', () => {
+      this.showTeamHuddle();
+    });
+    
+    // 📊 Load demo data for testing (when not connected to backend)
+    this.loadDemoEngagementData();
     // Agent particles disabled for cleaner professional UI
     // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
     
@@ -739,6 +924,427 @@ class VoiceAIApp {
     
     // Create ambient particles for atmosphere
     moodUI.createAmbientParticles();
+    
+    // 🆕 Auto-start onboarding for first-time users (after a short delay)
+    setTimeout(() => {
+      startOnboardingIfNeeded();
+    }, 1500);
+  }
+  
+  /**
+   * Load engagement data - uses demo data in development, real data in production.
+   * 
+   * PRODUCTION BEHAVIOR:
+   * - In development: Loads demo data for UI testing
+   * - In production: Skips demo data, waits for real data from backend
+   */
+  private loadDemoEngagementData(): void {
+    // Only load demo data in development or when explicitly enabled
+    if (!shouldUseDemoData()) {
+      log.info('Production mode - skipping demo data, will use real backend data');
+      disableDemoData();
+      return;
+    }
+    
+    // Enable demo data mode
+    enableDemoData();
+    
+    // Load demo data into engagement panel
+    const demoData = getDemoEngagementData();
+    getEngagementUI().update(demoData);
+    
+    // Update badge counts from demo data
+    const dueCount = demoData.ritualStreaks.filter(s => s.dueToday).length;
+    engagementTriggerUI.updateBadges({ ritualsdue: dueCount });
+    
+    // Load demo predictions
+    const demoPredictions = getDemoPredictions();
+    const pendingCount = demoPredictions.filter(p => p.status === 'pending').length;
+    engagementTriggerUI.updateBadges({ predictionsReady: pendingCount });
+    
+    getPredictionsUI().update({
+      predictions: demoPredictions,
+      accuracy: 78, // From demo data
+      totalResolved: demoPredictions.filter(p => p.status === 'resolved').length,
+      currentStreak: 4,
+    });
+    
+    log.debug('Demo engagement data loaded (development mode)');
+  }
+  
+  /**
+   * Show conversation history panel.
+   * Fetches real data from API, falls back to demo data in development.
+   */
+  private async showConversationHistory(): Promise<void> {
+    // Try to fetch real data from API
+    try {
+      const response = await fetch('/api/conversations');
+      if (response.ok) {
+        const data = await response.json();
+        getConversationHistoryUI().show(data);
+        return;
+      }
+    } catch (err) {
+      log.debug('API fetch failed, checking for demo mode');
+    }
+    
+    // Fall back to demo data if enabled
+    if (isDemoDataEnabled()) {
+      const demoData = {
+        sessions: [
+          {
+            id: '1',
+            date: new Date(Date.now() - 86400000).toISOString(),
+            personaId: 'ferni',
+            personaName: 'Ferni',
+            duration: 15,
+            messageCount: 24,
+            mood: 'sunny' as const,
+            insights: ['You mentioned wanting to exercise more', 'Morning routines seem important to you'],
+            highlights: ['Great progress on sleep goals'],
+            topicsDiscussed: ['Sleep', 'Exercise', 'Mindfulness'],
+          },
+          {
+            id: '2',
+            date: new Date(Date.now() - 172800000).toISOString(),
+            personaId: 'maya-santos',
+            personaName: 'Maya Santos',
+            duration: 8,
+            messageCount: 12,
+            mood: 'partly-cloudy' as const,
+            insights: ['Two-minute rule resonates with you'],
+            highlights: [],
+            topicsDiscussed: ['Habits', 'Productivity'],
+          },
+          {
+            id: '3',
+            date: new Date(Date.now() - 259200000).toISOString(),
+            personaId: 'alex-chen',
+            personaName: 'Alex Chen',
+            duration: 22,
+            messageCount: 35,
+            mood: 'sunny' as const,
+            insights: ['Communication patterns at work', 'Meeting prep strategies'],
+            highlights: ['Clarity on project priorities'],
+            topicsDiscussed: ['Work', 'Communication', 'Planning'],
+          },
+        ],
+        totalSessions: 3,
+        totalMinutes: 45,
+        favoritePersona: 'ferni',
+        insightCount: 5,
+      };
+      getConversationHistoryUI().show(demoData);
+      return;
+    }
+    
+    // Show empty state
+    getConversationHistoryUI().show({
+      sessions: [],
+      totalSessions: 0,
+      totalMinutes: 0,
+      favoritePersona: undefined,
+      insightCount: 0,
+    });
+  }
+  
+  /**
+   * Show analytics dashboard.
+   * Shows loading state, fetches real data from API, falls back to demo data in development.
+   */
+  private async showAnalyticsDashboard(): Promise<void> {
+    // Show loading state immediately
+    getAnalyticsDashboardUI().showLoading();
+    
+    // Try to fetch real data from API
+    try {
+      const userId = localStorage.getItem('ferni_user_id');
+      const url = userId 
+        ? `/api/analytics/user?userId=${encodeURIComponent(userId)}`
+        : '/api/analytics/user';
+      
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        getAnalyticsDashboardUI().show(data);
+        return;
+      }
+      log.debug('API returned non-OK status:', response.status);
+    } catch (err) {
+      log.debug('API fetch failed, checking for demo mode');
+    }
+    
+    // Fall back to demo data if enabled
+    if (isDemoDataEnabled()) {
+      const demoData = {
+        totalDays: 14,
+        totalRituals: 28,
+        currentLongestStreak: 7,
+        averageMood: 3.8,
+        predictionAccuracy: 72,
+        streakTrends: Array.from({ length: 14 }, (_, i) => ({
+          date: new Date(Date.now() - (13 - i) * 86400000).toISOString(),
+          count: Math.floor(Math.random() * 3) + 1,
+          ritualId: 'morning-sky',
+          personaId: 'ferni',
+        })),
+        moodTrends: Array.from({ length: 14 }, (_, i) => {
+          const moods: Array<'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy'> = ['sunny', 'partly-cloudy', 'cloudy', 'sunny', 'sunny'];
+          const energies: Array<'high' | 'medium' | 'low'> = ['high', 'medium', 'low'];
+          return {
+            date: new Date(Date.now() - (13 - i) * 86400000).toISOString(),
+            mood: moods[Math.floor(Math.random() * moods.length)] ?? 'sunny',
+            energy: energies[Math.floor(Math.random() * energies.length)] ?? 'medium',
+          };
+        }),
+        predictionTrends: Array.from({ length: 7 }, (_, i) => ({
+          date: new Date(Date.now() - (6 - i) * 86400000).toISOString(),
+          accuracy: 60 + Math.floor(Math.random() * 30),
+          totalPredictions: i + 1,
+        })),
+        bestDay: 'Monday',
+        mostConsistentRitual: 'Morning Sky Check',
+        improvementAreas: ['Evening rituals could be more consistent', 'Try predictions in new categories'],
+      };
+      getAnalyticsDashboardUI().show(demoData);
+      return;
+    }
+    
+    // Show empty state (real user with no data yet)
+    getAnalyticsDashboardUI().show({
+      totalDays: 0,
+      totalRituals: 0,
+      currentLongestStreak: 0,
+      averageMood: 0,
+      predictionAccuracy: null,
+      streakTrends: [],
+      moodTrends: [],
+      predictionTrends: [],
+      bestDay: null,
+      mostConsistentRitual: null,
+      improvementAreas: [],
+    });
+  }
+  
+  /**
+   * Show cognitive insights panel.
+   * Fetches real data from API, falls back to demo data in development.
+   */
+  private async showCognitiveInsights(): Promise<void> {
+    // Set up callbacks for user actions
+    getCognitiveInsightsUI().setCallbacks({
+      onDeleteMemory: async (memoryId: string) => {
+        await this.deleteMemory(memoryId);
+      },
+    });
+    
+    // Try to fetch real data from API
+    try {
+      const response = await fetch('/api/cognitive/memories');
+      if (response.ok) {
+        const data = await response.json();
+        // API now returns data in correct UI format
+        getCognitiveInsightsUI().show({
+          memories: data.memories || [],
+          patterns: data.patterns || [],
+          totalInteractions: data.totalInteractions || 0,
+          knowledgeScore: data.knowledgeScore || 0,
+        });
+        return;
+      }
+    } catch (err) {
+      log.debug('API fetch failed, checking for demo mode');
+    }
+    
+    // Fall back to demo data if enabled
+    if (isDemoDataEnabled()) {
+      const demoData = {
+        memories: [
+          { id: '1', type: 'fact' as const, content: 'You live in Seattle and work in tech', confidence: 0.95, source: 'Ferni', learnedAt: new Date(Date.now() - 604800000).toISOString() },
+          { id: '2', type: 'preference' as const, content: 'You prefer morning workouts over evening', confidence: 0.88, source: 'Maya', learnedAt: new Date(Date.now() - 432000000).toISOString() },
+          { id: '3', type: 'goal' as const, content: 'Building a meditation habit is a priority', confidence: 0.92, source: 'Ferni', learnedAt: new Date(Date.now() - 259200000).toISOString() },
+          { id: '4', type: 'pattern' as const, content: 'Energy tends to dip around 3pm', confidence: 0.75, source: 'observation', learnedAt: new Date(Date.now() - 172800000).toISOString() },
+          { id: '5', type: 'relationship' as const, content: 'Partner Sarah is supportive of your goals', confidence: 0.85, source: 'Ferni', learnedAt: new Date(Date.now() - 86400000).toISOString() },
+          { id: '6', type: 'preference' as const, content: 'You prefer index funds over individual stocks', confidence: 0.90, source: 'Jack Bogle', learnedAt: new Date(Date.now() - 518400000).toISOString() },
+          { id: '7', type: 'fact' as const, content: 'Mom\'s birthday is on March 15th', confidence: 0.98, source: 'Jordan', learnedAt: new Date(Date.now() - 345600000).toISOString() },
+        ],
+        patterns: [
+          // Communication patterns
+          { id: 'comm_style', pattern: 'You prefer direct, to-the-point communication', frequency: 45, examples: [], category: 'communication' as const },
+          { id: 'humor', pattern: 'You enjoy humor and lighter moments in our conversations', frequency: 45, examples: [], category: 'communication' as const },
+          // Timing patterns
+          { id: 'preferred_time', pattern: 'You tend to chat most in the morning', frequency: 8, examples: [], category: 'timing' as const },
+          { id: 'avg_duration', pattern: 'Our conversations typically last around 12 minutes', frequency: 45, examples: [], category: 'timing' as const },
+          // Interest patterns
+          { id: 'preferred_topics', pattern: 'Topics you love: personal growth, wellness, finance', frequency: 3, examples: ['personal growth', 'wellness', 'finance'], category: 'interests' as const },
+          { id: 'high_engagement_topics', pattern: 'You light up when we discuss: morning routines, meditation, goal-setting', frequency: 3, examples: ['morning routines', 'meditation', 'goal-setting'], category: 'interests' as const },
+          // Relationship patterns
+          { id: 'relationship_stage', pattern: 'We have a solid, established relationship', frequency: 45, examples: [], category: 'relationship' as const },
+          { id: 'key_moments', pattern: 'We\'ve shared 3 meaningful moments together', frequency: 3, examples: ['breakthrough on habits', 'celebration of first streak', 'opening up about stress'], category: 'relationship' as const },
+          { id: 'time_together', pattern: 'We\'ve spent about 2 hours and 15 minutes in conversation', frequency: 45, examples: [], category: 'relationship' as const },
+          // Engagement patterns  
+          { id: 'likes_stories', pattern: 'You engage well when I share stories and examples', frequency: 45, examples: [], category: 'engagement' as const },
+          { id: 'response_length', pattern: 'You prefer concise, to-the-point responses', frequency: 45, examples: [], category: 'communication' as const },
+          // Goals & achievements
+          { id: 'active_goals', pattern: 'You\'re working toward 2 goals', frequency: 2, examples: ['meditation habit', 'better sleep schedule'], category: 'goals' as const },
+          { id: 'completed_goals', pattern: 'You\'ve achieved 1 goal we discussed', frequency: 1, examples: ['morning routine consistency'], category: 'achievements' as const },
+          // Voice patterns
+          { id: 'speaking_pace', pattern: 'You think quickly and prefer fast-paced exchanges', frequency: 45, examples: [], category: 'voice' as const },
+          // Life context
+          { id: 'life_stage', pattern: 'You\'re building your career and establishing foundations', frequency: 1, examples: [], category: 'life' as const },
+          // Boundaries
+          { id: 'avoid_topics', pattern: 'I know to be careful around certain topics', frequency: 2, examples: [], category: 'boundaries' as const },
+        ],
+        totalInteractions: 45,
+        knowledgeScore: 78,
+      };
+      getCognitiveInsightsUI().show(demoData);
+      return;
+    }
+    
+    // Show empty state
+    getCognitiveInsightsUI().show({
+      memories: [],
+      patterns: [],
+      totalInteractions: 0,
+      knowledgeScore: 0,
+    });
+  }
+  
+  /**
+   * Delete a memory from "What I've Learned" and refresh the UI.
+   */
+  private async deleteMemory(memoryId: string): Promise<void> {
+    try {
+      const response = await fetch(`/api/cognitive/memories/${encodeURIComponent(memoryId)}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        log.info({ memoryId }, 'Memory deleted successfully');
+        // Refresh the cognitive insights panel with updated data
+        await this.showCognitiveInsights();
+      } else {
+        const error = await response.json();
+        log.warn({ memoryId, error }, 'Failed to delete memory');
+      }
+    } catch (err) {
+      log.error({ err, memoryId }, 'Error deleting memory');
+    }
+  }
+  
+  /**
+   * Show prediction tracker panel.
+   * Fetches real data from API, falls back to demo data in development.
+   */
+  private async showPredictionTracker(): Promise<void> {
+    // Try to fetch real data from API
+    try {
+      const response = await fetch('/api/predictions');
+      if (response.ok) {
+        const data = await response.json();
+        // Transform API data to UI format
+        const predictions = data.predictions || [];
+        const completed = predictions.filter((p: { accuracy?: number }) => p.accuracy !== undefined);
+        const totalCorrect = completed.reduce((sum: number, p: { accuracy: number }) => sum + (p.accuracy >= 70 ? 1 : 0), 0);
+        
+        getPredictionTrackerUI().show({
+          overallAccuracy: data.stats?.averageAccuracy || 0,
+          totalPredictions: data.stats?.totalPredictions || predictions.length,
+          correctPredictions: totalCorrect,
+          byCategory: [],
+          recentTrend: completed.slice(0, 7).map((p: { accuracy: number }) => p.accuracy),
+          bestStreak: 0,
+          currentStreak: 0,
+        });
+        return;
+      }
+    } catch (err) {
+      log.debug('API fetch failed, checking for demo mode');
+    }
+    
+    // Fall back to demo data if enabled
+    if (isDemoDataEnabled()) {
+      const demoData = {
+        overallAccuracy: 72,
+        totalPredictions: 18,
+        correctPredictions: 13,
+        byCategory: [
+          { category: 'personal', correct: 5, total: 7, accuracy: 71 },
+          { category: 'work', correct: 4, total: 5, accuracy: 80 },
+          { category: 'health', correct: 3, total: 4, accuracy: 75 },
+          { category: 'habits', correct: 1, total: 2, accuracy: 50 },
+        ],
+        recentTrend: [60, 70, 65, 80, 75, 72, 78],
+        bestStreak: 5,
+        currentStreak: 3,
+      };
+      getPredictionTrackerUI().show(demoData);
+      return;
+    }
+    
+    // Show empty state
+    getPredictionTrackerUI().show({
+      overallAccuracy: 0,
+      totalPredictions: 0,
+      correctPredictions: 0,
+      byCategory: [],
+      recentTrend: [],
+      bestStreak: 0,
+      currentStreak: 0,
+    });
+  }
+  
+  /**
+   * Show data export panel.
+   * Fetches real data from API, falls back to demo data in development.
+   */
+  private async showDataExport(): Promise<void> {
+    // Try to fetch real data from API
+    try {
+      const response = await fetch('/api/export/categories');
+      if (response.ok) {
+        const data = await response.json();
+        getDataExportUI().show(data.categories || []);
+        return;
+      }
+    } catch (err) {
+      log.debug('API fetch failed, checking for demo mode');
+    }
+    
+    // Fall back to demo data if enabled
+    if (isDemoDataEnabled()) {
+      const demoData = [
+        { category: 'Conversations', description: 'All conversation transcripts', itemCount: 45, exportable: true },
+        { category: 'Insights', description: 'AI-learned memories and patterns', itemCount: 23, exportable: true },
+        { category: 'Rituals', description: 'Daily practice history and streaks', itemCount: 156, exportable: true },
+        { category: 'Predictions', description: 'Your predictions and outcomes', itemCount: 18, exportable: true },
+        { category: 'Mood History', description: 'Emotional weather records', itemCount: 42, exportable: true },
+      ];
+      getDataExportUI().show(demoData);
+      return;
+    }
+    
+    // Show empty/placeholder state
+    getDataExportUI().show([
+      { category: 'Conversations', description: 'All conversation transcripts', itemCount: 0, exportable: true },
+      { category: 'Insights', description: 'AI-learned memories and patterns', itemCount: 0, exportable: true },
+      { category: 'Rituals', description: 'Daily practice history and streaks', itemCount: 0, exportable: true },
+      { category: 'Predictions', description: 'Your predictions and outcomes', itemCount: 0, exportable: true },
+      { category: 'Mood History', description: 'Emotional weather records', itemCount: 0, exportable: true },
+    ]);
+  }
+  
+  /**
+   * Show team huddle panel.
+   * Displays multi-persona check-in with the whole team's observations.
+   */
+  private showTeamHuddle(): void {
+    // Show demo team huddle (weekly check-in by default)
+    const demoHuddle = getDemoTeamHuddle('weekly');
+    showTeamHuddle(demoHuddle);
+    log.debug('Team huddle shown');
   }
   
   /**
@@ -807,7 +1413,7 @@ class VoiceAIApp {
     room.localParticipant.publishData(
       new TextEncoder().encode(message),
       { reliable: true }
-    ).catch(err => console.error('Handoff request failed:', err));
+    ).catch(err => log.error('Handoff request failed:', err));
   }
 
   /**
@@ -885,7 +1491,7 @@ class VoiceAIApp {
       // },
 
       onError: (error) => {
-        console.error('Connection error:', error);
+        log.error('Connection error:', error);
         messageUI.show(`Error: ${error.message}`, 'error');
         thinkingUI.hide();
         waveformUI.setThinking(false);
@@ -899,7 +1505,7 @@ class VoiceAIApp {
     let handoffUITimeout: ReturnType<typeof setTimeout> | null = null;
     
     handoffService.onHandoffStart((toPersona, _fromPersona) => {
-      console.log(`🚀 [App] onHandoffStart: toPersona=${toPersona}`);
+      log.debug('onHandoffStart:', { toPersona });
       // Show shimmer effect on waveform
       waveformUI.setTransitioning(true);
       
@@ -910,15 +1516,15 @@ class VoiceAIApp {
         const persona = getPersona(toPersona);
         handoffTargetName.textContent = persona.name;
         handoffProgress.classList.remove('hidden');
-        console.log(`📍 [App] Showing handoff progress for ${persona.name}`);
+        log.debug('Showing handoff progress for', persona.name);
       } else {
-        console.warn(`⚠️ [App] handoffProgress element not found!`);
+        log.warn('handoffProgress element not found!');
       }
       
       // FIX BUG: Safety timeout - force hide UI after 20 seconds max
       if (handoffUITimeout) clearTimeout(handoffUITimeout);
       handoffUITimeout = setTimeout(() => {
-        console.warn(`⏰ [App] Safety timeout - forcing handoff UI cleanup`);
+        log.warn('Safety timeout - forcing handoff UI cleanup');
         waveformUI.setTransitioning(false);
         const progress = document.getElementById('handoffProgress');
         if (progress) progress.classList.add('hidden');
@@ -928,7 +1534,7 @@ class VoiceAIApp {
     
     // When handoff completes - agent is ready to speak
     handoffService.onHandoffComplete((toPersona) => {
-      console.log(`✅ [App] onHandoffComplete: toPersona=${toPersona}`);
+      log.debug('onHandoffComplete:', { toPersona });
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) { clearTimeout(handoffUITimeout); handoffUITimeout = null; }
       
@@ -939,7 +1545,7 @@ class VoiceAIApp {
       const handoffProgress = document.getElementById('handoffProgress');
       if (handoffProgress) {
         handoffProgress.classList.add('hidden');
-        console.log(`📍 [App] Hiding handoff progress`);
+        log.debug('Hiding handoff progress');
       }
       // Also make sure thinking is hidden
       thinkingUI.hide();
@@ -947,7 +1553,7 @@ class VoiceAIApp {
     
     // When handoff fails - hide indicator and show error
     handoffService.onHandoffFailed((error, targetPersona) => {
-      console.log(`❌ [App] onHandoffFailed: error=${error}, target=${targetPersona}`);
+      log.error('onHandoffFailed:', { error, targetPersona });
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) { clearTimeout(handoffUITimeout); handoffUITimeout = null; }
       
@@ -963,7 +1569,7 @@ class VoiceAIApp {
     
     // When handoff is cancelled - hide indicator
     handoffService.onHandoffCancelled((targetPersona, reason) => {
-      console.log(`🚫 [App] onHandoffCancelled: target=${targetPersona}, reason=${reason}`);
+      log.info('onHandoffCancelled:', { targetPersona, reason });
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) { clearTimeout(handoffUITimeout); handoffUITimeout = null; }
       
@@ -978,7 +1584,7 @@ class VoiceAIApp {
     
     // Main handoff callback (plays sounds, updates UI)
     handoffService.onHandoff((handoff) => {
-      console.log(`🎉 [App] onHandoff: toPersona=${handoff.toPersona}, fromPersona=${handoff.fromPersona}`);
+      log.debug('onHandoff:', { toPersona: handoff.toPersona, fromPersona: handoff.fromPersona });
       
       // Get the NEW persona directly from the handoff, not from state
       const newPersona = getPersona(handoff.toPersona);
@@ -1054,25 +1660,53 @@ class VoiceAIApp {
         }
       },
       
+      onEngagementTrigger: (trigger) => {
+        // Handle engagement triggers from the agent
+        this.handleEngagementTrigger(trigger);
+      },
+      
       onPredictionsUpdate: (predictions) => {
         // Update predictions UI
         const readyCount = predictions.filter(p => p.status === 'resolved').length;
         engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
         
         // Update predictions panel
+        // Calculate prediction streak: consecutive accurate predictions (within 15% of actual)
+        const resolved = predictions
+          .filter(p => p.status === 'resolved' && p.actualOutcome !== undefined)
+          .sort((a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime());
+        
+        let predictionStreak = 0;
+        for (const p of resolved) {
+          const error = Math.abs(p.userPrediction - (p.actualOutcome ?? 0));
+          if (error <= 15) {
+            predictionStreak++;
+          } else {
+            break; // Streak broken
+          }
+        }
+
         getPredictionsUI().update({
           predictions,
           accuracy: engagementService.calculateAccuracy(),
           totalResolved: predictions.filter(p => p.status === 'resolved').length,
-          currentStreak: 0, // TODO: Calculate from prediction history
+          currentStreak: predictionStreak,
         });
       },
       
       onStreakMilestone: (streak) => {
-        // Celebrate streak milestones with warmth
-        celebrationsUI.warmthGlow({ intensity: 'warm' });
-        messageUI.show(`${streak.ritualName}: ${streak.count} day streak`, 'success', 3000);
-        delightService.haptic('medium');
+        // Celebrate streak milestones with brand-aligned animations
+        if (isStreakMilestone(streak.count)) {
+          // Play Pixar-style particle celebration
+          celebrateStreak(streak.count, streak.personaId);
+          
+          // Show notification
+          showStreakMilestone(streak.ritualName, streak.count, streak.personaId);
+        }
+        
+        // Always show warmth glow and haptic feedback
+        celebrationsUI.warmthGlow({ intensity: streak.count >= 30 ? 'intense' : 'warm' });
+        delightService.haptic(streak.count >= 7 ? 'heavy' : 'medium');
         presenceUI.bounce();
       },
     });
@@ -1142,6 +1776,36 @@ class VoiceAIApp {
         // Status update
         if (typeof message['text'] === 'string') {
           messageUI.show(message['text'], 'info');
+        }
+        break;
+      
+      case 'transcript':
+      case 'agent_transcript':
+        // Track agent message for conversation history
+        if (typeof message['text'] === 'string') {
+          conversationTracker.addMessage('agent', message['text'], message['personaId'] as string | undefined);
+        }
+        break;
+      
+      case 'user_transcript':
+        // Track user message for conversation history
+        if (typeof message['text'] === 'string') {
+          conversationTracker.addMessage('user', message['text']);
+        }
+        break;
+      
+      case 'insight':
+      case 'memory':
+        // Track insights for conversation history
+        if (typeof message['content'] === 'string') {
+          conversationTracker.addInsight(message['content']);
+        }
+        break;
+      
+      case 'topic':
+        // Track topics discussed
+        if (typeof message['topic'] === 'string') {
+          conversationTracker.addTopic(message['topic']);
         }
         break;
 
@@ -1252,7 +1916,7 @@ class VoiceAIApp {
    * The waveform responds gently and reflectively.
    */
   private handleMusic(event: MusicEvent): void {
-    console.log('[App] Music event:', event.state, event.trackName);
+    log.debug('Music event:', event.state, event.trackName);
     
     if (event.state === 'playing') {
       // Avatar: Bass speaker pulse - music is playing
@@ -1269,16 +1933,16 @@ class VoiceAIApp {
         messageUI.show(`${event.trackName} by ${event.artistName}`, 'info', 3000);
       }
       
-      console.log('[App] Music playing:', event.trackName);
+      log.debug('Music playing:', event.trackName);
     } else if (event.state === 'ducking') {
       // Agent speaking over music - subtle the pulse
       avatarFeedback.ducking();
       // Waveform stays in music mode but is naturally calmer during speech
-      console.log('[App] Music ducking (agent speaking)');
+      log.debug('Music ducking (agent speaking)');
     } else if (event.state === 'fading') {
       // DJ-style fade out - track ending soon
       avatarFeedback.fading();
-      console.log('[App] Music fading out...');
+      log.debug('Music fading out...');
     } else if (event.state === 'paused' || event.state === 'stopped' || event.state === 'idle') {
       // Gracefully return to rest
       avatarFeedback.stopDancing();
@@ -1286,7 +1950,7 @@ class VoiceAIApp {
       // Waveform: Return to normal behavior
       waveformUI.setMusicPlaying(false);
       
-      console.log('[App] Music stopped');
+      log.debug('Music stopped');
     }
   }
 
@@ -1295,7 +1959,7 @@ class VoiceAIApp {
    * These are natural conversation prompts about rituals, streaks, predictions.
    */
   private handleEngagementTrigger(event: EngagementTriggerEvent): void {
-    console.log('[App] Engagement trigger:', event.triggerType, event.message);
+    log.debug('Engagement trigger:', event.triggerType, event.message);
 
     // Update badge state based on trigger type
     switch (event.triggerType) {
@@ -1313,6 +1977,10 @@ class VoiceAIApp {
         break;
       case 'ritual_reminder':
         engagementTriggerUI.pulseEngagement();
+        break;
+      case 'team_suggestion':
+        // Show team huddle when the agent suggests it
+        this.showTeamHuddle();
         break;
     }
 

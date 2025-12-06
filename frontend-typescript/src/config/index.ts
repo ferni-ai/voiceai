@@ -26,6 +26,8 @@ export const STORAGE_KEYS = {
   USER_NAME: 'voiceai_userName',
   DEVICE_ID: 'voiceai_deviceId',
   SELECTED_PERSONA: 'voiceai_selectedPersona',
+  /** User ID for API calls - derived from device ID for consistency */
+  USER_ID: 'ferni_user_id',
 } as const;
 
 // ============================================================================

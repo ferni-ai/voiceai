@@ -318,7 +318,4 @@ Shows what notifications are enabled and how they're delivered.`,
 // EXPORTS
 // ============================================================================
 
-// Legacy alias for backward compatibility
-export const createMayaNotificationTools = createNotificationTools;
-
 export default createNotificationTools;

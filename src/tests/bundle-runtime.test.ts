@@ -13,6 +13,8 @@ import type {
   BundleMicroExpressions,
   BundleContextualNuances,
   BundleConflictHandling,
+  BundleInnerWorld,
+  BundleSensoryWorld,
 } from '../personas/bundles/types.js';
 
 // ============================================================================
@@ -644,8 +646,6 @@ describe('Integration: Mode + Relationship + Context', () => {
 // ============================================================================
 // INNER WORLD TYPES (Mock data for human depth)
 // ============================================================================
-
-import type { BundleInnerWorld, BundleSensoryWorld } from '../personas/bundles/types.js';
 
 const mockInnerWorld: BundleInnerWorld = {
   inner_voice: {

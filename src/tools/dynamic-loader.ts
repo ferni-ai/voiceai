@@ -696,7 +696,7 @@ export class DynamicToolLoader {
 
       const idleTime = now - state.lastUsedAt.getTime();
       if (idleTime > this.config.unloadAfterMs) {
-        this.unloadDomain(domain);
+        void this.unloadDomain(domain);
       }
     }
   }

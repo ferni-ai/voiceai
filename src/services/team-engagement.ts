@@ -1031,25 +1031,25 @@ export class TeamEngagementService {
     const { type, value } = event.unlockCondition;
 
     switch (type) {
-      case 'relationship_stage':
+      case 'relationship_stage': {
         if (!profile) return false;
         const stageOrder = ['new_acquaintance', 'getting_to_know', 'trusted_advisor', 'old_friend'];
         const requiredIndex = stageOrder.indexOf(value as string);
         const currentIndex = stageOrder.indexOf(profile.relationshipStage);
         return currentIndex >= requiredIndex;
-
-      case 'conversation_count':
+      }
+      case 'conversation_count': {
         if (!profile) return false;
         return (profile.totalConversations || 0) >= (value as number);
-
-      case 'time_based':
+      }
+      case 'time_based': {
         // Random chance based on time
         return Math.random() < 0.1;
-
-      case 'topic_discussed':
+      }
+      case 'topic_discussed': {
         if (!profile) return false;
         return profile.preferredTopics?.includes(value as string) || false;
-
+      }
       default:
         return false;
     }

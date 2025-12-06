@@ -13,6 +13,9 @@ import { loadSlim } from '@tsparticles/slim';
 import type { Container, ISourceOptions, MoveDirection } from '@tsparticles/engine';
 import { addClass, removeClass } from '../utils/dom.js';
 import { getParticleProfile, type ParticleProfile } from '@design-system/tokens';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Particles');
 
 // ============================================================================
 // CONSTANTS
@@ -111,7 +114,7 @@ export async function initAgentParticles(): Promise<void> {
       particlesInitialized = true;
     }
   } catch (error) {
-    console.error('Failed to initialize agent particles:', error);
+    log.error('Failed to initialize agent particles:', error);
   }
 }
 
@@ -415,7 +418,7 @@ async function updateParticles(): Promise<void> {
     });
     particlesContainer = loaded ?? null;
   } catch (error) {
-    console.error('Failed to update agent particles:', error);
+    log.error('Failed to update agent particles:', error);
   }
 }
 

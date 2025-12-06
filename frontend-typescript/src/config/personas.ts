@@ -15,7 +15,7 @@
  *   - UI-specific configs (colors, theme classes, sound effects)
  *   - Display settings (quotes formatting, skill icons)
  * 
- * CANONICAL IDs (core team) - discovered from manifests, not hardcoded:
+ * CANONICAL IDS (core team) - discovered from manifests, not hardcoded:
  * - ferni (Life Coach / Coordinator)
  * - peter-john (Research & Discovery / The Quant)
  * - alex-chen (Communications & Coaching)
@@ -23,6 +23,10 @@
  * - jordan-taylor (Lifetime Planning)
  * - nayan-patel (Lifetime Advisor / Sage)
  */
+
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Personas');
 
 import type { PersonaConfig, PersonaRegistry, PersonaId, PersonaSkill } from '../types/persona.js';
 import { isValidPersonaId } from '../types/persona.js';
@@ -278,7 +282,7 @@ export function getPersona(id: string): PersonaConfig {
     return PERSONAS[normalized];
   }
   
-  console.warn(`Unknown persona ID: ${id}, falling back to coach`);
+  log.warn(`Unknown persona ID: ${id}, falling back to coach`);
   return PERSONAS[COORDINATOR_ID];
 }
 

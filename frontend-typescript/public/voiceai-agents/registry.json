@@ -6,27 +6,6 @@
   "repository": "https://github.com/sethdford/voiceai-agents",
   "agents": [
     {
-      "id": "joel-dickson",
-      "name": "Joel Dickson",
-      "version": "2.0.0",
-      "description": "Wise mentor and friend with a Stanford PhD and 30 years at Vanguard. Helps with life decisions, career crossroads, family transitions, and finding purpose.",
-      "author": "VoiceAI Team",
-      "license": "premium",
-      "category": "mentorship",
-      "tags": ["mentor", "life-coach", "vanguard", "investing", "career", "wisdom"],
-      "path": "agents/joel-dickson",
-      "requirements": {
-        "voice_id_env": "JOEL_DICKSON_VOICE_ID",
-        "min_platform_version": "2.0.0"
-      },
-      "marketplace": {
-        "icon": "🎓",
-        "featured": true,
-        "downloads": 0,
-        "rating": 5.0
-      }
-    },
-    {
       "id": "elena-mindful",
       "name": "Elena",
       "version": "1.0.0",

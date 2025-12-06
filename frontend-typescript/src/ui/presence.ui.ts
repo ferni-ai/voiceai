@@ -25,6 +25,10 @@
  * NOTE: Animation constants imported from @design-system/tokens
  */
 
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('PresenceUI');
+
 import {
   AVATAR_BREATH_TIMING,
   REACTION_PHASES,
@@ -106,7 +110,7 @@ export function initPresenceUI(): void {
   avatarContainer = document.querySelector('.avatar-container');
   
   if (!avatarElement) {
-    console.warn('Avatar element not found');
+    log.warn('Avatar element not found');
     return;
   }
   

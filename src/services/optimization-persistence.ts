@@ -607,12 +607,42 @@ class OptimizationPersistenceService {
       // Get latest analysis time
       const latestAnalysis = await this.getLatestPatternAnalysis();
 
+      // Calculate average session duration from sessions
+      let totalDuration = 0;
+      let durationCount = 0;
+      const toolUsageCount = new Map<string, number>();
+
+      for (const doc of sessionSnapshot.docs) {
+        const data = doc.data();
+        if (data && data.durationMs && typeof data.durationMs === 'number') {
+          totalDuration += data.durationMs;
+          durationCount++;
+        }
+        // Aggregate tool usage
+        if (data && data.toolsUsed && Array.isArray(data.toolsUsed)) {
+          for (const tool of data.toolsUsed as Array<string | { name?: string }>) {
+            const toolName = typeof tool === 'string' ? tool : tool.name;
+            if (toolName) {
+              toolUsageCount.set(toolName, (toolUsageCount.get(toolName) || 0) + 1);
+            }
+          }
+        }
+      }
+
+      const avgSessionDuration = durationCount > 0 ? Math.round(totalDuration / durationCount) : 0;
+
+      // Get top 10 most used tools
+      const topTools = Array.from(toolUsageCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([toolId, count]) => ({ toolId, count }));
+
       return {
         totalFeedback: feedbackSnapshot.size,
         feedbackByType,
         totalSessions: sessionSnapshot.size,
-        avgSessionDuration: 0, // TODO: Calculate from sessions
-        topTools: [], // TODO: Aggregate from sessions
+        avgSessionDuration,
+        topTools,
         activeExperiments: experimentsSnapshot.size,
         pendingRecommendations: recsSnapshot.size,
         lastAnalysisTime: latestAnalysis?.analyzedAt || null,

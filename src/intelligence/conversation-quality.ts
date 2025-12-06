@@ -11,21 +11,7 @@
  * - Conversation pacing score
  */
 
-// Use a safe logger that works in both runtime and test environments
-const getLogger = () => {
-  try {
-    const { log } = require('@livekit/agents');
-    return log();
-  } catch {
-    // Return a no-op logger for tests
-    return {
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-      debug: () => {},
-    };
-  }
-};
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // FAREWELL SUMMARY - "What to Remember Next Time"

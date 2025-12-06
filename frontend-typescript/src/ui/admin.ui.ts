@@ -14,6 +14,9 @@
 
 import { fetchAgents, type ApiAgent } from '../services/agents.service.js';
 import { getColorsFromApiOrGenerate } from '../config/persona-colors.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('AdminUI');
 
 // ============================================================================
 // STATE
@@ -46,7 +49,7 @@ const state: AdminState = {
 export async function initAdminDashboard(): Promise<void> {
   const container = document.getElementById('adminDashboard');
   if (!container) {
-    console.warn('Admin dashboard container not found');
+    log.warn('Admin dashboard container not found');
     return;
   }
 
@@ -608,8 +611,8 @@ async function validateAllAgents(): Promise<void> {
       showToast('✓ All agents valid!');
     } else {
       showToast('⚠ Validation found issues - check console');
-      console.log('Validation output:', data.output);
-      if (data.errors) console.error('Validation errors:', data.errors);
+      log.debug('Validation output:', data.output);
+      if (data.errors) log.error('Validation errors:', data.errors);
     }
   } catch (err) {
     showToast('Failed to run validation');
@@ -666,7 +669,7 @@ export function injectAdminStyles(): void {
       padding: 2rem;
       max-width: 1200px;
       margin: 0 auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     }
 
     .admin-header {
@@ -701,13 +704,13 @@ export function injectAdminStyles(): void {
     }
 
     .admin-btn--primary {
-      background: var(--color-primary, #4a6741);
-      border-color: var(--color-primary, #4a6741);
+      background: var(--persona-primary, #4a6741);
+      border-color: var(--persona-primary, #4a6741);
     }
 
     .admin-btn--danger {
-      background: #c53030;
-      border-color: #c53030;
+      background: var(--color-semantic-error, #c53030);
+      border-color: var(--color-semantic-error, #c53030);
     }
 
     .admin-btn--small {
@@ -765,8 +768,8 @@ export function injectAdminStyles(): void {
     }
 
     .admin-agent-card--coordinator {
-      border-color: var(--agent-primary, #4a6741);
-      background: rgba(74, 103, 65, 0.1);
+      border-color: var(--agent-primary, var(--persona-primary, #4a6741));
+      background: var(--persona-tint, rgba(74, 103, 65, 0.1));
     }
 
     .admin-agent-drag-handle {
@@ -855,7 +858,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-toggle input:checked + .admin-toggle-slider {
-      background: #48bb78;
+      background: var(--color-semantic-success, #48bb78);
     }
 
     .admin-toggle input:checked + .admin-toggle-slider::before {
@@ -939,17 +942,17 @@ export function injectAdminStyles(): void {
     .admin-detail-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0,0,0,0.5);
+      background: var(--backdrop-medium, rgba(0,0,0,0.5));
     }
 
     .admin-detail-content {
       position: relative;
       width: 400px;
       max-width: 90vw;
-      background: #1a1a2e;
+      background: var(--color-background-elevated, #1a1a2e);
       overflow-y: auto;
       transform: translateX(100%);
-      transition: transform 0.3s ease;
+      transition: transform 0.3s var(--ease-standard, ease);
     }
 
     .admin-detail-panel.open .admin-detail-content {
@@ -1071,11 +1074,11 @@ export function injectAdminStyles(): void {
       left: 50%;
       transform: translateX(-50%) translateY(100px);
       padding: 0.75rem 1.5rem;
-      background: #2d3748;
-      color: #fff;
-      border-radius: 8px;
+      background: var(--color-background-tertiary, #2d3748);
+      color: var(--color-text-primary, #fff);
+      border-radius: var(--radius-lg, 8px);
       opacity: 0;
-      transition: all 0.3s;
+      transition: all 0.3s var(--ease-standard, ease);
       z-index: 2000;
     }
 
@@ -1112,7 +1115,7 @@ export function injectAdminStyles(): void {
     }
 
     .admin-error h2 {
-      color: #fc8181;
+      color: var(--color-semantic-error, #fc8181);
     }
   `;
   document.head.appendChild(styles);

@@ -41,6 +41,10 @@ import {
   isBehaviorAllowed,
   getChallengePhrase,
   getDeepQuestion,
+  mapUserProfileStageToHumanizing,
+  mapHumanizingStageToUserProfile,
+  getRelationshipStageFromProfile,
+  type UserProfile,
 } from '../intelligence/context-builders/relationship-behaviors.js';
 
 // Humanizing Context Builder (orchestrator)
@@ -990,14 +994,6 @@ import {
   getMoodTrend,
   getRelationshipDepthScore,
 } from '../services/humanizing-state.js';
-
-import {
-  mapUserProfileStageToHumanizing,
-  mapHumanizingStageToUserProfile,
-  getRelationshipStageFromProfile,
-} from '../intelligence/context-builders/relationship-behaviors.js';
-
-import type { UserProfile } from '../types/user-profile.js';
 
 describe('Humanizing State Service', () => {
   describe('getHumanizingState', () => {

@@ -1,14 +1,61 @@
 /**
- * Persona ID Mapping - Single Source of Truth
+ * Persona ID Mapping - Core ID Types and Resolution
  *
- * This module provides centralized ID mapping for personas.
+ * This module provides:
+ * - AgentRole enum (role-based identifiers)
+ * - PersonaId type (canonical persona IDs)
+ * - PERSONA_REGISTRY (persona metadata)
+ * - ID resolution functions
  *
- * CANONICAL IDs (used everywhere):
+ * NOTE: For new code, prefer importing via the central module:
+ *   import { AgentRole, getPersonaId, isCoach } from '../personas/index.js';
+ *
+ * CORE EXPORTS (kept):
+ *
+ * AGENT ROLES (stable, role-based identifiers):
+ * Use AgentRole enum values in code for type safety and easy persona swapping.
+ * - AgentRole.COACH - Life coach (currently: Ferni)
+ * - AgentRole.COMMUNICATOR - Communication specialist (currently: Alex)
+ * - AgentRole.HABITS - Habit/budget tracker (currently: Maya)
+ * - AgentRole.PLANNER - Life/event planner (currently: Jordan)
+ * - AgentRole.RESEARCHER - Research specialist (currently: Peter)
+ * - AgentRole.SAGE - Wisdom/mentor figure (currently: Nayan)
+ *
+ * CANONICAL IDs (string-based, for storage/display):
  * - ferni, alex-chen, maya-santos, jordan-taylor, peter-john, nayan-patel
  *
- * Legacy aliases are still supported for backward compatibility but canonical IDs
- * should be used in all new code.
+ * Legacy aliases are still supported for backward compatibility.
  */
+
+// ============================================================================
+// AGENT ROLE ENUM - Stable identifiers based on function, not persona
+// ============================================================================
+
+/**
+ * Agent roles are stable identifiers based on the agent's FUNCTION.
+ * Use these instead of string IDs to enable easy persona swapping.
+ *
+ * @example
+ * // Good - role-based
+ * handoff(AgentRole.PLANNER)
+ *
+ * // Avoid - string-based (harder to swap personas)
+ * handoff('jordan-taylor')
+ */
+export enum AgentRole {
+  /** Life coach - main entry point (currently: Ferni) */
+  COACH = 'role_coach',
+  /** Communication specialist (currently: Alex Chen) */
+  COMMUNICATOR = 'role_comms',
+  /** Habit tracker / budgeting (currently: Maya Santos) */
+  HABITS = 'role_habits',
+  /** Life/event planner (currently: Jordan Taylor) */
+  PLANNER = 'role_planner',
+  /** Research specialist (currently: Peter John) */
+  RESEARCHER = 'role_research',
+  /** Wisdom/sage figure (currently: Nayan Patel) */
+  SAGE = 'role_sage',
+}
 
 // ============================================================================
 // ID FORMAT TYPES
@@ -23,13 +70,10 @@ export type PersonaId =
   | 'peter-john'
   | 'nayan-patel';
 
-/** @deprecated Use PersonaId instead */
-export type BundleId = PersonaId;
+/** Input type for functions - accepts both AgentRole and string aliases */
+export type AgentIdInput = AgentRole | string;
 
-/** @deprecated Use PersonaId instead - all IDs are now canonical */
-export type FrontendId = PersonaId;
-
-/** @deprecated Use PersonaId instead - all IDs are now canonical */
+/** Agent ID type (alias for PersonaId) - widely used throughout codebase */
 export type AgentId = PersonaId;
 
 // ============================================================================
@@ -38,6 +82,7 @@ export type AgentId = PersonaId;
 
 export interface PersonaMetadata {
   id: PersonaId;
+  agentRole: AgentRole;
   /** @deprecated Use id instead */
   bundleId: PersonaId;
   /** @deprecated Use id instead */
@@ -52,10 +97,59 @@ export interface PersonaMetadata {
   aliases: string[];
 }
 
+// ============================================================================
+// ROLE TO PERSONA MAPPING
+// ============================================================================
+
+/**
+ * Maps AgentRole enum values to the current persona ID for that role.
+ * This is the ONLY place to change when swapping a persona for a role.
+ */
+export const ROLE_TO_PERSONA: Record<AgentRole, PersonaId> = {
+  [AgentRole.COACH]: 'ferni',
+  [AgentRole.COMMUNICATOR]: 'alex-chen',
+  [AgentRole.HABITS]: 'maya-santos',
+  [AgentRole.PLANNER]: 'jordan-taylor',
+  [AgentRole.RESEARCHER]: 'peter-john',
+  [AgentRole.SAGE]: 'nayan-patel',
+};
+
+/**
+ * Resolves any agent identifier (AgentRole, PersonaId, or alias) to the canonical PersonaId.
+ *
+ * @example
+ * resolveAgentId(AgentRole.PLANNER) // => 'jordan-taylor'
+ * resolveAgentId('jordan')          // => 'jordan-taylor'
+ * resolveAgentId('jordan-taylor')   // => 'jordan-taylor'
+ */
+export function resolveAgentId(input: AgentIdInput): PersonaId {
+  // If it's an AgentRole enum value, look up the persona
+  if (Object.values(AgentRole).includes(input as AgentRole)) {
+    return ROLE_TO_PERSONA[input as AgentRole];
+  }
+
+  // Otherwise, resolve string alias to canonical ID
+  return getPersonaId(input as string);
+}
+
+/**
+ * Gets the AgentRole for a given persona ID or alias.
+ *
+ * @example
+ * getAgentRole('jordan-taylor') // => AgentRole.PLANNER
+ * getAgentRole('jordan')        // => AgentRole.PLANNER
+ */
+export function getAgentRoleForPersona(id: string): AgentRole {
+  const personaId = getPersonaId(id);
+  const metadata = PERSONA_REGISTRY[personaId];
+  return metadata.agentRole;
+}
+
 /** Complete persona registry with all ID mappings */
 export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   ferni: {
     id: 'ferni',
+    agentRole: AgentRole.COACH,
     bundleId: 'ferni',
     frontendId: 'ferni',
     agentId: 'ferni',
@@ -68,6 +162,7 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   },
   'peter-john': {
     id: 'peter-john',
+    agentRole: AgentRole.RESEARCHER,
     bundleId: 'peter-john',
     frontendId: 'peter-john',
     agentId: 'peter-john',
@@ -80,6 +175,7 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   },
   'alex-chen': {
     id: 'alex-chen',
+    agentRole: AgentRole.COMMUNICATOR,
     bundleId: 'alex-chen',
     frontendId: 'alex-chen',
     agentId: 'alex-chen',
@@ -92,6 +188,7 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   },
   'maya-santos': {
     id: 'maya-santos',
+    agentRole: AgentRole.HABITS,
     bundleId: 'maya-santos',
     frontendId: 'maya-santos',
     agentId: 'maya-santos',
@@ -118,6 +215,7 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   },
   'jordan-taylor': {
     id: 'jordan-taylor',
+    agentRole: AgentRole.PLANNER,
     bundleId: 'jordan-taylor',
     frontendId: 'jordan-taylor',
     agentId: 'jordan-taylor',
@@ -138,6 +236,7 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   },
   'nayan-patel': {
     id: 'nayan-patel',
+    agentRole: AgentRole.SAGE,
     bundleId: 'nayan-patel',
     frontendId: 'nayan-patel',
     agentId: 'nayan-patel',
@@ -169,6 +268,9 @@ function initializeAliasCache(): void {
     aliasCache.set(metadata.displayName.toLowerCase(), pid);
     aliasCache.set(metadata.shortName.toLowerCase(), pid);
 
+    // Add AgentRole enum value as alias
+    aliasCache.set(metadata.agentRole, pid);
+
     // Add all aliases (for backward compatibility)
     for (const alias of metadata.aliases) {
       aliasCache.set(alias.toLowerCase(), pid);
@@ -184,21 +286,6 @@ export function getPersonaId(id: string): PersonaId {
   initializeAliasCache();
   const normalized = id.toLowerCase().trim();
   return aliasCache.get(normalized) || 'ferni'; // Default to coach
-}
-
-/** @deprecated Use getPersonaId instead */
-export function getBundleId(id: string): PersonaId {
-  return getPersonaId(id);
-}
-
-/** @deprecated Use getPersonaId instead */
-export function getFrontendId(id: string): PersonaId {
-  return getPersonaId(id);
-}
-
-/** @deprecated Use getPersonaId instead */
-export function getAgentId(id: string): PersonaId {
-  return getPersonaId(id);
 }
 
 /**
@@ -273,9 +360,6 @@ export function isKnownPersonaId(id: string): boolean {
 export default {
   PERSONA_REGISTRY,
   getPersonaId,
-  getBundleId, // deprecated
-  getFrontendId, // deprecated
-  getAgentId, // deprecated
   getDisplayName,
   getShortName,
   getPersonaMetadata,

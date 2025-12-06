@@ -154,7 +154,9 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
         'Retrying after error'
       );
 
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, delay);
+      });
     }
   }
 

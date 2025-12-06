@@ -22,7 +22,7 @@
  * ```
  */
 
-import { DURATION, EASING } from '../config/animation-constants';
+// Animation constants imported when needed
 
 // ============================================================================
 // TYPES
@@ -130,7 +130,7 @@ const STYLES = `
     font-weight: var(--font-weight-semibold, 600);
     text-transform: uppercase;
     letter-spacing: var(--tracking-wider, 0.05em);
-    color: var(--color-text-muted, #d0c4b4);
+    color: var(--color-text-muted);
   }
   
   .insight-message {
@@ -142,8 +142,18 @@ const STYLES = `
   
   .insight-detail {
     font-size: var(--text-xs, 0.75rem);
-    color: var(--color-text-muted, #d0c4b4);
+    color: var(--color-text-muted);
     line-height: var(--leading-normal, 1.6);
+  }
+  
+  /* Dark Theme - WCAG AA Compliant */
+  [data-theme="midnight"] .insight-label,
+  [data-theme="midnight"] .insight-detail {
+    color: var(--color-text-muted, #e8e2da);
+  }
+  
+  [data-theme="midnight"] .insight-message {
+    color: var(--color-text-primary, #faf6f0);
   }
   
   .insight-progress {

@@ -17,7 +17,7 @@ import {
   getVoiceId,
 } from '../../personas/voice-registry.js';
 import { AgentRegistry } from '../../personas/registry/unified-registry.js';
-import { createHandoffEvent } from '../../personas/PersonaRegistry.js';
+import { createHandoffEvent } from './types.js';
 import {
   getAliveEntranceForHandoff,
   detectUserMoodFromContext,

@@ -121,9 +121,9 @@ export class CollectiveLearningStore {
     // Timeout for all Firestore operations - don't let them block forever
     const LOAD_TIMEOUT_MS = 3000;
 
-    const timeoutPromise = new Promise<'timeout'>((resolve) =>
-      setTimeout(() => resolve('timeout'), LOAD_TIMEOUT_MS)
-    );
+    const timeoutPromise = new Promise<'timeout'>((resolve) => {
+      setTimeout(() => resolve('timeout'), LOAD_TIMEOUT_MS);
+    });
 
     try {
       // Load in parallel with timeout

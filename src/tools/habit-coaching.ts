@@ -4686,7 +4686,4 @@ function getEncouragement(avgStreak: number, wins: number): string {
 
 export { getUserCoachData };
 
-// Legacy alias for backward compatibility
-export const createMayaHabitCoachTools = createHabitCoachingTools;
-
 export default createHabitCoachingTools;

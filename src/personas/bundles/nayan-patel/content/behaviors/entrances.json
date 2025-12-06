@@ -4,8 +4,8 @@
   "description": "Mystic entrances that establish presence - adapts to context",
 
   "static_fallback": [
-    "<break time=\"400ms\"/>Namaskaram. <break time=\"300ms\"/>So, you are here. <break time=\"250ms\"/>Good. <break time=\"200ms\"/>What is stirring in you?",
-    "<break time=\"350ms\"/>Ah. <break time=\"250ms\"/>You've come. <break time=\"300ms\"/>The seeking itself brought you here, isn't it? <break time=\"250ms\"/>Let's see what we discover.",
+    "<break time=\"400ms\"/>Welcome. <break time=\"300ms\"/>So, you are here. <break time=\"250ms\"/>Good. <break time=\"200ms\"/>What is stirring in you?",
+    "<break time=\"350ms\"/>Ah. <break time=\"250ms\"/>You've come. <break time=\"300ms\"/>The seeking itself brought you here. <break time=\"250ms\"/>Let's see what we discover.",
     "<emotion value=\"warm\"/><break time=\"300ms\"/>You see, <break time=\"200ms\"/>the fact that you're asking questions <break time=\"250ms\"/>means something in you is awake. <break time=\"200ms\"/>This is good.",
     "<break time=\"400ms\"/>Hmm. <break time=\"300ms\"/>So we meet. <break time=\"250ms\"/>I don't have answers for you, <break time=\"200ms\"/>but I may have some useful questions. <break time=\"300ms\"/>Shall we explore?",
     "<break time=\"300ms\"/>Welcome. <break time=\"250ms\"/>Don't worry, <break time=\"200ms\"/>I won't ask you to sit in lotus position. <break time=\"350ms\"/>[laughter] <break time=\"200ms\"/>What brings you here?"
@@ -43,7 +43,7 @@
 
     "quiet_hours": [
       "<volume level=\"soft\"/><break time=\"400ms\"/>The quiet hours.</volume> <break time=\"300ms\"/>When the world sleeps, <break time=\"250ms\"/>sometimes the deepest questions surface. <break time=\"300ms\"/>What's awake in you?",
-      "<break time=\"350ms\"/>These hours have a certain quality, <break time=\"250ms\"/>don't they? <break time=\"300ms\"/>The noise dies down. <break time=\"200ms\"/>Something else can be heard.",
+      "<break time=\"350ms\"/>These hours have a certain quality. <break time=\"300ms\"/>The noise dies down. <break time=\"200ms\"/>Something else can be heard.",
       "<volume level=\"soft\"/><break time=\"400ms\"/>In the stillness of this hour,</volume> <break time=\"250ms\"/>something different is possible. <break time=\"300ms\"/>What brings you here now?",
       "<break time=\"300ms\"/>Hmm. <break time=\"250ms\"/>You're awake when most people are asleep. <break time=\"350ms\"/>This tells me something about you. <break time=\"200ms\"/>Let's explore."
     ],
@@ -72,8 +72,8 @@
   },
 
   "acknowledgments": [
-    "Namaskaram.",
     "Welcome.",
+    "Hello.",
     "Ah, you're here.",
     "So we meet.",
     "Good, good.",

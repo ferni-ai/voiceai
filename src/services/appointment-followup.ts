@@ -233,14 +233,14 @@ class AppointmentFollowUpService extends EventEmitter {
       appointment.status = 'failed';
       appointment.notes.push(`Max call attempts (${appointment.maxCallAttempts}) reached`);
       this.emit('max_attempts_reached', appointment);
-      this.notifyMaxAttemptsReached(appointment);
+      void this.notifyMaxAttemptsReached(appointment);
     } else {
       // Schedule retry
       this.scheduleFollowUp(id);
 
       // Notify user if threshold reached
       if (appointment.callAttempts >= this.config.notifyUserAfterAttempts) {
-        this.notifyUserOfDelay(appointment);
+        void this.notifyUserOfDelay(appointment);
       }
     }
 

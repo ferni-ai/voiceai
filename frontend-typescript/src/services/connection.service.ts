@@ -60,6 +60,9 @@ import type { ConnectionState, DataMessage } from '../types/events.js';
 import { isValidTokenResponse } from '../types/livekit.js';
 import { API } from '../config/index.js';
 import { appState, setConnectionState } from '../state/app.state.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Connection');
 
 // ============================================================================
 // TYPES
@@ -109,7 +112,7 @@ class ConnectionService {
    */
   async connect(): Promise<boolean> {
     if (this.room?.state === 'connected') {
-      console.warn('Already connected');
+      log.warn('Already connected');
       return true;
     }
 
@@ -130,7 +133,7 @@ class ConnectionService {
       try {
         tokenResponse = await this.fetchToken(tokenRequest);
       } catch (tokenError) {
-        console.error('❌ Token fetch failed:', tokenError);
+        log.error('Token fetch failed:', tokenError);
         throw new Error(`Token fetch failed: ${tokenError instanceof Error ? tokenError.message : String(tokenError)}`);
       }
 
@@ -151,7 +154,7 @@ class ConnectionService {
           autoSubscribe: true,
         });
       } catch (roomError) {
-        console.error('❌ Room connection failed:', roomError);
+        log.error('Room connection failed:', roomError);
         throw new Error(`Room connection failed: ${roomError instanceof Error ? roomError.message : String(roomError)}`);
       }
 
@@ -160,7 +163,7 @@ class ConnectionService {
         await this.room.localParticipant.setMicrophoneEnabled(true);
       } catch (micError) {
         const errMsg = micError instanceof Error ? micError.message : String(micError);
-        console.warn('🎤 Microphone not available:', errMsg);
+        log.warn('Microphone not available:', errMsg);
         // On iOS, this might fail - continue anyway so user can at least hear
       }
 
@@ -169,7 +172,7 @@ class ConnectionService {
       return true;
 
     } catch (error) {
-      console.error('❌ Connection failed:', error);
+      log.error('Connection failed:', error);
       this.updateState('error');
       this.callbacks.onError?.(error instanceof Error ? error : new Error(String(error)));
       return false;
@@ -203,7 +206,7 @@ class ConnectionService {
       this.updateState('disconnected');
 
     } catch (error) {
-      console.error('Disconnect error:', error);
+      log.error('Disconnect error:', error);
     }
   }
 
@@ -272,14 +275,14 @@ class ConnectionService {
         cache: 'no-cache',
       });
     } catch (fetchError) {
-      console.error('🌐 Fetch error:', fetchError);
+      log.error('Fetch error:', fetchError);
       throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : 'Failed to connect'}`);
     }
     
     
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('🌐 Token error response:', errorText);
+      log.error('Token error response:', errorText);
       throw new Error(`Token request failed: ${response.status} - ${errorText.slice(0, 100)}`);
     }
 
@@ -287,12 +290,12 @@ class ConnectionService {
     try {
       data = await response.json();
     } catch (jsonError) {
-      console.error('🌐 JSON parse error:', jsonError);
+      log.error('JSON parse error:', jsonError);
       throw new Error('Invalid response format from server');
     }
     
     if (!isValidTokenResponse(data)) {
-      console.error('🌐 Invalid token response:', data);
+      log.error('Invalid token response:', data);
       throw new Error('Invalid token response from server');
     }
 
@@ -363,7 +366,7 @@ class ConnectionService {
         audioEl = track.attach() as HTMLAudioElement;
         this.audioElements.set(trackKey, audioEl);
         
-        console.log(`🔊 Audio track attached: ${trackKey} (kind: ${track.kind})`);
+        log.debug(`Audio track attached: ${trackKey} (kind: ${track.kind})`);
         
         // iOS/Safari specific attributes
         audioEl.setAttribute('playsinline', '');
@@ -390,7 +393,7 @@ class ConnectionService {
             // iOS/mobile requires user gesture - set up handlers
             const unlock = () => {
               audioEl.play()
-                .catch((e) => console.warn('Audio unlock failed:', e));
+                .catch((e) => log.warn('Audio unlock failed:', e));
               document.removeEventListener('touchstart', unlock);
               document.removeEventListener('touchend', unlock);
               document.removeEventListener('click', unlock);
@@ -495,7 +498,7 @@ class ConnectionService {
         const message = JSON.parse(text) as DataMessage;
         this.callbacks.onDataMessage?.(message);
       } catch {
-        console.warn('Failed to parse data message');
+        log.warn('Failed to parse data message');
       }
     };
     this.room.on('dataReceived', onDataReceived);

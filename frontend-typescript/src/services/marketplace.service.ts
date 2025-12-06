@@ -29,6 +29,10 @@
 
 import type { PersonaConfig, PersonaId } from '../types/persona.js';
 import { ALL_PERSONA_IDS } from '../types/persona.js';
+import { createLogger } from '../utils/logger.js';
+import { isDevelopment } from '../utils/environment.js';
+
+const log = createLogger('Marketplace');
 
 // ============================================================================
 // TYPES
@@ -181,10 +185,26 @@ export interface PersonaManifest {
  * - 'proxy': Use backend proxy at /api/marketplace/* (recommended for private repos)
  * - 'local': Use local files at /voiceai-agents/* (for development)
  * - 'github': Direct GitHub raw URLs (only works for public repos)
+ * 
+ * PRODUCTION BEHAVIOR:
+ * - Development: Uses 'local' files for fast iteration
+ * - Production: Uses 'proxy' for secure API access
  */
 type MarketplaceSource = 'proxy' | 'local' | 'github';
 
-const MARKETPLACE_SOURCE: MarketplaceSource = 'local'; // Use 'proxy' for production, 'local' for dev
+/**
+ * Get the appropriate marketplace source based on environment.
+ * Development uses local files, production uses the proxy.
+ */
+function getMarketplaceSource(): MarketplaceSource {
+  if (isDevelopment()) {
+    return 'local';
+  }
+  // Production uses proxy for secure access to private repos
+  return 'proxy';
+}
+
+const MARKETPLACE_SOURCE: MarketplaceSource = getMarketplaceSource();
 
 // URL configurations for each source type
 const MARKETPLACE_URLS = {
@@ -206,6 +226,9 @@ const MARKETPLACE_URLS = {
 const REGISTRY_URL = MARKETPLACE_URLS[MARKETPLACE_SOURCE].registry;
 const getManifestUrl = MARKETPLACE_URLS[MARKETPLACE_SOURCE].manifest;
 
+// Log the selected source on initialization
+log.debug(`Marketplace source: ${MARKETPLACE_SOURCE} (registry: ${REGISTRY_URL})`);
+
 const STORAGE_KEY = 'voiceai-marketplace-installed';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -226,7 +249,6 @@ let installedAgentsCache: Map<string, InstalledAgent> | null = null;
  */
 const DEFAULT_AGENT_COLORS: Record<string, { primary: string; secondary: string }> = {
   'jack-bogle': { primary: '#9a7b5a', secondary: '#7d6348' },
-  'joel-dickson': { primary: '#6b5b3e', secondary: '#544a32' },
 };
 
 const FALLBACK_COLORS = { primary: '#4a6741', secondary: '#3d5a35' };
@@ -298,10 +320,10 @@ export async function fetchRegistry(forceRefresh = false): Promise<MarketplaceRe
     };
     registryCacheTime = now;
 
-    console.log(`✅ Marketplace: Loaded ${registryCache.agents.length} agents from registry`);
+    log.info(`Loaded ${registryCache.agents.length} agents from registry`);
     return registryCache;
   } catch (err) {
-    console.error('❌ Marketplace: Failed to fetch registry:', err);
+    log.error('Failed to fetch registry:', err);
 
     // Return empty registry on error
     return {
@@ -332,10 +354,10 @@ export async function fetchAgentManifest(agentId: string): Promise<PersonaManife
     }
 
     const manifest = await response.json() as PersonaManifest;
-    console.log(`✅ Marketplace: Loaded manifest for ${agentId}`);
+    log.debug(`Loaded manifest for ${agentId}`);
     return manifest;
   } catch (err) {
-    console.error(`❌ Marketplace: Failed to fetch manifest for ${agentId}:`, err);
+    log.error(`Failed to fetch manifest for ${agentId}:`, err);
     return null;
   }
 }
@@ -408,7 +430,7 @@ export async function installAgent(agentId: string): Promise<boolean> {
   const marketplaceAgent = registry.agents.find(a => a.id === agentId);
 
   if (!marketplaceAgent) {
-    console.error(`❌ Marketplace: Agent ${agentId} not found in registry`);
+    log.error(`Agent ${agentId} not found in registry`);
     return false;
   }
 
@@ -428,7 +450,7 @@ export async function installAgent(agentId: string): Promise<boolean> {
   installed.set(agentId, installedAgent);
   saveInstalledAgents(installed);
 
-  console.log(`✅ Marketplace: Installed agent ${agentId}`);
+  log.info(`Installed agent ${agentId}`);
   return true;
 }
 
@@ -439,14 +461,14 @@ export function uninstallAgent(agentId: string): boolean {
   const installed = loadInstalledAgents();
 
   if (!installed.has(agentId)) {
-    console.warn(`⚠️ Marketplace: Agent ${agentId} is not installed`);
+    log.warn(`Agent ${agentId} is not installed`);
     return false;
   }
 
   installed.delete(agentId);
   saveInstalledAgents(installed);
 
-  console.log(`✅ Marketplace: Uninstalled agent ${agentId}`);
+  log.info(`Uninstalled agent ${agentId}`);
   return true;
 }
 
@@ -531,7 +553,7 @@ export async function getInstalledAgentsAsPersonaConfigs(): Promise<PersonaConfi
   return installed.map(installedAgent => {
     const marketplaceAgent = registry.agents.find(a => a.id === installedAgent.id);
     if (!marketplaceAgent) {
-      console.warn(`⚠️ Marketplace: Agent ${installedAgent.id} not found in registry`);
+      log.warn(`Agent ${installedAgent.id} not found in registry`);
       // Return a basic config
       return {
         id: installedAgent.id as PersonaId,
@@ -576,7 +598,7 @@ function loadInstalledAgents(): Map<string, InstalledAgent> {
       installedAgentsCache = new Map();
     }
   } catch (err) {
-    console.warn('⚠️ Marketplace: Failed to load installed agents from storage:', err);
+    log.warn('Failed to load installed agents from storage:', err);
     installedAgentsCache = new Map();
   }
 
@@ -590,7 +612,7 @@ function saveInstalledAgents(agents: Map<string, InstalledAgent>): void {
     const serialized = JSON.stringify(Object.fromEntries(agents));
     localStorage.setItem(STORAGE_KEY, serialized);
   } catch (err) {
-    console.error('❌ Marketplace: Failed to save installed agents:', err);
+    log.error('Failed to save installed agents:', err);
   }
 }
 

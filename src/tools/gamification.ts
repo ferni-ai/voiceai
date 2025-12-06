@@ -1,19 +1,12 @@
 /**
- * Gamification & Achievements System (V1)
+ * Gamification & Achievements System (V1) - CONSTANTS ONLY
  *
- * @deprecated This version uses in-memory storage and DOES NOT persist across sessions.
- * Use gamification-v2.ts instead which uses Firestore for proper persistence.
+ * ⚠️ NOTE: createGamificationTools() uses in-memory storage.
+ * For persistent storage, use gamification-v2.ts instead.
  *
- * Migration:
- *   // OLD (don't use)
- *   import { createGamificationTools } from './gamification.js';
- *
- *   // NEW (use this)
- *   import { createGamificationToolsV2 } from './gamification-v2.js';
- *
- * This file is kept only for:
+ * This file is kept for:
  * - BADGE_DEFINITIONS and TITLE_PROGRESSION constants (shared with v2)
- * - Backwards compatibility during migration
+ * - Legacy compatibility
  *
  * WILL BE REMOVED in a future version. Migrate to v2 now!
  */
@@ -1383,8 +1376,5 @@ function generateProgressCelebration(level: number, stats: UserGamificationData[
 // ============================================================================
 // EXPORTS
 // ============================================================================
-
-// Legacy alias for backward compatibility
-export const createMayaGamificationTools = createGamificationTools;
 
 export default createGamificationTools;

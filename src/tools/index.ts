@@ -79,24 +79,6 @@ export {
 } from './builder.js';
 
 // ============================================================================
-// LEGACY COMPATIBILITY SHIM
-// These functions exist for backward compatibility with tests
-// ============================================================================
-
-/**
- * @deprecated Use buildAllTeamTools() or buildAgentTools() instead.
- * This is a synchronous compatibility shim that returns an empty object.
- * For tests, use the async buildAllTeamTools() function.
- */
-export function createAllTools(): Record<string, unknown> {
-  console.warn(
-    '[DEPRECATED] createAllTools() is deprecated. Use buildAllTeamTools() for async tool building.'
-  );
-  // Return empty object - tests should use buildAllTeamTools
-  return {};
-}
-
-// ============================================================================
 // LIFECYCLE FUNCTIONS
 // ============================================================================
 
@@ -231,13 +213,8 @@ export {
 // COMMUNICATION DOMAIN (Low-level services)
 // ============================================================================
 
-// Low-level email/SMS functions (use createCommunicationTools for full tools)
-export {
-  sendEmail,
-  sendSMS,
-  sendPortfolioSummary,
-  createCommunicationTools as createBaseCommunicationTools,
-} from './communication.js';
+// Low-level email/SMS functions
+export { sendEmail, sendSMS, sendReminder } from '../services/communication-service.js';
 
 // ============================================================================
 // BANKING DOMAIN (PLAID)
@@ -258,14 +235,8 @@ export {
 
 export { createHandoffTools } from './handoff/index.js';
 export { createTelephonyTools } from './telephony.js';
-export {
-  createResearchTools,
-  createResearchTools as createPeterLynchTools,
-} from './research-tools.js';
-export {
-  createInsightsAnalysisTools,
-  createInsightsAnalysisTools as createPeterInsightsTools,
-} from './insights-analysis.js';
+export { createResearchTools } from './research-tools.js';
+export { createInsightsAnalysisTools } from './insights-analysis.js';
 
 // ============================================================================
 // ENTERTAINMENT DOMAIN
@@ -313,39 +284,9 @@ export { createNotificationTools } from './notifications.js';
 export { createEventPlanningTools } from './event-planning.js';
 
 // ============================================================================
-// DEPRECATED: Persona-specific aliases
-// Use the generic names above instead. These will be removed in a future version.
+// NOTE: Persona-specific aliases have been REMOVED
+// Use the generic names: createCommunicationTools, createFinancialHabitsTools, etc.
 // ============================================================================
-
-/** @deprecated Use createCommunicationTools instead */
-export { createCommunicationTools as createAlexTools } from './communication-tools.js';
-/** @deprecated Use createCommunicationCoachingTools instead */
-export { createCommunicationCoachingTools as createAlexCoachingTools } from './communication-tools.js';
-/** @deprecated Use createAppointmentTools instead */
-export { createAppointmentTools as createAlexAppointmentTools } from './scheduling.js';
-/** @deprecated Use createDeliveryTools instead */
-export { createDeliveryTools as createAlexDeliveryTools } from './scheduling.js';
-/** @deprecated Use createPlacesTools instead */
-export { createPlacesTools as createAlexPlacesTools } from './scheduling.js';
-/** @deprecated Use createContactsTools instead */
-export { createContactsTools as createAlexContactsTools } from './scheduling.js';
-/** @deprecated Use createFinancialHabitsTools instead */
-export { createFinancialHabitsTools as createMayaTools } from './financial-habits.js';
-/** @deprecated Use createHabitCoachingTools instead */
-export { createHabitCoachingTools as createMayaHabitCoachTools } from './habit-coaching.js';
-/** @deprecated Use createProactiveCoachingTools instead */
-export { createProactiveCoachingTools as createMayaProactiveTools } from './proactive-coaching.js';
-/** @deprecated Use createGamificationToolsV2 instead (gamification v1 is deprecated) */
-export {
-  createGamificationTools,
-  createGamificationTools as createMayaGamificationTools,
-} from './gamification.js';
-/** @deprecated Use createGamificationToolsV2 instead */
-export { createGamificationToolsV2 as createMayaGamificationToolsV2 } from './gamification-v2.js';
-/** @deprecated Use createNotificationTools instead */
-export { createNotificationTools as createMayaNotificationTools } from './notifications.js';
-/** @deprecated Use createEventPlanningTools instead */
-export { createEventPlanningTools as createJordanTools } from './event-planning.js';
 
 // Persona memory tools
 export {
@@ -454,8 +395,12 @@ import {
   buildEssentialTools,
   buildAllTeamTools,
 } from './builder.js';
-import { createToolComposer, composeToolResult } from './orchestration/index.js';
-import { getConversationState, cleanupStaleConversations } from './orchestration/index.js';
+import {
+  createToolComposer,
+  composeToolResult,
+  getConversationState,
+  cleanupStaleConversations,
+} from './orchestration/index.js';
 
 export default {
   // Registry-based system

@@ -3,7 +3,16 @@
  *
  * Provides REST endpoints for the tool analytics dashboard.
  * Fetches data from the optimization persistence service and in-memory caches.
+ * 
+ * PRODUCTION BEHAVIOR:
+ * - In development: Returns mock data for testing
+ * - In production: Fetches from /api/tools/analytics, returns null on failure
  */
+
+import { createLogger } from '../utils/logger.js';
+import { isDevelopment, shouldUseDemoData } from '../utils/environment.js';
+
+const log = createLogger('ToolsAnalytics');
 
 // Types for API responses
 export interface ToolAnalyticsResponse {
@@ -69,16 +78,18 @@ export interface ToolAnalyticsResponse {
 }
 
 /**
- * Fetch tool analytics data from the server
- * In development, returns mock data
- * In production, calls the actual API endpoint
+ * Fetch tool analytics data from the server.
+ * 
+ * Behavior:
+ * - Development: Returns mock data for testing
+ * - Production: Fetches from API, returns null on failure (UI should handle)
+ * 
+ * @returns Analytics data or null if unavailable in production
  */
-export async function fetchToolAnalytics(): Promise<ToolAnalyticsResponse> {
-  // Check if we're in development or production
-  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-  if (isDev) {
-    // Return mock data for development
+export async function fetchToolAnalytics(): Promise<ToolAnalyticsResponse | null> {
+  // Use demo data in development or when explicitly enabled
+  if (shouldUseDemoData()) {
+    log.debug('Using mock analytics data (demo mode)');
     return getMockData();
   }
 
@@ -89,8 +100,16 @@ export async function fetchToolAnalytics(): Promise<ToolAnalyticsResponse> {
     }
     return response.json();
   } catch (error) {
-    console.warn('Failed to fetch analytics, using mock data:', error);
-    return getMockData();
+    log.error('Failed to fetch analytics from API:', error);
+    
+    // In development, fall back to mock data
+    if (isDevelopment()) {
+      log.warn('Falling back to mock data (development mode)');
+      return getMockData();
+    }
+    
+    // In production, return null - UI should show appropriate error state
+    return null;
   }
 }
 

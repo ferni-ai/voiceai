@@ -14,6 +14,9 @@ import {
   show,
   hide,
 } from '../utils/dom.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('ControlsUI');
 
 // Note: addClass/removeClass kept for future mute button styling
 
@@ -71,7 +74,7 @@ export function initControlsUI(controlCallbacks: ControlCallbacks): void {
     updateButtonVisibility(appState.get('connection'));
 
   } catch (error) {
-    console.error('❌ Failed to initialize Controls UI:', error);
+    log.error('❌ Failed to initialize Controls UI:', error);
   }
 }
 

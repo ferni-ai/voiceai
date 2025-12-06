@@ -10,6 +10,9 @@ import type { TrackInfo } from '../services/spotify.service.js';
 import { spotifyService } from '../services/spotify.service.js';
 import { getElementByIdOrNull, setText, addClass, removeClass, setClasses } from '../utils/dom.js';
 import { getDeviceId } from '../state/app.state.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('SpotifyUI');
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -22,6 +25,9 @@ let linkButton: HTMLElement | null = null;
 // Store link status
 let isSpotifyLinked = false;
 let spotifyConfigured = false;
+
+// Callback for state changes (used by menu)
+let onLinkStateChangeCallback: ((linked: boolean, configured: boolean) => void) | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -36,7 +42,7 @@ export function initSpotifyUI(): void {
   linkButton = getElementByIdOrNull('spotifyLinkButton');
 
   if (!statusContainer || !statusText) {
-    console.warn('Spotify UI elements not found');
+    log.warn('Spotify UI elements not found');
     return;
   }
 
@@ -71,7 +77,7 @@ async function checkSpotifyStatus(): Promise<void> {
       updateLinkButton();
     }
   } catch (e) {
-    console.warn('Could not check Spotify status:', e);
+    log.warn('Could not check Spotify status:', e);
   }
 }
 
@@ -95,7 +101,7 @@ function handleOAuthCallback(): void {
 
   if (params.has('spotify_error')) {
     const error = params.get('spotify_error');
-    console.error('Spotify OAuth error:', error);
+    log.error('Spotify OAuth error:', error);
     showSpotifyStatus('Could not connect to Spotify', 'error');
     
     // Clear URL params
@@ -122,7 +128,7 @@ async function handleLinkClick(): Promise<void> {
       showSpotifyStatus('Spotify disconnected', 'info');
       setTimeout(() => hideSpotifyStatus(), 2500);
     } catch (e) {
-      console.error('Could not unlink Spotify:', e);
+      log.error('Could not unlink Spotify:', e);
     }
   } else {
     // Redirect to OAuth
@@ -133,8 +139,13 @@ async function handleLinkClick(): Promise<void> {
 
 /**
  * Update the link button text and visibility.
+ * Also notifies the state change callback for menu updates.
  */
 function updateLinkButton(): void {
+  // Notify callback for menu updates
+  onLinkStateChangeCallback?.(isSpotifyLinked, spotifyConfigured);
+  
+  // Legacy button support (if still present in DOM)
   if (!linkButton) return;
 
   if (!spotifyConfigured) {
@@ -248,9 +259,34 @@ export function hideSpotifyStatus(): void {
 // EXPORTS
 // ============================================================================
 
+/**
+ * Get current Spotify link status.
+ */
+export function getSpotifyLinkStatus(): { linked: boolean; configured: boolean } {
+  return { linked: isSpotifyLinked, configured: spotifyConfigured };
+}
+
+/**
+ * Register callback for link state changes.
+ */
+export function onSpotifyLinkStateChange(callback: (linked: boolean, configured: boolean) => void): void {
+  onLinkStateChangeCallback = callback;
+}
+
+/**
+ * Trigger the Spotify link/unlink flow.
+ * Exposed for use by settings menu.
+ */
+export async function triggerSpotifyLinkToggle(): Promise<void> {
+  await handleLinkClick();
+}
+
 export const spotifyUI = {
   init: initSpotifyUI,
   show: showSpotifyStatus,
   hide: hideSpotifyStatus,
+  getLinkStatus: getSpotifyLinkStatus,
+  onLinkStateChange: onSpotifyLinkStateChange,
+  toggleLink: triggerSpotifyLinkToggle,
 };
 

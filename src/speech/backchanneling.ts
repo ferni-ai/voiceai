@@ -245,26 +245,16 @@ export function removeSessionBackchannelingSystem(sessionId: string): void {
 // GLOBAL SINGLETON (BACKWARD COMPATIBILITY)
 // ============================================================================
 
-/** @deprecated Use getSessionBackchannelingSystem for session isolation */
+/** @deprecated SUNSET: 2025-03-31 - Use getSessionBackchannelingSystem for session isolation */
 let defaultSystem: BackchannelingSystem | null = null;
 
 /**
  * Get global backchanneling system
- * @deprecated Use getSessionBackchannelingSystem for session isolation
+ * @deprecated SUNSET: 2025-03-31 - Use getSessionBackchannelingSystem for session isolation
  */
 export function getBackchannelingSystem(): BackchannelingSystem {
   if (!defaultSystem) {
     defaultSystem = new BackchannelingSystem();
   }
   return defaultSystem;
-}
-
-/**
- * Reset global backchanneling system
- * @deprecated Use getSessionBackchannelingSystem for session isolation
- */
-export function resetBackchannelingSystem(): void {
-  if (defaultSystem) {
-    defaultSystem.reset();
-  }
 }

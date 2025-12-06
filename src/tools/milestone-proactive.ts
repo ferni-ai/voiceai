@@ -590,9 +590,7 @@ Use for giving an overview of what's on the user's planning plate.`,
       parameters: z.object({
         userId: z.string().optional().default('default').describe('User identifier'),
       }),
-      execute: async ({ userId }) => {
-        return await getMilestonesSummary(userId);
-      },
+      execute: async ({ userId }) => getMilestonesSummary(userId),
     }),
 
     // ========== BIRTHDAY REMINDER CHECK ==========

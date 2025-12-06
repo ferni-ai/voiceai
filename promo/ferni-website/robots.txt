@@ -1,0 +1,36 @@
+# Ferni AI - robots.txt
+# https://ferni.ai
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://ferni.ai/sitemap.xml
+
+# Disallow admin/internal paths
+Disallow: /scripts/
+Disallow: /prompts/
+Disallow: /.firebase/
+
+# Allow all major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+

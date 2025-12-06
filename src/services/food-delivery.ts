@@ -19,6 +19,7 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import { getConfig } from '../config/environment.js';
+import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 // ============================================================================
 // TYPES
@@ -417,16 +418,111 @@ export async function searchDeliveryRestaurants(
 }
 
 // ============================================================================
-// ORDER BUILDING
+// FIRESTORE SETUP
 // ============================================================================
 
-// In-memory order storage
+let db: FirestoreType | null = null;
+const DELIVERY_ORDERS_COLLECTION = 'delivery_orders';
+const ORDER_HISTORY_COLLECTION = 'delivery_order_history';
+
+async function getFirestore(): Promise<FirestoreType | null> {
+  if (db) return db;
+
+  try {
+    const { Firestore } = await import('@google-cloud/firestore');
+    db = new Firestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    });
+    getLogger().info('Food delivery service Firestore initialized');
+    return db;
+  } catch (error) {
+    getLogger().warn({ error }, 'Firestore not available for food delivery, using in-memory only');
+    return null;
+  }
+}
+
+// ============================================================================
+// ORDER BUILDING (In-memory cache with Firestore persistence)
+// ============================================================================
+
 const activeOrders = new Map<string, DeliveryOrder>();
+
+/**
+ * Persist order to Firestore
+ */
+async function persistOrder(order: DeliveryOrder, userId?: string): Promise<void> {
+  const firestore = await getFirestore();
+  if (firestore && userId) {
+    try {
+      await firestore
+        .collection(DELIVERY_ORDERS_COLLECTION)
+        .doc(order.id)
+        .set({
+          ...order,
+          userId,
+          updatedAt: new Date(),
+        });
+    } catch (err) {
+      getLogger().warn({ err, orderId: order.id }, 'Failed to persist delivery order');
+    }
+  }
+}
+
+/**
+ * Save completed order to history
+ */
+async function saveOrderToHistory(order: DeliveryOrder, userId: string): Promise<void> {
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      await firestore.collection(ORDER_HISTORY_COLLECTION).add({
+        ...order,
+        userId,
+        completedAt: new Date(),
+      });
+      getLogger().info({ orderId: order.id, userId }, 'Saved order to history');
+    } catch (err) {
+      getLogger().warn({ err, orderId: order.id }, 'Failed to save order to history');
+    }
+  }
+}
+
+/**
+ * Get user's order history
+ */
+export async function getOrderHistory(userId: string, limit = 10): Promise<DeliveryOrder[]> {
+  const firestore = await getFirestore();
+  if (!firestore) return [];
+
+  try {
+    const snapshot = await firestore
+      .collection(ORDER_HISTORY_COLLECTION)
+      .where('userId', '==', userId)
+      .orderBy('completedAt', 'desc')
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+      } as DeliveryOrder;
+    });
+  } catch (err) {
+    getLogger().warn({ err, userId }, 'Failed to get order history');
+    return [];
+  }
+}
+
+// Track order ownership for persistence
+const orderUserMap = new Map<string, string>();
 
 /**
  * Start building an order
  */
-export function startOrder(restaurant: DeliveryRestaurant): DeliveryOrder {
+export function startOrder(restaurant: DeliveryRestaurant, userId?: string): DeliveryOrder {
   const order: DeliveryOrder = {
     id: `order_${Date.now()}`,
     platform: restaurant.platform,
@@ -441,6 +537,10 @@ export function startOrder(restaurant: DeliveryRestaurant): DeliveryOrder {
   };
 
   activeOrders.set(order.id, order);
+  if (userId) {
+    orderUserMap.set(order.id, userId);
+    void persistOrder(order, userId);
+  }
   return order;
 }
 
@@ -467,6 +567,12 @@ export function addToOrder(
   });
 
   recalculateOrder(order);
+
+  // Persist changes
+  const userId = orderUserMap.get(orderId);
+  if (userId) {
+    void persistOrder(order, userId);
+  }
   return order;
 }
 
@@ -544,6 +650,13 @@ export function finalizeOrder(orderId: string): DeliveryOrder | null {
       order.deepLink = order.restaurant.deepLink;
       order.checkoutUrl = order.restaurant.menuUrl;
       break;
+  }
+
+  // Save to order history
+  const userId = orderUserMap.get(orderId);
+  if (userId) {
+    void saveOrderToHistory(order, userId);
+    void persistOrder(order, userId);
   }
 
   return order;

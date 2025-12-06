@@ -14,6 +14,9 @@
  */
 
 import { AUDIO } from '../config/index.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Audio');
 
 // Safari compatibility: get AudioContext with webkit fallback
 const getAudioContext = (): AudioContext => {
@@ -91,10 +94,10 @@ class AudioService {
     
     // FIX BUG #61: Try fallback sound if primary isn't loaded
     if (!audio) {
-      console.warn(`Sound effect not loaded: ${effect}, trying fallback`);
+      log.warn(`Sound effect not loaded: ${effect}, trying fallback`);
       audio = this.sounds.get(this.FALLBACK_SOUND);
       if (!audio) {
-        console.warn(`Fallback sound '${this.FALLBACK_SOUND}' also not loaded, skipping`);
+        log.warn(`Fallback sound '${this.FALLBACK_SOUND}' also not loaded, skipping`);
         return;
       }
     }
@@ -106,7 +109,7 @@ class AudioService {
       await audio.play();
     } catch (error) {
       // Autoplay policy may block this - that's OK
-      console.debug(`Could not play sound ${effect}:`, error);
+      log.debug(`Could not play sound ${effect}:`, error);
     }
   }
 
@@ -130,10 +133,10 @@ class AudioService {
     
     // FIX BUG #61: Try fallback sound if primary isn't loaded
     if (!audio) {
-      console.warn(`Sound effect not loaded: ${effect}, trying fallback`);
+      log.warn(`Sound effect not loaded: ${effect}, trying fallback`);
       audio = this.sounds.get(this.FALLBACK_SOUND);
       if (!audio) {
-        console.warn(`Fallback sound '${this.FALLBACK_SOUND}' also not loaded, skipping`);
+        log.warn(`Fallback sound '${this.FALLBACK_SOUND}' also not loaded, skipping`);
         return;
       }
     }
@@ -165,7 +168,7 @@ class AudioService {
       });
     } catch (error) {
       // Autoplay policy may block this - that's OK
-      console.debug(`Could not play sound ${effect}:`, error);
+      log.debug(`Could not play sound ${effect}:`, error);
     }
   }
 
@@ -181,7 +184,7 @@ class AudioService {
       if (this.currentHandoffSound && !this.currentHandoffSound.paused) {
         this.currentHandoffSound.pause();
         this.currentHandoffSound.currentTime = 0;
-        console.debug('Stopped previous handoff sound to prevent overlap');
+        log.debug('Stopped previous handoff sound to prevent overlap');
       }
 
       // FIX BUG #62: Resume audio context if suspended (common after page becomes inactive)
@@ -189,7 +192,7 @@ class AudioService {
         try {
           await this.audioContext.resume();
         } catch (resumeError) {
-          console.debug('Failed to resume audio context, continuing anyway:', resumeError);
+          log.debug('Failed to resume audio context, continuing anyway:', resumeError);
         }
       }
       
@@ -208,7 +211,7 @@ class AudioService {
       await new Promise(resolve => setTimeout(resolve, pauseMs));
     } catch (error) {
       // FIX BUG #62: Don't let audio errors block the handoff
-      console.warn(`Handoff sound failed (${effect}), continuing with transition:`, error);
+      log.warn(`Handoff sound failed (${effect}), continuing with transition:`, error);
       this.currentHandoffSound = null;
       // Still pause briefly to maintain timing feel, even without sound
       await new Promise(resolve => setTimeout(resolve, Math.min(pauseMs, 150)));
@@ -256,7 +259,7 @@ class AudioService {
       return () => this.stopVisualization();
 
     } catch (error) {
-      console.error('Failed to attach visualization:', error);
+      log.error('Failed to attach visualization:', error);
       return () => { /* noop */ };
     }
   }
@@ -314,7 +317,7 @@ class AudioService {
       return () => this.stopVisualization();
 
     } catch (error) {
-      console.error('Failed to attach audio element visualization:', error);
+      log.error('Failed to attach audio element visualization:', error);
       // Still try to play audio even if visualization fails
       return () => { /* noop */ };
     }
@@ -423,7 +426,7 @@ class AudioService {
       return new Promise<void>((resolve) => {
         // Timeout to prevent hanging on iOS Safari
         const timeout = setTimeout(() => {
-          console.debug(`Sound load timeout: ${path}`);
+          log.debug(`Sound load timeout: ${path}`);
           resolve();
         }, LOAD_TIMEOUT_MS);
         
@@ -433,7 +436,7 @@ class AudioService {
         };
         audio.onerror = () => {
           clearTimeout(timeout);
-          console.warn(`Failed to load sound: ${path}`);
+          log.warn(`Failed to load sound: ${path}`);
           resolve();
         };
         audio.src = path;

@@ -1731,7 +1731,4 @@ Use when user needs help talking about money with partner.`,
 // EXPORTS
 // ============================================================================
 
-// Legacy alias for backward compatibility
-export const createMayaTools = createFinancialHabitsTools;
-
 export default createFinancialHabitsTools;

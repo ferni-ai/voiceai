@@ -382,6 +382,64 @@ export type {
 } from './cognitive-index.js';
 
 // ============================================================================
+// UNIFIED REGISTRY (Auto-discovered agents from bundles)
+// ============================================================================
+
+export { AgentRegistry, type Agent } from './registry/unified-registry.js';
+
+// ============================================================================
+// ID MAPPING (Roles, metadata, aliases)
+// Re-exported here to provide single import point
+// ============================================================================
+
+export {
+  AgentRole,
+  type PersonaId,
+  type PersonaMetadata,
+  ROLE_TO_PERSONA,
+  PERSONA_REGISTRY,
+  resolveAgentId,
+  getAgentRoleForPersona,
+  getPersonaId,
+  getPersonaMetadata,
+  getHandoffToolName,
+  isCoach,
+  isTeamMember,
+  getTeamMemberIds,
+  isKnownPersonaId,
+} from './id-mapping.js';
+
+// ============================================================================
+// PERSONA IDS (Constants, types, validation)
+// Re-exported for tests and validation
+// ============================================================================
+
+export {
+  CANONICAL_IDS,
+  ALL_CANONICAL_IDS,
+  ALIAS_TO_CANONICAL,
+  CANONICAL_TO_FRONTEND,
+  FRONTEND_TO_CANONICAL,
+  DISPLAY_NAMES,
+  type CanonicalPersonaId,
+  type FrontendPersonaId,
+  toCanonical,
+  toFrontend,
+  fromFrontend,
+  isCanonicalId,
+  isKnownId,
+  isSamePersona,
+  assertCanonical,
+  validateAndLog,
+} from './persona-ids.js';
+
+// ============================================================================
+// HANDOFF EVENT DATA (re-exported from handoff module)
+// ============================================================================
+
+export { createHandoffEvent, type HandoffEventData } from '../tools/handoff/types.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 

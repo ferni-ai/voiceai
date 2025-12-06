@@ -26,6 +26,9 @@ import {
   prefersReducedMotion,
 } from '@design-system/tokens';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('AnimationOrch');
 
 // ============================================================================
 // TYPES
@@ -70,7 +73,7 @@ export function initAnimationOrchestrator(): void {
   if (prefersReducedMotion()) {
     budget.isLowPower = true;
     budget.maxActiveAnimations = 4;
-    console.log('🎬 Animation Orchestrator: Reduced motion mode');
+    log.debug('🎬 Animation Orchestrator: Reduced motion mode');
     return;
   }
 
@@ -86,7 +89,7 @@ export function initAnimationOrchestrator(): void {
     });
   }
 
-  console.log('🎬 Animation Orchestrator initialized');
+  log.debug('🎬 Animation Orchestrator initialized');
 }
 
 /**
@@ -103,7 +106,7 @@ function detectDeviceCapabilities(): void {
   if (isMobile || isLowMemory || isSlowConnection) {
     budget.isLowPower = true;
     budget.maxActiveAnimations = 6;
-    console.log('🎬 Animation Orchestrator: Low-power mode');
+    log.debug('🎬 Animation Orchestrator: Low-power mode');
   }
 }
 

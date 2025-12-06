@@ -218,17 +218,17 @@ export async function createHandoffTools(currentAgentId?: string): Promise<Hando
 }
 
 /**
- * Filter tools to exclude the current agent's own tool
- * and adjust based on whether we're the coordinator or not
+ * Filter tools to exclude the current agent's own tool.
+ * 
+ * FIXED: Previously team members could ONLY hand off to coordinator.
+ * Now all agents can hand off to any other agent (peer-to-peer handoffs).
+ * The persona manifest's "required" tools list determines what handoffs
+ * each agent should use, but we don't artificially restrict them here.
  */
 function filterToolsForAgent(toolSet: HandoffToolSet, currentAgentId: string): HandoffToolSet {
-  const isCoordinator = currentAgentId === toolSet.coordinatorId;
-
-  // If we're the coordinator, we can handoff to any team member
-  // If we're a team member, we can only return to coordinator
-  const filteredTools = isCoordinator
-    ? toolSet.tools.filter((t) => t.agentId !== currentAgentId)
-    : toolSet.tools.filter((t) => t.agentId === toolSet.coordinatorId);
+  // All agents can hand off to any other agent EXCEPT themselves
+  // This enables peer-to-peer handoffs (e.g., Peter -> Nayan)
+  const filteredTools = toolSet.tools.filter((t) => t.agentId !== currentAgentId);
 
   const filteredByName = new Map<string, HandoffToolDefinition>();
   const filteredByAgentId = new Map<string, HandoffToolDefinition>();
@@ -237,6 +237,11 @@ function filterToolsForAgent(toolSet: HandoffToolSet, currentAgentId: string): H
     filteredByName.set(tool.name.toLowerCase(), tool);
     filteredByAgentId.set(tool.agentId, tool);
   }
+
+  getLogger().debug(
+    { currentAgentId, availableHandoffs: filteredTools.map(t => t.name) },
+    'Filtered handoff tools for agent'
+  );
 
   return {
     tools: filteredTools,

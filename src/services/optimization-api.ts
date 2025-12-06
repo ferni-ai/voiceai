@@ -104,7 +104,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     }));
 
     // Get tool usage stats
-    const allStats = await toolUsageAnalytics.getAllStats();
+    const allStats = toolUsageAnalytics.getAllStats();
 
     const topTools = allStats
       .sort((a, b) => b.totalCalls - a.totalCalls)
@@ -378,19 +378,23 @@ export async function createOptimizationRouter() {
       const router = Router();
 
       // GET /api/tools/analytics - Main dashboard data
-      router.get('/analytics', async (_req, res) => {
-        try {
-          const data = await getDashboardData();
-          res.json(data);
-        } catch (error) {
-          res.status(500).json({ error: 'Failed to get analytics' });
-        }
+      router.get('/analytics', (_req, res) => {
+        void (async () => {
+          try {
+            const data = await getDashboardData();
+            res.json(data);
+          } catch (error) {
+            res.status(500).json({ error: 'Failed to get analytics' });
+          }
+        })();
       });
 
       // POST /api/tools/optimize - Trigger optimization cycle
-      router.post('/optimize', async (_req, res) => {
-        const result = await triggerOptimizationCycle();
-        res.json(result);
+      router.post('/optimize', (_req, res) => {
+        void (async () => {
+          const result = await triggerOptimizationCycle();
+          res.json(result);
+        })();
       });
 
       // POST /api/tools/optimizer/start - Start auto-optimizer
@@ -404,21 +408,27 @@ export async function createOptimizationRouter() {
       });
 
       // GET /api/tools/recommendations - Get all recommendations
-      router.get('/recommendations', async (_req, res) => {
-        const result = await getRecommendations();
-        res.json(result);
+      router.get('/recommendations', (_req, res) => {
+        void (async () => {
+          const result = await getRecommendations();
+          res.json(result);
+        })();
       });
 
       // POST /api/tools/recommendations/:id/approve - Approve recommendation
-      router.post('/recommendations/:id/approve', async (req, res) => {
-        const result = await approveRecommendation(req.params.id);
-        res.json(result);
+      router.post('/recommendations/:id/approve', (req, res) => {
+        void (async () => {
+          const result = await approveRecommendation(req.params.id);
+          res.json(result);
+        })();
       });
 
       // POST /api/tools/recommendations/:id/reject - Reject recommendation
-      router.post('/recommendations/:id/reject', async (req, res) => {
-        const result = await rejectRecommendation(req.params.id);
-        res.json(result);
+      router.post('/recommendations/:id/reject', (req, res) => {
+        void (async () => {
+          const result = await rejectRecommendation(req.params.id);
+          res.json(result);
+        })();
       });
 
       // POST /api/tools/experiments/:id/activate - Activate experiment

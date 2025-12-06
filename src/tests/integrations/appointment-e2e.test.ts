@@ -265,7 +265,7 @@ describe('Google Calendar OAuth Service', () => {
   });
 
   describe('Token Management', () => {
-    it('should store and retrieve tokens', () => {
+    it('should store and retrieve tokens', async () => {
       const testUserId = `test-user-${Date.now()}`;
       const tokens: GoogleTokens = {
         access_token: 'test-access-token',
@@ -274,8 +274,8 @@ describe('Google Calendar OAuth Service', () => {
         token_type: 'Bearer',
       };
 
-      storeUserTokens(testUserId, tokens);
-      const retrieved = getUserTokens(testUserId);
+      await storeUserTokens(testUserId, tokens);
+      const retrieved = await getUserTokens(testUserId);
 
       expect(retrieved?.access_token).toBe('test-access-token');
       expect(retrieved?.refresh_token).toBe('test-refresh-token');

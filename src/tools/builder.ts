@@ -21,15 +21,15 @@ import { getLogger } from '../utils/safe-logger.js';
 
 import { toolRegistry } from './registry/index.js';
 import { initializeToolRegistry } from './registry/loader.js';
-import type {
-  ToolContext,
-  ToolDomain,
-  ToolSetSpec,
-  ToolSetResult,
-  ServiceRegistry,
-  Tool,
+import {
+  EmptyServiceRegistry,
+  type ToolContext,
+  type ToolDomain,
+  type ToolSetSpec,
+  type ToolSetResult,
+  type ServiceRegistry,
+  type Tool,
 } from './registry/types.js';
-import { EmptyServiceRegistry } from './registry/types.js';
 
 // ============================================================================
 // MANIFEST TYPES (simplified reference to avoid circular deps)

@@ -5,8 +5,16 @@
  * Makes it easier to adopt Result types incrementally.
  */
 
-import type { Result, Success, Failure } from './result.js';
-import { success, failure, isSuccess, isFailure, DomainError } from './result.js';
+import {
+  type Result,
+  type Success,
+  type Failure,
+  success,
+  failure,
+  isSuccess,
+  isFailure,
+  DomainError,
+} from './result.js';
 
 // ============================================================================
 // CONVERSION UTILITIES
@@ -251,7 +259,9 @@ export async function retryResult<T, E>(
     lastError = result.error;
 
     if (attempt < maxAttempts && shouldRetry(result.error)) {
-      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+      await new Promise((resolve) => {
+        setTimeout(resolve, delayMs * attempt);
+      });
     }
   }
 

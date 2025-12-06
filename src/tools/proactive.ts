@@ -1,11 +1,10 @@
 /**
- * @deprecated Use the registry-based proactive tools from `domains/proactive/index.ts` instead.
- * This file is being phased out to consolidate proactive functionality.
- *
  * Proactive Tools
  *
  * Tools for proactive actions like scheduling follow-ups, tracking goals,
  * and triggering time-based behaviors.
+ *
+ * NOTE: For new code, use `tools/domains/proactive/index.ts` instead.
  *
  * IMPORTANT: Goals are persisted to the user's profile in storage,
  * enabling cross-session memory and personalized advice.

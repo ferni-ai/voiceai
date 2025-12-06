@@ -1,10 +1,11 @@
 /**
- * @deprecated Use the registry-based communication tools from `domains/communication/index.ts` instead.
- * This file is being phased out to consolidate communication functionality.
- *
  * Communication Tools
  *
  * Domain: Email, SMS, Calendar, and Reminders
+ *
+ * NOTE: For new code, use:
+ * - Raw functions: import from `services/communication-service.ts`
+ * - LLM tools: import from `tools/domains/communication/index.ts`
  *
  * APIs used:
  * - SendGrid (email)
@@ -85,7 +86,9 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
         'Retrying after error'
       );
 
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, delay);
+      });
     }
   }
 

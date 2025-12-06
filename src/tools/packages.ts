@@ -96,6 +96,86 @@ function getCarrierName(carrier: Carrier): string {
   return names[carrier];
 }
 
+// ============================================================================
+// API CONFIGURATION
+// ============================================================================
+
+// Carrier API credentials for real package tracking
+// These require business accounts with each carrier
+
+// AfterShip - Universal tracking API (recommended)
+// Sign up at: https://www.aftership.com/
+const AFTERSHIP_API_KEY = process.env.AFTERSHIP_API_KEY || '';
+
+// Individual carrier APIs (if not using AfterShip)
+const UPS_ACCESS_KEY = process.env.UPS_ACCESS_KEY || '';
+const FEDEX_API_KEY = process.env.FEDEX_API_KEY || '';
+
+/**
+ * Check if real tracking APIs are configured
+ */
+export function isTrackingApiConfigured(): boolean {
+  return !!(AFTERSHIP_API_KEY || UPS_ACCESS_KEY || FEDEX_API_KEY);
+}
+
+/**
+ * Fetch real tracking info from AfterShip API
+ */
+async function fetchTrackingFromAfterShip(
+  trackingNumber: string,
+  carrier: Carrier
+): Promise<TrackingEvent[] | null> {
+  if (!AFTERSHIP_API_KEY) return null;
+
+  try {
+    const response = await fetch(
+      `https://api.aftership.com/v4/trackings/${carrier}/${trackingNumber}`,
+      {
+        headers: {
+          'aftership-api-key': AFTERSHIP_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as {
+      data: {
+        tracking: {
+          checkpoints: Array<{
+            checkpoint_time: string;
+            tag: string;
+            city?: string;
+            message: string;
+          }>;
+        };
+      };
+    };
+
+    const statusMap: Record<string, PackageStatus> = {
+      InfoReceived: 'label_created',
+      InTransit: 'in_transit',
+      OutForDelivery: 'out_for_delivery',
+      Delivered: 'delivered',
+      Exception: 'exception',
+      FailedAttempt: 'exception',
+      Expired: 'exception',
+    };
+
+    return data.data.tracking.checkpoints.map((cp) => ({
+      timestamp: new Date(cp.checkpoint_time),
+      status: statusMap[cp.tag] || 'in_transit',
+      location: cp.city,
+      description: cp.message,
+    }));
+  } catch (error) {
+    getLogger().warn({ error, trackingNumber }, 'AfterShip tracking failed');
+    return null;
+  }
+}
+
 function getCarrierTrackingUrl(carrier: Carrier, trackingNumber: string): string | null {
   const urls: Record<Carrier, string> = {
     ups: `https://www.ups.com/track?tracknum=${trackingNumber}`,
@@ -177,20 +257,50 @@ function formatPackageForSpeech(pkg: Package): string {
 }
 
 // ============================================================================
-// MOCK TRACKING (Would use real APIs in production)
+// TRACKING INFO FETCH (Real API with fallback to mock)
 // ============================================================================
 
 async function fetchTrackingInfo(
   trackingNumber: string,
   carrier: Carrier
 ): Promise<{ status: PackageStatus; expectedDelivery?: Date; events: TrackingEvent[] }> {
-  // In production, this would call actual carrier APIs
-  // For now, return mock data based on tracking number
+  // Try real API first (AfterShip)
+  const realEvents = await fetchTrackingFromAfterShip(trackingNumber, carrier);
 
-  getLogger().info({ trackingNumber, carrier }, '📦 Fetching tracking info (mock)');
+  if (realEvents && realEvents.length > 0) {
+    getLogger().info(
+      { trackingNumber, carrier, eventCount: realEvents.length },
+      '📦 Fetched real tracking info from AfterShip'
+    );
+
+    // Determine current status from latest event
+    const latestEvent = realEvents[realEvents.length - 1];
+
+    // Estimate delivery date
+    const expectedDelivery =
+      latestEvent.status === 'out_for_delivery'
+        ? new Date()
+        : latestEvent.status === 'in_transit'
+          ? new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+          : undefined;
+
+    return {
+      status: latestEvent.status,
+      expectedDelivery,
+      events: realEvents,
+    };
+  }
+
+  // Fallback to mock data
+  getLogger().info(
+    { trackingNumber, carrier },
+    '📦 Fetching tracking info (mock - set AFTERSHIP_API_KEY for real tracking)'
+  );
 
   // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 500);
+  });
 
   // Generate mock tracking based on carrier
   const now = new Date();

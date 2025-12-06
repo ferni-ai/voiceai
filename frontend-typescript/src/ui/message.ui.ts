@@ -17,6 +17,9 @@ import {
   toastInfo,
   dismiss,
 } from './toast.ui.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('MessageUI');
 
 // ============================================================================
 // ELEMENT REFERENCES (Helper text only - toasts handled by toast.ui.ts)
@@ -50,7 +53,7 @@ export function initMessageUI(): void {
     setupSubscriptions();
 
   } catch (error) {
-    console.error('Failed to initialize Message UI:', error);
+    log.error('Failed to initialize Message UI:', error);
   }
 }
 

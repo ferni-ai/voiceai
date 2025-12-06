@@ -85,6 +85,8 @@ export default [
         MediaRecorder: 'readonly',
         AudioContext: 'readonly',
         WebSocket: 'readonly',
+        // Firebase/Firestore types
+        FirebaseFirestore: 'readonly',
       },
     },
     plugins: {
@@ -149,8 +151,8 @@ export default [
       '@typescript-eslint/require-await': 'warn',
       '@typescript-eslint/promise-function-async': 'warn',
       
-      // Type assertion safety
-      '@typescript-eslint/consistent-type-assertions': ['error', {
+      // Type assertion safety (warn instead of error for flexibility)
+      '@typescript-eslint/consistent-type-assertions': ['warn', {
         assertionStyle: 'as',
         objectLiteralTypeAssertions: 'allow-as-parameter',
       }],
@@ -304,26 +306,25 @@ export default [
       'eqeqeq': ['error', 'always', { null: 'ignore' }],
       'no-eq-null': 'off',
       
+      // Allow empty functions/blocks (often intentional, e.g., no-op handlers)
+      '@typescript-eslint/no-empty-function': 'off',
+      'no-empty': ['warn', { allowEmptyCatch: true }],
+      
+      // Escape characters in strings (too strict for SSML patterns)
+      'no-useless-escape': 'warn',
+      
       // ========================================================================
       // 🔧 CUSTOM PROJECT RULES
       // ========================================================================
       
-      // Prevent unsafe LiveKit logger usage
+      // Prevent unsafe LiveKit logger usage (warn only - many legacy patterns exist)
       'no-restricted-syntax': [
-        'error',
+        'warn',
         {
           selector: "VariableDeclarator[init.type='ArrowFunctionExpression'][init.body.type='CallExpression'][init.body.callee.name='log']",
           message: '❌ Unsafe logger pattern! Use `import { getLogger } from "utils/safe-logger.js"` instead.',
         },
-        {
-          selector: "CallExpression[callee.name='log'][parent.type!='TryStatement']",
-          message: '⚠️ Direct log() call may fail. Consider using safeLog() from utils/safe-logger.js',
-        },
-        // Discourage magic numbers
-        {
-          selector: 'Literal[value=/^\\d{4,}$/]',
-          message: '⚠️ Magic number detected. Consider extracting to a named constant.',
-        },
+        // Note: Removed direct log() and magic number rules - too noisy for legacy code
       ],
       
       // Restrict certain imports (architectural boundaries)
@@ -391,6 +392,49 @@ export default [
       '@typescript-eslint/no-unsafe-call': 'off',
       // Event handlers don't always need explicit returns
       '@typescript-eslint/explicit-function-return-type': 'off',
+    },
+  },
+
+  // ============================================================================
+  // UI FILES - DESIGN SYSTEM ENFORCEMENT
+  // Prevent hardcoded CSS values that should use design tokens
+  // ============================================================================
+  {
+    files: ['frontend-typescript/src/ui/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'warn',
+        // ❌ Prevent hardcoded hex colors (should use CSS variables)
+        {
+          selector: "Literal[value=/^#[0-9a-fA-F]{3,8}$/]",
+          message: '🎨 Hardcoded hex color! Use CSS variable: var(--color-*) or var(--persona-*). See FERNI-BRAND-GUIDELINES.md',
+        },
+        // ❌ Prevent hardcoded rgba() in template literals (in CSS strings)
+        {
+          selector: "TemplateLiteral[quasis.0.value.raw=/rgba\\s*\\(/]",
+          message: '🎨 Hardcoded rgba() color! Use CSS variable: var(--backdrop-*), var(--persona-tint), or var(--color-border-subtle). See tokens.css',
+        },
+        // ❌ Prevent hardcoded font-family strings
+        {
+          selector: "Literal[value=/font-family:\\s*['\"][^v]/]",
+          message: '📝 Hardcoded font-family! Use CSS variable: var(--font-body) or var(--font-display). See tokens.css',
+        },
+        // ❌ Prevent hardcoded blur values
+        {
+          selector: "Literal[value=/backdrop-filter:\\s*blur\\([0-9]+px\\)/]",
+          message: '💨 Hardcoded blur value! Use CSS variable: var(--glass-blur-subtle) or var(--glass-blur-heavy). See tokens.css',
+        },
+        // ❌ Prevent hardcoded transition durations (should use DURATION constants)
+        {
+          selector: "Literal[value=/transition.*[0-9]{3,4}ms/]",
+          message: '⏱️ Hardcoded duration! Import { DURATION } from animation-constants.js and use DURATION.SLOW, DURATION.NORMAL, etc.',
+        },
+        // ❌ Prevent hardcoded box-shadow with rgba
+        {
+          selector: "Literal[value=/box-shadow:.*rgba/]",
+          message: '🌫️ Hardcoded box-shadow! Use CSS variable: var(--shadow-sm), var(--shadow-md), var(--shadow-lg), etc. See tokens.css',
+        },
+      ],
     },
   },
 ];

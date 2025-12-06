@@ -34,10 +34,10 @@ earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
 });
 
 import 'dotenv/config';
-import type { llm } from '@livekit/agents';
 import {
   type JobContext,
   type JobProcess,
+  type llm,
   WorkerOptions,
   cli,
   defineAgent,
@@ -745,12 +745,12 @@ class VoiceAgent extends voice.Agent<UserData> {
     // The _instructions property is from voice.Agent base class.
     if (newPersona.systemPrompt) {
       this._instructions = newPersona.systemPrompt;
-      
+
       // Inject engagement context if user is known
       if (userId) {
-        this.injectEngagementContext(userId, newPersona.id);
+        void this.injectEngagementContext(userId, newPersona.id);
       }
-      
+
       this.logger.info(
         {
           oldPersona: oldPersona.id,
@@ -763,7 +763,7 @@ class VoiceAgent extends voice.Agent<UserData> {
       this.logger.warn({ personaId: newPersona.id }, '⚠️ New persona has no systemPrompt!');
     }
   }
-  
+
   /**
    * Inject engagement context into LLM instructions
    * Adds persona-specific engagement opportunities naturally
@@ -780,7 +780,7 @@ class VoiceAgent extends voice.Agent<UserData> {
         this._instructions = `${this._instructions}\n${engagementContext}`;
         this.logger.debug('Engagement context injected into instructions');
       }
-      
+
       // Inject ritual onboarding for newer users
       const onboardingService = getRitualOnboardingService();
       const onboardingContext = onboardingService.buildOnboardingContext(
@@ -2256,7 +2256,8 @@ export default defineAgent({
       // ============================================================
       // Track tool calls in conversation state for orchestration
       // Also record analytics for tool usage optimization
-      session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, async (event) => {
+      session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
+        void (async () => {
         const toolStartTime = Date.now();
 
         // Debug logging (can be disabled in production)
@@ -2341,6 +2342,7 @@ export default defineAgent({
             });
           }
         }
+      })();
       });
 
       session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
@@ -2426,7 +2428,7 @@ export default defineAgent({
         if (backchannel) {
           try {
             // Say the backchannel with SSML - allow interruption
-            await session.say(backchannel.ssml, { allowInterruptions: true });
+            session.say(backchannel.ssml, { allowInterruptions: true });
             lastBackchannelAt = Date.now();
 
             // Track that we gave a backchannel (for reaction analysis)
@@ -2468,7 +2470,7 @@ export default defineAgent({
           // Only for turn 3+ to establish rapport first
           if ((userData.turnCount || 0) >= 3) {
             backchannelTimer = setTimeout(() => {
-              attemptBackchannel();
+              void attemptBackchannel();
             }, BACKCHANNEL_TRIGGER_MS);
           }
         } else if (event.newState === 'listening') {
@@ -2604,11 +2606,13 @@ export default defineAgent({
 
               // If we offered music, actually play it after a short delay
               if (silenceResponse.type === 'music_offering') {
-                setTimeout(async () => {
-                  const musicStarted = await playAmbientMusicDuringSilence();
+                setTimeout(() => {
+                  void (async () => {
+                    const musicStarted = await playAmbientMusicDuringSilence();
                   if (musicStarted) {
                     diag.state('Started ambient music during silence');
                   }
+                  })();
                 }, 3000); // Wait 3 seconds for them to respond before starting music
               }
               lastSilenceResponseAt = Date.now();
@@ -2715,6 +2719,7 @@ export default defineAgent({
         getVoiceAgentRef: () => voiceAgentRef as VoiceAgentRef | null,
       });
 
+
       handoffEvents.on('voiceSwitch', handoffHandler);
 
       // NOTE: The inline handler has been extracted to src/agents/shared/handoff-handler.ts
@@ -2809,8 +2814,10 @@ export default defineAgent({
       // Wire up real-time engagement data to frontend
       try {
         const engagementDataSender = getEngagementDataSender();
-        engagementDataSender.setRoom(ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]);
-        
+        engagementDataSender.setRoom(
+          ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]
+        );
+
         // Send initial engagement data to frontend
         if (userId) {
           await engagementDataSender.sendEngagementData(userId);
@@ -2862,7 +2869,8 @@ export default defineAgent({
           });
 
           // ✨ Set up callback for music state changes - notify frontend for avatar dancing!
-          player.setOnMusicStateChangeCallback(async (state, track, isAmbient) => {
+          player.setOnMusicStateChangeCallback((state, track, isAmbient) => {
+            void (async () => {
             diag.state('Music state changed, notifying frontend', {
               state,
               track: track?.name,
@@ -2888,6 +2896,7 @@ export default defineAgent({
             } catch (e) {
               diag.warn('Failed to send music state to frontend', { error: String(e) });
             }
+            })();
           });
 
           diag.session('Music player initialized with callbacks (including avatar dance!)', {
@@ -3375,15 +3384,19 @@ export default defineAgent({
         }
       };
 
-      // Register the handler
-      ctx.room.on('dataReceived', dataReceivedHandler);
+      // Register the handler (wrap async handler to avoid misused-promises)
+      const dataReceivedHandlerWrapper = (data: Uint8Array, participant?: { identity: string }) => {
+        void dataReceivedHandler(data, participant);
+      };
+      ctx.room.on('dataReceived', dataReceivedHandlerWrapper);
 
       // ===============================================
       // STEP 9: CLEANUP ON DISCONNECT
       // ===============================================
-      ctx.room.on('disconnected', async () => {
+      ctx.room.on('disconnected', () => {
+        void (async () => {
         // FIX BUG #15: Remove dataReceived handler to prevent memory leaks
-        ctx.room.off('dataReceived', dataReceivedHandler);
+        ctx.room.off('dataReceived', dataReceivedHandlerWrapper);
 
         // FIX BUG #42: Remove handoffEvents listener to prevent memory leaks
         handoffEvents.off('voiceSwitch', handoffHandler);
@@ -3457,6 +3470,7 @@ export default defineAgent({
         } catch (error) {
           diag.error('Session cleanup error', { error: String(error) });
         }
+        })();
       });
     } catch (entryError) {
       diag.error('Entry function failed', {
@@ -3479,7 +3493,7 @@ import { initializeVoiceRegistry } from '../personas/voice-registry.js';
 // Fallbacks are used until bundles are loaded
 // NOTE: initializeVoiceRegistry already calls discoverAndLoadBundles internally,
 // so we run them sequentially to avoid redundant loading
-(async () => {
+void (async () => {
   try {
     // Voice registry loads bundles and caches the result
     await initializeVoiceRegistry();
@@ -3528,8 +3542,12 @@ async function gracefulShutdown(signal: string) {
 }
 
 // Register shutdown handlers
-process.on('SIGTERM', async () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', async () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => {
+  void gracefulShutdown('SIGTERM');
+});
+process.on('SIGINT', () => {
+  void gracefulShutdown('SIGINT');
+});
 
 cli.runApp(
   new WorkerOptions({

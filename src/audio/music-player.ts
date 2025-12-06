@@ -278,7 +278,7 @@ export class CallMusicPlayer {
 
       // Wait for playback to complete, then cleanup
       if (this.currentPlayHandle) {
-        this.currentPlayHandle.waitForPlayout().then(() => {
+        void this.currentPlayHandle.waitForPlayout().then(() => {
           clearTimeout(fadeTimer); // Clean up timer if track ended early
 
           const endedTrack = this.state.currentTrack;
@@ -385,7 +385,7 @@ export class CallMusicPlayer {
       // Play next in queue
       const nextTrack = this.state.queue.shift()!;
       if (nextTrack.previewUrl) {
-        this.playFromUrl(nextTrack.previewUrl, nextTrack);
+        void this.playFromUrl(nextTrack.previewUrl, nextTrack);
       }
     } else {
       // No more tracks
@@ -613,7 +613,7 @@ export function getMusicPlayer(): CallMusicPlayer {
 
 export function resetMusicPlayer(): void {
   if (musicPlayerInstance) {
-    musicPlayerInstance.dispose();
+    void musicPlayerInstance.dispose();
     musicPlayerInstance = null;
   }
 }

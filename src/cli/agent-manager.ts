@@ -976,10 +976,12 @@ async function main(): Promise<void> {
         info('Usage: npm run agents create <agent-id> [--template <type>]');
         return;
       }
-      const templateIndex = args.indexOf('--template');
-      const template =
-        templateIndex > -1 && args[templateIndex + 1] ? args[templateIndex + 1] : 'basic';
-      await createAgent(args[1], template);
+      {
+        const templateIndex = args.indexOf('--template');
+        const template =
+          templateIndex > -1 && args[templateIndex + 1] ? args[templateIndex + 1] : 'basic';
+        await createAgent(args[1], template);
+      }
       break;
 
     case 'install':

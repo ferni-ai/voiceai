@@ -75,28 +75,112 @@ export interface CalendarListEntry {
 }
 
 // ============================================================================
-// TOKEN STORAGE
+// FIRESTORE SETUP
 // ============================================================================
 
-// In-memory token storage (production should use persistent storage)
+import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+
+let db: FirestoreType | null = null;
+const OAUTH_TOKENS_COLLECTION = 'google_calendar_tokens';
+
+async function getFirestore(): Promise<FirestoreType | null> {
+  if (db) return db;
+
+  try {
+    const { Firestore } = await import('@google-cloud/firestore');
+    db = new Firestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    });
+    getLogger().info('Google Calendar OAuth Firestore initialized');
+    return db;
+  } catch (error) {
+    getLogger().warn({ error }, 'Firestore not available for OAuth tokens, using in-memory only');
+    return null;
+  }
+}
+
+// ============================================================================
+// TOKEN STORAGE (In-memory cache with Firestore persistence)
+// ============================================================================
+
 const userTokens = new Map<string, GoogleTokens>();
+const loadedTokenUsers = new Set<string>();
 
 /**
  * Store tokens for a user
  */
-export function storeUserTokens(userId: string, tokens: GoogleTokens): void {
+export async function storeUserTokens(userId: string, tokens: GoogleTokens): Promise<void> {
   // Calculate expiry date if not present
   if (!tokens.expiry_date && tokens.expires_in) {
     tokens.expiry_date = Date.now() + tokens.expires_in * 1000;
   }
   userTokens.set(userId, tokens);
-  getLogger().info({ userId, hasRefreshToken: !!tokens.refresh_token }, 'Stored Google tokens');
+
+  // Persist to Firestore
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      await firestore
+        .collection(OAUTH_TOKENS_COLLECTION)
+        .doc(userId)
+        .set({
+          ...tokens,
+          updatedAt: new Date(),
+        });
+      getLogger().info(
+        { userId, hasRefreshToken: !!tokens.refresh_token },
+        'Stored Google tokens in Firestore'
+      );
+    } catch (err) {
+      getLogger().warn({ err, userId }, 'Failed to persist Google tokens to Firestore');
+    }
+  } else {
+    getLogger().info(
+      { userId, hasRefreshToken: !!tokens.refresh_token },
+      'Stored Google tokens (in-memory only)'
+    );
+  }
 }
 
 /**
  * Get tokens for a user
  */
-export function getUserTokens(userId: string): GoogleTokens | undefined {
+export async function getUserTokens(userId: string): Promise<GoogleTokens | undefined> {
+  // Check cache first
+  if (userTokens.has(userId)) {
+    return userTokens.get(userId);
+  }
+
+  // Try loading from Firestore
+  if (!loadedTokenUsers.has(userId)) {
+    const firestore = await getFirestore();
+    if (firestore) {
+      try {
+        const doc = await firestore.collection(OAUTH_TOKENS_COLLECTION).doc(userId).get();
+        if (doc.exists) {
+          const data = doc.data() as GoogleTokens;
+          userTokens.set(userId, data);
+          loadedTokenUsers.add(userId);
+          return data;
+        }
+      } catch (err) {
+        getLogger().warn({ err, userId }, 'Failed to load Google tokens from Firestore');
+      }
+    }
+    loadedTokenUsers.add(userId);
+  }
+
+  return userTokens.get(userId);
+}
+
+/**
+ * Get tokens synchronously (returns cached value only)
+ * Use getUserTokens for guaranteed data
+ */
+export function getUserTokensSync(userId: string): GoogleTokens | undefined {
+  // Trigger async load in background
+  void getUserTokens(userId);
   return userTokens.get(userId);
 }
 
@@ -207,7 +291,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<GoogleTo
  * Get valid access token for a user (refreshes if needed)
  */
 export async function getValidAccessToken(userId: string): Promise<string | null> {
-  let tokens = getUserTokens(userId);
+  let tokens = await getUserTokens(userId);
   if (!tokens) {
     getLogger().debug({ userId }, 'No tokens found for user');
     return null;
@@ -221,7 +305,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
 
     try {
       tokens = await refreshAccessToken(tokens.refresh_token);
-      storeUserTokens(userId, tokens);
+      await storeUserTokens(userId, tokens);
     } catch (error) {
       getLogger().error({ userId, error }, 'Failed to refresh tokens');
       return null;
@@ -476,8 +560,16 @@ export async function createAppointmentEvent(
 /**
  * Check if calendar is configured for a user
  */
-export function isCalendarConfigured(userId: string): boolean {
-  return !!getUserTokens(userId);
+export async function isCalendarConfigured(userId: string): Promise<boolean> {
+  const tokens = await getUserTokens(userId);
+  return !!tokens;
+}
+
+/**
+ * Check if calendar is configured (sync version, may return false until loaded)
+ */
+export function isCalendarConfiguredSync(userId: string): boolean {
+  return !!getUserTokensSync(userId);
 }
 
 /**

@@ -99,7 +99,9 @@ export class RateLimiter {
       }
 
       // Wait for refill interval
-      await new Promise((resolve) => setTimeout(resolve, this.config.refillInterval));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, this.config.refillInterval);
+      });
     }
 
     getLogger().warn(

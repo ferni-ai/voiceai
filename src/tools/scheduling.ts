@@ -1445,72 +1445,185 @@ Use for simple orders like "order me a pizza" or "get me Chinese food".`,
 
 /**
  * Google Places tools for Alex to find business info and phone numbers
+ * Now integrated with Google Places API for real business lookups
  */
 export function createPlacesTools() {
+  // Lazy import to avoid circular dependencies
+  const getPlacesService = async () => {
+    const {
+      searchRestaurants,
+      getPlaceDetails,
+      findNearbyRestaurants,
+      isGooglePlacesConfigured,
+      formatRestaurantListForSpeech,
+    } = await import('../services/google-places.js');
+    return {
+      searchRestaurants,
+      getPlaceDetails,
+      findNearbyRestaurants,
+      isGooglePlacesConfigured,
+      formatRestaurantListForSpeech,
+    };
+  };
+
   return {
     // ========== FIND PHONE NUMBER ==========
 
-    // NOTE: The following business search tools have been disabled pending
-    // implementation of the required Google Places API functions.
-    // Re-enable when searchNearby, findBusiness, getBusinessPhone are implemented.
-
     lookupBusinessPhone: llm.tool({
-      description: `Look up a business phone number. (Feature coming soon)`,
+      description: `Look up a business phone number using Google Places API.
+Use when the user asks for a business's phone number.
+Example: "What's the number for Joe's Pizza on Main Street?"`,
       parameters: z.object({
         businessName: z.string().describe('Name of the business to find'),
         location: z.string().optional().describe('City, address, or area to search in'),
       }),
-      execute: async ({ businessName }) => {
-        return `I can't look up business phone numbers yet. Do you have the number for ${businessName}?`;
+      execute: async ({ businessName, location }) => {
+        const places = await getPlacesService();
+        if (!places.isGooglePlacesConfigured()) {
+          return `I can't look up business numbers right now. Do you have the number for ${businessName}?`;
+        }
+
+        const results = await places.searchRestaurants({ query: businessName, location });
+        if (results.length === 0) {
+          return `I couldn't find ${businessName}${location ? ` near ${location}` : ''}. Could you give me more details?`;
+        }
+
+        const details = await places.getPlaceDetails(results[0].placeId);
+        if (!details) {
+          return `Found ${results[0].name} but couldn't get their details. Try searching for them online.`;
+        }
+
+        if (details.formattedPhoneNumber) {
+          return `${details.name}'s phone number is ${details.formattedPhoneNumber}. They're located at ${details.formattedAddress}. Would you like me to call them?`;
+        }
+
+        return `Found ${details.name} at ${details.formattedAddress}, but they don't have a phone number listed. You might try their website: ${details.website || 'not listed'}.`;
       },
     }),
 
     findNearbyBusinesses: llm.tool({
-      description: `Find nearby businesses. (Feature coming soon)`,
+      description: `Find nearby businesses using Google Places API.
+Use when the user wants to find businesses near a specific location.`,
       parameters: z.object({
-        type: z.string().describe('Type of business'),
-        keyword: z.string().optional(),
-        latitude: z.number(),
-        longitude: z.number(),
-        openNow: z.boolean().default(false),
+        type: z.string().describe('Type of business (e.g., restaurant, dentist, gym)'),
+        keyword: z.string().optional().describe('Additional keyword to filter results'),
+        latitude: z.number().describe('Latitude of search center'),
+        longitude: z.number().describe('Longitude of search center'),
+        openNow: z.boolean().default(false).describe('Only show places that are currently open'),
       }),
-      execute: async ({ type }) => {
-        return `I can't search for nearby ${type} yet. Can you tell me a specific business name?`;
+      execute: async ({ type, keyword, latitude, longitude }) => {
+        const places = await getPlacesService();
+        if (!places.isGooglePlacesConfigured()) {
+          return `I can't search for nearby businesses right now. Can you tell me a specific business name?`;
+        }
+
+        const results = await places.findNearbyRestaurants(
+          latitude,
+          longitude,
+          2000,
+          keyword || type
+        );
+        if (results.length === 0) {
+          return `I couldn't find any ${type}${keyword ? ` matching "${keyword}"` : ''} nearby. Try expanding your search area or being more specific.`;
+        }
+
+        return places.formatRestaurantListForSpeech(results, 5);
       },
     }),
 
     searchBusinesses: llm.tool({
-      description: `Search for businesses. (Feature coming soon)`,
+      description: `Search for businesses by name or type using Google Places API.
+Use for general business searches.`,
       parameters: z.object({
-        query: z.string().describe('Search query'),
-        location: z.string().optional(),
-        openNow: z.boolean().default(false),
+        query: z.string().describe('Search query (business name or type)'),
+        location: z.string().optional().describe('Location to search in'),
+        openNow: z.boolean().default(false).describe('Only show places that are currently open'),
       }),
-      execute: async ({ query }) => {
-        return `I can't search for businesses yet. Do you know the name of ${query}?`;
+      execute: async ({ query, location, openNow }) => {
+        const places = await getPlacesService();
+        if (!places.isGooglePlacesConfigured()) {
+          return `I can't search for businesses right now. Do you know the specific name of ${query}?`;
+        }
+
+        const results = await places.searchRestaurants({ query, location, openNow });
+        if (results.length === 0) {
+          return `I couldn't find anything matching "${query}"${location ? ` near ${location}` : ''}. Could you be more specific?`;
+        }
+
+        return places.formatRestaurantListForSpeech(results, 5);
       },
     }),
 
     getBusinessDetails: llm.tool({
-      description: `Get business details. (Feature coming soon)`,
+      description: `Get detailed information about a specific business.
+Returns hours, phone, address, ratings, and reviews.`,
       parameters: z.object({
         businessName: z.string().describe('Name of the business'),
-        location: z.string().optional(),
+        location: z.string().optional().describe('Location to narrow down search'),
       }),
-      execute: async ({ businessName }) => {
-        return `I can't look up details for ${businessName} yet. What would you like to know?`;
+      execute: async ({ businessName, location }) => {
+        const places = await getPlacesService();
+        if (!places.isGooglePlacesConfigured()) {
+          return `I can't look up details for ${businessName} right now. What would you like to know?`;
+        }
+
+        const results = await places.searchRestaurants({ query: businessName, location });
+        if (results.length === 0) {
+          return `I couldn't find ${businessName}. Could you give me more details about their location?`;
+        }
+
+        const details = await places.getPlaceDetails(results[0].placeId);
+        if (!details) {
+          return `Found ${results[0].name} but couldn't get their full details.`;
+        }
+
+        let response = `**${details.name}**\n`;
+        response += `📍 ${details.formattedAddress}\n`;
+        if (details.formattedPhoneNumber) response += `📞 ${details.formattedPhoneNumber}\n`;
+        if (details.rating)
+          response += `⭐ ${details.rating} stars (${details.userRatingsTotal} reviews)\n`;
+        if (details.website) response += `🌐 ${details.website}\n`;
+        if (details.openingHours) {
+          response += `\n**Hours:**\n`;
+          details.openingHours.weekdayText.forEach((day) => {
+            response += `• ${day}\n`;
+          });
+          response += details.openingHours.openNow ? '\n✅ Open now' : '\n❌ Currently closed';
+        }
+
+        return response;
       },
     }),
 
     findAndCall: llm.tool({
-      description: `Find and call a business. (Feature coming soon)`,
+      description: `Find a business and offer to call them.
+Combines search with phone lookup and calling capability.`,
       parameters: z.object({
         businessName: z.string().describe('Name of the business to call'),
-        location: z.string().optional(),
-        purpose: z.string().optional(),
+        location: z.string().optional().describe('Location to narrow search'),
+        purpose: z
+          .string()
+          .optional()
+          .describe('Why you want to call (e.g., "make a reservation", "check hours")'),
       }),
-      execute: async ({ businessName }) => {
-        return `I need the phone number for ${businessName}. Do you have it?`;
+      execute: async ({ businessName, location, purpose }) => {
+        const places = await getPlacesService();
+        if (!places.isGooglePlacesConfigured()) {
+          return `I need the phone number for ${businessName}. Do you have it?`;
+        }
+
+        const results = await places.searchRestaurants({ query: businessName, location });
+        if (results.length === 0) {
+          return `I couldn't find ${businessName}. Do you have their phone number?`;
+        }
+
+        const details = await places.getPlaceDetails(results[0].placeId);
+        if (!details?.formattedPhoneNumber) {
+          return `Found ${results[0].name} but they don't have a phone number listed. You might try their website.`;
+        }
+
+        const purposeText = purpose ? ` to ${purpose}` : '';
+        return `Found ${details.name} at ${details.formattedAddress}. Their number is ${details.formattedPhoneNumber}. Would you like me to call them${purposeText}?`;
       },
     }),
   };
@@ -1587,7 +1700,7 @@ Use when:
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'default';
 
-        const results = searchContacts(userId, query);
+        const results = await searchContacts(userId, query);
 
         if (results.length === 0) {
           return `I don't have "${query}" in your contacts. Would you like to add them?`;
@@ -1650,7 +1763,7 @@ Use when:
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'default';
 
-        const contact = findContact(userId, who);
+        const contact = await findContact(userId, who);
 
         if (!contact) {
           return `I don't have "${who}" in your contacts. Do you have their number, or should I look them up?`;
@@ -1660,7 +1773,8 @@ Use when:
           return `I have ${contact.displayName} saved, but no phone number. Want to add one?`;
         }
 
-        const phone = contact.phones.find((p) => p.primary) || contact.phones[0];
+        const phone =
+          contact.phones.find((p: { primary?: boolean }) => p.primary) || contact.phones[0];
 
         // Mark as contacted
         markContacted(contact.id);
@@ -1701,23 +1815,26 @@ Use when:
 
         switch (filter) {
           case 'favorites':
-            contacts = getFavoriteContacts(userId);
+            contacts = await getFavoriteContacts(userId);
             title = '⭐ Favorite Contacts';
             break;
           case 'recent':
-            contacts = getRecentContacts(userId, limit);
+            contacts = await getRecentContacts(userId, limit);
             title = '🕐 Recent Contacts';
             break;
           case 'group':
-            contacts = group
-              ? getUserContacts(userId).filter((c) =>
-                  c.groups.some((g) => g.toLowerCase() === group.toLowerCase())
-                )
-              : [];
+            if (group) {
+              const allContacts = await getUserContacts(userId);
+              contacts = allContacts.filter((c: Contact) =>
+                c.groups.some((g: string) => g.toLowerCase() === group.toLowerCase())
+              );
+            } else {
+              contacts = [];
+            }
             title = `👥 ${group || 'Group'} Contacts`;
             break;
           default:
-            contacts = getUserContacts(userId).slice(0, limit);
+            contacts = (await getUserContacts(userId)).slice(0, limit);
             title = '📇 Your Contacts';
         }
 
@@ -1762,7 +1879,7 @@ Use when:
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'default';
 
-        const contact = findContact(userId, who);
+        const contact = await findContact(userId, who);
 
         if (!contact) {
           return `I couldn't find "${who}" in your contacts.`;
@@ -1771,18 +1888,19 @@ Use when:
         const updates: string[] = [];
 
         if (phone) {
-          contact.phones = [
-            { number: phone, type: 'mobile', primary: true },
-            ...contact.phones.slice(1),
-          ];
+          updateContact(contact.id, {
+            phones: [{ number: phone, type: 'mobile', primary: true }, ...contact.phones.slice(1)],
+          });
           updates.push(`phone → ${formatPhoneForDisplay(phone)}`);
         }
 
         if (email) {
-          contact.emails = [
-            { address: email.toLowerCase(), type: 'personal', primary: true },
-            ...contact.emails.slice(1),
-          ];
+          updateContact(contact.id, {
+            emails: [
+              { address: email.toLowerCase(), type: 'personal', primary: true },
+              ...contact.emails.slice(1),
+            ],
+          });
           updates.push(`email → ${email}`);
         }
 
@@ -1799,15 +1917,15 @@ Use when:
         }
 
         if (notes) {
-          contact.notes = contact.notes ? `${contact.notes}\n${notes}` : notes;
+          updateContact(contact.id, {
+            notes: contact.notes ? `${contact.notes}\n${notes}` : notes,
+          });
           updates.push('added notes');
         }
 
         if (updates.length === 0) {
           return `Nothing to update for ${contact.displayName}. What would you like to change?`;
         }
-
-        updateContact(contact.id, contact);
 
         return `✅ Updated ${contact.displayName}:\n${updates.map((u) => `  • ${u}`).join('\n')}`;
       },
@@ -1830,7 +1948,7 @@ Use when user explicitly asks to remove someone.`,
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'default';
 
-        const contact = findContact(userId, who);
+        const contact = await findContact(userId, who);
 
         if (!contact) {
           return `I couldn't find "${who}" in your contacts.`;
@@ -1913,12 +2031,6 @@ Guides user through the import process.`,
 // ============================================================================
 // EXPORTS
 // ============================================================================
-
-// Legacy aliases for backward compatibility
-export const createAlexAppointmentTools = createAppointmentTools;
-export const createAlexDeliveryTools = createDeliveryTools;
-export const createAlexPlacesTools = createPlacesTools;
-export const createAlexContactsTools = createContactsTools;
 
 export default createAppointmentTools;
 

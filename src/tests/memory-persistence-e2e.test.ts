@@ -14,8 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { InMemoryStore } from '../memory/in-memory-store.js';
-import { getDefaultStore, resetDefaultStore } from '../memory/in-memory-store.js';
+import { getDefaultStore, resetDefaultStore, type InMemoryStore } from '../memory/in-memory-store.js';
 import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 import {
   exportIntelligenceState,
@@ -338,7 +337,9 @@ describe('Memory Persistence E2E', () => {
       startAutoSave(testUserId, autoSaveCallback, { autoSaveIntervalMs: 50 });
 
       // Wait for a few auto-saves
-      await new Promise((resolve) => setTimeout(resolve, 180));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 180);
+      });
 
       // Should have auto-saved at least twice
       expect(saveCount).toBeGreaterThanOrEqual(2);

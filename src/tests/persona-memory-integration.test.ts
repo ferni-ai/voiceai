@@ -22,8 +22,8 @@ import {
   getRandomAcknowledgmentPhrase,
   type NormalizedPersonaId,
 } from '../intelligence/context-builders/persona-memory.js';
-import type { Memory } from '../services/persona-memories.js';
 import type {
+  Memory,
   FerniMemory,
   BogleMemory,
   PeterMemory,

@@ -16,8 +16,7 @@
  */
 
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
-import type { BundleEntrancesV2 } from './bundles/types.js';
-import { isEntrancesV2 } from './bundles/types.js';
+import { isEntrancesV2, type BundleEntrancesV2 } from './bundles/types.js';
 import { loadBundleById } from './bundles/loader.js';
 import { getLogger } from '../utils/safe-logger.js';
 

@@ -14,6 +14,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import { getLifeDataStore, type LifeMilestone, type LifeGoal } from './life-data-store.js';
 import { getAgentBus, type AgentId } from './agent-bus.js';
+import { getDefaultStore } from '../memory/index.js';
 
 // ============================================================================
 // TYPES
@@ -47,6 +48,141 @@ export interface SchedulerConfig {
   goalCheckInFrequency: 'daily' | 'weekly' | 'monthly'; // How often to check goals
   enableQuarterlyReviews: boolean;
   enableRetirementCheckIns: boolean;
+  enableSmartTiming: boolean; // Use learned user patterns for optimal timing
+}
+
+// ============================================================================
+// SMART TIMING - User engagement pattern learning
+// ============================================================================
+
+interface UserEngagementPattern {
+  preferredHours: number[]; // Hours of day (0-23) user typically engages
+  preferredDays: number[]; // Days of week (0=Sun, 6=Sat) user typically engages
+  responseRate: number; // 0-1, how often they respond to proactive messages
+  avgResponseDelayMs: number; // How quickly they respond
+  lastSuccessfulContactTime?: Date;
+}
+
+// Cache for user engagement patterns
+const userEngagementPatterns = new Map<string, UserEngagementPattern>();
+
+/**
+ * Learn user engagement patterns from their conversation history
+ */
+async function learnUserEngagementPattern(userId: string): Promise<UserEngagementPattern> {
+  // Check cache first
+  const cached = userEngagementPatterns.get(userId);
+  if (cached) return cached;
+
+  // Default pattern
+  const defaultPattern: UserEngagementPattern = {
+    preferredHours: [9, 10, 11, 14, 15, 16, 19, 20], // Business hours + evening
+    preferredDays: [1, 2, 3, 4, 5], // Weekdays
+    responseRate: 0.5,
+    avgResponseDelayMs: 60 * 60 * 1000, // 1 hour default
+  };
+
+  try {
+    const store = getDefaultStore();
+    const profile = await store.getProfile(userId);
+
+    if (profile?.conversationPatterns?.sessions) {
+      const { sessions } = profile.conversationPatterns;
+      const hourCounts = new Map<number, number>();
+      const dayCounts = new Map<number, number>();
+
+      // Count engagement by hour and day
+      for (const session of sessions) {
+        const start = new Date(session.startedAt);
+        const hour = start.getHours();
+        const day = start.getDay();
+
+        hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
+        dayCounts.set(day, (dayCounts.get(day) || 0) + 1);
+      }
+
+      // Find top hours (above average)
+      const avgHourCount = sessions.length / 24;
+      const preferredHours = Array.from(hourCounts.entries())
+        .filter(([_, count]) => count > avgHourCount)
+        .map(([hour]) => hour)
+        .sort((a, b) => a - b);
+
+      // Find preferred days
+      const avgDayCount = sessions.length / 7;
+      const preferredDays = Array.from(dayCounts.entries())
+        .filter(([_, count]) => count > avgDayCount)
+        .map(([day]) => day)
+        .sort((a, b) => a - b);
+
+      const pattern: UserEngagementPattern = {
+        preferredHours: preferredHours.length > 0 ? preferredHours : defaultPattern.preferredHours,
+        preferredDays: preferredDays.length > 0 ? preferredDays : defaultPattern.preferredDays,
+        responseRate: profile.conversationPatterns.preferences?.likesSmallTalkFirst ? 0.7 : 0.5,
+        avgResponseDelayMs:
+          (profile.conversationPatterns.preferences?.avgDuration || 10) * 60 * 1000,
+      };
+
+      userEngagementPatterns.set(userId, pattern);
+      return pattern;
+    }
+  } catch (error) {
+    getLogger().debug({ error, userId }, 'Could not learn engagement pattern, using defaults');
+  }
+
+  return defaultPattern;
+}
+
+/**
+ * Check if now is a good time to contact a user based on their patterns
+ */
+function isGoodTimeForUser(pattern: UserEngagementPattern): boolean {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentDay = now.getDay();
+
+  // Check if current hour is in preferred hours (with 1-hour tolerance)
+  const hourOk = pattern.preferredHours.some((h) => Math.abs(h - currentHour) <= 1);
+
+  // Check if current day is in preferred days
+  const dayOk = pattern.preferredDays.includes(currentDay);
+
+  return hourOk && dayOk;
+}
+
+/**
+ * Get the next optimal contact time for a user
+ */
+function getNextOptimalContactTime(pattern: UserEngagementPattern): Date {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentDay = now.getDay();
+
+  // Find next preferred hour today
+  const nextHourToday = pattern.preferredHours.find((h) => h > currentHour);
+
+  if (nextHourToday !== undefined && pattern.preferredDays.includes(currentDay)) {
+    const result = new Date(now);
+    result.setHours(nextHourToday, 0, 0, 0);
+    return result;
+  }
+
+  // Find next preferred day and hour
+  for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
+    const futureDay = (currentDay + daysAhead) % 7;
+    if (pattern.preferredDays.includes(futureDay)) {
+      const result = new Date(now);
+      result.setDate(result.getDate() + daysAhead);
+      result.setHours(pattern.preferredHours[0] || 9, 0, 0, 0);
+      return result;
+    }
+  }
+
+  // Fallback: tomorrow at first preferred hour
+  const result = new Date(now);
+  result.setDate(result.getDate() + 1);
+  result.setHours(pattern.preferredHours[0] || 9, 0, 0, 0);
+  return result;
 }
 
 // ============================================================================
@@ -59,6 +195,7 @@ const DEFAULT_CONFIG: SchedulerConfig = {
   goalCheckInFrequency: 'weekly',
   enableQuarterlyReviews: true,
   enableRetirementCheckIns: true,
+  enableSmartTiming: true, // Use learned patterns by default
 };
 
 // ============================================================================
@@ -128,11 +265,11 @@ class ProactiveScheduler extends EventEmitter {
     getLogger().info({ intervalMs: this.config.checkIntervalMs }, '⏰ Proactive Scheduler started');
 
     // Run immediately
-    this.runChecks();
+    void this.runChecks();
 
     // Then run on interval
     this.intervalId = setInterval(() => {
-      this.runChecks();
+      void this.runChecks();
     }, this.config.checkIntervalMs);
   }
 
@@ -169,12 +306,27 @@ class ProactiveScheduler extends EventEmitter {
 
   /**
    * Run all checks for all registered users
+   * Uses smart timing to only notify users at optimal times
    */
   async runChecks(): Promise<void> {
     getLogger().debug({ userCount: this.userIds.size }, 'Running proactive checks');
 
     for (const userId of this.userIds) {
       try {
+        // Smart timing: check if now is a good time for this user
+        if (this.config.enableSmartTiming) {
+          const pattern = await learnUserEngagementPattern(userId);
+          if (!isGoodTimeForUser(pattern)) {
+            // Schedule for optimal time instead of now
+            const optimalTime = getNextOptimalContactTime(pattern);
+            getLogger().debug(
+              { userId, optimalTime: optimalTime.toISOString() },
+              'Skipping user - not optimal time, will try later'
+            );
+            continue;
+          }
+        }
+
         await this.checkUserMilestones(userId);
         await this.checkUserGoals(userId);
 

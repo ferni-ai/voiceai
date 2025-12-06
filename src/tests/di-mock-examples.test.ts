@@ -11,8 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { Container } from '../services/di/index.js';
-import { getContainer, resetContainer, Tokens } from '../services/di/index.js';
+import { getContainer, resetContainer, Tokens, type Container } from '../services/di/index.js';
 import { success, failure, isSuccess, isFailure, type Result } from '../types/result.js';
 
 // ============================================================================
@@ -325,7 +324,9 @@ describe('Result Type Testing Patterns', () => {
       // Simulating an async service method
       async function asyncOperation(): Promise<Result<string, Error>> {
         // Simulating async work
-        await new Promise((r) => setTimeout(r, 1));
+        await new Promise((r) => {
+          setTimeout(r, 1);
+        });
         return success('done');
       }
 
@@ -335,7 +336,9 @@ describe('Result Type Testing Patterns', () => {
 
     it('should test async failures', async () => {
       async function asyncOperationThatFails(): Promise<Result<string, Error>> {
-        await new Promise((r) => setTimeout(r, 1));
+        await new Promise((r) => {
+          setTimeout(r, 1);
+        });
         return failure(new Error('Async failure'));
       }
 

@@ -1,17 +1,31 @@
 /**
- * Engagement UI Component
+ * Engagement UI Component - "Daily Check-in"
  *
- * Displays daily ritual streaks, emotional weather, and engagement status.
- * Brand-aligned: warm, organic, zen aesthetic. No emojis.
+ * A centered floating modal for daily rituals, streaks, and emotional weather.
+ * Redesigned to match the Menu/Predictions modal treatment.
  *
  * Design System Compliance:
  * - Uses CSS variables from tokens.css
  * - Uses DURATION/EASING from animation-constants.ts
+ * - Uses shared components from engagement-components.ts
  * - Respects prefers-reduced-motion
- * - Japanese zen aesthetic (MA spacing, organic shapes)
+ * - Centered floating modal with backdrop blur
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import {
+  ICONS,
+  WEATHER_COPY,
+  ENERGY_COPY,
+  STAGGER_DELAYS,
+  getStaggerDelay,
+  injectSharedStyles,
+  escapeHtml,
+  renderCloseButton,
+  renderStreakDots,
+  getStreakMilestoneMessage,
+  type IconName,
+} from './engagement-components.js';
 
 // ============================================================================
 // TYPES
@@ -50,139 +64,90 @@ export interface EngagementData {
 }
 
 // ============================================================================
-// WEATHER ICONS (SVG-based, no emojis)
-// ============================================================================
-
-const WEATHER_ICONS: Record<EmotionalWeatherData['primary'], string> = {
-  sunny: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="5"/>
-    <line x1="12" y1="1" x2="12" y2="3"/>
-    <line x1="12" y1="21" x2="12" y2="23"/>
-    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-    <line x1="1" y1="12" x2="3" y2="12"/>
-    <line x1="21" y1="12" x2="23" y2="12"/>
-    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-  </svg>`,
-  'partly-cloudy': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M8 3v1m-4.25 2.75l-.7.7m11.95-3.45l-.7.7M5 10a3 3 0 1 1 4.83-2.37"/>
-    <path d="M18 10a4 4 0 0 0-7.87-.9A5 5 0 1 0 6 18h12a4 4 0 0 0 0-8z"/>
-  </svg>`,
-  cloudy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M18 10a4 4 0 0 0-7.87-.9A5 5 0 1 0 6 18h12a4 4 0 0 0 0-8z"/>
-  </svg>`,
-  rainy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M16 13V21"/>
-    <path d="M8 13V21"/>
-    <path d="M12 15V23"/>
-    <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/>
-  </svg>`,
-  stormy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/>
-    <polyline points="13 11 9 17 15 17 11 23"/>
-  </svg>`,
-  foggy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/>
-    <line x1="8" y1="19" x2="8" y2="19.01"/>
-    <line x1="8" y1="23" x2="8" y2="23.01"/>
-    <line x1="12" y1="21" x2="12" y2="21.01"/>
-    <line x1="16" y1="19" x2="16" y2="19.01"/>
-    <line x1="16" y1="23" x2="16" y2="23.01"/>
-  </svg>`,
-  rainbow: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22 17a10 10 0 0 0-20 0"/>
-    <path d="M6 17a6 6 0 0 1 12 0"/>
-    <path d="M10 17a2 2 0 0 1 4 0"/>
-  </svg>`,
-};
-
-const WEATHER_LABELS: Record<EmotionalWeatherData['primary'], string> = {
-  sunny: 'Clear skies',
-  'partly-cloudy': 'Mixed weather',
-  cloudy: 'Overcast',
-  rainy: 'Heavy weather',
-  stormy: 'Turbulent',
-  foggy: 'Uncertain',
-  rainbow: 'Breakthrough',
-};
-
-// ============================================================================
 // ENGAGEMENT UI CLASS
 // ============================================================================
 
 export class EngagementUI {
   private container: HTMLElement | null = null;
   private panelVisible: boolean = false;
+  private styleElement: HTMLStyleElement | null = null;
 
   /**
    * Initialize the engagement UI
    */
   initialize(): void {
+    // HMR protection - avoid duplicate panels
+    if (this.container) return;
+    
+    // Clean up any orphaned elements from HMR
+    const existingPanel = document.getElementById('engagement-panel');
+    if (existingPanel) existingPanel.remove();
+    
+    // Inject shared design system styles
+    injectSharedStyles();
     this.createStyles();
     this.createPanel();
   }
 
   /**
-   * Create the engagement panel container
+   * Create the engagement panel container - CENTERED FLOATING MODAL
    */
   private createPanel(): void {
-    // Create container
     this.container = document.createElement('div');
     this.container.id = 'engagement-panel';
     this.container.className = 'engagement-panel';
-    this.container.setAttribute('role', 'complementary');
-    this.container.setAttribute('aria-label', 'Daily engagement panel');
+    this.container.setAttribute('role', 'dialog');
+    this.container.setAttribute('aria-modal', 'true');
+    this.container.setAttribute('aria-label', 'Daily check-in');
     this.container.setAttribute('aria-hidden', 'true');
 
-    // Create panel content wrapper
-    const wrapper = document.createElement('div');
-    wrapper.className = 'engagement-panel__wrapper';
-
-    // Header
-    const header = document.createElement('header');
-    header.className = 'engagement-panel__header';
-    header.innerHTML = `
-      <h2 class="engagement-panel__title">Daily Practice</h2>
-      <button class="engagement-panel__close" aria-label="Close panel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+    this.container.innerHTML = `
+      <div class="engagement-panel__backdrop"></div>
+      <div class="engagement-panel__card">
+        <header class="engagement-panel__header">
+          <h2 class="engagement-panel__title">Daily Check-in</h2>
+          ${renderCloseButton('Close panel')}
+        </header>
+        <div class="engagement-panel__content" id="engagement-content">
+          ${this.renderEmptyState()}
+        </div>
+      </div>
     `;
 
-    // Content area
-    const content = document.createElement('div');
-    content.className = 'engagement-panel__content';
-    content.id = 'engagement-content';
-
-    // Empty state
-    content.innerHTML = this.renderEmptyState();
-
-    wrapper.appendChild(header);
-    wrapper.appendChild(content);
-    this.container.appendChild(wrapper);
     document.body.appendChild(this.container);
 
-    // Bind close button
-    const closeBtn = header.querySelector('.engagement-panel__close');
+    // Bind events
+    const backdrop = this.container.querySelector('.engagement-panel__backdrop');
+    backdrop?.addEventListener('click', () => this.hide());
+    
+    const closeBtn = this.container.querySelector('.engagement-close-btn');
     closeBtn?.addEventListener('click', () => this.hide());
+    
+    // Close on escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.panelVisible) {
+        this.hide();
+      }
+    });
   }
 
   /**
-   * Render empty state
+   * Render empty state - welcoming, not clinical
    */
   private renderEmptyState(): string {
     return `
       <div class="engagement-empty">
         <div class="engagement-empty__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 6v6l4 2"/>
-          </svg>
+          ${ICONS.heart}
         </div>
-        <p class="engagement-empty__text">Begin a conversation to start your daily practice</p>
+        <h3 class="engagement-empty__title">Start Your Journey</h3>
+        <p class="engagement-empty__message">
+          Daily practices help you build consistency and self-awareness. 
+          Start a conversation with Ferni to set up your first ritual.
+        </p>
+        <button class="engagement-empty__cta" onclick="document.querySelector('.engagement-panel')?.classList.remove('engagement-panel--visible')">
+          Talk to Ferni
+        </button>
       </div>
     `;
   }
@@ -198,54 +163,131 @@ export class EngagementUI {
 
     const sections: string[] = [];
 
-    // Weather section (if recent)
+    // Emotional Weather - most recent
     const latestWeather = data.weatherHistory[0];
     if (latestWeather) {
       sections.push(this.renderWeatherSection(latestWeather));
     }
 
-    // Active streaks
+    // Weather Trend - visualization of last 7 days
+    if (data.weatherHistory.length > 1) {
+      sections.push(this.renderWeatherTrend(data.weatherHistory.slice(0, 7)));
+    }
+
+    // Active streaks - the heart of daily practice
     if (data.ritualStreaks.length > 0) {
       sections.push(this.renderStreaksSection(data.ritualStreaks));
     }
 
-    // Stats
+    // Summary stats
     sections.push(this.renderStatsSection(data.stats));
 
     content.innerHTML = sections.join('');
 
-    // Add entrance animations
+    // Staggered entrance animations
     if (!prefersReducedMotion()) {
       const cards = content.querySelectorAll('.engagement-card');
       cards.forEach((card, index) => {
-        (card as HTMLElement).style.animationDelay = `${index * 80}ms`;
+        const delay = getStaggerDelay(index, STAGGER_DELAYS.CARD);
+        (card as HTMLElement).style.animationDelay = `${delay}ms`;
       });
     }
   }
 
   /**
-   * Render weather section
+   * Render weather trend visualization
+   */
+  private renderWeatherTrend(history: EmotionalWeatherData[]): string {
+    // Map weather to numeric values for the chart
+    const weatherValues: Record<string, number> = {
+      'sunny': 5,
+      'rainbow': 5,
+      'partly-cloudy': 4,
+      'cloudy': 3,
+      'foggy': 2,
+      'rainy': 2,
+      'stormy': 1,
+    };
+
+    // Reverse to show oldest to newest (left to right)
+    const reversed = [...history].reverse();
+
+    const dots = reversed.map((day, index) => {
+      const value = weatherValues[day.primary] || 3;
+      const date = new Date(day.recordedAt);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const bottom = ((value - 1) / 4) * 60; // Scale to 60px height
+      const iconKey = day.primary as IconName;
+      const icon = ICONS[iconKey] || ICONS.cloudy;
+      
+      return `
+        <div class="weather-trend__point" style="--index: ${index}; --bottom: ${bottom}px" title="${dayName}: ${WEATHER_COPY[day.primary]?.label || day.primary}">
+          <span class="weather-trend__icon">${icon}</span>
+          <span class="weather-trend__day">${dayName}</span>
+        </div>
+      `;
+    }).join('');
+
+    // Create trend line path
+    const pathPoints = reversed.map((day, index) => {
+      const value = weatherValues[day.primary] || 3;
+      const x = (index / Math.max(reversed.length - 1, 1)) * 100;
+      const y = 100 - ((value - 1) / 4) * 100;
+      return `${x},${y}`;
+    }).join(' ');
+
+    return `
+      <section class="engagement-card engagement-card--trend">
+        <div class="engagement-section-header">
+          <span class="engagement-section-label">Your Week</span>
+          <span class="engagement-trend-hint">Emotional weather trend</span>
+        </div>
+        <div class="weather-trend">
+          <svg class="weather-trend__line" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polyline 
+              points="${pathPoints}" 
+              fill="none" 
+              stroke="var(--persona-primary, var(--color-accent-primary))" 
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              opacity="0.3"
+            />
+          </svg>
+          <div class="weather-trend__points">
+            ${dots}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  /**
+   * Render emotional weather section
    */
   private renderWeatherSection(weather: EmotionalWeatherData): string {
-    const icon = WEATHER_ICONS[weather.primary];
-    const label = WEATHER_LABELS[weather.primary];
+    const iconKey = weather.primary as IconName;
+    const icon = ICONS[iconKey] || ICONS.cloudy;
+    const copy = WEATHER_COPY[weather.primary];
+    const energyCopy = ENERGY_COPY[weather.energy];
     const energyClass = `energy-${weather.energy}`;
 
     return `
       <section class="engagement-card engagement-card--weather ${energyClass}">
-        <div class="engagement-card__header">
-          <span class="engagement-card__label">Today's weather</span>
+        <div class="engagement-section-header">
+          <span class="engagement-section-label">How you're feeling</span>
         </div>
         <div class="engagement-weather">
           <div class="engagement-weather__icon" aria-hidden="true">
             ${icon}
           </div>
           <div class="engagement-weather__info">
-            <span class="engagement-weather__label">${label}</span>
-            <span class="engagement-weather__energy">${this.formatEnergy(weather.energy)} energy</span>
+            <span class="engagement-weather__label">${escapeHtml(copy.label)}</span>
+            <span class="engagement-weather__energy">${escapeHtml(energyCopy.label)} energy</span>
           </div>
         </div>
-        ${weather.note ? `<p class="engagement-weather__note">${this.escapeHtml(weather.note)}</p>` : ''}
+        <p class="engagement-weather__encouragement">${escapeHtml(copy.encouragement)}</p>
+        ${weather.note ? `<p class="engagement-weather__note">"${escapeHtml(weather.note)}"</p>` : ''}
       </section>
     `;
   }
@@ -263,16 +305,32 @@ export class EngagementUI {
       .map((streak) => this.renderStreakItem(streak))
       .join('');
 
+    const dueLabel = dueStreaks.length > 0
+      ? `<span class="engagement-badge">${dueStreaks.length} ready for you</span>`
+      : '';
+
     return `
       <section class="engagement-card engagement-card--streaks">
-        <div class="engagement-card__header">
-          <span class="engagement-card__label">Active streaks</span>
-          ${dueStreaks.length > 0 ? `<span class="engagement-badge">${dueStreaks.length} due</span>` : ''}
+        <div class="engagement-section-header">
+          <span class="engagement-section-label">Your Rituals</span>
+          ${dueLabel}
         </div>
         <div class="engagement-streaks">
-          ${activeStreaks.length > 0 ? streakItems : '<p class="engagement-streaks__empty">No active streaks yet</p>'}
+          ${activeStreaks.length > 0 ? streakItems : this.renderNoStreaksMessage()}
         </div>
       </section>
+    `;
+  }
+
+  /**
+   * Render no streaks message - encouraging
+   */
+  private renderNoStreaksMessage(): string {
+    return `
+      <p class="engagement-streaks__empty">
+        Small daily rituals lead to big transformations.<br/>
+        <span class="engagement-streaks__cta">Ask Ferni to help you start one.</span>
+      </p>
     `;
   }
 
@@ -280,79 +338,60 @@ export class EngagementUI {
    * Render individual streak item
    */
   private renderStreakItem(streak: RitualStreakData): string {
-    const isRecord = streak.currentStreak >= streak.longestStreak && streak.currentStreak > 1;
-    const personaColor = this.getPersonaColorClass(streak.personaId);
+    const isPersonalBest = streak.currentStreak >= streak.longestStreak && streak.currentStreak > 1;
+    const milestoneMessage = getStreakMilestoneMessage(streak.currentStreak);
+    const isDue = streak.dueToday;
 
     return `
-      <div class="engagement-streak ${personaColor} ${streak.dueToday ? 'engagement-streak--due' : ''}">
-        <div class="engagement-streak__info">
-          <span class="engagement-streak__name">${this.escapeHtml(streak.ritualName)}</span>
+      <div class="engagement-streak ${isDue ? 'engagement-streak--due' : ''}" data-persona="${escapeHtml(streak.personaId)}">
+        <div class="engagement-streak__header">
+          <span class="engagement-streak__name">${escapeHtml(streak.ritualName)}</span>
+          ${isPersonalBest ? '<span class="engagement-streak__best">Personal best!</span>' : ''}
+        </div>
+        <div class="engagement-streak__body">
           <span class="engagement-streak__count">
             ${streak.currentStreak} ${streak.currentStreak === 1 ? 'day' : 'days'}
-            ${isRecord ? '<span class="engagement-streak__record">Personal best</span>' : ''}
           </span>
+          ${renderStreakDots(streak.currentStreak, 7, streak.personaId)}
         </div>
-        <div class="engagement-streak__progress">
-          ${this.renderStreakDots(streak.currentStreak, streak.longestStreak)}
-        </div>
+        ${milestoneMessage ? `<p class="engagement-streak__milestone">${escapeHtml(milestoneMessage)}</p>` : ''}
       </div>
     `;
-  }
-
-  /**
-   * Render streak progress dots
-   */
-  private renderStreakDots(current: number, _longest: number): string {
-    const displayCount = Math.min(current, 7);
-    const dots = Array(displayCount)
-      .fill(0)
-      .map((_, i) => `<span class="engagement-streak__dot engagement-streak__dot--filled" style="animation-delay: ${i * 50}ms"></span>`)
-      .join('');
-
-    const remaining = 7 - displayCount;
-    const emptyDots = Array(remaining > 0 ? remaining : 0)
-      .fill(0)
-      .map(() => '<span class="engagement-streak__dot"></span>')
-      .join('');
-
-    return dots + emptyDots + (current > 7 ? '<span class="engagement-streak__more">+</span>' : '');
   }
 
   /**
    * Render stats section
    */
   private renderStatsSection(stats: EngagementStats): string {
+    const statsItems: { value: number | string; label: string }[] = [
+      { value: stats.totalRitualDays, label: 'Total days' },
+      { value: stats.longestOverallStreak, label: 'Best streak' },
+      { value: stats.currentActiveStreaks, label: 'Active rituals' },
+    ];
+
+    const statsHtml = statsItems
+      .map(stat => `
+        <div class="engagement-stat">
+          <span class="engagement-stat__value">${stat.value}</span>
+          <span class="engagement-stat__label">${stat.label}</span>
+        </div>
+      `)
+      .join('');
+
     return `
       <section class="engagement-card engagement-card--stats">
-        <div class="engagement-card__header">
-          <span class="engagement-card__label">Your journey</span>
+        <div class="engagement-section-header">
+          <span class="engagement-section-label">Your Progress</span>
         </div>
         <div class="engagement-stats">
-          <div class="engagement-stat">
-            <span class="engagement-stat__value">${stats.totalRitualDays}</span>
-            <span class="engagement-stat__label">ritual days</span>
-          </div>
-          <div class="engagement-stat">
-            <span class="engagement-stat__value">${stats.longestOverallStreak}</span>
-            <span class="engagement-stat__label">longest streak</span>
-          </div>
-          ${stats.predictionAccuracy !== undefined ? `
-          <div class="engagement-stat">
-            <span class="engagement-stat__value">${stats.predictionAccuracy}%</span>
-            <span class="engagement-stat__label">prediction accuracy</span>
-          </div>
-          ` : ''}
-          <div class="engagement-stat">
-            <span class="engagement-stat__value">${stats.teamHuddlesAttended}</span>
-            <span class="engagement-stat__label">team huddles</span>
-          </div>
+          ${statsHtml}
         </div>
       </section>
     `;
   }
 
   /**
-   * Show the panel
+   * Show the panel with smooth animation
    */
   show(): void {
     if (!this.container) return;
@@ -360,48 +399,21 @@ export class EngagementUI {
     this.panelVisible = true;
     this.container.classList.add('engagement-panel--visible');
     this.container.setAttribute('aria-hidden', 'false');
-
-    // Animate in
-    if (!prefersReducedMotion()) {
-      this.container.animate(
-        [
-          { transform: 'translateX(100%)', opacity: 0 },
-          { transform: 'translateX(0)', opacity: 1 },
-        ],
-        {
-          duration: DURATION.MODERATE,
-          easing: EASING.EXPO_OUT,
-          fill: 'forwards',
-        }
-      );
-    }
   }
 
   /**
-   * Hide the panel
+   * Hide the panel with smooth animation
    */
   hide(): void {
     if (!this.container) return;
 
     this.panelVisible = false;
     this.container.setAttribute('aria-hidden', 'true');
-
-    // Animate out
-    const animation = this.container.animate(
-      [
-        { transform: 'translateX(0)', opacity: 1 },
-        { transform: 'translateX(100%)', opacity: 0 },
-      ],
-      {
-        duration: DURATION.SLOW,
-        easing: EASING.STANDARD,
-        fill: 'forwards',
-      }
-    );
-
-    animation.onfinish = () => {
+    
+    // Wait for animation before hiding
+    setTimeout(() => {
       this.container?.classList.remove('engagement-panel--visible');
-    };
+    }, prefersReducedMotion() ? 0 : DURATION.NORMAL);
   }
 
   /**
@@ -416,82 +428,76 @@ export class EngagementUI {
   }
 
   /**
-   * Get persona color class
+   * Check if panel is visible
    */
-  private getPersonaColorClass(personaId: string): string {
-    const colorMap: Record<string, string> = {
-      ferni: 'persona-ferni',
-      'alex-chen': 'persona-alex',
-      'maya-santos': 'persona-maya',
-      'jordan-taylor': 'persona-jordan',
-      'nayan-patel': 'persona-nayan',
-      'peter-john': 'persona-peter',
-    };
-    return colorMap[personaId] || 'persona-ferni';
+  isVisible(): boolean {
+    return this.panelVisible;
   }
 
   /**
-   * Format energy level
-   */
-  private formatEnergy(energy: EmotionalWeatherData['energy']): string {
-    const labels: Record<EmotionalWeatherData['energy'], string> = {
-      high: 'High',
-      medium: 'Moderate',
-      low: 'Low',
-    };
-    return labels[energy];
-  }
-
-  /**
-   * Escape HTML to prevent XSS
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  /**
-   * Create styles
+   * Create component-specific styles - CENTERED FLOATING MODAL
    */
   private createStyles(): void {
     const styleId = 'engagement-ui-styles';
     if (document.getElementById(styleId)) return;
 
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
+    this.styleElement = document.createElement('style');
+    this.styleElement.id = styleId;
+    this.styleElement.textContent = `
       /* ========================================
-         ENGAGEMENT PANEL
-         Zen-inspired, brand-aligned design
+         ENGAGEMENT PANEL - CENTERED FLOATING MODAL
+         Matches Menu/Predictions treatment
          ======================================== */
 
       .engagement-panel {
         position: fixed;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 340px;
-        max-width: 90vw;
-        z-index: var(--z-overlay, 1300);
-        pointer-events: none;
+        inset: 0;
+        z-index: var(--z-modal, 1400);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--ma-silence, 34px);
         opacity: 0;
-        transform: translateX(100%);
+        visibility: hidden;
+        transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD},
+                    visibility ${DURATION.NORMAL}ms ${EASING.STANDARD};
       }
 
       .engagement-panel--visible {
-        pointer-events: auto;
         opacity: 1;
-        transform: translateX(0);
+        visibility: visible;
       }
 
-      .engagement-panel__wrapper {
-        height: 100%;
+      /* Backdrop */
+      .engagement-panel__backdrop {
+        position: absolute;
+        inset: 0;
+        background: var(--backdrop-heavy);
+        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+      }
+
+      /* Card */
+      .engagement-panel__card {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        max-height: 80vh;
+        background: var(--color-background-elevated, #fffdfb);
+        border-radius: var(--radius-2xl, 1.5rem);
+        box-shadow: var(--shadow-2xl);
+        border: 1px solid var(--color-border-subtle);
         display: flex;
         flex-direction: column;
-        background: var(--color-background-elevated, #fffdfb);
-        border-left: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        box-shadow: var(--shadow-xl, 0 16px 32px rgba(44, 37, 32, 0.1));
+        overflow: hidden;
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+        transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING},
+                    opacity ${DURATION.MODERATE}ms ${EASING.STANDARD};
+      }
+
+      .engagement-panel--visible .engagement-panel__card {
+        transform: translateY(0) scale(1);
+        opacity: 1;
       }
 
       /* Header */
@@ -499,153 +505,110 @@ export class EngagementUI {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        padding: var(--space-5, 20px) var(--space-6, 24px);
+        border-bottom: 1px solid var(--color-border-subtle);
+        flex-shrink: 0;
       }
 
       .engagement-panel__title {
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-lg, 1.0625rem);
+        font-family: var(--font-display);
+        font-size: var(--text-xl, 1.25rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-primary, #2c2520);
-        letter-spacing: var(--tracking-tight, -0.015em);
+        color: var(--color-text-primary);
         margin: 0;
-      }
-
-      .engagement-panel__close {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        /* Golden ratio: 34px button / 1.618 ≈ 21px icon */
-        width: 34px;
-        height: 34px;
-        padding: 0;
-        background: var(--color-background-secondary, #f5f2ed);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        border-radius: var(--radius-full, 9999px);
-        color: var(--color-text-secondary, #5c544a);
-        cursor: pointer;
-        transition: all 200ms var(--ease-gentle, cubic-bezier(0.4, 0, 0.2, 1));
-        /* Subtle inner shadow for depth */
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5),
-                    0 1px 3px rgba(44, 37, 32, 0.04);
-      }
-
-      .engagement-panel__close:hover {
-        background: var(--color-background-tertiary, #ebe6df);
-        color: var(--color-text-primary, #2c2520);
-        border-color: var(--color-border-medium, rgba(44, 37, 32, 0.10));
-        transform: scale(1.05);
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6),
-                    0 2px 6px rgba(44, 37, 32, 0.08);
-      }
-
-      .engagement-panel__close:active {
-        transform: scale(0.95);
-        box-shadow: inset 0 2px 4px rgba(44, 37, 32, 0.08);
-      }
-
-      .engagement-panel__close:focus-visible {
-        outline: 2px solid var(--color-accent-primary, #2d5a3d);
-        outline-offset: 2px;
-      }
-
-      .engagement-panel__close svg {
-        /* Golden ratio to button: 34/1.618 ≈ 21px */
-        width: 16px;
-        height: 16px;
-        stroke-width: 2.5;
-        opacity: 0.8;
-        transition: opacity 200ms ease;
-      }
-
-      .engagement-panel__close:hover svg {
-        opacity: 1;
       }
 
       /* Content */
       .engagement-panel__content {
         flex: 1;
         overflow-y: auto;
-        padding: var(--ma-rest, 21px);
+        padding: var(--space-5, 20px);
         display: flex;
         flex-direction: column;
-        gap: var(--ma-pause, 13px);
+        gap: var(--space-4, 16px);
+      }
+
+      /* Section Header */
+      .engagement-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-3, 12px);
+      }
+
+      .engagement-section-label {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-wider, 0.05em);
+      }
+
+      .engagement-badge {
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--persona-primary, var(--color-accent-primary));
+        background: var(--persona-tint, var(--color-accent-subtle));
+        padding: var(--space-1, 4px) var(--space-2, 8px);
+        border-radius: var(--radius-full, 9999px);
       }
 
       /* Cards */
       .engagement-card {
-        background: var(--color-background-primary, #faf8f5);
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        border-radius: var(--radius-lg, 1rem);
-        padding: var(--ma-rest, 21px);
-        animation: engagementSlideIn 400ms var(--ease-ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+        background: var(--color-background-secondary);
+        border: 1px solid var(--color-border-subtle);
+        border-radius: var(--radius-xl, 1.25rem);
+        padding: var(--space-4, 16px);
+        animation: engagementCardEnter ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
         opacity: 0;
         transform: translateY(8px);
       }
 
-      @keyframes engagementSlideIn {
+      @keyframes engagementCardEnter {
         to {
           opacity: 1;
           transform: translateY(0);
         }
       }
 
-      .engagement-card__header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: var(--ma-pause, 13px);
-      }
-
-      .engagement-card__label {
-        font-family: var(--font-body, 'Inter', sans-serif);
-        font-size: var(--text-xs, 0.75rem);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-muted, #756a5e);
-        text-transform: uppercase;
-        letter-spacing: var(--tracking-wider, 0.05em);
-      }
-
-      .engagement-badge {
-        font-size: var(--text-2xs, 0.625rem);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-accent-primary, #2d5a3d);
-        background: var(--color-accent-subtle, rgba(45, 90, 61, 0.05));
-        padding: 2px 8px;
-        border-radius: var(--radius-full, 9999px);
-      }
-
-      /* Weather */
+      /* Weather Section */
       .engagement-weather {
         display: flex;
         align-items: center;
-        gap: var(--ma-pause, 13px);
+        gap: var(--space-4, 16px);
       }
 
       .engagement-weather__icon {
-        width: 48px;
-        height: 48px;
+        width: 56px;
+        height: 56px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-secondary, #f5f2ed);
-        border-radius: var(--radius-lg, 1rem);
-        color: var(--color-text-secondary, #5c544a);
+        background: var(--color-background-tertiary);
+        border-radius: var(--radius-xl, 1.25rem);
+        color: var(--color-text-secondary);
       }
 
       .engagement-weather__icon svg {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
       }
 
+      /* Energy colors */
       .energy-high .engagement-weather__icon {
-        color: var(--color-semantic-success, #3d7a52);
-        background: var(--color-semantic-success-glow, rgba(61, 122, 82, 0.18));
+        color: var(--color-semantic-success);
+        background: var(--color-semantic-success-glow);
+      }
+
+      .energy-medium .engagement-weather__icon {
+        color: var(--persona-primary, var(--color-accent-primary));
+        background: var(--persona-tint, var(--color-accent-subtle));
       }
 
       .energy-low .engagement-weather__icon {
-        color: var(--color-text-dimmed, #a89d90);
+        color: var(--color-text-dimmed);
+        background: var(--color-background-tertiary);
       }
 
       .engagement-weather__info {
@@ -655,160 +618,231 @@ export class EngagementUI {
       }
 
       .engagement-weather__label {
-        font-family: var(--font-body, 'Inter', sans-serif);
-        font-size: var(--text-base, 0.9375rem);
+        font-family: var(--font-body);
+        font-size: var(--text-base);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
       }
 
       .engagement-weather__energy {
-        font-size: var(--text-sm, 0.8125rem);
-        color: var(--color-text-muted, #756a5e);
+        font-size: var(--text-sm);
+        color: var(--color-text-muted);
+      }
+
+      .engagement-weather__encouragement {
+        margin: var(--space-3, 12px) 0 0 0;
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        font-style: italic;
+        line-height: var(--leading-relaxed);
       }
 
       .engagement-weather__note {
-        margin-top: var(--ma-pause, 13px);
-        padding-top: var(--ma-pause, 13px);
-        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        font-size: var(--text-sm, 0.8125rem);
-        color: var(--color-text-secondary, #5c544a);
-        font-style: italic;
-        line-height: var(--leading-normal, 1.6);
+        margin-top: var(--space-3, 12px);
+        padding-top: var(--space-3, 12px);
+        border-top: 1px solid var(--color-border-subtle);
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
       }
 
       /* Streaks */
       .engagement-streaks {
         display: flex;
         flex-direction: column;
-        gap: var(--ma-breath, 8px);
+        gap: var(--space-2, 8px);
       }
 
       .engagement-streaks__empty {
-        font-size: var(--text-sm, 0.8125rem);
-        color: var(--color-text-dimmed, #a89d90);
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
         text-align: center;
-        padding: var(--ma-rest, 21px) 0;
+        padding: var(--space-4, 16px) 0;
+        line-height: var(--leading-relaxed);
+      }
+
+      .engagement-streaks__cta {
+        color: var(--persona-primary, var(--color-accent-primary));
+        font-weight: var(--font-weight-medium, 500);
       }
 
       .engagement-streak {
         display: flex;
         flex-direction: column;
-        gap: var(--ma-breath, 8px);
-        padding: var(--ma-breath, 8px) var(--ma-pause, 13px);
-        border-radius: var(--radius-md, 0.75rem);
-        background: var(--color-background-secondary, #f5f2ed);
-        transition: var(--transition-all-fast, all 150ms ease);
+        gap: var(--space-2, 8px);
+        padding: var(--space-3, 12px);
+        border-radius: var(--radius-lg, 1rem);
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
       }
 
       .engagement-streak--due {
-        background: var(--color-accent-subtle, rgba(45, 90, 61, 0.05));
-        border-left: 3px solid var(--color-accent-primary, #2d5a3d);
+        background: var(--persona-tint, var(--color-accent-subtle));
+        border-left: 3px solid var(--persona-primary, var(--color-accent-primary));
       }
 
-      .engagement-streak__info {
+      .engagement-streak__header {
         display: flex;
         justify-content: space-between;
-        align-items: baseline;
+        align-items: center;
       }
 
       .engagement-streak__name {
-        font-size: var(--text-sm, 0.8125rem);
+        font-size: var(--text-sm);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
+      }
+
+      .engagement-streak__best {
+        font-size: var(--text-2xs, 0.625rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-semantic-success);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-wider);
+      }
+
+      .engagement-streak__body {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
 
       .engagement-streak__count {
-        font-size: var(--text-sm, 0.8125rem);
-        color: var(--color-text-muted, #756a5e);
+        font-size: var(--text-sm);
+        color: var(--color-text-muted);
+      }
+
+      .engagement-streak__milestone {
+        font-size: var(--text-xs);
+        color: var(--color-text-secondary);
+        font-style: italic;
+        margin: 0;
+        padding-top: var(--space-2, 8px);
+        border-top: 1px solid var(--color-border-subtle);
+      }
+
+      /* Weather Trend */
+      .engagement-card--trend {
+        background: var(--color-background-secondary);
+      }
+
+      .engagement-trend-hint {
+        font-size: var(--text-2xs, 0.625rem);
+        color: var(--color-text-dimmed);
+        text-transform: none;
+        letter-spacing: normal;
+      }
+
+      .weather-trend {
+        position: relative;
+        height: 90px;
+        margin-top: var(--space-2, 8px);
+      }
+
+      .weather-trend__line {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 60px;
+        top: 10px;
+      }
+
+      .weather-trend__points {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        height: 100%;
+        padding: 0 var(--space-1, 4px);
+      }
+
+      .weather-trend__point {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-1, 4px);
+        position: relative;
+        animation: weatherPointFadeIn ${DURATION.MODERATE}ms ${EASING.SPRING} forwards;
+        animation-delay: calc(var(--index) * 60ms);
+        opacity: 0;
+        transform: translateY(8px);
+        margin-bottom: var(--bottom, 0);
+      }
+
+      @keyframes weatherPointFadeIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .weather-trend__icon {
+        width: 28px;
+        height: 28px;
         display: flex;
         align-items: center;
-        gap: var(--ma-breath, 8px);
+        justify-content: center;
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-full);
+        box-shadow: var(--shadow-sm);
+        color: var(--persona-primary, var(--color-accent-primary));
+        transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
-      .engagement-streak__record {
+      .weather-trend__icon svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .weather-trend__point:hover .weather-trend__icon {
+        transform: scale(1.15);
+      }
+
+      .weather-trend__day {
         font-size: var(--text-2xs, 0.625rem);
-        font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-accent-primary, #2d5a3d);
-        text-transform: uppercase;
-        letter-spacing: var(--tracking-wider, 0.05em);
+        color: var(--color-text-dimmed);
+        font-weight: var(--font-weight-medium, 500);
       }
-
-      .engagement-streak__progress {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-
-      .engagement-streak__dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--color-border-medium, rgba(44, 37, 32, 0.10));
-        transition: var(--transition-all-fast, all 150ms ease);
-      }
-
-      .engagement-streak__dot--filled {
-        background: var(--color-accent-primary, #2d5a3d);
-        animation: engagementDotPop 300ms var(--ease-ease-out-back, cubic-bezier(0.34, 1.56, 0.64, 1)) forwards;
-      }
-
-      @keyframes engagementDotPop {
-        0% { transform: scale(0); }
-        100% { transform: scale(1); }
-      }
-
-      .engagement-streak__more {
-        font-size: var(--text-2xs, 0.625rem);
-        color: var(--color-text-muted, #756a5e);
-        margin-left: 4px;
-      }
-
-      /* Persona colors */
-      .persona-ferni .engagement-streak__dot--filled { background: #4a6741; }
-      .persona-alex .engagement-streak__dot--filled { background: #5a6b8a; }
-      .persona-maya .engagement-streak__dot--filled { background: #a67a6a; }
-      .persona-jordan .engagement-streak__dot--filled { background: #c4856a; }
-      .persona-nayan .engagement-streak__dot--filled { background: #9a7b5a; }
-      .persona-peter .engagement-streak__dot--filled { background: #3a6b73; }
 
       /* Stats */
       .engagement-stats {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--ma-pause, 13px);
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-3, 12px);
       }
 
       .engagement-stat {
         display: flex;
         flex-direction: column;
+        align-items: center;
         gap: 2px;
-        text-align: center;
+        padding: var(--space-3, 12px);
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-lg, 1rem);
       }
 
       .engagement-stat__value {
-        font-family: var(--font-accent, 'Sora', sans-serif);
+        font-family: var(--font-display);
         font-size: var(--text-2xl, 1.5rem);
         font-weight: var(--font-weight-bold, 700);
-        color: var(--color-text-primary, #2c2520);
+        color: var(--color-text-primary);
         line-height: 1;
       }
 
       .engagement-stat__label {
         font-size: var(--text-2xs, 0.625rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-muted);
         text-transform: uppercase;
-        letter-spacing: var(--tracking-wider, 0.05em);
+        letter-spacing: var(--tracking-wide);
+        text-align: center;
       }
 
-      /* Empty state */
+      /* Empty State */
       .engagement-empty {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        padding: var(--ma-meditation, 55px) var(--ma-rest, 21px);
         text-align: center;
+        padding: var(--space-8, 32px) var(--space-4, 16px);
       }
 
       .engagement-empty__icon {
@@ -817,10 +851,10 @@ export class EngagementUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--color-background-tertiary, #ebe6df);
-        border-radius: 50%;
-        color: var(--color-text-dimmed, #a89d90);
-        margin-bottom: var(--ma-rest, 21px);
+        background: var(--persona-tint, var(--color-accent-subtle));
+        border-radius: var(--radius-full);
+        color: var(--persona-primary, var(--color-accent-primary));
+        margin-bottom: var(--space-4, 16px);
       }
 
       .engagement-empty__icon svg {
@@ -828,126 +862,122 @@ export class EngagementUI {
         height: 32px;
       }
 
-      .engagement-empty__text {
-        font-size: var(--text-sm, 0.8125rem);
-        color: var(--color-text-secondary, #5c544a);
-        max-width: 200px;
-        line-height: var(--leading-normal, 1.6);
+      .engagement-empty__title {
+        font-family: var(--font-display);
+        font-size: var(--text-lg);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary);
+        margin: 0 0 var(--space-2, 8px) 0;
       }
 
-      /* Reduced motion */
-      @media (prefers-reduced-motion: reduce) {
-        .engagement-card {
-          animation: none;
-          opacity: 1;
-          transform: none;
-        }
-        .engagement-streak__dot--filled {
-          animation: none;
-        }
+      .engagement-empty__message {
+        font-size: var(--text-sm);
+        color: var(--color-text-secondary);
+        line-height: var(--leading-relaxed);
+        max-width: 280px;
+        margin: 0 0 var(--space-5, 20px) 0;
       }
 
-      /* Dark theme adjustments (Cedar Night) */
-      [data-theme="midnight"] .engagement-panel__wrapper {
-        background: var(--color-background-elevated, #70605a);
-        border-left-color: var(--color-border-medium, rgba(215, 185, 145, 0.20));
+      .engagement-empty__cta {
+        background: var(--persona-primary, var(--color-accent-primary));
+        color: white;
+        border: none;
+        padding: var(--space-3, 12px) var(--space-6, 24px);
+        border-radius: var(--radius-full);
+        font-family: var(--font-body);
+        font-size: var(--text-sm);
+        font-weight: var(--font-weight-medium, 500);
+        cursor: pointer;
+        transition: transform ${DURATION.FAST}ms ${EASING.SPRING},
+                    background ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
-      [data-theme="midnight"] .engagement-panel__title {
-        color: var(--color-text-primary, #faf6f0);
+      .engagement-empty__cta:hover {
+        transform: scale(1.05);
+        background: var(--persona-secondary);
       }
 
-      [data-theme="midnight"] .engagement-panel__close {
-        background: var(--color-background-tertiary, #685852);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
-        color: var(--color-text-secondary, #e0d5c8);
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05),
-                    0 1px 3px rgba(0, 0, 0, 0.15);
+      .engagement-empty__cta:active {
+        transform: scale(0.98);
       }
 
-      [data-theme="midnight"] .engagement-panel__close:hover {
-        background: var(--color-background-secondary, #60504a);
-        border-color: var(--color-border-medium, rgba(215, 185, 145, 0.20));
-        color: var(--color-text-primary, #faf6f0);
-        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.08),
-                    0 2px 6px rgba(0, 0, 0, 0.2);
+      /* Dark Theme */
+      [data-theme="midnight"] .engagement-panel__backdrop {
+        background: var(--backdrop-heavy);
       }
 
-      [data-theme="midnight"] .engagement-panel__close:active {
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+      [data-theme="midnight"] .engagement-panel__card {
+        background: var(--color-background-elevated);
+        border-color: var(--color-border-medium);
       }
 
       [data-theme="midnight"] .engagement-card {
-        background: var(--color-background-secondary, #60504a);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
-      }
-
-      [data-theme="midnight"] .engagement-card__label {
-        color: var(--color-text-muted, #d0c4b4);
+        background: var(--color-background-tertiary);
+        border-color: var(--color-border-subtle);
       }
 
       [data-theme="midnight"] .engagement-streak {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-secondary);
       }
 
-      [data-theme="midnight"] .engagement-streak__name {
-        color: var(--color-text-primary, #faf6f0);
+      [data-theme="midnight"] .engagement-stat {
+        background: var(--color-background-secondary);
       }
 
-      [data-theme="midnight"] .engagement-streak__count {
-        color: var(--color-text-secondary, #e0d5c8);
-      }
-
-      [data-theme="midnight"] .engagement-streak__record {
-        color: var(--color-accent-primary, #d4a84a);
-      }
-
-      [data-theme="midnight"] .engagement-weather__icon {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-secondary, #e0d5c8);
-      }
-
-      [data-theme="midnight"] .engagement-weather__label {
-        color: var(--color-text-primary, #faf6f0);
-      }
-
-      [data-theme="midnight"] .engagement-weather__energy {
-        color: var(--color-text-secondary, #e0d5c8);
-      }
-
-      [data-theme="midnight"] .engagement-weather__note {
-        color: var(--color-text-secondary, #e0d5c8);
-        border-top-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
-      }
-
+      /* Dark Theme Text - WCAG AA Compliant */
+      [data-theme="midnight"] .engagement-card__title,
+      [data-theme="midnight"] .engagement-streaks__title,
+      [data-theme="midnight"] .engagement-streak__title,
       [data-theme="midnight"] .engagement-stat__value {
-        color: var(--color-text-primary, #faf6f0);
+        color: var(--color-text-primary);
       }
 
+      [data-theme="midnight"] .engagement-card__value,
+      [data-theme="midnight"] .engagement-card__description,
+      [data-theme="midnight"] .engagement-weather__description,
+      [data-theme="midnight"] .engagement-streaks__content,
+      [data-theme="midnight"] .engagement-streaks__empty,
+      [data-theme="midnight"] .engagement-streak__milestone,
+      [data-theme="midnight"] .engagement-empty__message {
+        color: var(--color-text-secondary);
+      }
+
+      [data-theme="midnight"] .engagement-card__label,
+      [data-theme="midnight"] .engagement-weather__energy,
+      [data-theme="midnight"] .engagement-streak__count,
       [data-theme="midnight"] .engagement-stat__label {
-        color: var(--color-text-muted, #d0c4b4);
+        color: var(--color-text-muted);
       }
 
-      [data-theme="midnight"] .engagement-empty__icon {
-        background: var(--color-background-tertiary, #685852);
-        color: var(--color-text-muted, #d0c4b4);
+      /* Responsive */
+      @media (max-width: 480px) {
+        .engagement-panel {
+          padding: var(--space-4, 16px);
+        }
+
+        .engagement-panel__card {
+          max-height: 90vh;
+          border-radius: var(--radius-xl, 1.25rem);
+        }
+
+        .engagement-stats {
+          grid-template-columns: repeat(3, 1fr);
+        }
       }
 
-      [data-theme="midnight"] .engagement-empty__text {
-        color: var(--color-text-secondary, #e0d5c8);
-      }
-
-      [data-theme="midnight"] .engagement-badge {
-        color: var(--color-accent-primary, #d4a84a);
-        background: var(--color-accent-subtle, rgba(212, 168, 74, 0.08));
-      }
-
-      [data-theme="midnight"] .engagement-streaks__empty {
-        color: var(--color-text-muted, #d0c4b4);
+      /* Reduced Motion */
+      @media (prefers-reduced-motion: reduce) {
+        .engagement-panel,
+        .engagement-panel__card,
+        .engagement-card {
+          animation: none !important;
+          transition: opacity ${DURATION.FAST}ms linear !important;
+          transform: none !important;
+        }
       }
     `;
 
-    document.head.appendChild(style);
+    document.head.appendChild(this.styleElement);
   }
 
   /**
@@ -959,9 +989,9 @@ export class EngagementUI {
       this.container = null;
     }
 
-    const style = document.getElementById('engagement-ui-styles');
-    if (style) {
-      style.remove();
+    if (this.styleElement) {
+      this.styleElement.remove();
+      this.styleElement = null;
     }
   }
 }
@@ -985,4 +1015,3 @@ export function initializeEngagementUI(): void {
 }
 
 export default EngagementUI;
-

@@ -221,7 +221,9 @@ export async function withErrorHandling<T>(
           `Retrying ${operationName} after error...`
         );
 
-        await new Promise((resolve) => setTimeout(resolve, retryDelay * (attempt + 1)));
+        await new Promise((resolve) => {
+          setTimeout(resolve, retryDelay * (attempt + 1));
+        });
         continue;
       }
 

@@ -524,8 +524,8 @@ export class AudioProsodyAnalyzer {
 
         // Calculate amplitude
         let maxAmp = 0;
-        for (let j = 0; j < frame.length; j++) {
-          maxAmp = Math.max(maxAmp, Math.abs(frame[j]));
+        for (const sample of frame) {
+          maxAmp = Math.max(maxAmp, Math.abs(sample));
         }
         amplitudes.push(maxAmp);
       }
@@ -847,29 +847,18 @@ export function removeSessionAudioProsodyAnalyzer(sessionId: string): void {
 // GLOBAL SINGLETON (BACKWARD COMPATIBILITY)
 // ============================================================================
 
-/** @deprecated Use getSessionAudioProsodyAnalyzer for session isolation */
+/** @deprecated SUNSET: 2025-03-31 - Use getSessionAudioProsodyAnalyzer for session isolation */
 let analyzerInstance: AudioProsodyAnalyzer | null = null;
 
 /**
  * Get the singleton audio prosody analyzer
- * @deprecated Use getSessionAudioProsodyAnalyzer for session isolation
+ * @deprecated SUNSET: 2025-03-31 - Use getSessionAudioProsodyAnalyzer for session isolation
  */
 export function getAudioProsodyAnalyzer(): AudioProsodyAnalyzer {
   if (!analyzerInstance) {
     analyzerInstance = new AudioProsodyAnalyzer();
   }
   return analyzerInstance;
-}
-
-/**
- * Reset the analyzer (for testing)
- * @deprecated Use removeSessionAudioProsodyAnalyzer for session isolation
- */
-export function resetAudioProsodyAnalyzer(): void {
-  if (analyzerInstance) {
-    analyzerInstance.reset();
-  }
-  analyzerInstance = null;
 }
 
 export default AudioProsodyAnalyzer;

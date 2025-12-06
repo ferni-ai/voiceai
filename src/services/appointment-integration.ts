@@ -24,7 +24,7 @@ import {
   type CallTrackingEntry,
 } from './twilio-webhooks.js';
 import { createAppointmentEvent, isCalendarConfigured } from './google-calendar-oauth.js';
-import { sendEmail, sendSMS } from '../tools/communication.js';
+import { sendEmail, sendSMS } from './communication-service.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -85,17 +85,17 @@ class AppointmentIntegrationService extends EventEmitter {
 
     // Handle call completion
     webhookService.on('call_complete', (entry: CallTrackingEntry) => {
-      this.handleCallComplete(entry);
+      void this.handleCallComplete(entry);
     });
 
     // Handle voicemail detection
     webhookService.on('voicemail', (entry: CallTrackingEntry) => {
-      this.handleVoicemail(entry);
+      void this.handleVoicemail(entry);
     });
 
     // Handle transcription (business response)
     webhookService.on('transcription', (entry: CallTrackingEntry) => {
-      this.handleTranscription(entry);
+      void this.handleTranscription(entry);
     });
   }
 
@@ -242,33 +242,35 @@ class AppointmentIntegrationService extends EventEmitter {
     const followUpService = getAppointmentFollowUpService();
 
     // Simulate a successful call after a brief delay
-    setTimeout(async () => {
-      // Simulate getting confirmation
-      const confirmationNumber = `SIM-${Date.now().toString().slice(-6)}`;
-      const confirmedDate = this.parseRequestedDateTime(
-        request.requestedDate,
-        request.requestedTime
-      );
+    setTimeout(() => {
+      void (async () => {
+        // Simulate getting confirmation
+        const confirmationNumber = `SIM-${Date.now().toString().slice(-6)}`;
+        const confirmedDate = this.parseRequestedDateTime(
+          request.requestedDate,
+          request.requestedTime
+        );
 
-      followUpService.recordCallAttempt(appointmentId, 'connected');
-      followUpService.updateStatus(appointmentId, 'confirmed', {
-        confirmationNumber,
-        confirmedDateTime: confirmedDate,
-        note: 'Simulated confirmation (Twilio not configured)',
-      });
+        followUpService.recordCallAttempt(appointmentId, 'connected');
+        followUpService.updateStatus(appointmentId, 'confirmed', {
+          confirmationNumber,
+          confirmedDateTime: confirmedDate,
+          note: 'Simulated confirmation (Twilio not configured)',
+        });
 
-      // Create calendar event
-      await this.createCalendarEventForAppointment(appointmentId, request, confirmedDate);
+        // Create calendar event
+        await this.createCalendarEventForAppointment(appointmentId, request, confirmedDate);
 
-      // Notify user
-      await this.notifyUserOfConfirmation(
-        appointmentId,
-        request,
-        confirmationNumber,
-        confirmedDate
-      );
+        // Notify user
+        await this.notifyUserOfConfirmation(
+          appointmentId,
+          request,
+          confirmationNumber,
+          confirmedDate
+        );
 
-      this.emit('appointment_confirmed', { appointmentId, confirmationNumber, confirmedDate });
+        this.emit('appointment_confirmed', { appointmentId, confirmationNumber, confirmedDate });
+      })();
     }, 2000);
 
     return {
@@ -477,7 +479,7 @@ class AppointmentIntegrationService extends EventEmitter {
     request: AppointmentRequest,
     confirmedDate: Date
   ): Promise<string | null> {
-    if (!isCalendarConfigured(request.userId)) {
+    if (!(await isCalendarConfigured(request.userId))) {
       getLogger().debug({ userId: request.userId }, 'Calendar not configured for user');
       return null;
     }

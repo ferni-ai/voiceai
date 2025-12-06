@@ -283,15 +283,51 @@ interface ProgressData {
 
 async function getMilestoneProgressData(
   milestoneId?: string,
-  showAll?: boolean
+  showAll?: boolean,
+  userId?: string
 ): Promise<ProgressData> {
-  // TODO: Integrate with actual data store
-  return {
-    milestones: [
-      { title: 'Home Purchase', progress: 45, daysRemaining: 120 },
-      { title: 'Career Change', progress: 20, daysRemaining: undefined },
-    ],
-  };
+  if (!userId) {
+    return { milestones: [] };
+  }
+  
+  try {
+    const lifeDataStore = await import('../../services/life-data-store.js');
+    const store = lifeDataStore.getLifeDataStore();
+    
+    // Get user's milestones from the data store
+    const milestones = await store.getMilestones(userId);
+    
+    // If milestoneId specified, filter to just that one
+    type MilestoneType = typeof milestones[0];
+    const filtered = milestoneId 
+      ? milestones.filter((m: MilestoneType) => m.id === milestoneId)
+      : showAll 
+        ? milestones 
+        : milestones.filter((m: MilestoneType) => m.status === 'planning' || m.status === 'in-progress');
+    
+    return {
+      milestones: filtered.map((m: MilestoneType) => {
+        // Calculate progress based on completed checklist items
+        const completed = m.checklist.filter((c: { completed: boolean }) => c.completed).length;
+        const total = m.checklist.length;
+        const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        // Calculate days remaining if target date exists
+        const daysRemaining = m.targetDate 
+          ? Math.max(0, Math.ceil((new Date(m.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+          : undefined;
+        
+        return {
+          title: m.name,
+          progress,
+          daysRemaining,
+        };
+      }),
+    };
+  } catch (error) {
+    // Fallback to empty if store not available
+    return { milestones: [] };
+  }
 }
 
 function formatProgressResponse(data: ProgressData, config: LifePlanningToolsConfig): string {
@@ -369,9 +405,43 @@ async function updateGoalRecord(
   goalId: string,
   progress: number,
   notes?: string,
-  completedMilestone?: string
+  completedMilestone?: string,
+  userId?: string
 ): Promise<void> {
-  // TODO: Integrate with data store
+  if (!userId) return;
+  
+  try {
+    const lifeDataStore = await import('../../services/life-data-store.js');
+    const store = lifeDataStore.getLifeDataStore();
+    
+    const goal = await store.getGoal(userId, goalId);
+    if (goal) {
+      // Update progress
+      goal.progressPercent = progress;
+      
+      // Add notes to the goal notes field (concatenate)
+      if (notes) {
+        goal.notes = goal.notes 
+          ? `${goal.notes}\n\n[${new Date().toLocaleDateString()}] ${notes}`
+          : `[${new Date().toLocaleDateString()}] ${notes}`;
+      }
+      
+      // Note: milestones are tracked via linkedMilestoneId, not directly on goal
+      // If user mentions completing a milestone, log it in notes
+      if (completedMilestone) {
+        goal.notes = goal.notes 
+          ? `${goal.notes}\n\n✅ Milestone completed: ${completedMilestone}`
+          : `✅ Milestone completed: ${completedMilestone}`;
+      }
+      
+      goal.updatedAt = new Date();
+      await store.saveGoal(userId, goal);
+    }
+  } catch (error) {
+    // Log but don't fail - updates can be retried
+    const { getLogger } = await import('../../utils/safe-logger.js');
+    getLogger().warn({ error, goalId }, 'Failed to update goal record');
+  }
 }
 
 function getCulturalInfo(eventType: string, culture?: string): string {

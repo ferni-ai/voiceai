@@ -114,6 +114,15 @@ function loadPersistedState(): Partial<AppState> {
     safeSetItem(STORAGE_KEYS.DEVICE_ID, deviceId);
   }
   
+  // CRITICAL: Set ferni_user_id for API calls
+  // This must match the format used by backend user-identification.ts
+  // Backend creates userId as `device:${deviceId}` from metadata.device_id
+  const userId = `device:${deviceId}`;
+  const existingUserId = safeGetItem(STORAGE_KEYS.USER_ID);
+  if (!existingUserId || existingUserId !== userId) {
+    safeSetItem(STORAGE_KEYS.USER_ID, userId);
+  }
+  
   return {
     userName,
     deviceId,

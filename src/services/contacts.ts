@@ -17,10 +17,13 @@
  * - Favorite contacts
  * - Recent contacts
  * - Smart matching ("call John" finds the right John)
+ *
+ * PERSISTENCE: Uses Firestore with in-memory caching for fast access.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 import { getConfig } from '../config/environment.js';
+import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 // ============================================================================
 // TYPES
@@ -86,11 +89,103 @@ export interface ContactSearchResult {
 }
 
 // ============================================================================
-// STORAGE
+// FIRESTORE SETUP
 // ============================================================================
 
-// In-memory storage (would be Firestore/DB in production)
+let db: FirestoreType | null = null;
+const CONTACTS_COLLECTION = 'user_contacts';
+
+/**
+ * Initialize Firestore connection
+ */
+async function getFirestore(): Promise<FirestoreType | null> {
+  if (db) return db;
+
+  try {
+    const { Firestore } = await import('@google-cloud/firestore');
+    db = new Firestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    });
+    getLogger().info('Contacts service Firestore initialized');
+    return db;
+  } catch (error) {
+    getLogger().warn({ error }, 'Firestore not available for contacts, using in-memory only');
+    return null;
+  }
+}
+
+// ============================================================================
+// IN-MEMORY CACHE (with Firestore sync)
+// ============================================================================
+
 const contactsStore = new Map<string, Contact>();
+const loadedUsers = new Set<string>(); // Track which users have been loaded from Firestore
+
+/**
+ * Ensure contacts are loaded from Firestore for a user
+ */
+async function ensureContactsLoaded(userId: string): Promise<void> {
+  if (loadedUsers.has(userId)) return;
+
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      const snapshot = await firestore
+        .collection(CONTACTS_COLLECTION)
+        .where('userId', '==', userId)
+        .get();
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const contact: Contact = {
+          ...data,
+          id: doc.id,
+          createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
+          updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt),
+          lastContactedAt:
+            data.lastContactedAt?.toDate?.() ||
+            (data.lastContactedAt ? new Date(data.lastContactedAt) : undefined),
+        } as Contact;
+        contactsStore.set(doc.id, contact);
+      }
+
+      loadedUsers.add(userId);
+      getLogger().debug({ userId, count: snapshot.size }, 'Loaded contacts from Firestore');
+    } catch (err) {
+      getLogger().warn({ err, userId }, 'Failed to load contacts from Firestore');
+    }
+  }
+  loadedUsers.add(userId); // Mark as loaded even if Firestore unavailable
+}
+
+/**
+ * Persist a contact to Firestore
+ */
+async function persistContact(contact: Contact): Promise<void> {
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      await firestore.collection(CONTACTS_COLLECTION).doc(contact.id).set(contact, { merge: true });
+    } catch (err) {
+      getLogger().warn({ err, contactId: contact.id }, 'Failed to persist contact to Firestore');
+    }
+  }
+}
+
+/**
+ * Delete a contact from Firestore
+ */
+async function deleteContactFromFirestore(contactId: string): Promise<void> {
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      await firestore.collection(CONTACTS_COLLECTION).doc(contactId).delete();
+    } catch (err) {
+      getLogger().warn({ err, contactId }, 'Failed to delete contact from Firestore');
+    }
+  }
+}
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -156,6 +251,9 @@ export function createContact(
 
   contactsStore.set(id, contact);
 
+  // Persist to Firestore (async, don't block)
+  void persistContact(contact);
+
   getLogger().info(
     {
       contactId: id,
@@ -182,6 +280,9 @@ export function updateContact(
   Object.assign(contact, updates, { updatedAt: new Date() });
   contactsStore.set(contactId, contact);
 
+  // Persist to Firestore (async)
+  void persistContact(contact);
+
   return contact;
 }
 
@@ -189,7 +290,11 @@ export function updateContact(
  * Delete a contact
  */
 export function deleteContact(contactId: string): boolean {
-  return contactsStore.delete(contactId);
+  const deleted = contactsStore.delete(contactId);
+  if (deleted) {
+    void deleteContactFromFirestore(contactId);
+  }
+  return deleted;
 }
 
 /**
@@ -202,7 +307,20 @@ export function getContact(contactId: string): Contact | undefined {
 /**
  * Get all contacts for a user
  */
-export function getUserContacts(userId: string): Contact[] {
+export async function getUserContacts(userId: string): Promise<Contact[]> {
+  await ensureContactsLoaded(userId);
+  return Array.from(contactsStore.values())
+    .filter((c) => c.userId === userId)
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
+
+/**
+ * Get all contacts for a user (sync version for backward compatibility)
+ * Only returns cached contacts - may be incomplete on first call
+ */
+export function getUserContactsSync(userId: string): Contact[] {
+  // Trigger async load in background
+  void ensureContactsLoaded(userId);
   return Array.from(contactsStore.values())
     .filter((c) => c.userId === userId)
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
@@ -211,15 +329,17 @@ export function getUserContacts(userId: string): Contact[] {
 /**
  * Get favorite contacts
  */
-export function getFavoriteContacts(userId: string): Contact[] {
-  return getUserContacts(userId).filter((c) => c.isFavorite);
+export async function getFavoriteContacts(userId: string): Promise<Contact[]> {
+  const contacts = await getUserContacts(userId);
+  return contacts.filter((c) => c.isFavorite);
 }
 
 /**
  * Get recent contacts
  */
-export function getRecentContacts(userId: string, limit = 10): Contact[] {
-  return getUserContacts(userId)
+export async function getRecentContacts(userId: string, limit = 10): Promise<Contact[]> {
+  const contacts = await getUserContacts(userId);
+  return contacts
     .filter((c) => c.lastContactedAt)
     .sort((a, b) => (b.lastContactedAt?.getTime() || 0) - (a.lastContactedAt?.getTime() || 0))
     .slice(0, limit);
@@ -228,10 +348,9 @@ export function getRecentContacts(userId: string, limit = 10): Contact[] {
 /**
  * Get contacts by group
  */
-export function getContactsByGroup(userId: string, group: string): Contact[] {
-  return getUserContacts(userId).filter((c) =>
-    c.groups.some((g) => g.toLowerCase() === group.toLowerCase())
-  );
+export async function getContactsByGroup(userId: string, group: string): Promise<Contact[]> {
+  const contacts = await getUserContacts(userId);
+  return contacts.filter((c) => c.groups.some((g) => g.toLowerCase() === group.toLowerCase()));
 }
 
 // ============================================================================
@@ -242,8 +361,11 @@ export function getContactsByGroup(userId: string, group: string): Contact[] {
  * Search contacts by name, nickname, or relationship
  * Handles fuzzy matching: "my mom", "John from work", "the dentist"
  */
-export function searchContacts(userId: string, query: string): ContactSearchResult[] {
-  const contacts = getUserContacts(userId);
+export async function searchContacts(
+  userId: string,
+  query: string
+): Promise<ContactSearchResult[]> {
+  const contacts = await getUserContacts(userId);
   const queryLower = query.toLowerCase().trim();
   const results: ContactSearchResult[] = [];
 
@@ -367,31 +489,29 @@ export function searchContacts(userId: string, query: string): ContactSearchResu
 /**
  * Find best matching contact
  */
-export function findContact(userId: string, query: string): Contact | null {
-  const results = searchContacts(userId, query);
+export async function findContact(userId: string, query: string): Promise<Contact | null> {
+  const results = await searchContacts(userId, query);
   return results.length > 0 ? results[0].contact : null;
 }
 
 /**
  * Find contact by phone number
  */
-export function findContactByPhone(userId: string, phone: string): Contact | null {
+export async function findContactByPhone(userId: string, phone: string): Promise<Contact | null> {
   const normalized = normalizePhone(phone);
+  const contacts = await getUserContacts(userId);
   return (
-    getUserContacts(userId).find((c) =>
-      c.phones.some((p) => normalizePhone(p.number) === normalized)
-    ) || null
+    contacts.find((c) => c.phones.some((p) => normalizePhone(p.number) === normalized)) || null
   );
 }
 
 /**
  * Find contact by email
  */
-export function findContactByEmail(userId: string, email: string): Contact | null {
+export async function findContactByEmail(userId: string, email: string): Promise<Contact | null> {
   const normalized = email.toLowerCase();
-  return (
-    getUserContacts(userId).find((c) => c.emails.some((e) => e.address === normalized)) || null
-  );
+  const contacts = await getUserContacts(userId);
+  return contacts.find((c) => c.emails.some((e) => e.address === normalized)) || null;
 }
 
 // ============================================================================

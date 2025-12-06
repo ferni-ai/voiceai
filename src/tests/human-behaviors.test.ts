@@ -24,8 +24,7 @@ import {
   verifyTopicThreading,
   getProactiveGoalReference,
 } from '../intelligence/human-behaviors.js';
-import type { UserProfile } from '../types/user-profile.js';
-import { createUserProfile } from '../types/user-profile.js';
+import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 
 describe('Human Behaviors Module', () => {
   // ============================================================================

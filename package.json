@@ -85,6 +85,7 @@
     "@livekit/agents-plugin-openai": "^1.0.22",
     "@livekit/agents-plugin-silero": "^1.0.0",
     "@livekit/noise-cancellation-node": "^0.1.9",
+    "@sentry/node": "^10.29.0",
     "dotenv": "^16.4.0",
     "ioredis": "^5.8.2",
     "livekit-client": "^2.16.0",

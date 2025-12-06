@@ -850,16 +850,34 @@ const weeklyPredictionDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description: `At start of week, user predicts their behavior. At end, Peter compares prediction to reality.
-Builds calibration and self-knowledge over time.`,
+Builds calibration and self-knowledge over time.
+
+Actions:
+- make-predictions: Start a new prediction for the week
+- save-predictions: Save the user's predictions (after collecting them)
+- get-pending: Check if user has pending predictions to resolve
+- record-actuals: Record actual results and calculate accuracy`,
       parameters: z.object({
-        action: z.enum(['make-predictions', 'record-actuals', 'compare']).describe('Stage'),
+        action: z
+          .enum(['make-predictions', 'save-predictions', 'get-pending', 'record-actuals'])
+          .describe('Stage of prediction'),
         predictions: z
           .record(z.string(), z.number())
           .optional()
-          .describe('Predictions by category'),
-        actuals: z.record(z.string(), z.number()).optional().describe('Actual results'),
+          .describe('User predictions by category (for save-predictions)'),
+        actuals: z
+          .record(z.string(), z.number())
+          .optional()
+          .describe('Actual results by category (for record-actuals)'),
+        predictionId: z
+          .string()
+          .optional()
+          .describe('ID of prediction to resolve (for record-actuals)'),
       }),
-      execute: async ({ action, predictions, actuals }) => {
+      execute: async ({ action, predictions, actuals, predictionId }, { ctx: toolCtx }) => {
+        const userData = toolCtx.userData as { userId?: string };
+        const userId = userData.userId || 'anonymous';
+
         const categories = [
           'Deep work hours',
           'Exercise sessions',
@@ -868,59 +886,152 @@ Builds calibration and self-knowledge over time.`,
           'Mood average (1-10)',
         ];
 
+        // Lazy import to avoid circular deps
+        const { getEngagementStore } = await import('../../../services/engagement-store.js');
+        const { getEngagementDataSender } = await import(
+          '../../../services/engagement-data-sender.js'
+        );
+
         if (action === 'make-predictions') {
           return {
             response:
-              `It's prediction time! <break time=\"300ms\"/>\n\n` +
-              `I want you to predict your week. <break time=\"200ms\"/>` +
-              `Be honest— <break time=\"200ms\"/>what do you THINK will happen, not what you WANT.\n\n` +
+              `It's prediction time! <break time="300ms"/>\n\n` +
+              `I want you to predict your week. <break time="200ms"/>` +
+              `Be honest— <break time="200ms"/>what do you THINK will happen, not what you WANT.\n\n` +
               `Categories to predict:\n${categories.map((c) => `• ${c}`).join('\n')}\n\n` +
-              `Give me your numbers. <break time=\"200ms\"/>We'll see how well you know yourself.`,
+              `Give me your numbers. <break time="200ms"/>We'll see how well you know yourself.`,
             categories,
-            instruction: 'Collect predictions for each category',
+            instruction: 'Collect predictions for each category, then call save-predictions',
           };
         }
 
-        if (action === 'compare' && predictions && actuals) {
-          let accuracyScore = 0;
-          const analysis: string[] = [];
+        if (action === 'save-predictions' && predictions) {
+          const store = await getEngagementStore();
+          const now = new Date();
+          const weekOf = now.toISOString().split('T')[0];
+          const id = `pred_${now.getTime()}`;
 
-          for (const cat of categories) {
-            const pred = (predictions as Record<string, number>)[cat] || 0;
-            const actual = (actuals as Record<string, number>)[cat] || 0;
-            const diff = Math.abs(pred - actual);
-            const accuracy = Math.max(0, 100 - (diff / Math.max(pred, actual, 1)) * 100);
-            accuracyScore += accuracy;
+          await store.savePrediction(userId, {
+            id,
+            weekOf,
+            predictions,
+            createdAt: now.toISOString(),
+          });
 
-            if (diff < 1) {
-              analysis.push(`${cat}: Nailed it! Predicted ${pred}, got ${actual}`);
-            } else if (pred > actual) {
-              analysis.push(`${cat}: Overestimated. Predicted ${pred}, got ${actual}`);
-            } else {
-              analysis.push(`${cat}: Underestimated. Predicted ${pred}, got ${actual}`);
-            }
-          }
+          // Notify frontend
+          const dataSender = getEngagementDataSender();
+          await dataSender.sendPredictionUpdate(userId);
 
-          const avgAccuracy = accuracyScore / categories.length;
+          getLogger().info({ userId, predictionId: id }, '📊 Weekly prediction saved');
 
           return {
             response:
-              `Let's see how you did: <break time=\"300ms\"/>\n\n` +
-              `${analysis.join('\n')}\n\n` +
-              `Overall accuracy: ${avgAccuracy.toFixed(0)}%\n\n` +
-              `${
-                avgAccuracy > 75
-                  ? 'You know yourself well!'
-                  : avgAccuracy > 50
-                    ? 'Room to improve your self-prediction.'
-                    : 'Big gap between prediction and reality. What does that tell you?'
-              }`,
-            accuracyScore: avgAccuracy,
-            analysis,
+              `Predictions locked in! <break time="300ms"/>` +
+              `I'll remember these. <break time="200ms"/>` +
+              `Come back at the end of the week and we'll see how you did.\n\n` +
+              `${Object.entries(predictions)
+                .map(([k, v]) => `• ${k}: ${v}`)
+                .join('\n')}`,
+            predictionId: id,
+            weekOf,
+            saved: true,
           };
         }
 
-        return { error: 'Invalid action' };
+        if (action === 'get-pending') {
+          const store = await getEngagementStore();
+          const recentPredictions = await store.getRecentPredictions(userId, 10);
+
+          // Find predictions without actuals
+          const pending = recentPredictions.filter((p) => !p.completedAt);
+
+          if (pending.length === 0) {
+            return {
+              response:
+                `No pending predictions to resolve. <break time="200ms"/>` +
+                `Want to make some predictions for this week?`,
+              hasPending: false,
+            };
+          }
+
+          const oldest = pending[pending.length - 1];
+          return {
+            response:
+              `You have ${pending.length} prediction${pending.length > 1 ? 's' : ''} to resolve! <break time="200ms"/>` +
+              `Let's check your prediction from the week of ${oldest.weekOf}.\n\n` +
+              `You predicted:\n${Object.entries(oldest.predictions)
+                .map(([k, v]) => `• ${k}: ${v}`)
+                .join('\n')}\n\n` +
+              `What were your actuals?`,
+            hasPending: true,
+            pendingCount: pending.length,
+            oldestPrediction: oldest,
+            instruction: 'Collect actuals for each category, then call record-actuals',
+          };
+        }
+
+        if (action === 'record-actuals' && actuals) {
+          const store = await getEngagementStore();
+
+          // Find the prediction to resolve
+          let targetId = predictionId;
+          if (!targetId) {
+            const recentPredictions = await store.getRecentPredictions(userId, 10);
+            const pending = recentPredictions.filter((p) => !p.completedAt);
+            if (pending.length > 0) {
+              targetId = pending[pending.length - 1].id;
+            }
+          }
+
+          if (!targetId) {
+            return {
+              error: 'No pending prediction found',
+              response:
+                `I don't see any predictions waiting to be resolved. <break time="200ms"/>` +
+                `Want to make some predictions for this week?`,
+            };
+          }
+
+          const result = await store.updatePredictionActuals(userId, targetId, actuals);
+
+          if (!result) {
+            return { error: 'Prediction not found or already resolved' };
+          }
+
+          // Notify frontend
+          const dataSender = getEngagementDataSender();
+          await dataSender.sendPredictionResolved(userId, targetId, result.accuracy);
+
+          getLogger().info(
+            { userId, predictionId: targetId, accuracy: result.accuracy },
+            '📊 Weekly prediction resolved'
+          );
+
+          // Generate analysis
+          const analysis: string[] = [];
+          for (const [cat, actual] of Object.entries(actuals)) {
+            analysis.push(`• ${cat}: ${actual}`);
+          }
+
+          const accuracyResponse =
+            result.accuracy >= 75
+              ? `<break time="300ms"/>You know yourself well! ${result.accuracy}% accuracy.`
+              : result.accuracy >= 50
+                ? `<break time="200ms"/>Not bad— ${result.accuracy}% accuracy. Room to improve your self-prediction.`
+                : `<break time="200ms"/>Big gap between prediction and reality— ${result.accuracy}% accuracy. What does that tell you?`;
+
+          return {
+            response:
+              `Actuals recorded! <break time="300ms"/>\n\n` +
+              `${analysis.join('\n')}\n\n` +
+              accuracyResponse,
+            accuracy: result.accuracy,
+            predictionId: targetId,
+            resolved: true,
+          };
+        }
+
+        return { error: 'Invalid action or missing required data' };
       },
     });
   },

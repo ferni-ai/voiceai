@@ -19,10 +19,6 @@ import { createResearchTools } from '../../research-tools.js';
 import { createInsightsAnalysisTools } from '../../insights-analysis.js';
 import { createMarketDataTools } from '../../market-data.js';
 
-// Legacy aliases
-const createPeterLynchTools = createResearchTools;
-const createPeterInsightsTools = createInsightsAnalysisTools;
-
 // ============================================================================
 // LEGACY TOOL WRAPPER
 // ============================================================================
@@ -53,7 +49,7 @@ function wrapLegacyTool(
 // ============================================================================
 
 function getStockAnalysisToolDefinitions(): ToolDefinition[] {
-  const legacyTools = createPeterLynchTools();
+  const legacyTools = createResearchTools();
 
   return [
     wrapLegacyTool(
@@ -109,7 +105,7 @@ function getMarketDataToolDefinitions(): ToolDefinition[] {
 // ============================================================================
 
 function getInsightsToolDefinitions(): ToolDefinition[] {
-  const legacyTools = createPeterInsightsTools();
+  const legacyTools = createInsightsAnalysisTools();
 
   return [
     wrapLegacyTool(

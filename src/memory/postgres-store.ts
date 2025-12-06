@@ -442,7 +442,7 @@ export function getPostgresStore(config?: PoolConfig): PostgresStore {
 
 export function resetPostgresStore(): void {
   if (postgresInstance) {
-    postgresInstance.close();
+    void postgresInstance.close();
     postgresInstance = null;
   }
 }

@@ -1202,7 +1202,4 @@ Use when the user wants to plan their year.`,
   };
 }
 
-// Legacy alias for backward compatibility
-export const createJordanTools = createEventPlanningTools;
-
 export default createEventPlanningTools;

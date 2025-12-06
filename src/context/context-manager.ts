@@ -110,9 +110,9 @@ export class ContextManager {
   addTurn(turn: ConversationTurn): void {
     this.turns.push(turn);
 
-    // Generate rolling summary every 10 turns
+    // Generate rolling summary every 10 turns (fire and forget)
     if (this.turns.length % 10 === 0) {
-      this.updateRollingSummary();
+      void this.updateRollingSummary();
     }
   }
 

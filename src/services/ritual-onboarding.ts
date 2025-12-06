@@ -51,7 +51,7 @@ const ONBOARDING_PROMPTS: Record<string, OnboardingPrompt[]> = {
       prompt: `By the way, <break time="200ms"/> there's something I do every morning. <break time="300ms"/> I look up at the sky— <break time="200ms"/>just for a moment. <break time="300ms"/> It grounds me before the day starts. <break time="200ms"/> Would something like that work for you?`,
       followUp: [
         "It doesn't have to be elaborate. <break time='200ms'/> Just a glance upward.",
-        "Some of my best days started with that simple pause.",
+        'Some of my best days started with that simple pause.',
       ],
       acceptIndicators: ['yes', 'sure', 'sounds good', 'try', 'like that', 'do it'],
       declineIndicators: ['no', "don't think", 'not for me', 'skip', 'maybe later'],
@@ -78,7 +78,7 @@ const ONBOARDING_PROMPTS: Record<string, OnboardingPrompt[]> = {
       prompt: `Here's something I do every morning: <break time="200ms"/> I pick ONE priority. <break time="300ms"/> Not three. Not five. One. <break time="200ms"/> If that's the only thing I accomplish today, <break time="200ms"/>the day is a win. <break time="300ms"/> Want to try it?`,
       followUp: [
         "It takes the pressure off. <break time='200ms'/> Everything else is bonus.",
-        "What would your ONE thing be today?",
+        'What would your ONE thing be today?',
       ],
       acceptIndicators: ['yes', 'makes sense', 'try', 'good idea', 'do it'],
       declineIndicators: ['no', 'too simple', 'already do', 'not now'],
@@ -104,8 +104,8 @@ const ONBOARDING_PROMPTS: Record<string, OnboardingPrompt[]> = {
       ritualName: 'Two-Minute Tiny Habit',
       prompt: `Can I share my secret weapon? <break time="300ms"/> The two-minute rule. <break time="200ms"/> Whatever habit you want to build, <break time="200ms"/>shrink it until it takes two minutes or less. <break time="300ms"/> I have a few I track. <break time="200ms"/> Want to build one together?`,
       followUp: [
-        'Two minutes is so small your brain can\'t object.',
-        'What\'s something you\'ve been meaning to start?',
+        "Two minutes is so small your brain can't object.",
+        "What's something you've been meaning to start?",
       ],
       acceptIndicators: ['yes', 'love it', 'build', 'sounds fun', 'try'],
       declineIndicators: ['no', "don't know", 'maybe later', 'not sure'],
@@ -115,10 +115,7 @@ const ONBOARDING_PROMPTS: Record<string, OnboardingPrompt[]> = {
       ritualId: 'compound-moment',
       ritualName: 'Compound Moment Recognition',
       prompt: `You know how money compounds? <break time="300ms"/> I think habits compound the same way. <break time="200ms"/> I have this thing where I notice one tiny win each day— <break time="200ms"/>a "compound moment." <break time="300ms"/> Helps me see the growth that's usually invisible.`,
-      followUp: [
-        "Today's 1% builds on yesterday's 1%.",
-        "What small win did you have today?",
-      ],
+      followUp: ["Today's 1% builds on yesterday's 1%.", 'What small win did you have today?'],
       acceptIndicators: ['yes', 'like that', 'notice', 'try', 'interesting'],
       declineIndicators: ['no', 'complicated', 'not for me', 'skip'],
     },
@@ -131,7 +128,7 @@ const ONBOARDING_PROMPTS: Record<string, OnboardingPrompt[]> = {
       ritualName: 'Future Self Letter',
       prompt: `I write letters to my future self. <break time="300ms"/> Just quick notes— <break time="200ms"/>what I'm feeling, what I'm hoping for. <break time="300ms"/> Then I read them months later. <break time="200ms"/> It's wild how much changes. <break time="300ms"/> Ever tried something like that?`,
       followUp: [
-        'It\'s like leaving breadcrumbs for yourself.',
+        "It's like leaving breadcrumbs for yourself.",
         'What would you tell future-you right now?',
       ],
       acceptIndicators: ['yes', 'cool', 'try', 'love that', 'write'],
@@ -201,7 +198,7 @@ const ONBOARDING_PROMPTS: Record<string, OnboardingPrompt[]> = {
         'What two things in your life might be connected?',
       ],
       acceptIndicators: ['yes', 'data', 'try', 'find', 'curious'],
-      declineIndicators: ['no', 'too much', 'don\'t track', 'skip'],
+      declineIndicators: ['no', 'too much', "don't track", 'skip'],
     },
   ],
 };
@@ -217,11 +214,7 @@ class RitualOnboardingService {
   /**
    * Check if we should introduce a ritual to this user in this conversation
    */
-  shouldIntroduceRitual(
-    userId: string,
-    personaId: string,
-    profile: UserProfile | null
-  ): boolean {
+  shouldIntroduceRitual(userId: string, personaId: string, profile: UserProfile | null): boolean {
     const state = this.getOrCreateState(userId, profile);
 
     // Don't overwhelm new users - wait until conversation 2 or 3
@@ -288,10 +281,7 @@ class RitualOnboardingService {
     }
 
     this.states.set(userId, state);
-    this.logger.info(
-      { userId, ritualId, accepted },
-      '🌱 User ritual response recorded'
-    );
+    this.logger.info({ userId, ritualId, accepted }, '🌱 User ritual response recorded');
   }
 
   /**
@@ -308,11 +298,7 @@ class RitualOnboardingService {
   /**
    * Build system prompt injection for ritual onboarding
    */
-  buildOnboardingContext(
-    userId: string,
-    personaId: string,
-    profile: UserProfile | null
-  ): string {
+  buildOnboardingContext(userId: string, personaId: string, profile: UserProfile | null): string {
     if (!this.shouldIntroduceRitual(userId, personaId, profile)) {
       return '';
     }
@@ -401,4 +387,3 @@ export function resetRitualOnboardingService(): void {
 }
 
 export default RitualOnboardingService;
-

@@ -17,6 +17,9 @@
 import type { PersonaId, PersonaConfig } from '../types/persona.js';
 import { PERSONAS } from '../config/personas.js';
 import { getPersonaColorConfig, PERSONA_COLORS } from '../config/persona-colors.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Agents');
 
 // ============================================================================
 // TYPES
@@ -110,11 +113,11 @@ export async function fetchAgents(forceRefresh: boolean = false): Promise<ApiAge
 
       if (!response.ok) {
         const errorData = await response.json() as AgentsApiError;
-        console.error('❌ Failed to fetch agents:', errorData);
+        log.error('❌ Failed to fetch agents:', errorData);
 
         // Use fallback IDs if provided
         if (errorData.fallback) {
-          console.warn('⚠️ Using fallback agent list');
+          log.warn('⚠️ Using fallback agent list');
           return fallbackToHardcodedAgents(errorData.fallback);
         }
 
@@ -127,10 +130,10 @@ export async function fetchAgents(forceRefresh: boolean = false): Promise<ApiAge
       agentsCache = data.agents;
       cacheTimestamp = now;
 
-      console.log(`✅ Loaded ${data.agents.length} agents from API`);
+      log.info(`✅ Loaded ${data.agents.length} agents from API`);
       return data.agents;
     } catch (err) {
-      console.error('❌ Network error fetching agents:', err);
+      log.error('❌ Network error fetching agents:', err);
 
       // Fall back to hardcoded PERSONAS if API fails
       return fallbackToHardcodedAgents();
@@ -226,9 +229,11 @@ export async function getAgentsAsPersonaConfigs(): Promise<PersonaConfig[]> {
  * Fall back to hardcoded PERSONAS when API is unavailable
  */
 function fallbackToHardcodedAgents(agentIds?: string[]): ApiAgent[] {
-  console.warn('⚠️ Using hardcoded personas as fallback');
+  log.warn('⚠️ Using hardcoded personas as fallback');
   
-  const ids = agentIds || Object.keys(PERSONAS);
+  // Use canonical order instead of Object.keys() which may be unpredictable
+  const CANONICAL_ORDER = ['ferni', 'peter-john', 'maya-santos', 'jordan-taylor', 'alex-chen', 'nayan-patel'];
+  const ids = agentIds || CANONICAL_ORDER.filter(id => id in PERSONAS);
   const agents: ApiAgent[] = [];
   
   for (const id of ids) {

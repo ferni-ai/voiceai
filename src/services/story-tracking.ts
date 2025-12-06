@@ -3,9 +3,12 @@
  *
  * Tracks which stories have been told to which users, gates stories by
  * relationship stage, and manages narrative arcs.
+ *
+ * Persists to user profile for cross-session narrative continuity.
  */
 
 import { getLogger } from '../utils/logger.js';
+import { getDefaultStore } from '../memory/index.js';
 import type { PersonaRelationshipStage } from '../types/user-profile.js';
 
 const logger = getLogger().child({ service: 'StoryTracking' });
@@ -41,14 +44,113 @@ export interface StoryResult {
 }
 
 // ============================================================================
-// In-Memory Story Registry (would be loaded from bundles in production)
+// Storage (In-memory cache backed by Firestore via humanizingState)
 // ============================================================================
 
-// Track which stories have been told to which users
-const storiesToldMap = new Map<string, Set<string>>(); // userId -> Set of storyIds
+// Track which stories have been told to which users (cache)
+const storiesToldMap = new Map<string, Set<string>>(); // userId:personaId -> Set of storyIds
 
-// Story registry (simplified - in production, load from persona bundles)
+// Story registry (loaded from persona bundles)
 const storyRegistry = new Map<string, Story>();
+
+// Dirty tracking for batched persistence
+const dirtyUsers = new Set<string>();
+let persistenceTimer: ReturnType<typeof setTimeout> | null = null;
+const PERSISTENCE_DEBOUNCE_MS = 5000;
+
+/**
+ * Schedule persistence to Firestore (debounced)
+ */
+function schedulePersistence(userId: string): void {
+  dirtyUsers.add(userId);
+
+  if (persistenceTimer) {
+    clearTimeout(persistenceTimer);
+  }
+
+  persistenceTimer = setTimeout(() => {
+    void flushToPersistence();
+  }, PERSISTENCE_DEBOUNCE_MS);
+}
+
+/**
+ * Flush dirty story data to Firestore
+ */
+async function flushToPersistence(): Promise<void> {
+  if (dirtyUsers.size === 0) return;
+
+  const usersToFlush = Array.from(dirtyUsers);
+  dirtyUsers.clear();
+
+  try {
+    const store = getDefaultStore();
+
+    for (const userId of usersToFlush) {
+      const profile = await store.getProfile(userId);
+      if (!profile) continue;
+
+      // Collect stories told for all personas for this user
+      const perPersonaStories: Record<string, string[]> = {};
+
+      for (const [key, storyIds] of storiesToldMap.entries()) {
+        if (key.startsWith(`${userId}:`)) {
+          const personaId = key.split(':')[1];
+          perPersonaStories[personaId] = Array.from(storyIds);
+        }
+      }
+
+      // Store in humanizingState.storiesTold (using existing field structure)
+      if (!profile.humanizingState) {
+        profile.humanizingState = {
+          usedShareTags: [],
+          totalSpontaneousShares: 0,
+          updatedAt: new Date(),
+        };
+      }
+
+      // Store per-persona stories in customData
+      if (!profile.customData) profile.customData = {};
+      profile.customData.perPersonaStoriesTold = perPersonaStories;
+      profile.humanizingState.updatedAt = new Date();
+
+      await store.saveProfile(profile);
+      logger.debug(
+        { userId, personaCount: Object.keys(perPersonaStories).length },
+        'Persisted story history'
+      );
+    }
+  } catch (error) {
+    logger.warn({ error }, 'Failed to persist story history');
+    usersToFlush.forEach((u) => dirtyUsers.add(u));
+  }
+}
+
+/**
+ * Load story history from user profile
+ */
+async function loadFromProfile(userId: string): Promise<void> {
+  try {
+    const store = getDefaultStore();
+    const profile = await store.getProfile(userId);
+
+    // Load from customData.perPersonaStoriesTold
+    if (profile?.customData?.perPersonaStoriesTold) {
+      const storedStories = profile.customData.perPersonaStoriesTold as Record<string, string[]>;
+
+      for (const [personaId, storyIds] of Object.entries(storedStories)) {
+        const key = getTrackingKey(userId, personaId);
+        storiesToldMap.set(key, new Set(storyIds));
+      }
+
+      logger.debug(
+        { userId, personaCount: Object.keys(storedStories).length },
+        'Loaded story history from profile'
+      );
+    }
+  } catch (error) {
+    logger.warn({ error, userId }, 'Failed to load story history from profile');
+  }
+}
 
 // ============================================================================
 // Core Functions
@@ -64,23 +166,48 @@ function getTrackingKey(userId: string, personaId: string): string {
 /**
  * Check if a story has been told to a user by a specific persona
  */
-export function hasStoryBeenTold(userId: string, personaId: string, storyId: string): boolean {
+export async function hasStoryBeenTold(
+  userId: string,
+  personaId: string,
+  storyId: string
+): Promise<boolean> {
   const key = getTrackingKey(userId, personaId);
-  const told = storiesToldMap.get(key);
+  let told = storiesToldMap.get(key);
+
+  // Load from profile if not in cache
+  if (!told) {
+    await loadFromProfile(userId);
+    told = storiesToldMap.get(key);
+  }
+
   return told?.has(storyId) ?? false;
 }
 
 /**
  * Mark a story as told to a user
+ * Persists to Firestore for cross-session narrative continuity
  */
-export function markStoryTold(userId: string, personaId: string, storyId: string): void {
+export async function markStoryTold(
+  userId: string,
+  personaId: string,
+  storyId: string
+): Promise<void> {
   const key = getTrackingKey(userId, personaId);
   let told = storiesToldMap.get(key);
+
+  if (!told) {
+    await loadFromProfile(userId);
+    told = storiesToldMap.get(key);
+  }
+
   if (!told) {
     told = new Set();
     storiesToldMap.set(key, told);
   }
   told.add(storyId);
+
+  // Schedule persistence (debounced)
+  schedulePersistence(userId);
 
   logger.debug({ userId, personaId, storyId }, 'Marked story as told');
 }
@@ -88,9 +215,15 @@ export function markStoryTold(userId: string, personaId: string, storyId: string
 /**
  * Get all stories told to a user by a persona
  */
-export function getStoriesTold(userId: string, personaId: string): string[] {
+export async function getStoriesTold(userId: string, personaId: string): Promise<string[]> {
   const key = getTrackingKey(userId, personaId);
-  const told = storiesToldMap.get(key);
+  let told = storiesToldMap.get(key);
+
+  if (!told) {
+    await loadFromProfile(userId);
+    told = storiesToldMap.get(key);
+  }
+
   return told ? Array.from(told) : [];
 }
 
@@ -114,29 +247,33 @@ export function canTellStory(story: Story, relationshipStage: PersonaRelationshi
 /**
  * Find an appropriate story for the context
  */
-export function findStoryForContext(
+export async function findStoryForContext(
   context: StoryTellingContext,
   availableStories: Story[]
-): StoryResult | null {
+): Promise<StoryResult | null> {
   const { userId, personaId, relationshipStage, userMood, currentTopic } = context;
 
-  // Filter stories that can be told
-  const eligibleStories = availableStories.filter((story) => {
+  // Filter stories that can be told (need to check each one async)
+  const eligibleStories: Story[] = [];
+  for (const story of availableStories) {
     // Must be from this persona
-    if (story.personaId !== personaId) return false;
+    if (story.personaId !== personaId) continue;
 
     // Must not have been told already
-    if (hasStoryBeenTold(userId, personaId, story.id)) return false;
+    if (await hasStoryBeenTold(userId, personaId, story.id)) continue;
 
     // Must meet relationship gate
-    if (!canTellStory(story, relationshipStage)) return false;
+    if (!canTellStory(story, relationshipStage)) continue;
 
-    return true;
-  });
+    eligibleStories.push(story);
+  }
 
   if (eligibleStories.length === 0) {
     return null;
   }
+
+  // Get stories told for scoring
+  const toldStories = await getStoriesTold(userId, personaId);
 
   // Score stories by relevance
   const scoredStories = eligibleStories.map((story) => {
@@ -159,7 +296,6 @@ export function findStoryForContext(
     }
 
     // Prefer stories that follow from previous ones
-    const toldStories = getStoriesTold(userId, personaId);
     if (story.followsFrom && toldStories.includes(story.followsFrom)) {
       score += 4; // Strong preference for narrative continuity
     }
@@ -183,28 +319,31 @@ export function findStoryForContext(
 /**
  * Get continuation stories (stories that follow from a just-told story)
  */
-export function getContinuationStories(
+export async function getContinuationStories(
   storyId: string,
   context: StoryTellingContext,
   allStories: Story[]
-): Story[] {
+): Promise<Story[]> {
   const justTold = allStories.find((s) => s.id === storyId);
   if (!justTold?.leadsTo || justTold.leadsTo.length === 0) {
     return [];
   }
 
-  return allStories.filter((story) => {
+  const results: Story[] = [];
+  for (const story of allStories) {
     // Must be in the leads-to list
-    if (!justTold.leadsTo?.includes(story.id)) return false;
+    if (!justTold.leadsTo?.includes(story.id)) continue;
 
     // Must not have been told
-    if (hasStoryBeenTold(context.userId, context.personaId, story.id)) return false;
+    if (await hasStoryBeenTold(context.userId, context.personaId, story.id)) continue;
 
     // Must meet relationship gate
-    if (!canTellStory(story, context.relationshipStage)) return false;
+    if (!canTellStory(story, context.relationshipStage)) continue;
 
-    return true;
-  });
+    results.push(story);
+  }
+
+  return results;
 }
 
 /**
@@ -225,7 +364,7 @@ export function getPersonaStories(personaId: string): Story[] {
 /**
  * Clear story tracking for a user (for testing/reset)
  */
-export function clearUserStoryHistory(userId: string, personaId?: string): void {
+export async function clearUserStoryHistory(userId: string, personaId?: string): Promise<void> {
   if (personaId) {
     const key = getTrackingKey(userId, personaId);
     storiesToldMap.delete(key);
@@ -237,21 +376,24 @@ export function clearUserStoryHistory(userId: string, personaId?: string): void 
       }
     }
   }
+
+  // Persist the cleared state
+  schedulePersistence(userId);
   logger.debug({ userId, personaId }, 'Cleared story history');
 }
 
 /**
  * Get story statistics for a user-persona pair
  */
-export function getStoryStats(
+export async function getStoryStats(
   userId: string,
   personaId: string
-): {
+): Promise<{
   totalTold: number;
   availableStories: number;
   completedArcs: number;
-} {
-  const told = getStoriesTold(userId, personaId);
+}> {
+  const told = await getStoriesTold(userId, personaId);
   const available = getPersonaStories(personaId);
 
   // Count completed arcs (stories that have no leadsTo or all leadsTo are told)
@@ -273,6 +415,17 @@ export function getStoryStats(
   };
 }
 
+/**
+ * Force immediate persistence (for graceful shutdown)
+ */
+export async function flushStoryPersistence(): Promise<void> {
+  if (persistenceTimer) {
+    clearTimeout(persistenceTimer);
+    persistenceTimer = null;
+  }
+  await flushToPersistence();
+}
+
 // Export as service object
 export const StoryTrackingService = {
   hasBeenTold: hasStoryBeenTold,
@@ -285,6 +438,7 @@ export const StoryTrackingService = {
   getPersonaStories,
   clearHistory: clearUserStoryHistory,
   getStats: getStoryStats,
+  flush: flushStoryPersistence,
 };
 
 export default StoryTrackingService;

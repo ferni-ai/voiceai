@@ -1700,19 +1700,3 @@ export async function createBundleRuntime(
   globalRuntimeEngines.set(personaId, engine);
   return engine;
 }
-
-/**
- * Get a bundle runtime from global cache
- * @deprecated Use SessionBundleRuntimeManager for session isolation
- */
-export function getBundleRuntime(personaId: string): BundleRuntimeEngine | null {
-  return globalRuntimeEngines.get(personaId) ?? null;
-}
-
-/**
- * Clear all global bundle runtimes
- * @deprecated Use SessionBundleRuntimeManager for session isolation
- */
-export function clearBundleRuntimes(): void {
-  globalRuntimeEngines.clear();
-}

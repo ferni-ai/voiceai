@@ -20,29 +20,28 @@ import {
 } from '../conversation/speech-naturalizer.js';
 
 // Active Listening
-import type { ActiveListeningEngine } from '../conversation/active-listening.js';
 import {
   getActiveListeningEngine,
   resetActiveListeningEngine,
+  type ActiveListeningEngine,
 } from '../conversation/active-listening.js';
 
 // Conversational Memory
-import type { ConversationalMemoryEngine } from '../conversation/conversational-memory.js';
 import {
   getConversationalMemory,
   resetConversationalMemory,
+  type ConversationalMemoryEngine,
 } from '../conversation/conversational-memory.js';
 
 // Question Patterns
-import type { QuestionPatternEngine } from '../conversation/question-patterns.js';
 import {
   getQuestionPatternEngine,
   resetQuestionPatternEngine,
+  type QuestionPatternEngine,
 } from '../conversation/question-patterns.js';
 
 // Humanizer
-import type { ConversationHumanizer } from '../conversation/humanizer.js';
-import { getConversationHumanizer, resetConversationHumanizer } from '../conversation/humanizer.js';
+import { getConversationHumanizer, resetConversationHumanizer, type ConversationHumanizer } from '../conversation/humanizer.js';
 
 // ============================================================================
 // SPEECH NATURALIZER TESTS

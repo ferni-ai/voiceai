@@ -5,7 +5,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     // Exclude frontend directories - they have their own vitest configs with jsdom
-    // Exclude design-system - it uses Playwright, not Vitest
+    // Exclude design-system and e2e - they use Playwright, not Vitest
     exclude: [
       'node_modules/**',
       '**/node_modules/**',
@@ -14,6 +14,7 @@ export default defineConfig({
       'frontend-typescript/**',
       'design-system/**',
       'apps/**',
+      'e2e/**',
     ],
     coverage: {
       provider: 'v8',

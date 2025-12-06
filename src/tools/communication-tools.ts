@@ -1,16 +1,15 @@
 /**
- * @deprecated Use the registry-based communication tools from `domains/communication/index.ts` instead.
- * This file is being phased out to consolidate communication functionality.
+ * Communication Specialist Tools
  *
- * Alex Tools - Communication Specialist
- *
- * Full communication integration for Alex Chen:
+ * Full communication integration:
  * - Real email sending via SendGrid
  * - Real SMS/text via Twilio
  * - Phone calls via Twilio Programmable Voice
  * - Voice messages via Cartesia TTS + Twilio MMS
  * - Persistent reminders with scheduled delivery
  * - Calendar integration
+ *
+ * NOTE: For new code, use `tools/domains/communication/index.ts` instead.
  */
 
 import { llm, log } from '@livekit/agents';
@@ -23,7 +22,7 @@ import {
   sanitizeEmailForLog,
   sanitizePhoneForLog,
 } from './validation.js';
-import { sendEmail, sendSMS } from './communication.js';
+import { sendEmail, sendSMS } from '../services/communication-service.js';
 import {
   createReminder,
   getPendingReminders,
@@ -817,10 +816,10 @@ export { createCommunicationCoachingTools } from './communication-coaching.js';
 /**
  * Create all communication tools - base + coaching combined
  */
-export function createAllCommunicationTools() {
-  const {
-    createCommunicationCoachingTools: getCoachingTools,
-  } = require('./communication-coaching.js');
+export async function createAllCommunicationTools() {
+  const { createCommunicationCoachingTools: getCoachingTools } = await import(
+    './communication-coaching.js'
+  );
   return {
     ...createCommunicationTools(),
     ...getCoachingTools(),
@@ -830,10 +829,5 @@ export function createAllCommunicationTools() {
 // ============================================================================
 // EXPORTS
 // ============================================================================
-
-// Legacy aliases for backward compatibility
-export const createAlexTools = createCommunicationTools;
-export const createAllAlexTools = createAllCommunicationTools;
-export { createCommunicationCoachingTools as createAlexCoachingTools } from './communication-coaching.js';
 
 export default createCommunicationTools;

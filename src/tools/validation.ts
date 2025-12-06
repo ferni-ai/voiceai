@@ -141,6 +141,7 @@ export function sanitizeText(text: string, maxLength = 1000): string {
   let sanitized = text.trim().slice(0, maxLength);
 
   // Remove control characters except newlines and tabs
+  // eslint-disable-next-line no-control-regex
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
   // Escape HTML entities to prevent XSS
@@ -164,6 +165,7 @@ export function sanitizePlainText(text: string, maxLength = 1000): string {
   let sanitized = text.trim().slice(0, maxLength);
 
   // Remove control characters except newlines and tabs
+  // eslint-disable-next-line no-control-regex
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
   return sanitized;

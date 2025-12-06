@@ -26,10 +26,13 @@ import {
   removeClass,
   addListener,
 } from '../utils/dom.js';
+import { createLogger } from '../utils/logger.js';
 import { fetchAgents, type ApiAgent } from '../services/agents.service.js';
 import { marketplaceUI } from './marketplace.ui.js';
 import * as marketplaceService from '../services/marketplace.service.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
+
+const log = createLogger('TeamUI');
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -104,7 +107,7 @@ export function initTeamUI(): void {
     avatarFeedback.setupDropZone(handleAgentDropped);
 
   } catch (error) {
-    console.error('Failed to initialize Team UI:', error);
+    log.error('Failed to initialize Team UI:', error);
   }
 }
 
@@ -113,7 +116,7 @@ export function initTeamUI(): void {
  * 🍴 The avatar "eats" the agent - satisfying uninstall UX
  */
 function handleAgentDropped(agentId: string): void {
-  console.log(`🍴 Avatar is eating agent: ${agentId}`);
+  log.debug('Avatar is eating agent:', agentId);
   
   // Get agent name for feedback
   const installedAgents = marketplaceService.getInstalledAgents();
@@ -147,7 +150,7 @@ function handleAgentDropped(agentId: string): void {
     });
   }
   
-  console.log(`✅ Uninstalled ${name}`);
+  log.info('Uninstalled:', name);
 }
 
 /**
@@ -245,7 +248,7 @@ function buildTeamRoster(): void {
 
   // Try to load dynamic agents
   loadDynamicAgents().catch((err) => {
-    console.warn('⚠️ Failed to load dynamic agents, using static HTML:', err);
+    log.warn('Failed to load dynamic agents, using static HTML:', err);
     // Fall back to static HTML
     attachEventListenersToExistingElements();
   });
@@ -267,16 +270,36 @@ async function loadDynamicAgents(): Promise<void> {
       throw new Error('No agents returned from API');
     }
 
+    // FIX: Sort agents to ensure consistent order regardless of API response
+    // Order: Ferni (coordinator) first, then team members in canonical order
+    const CANONICAL_ORDER = ['ferni', 'peter-john', 'maya-santos', 'jordan-taylor', 'alex-chen', 'nayan-patel'];
+    const sortedAgents = [...agents].sort((a, b) => {
+      // Coordinator always first
+      if (a.isCoordinator && !b.isCoordinator) return -1;
+      if (!a.isCoordinator && b.isCoordinator) return 1;
+      
+      // Then by canonical order
+      const aIndex = CANONICAL_ORDER.indexOf(a.id);
+      const bIndex = CANONICAL_ORDER.indexOf(b.id);
+      
+      // Unknown agents go to the end
+      if (aIndex === -1 && bIndex === -1) return 0;
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      
+      return aIndex - bIndex;
+    });
+
     // Clear existing roster
     teamMemberElements.clear();
     rosterContainer.innerHTML = '';
 
-    // Render core agents dynamically
-    for (const agent of agents) {
+    // Render core agents dynamically (using sorted order)
+    for (const agent of sortedAgents) {
       const element = createTeamMemberElement(agent);
       
       // Add divider after coordinator (first agent)
-      if (agent.isCoordinator && agents.length > 1) {
+      if (agent.isCoordinator && sortedAgents.length > 1) {
         rosterContainer.appendChild(element);
         const divider = document.createElement('span');
         divider.className = 'team-divider';
@@ -296,7 +319,7 @@ async function loadDynamicAgents(): Promise<void> {
     addMarketplaceButton();
 
     usingDynamicAgents = true;
-    console.log(`✅ Rendered ${agents.length} agents dynamically`);
+    log.debug('Rendered agents dynamically (sorted):', sortedAgents.length);
     
     // Hide loading shimmer - FIX BUG: was only called in error case
     hideRosterLoading();
@@ -310,7 +333,7 @@ async function loadDynamicAgents(): Promise<void> {
     }, 800);
 
   } catch (err) {
-    console.warn('⚠️ Dynamic agent loading failed:', err);
+    log.warn('Dynamic agent loading failed:', err);
     hideRosterLoading();
     throw err;
   }
@@ -344,7 +367,7 @@ async function loadInstalledMarketplaceAgents(): Promise<void> {
     attachMarketplaceAgentListeners(element, installedAgent);
   }
   
-  console.log(`✅ Loaded ${installed.length} installed marketplace agents`);
+  log.debug('Loaded installed marketplace agents:', installed.length);
 }
 
 /**
@@ -405,20 +428,19 @@ function attachMarketplaceAgentListeners(
 ): void {
   const name = agent.manifest?.identity?.name || agent.id;
   
-  // Click to switch (for now, show info since agent isn't fully integrated)
+  // Click to show agent info (full voice integration requires backend support)
+  // FUTURE: Implement handoff.service.ts support for marketplace agents
   const cleanup = addListener(element, 'click', (e) => {
     e.stopPropagation();
     
-    // TODO: Full integration would switch to this agent
-    // For now, show a message
-    console.log(`🎭 Clicked marketplace agent: ${name}`);
+    log.debug('Clicked marketplace agent:', name);
     
     // Visual feedback
     element.classList.add('team-member--clicked');
     setTimeout(() => element.classList.remove('team-member--clicked'), 300);
     
-    // Show info toast (using console for now)
-    console.log(`📦 ${name} is installed but not yet integrated into voice system`);
+    // Show marketplace modal with agent details
+    void marketplaceUI.open();
   });
   cleanupFunctions.push(cleanup);
   
@@ -608,7 +630,7 @@ function addMarketplaceButton(): void {
   });
   cleanupFunctions.push(cleanup);
   
-  console.log('✅ Added marketplace button to roster');
+  log.debug('Added marketplace button to roster');
 }
 
 /**
@@ -643,7 +665,7 @@ function attachEventListenersToExistingElements(): void {
   }
   
   usingDynamicAgents = false;
-  console.log(`✅ Attached listeners to ${existingElements.length} existing elements`);
+  log.debug('Attached listeners to existing elements:', existingElements.length);
 }
 
 // ============================================================================
@@ -659,18 +681,17 @@ function attachEventListenersToExistingElements(): void {
  * FIX BUG #36: Prevents clicks during active transitions.
  */
 function onTeamMemberClick(personaId: PersonaId): void {
-  console.log(`👆 Team member clicked: ${personaId}`);
   const current = appState.get('activePersona');
   const connectionState = appState.get('connection');
-  console.log(`   Current: ${current.id}, Connection: ${connectionState}`);
+  log.debug('Team member clicked:', { personaId, currentId: current.id, connectionState });
   
   // FIX BUG #36 & #93: Prevent clicks during active transition
   const isTransitioning = handoffService.isTransitioning;
   const targetPersona = handoffService.targetPersona;
-  console.log(`   🔍 Transition check: isTransitioning=${isTransitioning}, targetPersona=${targetPersona}`);
+  log.debug('Transition check:', { isTransitioning, targetPersona });
   
   if (isTransitioning) {
-    console.log(`   ⏸️ Ignoring click - handoff transition in progress to ${targetPersona}`);
+    log.debug('Ignoring click - handoff transition in progress to:', targetPersona);
     // Visual feedback that click was received but ignored
     const element = teamMemberElements.get(personaId);
     if (element) {
@@ -692,12 +713,12 @@ function onTeamMemberClick(personaId: PersonaId): void {
 
   // When connected, show immediate feedback then request handoff
   if (connectionState === 'connected') {
-    console.log(`   ✅ Connected - sending handoff request to ${personaId}`);
+    log.debug('Connected - sending handoff request to:', personaId);
     showSwitchingFeedback(current.id, personaId);
     sendHandoffRequest(personaId);
     return;
   }
-  console.log(`   📝 Not connected (${connectionState}) - previewing theme`);
+  log.debug('Not connected - previewing theme:', { connectionState });
 
   // When disconnected, preview the theme immediately
   previewPersonaTheme(personaId);
@@ -708,7 +729,7 @@ function onTeamMemberClick(personaId: PersonaId): void {
  * Called when handoff fails, times out, or is cancelled.
  */
 function clearSwitchingFeedback(targetPersonaId: PersonaId): void {
-  console.log(`🧹 Clearing switching feedback for ${targetPersonaId}`);
+  log.debug('Clearing switching feedback for:', targetPersonaId);
   
   // Clear switching-to from target
   const targetElement = teamMemberElements.get(targetPersonaId);
@@ -947,13 +968,13 @@ function previewPersonaTheme(personaId: PersonaId): void {
  * FIX BUG #46: Now provides user feedback on failures and resets transition state.
  */
 function sendHandoffRequest(targetPersonaId: PersonaId): void {
-  console.log(`🎯 Sending handoff request to: ${targetPersonaId}`);
+  log.debug('Sending handoff request to:', targetPersonaId);
   
   /**
    * Handle send failure with user feedback and state reset.
    */
   const handleSendFailure = (error: unknown, context: string): void => {
-    console.error(`❌ ${context}:`, error);
+    log.error(`${context}:`, error);
     
     // Reset transition state on failure (handoffService internally tracks this)
     // Clear switching feedback from UI
@@ -1005,7 +1026,7 @@ function sendHandoffRequest(targetPersonaId: PersonaId): void {
         attempt: attempt + 1, // Include attempt number for debugging
       });
 
-      console.log(`📤 Publishing handoff message (attempt ${attempt + 1}):`, message);
+      log.debug('Publishing handoff message:', { attempt: attempt + 1, message });
 
       // Send via data channel
       await room.localParticipant.publishData(
@@ -1013,10 +1034,10 @@ function sendHandoffRequest(targetPersonaId: PersonaId): void {
         { reliable: true }
       );
       
-      console.log(`✅ Handoff request sent successfully to ${targetPersonaId}`);
+      log.info('Handoff request sent successfully to:', targetPersonaId);
     } catch (err) {
       if (attempt < MAX_RETRIES) {
-        console.warn(`⚠️ Handoff request failed (attempt ${attempt + 1}), retrying in ${RETRY_DELAY_MS}ms...`);
+        log.warn('Handoff request failed, retrying:', { attempt: attempt + 1, retryDelayMs: RETRY_DELAY_MS });
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         return attemptSend(attempt + 1);
       }
@@ -1389,7 +1410,7 @@ export async function refreshMarketplaceAgents(): Promise<void> {
   // Re-add marketplace button
   addMarketplaceButton();
   
-  console.log('✅ Refreshed marketplace agents in roster');
+  log.debug('Refreshed marketplace agents in roster');
 }
 
 // ============================================================================

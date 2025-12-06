@@ -375,7 +375,9 @@ describe('Intelligence Persistence', () => {
       expect(status.has(testUserId)).toBe(true);
 
       // Wait for at least one auto-save
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 150);
+      });
 
       expect(saveCallback).toHaveBeenCalled();
 

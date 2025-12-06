@@ -81,7 +81,6 @@ export {
   isHandoffAllowed,
   // Current agent state
   getCurrentAgent,
-  getCurrentAgentFrontendId,
   setCurrentAgent,
   isCurrentAgent,
   // Handoff history
@@ -124,5 +123,6 @@ export {
 // Tool creation (from factory)
 export { createHandoffTools } from './handoff-factory.js';
 
-// Re-export analytics type
-export type { HandoffAnalytics } from './types.js';
+// Re-export types and utilities
+export type { HandoffAnalytics, HandoffEventData } from './types.js';
+export { createHandoffEvent } from './types.js';

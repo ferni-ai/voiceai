@@ -332,7 +332,9 @@ describe('Handoff Flow', () => {
           } catch {
             if (i < MAX_RETRIES) {
               // Wait before retry
-              await new Promise((r) => setTimeout(r, 100));
+              await new Promise((r) => {
+                setTimeout(r, 100);
+              });
               vi.advanceTimersByTime(100);
             }
           }

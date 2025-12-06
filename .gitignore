@@ -19,6 +19,7 @@ latest-logs.txt
 .livekit-secrets.env
 *.env.local
 .plaid-tokens.json
+.forms.env
 
 # Code Signing (NEVER commit these!)
 *.p12

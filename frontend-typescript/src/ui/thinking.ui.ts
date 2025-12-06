@@ -18,6 +18,9 @@
 
 import { normalizeAgentId } from '../config/personas.js';
 import type { PersonaId } from '../types/persona.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('ThinkingUI');
 
 // ============================================================================
 // STATE
@@ -117,7 +120,7 @@ export function initThinkingUI(): void {
   textElement = floatElement?.querySelector('.thinking-text') ?? null;
   
   if (!coachElement) {
-    console.warn('Coach element not found for thinking UI');
+    log.warn('Coach element not found for thinking UI');
     return;
   }
 }

@@ -1,13 +1,17 @@
 /**
- * Persona IDs - THE SINGLE SOURCE OF TRUTH
+ * Persona IDs - Canonical ID definitions and validation
  *
- * This module defines ALL valid persona IDs and provides validation.
- * ALL code that handles persona IDs should import from here.
+ * NOTE: For new code, prefer importing via the central module:
+ *   import { getCanonicalPersonaId, toCanonical } from '../personas/index.js';
  *
- * WHY THIS EXISTS:
- * The codebase has TWO competing ID systems causing constant bugs:
- * 1. BACKEND/CANONICAL: ferni, alex-chen, maya-santos, jordan-taylor
- * 2. FRONTEND/LEGACY: jack-b, comm-specialist, spend-save, event-planner
+ * This module provides:
+ * - CANONICAL_IDS: The canonical persona identifiers
+ * - ID validation and conversion functions
+ * - Legacy alias resolution (for backwards compatibility)
+ *
+ * ID SYSTEMS:
+ * 1. CANONICAL: ferni, alex-chen, maya-santos, jordan-taylor, peter-john, nayan-patel
+ * 2. LEGACY ALIASES: jack-b, comm-specialist, spend-save, event-planner (mapped to canonical)
  *
  * This creates a mapping confusion where handoffs break because:
  * - Frontend sends "comm-specialist" but backend expects "alex-chen"
@@ -40,23 +44,6 @@ export type CanonicalPersonaId = (typeof CANONICAL_IDS)[keyof typeof CANONICAL_I
  * All canonical IDs as an array (for validation)
  */
 export const ALL_CANONICAL_IDS: readonly CanonicalPersonaId[] = Object.values(CANONICAL_IDS);
-
-// ============================================================================
-// FRONTEND IDS - Now identical to canonical IDs (after standardization)
-// ============================================================================
-
-/**
- * Frontend persona IDs.
- * After ID standardization, these are now IDENTICAL to canonical IDs.
- * @deprecated Use CANONICAL_IDS instead
- */
-export const FRONTEND_IDS = {
-  COACH: 'ferni',
-  RESEARCHER: 'peter-john',
-  COMMUNICATOR: 'alex-chen',
-  BUDGETER: 'maya-santos',
-  PLANNER: 'jordan-taylor',
-} as const;
 
 export type FrontendPersonaId = CanonicalPersonaId;
 
@@ -286,7 +273,6 @@ export function isTeamMember(id: string): boolean {
 
 export default {
   CANONICAL_IDS,
-  FRONTEND_IDS,
   ALL_CANONICAL_IDS,
   toCanonical,
   toFrontend,

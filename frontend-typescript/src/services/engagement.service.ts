@@ -12,6 +12,9 @@
 import type { EngagementEvent, EngagementTriggerEvent } from '../types/events.js';
 import { isEngagementMessage, isEngagementTriggerMessage } from '../types/events.js';
 import type { EngagementData } from '../ui/engagement.ui.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Engagement');
 
 // ============================================================================
 // TYPES
@@ -106,7 +109,7 @@ class EngagementService {
     // Notify listeners
     this.callbacks.onEngagementUpdate?.(data);
 
-    console.log('[Engagement] Data updated:', {
+    log.debug('[Engagement] Data updated:', {
       streaks: data.ritualStreaks.length,
       weather: data.weatherHistory.length,
       stats: data.stats,
@@ -117,7 +120,7 @@ class EngagementService {
    * Handle engagement trigger from agent.
    */
   private handleEngagementTrigger(event: EngagementTriggerEvent): void {
-    console.log('[Engagement] Trigger received:', event.triggerType, event.message);
+    log.debug('[Engagement] Trigger received:', event.triggerType, event.message);
     this.callbacks.onEngagementTrigger?.(event);
   }
 
@@ -131,20 +134,138 @@ class EngagementService {
 
   /**
    * Fetch engagement data from backend.
-   * Data comes via LiveKit data messages in real-time.
-   * This returns cached data from those messages.
+   * First tries REST API, then falls back to cached data from LiveKit.
    */
-  async fetchEngagementData(_userId: string): Promise<EngagementData | null> {
-    // Return cached data (populated via LiveKit data messages)
+  async fetchEngagementData(userId: string): Promise<EngagementData | null> {
+    // If we have cached data, return it
+    if (this.cachedData) {
+      return this.cachedData;
+    }
+
+    // Try REST API
+    try {
+      const response = await fetch(`/api/rituals?userId=${encodeURIComponent(userId)}`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Transform to EngagementData format
+        const engagementData: EngagementData = {
+          ritualStreaks: (data.streaks || []).map((s: Record<string, unknown>) => ({
+            ritualId: s.ritualId as string,
+            ritualName: this.getRitualName(s.ritualId as string),
+            personaId: s.personaId as string,
+            currentStreak: s.currentStreak as number,
+            longestStreak: s.longestStreak as number,
+            lastCompletedAt: s.lastCompletedAt as string | null,
+            dueToday: this.isDueToday(s.lastCompletedAt as string | null),
+          })),
+          weatherHistory: (data.weatherHistory || []).map((w: Record<string, unknown>) => ({
+            primary: (w.weather as Record<string, string>)?.primary || 'cloudy',
+            energy: (w.weather as Record<string, string>)?.energy || 'medium',
+            note: w.weather ? (w.weather as Record<string, string>).note : undefined,
+            recordedAt: w.date as string,
+          })),
+          stats: {
+            totalRitualDays: data.stats?.totalRitualDays || 0,
+            longestOverallStreak: data.stats?.longestOverallStreak || 0,
+            currentActiveStreaks: data.streaks?.filter((s: Record<string, unknown>) => (s.currentStreak as number) > 0).length || 0,
+            predictionAccuracy: data.stats?.predictionAccuracy,
+            teamHuddlesAttended: data.stats?.teamHuddlesAttended || 0,
+          },
+          lastEngagementAt: data.lastEngagementAt || null,
+        };
+
+        this.cachedData = engagementData;
+        this.callbacks.onEngagementUpdate?.(engagementData);
+        return engagementData;
+      }
+    } catch (err) {
+      log.warn('Failed to fetch engagement data from API', err);
+    }
+
     return this.cachedData;
   }
 
   /**
-   * Fetch predictions from backend.
-   * Returns cached predictions from LiveKit data messages.
+   * Get ritual display name from ID.
    */
-  async fetchPredictions(_userId: string): Promise<PredictionData[]> {
+  private getRitualName(ritualId: string): string {
+    const names: Record<string, string> = {
+      'ferni-sky-check': 'Morning Sky Check',
+      'alex-inbox-pulse': 'Inbox Pulse',
+      'maya-habit-heartbeat': 'Habit Heartbeat',
+      'jordan-todays-chapter': "Today's Chapter",
+      'nayan-morning-stillness': 'Morning Stillness',
+      'peter-pattern-pulse': 'Pattern Pulse',
+    };
+    return names[ritualId] || ritualId;
+  }
+
+  /**
+   * Check if ritual is due today.
+   */
+  private isDueToday(lastCompletedAt: string | null): boolean {
+    if (!lastCompletedAt) return true;
+    const lastDate = new Date(lastCompletedAt).toDateString();
+    const today = new Date().toDateString();
+    return lastDate !== today;
+  }
+
+  /**
+   * Fetch predictions from backend.
+   * First tries REST API, then falls back to cached data from LiveKit.
+   */
+  async fetchPredictions(userId: string): Promise<PredictionData[]> {
+    // If we have cached data, return it
+    if (this.cachedPredictions.length > 0) {
+      return this.cachedPredictions;
+    }
+
+    // Try REST API
+    try {
+      const response = await fetch(`/api/predictions?userId=${encodeURIComponent(userId)}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Transform from StoredPrediction to PredictionData format
+        const predictions: PredictionData[] = (data.predictions || []).map((p: Record<string, unknown>) => ({
+          id: p.id as string,
+          category: this.extractCategory(p.predictions as Record<string, number>),
+          question: `Week of ${p.weekOf}`,
+          userPrediction: this.extractMainValue(p.predictions as Record<string, number>),
+          actualOutcome: p.accuracy as number | undefined,
+          status: p.completedAt ? 'resolved' as const : 'pending' as const,
+          createdAt: p.createdAt as string,
+        }));
+        this.cachedPredictions = predictions;
+        this.callbacks.onPredictionsUpdate?.(predictions);
+        return predictions;
+      }
+    } catch (err) {
+      log.warn('Failed to fetch predictions from API', err);
+    }
+
     return this.cachedPredictions;
+  }
+
+  /**
+   * Extract category from prediction data.
+   */
+  private extractCategory(predictions: Record<string, number>): string {
+    const keys = Object.keys(predictions);
+    if (keys.includes('Mood average (1-10)')) return 'mood';
+    if (keys.includes('Deep work hours')) return 'productivity';
+    if (keys.includes('Exercise sessions')) return 'health';
+    return 'overall';
+  }
+
+  /**
+   * Extract main value from prediction data.
+   */
+  private extractMainValue(predictions: Record<string, number>): number {
+    const values = Object.values(predictions);
+    if (values.length === 0) return 0;
+    if (values.length === 1) return values[0] ?? 0;
+    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
   }
 
   /**

@@ -295,7 +295,7 @@ export class FeedbackCollector {
     // Buffer the feedback
     this.feedbackBuffer.push(record);
     if (this.feedbackBuffer.length > this.BUFFER_SIZE) {
-      this.flush();
+      void this.flush();
     }
 
     // Track last feedback per tool

@@ -461,12 +461,12 @@ export function removeSessionWPMTracker(sessionId: string): void {
 // GLOBAL SINGLETON TRACKER (BACKWARD COMPATIBILITY)
 // ============================================================================
 
-/** @deprecated Use getSessionWPMTracker for session isolation */
+/** @deprecated SUNSET: 2025-03-31 - Use getSessionWPMTracker for session isolation */
 let defaultWPMTracker: WPMTracker | null = null;
 
 /**
  * Get the default WPM tracker
- * @deprecated Use getSessionWPMTracker for session isolation
+ * @deprecated SUNSET: 2025-03-31 - Use getSessionWPMTracker for session isolation
  */
 export function getWPMTracker(): WPMTracker {
   if (!defaultWPMTracker) {
@@ -475,23 +475,12 @@ export function getWPMTracker(): WPMTracker {
   return defaultWPMTracker;
 }
 
-/**
- * Reset the WPM tracker
- * @deprecated Use getSessionWPMTracker for session isolation
- */
-export function resetWPMTracker(): void {
-  if (defaultWPMTracker) {
-    defaultWPMTracker.clear();
-  }
-}
-
 export default {
   buildSpeechContext,
   detectEnergyLevel,
   determineTopicWeight,
   WPMTracker,
   getWPMTracker,
-  resetWPMTracker,
   getSessionWPMTracker,
   removeSessionWPMTracker,
 };

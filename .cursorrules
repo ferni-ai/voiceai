@@ -183,7 +183,6 @@ function calculateHandoffTarget(
 ## Project-Specific Rules
 
 ### Voice AI / Ferni Specific
-- **Use safeLog()** from `utils/safe-logger.js` - never raw `log()`
 - **Handle voice latency** - optimize for real-time (< 200ms response)
 - **Persona consistency** - maintain character voice in all responses
 - **Graceful degradation** - always have fallbacks for API failures
@@ -193,6 +192,104 @@ function calculateHandoffTarget(
 - **CSS variables** for theming - never hardcode colors
 - **Event delegation** - attach listeners to containers
 - **Cleanup listeners** - prevent memory leaks
+
+## 🚫 LOGGING RULES - MANDATORY
+
+### NEVER Use Raw Console Methods
+```typescript
+// ❌ NEVER - Will be rejected in code review
+console.log('something happened');
+console.warn('warning');
+console.error('error');
+console.debug('debug info');
+
+// ✅ ALWAYS - Use the structured logger
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('ModuleName');
+
+log.debug('Debug info for development');
+log.info('Important state change');
+log.warn('Something unexpected but recoverable');
+log.error('Error that needs attention', error);
+```
+
+### Logger Features
+- **Namespace prefix**: `[ModuleName]` for easy filtering
+- **Log levels**: debug < info < warn < error
+- **Auto-disabled in production**: Only warnings/errors show
+- **Browser console access**: `window.ferniLogger.setLogLevel('debug')` to enable debug logs
+
+### When to Use Each Level
+| Level | Use Case | Example |
+|-------|----------|---------|
+| `debug` | Development-only debugging | `log.debug('State updated:', newState)` |
+| `info` | Significant events worth logging | `log.info('Handoff completed to', agent)` |
+| `warn` | Unexpected but handled situations | `log.warn('API retry attempt', count)` |
+| `error` | Errors that need investigation | `log.error('Failed to connect', error)` |
+
+### Migration Pattern
+```typescript
+// Old code:
+console.log('Team member clicked:', personaId);
+
+// New code:
+import { createLogger } from '../utils/logger.js';
+const log = createLogger('TeamUI');
+log.debug('Team member clicked:', personaId);
+```
+
+## 🛡️ HMR (Hot Module Reload) PROTECTION - MANDATORY
+
+### UI Components Must Handle Re-initialization
+When Vite hot reloads, UI classes may be re-instantiated. Always cleanup orphaned elements:
+
+```typescript
+// ✅ REQUIRED pattern for any UI class that creates DOM elements
+class MyUI {
+  private container: HTMLElement | null = null;
+  
+  constructor() {
+    this.cleanupOrphanedElements(); // Always clean up first!
+    this.createPanel();
+  }
+  
+  private cleanupOrphanedElements(): void {
+    // Remove any existing instances (from HMR)
+    document.querySelectorAll('.my-ui-container').forEach(el => el.remove());
+    document.querySelectorAll('.my-ui-trigger').forEach(el => el.remove());
+  }
+  
+  private createPanel(): void {
+    this.container = document.createElement('div');
+    this.container.className = 'my-ui-container';
+    // ...
+  }
+}
+```
+
+### Symptoms of Missing HMR Protection
+- Duplicate buttons appearing
+- Duplicate modals stacking
+- Event listeners firing multiple times
+- Memory leaks in development
+
+## 🔒 CODE QUALITY GATES - AUTOMATED CHECKS
+
+### Pre-commit Checks (Enforced)
+1. **No console statements**: `grep -r "console\." src/` must return empty
+2. **No hardcoded colors**: No `#RRGGBB` or `rgba()` outside CSS variable fallbacks
+3. **No any types**: TypeScript strict mode enforced
+4. **No unused imports**: ESLint will flag these
+
+### PR Checklist (Manual Review)
+- [ ] All logging uses `createLogger()` utility
+- [ ] UI components have HMR cleanup
+- [ ] No new console.log statements
+- [ ] All colors use CSS variables
+- [ ] All animations use DURATION/EASING constants
+- [ ] Modals follow centered floating pattern
+- [ ] Copy uses warm, human brand voice
 
 ## 🎨 DESIGN SYSTEM - MANDATORY
 
@@ -352,6 +449,208 @@ Before submitting UI code, verify:
 - [ ] Imports @design-system/tokens where needed
 - [ ] Respects `prefers-reduced-motion` media query
 
+## 🎨 BRAND COMPLIANCE - MANDATORY
+
+### Reference Documents (MUST READ BEFORE UI WORK)
+- `brand/FERNI-BRAND-GUIDELINES.md` - Full brand identity guide
+- `brand/FERNI-SCREEN-GUIDELINES.md` - Digital design standards
+- `brand/ferni-design-tokens.css` - CSS variable definitions
+
+### 🚫 BRAND VIOLATIONS - NEVER DO THESE
+
+#### 1. Color Violations
+```typescript
+// ❌ NEVER use these colors in Ferni UI
+purple, violet, #800080, #9b59b6  // Purple is NOT a Ferni color
+neon colors, #00ff00, #ff00ff     // Too bright, not earthy
+cool grays, #808080               // Use warm browns instead
+pure black #000000                // Use Natural Ink #2C2520
+
+// ✅ ALWAYS use Ferni's earthy palette
+--persona-primary: #4a6741;       // Ferni sage green
+--color-text-primary: #2C2520;    // Natural Ink (warm dark)
+--color-background-elevated: #FFFDFB;  // Paper Cream
+```
+
+#### 2. Icon Violations
+```typescript
+// ❌ NEVER use emoji as icons in UI
+icon: '💜'  // Emoji are not brand compliant
+icon: '🔥'  // Use Lucide SVG instead
+icon: '✨'  // Emojis look inconsistent
+
+// ✅ ALWAYS use Lucide SVG icons
+// Style: Outlined, 2px stroke weight, rounded corners
+const heartIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">...</svg>`;
+```
+
+#### 3. Layout Violations
+```typescript
+// ❌ NEVER use side panels for modals/dialogs
+position: fixed; right: 0; transform: translateX(100%);  // Side slide-in
+
+// ✅ ALWAYS use centered floating modals with backdrop blur
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-backdrop {
+  backdrop-filter: blur(20px);
+}
+.modal-card {
+  transform: scale(0.9); // Animate from center
+}
+```
+
+#### 4. Typography Violations
+```typescript
+// ❌ NEVER use generic headings
+<h2>Menu</h2>  // Missing eyebrow, hierarchy
+
+// ✅ ALWAYS use proper typography hierarchy
+<p class="eyebrow">YOUR JOURNEY</p>  // Uppercase, small, accent color
+<h2 class="title">Growing together</h2>  // Display font
+<p class="tagline">Every great friendship starts somewhere.</p>  // Body font
+```
+
+#### 5. Copy/Voice Violations
+```typescript
+// ❌ NEVER use cold, corporate language
+"User Statistics"
+"Data Analytics Dashboard"
+"System Status: Connected"
+
+// ✅ ALWAYS use warm, human brand voice
+"Your Stats"
+"How you're doing"
+"We're connected"
+
+// Brand voice is: Warm, Grounded, Wise, Present, Human
+// Reference: FERNI-BRAND-GUIDELINES.md Section 10
+```
+
+### Persona Colors Reference
+| Persona | Primary | Secondary | Use |
+|---------|---------|-----------|-----|
+| **Ferni** | `#4a6741` | `#3d5a35` | Life coach, main |
+| **Jack** | `#9a7b5a` | `#7d6348` | Sage mentor |
+| **Peter** | `#3a6b73` | `#2d5359` | Research |
+| **Alex** | `#5a6b8a` | `#4a5a73` | Communications |
+| **Maya** | `#a67a6a` | `#8a635a` | Habits/Routines |
+| **Jordan** | `#c4856a` | `#a86d55` | Event planning |
+
+### UI Navigation Pattern (Apple-Inspired)
+
+Ferni uses the Apple navigation pattern:
+
+1. **Settings Menu** → Right-side slide-in panel (for navigation)
+2. **Content/Detail Views** → Centered floating modals (for actual content)
+
+```typescript
+// ❌ NEVER use centered modal for navigation menu
+// ❌ NEVER use side panels for content/detail views
+
+// ✅ Menu slides in from right
+.menu-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  transform: translateX(100%);  // Slide in from right
+}
+
+// ✅ Content opens as centered modal
+.content-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+```
+
+### Modal Pattern (Required for all content dialogs)
+```typescript
+// ✅ Brand-compliant modal structure
+`<div class="modal-overlay">
+  <div class="modal-backdrop"></div>  <!-- blur backdrop -->
+  <div class="modal-card">
+    <header>
+      <span class="eyebrow">SECTION NAME</span>
+      <h2 class="title">Human-readable title</h2>
+      <button class="close-btn" aria-label="Close">
+        ${LUCIDE_CLOSE_ICON}
+      </button>
+    </header>
+    <div class="content">...</div>
+  </div>
+</div>`
+```
+
+### Required CSS Variables for Modals
+```css
+.modal-backdrop {
+  background: rgba(44, 37, 32, 0.4);  /* Warm overlay */
+  backdrop-filter: blur(20px);
+}
+.modal-card {
+  background: var(--color-background-elevated);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-2xl);
+}
+```
+
+### Brand Compliance Checklist - MANDATORY
+Before submitting ANY UI code, verify ALL items:
+
+**Colors:**
+- [ ] No purple, violet, or cool colors used
+- [ ] All colors use CSS variables (--color-*, --persona-*)
+- [ ] Accent colors use persona's sage green, not purple
+- [ ] Dark theme uses warm browns, not cool grays
+
+**Icons:**
+- [ ] NO emoji anywhere in UI code (💜 ❌)
+- [ ] All icons are Lucide SVG format
+- [ ] Icons use 2px stroke weight, rounded corners
+- [ ] Icon color uses currentColor or CSS variable
+
+**Layout:**
+- [ ] Modals/dialogs are centered (not side panels)
+- [ ] Has backdrop with blur effect
+- [ ] Animates with scale/fade (not slide)
+- [ ] Close button in top-right with Lucide X icon
+
+**Typography:**
+- [ ] Uses eyebrow pattern for section labels
+- [ ] Headlines use Plus Jakarta Sans (--font-display)
+- [ ] Body text uses Inter (--font-body)
+- [ ] Proper hierarchy: eyebrow → title → tagline → body
+
+**Copy/Voice:**
+- [ ] Language is warm and human (not corporate)
+- [ ] Uses "you/your" not "user"
+- [ ] Avoids tech jargon
+- [ ] Matches brand voice: Warm, Grounded, Wise, Present
+
+**Dark Theme (WCAG AA Compliance REQUIRED):**
+- [ ] Tested in both light AND dark themes
+- [ ] All text meets WCAG AA contrast (4.5:1 for normal, 3:1 for large)
+- [ ] Uses design system text tokens (--color-text-primary/secondary/muted)
+- [ ] No hardcoded colors that break in dark mode
+- [ ] Fallback colors in CSS use WCAG-compliant values
+
+**Dark Theme Text Hierarchy (on #70605a background):**
+| Token | Color | Contrast | Use |
+|-------|-------|----------|-----|
+| `--color-text-primary` | #faf6f0 | 5.56:1 | Headings, important text |
+| `--color-text-secondary` | #f0ebe4 | 5.05:1 | Body text, descriptions |
+| `--color-text-muted` | #e8e2da | 4.65:1 | Labels, eyebrows |
+| `--color-text-dimmed` | #ddd6cc | 4.15:1 | Large text only (18pt+) |
+
 ### Backend (Node.js)
 - **Structured logging** - JSON format with correlation IDs
 - **Circuit breakers** for external services
@@ -367,7 +666,8 @@ Before submitting code, verify:
 - [ ] Files are < 500 lines
 - [ ] Names are descriptive
 - [ ] Public APIs have JSDoc
-- [ ] No console.log in production code (use logger)
+- [ ] **NO console.log/warn/error** - use `createLogger()` from `utils/logger.js`
+- [ ] UI components have HMR cleanup (`cleanupOrphanedElements`)
 - [ ] Tests cover happy path and edge cases
 
 ## Import Organization

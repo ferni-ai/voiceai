@@ -5,6 +5,10 @@
  * and smooth animations.
  */
 
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('TranscriptUI');
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -22,7 +26,7 @@ export function initTranscriptUI(): void {
   textElement = document.getElementById('transcriptText');
   
   if (!container || !textElement) {
-    console.warn('Transcript elements not found');
+    log.warn('Transcript elements not found');
     return;
   }
   

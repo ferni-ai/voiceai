@@ -8,6 +8,9 @@
 import type { SpotifyState } from '../types/events.js';
 import { API } from '../config/index.js';
 import { setSpotifyState } from '../state/app.state.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Spotify');
 
 // ============================================================================
 // TYPES
@@ -178,7 +181,7 @@ class SpotifyService {
       }
       return false;
     } catch (error) {
-      console.error('Failed to pause:', error);
+      log.error('Failed to pause:', error);
       return false;
     }
   }
@@ -196,7 +199,7 @@ class SpotifyService {
       this.updateState('playing');
       return true;
     } catch (error) {
-      console.error('Failed to resume:', error);
+      log.error('Failed to resume:', error);
       return false;
     }
   }
@@ -215,7 +218,7 @@ class SpotifyService {
       this.updateState(state?.paused ? 'paused' : 'playing');
       return true;
     } catch (error) {
-      console.error('Failed to toggle playback:', error);
+      log.error('Failed to toggle playback:', error);
       return false;
     }
   }
@@ -232,7 +235,7 @@ class SpotifyService {
       await this.player.setVolume(Math.max(0, Math.min(1, volume)));
       return true;
     } catch (error) {
-      console.error('Failed to set volume:', error);
+      log.error('Failed to set volume:', error);
       return false;
     }
   }
@@ -289,7 +292,7 @@ class SpotifyService {
       return true;
 
     } catch (error) {
-      console.error('Spotify initialization failed:', error);
+      log.error('Initialization failed:', error);
       this.updateState('error');
       return false;
     }
@@ -302,7 +305,7 @@ class SpotifyService {
     try {
       const response = await fetch(API.SPOTIFY_TOKEN);
       if (!response.ok) {
-        console.warn('Spotify token not available');
+        log.warn('Token not available');
         return null;
       }
 
@@ -310,7 +313,7 @@ class SpotifyService {
       return data.access_token || null;
 
     } catch (error) {
-      console.warn('Failed to fetch Spotify token:', error);
+      log.warn('Failed to fetch token:', error);
       return null;
     }
   }
@@ -361,7 +364,7 @@ class SpotifyService {
     // Wait for ready OR error event (with timeout)
     return new Promise<boolean>((resolve) => {
       const timeout = setTimeout(() => {
-        console.warn('⏰ Spotify player connection timed out');
+        log.warn('Player connection timed out');
         resolve(false);
       }, 10000); // 10 second timeout
 
@@ -378,7 +381,7 @@ class SpotifyService {
       this.player!.addListener('initialization_error', (...args: unknown[]) => {
         clearTimeout(timeout);
         const data = args[0] as { message: string };
-        console.error('❌ Spotify init error:', data.message);
+        log.error('Init error:', data.message);
         this.updateState('error');
         resolve(false);
       });
@@ -386,7 +389,7 @@ class SpotifyService {
       this.player!.addListener('authentication_error', (...args: unknown[]) => {
         clearTimeout(timeout);
         const data = args[0] as { message: string };
-        console.error('❌ Spotify auth error:', data.message);
+        log.error('Auth error:', data.message);
         this.updateState('error');
         resolve(false);
       });
@@ -394,7 +397,7 @@ class SpotifyService {
       this.player!.addListener('account_error', (...args: unknown[]) => {
         clearTimeout(timeout);
         const data = args[0] as { message: string };
-        console.error('❌ Spotify account error:', data.message);
+        log.error('Account error:', data.message);
         this.updateState('error');
         resolve(false);
       });
@@ -405,7 +408,7 @@ class SpotifyService {
       // Connect - don't await, let the events handle resolution
       this.player!.connect().catch((err) => {
         clearTimeout(timeout);
-        console.error('❌ Spotify connect error:', err);
+        log.error('Connect error:', err);
         this.updateState('error');
         resolve(false);
       });
@@ -455,7 +458,7 @@ class SpotifyService {
       try {
         callback(newState, trackInfo);
       } catch (error) {
-        console.error('Spotify callback error:', error);
+        log.error('Callback error:', error);
       }
     }
   }

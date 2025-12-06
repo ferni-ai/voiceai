@@ -548,17 +548,19 @@ export function startAutoSave(
   // Clear existing auto-save if any
   stopAutoSave(userId);
 
-  const intervalId = setInterval(async () => {
-    try {
-      await saveCallback(userId);
-      const entry = autoSaveRegistry.get(userId);
-      if (entry) {
-        entry.lastSave = new Date();
+  const intervalId = setInterval(() => {
+    void (async () => {
+      try {
+        await saveCallback(userId);
+        const entry = autoSaveRegistry.get(userId);
+        if (entry) {
+          entry.lastSave = new Date();
+        }
+        getLogger().debug({ userId }, 'Auto-saved intelligence state');
+      } catch (error) {
+        getLogger().warn({ error, userId }, 'Auto-save failed');
       }
-      getLogger().debug({ userId }, 'Auto-saved intelligence state');
-    } catch (error) {
-      getLogger().warn({ error, userId }, 'Auto-save failed');
-    }
+    })();
   }, mergedConfig.autoSaveIntervalMs);
 
   autoSaveRegistry.set(userId, {

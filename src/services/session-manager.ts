@@ -16,6 +16,11 @@ import {
   type ConversationTurn,
   setCurrentSessionMomentsGetter,
   clearCurrentSessionMomentsGetter,
+  semanticSearch,
+  ragLookup as semanticRagLookup,
+  summarizeConversation,
+  indexConversationSummary,
+  type MemoryStore,
 } from '../memory/index.js';
 
 // Intelligence imports
@@ -55,12 +60,11 @@ import {
 // Context imports
 import { getContextManager, removeContextManager } from '../context/index.js';
 
-// Speech imports
+// Speech imports - using session-scoped WPM tracking
 import {
   buildSpeechContext,
   tagTextWithSsmlAdaptive,
-  getWPMTracker,
-  resetWPMTracker,
+  getSessionWPMTracker,
   tagSupportResponse,
   tagAdvice,
   tagStory,
@@ -72,12 +76,6 @@ import { getGlobalServices } from './global-services.js';
 import { getPersonalizer } from './profile-personalizer.js';
 import type { SessionServices, CreateSessionOptions } from './types.js';
 import type { HumanizingStateUpdate } from './humanizing-state.js';
-import {
-  semanticSearch,
-  ragLookup as semanticRagLookup,
-  summarizeConversation,
-  indexConversationSummary,
-} from '../memory/index.js';
 
 // Handoff state (per-session, not global)
 import { createHandoffState, initializeFromPersistedData } from '../tools/handoff-state.js';
@@ -108,6 +106,7 @@ const activeSessions = new Map<string, SessionServices>();
 /**
  * Create session services for a new conversation
  */
+// eslint-disable-next-line no-redeclare
 export async function createSessionServices(
   sessionId: string,
   userId?: string,
@@ -117,10 +116,12 @@ export async function createSessionServices(
   personaId?: string
 ): Promise<SessionServices>;
 
+// eslint-disable-next-line no-redeclare
 export async function createSessionServices(
   options: CreateSessionOptions
 ): Promise<SessionServices>;
 
+// eslint-disable-next-line no-redeclare
 export async function createSessionServices(
   sessionIdOrOptions: string | CreateSessionOptions,
   userId?: string,
@@ -202,7 +203,7 @@ export async function createSessionServices(
 
   // Reset intelligence and tasks for new session
   resetIntelligence(isReturningUser);
-  resetWPMTracker();
+  // Note: WPM tracking is now session-scoped via getSessionWPMTracker(sessionId)
   resetLearningEngine();
 
   // Get learning engine for this session
@@ -469,7 +470,7 @@ export async function createSessionServices(
       // This won't block the response but will improve future understanding
       if (analysis.emotion.confidence < 0.5) {
         // Fire-and-forget LLM enhancement
-        (async () => {
+        void (async () => {
           try {
             const { createEmotionLLMCaller } = await import('./llm-utils.js');
             const emotionDetector = getEmotionDetector();
@@ -532,7 +533,7 @@ export async function createSessionServices(
       if (role === 'user') {
         historyTracker.addUserTurn(content, { durationMs });
         if (durationMs) {
-          getWPMTracker().addSample(content, durationMs);
+          getSessionWPMTracker(sessionId).addSample(content, durationMs);
         }
       } else {
         historyTracker.addAssistantTurn(content);
@@ -594,7 +595,7 @@ export async function createSessionServices(
       const emotion = text ? getEmotionDetector().detect(text) : undefined;
       const topics = text ? getTopicTracker().extract(text).detected : undefined;
 
-      const currentWPM = getWPMTracker().getAverageWPM();
+      const currentWPM = getSessionWPMTracker(sessionId).getAverageWPM();
 
       let effectiveWPM = currentWPM;
       if (userProfile?.averageWPM) {
@@ -719,7 +720,7 @@ export async function createSessionServices(
       );
     },
 
-    recordResponseSignal: (params: {
+    recordResponseSignal: async (params: {
       agentResponse: string;
       userResponse: string;
       topic: string;
@@ -774,7 +775,7 @@ export async function createSessionServices(
 
       // Feed into community insights if available
       try {
-        const { getCommunityInsights } = require('../intelligence/community-insights.js');
+        const { getCommunityInsights } = await import('../intelligence/community-insights.js');
         const communityInsights = getCommunityInsights();
         if (communityInsights && personaId) {
           communityInsights.recordEngagementSignal({
@@ -910,7 +911,7 @@ export async function createSessionServices(
             sessionDurationMinutes: Math.floor(historyTracker.getDurationSeconds() / 60),
           });
 
-          const sessionWPM = getWPMTracker().getAverageWPM();
+          const sessionWPM = getSessionWPMTracker(sessionId).getAverageWPM();
           if (sessionWPM > 0) {
             if (updated.averageWPM) {
               updated.averageWPM = Math.round(updated.averageWPM * 0.7 + sessionWPM * 0.3);
@@ -1315,16 +1316,5 @@ export async function clearAllSessions(): Promise<number> {
   activeSessions.clear();
 
   getLogger().info({ count }, 'All sessions ended');
-  return count;
-}
-
-/**
- * Synchronous version for emergency shutdown (skips proper cleanup)
- * @deprecated Use clearAllSessions() when possible
- */
-export function clearAllSessionsSync(): number {
-  const count = activeSessions.size;
-  getLogger().warn({ count }, 'Emergency session clear (sync) - data may be lost');
-  activeSessions.clear();
   return count;
 }

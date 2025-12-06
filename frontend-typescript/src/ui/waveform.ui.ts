@@ -23,6 +23,9 @@
 import type { PersonaId } from '../types/persona.js';
 import type { VoiceEmotion } from '../types/events.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Waveform');
 
 // ============================================================================
 // CONFIGURATION
@@ -190,7 +193,7 @@ export function initWaveformUI(): void {
   container = document.getElementById('waveformContainer');
   
   if (!container) {
-    console.warn('Waveform container not found');
+    log.warn('Waveform container not found');
     return;
   }
 

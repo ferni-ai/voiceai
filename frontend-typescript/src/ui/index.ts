@@ -126,6 +126,129 @@ export {
 } from './engagement-trigger.ui.js';
 export type { EngagementTriggerCallbacks, EngagementBadgeState } from './engagement-trigger.ui.js';
 
+// Notifications UI
+export {
+  getNotificationsUI,
+  initNotificationsUI,
+  showRitualReminder,
+  showStreakMilestone,
+  showPredictionReady,
+  showTeamHuddle,
+} from './notifications.ui.js';
+export type { Notification, NotificationUICallbacks } from './notifications.ui.js';
+
+// Streak Celebrations
+export {
+  getStreakCelebrationsUI,
+  celebrateStreak,
+  isStreakMilestone,
+} from './streak-celebrations.ui.js';
+export type { StreakCelebration } from './streak-celebrations.ui.js';
+
+// Team Huddles UI
+export {
+  getTeamHuddleUI,
+  initTeamHuddleUI,
+  showTeamHuddle as showTeamHuddlePanel,
+  hideTeamHuddle,
+} from './team-huddle.ui.js';
+export type { TeamHuddleData, TeamHuddleParticipant, TeamHuddleUICallbacks } from './team-huddle.ui.js';
+
+// Conversation History UI
+export {
+  getConversationHistoryUI,
+  initConversationHistoryUI,
+  showConversationHistory,
+  hideConversationHistory,
+} from './conversation-history.ui.js';
+export type { ConversationSession, ConversationHistoryData, ConversationHistoryUICallbacks } from './conversation-history.ui.js';
+
+// Analytics Dashboard UI
+export {
+  getAnalyticsDashboardUI,
+  initAnalyticsDashboardUI,
+  showAnalyticsDashboard,
+  hideAnalyticsDashboard,
+} from './analytics-dashboard.ui.js';
+export type { AnalyticsDashboardData, StreakTrend, MoodTrend, PredictionAccuracyTrend, AnalyticsDashboardUICallbacks } from './analytics-dashboard.ui.js';
+
+// Onboarding UI
+export {
+  getOnboardingUI,
+  initOnboardingUI,
+  startOnboarding,
+  startOnboardingIfNeeded,
+} from './onboarding.ui.js';
+export type { OnboardingStep, OnboardingUICallbacks } from './onboarding.ui.js';
+
+// Persona Transition UI
+export {
+  getPersonaTransitionUI,
+  initPersonaTransitionUI,
+  transitionPersona,
+} from './persona-transition.ui.js';
+export type { PersonaTransitionData, PersonaTransitionUICallbacks } from './persona-transition.ui.js';
+
+// Cognitive Insights UI
+export {
+  getCognitiveInsightsUI,
+  initCognitiveInsightsUI,
+  showCognitiveInsights,
+  hideCognitiveInsights,
+} from './cognitive-insights.ui.js';
+export type { CognitiveMemory, LearningPattern, CognitiveInsightsData, CognitiveInsightsUICallbacks } from './cognitive-insights.ui.js';
+
+// Custom Ritual Builder UI
+export {
+  getRitualBuilderUI,
+  initRitualBuilderUI,
+  showRitualBuilder,
+} from './ritual-builder.ui.js';
+export type { CustomRitual, RitualBuilderUICallbacks } from './ritual-builder.ui.js';
+
+// User Data Export UI
+export {
+  getDataExportUI,
+  initDataExportUI,
+  showDataExport,
+} from './data-export.ui.js';
+export type { ExportableData, DataExportUICallbacks } from './data-export.ui.js';
+
+// Prediction Accuracy Tracker UI
+export {
+  getPredictionTrackerUI,
+  initPredictionTrackerUI,
+  showPredictionTracker,
+} from './prediction-tracker.ui.js';
+export type { PredictionTrackerData, CategoryAccuracy, PredictionTrackerUICallbacks } from './prediction-tracker.ui.js';
+
+// Settings Menu UI
+export {
+  getSettingsMenuUI,
+  initSettingsMenuUI,
+  showSettingsMenu,
+  hideSettingsMenu,
+} from './settings-menu.ui.js';
+export type { SettingsMenuItem, SettingsMenuUICallbacks } from './settings-menu.ui.js';
+
+// Relationship Progress UI
+export {
+  relationshipProgressUI,
+  initRelationshipProgressUI,
+  showProgressPanel as showRelationshipProgress,
+  hideProgressPanel as hideRelationshipProgress,
+  toggleProgressPanel as toggleRelationshipProgress,
+} from './relationship-progress.ui.js';
+
+// Notification Settings UI
+export {
+  getNotificationSettingsUI,
+  initNotificationSettingsUI,
+  showNotificationSettings,
+  hideNotificationSettings,
+} from './notification-settings.ui.js';
+export type { NotificationSettingsUICallbacks } from './notification-settings.ui.js';
+
 // Types
 export type { ControlCallbacks } from './controls.ui.js';
 export type { ConnectionQuality } from './connection-quality.ui.js';

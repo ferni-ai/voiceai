@@ -5,6 +5,10 @@
  * unified APIs for native features like haptics, status bar, and storage.
  */
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('Platform');
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -160,7 +164,7 @@ export async function haptic(style: HapticStyle = 'light'): Promise<void> {
           await Haptics.impact({ style: 'LIGHT' });
       }
     } catch (err) {
-      console.debug('Haptics error:', err);
+      log.debug('Haptics error:', err);
     }
     return;
   }
@@ -197,7 +201,7 @@ export async function setStatusBarStyle(style: 'light' | 'dark'): Promise<void> 
     // iOS uses 'Light' for light content (dark bg), 'Dark' for dark content (light bg)
     await StatusBar.setStyle({ style: style === 'light' ? 'LIGHT' : 'DARK' });
   } catch (err) {
-    console.debug('StatusBar error:', err);
+    log.debug('StatusBar error:', err);
   }
 }
 
@@ -213,7 +217,7 @@ export async function setStatusBarColor(color: string): Promise<void> {
   try {
     await StatusBar.setBackgroundColor({ color });
   } catch (err) {
-    console.debug('StatusBar color error:', err);
+    log.debug('StatusBar color error:', err);
   }
 }
 
@@ -233,7 +237,7 @@ export async function hideSplashScreen(fadeOutMs = 200): Promise<void> {
   try {
     await SplashScreen.hide({ fadeOutDuration: fadeOutMs });
   } catch (err) {
-    console.debug('SplashScreen error:', err);
+    log.debug('SplashScreen error:', err);
   }
 }
 
@@ -283,7 +287,7 @@ export async function hideKeyboard(): Promise<void> {
   try {
     await Keyboard.hide();
   } catch (err) {
-    console.debug('Keyboard hide error:', err);
+    log.debug('Keyboard hide error:', err);
   }
 }
 
@@ -346,7 +350,7 @@ export function reportError(error: Error, context?: Record<string, unknown>): vo
     return;
   }
   // Fallback: just log
-  console.error('Error:', error, context);
+  log.error('Error:', error, context);
 }
 
 // ============================================================================
@@ -401,7 +405,7 @@ export async function storeSet(key: string, value: unknown): Promise<void> {
  */
 export async function initPlatform(): Promise<void> {
   const p = platform();
-  console.log(`🌐 Platform detected: ${p}`);
+  log.info(`🌐 Platform detected: ${p}`);
 
   if (isNative()) {
     // Set status bar to match our dark theme
@@ -416,7 +420,7 @@ export async function initPlatform(): Promise<void> {
 
     // Listen for app lifecycle changes
     onAppStateChange((isActive) => {
-      console.log(`📱 App ${isActive ? 'active' : 'background'}`);
+      log.info(`📱 App ${isActive ? 'active' : 'background'}`);
       // Could pause/resume audio, save state, etc.
     });
   }
@@ -424,7 +428,7 @@ export async function initPlatform(): Promise<void> {
   if (isElectron()) {
     // Sync with system theme
     const theme = await getSystemTheme();
-    console.log(`🖥️ Electron system theme: ${theme}`);
+    log.info(`🖥️ Electron system theme: ${theme}`);
   }
 }
 

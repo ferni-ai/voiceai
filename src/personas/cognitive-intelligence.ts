@@ -294,18 +294,20 @@ export class CognitiveIntelligenceEngine {
 
     // Adjust based on detected expertise
     switch (context.userExpertise) {
-      case 'expert':
+      case 'expert': {
         const expertPhrase =
           expertiseRecognition[Math.floor(Math.random() * expertiseRecognition.length)];
         return `[EXPERT USER] Skip basics, engage at advanced level. "${expertPhrase}"`;
+      }
 
       case 'intermediate':
         return `[INTERMEDIATE USER] Explain key concepts but don't over-simplify.`;
 
-      case 'novice':
+      case 'novice': {
         const simplePhrase =
           simplificationPhrases[Math.floor(Math.random() * simplificationPhrases.length)];
         return `[NOVICE USER] Explain thoroughly, use analogies. "${simplePhrase}"`;
+      }
 
       default:
         return '';

@@ -48,8 +48,6 @@ export { convertLegacyToBundle, generateManifest } from './converter.js';
 export {
   BundleRuntimeEngine,
   createBundleRuntime,
-  getBundleRuntime,
-  clearBundleRuntimes,
 } from './runtime.js';
 export type { BundleRuntimeState } from './runtime.js';
 

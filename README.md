@@ -363,6 +363,36 @@ npm run lint
 npm run build
 ```
 
+## Monitoring Dashboards
+
+Internal dashboards for developers/operators (not end users):
+
+| Dashboard | URL | Purpose |
+|-----------|-----|---------|
+| **Cognitive Intelligence** | `/cognitive-dashboard.html` | AI reasoning, adaptation, performance |
+| **Persistence Metrics** | `/metrics-dashboard.html` | Memory system, Firestore, sessions |
+| **Tools Analytics** | `/tools-dashboard.html` | Tool usage, optimization |
+
+```bash
+# Start backend + frontend
+npm run dev:agent &
+cd frontend-typescript && npm run dev
+
+# Access dashboards
+open http://localhost:5173/cognitive-dashboard.html
+```
+
+See [docs/DASHBOARDS.md](docs/DASHBOARDS.md) for full guide.
+
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [DASHBOARDS.md](docs/DASHBOARDS.md) | Monitoring dashboards guide |
+| [COGNITIVE-INTELLIGENCE-ARCHITECTURE.md](docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | How personas think differently |
+| [AGENT-MANAGEMENT.md](docs/AGENT-MANAGEMENT.md) | Creating and managing agents |
+| [FERNI-COMPLETE-GUIDE.md](docs/FERNI-COMPLETE-GUIDE.md) | Full Ferni implementation guide |
+
 ## References
 
 - [LiveKit Agents Documentation](https://docs.livekit.io/agents/)

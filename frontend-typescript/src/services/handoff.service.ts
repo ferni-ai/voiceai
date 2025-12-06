@@ -23,6 +23,9 @@ import { SOUND_EFFECTS } from '../config/index.js';
 import { HANDOFF_TIMING, getPostSoundPause, type TransitionStyle } from '../config/handoff-timing.js';
 import { appState, setActivePersona } from '../state/app.state.js';
 import { audioService, type SoundEffect } from './audio.service.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Handoff');
 
 // ============================================================================
 // TYPES
@@ -197,7 +200,7 @@ class HandoffService {
   async processDataMessage(message: DataMessage): Promise<boolean> {
     // FIX BUG #33: Handle state reset messages from backend
     if (isStateReset(message)) {
-      console.log('📍 State reset received from backend:', message.activePersona);
+      log.info('State reset received from backend:', message.activePersona);
       this.resetSession();
       // Update app state to match backend
       const personaId = normalizeAgentId(message.activePersona);
@@ -206,11 +209,11 @@ class HandoffService {
     }
 
     if (!isHandoffMessage(message)) {
-      console.log(`🔍 [Handoff] Message NOT recognized as handoff: type=${(message as Record<string, unknown>).type}`);
+      log.debug('Message NOT recognized as handoff:', { type: (message as Record<string, unknown>).type });
       return false;
     }
 
-    console.log(`✅ [Handoff] Processing handoff message: type=${message.type}`);
+    log.debug('Processing handoff message:', { type: message.type });
 
     // FIX BUG: Only debounce handoff_started messages (user-initiated transitions)
     // Do NOT debounce handoff_complete, handoff_failed, handoff_acknowledged, handoff_cancelled
@@ -222,12 +225,12 @@ class HandoffService {
       const now = Date.now();
       if (now - this.lastHandoffTime < this.DEBOUNCE_MS) {
         // FIX BUG #35: Notify callbacks that handoff was rate limited so UI can show feedback
-        console.debug('Handoff debounced - notifying rate limit callbacks');
+        log.debug('Handoff debounced - notifying rate limit callbacks');
         for (const callback of this.rateLimitedCallbacks) {
           try {
             callback(this.DEBOUNCE_MS - (now - this.lastHandoffTime));
           } catch (err) {
-            console.error('Rate limited callback error:', err);
+            log.error('Rate limited callback error:', err);
           }
         }
         return true;
@@ -245,11 +248,11 @@ class HandoffService {
       ? normalizeAgentId(eventWithPrevious.previousAgent)
       : appState.get('activePersona').id;
     
-    console.log(`🔄 [Handoff] type=${event.type}, agentId=${agentId}, toPersona=${toPersona}, fromPersona=${fromPersona}`);
+    log.debug('Processing event:', { type: event.type, agentId, toPersona, fromPersona });
 
     // FIX BUG #31: Detect out-of-order events using sequence numbers
     if (event.seq !== undefined && event.seq <= this.lastSeq) {
-      console.warn(`Ignoring out-of-order handoff event: seq=${event.seq}, lastSeq=${this.lastSeq}`);
+      log.warn('Ignoring out-of-order handoff event:', { seq: event.seq, lastSeq: this.lastSeq });
       return true;
     }
     if (event.seq !== undefined) {
@@ -269,14 +272,14 @@ class HandoffService {
       const success = ackEvent.success ?? true;
       const error = ackEvent.error;
       
-      console.log(`📬 Handoff acknowledged: target=${target}, success=${success}`);
+      log.info('Handoff acknowledged:', { target, success });
       
       // Notify acknowledged callbacks
       for (const callback of this.acknowledgedCallbacks) {
         try {
           callback(target, success, error);
         } catch (err) {
-          console.error('Handoff acknowledged callback error:', err);
+          log.error('Handoff acknowledged callback error:', err);
         }
       }
       return true;
@@ -296,7 +299,7 @@ class HandoffService {
         try {
           callback(toPersona, fromPersona);
         } catch (error) {
-          console.error('Handoff start callback error:', error);
+          log.error('Handoff start callback error:', error);
         }
       }
       
@@ -308,7 +311,7 @@ class HandoffService {
     } else if (isHandoffComplete(message)) {
       // FIX BUG #16: Check if we got complete before started (out of order)
       if (this._handoffPhase !== 'started') {
-        console.warn(`⚠️ Received handoff_complete but phase is '${this._handoffPhase}' - possible out-of-order delivery`);
+        log.warn('Received handoff_complete in unexpected phase - possible out-of-order delivery:', { phase: this._handoffPhase });
         // Still process it, but log the anomaly
       }
       
@@ -316,21 +319,21 @@ class HandoffService {
       this.clearHandoffTimeout();
       
       // Handoff completed - agent is ready
-      console.log(`✅ [Handoff] Completing handoff: setting isTransitioning=false (was ${this._isTransitioning})`);
+      log.debug('Completing handoff: setting isTransitioning=false', { was: this._isTransitioning });
       this._isTransitioning = false;
       this._targetPersona = null;
       this._handoffPhase = 'complete';
       // FIX BUG #38: Reset sound flag on successful completion
       this._soundPlayedForCurrentHandoff = false;
       
-      console.log(`✅ [Handoff] State after complete: isTransitioning=${this._isTransitioning}, targetPersona=${this._targetPersona}`);
+      log.debug('State after complete:', { isTransitioning: this._isTransitioning, targetPersona: this._targetPersona });
       
       // Notify complete callbacks
       for (const callback of this.completeCallbacks) {
         try {
           callback(toPersona);
         } catch (error) {
-          console.error('Handoff complete callback error:', error);
+          log.error('Handoff complete callback error:', error);
         }
       }
       return true;
@@ -341,7 +344,7 @@ class HandoffService {
       
       // Handoff failed - recover gracefully
       const errorMsg = (event as HandoffEvent & { error?: string }).error ?? 'Unknown error';
-      console.error(`❌ Handoff failed: ${errorMsg}`);
+      log.error('Handoff failed:', errorMsg);
       
       // FIX BUG #38: If we already played a handoff sound, play recovery sound
       // so the user knows the transition failed (auditory feedback)
@@ -349,7 +352,7 @@ class HandoffService {
         try {
           // Play disconnect sound as "failure" indicator
           await audioService.playSound(SOUND_EFFECTS.DISCONNECT as SoundEffect);
-          console.debug('Played recovery sound after failed handoff');
+          log.debug('Played recovery sound after failed handoff');
         } catch {
           // Non-critical - ignore if sound fails
         }
@@ -365,7 +368,7 @@ class HandoffService {
         try {
           callback(errorMsg, toPersona);
         } catch (error) {
-          console.error('Handoff failed callback error:', error);
+          log.error('Handoff failed callback error:', error);
         }
       }
       return true;
@@ -376,7 +379,7 @@ class HandoffService {
       
       // FIX BUG #32: Handoff was cancelled - reset state gracefully
       const reason = (event as HandoffEvent & { reason?: string }).reason ?? 'Cancelled by user';
-      console.log(`🚫 Handoff cancelled: ${reason}`);
+      log.info('Handoff cancelled:', reason);
       this._isTransitioning = false;
       this._targetPersona = null;
       this._handoffPhase = 'idle';
@@ -388,7 +391,7 @@ class HandoffService {
         try {
           callback(toPersona, reason);
         } catch (error) {
-          console.error('Handoff cancelled callback error:', error);
+          log.error('Handoff cancelled callback error:', error);
         }
       }
       return true;
@@ -416,7 +419,7 @@ class HandoffService {
     
     if (this._requestsInWindow >= this.MAX_REQUESTS_PER_WINDOW) {
       const remainingMs = this.RATE_LIMIT_WINDOW_MS - (now - this._windowStart);
-      console.warn(`Handoff rate limited: ${this._requestsInWindow} requests in window. Wait ${remainingMs}ms`);
+      log.warn('Handoff rate limited:', { requestsInWindow: this._requestsInWindow, waitMs: remainingMs });
       return remainingMs;
     }
     
@@ -449,8 +452,7 @@ class HandoffService {
     const previousPersona = appState.get('activePersona').id;
     
     this._handoffTimeoutId = setTimeout(() => {
-      console.warn(`⏰ Handoff timeout: no response for ${targetPersona} after ${this.HANDOFF_TIMEOUT_MS}ms`);
-      console.log(`   Restoring UI to previous persona: ${previousPersona}`);
+      log.warn('Handoff timeout - restoring UI:', { targetPersona, timeoutMs: this.HANDOFF_TIMEOUT_MS, previousPersona });
       
       // Reset transition state
       this._isTransitioning = false;
@@ -467,7 +469,7 @@ class HandoffService {
         try {
           callback('Connection timeout - please try again', targetPersona);
         } catch (err) {
-          console.error('Handoff timeout callback error:', err);
+          log.error('Handoff timeout callback error:', err);
         }
       }
     }, this.HANDOFF_TIMEOUT_MS);
@@ -496,7 +498,7 @@ class HandoffService {
         try {
           callback(remainingMs);
         } catch (err) {
-          console.error('Rate limit callback error:', err);
+          log.error('Rate limit callback error:', err);
         }
       }
       return;
@@ -521,7 +523,7 @@ class HandoffService {
    */
   cancelHandoff(): boolean {
     if (!this._isTransitioning) {
-      console.log('No handoff in progress to cancel');
+      log.debug('No handoff in progress to cancel');
       return false;
     }
     
@@ -533,14 +535,14 @@ class HandoffService {
     this._handoffPhase = 'idle';
     this._soundPlayedForCurrentHandoff = false;
     
-    console.log(`🚫 Handoff to ${cancelledTarget} cancelled by user`);
+    log.info('Handoff cancelled by user:', { target: cancelledTarget });
     
     // Notify cancelled callbacks
     for (const callback of this.cancelledCallbacks) {
       try {
         callback(cancelledTarget as PersonaId, 'User cancelled');
       } catch (err) {
-        console.error('Handoff cancelled callback error:', err);
+        log.error('Handoff cancelled callback error:', err);
       }
     }
     
@@ -557,7 +559,7 @@ class HandoffService {
         room.localParticipant.publishData(
           new TextEncoder().encode(message),
           { reliable: true }
-        ).catch((err) => console.warn('Failed to notify backend of cancellation:', err));
+        ).catch((err) => log.warn('Failed to notify backend of cancellation:', err));
       }
     });
     
@@ -645,7 +647,7 @@ class HandoffService {
       : appState.get('activePersona').id;
     const toPersona = normalizeAgentId(event.newAgent);
     
-    console.debug('🔄 Normalizing handoff:', { 
+    log.debug('Normalizing handoff:', { 
       rawNewAgent: event.newAgent, 
       normalizedTo: toPersona,
       rawPreviousAgent: eventWithPrevious.previousAgent,
@@ -753,7 +755,7 @@ class HandoffService {
       try {
         callback(enhanced);
       } catch (error) {
-        console.error('Handoff callback error:', error);
+        log.error('Handoff callback error:', error);
       }
     }
   }

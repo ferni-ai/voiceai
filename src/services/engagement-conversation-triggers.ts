@@ -255,21 +255,45 @@ function isDueToday(streak: StoredRitualStreak): boolean {
 }
 
 async function getMilestoneStreaks(
-  _store: EngagementStore,
-  _userId: string
+  store: EngagementStore,
+  userId: string
 ): Promise<Array<StoredRitualStreak & { ritualName: string }>> {
-  // Would need to iterate through all rituals
-  // For now, return empty - this would need more complex querying
-  return [];
+  const milestones: Array<StoredRitualStreak & { ritualName: string }> = [];
+  const milestoneThresholds = [7, 14, 21, 30, 60, 90, 100, 365];
+
+  // Check all known ritual types
+  for (const [ritualId, ritual] of Object.entries(PERSONA_RITUALS)) {
+    const streak = await store.getRitualStreak(userId, ritualId);
+    if (streak && milestoneThresholds.includes(streak.currentStreak)) {
+      milestones.push({
+        ...streak,
+        ritualName: ritual.name,
+      });
+    }
+  }
+
+  return milestones;
 }
 
 async function getPendingPredictions(
-  _store: EngagementStore,
-  _userId: string
+  store: EngagementStore,
+  userId: string
 ): Promise<StoredPrediction[]> {
-  // Would need to query predictions collection
-  // For now, return empty
-  return [];
+  const predictions = await store.getRecentPredictions(userId, 10);
+  
+  // Filter to predictions that need resolution (7+ days old, not completed)
+  const EXPIRY_DAYS = 7;
+  const now = Date.now();
+  const resolveThreshold = now - (EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+  
+  return predictions.filter(p => {
+    // Not completed yet
+    if (p.completedAt) return false;
+    
+    // Old enough to resolve
+    const createdAt = new Date(p.createdAt).getTime();
+    return createdAt < resolveThreshold;
+  });
 }
 
 async function hasWeatherToday(store: EngagementStore, userId: string): Promise<boolean> {

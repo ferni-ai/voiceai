@@ -14,6 +14,10 @@
  * - nostalgic: Warm, memory-heavy
  */
 
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('MoodService');
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -115,7 +119,7 @@ export function initMoodService(): void {
   appElement = document.getElementById('app');
   
   if (!appElement) {
-    console.warn('App element not found for mood service');
+    log.warn('App element not found for mood service');
   }
 }
 

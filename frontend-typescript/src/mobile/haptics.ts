@@ -3,12 +3,18 @@
  * 
  * Provides native-feeling haptic feedback for the Ferni mobile apps.
  * Uses Capacitor Haptics plugin on native, falls back gracefully on web.
+ * 
+ * NOTE: @capacitor/core and @capacitor/haptics are optional dependencies
+ * only needed when building native mobile apps. They are dynamically imported.
  */
 
+// Capacitor is an optional dependency for native mobile builds
 import { Capacitor } from '@capacitor/core';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Haptics');
 
 // Types for haptic patterns
-type ImpactStyle = 'light' | 'medium' | 'heavy';
 type NotificationType = 'success' | 'warning' | 'error';
 
 // Capacitor Haptics interface (for type safety without import)
@@ -38,15 +44,16 @@ class MobileHapticsService {
 
     if (Capacitor.isNativePlatform()) {
       try {
+        // @capacitor/haptics is an optional dependency for native mobile builds
         const { Haptics } = await import('@capacitor/haptics');
         this.haptics = Haptics as unknown as HapticsPlugin;
         this.initialized = true;
-        console.log('[Haptics] Initialized for native platform');
+        log.debug('[Haptics] Initialized for native platform');
       } catch (error) {
-        console.warn('[Haptics] Failed to initialize:', error);
+        log.warn('[Haptics] Failed to initialize:', error);
       }
     } else {
-      console.log('[Haptics] Running in web mode (no haptics)');
+      log.debug('[Haptics] Running in web mode (no haptics)');
       this.initialized = true;
     }
 

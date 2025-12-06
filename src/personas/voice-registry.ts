@@ -1,12 +1,16 @@
 /**
- * Voice Registry - Single Source of Truth for Voice IDs
+ * Voice Registry - Voice ID and Persona ID Resolution
  *
- * All voice IDs should be retrieved through this module.
- * Voice IDs are defined in bundle manifests and cached here for performance.
+ * This module handles voice IDs and persona ID normalization.
+ * Voice IDs are loaded from bundle manifests and cached for performance.
  *
- * Usage:
+ * PREFERRED IMPORT (via central module):
+ *   import { getVoiceId, getCanonicalPersonaId } from '../personas/index.js';
+ *
+ * DIRECT IMPORT (also works):
  *   import { getVoiceId, initializeVoiceRegistry } from './voice-registry.js';
  *
+ * Usage:
  *   // Initialize once at startup (loads from bundles)
  *   await initializeVoiceRegistry();
  *
@@ -130,11 +134,23 @@ export async function initializeVoiceRegistry(): Promise<void> {
  * Initialize with fallback values (used if bundle loading fails)
  */
 function initializeFallbacks(): void {
+  // Display names for fallback initialization
+  const fallbackDisplayNames: Record<string, string> = {
+    ferni: 'Ferni',
+    'jack-b': 'Ferni',
+    'peter-john': 'Peter',
+    'alex-chen': 'Alex',
+    'maya-santos': 'Maya',
+    'jordan-taylor': 'Jordan',
+    'nayan-patel': 'Nayan',
+    'generic-advisor': 'Generic Advisor',
+  };
+
   // Register fallback voices
   for (const [id, voiceId] of Object.entries(FALLBACK_VOICE_IDS)) {
     voiceRegistry.set(id, {
       voiceId,
-      personaName: id,
+      personaName: fallbackDisplayNames[id] || id,
       provider: 'cartesia',
     });
     aliasToCanonical.set(id, id);

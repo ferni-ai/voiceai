@@ -248,7 +248,7 @@ class MayaFinancialStore {
 
     // Set new timer - save after 5 seconds of no activity
     const timer = setTimeout(() => {
-      this.saveUserData(userId);
+      void this.saveUserData(userId);
       this.saveDebounceTimers.delete(userId);
     }, 5000);
 

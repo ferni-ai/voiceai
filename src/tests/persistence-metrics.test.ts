@@ -155,7 +155,9 @@ describe('PersistenceMetrics', () => {
       await withMetrics(
         'test-operation',
         async () => {
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          await new Promise((resolve) => {
+            setTimeout(resolve, 10);
+          });
           return 'result';
         },
         (durationMs) => {

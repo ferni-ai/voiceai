@@ -334,12 +334,12 @@ export function startAutoRefresh(): void {
   }
 
   // Check immediately
-  ensureTokenFresh();
+  void ensureTokenFresh();
 
   // Then check every 5 minutes
   refreshInterval = setInterval(
-    async () => {
-      await ensureTokenFresh();
+    () => {
+      void ensureTokenFresh();
     },
     5 * 60 * 1000
   );

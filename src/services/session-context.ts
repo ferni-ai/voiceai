@@ -20,7 +20,7 @@
  * @module services/session-context
  */
 
-// @ts-nocheck - Architecture draft, full implementation pending
+// TODO: Architecture draft, full implementation pending
 
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, ConversationSummary } from '../types/user-profile.js';
@@ -336,7 +336,7 @@ export function createSessionContext(
       context.currentMode = mapPhaseToMode(analysis.state.phase);
 
       // Record in history
-      services.historyTracker.addTurn('user', message);
+      services.historyTracker.addUserTurn(message);
 
       // Feed to learning engine
       services.learningEngine.processUserTurn(
@@ -358,7 +358,7 @@ export function createSessionContext(
       });
 
       // Feed to emotional arc
-      services.emotionalArc.recordTurn('user', analysis.emotion);
+      services.emotionalArc.recordEmotion(analysis.emotion, null);
 
       // Feed to response dynamics
       services.responseDynamics.recordMessage('user', message, analysis.topics.detected);
@@ -422,7 +422,7 @@ export function createSessionContext(
 
     recordAssistantTurn(message: string): void {
       // Record in history
-      services.historyTracker.addTurn('assistant', message);
+      services.historyTracker.addAssistantTurn(message);
 
       // Feed to learning engine (tracks stories told)
       services.learningEngine.processAssistantTurn(message);
@@ -450,21 +450,17 @@ export function createSessionContext(
       response: string,
       userReaction: 'positive' | 'neutral' | 'negative'
     ): void {
-      services.responseQualityTracker.recordSignal({
-        responseId: `${context.sessionId}_${context.turnCount}`,
-        responseText: response.slice(0, 200),
-        userReaction,
-        context: {
-          topic: context.lastTopic || 'general',
-          userEmotion: context.lastUserEmotion || 'neutral',
-          turnNumber: context.turnCount,
-        },
-        timestamp: new Date(),
-      });
+      services.responseQualityTracker.recordSignal(
+        response.slice(0, 200),
+        userReaction, // user reaction as response
+        context.lastTopic || 'general',
+        context.currentMode || 'conversation',
+        { primary: context.lastUserEmotion || 'neutral', intensity: 0.5 }
+      );
     },
 
     getPromptContext(): PromptContext {
-      return services.contextManager.getContext();
+      return services.contextManager.buildPromptContext();
     },
 
     getDynamicContext(): DynamicUserContext {
@@ -577,7 +573,7 @@ export function createSessionContext(
 
             // Update timestamps
             updatedProfile.updatedAt = new Date();
-            updatedProfile.lastSessionAt = new Date();
+            updatedProfile.lastContact = new Date();
             updatedProfile.totalConversations = (updatedProfile.totalConversations || 0) + 1;
             updatedProfile.totalMinutesTalked =
               (updatedProfile.totalMinutesTalked || 0) +

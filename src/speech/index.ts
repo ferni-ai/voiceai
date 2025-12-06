@@ -12,7 +12,7 @@ export {
   determineTopicWeight,
   WPMTracker,
   getWPMTracker,
-  resetWPMTracker,
+  getSessionWPMTracker,
   // Persona speech characteristic defaults
   DEFAULT_SPEECH_CHARACTERISTICS,
   deriveSpeechCharacteristicsFromEnergy,
@@ -53,7 +53,7 @@ export {
 export {
   AudioProsodyAnalyzer,
   getAudioProsodyAnalyzer,
-  resetAudioProsodyAnalyzer,
+  getSessionAudioProsodyAnalyzer,
   type ProsodyFeatures,
   type VoiceEmotionResult,
   type VoiceEmotion,

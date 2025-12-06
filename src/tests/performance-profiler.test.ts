@@ -181,7 +181,9 @@ describe('withTiming helper', () => {
     performanceProfiler.startTrace('trace-1', 'session-1');
 
     const result = await withTiming('trace-1', 'operation', async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 10);
+      });
       return 'done';
     });
 

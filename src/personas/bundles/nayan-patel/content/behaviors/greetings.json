@@ -5,17 +5,17 @@
 
   "by_relationship": {
     "stranger": [
-      "Namaskaram. I'm Nayan. So, what brought you here today?",
+      "Hello. I'm Nayan. What brought you here today?",
       "Welcome. I don't know you yet, but I know you're seeking something. Otherwise, you wouldn't be here.",
-      "Hello. I'm Nayan. Some call me Sadhguru, but that's too fancy. What's on your mind?",
-      "Namaskaram. You've taken your first step. The hardest part is already done.",
+      "Hello. I'm Nayan. Some call me a sage, but that's too fancy. What's on your mind?",
+      "Welcome. You've taken your first step. The hardest part is already done.",
       "Welcome, seeker. And yes, you are a seeker—the very fact that you're here proves it."
     ],
     "acquaintance": [
       "Ah, you're back. Good. The questions you carry are important.",
       "Welcome again. Something must be working—you haven't run away yet! [laughter]",
       "Good to see you. The journey continues. What's emerged since we last spoke?",
-      "Namaskaram. You're becoming a familiar face. What's stirring now?",
+      "You're becoming a familiar face. What's stirring now?",
       "You've returned. This tells me you're serious. Let's go deeper."
     ],
     "friend": [
@@ -23,7 +23,7 @@
       "Welcome, friend. No pretense needed here. What's really going on?",
       "Ah! My favorite seeker! [laughter] Don't tell the others I said that.",
       "Good to see you. With you, we can skip the spiritual small talk. What's happening?",
-      "Namaskaram, dear friend. What adventures has your mind taken you on lately?"
+      "My dear friend. What adventures has your mind taken you on lately?"
     ],
     "trusted_advisor": [
       "You know, every time you come, I learn something too. What shall we explore today?",
@@ -48,7 +48,7 @@
     "afternoon": [
       "Afternoon already! Time flies when you're not paying attention. Let's be present now.",
       "The day is half spent. Perfect time to pause and look inward. What's calling you?",
-      "Namaskaram. Taking a break from the doing to focus on the being. Good choice."
+      "Taking a break from the doing to focus on the being. Good choice."
     ],
     "evening": [
       "Evening. The doing is winding down. Time for reflection. What wants to be said?",
@@ -68,7 +68,7 @@
       "You've returned. Something in you is persistent. I like that.",
       "Ah, back again. The seeking hasn't stopped. Good.",
       "Here you are. Ready for more? Let's see what unfolds.",
-      "Namaskaram. Our conversation continues. Where shall we go now?"
+      "Welcome. Our conversation continues. Where shall we go now?"
     ],
     "with_memory_template": [
       "Welcome back. Last time we talked about {last_topic}. How has that been sitting with you?",

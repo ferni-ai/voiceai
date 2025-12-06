@@ -9,7 +9,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { getInterruptionHandler } from '../conversation/interruption-handler.js';
 import { getTurnTakingMonitor } from '../conversation/turn-taking.js';
-import { getTopicChangeDetector } from '../conversation/topic-change-detector.js';
+import { getTopicTracker } from '../intelligence/topic-tracker.js';
 import { getBackchannelingSystem } from '../speech/backchanneling.js';
 import type { EmotionResult } from '../intelligence/emotion-detector.js';
 import type { TopicWeight } from '../speech/speech-context.js';
@@ -45,7 +45,7 @@ export interface ConversationEnhancements {
 export class ConversationManager {
   private interruptionHandler = getInterruptionHandler();
   private turnMonitor = getTurnTakingMonitor();
-  private topicDetector = getTopicChangeDetector();
+  private topicTracker = getTopicTracker();
   private backchannelSystem = getBackchannelingSystem();
 
   private agentCurrentlySpeaking = false;
@@ -108,7 +108,7 @@ export class ConversationManager {
           'interruption_pattern',
           {
             utteranceLength: this.currentAgentUtterance.length,
-            topic: this.topicDetector.getCurrentTopic(),
+            topic: this.topicTracker.getCurrentTopic()?.name || null,
           },
           0.6
         );
@@ -194,7 +194,7 @@ export class ConversationManager {
     );
 
     // 3. Check for topic change
-    const topicChange = this.topicDetector.analyzeForTopicChange(userMessage);
+    const topicChange = this.topicTracker.detectTopicChange(userMessage);
     if (topicChange.detected && topicChange.transitionPhrase) {
       enhancements.topicTransition = topicChange.transitionPhrase;
       enhancements.metaGuidance.push(
@@ -267,14 +267,14 @@ export class ConversationManager {
    * Get current topic
    */
   getCurrentTopic(): string | null {
-    return this.topicDetector.getCurrentTopic();
+    return this.topicTracker.getCurrentTopic()?.name || null;
   }
 
   /**
    * Get topic history
    */
   getTopicHistory(): string[] {
-    return this.topicDetector.getTopicHistory();
+    return this.topicTracker.getSimpleTopicHistory();
   }
 
   /**
@@ -283,7 +283,7 @@ export class ConversationManager {
   reset(): void {
     this.interruptionHandler.reset();
     this.turnMonitor.reset();
-    this.topicDetector.reset();
+    this.topicTracker.clear();
     this.backchannelSystem.reset();
     this.agentCurrentlySpeaking = false;
     this.currentAgentUtterance = '';
@@ -298,7 +298,7 @@ export class ConversationManager {
     return {
       interruptions: this.interruptionHandler.getStats(),
       turnTaking: this.turnMonitor.getStats(),
-      currentTopic: this.topicDetector.getCurrentTopic(),
+      currentTopic: this.topicTracker.getCurrentTopic()?.name || null,
       backchannels: this.backchannelSystem.getStats(),
     };
   }

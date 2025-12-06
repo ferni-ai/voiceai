@@ -310,9 +310,7 @@ export class LocalEmbeddings extends EmbeddingProvider {
     return this._dimensions;
   }
 
-  get model(): string {
-    return 'local-hash';
-  }
+  readonly model = 'local-hash' as const;
 
   async embed(text: string): Promise<number[]> {
     // Simple hash-based embedding for development

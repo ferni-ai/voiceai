@@ -10,9 +10,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
+// All persona-related imports from central module
 import {
   CANONICAL_IDS,
-  FRONTEND_IDS,
   ALL_CANONICAL_IDS,
   ALIAS_TO_CANONICAL,
   CANONICAL_TO_FRONTEND,
@@ -24,13 +24,11 @@ import {
   isSamePersona,
   isCoach,
   isTeamMember,
-  getDisplayName,
-} from '../personas/persona-ids.js';
-import {
   getVoiceId,
   getCanonicalPersonaId,
   getFrontendPersonaId,
-} from '../personas/voice-registry.js';
+  getPersonaDisplayName as getDisplayName,
+} from '../personas/index.js';
 
 describe('Persona ID System', () => {
   describe('Canonical IDs', () => {

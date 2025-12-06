@@ -1,19 +1,10 @@
 /**
- * Memory Tools (Legacy)
+ * Memory Tools
  *
- * @deprecated Use the new registry-based memory tools instead:
+ * Memory storage and retrieval tools for AI agents.
  *
- *   // For registry-based system
+ * NOTE: For new code, prefer:
  *   import { getToolDefinitions } from './domains/memory/index.js';
- *
- *   // For building agent tools
- *   import { buildAgentTools } from './builder.js';
- *   const tools = await buildAgentTools('my-agent', {
- *     toolsOverride: { domains: ['memory'] }
- *   });
- *
- * This file is kept for backwards compatibility but will be removed in a future version.
- * The new implementation is in domains/memory/tools.ts
  */
 
 import { llm, log } from '@livekit/agents';

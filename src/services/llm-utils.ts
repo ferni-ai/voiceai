@@ -64,6 +64,7 @@ async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promi
     const { maxTokens = 500, temperature = 0.3, timeout = 5000 } = options;
 
     // Use AbortController for timeout
+    // eslint-disable-next-line no-undef
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -154,7 +155,9 @@ async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise
         max_tokens: maxTokens,
         temperature,
       }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeout)),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), timeout);
+      }),
     ]);
 
     if (!response) return null;

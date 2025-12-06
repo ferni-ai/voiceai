@@ -62,14 +62,6 @@ async function getToolDefinitions(): Promise<ToolDefinition[]> {
   return cachedHandoffTools;
 }
 
-/**
- * Synchronous getter for compatibility - returns cached or empty
- * @deprecated Use getToolDefinitions() instead
- */
-function getHandoffToolDefinitionsSync(): ToolDefinition[] {
-  return cachedHandoffTools || [];
-}
-
 // ============================================================================
 // DOMAIN METADATA
 // ============================================================================
@@ -81,10 +73,6 @@ export const definitions: ToolDefinition[] = []; // Populated async via getToolD
 // EXPORTS
 // ============================================================================
 
-export {
-  getToolDefinitions,
-  getHandoffToolDefinitionsAsync as getNewHandoffToolDefinitions,
-  getHandoffToolDefinitionsSync as getHandoffToolDefinitions,
-};
+export { getToolDefinitions };
 
 export default getToolDefinitions;

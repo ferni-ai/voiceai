@@ -23,6 +23,11 @@ import {
   getEasing,
   type PersonaAnimationProfile,
 } from '@design-system/tokens';
+// 🎭 Dynamic relationship-based subtitles for Ferni
+import { relationshipStageService } from '../services/relationship-stage.service.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('CoachUI');
 
 // ============================================================================
 // ANIMATION PROFILE ADAPTER
@@ -117,6 +122,7 @@ interface CoachElements {
 let elements: CoachElements | null = null;
 let currentPersonaId: string = 'ferni';
 let breatheAnimation: Animation | null = null;
+let subtitleUnsubscribe: (() => void) | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -140,13 +146,21 @@ export function initCoachUI(): void {
 
     // Set up state subscriptions
     setupSubscriptions();
+    
+    // 🎭 Subscribe to dynamic Ferni subtitle changes
+    subtitleUnsubscribe = relationshipStageService.onSubtitleChange((newSubtitle) => {
+      // Only update if currently showing Ferni
+      if (currentPersonaId === 'ferni' && elements?.subtitle) {
+        scrambleReveal(elements.subtitle, newSubtitle, { duration: 400 });
+      }
+    });
 
     // Initial render
     const persona = appState.get('activePersona');
     updatePersonaDisplay(persona);
 
   } catch (error) {
-    console.error('Failed to initialize Coach UI:', error);
+    log.error('Failed to initialize Coach UI:', error);
   }
 }
 
@@ -302,11 +316,16 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     setText(elements.name, persona.name);
   }
   
+  // 🎭 Get subtitle - dynamic for Ferni, static for others
+  const subtitle = persona.id === 'ferni' 
+    ? relationshipStageService.getSubtitle()
+    : persona.subtitle;
+  
   // 🔤 Scramble reveal subtitle
-  if (elements.subtitle && elements.subtitle.textContent !== persona.subtitle) {
-    scrambleReveal(elements.subtitle, persona.subtitle, { duration: 400 });
+  if (elements.subtitle && elements.subtitle.textContent !== subtitle) {
+    scrambleReveal(elements.subtitle, subtitle, { duration: 400 });
   } else {
-    setText(elements.subtitle, persona.subtitle);
+    setText(elements.subtitle, subtitle);
   }
 
   // Update theme class
@@ -480,6 +499,20 @@ export function bounce(): void {
   playReaction('bounce');
 }
 
+/**
+ * Clean up coach UI resources
+ */
+export function dispose(): void {
+  if (subtitleUnsubscribe) {
+    subtitleUnsubscribe();
+    subtitleUnsubscribe = null;
+  }
+  if (breatheAnimation) {
+    breatheAnimation.cancel();
+    breatheAnimation = null;
+  }
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -494,6 +527,7 @@ export const coachUI = {
   setDimmed,
   setEmotion,
   bounce,
+  dispose,
   // Expose for advanced usage
   playReaction,
 };

@@ -71,12 +71,121 @@ export interface VoiceVerificationResult {
 }
 
 // ============================================================================
-// THRESHOLDS
+// THRESHOLDS - Now adaptive per user based on their voice consistency
 // ============================================================================
 
-const VOICE_MATCH_THRESHOLD = 0.75; // Consider it the same person
-const VOICE_SUGGEST_THRESHOLD = 0.6; // "Your voice sounds familiar..."
-const VOICE_MISMATCH_THRESHOLD = 0.4; // Definitely not the same person
+// Default thresholds (used when no user-specific data available)
+const DEFAULT_VOICE_MATCH_THRESHOLD = 0.75; // Consider it the same person
+const DEFAULT_VOICE_SUGGEST_THRESHOLD = 0.6; // "Your voice sounds familiar..."
+const DEFAULT_VOICE_MISMATCH_THRESHOLD = 0.4; // Definitely not the same person
+
+// Adaptive threshold configuration per user
+interface AdaptiveThresholds {
+  matchThreshold: number;
+  suggestThreshold: number;
+  mismatchThreshold: number;
+  samples: number; // How many voice samples have been validated
+  accuracy: number; // Historical accuracy of voice matching for this user
+}
+
+// Cache for adaptive thresholds
+const userThresholds = new Map<string, AdaptiveThresholds>();
+
+/**
+ * Get adaptive thresholds for a user, falling back to defaults
+ */
+function getAdaptiveThresholds(userId: string, profile?: UserProfile | null): AdaptiveThresholds {
+  // Check cache
+  const cached = userThresholds.get(userId);
+  if (cached) return cached;
+
+  // Try to load from profile's customData
+  if (profile?.customData?.voiceThresholds) {
+    const stored = profile.customData.voiceThresholds as AdaptiveThresholds;
+    userThresholds.set(userId, stored);
+    return stored;
+  }
+
+  // Return defaults
+  return {
+    matchThreshold: DEFAULT_VOICE_MATCH_THRESHOLD,
+    suggestThreshold: DEFAULT_VOICE_SUGGEST_THRESHOLD,
+    mismatchThreshold: DEFAULT_VOICE_MISMATCH_THRESHOLD,
+    samples: 0,
+    accuracy: 0,
+  };
+}
+
+/**
+ * Update adaptive thresholds based on voice match feedback
+ * Call this when user confirms/denies their identity after voice match
+ *
+ * @param userId - User ID
+ * @param matchScore - The score that was calculated
+ * @param wasCorrect - Whether the match decision was correct
+ * @param profile - User profile (optional, for persistence)
+ */
+export async function recordVoiceMatchFeedback(
+  userId: string,
+  matchScore: number,
+  wasCorrect: boolean,
+  profile?: UserProfile | null
+): Promise<void> {
+  const thresholds = getAdaptiveThresholds(userId, profile);
+
+  // Update samples and accuracy
+  thresholds.samples++;
+  const totalCorrect = thresholds.accuracy * (thresholds.samples - 1) + (wasCorrect ? 1 : 0);
+  thresholds.accuracy = totalCorrect / thresholds.samples;
+
+  // Adjust thresholds based on feedback
+  // If we incorrectly matched (false positive), raise thresholds
+  // If we incorrectly rejected (false negative), lower thresholds
+  if (!wasCorrect) {
+    if (matchScore >= thresholds.matchThreshold) {
+      // False positive - raise thresholds
+      thresholds.matchThreshold = Math.min(0.95, thresholds.matchThreshold + 0.02);
+      thresholds.suggestThreshold = Math.min(0.85, thresholds.suggestThreshold + 0.02);
+      getLogger().info(
+        { userId, newMatchThreshold: thresholds.matchThreshold },
+        'Raised voice match threshold due to false positive'
+      );
+    } else {
+      // False negative - lower thresholds
+      thresholds.matchThreshold = Math.max(0.55, thresholds.matchThreshold - 0.02);
+      thresholds.suggestThreshold = Math.max(0.45, thresholds.suggestThreshold - 0.02);
+      getLogger().info(
+        { userId, newMatchThreshold: thresholds.matchThreshold },
+        'Lowered voice match threshold due to false negative'
+      );
+    }
+  }
+
+  // Update cache
+  userThresholds.set(userId, thresholds);
+
+  // Persist to profile if available
+  if (profile) {
+    try {
+      const { getDefaultStore } = await import('../memory/index.js');
+      const store = getDefaultStore();
+      if (!profile.customData) profile.customData = {};
+      profile.customData.voiceThresholds = thresholds;
+      await store.saveProfile(profile);
+      getLogger().debug(
+        { userId, samples: thresholds.samples, accuracy: thresholds.accuracy },
+        'Persisted adaptive voice thresholds'
+      );
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to persist voice thresholds');
+    }
+  }
+}
+
+// Backwards-compatible exports
+const VOICE_MATCH_THRESHOLD = DEFAULT_VOICE_MATCH_THRESHOLD;
+const VOICE_SUGGEST_THRESHOLD = DEFAULT_VOICE_SUGGEST_THRESHOLD;
+const VOICE_MISMATCH_THRESHOLD = DEFAULT_VOICE_MISMATCH_THRESHOLD;
 
 // ============================================================================
 // MAIN IDENTIFICATION
@@ -112,12 +221,12 @@ export async function identifyWithVoice(
 
   // Step 2: If we have a profile, check if voice matches
   if (deviceResult.profile && currentVoiceSketch) {
-    return await handleKnownDevice(deviceResult, currentVoiceSketch, store);
+    return handleKnownDevice(deviceResult, currentVoiceSketch, store);
   }
 
   // Step 3: If no profile but we have voice, search by voice
   if (deviceResult.isNew && currentVoiceSketch) {
-    return await handleNewDeviceWithVoice(deviceResult, currentVoiceSketch, store);
+    return handleNewDeviceWithVoice(deviceResult, currentVoiceSketch, store);
   }
 
   // Step 4: No profile, no voice yet - pure new user or returning without voice

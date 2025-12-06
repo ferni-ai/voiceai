@@ -127,7 +127,7 @@ class OptimizationAlertingService {
 
       // Check tool error rates
       checked.push('tool_error_rates');
-      const stats = await toolUsageAnalytics.getAllStats();
+      const stats = toolUsageAnalytics.getAllStats();
       for (const tool of stats) {
         if (tool.totalCalls < this.thresholds.minCalls) continue;
 

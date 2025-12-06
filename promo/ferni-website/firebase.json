@@ -9,7 +9,12 @@
         "**/node_modules/**",
         "prompts/**",
         "*.md",
-        "*.txt"
+        "QUICK-SETUP.md",
+        "SOCIAL-MEDIA-GUIDE.md",
+        "DESIGN-AUDIT.md",
+        "APPLE-DESIGN-ANALYSIS.md",
+        "ASSET-PROMPTS.md",
+        "SQUARESPACE-DEPLOYMENT.md"
       ],
       "headers": [
         {
@@ -38,10 +43,38 @@
               "value": "no-cache"
             }
           ]
+        },
+        {
+          "source": "robots.txt",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            }
+          ]
+        },
+        {
+          "source": "sitemap.xml",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/xml"
+            }
+          ]
         }
       ],
       "cleanUrls": true,
-      "trailingSlash": false
+      "trailingSlash": false,
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/404.html"
+        }
+      ]
     },
     {
       "target": "ferni-prod",
@@ -52,7 +85,12 @@
         "**/node_modules/**",
         "prompts/**",
         "*.md",
-        "*.txt"
+        "QUICK-SETUP.md",
+        "SOCIAL-MEDIA-GUIDE.md",
+        "DESIGN-AUDIT.md",
+        "APPLE-DESIGN-ANALYSIS.md",
+        "ASSET-PROMPTS.md",
+        "SQUARESPACE-DEPLOYMENT.md"
       ],
       "headers": [
         {
@@ -81,10 +119,38 @@
               "value": "no-cache"
             }
           ]
+        },
+        {
+          "source": "robots.txt",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            }
+          ]
+        },
+        {
+          "source": "sitemap.xml",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/xml"
+            }
+          ]
         }
       ],
       "cleanUrls": true,
-      "trailingSlash": false
+      "trailingSlash": false,
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/404.html"
+        }
+      ]
     }
   ]
 }

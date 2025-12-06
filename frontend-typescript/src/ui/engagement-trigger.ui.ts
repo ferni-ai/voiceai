@@ -8,6 +8,9 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('EngageTrigger');
 
 // ============================================================================
 // TYPES
@@ -42,7 +45,10 @@ class EngagementTriggerUI {
    * Initialize the trigger button
    */
   initialize(callbacks: EngagementTriggerCallbacks): void {
-    if (this.isInitialized) return;
+    if (this.isInitialized && this.container) return;
+
+    // Clean up any orphaned elements from HMR
+    document.querySelectorAll('.engagement-triggers').forEach(el => el.remove());
 
     this.callbacks = callbacks;
     this.createStyles();
@@ -57,7 +63,7 @@ class EngagementTriggerUI {
     // Find the controls row to insert next to it
     const controlsRow = document.querySelector('.controls-row');
     if (!controlsRow) {
-      console.warn('[EngagementTrigger] Controls row not found');
+      log.warn('[EngagementTrigger] Controls row not found');
       return;
     }
 
@@ -321,7 +327,7 @@ class EngagementTriggerUI {
       [data-theme="midnight"] .engagement-trigger-btn {
         background: var(--color-background-tertiary, #685852);
         border-color: var(--color-border-medium, rgba(215, 185, 145, 0.20));
-        color: var(--color-text-secondary, #e0d5c8);
+        color: var(--color-text-secondary, #f0ebe4);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
 

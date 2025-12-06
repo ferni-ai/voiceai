@@ -1,14 +1,13 @@
 /**
- * @deprecated Use domains/research/index.ts for registry-based research tools.
- * This file is being phased out to consolidate into the research domain.
+ * Stock Picking & Research Tools
  *
- * Peter John's Stock Picking Tools
- *
- * Tools specific to Peter John's "invest in what you know" philosophy:
+ * Tools for "invest in what you know" philosophy:
  * - Find stocks in everyday life
  * - P/E ratio analysis
  * - Company classification (stalwarts, fast growers, turnarounds, etc.)
  * - Ten-bagger potential analysis
+ *
+ * NOTE: For new code, use `tools/domains/research/index.ts` instead.
  */
 
 import { llm, log } from '@livekit/agents';
@@ -411,8 +410,5 @@ ${
 // ============================================================================
 // EXPORTS
 // ============================================================================
-
-// Legacy alias for backward compatibility
-export const createPeterLynchTools = createResearchTools;
 
 export default createResearchTools;

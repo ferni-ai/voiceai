@@ -26,6 +26,9 @@ import {
   getEasing,
   type PersonaAnimationProfile,
 } from '@design-system/tokens';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('AvatarFeedback');
 
 // Animation target IDs for conflict prevention
 const ANIMATION_TARGET_IDLE = 'avatar-idle';
@@ -99,23 +102,23 @@ export function initAvatarFeedback(): void {
  */
 const WHISPER_TYPE_STYLES: Record<string, { color: string; bgColor: string; borderColor: string }> = {
   success: {
-    color: 'var(--color-success, #4a6741)',
-    bgColor: 'rgba(74, 103, 65, 0.08)',
-    borderColor: 'rgba(74, 103, 65, 0.15)',
+    color: 'var(--color-semantic-success, #4a6741)',
+    bgColor: 'var(--color-semantic-success-tint, rgba(74, 103, 65, 0.08))',
+    borderColor: 'var(--color-semantic-success-border, rgba(74, 103, 65, 0.15))',
   },
   error: {
-    color: 'var(--color-error, #7a5a52)',
-    bgColor: 'rgba(122, 90, 82, 0.08)',
-    borderColor: 'rgba(122, 90, 82, 0.15)',
+    color: 'var(--color-semantic-error, #7a5a52)',
+    bgColor: 'var(--color-semantic-error-tint, rgba(122, 90, 82, 0.08))',
+    borderColor: 'var(--color-semantic-error-border, rgba(122, 90, 82, 0.15))',
   },
   warning: {
-    color: 'var(--color-warning, #b8956a)',
-    bgColor: 'rgba(184, 149, 106, 0.08)',
-    borderColor: 'rgba(184, 149, 106, 0.15)',
+    color: 'var(--color-semantic-warning, #b8956a)',
+    bgColor: 'var(--color-semantic-warning-tint, rgba(184, 149, 106, 0.08))',
+    borderColor: 'var(--color-semantic-warning-border, rgba(184, 149, 106, 0.15))',
   },
   info: {
     color: 'var(--color-text-secondary, #5C544A)',
-    bgColor: 'var(--color-bg-elevated, rgba(255,253,251,0.95))',
+    bgColor: 'var(--color-background-elevated, rgba(255,253,251,0.95))',
     borderColor: 'var(--color-border-subtle, rgba(44,37,32,0.08))',
   },
 };
@@ -159,11 +162,9 @@ function createStatusWhisperElement(): void {
     opacity: 0;
     pointer-events: none;
     z-index: 5;
-    box-shadow: 
-      0 1px 3px rgba(44,37,32,0.04),
-      0 4px 12px rgba(44,37,32,0.06);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--shadow-md, 0 1px 3px rgba(44,37,32,0.04), 0 4px 12px rgba(44,37,32,0.06));
+    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+    -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     transition: 
       opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1),
       transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -950,7 +951,7 @@ export function setupAvatarDropZone(onAgentDropped: (agentId: string) => void): 
   // Use the entire coach section as drop zone for bigger hitbox
   dropZoneElement = document.getElementById('coach');
   if (!dropZoneElement) {
-    console.warn('🍴 Drop zone element #coach not found');
+    log.warn('🍴 Drop zone element #coach not found');
     return;
   }
   
@@ -993,7 +994,7 @@ export function setupAvatarDropZone(onAgentDropped: (agentId: string) => void): 
     onAgentDropped(agentId);
   });
   
-  console.log('🍴 Avatar drop zone initialized');
+  log.debug('🍴 Avatar drop zone initialized');
 }
 
 /**

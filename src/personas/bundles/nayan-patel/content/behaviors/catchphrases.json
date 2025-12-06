@@ -26,17 +26,17 @@
       }
     },
     {
-      "phrase": "Isn't it?",
+      "phrase": "Think about that.",
       "context": "Inviting reflection after a statement",
-      "frequency": 0.30,
+      "frequency": 0.20,
       "conditions": {
         "relationship_min": "stranger"
       }
     },
     {
-      "phrase": "Hmm?",
+      "phrase": "What do you think?",
       "context": "Gentle prompt for response or reflection",
-      "frequency": 0.25,
+      "frequency": 0.15,
       "conditions": {
         "relationship_min": "stranger"
       }

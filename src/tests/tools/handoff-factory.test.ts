@@ -114,11 +114,13 @@ describe('Handoff Factory', () => {
       expect(coordinatorTools.toolsByAgentId.has('ferni')).toBe(false);
       expect(coordinatorTools.toolsByAgentId.has('peter-john')).toBe(true);
 
-      // When team member, should only have coordinator tool
+      // When team member, can hand off to any other agent (peer-to-peer)
       const memberTools = await createHandoffTools('peter-john');
       expect(memberTools.toolsByAgentId.has('ferni')).toBe(true);
-      // Team members can only hand back to coordinator
-      expect(memberTools.tools.length).toBe(1);
+      // Team members can now hand off to ANY other agent (not just coordinator)
+      // They should have tools for all other agents except themselves
+      expect(memberTools.toolsByAgentId.has('peter-john')).toBe(false); // Not themselves
+      expect(memberTools.tools.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should cache results', async () => {

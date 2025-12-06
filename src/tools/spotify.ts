@@ -189,7 +189,10 @@ async function getAccessToken(forceRefresh = false): Promise<string | null> {
 /**
  * Sleep helper for retry delays
  */
-const sleep = async (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = async (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 /**
  * Make an authenticated Spotify API request with retry logic
@@ -663,7 +666,9 @@ async function skipTrack(): Promise<string> {
     await spotifyRequest('/me/player/next', 'POST');
 
     // Wait a moment then get what's playing
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 500);
+    });
     const state = (await spotifyRequest('/me/player')) as SpotifyPlaybackState;
 
     if (state?.item) {

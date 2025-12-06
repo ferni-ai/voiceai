@@ -73,10 +73,10 @@ const BACKCHANNELS: Record<Backchannel['type'], Array<Omit<Backchannel, 'type'>>
     },
   ],
   empathy: [
-    { verbal: 'I hear you.', ssml: '<break time=\"150ms\"/>I hear you.', energy: 'low' },
+    { verbal: 'I hear you.', ssml: '<break time="150ms"/>I hear you.', energy: 'low' },
     { verbal: "That's a lot.", ssml: '<break time="200ms"/>That\'s a lot.', energy: 'low' },
-    { verbal: 'I understand.', ssml: '<break time=\"150ms\"/>I understand.', energy: 'low' },
-    { verbal: 'Of course.', ssml: '<break time=\"100ms\"/>Of course.', energy: 'low' },
+    { verbal: 'I understand.', ssml: '<break time="150ms"/>I understand.', energy: 'low' },
+    { verbal: 'Of course.', ssml: '<break time="100ms"/>Of course.', energy: 'low' },
     {
       verbal: 'That makes sense.',
       ssml: '<break time="150ms"/>That makes sense.',
@@ -92,10 +92,10 @@ const BACKCHANNELS: Record<Backchannel['type'], Array<Omit<Backchannel, 'type'>>
   curiosity: [
     { verbal: 'Oh?', ssml: 'Oh?', energy: 'medium' },
     { verbal: 'Really?', ssml: 'Really?', energy: 'high' },
-    { verbal: 'Interesting.', ssml: '<break time=\"100ms\"/>Interesting.', energy: 'medium' },
-    { verbal: 'Hmm.', ssml: '<break time=\"100ms\"/>Hmm.', energy: 'low' },
+    { verbal: 'Interesting.', ssml: '<break time="100ms"/>Interesting.', energy: 'medium' },
+    { verbal: 'Hmm.', ssml: '<break time="100ms"/>Hmm.', energy: 'low' },
     { verbal: 'Is that so?', ssml: 'Is that so?', energy: 'medium' },
-    { verbal: 'Huh.', ssml: '<break time=\"50ms\"/>Huh.', energy: 'low' },
+    { verbal: 'Huh.', ssml: '<break time="50ms"/>Huh.', energy: 'low' },
   ],
   agreement: [
     { verbal: 'Exactly.', ssml: 'Exactly.', energy: 'high' },
@@ -124,7 +124,7 @@ const PERSONA_BACKCHANNEL_STYLES: Record<
       {
         phrase: 'Stay the course.',
         type: 'agreement',
-        ssml: '<break time=\"100ms\"/>Stay the course.',
+        ssml: '<break time="100ms"/>Stay the course.',
       },
       { phrase: "That's the right mindset.", type: 'agreement', ssml: "That's the right mindset." },
       { phrase: "Now you're thinking.", type: 'encouragement', ssml: "Now you're thinking." },
@@ -134,7 +134,7 @@ const PERSONA_BACKCHANNEL_STYLES: Record<
     preferred: ['empathy', 'encouragement'],
     energyBias: 'low',
     uniquePhrases: [
-      { phrase: 'I feel that.', type: 'empathy', ssml: '<break time=\"150ms\"/>I feel that.' },
+      { phrase: 'I feel that.', type: 'empathy', ssml: '<break time="150ms"/>I feel that.' },
       {
         phrase: "That's powerful.",
         type: 'curiosity',
@@ -143,7 +143,7 @@ const PERSONA_BACKCHANNEL_STYLES: Record<
       {
         phrase: 'Sit with that.',
         type: 'encouragement',
-        ssml: '<break time=\"200ms\"/>Sit with that.',
+        ssml: '<break time="200ms"/>Sit with that.',
       },
     ],
   },
@@ -436,7 +436,7 @@ export class ActiveListeningEngine {
       understanding: [
         {
           q: 'Let me make sure I understand...',
-          ssml: '<break time=\"100ms\"/>Let me make sure I understand...',
+          ssml: '<break time="100ms"/>Let me make sure I understand...',
         },
         {
           q: "So what you're saying is...",
@@ -448,7 +448,7 @@ export class ActiveListeningEngine {
       elaboration: [
         { q: 'Can you tell me more about that?', ssml: 'Can you tell me more about that?' },
         { q: 'What do you mean by that?', ssml: 'What do you mean by that?' },
-        { q: 'How so?', ssml: '<break time=\"100ms\"/>How so?' },
+        { q: 'How so?', ssml: '<break time="100ms"/>How so?' },
         {
           q: "What's behind that thought?",
           ssml: '<break time="100ms"/>What\'s behind that thought?',
@@ -565,7 +565,7 @@ export class ActiveListeningEngine {
     }
 
     if (context?.lastTopic) {
-      return `<break time=\"200ms\"/>Still thinking about ${context.lastTopic}?`;
+      return `<break time="200ms"/>Still thinking about ${context.lastTopic}?`;
     }
 
     return prompts[Math.floor(Math.random() * prompts.length)];

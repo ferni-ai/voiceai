@@ -673,7 +673,7 @@ export function getFirestoreVectorStore(): FirestoreVectorStore {
  */
 export function resetFirestoreVectorStore(): void {
   if (defaultFirestoreVectorStore) {
-    defaultFirestoreVectorStore.close();
+    void defaultFirestoreVectorStore.close();
     defaultFirestoreVectorStore = null;
   }
 }

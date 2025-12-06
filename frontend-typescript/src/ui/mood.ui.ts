@@ -8,6 +8,10 @@
  * - Weather-inspired backgrounds (optional)
  */
 
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('MoodUI');
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -423,7 +427,7 @@ export function setPersonaMood(
 
   // Log for debugging
   if (previousMood !== mood) {
-    console.log(`🎭 Persona mood: ${previousMood || 'none'} → ${mood} (energy: ${(energyLevel * 100).toFixed(0)}%)`);
+    log.debug(`🎭 Persona mood: ${previousMood || 'none'} → ${mood} (energy: ${(energyLevel * 100).toFixed(0)}%)`);
   }
 }
 

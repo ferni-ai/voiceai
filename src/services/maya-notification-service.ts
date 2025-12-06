@@ -17,8 +17,7 @@
 import { getLogger } from '../utils/safe-logger.js';
 
 import { EventEmitter } from 'events';
-import type { ScheduledReminder } from './reminder-scheduler.js';
-import { createReminder } from './reminder-scheduler.js';
+import { createReminder, type ScheduledReminder } from './reminder-scheduler.js';
 import { getProductivityStore } from './productivity-store.js';
 import { getMayaGamificationStore } from './maya-gamification-store.js';
 import { getDefaultStore } from '../memory/index.js';
@@ -433,13 +432,13 @@ class MayaNotificationService extends EventEmitter {
     // Check every hour for proactive opportunities
     this.checkInterval = setInterval(
       () => {
-        this.runProactiveChecks();
+        void this.runProactiveChecks();
       },
       60 * 60 * 1000
     ); // 1 hour
 
     // Also run immediately
-    this.runProactiveChecks();
+    void this.runProactiveChecks();
   }
 
   private async runProactiveChecks(): Promise<void> {

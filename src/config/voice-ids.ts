@@ -1,33 +1,25 @@
 /**
- * Voice IDs - SINGLE SOURCE OF TRUTH
+ * Voice IDs - Internal Constants
  *
- * ⚠️ Voice IDs are now read from bundle manifests!
+ * This file provides voice ID constants and lookup functions.
+ * Used internally by voice-registry.ts.
  *
- * To change a voice ID:
- * 1. Update the voice_id in the bundle's persona.manifest.json
- * 2. That's it. No other files need to change.
- *
- * The VOICE_IDS object below is kept for backwards compatibility
- * with code that hasn't been migrated to the unified registry yet.
+ * NOTE: For new code, use the voice-registry API:
+ *   import { getVoiceId } from '../personas/voice-registry.js';
  *
  * Environment variables can OVERRIDE these defaults:
  *   JACK_B_VOICE_ID, PETER_JOHN_VOICE_ID, NAYAN_VOICE_ID, etc.
  *
  * To find voice IDs: https://play.cartesia.ai/library
- *
- * @deprecated Use AgentRegistry.getVoiceId() instead
  */
 
 // =============================================================================
-// CANONICAL VOICE IDS - DEPRECATED (use bundle manifests instead)
+// CANONICAL VOICE IDS
 // =============================================================================
 
 /**
- * @deprecated Voice IDs are now stored in bundle manifests.
- * Use `AgentRegistry.getVoiceId(personaId)` instead.
- *
- * These are kept for backwards compatibility but should not be updated.
- * Update the persona.manifest.json in the bundle instead.
+ * Voice ID constants - used as fallback/defaults.
+ * Bundle manifests are the primary source of truth.
  */
 export const VOICE_IDS = {
   // Ferni (life coach) - Dec 2024
@@ -59,9 +51,7 @@ export const VOICE_IDS = {
 /**
  * Map canonical persona IDs to their voice IDs.
  * Environment variables can override these.
- *
- * @deprecated Use AgentRegistry.getVoiceId() instead for async bundle-based lookup.
- * This function is kept for backwards compatibility with synchronous code.
+ * Used internally by voice-registry.ts.
  */
 export function getVoiceIdForPersona(personaId: string): string {
   const normalized = personaId.toLowerCase();

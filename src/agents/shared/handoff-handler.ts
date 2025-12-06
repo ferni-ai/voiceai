@@ -35,7 +35,6 @@ import { getHandoffBanter } from '../../services/team-engagement.js';
 // ============================================================================
 
 interface CachedModules {
-  PersonaRegistry: typeof import('../../personas/PersonaRegistry.js').PersonaRegistry | null;
   getVoiceManager: typeof import('../../speech/voice-manager.js').getVoiceManager | null;
   getMusicPlayer: typeof import('../../audio/index.js').getMusicPlayer | null;
   getPersonaAsync: typeof import('../../personas/index.js').getPersonaAsync | null;
@@ -46,24 +45,12 @@ interface CachedModules {
 }
 
 const cachedModules: CachedModules = {
-  PersonaRegistry: null,
   getVoiceManager: null,
   getMusicPlayer: null,
   getPersonaAsync: null,
   loadBundleById: null,
   createBundleRuntime: null,
 };
-
-/**
- * Get PersonaRegistry with caching
- */
-async function getPersonaRegistryCached() {
-  if (!cachedModules.PersonaRegistry) {
-    const mod = await import('../../personas/PersonaRegistry.js');
-    cachedModules.PersonaRegistry = mod.PersonaRegistry;
-  }
-  return cachedModules.PersonaRegistry;
-}
 
 /**
  * Get VoiceManager with caching
@@ -137,6 +124,23 @@ export interface HandoffPersona {
   isCoach: boolean;
   handoffTool: string;
   aliases: readonly string[];
+}
+
+/**
+ * Convert PersonaConfig to HandoffPersona format
+ * Adapts the new persona system to the handoff handler's expected format
+ */
+function toHandoffPersona(persona: import('../../personas/types.js').PersonaConfig): HandoffPersona {
+  const isCoach = persona.id === 'ferni';
+  return {
+    id: persona.id,
+    name: persona.name,
+    voiceId: persona.voice.voiceId,
+    role: isCoach ? 'coach' : 'team',
+    isCoach,
+    handoffTool: `handoffTo${persona.name.split(' ')[0]}`,
+    aliases: [persona.id],
+  };
 }
 
 /**
@@ -279,9 +283,6 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
     let targetPersonaId = 'unknown';
 
     try {
-      // FIX BUG #50: Use cached PersonaRegistry to avoid redundant lookups
-      const PersonaRegistry = await getPersonaRegistryCached();
-
       // ============================================================
       // NORMALIZE: Convert any format to Persona object
       // ============================================================
@@ -298,15 +299,16 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         previousAgentId = (data as NewHandoffData).previousAgentId;
         targetPersonaId = persona.id;
       } else {
-        // Legacy format - resolve via PersonaRegistry
+        // Legacy format - resolve via persona lookup
         const legacy = data as LegacyHandoffData;
         targetPersonaId = legacy.newAgent || 'unknown';
-        persona = PersonaRegistry.get(legacy.newAgent);
+        const personaConfig = await getPersonaAsyncCached(legacy.newAgent);
 
         // FIX BUG: Check if persona was found
-        if (!persona) {
-          throw new Error(`PersonaRegistry.get returned null for: ${legacy.newAgent}`);
+        if (!personaConfig) {
+          throw new Error(`Persona not found for: ${legacy.newAgent}`);
         }
+        persona = toHandoffPersona(personaConfig);
 
         greeting = legacy.greeting;
         playSound = legacy.playSound;
@@ -315,12 +317,13 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
 
       // Get previous persona for logging
       const prevId = previousAgentId || getCurrentAgent();
-      const prevPersona: HandoffPersona = PersonaRegistry.get(prevId);
+      const prevPersonaConfig = await getPersonaAsyncCached(prevId);
 
       // FIX BUG: Check if previous persona was found
-      if (!prevPersona) {
-        throw new Error(`PersonaRegistry.get returned null for previous persona: ${prevId}`);
+      if (!prevPersonaConfig) {
+        throw new Error(`Persona not found for previous persona: ${prevId}`);
       }
+      const prevPersona: HandoffPersona = toHandoffPersona(prevPersonaConfig);
 
       diag.entry(`🔄 HANDOFF: ${prevPersona.name} → ${persona.name}`);
 

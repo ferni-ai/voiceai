@@ -800,7 +800,7 @@ class BackgroundTaskService extends EventEmitter {
     const timer = setTimeout(() => {
       const userData = this.data.get(userId);
       if (userData) {
-        this.persistUserData(userId, userData);
+        void this.persistUserData(userId, userData);
       }
       this.persistTimers.delete(userId);
     }, 5000);
@@ -890,7 +890,7 @@ class BackgroundTaskService extends EventEmitter {
     };
 
     // Process queue every 10 seconds
-    setInterval(processQueue, 10000);
+    setInterval(() => { void processQueue(); }, 10000);
   }
 
   private startScheduleChecker(): void {
@@ -931,7 +931,7 @@ class BackgroundTaskService extends EventEmitter {
       }
     };
 
-    this.checkInterval = setInterval(checkSchedules, 60000); // Every minute
+    this.checkInterval = setInterval(() => { void checkSchedules(); }, 60000); // Every minute
   }
 
   private calculateNextRun(schedule: string, timezone: string): Date {
@@ -942,10 +942,11 @@ class BackgroundTaskService extends EventEmitter {
         return new Date(now.getTime() + 24 * 60 * 60 * 1000);
       case 'weekly':
         return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      case 'monthly':
+      case 'monthly': {
         const next = new Date(now);
         next.setMonth(next.getMonth() + 1);
         return next;
+      }
       default:
         return new Date(now.getTime() + 24 * 60 * 60 * 1000);
     }

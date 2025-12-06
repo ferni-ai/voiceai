@@ -5,8 +5,7 @@
  * for emotion-aware, context-aware, and adaptive task execution.
  */
 
-import type { llm, voice } from '@livekit/agents';
-import { log } from '@livekit/agents';
+import { type llm, type voice, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { AgentTask, TaskRegressionError } from './agent-task.js';

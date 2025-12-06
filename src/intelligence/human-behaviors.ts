@@ -12,9 +12,9 @@
  */
 
 // Use a safe logger that works in both runtime and test environments
-const getLogger = () => {
+const getLogger = async () => {
   try {
-    const { log } = require('@livekit/agents');
+    const { log } = await import('@livekit/agents');
     return log();
   } catch {
     return { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} };

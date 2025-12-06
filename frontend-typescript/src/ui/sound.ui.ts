@@ -8,6 +8,10 @@
  * - Achievements
  */
 
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('SoundUI');
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -191,7 +195,7 @@ export function initSoundUI(): void {
       isInitialized = true;
       
     } catch (e) {
-      console.warn('Audio not supported');
+      log.warn('Audio not supported');
     }
     
     // Remove listeners after init

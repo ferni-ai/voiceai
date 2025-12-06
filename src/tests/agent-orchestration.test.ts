@@ -13,8 +13,7 @@ import {
   initializeServices,
   type SessionServices,
 } from '../services/index.js';
-import type { ContextManager } from '../context/context-manager.js';
-import { getContextManager, removeContextManager } from '../context/context-manager.js';
+import { getContextManager, removeContextManager, type ContextManager } from '../context/context-manager.js';
 import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 import { getEmotionDetector } from '../intelligence/emotion-detector.js';
 import { getTopicTracker } from '../intelligence/topic-tracker.js';

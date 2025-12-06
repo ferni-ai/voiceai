@@ -449,7 +449,9 @@ describe('AutoToolOptimizer', () => {
       optimizer.start();
 
       // Wait a bit
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100);
+      });
 
       optimizer.stop();
 

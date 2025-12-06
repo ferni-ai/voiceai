@@ -209,10 +209,125 @@ function parseNaturalDate(expression: string): Date | null {
 }
 
 // ============================================================================
-// MOCK SEARCH FUNCTIONS (Would use real APIs in production)
+// API CONFIGURATION
 // ============================================================================
 
-async function searchFlights(params: {
+// Amadeus API credentials (for real flight search)
+// Sign up at: https://developers.amadeus.com/
+const AMADEUS_API_KEY = process.env.AMADEUS_API_KEY || '';
+const AMADEUS_API_SECRET = process.env.AMADEUS_API_SECRET || '';
+
+// Booking.com Affiliate API (for real hotel search)
+// Sign up at: https://developers.booking.com/
+const BOOKING_AFFILIATE_ID = process.env.BOOKING_AFFILIATE_ID || '';
+
+/**
+ * Check if real travel APIs are configured
+ */
+export function isTravelApiConfigured(): { flights: boolean; hotels: boolean } {
+  return {
+    flights: !!(AMADEUS_API_KEY && AMADEUS_API_SECRET),
+    hotels: !!BOOKING_AFFILIATE_ID,
+  };
+}
+
+// ============================================================================
+// FLIGHT SEARCH (Real API with fallback to mock)
+// ============================================================================
+
+async function searchFlightsReal(params: {
+  origin: string;
+  destination: string;
+  departureDate: Date;
+  returnDate?: Date;
+  passengers: number;
+  cabinClass: CabinClass;
+}): Promise<FlightResult[]> {
+  // Use Amadeus API if configured
+  if (AMADEUS_API_KEY && AMADEUS_API_SECRET) {
+    try {
+      // Get OAuth token
+      const tokenResponse = await fetch('https://api.amadeus.com/v1/security/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: AMADEUS_API_KEY,
+          client_secret: AMADEUS_API_SECRET,
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get Amadeus token');
+      }
+
+      const tokenData = (await tokenResponse.json()) as { access_token: string };
+
+      // Search flights
+      const searchParams = new URLSearchParams({
+        originLocationCode: params.origin,
+        destinationLocationCode: params.destination,
+        departureDate: params.departureDate.toISOString().split('T')[0],
+        adults: String(params.passengers),
+        travelClass: params.cabinClass.toUpperCase().replace('_', ' '),
+        max: '10',
+      });
+
+      if (params.returnDate) {
+        searchParams.append('returnDate', params.returnDate.toISOString().split('T')[0]);
+      }
+
+      const searchResponse = await fetch(
+        `https://api.amadeus.com/v2/shopping/flight-offers?${searchParams}`,
+        {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          signal: AbortSignal.timeout(15000),
+        }
+      );
+
+      if (searchResponse.ok) {
+        const data = (await searchResponse.json()) as {
+          data: Array<{
+            id: string;
+            price: { total: string };
+            itineraries: Array<{
+              duration: string;
+              segments: Array<{
+                departure: { at: string };
+                arrival: { at: string };
+                operating?: { carrierCode: string };
+                carrierCode: string;
+              }>;
+            }>;
+          }>;
+        };
+
+        return (data.data || []).map((offer) => ({
+          id: offer.id,
+          airline: offer.itineraries[0]?.segments[0]?.carrierCode || 'Unknown',
+          price: parseFloat(offer.price.total),
+          departureTime: new Date(
+            offer.itineraries[0]?.segments[0]?.departure.at
+          ).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          arrivalTime: new Date(
+            offer.itineraries[0]?.segments[offer.itineraries[0].segments.length - 1]?.arrival.at
+          ).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          duration: offer.itineraries[0]?.duration.replace('PT', '').toLowerCase() || 'N/A',
+          stops: (offer.itineraries[0]?.segments.length || 1) - 1,
+          bookingUrl: `https://www.google.com/flights?q=${params.origin}+to+${params.destination}`,
+        }));
+      }
+    } catch (error) {
+      getLogger().warn({ error }, 'Amadeus API failed, falling back to mock');
+    }
+  }
+
+  // Fallback to mock
+  return searchFlightsMock(params);
+}
+
+async function searchFlightsMock(params: {
   origin: string;
   destination: string;
   departureDate: Date;
@@ -221,11 +336,13 @@ async function searchFlights(params: {
   cabinClass: CabinClass;
 }): Promise<FlightResult[]> {
   // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 800);
+  });
 
   getLogger().info(
     { origin: params.origin, destination: params.destination },
-    '✈️ Searching flights (mock)'
+    '✈️ Searching flights (mock - set AMADEUS_API_KEY for real results)'
   );
 
   // Generate mock results based on inputs
@@ -254,6 +371,18 @@ async function searchFlights(params: {
   return results.sort((a, b) => a.price - b.price);
 }
 
+// Main search function that tries real API first
+async function searchFlights(params: {
+  origin: string;
+  destination: string;
+  departureDate: Date;
+  returnDate?: Date;
+  passengers: number;
+  cabinClass: CabinClass;
+}): Promise<FlightResult[]> {
+  return searchFlightsReal(params);
+}
+
 async function searchHotels(params: {
   destination: string;
   checkIn: Date;
@@ -262,7 +391,9 @@ async function searchHotels(params: {
   rooms: number;
 }): Promise<HotelResult[]> {
   // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 800);
+  });
 
   getLogger().info({ destination: params.destination }, '🏨 Searching hotels (mock)');
 

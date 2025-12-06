@@ -17,10 +17,11 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
-  --color-text-primary: #faf6f0;
-  --color-text-secondary: #e0d5c8;
-  --color-text-muted: #d0c4b4;
-  --color-text-dimmed: #a89c8c;
+  /* Text colors - WCAG AA compliant (4.5:1+ on #70605a background) */
+  --color-text-primary: #faf6f0;    /* 5.56:1 contrast */
+  --color-text-secondary: #f0ebe4;  /* 5.05:1 contrast */
+  --color-text-muted: #e8e2da;      /* 4.65:1 contrast - WCAG AA compliant */
+  --color-text-dimmed: #ddd6cc;     /* 4.15:1 contrast - for large text only */
   --color-text-inverse: #2a2420;
   --color-border-subtle: rgba(215, 185, 145, 0.12);
   --color-border-medium: rgba(215, 185, 145, 0.20);
@@ -54,6 +55,7 @@
    ======================================== */
 /* Theme: Cedar Night */
 /* Warm cedar wood tones - Japanese zen garden under moonlight, open and welcoming */
+/* Updated 2025-12-05: WCAG AA compliant text contrast (4.5:1+ on #70605a) */
 [data-theme="midnight"] {
   color-scheme: dark;
   --color-background-primary: #584840;
@@ -62,10 +64,11 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
-  --color-text-primary: #faf6f0;
-  --color-text-secondary: #e0d5c8;
-  --color-text-muted: #d0c4b4;
-  --color-text-dimmed: #a89c8c;
+  /* Text colors - WCAG AA compliant (4.5:1+ on #70605a background) */
+  --color-text-primary: #faf6f0;    /* 5.56:1 contrast */
+  --color-text-secondary: #f0ebe4;  /* 5.05:1 contrast */
+  --color-text-muted: #e8e2da;      /* 4.65:1 contrast - WCAG AA compliant */
+  --color-text-dimmed: #ddd6cc;     /* 4.15:1 contrast - for large text only */
   --color-text-inverse: #2a2420;
   --color-border-subtle: rgba(215, 185, 145, 0.12);
   --color-border-medium: rgba(215, 185, 145, 0.20);
@@ -389,6 +392,12 @@
   --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.3), 0 12px 24px rgba(0, 0, 0, 0.2);
   --shadow-glow: 0 0 20px var(--color-accent-glow);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  
+  /* Button/Interactive Element Shadows - Midnight Theme */
+  --shadow-button-rest: inset 0 1px 2px rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.15);
+  --shadow-button-hover: inset 0 1px 2px rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-button-pressed: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-button-focus: 0 0 0 2px var(--persona-primary), 0 0 0 4px var(--persona-tint);
 }
 
 /* Shadows - Zen Theme */
@@ -401,6 +410,12 @@
   --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.06);
   --shadow-glow: 0 0 20px var(--color-accent-glow);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+  
+  /* Button/Interactive Element Shadows - Zen Theme */
+  --shadow-button-rest: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 1px 3px rgba(44, 37, 32, 0.04);
+  --shadow-button-hover: inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 2px 6px rgba(44, 37, 32, 0.08);
+  --shadow-button-pressed: inset 0 2px 4px rgba(44, 37, 32, 0.08);
+  --shadow-button-focus: 0 0 0 2px var(--persona-primary), 0 0 0 4px var(--persona-tint);
 }
 
 /* ========================================
@@ -435,6 +450,39 @@
   --glass-border-medium: 1px solid rgba(0, 0, 0, 0.12);
   --glass-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
   --glass-outer-glow: 0 0 40px -10px var(--persona-glow);
+}
+
+/* ========================================
+   BACKDROP & OVERLAY SYSTEM
+   Centralized modal/panel backdrop styles
+   ======================================== */
+
+/* Backdrop - Midnight Theme (Cedar Night) */
+[data-theme="midnight"] {
+  /* Modal backdrop intensities */
+  --backdrop-light: rgba(44, 37, 32, 0.3);
+  --backdrop-medium: rgba(44, 37, 32, 0.5);
+  --backdrop-heavy: rgba(44, 37, 32, 0.7);
+  
+  /* Menu/Navigation backdrop (lighter to show hierarchy) */
+  --backdrop-menu: rgba(0, 0, 0, 0.5);
+  
+  /* Full-page overlay (loading, transitions) */
+  --backdrop-page: rgba(88, 72, 64, 0.95);
+}
+
+/* Backdrop - Zen Theme (Light) */
+[data-theme="zen"] {
+  /* Modal backdrop intensities */
+  --backdrop-light: rgba(44, 37, 32, 0.2);
+  --backdrop-medium: rgba(44, 37, 32, 0.4);
+  --backdrop-heavy: rgba(44, 37, 32, 0.6);
+  
+  /* Menu/Navigation backdrop */
+  --backdrop-menu: rgba(44, 37, 32, 0.3);
+  
+  /* Full-page overlay (loading, transitions) */
+  --backdrop-page: rgba(250, 248, 245, 0.95);
 }
 
 /* ========================================

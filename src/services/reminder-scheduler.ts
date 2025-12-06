@@ -10,11 +10,10 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 
-import type { FirestoreStore } from '../memory/firestore-store.js';
-import { getFirestoreStore } from '../memory/firestore-store.js';
+import { getFirestoreStore, type FirestoreStore } from '../memory/firestore-store.js';
 import { InMemoryStore } from '../memory/in-memory-store.js';
 import type { MemoryStore } from '../memory/store.js';
-import { sendEmail, sendSMS, sendReminder as sendReminderSMS } from '../tools/communication.js';
+import { sendEmail, sendSMS, sendReminder as sendReminderSMS } from './communication-service.js';
 
 // Logger instance for use throughout this module
 const logger = getLogger();
@@ -375,16 +374,18 @@ export function startReminderScheduler(intervalMs = 60000): void {
 
   getLogger().info({ intervalMs }, '🕐 Starting reminder scheduler');
 
-  schedulerInterval = setInterval(async () => {
-    const dueReminders = getDueReminders();
+  schedulerInterval = setInterval(() => {
+    void (async () => {
+      const dueReminders = getDueReminders();
 
-    if (dueReminders.length > 0) {
-      getLogger().info({ count: dueReminders.length }, '📬 Processing due reminders');
+      if (dueReminders.length > 0) {
+        getLogger().info({ count: dueReminders.length }, '📬 Processing due reminders');
 
-      for (const reminder of dueReminders) {
-        await deliverReminder(reminder);
+        for (const reminder of dueReminders) {
+          await deliverReminder(reminder);
+        }
       }
-    }
+    })();
   }, intervalMs);
 }
 

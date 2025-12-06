@@ -23,6 +23,9 @@ import {
 } from '../services/marketplace.service.js';
 import { soundUI } from './sound.ui.js';
 import { refreshMarketplaceAgents } from './team.ui.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('Marketplace');
 
 // ============================================================================
 // PERSONA COLORS - Single source of truth from design system
@@ -274,7 +277,7 @@ async function refreshContent(): Promise<void> {
       await renderInstalledTab();
     }
   } catch (err) {
-    console.error('❌ Marketplace: Failed to refresh content:', err);
+    log.error('❌ Marketplace: Failed to refresh content:', err);
     showEmpty('Failed to load agents');
   } finally {
     setLoading(false);
@@ -623,9 +626,9 @@ async function handleAgentAction(agentId: string, isUninstall: boolean): Promise
     await refreshContent();
     await refreshMarketplaceAgents();
     
-    console.log(`✅ ${isUninstall ? 'Uninstalled' : 'Installed'} agent: ${agentId}`);
+    log.info(`✅ ${isUninstall ? 'Uninstalled' : 'Installed'} agent: ${agentId}`);
   } catch (err) {
-    console.error(`❌ Marketplace: Failed to ${isUninstall ? 'uninstall' : 'install'} agent:`, err);
+    log.error(`❌ Marketplace: Failed to ${isUninstall ? 'uninstall' : 'install'} agent:`, err);
   }
 }
 
@@ -697,9 +700,9 @@ function getMarketplaceStyles(): string {
     .marketplace-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      background: var(--backdrop-heavy, rgba(0, 0, 0, 0.6));
+      backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
     }
 
     .marketplace-container {

@@ -504,7 +504,4 @@ function generateCelebration(profile: GamificationProfile): string {
 // EXPORTS
 // ============================================================================
 
-// Legacy alias for backward compatibility
-export const createMayaGamificationToolsV2 = createGamificationToolsV2;
-
 export default createGamificationToolsV2;

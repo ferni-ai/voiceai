@@ -846,12 +846,13 @@ async function main(): Promise<void> {
       await generateExperimentsReport();
       break;
 
-    case 'route':
+    case 'route': {
       const query = args.slice(1).join(' ') || 'I need help managing my schedule and tasks';
       await demonstrateSemanticRouting(query);
       break;
+    }
 
-    case 'activate':
+    case 'activate': {
       const activateId = args[1];
       if (!activateId) {
         console.log(color('\n❌ Please specify an experiment ID.', 'red'));
@@ -861,8 +862,9 @@ async function main(): Promise<void> {
         await activateExperiment(activateId);
       }
       break;
+    }
 
-    case 'deactivate':
+    case 'deactivate': {
       const deactivateId = args[1];
       if (!deactivateId) {
         console.log(color('\n❌ Please specify an experiment ID.', 'red'));
@@ -871,6 +873,7 @@ async function main(): Promise<void> {
         await deactivateExperiment(deactivateId);
       }
       break;
+    }
 
     case 'benchmark':
       await runBenchmark();
@@ -885,7 +888,7 @@ async function main(): Promise<void> {
       await showPatterns();
       break;
 
-    case 'optimizer':
+    case 'optimizer': {
       const optimizerCmd = args[1];
       if (optimizerCmd === 'start') {
         autoOptimizer.start();
@@ -910,6 +913,7 @@ async function main(): Promise<void> {
         await showOptimizerStatus();
       }
       break;
+    }
 
     case 'help':
     case '--help':

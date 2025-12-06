@@ -1,0 +1,649 @@
+/**
+ * Team Huddle UI
+ *
+ * A brand-aligned panel for multi-persona check-ins.
+ * Shows when the team wants to discuss the user's progress together.
+ *
+ * DESIGN PRINCIPLES:
+ *   - Zen aesthetic: Calm, supportive team energy
+ *   - Golden ratio spacing throughout
+ *   - Pixar-style staggered animations for participant reveals
+ *   - Each persona has their signature color accent
+ */
+
+import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface TeamHuddleParticipant {
+  personaId: string;
+  name: string;
+  initials: string;
+  comment: string;
+  avatarColor: string;
+}
+
+export interface TeamHuddleData {
+  id: string;
+  title: string;
+  intro: string;
+  participants: TeamHuddleParticipant[];
+  outro: string;
+  scheduledAt: string;
+  type: 'weekly' | 'milestone' | 'special';
+}
+
+export interface TeamHuddleUICallbacks {
+  onClose?: () => void;
+  onParticipantClick?: (personaId: string) => void;
+}
+
+// ============================================================================
+// PERSONA COLORS (from design system)
+// ============================================================================
+
+const PERSONA_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  ferni: {
+    bg: 'var(--persona-ferni-bg, #3d5a35)',
+    text: 'var(--color-text-inverse, #faf8f5)',
+    border: 'var(--persona-ferni-border, #4a6741)',
+  },
+  'alex-chen': {
+    bg: 'var(--persona-alex-bg, #4a6b8a)',
+    text: 'var(--color-text-inverse, #faf8f5)',
+    border: 'var(--persona-alex-border, #5a7b9a)',
+  },
+  'maya-santos': {
+    bg: 'var(--persona-maya-bg, #8b6b5a)',
+    text: 'var(--color-text-inverse, #faf8f5)',
+    border: 'var(--persona-maya-border, #9b7b6a)',
+  },
+  'jordan-taylor': {
+    bg: 'var(--persona-jordan-bg, #7a5a5a)',
+    text: 'var(--color-text-inverse, #faf8f5)',
+    border: 'var(--persona-jordan-border, #8a6a6a)',
+  },
+  'nayan-patel': {
+    bg: 'var(--persona-nayan-bg, #8a7a5a)',
+    text: 'var(--color-text-inverse, #faf8f5)',
+    border: 'var(--persona-nayan-border, #9a8a6a)',
+  },
+  'peter-john': {
+    bg: 'var(--persona-peter-bg, #4a7a7a)',
+    text: 'var(--color-text-inverse, #faf8f5)',
+    border: 'var(--persona-peter-border, #5a8a8a)',
+  },
+};
+
+// ============================================================================
+// TEAM HUDDLE UI CLASS
+// ============================================================================
+
+class TeamHuddleUI {
+  private panel: HTMLElement | null = null;
+  private wrapper: HTMLElement | null = null;
+  private callbacks: TeamHuddleUICallbacks = {};
+  private styleElement: HTMLStyleElement | null = null;
+  private isVisible = false;
+  private currentData: TeamHuddleData | null = null;
+
+  /**
+   * Initialize the team huddle panel
+   */
+  initialize(): void {
+    if (this.panel) return;
+
+    // HMR protection - clean up orphaned elements
+    document.querySelectorAll('.team-huddle').forEach(el => el.remove());
+
+    this.injectStyles();
+    this.createPanel();
+  }
+
+  /**
+   * Set callbacks
+   */
+  setCallbacks(callbacks: TeamHuddleUICallbacks): void {
+    this.callbacks = callbacks;
+  }
+
+  /**
+   * Show team huddle with data
+   */
+  show(data: TeamHuddleData): void {
+    this.initialize();
+    if (!this.panel || !this.wrapper) return;
+
+    this.currentData = data;
+    this.renderContent(data);
+
+    // Show panel
+    this.panel.classList.add('team-huddle--visible');
+    this.isVisible = true;
+
+    // Animate participants in with stagger
+    if (!prefersReducedMotion()) {
+      this.animateParticipantsIn();
+    }
+  }
+
+  /**
+   * Hide the panel
+   */
+  hide(): void {
+    if (!this.panel) return;
+
+    this.panel.classList.remove('team-huddle--visible');
+    this.isVisible = false;
+    this.callbacks.onClose?.();
+  }
+
+  /**
+   * Toggle visibility
+   */
+  toggle(): void {
+    if (this.isVisible) {
+      this.hide();
+    } else if (this.currentData) {
+      this.show(this.currentData);
+    }
+  }
+
+  /**
+   * Check if visible
+   */
+  getIsVisible(): boolean {
+    return this.isVisible;
+  }
+
+  // ============================================================================
+  // PRIVATE METHODS
+  // ============================================================================
+
+  private createPanel(): void {
+    this.panel = document.createElement('div');
+    this.panel.className = 'team-huddle';
+    this.panel.setAttribute('role', 'dialog');
+    this.panel.setAttribute('aria-label', 'Team Huddle');
+    this.panel.setAttribute('aria-modal', 'true');
+
+    this.wrapper = document.createElement('div');
+    this.wrapper.className = 'team-huddle__wrapper';
+    this.panel.appendChild(this.wrapper);
+
+    // Close on backdrop click
+    this.panel.addEventListener('click', (e) => {
+      if (e.target === this.panel) {
+        this.hide();
+      }
+    });
+
+    // Close on escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isVisible) {
+        this.hide();
+      }
+    });
+
+    document.body.appendChild(this.panel);
+  }
+
+  private renderContent(data: TeamHuddleData): void {
+    if (!this.wrapper) return;
+
+    const typeIcon = this.getTypeIcon(data.type);
+    const typeLabel = this.getTypeLabel(data.type);
+
+    this.wrapper.innerHTML = `
+      <header class="team-huddle__header">
+        <div class="team-huddle__type">
+          ${typeIcon}
+          <span>${typeLabel}</span>
+        </div>
+        <button class="team-huddle__close" aria-label="Close huddle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </header>
+
+      <div class="team-huddle__intro">
+        <p>${this.escapeHtml(data.intro)}</p>
+      </div>
+
+      <div class="team-huddle__participants">
+        ${data.participants.map((p, i) => this.renderParticipant(p, i)).join('')}
+      </div>
+
+      <div class="team-huddle__outro">
+        <p>${this.escapeHtml(data.outro)}</p>
+      </div>
+
+      <div class="team-huddle__avatars">
+        ${data.participants.map(p => this.renderAvatar(p)).join('')}
+      </div>
+    `;
+
+    // Bind close button
+    const closeBtn = this.wrapper.querySelector('.team-huddle__close');
+    closeBtn?.addEventListener('click', () => this.hide());
+
+    // Bind participant clicks
+    this.wrapper.querySelectorAll('.team-huddle__participant').forEach((el) => {
+      el.addEventListener('click', () => {
+        const personaId = el.getAttribute('data-persona');
+        if (personaId) {
+          this.callbacks.onParticipantClick?.(personaId);
+        }
+      });
+    });
+  }
+
+  private renderParticipant(participant: TeamHuddleParticipant, index: number): string {
+    const colors = PERSONA_COLORS[participant.personaId] ?? PERSONA_COLORS['ferni'] ?? { bg: '#3d5a35', text: '#faf8f5', border: '#4a6741' };
+    const delay = index * STAGGER.RELAXED;
+
+    return `
+      <div class="team-huddle__participant" 
+           data-persona="${participant.personaId}"
+           style="--participant-delay: ${delay}ms; --participant-color: ${colors.bg}">
+        <div class="team-huddle__participant-avatar" style="background: ${colors.bg}">
+          ${participant.initials}
+        </div>
+        <div class="team-huddle__participant-content">
+          <div class="team-huddle__participant-name">${this.escapeHtml(participant.name)}</div>
+          <div class="team-huddle__participant-comment">"${this.escapeHtml(participant.comment)}"</div>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderAvatar(participant: TeamHuddleParticipant): string {
+    const colors = PERSONA_COLORS[participant.personaId] ?? PERSONA_COLORS['ferni'] ?? { bg: '#3d5a35', text: '#faf8f5', border: '#4a6741' };
+    return `
+      <div class="team-huddle__mini-avatar" 
+           style="background: ${colors.bg}"
+           title="${participant.name}">
+        ${participant.initials}
+      </div>
+    `;
+  }
+
+  private getTypeIcon(type: TeamHuddleData['type']): string {
+    const icons = {
+      weekly: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>`,
+      milestone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>`,
+      special: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>`,
+    };
+    return icons[type] || icons.weekly;
+  }
+
+  private getTypeLabel(type: TeamHuddleData['type']): string {
+    const labels = {
+      weekly: 'Weekly Check-in',
+      milestone: 'Milestone Celebration',
+      special: 'Special Moment',
+    };
+    return labels[type] || 'Team Huddle';
+  }
+
+  private animateParticipantsIn(): void {
+    const participants = this.wrapper?.querySelectorAll('.team-huddle__participant');
+    participants?.forEach((el, i) => {
+      const htmlEl = el as HTMLElement;
+      htmlEl.style.opacity = '0';
+      htmlEl.style.transform = 'translateY(20px)';
+
+      setTimeout(() => {
+        htmlEl.style.transition = `opacity ${DURATION.SLOW}ms ${EASING.EXPO_OUT}, transform ${DURATION.SLOW}ms ${EASING.SPRING}`;
+        htmlEl.style.opacity = '1';
+        htmlEl.style.transform = 'translateY(0)';
+      }, i * STAGGER.RELAXED + DURATION.NORMAL);
+    });
+  }
+
+  private escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  private injectStyles(): void {
+    if (this.styleElement) return;
+
+    this.styleElement = document.createElement('style');
+    this.styleElement.textContent = `
+      /* ========================================================================
+         TEAM HUDDLE OVERLAY
+         ======================================================================== */
+      .team-huddle {
+        position: fixed;
+        inset: 0;
+        z-index: var(--z-modal, 1400);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--ma-rest, 21px);
+        background: var(--backdrop-page);
+        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, visibility ${DURATION.SLOW}ms;
+      }
+
+      .team-huddle--visible {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      /* ========================================================================
+         HUDDLE WRAPPER
+         ======================================================================== */
+      .team-huddle__wrapper {
+        width: 100%;
+        max-width: 520px;
+        max-height: 80vh;
+        overflow-y: auto;
+        background: var(--color-background-elevated, #fffdfb);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-radius: var(--radius-xl, 1.5rem);
+        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(44, 37, 32, 0.15));
+        transform: scale(0.95) translateY(20px);
+        transition: transform ${DURATION.MODERATE}ms ${EASING.SPRING};
+      }
+
+      .team-huddle--visible .team-huddle__wrapper {
+        transform: scale(1) translateY(0);
+      }
+
+      /* ========================================================================
+         HEADER
+         ======================================================================== */
+      .team-huddle__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .team-huddle__type {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-accent-primary, #2d5a3d);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .team-huddle__type svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .team-huddle__close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        background: var(--color-background-tertiary, #ebe6df);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        border-radius: var(--radius-full, 9999px);
+        color: var(--color-text-secondary, #5c544a);
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .team-huddle__close:hover {
+        background: var(--color-background-secondary, #f5f2ed);
+        color: var(--color-text-primary, #2c2520);
+        transform: scale(1.05);
+      }
+
+      .team-huddle__close svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* ========================================================================
+         INTRO & OUTRO
+         ======================================================================== */
+      .team-huddle__intro,
+      .team-huddle__outro {
+        padding: var(--ma-breath, 13px) var(--ma-silence, 34px);
+      }
+
+      .team-huddle__intro p,
+      .team-huddle__outro p {
+        font-family: var(--font-body);
+        font-size: var(--text-base);
+        line-height: var(--leading-normal, 1.6);
+        color: var(--color-text-secondary);
+        margin: 0;
+      }
+
+      .team-huddle__outro {
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        background: var(--color-background-secondary, #f5f2ed);
+        border-radius: 0 0 var(--radius-xl, 1.5rem) var(--radius-xl, 1.5rem);
+      }
+
+      /* ========================================================================
+         PARTICIPANTS
+         ======================================================================== */
+      .team-huddle__participants {
+        padding: var(--ma-breath, 13px) var(--ma-silence, 34px);
+        display: flex;
+        flex-direction: column;
+        gap: var(--ma-breath, 13px);
+      }
+
+      .team-huddle__participant {
+        display: flex;
+        gap: var(--ma-breath, 13px);
+        padding: var(--ma-breath, 13px);
+        background: var(--color-background-secondary, #f5f2ed);
+        border-radius: var(--radius-lg, 0.75rem);
+        border-left: 3px solid var(--participant-color, var(--color-accent-primary));
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .team-huddle__participant:hover {
+        background: var(--color-background-tertiary, #ebe6df);
+        transform: translateX(4px);
+      }
+
+      .team-huddle__participant-avatar {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-full, 9999px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-inverse, #faf8f5);
+      }
+
+      .team-huddle__participant-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .team-huddle__participant-name {
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary, #2c2520);
+        margin-bottom: var(--space-1, 4px);
+      }
+
+      .team-huddle__participant-comment {
+        font-family: var(--font-primary, 'Inter', sans-serif);
+        font-size: var(--text-sm, 0.875rem);
+        font-style: italic;
+        color: var(--color-text-secondary, #5c544a);
+        line-height: 1.5;
+      }
+
+      /* ========================================================================
+         MINI AVATARS (bottom summary)
+         ======================================================================== */
+      .team-huddle__avatars {
+        display: flex;
+        justify-content: center;
+        gap: calc(var(--space-2, 8px) * -1);
+        padding: var(--ma-breath, 13px);
+        padding-top: 0;
+      }
+
+      .team-huddle__mini-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-full, 9999px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: 10px;
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-inverse, #faf8f5);
+        border: 2px solid var(--color-background-elevated, #fffdfb);
+        margin-left: -8px;
+      }
+
+      .team-huddle__mini-avatar:first-child {
+        margin-left: 0;
+      }
+
+      /* ========================================================================
+         DARK THEME
+         ======================================================================== */
+      [data-theme="midnight"] .team-huddle {
+        background: var(--backdrop-page);
+      }
+
+      [data-theme="midnight"] .team-huddle__wrapper {
+        background: var(--color-background-elevated, #70605a);
+        box-shadow: var(--shadow-2xl, 0 24px 48px rgba(0, 0, 0, 0.3));
+      }
+
+      [data-theme="midnight"] .team-huddle__intro p,
+      [data-theme="midnight"] .team-huddle__outro p {
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .team-huddle__participant {
+        background: var(--color-background-secondary, #60504a);
+      }
+
+      [data-theme="midnight"] .team-huddle__participant:hover {
+        background: var(--color-background-tertiary, #685852);
+      }
+
+      [data-theme="midnight"] .team-huddle__participant-name {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .team-huddle__participant-comment {
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .team-huddle__outro {
+        background: var(--color-background-secondary, #60504a);
+      }
+
+      [data-theme="midnight"] .team-huddle__close {
+        background: var(--color-background-tertiary, #685852);
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .team-huddle__close:hover {
+        background: var(--color-background-secondary, #60504a);
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      /* WCAG AA Compliant Text */
+      [data-theme="midnight"] .team-huddle__participant-role,
+      [data-theme="midnight"] .team-huddle__hint {
+        color: var(--color-text-muted, #e8e2da);
+      }
+
+      /* ========================================================================
+         REDUCED MOTION
+         ======================================================================== */
+      @media (prefers-reduced-motion: reduce) {
+        .team-huddle,
+        .team-huddle__wrapper,
+        .team-huddle__participant {
+          transition: opacity ${DURATION.FAST}ms linear;
+        }
+
+        .team-huddle--visible .team-huddle__wrapper {
+          transform: none;
+        }
+      }
+    `;
+    document.head.appendChild(this.styleElement);
+  }
+
+  /**
+   * Cleanup
+   */
+  destroy(): void {
+    this.hide();
+    this.panel?.remove();
+    this.styleElement?.remove();
+    this.panel = null;
+    this.wrapper = null;
+    this.styleElement = null;
+  }
+}
+
+// ============================================================================
+// SINGLETON EXPORT
+// ============================================================================
+
+let instance: TeamHuddleUI | null = null;
+
+export function getTeamHuddleUI(): TeamHuddleUI {
+  if (!instance) {
+    instance = new TeamHuddleUI();
+  }
+  return instance;
+}
+
+export function initTeamHuddleUI(): void {
+  getTeamHuddleUI().initialize();
+}
+
+export function showTeamHuddle(data: TeamHuddleData): void {
+  getTeamHuddleUI().show(data);
+}
+
+export function hideTeamHuddle(): void {
+  getTeamHuddleUI().hide();
+}
+
+export default TeamHuddleUI;
+

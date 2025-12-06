@@ -102,11 +102,13 @@ export class AutoToolOptimizer {
     getLogger().info({ config: this.config }, '🤖 Auto Tool Optimizer started');
 
     // Run initial analysis
-    this.runOptimizationCycle();
+    void this.runOptimizationCycle();
 
     // Schedule periodic analysis
     this.analysisTimer = setInterval(
-      async () => this.runOptimizationCycle(),
+      () => {
+        void this.runOptimizationCycle();
+      },
       this.config.analysisIntervalMs
     );
   }
