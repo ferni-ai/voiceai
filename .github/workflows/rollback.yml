@@ -1,0 +1,289 @@
+name: Rollback Production
+
+# Quick rollback to a previous revision
+# Can rollback to:
+# - Previous revision (default)
+# - Specific revision by name
+# - Specific commit SHA
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to rollback'
+        required: true
+        type: choice
+        options:
+          - voice-agent
+          - ui-server
+          - all
+      target:
+        description: 'Rollback target (leave empty for previous, or enter revision/sha)'
+        required: false
+        type: string
+      reason:
+        description: 'Reason for rollback'
+        required: true
+        type: string
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1
+  DORA_API_URL: ${{ secrets.DORA_API_URL || 'https://ferni.ai/api/dora' }}
+
+jobs:
+  # ============================================================================
+  # ROLLBACK VOICE AGENT
+  # ============================================================================
+  rollback-voice-agent:
+    name: Rollback Voice Agent
+    runs-on: ubuntu-latest
+    if: ${{ inputs.service == 'voice-agent' || inputs.service == 'all' }}
+    outputs:
+      previous_revision: ${{ steps.current.outputs.revision }}
+      new_revision: ${{ steps.rollback.outputs.revision }}
+    
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get current revision
+        id: current
+        run: |
+          CURRENT=$(gcloud run services describe voiceai-agent \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.traffic[0].revisionName)")
+          echo "revision=$CURRENT" >> $GITHUB_OUTPUT
+          echo "Current revision: $CURRENT"
+
+      - name: Find rollback target
+        id: target
+        run: |
+          TARGET="${{ inputs.target }}"
+          
+          if [ -z "$TARGET" ]; then
+            # Get previous revision (second in list)
+            TARGET=$(gcloud run revisions list \
+              --service=voiceai-agent \
+              --region=${{ env.GCP_REGION }} \
+              --format="value(REVISION)" \
+              --limit=2 | tail -1)
+            echo "Rolling back to previous revision: $TARGET"
+          elif [[ "$TARGET" =~ ^[a-f0-9]{8,40}$ ]]; then
+            # Target looks like a commit SHA, find matching revision
+            SHORT_SHA=${TARGET:0:8}
+            TARGET=$(gcloud run revisions list \
+              --service=voiceai-agent \
+              --region=${{ env.GCP_REGION }} \
+              --format="value(REVISION)" \
+              --filter="name~$SHORT_SHA" \
+              --limit=1)
+            echo "Rolling back to revision matching SHA: $TARGET"
+          fi
+          
+          if [ -z "$TARGET" ]; then
+            echo "Could not find rollback target!"
+            exit 1
+          fi
+          
+          echo "revision=$TARGET" >> $GITHUB_OUTPUT
+
+      - name: Verify target revision exists
+        run: |
+          gcloud run revisions describe ${{ steps.target.outputs.revision }} \
+            --service=voiceai-agent \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(name)"
+
+      - name: Rollback traffic
+        id: rollback
+        run: |
+          gcloud run services update-traffic voiceai-agent \
+            --region=${{ env.GCP_REGION }} \
+            --to-revisions=${{ steps.target.outputs.revision }}=100
+          
+          echo "revision=${{ steps.target.outputs.revision }}" >> $GITHUB_OUTPUT
+          echo "Rolled back to: ${{ steps.target.outputs.revision }}"
+
+      - name: Verify rollback
+        run: |
+          # Wait for traffic shift
+          sleep 10
+          
+          URL=$(gcloud run services describe voiceai-agent \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+          
+          if curl -sf "$URL/health" > /dev/null; then
+            echo "Health check passed after rollback!"
+          else
+            echo "Warning: Health check failed after rollback"
+          fi
+
+  # ============================================================================
+  # ROLLBACK UI SERVER
+  # ============================================================================
+  rollback-ui-server:
+    name: Rollback UI Server
+    runs-on: ubuntu-latest
+    if: ${{ inputs.service == 'ui-server' || inputs.service == 'all' }}
+    outputs:
+      previous_revision: ${{ steps.current.outputs.revision }}
+      new_revision: ${{ steps.rollback.outputs.revision }}
+    
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get current revision
+        id: current
+        run: |
+          CURRENT=$(gcloud run services describe john-bogle-ui \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.traffic[0].revisionName)")
+          echo "revision=$CURRENT" >> $GITHUB_OUTPUT
+
+      - name: Find rollback target
+        id: target
+        run: |
+          TARGET="${{ inputs.target }}"
+          
+          if [ -z "$TARGET" ]; then
+            TARGET=$(gcloud run revisions list \
+              --service=john-bogle-ui \
+              --region=${{ env.GCP_REGION }} \
+              --format="value(REVISION)" \
+              --limit=2 | tail -1)
+          elif [[ "$TARGET" =~ ^[a-f0-9]{8,40}$ ]]; then
+            SHORT_SHA=${TARGET:0:8}
+            TARGET=$(gcloud run revisions list \
+              --service=john-bogle-ui \
+              --region=${{ env.GCP_REGION }} \
+              --format="value(REVISION)" \
+              --filter="name~$SHORT_SHA" \
+              --limit=1)
+          fi
+          
+          if [ -z "$TARGET" ]; then
+            echo "Could not find rollback target!"
+            exit 1
+          fi
+          
+          echo "revision=$TARGET" >> $GITHUB_OUTPUT
+
+      - name: Rollback traffic
+        id: rollback
+        run: |
+          gcloud run services update-traffic john-bogle-ui \
+            --region=${{ env.GCP_REGION }} \
+            --to-revisions=${{ steps.target.outputs.revision }}=100
+          
+          echo "revision=${{ steps.target.outputs.revision }}" >> $GITHUB_OUTPUT
+
+      - name: Verify rollback
+        run: |
+          sleep 10
+          URL=$(gcloud run services describe john-bogle-ui \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+          
+          curl -sf "$URL/health" > /dev/null && echo "Health check passed!" || echo "Warning: Health check failed"
+
+  # ============================================================================
+  # TRACK ROLLBACK
+  # ============================================================================
+  track-rollback:
+    name: Track Rollback
+    runs-on: ubuntu-latest
+    needs: [rollback-voice-agent, rollback-ui-server]
+    if: always()
+    
+    steps:
+      - name: Record rollback deployment
+        run: |
+          # Record as a deployment with rollback flag
+          curl -X POST "${{ env.DORA_API_URL }}/deployments" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DORA_API_KEY }}" \
+            -d '{
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "commitSha": "rollback-${{ github.run_id }}",
+              "commitMessage": "ROLLBACK: ${{ inputs.reason }}",
+              "branch": "main",
+              "environment": "production",
+              "duration": 60,
+              "success": true,
+              "triggeredBy": "${{ github.actor }}",
+              "buildId": "${{ github.run_id }}",
+              "rollback": true,
+              "metadata": {
+                "reason": "${{ inputs.reason }}",
+                "service": "${{ inputs.service }}",
+                "target": "${{ inputs.target }}"
+              }
+            }' || echo "Failed to track rollback"
+
+      - name: Create rollback incident
+        run: |
+          curl -X POST "${{ env.DORA_API_URL }}/incidents" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DORA_API_KEY }}" \
+            -d '{
+              "title": "Rollback triggered: ${{ inputs.reason }}",
+              "severity": "major",
+              "startedAt": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "affectedServices": ["${{ inputs.service }}"],
+              "resolution": "Rolled back to previous revision"
+            }' || echo "Failed to create incident"
+
+  # ============================================================================
+  # SUMMARY
+  # ============================================================================
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [rollback-voice-agent, rollback-ui-server, track-rollback]
+    if: always()
+    
+    steps:
+      - name: Create summary
+        run: |
+          echo "## Rollback Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason:** ${{ inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "| Service | Status | From | To |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|------|-----|" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.rollback-voice-agent.result }}" != "skipped" ]]; then
+            if [[ "${{ needs.rollback-voice-agent.result }}" == "success" ]]; then
+              echo "| Voice Agent | ✅ Rolled back | ${{ needs.rollback-voice-agent.outputs.previous_revision }} | ${{ needs.rollback-voice-agent.outputs.new_revision }} |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Voice Agent | ❌ Failed | - | - |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          if [[ "${{ needs.rollback-ui-server.result }}" != "skipped" ]]; then
+            if [[ "${{ needs.rollback-ui-server.result }}" == "success" ]]; then
+              echo "| UI Server | ✅ Rolled back | ${{ needs.rollback-ui-server.outputs.previous_revision }} | ${{ needs.rollback-ui-server.outputs.new_revision }} |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| UI Server | ❌ Failed | - | - |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+

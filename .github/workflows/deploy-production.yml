@@ -1,0 +1,497 @@
+name: Deploy Production (Blue-Green)
+
+# Blue-Green Deployment Strategy:
+# 1. Deploy to "green" revision with no traffic
+# 2. Run health checks on green revision
+# 3. If healthy, shift 100% traffic to green
+# 4. If unhealthy, keep traffic on blue (current)
+# 5. Track in DORA metrics
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - voice-agent
+          - ui-server
+      skip_tests:
+        description: 'Skip tests (emergency deploy)'
+        type: boolean
+        default: false
+      traffic_percent:
+        description: 'Traffic % to new revision (for canary)'
+        type: number
+        default: 100
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1
+  NODE_VERSION: '20'
+  DORA_API_URL: ${{ secrets.DORA_API_URL || 'https://ferni.ai/api/dora' }}
+
+jobs:
+  # ============================================================================
+  # PRE-FLIGHT CHECKS
+  # ============================================================================
+  preflight:
+    name: Pre-flight Checks
+    runs-on: ubuntu-latest
+    outputs:
+      commit_time: ${{ steps.commit_info.outputs.commit_time }}
+      short_sha: ${{ steps.commit_info.outputs.short_sha }}
+      deploy_voice: ${{ steps.services.outputs.voice }}
+      deploy_ui: ${{ steps.services.outputs.ui }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get commit info
+        id: commit_info
+        run: |
+          echo "commit_time=$(git show -s --format=%cI HEAD)" >> $GITHUB_OUTPUT
+          echo "short_sha=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      - name: Determine services to deploy
+        id: services
+        run: |
+          if [[ "${{ github.event.inputs.service }}" == "all" || "${{ github.event.inputs.service }}" == "" ]]; then
+            echo "voice=true" >> $GITHUB_OUTPUT
+            echo "ui=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.inputs.service }}" == "voice-agent" ]]; then
+            echo "voice=true" >> $GITHUB_OUTPUT
+            echo "ui=false" >> $GITHUB_OUTPUT
+          else
+            echo "voice=false" >> $GITHUB_OUTPUT
+            echo "ui=true" >> $GITHUB_OUTPUT
+          fi
+
+  # ============================================================================
+  # BUILD & TEST
+  # ============================================================================
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: ${{ !inputs.skip_tests }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test -- --reporter=dot
+        env:
+          NODE_ENV: test
+
+      - name: Build backend
+        run: npm run build
+
+      - name: Build frontend
+        run: |
+          cd frontend-typescript
+          npm ci
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ needs.preflight.outputs.short_sha }}
+          path: |
+            dist/
+            frontend-typescript/dist/
+          retention-days: 7
+
+  # ============================================================================
+  # DEPLOY VOICE AGENT (Blue-Green)
+  # ============================================================================
+  deploy-voice-agent:
+    name: Deploy Voice Agent
+    runs-on: ubuntu-latest
+    needs: [preflight, build]
+    if: ${{ always() && needs.preflight.outputs.deploy_voice == 'true' && (needs.build.result == 'success' || inputs.skip_tests) }}
+    outputs:
+      revision: ${{ steps.deploy.outputs.revision }}
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker gcr.io
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg BUILD_SHA=${{ github.sha }} \
+            --build-arg BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:${{ github.sha }} \
+            -t gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:latest \
+            -f Dockerfile .
+
+      - name: Push Docker image
+        run: |
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:${{ github.sha }}
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:latest
+
+      - name: Deploy green revision (no traffic)
+        id: deploy
+        run: |
+          # Deploy new revision with --no-traffic
+          REVISION_SUFFIX=$(echo ${{ github.sha }} | cut -c1-8)
+          
+          gcloud run deploy voiceai-agent \
+            --image gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --no-traffic \
+            --tag green \
+            --revision-suffix $REVISION_SUFFIX \
+            --memory 2Gi \
+            --cpu 2 \
+            --timeout 3600 \
+            --concurrency 1 \
+            --min-instances 0 \
+            --max-instances 20 \
+            --set-env-vars "NODE_ENV=production,GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }},BUILD_SHA=${{ github.sha }}" \
+            --set-secrets "GOOGLE_API_KEY=google-api-key:latest,CARTESIA_API_KEY=cartesia-api-key:latest,LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest"
+          
+          # Get revision name and URL
+          REVISION=$(gcloud run revisions list --service=voiceai-agent --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
+          URL=$(gcloud run services describe voiceai-agent --region=${{ env.GCP_REGION }} --format="value(status.url)")
+          
+          echo "revision=$REVISION" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Deployed revision: $REVISION"
+
+      - name: Health check green revision
+        id: health
+        run: |
+          # Get the green revision URL
+          GREEN_URL=$(gcloud run services describe voiceai-agent \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.traffic[?tag=='green'].url)" 2>/dev/null || echo "")
+          
+          if [ -z "$GREEN_URL" ]; then
+            # Fallback to main URL for health check
+            GREEN_URL="${{ steps.deploy.outputs.url }}"
+          fi
+          
+          echo "Checking health at: $GREEN_URL/health"
+          
+          # Retry health check up to 5 times
+          for i in {1..5}; do
+            if curl -sf "$GREEN_URL/health" > /dev/null 2>&1; then
+              echo "Health check passed!"
+              echo "healthy=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Health check attempt $i failed, retrying..."
+            sleep 10
+          done
+          
+          echo "healthy=false" >> $GITHUB_OUTPUT
+          echo "Health check failed after 5 attempts"
+
+      - name: Shift traffic to green
+        if: steps.health.outputs.healthy == 'true'
+        run: |
+          TRAFFIC_PERCENT=${{ inputs.traffic_percent || 100 }}
+          
+          if [ "$TRAFFIC_PERCENT" == "100" ]; then
+            # Full traffic shift
+            gcloud run services update-traffic voiceai-agent \
+              --region=${{ env.GCP_REGION }} \
+              --to-latest
+            echo "Shifted 100% traffic to new revision"
+          else
+            # Canary deployment
+            gcloud run services update-traffic voiceai-agent \
+              --region=${{ env.GCP_REGION }} \
+              --to-tags green=$TRAFFIC_PERCENT
+            echo "Shifted $TRAFFIC_PERCENT% traffic to green revision"
+          fi
+
+      - name: Rollback on failure
+        if: steps.health.outputs.healthy != 'true'
+        run: |
+          echo "Health check failed - keeping traffic on current revision"
+          # Remove the green tag to clean up
+          gcloud run services update-traffic voiceai-agent \
+            --region=${{ env.GCP_REGION }} \
+            --remove-tags green || true
+          exit 1
+
+  # ============================================================================
+  # DEPLOY UI SERVER (Blue-Green)
+  # ============================================================================
+  deploy-ui-server:
+    name: Deploy UI Server
+    runs-on: ubuntu-latest
+    needs: [preflight, build]
+    if: ${{ always() && needs.preflight.outputs.deploy_ui == 'true' && (needs.build.result == 'success' || inputs.skip_tests) }}
+    outputs:
+      revision: ${{ steps.deploy.outputs.revision }}
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        if: ${{ !inputs.skip_tests }}
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ needs.preflight.outputs.short_sha }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker gcr.io
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg BUILD_SHA=${{ github.sha }} \
+            --build-arg BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:${{ github.sha }} \
+            -t gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:latest \
+            -f Dockerfile.ui .
+
+      - name: Push Docker image
+        run: |
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:${{ github.sha }}
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:latest
+
+      - name: Deploy green revision (no traffic)
+        id: deploy
+        run: |
+          REVISION_SUFFIX=$(echo ${{ github.sha }} | cut -c1-8)
+          
+          gcloud run deploy john-bogle-ui \
+            --image gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:${{ github.sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --no-traffic \
+            --tag green \
+            --revision-suffix $REVISION_SUFFIX \
+            --allow-unauthenticated \
+            --memory 1Gi \
+            --cpu 1 \
+            --timeout 300 \
+            --concurrency 80 \
+            --min-instances 0 \
+            --max-instances 10 \
+            --set-env-vars "NODE_ENV=production,BUILD_SHA=${{ github.sha }}"
+          
+          REVISION=$(gcloud run revisions list --service=john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
+          URL=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(status.url)")
+          
+          echo "revision=$REVISION" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Health check green revision
+        id: health
+        run: |
+          URL="${{ steps.deploy.outputs.url }}"
+          
+          for i in {1..5}; do
+            if curl -sf "$URL/health" > /dev/null 2>&1; then
+              echo "Health check passed!"
+              echo "healthy=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Health check attempt $i failed, retrying..."
+            sleep 10
+          done
+          
+          echo "healthy=false" >> $GITHUB_OUTPUT
+
+      - name: Shift traffic to green
+        if: steps.health.outputs.healthy == 'true'
+        run: |
+          TRAFFIC_PERCENT=${{ inputs.traffic_percent || 100 }}
+          
+          if [ "$TRAFFIC_PERCENT" == "100" ]; then
+            gcloud run services update-traffic john-bogle-ui \
+              --region=${{ env.GCP_REGION }} \
+              --to-latest
+          else
+            gcloud run services update-traffic john-bogle-ui \
+              --region=${{ env.GCP_REGION }} \
+              --to-tags green=$TRAFFIC_PERCENT
+          fi
+
+      - name: Rollback on failure
+        if: steps.health.outputs.healthy != 'true'
+        run: |
+          echo "Health check failed - keeping traffic on current revision"
+          gcloud run services update-traffic john-bogle-ui \
+            --region=${{ env.GCP_REGION }} \
+            --remove-tags green || true
+          exit 1
+
+  # ============================================================================
+  # TRACK DORA METRICS
+  # ============================================================================
+  track-dora:
+    name: Track DORA Metrics
+    runs-on: ubuntu-latest
+    needs: [preflight, deploy-voice-agent, deploy-ui-server]
+    if: always()
+    
+    steps:
+      - name: Calculate deployment duration
+        id: duration
+        run: |
+          START_TIME="${{ needs.preflight.outputs.commit_time }}"
+          END_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          
+          # Calculate duration in seconds
+          START_EPOCH=$(date -d "$START_TIME" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${START_TIME%Z}" +%s)
+          END_EPOCH=$(date +%s)
+          DURATION=$((END_EPOCH - START_EPOCH))
+          
+          echo "duration=$DURATION" >> $GITHUB_OUTPUT
+
+      - name: Record voice-agent deployment
+        if: needs.deploy-voice-agent.result != 'skipped'
+        run: |
+          curl -X POST "${{ env.DORA_API_URL }}/deployments" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DORA_API_KEY }}" \
+            -d '{
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "commitSha": "${{ github.sha }}",
+              "commitMessage": "${{ github.event.head_commit.message }}",
+              "branch": "${{ github.ref_name }}",
+              "environment": "production",
+              "duration": ${{ steps.duration.outputs.duration }},
+              "success": ${{ needs.deploy-voice-agent.result == 'success' }},
+              "triggeredBy": "${{ github.actor }}",
+              "buildId": "${{ github.run_id }}",
+              "metadata": {
+                "service": "voice-agent",
+                "revision": "${{ needs.deploy-voice-agent.outputs.revision }}",
+                "url": "${{ needs.deploy-voice-agent.outputs.url }}",
+                "workflowUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }
+            }' || echo "Failed to track voice-agent deployment"
+
+      - name: Record ui-server deployment
+        if: needs.deploy-ui-server.result != 'skipped'
+        run: |
+          curl -X POST "${{ env.DORA_API_URL }}/deployments" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DORA_API_KEY }}" \
+            -d '{
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "commitSha": "${{ github.sha }}",
+              "commitMessage": "${{ github.event.head_commit.message }}",
+              "branch": "${{ github.ref_name }}",
+              "environment": "production",
+              "duration": ${{ steps.duration.outputs.duration }},
+              "success": ${{ needs.deploy-ui-server.result == 'success' }},
+              "triggeredBy": "${{ github.actor }}",
+              "buildId": "${{ github.run_id }}",
+              "metadata": {
+                "service": "ui-server",
+                "revision": "${{ needs.deploy-ui-server.outputs.revision }}",
+                "url": "${{ needs.deploy-ui-server.outputs.url }}",
+                "workflowUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }
+            }' || echo "Failed to track ui-server deployment"
+
+      - name: Create incident on failure
+        if: needs.deploy-voice-agent.result == 'failure' || needs.deploy-ui-server.result == 'failure'
+        run: |
+          FAILED_SERVICES=""
+          [[ "${{ needs.deploy-voice-agent.result }}" == "failure" ]] && FAILED_SERVICES="voice-agent"
+          [[ "${{ needs.deploy-ui-server.result }}" == "failure" ]] && FAILED_SERVICES="$FAILED_SERVICES ui-server"
+          
+          curl -X POST "${{ env.DORA_API_URL }}/incidents" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.DORA_API_KEY }}" \
+            -d '{
+              "title": "Deployment failed: ${{ github.sha }}",
+              "severity": "major",
+              "startedAt": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "deploymentId": "${{ github.run_id }}",
+              "affectedServices": ["'"${FAILED_SERVICES// /\",\"}"'"]
+            }' || echo "Failed to create incident"
+
+  # ============================================================================
+  # NOTIFY
+  # ============================================================================
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [deploy-voice-agent, deploy-ui-server, track-dora]
+    if: always()
+    
+    steps:
+      - name: Create deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status | Revision |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|----------|" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.deploy-voice-agent.result }}" != "skipped" ]]; then
+            if [[ "${{ needs.deploy-voice-agent.result }}" == "success" ]]; then
+              echo "| Voice Agent | ✅ Success | ${{ needs.deploy-voice-agent.outputs.revision }} |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Voice Agent | ❌ Failed | - |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          if [[ "${{ needs.deploy-ui-server.result }}" != "skipped" ]]; then
+            if [[ "${{ needs.deploy-ui-server.result }}" == "success" ]]; then
+              echo "| UI Server | ✅ Success | ${{ needs.deploy-ui-server.outputs.revision }} |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| UI Server | ❌ Failed | - |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+

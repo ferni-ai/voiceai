@@ -1,0 +1,320 @@
+name: Deploy Staging / Preview
+
+# Deploy to staging environment for testing before production
+# Also creates preview deployments for PRs
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: false
+        type: string
+      cleanup:
+        description: 'Cleanup old staging deployments'
+        type: boolean
+        default: false
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # DETERMINE CONTEXT
+  # ============================================================================
+  context:
+    name: Determine Context
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.branch.outputs.name }}
+      short_sha: ${{ steps.branch.outputs.short_sha }}
+      is_pr: ${{ steps.branch.outputs.is_pr }}
+      env_name: ${{ steps.branch.outputs.env_name }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine branch
+        id: branch
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH="${{ github.head_ref }}"
+            IS_PR="true"
+          else
+            BRANCH="${{ inputs.branch || github.ref_name }}"
+            IS_PR="false"
+          fi
+          
+          # Sanitize branch name for use in service names
+          SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]//g' | cut -c1-20)
+          SHORT_SHA="${GITHUB_SHA::8}"
+          
+          echo "name=$BRANCH" >> $GITHUB_OUTPUT
+          echo "safe_name=$SAFE_BRANCH" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "is_pr=$IS_PR" >> $GITHUB_OUTPUT
+          echo "env_name=staging-$SAFE_BRANCH" >> $GITHUB_OUTPUT
+          
+          echo "Branch: $BRANCH"
+          echo "Safe name: $SAFE_BRANCH"
+          echo "Environment: staging-$SAFE_BRANCH"
+
+  # ============================================================================
+  # BUILD & TEST
+  # ============================================================================
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    needs: context
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --reporter=dot
+        env:
+          NODE_ENV: test
+        continue-on-error: true
+
+      - name: Build
+        run: |
+          npm run build
+          cd frontend-typescript && npm ci && npm run build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-build-${{ needs.context.outputs.short_sha }}
+          path: |
+            dist/
+            frontend-typescript/dist/
+          retention-days: 3
+
+  # ============================================================================
+  # DEPLOY STAGING
+  # ============================================================================
+  deploy-staging:
+    name: Deploy Staging
+    runs-on: ubuntu-latest
+    needs: [context, build]
+    environment:
+      name: ${{ needs.context.outputs.env_name }}
+      url: ${{ steps.deploy.outputs.url }}
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker gcr.io
+
+      - name: Build staging image
+        run: |
+          docker build \
+            --build-arg BUILD_SHA=${{ github.sha }} \
+            --build-arg NODE_ENV=staging \
+            -t gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:staging-${{ needs.context.outputs.short_sha }} \
+            -f Dockerfile.ui .
+
+      - name: Push staging image
+        run: |
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:staging-${{ needs.context.outputs.short_sha }}
+
+      - name: Deploy to staging
+        id: deploy
+        run: |
+          SERVICE_NAME="staging-${{ needs.context.outputs.short_sha }}"
+          
+          gcloud run deploy $SERVICE_NAME \
+            --image gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:staging-${{ needs.context.outputs.short_sha }} \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --cpu 1 \
+            --timeout 300 \
+            --concurrency 20 \
+            --min-instances 0 \
+            --max-instances 2 \
+            --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }}"
+          
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(status.url)")
+          
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Staging deployed to: $URL"
+
+      - name: Comment on PR
+        if: needs.context.outputs.is_pr == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const sha = '${{ github.sha }}'.substring(0, 8);
+            
+            const body = `## 🚀 Staging Deployment Ready
+            
+            | Environment | URL |
+            |-------------|-----|
+            | Staging | [${url}](${url}) |
+            
+            **Commit:** \`${sha}\`
+            **Branch:** \`${{ needs.context.outputs.branch }}\`
+            
+            ---
+            <sub>This deployment will be cleaned up when the PR is closed.</sub>`;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(c => 
+              c.user.type === 'Bot' && c.body.includes('Staging Deployment Ready')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+  # ============================================================================
+  # SMOKE TESTS
+  # ============================================================================
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [context, deploy-staging]
+    
+    steps:
+      - name: Health check
+        run: |
+          URL="${{ needs.deploy-staging.outputs.url }}"
+          
+          echo "Testing $URL..."
+          
+          # Health check
+          if curl -sf "$URL/health" > /dev/null; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed"
+            exit 1
+          fi
+          
+          # Homepage loads
+          if curl -sf "$URL/" > /dev/null; then
+            echo "✅ Homepage loads"
+          else
+            echo "❌ Homepage failed to load"
+            exit 1
+          fi
+
+      - name: API smoke test
+        run: |
+          URL="${{ needs.deploy-staging.outputs.url }}"
+          
+          # Test a few API endpoints
+          curl -sf "$URL/api/agents" > /dev/null && echo "✅ /api/agents" || echo "❌ /api/agents failed"
+          curl -sf "$URL/api/flags" > /dev/null && echo "✅ /api/flags" || echo "❌ /api/flags failed"
+
+  # ============================================================================
+  # CLEANUP OLD STAGING
+  # ============================================================================
+  cleanup:
+    name: Cleanup Old Staging
+    runs-on: ubuntu-latest
+    if: ${{ inputs.cleanup || (github.event_name == 'pull_request' && github.event.action == 'closed') }}
+    
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Delete staging services older than 7 days
+        run: |
+          # List all staging services
+          SERVICES=$(gcloud run services list \
+            --region=${{ env.GCP_REGION }} \
+            --format="value(name)" \
+            --filter="name~^staging-")
+          
+          for SERVICE in $SERVICES; do
+            # Check creation time
+            CREATED=$(gcloud run services describe $SERVICE \
+              --region=${{ env.GCP_REGION }} \
+              --format="value(metadata.creationTimestamp)")
+            
+            CREATED_EPOCH=$(date -d "$CREATED" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${CREATED%Z}" +%s)
+            NOW_EPOCH=$(date +%s)
+            AGE_DAYS=$(( (NOW_EPOCH - CREATED_EPOCH) / 86400 ))
+            
+            if [ $AGE_DAYS -gt 7 ]; then
+              echo "Deleting $SERVICE (${AGE_DAYS} days old)"
+              gcloud run services delete $SERVICE \
+                --region=${{ env.GCP_REGION }} \
+                --quiet || true
+            else
+              echo "Keeping $SERVICE (${AGE_DAYS} days old)"
+            fi
+          done
+
+      - name: Delete PR-specific staging
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        run: |
+          SHORT_SHA="${{ github.event.pull_request.head.sha }}"
+          SHORT_SHA="${SHORT_SHA::8}"
+          SERVICE_NAME="staging-$SHORT_SHA"
+          
+          echo "Cleaning up PR staging: $SERVICE_NAME"
+          gcloud run services delete $SERVICE_NAME \
+            --region=${{ env.GCP_REGION }} \
+            --quiet || echo "Service $SERVICE_NAME not found"
+
