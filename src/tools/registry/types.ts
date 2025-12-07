@@ -47,7 +47,18 @@ export type ToolDomain =
   | 'presence' // Mindfulness and presence tools
   | 'proactive' // Proactive check-ins and follow-ups
   | 'awareness' // World awareness - time, context, environment
-  | 'engagement'; // Daily rituals, games, streaks, team interactions
+  | 'engagement' // Daily rituals, games, streaks, team interactions
+  // Life Coaching Domains
+  | 'crisis' // Crisis support, grounding, safety planning
+  | 'health' // Exercise, nutrition, sleep, energy management
+  | 'career' // Job search, interviews, professional development
+  | 'decisions' // Decision frameworks, analysis, values alignment
+  | 'family' // Parenting, family dynamics, elder care
+  | 'home' // Home maintenance, organization, moving
+  | 'learning' // Education, skill development, study planning
+  | 'creativity' // Hobbies, creative projects, artistic pursuits
+  | 'community' // Volunteering, giving, civic engagement
+  | 'legal-admin'; // Documents, estate planning, insurance
 
 /**
  * All available tool domains
@@ -80,6 +91,17 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'proactive',
   'awareness',
   'engagement',
+  // Life Coaching Domains
+  'crisis',
+  'health',
+  'career',
+  'decisions',
+  'family',
+  'home',
+  'learning',
+  'creativity',
+  'community',
+  'legal-admin',
 ] as const;
 
 // ============================================================================
@@ -130,6 +152,17 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   proactive: 'core',
   awareness: 'core',
   engagement: 'core',
+  // Life Coaching domains
+  crisis: 'core', // Safety-critical, should be available to all
+  health: 'lifestyle',
+  career: 'productivity',
+  decisions: 'core', // Foundational decision-making support
+  family: 'lifestyle',
+  home: 'productivity',
+  learning: 'productivity',
+  creativity: 'entertainment',
+  community: 'lifestyle',
+  'legal-admin': 'productivity',
 };
 
 // ============================================================================
@@ -520,3 +553,4 @@ export default {
   validateToolSetSpec,
   EmptyServiceRegistry,
 };
+// CI trigger: 1765115360
