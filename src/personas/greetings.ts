@@ -1,8 +1,13 @@
 /**
  * Persona-Parameterized Greeting Generation
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Generates natural, warm greetings based on persona configuration.
  * Replaces Jack-specific hardcoded greetings with persona-driven ones.
+ *
+ * First impressions matter. Greetings should feel like reconnecting
+ * with a friend, not starting a support ticket.
  */
 
 import { getLogger } from '../utils/safe-logger.js';

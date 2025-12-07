@@ -1,8 +1,12 @@
 /**
  * Persona-Parameterized Behaviors
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Generic behavior functions that adapt to any persona configuration.
  * These replace the Jack-specific hardcoded behaviors with persona-driven ones.
+ *
+ * Every function here serves one goal: making conversations feel human.
  */
 
 import type { PersonaConfig, PersonaState, StoryConfig } from './types.js';

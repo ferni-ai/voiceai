@@ -22,6 +22,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { createLogger } from '../utils/safe-logger.js';
 import { sendError } from './helpers.js';
+import { API_ERRORS } from './error-messages.js';
 
 const log = createLogger({ module: 'AuthMiddleware' });
 
@@ -50,14 +51,10 @@ export interface AuthConfig {
 // ============================================================================
 
 /** API keys for server-to-server auth (loaded from env) */
-const VALID_API_KEYS = new Set(
-  (process.env.API_KEYS || '').split(',').filter(Boolean)
-);
+const VALID_API_KEYS = new Set((process.env.API_KEYS || '').split(',').filter(Boolean));
 
 /** Admin API keys with elevated privileges */
-const ADMIN_API_KEYS = new Set(
-  (process.env.ADMIN_API_KEYS || '').split(',').filter(Boolean)
-);
+const ADMIN_API_KEYS = new Set((process.env.ADMIN_API_KEYS || '').split(',').filter(Boolean));
 
 /** JWT secret for token verification */
 const JWT_SECRET = process.env.JWT_SECRET || '';
@@ -107,9 +104,7 @@ function decodeJWTPayload(token: string): JWTPayload | null {
  */
 function createJWTSignature(header: string, payload: string, secret: string): string {
   const data = `${header}.${payload}`;
-  return createHmac('sha256', secret)
-    .update(data)
-    .digest('base64url');
+  return createHmac('sha256', secret).update(data).digest('base64url');
 }
 
 /**
@@ -124,7 +119,9 @@ function verifyJWT(token: string): { userId: string; isAdmin: boolean } | null {
       return null;
     }
     // In dev mode, allow unverified tokens with warning
-    log.warn('JWT_SECRET not set - accepting tokens without signature verification (dev mode only)');
+    log.warn(
+      'JWT_SECRET not set - accepting tokens without signature verification (dev mode only)'
+    );
     const payload = decodeJWTPayload(token);
     if (!payload || !payload.sub) return null;
     return {
@@ -160,8 +157,10 @@ function verifyJWT(token: string): { userId: string; isAdmin: boolean } | null {
     const actualBuffer = Buffer.from(signatureB64, 'base64url');
 
     // Timing-safe comparison to prevent timing attacks
-    if (expectedBuffer.length !== actualBuffer.length || 
-        !timingSafeEqual(expectedBuffer, actualBuffer)) {
+    if (
+      expectedBuffer.length !== actualBuffer.length ||
+      !timingSafeEqual(expectedBuffer, actualBuffer)
+    ) {
       log.debug('JWT signature verification failed');
       return null;
     }
@@ -299,21 +298,21 @@ export function requireAuth(
   if (!auth) {
     if (optional) return null;
     log.warn({ url: req.url, method: req.method }, 'Unauthorized request');
-    sendError(res, 'Authentication required', 401);
+    sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return null;
   }
 
   // Dev mode not allowed in this context
   if (auth.isDevMode && !allowDevMode && !IS_DEV) {
     log.warn({ url: req.url, userId: auth.userId }, 'Dev mode not allowed');
-    sendError(res, 'Authentication required', 401);
+    sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
     return null;
   }
 
   // Admin required but not admin
   if (requireAdmin && !auth.isAdmin) {
     log.warn({ url: req.url, userId: auth.userId }, 'Admin access required');
-    sendError(res, 'Admin access required', 403);
+    sendError(res, 'Admin access required', 403);  // Keep technical for admin
     return null;
   }
 
@@ -323,10 +322,7 @@ export function requireAuth(
 /**
  * Require admin authentication.
  */
-export function requireAdmin(
-  req: IncomingMessage,
-  res: ServerResponse
-): AuthContext | null {
+export function requireAdmin(req: IncomingMessage, res: ServerResponse): AuthContext | null {
   return requireAuth(req, res, { requireAdmin: true });
 }
 
@@ -342,10 +338,7 @@ export function optionalAuth(req: IncomingMessage): AuthContext | null {
  * Get user ID from request (with authentication).
  * Returns userId or sends 401 and returns null.
  */
-export function getAuthenticatedUserId(
-  req: IncomingMessage,
-  res: ServerResponse
-): string | null {
+export function getAuthenticatedUserId(req: IncomingMessage, res: ServerResponse): string | null {
   const auth = requireAuth(req, res);
   return auth?.userId || null;
 }
@@ -371,19 +364,19 @@ interface RateLimitTier {
 export const RATE_LIMIT_TIERS: Record<string, RateLimitTier> = {
   // Unauthenticated requests - strictest limits
   anonymous: { name: 'anonymous', maxRequests: 20, windowMs: 60000 },
-  
+
   // Authenticated free users
   free: { name: 'free', maxRequests: 60, windowMs: 60000 },
-  
+
   // Paid subscribers (Friend tier)
   friend: { name: 'friend', maxRequests: 200, windowMs: 60000 },
-  
+
   // Premium subscribers (Partner tier)
   partner: { name: 'partner', maxRequests: 500, windowMs: 60000 },
-  
+
   // Admin/system users - highest limits
   admin: { name: 'admin', maxRequests: 1000, windowMs: 60000 },
-  
+
   // Burst protection for expensive endpoints (LLM calls, etc.)
   expensive: { name: 'expensive', maxRequests: 10, windowMs: 60000 },
 };
@@ -422,7 +415,7 @@ export function getRateLimitTier(auth: AuthContext | null): RateLimitTier {
   if (!auth) return RATE_LIMIT_TIERS.anonymous;
   if (auth.isAdmin) return RATE_LIMIT_TIERS.admin;
   if (auth.isDevMode) return RATE_LIMIT_TIERS.admin; // Dev mode gets admin limits
-  
+
   // Could be extended to check subscription tier from auth context
   return RATE_LIMIT_TIERS.free;
 }
@@ -444,7 +437,7 @@ export function rateLimit(
 ): boolean {
   const auth = authenticate(req);
   const defaultTier = getRateLimitTier(auth);
-  
+
   const {
     maxRequests = options.tier?.maxRequests ?? defaultTier.maxRequests,
     windowMs = options.tier?.windowMs ?? defaultTier.windowMs,
@@ -463,14 +456,16 @@ export function rateLimit(
 
   if (!result.allowed) {
     log.warn({ key, url: req.url, tier: defaultTier.name }, 'Rate limit exceeded');
-    res.writeHead(429, { 
+    res.writeHead(429, {
       'Content-Type': 'application/json',
       'Retry-After': Math.ceil((result.resetAt - Date.now()) / 1000),
     });
-    res.end(JSON.stringify({ 
-      error: 'Rate limit exceeded. Please try again later.',
-      retryAfter: Math.ceil((result.resetAt - Date.now()) / 1000),
-    }));
+    res.end(
+      JSON.stringify({
+        error: 'Rate limit exceeded. Please try again later.',
+        retryAfter: Math.ceil((result.resetAt - Date.now()) / 1000),
+      })
+    );
     return true;
   }
 
@@ -505,4 +500,3 @@ setInterval(() => {
     log.debug({ cleaned }, 'Cleaned expired rate limit entries');
   }
 }, 60000); // Every minute
-

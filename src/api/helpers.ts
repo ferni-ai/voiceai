@@ -1,11 +1,14 @@
 /**
  * Shared API Helper Functions
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Common utilities used across API route handlers.
  * Extracted to reduce duplication and ensure consistency.
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { API_ERRORS } from './error-messages.js';
 
 // ============================================================================
 // REQUEST PARSING
@@ -45,10 +48,7 @@ export async function parseBody<T = unknown>(req: IncomingMessage): Promise<T> {
  * @param parsedUrl - Parsed URL with searchParams
  * @returns User ID or null if not provided
  */
-export function getUserId(
-  req: IncomingMessage,
-  parsedUrl: URL
-): string | null {
+export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
   const fromQuery = parsedUrl.searchParams.get('userId');
   if (fromQuery) return fromQuery;
 
@@ -75,7 +75,7 @@ export function requireUserId(
 ): string | null {
   const userId = getUserId(req, parsedUrl);
   if (!userId) {
-    sendError(res, 'userId is required', 401);
+    sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
     return null;
   }
   return userId;
@@ -105,11 +105,7 @@ export function getCorsHeaders(): Record<string, string> {
  * @param data - Data to serialize as JSON
  * @param status - HTTP status code (default 200)
  */
-export function sendJSON(
-  res: ServerResponse,
-  data: unknown,
-  status = 200
-): void {
+export function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
   res.writeHead(status, {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache',
@@ -147,11 +143,7 @@ export function sendJSONCached(
  * @param message - Error message
  * @param status - HTTP status code (default 500)
  */
-export function sendError(
-  res: ServerResponse,
-  message: string,
-  status = 500
-): void {
+export function sendError(res: ServerResponse, message: string, status = 500): void {
   res.writeHead(status, {
     'Content-Type': 'application/json',
     ...getCorsHeaders(),
@@ -166,10 +158,7 @@ export function sendError(
  * @param res - Server response
  * @returns true if this was a preflight request that was handled
  */
-export function handleCorsPreflightIfNeeded(
-  req: IncomingMessage,
-  res: ServerResponse
-): boolean {
+export function handleCorsPreflightIfNeeded(req: IncomingMessage, res: ServerResponse): boolean {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, getCorsHeaders());
     res.end();
@@ -190,11 +179,7 @@ export function handleCorsPreflightIfNeeded(
  * @param max - Maximum allowed value
  * @returns Validated integer
  */
-export function parsePositiveInt(
-  value: string | null,
-  defaultValue: number,
-  max?: number
-): number {
+export function parsePositiveInt(value: string | null, defaultValue: number, max?: number): number {
   if (!value) return defaultValue;
   const parsed = parseInt(value, 10);
   if (isNaN(parsed) || parsed < 1) return defaultValue;
@@ -215,4 +200,3 @@ export type RouteHandler = (
   pathname: string,
   parsedUrl: URL
 ) => Promise<boolean>;
-

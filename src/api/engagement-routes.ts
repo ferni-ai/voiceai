@@ -32,6 +32,7 @@ import {
   DeleteAllDataSchema,
   UpdatePredictionActualsSchema,
 } from './validators.js';
+import { API_ERRORS } from './error-messages.js';
 
 const log = createLogger({ module: 'EngagementAPI' });
 
@@ -70,7 +71,7 @@ interface UIMemory {
 // Helper to safely get values from unknown objects
 function safeGet<T>(obj: unknown, key: string, defaultValue: T): T {
   if (obj && typeof obj === 'object' && key in obj) {
-    return (obj as Record<string, unknown>)[key] as T ?? defaultValue;
+    return ((obj as Record<string, unknown>)[key] as T) ?? defaultValue;
   }
   return defaultValue;
 }
@@ -94,7 +95,7 @@ function safeGetNested<T>(obj: unknown, path: string[], defaultValue: T): T {
 const MILESTONE_MESSAGES: Record<number, string> = {
   3: "Three days in a row. You're building something real.",
   7: 'One whole week. The habit is taking root.',
-  14: "Two weeks strong. This is becoming part of who you are.",
+  14: 'Two weeks strong. This is becoming part of who you are.',
   21: 'Three weeks. Scientists say habits form around now.',
   30: "One month! You've proven you can stick with this.",
   60: 'Two months of consistency. Remarkable.',
@@ -128,9 +129,7 @@ function getRitualFriendlyName(ritualId: string | null): string | null {
   if (ritualId.startsWith('ritual_') || ritualId.startsWith('ritual-')) {
     return 'Custom Practice';
   }
-  return ritualId
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return ritualId.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,8 +202,7 @@ function formatMemoryContent(memory: AnyRecord): string {
 function calculateConfidence(memory: AnyRecord): number {
   const referenceBoost = Math.min(0.3, (memory.timesReferenced || 0) * 0.05);
   const baseConfidence = 0.7 + referenceBoost;
-  const sentimentBoost =
-    memory.sentiment && memory.sentiment !== 'neutral' ? 0.05 : 0;
+  const sentimentBoost = memory.sentiment && memory.sentiment !== 'neutral' ? 0.05 : 0;
   return Math.min(0.99, baseConfidence + sentimentBoost);
 }
 
@@ -272,8 +270,7 @@ function extractPatternsFromProfile(profile: AnyRecord | null): Pattern[] {
     patterns.push({
       id: 'speaking_pace',
       pattern:
-        paceMessages[profile.speakingPace] ||
-        `Prefers ${profile.speakingPace} speaking pace`,
+        paceMessages[profile.speakingPace] || `Prefers ${profile.speakingPace} speaking pace`,
       frequency: totalConvos,
       examples: [],
       category: 'communication',
@@ -522,7 +519,9 @@ function extractPatternsFromProfile(profile: AnyRecord | null): Pattern[] {
       id: 'family_mentioned',
       pattern: `I know about ${profile.familyMembers.length} important ${profile.familyMembers.length === 1 ? 'person' : 'people'} in your life`,
       frequency: profile.familyMembers.length,
-      examples: profile.familyMembers.slice(0, 3).map((f: AnyRecord) => f.name || f.relationship || ''),
+      examples: profile.familyMembers
+        .slice(0, 3)
+        .map((f: AnyRecord) => f.name || f.relationship || ''),
       category: 'relationships',
     });
   }
@@ -692,17 +691,14 @@ async function handleGetConversations(
   try {
     const limit = parsePositiveInt(parsedUrl.searchParams.get('limit'), 50, 500);
 
-    const { getConversationHistoryService } = await import(
-      '../services/conversation-history.js'
-    );
+    const { getConversationHistoryService } = await import('../services/conversation-history.js');
     const historyService = getConversationHistoryService();
     const data = await historyService.getHistory(userId, limit);
 
     sendJSONCached(res, data, 60);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
     log.error({ error: err, userId }, 'Failed to get conversations');
-    sendError(res, 'Failed to get conversations', 500);
+    sendError(res, API_ERRORS.CONVERSATIONS_FETCH_FAILED, 500);
   }
 }
 
@@ -745,8 +741,7 @@ async function handleGetUserAnalytics(
         dayCompletions[day] = (dayCompletions[day] || 0) + 1;
       }
     });
-    const bestDay =
-      Object.entries(dayCompletions).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const bestDay = Object.entries(dayCompletions).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
     // Mood trends
     const moodTrends = weatherHistory.slice(0, 14).map((w) => {
@@ -771,9 +766,7 @@ async function handleGetUserAnalytics(
     };
     const moodValues = moodTrends.map((m) => moodMap[m.mood] || 3);
     const averageMood =
-      moodValues.length > 0
-        ? moodValues.reduce((sum, v) => sum + v, 0) / moodValues.length
-        : 3;
+      moodValues.length > 0 ? moodValues.reduce((sum, v) => sum + v, 0) / moodValues.length : 3;
 
     // Streak trends
     const streakTrends: Array<{
@@ -856,20 +849,24 @@ async function handleGetUserAnalytics(
     sendJSONCached(res, analytics, 60);
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get user analytics');
-    sendJSON(res, {
-      error: 'Failed to get analytics',
-      totalDays: 0,
-      totalRituals: 0,
-      currentLongestStreak: 0,
-      averageMood: 0,
-      predictionAccuracy: null,
-      streakTrends: [],
-      moodTrends: [],
-      predictionTrends: [],
-      bestDay: null,
-      mostConsistentRitual: null,
-      improvementAreas: [],
-    }, 500);
+    sendJSON(
+      res,
+      {
+        error: 'Failed to get analytics',
+        totalDays: 0,
+        totalRituals: 0,
+        currentLongestStreak: 0,
+        averageMood: 0,
+        predictionAccuracy: null,
+        streakTrends: [],
+        moodTrends: [],
+        predictionTrends: [],
+        bestDay: null,
+        mostConsistentRitual: null,
+        improvementAreas: [],
+      },
+      500
+    );
   }
 }
 
@@ -913,22 +910,30 @@ async function handleGetPredictions(
           )
         : profile.stats?.predictionAccuracy || 0;
 
-    sendJSONCached(res, {
-      predictions,
-      stats: {
-        totalPredictions: profile.stats?.totalPredictions || 0,
-        averageAccuracy: avgAccuracy,
-        pendingCount: validPredictions.filter((p) => !p.completedAt).length,
-        expiredCount: predictions.filter((p) => p.status === 'expired').length,
+    sendJSONCached(
+      res,
+      {
+        predictions,
+        stats: {
+          totalPredictions: profile.stats?.totalPredictions || 0,
+          averageAccuracy: avgAccuracy,
+          pendingCount: validPredictions.filter((p) => !p.completedAt).length,
+          expiredCount: predictions.filter((p) => p.status === 'expired').length,
+        },
       },
-    }, 60);
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get predictions');
-    sendJSON(res, {
-      error: 'Failed to get predictions',
-      predictions: [],
-      stats: { totalPredictions: 0, averageAccuracy: 0 },
-    }, 500);
+    sendJSON(
+      res,
+      {
+        error: 'Failed to get predictions',
+        predictions: [],
+        stats: { totalPredictions: 0, averageAccuracy: 0 },
+      },
+      500
+    );
   }
 }
 
@@ -953,14 +958,14 @@ async function handleUpdatePredictionActuals(
     const result = await store.updatePredictionActuals(userId, predictionId, body.actuals);
 
     if (!result) {
-      sendError(res, 'Prediction not found', 404);
+      sendError(res, API_ERRORS.PREDICTION_NOT_FOUND, 404);
       return;
     }
 
     sendJSON(res, result);
   } catch (err) {
     log.error({ error: err, predictionId }, 'Failed to update prediction');
-    sendError(res, err instanceof Error ? err.message : 'Unknown error', 500);
+    sendError(res, API_ERRORS.PREDICTION_UPDATE_FAILED, 500);
   }
 }
 
@@ -1001,7 +1006,9 @@ async function handleGetCognitiveMemories(
     let profilePatterns: Pattern[] = [];
     if (userProfile) {
       // Cast to satisfy extractLearnedMemories signature
-      const profileData = extractLearnedMemories(userProfile as unknown as Parameters<typeof extractLearnedMemories>[0]);
+      const profileData = extractLearnedMemories(
+        userProfile as unknown as Parameters<typeof extractLearnedMemories>[0]
+      );
       // The returned memories/patterns may have optional fields, normalize them
       profileMemories = (profileData.memories || []).map((m: AnyRecord) => ({
         id: m.id || '',
@@ -1049,20 +1056,28 @@ async function handleGetCognitiveMemories(
       Math.round(allMemories.length * 3 + totalInteractions * 2 + uniquePatterns.length * 5)
     );
 
-    sendJSONCached(res, {
-      memories: allMemories,
-      patterns: uniquePatterns,
-      totalInteractions,
-      knowledgeScore,
-    }, 60);
+    sendJSONCached(
+      res,
+      {
+        memories: allMemories,
+        patterns: uniquePatterns,
+        totalInteractions,
+        knowledgeScore,
+      },
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get cognitive memories');
-    sendJSON(res, {
-      memories: [],
-      patterns: [],
-      totalInteractions: 0,
-      knowledgeScore: 0,
-    }, 500);
+    sendJSON(
+      res,
+      {
+        memories: [],
+        patterns: [],
+        totalInteractions: 0,
+        knowledgeScore: 0,
+      },
+      500
+    );
   }
 }
 
@@ -1112,11 +1127,11 @@ async function handleDeleteMemory(
       log.info({ memoryId, source: deleteSource, userId }, 'Memory deleted');
       sendJSON(res, { success: true, memoryId, source: deleteSource });
     } else {
-      sendError(res, 'Memory not found', 404);
+      sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
     }
   } catch (err) {
     log.error({ error: err, memoryId, userId }, 'Failed to delete memory');
-    sendError(res, err instanceof Error ? err.message : 'Unknown error', 500);
+    sendError(res, API_ERRORS.OPERATION_FAILED, 500);
   }
 }
 
@@ -1138,25 +1153,33 @@ async function handleGetRituals(
     const streaks = await store.getAllStreaks(userId);
     const weatherHistory = await store.getWeatherHistory(userId, 30);
 
-    sendJSONCached(res, {
-      activeRituals: profile.activeRituals || [],
-      streaks,
-      weatherHistory,
-      preferences: profile.preferences,
-      stats: {
-        totalRitualDays: profile.totalRitualDays,
-        longestOverallStreak: profile.longestOverallStreak,
-        totalSkyChecks: profile.stats?.totalSkyChecks || 0,
+    sendJSONCached(
+      res,
+      {
+        activeRituals: profile.activeRituals || [],
+        streaks,
+        weatherHistory,
+        preferences: profile.preferences,
+        stats: {
+          totalRitualDays: profile.totalRitualDays,
+          longestOverallStreak: profile.longestOverallStreak,
+          totalSkyChecks: profile.stats?.totalSkyChecks || 0,
+        },
       },
-    }, 60);
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get rituals');
-    sendJSON(res, {
-      error: 'Failed to get rituals',
-      activeRituals: [],
-      streaks: [],
-      weatherHistory: [],
-    }, 500);
+    sendJSON(
+      res,
+      {
+        error: 'Failed to get rituals',
+        activeRituals: [],
+        streaks: [],
+        weatherHistory: [],
+      },
+      500
+    );
   }
 }
 
@@ -1199,7 +1222,7 @@ async function handleCreateRitual(
     sendJSON(res, { success: true, ritualId }, 201);
   } catch (err) {
     log.error({ error: err }, 'Failed to create ritual');
-    sendError(res, err instanceof Error ? err.message : 'Unknown error', 500);
+    sendError(res, API_ERRORS.RITUAL_CREATE_FAILED, 500);
   }
 }
 
@@ -1229,7 +1252,7 @@ async function handleDeleteRitual(
     sendJSON(res, { success: true, ritualId });
   } catch (err) {
     log.error({ error: err, ritualId, userId }, 'Failed to delete ritual');
-    sendError(res, err instanceof Error ? err.message : 'Unknown error', 500);
+    sendError(res, API_ERRORS.RITUAL_DELETE_FAILED, 500);
   }
 }
 
@@ -1252,9 +1275,9 @@ async function handleCompleteRitual(
     const { getEngagementStore } = await import('../services/engagement-store.js');
     const store = await getEngagementStore();
 
-    let streak = (await store.getRitualStreak(userId, ritualId)) as AnyRecord | null;
+    const streak = (await store.getRitualStreak(userId, ritualId)) as AnyRecord | null;
     if (!streak) {
-      sendError(res, 'Ritual not found', 404);
+      sendError(res, API_ERRORS.RITUAL_NOT_FOUND, 404);
       return;
     }
 
@@ -1336,7 +1359,7 @@ async function handleCompleteRitual(
     });
   } catch (err) {
     log.error({ error: err, ritualId }, 'Failed to complete ritual');
-    sendError(res, err instanceof Error ? err.message : 'Unknown error', 500);
+    sendError(res, API_ERRORS.RITUAL_COMPLETE_FAILED, 500);
   }
 }
 
@@ -1356,18 +1379,26 @@ async function handleGetHuddles(
     const store = await getEngagementStore();
     const profile = (await store.getProfile(userId)) as AnyRecord;
 
-    sendJSONCached(res, {
-      totalHuddles: profile.stats?.teamHuddlesAttended || 0,
-      lastHuddleAt: profile.lastEngagementAt,
-      recentHuddles: [],
-    }, 60);
+    sendJSONCached(
+      res,
+      {
+        totalHuddles: profile.stats?.teamHuddlesAttended || 0,
+        lastHuddleAt: profile.lastEngagementAt,
+        recentHuddles: [],
+      },
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get huddles');
-    sendJSON(res, {
-      error: 'Failed to get huddles',
-      totalHuddles: 0,
-      recentHuddles: [],
-    }, 500);
+    sendJSON(
+      res,
+      {
+        error: 'Failed to get huddles',
+        totalHuddles: 0,
+        recentHuddles: [],
+      },
+      500
+    );
   }
 }
 
@@ -1411,11 +1442,7 @@ async function handleExportData(
 
     const { getDataExportService } = await import('../services/data-export.js');
     const exportService = getDataExportService();
-    const data = await exportService.exportData(
-      userId,
-      body.format,
-      body.categories || []
-    );
+    const data = await exportService.exportData(userId, body.format, body.categories || []);
 
     const contentType = body.format === 'csv' ? 'text/csv' : 'application/json';
     const filename = `ferni-export-${new Date().toISOString().split('T')[0]}.${body.format}`;
@@ -1427,7 +1454,7 @@ async function handleExportData(
     res.end(data);
   } catch (err) {
     log.error({ error: err }, 'Failed to export data');
-    sendError(res, err instanceof Error ? err.message : 'Unknown error', 500);
+    sendError(res, API_ERRORS.DATA_EXPORT_FAILED, 500);
   }
 }
 
@@ -1448,7 +1475,7 @@ async function handleDeleteAllData(
 
     // Validator already ensures confirmDelete === true, but double-check
     if (body.confirmDelete !== true) {
-      sendError(res, 'Must confirm deletion with confirmDelete: true', 400);
+      sendError(res, API_ERRORS.DATA_DELETE_CONFIRMATION, 400);
       return;
     }
 
@@ -1460,7 +1487,7 @@ async function handleDeleteAllData(
     sendJSON(res, { success: true, message: 'All data deleted' });
   } catch (err) {
     log.error({ error: err }, 'Failed to delete data');
-    sendError(res, err instanceof Error ? err.message : 'Unknown error', 500);
+    sendError(res, API_ERRORS.DATA_DELETE_FAILED, 500);
   }
 }
 
@@ -1477,9 +1504,7 @@ async function handleGetRelationshipProgress(
 
   try {
     const { getEngagementStore } = await import('../services/engagement-store.js');
-    const { getConversationHistoryService } = await import(
-      '../services/conversation-history.js'
-    );
+    const { getConversationHistoryService } = await import('../services/conversation-history.js');
 
     const store = await getEngagementStore();
     const historyService = getConversationHistoryService();
@@ -1517,28 +1542,36 @@ async function handleGetRelationshipProgress(
       nextStageAt = 10;
     }
 
-    sendJSONCached(res, {
-      stage,
-      stageNumber,
-      engagementScore,
-      nextStageAt,
-      progress: nextStageAt
-        ? Math.min(100, Math.round((engagementScore / nextStageAt) * 100))
-        : 100,
-      stats: {
-        totalConversations,
-        totalRitualDays,
-        lastEngagement: profile.lastEngagementAt,
+    sendJSONCached(
+      res,
+      {
+        stage,
+        stageNumber,
+        engagementScore,
+        nextStageAt,
+        progress: nextStageAt
+          ? Math.min(100, Math.round((engagementScore / nextStageAt) * 100))
+          : 100,
+        stats: {
+          totalConversations,
+          totalRitualDays,
+          lastEngagement: profile.lastEngagementAt,
+        },
       },
-    }, 60);
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get relationship progress');
-    sendJSON(res, {
-      error: 'Failed to get progress',
-      stage: 'stranger',
-      stageNumber: 1,
-      engagementScore: 0,
-    }, 500);
+    sendJSON(
+      res,
+      {
+        error: 'Failed to get progress',
+        stage: 'stranger',
+        stageNumber: 1,
+        engagementScore: 0,
+      },
+      500
+    );
   }
 }
 
@@ -1671,4 +1704,3 @@ export async function handleEngagementRoutes(
   // Route not handled
   return false;
 }
-

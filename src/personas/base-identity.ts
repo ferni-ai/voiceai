@@ -1,9 +1,13 @@
 /**
  * Base Identity Rules
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Persona-agnostic rules that apply to ALL voice AI personas.
  * These are the foundational behaviors that make the AI feel human,
  * regardless of which specific persona is being used.
+ *
+ * This file is the heart of our human-first philosophy in code.
  *
  * NOTE: This is intentionally similar to src/persona/core-identity.ts
  * The difference:

@@ -1,11 +1,15 @@
 /**
  * Cognitive Profiles for Each Persona
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Defines HOW each persona THINKS - their reasoning style,
  * attention patterns, cognitive biases, and metacognitive awareness.
  *
  * These profiles make each AI truly different, not just in personality
  * but in how they approach problems and process information.
+ *
+ * Real humans have blind spots, biases, and uncertainty. So do we.
  */
 
 import type { CognitiveProfile } from './cognitive-types.js';

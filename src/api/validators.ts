@@ -15,6 +15,7 @@ import { z } from 'zod';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { parseBody, sendError } from './helpers.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { API_ERRORS } from './error-messages.js';
 
 const log = createLogger({ module: 'Validators' });
 
@@ -29,7 +30,10 @@ export const UserIdSchema = z.string().min(1, 'userId is required');
 export const LimitSchema = z.coerce.number().int().min(1).max(500).default(50);
 
 /** ISO date string */
-export const ISODateSchema = z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/));
+export const ISODateSchema = z
+  .string()
+  .datetime({ offset: true })
+  .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/));
 
 /** Positive number */
 export const PositiveNumberSchema = z.number().positive();
@@ -48,11 +52,13 @@ export const WeatherSchema = z.object({
 /** Create ritual request */
 export const CreateRitualSchema = z.object({
   userId: UserIdSchema.optional(),
-  ritual: z.object({
-    personaId: z.string().optional(),
-    name: z.string().max(100).optional(),
-    frequency: z.enum(['daily', 'weekday', 'weekend', 'weekly']).optional(),
-  }).optional(),
+  ritual: z
+    .object({
+      personaId: z.string().optional(),
+      name: z.string().max(100).optional(),
+      frequency: z.enum(['daily', 'weekday', 'weekend', 'weekly']).optional(),
+    })
+    .optional(),
 });
 
 /** Complete ritual request */
@@ -166,7 +172,11 @@ export const ResolveIncidentSchema = z.object({
 
 /** Create feature flag */
 export const CreateFeatureFlagSchema = z.object({
-  id: z.string().min(1).max(100).regex(/^[a-z0-9-_]+$/, 'id must be lowercase alphanumeric with dashes/underscores'),
+  id: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-_]+$/, 'id must be lowercase alphanumeric with dashes/underscores'),
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
   type: z.enum(['boolean', 'percentage', 'user_list', 'value']),
@@ -215,21 +225,25 @@ export async function validateBody<T extends z.ZodType>(
     const result = schema.safeParse(rawBody);
 
     if (!result.success) {
-      const issues = result.error.issues;
+      const { issues } = result.error;
       const errorMessages = issues.map((issue: z.ZodIssue) => ({
         path: issue.path.join('.'),
         message: issue.message,
       }));
 
       log.warn({ errors: errorMessages, url: req.url }, 'Validation failed');
-      sendError(res, `Validation error: ${errorMessages.map((e: { message: string }) => e.message).join(', ')}`, 400);
+      sendError(
+        res,
+        `Validation error: ${errorMessages.map((e: { message: string }) => e.message).join(', ')}`,
+        400
+      );
       return null;
     }
 
     return result.data;
   } catch (err) {
     log.error({ error: err, url: req.url }, 'Failed to parse request body');
-    sendError(res, 'Invalid request body', 400);
+    sendError(res, API_ERRORS.INVALID_REQUEST, 400);
     return null;
   }
 }
@@ -237,10 +251,7 @@ export async function validateBody<T extends z.ZodType>(
 /**
  * Validate query parameters against a Zod schema.
  */
-export function validateQuery<T extends z.ZodType>(
-  parsedUrl: URL,
-  schema: T
-): z.infer<T> | null {
+export function validateQuery<T extends z.ZodType>(parsedUrl: URL, schema: T): z.infer<T> | null {
   const params: Record<string, string> = {};
   parsedUrl.searchParams.forEach((value, key) => {
     params[key] = value;
@@ -252,4 +263,3 @@ export function validateQuery<T extends z.ZodType>(
   }
   return result.data;
 }
-
