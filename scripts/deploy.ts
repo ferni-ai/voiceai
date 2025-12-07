@@ -259,6 +259,37 @@ async function deployBrand(options: DeployOptions): Promise<boolean> {
   return true;
 }
 
+async function deployFrontend(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING FRONTEND TO FIREBASE HOSTING');
+
+  const frontendDir = join(PROJECT_ROOT, 'frontend-typescript');
+
+  if (!existsSync(frontendDir)) {
+    log.warn('Frontend directory not found: frontend-typescript');
+    return false;
+  }
+
+  if (options.dryRun) {
+    log.info('Would deploy frontend to Firebase Hosting (ferni-prod + johnb-app)');
+    return true;
+  }
+
+  // Build frontend first
+  if (!options.skipBuild) {
+    log.info('Building frontend...');
+    exec(`cd ${frontendDir} && npm run build`);
+  }
+
+  // Deploy to BOTH Firebase Hosting sites
+  log.info('Deploying to Firebase Hosting (ferni-prod + johnb-app)...');
+  exec(`cd ${frontendDir} && firebase deploy --only hosting:ferni-prod,hosting:johnb-app --project ${CONFIG.projectId}`);
+  
+  log.success('Frontend deployed to:');
+  log.success('  - https://ferni-prod.web.app');
+  log.success('  - https://app.ferni.ai (johnb-2025)');
+  return true;
+}
+
 async function deployLanding(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING LANDING PAGE');
 
@@ -533,13 +564,14 @@ ${colors.bold}Usage:${colors.reset}
   npm run deploy <target> [options]
 
 ${colors.bold}Targets:${colors.reset}
-  ${colors.green}ui${colors.reset}         Deploy frontend UI to Cloud Run
+  ${colors.green}ui${colors.reset}         Deploy UI backend to Cloud Run (APIs)
+  ${colors.green}frontend${colors.reset}   Deploy frontend to Firebase Hosting (app.ferni.ai)
   ${colors.green}agent${colors.reset}      Deploy voice agent to Cloud Run
   ${colors.green}brand${colors.reset}      Deploy brand assets to Cloud Storage
   ${colors.green}landing${colors.reset}    Deploy landing page (Firebase/Cloud Storage)
   ${colors.green}joel${colors.reset}       Deploy Joel Dickson (agent + UI)
   ${colors.green}evolution${colors.reset}  Deploy evolution scheduler Cloud Function
-  ${colors.green}all${colors.reset}        Deploy everything (ui, agent, landing)
+  ${colors.green}all${colors.reset}        Deploy everything (agent, ui, frontend, landing)
 
 ${colors.bold}Options:${colors.reset}
   --dry-run     Show what would be deployed without making changes
@@ -617,6 +649,10 @@ ${colors.cyan}╚═════════════════════
       success = await deployLanding(options);
       break;
 
+    case 'frontend':
+      success = await deployFrontend(options);
+      break;
+
     case 'joel':
       success = await deployJoel(options);
       break;
@@ -626,7 +662,7 @@ ${colors.cyan}╚═════════════════════
       break;
 
     case 'all':
-      success = (await deployAgent(options)) && (await deployUi(options)) && (await deployLanding(options));
+      success = (await deployAgent(options)) && (await deployUi(options)) && (await deployFrontend(options)) && (await deployLanding(options));
       break;
 
     default:

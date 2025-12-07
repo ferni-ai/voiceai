@@ -123,6 +123,7 @@
     "deploy:agent": "npx tsx scripts/deploy.ts agent",
     "deploy:brand": "npx tsx scripts/deploy.ts brand",
     "deploy:landing": "npx tsx scripts/deploy.ts landing",
+    "deploy:frontend": "npx tsx scripts/deploy.ts frontend",
     "deploy:joel": "npx tsx scripts/deploy.ts joel",
     "deploy:evolution": "npx tsx scripts/deploy.ts evolution",
     "deploy:all": "npx tsx scripts/deploy.ts all",

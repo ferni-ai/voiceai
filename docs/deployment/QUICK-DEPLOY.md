@@ -1,127 +1,154 @@
-# Ferni Quick Deploy Reference
+# 🚀 Ferni Quick Deployment Guide
 
-**Project:** `johnb-2025` | **Region:** `us-central1`
+## Overview
 
-## 🚀 One Command Deploy
+Ferni has **4 deployment targets** that must be kept in sync:
 
-```bash
-./scripts/deploy-all.sh --all
-```
+| Target | What | URL | Deploy Command |
+|--------|------|-----|----------------|
+| **ferni-prod** | Main App | ferni-prod.web.app | `npm run deploy:app` |
+| **johnb-app** | App (custom domain) | app.ferni.ai | `npm run deploy:app` |
+| **ferni-landing** | Marketing Site | ferni-landing.web.app / ferni.ai | `npm run deploy:landing` |
+| **bogle-ui** | Cloud Run Backend | (internal) | `npm run deploy:backend` |
 
----
-
-## Individual Deployments
-
-| What | Command | Service Name |
-|------|---------|--------------|
-| Everything | `./scripts/deploy-all.sh --all` | - |
-| Voice Agent | `./scripts/deploy-all.sh --agent` | voiceai-agent |
-| Frontend App | `./scripts/deploy-all.sh --ui` | john-bogle-ui |
-| Landing Page | `./scripts/deploy-all.sh --landing` | (Firebase/GCS) |
-
----
-
-## Your Existing GCP Setup ✓
-
-**Services Already Running:**
-- `voiceai-agent` - Main voice agent
-- `john-bogle-ui` - Frontend app
-- `bogle-voice-agent` - Legacy agent
-- `joel-dickson-agent` - Joel persona
-- `evolutionscheduler` - Background tasks
-
-**Secrets Already Configured:** ✓
-- google-api-key, cartesia-api-key
-- livekit-url, livekit-api-key, livekit-api-secret
-- alpha-vantage-key, finnhub-api-key
-- sendgrid-api-key, sendgrid-from-email
-- spotify-client-id/secret/refresh-token
-- twilio-account-sid/auth-token
-- plaid-client-id/secret/env
-
----
-
-## Workflow Diagram
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  1. DESIGN      │ ──► │  2. DEVELOP     │ ──► │  3. DEPLOY      │
-│                 │     │                 │     │                 │
-│  Brand assets   │     │  npm run dev    │     │  deploy-all.sh  │
-│  Prompts        │     │  Test locally   │     │  Cloud Build    │
-│  Brand book     │     │  Build          │     │  Cloud Run      │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                       │                       │
-        ▼                       ▼                       ▼
-   /brand/              /src/, /frontend/       GCP Services
-```
-
----
-
-## Local Development
+## 🎯 Quick Deploy Commands
 
 ```bash
-# Terminal 1: Voice Agent
-npm run dev
+# Deploy EVERYTHING (recommended after major changes)
+npm run deploy:all
 
-# Terminal 2: Frontend App
-cd frontend-typescript && npm run dev
+# Deploy just the frontend app (both sites)
+npm run deploy:app
 
-# Terminal 3: Landing Page
-cd promo/ferni-website && python3 -m http.server 8765
+# Deploy just the landing page
+npm run deploy:landing
+
+# Deploy just the Cloud Run backend
+npm run deploy:backend
 ```
 
----
+## When to Deploy What
 
-## Service URLs
-
-| Service | Local | Production |
-|---------|-------|------------|
-| Landing Page | http://localhost:8765 | https://ferni.ai |
-| Frontend App | http://localhost:5173 | https://john-bogle-ui-1031920444452.us-central1.run.app |
-| Voice Agent | ws://localhost:8080 | https://voiceai-agent-1031920444452.us-central1.run.app |
-| Phone | N/A | 1 (484) 481-3081 |
-
----
-
-## Monitor & Debug
-
+### Changed Frontend Code (`frontend-typescript/src/*`)
 ```bash
-# View logs
-gcloud run services logs read voiceai-agent --region us-central1
-
-# List services
-gcloud run services list
-
-# Check service status
-gcloud run services describe voiceai-agent --region us-central1
+npm run deploy:app
 ```
+This deploys to BOTH `ferni-prod` and `johnb-app` (app.ferni.ai).
 
----
-
-## Rollback
-
+### Changed Backend/API Code (`ui-server.js`, `src/*`)
 ```bash
-# List revisions
-gcloud run revisions list --service voiceai-agent --region us-central1
+npm run deploy:backend
+```
+This rebuilds and deploys the Cloud Run service.
 
-# Rollback
-gcloud run services update-traffic voiceai-agent \
-  --to-revisions=REVISION_NAME=100 \
-  --region us-central1
+### Changed Landing Page (`promo/ferni-website/*`)
+```bash
+npm run deploy:landing
 ```
 
----
+### Changed Firebase Rewrites (`frontend-typescript/firebase.json`)
+```bash
+npm run deploy:app
+```
+Rewrites are part of Firebase Hosting config.
 
-## File Reference
+### Changed Everything
+```bash
+npm run deploy:all
+```
 
-| Path | Description |
-|------|-------------|
-| `/brand/brand-book.html` | Visual brand book (export to PDF) |
-| `/brand/ferni-design-tokens.css` | CSS variables |
-| `/promo/ferni-website/` | Marketing landing page |
-| `/frontend-typescript/` | Web application |
-| `/src/` | Voice agent backend |
-| `/scripts/deploy-all.sh` | Master deployment script |
-| `/docs/FERNI-COMPLETE-GUIDE.md` | Full documentation |
+## 📁 File → Deployment Mapping
 
+| Files Changed | Deploy Target |
+|---------------|---------------|
+| `frontend-typescript/src/**` | `deploy:app` |
+| `frontend-typescript/firebase.json` | `deploy:app` |
+| `frontend-typescript/public/**` | `deploy:app` |
+| `ui-server.js` | `deploy:backend` |
+| `src/**/*.ts` | `deploy:backend` |
+| `promo/ferni-website/**` | `deploy:landing` |
+| `promo/ferni-website/_site/**` | `deploy:landing` |
+
+## ⚠️ Common Mistakes
+
+### 1. Forgetting to deploy to BOTH app sites
+**Wrong:** Only deploying to `ferni-prod`
+**Right:** Always deploy to both via `npm run deploy:app`
+
+### 2. Adding API routes without updating rewrites
+If you add a new API route (e.g., `/api/new-feature`), you need to:
+1. Add the route to `ui-server.js`
+2. Add the rewrite to `frontend-typescript/firebase.json`
+3. Deploy BOTH backend AND app
+
+### 3. Forgetting to copy assets to `_site/` for landing page
+The landing page uses `_site/` as the public folder. New assets must be copied there.
+
+## 📝 Important Notes
+
+### Google Analytics Errors
+If you see `Fetch failed loading: POST "https://www.google-analytics.com/..."` errors in the console, **this is expected behavior** when users have ad blockers. GA will work for users without blockers. We've added graceful error handling so it logs a friendly message instead of an error.
+
+### Landing Page Build
+The landing page in `promo/ferni-website/_site/` is a built version. Always edit the source files in `promo/ferni-website/` (not `_site/`), then:
+1. Build/copy files to `_site/`
+2. Deploy with `npm run deploy:landing`
+
+### Image Sequence for Landing Page
+If updating the scroll animation, ensure images are in `promo/ferni-website/_site/images/sequence/`.
+
+## 🔧 Setting Up Deploy Commands
+
+Add these to your root `package.json`:
+
+```json
+{
+  "scripts": {
+    "deploy:app": "cd frontend-typescript && firebase deploy --only hosting:ferni-prod,hosting:johnb-app --project johnb-2025",
+    "deploy:landing": "cd promo/ferni-website && firebase deploy --only hosting:ferni-landing --project johnb-2025",
+    "deploy:backend": "gcloud builds submit --config=cloudbuild-ui.yaml --project=johnb-2025",
+    "deploy:all": "npm run deploy:app && npm run deploy:landing && npm run deploy:backend"
+  }
+}
+```
+
+## 🔍 Verifying Deployments
+
+### Check API is working
+```bash
+curl https://app.ferni.ai/api/agents | head -50
+curl https://app.ferni.ai/health
+curl https://app.ferni.ai/spotify/status
+```
+
+### Check Firebase Hosting
+```bash
+firebase hosting:sites:list --project johnb-2025
+```
+
+### Check Cloud Run
+```bash
+gcloud run services list --project johnb-2025 --region us-central1
+```
+
+## 🚨 Rollback
+
+### Firebase Hosting (frontend)
+```bash
+firebase hosting:clone SOURCE_SITE:SOURCE_VERSION TARGET_SITE --project johnb-2025
+```
+Or use Firebase Console → Hosting → Release History → Rollback
+
+### Cloud Run (backend)
+```bash
+gcloud run services update-traffic bogle-ui --to-revisions=REVISION_NAME=100 --region=us-central1 --project=johnb-2025
+```
+
+## CI/CD (GitHub Actions)
+
+Push to `main` automatically triggers:
+- ✅ Build & Test
+- ✅ Deploy Voice Agent to Cloud Run
+- ✅ Deploy UI Server to Cloud Run
+
+**Note:** Firebase Hosting is NOT auto-deployed. Run `npm run deploy:app` manually after merging.
