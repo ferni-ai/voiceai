@@ -14,6 +14,8 @@ import { getPersona } from '../../personas/index.js';
 export interface HandoffEventData {
   /** The persona being handed off TO (full object, no ID lookups needed) */
   persona: PersonaConfig;
+  /** Shortcut to persona.id for convenience */
+  agentId: string;
   /** Optional greeting for the new persona to say */
   greeting?: string;
   /** Sound to play during transition */
@@ -45,6 +47,7 @@ export function createHandoffEvent(
   }
   return {
     persona,
+    agentId: persona.id,
     greeting: options.greeting,
     playSound: options.playSound,
     previousAgentId: options.previousAgentId,
