@@ -7,7 +7,10 @@
  * API Documentation: https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger, getLogger } from '../utils/safe-logger.js';
+
+const log = createLogger({ module: 'iTunes' });
+const DEBUG_ITUNES = process.env.DEBUG_ITUNES === 'true';
 
 // ============================================================================
 // TYPES
@@ -62,14 +65,14 @@ const ITUNES_API_BASE = 'https://itunes.apple.com';
 export async function searchItunes(query: string, limit = 5): Promise<iTunesSearchResult> {
   const url = `${ITUNES_API_BASE}/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=${limit}`;
 
-  console.log('🎵🎵🎵 [ITUNES API DEBUG] searchItunes called:', { query, limit, url });
-  getLogger().info({ query, limit, url: url.slice(0, 80) }, '🎵 [iTunes API] Searching...');
+  if (DEBUG_ITUNES) log.debug('searchItunes called', { query, limit, url });
+  log.info({ query, limit }, 'iTunes API searching');
 
   try {
-    console.log('🎵🎵🎵 [ITUNES API DEBUG] Making fetch request to:', url);
+    if (DEBUG_ITUNES) log.debug('Making fetch request', { url });
     const response = await fetch(url);
 
-    console.log('🎵🎵🎵 [ITUNES API DEBUG] Response:', {
+    if (DEBUG_ITUNES) log.debug('Response received', {
       status: response.status,
       ok: response.ok,
     });
@@ -79,14 +82,13 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
     );
 
     if (!response.ok) {
-      console.log('🎵🎵🎵 [ITUNES API DEBUG] ❌ HTTP ERROR:', response.status);
-      getLogger().error({ status: response.status }, '🎵 [iTunes API] HTTP error');
+      log.error({ status: response.status }, 'iTunes API HTTP error');
       throw new Error(`iTunes API error: ${response.status}`);
     }
 
     const data = (await response.json()) as iTunesSearchResult;
 
-    console.log('🎵🎵🎵 [ITUNES API DEBUG] ✅ Results:', {
+    if (DEBUG_ITUNES) log.debug('Results received', {
       resultCount: data.resultCount,
       firstTrack: data.results[0]?.trackName,
       firstArtist: data.results[0]?.artistName,
@@ -105,8 +107,7 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
 
     return data;
   } catch (error) {
-    console.log('🎵🎵🎵 [ITUNES API DEBUG] ❌ EXCEPTION:', error);
-    getLogger().error({ error, query, url }, '🎵 [iTunes API] EXCEPTION');
+    log.error({ error, query, url }, 'iTunes API exception');
     return { resultCount: 0, results: [] };
   }
 }

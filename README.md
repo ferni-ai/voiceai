@@ -1,150 +1,270 @@
-# Voice AI - Your AI Financial Coach
+# 🏔️ Ferni AI - Voice-First Life Coaching Platform
 
-A sophisticated multi-persona voice AI agent built with TypeScript that uses Google's Gemini Live API for speech recognition and Cartesia Sonic 3 for text-to-speech synthesis. Features deeply human, emotionally intelligent conversations with persistent memory and adaptive behaviors.
+<p align="center">
+  <img src="brand/logo.png" alt="Ferni AI" width="120" />
+</p>
+
+<p align="center">
+  <strong>Your AI life coaching team that listens, remembers, and grows with you.</strong>
+</p>
+
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-meet-the-team">Meet the Team</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-deployment">Deployment</a>
+</p>
+
+---
+
+## 🌟 What is Ferni?
+
+Ferni is a sophisticated multi-persona voice AI platform built with TypeScript. Using Google's Gemini Live API for real-time speech recognition and Cartesia Sonic 3 for natural text-to-speech, Ferni creates deeply human, emotionally intelligent conversations with persistent memory and adaptive behaviors.
+
+**Philosophy**: "Get to Know Ferni First" — Team members unlock naturally as your relationship deepens, or instantly with a subscription.
 
 ## 🚀 Quick Start
 
 ```bash
 # 1. Clone and install
+git clone <repo-url>
+cd voiceai
 npm install
 
-# 2. Create .env with your API keys
-cp .env.example .env  # Then edit with your keys
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your API keys
 
-# 3. Run locally (in-memory storage)
-npm run dev
-
-# OR with persistence (PostgreSQL + Redis)
-npm run services:up   # Start Docker services
-npm run dev
+# 3. Run in development (3 servers)
+npm run dev              # Starts all servers
 ```
 
-## 🌐 Deploy to Google Cloud
+**Development URLs:**
+- **UI**: http://localhost:3004 (Vite HMR)
+- **Token Server**: http://localhost:3001
+- **UI Server**: http://localhost:3002
 
-```bash
-# One command deploys to Cloud Run with Firestore
-./scripts/deploy-gcp.sh
+**Keyboard Shortcuts:**
+- `Cmd/Ctrl+Shift+D` — Toggle dev panel
+- `Cmd/Ctrl+Shift+U` — Quick unlock all team members
+- `Cmd/Ctrl+Shift+R` — Reset to free tier
+
+## 👥 Meet the Team
+
+Ferni's team is a group of AI specialists, each with unique expertise, personalities, and stories. They hand off to each other seamlessly based on your needs.
+
+| Agent | Role | Specialty | Icon |
+|-------|------|-----------|------|
+| **Ferni** | Life Coach & Coordinator | Team orchestration, powerful questions, purpose, relationships, resilience | 🏔️ |
+| **Alex Chen** | Communication Coach & Chief of Staff | Emails, calendar, scheduling, difficult conversations, assertiveness | 💬 |
+| **Maya Santos** | Life Habits Coach | Habits, routines, wellness, budgeting, behavior science (Atomic Habits, Tiny Habits) | 🌱 |
+| **Peter John** | The Quant & Research Specialist | Pattern analysis, stock research, cross-domain insights, data storytelling | 🔬 |
+| **Jordan Taylor** | Lifetime Planner | Life milestones, events, vacations, goal planning, celebrations | 🌟 |
+| **Nayan** | Lifetime Advisor (Premium) | Wisdom, philosophy, meditation, long-term thinking, spiritual guidance | 🕉️ |
+
+### Team Unlocking
+
+| Relationship Stage | Unlocks | Requires |
+|-------------------|---------|----------|
+| **First Meeting** | Ferni only | New user |
+| **Getting Started** | + Maya Santos | 2 conversations |
+| **Building Trust** | + Peter John | 7 conversations, 3 days |
+| **Established** | + Alex Chen, Jordan Taylor | 20 conversations, 7 days |
+| **Deep Partnership** | + Nayan (Premium) | Partner tier subscription |
+
+## 🏗️ Architecture
+
+### High-Level Flow
+
 ```
-
-See [docs/google-cloud-deployment.md](docs/google-cloud-deployment.md) for details.
-
-## ✨ Key Features
-
-- **🎭 Multi-Persona System**: Multiple AI personalities (Jack Bogle, Jack B, Peter Lynch, and more)
-- **🧠 Intelligent Context Injection**: 15 modular context builders for human-like responses
-- **💬 Real-time Emotion Detection**: Detects distress, joy, fear, and adapts responses
-- **🎯 Intent Classification**: 27 intent types for understanding user needs
-- **📚 Persistent Memory**: Cross-session memory with user profiles (Firestore/PostgreSQL)
-- **🔊 Adaptive Speech**: WPM tracking, SSML tagging, energy mirroring
-- **🛠️ 35+ Intelligent Tools**: Financial calculations, storytelling, memory, awareness
-
-## Architecture Overview
-
-```
-User Speech → Gemini Live (STT) → Context Builders → LLM → SSML Tagger → Cartesia (TTS) → Audio
-                                       ↑
-                                 PersonaConfig
+User Speech → LiveKit → Gemini Live (STT) → Context Builders → LLM → SSML Tagger → Cartesia (TTS) → Audio
+                                                   ↑
+                                           PersonaConfig + Tools
 ```
 
 ### The Context Builder System
 
-The heart of the agent's intelligence. Each turn, 15 modular builders analyze the conversation and inject guidance:
+The intelligence engine that makes conversations feel human. 15+ modular builders analyze each turn and inject contextual guidance:
 
-| Builder | What It Does |
-|---------|-------------|
+| Builder | Purpose |
+|---------|---------|
 | `emotional` | Detects distress, validates feelings, mirrors emotion |
-| `crisis` | Market panic, grief, life events (job loss, divorce, etc.) |
+| `crisis` | Market panic, grief, job loss, divorce detection |
 | `celebration` | Financial milestones, achievements, good news |
 | `memory` | Cross-session callbacks, key moments, time awareness |
-| `engagement` | Curiosity moments, depth, running jokes |
+| `engagement` | Curiosity moments, depth tracking, running jokes |
 | `pacing` | Response length matching, fatigue detection |
 | `discovery` | New user onboarding (name, life stage, goals) |
 | `personal` | Name usage, small details, personal callbacks |
 | `topics` | Topic threading, circle-back, goal connection |
-| `intent` | Empathy-first responses, acknowledgment before advice |
-| `goodbye` | Warm wrap-ups, interruption recovery, silence handling |
-| `music` | Music state awareness |
-| `humanizing` | Self-corrections, humor, catchphrases, pet peeves |
+| `intent` | 27 intent types, empathy-first responses |
+| `goodbye` | Warm wrap-ups, interruption recovery |
+| `humanizing` | Self-corrections, humor, catchphrases |
 | `rag` | Semantic knowledge retrieval |
-| `tasks` | Task manager integration for guided flows |
+| `tasks` | Task manager integration |
 
-### Agent Management (NEW!)
+### Persona Bundle Architecture
 
-Agents are now defined as **bundles** that are auto-discovered. No hardcoding needed!
-
-```bash
-# List all agents
-npm run agents list
-
-# Create a new agent
-npm run agents create my-advisor --template sage
-
-# Validate an agent
-npm run agents validate my-advisor
-
-# Test an agent
-PERSONA_ID=my-advisor npm run dev
-```
-
-Each agent lives in `src/personas/bundles/<agent-id>/` with:
-- `persona.manifest.json` - Configuration
-- `identity/` - Background and instructions
-- `content/` - Stories, knowledge, behaviors
-
-See [docs/AGENT-MANAGEMENT.md](docs/AGENT-MANAGEMENT.md) for full guide.
-
-### Bundle Structure
+Each persona is a self-contained bundle with rich content:
 
 ```
-src/personas/bundles/my-advisor/
-├── persona.manifest.json    # Agent configuration
+src/personas/bundles/ferni/
+├── persona.manifest.json       # Configuration, tools, handoffs
 ├── identity/
-│   ├── biography.md        # Background story
-│   └── system-prompt.md    # Behavioral instructions
+│   ├── biography.md           # Background story
+│   └── system-prompt.md       # Behavioral instructions
 └── content/
-    ├── behaviors/          # Greetings, backchannels
-    ├── stories/            # Personal anecdotes
-    └── knowledge/          # Domain expertise
+    ├── behaviors/             # 40+ behavior files
+    │   ├── greetings.json
+    │   ├── backchannels.json
+    │   ├── catchphrases.json
+    │   ├── vulnerability.json
+    │   └── ...
+    ├── stories/               # Personal anecdotes
+    │   ├── tsunami-story.json
+    │   └── ...
+    ├── knowledge/             # Domain expertise
+    │   ├── powerful-questions.md
+    │   └── ...
+    └── voice/                 # Expression patterns
+        └── expressions.json
 ```
 
-### Quick Example: persona.manifest.json
+## ✨ Features
 
-```json
-{
-  "version": "1.0.0",
-  "manifest_version": 2,
-  "identity": {
-    "id": "my-advisor",
-    "name": "Alex",
-    "description": "Friendly financial advisor"
-  },
-  "voice": {
-    "provider": "cartesia",
-    "voice_id": "${env:MY_ADVISOR_VOICE_ID|default-uuid}"
-  },
-  "personality": {
-    "warmth": 0.8,
-    "humor_level": 0.4,
-    "traits": ["helpful", "knowledgeable"]
-  },
-  "team": {
-    "role_id": "advisor",
-    "handoff_triggers": ["financial advice", "money help"]
-  }
-}
+### Voice & Conversation
+- **Real-time Voice AI** — Sub-200ms response latency
+- **Emotion Detection** — Detects distress, joy, fear, confusion
+- **Adaptive Speech** — WPM tracking, SSML tagging, energy mirroring
+- **Natural Humanization** — Disfluencies, backchannels, thinking sounds
+- **Meaningful Silence** — Comfortable pauses, not just dead air
+
+### Memory & Intelligence
+- **Persistent Memory** — Cross-session memory with Firestore/PostgreSQL
+- **Semantic RAG** — Vector-based knowledge retrieval
+- **User Profiles** — Life stage, goals, preferences, history
+- **Relationship Stages** — Deepening connection over time
+
+### Team Capabilities
+
+| Domain | Tools | Example |
+|--------|-------|---------|
+| **Communication** | Email, calendar, SMS, calls | "Send an email to my boss about Thursday" |
+| **Habits** | Create, track, streaks, challenges | "Help me build a morning routine" |
+| **Research** | Stock analysis, pattern discovery | "Analyze Apple's fundamentals" |
+| **Life Planning** | Milestones, goals, events | "Help me plan my wedding" |
+| **Wisdom** | Philosophy, meditation guidance | "What should I focus on in life?" |
+| **Memory** | Remember facts, recall history | "What do you know about me?" |
+
+### Integrations
+- **Spotify** — Voice-controlled music playback
+- **Plaid** — Bank account linking for financial insights
+- **Google Calendar** — Scheduling and reminders
+- **Twilio** — SMS and voice calls
+
+## 📁 Project Structure
+
+```
+voiceai/
+├── src/
+│   ├── agents/                 # Voice agent core
+│   │   ├── voice-agent.ts      # Main agent implementation
+│   │   ├── handlers/           # Event handlers
+│   │   ├── processors/         # Turn processing
+│   │   └── shared/             # Shared utilities
+│   │
+│   ├── personas/               # AI personalities
+│   │   ├── bundles/            # Auto-discovered persona bundles
+│   │   │   ├── ferni/          # Life coach (coordinator)
+│   │   │   ├── alex-chen/      # Communications specialist
+│   │   │   ├── maya-santos/    # Habits coach
+│   │   │   ├── peter-john/     # Research analyst
+│   │   │   ├── jordan-taylor/  # Life planner
+│   │   │   └── nayan-patel/    # Wisdom sage
+│   │   ├── registry/           # Unified agent registry
+│   │   └── types.ts            # PersonaConfig interface
+│   │
+│   ├── intelligence/           # Conversational intelligence
+│   │   ├── context-builders/   # 15+ context builders
+│   │   ├── emotion-detector.ts
+│   │   ├── intent-classifier.ts
+│   │   └── topic-tracker.ts
+│   │
+│   ├── tools/                  # 100+ LLM tools
+│   │   ├── domains/            # Domain-organized tools
+│   │   │   ├── calendar/
+│   │   │   ├── communication/
+│   │   │   ├── finance/
+│   │   │   ├── habits/
+│   │   │   ├── handoff/
+│   │   │   └── ...
+│   │   ├── habit-coaching/     # Habit system
+│   │   └── handoff/            # Handoff system
+│   │
+│   ├── services/               # Backend services
+│   │   ├── engagement/         # User engagement tracking
+│   │   ├── conversation/       # Conversation management
+│   │   ├── team-handler-registry/
+│   │   └── stripe-subscription.ts
+│   │
+│   ├── api/                    # REST API routes
+│   │   ├── auth-middleware.ts  # JWT/API key auth
+│   │   ├── engagement-routes.ts
+│   │   ├── subscription-routes.ts
+│   │   └── ...
+│   │
+│   ├── memory/                 # Persistence layer
+│   │   ├── firestore-store.ts
+│   │   ├── postgres-store.ts
+│   │   ├── vector-store.ts
+│   │   └── semantic-rag.ts
+│   │
+│   └── speech/                 # Speech processing
+│       ├── speech-context.ts
+│       └── adaptive-ssml.ts
+│
+├── frontend-typescript/        # TypeScript frontend
+│   ├── src/
+│   │   ├── ui/                 # UI components
+│   │   ├── services/           # Frontend services
+│   │   └── config/             # Design system
+│   └── public/
+│
+├── docs/                       # Documentation
+│   ├── architecture/
+│   ├── deployment/
+│   ├── features/
+│   └── guides/
+│
+├── brand/                      # Brand assets
+├── scripts/                    # Build & deploy scripts
+├── token-server.js             # LiveKit token server
+├── ui-server.js                # Production UI server
+└── package.json
 ```
 
-## Environment Setup
+## 🔧 Configuration
 
-### Required API Keys
+### Required Environment Variables
 
-| Key | Get From | Purpose |
-|-----|----------|---------|
+| Variable | Source | Purpose |
+|----------|--------|---------|
 | `LIVEKIT_URL` | [LiveKit Cloud](https://cloud.livekit.io) | Real-time voice streaming |
 | `LIVEKIT_API_KEY` | LiveKit Cloud | Authentication |
 | `LIVEKIT_API_SECRET` | LiveKit Cloud | Authentication |
 | `GOOGLE_API_KEY` | [Google AI Studio](https://aistudio.google.com) | Gemini Live STT/LLM |
 | `CARTESIA_API_KEY` | [Cartesia](https://play.cartesia.ai) | Text-to-speech |
+
+### Optional Services
+
+| Variable | Purpose |
+|----------|---------|
+| `SPOTIFY_CLIENT_ID/SECRET` | Music playback |
+| `PLAID_CLIENT_ID/SECRET` | Bank account linking |
+| `STRIPE_SECRET_KEY` | Subscription payments |
+| `TWILIO_*` | SMS and voice calls |
+| `GOOGLE_CALENDAR_*` | Calendar integration |
 
 ### Storage Options
 
@@ -154,251 +274,170 @@ src/personas/bundles/my-advisor/
 | **Local (persistent)** | PostgreSQL | Redis | `npm run services:up` |
 | **Google Cloud** | Firestore | Memorystore | Automatic |
 
-### Dispatch with Persona Selection
+## 🚀 Deployment
 
-When dispatching via LiveKit, specify the persona:
-
-```python
-# Python SDK example
-await room.local_participant.dispatch(
-    agent="multi-persona-voice-agent",
-    metadata=json.dumps({"persona_id": "jack-b"})
-)
-```
-
-## Available Personas
-
-| ID | Name | Style |
-|----|------|-------|
-| `jack-bogle` | John Bogle | Wise, warm, index investing pioneer |
-| `jack-b` | Jack B | Casual, friendly financial advisor |
-| `peter-lynch` | Peter Lynch | Practical, research-focused investor |
-| `generic-advisor` | Generic Advisor | Template for new personas |
-
-## Project Structure
-
-```
-voiceai/
-├── src/
-│   ├── agent.ts                 # Entry point (re-exports voice-agent)
-│   ├── agents/
-│   │   ├── voice-agent.ts       # Core multi-persona agent
-│   │   ├── index.ts             # Agent exports
-│   │   ├── shared/              # Shared utilities
-│   │   │   ├── types.ts         # Common types
-│   │   │   ├── health-server.ts # Health checks
-│   │   │   └── external-apis.ts # Stock quotes, weather
-│   │   └── handlers/            # Event handlers (handoff, silence)
-│   │
-│   ├── personas/                # Persona definitions
-│   │   ├── types.ts             # PersonaConfig interface
-│   │   ├── index.ts             # Persona registry
-│   │   ├── jack-bogle/          # Jack Bogle persona
-│   │   ├── jack-b/              # Jack B persona
-│   │   ├── peter-lynch/         # Peter Lynch persona
-│   │   └── generic-advisor/     # Template persona
-│   │
-│   ├── intelligence/            # Conversational intelligence
-│   │   ├── context-builders/    # 15 modular context builders
-│   │   │   ├── index.ts         # Orchestration
-│   │   │   ├── emotional.ts     # Emotion handling
-│   │   │   ├── crisis.ts        # Crisis detection
-│   │   │   ├── celebration.ts   # Milestone celebration
-│   │   │   ├── memory.ts        # Memory callbacks
-│   │   │   ├── engagement.ts    # Engagement tracking
-│   │   │   ├── pacing.ts        # Response pacing
-│   │   │   ├── discovery.ts     # New user onboarding
-│   │   │   ├── personal.ts      # Personal details
-│   │   │   ├── topics.ts        # Topic management
-│   │   │   ├── intent.ts        # Intent responses
-│   │   │   ├── goodbye.ts       # Conversation endings
-│   │   │   ├── music.ts         # Music state
-│   │   │   ├── humanizing.ts    # Human-like behaviors
-│   │   │   ├── rag.ts           # Knowledge retrieval
-│   │   │   └── tasks.ts         # Task integration
-│   │   ├── emotion-detector.ts
-│   │   ├── intent-classifier.ts
-│   │   ├── topic-tracker.ts
-│   │   └── conversation-state.ts
-│   │
-│   ├── memory/                  # Persistent memory
-│   │   ├── vector-store.ts      # Semantic search
-│   │   ├── semantic-rag.ts      # RAG system
-│   │   └── user-profile.ts      # User profiles
-│   │
-│   ├── speech/                  # Adaptive speech
-│   │   ├── speech-context.ts    # WPM, energy tracking
-│   │   ├── audio-prosody.ts     # Voice emotion detection
-│   │   └── adaptive-ssml.ts     # Context-aware SSML
-│   │
-│   ├── services/                # Service orchestration
-│   │   ├── index.ts             # Session services
-│   │   └── conversation-manager.ts
-│   │
-│   ├── tools/                   # 35+ LLM tools
-│   │   ├── financial.ts
-│   │   ├── conversation.ts
-│   │   ├── memory-tools.ts
-│   │   └── index.ts
-│   │
-│   ├── tasks/                   # Intelligent task system
-│   │   ├── task-manager.ts
-│   │   └── ...tasks
-│   │
-│   ├── ssml-tagger.ts           # SSML processing
-│   │
-│   └── tests/                   # Test suite (662+ tests)
-│       ├── context-builders.test.ts
-│       ├── context-builders-detailed.test.ts
-│       ├── memory.test.ts
-│       ├── intelligence.test.ts
-│       └── ...
-│
-├── docs/
-│   ├── architecture.md
-│   └── creating-personas.md     # Guide to creating personas
-│
-├── frontend-orb/                # React orb visualization
-├── frontend-typescript/         # TypeScript frontend
-│
-├── package.json
-├── tsconfig.json
-├── vitest.config.ts
-└── README.md
-```
-
-## Testing
+### Development (3 Servers)
 
 ```bash
-# Run all tests (662+ tests)
+# Terminal 1: Token Server
+node token-server.js
+
+# Terminal 2: UI Server
+PORT=3002 node ui-server.js
+
+# Terminal 3: Frontend (Vite)
+cd frontend-typescript && npm run dev
+```
+
+### Production (Google Cloud)
+
+```bash
+# Deploy voice agent
+./scripts/deploy-gcp.sh
+
+# Deploy UI server (serves everything)
+./scripts/deploy-ui.sh
+```
+
+**Production architecture:**
+- **UI Server** — Cloud Run, handles frontend + APIs
+- **Voice Agent** — Cloud Run, LiveKit agent only
+- **Database** — Firestore
+- **Cache** — Memorystore (Redis)
+
+See [docs/deployment/](docs/deployment/) for detailed guides.
+
+## 🧪 Testing
+
+```bash
+# Run all tests
 npm test
 
 # Watch mode
 npm run test:watch
 
-# Specific test file
+# Specific file
 npx vitest run src/tests/context-builders.test.ts
+
+# Coverage
+npm run test:coverage
 ```
 
 ### Test Categories
+- **Context Builders** — Crisis detection, emotional responses
+- **Memory** — User profiles, conversation history
+- **Intelligence** — Emotion, intent, topic tracking
+- **Handoffs** — Agent transitions
+- **Tools** — Tool execution and validation
 
-- **Context Builder Tests**: Crisis detection, emotional responses, discovery flows
-- **Memory Tests**: User profiles, conversation history, semantic search
-- **Intelligence Tests**: Emotion detection, intent classification, topic tracking
-- **Speech Tests**: SSML tagging, WPM tracking, adaptive speech
-- **Continuity Tests**: Cross-session memory, returning user recognition
-
-## Configuration
-
-### Environment Variables
-
-```bash
-# Required
-LIVEKIT_URL=wss://your-server.livekit.cloud
-LIVEKIT_API_KEY=your_key
-LIVEKIT_API_SECRET=your_secret
-GOOGLE_API_KEY=your_google_key
-CARTESIA_API_KEY=your_cartesia_key
-
-# Optional
-PERSONA_ID=jack-bogle                    # Default persona
-JACK_BOGLE_VOICE_ID=your_voice_id        # Persona-specific voice
-LOG_LEVEL=info                           # Logging level
-```
-
-### Cartesia Voice Configuration
-
-Each persona can have its own Cartesia voice ID:
-
-```bash
-JACK_BOGLE_VOICE_ID=a720200e-...
-PETER_LYNCH_VOICE_ID=b830311f-...
-```
-
-## Creating Custom Personas
-
-See [docs/creating-personas.md](docs/creating-personas.md) for a complete guide.
-
-Quick overview:
-
-1. Create `src/personas/my-persona/index.ts`
-2. Define your `PersonaConfig` object
-3. Register in `src/personas/index.ts`
-4. Run with `PERSONA_ID=my-persona npm start`
-
-## Performance
-
-- **Response Latency**: < 200ms (context builder execution)
-- **Memory**: Efficient singleton services
-- **Tests**: 662+ tests, ~2.5s total runtime
-
-## Troubleshooting
-
-### Agent doesn't respond
-- Check persona ID is valid: `getPersonaConfig('your-id')`
-- Verify all API keys are set
-- Check logs for context builder errors
-
-### Emotional responses seem off
-- Check emotion detector tests: `npx vitest run src/tests/intelligence.test.ts`
-- Review crisis detection thresholds in `crisis.ts`
-
-### Memory not persisting
-- Ensure user IDs are consistent across sessions
-- Check memory service initialization in logs
-
-## Development
-
-```bash
-# Development mode with hot reload
-npm run dev
-
-# Type checking
-npm run typecheck
-
-# Lint
-npm run lint
-
-# Build
-npm run build
-```
-
-## Monitoring Dashboards
-
-Internal dashboards for developers/operators (not end users):
+## 📊 Monitoring Dashboards
 
 | Dashboard | URL | Purpose |
 |-----------|-----|---------|
-| **Cognitive Intelligence** | `/cognitive-dashboard.html` | AI reasoning, adaptation, performance |
-| **Persistence Metrics** | `/metrics-dashboard.html` | Memory system, Firestore, sessions |
+| **Cognitive Intelligence** | `/cognitive-dashboard.html` | AI reasoning, adaptation |
+| **Persistence Metrics** | `/metrics-dashboard.html` | Memory system, sessions |
 | **Tools Analytics** | `/tools-dashboard.html` | Tool usage, optimization |
+| **Handoff Diagnostics** | `/api/diagnostics/handoffs` | Agent transfer metrics |
+
+## 🛠️ Agent Management CLI
 
 ```bash
-# Start backend + frontend
-npm run dev:agent &
-cd frontend-typescript && npm run dev
+# List all agents
+npm run agents list
 
-# Access dashboards
-open http://localhost:5173/cognitive-dashboard.html
+# Create new agent
+npm run agents create my-advisor --template sage
+
+# Validate agent bundle
+npm run agents validate my-advisor
+
+# Test specific agent
+PERSONA_ID=my-advisor npm run dev
 ```
 
-See [docs/DASHBOARDS.md](docs/DASHBOARDS.md) for full guide.
+## 📚 Documentation
 
-## Documentation
-
-| Doc | Description |
-|-----|-------------|
-| [DASHBOARDS.md](docs/DASHBOARDS.md) | Monitoring dashboards guide |
-| [COGNITIVE-INTELLIGENCE-ARCHITECTURE.md](docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | How personas think differently |
+| Guide | Description |
+|-------|-------------|
+| [FERNI-COMPLETE-GUIDE.md](docs/FERNI-COMPLETE-GUIDE.md) | Full Ferni implementation |
 | [AGENT-MANAGEMENT.md](docs/AGENT-MANAGEMENT.md) | Creating and managing agents |
-| [FERNI-COMPLETE-GUIDE.md](docs/FERNI-COMPLETE-GUIDE.md) | Full Ferni implementation guide |
+| [COGNITIVE-INTELLIGENCE-ARCHITECTURE.md](docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | How personas think differently |
+| [HANDOFF_ARCHITECTURE.md](docs/HANDOFF_ARCHITECTURE.md) | Agent handoff system |
+| [creating-personas.md](docs/creating-personas.md) | Building custom personas |
+| [local-setup.md](docs/local-setup.md) | Development environment |
+| [google-cloud-deployment.md](docs/google-cloud-deployment.md) | Production deployment |
 
-## References
+## 🎨 Brand & Design
 
-- [LiveKit Agents Documentation](https://docs.livekit.io/agents/)
-- [Gemini Realtime API](https://docs.livekit.io/agents/models/realtime/plugins/gemini/)
-- [Cartesia Documentation](https://cartesia.ai/docs)
+Ferni uses a warm, earthy design system:
 
-## License
+| Element | Color | Use |
+|---------|-------|-----|
+| **Ferni Sage** | `#4a6741` | Primary, life coach |
+| **Cedar Brown** | `#9a7b5a` | Secondary, grounded |
+| **Ocean Teal** | `#3a6b73` | Peter, research |
+| **Slate Blue** | `#5a6b8a` | Alex, communications |
+| **Rose** | `#a67a6a` | Maya, wellness |
+| **Coral** | `#c4856a` | Jordan, celebrations |
+| **Warm Gray** | `#8a7a6a` | Nayan, wisdom |
+
+See [brand/FERNI-BRAND-GUIDELINES.md](brand/FERNI-BRAND-GUIDELINES.md) for full design system.
+
+## 🔐 API Authentication
+
+All API routes support multiple authentication methods:
+
+1. **API Key** — `X-API-Key` header
+2. **JWT Bearer** — `Authorization: Bearer <token>`
+3. **Dev Mode** — `?admin_key=dev-mode` (development only)
+
+```bash
+# Set in production
+API_KEYS=key1,key2,key3
+ADMIN_API_KEYS=admin_key1
+JWT_SECRET=your-256-bit-secret
+ALLOWED_ORIGINS=https://ferni.ai
+```
+
+## 📱 Mobile Apps
+
+Native iOS and Android apps are available:
+
+- **iOS**: `apps/ios/` — Swift/SwiftUI
+- **Android**: `apps/android/` — Kotlin
+
+See [apps/README.md](apps/README.md) for build instructions.
+
+## 🤝 Contributing
+
+**New to the codebase?** Start with [ONBOARDING.md](ONBOARDING.md) for a guided week-1 experience.
+
+| Document | Purpose |
+|----------|---------|
+| [ONBOARDING.md](ONBOARDING.md) | New developer guide (day-by-day) |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, PR process |
+| [BACKLOG.md](BACKLOG.md) | Product backlog and roadmap |
+| [CLAUDE.md](CLAUDE.md) | Quick coding reference |
+| [.cursorrules](.cursorrules) | Complete coding standards |
+
+### Key Rules
+
+1. Use `createLogger()` for all logging (never `console.log`)
+2. Add explicit types for all function parameters (no `any`)
+3. Files should be < 500 lines
+4. Run `npm run quality` before committing
+5. Include tests for new features
+
+## 📄 License
 
 MIT
+
+---
+
+<p align="center">
+  <strong>Built with ❤️ by the Ferni AI Team</strong>
+</p>
+
+<p align="center">
+  <em>"Your net worth is not your self-worth."</em> — Ferni
+</p>

@@ -17,6 +17,9 @@ import {
   type StoredPrediction,
 } from './store.js';
 import { PERSONA_RITUALS } from '../daily-rituals.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'ConversationTriggers' });
 
 // Use string type for persona IDs since they can be various formats
 type PersonaIdString = string;
@@ -200,7 +203,7 @@ export async function generateConversationTriggers(
       triggers.push(createWeatherCheckTrigger(context.personaId));
     }
   } catch (error) {
-    console.error('[ConversationTriggers] Error generating triggers:', error);
+    log.error({ error }, 'Error generating triggers');
   }
 
   return triggers;

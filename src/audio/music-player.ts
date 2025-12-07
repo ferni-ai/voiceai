@@ -20,8 +20,11 @@ import { voice } from '@livekit/agents';
 // AgentSession is the session object from voice pipeline - using any for compatibility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AgentSession = any;
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger, getLogger } from '../utils/safe-logger.js';
 import type { Room } from '@livekit/rtc-node';
+
+const log = createLogger({ module: 'MusicPlayer' });
+const DEBUG_MUSIC = process.env.DEBUG_MUSIC === 'true';
 
 // Extract BackgroundAudioPlayer from the voice namespace
 const { BackgroundAudioPlayer } = voice;
@@ -188,7 +191,7 @@ export class CallMusicPlayer {
    * @param isAmbient - If true, this is ambient/thinking music (for callback context)
    */
   async playFromUrl(url: string, track: MusicTrack, isAmbient = false): Promise<boolean> {
-    console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] playFromUrl called:', {
+    if (DEBUG_MUSIC) log.debug('playFromUrl called', {
       url,
       trackName: track.name,
       artist: track.artist,
@@ -200,9 +203,7 @@ export class CallMusicPlayer {
     );
 
     if (!this.state.isInitialized || !this.backgroundPlayer) {
-      console.log(
-        '🎵🎵🎵 [MUSIC PLAYER DEBUG] ⚠️ NOT INITIALIZED! Falling back to simulation mode'
-      );
+      if (DEBUG_MUSIC) log.warn('Not initialized, falling back to simulation mode');
       getLogger().warn('Music player not initialized - call initialize(room) first');
       // Fallback to simulation mode if not initialized
       return this.simulatePlayback(track);
@@ -210,20 +211,18 @@ export class CallMusicPlayer {
 
     try {
       // Stop any current playback
-      console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] Stopping any current playback...');
+      if (DEBUG_MUSIC) log.debug('Stopping any current playback');
       this.stop();
 
       // Download the audio file
-      console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] Downloading audio from:', url);
+      if (DEBUG_MUSIC) log.debug('Downloading audio', { url });
       const audioPath = await this.downloadAudio(url, track.name);
-      console.log(
-        '🎵🎵🎵 [MUSIC PLAYER DEBUG] Download result:',
-        audioPath ? 'SUCCESS' : 'FAILED',
-        audioPath
-      );
+      if (DEBUG_MUSIC) log.debug('Download result', {
+        success: audioPath ? 'SUCCESS' : 'FAILED',
+        audioPath,
+      });
       if (!audioPath) {
-        console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] ❌ Failed to download audio!');
-        getLogger().error('Failed to download audio');
+        log.error('Failed to download audio');
         return false;
       }
 
@@ -235,15 +234,13 @@ export class CallMusicPlayer {
 
       // Calculate volume (consider ducking state)
       const volume = this.state.isDucked ? this.state.duckingVolume : this.state.volume;
-      console.log(
-        '🎵🎵🎵 [MUSIC PLAYER DEBUG] Playing with volume:',
+      if (DEBUG_MUSIC) log.debug('Playing with volume', {
         volume,
-        'isDucked:',
-        this.state.isDucked
-      );
+        isDucked: this.state.isDucked,
+      });
 
       // Play via BackgroundAudioPlayer
-      console.log('🎵🎵🎵 [MUSIC PLAYER DEBUG] Calling BackgroundAudioPlayer.play() with:', {
+      if (DEBUG_MUSIC) log.debug('Calling BackgroundAudioPlayer.play()', {
         source: audioPath,
         volume,
       });
@@ -252,9 +249,7 @@ export class CallMusicPlayer {
         false // Don't loop previews
       );
 
-      console.log(
-        '🎵🎵🎵 [MUSIC PLAYER DEBUG] ✅ BackgroundAudioPlayer.play() called successfully'
-      );
+      if (DEBUG_MUSIC) log.debug('BackgroundAudioPlayer.play() called successfully');
       getLogger().info(
         { track: track.name, artist: track.artist, volume, isAmbient },
         '🎵 Music playback started'

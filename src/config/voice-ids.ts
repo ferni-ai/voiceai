@@ -13,6 +13,10 @@
  * To find voice IDs: https://play.cartesia.ai/library
  */
 
+import { createLogger } from '../utils/safe-logger.js';
+
+const log = createLogger({ module: 'VoiceIds' });
+
 // =============================================================================
 // CANONICAL VOICE IDS
 // =============================================================================
@@ -137,7 +141,7 @@ export async function getVoiceIdFromManifest(personaId: string): Promise<string>
     return await AgentRegistry.getVoiceId(personaId);
   } catch {
     // Fall back to synchronous lookup if registry fails
-    console.warn(`Failed to get voice ID from registry for ${personaId}, using legacy lookup`);
+    log.warn({ personaId }, 'Failed to get voice ID from registry, using legacy lookup');
     return getVoiceIdForPersona(personaId);
   }
 }
@@ -160,7 +164,7 @@ export function isValidVoiceId(voiceId: string): boolean {
  * Log voice ID assignments for debugging
  */
 export function logVoiceIdAssignments(): void {
-  console.log('\n=== Voice ID Assignments ===');
+  log.info('Voice ID Assignments:');
   const personas = [
     'ferni',
     'peter-john',
@@ -173,8 +177,7 @@ export function logVoiceIdAssignments(): void {
   for (const persona of personas) {
     const voiceId = getVoiceIdForPersona(persona);
     const isValid = isValidVoiceId(voiceId);
-    const status = isValid ? '✅' : '❌';
-    console.log(`${status} ${persona}: ${voiceId}`);
+    const status = isValid ? 'valid' : 'INVALID';
+    log.info({ persona, voiceId, status }, `${persona}: ${status}`);
   }
-  console.log('=============================\n');
 }

@@ -392,6 +392,40 @@ jobs:
           exit 1
 
   # ============================================================================
+  # POST-DEPLOY SMOKE TESTS
+  # ============================================================================
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-voice-agent, deploy-ui-server]
+    if: needs.deploy-ui-server.result == 'success' || needs.deploy-voice-agent.result == 'success'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run smoke tests against UI Server
+        if: needs.deploy-ui-server.result == 'success'
+        run: |
+          npx tsx scripts/smoke-test.ts --url=${{ needs.deploy-ui-server.outputs.url }}
+        continue-on-error: true
+
+      - name: Run smoke tests against Voice Agent
+        if: needs.deploy-voice-agent.result == 'success'
+        run: |
+          npx tsx scripts/smoke-test.ts --url=${{ needs.deploy-voice-agent.outputs.url }}
+        continue-on-error: true
+
+  # ============================================================================
   # TRACK DORA METRICS
   # ============================================================================
   track-dora:

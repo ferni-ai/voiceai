@@ -33,8 +33,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Lint check
-        run: npm run lint --if-present || echo "Lint warnings present (non-blocking)"
-        continue-on-error: true
+        run: npm run lint --if-present
 
   # ============================================================================
   # UNIT TESTS

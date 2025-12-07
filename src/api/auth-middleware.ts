@@ -351,7 +351,7 @@ export function getAuthenticatedUserId(
 }
 
 // ============================================================================
-// RATE LIMITING (Simple in-memory implementation)
+// RATE LIMITING (Enhanced tier-based implementation)
 // ============================================================================
 
 interface RateLimitEntry {
@@ -359,35 +359,76 @@ interface RateLimitEntry {
   resetAt: number;
 }
 
+interface RateLimitTier {
+  name: string;
+  maxRequests: number;
+  windowMs: number;
+}
+
+/**
+ * Rate limit tiers for different access levels
+ */
+export const RATE_LIMIT_TIERS: Record<string, RateLimitTier> = {
+  // Unauthenticated requests - strictest limits
+  anonymous: { name: 'anonymous', maxRequests: 20, windowMs: 60000 },
+  
+  // Authenticated free users
+  free: { name: 'free', maxRequests: 60, windowMs: 60000 },
+  
+  // Paid subscribers (Friend tier)
+  friend: { name: 'friend', maxRequests: 200, windowMs: 60000 },
+  
+  // Premium subscribers (Partner tier)
+  partner: { name: 'partner', maxRequests: 500, windowMs: 60000 },
+  
+  // Admin/system users - highest limits
+  admin: { name: 'admin', maxRequests: 1000, windowMs: 60000 },
+  
+  // Burst protection for expensive endpoints (LLM calls, etc.)
+  expensive: { name: 'expensive', maxRequests: 10, windowMs: 60000 },
+};
+
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 /**
  * Check rate limit for a key.
- * Returns true if allowed, false if rate limited.
+ * Returns { allowed, remaining, resetAt } for detailed response headers.
  */
 export function checkRateLimit(
   key: string,
   maxRequests: number,
   windowMs: number
-): boolean {
+): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
   const entry = rateLimitStore.get(key);
 
   if (!entry || entry.resetAt <= now) {
     rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
+    return { allowed: true, remaining: maxRequests - 1, resetAt: now + windowMs };
   }
 
   if (entry.count >= maxRequests) {
-    return false;
+    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
   }
 
   entry.count++;
-  return true;
+  return { allowed: true, remaining: maxRequests - entry.count, resetAt: entry.resetAt };
 }
 
 /**
- * Rate limit middleware.
+ * Get rate limit tier based on auth context
+ */
+export function getRateLimitTier(auth: AuthContext | null): RateLimitTier {
+  if (!auth) return RATE_LIMIT_TIERS.anonymous;
+  if (auth.isAdmin) return RATE_LIMIT_TIERS.admin;
+  if (auth.isDevMode) return RATE_LIMIT_TIERS.admin; // Dev mode gets admin limits
+  
+  // Could be extended to check subscription tier from auth context
+  return RATE_LIMIT_TIERS.free;
+}
+
+/**
+ * Rate limit middleware with tier support.
  * Returns true if rate limited (response already sent), false if allowed.
  */
 export function rateLimit(
@@ -396,35 +437,72 @@ export function rateLimit(
   options: {
     maxRequests?: number;
     windowMs?: number;
+    tier?: RateLimitTier;
     keyGenerator?: (req: IncomingMessage) => string;
+    keyPrefix?: string;
   } = {}
 ): boolean {
+  const auth = authenticate(req);
+  const defaultTier = getRateLimitTier(auth);
+  
   const {
-    maxRequests = 100,
-    windowMs = 60000, // 1 minute
+    maxRequests = options.tier?.maxRequests ?? defaultTier.maxRequests,
+    windowMs = options.tier?.windowMs ?? defaultTier.windowMs,
     keyGenerator = (r) => getHeader(r, 'X-Forwarded-For') || r.socket.remoteAddress || 'unknown',
+    keyPrefix = '',
   } = options;
 
-  const key = keyGenerator(req);
-  const allowed = checkRateLimit(key, maxRequests, windowMs);
+  const baseKey = keyGenerator(req);
+  const key = keyPrefix ? `${keyPrefix}:${baseKey}` : baseKey;
+  const result = checkRateLimit(key, maxRequests, windowMs);
 
-  if (!allowed) {
-    log.warn({ key, url: req.url }, 'Rate limit exceeded');
-    res.writeHead(429, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }));
+  // Add rate limit headers
+  res.setHeader('X-RateLimit-Limit', maxRequests);
+  res.setHeader('X-RateLimit-Remaining', result.remaining);
+  res.setHeader('X-RateLimit-Reset', Math.ceil(result.resetAt / 1000));
+
+  if (!result.allowed) {
+    log.warn({ key, url: req.url, tier: defaultTier.name }, 'Rate limit exceeded');
+    res.writeHead(429, { 
+      'Content-Type': 'application/json',
+      'Retry-After': Math.ceil((result.resetAt - Date.now()) / 1000),
+    });
+    res.end(JSON.stringify({ 
+      error: 'Rate limit exceeded. Please try again later.',
+      retryAfter: Math.ceil((result.resetAt - Date.now()) / 1000),
+    }));
     return true;
   }
 
   return false;
 }
 
+/**
+ * Apply rate limiting for expensive operations (LLM calls, etc.)
+ */
+export function rateLimitExpensive(
+  req: IncomingMessage,
+  res: ServerResponse,
+  operationName: string
+): boolean {
+  return rateLimit(req, res, {
+    tier: RATE_LIMIT_TIERS.expensive,
+    keyPrefix: `expensive:${operationName}`,
+  });
+}
+
 // Cleanup old rate limit entries periodically
 setInterval(() => {
   const now = Date.now();
+  let cleaned = 0;
   for (const [key, entry] of rateLimitStore) {
     if (entry.resetAt <= now) {
       rateLimitStore.delete(key);
+      cleaned++;
     }
+  }
+  if (cleaned > 0) {
+    log.debug({ cleaned }, 'Cleaned expired rate limit entries');
   }
 }, 60000); // Every minute
 

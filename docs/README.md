@@ -1,131 +1,230 @@
-# Ferni Documentation Index
+# 📚 Ferni AI Documentation
 
-Welcome to the Ferni Voice AI documentation. This directory contains all technical documentation organized by category.
+Welcome to the Ferni AI documentation. This guide will help you understand, develop, and deploy the platform.
 
-## Quick Start
+## Quick Links
 
-- **[Local Setup](guides/local-setup.md)** - Get started with local development
-- **[Environment Variables](deployment/environment-variables.md)** - Configuration reference
-- **[Creating Personas](guides/creating-personas.md)** - Add new AI personas
+| I want to... | Go to |
+|--------------|-------|
+| **Get started as a new developer** | [Onboarding Guide](../ONBOARDING.md) |
+| Set up locally | [Local Setup Guide](guides/local-setup.md) |
+| Understand coding standards | [.cursorrules](../.cursorrules) / [CLAUDE.md](../CLAUDE.md) |
+| Deploy to production | [Deployment Guide](deployment/) |
+| Create a new agent | [Agent Management](guides/AGENT-MANAGEMENT.md) |
+| Create a new tool | [Tool Guide](../src/tools/CLAUDE.md) |
+| Understand the architecture | [Architecture Overview](architecture/) |
+| Understand the API | [API Reference](guides/api-reference.md) |
+| See the backlog | [BACKLOG.md](../BACKLOG.md) |
+| Contribute code | [CONTRIBUTING.md](../CONTRIBUTING.md) |
 
-## Directory Structure
+---
 
-```
-docs/
-├── architecture/       # System design & technical architecture
-├── deployment/         # Ops, deployment, and infrastructure
-├── features/           # Feature-specific documentation
-├── guides/             # How-to guides and tutorials
-├── migrations/         # Migration plans and status
-└── security/           # Security documentation
-```
+## 🚀 New Developer Start Here
 
-## Documentation by Category
+1. **[ONBOARDING.md](../ONBOARDING.md)** - Week 1 guide for new developers
+2. **[CONTRIBUTING.md](../CONTRIBUTING.md)** - How to contribute code
+3. **[BACKLOG.md](../BACKLOG.md)** - Product backlog and roadmap
 
-### 📐 Architecture
-System design and technical architecture documents.
+---
+
+## 🤖 AI Assistant / Coding Standards
+
+These files define coding standards for both humans and AI assistants:
+
+| File | Purpose | Location |
+|------|---------|----------|
+| **[.cursorrules](../.cursorrules)** | Complete 700+ line coding standards | Root |
+| **[CLAUDE.md](../CLAUDE.md)** | Quick reference guide | Root |
+| **[Tool Guide](../src/tools/CLAUDE.md)** | How to create tools | src/tools/ |
+| **[Persona Guide](../src/personas/CLAUDE.md)** | How to create personas | src/personas/ |
+| **[Context Builder Guide](../src/intelligence/context-builders/CLAUDE.md)** | Context builder patterns | src/intelligence/context-builders/ |
+| **[Frontend Guide](../frontend-typescript/CLAUDE.md)** | Frontend design standards | frontend-typescript/ |
+
+---
+
+## 📖 Documentation Index
+
+### Getting Started
 
 | Document | Description |
 |----------|-------------|
-| [Clean Architecture](architecture/CLEAN-ARCHITECTURE.md) | Core architecture overview |
-| [Agent-Agnostic Architecture](architecture/AGENT-AGNOSTIC-ARCHITECTURE.md) | Tool/persona patterns |
-| [Cognitive Intelligence](architecture/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | AI cognition system |
-| [Persistence Architecture](architecture/PERSISTENCE-ARCHITECTURE.md) | Data storage design |
-| [Dynamic Agent Architecture](architecture/DYNAMIC-AGENT-ARCHITECTURE.md) | Runtime agent loading |
-| [Handoff Architecture](architecture/HANDOFF_ARCHITECTURE.md) | Persona handoff system |
-
-### 🚀 Deployment
-Deployment, infrastructure, and operations.
-
-| Document | Description |
-|----------|-------------|
-| [Production Deployment](deployment/PRODUCTION-DEPLOYMENT.md) | Production setup guide |
-| [Quick Deploy](deployment/QUICK-DEPLOY.md) | Fast deployment reference |
-| [Google Cloud Deployment](deployment/google-cloud-deployment.md) | GCP-specific setup |
+| [Local Setup](guides/local-setup.md) | Development environment setup |
 | [Environment Variables](deployment/environment-variables.md) | Configuration reference |
-| [GitHub Secrets Setup](deployment/GITHUB-SECRETS-SETUP.md) | CI/CD secrets |
-| [Sentry Setup](deployment/SENTRY-SETUP.md) | Error tracking |
+| [Quick Deploy](deployment/QUICK-DEPLOY.md) | Fast deployment guide |
 
-### ✨ Features
-Feature-specific documentation and specifications.
+### Architecture
 
 | Document | Description |
 |----------|-------------|
-| [Monetization System](features/MONETIZATION-SYSTEM.md) | Subscription & team unlocks |
-| [Handoff Checklist](features/HANDOFF_CHECKLIST.md) | Persona handoff testing |
-| [Spotify Integration](features/SPOTIFY-INTEGRATION.md) | Music features |
-| [AB Testing](features/AB-TESTING.md) | Experimentation system |
-| [Deep Engagement Domains](features/DEEP-ENGAGEMENT-DOMAINS.md) | User engagement |
-| [Cross-Domain Journeys](features/CROSS-DOMAIN-JOURNEYS.md) | Multi-domain interactions |
+| [Architecture Overview](architecture/architecture.md) | High-level system design |
+| [Agent-Agnostic Architecture](architecture/AGENT-AGNOSTIC-ARCHITECTURE.md) | Multi-persona system |
+| [Cognitive Intelligence](architecture/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | How personas think |
+| [Handoff Architecture](architecture/HANDOFF_ARCHITECTURE.md) | Agent transitions |
+| [Persistence Architecture](architecture/PERSISTENCE-ARCHITECTURE.md) | Memory and storage |
+| [Dynamic Agent Architecture](architecture/DYNAMIC-AGENT-ARCHITECTURE.md) | Auto-discovery system |
+| [Clean Architecture](architecture/CLEAN-ARCHITECTURE.md) | Code organization |
 
-### 📚 Guides
-How-to guides and tutorials.
+### Guides
 
 | Document | Description |
 |----------|-------------|
-| [Local Setup](guides/local-setup.md) | Development environment |
-| [Creating Personas](guides/creating-personas.md) | Add new AI personas |
-| [Persona Behavior Guide](guides/PERSONA-BEHAVIOR-GUIDE.md) | Persona customization |
+| [Creating Personas](guides/creating-personas.md) | Build custom AI personalities |
+| [Agent Management](guides/AGENT-MANAGEMENT.md) | Managing persona bundles |
+| [Ferni Complete Guide](guides/FERNI-COMPLETE-GUIDE.md) | Full Ferni implementation |
+| [Persona Behavior Guide](guides/PERSONA-BEHAVIOR-GUIDE.md) | Behavior system design |
+| [Persona Template](guides/PERSONA-TEMPLATE.md) | Template for new personas |
 | [Humanization Guidelines](guides/HUMANIZATION-GUIDELINES.md) | Making AI feel human |
-| [Mobile Polish Guide](guides/MOBILE-POLISH-GUIDE.md) | Mobile UX tips |
-| [Subscription Setup](guides/SUBSCRIPTION-SETUP.md) | Billing configuration |
+| [API Reference](guides/api-reference.md) | REST API documentation |
+| [Subscription Setup](guides/SUBSCRIPTION-SETUP.md) | Stripe integration |
 
-### 🔄 Migrations
-Migration plans, status tracking, and refactoring guides.
-
-| Document | Description |
-|----------|-------------|
-| [Services Reorg Plan](migrations/SERVICES-REORG-PLAN.md) | Services directory cleanup |
-| [Migration TODOs](migrations/MIGRATION-TODOS.md) | Outstanding migrations |
-| [Legacy Migration Plan](migrations/LEGACY-MIGRATION-PLAN.md) | Legacy code removal |
-| [Architecture Migration](migrations/ARCHITECTURE-MIGRATION.md) | Architecture updates |
-| [Tool Migration](migrations/TOOL_MIGRATION.md) | Tool consolidation |
-
-### 🔒 Security
-Security documentation and checklists.
+### Features
 
 | Document | Description |
 |----------|-------------|
-| [Security Checklist](security/SECURITY-CHECKLIST.md) | Pre-launch security |
-| [Security Review](security/security-review.md) | Security audit findings |
+| [Handoff System](features/HANDOFF_CHECKLIST.md) | Agent handoff checklist |
+| [Humanization](features/HUMANIZATION.md) | Natural conversation features |
+| [Spotify Integration](features/SPOTIFY-INTEGRATION.md) | Music playback |
+| [A/B Testing](features/AB-TESTING.md) | Experiment framework |
+| [Monetization](features/MONETIZATION-SYSTEM.md) | Subscription tiers |
+| [Deep Engagement](features/DEEP-ENGAGEMENT-DOMAINS.md) | Engagement domains |
+| [Cross-Domain Journeys](features/CROSS-DOMAIN-JOURNEYS.md) | Multi-domain conversations |
+| [Voice Presence](features/VOICE-PRESENCE-ROADMAP.md) | Voice adaptation |
 
-## Other Documentation
+### Deployment
 
-### In-Code Documentation
-- `src/tools/CLAUDE.md` - How to create tools
-- `src/personas/CLAUDE.md` - How to create personas
-- `src/intelligence/context-builders/CLAUDE.md` - Context builder patterns
-- `frontend-typescript/CLAUDE.md` - Frontend/design system rules
+| Document | Description |
+|----------|-------------|
+| [Production Deployment](deployment/PRODUCTION-DEPLOYMENT.md) | Production setup |
+| [Google Cloud](deployment/google-cloud-deployment.md) | GCP deployment |
+| [Environment Variables](deployment/environment-variables.md) | Config reference |
+| [GitHub Secrets](deployment/GITHUB-SECRETS-SETUP.md) | CI/CD secrets |
+| [Sentry Setup](deployment/SENTRY-SETUP.md) | Error tracking |
+| [Dashboards](deployment/DASHBOARDS.md) | Monitoring dashboards |
 
-### Brand & Design
-- `brand/FERNI-BRAND-GUIDELINES.md` - Full brand identity guide
-- `brand/FERNI-SCREEN-GUIDELINES.md` - Digital design standards
-- `brand/ferni-design-tokens.css` - CSS variable definitions
+### Security
 
-## Contributing to Docs
+| Document | Description |
+|----------|-------------|
+| [Security Checklist](security/SECURITY-CHECKLIST.md) | Security requirements |
+| [Security Review](security/security-review.md) | Security audit |
 
-1. **Choose the right category** - Place docs in the appropriate subdirectory
-2. **Use consistent formatting** - Follow existing document structure
-3. **Keep it up to date** - Update docs when features change
-4. **Link related docs** - Cross-reference related documentation
+### Migrations
 
-## Document Template
+| Document | Description |
+|----------|-------------|
+| [Architecture Migration](migrations/ARCHITECTURE-MIGRATION.md) | Architecture changes |
+| [Tool Migration](migrations/TOOL_MIGRATION.md) | Tool system updates |
+| [Services Reorg](migrations/SERVICES-REORG-PLAN.md) | Service restructuring |
+| [Voice Agent Split](migrations/VOICE-AGENT-SPLIT-PLAN.md) | Agent refactoring |
 
-```markdown
-# Document Title
+---
 
-**Status**: Draft | Review | Approved  
-**Last Updated**: YYYY-MM-DD  
-**Author**: Your Name
+## 🎭 The Team
 
-## Overview
-Brief description of what this document covers.
+Ferni AI consists of 6 specialized AI agents:
 
-## Content
-Main content here...
+### Ferni (Coordinator)
+The life coach and team coordinator. Wyoming roots, Japan tsunami survivor, mental health advocate. Asks powerful questions and orchestrates the team.
 
-## Related Documents
-- [Related Doc 1](path/to/doc.md)
-- [Related Doc 2](path/to/doc.md)
+**Domains**: Life coaching, purpose, relationships, resilience, team coordination
+
+### Alex Chen
+Communication coach and chief of staff. Handles calendars, emails, and coaches through difficult conversations.
+
+**Domains**: Calendar, email, SMS, calls, assertiveness, boundaries, feedback
+
+### Maya Santos
+Life habits coach. Brazilian warmth meets behavior science. Helps build sustainable habits across all life domains.
+
+**Domains**: Habits, routines, wellness, budgeting, behavior change, self-care
+
+### Peter John
+The Quant. Legendary analytical mind from Boston. Finds patterns others miss and turns data into actionable insights.
+
+**Domains**: Stock research, pattern analysis, cross-domain insights, behavioral economics
+
+### Jordan Taylor
+Lifetime planner. Military brat resilience meets creative vision. Plans life's big moments from daily goals to decade milestones.
+
+**Domains**: Life planning, events, milestones, vacations, goals, celebrations
+
+### Nayan (Premium)
+Lifetime advisor. Where inner peace meets compound interest. Combines Bogle's patience, Gandhi's simplicity, Buffett's wit.
+
+**Domains**: Wisdom, philosophy, meditation, consciousness, long-term thinking
+
+---
+
+## 🔧 Development
+
+### Code Standards
+
+See [CLAUDE.md](../CLAUDE.md) for complete coding standards including:
+
+- TypeScript strict mode
+- No `console.log` — use `createLogger()`
+- Explicit types for all functions
+- HMR protection for UI components
+- Design system tokens for styling
+
+### Architecture Principles
+
+1. **Persona-First** — Each agent has unique voice, knowledge, and behaviors
+2. **Context Builders** — Modular intelligence system
+3. **Tool Domains** — Tools organized by capability
+4. **Handoff System** — Seamless agent transitions
+5. **Memory Persistence** — Cross-session continuity
+
+### Testing
+
+```bash
+npm test                    # All tests
+npm run test:watch          # Watch mode
+npm run test:coverage       # Coverage report
 ```
 
+---
+
+## 📊 Monitoring
+
+### Dashboards
+
+- `/cognitive-dashboard.html` — AI reasoning and adaptation
+- `/metrics-dashboard.html` — Persistence and sessions
+- `/tools-dashboard.html` — Tool usage analytics
+- `/api/diagnostics/handoffs` — Handoff metrics (admin only)
+
+### Key Metrics
+
+| Metric | Target | Description |
+|--------|--------|-------------|
+| Response Latency | < 200ms | Context builder execution |
+| Handoff Success | > 95% | Successful agent transitions |
+| Memory Persistence | > 99% | Data save success rate |
+| User Retention | Growing | Weekly active users |
+
+---
+
+## 🆘 Support
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Agent doesn't respond | Check API keys, verify persona ID |
+| Memory not persisting | Ensure consistent user IDs |
+| Handoff failing | Check target persona exists |
+| Build errors | Run `npm run build` for details |
+
+### Getting Help
+
+1. Check this documentation
+2. Search existing issues
+3. Review [CLAUDE.md](../CLAUDE.md) for code standards
+4. Open a new issue with reproduction steps
+
+---
+
+## 📄 License
+
+MIT License — See [LICENSE](../LICENSE) for details.
