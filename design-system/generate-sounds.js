@@ -178,7 +178,8 @@ export type HandoffSoundPersona = ${handoffSounds.map(f => `'${extractPersonaFro
  */
 export function getHandoffSound(personaId: string): string | undefined {
   // Normalize persona ID (handle variations like 'alex-chen' → 'alex')
-  const normalized = personaId.toLowerCase().split('-')[0];
+  const parts = personaId.toLowerCase().split('-');
+  const normalized = parts[0] ?? personaId.toLowerCase();
   return HANDOFF_SOUNDS[normalized];
 }
 

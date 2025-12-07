@@ -16,7 +16,7 @@
 
 import { generateColorForAgent, getOrGenerateColor } from './color-generator.js';
 import type { PersonaColorConfig, ApiColorData, PersonalityForColors } from '../types/colors.js';
-import { GENERATED_PERSONA_COLORS, getGeneratedPersonaColors } from './persona-colors.generated.js';
+import { GENERATED_PERSONA_COLORS } from './persona-colors.generated.js';
 
 // Re-export types for backwards compatibility
 export type { PersonaColorConfig, ApiColorData, PersonalityForColors };
@@ -80,12 +80,19 @@ const ADDITIONAL_COLORS: Record<string, PersonaColorConfig> = {
 /**
  * Combined persona colors: generated + additional + aliases
  */
-export const PERSONA_COLORS: Record<string, PersonaColorConfig> = {
+// Build PERSONA_COLORS with proper type safety
+const _baseColors: Record<string, PersonaColorConfig> = {
   ...GENERATED_PERSONA_COLORS,
   ...ADDITIONAL_COLORS,
-  // Add alias entries pointing to the same colors
-  'peter-john': GENERATED_PERSONA_COLORS['peter-lynch'] || ADDITIONAL_COLORS['peter-john'],
 };
+
+// Add peter-john alias only if peter-lynch exists
+const peterColors = GENERATED_PERSONA_COLORS['peter-lynch'] ?? ADDITIONAL_COLORS['peter-john'];
+if (peterColors) {
+  _baseColors['peter-john'] = peterColors;
+}
+
+export const PERSONA_COLORS: Record<string, PersonaColorConfig> = _baseColors;
 
 // ============================================================================
 // HELPER FUNCTIONS
