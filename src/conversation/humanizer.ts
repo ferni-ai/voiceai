@@ -20,6 +20,15 @@ import { getConversationalMemory } from './conversational-memory.js';
 import { getQuestionPatternEngine, type QuestionContext } from './question-patterns.js';
 import { getEmotionalArcTracker, type EmotionalResponse } from './emotional-arc.js';
 import { getResponseDynamicsEngine } from './response-dynamics.js';
+import {
+  getDeepHumanizationEngine,
+  detectEvidence,
+  detectBreakthrough,
+  detectAdviceGiving,
+  classifyTopicWeight,
+  type HumanizationContext as DeepContext,
+  type SessionMemory,
+} from './deep-humanization.js';
 
 // ============================================================================
 // TYPES
@@ -34,6 +43,10 @@ export interface HumanizationContext {
   isSeriousContext?: boolean;
   wasPersonalSharing?: boolean;
   silenceDurationMs?: number;
+  /** Session data for anticipation/running jokes */
+  sessionData?: SessionMemory;
+  /** Relationship stage for deeper humanization */
+  relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
 }
 
 export interface HumanizedResponse {
@@ -79,12 +92,14 @@ export class ConversationHumanizer {
   private questions = getQuestionPatternEngine();
   private emotional = getEmotionalArcTracker();
   private dynamics = getResponseDynamicsEngine();
+  private deepHumanization = getDeepHumanizationEngine('ferni'); // Will be set by personaId
 
   // Track if last response included a memory callback
   private lastResponseHadCallback = false;
 
   constructor(personaId: string) {
     this.personaId = personaId;
+    this.deepHumanization = getDeepHumanizationEngine(personaId);
     getLogger().debug({ personaId }, 'ConversationHumanizer initialized');
   }
 
@@ -376,6 +391,15 @@ export class ConversationHumanizer {
     // Get pacing
     const pacing = this.dynamics.getPacingAnalysis();
 
+    // 0. Update deep humanization mood tracking
+    const topicWeight = classifyTopicWeight(context.userMessage, context.userEmotion);
+    this.deepHumanization.updateMood({
+      userEmotion: context.userEmotion,
+      topicWeight,
+      userEngagement: context.userMessage.length > 100 ? 'high' : 'medium',
+      turnCount: context.turnNumber,
+    });
+
     // 1. Apply speech naturalization
     const naturalizationContext: NaturalizationContext = {
       emotion: context.userEmotion,
@@ -394,7 +418,11 @@ export class ConversationHumanizer {
       appliedFeatures.push('vocabulary_mirroring');
     }
 
-    // 3. Check for memory callback opportunity
+    // 3. Apply deep humanization (async but fire-and-forget for sync method)
+    // Note: For full deep humanization, use humanizeResponseAsync
+    // This provides basic mood tracking in sync flow
+
+    // 4. Check for memory callback opportunity
     let memoryCallback: HumanizedResponse['memoryCallback'];
     if (context.turnNumber > 4 && Math.random() < 0.2) {
       const callback = this.memory.getMemoryCallback(
@@ -411,7 +439,7 @@ export class ConversationHumanizer {
       }
     }
 
-    // 4. Consider adding a follow-up question
+    // 5. Consider adding a follow-up question
     let followUpQuestion: HumanizedResponse['followUpQuestion'];
     if (!context.userMessage.includes('?') && Math.random() < 0.35) {
       const questionContext: QuestionContext = {
@@ -430,13 +458,13 @@ export class ConversationHumanizer {
       appliedFeatures.push('follow_up_question');
     }
 
-    // 5. Add hedging for uncertainty if appropriate
+    // 6. Add hedging for uncertainty if appropriate
     if (this.shouldAddUncertainty(text, context)) {
       text = this.naturalizer.addUncertainty(text, this.personaId, 'medium');
       appliedFeatures.push('uncertainty_hedge');
     }
 
-    // 6. Apply SSML enhancements based on emotional guidance
+    // 7. Apply SSML enhancements based on emotional guidance
     ssml = this.applySsmlEnhancements(text, emotionalGuidance);
 
     // Record agent message
@@ -452,6 +480,66 @@ export class ConversationHumanizer {
       memoryCallback,
       followUpQuestion,
     };
+  }
+
+  /**
+   * Humanize a response with full deep humanization (async)
+   * Includes mood drift, spontaneous thoughts, physical presence, etc.
+   */
+  async humanizeResponseAsync(
+    rawResponse: string,
+    context: HumanizationContext
+  ): Promise<HumanizedResponse> {
+    // First apply the standard humanization
+    const baseResult = this.humanizeResponse(rawResponse, context);
+
+    // Build deep humanization context
+    const deepContext: DeepContext = {
+      personaId: this.personaId,
+      turnCount: context.turnNumber,
+      sessionMinutes: 0, // Would need to be tracked
+      currentHour: new Date().getHours(),
+      userMessage: context.userMessage,
+      lastAgentMessage: undefined,
+      recentTopics: context.topic ? [context.topic] : [],
+      relationshipStage: context.relationshipStage ?? 'acquaintance',
+      sessionData: context.sessionData,
+    };
+
+    // Detect signals for deep humanization
+    const signals = {
+      userPresentedEvidence: detectEvidence(context.userMessage),
+      isBreakthroughMoment: detectBreakthrough(context.userMessage),
+      isGivingAdvice: detectAdviceGiving(rawResponse),
+    };
+
+    // Get deep humanization injections
+    const injections = await this.deepHumanization.getHumanizationInjections(deepContext, signals);
+
+    // Apply injections to the text
+    if (injections.length > 0) {
+      const enhancedText = this.deepHumanization.applyInjections(baseResult.text, injections);
+      const enhancedSsml = this.deepHumanization.applyInjections(baseResult.ssml, injections);
+
+      // Add injection types to applied features
+      const deepFeatures = injections.map((i) => `deep_${i.type}`);
+
+      return {
+        ...baseResult,
+        text: enhancedText,
+        ssml: enhancedSsml,
+        appliedFeatures: [...baseResult.appliedFeatures, ...deepFeatures],
+      };
+    }
+
+    return baseResult;
+  }
+
+  /**
+   * Get the current conversation mood from deep humanization
+   */
+  getMood() {
+    return this.deepHumanization.getMood();
   }
 
   /**

@@ -26,6 +26,7 @@ import { resetActiveListeningEngine as _resetActiveListening } from './active-li
 import { resetConversationalMemory as _resetConversationalMemory } from './conversational-memory.js';
 import { resetQuestionPatternEngine as _resetQuestionPatterns } from './question-patterns.js';
 import { resetConversationHumanizer as _resetHumanizer } from './humanizer.js';
+import { resetDeepHumanizationEngine as _resetDeepHumanization } from './deep-humanization.js';
 
 // Emotional Arc Tracking
 export {
@@ -155,6 +156,22 @@ export {
   type HumanizingConfig,
 } from './humanizing-config.js';
 
+// Deep Humanization - Advanced personality features
+export {
+  DeepHumanizationEngine,
+  getDeepHumanizationEngine,
+  resetDeepHumanizationEngine,
+  detectEvidence,
+  detectBreakthrough,
+  detectAdviceGiving,
+  classifyTopicWeight,
+  type ConversationMood,
+  type HumanizationContext as DeepHumanizationContext,
+  type HumanizationInjection,
+  type HumanizationType,
+  type SessionMemory,
+} from './deep-humanization.js';
+
 // ============================================================================
 // CONVENIENCE: Reset all conversation state
 // ============================================================================
@@ -162,7 +179,7 @@ export {
 /**
  * Reset all conversation tracking for a new session
  */
-export function resetAllConversationState(): void {
+export function resetAllConversationState(personaId?: string): void {
   _resetEmotionalArc();
   _resetResponseDynamics();
   _resetInterruption();
@@ -173,4 +190,7 @@ export function resetAllConversationState(): void {
   _resetConversationalMemory();
   _resetQuestionPatterns();
   _resetHumanizer();
+  if (personaId) {
+    _resetDeepHumanization(personaId);
+  }
 }
