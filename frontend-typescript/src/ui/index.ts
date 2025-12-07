@@ -15,6 +15,16 @@ export { spotifyUI, initSpotifyUI, showSpotifyStatus, hideSpotifyStatus } from '
 // Avatar-Based Feedback (No Text Toasts)
 export { avatarFeedback, initAvatarFeedback } from './avatar-feedback.ui.js';
 
+// 👁️ Ferni Eye - Pixar-inspired peek-through personality
+export { 
+  ferniEye, 
+  initFerniEye, 
+  triggerPeek as eyePeek,
+  triggerBlink as eyeBlink,
+  triggerWink as eyeWink,
+  triggerCurious as eyeCurious,
+} from './ferni-eye.ui.js';
+
 // Enhanced UI Features
 export { keyboardUI, initKeyboardUI, setConnected as setKeyboardConnected } from './keyboard.ui.js';
 export { transcriptUI, initTranscriptUI } from './transcript.ui.js';

@@ -18,6 +18,7 @@ import type { PersonaId, PersonaConfig } from '../types/persona.js';
 import { PERSONAS } from '../config/personas.js';
 import { getPersonaColorConfig, PERSONA_COLORS } from '../config/persona-colors.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api-helpers.js';
 
 const log = createLogger('Agents');
 
@@ -109,7 +110,7 @@ export async function fetchAgents(forceRefresh: boolean = false): Promise<ApiAge
   // Start new fetch
   fetchInProgress = (async () => {
     try {
-      const response = await fetch('/api/agents');
+      const response = await apiGet('/api/agents');
 
       if (!response.ok) {
         const errorData = await response.json() as AgentsApiError;

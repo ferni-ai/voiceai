@@ -7,6 +7,9 @@
  * - PERSONA_REGISTRY (persona metadata)
  * - ID resolution functions
  *
+ * NOTE: Alias resolution is delegated to persona-ids.ts (SINGLE SOURCE OF TRUTH).
+ * This module focuses on AgentRole enum and persona metadata.
+ *
  * NOTE: For new code, prefer importing via the central module:
  *   import { AgentRole, getPersonaId, isCoach } from '../personas/index.js';
  *
@@ -26,6 +29,15 @@
  *
  * Legacy aliases are still supported for backward compatibility.
  */
+
+// Import from persona-ids.ts - the SINGLE SOURCE OF TRUTH for alias resolution
+import {
+  toCanonical,
+  isKnownId as isKnownIdFromSource,
+  ALIAS_TO_CANONICAL,
+  DISPLAY_NAMES,
+  type CanonicalPersonaId,
+} from './persona-ids.js';
 
 // ============================================================================
 // AGENT ROLE ENUM - Stable identifiers based on function, not persona
@@ -253,47 +265,50 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
 // ID RESOLUTION FUNCTIONS
 // ============================================================================
 
-/** Cache for fast alias lookups */
-const aliasCache = new Map<string, PersonaId>();
+// NOTE: Alias resolution is delegated to persona-ids.ts (SINGLE SOURCE OF TRUTH)
+// We add AgentRole enum values to the resolution for this module only
 
-/** Initialize the alias cache */
-function initializeAliasCache(): void {
-  if (aliasCache.size > 0) return;
+/** Cache for AgentRole to PersonaId lookups */
+const roleToPersonaCache = new Map<string, PersonaId>();
+
+/** Initialize the role cache */
+function initializeRoleCache(): void {
+  if (roleToPersonaCache.size > 0) return;
 
   for (const [personaId, metadata] of Object.entries(PERSONA_REGISTRY)) {
     const pid = personaId as PersonaId;
-
-    // Add canonical ID
-    aliasCache.set(pid, pid);
-    aliasCache.set(metadata.displayName.toLowerCase(), pid);
-    aliasCache.set(metadata.shortName.toLowerCase(), pid);
-
-    // Add AgentRole enum value as alias
-    aliasCache.set(metadata.agentRole, pid);
-
-    // Add all aliases (for backward compatibility)
-    for (const alias of metadata.aliases) {
-      aliasCache.set(alias.toLowerCase(), pid);
-    }
+    // Map AgentRole enum value to PersonaId
+    roleToPersonaCache.set(metadata.agentRole, pid);
   }
 }
 
 /**
  * Get the canonical persona ID from any ID format or alias.
- * This is the master resolution function.
+ * 
+ * NOTE: Delegates to persona-ids.ts for alias resolution (SINGLE SOURCE OF TRUTH),
+ * but also handles AgentRole enum values.
  */
 export function getPersonaId(id: string): PersonaId {
-  initializeAliasCache();
-  const normalized = id.toLowerCase().trim();
-  return aliasCache.get(normalized) || 'ferni'; // Default to coach
+  // First check if it's an AgentRole enum value
+  initializeRoleCache();
+  const roleResult = roleToPersonaCache.get(id);
+  if (roleResult) {
+    return roleResult;
+  }
+
+  // Delegate to persona-ids.ts for alias resolution
+  return toCanonical(id) as PersonaId;
 }
 
 /**
  * Get the display name from any ID format.
+ * 
+ * NOTE: Uses DISPLAY_NAMES from persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getDisplayName(id: string): string {
   const personaId = getPersonaId(id);
-  return PERSONA_REGISTRY[personaId].displayName;
+  // Try PERSONA_REGISTRY first (has full names), then fall back to DISPLAY_NAMES
+  return PERSONA_REGISTRY[personaId]?.displayName || DISPLAY_NAMES[personaId as CanonicalPersonaId] || id;
 }
 
 /**
@@ -347,10 +362,19 @@ export function getTeamMemberIds(): PersonaId[] {
 
 /**
  * Check if an ID is recognized as a valid persona.
+ * 
+ * NOTE: Delegates to persona-ids.ts for alias checking,
+ * but also handles AgentRole enum values.
  */
 export function isKnownPersonaId(id: string): boolean {
-  initializeAliasCache();
-  return aliasCache.has(id.toLowerCase().trim());
+  // Check AgentRole enum values
+  initializeRoleCache();
+  if (roleToPersonaCache.has(id)) {
+    return true;
+  }
+
+  // Delegate to persona-ids.ts for alias checking
+  return isKnownIdFromSource(id);
 }
 
 // ============================================================================

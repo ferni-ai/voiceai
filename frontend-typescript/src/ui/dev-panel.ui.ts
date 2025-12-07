@@ -18,16 +18,48 @@
  *   - Agent handoff tester
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
-import { createLogger } from '../utils/logger.js';
-import { appState } from '../state/app.state.js';
-import { teamUnlockService, TEAM_MEMBERS, type TeamMemberId } from '../services/team-unlock.service.js';
-import { teamUnlockCelebration } from './team-unlock-celebration.ui.js';
-import { relationshipStageService, STAGE_NAMES, type RelationshipStage } from '../services/relationship-stage.service.js';
-import { avatarFeedback } from './avatar-feedback.ui.js';
-import { rosterPreferences } from '../services/roster-preferences.service.js';
-import { presenceUI } from './presence.ui.js';
 import type { VoiceEmotion } from '@design-system/tokens';
+import { DURATION, EASING } from '../config/animation-constants.js';
+import {
+  relationshipStageService,
+  STAGE_NAMES,
+  type RelationshipStage,
+} from '../services/relationship-stage.service.js';
+import { rosterPreferences } from '../services/roster-preferences.service.js';
+import {
+  TEAM_MEMBERS,
+  teamUnlockService,
+  type TeamMemberId,
+} from '../services/team-unlock.service.js';
+import { appState } from '../state/app.state.js';
+import { createLogger } from '../utils/logger.js';
+import { avatarFeedback } from './avatar-feedback.ui.js';
+import { ferniEye } from './ferni-eye.ui.js';
+import { presenceUI } from './presence.ui.js';
+import { teamUnlockCelebration } from './team-unlock-celebration.ui.js';
+
+// Soul system imports
+import {
+  celebrationBurst,
+  empathyPulse,
+  makeAvatarLookAround,
+  pauseAllEyeTracking,
+  revealAvatarEye,
+  showFirstLaunchExperience,
+} from './soul.ui.js';
+
+// Weather effects
+import {
+  getCurrentSeason,
+  getCurrentWeather,
+  playSeasonalMoment,
+  startWeather,
+  stopWeather,
+  type WeatherType,
+} from './weather-effects.ui.js';
+
+// Ferni Moments - Pixar-style character expressions
+import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
 
 const log = createLogger('DevPanel');
 
@@ -46,7 +78,7 @@ const isDevEnvironment = (): boolean => {
   }
 };
 
-const DEV_MODE_ENABLED = 
+const DEV_MODE_ENABLED =
   isDevEnvironment() ||
   localStorage.getItem('ferni_dev_mode') === 'true' ||
   new URLSearchParams(window.location.search).has('dev');
@@ -56,19 +88,30 @@ const DEV_MODE_ENABLED =
 // ============================================================================
 
 const ICONS = {
-  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  close:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   code: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
-  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  users:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-  unlock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+  unlock:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-  sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
-  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>',
+  sparkles:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
+  refresh:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>',
   zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
-  drama: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
-  music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  heart:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  check:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+  drama:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+  music:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
 };
 
 // ============================================================================
@@ -97,17 +140,17 @@ export function initDevPanel(): void {
   cleanupOrphanedElements();
   injectStyles();
   setupKeyboardShortcuts();
-  
+
   // Show dev indicator
   showDevIndicator();
-  
+
   log.info('Dev panel initialized (Cmd/Ctrl+Shift+D to open)');
 }
 
 function cleanupOrphanedElements(): void {
-  document.querySelectorAll('.dev-panel').forEach(el => el.remove());
-  document.querySelectorAll('.dev-indicator').forEach(el => el.remove());
-  document.querySelectorAll('#dev-panel-styles').forEach(el => el.remove());
+  document.querySelectorAll('.dev-panel').forEach((el) => el.remove());
+  document.querySelectorAll('.dev-indicator').forEach((el) => el.remove());
+  document.querySelectorAll('#dev-panel-styles').forEach((el) => el.remove());
 }
 
 function showDevIndicator(): void {
@@ -127,10 +170,10 @@ function setupKeyboardShortcuts(): void {
   document.addEventListener('keydown', (e) => {
     // Only handle if Cmd/Ctrl + Shift is pressed
     if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return;
-    
+
     // Use e.code for reliable key detection (ignores shift state)
     const code = e.code;
-    
+
     // Cmd/Ctrl + Shift + D → Toggle panel
     if (code === 'KeyD') {
       e.preventDefault();
@@ -138,7 +181,7 @@ function setupKeyboardShortcuts(): void {
       togglePanel();
       return;
     }
-    
+
     // Cmd/Ctrl + Shift + U → Quick unlock all
     if (code === 'KeyU') {
       e.preventDefault();
@@ -146,7 +189,7 @@ function setupKeyboardShortcuts(): void {
       quickUnlockAll();
       return;
     }
-    
+
     // Cmd/Ctrl + Shift + R → Reset to free (avoid browser refresh conflict)
     // Changed to Cmd/Ctrl + Shift + 0 for safety
     if (code === 'Digit0') {
@@ -172,28 +215,28 @@ export function togglePanel(): void {
 
 export function showPanel(): void {
   if (!DEV_MODE_ENABLED) return;
-  
+
   if (panel) panel.remove();
-  
+
   panel = createPanel();
   document.body.appendChild(panel);
-  
+
   requestAnimationFrame(() => {
     panel?.classList.add('dev-panel--visible');
   });
-  
+
   isVisible = true;
 }
 
 export function hidePanel(): void {
   if (!panel) return;
-  
+
   panel.classList.remove('dev-panel--visible');
   setTimeout(() => {
     panel?.remove();
     panel = null;
   }, DURATION.SLOW);
-  
+
   isVisible = false;
 }
 
@@ -204,12 +247,12 @@ export function hidePanel(): void {
 function createPanel(): HTMLElement {
   const container = document.createElement('div');
   container.className = 'dev-panel';
-  
+
   const state = appState.getState();
   const metrics = relationshipStageService.getMetrics();
   const stage = stageOverride ?? relationshipStageService.getStage();
   const tier = tierOverride ?? 'free';
-  
+
   container.innerHTML = `
     <div class="dev-panel__header">
       <div class="dev-panel__title">
@@ -263,12 +306,23 @@ function createPanel(): HTMLElement {
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.heart} Relationship Stage</h3>
         <div class="dev-stage-buttons">
-          ${(['first-meeting', 'getting-started', 'building-trust', 'established', 'deep-partnership'] as RelationshipStage[])
-            .map(s => `
+          ${(
+            [
+              'first-meeting',
+              'getting-started',
+              'building-trust',
+              'established',
+              'deep-partnership',
+            ] as RelationshipStage[]
+          )
+            .map(
+              (s) => `
               <button class="dev-stage-btn ${stage === s ? 'dev-stage-btn--active' : ''}" data-stage="${s}">
                 ${STAGE_NAMES[s]}
               </button>
-            `).join('')}
+            `
+            )
+            .join('')}
         </div>
       </section>
       
@@ -276,7 +330,7 @@ function createPanel(): HTMLElement {
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.users} Team Members</h3>
         <div class="dev-team-grid">
-          ${TEAM_MEMBERS.map(member => {
+          ${TEAM_MEMBERS.map((member) => {
             const status = teamUnlockService.getMemberStatus(member.id);
             return `
               <div class="dev-team-member ${status.unlocked ? 'dev-team-member--unlocked' : ''}">
@@ -335,15 +389,87 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
+      <!-- 🌟 Soul & Delight -->
+      <section class="dev-section dev-section--soul">
+        <h3 class="dev-section__title">${ICONS.eye} Soul & Delight</h3>
+        <p class="dev-section__desc">Delightful surprises that make Ferni feel alive</p>
+        
+        <!-- Core Soul Features -->
+        <div class="dev-subsection">
+          <span class="dev-label">✨ Core Magic</span>
+          <div class="dev-soul-buttons">
+            <button class="dev-soul-btn dev-soul-btn--primary" data-soul="eye-reveal" title="Avatar transforms into an eye">
+              👁️ Eye Reveal
+            </button>
+            <button class="dev-soul-btn" data-soul="awakening" title="First launch experience">
+              🌅 Awakening
+            </button>
+            <button class="dev-soul-btn" data-soul="look-around" title="Avatar looks around curiously">
+              👀 Look Around
+            </button>
+          </div>
+        </div>
+        
+        <!-- Reactions -->
+        <div class="dev-subsection">
+          <span class="dev-label">💫 Reactions</span>
+          <div class="dev-soul-buttons">
+            <button class="dev-soul-btn" data-soul="celebrate" title="Celebration burst">
+              🎉 Celebrate
+            </button>
+            <button class="dev-soul-btn" data-soul="empathy" title="Empathy pulse">
+              💙 Empathy
+            </button>
+            <button class="dev-soul-btn" data-soul="wink" title="Quick wink">
+              😉 Wink
+            </button>
+            <button class="dev-soul-btn" data-soul="curious-tilt" title="Interested tilt">
+              🤔 Curious Tilt
+            </button>
+          </div>
+        </div>
+        
+        <!-- Ambient -->
+        <div class="dev-subsection">
+          <span class="dev-label">🌙 Ambient</span>
+          <div class="dev-soul-buttons">
+            <button class="dev-soul-btn" data-soul="pause-tracking" title="Pause eye tracking 3s">
+              ⏸️ Pause Tracking
+            </button>
+            <button class="dev-soul-btn" data-soul="secret-smile" title="Avatar smiles secretly">
+              😊 Secret Smile
+            </button>
+            <button class="dev-soul-btn" data-soul="sleepy" title="Late night yawn">
+              😴 Sleepy
+            </button>
+          </div>
+        </div>
+        
+        <!-- Ideas for Future -->
+        <div class="dev-subsection">
+          <span class="dev-label">💡 Ideas (Coming Soon)</span>
+          <div class="dev-soul-ideas">
+            <span>Connection Spark</span>
+            <span>Heartbeat Glow</span>
+            <span>Confetti Burst</span>
+            <span>Attentive Lean</span>
+          </div>
+        </div>
+      </section>
+      
       <!-- Agent Tester -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.users} Handoff Tester</h3>
         <div class="dev-handoff-buttons">
-          ${TEAM_MEMBERS.filter(m => m.id !== 'ferni').map(member => `
+          ${TEAM_MEMBERS.filter((m) => m.id !== 'ferni')
+            .map(
+              (member) => `
             <button class="dev-handoff-btn" data-persona="${member.id}">
               → ${member.displayName}
             </button>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       </section>
       
@@ -387,6 +513,128 @@ function createPanel(): HTMLElement {
           <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="info" title="Info feedback">
             ℹ Info
           </button>
+        </div>
+        
+        <!-- 🎉 NEW: Fun Micro-Reactions -->
+        <p class="dev-section__desc" style="margin-top: 12px;">Fun Reactions (delightful avatar movements)</p>
+        <div class="dev-expression-buttons">
+          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="happy" title="Bounce for good news">
+            🥳 Happy
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="curious" title="Tilt for 'tell me more'">
+            🤨 Curious
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="empathy" title="Nod for understanding">
+            🫂 Empathy
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="laugh" title="Wobble for humor">
+            😂 Laugh
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="surprise" title="Pop for wow moments">
+            😲 Surprise
+          </button>
+        </div>
+        
+        <!-- 👁️ Ferni Awareness - Three testable styles -->
+        <p class="dev-section__desc" style="margin-top: 12px;">Awareness Styles (test which feels right)</p>
+        <div class="dev-expression-buttons" style="margin-bottom: 8px;">
+          <button class="dev-expression-btn dev-expression-btn--style" data-awareness-style="pupil" title="Simple pupil + catchlight (Pixar lamp)">
+            ⚫ Pupil
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--style" data-awareness-style="sparkle" title="Just a sparkle (ultra minimal)">
+            ✨ Sparkle
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--style" data-awareness-style="glow" title="Orb glow changes (no eye)">
+            🌟 Glow
+          </button>
+        </div>
+        <p class="dev-section__desc">Trigger Animations</p>
+        <div class="dev-expression-buttons">
+          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="peek" title="Awareness appears, looks around, disappears">
+            👁️ Peek
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="wink" title="Playful wink (pupil mode only)">
+            😉 Wink
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="curious" title="Curious look">
+            🤔 Curious
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="show" title="Show (stays visible)">
+            👀 Show
+          </button>
+          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="hide" title="Hide">
+            🙈 Hide
+          </button>
+        </div>
+      </section>
+      
+      <!-- 🎭 Ferni Moments - Character Expressions -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.heart} Ferni Moments</h3>
+        <p class="dev-section__desc">Pixar-style character expressions & reactions</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Emotional</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-moment="celebration" title="Celebration">🎉</button>
+            <button class="dev-expression-btn" data-moment="warmGlow" title="Warm glow">✨</button>
+            <button class="dev-expression-btn" data-moment="lightbulb" title="Aha moment">💡</button>
+            <button class="dev-expression-btn" data-moment="hearts" title="Hearts">❤️</button>
+            <button class="dev-expression-btn" data-moment="thinking" title="Thinking">🤔</button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Time of Day</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-moment="coffee" title="Morning coffee">☕</button>
+            <button class="dev-expression-btn" data-moment="sunshine" title="Sunshine">☀️</button>
+            <button class="dev-expression-btn" data-moment="cozy" title="Cozy evening">🕯️</button>
+            <button class="dev-expression-btn" data-moment="moonlight" title="Moonlight">🌙</button>
+            <button class="dev-expression-btn" data-moment="sleepy" title="Sleepy">😴</button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Contextual</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-moment="musicNotes" title="Music">♪</button>
+            <button class="dev-expression-btn" data-moment="sparkle" title="Sparkle">✨</button>
+            <button class="dev-expression-btn" data-moment="books" title="Books/learning">📚</button>
+            <button class="dev-expression-btn" data-moment="growing" title="Growth">🌱</button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Connection</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-moment="wave" title="Wave hello">👋</button>
+            <button class="dev-expression-btn" data-moment="nod" title="Nod">😊</button>
+            <button class="dev-expression-btn" data-moment="headTilt" title="Curious tilt">🤨</button>
+            <button class="dev-expression-btn" data-moment="highFive" title="High five">✋</button>
+            <button class="dev-expression-btn" data-moment="fistBump" title="Fist bump">👊</button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Milestones</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-moment="birthday" title="Birthday">🎂</button>
+            <button class="dev-expression-btn" data-moment="streakFire" title="Streak fire">🔥</button>
+            <button class="dev-expression-btn" data-moment="trophy" title="Trophy">🏆</button>
+            <button class="dev-expression-btn" data-moment="levelUp" title="Level up">⬆️</button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Human Touches</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn" data-moment="yawn" title="Yawn">🥱</button>
+            <button class="dev-expression-btn" data-moment="stretch" title="Stretch">🙆</button>
+            <button class="dev-expression-btn" data-moment="breathe" title="Deep breath">😌</button>
+            <button class="dev-expression-btn" data-moment="shiver" title="Cold/shiver">🥶</button>
+            <button class="dev-expression-btn" data-moment="fan" title="Hot/fan">🥵</button>
+          </div>
         </div>
       </section>
       
@@ -689,164 +937,809 @@ function createPanel(): HTMLElement {
           </div>
         </div>
       </section>
+      
+      <!-- 🔌 Connection & Audio Testing -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.zap} Connection & Audio</h3>
+        <p class="dev-section__desc">Test connection states and audio feedback</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Connection State</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--connection" data-connection="connecting" title="Show connecting state">
+              🔄 Connecting
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--connection" data-connection="connected" title="Show connected state">
+              ✅ Connected
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--connection" data-connection="disconnected" title="Show disconnected state">
+              ❌ Disconnected
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--connection" data-connection="error" title="Show error state">
+              ⚠️ Error
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Sound Effects</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="connect" title="Play connect sound">
+              🔔 Connect
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="disconnect" title="Play disconnect sound">
+              🔕 Disconnect
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="success" title="Play success sound">
+              ✨ Success
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="error" title="Play error sound">
+              🚨 Error
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="hover" title="Play hover sound">
+              👆 Hover
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--sound" data-sound="click" title="Play click sound">
+              👇 Click
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 💬 Messages & Transcript -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.drama} Messages & Transcript</h3>
+        <p class="dev-section__desc">Inject test messages and transcript entries</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Message Type</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--message" data-message="user" title="Inject user message">
+              👤 User Message
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--message" data-message="agent" title="Inject agent message">
+              🤖 Agent Message
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--message" data-message="thinking" title="Show thinking indicator">
+              💭 Thinking...
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--message" data-message="whisper" title="Show status whisper">
+              🤫 Whisper
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Toast Notifications</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--toast" data-toast="success" title="Show success toast">
+              ✅ Success
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--toast" data-toast="error" title="Show error toast">
+              ❌ Error
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--toast" data-toast="info" title="Show info toast">
+              ℹ️ Info
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--toast" data-toast="warning" title="Show warning toast">
+              ⚠️ Warning
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 📱 Modals & Panels -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.users} Modals & Panels</h3>
+        <p class="dev-section__desc">Open various app dialogs and panels</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Panels</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="analytics" title="Open analytics">
+              📊 Analytics
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="history" title="Open conversation history">
+              📜 History
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="insights" title="Open insights">
+              🧠 Insights
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="predictions" title="Open predictions">
+              🔮 Predictions
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Special</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="tour" title="Restart app tour">
+              🎯 Restart Tour
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="daily" title="Open daily check-in">
+              ☀️ Daily Check-in
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="huddle" title="Open team huddle">
+              🤝 Team Huddle
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--modal" data-modal="marketplace" title="Open marketplace">
+              🏪 Marketplace
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 🕐 Time & Environment -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.sun} Environment</h3>
+        <p class="dev-section__desc">Override time of day and environment settings</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Time Override</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--time" data-time="morning" title="Set to morning (6am)">
+              🌅 Morning
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--time" data-time="afternoon" title="Set to afternoon (2pm)">
+              ☀️ Afternoon
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--time" data-time="evening" title="Set to evening (7pm)">
+              🌆 Evening
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--time" data-time="night" title="Set to night (11pm)">
+              🌙 Night
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--time" data-time="reset" title="Use real time">
+              🔄 Real Time
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Accessibility</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--a11y" data-a11y="reduce-motion" title="Toggle reduced motion">
+              🐢 Reduced Motion
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--a11y" data-a11y="high-contrast" title="Toggle high contrast">
+              🔲 High Contrast
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--a11y" data-a11y="large-text" title="Toggle large text">
+              🔤 Large Text
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 🎲 Easter Eggs & Fun -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.sparkles} Easter Eggs</h3>
+        <p class="dev-section__desc">Trigger hidden delights and special effects</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Special Effects</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--easter" data-easter="confetti" title="Confetti burst">
+              🎊 Confetti
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--easter" data-easter="fireworks" title="Fireworks">
+              🎆 Fireworks
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--easter" data-easter="party" title="Party mode">
+              🎉 Party Mode
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--easter" data-easter="zen" title="Zen moment">
+              🧘 Zen
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 🔧 App State Inspector -->
+      <section class="dev-section dev-section--state">
+        <h3 class="dev-section__title">${ICONS.code} State Inspector</h3>
+        <p class="dev-section__desc">View and modify live app state</p>
+        
+        <div class="dev-state-grid" id="dev-state-grid">
+          <div class="dev-state-item">
+            <span class="dev-state-label">Connection</span>
+            <span class="dev-state-value" id="state-connection">${state.connection}</span>
+          </div>
+          <div class="dev-state-item">
+            <span class="dev-state-label">Active Persona</span>
+            <span class="dev-state-value" id="state-persona">${state.activePersona?.id || 'ferni'}</span>
+          </div>
+          <div class="dev-state-item">
+            <span class="dev-state-label">Muted</span>
+            <span class="dev-state-value" id="state-muted">${state.isMuted ? 'Yes' : 'No'}</span>
+          </div>
+          <div class="dev-state-item">
+            <span class="dev-state-label">User Name</span>
+            <span class="dev-state-value" id="state-username">${state.userName || '(none)'}</span>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Toggle States</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--state" data-state="toggle-mute" title="Toggle muted state">
+              🔇 Toggle Mute
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--state" data-state="refresh" title="Refresh state display">
+              🔄 Refresh
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 🌊 Waveform Testing -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.music} Waveform States</h3>
+        <p class="dev-section__desc">Test waveform visualization states</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Waveform Mode</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="idle" title="Idle state">
+              😴 Idle
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="listening" title="Listening state">
+              👂 Listening
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-low" title="Low intensity speaking">
+              🔈 Speaking Low
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-med" title="Medium intensity speaking">
+              🔊 Speaking Med
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-high" title="High intensity speaking">
+              📢 Speaking High
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="thinking" title="Thinking state">
+              🤔 Thinking
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 💀 Loading & Skeleton States -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.refresh} Loading States</h3>
+        <p class="dev-section__desc">Test skeleton loaders and loading indicators</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Loading UI</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--loading" data-loading="skeleton-avatar" title="Avatar skeleton">
+              👤 Avatar Skeleton
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--loading" data-loading="skeleton-team" title="Team skeleton">
+              👥 Team Skeleton
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--loading" data-loading="spinner" title="Show spinner">
+              ⏳ Spinner
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--loading" data-loading="clear" title="Clear loading states">
+              ✓ Clear All
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 🎊 Streak Celebrations -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.sparkles} Streak Milestones</h3>
+        <p class="dev-section__desc">Test all streak celebration levels</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Streak Days</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="3" title="3-day streak">
+              3️⃣ 3 Days
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="7" title="7-day streak">
+              7️⃣ 7 Days
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="14" title="14-day streak">
+              📅 14 Days
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="30" title="30-day streak">
+              🌙 30 Days
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="60" title="60-day streak">
+              ⭐ 60 Days
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="90" title="90-day streak">
+              🏆 90 Days
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--streak" data-streak="365" title="365-day streak">
+              👑 365 Days!
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 📶 Network Simulation -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.zap} Network Simulation</h3>
+        <p class="dev-section__desc">Simulate network conditions</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Connection Quality</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--network" data-network="excellent" title="Excellent connection">
+              📶 Excellent
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--network" data-network="good" title="Good connection">
+              📶 Good
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--network" data-network="poor" title="Poor connection">
+              📶 Poor
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--network" data-network="offline" title="Offline mode">
+              ❌ Offline
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Latency</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--latency" data-latency="0" title="No latency">
+              ⚡ 0ms
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--latency" data-latency="200" title="200ms latency">
+              🐢 200ms
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--latency" data-latency="500" title="500ms latency">
+              🦥 500ms
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--latency" data-latency="1000" title="1s latency">
+              🐌 1000ms
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 🗑️ Storage & Data -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.unlock} Storage & Data</h3>
+        <p class="dev-section__desc">View and manage app storage</p>
+        
+        <div class="dev-storage-info" id="dev-storage-info">
+          <div class="dev-storage-item">
+            <span class="dev-storage-key">localStorage items:</span>
+            <span class="dev-storage-value" id="storage-count">${Object.keys(localStorage).filter((k) => k.startsWith('ferni')).length}</span>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Actions</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="view" title="View all storage">
+              👁️ View Storage
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-cache" title="Clear cache">
+              🧹 Clear Cache
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-all" title="Clear ALL data (careful!)">
+              ⚠️ Clear ALL
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--storage" data-storage="export" title="Export storage to console">
+              📤 Export
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 🎭 Ambient & Particles -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.sparkles} Ambient Effects</h3>
+        <p class="dev-section__desc">Toggle ambient backgrounds and particles</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Effects</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="particles" title="Toggle particles">
+              ✨ Particles
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="glow" title="Toggle ambient glow">
+              🌟 Ambient Glow
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="aurora" title="Toggle aurora">
+              🌌 Aurora
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="off" title="Turn off all effects">
+              🚫 All Off
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Avatar Weather (${getCurrentSeason()})</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--weather dev-expression-btn--primary" data-weather="moment" title="Play brief seasonal moment">
+              ✨ Seasonal Moment
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'snow' ? 'active' : ''}" data-weather="snow" title="Snow around avatar">
+              ❄️
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'rain' ? 'active' : ''}" data-weather="rain" title="Rain">
+              🌧️
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'leaves' ? 'active' : ''}" data-weather="leaves" title="Falling leaves">
+              🍂
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'petals' ? 'active' : ''}" data-weather="petals" title="Cherry blossoms">
+              🌸
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'fireflies' ? 'active' : ''}" data-weather="fireflies" title="Fireflies">
+              🪲
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--weather" data-weather="none" title="Stop">
+              ✕
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
     
     <div class="dev-panel__footer">
       <span>Press Cmd/Ctrl+Shift+D to close</span>
     </div>
   `;
-  
+
   // Event listeners
   container.querySelector('.dev-panel__close')?.addEventListener('click', hidePanel);
-  
+
   // Tier buttons
-  container.querySelectorAll('.dev-tier-btn').forEach(btn => {
+  container.querySelectorAll('.dev-tier-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const tier = (btn as HTMLElement).dataset.tier as 'free' | 'friend' | 'partner';
       setTierOverride(tier);
     });
   });
-  
+
   // Stage buttons
-  container.querySelectorAll('.dev-stage-btn').forEach(btn => {
+  container.querySelectorAll('.dev-stage-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const stage = (btn as HTMLElement).dataset.stage as RelationshipStage;
       setStageOverride(stage);
     });
   });
-  
+
   // Celebrate buttons
-  container.querySelectorAll('.dev-team-member__celebrate').forEach(btn => {
+  container.querySelectorAll('.dev-team-member__celebrate').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const memberId = (btn as HTMLElement).dataset.member as TeamMemberId;
-      const member = TEAM_MEMBERS.find(m => m.id === memberId);
+      const member = TEAM_MEMBERS.find((m) => m.id === memberId);
       if (member) {
         teamUnlockCelebration.show(member);
       }
     });
   });
-  
+
   // Action buttons
-  container.querySelectorAll('.dev-action-btn').forEach(btn => {
+  container.querySelectorAll('.dev-action-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const action = (btn as HTMLElement).dataset.action;
       handleAction(action!);
     });
   });
-  
+
+  // Soul buttons
+  container.querySelectorAll('.dev-soul-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const soul = (btn as HTMLElement).dataset.soul;
+      triggerSoulAction(soul!);
+    });
+  });
+
   // Handoff buttons
-  container.querySelectorAll('.dev-handoff-btn').forEach(btn => {
+  container.querySelectorAll('.dev-handoff-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const persona = (btn as HTMLElement).dataset.persona;
       triggerHandoff(persona!);
     });
   });
-  
+
   // Expression buttons
-  container.querySelectorAll('.dev-expression-btn').forEach(btn => {
+  container.querySelectorAll('.dev-expression-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const expression = (btn as HTMLElement).dataset.expression;
-      triggerExpression(expression!);
+      if (expression) {
+        triggerExpression(expression);
+      }
     });
   });
-  
+
+  // 🎉 Fun reaction buttons
+  container.querySelectorAll('[data-reaction]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const reaction = (btn as HTMLElement).dataset.reaction;
+      if (reaction) {
+        triggerReaction(reaction as 'happy' | 'curious' | 'empathy' | 'laugh' | 'surprise');
+      }
+    });
+  });
+
+  // 👁️ Ferni Eye style buttons
+  container.querySelectorAll('[data-awareness-style]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const style = (btn as HTMLElement).dataset.awarenessStyle;
+      if (style) {
+        ferniEye.setStyle(style as 'pupil' | 'sparkle' | 'glow');
+        // Update active state visually
+        container.querySelectorAll('[data-awareness-style]').forEach((b) => {
+          b.classList.toggle('active', (b as HTMLElement).dataset.awarenessStyle === style);
+        });
+        log.info({ style }, '🎨 Awareness style changed');
+      }
+    });
+  });
+
+  // 👁️ Ferni Eye action buttons
+  container.querySelectorAll('[data-eye]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = (btn as HTMLElement).dataset.eye;
+      if (action) {
+        triggerFerniEye(action as 'peek' | 'wink' | 'curious' | 'show' | 'hide');
+      }
+    });
+  });
+
+  // 🎭 Ferni Moments buttons
+  container.querySelectorAll('[data-moment]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const moment = (btn as HTMLElement).dataset.moment as MomentType;
+      if (moment) {
+        ferniMoments.play(moment);
+        log.info({ moment }, '🎭 Ferni moment triggered');
+      }
+    });
+  });
+
   // Roster buttons
-  container.querySelectorAll('.dev-roster-btn').forEach(btn => {
+  container.querySelectorAll('.dev-roster-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const action = (btn as HTMLElement).dataset.roster;
       handleRosterAction(action!);
     });
   });
-  
+
   // Music buttons
-  container.querySelectorAll('.dev-music-btn').forEach(btn => {
+  container.querySelectorAll('.dev-music-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const action = (btn as HTMLElement).dataset.action;
       triggerMusicAction(action!);
     });
   });
-  
+
   // Voice mode buttons (listening/speaking)
-  container.querySelectorAll('[data-mode]').forEach(btn => {
+  container.querySelectorAll('[data-mode]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const mode = (btn as HTMLElement).dataset.mode;
       triggerVoiceMode(mode!);
     });
   });
-  
+
   // Greeting buttons
-  container.querySelectorAll('[data-greeting]').forEach(btn => {
+  container.querySelectorAll('[data-greeting]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const greeting = (btn as HTMLElement).dataset.greeting;
       triggerGreeting(greeting!);
     });
   });
-  
+
   // Celebration buttons
-  container.querySelectorAll('[data-celebration]').forEach(btn => {
+  container.querySelectorAll('[data-celebration]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const celebration = (btn as HTMLElement).dataset.celebration;
       triggerCelebration(celebration!);
     });
   });
-  
+
   // Thinking buttons
-  container.querySelectorAll('[data-thinking]').forEach(btn => {
+  container.querySelectorAll('[data-thinking]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const thinking = (btn as HTMLElement).dataset.thinking;
       triggerThinking(thinking!);
     });
   });
-  
+
   // 🆕 Dramatic animation buttons
-  container.querySelectorAll('[data-dramatic]').forEach(btn => {
+  container.querySelectorAll('[data-dramatic]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const dramatic = (btn as HTMLElement).dataset.dramatic;
       triggerDramatic(dramatic!);
     });
   });
-  
+
   // 🆕 Ring/Aura buttons
-  container.querySelectorAll('[data-ring]').forEach(btn => {
+  container.querySelectorAll('[data-ring]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const ring = (btn as HTMLElement).dataset.ring;
       triggerRingEffect(ring!);
     });
   });
-  
+
   // 🆕 Ripple buttons
-  container.querySelectorAll('[data-ripple]').forEach(btn => {
+  container.querySelectorAll('[data-ripple]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const ripple = (btn as HTMLElement).dataset.ripple;
       triggerRippleEffect(ripple!);
     });
   });
-  
+
+  // 🔌 Connection state buttons
+  container.querySelectorAll('[data-connection]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const state = (btn as HTMLElement).dataset.connection;
+      triggerConnectionState(state!);
+    });
+  });
+
+  // 🔊 Sound effect buttons
+  container.querySelectorAll('[data-sound]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const sound = (btn as HTMLElement).dataset.sound;
+      triggerSound(sound!);
+    });
+  });
+
+  // 💬 Message buttons
+  container.querySelectorAll('[data-message]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const message = (btn as HTMLElement).dataset.message;
+      triggerMessage(message!);
+    });
+  });
+
+  // 🔔 Toast buttons
+  container.querySelectorAll('[data-toast]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const toast = (btn as HTMLElement).dataset.toast;
+      triggerToast(toast!);
+    });
+  });
+
+  // 📱 Modal buttons
+  container.querySelectorAll('[data-modal]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const modal = (btn as HTMLElement).dataset.modal;
+      openModal(modal!);
+    });
+  });
+
+  // 🕐 Time buttons
+  container.querySelectorAll('[data-time]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const time = (btn as HTMLElement).dataset.time;
+      setTimeOverride(time!);
+    });
+  });
+
+  // ♿ Accessibility buttons
+  container.querySelectorAll('[data-a11y]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const a11y = (btn as HTMLElement).dataset.a11y;
+      toggleA11ySetting(a11y!);
+    });
+  });
+
+  // 🎲 Easter egg buttons
+  container.querySelectorAll('[data-easter]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const easter = (btn as HTMLElement).dataset.easter;
+      triggerEasterEgg(easter!);
+    });
+  });
+
+  // 🔧 State buttons
+  container.querySelectorAll('[data-state]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const stateAction = (btn as HTMLElement).dataset.state;
+      handleStateAction(stateAction!);
+    });
+  });
+
+  // 🌊 Waveform buttons
+  container.querySelectorAll('[data-waveform]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const waveform = (btn as HTMLElement).dataset.waveform;
+      triggerWaveformState(waveform!);
+    });
+  });
+
+  // 💀 Loading buttons
+  container.querySelectorAll('[data-loading]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const loading = (btn as HTMLElement).dataset.loading;
+      triggerLoadingState(loading!);
+    });
+  });
+
+  // 🎊 Streak buttons
+  container.querySelectorAll('[data-streak]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const streak = parseInt((btn as HTMLElement).dataset.streak!, 10);
+      triggerStreakCelebration(streak);
+    });
+  });
+
+  // 📶 Network buttons
+  container.querySelectorAll('[data-network]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const network = (btn as HTMLElement).dataset.network;
+      setNetworkSimulation(network!);
+    });
+  });
+
+  // ⏱️ Latency buttons
+  container.querySelectorAll('[data-latency]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const latency = parseInt((btn as HTMLElement).dataset.latency!, 10);
+      setLatencySimulation(latency);
+    });
+  });
+
+  // 🗑️ Storage buttons
+  container.querySelectorAll('[data-storage]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const storage = (btn as HTMLElement).dataset.storage;
+      handleStorageAction(storage!);
+    });
+  });
+
+  // 🎭 Ambient buttons
+  container.querySelectorAll('[data-ambient]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const ambient = (btn as HTMLElement).dataset.ambient;
+      toggleAmbientEffect(ambient!);
+    });
+  });
+
+  // 🌦️ Weather buttons
+  container.querySelectorAll('[data-weather]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const weather = (btn as HTMLElement).dataset.weather as WeatherType | 'moment';
+      toggleWeatherEffect(weather);
+      // Update active states (skip 'moment' button)
+      container.querySelectorAll('[data-weather]').forEach((b) => {
+        const w = (b as HTMLElement).dataset.weather;
+        if (w !== 'moment') {
+          b.classList.toggle('active', w === getCurrentWeather());
+        }
+      });
+    });
+  });
+
   // 🆕 Emotion buttons
-  container.querySelectorAll('[data-emotion]').forEach(btn => {
+  container.querySelectorAll('[data-emotion]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const emotion = (btn as HTMLElement).dataset.emotion as VoiceEmotion;
       triggerEmotion(emotion);
     });
   });
-  
+
   // 🆕 Reaction buttons
-  container.querySelectorAll('[data-reaction]').forEach(btn => {
+  container.querySelectorAll('[data-reaction]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const reaction = (btn as HTMLElement).dataset.reaction;
       triggerReaction(reaction!);
     });
   });
-  
+
   // 🆕 Flash emotion buttons
-  container.querySelectorAll('[data-flash]').forEach(btn => {
+  container.querySelectorAll('[data-flash]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const emotion = (btn as HTMLElement).dataset.flash as VoiceEmotion;
       triggerFlashEmotion(emotion);
     });
   });
-  
+
   return container;
 }
 
@@ -857,35 +1750,39 @@ function createPanel(): HTMLElement {
 function setTierOverride(tier: 'free' | 'friend' | 'partner'): void {
   tierOverride = tier;
   teamUnlockService.setTier(tier);
-  
+
   // Also update token server
   void updateServerSubscription(tier);
-  
+
   log.info({ tier }, 'Tier override set');
   refreshPanel();
 }
 
 function setStageOverride(stage: RelationshipStage): void {
   stageOverride = stage;
-  
+
   // Simulate conversations to reach stage
   const stageConversations: Record<RelationshipStage, number> = {
     'first-meeting': 0,
     'getting-started': 2,
     'building-trust': 7,
-    'established': 20,
+    established: 20,
     'deep-partnership': 50,
   };
-  
+
   conversationsOverride = stageConversations[stage];
-  
+
   // Update relationship service (hack for testing)
-  for (let i = 0; i < (conversationsOverride - relationshipStageService.getMetrics().totalConversations); i++) {
+  for (
+    let i = 0;
+    i < conversationsOverride - relationshipStageService.getMetrics().totalConversations;
+    i++
+  ) {
     relationshipStageService.recordConversation();
   }
-  
+
   void teamUnlockService.update();
-  
+
   log.info({ stage, conversations: conversationsOverride }, 'Stage override set');
   refreshPanel();
 }
@@ -893,7 +1790,7 @@ function setStageOverride(stage: RelationshipStage): void {
 async function updateServerSubscription(tier: 'free' | 'friend' | 'partner'): Promise<void> {
   const deviceId = appState.getState().deviceId;
   if (!deviceId) return;
-  
+
   try {
     await fetch('/subscription/upgrade', {
       method: 'POST',
@@ -939,7 +1836,7 @@ function handleRosterAction(action: string): void {
       rosterPreferences.setShowAll(false);
       // Clear added members to go back to minimal
       const prefs = rosterPreferences.getPreferences();
-      prefs.addedMembers.forEach(m => rosterPreferences.removeMember(m));
+      prefs.addedMembers.forEach((m) => rosterPreferences.removeMember(m));
       log.info('Showing minimal roster (Ferni only)');
       break;
     case 'reset':
@@ -994,10 +1891,169 @@ function triggerUpgradeModal(): void {
 }
 
 function triggerHandoff(personaId: string): void {
-  window.dispatchEvent(new CustomEvent('ferni:switch-persona', {
-    detail: { personaId }
-  }));
+  window.dispatchEvent(
+    new CustomEvent('ferni:switch-persona', {
+      detail: { personaId },
+    })
+  );
   log.info({ personaId }, 'Triggered handoff');
+}
+
+// ============================================================================
+// SOUL & DELIGHT ACTIONS
+// ============================================================================
+
+function triggerSoulAction(action: string): void {
+  switch (action) {
+    case 'eye-reveal':
+      void revealAvatarEye(2500);
+      log.info('Triggered eye reveal');
+      break;
+
+    case 'awakening':
+      void showFirstLaunchExperience();
+      log.info('Triggered awakening experience');
+      break;
+
+    case 'look-around':
+      void makeAvatarLookAround();
+      log.info('Triggered look around');
+      break;
+
+    case 'celebrate':
+      void celebrationBurst();
+      log.info('Triggered celebration');
+      break;
+
+    case 'empathy':
+      void empathyPulse();
+      log.info('Triggered empathy pulse');
+      break;
+
+    case 'pause-tracking':
+      pauseAllEyeTracking(3000);
+      log.info('Paused eye tracking for 3s');
+      break;
+
+    case 'wink':
+      triggerWink();
+      break;
+
+    case 'curious-tilt':
+      triggerCuriousTilt();
+      break;
+
+    case 'secret-smile':
+      triggerSecretSmile();
+      break;
+
+    case 'sleepy':
+      triggerSleepy();
+      break;
+
+    default:
+      log.warn({ action }, 'Unknown soul action');
+  }
+}
+
+// Quick wink animation
+function triggerWink(): void {
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+  if (!avatar) return;
+
+  avatar.animate(
+    [
+      { transform: 'scale(1)' },
+      { transform: 'scale(0.95) scaleX(0.9)', offset: 0.2 },
+      { transform: 'scale(1.02)', offset: 0.5 },
+      { transform: 'scale(1)' },
+    ],
+    {
+      duration: 400,
+      easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    }
+  );
+  log.info('Triggered wink');
+}
+
+// Curious head tilt
+function triggerCuriousTilt(): void {
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+  if (!avatar) return;
+
+  avatar.animate(
+    [
+      { transform: 'rotate(0deg)' },
+      { transform: 'rotate(-8deg) translateY(-2px)', offset: 0.3 },
+      { transform: 'rotate(-8deg) translateY(-2px)', offset: 0.7 },
+      { transform: 'rotate(0deg)' },
+    ],
+    {
+      duration: 800,
+      easing: 'ease-in-out',
+    }
+  );
+  log.info('Triggered curious tilt');
+}
+
+// Secret smile - avatar text briefly curves
+function triggerSecretSmile(): void {
+  const avatarText = document.querySelector('#avatarText') as HTMLElement;
+  if (!avatarText) return;
+
+  avatarText.animate(
+    [
+      { transform: 'scale(1)' },
+      { transform: 'scale(1.05) translateY(-2px)', offset: 0.3 },
+      { transform: 'scale(1.05) translateY(-2px)', offset: 0.7 },
+      { transform: 'scale(1)' },
+    ],
+    {
+      duration: 1000,
+      easing: 'ease-in-out',
+    }
+  );
+  log.info('Triggered secret smile');
+}
+
+// Sleepy yawn for late night
+function triggerSleepy(): void {
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+  const avatarText = document.querySelector('#avatarText') as HTMLElement;
+  if (!avatar) return;
+
+  // Avatar droops slightly
+  avatar.animate(
+    [
+      { transform: 'scale(1) translateY(0)' },
+      { transform: 'scale(0.98) translateY(3px)', offset: 0.3 },
+      { transform: 'scale(1.02) translateY(-2px)', offset: 0.5 }, // slight stretch up (yawn)
+      { transform: 'scale(0.98) translateY(2px)', offset: 0.7 },
+      { transform: 'scale(1) translateY(0)' },
+    ],
+    {
+      duration: 1500,
+      easing: 'ease-in-out',
+    }
+  );
+
+  // Text shrinks (closing eyes)
+  if (avatarText) {
+    avatarText.animate(
+      [
+        { transform: 'scaleY(1)' },
+        { transform: 'scaleY(0.7)', offset: 0.3 },
+        { transform: 'scaleY(1.1)', offset: 0.5 },
+        { transform: 'scaleY(0.8)', offset: 0.7 },
+        { transform: 'scaleY(1)' },
+      ],
+      {
+        duration: 1500,
+        easing: 'ease-in-out',
+      }
+    );
+  }
+  log.info('Triggered sleepy');
 }
 
 // ============================================================================
@@ -1005,18 +2061,78 @@ function triggerHandoff(personaId: string): void {
 // ============================================================================
 
 function triggerExpression(expression: string): void {
-  // Map expressions to available avatar feedback methods
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+
   switch (expression) {
     case 'chuckle':
-    case 'empathy':
-    case 'delight':
-    case 'contemplate':
-    case 'encourage':
-    case 'surprise':
-    case 'settle':
-      // These expressions are not yet implemented - use info as fallback
-      avatarFeedback.info(`Expression: ${expression}`);
+      // Quick bouncy shake - like a giggle
+      presenceUI.flashEmotion('happy', 1500);
+      avatar?.animate(
+        [
+          { transform: 'translateX(0) rotate(0deg)' },
+          { transform: 'translateX(-2px) rotate(-1deg)', offset: 0.1 },
+          { transform: 'translateX(2px) rotate(1deg)', offset: 0.2 },
+          { transform: 'translateX(-2px) rotate(-1deg)', offset: 0.3 },
+          { transform: 'translateX(2px) rotate(1deg)', offset: 0.4 },
+          { transform: 'translateX(0) rotate(0deg)' },
+        ],
+        { duration: 500, easing: 'ease-in-out' }
+      );
       break;
+
+    case 'empathy':
+      // Slow nod with empathetic emotion
+      presenceUI.setVoiceEmotion('empathetic');
+      presenceUI.nod();
+      setTimeout(() => presenceUI.setVoiceEmotion('neutral'), 2000);
+      break;
+
+    case 'delight':
+      // Excited bounce with happy emotion
+      presenceUI.flashEmotion('excited', 2000);
+      presenceUI.bounce();
+      break;
+
+    case 'contemplate':
+      // Slow tilt with thoughtful emotion
+      presenceUI.setVoiceEmotion('thoughtful');
+      presenceUI.curiousTilt();
+      setTimeout(() => presenceUI.setVoiceEmotion('neutral'), 3000);
+      break;
+
+    case 'encourage':
+      // Nod with happy emotion
+      presenceUI.flashEmotion('happy', 1500);
+      presenceUI.nod();
+      break;
+
+    case 'surprise':
+      // Quick scale up then settle
+      presenceUI.flashEmotion('excited', 1500);
+      avatar?.animate(
+        [
+          { transform: 'scale(1)' },
+          { transform: 'scale(1.15)', offset: 0.2 },
+          { transform: 'scale(0.95)', offset: 0.5 },
+          { transform: 'scale(1)' },
+        ],
+        { duration: 600, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
+      break;
+
+    case 'settle':
+      // Gentle sigh and settle
+      presenceUI.setVoiceEmotion('calm');
+      avatar?.animate(
+        [
+          { transform: 'scale(1) translateY(0)' },
+          { transform: 'scale(0.97) translateY(2px)', offset: 0.5 },
+          { transform: 'scale(1) translateY(0)' },
+        ],
+        { duration: 1200, easing: 'ease-in-out' }
+      );
+      break;
+
     case 'success':
       avatarFeedback.success('Great job!');
       break;
@@ -1033,6 +2149,30 @@ function triggerExpression(expression: string): void {
   log.info({ expression }, 'Triggered avatar expression');
 }
 
+/**
+ * Trigger Ferni Eye actions - Pixar-style peek-through
+ */
+function triggerFerniEye(action: 'peek' | 'wink' | 'curious' | 'show' | 'hide'): void {
+  switch (action) {
+    case 'peek':
+      ferniEye.peek();
+      break;
+    case 'wink':
+      ferniEye.wink();
+      break;
+    case 'curious':
+      ferniEye.curious();
+      break;
+    case 'show':
+      ferniEye.show();
+      break;
+    case 'hide':
+      ferniEye.hide();
+      break;
+  }
+  log.info({ action }, '👁️ Ferni Eye action triggered');
+}
+
 function triggerMusicAction(action: string): void {
   switch (action) {
     case 'start-music':
@@ -1040,18 +2180,18 @@ function triggerMusicAction(action: string): void {
       avatarFeedback.dancing();
       log.info('Started music visualization (dancing mode)');
       break;
-      
+
     case 'stop-music':
       // Stop dancing
       avatarFeedback.stopDancing();
       log.info('Stopped music');
       break;
-      
+
     case 'duck-music':
       avatarFeedback.ducking();
       log.info('Music ducking (simulating agent speech)');
       break;
-      
+
     case 'unduck-music':
       avatarFeedback.unduck();
       log.info('Music unduck');
@@ -1060,78 +2200,1372 @@ function triggerMusicAction(action: string): void {
 }
 
 // ============================================================================
-// PLANNED AVATAR ANIMATION TESTING (Not yet implemented)
-// These functions are stubs for planned features - the avatar API will be
-// expanded to support these animations in a future update.
+// VOICE MODE TESTING - Listening/Speaking states
 // ============================================================================
 
 function triggerVoiceMode(mode: string): void {
-  // TODO: Implement voice mode animations when avatar API supports them
-  log.warn({ mode }, 'Voice mode not yet implemented');
-}
+  switch (mode) {
+    case 'start-listening':
+      presenceUI.setListening(true);
+      presenceUI.setVoiceEmotion('thoughtful');
+      presenceUI.attentiveLean();
+      log.info('Started listening mode');
+      break;
 
-function triggerGreeting(greeting: string): void {
-  // TODO: Implement greeting animations when avatar API supports them
-  log.warn({ greeting }, 'Greeting animation not yet implemented');
-}
+    case 'stop-listening':
+      presenceUI.setListening(false);
+      presenceUI.setVoiceEmotion('neutral');
+      log.info('Stopped listening mode');
+      break;
 
-function triggerCelebration(celebration: string): void {
-  // Use existing success feedback as a fallback
-  avatarFeedback.success(`Celebration: ${celebration}`);
-  log.info({ celebration }, 'Triggered celebration (using success feedback)');
-}
+    case 'start-speaking':
+      presenceUI.setSpeaking(true);
+      presenceUI.setSpeakingIntensity('emphasis');
+      log.info('Started speaking mode');
+      break;
 
-function triggerThinking(thinking: string): void {
-  // Use existing thinking feedback
-  if (thinking === 'start') {
-    avatarFeedback.thinking();
-    log.info('Started thinking mode');
-  } else {
-    avatarFeedback.stopThinking();
-    log.info('Stopped thinking mode');
+    case 'stop-speaking':
+      presenceUI.setSpeaking(false);
+      presenceUI.setSpeakingIntensity('whisper');
+      log.info('Stopped speaking mode');
+      break;
+
+    default:
+      log.warn({ mode }, 'Unknown voice mode');
   }
 }
 
-// 🆕 Dramatic animation handlers
-function triggerDramatic(dramatic: string): void {
-  // TODO: Implement dramatic animations when avatar API supports them
-  avatarFeedback.success(`Dramatic: ${dramatic}`);
-  log.warn({ dramatic }, 'Dramatic animation not yet implemented');
+// ============================================================================
+// GREETING ANIMATIONS - Time-of-day specific
+// ============================================================================
+
+function triggerGreeting(greeting: string): void {
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+
+  switch (greeting) {
+    case 'morning':
+      // Energetic morning greeting - bright and bouncy
+      presenceUI.flashEmotion('excited', 2000);
+      presenceUI.bounce();
+      avatar?.animate(
+        [
+          { transform: 'scale(1) rotate(0deg)' },
+          { transform: 'scale(1.08) rotate(-3deg)', offset: 0.3 },
+          { transform: 'scale(1.05) rotate(3deg)', offset: 0.6 },
+          { transform: 'scale(1) rotate(0deg)' },
+        ],
+        { duration: 800, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
+      log.info('Morning greeting triggered');
+      break;
+
+    case 'evening':
+      // Calm evening greeting - gentle and warm
+      presenceUI.flashEmotion('calm', 2500);
+      avatar?.animate(
+        [
+          { transform: 'scale(1)' },
+          { transform: 'scale(1.03)', offset: 0.5 },
+          { transform: 'scale(1)' },
+        ],
+        { duration: 1500, easing: 'ease-in-out' }
+      );
+      presenceUI.nod();
+      log.info('Evening greeting triggered');
+      break;
+
+    case 'latenight':
+      // Sleepy late night - very gentle
+      presenceUI.setVoiceEmotion('calm');
+      triggerSleepy();
+      setTimeout(() => presenceUI.setVoiceEmotion('neutral'), 2000);
+      log.info('Late night greeting triggered');
+      break;
+
+    case 'welcomeback':
+      // Happy to see you again!
+      presenceUI.flashEmotion('happy', 2000);
+      presenceUI.joy();
+      setTimeout(() => presenceUI.bounce(), 300);
+      log.info('Welcome back greeting triggered');
+      break;
+
+    default:
+      log.warn({ greeting }, 'Unknown greeting type');
+  }
 }
 
+// ============================================================================
+// CELEBRATION ANIMATIONS - Milestone-specific
+// ============================================================================
+
+function triggerCelebration(celebration: string): void {
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+
+  switch (celebration) {
+    case 'streak-5':
+      // 5-day streak - excited bounce
+      presenceUI.flashEmotion('excited', 2000);
+      presenceUI.bounce();
+      void celebrationBurst();
+      log.info('5-day streak celebration triggered');
+      break;
+
+    case 'streak-30':
+      // 30-day streak - MEGA celebration!
+      presenceUI.flashEmotion('excited', 3000);
+      void celebrationBurst();
+      avatar?.animate(
+        [
+          { transform: 'scale(1) rotate(0deg)' },
+          { transform: 'scale(1.15) rotate(-5deg)', offset: 0.2 },
+          { transform: 'scale(1.1) rotate(5deg)', offset: 0.4 },
+          { transform: 'scale(1.15) rotate(-3deg)', offset: 0.6 },
+          { transform: 'scale(1.1) rotate(3deg)', offset: 0.8 },
+          { transform: 'scale(1) rotate(0deg)' },
+        ],
+        { duration: 1200, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
+      // Double burst!
+      setTimeout(() => void celebrationBurst(), 400);
+      log.info('30-day streak celebration triggered');
+      break;
+
+    case 'goal':
+      // Goal completed - satisfied nod + celebration
+      presenceUI.flashEmotion('happy', 2000);
+      presenceUI.nod();
+      void celebrationBurst();
+      avatarFeedback.success('Goal achieved!');
+      log.info('Goal celebration triggered');
+      break;
+
+    case 'team':
+      // New team member - thoughtful + excited
+      presenceUI.flashEmotion('thoughtful', 1000);
+      setTimeout(() => {
+        presenceUI.flashEmotion('excited', 2000);
+        presenceUI.joy();
+      }, 500);
+      log.info('Team member celebration triggered');
+      break;
+
+    default:
+      avatarFeedback.success(`Celebration: ${celebration}`);
+      log.info({ celebration }, 'Generic celebration triggered');
+  }
+}
+
+function triggerThinking(thinking: string): void {
+  if (thinking === 'start') {
+    avatarFeedback.thinking();
+    presenceUI.setVoiceEmotion('thoughtful');
+    presenceUI.curiousTilt();
+    log.info('Started thinking mode');
+  } else {
+    avatarFeedback.stopThinking();
+    presenceUI.flashEmotion('happy', 1000); // "Aha!" moment
+    presenceUI.setVoiceEmotion('neutral');
+    log.info('Stopped thinking mode (with insight)');
+  }
+}
+
+// ============================================================================
+// DRAMATIC ANIMATIONS - Pixar-style character moves
+// ============================================================================
+
+function triggerDramatic(dramatic: string): void {
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+  if (!avatar) return;
+
+  switch (dramatic) {
+    case 'bounce':
+      // Pixar-style bounce with squash and stretch
+      avatar.animate(
+        [
+          { transform: 'scale(1, 1) translateY(0)' },
+          { transform: 'scale(0.9, 1.1) translateY(-15px)', offset: 0.3 },
+          { transform: 'scale(1.1, 0.9) translateY(5px)', offset: 0.5 },
+          { transform: 'scale(0.95, 1.05) translateY(-5px)', offset: 0.7 },
+          { transform: 'scale(1, 1) translateY(0)' },
+        ],
+        { duration: 600, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
+      log.info('Dramatic bounce triggered');
+      break;
+
+    case 'wobble':
+      // Excited side-to-side wobble
+      presenceUI.flashEmotion('excited', 1500);
+      avatar.animate(
+        [
+          { transform: 'rotate(0deg)' },
+          { transform: 'rotate(-8deg)', offset: 0.1 },
+          { transform: 'rotate(8deg)', offset: 0.2 },
+          { transform: 'rotate(-8deg)', offset: 0.3 },
+          { transform: 'rotate(8deg)', offset: 0.4 },
+          { transform: 'rotate(-5deg)', offset: 0.5 },
+          { transform: 'rotate(5deg)', offset: 0.6 },
+          { transform: 'rotate(-3deg)', offset: 0.7 },
+          { transform: 'rotate(3deg)', offset: 0.8 },
+          { transform: 'rotate(0deg)' },
+        ],
+        { duration: 800, easing: 'ease-out' }
+      );
+      log.info('Excited wobble triggered');
+      break;
+
+    case 'shake':
+      // Concerned head shake
+      presenceUI.shake();
+      presenceUI.flashEmotion('empathetic', 1500);
+      log.info('Head shake triggered');
+      break;
+
+    case 'perky':
+      // Perky attention - quick scale up and tilt
+      presenceUI.flashEmotion('excited', 1500);
+      avatar.animate(
+        [
+          { transform: 'scale(1) rotate(0deg) translateY(0)' },
+          { transform: 'scale(1.1) rotate(-5deg) translateY(-8px)', offset: 0.3 },
+          { transform: 'scale(1.05) rotate(-3deg) translateY(-4px)', offset: 0.6 },
+          { transform: 'scale(1) rotate(0deg) translateY(0)' },
+        ],
+        { duration: 500, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
+      presenceUI.attentiveLean();
+      log.info('Perky attention triggered');
+      break;
+
+    default:
+      log.warn({ dramatic }, 'Unknown dramatic animation');
+  }
+}
+
+// ============================================================================
+// RING & AURA EFFECTS - Heartbeat and glow
+// ============================================================================
+
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+
 function triggerRingEffect(ring: string): void {
-  // TODO: Implement ring effects when avatar API supports them
-  log.warn({ ring }, 'Ring effect not yet implemented');
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+  const avatarRing = document.querySelector('.avatar-ring, .coach-ring') as HTMLElement;
+
+  switch (ring) {
+    case 'heartbeat-slow':
+      // Slow heartbeat - 60 BPM
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      heartbeatInterval = setInterval(() => {
+        avatar?.animate(
+          [
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.03)', offset: 0.15 },
+            { transform: 'scale(1)', offset: 0.3 },
+            { transform: 'scale(1.02)', offset: 0.45 },
+            { transform: 'scale(1)' },
+          ],
+          { duration: 1000, easing: 'ease-out' }
+        );
+      }, 1000);
+      presenceUI.setVoiceEmotion('calm');
+      log.info('Slow heartbeat started');
+      break;
+
+    case 'heartbeat-fast':
+      // Fast heartbeat - 120 BPM
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      heartbeatInterval = setInterval(() => {
+        avatar?.animate(
+          [
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.05)', offset: 0.2 },
+            { transform: 'scale(1)', offset: 0.4 },
+            { transform: 'scale(1.03)', offset: 0.6 },
+            { transform: 'scale(1)' },
+          ],
+          { duration: 500, easing: 'ease-out' }
+        );
+      }, 500);
+      presenceUI.setVoiceEmotion('excited');
+      log.info('Fast heartbeat started');
+      break;
+
+    case 'heartbeat-stop':
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+      presenceUI.setVoiceEmotion('neutral');
+      log.info('Heartbeat stopped');
+      break;
+
+    case 'aura':
+      // Pulse the aura/ring
+      if (avatarRing) {
+        avatarRing.animate(
+          [
+            { boxShadow: '0 0 0 0 var(--persona-glow, rgba(74, 103, 65, 0.4))' },
+            { boxShadow: '0 0 30px 15px var(--persona-glow, rgba(74, 103, 65, 0.6))', offset: 0.5 },
+            { boxShadow: '0 0 0 0 var(--persona-glow, rgba(74, 103, 65, 0.4))' },
+          ],
+          { duration: 1500, easing: 'ease-in-out' }
+        );
+      }
+      // Also pulse the avatar itself
+      avatar?.animate(
+        [
+          { filter: 'brightness(1) drop-shadow(0 0 0 transparent)' },
+          {
+            filter: 'brightness(1.1) drop-shadow(0 0 20px var(--persona-primary, #4a6741))',
+            offset: 0.5,
+          },
+          { filter: 'brightness(1) drop-shadow(0 0 0 transparent)' },
+        ],
+        { duration: 1500, easing: 'ease-in-out' }
+      );
+      log.info('Aura pulse triggered');
+      break;
+
+    default:
+      log.warn({ ring }, 'Unknown ring effect');
+  }
 }
 
 // ============================================================================
 // FERNI EMOTION SYSTEM TESTING
 // ============================================================================
 
-function triggerEmotion(emotion: VoiceEmotion): void {
-  presenceUI.setVoiceEmotion(emotion);
-  log.info({ emotion }, 'Set Ferni emotion');
+// Map UI button values to valid VoiceEmotion types
+const EMOTION_MAP: Record<string, VoiceEmotion> = {
+  neutral: 'neutral',
+  happy: 'happy',
+  excited: 'excited',
+  calm: 'calm',
+  thinking: 'thoughtful', // Map thinking → thoughtful
+  thoughtful: 'thoughtful',
+  curious: 'thoughtful', // Map curious → thoughtful (closest)
+  sad: 'empathetic', // Map sad → empathetic
+  empathetic: 'empathetic',
+  frustrated: 'serious', // Map frustrated → serious
+  serious: 'serious',
+  anxious: 'anxious',
+  encouraging: 'encouraging',
+};
+
+function triggerEmotion(emotion: VoiceEmotion | string): void {
+  const mappedEmotion = EMOTION_MAP[emotion] || 'neutral';
+  presenceUI.setVoiceEmotion(mappedEmotion);
+  log.info({ emotion, mapped: mappedEmotion }, 'Set Ferni emotion');
 }
 
 function triggerReaction(reaction: string): void {
-  const validReactions = ['nod', 'shake', 'bounce', 'pulse'] as const;
-  if (validReactions.includes(reaction as typeof validReactions[number])) {
-    presenceUI.react(reaction as 'nod' | 'shake' | 'bounce' | 'pulse');
-    log.info({ reaction }, 'Triggered Ferni reaction');
-  } else {
-    log.warn({ reaction }, 'Reaction not yet implemented');
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+
+  switch (reaction) {
+    case 'nod':
+      presenceUI.nod();
+      log.info('Nod triggered');
+      break;
+
+    case 'shake':
+      presenceUI.shake();
+      log.info('Shake triggered');
+      break;
+
+    case 'bounce':
+      presenceUI.bounce();
+      log.info('Bounce triggered');
+      break;
+
+    case 'pulse':
+      presenceUI.pulse();
+      log.info('Pulse triggered');
+      break;
+
+    case 'celebrate':
+      // Full celebration sequence
+      presenceUI.flashEmotion('excited', 2000);
+      presenceUI.bounce();
+      void celebrationBurst();
+      avatar?.animate(
+        [
+          { transform: 'scale(1) rotate(0deg)' },
+          { transform: 'scale(1.1) rotate(-5deg)', offset: 0.25 },
+          { transform: 'scale(1.1) rotate(5deg)', offset: 0.5 },
+          { transform: 'scale(1.05) rotate(-3deg)', offset: 0.75 },
+          { transform: 'scale(1) rotate(0deg)' },
+        ],
+        { duration: 800, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
+      log.info('Celebrate triggered');
+      break;
+
+    // 🎉 NEW: Fun micro-reactions using CSS-based animations
+    case 'happy':
+    case 'curious':
+    case 'empathy':
+    case 'laugh':
+    case 'surprise':
+      avatarFeedback.react(reaction as 'happy' | 'curious' | 'empathy' | 'laugh' | 'surprise');
+      log.info({ reaction }, '🎉 Fun reaction triggered');
+      break;
+
+    default:
+      log.warn({ reaction }, 'Unknown reaction');
   }
 }
 
-function triggerFlashEmotion(emotion: VoiceEmotion): void {
-  presenceUI.flashEmotion(emotion, 2000);
-  log.info({ emotion }, 'Flashed Ferni emotion (2s)');
+function triggerFlashEmotion(emotion: VoiceEmotion | string): void {
+  const mappedEmotion = EMOTION_MAP[emotion] || 'neutral';
+  presenceUI.flashEmotion(mappedEmotion, 2000);
+  log.info({ emotion, mapped: mappedEmotion }, 'Flashed Ferni emotion (2s)');
 }
 
+// ============================================================================
+// RIPPLE & BURST EFFECTS - Visual feedback particles
+// ============================================================================
+
 function triggerRippleEffect(ripple: string): void {
-  // TODO: Implement ripple effects when avatar API supports them
-  avatarFeedback.success(`Ripple: ${ripple}`);
-  log.warn({ ripple }, 'Ripple effect not yet implemented');
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+  if (!avatar) return;
+
+  const rect = avatar.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  switch (ripple) {
+    case 'single':
+      createRipple(centerX, centerY, 1);
+      log.info('Single ripple triggered');
+      break;
+
+    case 'multi':
+      createRipple(centerX, centerY, 3, 150);
+      log.info('Multi ripple triggered');
+      break;
+
+    case 'burst':
+      void celebrationBurst();
+      presenceUI.flashEmotion('excited', 1500);
+      log.info('Burst triggered');
+      break;
+
+    case 'big':
+      // BIG celebration - multiple effects
+      void celebrationBurst();
+      presenceUI.flashEmotion('excited', 2500);
+      createRipple(centerX, centerY, 5, 100);
+      avatar.animate(
+        [
+          { transform: 'scale(1)' },
+          { transform: 'scale(1.15)', offset: 0.3 },
+          { transform: 'scale(1)' },
+        ],
+        { duration: 600, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
+      setTimeout(() => void celebrationBurst(), 300);
+      log.info('BIG celebration triggered');
+      break;
+
+    default:
+      log.warn({ ripple }, 'Unknown ripple effect');
+  }
+}
+
+/**
+ * Create expanding ripple circles from a point
+ */
+function createRipple(x: number, y: number, count = 1, delay = 0): void {
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const ripple = document.createElement('div');
+      ripple.style.cssText = `
+        position: fixed;
+        left: ${x}px;
+        top: ${y}px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid var(--persona-primary, #4a6741);
+        background: transparent;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 9998;
+      `;
+      document.body.appendChild(ripple);
+
+      ripple.animate(
+        [
+          {
+            width: '10px',
+            height: '10px',
+            opacity: 0.8,
+            borderWidth: '2px',
+          },
+          {
+            width: '200px',
+            height: '200px',
+            opacity: 0,
+            borderWidth: '1px',
+          },
+        ],
+        {
+          duration: 800,
+          easing: 'ease-out',
+          fill: 'forwards',
+        }
+      );
+
+      setTimeout(() => ripple.remove(), 850);
+    }, i * delay);
+  }
+}
+
+// ============================================================================
+// CONNECTION & AUDIO HANDLERS
+// ============================================================================
+
+function triggerConnectionState(state: string): void {
+  switch (state) {
+    case 'connecting':
+      avatarFeedback.connecting();
+      presenceUI.setConnected(false);
+      log.info('Showing connecting state');
+      break;
+    case 'connected':
+      avatarFeedback.stopConnecting();
+      presenceUI.setConnected(true);
+      avatarFeedback.success('Connected!');
+      log.info('Showing connected state');
+      break;
+    case 'disconnected':
+      avatarFeedback.stopConnecting();
+      avatarFeedback.disconnected();
+      presenceUI.setConnected(false);
+      log.info('Showing disconnected state');
+      break;
+    case 'error':
+      avatarFeedback.error('Connection failed');
+      log.info('Showing error state');
+      break;
+    default:
+      log.warn({ state }, 'Unknown connection state');
+  }
+}
+
+function triggerSound(sound: string): void {
+  // Import sound UI dynamically to avoid circular deps
+  import('./sound.ui.js')
+    .then(({ soundUI }) => {
+      switch (sound) {
+        case 'connect':
+          soundUI.playConnect();
+          break;
+        case 'disconnect':
+          soundUI.playDisconnect();
+          break;
+        case 'success':
+          soundUI.playSuccess();
+          break;
+        case 'error':
+          // No dedicated error sound - use disconnect as fallback
+          soundUI.playDisconnect();
+          break;
+        case 'hover':
+          // Use click for hover feedback
+          soundUI.playClick();
+          break;
+        case 'click':
+          soundUI.playClick();
+          break;
+        default:
+          log.warn({ sound }, 'Unknown sound');
+      }
+      log.info({ sound }, 'Played sound');
+    })
+    .catch(() => {
+      log.warn('Sound UI not available');
+    });
+}
+
+// ============================================================================
+// MESSAGE & TOAST HANDLERS
+// ============================================================================
+
+function triggerMessage(message: string): void {
+  switch (message) {
+    case 'user':
+      // Dispatch a test user transcript
+      window.dispatchEvent(
+        new CustomEvent('ferni:transcript', {
+          detail: {
+            type: 'user',
+            text: 'This is a test user message from the dev panel!',
+          },
+        })
+      );
+      log.info('Injected user message');
+      break;
+    case 'agent':
+      // Dispatch a test agent transcript
+      window.dispatchEvent(
+        new CustomEvent('ferni:transcript', {
+          detail: {
+            type: 'agent',
+            text: 'Hi there! This is Ferni responding from the dev panel test.',
+            isFinal: true,
+          },
+        })
+      );
+      log.info('Injected agent message');
+      break;
+    case 'thinking':
+      avatarFeedback.thinking();
+      setTimeout(() => avatarFeedback.stopThinking(), 3000);
+      log.info('Triggered thinking state for 3s');
+      break;
+    case 'whisper':
+      avatarFeedback.whisper('Testing the whisper feature...');
+      setTimeout(() => avatarFeedback.hideWhisper(), 3000);
+      log.info('Triggered whisper');
+      break;
+    default:
+      log.warn({ message }, 'Unknown message type');
+  }
+}
+
+function triggerToast(toastType: string): void {
+  import('./toast.ui.js')
+    .then(({ toastSuccess, toastError, toastInfo, toastWarning }) => {
+      switch (toastType) {
+        case 'success':
+          toastSuccess('Great job! Task completed successfully.');
+          break;
+        case 'error':
+          toastError('Something went wrong. Please try again.');
+          break;
+        case 'info':
+          toastInfo("Here's some helpful information for you.");
+          break;
+        case 'warning':
+          toastWarning('Warning: Please check your input.');
+          break;
+        default:
+          log.warn({ toastType }, 'Unknown toast type');
+      }
+      log.info({ toastType }, 'Triggered toast');
+    })
+    .catch(() => {
+      // Fallback to message UI
+      import('./message.ui.js')
+        .then(({ showMessage }) => {
+          showMessage(
+            toastType === 'success' ? 'Success!' : toastType === 'error' ? 'Error!' : 'Info'
+          );
+        })
+        .catch(() => {
+          log.warn('Toast/Message UI not available');
+        });
+    });
+}
+
+// ============================================================================
+// MODAL HANDLERS
+// ============================================================================
+
+function openModal(modal: string): void {
+  switch (modal) {
+    case 'analytics':
+      window.dispatchEvent(new CustomEvent('ferni:open-analytics'));
+      log.info('Opening analytics');
+      break;
+    case 'history':
+      window.dispatchEvent(new CustomEvent('ferni:open-history'));
+      log.info('Opening conversation history');
+      break;
+    case 'insights':
+      window.dispatchEvent(new CustomEvent('ferni:open-insights'));
+      log.info('Opening insights');
+      break;
+    case 'predictions':
+      window.dispatchEvent(new CustomEvent('ferni:open-predictions'));
+      log.info('Opening predictions');
+      break;
+    case 'tour':
+      window.dispatchEvent(new CustomEvent('ferni:start-tour'));
+      log.info('Starting app tour');
+      break;
+    case 'daily':
+      window.dispatchEvent(new CustomEvent('ferni:open-daily-practice'));
+      log.info('Opening daily check-in');
+      break;
+    case 'huddle':
+      window.dispatchEvent(new CustomEvent('ferni:open-team-huddle'));
+      log.info('Opening team huddle');
+      break;
+    case 'marketplace':
+      window.dispatchEvent(new CustomEvent('ferni:open-marketplace'));
+      log.info('Opening marketplace');
+      break;
+    default:
+      log.warn({ modal }, 'Unknown modal');
+  }
+}
+
+// ============================================================================
+// TIME & ENVIRONMENT HANDLERS
+// ============================================================================
+
+let timeOverride: number | null = null;
+
+function setTimeOverride(time: string): void {
+  switch (time) {
+    case 'morning':
+      timeOverride = 6; // 6 AM
+      document.documentElement.setAttribute('data-time', 'morning');
+      log.info('Time set to morning (6 AM)');
+      break;
+    case 'afternoon':
+      timeOverride = 14; // 2 PM
+      document.documentElement.setAttribute('data-time', 'afternoon');
+      log.info('Time set to afternoon (2 PM)');
+      break;
+    case 'evening':
+      timeOverride = 19; // 7 PM
+      document.documentElement.setAttribute('data-time', 'evening');
+      log.info('Time set to evening (7 PM)');
+      break;
+    case 'night':
+      timeOverride = 23; // 11 PM
+      document.documentElement.setAttribute('data-time', 'night');
+      log.info('Time set to night (11 PM)');
+      break;
+    case 'reset':
+      timeOverride = null;
+      document.documentElement.removeAttribute('data-time');
+      log.info('Time reset to real time');
+      break;
+    default:
+      log.warn({ time }, 'Unknown time setting');
+  }
+
+  // Dispatch event so other components can react
+  window.dispatchEvent(
+    new CustomEvent('ferni:time-override', {
+      detail: { hour: timeOverride },
+    })
+  );
+}
+
+function toggleA11ySetting(a11y: string): void {
+  const root = document.documentElement;
+
+  switch (a11y) {
+    case 'reduce-motion':
+      const hasReducedMotion = root.classList.toggle('reduce-motion');
+      log.info({ enabled: hasReducedMotion }, 'Toggled reduced motion');
+      break;
+    case 'high-contrast':
+      const hasHighContrast = root.classList.toggle('high-contrast');
+      log.info({ enabled: hasHighContrast }, 'Toggled high contrast');
+      break;
+    case 'large-text':
+      const hasLargeText = root.classList.toggle('large-text');
+      log.info({ enabled: hasLargeText }, 'Toggled large text');
+      break;
+    default:
+      log.warn({ a11y }, 'Unknown accessibility setting');
+  }
+}
+
+// ============================================================================
+// EASTER EGG HANDLERS
+// ============================================================================
+
+function triggerEasterEgg(easter: string): void {
+  switch (easter) {
+    case 'confetti':
+      // Create confetti burst
+      createConfetti(50);
+      presenceUI.flashEmotion('excited', 2000);
+      log.info('Triggered confetti');
+      break;
+    case 'fireworks':
+      // Multiple confetti bursts
+      createConfetti(30);
+      setTimeout(() => createConfetti(30), 200);
+      setTimeout(() => createConfetti(30), 400);
+      presenceUI.flashEmotion('excited', 3000);
+      log.info('Triggered fireworks');
+      break;
+    case 'party':
+      // Party mode - dance + confetti + celebration
+      createConfetti(100);
+      void celebrationBurst();
+      presenceUI.flashEmotion('excited', 5000);
+      const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+      if (avatar) {
+        avatar.animate(
+          [
+            { transform: 'rotate(0deg) scale(1)' },
+            { transform: 'rotate(-10deg) scale(1.1)', offset: 0.1 },
+            { transform: 'rotate(10deg) scale(1.1)', offset: 0.2 },
+            { transform: 'rotate(-10deg) scale(1.1)', offset: 0.3 },
+            { transform: 'rotate(10deg) scale(1.1)', offset: 0.4 },
+            { transform: 'rotate(-5deg) scale(1.05)', offset: 0.5 },
+            { transform: 'rotate(5deg) scale(1.05)', offset: 0.6 },
+            { transform: 'rotate(-5deg) scale(1.05)', offset: 0.7 },
+            { transform: 'rotate(5deg) scale(1.05)', offset: 0.8 },
+            { transform: 'rotate(0deg) scale(1)' },
+          ],
+          { duration: 2000, easing: 'ease-in-out' }
+        );
+      }
+      log.info('PARTY MODE ACTIVATED! 🎉');
+      break;
+    case 'zen':
+      // Calm zen moment
+      presenceUI.setVoiceEmotion('calm');
+      const avatarZen = document.querySelector('#coachAvatar') as HTMLElement;
+      if (avatarZen) {
+        avatarZen.animate(
+          [
+            { transform: 'scale(1)', filter: 'brightness(1)' },
+            { transform: 'scale(1.02)', filter: 'brightness(1.05)', offset: 0.5 },
+            { transform: 'scale(1)', filter: 'brightness(1)' },
+          ],
+          { duration: 4000, easing: 'ease-in-out', iterations: 3 }
+        );
+      }
+      setTimeout(() => presenceUI.setVoiceEmotion('neutral'), 12000);
+      log.info('Zen moment triggered');
+      break;
+    default:
+      log.warn({ easter }, 'Unknown easter egg');
+  }
+}
+
+/**
+ * Create confetti particles
+ */
+function createConfetti(count: number): void {
+  const colors = ['#4a6741', '#7cb571', '#c4a265', '#e8e2da', '#9dd690'];
+
+  for (let i = 0; i < count; i++) {
+    const confetti = document.createElement('div');
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const startX = Math.random() * window.innerWidth;
+    const startY = -20;
+    const endX = startX + (Math.random() - 0.5) * 400;
+    const endY = window.innerHeight + 20;
+    const rotation = Math.random() * 720 - 360;
+    const size = Math.random() * 8 + 4;
+
+    confetti.style.cssText = `
+      position: fixed;
+      left: ${startX}px;
+      top: ${startY}px;
+      width: ${size}px;
+      height: ${size}px;
+      background: ${color};
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+      pointer-events: none;
+      z-index: 99999;
+    `;
+    document.body.appendChild(confetti);
+
+    confetti.animate(
+      [
+        {
+          transform: 'translate(0, 0) rotate(0deg)',
+          opacity: 1,
+        },
+        {
+          transform: `translate(${endX - startX}px, ${endY}px) rotate(${rotation}deg)`,
+          opacity: 0,
+        },
+      ],
+      {
+        duration: Math.random() * 2000 + 1500,
+        easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        fill: 'forwards',
+      }
+    );
+
+    setTimeout(() => confetti.remove(), 4000);
+  }
+}
+
+// Export time override getter for other modules
+export function getTimeOverride(): number | null {
+  return timeOverride;
+}
+
+// ============================================================================
+// STATE INSPECTOR HANDLERS
+// ============================================================================
+
+function handleStateAction(action: string): void {
+  switch (action) {
+    case 'toggle-mute':
+      const currentMuted = appState.getState().isMuted;
+      appState.set('isMuted', !currentMuted);
+      updateStateDisplay();
+      log.info({ muted: !currentMuted }, 'Toggled mute state');
+      break;
+    case 'refresh':
+      updateStateDisplay();
+      log.info('Refreshed state display');
+      break;
+    default:
+      log.warn({ action }, 'Unknown state action');
+  }
+}
+
+function updateStateDisplay(): void {
+  const state = appState.getState();
+  const connectionEl = document.getElementById('state-connection');
+  const personaEl = document.getElementById('state-persona');
+  const mutedEl = document.getElementById('state-muted');
+  const usernameEl = document.getElementById('state-username');
+
+  if (connectionEl) connectionEl.textContent = state.connection;
+  if (personaEl) personaEl.textContent = state.activePersona?.id || 'ferni';
+  if (mutedEl) mutedEl.textContent = state.isMuted ? 'Yes' : 'No';
+  if (usernameEl) usernameEl.textContent = state.userName || '(none)';
+}
+
+// ============================================================================
+// WAVEFORM STATE HANDLERS
+// ============================================================================
+
+function triggerWaveformState(waveform: string): void {
+  switch (waveform) {
+    case 'idle':
+      presenceUI.setSpeaking(false);
+      presenceUI.setListening(false);
+      presenceUI.setSpeakingIntensity('whisper');
+      log.info('Waveform: idle');
+      break;
+    case 'listening':
+      presenceUI.setSpeaking(false);
+      presenceUI.setListening(true);
+      log.info('Waveform: listening');
+      break;
+    case 'speaking-low':
+      presenceUI.setSpeaking(true);
+      presenceUI.setListening(false);
+      presenceUI.setSpeakingIntensity('whisper');
+      log.info('Waveform: speaking low');
+      break;
+    case 'speaking-med':
+      presenceUI.setSpeaking(true);
+      presenceUI.setListening(false);
+      presenceUI.setSpeakingIntensity('normal');
+      log.info('Waveform: speaking medium');
+      break;
+    case 'speaking-high':
+      presenceUI.setSpeaking(true);
+      presenceUI.setListening(false);
+      presenceUI.setSpeakingIntensity('exclamation');
+      log.info('Waveform: speaking high');
+      break;
+    case 'thinking':
+      presenceUI.setSpeaking(false);
+      presenceUI.setListening(false);
+      avatarFeedback.thinking();
+      setTimeout(() => avatarFeedback.stopThinking(), 5000);
+      log.info('Waveform: thinking (5s)');
+      break;
+    default:
+      log.warn({ waveform }, 'Unknown waveform state');
+  }
+}
+
+// ============================================================================
+// LOADING STATE HANDLERS
+// ============================================================================
+
+let skeletonElements: HTMLElement[] = [];
+
+function triggerLoadingState(loading: string): void {
+  switch (loading) {
+    case 'skeleton-avatar':
+      showAvatarSkeleton();
+      log.info('Showing avatar skeleton');
+      break;
+    case 'skeleton-team':
+      showTeamSkeleton();
+      log.info('Showing team skeleton');
+      break;
+    case 'spinner':
+      showSpinner();
+      log.info('Showing spinner');
+      break;
+    case 'clear':
+      clearLoadingStates();
+      log.info('Cleared all loading states');
+      break;
+    default:
+      log.warn({ loading }, 'Unknown loading state');
+  }
+}
+
+function showAvatarSkeleton(): void {
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+  if (!avatar) return;
+
+  avatar.classList.add('skeleton-loading');
+  avatar.style.setProperty('--skeleton-opacity', '0.7');
+
+  setTimeout(() => {
+    avatar.classList.remove('skeleton-loading');
+    avatar.style.removeProperty('--skeleton-opacity');
+  }, 3000);
+}
+
+function showTeamSkeleton(): void {
+  const teamContainer = document.querySelector('.team-roster, .roster-container') as HTMLElement;
+  if (!teamContainer) return;
+
+  teamContainer.classList.add('skeleton-loading');
+  setTimeout(() => teamContainer.classList.remove('skeleton-loading'), 3000);
+}
+
+function showSpinner(): void {
+  const spinner = document.createElement('div');
+  spinner.className = 'dev-spinner-overlay';
+  spinner.innerHTML = `
+    <div class="dev-spinner">
+      <div class="dev-spinner-ring"></div>
+      <span>Loading...</span>
+    </div>
+  `;
+  document.body.appendChild(spinner);
+  skeletonElements.push(spinner);
+
+  setTimeout(() => {
+    spinner.remove();
+    skeletonElements = skeletonElements.filter((el) => el !== spinner);
+  }, 3000);
+}
+
+function clearLoadingStates(): void {
+  document.querySelectorAll('.skeleton-loading').forEach((el) => {
+    el.classList.remove('skeleton-loading');
+  });
+  skeletonElements.forEach((el) => el.remove());
+  skeletonElements = [];
+}
+
+// ============================================================================
+// STREAK CELEBRATION HANDLERS
+// ============================================================================
+
+function triggerStreakCelebration(days: number): void {
+  // Determine celebration intensity based on streak
+  const intensityMap: Record<number, 'small' | 'medium' | 'large' | 'epic'> = {
+    3: 'small',
+    7: 'small',
+    14: 'medium',
+    30: 'medium',
+    60: 'large',
+    90: 'large',
+    365: 'epic',
+  };
+
+  const intensity = intensityMap[days] || 'small';
+  const avatar = document.querySelector('#coachAvatar') as HTMLElement;
+
+  // Dispatch streak event
+  window.dispatchEvent(
+    new CustomEvent('ferni:streak-milestone', {
+      detail: { days, intensity },
+    })
+  );
+
+  // Visual celebration based on intensity
+  switch (intensity) {
+    case 'small':
+      presenceUI.flashEmotion('happy', 1500);
+      presenceUI.bounce();
+      break;
+    case 'medium':
+      presenceUI.flashEmotion('excited', 2000);
+      presenceUI.bounce();
+      void celebrationBurst();
+      break;
+    case 'large':
+      presenceUI.flashEmotion('excited', 3000);
+      void celebrationBurst();
+      createConfetti(50);
+      avatar?.animate(
+        [
+          { transform: 'scale(1) rotate(0deg)' },
+          { transform: 'scale(1.1) rotate(-5deg)', offset: 0.25 },
+          { transform: 'scale(1.1) rotate(5deg)', offset: 0.5 },
+          { transform: 'scale(1.05) rotate(-3deg)', offset: 0.75 },
+          { transform: 'scale(1) rotate(0deg)' },
+        ],
+        { duration: 1000, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
+      break;
+    case 'epic':
+      // EPIC 365-day celebration!
+      presenceUI.flashEmotion('excited', 5000);
+      void celebrationBurst();
+      createConfetti(100);
+      setTimeout(() => void celebrationBurst(), 300);
+      setTimeout(() => createConfetti(50), 500);
+      setTimeout(() => void celebrationBurst(), 800);
+      avatar?.animate(
+        [
+          { transform: 'scale(1) rotate(0deg)', filter: 'brightness(1)' },
+          { transform: 'scale(1.15) rotate(-10deg)', filter: 'brightness(1.2)', offset: 0.2 },
+          { transform: 'scale(1.15) rotate(10deg)', filter: 'brightness(1.2)', offset: 0.4 },
+          { transform: 'scale(1.2) rotate(-5deg)', filter: 'brightness(1.3)', offset: 0.6 },
+          { transform: 'scale(1.2) rotate(5deg)', filter: 'brightness(1.3)', offset: 0.8 },
+          { transform: 'scale(1) rotate(0deg)', filter: 'brightness(1)' },
+        ],
+        { duration: 2000, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
+      break;
+  }
+
+  log.info({ days, intensity }, 'Triggered streak celebration');
+}
+
+// ============================================================================
+// NETWORK SIMULATION HANDLERS
+// ============================================================================
+
+let networkSimulation: string = 'excellent';
+let latencySimulation: number = 0;
+
+function setNetworkSimulation(network: string): void {
+  networkSimulation = network;
+
+  // Dispatch event for connection quality UI
+  window.dispatchEvent(
+    new CustomEvent('ferni:connection-quality', {
+      detail: { quality: network },
+    })
+  );
+
+  // Visual feedback
+  switch (network) {
+    case 'excellent':
+      avatarFeedback.success('Excellent connection');
+      break;
+    case 'good':
+      avatarFeedback.info('Good connection');
+      break;
+    case 'poor':
+      avatarFeedback.warning('Poor connection');
+      break;
+    case 'offline':
+      avatarFeedback.error('Offline mode');
+      avatarFeedback.disconnected();
+      break;
+  }
+
+  log.info({ network }, 'Set network simulation');
+}
+
+function setLatencySimulation(latency: number): void {
+  latencySimulation = latency;
+
+  // Store in window for other components to check
+  (window as unknown as Record<string, number>).__devLatency = latency;
+
+  avatarFeedback.info(`Latency: ${latency}ms`);
+  log.info({ latency }, 'Set latency simulation');
+}
+
+// Export for other modules
+export function getNetworkSimulation(): string {
+  return networkSimulation;
+}
+
+export function getLatencySimulation(): number {
+  return latencySimulation;
+}
+
+// ============================================================================
+// STORAGE HANDLERS
+// ============================================================================
+
+function handleStorageAction(action: string): void {
+  switch (action) {
+    case 'view':
+      viewStorage();
+      break;
+    case 'clear-cache':
+      clearCache();
+      break;
+    case 'clear-all':
+      clearAllStorage();
+      break;
+    case 'export':
+      exportStorage();
+      break;
+    default:
+      log.warn({ action }, 'Unknown storage action');
+  }
+}
+
+function viewStorage(): void {
+  const ferniKeys = Object.keys(localStorage).filter(
+    (k) => k.startsWith('ferni') || k.startsWith('voiceai')
+  );
+
+  const storageData: Record<string, unknown> = {};
+  ferniKeys.forEach((key) => {
+    try {
+      storageData[key] = JSON.parse(localStorage.getItem(key) || '');
+    } catch {
+      storageData[key] = localStorage.getItem(key);
+    }
+  });
+
+  // NOTE: Using console.group/log intentionally here for developer debugging
+  // This is a dev-only feature that displays structured data in browser console
+  // eslint-disable-next-line no-console
+  console.group('📦 Ferni Storage');
+  ferniKeys.forEach((key) => {
+    // eslint-disable-next-line no-console
+    console.log(`${key}:`, storageData[key]);
+  });
+  // eslint-disable-next-line no-console
+  console.groupEnd();
+
+  log.info({ count: ferniKeys.length }, 'Storage data logged to browser console');
+  avatarFeedback.info(`${ferniKeys.length} items logged to console`);
+}
+
+function clearCache(): void {
+  // Clear only cache-related keys
+  const cacheKeys = Object.keys(localStorage).filter(
+    (k) => k.includes('cache') || k.includes('temp')
+  );
+  cacheKeys.forEach((key) => localStorage.removeItem(key));
+
+  avatarFeedback.success(`Cleared ${cacheKeys.length} cache items`);
+  updateStorageCount();
+  log.info({ count: cacheKeys.length }, 'Cleared cache');
+}
+
+function clearAllStorage(): void {
+  if (!confirm('⚠️ This will clear ALL Ferni data including your progress. Continue?')) {
+    return;
+  }
+
+  const ferniKeys = Object.keys(localStorage).filter(
+    (k) => k.startsWith('ferni') || k.startsWith('voiceai')
+  );
+  ferniKeys.forEach((key) => localStorage.removeItem(key));
+
+  avatarFeedback.warning(`Cleared ${ferniKeys.length} items`);
+  updateStorageCount();
+  log.info({ count: ferniKeys.length }, 'Cleared all Ferni storage');
+}
+
+function exportStorage(): void {
+  const ferniKeys = Object.keys(localStorage).filter(
+    (k) => k.startsWith('ferni') || k.startsWith('voiceai')
+  );
+
+  const exportData: Record<string, unknown> = {};
+  ferniKeys.forEach((key) => {
+    try {
+      exportData[key] = JSON.parse(localStorage.getItem(key) || '');
+    } catch {
+      exportData[key] = localStorage.getItem(key);
+    }
+  });
+
+  const jsonData = JSON.stringify(exportData, null, 2);
+
+  // NOTE: Using console.log intentionally for developer debugging/export
+  // eslint-disable-next-line no-console
+  console.log('📤 EXPORT DATA (copy this):');
+  // eslint-disable-next-line no-console
+  console.log(jsonData);
+
+  // Also copy to clipboard if possible
+  navigator.clipboard
+    .writeText(jsonData)
+    .then(() => avatarFeedback.success('Copied to clipboard!'))
+    .catch(() => avatarFeedback.info('Data logged to console'));
+
+  log.info({ count: ferniKeys.length }, 'Storage data exported');
+}
+
+function updateStorageCount(): void {
+  const countEl = document.getElementById('storage-count');
+  if (countEl) {
+    const count = Object.keys(localStorage).filter(
+      (k) => k.startsWith('ferni') || k.startsWith('voiceai')
+    ).length;
+    countEl.textContent = String(count);
+  }
+}
+
+// ============================================================================
+// AMBIENT EFFECT HANDLERS
+// ============================================================================
+
+const ambientStates: Record<string, boolean> = {
+  particles: false,
+  glow: false,
+  aurora: false,
+};
+
+function toggleAmbientEffect(effect: string): void {
+  switch (effect) {
+    case 'particles':
+      ambientStates.particles = !ambientStates.particles;
+      document.body.classList.toggle('ambient-particles', ambientStates.particles);
+      log.info({ particles: ambientStates.particles }, 'Toggled particles');
+      break;
+    case 'glow':
+      ambientStates.glow = !ambientStates.glow;
+      document.body.classList.toggle('ambient-glow', ambientStates.glow);
+      log.info({ glow: ambientStates.glow }, 'Toggled glow');
+      break;
+    case 'aurora':
+      ambientStates.aurora = !ambientStates.aurora;
+      document.body.classList.toggle('ambient-aurora', ambientStates.aurora);
+      log.info({ aurora: ambientStates.aurora }, 'Toggled aurora');
+      break;
+    case 'off':
+      Object.keys(ambientStates).forEach((key) => {
+        ambientStates[key] = false;
+        document.body.classList.remove(`ambient-${key}`);
+      });
+      log.info('All ambient effects off');
+      break;
+    default:
+      log.warn({ effect }, 'Unknown ambient effect');
+  }
+}
+
+function toggleWeatherEffect(weather: WeatherType | 'moment'): void {
+  if (weather === 'moment') {
+    playSeasonalMoment();
+    log.info('Playing seasonal moment');
+    return;
+  }
+
+  if (weather === 'none' || getCurrentWeather() === weather) {
+    stopWeather();
+    log.info('Weather stopped');
+  } else {
+    startWeather(weather);
+    log.info({ weather }, 'Weather started');
+  }
 }
 
 function refreshPanel(): void {
@@ -1172,11 +3606,33 @@ export function isDevMode(): boolean {
 
 function injectStyles(): void {
   if (document.getElementById('dev-panel-styles')) return;
-  
+
   styleElement = document.createElement('style');
   styleElement.id = 'dev-panel-styles';
   styleElement.textContent = `
-    /* Dev Indicator */
+    /* ============================================
+     * DEV PANEL - Ferni Brand Colors
+     * Using Ferni's sage green palette
+     * ============================================ */
+    :root {
+      /* Dev panel theme - Ferni sage green */
+      --dev-bg: #2a3a28;
+      --dev-bg-elevated: #354532;
+      --dev-accent: #7cb571;
+      --dev-accent-bright: #9dd690;
+      --dev-accent-glow: rgba(124, 181, 113, 0.3);
+      --dev-accent-glow-hover: rgba(124, 181, 113, 0.5);
+      --dev-accent-border: rgba(124, 181, 113, 0.4);
+      --dev-success: #7cb571;
+      --dev-success-bright: #9dd690;
+      --dev-success-sage: #90c090;
+      --dev-celebrate: #c4a265;
+      --dev-celebrate-glow: rgba(196, 162, 101, 0.25);
+      --dev-text: #e8e2da;
+      --dev-text-muted: rgba(232, 226, 218, 0.6);
+    }
+
+    /* Dev Indicator - VISIBLE! */
     .dev-indicator {
       position: fixed;
       bottom: var(--space-4, 16px);
@@ -1184,27 +3640,44 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       gap: var(--space-2, 8px);
-      padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: var(--dev-bg);
-      color: var(--dev-accent);
-      font-family: var(--font-code, 'SF Mono', monospace);
-      font-size: 0.7rem;
-      font-weight: 600;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, #3d5a35 0%, #4a6741 100%);
+      color: #e8f5e3;
+      font-family: 'Plus Jakarta Sans', var(--font-body, system-ui), sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       border-radius: var(--radius-lg, 12px);
+      border: 2px solid rgba(124, 181, 113, 0.5);
       cursor: pointer;
       z-index: 9999;
-      box-shadow: 0 4px 12px var(--dev-accent-glow);
+      box-shadow: 
+        0 4px 12px rgba(74, 103, 65, 0.4),
+        0 0 20px rgba(124, 181, 113, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      animation: devBadgePulse 3s ease-in-out infinite;
+    }
+
+    @keyframes devBadgePulse {
+      0%, 100% { box-shadow: 0 4px 12px rgba(74, 103, 65, 0.4), 0 0 20px rgba(124, 181, 113, 0.2); }
+      50% { box-shadow: 0 4px 16px rgba(74, 103, 65, 0.5), 0 0 30px rgba(124, 181, 113, 0.35); }
     }
 
     .dev-indicator:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 16px var(--dev-accent-glow-hover);
+      transform: scale(1.08) translateY(-2px);
+      background: linear-gradient(135deg, #4a6741 0%, #5a8050 100%);
+      box-shadow: 
+        0 8px 20px rgba(74, 103, 65, 0.5),
+        0 0 40px rgba(124, 181, 113, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      animation: none;
     }
     
     .dev-indicator svg {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
     }
     
     /* Dev Panel */
@@ -1212,13 +3685,14 @@ function injectStyles(): void {
       position: fixed;
       top: var(--space-4, 16px);
       right: var(--space-4, 16px);
-      width: 380px;
+      width: 400px;
       max-height: calc(100vh - 32px);
       background: var(--dev-bg);
       border-radius: var(--radius-xl, 16px);
       box-shadow:
         0 25px 50px -12px rgba(0, 0, 0, 0.5),
-        0 0 0 1px var(--dev-accent-border);
+        0 0 0 1px var(--dev-accent-border),
+        0 0 60px rgba(74, 103, 65, 0.15);
       z-index: 10002;
       display: flex;
       flex-direction: column;
@@ -1240,31 +3714,34 @@ function injectStyles(): void {
       align-items: center;
       justify-content: space-between;
       padding: var(--space-4, 16px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: linear-gradient(135deg, #3d5a35 0%, #4a6741 100%);
+      border-bottom: 1px solid rgba(124, 181, 113, 0.3);
     }
     
     .dev-panel__title {
       display: flex;
       align-items: center;
       gap: var(--space-2, 8px);
-      color: var(--dev-accent);
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.85rem;
-      font-weight: 600;
+      color: #e8f5e3;
+      font-family: 'Plus Jakarta Sans', var(--font-body, system-ui), sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
     
     .dev-panel__title svg {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
+      color: #9dd690;
     }
     
     .dev-panel__close {
       width: 32px;
       height: 32px;
       border: none;
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-md, 8px);
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255, 255, 255, 0.7);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1273,8 +3750,9 @@ function injectStyles(): void {
     }
     
     .dev-panel__close:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.2);
       color: white;
+      transform: rotate(90deg);
     }
     
     .dev-panel__close svg {
@@ -1290,11 +3768,12 @@ function injectStyles(): void {
     
     .dev-panel__footer {
       padding: var(--space-3, 12px);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(124, 181, 113, 0.2);
       text-align: center;
       font-size: 0.7rem;
-      color: rgba(255, 255, 255, 0.4);
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: var(--dev-text-muted);
+      font-family: 'Plus Jakarta Sans', var(--font-body, system-ui), sans-serif;
+      background: var(--dev-bg-elevated);
     }
     
     /* Sections */
@@ -1306,17 +3785,19 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       gap: var(--space-2, 8px);
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--dev-accent);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       margin: 0 0 var(--space-3, 12px);
+      font-family: 'Plus Jakarta Sans', var(--font-body, system-ui), sans-serif;
     }
     
     .dev-section__title svg {
       width: 14px;
       height: 14px;
+      opacity: 0.8;
     }
     
     /* Info Grid */
@@ -1341,9 +3822,10 @@ function injectStyles(): void {
     
     .dev-info__value {
       display: block;
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
       font-size: 0.85rem;
-      color: var(--dev-accent);
+      color: var(--dev-accent-bright);
+      font-weight: 600;
     }
     
     /* Tier Buttons */
@@ -1555,6 +4037,71 @@ function injectStyles(): void {
     .dev-roster-btn svg {
       width: 14px;
       height: 14px;
+    }
+    
+    /* Soul & Delight Buttons */
+    .dev-section--soul {
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(196, 162, 101, 0.1));
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-3, 12px);
+      margin: 0 calc(var(--space-4, 16px) * -1);
+      margin-bottom: var(--space-5, 20px);
+    }
+    
+    .dev-soul-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2, 8px);
+    }
+    
+    .dev-soul-btn {
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      background: rgba(74, 103, 65, 0.25);
+      border: 1px solid rgba(74, 103, 65, 0.4);
+      border-radius: var(--radius-md, 8px);
+      color: #90c090;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-soul-btn:hover {
+      background: rgba(74, 103, 65, 0.4);
+      border-color: #4a6741;
+      transform: scale(1.02);
+      box-shadow: 0 0 12px rgba(74, 103, 65, 0.3);
+    }
+    
+    .dev-soul-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .dev-soul-btn--primary {
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.4), rgba(90, 128, 96, 0.4));
+      border-color: #4a6741;
+      color: #b0e0b0;
+      font-weight: 600;
+    }
+    
+    .dev-soul-btn--primary:hover {
+      background: linear-gradient(135deg, rgba(74, 103, 65, 0.6), rgba(90, 128, 96, 0.6));
+      box-shadow: 0 0 20px rgba(74, 103, 65, 0.5);
+    }
+    
+    .dev-soul-ideas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2, 8px);
+    }
+    
+    .dev-soul-ideas span {
+      padding: var(--space-1, 4px) var(--space-2, 8px);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-sm, 4px);
+      font-size: 0.65rem;
+      color: rgba(255, 255, 255, 0.4);
+      font-style: italic;
     }
     
     /* Handoff Buttons */
@@ -1896,8 +4443,166 @@ function injectStyles(): void {
     .dev-panel__content::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.2);
     }
+    
+    /* State Inspector */
+    .dev-state-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2, 8px);
+      margin-bottom: var(--space-3, 12px);
+      padding: var(--space-2, 8px);
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-md, 8px);
+    }
+    
+    .dev-state-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .dev-state-label {
+      font-size: 0.65rem;
+      color: var(--dev-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .dev-state-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--dev-accent-bright);
+      font-weight: 600;
+    }
+    
+    /* Storage Info */
+    .dev-storage-info {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2, 8px);
+      margin-bottom: var(--space-3, 12px);
+      padding: var(--space-2, 8px);
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-md, 8px);
+    }
+    
+    .dev-storage-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .dev-storage-key {
+      font-size: 0.75rem;
+      color: var(--dev-text-muted);
+    }
+    
+    .dev-storage-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--dev-accent-bright);
+      font-weight: 600;
+    }
+    
+    /* Spinner Overlay */
+    .dev-spinner-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    }
+    
+    .dev-spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3, 12px);
+      color: var(--dev-text);
+      font-size: 0.9rem;
+    }
+    
+    .dev-spinner-ring {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(124, 181, 113, 0.2);
+      border-top-color: var(--dev-accent);
+      border-radius: 50%;
+      animation: dev-spin 1s linear infinite;
+    }
+    
+    @keyframes dev-spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Skeleton Loading */
+    .skeleton-loading {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .skeleton-loading::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+      );
+      animation: skeleton-shimmer 1.5s infinite;
+    }
+    
+    @keyframes skeleton-shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    
+    /* Ambient Classes */
+    .ambient-particles {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='10' cy='10' r='1' fill='rgba(124,181,113,0.3)'/%3E%3Ccircle cx='90' cy='20' r='1.5' fill='rgba(124,181,113,0.2)'/%3E%3Ccircle cx='50' cy='80' r='1' fill='rgba(124,181,113,0.4)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      animation: ambient-float 20s linear infinite;
+    }
+    
+    @keyframes ambient-float {
+      from { background-position: 0 0; }
+      to { background-position: 200px 200px; }
+    }
+    
+    .ambient-glow::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(74, 103, 65, 0.1) 0%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    .ambient-aurora {
+      background: linear-gradient(
+        45deg,
+        rgba(74, 103, 65, 0.05),
+        rgba(124, 181, 113, 0.05),
+        rgba(157, 214, 144, 0.05)
+      );
+      background-size: 400% 400%;
+      animation: ambient-aurora 15s ease infinite;
+    }
+    
+    @keyframes ambient-aurora {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
   `;
-  
+
   document.head.appendChild(styleElement);
 }
 
@@ -1913,4 +4618,3 @@ export const devPanel = {
   isDevMode,
   getOverrides: getDevOverrides,
 };
-

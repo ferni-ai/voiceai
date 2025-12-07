@@ -22,6 +22,10 @@ import {
   getGenreReaction,
   getMoodMusicReaction,
   getPlayfulMusicComment,
+  getFunDJMoment,
+  getAirDJMoment,
+  getExcitedMusicReaction,
+  getDancingComment,
 } from '../speech/music-reactions.js';
 
 // ============================================================================
@@ -194,27 +198,53 @@ export async function playViaItunes(query: string): Promise<string> {
     );
 
     // Build a delightful, playful response
-    // Higher chance of playful intro for better experience
-    const usePlayfulIntro = Math.random() < 0.6; // 60% chance of playful intro
-
+    // The DJ experience should feel human and fun!
+    
     let intro = '';
-    if (usePlayfulIntro) {
-      // Try genre-specific first for extra personality
-      const genreReaction = getGenreReaction(query);
-      if (genreReaction && Math.random() < 0.4) {
-        intro = `${genreReaction} `;
-      } else {
-        intro = `${getPlayfulMusicIntro()} `;
+    let outro = '';
+    
+    // 🎧 SPECIAL DJ MOMENTS - rare but delightful (10% chance)
+    const funMoment = getFunDJMoment();
+    if (funMoment) {
+      // Got a special DJ moment! Use it as the intro
+      intro = `${funMoment} `;
+    } else {
+      // Regular intro selection (60% chance of playful intro)
+      const usePlayfulIntro = Math.random() < 0.6;
+      
+      if (usePlayfulIntro) {
+        // 8% chance of air DJ moment (rare and fun!)
+        if (Math.random() < 0.08) {
+          intro = `${getAirDJMoment()} `;
+        } else {
+          // Try genre-specific first for extra personality
+          const genreReaction = getGenreReaction(query);
+          if (genreReaction && Math.random() < 0.4) {
+            intro = `${genreReaction} `;
+          } else {
+            intro = `${getPlayfulMusicIntro()} `;
+          }
+        }
+      } else if (shouldReactToMusic()) {
+        intro = `${getMusicReaction('intro')} `;
       }
-    } else if (shouldReactToMusic()) {
-      intro = `${getMusicReaction('intro')} `;
     }
 
-    // Sometimes add a playful comment after the track info
-    const addComment = Math.random() < 0.25; // 25% chance
-    const comment = addComment ? ` ${getPlayfulMusicComment()}` : '';
+    // Sometimes add a playful comment or dancing comment after the track info
+    const addComment = Math.random() < 0.3; // 30% chance
+    if (addComment) {
+      // 20% of comments are dancing-related, 80% are regular playful
+      outro = Math.random() < 0.2 
+        ? ` ${getDancingComment()}`
+        : ` ${getPlayfulMusicComment()}`;
+    }
+    
+    // Occasionally add excited reaction for variety (5% chance)
+    if (!outro && Math.random() < 0.05) {
+      outro = ` ${getExcitedMusicReaction()}`;
+    }
 
-    const baseResponse = `${intro}Here's "${track.name}" by ${track.artist}!${comment}`;
+    const baseResponse = `${intro}Here's "${track.name}" by ${track.artist}!${outro}`;
 
     // Add Spotify upsell if not linked (subtle, helpful)
     const spotifyHint = !musicConfig.spotifyLinked

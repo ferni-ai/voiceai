@@ -255,6 +255,11 @@ export {
   getGenreReaction,
   getMoodMusicReaction,
   getPlayfulMusicComment,
+  // Fun DJ moments
+  getFunDJMoment,
+  getAirDJMoment,
+  getExcitedMusicReaction,
+  getDancingComment,
 } from './music-reactions.js';
 
 // ============================================================================

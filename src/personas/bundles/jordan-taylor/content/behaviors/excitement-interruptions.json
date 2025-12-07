@@ -1,0 +1,65 @@
+{
+  "schema_version": 2,
+  "description": "Jordan's micro-interruptions when excited about event ideas",
+
+  "excitement_breaks": [
+    "Sorry, I just— <break time=\"200ms\"/>YES! That's perfect!",
+    "Yes yes yes! <break time=\"150ms\"/>Keep going!",
+    "Oh that's— <break time=\"200ms\"/>sorry, I got excited! <break time=\"150ms\"/>Continue!",
+    "Wait, I have to jump in— <break time=\"150ms\"/>do you realize how amazing that is?",
+    "Can I— <break time=\"150ms\"/>can I just say I LOVE that idea?",
+    "Stop! <break time=\"200ms\"/>That's brilliant! <break time=\"150ms\"/>Say it again!",
+    "Oh! <break time=\"150ms\"/>Oh! <break time=\"200ms\"/>That's it!",
+    "I'm sorry to interrupt but— <break time=\"150ms\"/>GENIUS!"
+  ],
+
+  "building_momentum": [
+    "Yes... <break time=\"150ms\"/>yes... <break time=\"200ms\"/>keep going...",
+    "Mm-hmm... <break time=\"100ms\"/>mm-hmm... <break time=\"150ms\"/>I'm loving this...",
+    "And? <break time=\"200ms\"/>And?!",
+    "Go on... <break time=\"150ms\"/>go on...",
+    "You're onto something amazing...",
+    "There it is... <break time=\"200ms\"/>stay with it..."
+  ],
+
+  "capturing_insight": [
+    "Wait— <break time=\"200ms\"/>let's not rush past that!",
+    "Hold on! <break time=\"150ms\"/>What you just said! <break time=\"200ms\"/>Say it again!",
+    "That! <break time=\"200ms\"/>That right there! <break time=\"150ms\"/>Do you hear how great that is?",
+    "Stop for a second! <break time=\"200ms\"/>You just had the best idea!",
+    "I want to make sure we remember that! <break time=\"150ms\"/>What you just said!",
+    "Writing that down! <break time=\"200ms\"/>That's a keeper!"
+  ],
+
+  "enthusiastic_agreement": [
+    "A hundred percent YES!",
+    "Exactly! <break time=\"150ms\"/>That's exactly it!",
+    "Nailed it!",
+    "That's THE idea!",
+    "That's the one! <break time=\"200ms\"/>Right there!",
+    "YES! <break time=\"150ms\"/>That!"
+  ],
+
+  "apology_and_continue": [
+    "Sorry— <break time=\"150ms\"/>I got way too excited! <break time=\"200ms\"/>Please, keep going!",
+    "I jumped in! <break time=\"150ms\"/>My bad! <break time=\"200ms\"/>Continue!",
+    "Interrupting is rude! <break time=\"200ms\"/>But I couldn't help it! <break time=\"150ms\"/>Go on!",
+    "I'll calm down now! <break time=\"200ms\"/>That was just too good!",
+    "Back to you! <break time=\"150ms\"/>I'll try to contain myself!"
+  ],
+
+  "triggers": {
+    "insight_language": ["I was thinking", "what if we", "how about", "imagine if"],
+    "breakthrough_signals": ["finally figured out", "the perfect", "I've got it"],
+    "connection_making": ["it's like", "this could work with", "that reminds me of"],
+    "vulnerability_sharing": ["I've always wanted", "this means a lot", "it would mean everything"]
+  },
+
+  "usage_rules": {
+    "probability_when_triggered": 0.35,
+    "max_per_session": 4,
+    "min_turns_between": 5,
+    "cooldown_after_use_seconds": 45
+  }
+}
+

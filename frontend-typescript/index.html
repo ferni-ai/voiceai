@@ -1,54 +1,69 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="zen">
 <head>
-  <link rel="stylesheet" href="/design-system/tokens.css">
-  <link rel="stylesheet" href="/design-system/components.css">
-  <link rel="stylesheet" href="/design-system/app-components.css">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="description" content="Ferni - AI that feels human. Your personal life coaching team that listens, remembers, and grows with you.">
-  <meta name="theme-color" content="#584840">
+    <link rel="stylesheet" href="/design-system/tokens.css" />
+    <link rel="stylesheet" href="/design-system/components.css" />
+    <link rel="stylesheet" href="/design-system/app-components.css" />
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="Ferni - AI that feels human. Your personal life coaching team that listens, remembers, and grows with you."
+    />
+    <meta name="theme-color" content="#584840" />
   
   <!-- iOS Safari specific -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Voice AI">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Voice AI" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
   
   <title>Ferni - AI That Feels Human</title>
 
   <!-- Favicon and Icons -->
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <link rel="apple-touch-icon" sizes="120x120" href="/icons/apple-touch-icon-120x120.png">
-  <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152x152.png">
-  <link rel="apple-touch-icon" sizes="167x167" href="/icons/apple-touch-icon-167x167.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180x180.png">
-  <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#4a6741">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png">
-  <meta name="msapplication-TileColor" content="#4a6741">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/icons/apple-touch-icon-120x120.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/apple-touch-icon-167x167.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180x180.png" />
+    <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#4a6741" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png" />
+    <meta name="msapplication-TileColor" content="#4a6741" />
 
   <!-- Open Graph / Social -->
-  <meta property="og:title" content="Ferni - AI That Feels Human">
-  <meta property="og:description" content="Your personal life coaching team that listens, remembers, and grows with you. We believe in making AI human.">
-  <meta property="og:image" content="/icons/og-image.png">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Ferni - AI That Feels Human">
-  <meta name="twitter:description" content="Your personal life coaching team that listens, remembers, and grows with you.">
-  <meta name="twitter:image" content="/icons/og-image.png">
+    <meta property="og:title" content="Ferni - AI That Feels Human" />
+    <meta
+      property="og:description"
+      content="Your personal life coaching team that listens, remembers, and grows with you. We believe in making AI human."
+    />
+    <meta property="og:image" content="/icons/og-image.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Ferni - AI That Feels Human" />
+    <meta
+      name="twitter:description"
+      content="Your personal life coaching team that listens, remembers, and grows with you."
+    />
+    <meta name="twitter:image" content="/icons/og-image.png" />
 
   <!-- Preload critical assets -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   
   <!-- Fonts: Brand fonts from FERNI-BRAND-GUIDELINES.md -->
   <!-- Primary: Plus Jakarta Sans (display), Secondary: Inter (body), Accent: Sora, Mono: JetBrains Mono -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
   
   <!-- LiveKit Client - LOCAL file for iOS compatibility (CDN can be blocked) -->
   <script src="/livekit-client.umd.js"></script>
@@ -66,7 +81,7 @@
   <!-- Spotify Web Playback SDK - Define callback BEFORE loading SDK -->
   <script>
     // Must be defined before SDK loads to avoid race condition
-    window.onSpotifyWebPlaybackSDKReady = function() {
+      window.onSpotifyWebPlaybackSDKReady = function () {
       console.log('🎵 Spotify SDK ready (early callback)');
       window.spotifySDKReady = true;
       // Dispatch event for our service to listen to
@@ -82,7 +97,8 @@
     
     /* Safe area insets for notched iPhones */
     html {
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+          env(safe-area-inset-left);
     }
     
     /* Prevent iOS tap highlight and text selection issues */
@@ -92,13 +108,15 @@
     }
     
     /* Allow text selection where needed */
-    .message-text, .transcript-text {
+      .message-text,
+      .transcript-text {
       -webkit-user-select: text;
       user-select: text;
     }
     
     /* iOS body scroll fix */
-    html, body {
+      html,
+      body {
       position: fixed;
       width: 100%;
       height: 100%;
@@ -151,10 +169,27 @@
       --persona-bg-tint: var(--persona-tint);
       
       /* Sophisticated Gradients */
-      --gradient-radial: radial-gradient(ellipse 80% 50% at 50% -10%, var(--persona-glow) 0%, transparent 60%);
-      --gradient-orb: linear-gradient(145deg, var(--persona-secondary) 0%, var(--persona-primary) 100%);
-      --gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%);
-      --gradient-shine: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
+        --gradient-radial: radial-gradient(
+          ellipse 80% 50% at 50% -10%,
+          var(--persona-glow) 0%,
+          transparent 60%
+        );
+        --gradient-orb: linear-gradient(
+          145deg,
+          var(--persona-secondary) 0%,
+          var(--persona-primary) 100%
+        );
+        --gradient-surface: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.04) 0%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        --gradient-shine: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 50%,
+          rgba(255, 255, 255, 0.05) 100%
+        );
       
       /* Spacing - Golden Ratio Harmonious Scale
          Base: 1rem, scaled by φ (1.618) and φ⁻¹ (0.618)
@@ -162,24 +197,25 @@
       --phi: 1.618033988749895;
       --phi-inverse: 0.618033988749895;
       
-      --space-2xs: 0.125rem;     /* 2px - micro */
-      --space-xs: 0.25rem;       /* 4px - tight */
-      --space-sm: 0.5rem;        /* 8px - compact */
-      --space-md: 1rem;          /* 16px - base */
-      --space-lg: 1.618rem;      /* φ × base ≈ 26px */
-      --space-xl: 2.618rem;      /* φ² × base ≈ 42px */
-      --space-2xl: 4.236rem;     /* φ³ × base ≈ 68px */
-      --space-3xl: 6.854rem;     /* φ⁴ × base ≈ 110px */
+        --space-2xs: 0.125rem; /* 2px - micro */
+        --space-xs: 0.25rem; /* 4px - tight */
+        --space-sm: 0.5rem; /* 8px - compact */
+        --space-md: 1rem; /* 16px - base */
+        --space-lg: 1.618rem; /* φ × base ≈ 26px */
+        --space-xl: 2.618rem; /* φ² × base ≈ 42px */
+        --space-2xl: 4.236rem; /* φ³ × base ≈ 68px */
+        --space-3xl: 6.854rem; /* φ⁴ × base ≈ 110px */
       
       /* Golden timing for animations */
-      --timing-fast: 233ms;      /* φ⁻² × 610 */
-      --timing-base: 377ms;      /* φ⁻¹ × 610 */
-      --timing-slow: 610ms;      /* Base golden number */
-      --timing-slower: 987ms;    /* φ × 610 */
-      --timing-slowest: 1597ms;  /* φ² × 610 */
+        --timing-fast: 233ms; /* φ⁻² × 610 */
+        --timing-base: 377ms; /* φ⁻¹ × 610 */
+        --timing-slow: 610ms; /* Base golden number */
+        --timing-slower: 987ms; /* φ × 610 */
+        --timing-slowest: 1597ms; /* φ² × 610 */
       
       /* Typography - Brand fonts from FERNI-BRAND-GUIDELINES.md */
-      --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+        --font-display:
+          'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
       --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
       --font-accent: 'Sora', 'Plus Jakarta Sans', sans-serif;
       --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
@@ -211,15 +247,9 @@
       
       /* Shadows - Layered depth */
       --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-      --shadow-md: 
-        0 4px 6px -1px rgba(0, 0, 0, 0.2),
-        0 2px 4px -2px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 
-        0 10px 15px -3px rgba(0, 0, 0, 0.3),
-        0 4px 6px -4px rgba(0, 0, 0, 0.2);
-      --shadow-xl:
-        0 20px 25px -5px rgba(0, 0, 0, 0.35),
-        0 8px 10px -6px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
       --shadow-glow: 0 0 40px -10px var(--color-accent-glow);
       --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.05);
       
@@ -244,7 +274,7 @@
        ======================================================================== */
     
     /* Ferni - Deep Sage Green (grounding, wise leader) */
-    [data-persona="ferni"] {
+      [data-persona='ferni'] {
       --persona-primary: #4a6741;
       --persona-secondary: #3d5a35;
       --persona-glow: rgba(74, 103, 65, 0.32);
@@ -252,7 +282,7 @@
     }
     
     /* Peter John - Ocean Teal (research, discovery, insights) */
-    [data-persona="peter-john"] {
+      [data-persona='peter-john'] {
       --persona-primary: #3a6b73;
       --persona-secondary: #2d5359;
       --persona-glow: rgba(58, 107, 115, 0.32);
@@ -260,7 +290,7 @@
     }
     
     /* Nayan Patel - Golden Amber (wisdom, long-term thinking) */
-    [data-persona="nayan-patel"] {
+      [data-persona='nayan-patel'] {
       --persona-primary: #b8956a;
       --persona-secondary: #9a7a52;
       --persona-glow: rgba(184, 149, 106, 0.35);
@@ -268,7 +298,7 @@
     }
     
     /* Alex - Soft Indigo (clear communication, flow) */
-    [data-persona="alex-chen"] {
+      [data-persona='alex-chen'] {
       --persona-primary: #5a6b8a;
       --persona-secondary: #4a5a73;
       --persona-glow: rgba(90, 107, 138, 0.32);
@@ -276,7 +306,7 @@
     }
     
     /* Maya - Dusty Terracotta (nurturing, warmth, habits) */
-    [data-persona="maya-santos"] {
+      [data-persona='maya-santos'] {
       --persona-primary: #a67a6a;
       --persona-secondary: #8a635a;
       --persona-glow: rgba(166, 122, 106, 0.32);
@@ -284,7 +314,7 @@
     }
     
     /* Jordan - Warm Sunset Coral (celebration, joy) */
-    [data-persona="jordan-taylor"] {
+      [data-persona='jordan-taylor'] {
       --persona-primary: #c4856a;
       --persona-secondary: #a86d55;
       --persona-glow: rgba(196, 133, 106, 0.32);
@@ -292,57 +322,67 @@
     }
     
     /* Nayan - Golden Amber (wisdom, enlightenment) */
-    [data-persona="nayan-patel"],
-    [data-persona="lifetime-advisor"] {
+      [data-persona='nayan-patel'],
+      [data-persona='lifetime-advisor'] {
       --persona-primary: #b8956a;
       --persona-secondary: #9a7a52;
       --persona-glow: rgba(184, 149, 106, 0.35);
-      --persona-bg-tint: rgba(184, 149, 106, 0.10);
+        --persona-bg-tint: rgba(184, 149, 106, 0.1);
     }
 
     /* ========================================================================
        ZEN THEME - Light mode with natural, serene aesthetic
        Apple.com meets Japanese minimalism
        ======================================================================== */
-    [data-theme="zen"] {
+      [data-theme='zen'] {
       /* Override gradients for light backgrounds */
-      --gradient-radial: radial-gradient(ellipse 80% 50% at 50% -10%, var(--persona-glow) 0%, transparent 60%);
+        --gradient-radial: radial-gradient(
+          ellipse 80% 50% at 50% -10%,
+          var(--persona-glow) 0%,
+          transparent 60%
+        );
       --gradient-surface: linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0) 100%);
-      --gradient-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, transparent 50%, rgba(255, 255, 255, 0.4) 100%);
+        --gradient-shine: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.8) 0%,
+          transparent 50%,
+          rgba(255, 255, 255, 0.4) 100%
+        );
 
       /* Light-mode shadows - softer, more diffuse */
       --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
-      --shadow-md:
-        0 4px 6px -1px rgba(0, 0, 0, 0.06),
-        0 2px 4px -2px rgba(0, 0, 0, 0.04);
-      --shadow-lg:
-        0 10px 15px -3px rgba(0, 0, 0, 0.08),
-        0 4px 6px -4px rgba(0, 0, 0, 0.04);
-      --shadow-xl:
-        0 20px 25px -5px rgba(0, 0, 0, 0.1),
-        0 8px 10px -6px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
       --shadow-glow: 0 0 40px -10px var(--color-accent-glow);
       --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
       /* Zen-specific accent adjustments for better contrast */
       --shadow-card:
-        0 1px 3px rgba(0, 0, 0, 0.04),
-        0 4px 12px rgba(0, 0, 0, 0.03),
+          0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03),
         0 0 0 1px rgba(0, 0, 0, 0.02);
     }
 
     /* Zen theme body and app overrides - using design system tokens */
-    [data-theme="zen"] body {
-      background: linear-gradient(180deg, var(--color-background-primary) 0%, var(--color-background-tertiary) 100%);
+      [data-theme='zen'] body {
+        background: linear-gradient(
+          180deg,
+          var(--color-background-primary) 0%,
+          var(--color-background-tertiary) 100%
+        );
     }
 
-    [data-theme="zen"] #app {
-      background: linear-gradient(180deg, var(--color-background-primary) 0%, var(--color-background-tertiary) 100%);
+      [data-theme='zen'] #app {
+        background: linear-gradient(
+          180deg,
+          var(--color-background-primary) 0%,
+          var(--color-background-tertiary) 100%
+        );
       filter: none; /* Remove sepia filter in light mode */
     }
 
     /* Light mode layered background - subtle warmth */
-    [data-theme="zen"] #app::before {
+      [data-theme='zen'] #app::before {
       background:
         radial-gradient(ellipse 80% 50% at 50% -10%, var(--persona-glow) 0%, transparent 50%),
         radial-gradient(ellipse 100% 80% at 50% 100%, rgba(0, 0, 0, 0.02) 0%, transparent 50%),
@@ -351,26 +391,26 @@
     }
 
     /* Lighter noise texture */
-    [data-theme="zen"] #app::after {
+      [data-theme='zen'] #app::after {
       opacity: 0.008;
     }
 
     /* Zen ambient orbs - softer, more diffuse */
-    [data-theme="zen"] .ambient-orb {
+      [data-theme='zen'] .ambient-orb {
       opacity: 0.15;
       filter: blur(100px);
     }
 
-    [data-theme="zen"] .ambient-orb--primary {
+      [data-theme='zen'] .ambient-orb--primary {
       background: var(--persona-primary);
     }
 
-    [data-theme="zen"] .ambient-orb--secondary {
+      [data-theme='zen'] .ambient-orb--secondary {
       background: var(--persona-secondary);
     }
 
     /* Zen header styling */
-    [data-theme="zen"] .header {
+      [data-theme='zen'] .header {
       background: rgba(255, 255, 255, 0.7);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -378,7 +418,7 @@
     }
 
     /* Zen avatar styling */
-    [data-theme="zen"] #coachAvatar {
+      [data-theme='zen'] #coachAvatar {
       background: linear-gradient(145deg, #ffffff 0%, #f5f5f4 100%);
       box-shadow:
         0 4px 12px rgba(0, 0, 0, 0.08),
@@ -386,7 +426,7 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
     }
 
-    [data-theme="zen"] #avatarRing {
+      [data-theme='zen'] #avatarRing {
       /* Elegant ring border - NOT a filled background */
       background: transparent;
       border: 2px solid var(--persona-primary);
@@ -395,7 +435,7 @@
     }
 
     /* Zen button styling - elegant, tactile */
-    [data-theme="zen"] .btn-primary {
+      [data-theme='zen'] .btn-primary {
       background: var(--gradient-orb);
       color: white;
       box-shadow:
@@ -405,7 +445,7 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.25);
     }
 
-    [data-theme="zen"] .btn-primary:hover:not(:disabled) {
+      [data-theme='zen'] .btn-primary:hover:not(:disabled) {
       box-shadow:
         0 2px 4px rgba(0, 0, 0, 0.08),
         0 8px 16px rgba(0, 0, 0, 0.08),
@@ -414,12 +454,12 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.3);
     }
 
-    [data-theme="zen"] .btn-primary::after {
+      [data-theme='zen'] .btn-primary::after {
       background: var(--persona-primary);
       filter: blur(16px);
     }
 
-    [data-theme="zen"] .btn-secondary {
+      [data-theme='zen'] .btn-secondary {
       background: rgba(255, 255, 255, 0.8);
       color: var(--color-text-secondary);
       border: 1px solid rgba(0, 0, 0, 0.06);
@@ -429,7 +469,7 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
     }
 
-    [data-theme="zen"] .btn-secondary:hover:not(:disabled) {
+      [data-theme='zen'] .btn-secondary:hover:not(:disabled) {
       background: rgba(255, 255, 255, 0.95);
       border-color: rgba(0, 0, 0, 0.1);
       box-shadow:
@@ -438,7 +478,7 @@
     }
 
     /* Zen waveform styling */
-    [data-theme="zen"] .waveform-glow {
+      [data-theme='zen'] .waveform-glow {
       background: radial-gradient(
         ellipse 60% 40% at 50% 50%,
         var(--persona-glow) 0%,
@@ -447,7 +487,7 @@
       opacity: 0.4;
     }
 
-    [data-theme="zen"] .waveform-bar {
+      [data-theme='zen'] .waveform-bar {
       background: linear-gradient(
         180deg,
         var(--persona-primary) 0%,
@@ -461,14 +501,14 @@
        Earthy, warm aesthetic with clear visual feedback
        ======================================================================== */
     
-    [data-theme="zen"] .team-member {
+      [data-theme='zen'] .team-member {
       background: rgba(255, 255, 255, 0.65);
       border: 1.5px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 16px);
       transition: all 0.3s var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
     }
 
-    [data-theme="zen"] .team-member:hover {
+      [data-theme='zen'] .team-member:hover {
       background: rgba(255, 255, 255, 0.92);
       border-color: var(--color-border-medium, rgba(44, 37, 32, 0.12));
       box-shadow: 
@@ -477,7 +517,7 @@
       transform: translateY(-2px) scale(1.02);
     }
 
-    [data-theme="zen"] .team-member.active {
+      [data-theme='zen'] .team-member.active {
       background: rgba(255, 255, 255, 0.98);
       border-color: var(--persona-primary);
       box-shadow:
@@ -487,7 +527,7 @@
     }
     
     /* Enhanced selection ring animation for active state */
-    [data-theme="zen"] .team-member.active .team-avatar-ring {
+      [data-theme='zen'] .team-member.active .team-avatar-ring {
       border-color: var(--persona-primary);
       opacity: 1;
       transform: scale(1);
@@ -495,39 +535,39 @@
     }
     
     /* Persona-specific member colors for enhanced feedback */
-    [data-theme="zen"] .team-member[data-persona-id="ferni"]:hover,
-    [data-theme="zen"] .team-member[data-persona-id="ferni"].active {
+      [data-theme='zen'] .team-member[data-persona-id='ferni']:hover,
+      [data-theme='zen'] .team-member[data-persona-id='ferni'].active {
       --member-color: var(--color-ferni, #4a6741);
     }
     
-    [data-theme="zen"] .team-member[data-persona-id="peter-john"]:hover,
-    [data-theme="zen"] .team-member[data-persona-id="peter-john"].active {
+      [data-theme='zen'] .team-member[data-persona-id='peter-john']:hover,
+      [data-theme='zen'] .team-member[data-persona-id='peter-john'].active {
       --member-color: var(--color-peter, #3a6b73);
     }
     
-    [data-theme="zen"] .team-member[data-persona-id="nayan-patel"]:hover,
-    [data-theme="zen"] .team-member[data-persona-id="nayan-patel"].active {
+      [data-theme='zen'] .team-member[data-persona-id='nayan-patel']:hover,
+      [data-theme='zen'] .team-member[data-persona-id='nayan-patel'].active {
       --member-color: var(--color-nayan, #b8956a);
     }
     
-    [data-theme="zen"] .team-member[data-persona-id="alex-chen"]:hover,
-    [data-theme="zen"] .team-member[data-persona-id="alex-chen"].active {
+      [data-theme='zen'] .team-member[data-persona-id='alex-chen']:hover,
+      [data-theme='zen'] .team-member[data-persona-id='alex-chen'].active {
       --member-color: var(--color-alex, #5a6b8a);
     }
     
-    [data-theme="zen"] .team-member[data-persona-id="maya-santos"]:hover,
-    [data-theme="zen"] .team-member[data-persona-id="maya-santos"].active {
+      [data-theme='zen'] .team-member[data-persona-id='maya-santos']:hover,
+      [data-theme='zen'] .team-member[data-persona-id='maya-santos'].active {
       --member-color: var(--color-maya, #a67a6a);
     }
     
-    [data-theme="zen"] .team-member[data-persona-id="jordan-taylor"]:hover,
-    [data-theme="zen"] .team-member[data-persona-id="jordan-taylor"].active {
+      [data-theme='zen'] .team-member[data-persona-id='jordan-taylor']:hover,
+      [data-theme='zen'] .team-member[data-persona-id='jordan-taylor'].active {
       --member-color: var(--color-jordan, #c4856a);
     }
 
     /* Zen cards and elevated surfaces */
-    [data-theme="zen"] .card,
-    [data-theme="zen"] .message-container {
+      [data-theme='zen'] .card,
+      [data-theme='zen'] .message-container {
       background: rgba(255, 255, 255, 0.9);
       border: 1px solid rgba(0, 0, 0, 0.04);
       box-shadow: var(--shadow-card);
@@ -537,51 +577,51 @@
     /* Zen toast styles are in the main TOAST SYSTEM section */
 
     /* Zen selection color */
-    [data-theme="zen"] ::selection {
+      [data-theme='zen'] ::selection {
       background: var(--persona-primary);
       color: white;
     }
 
     /* Zen theme toggle button */
-    [data-theme="zen"] .theme-toggle {
+      [data-theme='zen'] .theme-toggle {
       background: rgba(255, 255, 255, 0.9);
       border-color: rgba(0, 0, 0, 0.06);
       box-shadow: var(--shadow-md);
     }
 
-    [data-theme="zen"] .theme-toggle:hover {
+      [data-theme='zen'] .theme-toggle:hover {
       background: rgba(255, 255, 255, 1);
       box-shadow: var(--shadow-lg);
     }
 
     /* Zen footer */
-    [data-theme="zen"] .footer {
+      [data-theme='zen'] .footer {
       background: rgba(255, 255, 255, 0.7);
       border-top: 1px solid rgba(0, 0, 0, 0.04);
       backdrop-filter: blur(20px);
     }
 
     /* Zen status indicator */
-    [data-theme="zen"] .status-connected {
+      [data-theme='zen'] .status-connected {
       background: var(--color-success, #4a7352);
       box-shadow: 0 0 12px var(--color-success-bg, rgba(74, 115, 82, 0.4));
     }
 
     /* Zen thinking dots */
-    [data-theme="zen"] .thinking-dot {
+      [data-theme='zen'] .thinking-dot {
       background: var(--persona-primary);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     /* Zen transcript panel */
-    [data-theme="zen"] .transcript-panel {
+      [data-theme='zen'] .transcript-panel {
       background: rgba(255, 255, 255, 0.95);
       border: 1px solid rgba(0, 0, 0, 0.06);
       box-shadow: var(--shadow-xl);
     }
 
     /* Zen celebration effects - softer */
-    [data-theme="zen"] .sparkle {
+      [data-theme='zen'] .sparkle {
       filter: brightness(0.9);
     }
 
@@ -591,39 +631,63 @@
        ======================================================================== */
     
     /* Ferni - Forest Sage Green (warm, grounded, wise) */
-    [data-theme="zen"][data-persona="ferni"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-ferni, #4a6741) 0%, var(--color-ferni-secondary, #3d5a35) 100%);
+      [data-theme='zen'][data-persona='ferni'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-ferni, #4a6741) 0%,
+          var(--color-ferni-secondary, #3d5a35) 100%
+        );
     }
     
     /* Peter John - Deep Teal (curious, research, insights) */
-    [data-theme="zen"][data-persona="peter-john"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-peter, #3a6b73) 0%, var(--color-peter-secondary, #2d5359) 100%);
+      [data-theme='zen'][data-persona='peter-john'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-peter, #3a6b73) 0%,
+          var(--color-peter-secondary, #2d5359) 100%
+        );
     }
     
     /* Nayan Patel - Golden Amber (wisdom, long-term thinking) */
-    [data-theme="zen"][data-persona="nayan-patel"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-nayan, #b8956a) 0%, var(--color-nayan-secondary, #9a7a52) 100%);
+      [data-theme='zen'][data-persona='nayan-patel'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-nayan, #b8956a) 0%,
+          var(--color-nayan-secondary, #9a7a52) 100%
+        );
     }
     
     /* Alex Chen - Slate Blue (thoughtful, communicative, balanced) */
-    [data-theme="zen"][data-persona="alex-chen"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-alex, #5a6b8a) 0%, var(--color-alex-secondary, #4a5a73) 100%);
+      [data-theme='zen'][data-persona='alex-chen'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-alex, #5a6b8a) 0%,
+          var(--color-alex-secondary, #4a5a73) 100%
+        );
     }
     
     /* Maya Santos - Dusty Terracotta (nurturing, warmth, habits) */
-    [data-theme="zen"][data-persona="maya-santos"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-maya, #a67a6a) 0%, var(--color-maya-secondary, #8a635a) 100%);
+      [data-theme='zen'][data-persona='maya-santos'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-maya, #a67a6a) 0%,
+          var(--color-maya-secondary, #8a635a) 100%
+        );
     }
     
     /* Jordan Taylor - Warm Coral (creative, enthusiastic, lively) */
-    [data-theme="zen"][data-persona="jordan-taylor"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-jordan, #c4856a) 0%, var(--color-jordan-secondary, #a86d55) 100%);
+      [data-theme='zen'][data-persona='jordan-taylor'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-jordan, #c4856a) 0%,
+          var(--color-jordan-secondary, #a86d55) 100%
+        );
     }
     
     /* Nayan/Lifetime Advisor - Golden Amber (wisdom, warmth, guidance) */
-    [data-theme="zen"][data-persona="nayan-patel"] .btn-primary,
-    [data-theme="zen"][data-persona="lifetime-advisor"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-highlight, #C4A265) 0%, #a88932 100%);
+      [data-theme='zen'][data-persona='nayan-patel'] .btn-primary,
+      [data-theme='zen'][data-persona='lifetime-advisor'] .btn-primary {
+        background: linear-gradient(145deg, var(--color-highlight, #c4a265) 0%, #a88932 100%);
     }
 
     /* ========================================================================
@@ -631,12 +695,13 @@
        ======================================================================== */
 
     /* Zen breathing button glow - softer */
-    [data-theme="zen"] .btn-primary:not(:disabled) {
+      [data-theme='zen'] .btn-primary:not(:disabled) {
       animation: zenBtnBreath 4s ease-in-out infinite;
     }
 
     @keyframes zenBtnBreath {
-      0%, 100% {
+        0%,
+        100% {
         box-shadow:
           0 1px 2px rgba(0, 0, 0, 0.1),
           0 4px 8px rgba(0, 0, 0, 0.08),
@@ -654,16 +719,17 @@
     }
 
     /* Zen ambient orb float - gentler motion */
-    [data-theme="zen"] .ambient-orb--primary {
+      [data-theme='zen'] .ambient-orb--primary {
       animation: zenOrbFloat 25s ease-in-out infinite;
     }
 
-    [data-theme="zen"] .ambient-orb--secondary {
+      [data-theme='zen'] .ambient-orb--secondary {
       animation: zenOrbFloat 30s ease-in-out infinite reverse;
     }
 
     @keyframes zenOrbFloat {
-      0%, 100% {
+        0%,
+        100% {
         transform: translate(-50%, -50%) scale(1);
         opacity: 0.12;
       }
@@ -678,7 +744,7 @@
     }
 
     /* Zen avatar pulse - subtle */
-    [data-theme="zen"] .avatar-connected-pulse {
+      [data-theme='zen'] .avatar-connected-pulse {
       animation: zenAvatarPulse 2s var(--ease-out-expo);
     }
 
@@ -737,45 +803,42 @@
 
     /* Apply ambient warmth filter to the app */
     #app {
-      filter:
-        sepia(calc(var(--ambient-warmth) * 0.08))
-        saturate(var(--ambient-saturation))
-        brightness(var(--ambient-brightness))
-        hue-rotate(var(--ambient-hue));
+        filter: sepia(calc(var(--ambient-warmth) * 0.08)) saturate(var(--ambient-saturation))
+          brightness(var(--ambient-brightness)) hue-rotate(var(--ambient-hue));
       transition: filter 2s ease-in-out;
     }
 
     /* Time-of-day specific enhancements */
-    [data-time="dawn"] .ambient-orb--primary {
+      [data-time='dawn'] .ambient-orb--primary {
       background: radial-gradient(circle, rgba(255, 180, 120, 0.4) 0%, transparent 70%);
     }
 
-    [data-time="dawn"] .ambient-orb--secondary {
+      [data-time='dawn'] .ambient-orb--secondary {
       background: radial-gradient(circle, rgba(255, 150, 200, 0.3) 0%, transparent 70%);
     }
 
-    [data-time="morning"] .ambient-orb--primary {
+      [data-time='morning'] .ambient-orb--primary {
       background: radial-gradient(circle, rgba(255, 200, 100, 0.35) 0%, transparent 70%);
     }
 
-    [data-time="evening"] .ambient-orb--primary {
+      [data-time='evening'] .ambient-orb--primary {
       background: radial-gradient(circle, rgba(255, 140, 60, 0.4) 0%, transparent 70%);
     }
 
-    [data-time="evening"] .ambient-orb--secondary {
+      [data-time='evening'] .ambient-orb--secondary {
       background: radial-gradient(circle, rgba(180, 100, 255, 0.25) 0%, transparent 70%);
     }
 
-    [data-time="night"] .ambient-orb--primary {
+      [data-time='night'] .ambient-orb--primary {
       background: radial-gradient(circle, rgba(100, 120, 200, 0.3) 0%, transparent 70%);
     }
 
-    [data-time="night"] .ambient-orb--secondary {
+      [data-time='night'] .ambient-orb--secondary {
       background: radial-gradient(circle, rgba(60, 80, 150, 0.2) 0%, transparent 70%);
     }
 
     /* Zen theme - disable time-aware filters for clean light mode */
-    [data-theme="zen"] #app {
+      [data-theme='zen'] #app {
       filter: none;
       transition: none; /* Prevent filter flickering */
     }
@@ -796,8 +859,7 @@
     }
 
     .btn-magnetic:hover {
-      transform:
-        translate(calc(var(--magnetic-x) * 0.15px), calc(var(--magnetic-y) * 0.15px))
+        transform: translate(calc(var(--magnetic-x) * 0.15px), calc(var(--magnetic-y) * 0.15px))
         translateY(-2px);
     }
 
@@ -838,11 +900,21 @@
 
     /* Gentle bounce on successful actions */
     @keyframes successBounce {
-      0% { transform: scale(1); }
-      25% { transform: scale(1.08); }
-      50% { transform: scale(0.95); }
-      75% { transform: scale(1.02); }
-      100% { transform: scale(1); }
+        0% {
+          transform: scale(1);
+        }
+        25% {
+          transform: scale(1.08);
+        }
+        50% {
+          transform: scale(0.95);
+        }
+        75% {
+          transform: scale(1.02);
+        }
+        100% {
+          transform: scale(1);
+        }
     }
 
     .bounce-success {
@@ -851,9 +923,16 @@
 
     /* Wiggle for attention/error states - playful, not annoying */
     @keyframes gentleWiggle {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-2deg); }
-      75% { transform: rotate(2deg); }
+        0%,
+        100% {
+          transform: rotate(0deg);
+        }
+        25% {
+          transform: rotate(-2deg);
+        }
+        75% {
+          transform: rotate(2deg);
+        }
     }
 
     .wiggle {
@@ -862,8 +941,12 @@
 
     /* Shimmer effect for loading/transitioning states */
     @keyframes shimmerSlide {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
     }
 
     .shimmer-loading {
@@ -879,8 +962,13 @@
 
     /* Pulse glow for active/speaking states */
     @keyframes pulseGlow {
-      0%, 100% { box-shadow: 0 0 20px -5px var(--persona-glow); }
-      50% { box-shadow: 0 0 35px -5px var(--persona-glow); }
+        0%,
+        100% {
+          box-shadow: 0 0 20px -5px var(--persona-glow);
+        }
+        50% {
+          box-shadow: 0 0 35px -5px var(--persona-glow);
+        }
     }
 
     .pulse-glow {
@@ -905,20 +993,38 @@
 
     /* Avatar entrance - spring bounce in */
     @keyframes entranceAvatar {
-      0% { opacity: 0; transform: scale(0.8) translateY(20px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
+        0% {
+          opacity: 0;
+          transform: scale(0.8) translateY(20px);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
     }
 
     /* Controls/text entrance - smooth slide up */
     @keyframes entranceSlideUp {
-      0% { opacity: 0; transform: translateY(15px); }
-      100% { opacity: 1; transform: translateY(0); }
+        0% {
+          opacity: 0;
+          transform: translateY(15px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
     }
 
     /* Team roster entrance - staggered cascade */
     @keyframes entranceTeamMember {
-      0% { opacity: 0; transform: scale(0.9); }
-      100% { opacity: 1; transform: scale(1); }
+        0% {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
     }
 
     /* When app is loaded (skeleton removed), trigger entrance animations */
@@ -956,13 +1062,27 @@
       /* FIX: Prevent layout shifts during entrance animation */
       flex-shrink: 0;
     }
-    .app-loaded .entrance-roster .team-member:nth-child(1) { animation-delay: 450ms; }
-    .app-loaded .entrance-roster .team-member:nth-child(2) { animation-delay: 480ms; }
-    .app-loaded .entrance-roster .team-member:nth-child(3) { animation-delay: 530ms; }
-    .app-loaded .entrance-roster .team-member:nth-child(4) { animation-delay: 580ms; }
-    .app-loaded .entrance-roster .team-member:nth-child(5) { animation-delay: 630ms; }
-    .app-loaded .entrance-roster .team-member:nth-child(6) { animation-delay: 680ms; }
-    .app-loaded .entrance-roster .team-member:nth-child(7) { animation-delay: 730ms; }
+      .app-loaded .entrance-roster .team-member:nth-child(1) {
+        animation-delay: 450ms;
+      }
+      .app-loaded .entrance-roster .team-member:nth-child(2) {
+        animation-delay: 480ms;
+      }
+      .app-loaded .entrance-roster .team-member:nth-child(3) {
+        animation-delay: 530ms;
+      }
+      .app-loaded .entrance-roster .team-member:nth-child(4) {
+        animation-delay: 580ms;
+      }
+      .app-loaded .entrance-roster .team-member:nth-child(5) {
+        animation-delay: 630ms;
+      }
+      .app-loaded .entrance-roster .team-member:nth-child(6) {
+        animation-delay: 680ms;
+      }
+      .app-loaded .entrance-roster .team-member:nth-child(7) {
+        animation-delay: 730ms;
+      }
 
     /* CRITICAL: Ensure team members stay visible and clickable after entrance animation.
        This prevents any animation conflicts from hiding or disabling the team roster. */
@@ -988,11 +1108,22 @@
 
     /* Error recovery animations */
     @keyframes errorShake {
-      0%, 100% { transform: translateX(0); }
-      20% { transform: translateX(-8px); }
-      40% { transform: translateX(8px); }
-      60% { transform: translateX(-4px); }
-      80% { transform: translateX(4px); }
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20% {
+          transform: translateX(-8px);
+        }
+        40% {
+          transform: translateX(8px);
+        }
+        60% {
+          transform: translateX(-4px);
+        }
+        80% {
+          transform: translateX(4px);
+        }
     }
 
     .error-shake {
@@ -1000,9 +1131,15 @@
     }
 
     @keyframes errorPulse {
-      0% { box-shadow: 0 0 0 0 var(--color-semantic-error-glow, rgba(239, 68, 68, 0.4)); }
-      70% { box-shadow: 0 0 0 10px transparent; }
-      100% { box-shadow: 0 0 0 0 transparent; }
+        0% {
+          box-shadow: 0 0 0 0 var(--color-semantic-error-glow, rgba(239, 68, 68, 0.4));
+        }
+        70% {
+          box-shadow: 0 0 0 10px transparent;
+        }
+        100% {
+          box-shadow: 0 0 0 0 transparent;
+        }
     }
 
     .error-pulse {
@@ -1071,7 +1208,9 @@
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
-      transition: opacity 800ms ease, visibility 800ms;
+        transition:
+          opacity 800ms ease,
+          visibility 800ms;
     }
 
     .landing-scene.revealed {
@@ -1126,13 +1265,27 @@
     }
 
     @keyframes mistDrift1 {
-      0%, 100% { opacity: 0.6; transform: translateZ(-100px) translateX(0); }
-      50% { opacity: 0.8; transform: translateZ(-100px) translateX(3%); }
+        0%,
+        100% {
+          opacity: 0.6;
+          transform: translateZ(-100px) translateX(0);
+        }
+        50% {
+          opacity: 0.8;
+          transform: translateZ(-100px) translateX(3%);
+        }
     }
 
     @keyframes mistDrift2 {
-      0%, 100% { opacity: 0.5; transform: translateZ(-50px) translateX(0); }
-      50% { opacity: 0.7; transform: translateZ(-50px) translateX(-2%); }
+        0%,
+        100% {
+          opacity: 0.5;
+          transform: translateZ(-50px) translateX(0);
+        }
+        50% {
+          opacity: 0.7;
+          transform: translateZ(-50px) translateX(-2%);
+        }
     }
 
     /* Foreground Layer - Zen room frame */
@@ -1197,8 +1350,12 @@
     }
 
     /* Open state - controlled by GSAP */
-    .landing-shoji-left.open { transform: translateX(-100%); }
-    .landing-shoji-right.open { transform: translateX(100%); }
+      .landing-shoji-left.open {
+        transform: translateX(-100%);
+      }
+      .landing-shoji-right.open {
+        transform: translateX(100%);
+      }
 
     /* Floating content card */
     .landing-content-card {
@@ -1219,7 +1376,9 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.8);
       opacity: 0;
       z-index: 20;
-      transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        transition:
+          opacity 0.8s ease,
+          transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .landing-content-card.visible {
@@ -1271,20 +1430,43 @@
       animation: zenWave 2s ease-in-out infinite;
     }
 
-    .landing-ensou-bar:nth-child(1) { height: 10px; animation-delay: 0ms; }
-    .landing-ensou-bar:nth-child(2) { height: 18px; animation-delay: 200ms; }
-    .landing-ensou-bar:nth-child(3) { height: 24px; animation-delay: 400ms; }
-    .landing-ensou-bar:nth-child(4) { height: 18px; animation-delay: 600ms; }
-    .landing-ensou-bar:nth-child(5) { height: 10px; animation-delay: 800ms; }
+      .landing-ensou-bar:nth-child(1) {
+        height: 10px;
+        animation-delay: 0ms;
+      }
+      .landing-ensou-bar:nth-child(2) {
+        height: 18px;
+        animation-delay: 200ms;
+      }
+      .landing-ensou-bar:nth-child(3) {
+        height: 24px;
+        animation-delay: 400ms;
+      }
+      .landing-ensou-bar:nth-child(4) {
+        height: 18px;
+        animation-delay: 600ms;
+      }
+      .landing-ensou-bar:nth-child(5) {
+        height: 10px;
+        animation-delay: 800ms;
+      }
 
     @keyframes zenWave {
-      0%, 100% { transform: scaleY(1); opacity: 0.6; }
-      50% { transform: scaleY(0.5); opacity: 1; }
+        0%,
+        100% {
+          transform: scaleY(1);
+          opacity: 0.6;
+        }
+        50% {
+          transform: scaleY(0.5);
+          opacity: 1;
+        }
     }
 
     /* Typography - Japanese aesthetic meets modern */
     .landing-headline {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Hiragino Sans', sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Hiragino Sans', sans-serif;
       font-size: clamp(1.75rem, 5vw, 2.5rem);
       font-weight: 600;
       color: #1a1a1a;
@@ -1356,7 +1538,9 @@
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 200ms ease, box-shadow 200ms ease;
+        transition:
+          transform 200ms ease,
+          box-shadow 200ms ease;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
     }
 
@@ -1421,8 +1605,14 @@
     }
 
     @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
     }
 
     .landing-success-icon {
@@ -1490,8 +1680,15 @@
     }
 
     @keyframes tapPulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.05); opacity: 0.7; }
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 0.7;
+        }
     }
 
     /* Mobile adjustments */
@@ -1541,8 +1738,15 @@
 
     /* WALL-E "eye blink" - subtle squish like WALL-E's expressive eyes */
     @keyframes eyeBlink {
-      0%, 45%, 55%, 100% { transform: scaleY(1); }
-      50% { transform: scaleY(0.1); }
+        0%,
+        45%,
+        55%,
+        100% {
+          transform: scaleY(1);
+        }
+        50% {
+          transform: scaleY(0.1);
+        }
     }
 
     .blink-animation {
@@ -1551,8 +1755,13 @@
 
     /* WALL-E "gentle breathing" - alive even when idle */
     @keyframes gentleBreathing {
-      0%, 100% { transform: scale(1) translateY(0); }
-      50% { transform: scale(1.02) translateY(-2px); }
+        0%,
+        100% {
+          transform: scale(1) translateY(0);
+        }
+        50% {
+          transform: scale(1.02) translateY(-2px);
+        }
     }
 
     .breathing {
@@ -1561,12 +1770,25 @@
 
     /* WALL-E "excited wiggle" - happy moment */
     @keyframes excitedWiggle {
-      0%, 100% { transform: rotate(0deg) scale(1); }
-      15% { transform: rotate(-8deg) scale(1.05); }
-      30% { transform: rotate(8deg) scale(1.05); }
-      45% { transform: rotate(-5deg) scale(1.02); }
-      60% { transform: rotate(5deg) scale(1.02); }
-      75% { transform: rotate(-2deg) scale(1); }
+        0%,
+        100% {
+          transform: rotate(0deg) scale(1);
+        }
+        15% {
+          transform: rotate(-8deg) scale(1.05);
+        }
+        30% {
+          transform: rotate(8deg) scale(1.05);
+        }
+        45% {
+          transform: rotate(-5deg) scale(1.02);
+        }
+        60% {
+          transform: rotate(5deg) scale(1.02);
+        }
+        75% {
+          transform: rotate(-2deg) scale(1);
+        }
     }
 
     .excited {
@@ -1575,9 +1797,16 @@
 
     /* WALL-E "thinking" - like when he examines something */
     @keyframes thinkingLean {
-      0%, 100% { transform: rotate(0deg) translateX(0); }
-      25% { transform: rotate(-5deg) translateX(-3px); }
-      75% { transform: rotate(5deg) translateX(3px); }
+        0%,
+        100% {
+          transform: rotate(0deg) translateX(0);
+        }
+        25% {
+          transform: rotate(-5deg) translateX(-3px);
+        }
+        75% {
+          transform: rotate(5deg) translateX(3px);
+        }
     }
 
     .thinking-animation {
@@ -1586,10 +1815,19 @@
 
     /* WALL-E "happy bounce" - when something good happens */
     @keyframes happyBounce {
-      0%, 100% { transform: translateY(0) scale(1); }
-      25% { transform: translateY(-15px) scale(1.05); }
-      50% { transform: translateY(0) scale(0.95); }
-      75% { transform: translateY(-8px) scale(1.02); }
+        0%,
+        100% {
+          transform: translateY(0) scale(1);
+        }
+        25% {
+          transform: translateY(-15px) scale(1.05);
+        }
+        50% {
+          transform: translateY(0) scale(0.95);
+        }
+        75% {
+          transform: translateY(-8px) scale(1.02);
+        }
     }
 
     .happy-bounce {
@@ -1598,8 +1836,12 @@
 
     /* WALL-E "sad droop" - sympathetic moment */
     @keyframes sadDroop {
-      0% { transform: translateY(0) rotate(0deg); }
-      100% { transform: translateY(3px) rotate(-3deg); }
+        0% {
+          transform: translateY(0) rotate(0deg);
+        }
+        100% {
+          transform: translateY(3px) rotate(-3deg);
+        }
     }
 
     .sad-droop {
@@ -1608,7 +1850,8 @@
 
     /* WALL-E "EVE float" - smooth, graceful hovering */
     @keyframes eveFloat {
-      0%, 100% {
+        0%,
+        100% {
         transform: translateY(0) rotate(0deg);
         filter: brightness(1);
       }
@@ -1632,11 +1875,22 @@
 
     /* WALL-E "attention grab" - when the avatar wants your focus */
     @keyframes attentionGrab {
-      0%, 100% { transform: scale(1); }
-      10% { transform: scale(1.1); }
-      20% { transform: scale(0.95); }
-      30% { transform: scale(1.05); }
-      40% { transform: scale(1); }
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        10% {
+          transform: scale(1.1);
+        }
+        20% {
+          transform: scale(0.95);
+        }
+        30% {
+          transform: scale(1.05);
+        }
+        40% {
+          transform: scale(1);
+        }
     }
 
     .attention {
@@ -1774,7 +2028,9 @@
     /* ========================================================================
        RESET & BASE
        ======================================================================== */
-    *, *::before, *::after {
+      *,
+      *::before,
+      *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
@@ -1798,56 +2054,38 @@
     .btn,
     #coachAvatar,
     .avatar-container,
-    .thinking-dot,
-    .ripple {
-      transform: translateZ(0);
-      backface-visibility: hidden;
-    }
+    /* .thinking-dot, .ripple - removed GPU hints for Safari compatibility */
     
-    /* GPU layer promotion for high-frequency animations */
+    /* GPU layer promotion - simplified for Safari compatibility */
     .waveform-bar {
-      will-change: transform, height;
-      contain: layout style;
+      /* NOTE: Removed will-change and contain for Safari */
     }
     
     .team-avatar {
-      will-change: transform, box-shadow;
-      contain: layout style paint;
+      /* NOTE: Removed will-change and contain - causes visible box in Safari */
     }
     
     .btn {
-      will-change: transform;
-      contain: layout style;
+      /* NOTE: Removed will-change and contain - Safari compatibility */
     }
     
-    #coachAvatar {
-      will-change: transform, filter;
-      contain: strict;
-    }
+    /* #coachAvatar - no GPU hints here, causes visible box in Safari */
     
-    .avatar-container {
-      will-change: transform;
-      contain: layout style paint;
-    }
+    /* .avatar-container - no GPU hints here, causes visible box in Safari */
     
-    /* CSS Containment for layout isolation - prevents expensive reflows */
-    #waveformContainer {
-      contain: layout style;
-    }
+    /* CSS Containment removed for Safari compatibility */
+    /* #waveformContainer - no contain here */
     
     .team-roster {
-      contain: layout style;
+      /* NOTE: Do NOT add contain here - causes visible box in Safari */
     }
     
     .coach-container {
-      contain: layout;
+      /* NOTE: Do NOT add contain: layout/style/paint here - causes visible box in Safari */
     }
     
     /* Optimize paint operations for shadows */
-    .team-avatar-ring,
-    .glow-ring {
-      will-change: box-shadow, opacity;
-    }
+    /* NOTE: Removed will-change from .team-avatar-ring, .glow-ring - Safari bug */
     
     /* Composite layers for smooth blending */
     .ambient-overlay,
@@ -1896,7 +2134,8 @@
       overflow: hidden;
       background: var(--color-bg-primary);
       /* Warm/cool shift based on time of day */
-      filter: sepia(calc(var(--ambient-warmth) * 0.03)) saturate(calc(1 + var(--ambient-warmth) * 0.05));
+        filter: sepia(calc(var(--ambient-warmth) * 0.03))
+          saturate(calc(1 + var(--ambient-warmth) * 0.05));
     }
 
     /* Layered background effects */
@@ -1909,7 +2148,9 @@
         radial-gradient(ellipse 100% 80% at 50% 100%, rgba(0, 0, 0, 0.4) 0%, transparent 50%),
         linear-gradient(180deg, var(--persona-bg-tint) 0%, transparent 30%);
       opacity: 1;
-      transition: background 0.8s var(--ease-out-expo), opacity 0.8s var(--ease-out-expo);
+        transition:
+          background 0.8s var(--ease-out-expo),
+          opacity 0.8s var(--ease-out-expo);
       pointer-events: none;
       z-index: 0;
     }
@@ -1926,7 +2167,7 @@
       z-index: 1;
     }
     
-    [data-theme="zen"] #app::after {
+      [data-theme='zen'] #app::after {
       opacity: 0.015; /* Subtler in light mode */
     }
     
@@ -1964,9 +2205,16 @@
     }
     
     @keyframes ambientFloat {
-      0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
-      33% { transform: translateX(-45%) translateY(20px) scale(1.05); }
-      66% { transform: translateX(-55%) translateY(-10px) scale(0.98); }
+        0%,
+        100% {
+          transform: translateX(-50%) translateY(0) scale(1);
+        }
+        33% {
+          transform: translateX(-45%) translateY(20px) scale(1.05);
+        }
+        66% {
+          transform: translateX(-55%) translateY(-10px) scale(0.98);
+        }
     }
     
     /* ========================================================================
@@ -2067,8 +2315,7 @@
       padding: var(--space-xs) var(--space-lg);
       /* Tight gap for compact layout */
       gap: var(--space-sm);
-      /* Contain for performance */
-      contain: layout style;
+      /* NOTE: Do NOT add contain here - causes visible box in Safari */
     }
 
     .footer {
@@ -2117,14 +2364,12 @@
          Creates visual weight and presence - our "WALL-E" character */
       width: 120px;
       height: 120px;
-      /* GPU acceleration - crucial for smooth animations */
-      will-change: transform;
-      transform: translateZ(0);
+      /* NOTE: Do NOT add will-change, transform, translateZ, or contain here - causes visible box in Safari */
       transform-origin: center center;
-      /* Contain layout for performance - prevents repaints from propagating */
-      contain: layout style;
-      /* NO CSS animation here - presence.ui.ts handles breathing via JS
-         This prevents animation conflicts that cause jitter */
+      /* Safari fix: transparent outline forces correct repainting during animations */
+      outline: 1px solid transparent;
+      -webkit-transform-style: flat;
+      transform-style: flat;
     }
 
     /* Reaction animations applied via JS classes */
@@ -2156,51 +2401,103 @@
     
     @keyframes avatarNod {
       /* Action: Quick nod with squash */
-      0% { transform: scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg); }
-      15% { transform: scale3d(1.02, 0.98, 1) translate3d(0, 3px, 0) rotate(3deg); }
+        0% {
+          transform: scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg);
+        }
+        15% {
+          transform: scale3d(1.02, 0.98, 1) translate3d(0, 3px, 0) rotate(3deg);
+        }
       /* Peak of nod - stretch vertically */
-      30% { transform: scale3d(0.98, 1.03, 1) translate3d(0, -5px, 0) rotate(-4deg); }
+        30% {
+          transform: scale3d(0.98, 1.03, 1) translate3d(0, -5px, 0) rotate(-4deg);
+        }
       /* Second nod (smaller) */
-      50% { transform: scale3d(1.01, 0.99, 1) translate3d(0, 2px, 0) rotate(2deg); }
-      65% { transform: scale3d(0.99, 1.01, 1) translate3d(0, -2px, 0) rotate(-1.5deg); }
+        50% {
+          transform: scale3d(1.01, 0.99, 1) translate3d(0, 2px, 0) rotate(2deg);
+        }
+        65% {
+          transform: scale3d(0.99, 1.01, 1) translate3d(0, -2px, 0) rotate(-1.5deg);
+        }
       /* Follow-through: overshoot */
-      80% { transform: scale3d(1.005, 0.995, 1) translate3d(0, 1px, 0) rotate(0.5deg); }
+        80% {
+          transform: scale3d(1.005, 0.995, 1) translate3d(0, 1px, 0) rotate(0.5deg);
+        }
       /* Settle */
-      92% { transform: scale3d(0.998, 1.002, 1) translate3d(0, -0.3px, 0) rotate(-0.2deg); }
-      100% { transform: scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg); }
+        92% {
+          transform: scale3d(0.998, 1.002, 1) translate3d(0, -0.3px, 0) rotate(-0.2deg);
+        }
+        100% {
+          transform: scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg);
+        }
     }
     
     @keyframes avatarShake {
       /* Gentle disagreement with squash on direction changes */
-      0% { transform: scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg); }
-      15% { transform: scale3d(0.98, 1.02, 1) translate3d(-4px, 0, 0) rotate(-2deg); }
-      30% { transform: scale3d(1.02, 0.98, 1) translate3d(4px, 0, 0) rotate(2deg); }
-      45% { transform: scale3d(0.99, 1.01, 1) translate3d(-3px, 0, 0) rotate(-1.5deg); }
-      60% { transform: scale3d(1.01, 0.99, 1) translate3d(2px, 0, 0) rotate(1deg); }
-      75% { transform: scale3d(1, 1, 1) translate3d(-1px, 0, 0) rotate(-0.5deg); }
-      88% { transform: scale3d(1, 1, 1) translate3d(0.5px, 0, 0) rotate(0.2deg); }
-      100% { transform: scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg); }
+        0% {
+          transform: scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg);
+        }
+        15% {
+          transform: scale3d(0.98, 1.02, 1) translate3d(-4px, 0, 0) rotate(-2deg);
+        }
+        30% {
+          transform: scale3d(1.02, 0.98, 1) translate3d(4px, 0, 0) rotate(2deg);
+        }
+        45% {
+          transform: scale3d(0.99, 1.01, 1) translate3d(-3px, 0, 0) rotate(-1.5deg);
+        }
+        60% {
+          transform: scale3d(1.01, 0.99, 1) translate3d(2px, 0, 0) rotate(1deg);
+        }
+        75% {
+          transform: scale3d(1, 1, 1) translate3d(-1px, 0, 0) rotate(-0.5deg);
+        }
+        88% {
+          transform: scale3d(1, 1, 1) translate3d(0.5px, 0, 0) rotate(0.2deg);
+        }
+        100% {
+          transform: scale3d(1, 1, 1) translate3d(0, 0, 0) rotate(0deg);
+        }
     }
     
     @keyframes avatarBounce {
       /* Luxo Jr. style excited bounce with squash & stretch */
-      0% { transform: scale3d(1, 1, 1) translate3d(0, 0, 0); }
+        0% {
+          transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+        }
       /* Squash at takeoff */
-      12% { transform: scale3d(1.08, 0.92, 1) translate3d(0, 2px, 0); }
+        12% {
+          transform: scale3d(1.08, 0.92, 1) translate3d(0, 2px, 0);
+        }
       /* Stretch in air */
-      28% { transform: scale3d(0.94, 1.08, 1) translate3d(0, -12px, 0); }
+        28% {
+          transform: scale3d(0.94, 1.08, 1) translate3d(0, -12px, 0);
+        }
       /* Peak - maximum stretch */
-      35% { transform: scale3d(0.92, 1.1, 1) translate3d(0, -15px, 0); }
+        35% {
+          transform: scale3d(0.92, 1.1, 1) translate3d(0, -15px, 0);
+        }
       /* Coming down - starting to squash */
-      48% { transform: scale3d(0.96, 1.05, 1) translate3d(0, -8px, 0); }
+        48% {
+          transform: scale3d(0.96, 1.05, 1) translate3d(0, -8px, 0);
+        }
       /* Land with squash */
-      58% { transform: scale3d(1.1, 0.9, 1) translate3d(0, 3px, 0); }
+        58% {
+          transform: scale3d(1.1, 0.9, 1) translate3d(0, 3px, 0);
+        }
       /* Small secondary bounce */
-      70% { transform: scale3d(0.97, 1.04, 1) translate3d(0, -4px, 0); }
-      80% { transform: scale3d(1.03, 0.97, 1) translate3d(0, 1px, 0); }
+        70% {
+          transform: scale3d(0.97, 1.04, 1) translate3d(0, -4px, 0);
+        }
+        80% {
+          transform: scale3d(1.03, 0.97, 1) translate3d(0, 1px, 0);
+        }
       /* Settle */
-      90% { transform: scale3d(0.99, 1.01, 1) translate3d(0, -0.5px, 0); }
-      100% { transform: scale3d(1, 1, 1) translate3d(0, 0, 0); }
+        90% {
+          transform: scale3d(0.99, 1.01, 1) translate3d(0, -0.5px, 0);
+        }
+        100% {
+          transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+        }
     }
     
     @keyframes avatarPulse {
@@ -2256,6 +2553,8 @@
       border: 1.5px solid var(--persona-primary);
       opacity: 0.2;
       transition: all var(--transition-slow);
+      /* Safari fix: transparent outline forces correct repainting during animations */
+      outline: 1px solid transparent;
     }
 
     /* Connected: ring becomes visible */
@@ -2275,18 +2574,24 @@
     }
     
     @keyframes idleBreathing {
-      0%, 100% {
+        0%,
+        100% {
         transform: scale(1);
-        box-shadow: var(--shadow-xl), 0 0 20px -10px var(--persona-glow);
+          box-shadow:
+            var(--shadow-xl),
+            0 0 20px -10px var(--persona-glow);
       }
       50% {
         transform: scale(1.015);
-        box-shadow: var(--shadow-xl), 0 0 25px -8px var(--persona-glow);
+          box-shadow:
+            var(--shadow-xl),
+            0 0 25px -8px var(--persona-glow);
       }
     }
     
     @keyframes idleRingBreathing {
-      0%, 100% {
+        0%,
+        100% {
         opacity: 0.35;
         transform: scale(1);
       }
@@ -2324,12 +2629,30 @@
     }
 
     /* Emotion states - earthy warm color shifts from design tokens */
-    #coach.emotion-happy #avatarRing { border-color: var(--color-highlight, #C4A265); opacity: 0.6; }
-    #coach.emotion-excited #avatarRing { border-color: var(--color-jordan, #c4856a); opacity: 0.6; }
-    #coach.emotion-calm #avatarRing { border-color: var(--color-ferni, #4a6741); opacity: 0.6; }
-    #coach.emotion-anxious #avatarRing { border-color: var(--color-warning, #a6854a); opacity: 0.6; }
-    #coach.emotion-sad #avatarRing { border-color: var(--color-peter, #3a6b73); opacity: 0.5; }
-    #coach.emotion-frustrated #avatarRing { border-color: var(--color-error, #a65a52); opacity: 0.5; }
+      #coach.emotion-happy #avatarRing {
+        border-color: var(--color-highlight, #c4a265);
+        opacity: 0.6;
+      }
+      #coach.emotion-excited #avatarRing {
+        border-color: var(--color-jordan, #c4856a);
+        opacity: 0.6;
+      }
+      #coach.emotion-calm #avatarRing {
+        border-color: var(--color-ferni, #4a6741);
+        opacity: 0.6;
+      }
+      #coach.emotion-anxious #avatarRing {
+        border-color: var(--color-warning, #a6854a);
+        opacity: 0.6;
+      }
+      #coach.emotion-sad #avatarRing {
+        border-color: var(--color-peter, #3a6b73);
+        opacity: 0.5;
+      }
+      #coach.emotion-frustrated #avatarRing {
+        border-color: var(--color-error, #a65a52);
+        opacity: 0.5;
+      }
     
     /* ========================================================================
        THINKING STATE - Apple/Siri style
@@ -2337,42 +2660,113 @@
        NO LAYOUT SHIFT - everything is absolutely positioned
        ======================================================================== */
     
-    /* Thinking ring pulse - Siri-style glow */
+    /* 🆕 THINKING: More subtle, contemplative animation 
+       Like Ferni is actually pondering, not beaming energy */
     #coach.is-thinking #avatarRing {
-      opacity: 0.6;
-      animation: thinkingRingPulse 2s ease-in-out infinite;
+      opacity: 0.45;
+      animation: thinkingRingBreath 3s ease-in-out infinite;
     }
     
-    @keyframes thinkingRingPulse {
+    @keyframes thinkingRingBreath {
       0%, 100% {
-        opacity: 0.4;
+        opacity: 0.35;
         transform: scale(1);
-        box-shadow: 0 0 0 transparent;
       }
       50% {
-        opacity: 0.7;
-        transform: scale(1.08);
-        box-shadow: 0 0 25px var(--persona-glow);
+        opacity: 0.5;
+        transform: scale(1.03);
       }
     }
     
-    /* Avatar subtle pulse when thinking */
+    /* Avatar thoughtful movement - like pondering, not pulsing */
     #coach.is-thinking #coachAvatar {
-      animation: thinkingAvatarPulse 2s ease-in-out infinite;
+      animation: thinkingContemplate 4s ease-in-out infinite;
     }
     
-    @keyframes thinkingAvatarPulse {
+    @keyframes thinkingContemplate {
       0%, 100% {
-        box-shadow: 
-          var(--shadow-xl),
-          0 0 30px -10px var(--persona-glow);
+        transform: translateY(0) rotate(0deg);
+        box-shadow: var(--shadow-xl), 0 0 20px -8px var(--persona-glow);
       }
+      /* Slight upward look - "hmm, let me think" */
+      25% {
+        transform: translateY(-1px) rotate(-0.5deg);
+        box-shadow: var(--shadow-xl), 0 0 25px -6px var(--persona-glow);
+      }
+      /* Settle into thought */
       50% {
-        box-shadow: 
-          var(--shadow-xl),
-          0 0 50px -5px var(--persona-glow),
-          0 0 80px -20px var(--persona-primary);
+        transform: translateY(0.5px) rotate(0.3deg);
+        box-shadow: var(--shadow-xl), 0 0 30px -5px var(--persona-glow);
       }
+      /* Processing... */
+      75% {
+        transform: translateY(-0.5px) rotate(-0.2deg);
+        box-shadow: var(--shadow-xl), 0 0 25px -6px var(--persona-glow);
+      }
+    }
+    
+    /* ========================================================================
+       🆕 FUN MICRO-REACTIONS - Delightful moments
+       Triggered via JS for special moments (laughs, aha!, etc.)
+       ======================================================================== */
+    
+    /* Happy bounce - for good news, celebrations */
+    #coach.reaction-happy #coachAvatar {
+      animation: happyBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    @keyframes happyBounce {
+      0%, 100% { transform: translateY(0) scale(1); }
+      30% { transform: translateY(-6px) scale(1.03, 0.97); }
+      50% { transform: translateY(-8px) scale(0.98, 1.02); }
+      70% { transform: translateY(-3px) scale(1.01, 0.99); }
+    }
+    
+    /* Curious tilt - for "tell me more" moments */
+    #coach.reaction-curious #coachAvatar {
+      animation: curiousTilt 0.5s ease-out;
+    }
+    
+    @keyframes curiousTilt {
+      0%, 100% { transform: rotate(0deg); }
+      40% { transform: rotate(-5deg) translateX(-2px); }
+      70% { transform: rotate(2deg) translateX(1px); }
+    }
+    
+    /* Empathy nod - for understanding moments */
+    #coach.reaction-empathy #coachAvatar {
+      animation: empathyNod 0.8s ease-in-out;
+    }
+    
+    @keyframes empathyNod {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(2px) rotate(1deg); }
+      50% { transform: translateY(0) rotate(-0.5deg); }
+      75% { transform: translateY(1px) rotate(0.5deg); }
+    }
+    
+    /* Laugh wobble - for funny moments */
+    #coach.reaction-laugh #coachAvatar {
+      animation: laughWobble 0.5s ease-in-out;
+    }
+    
+    @keyframes laughWobble {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      20% { transform: scale(1.02) rotate(2deg); }
+      40% { transform: scale(0.98) rotate(-2deg); }
+      60% { transform: scale(1.01) rotate(1.5deg); }
+      80% { transform: scale(0.99) rotate(-1deg); }
+    }
+    
+    /* Surprise pop - for unexpected good news */
+    #coach.reaction-surprise #coachAvatar {
+      animation: surprisePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    @keyframes surprisePop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
     }
     
     /* Floating thinking indicator - positioned below avatar */
@@ -2421,13 +2815,26 @@
       animation: floatDotPulse 1.2s ease-in-out infinite;
     }
     
-    .thinking-float .thinking-dot:nth-child(1) { animation-delay: 0s; }
-    .thinking-float .thinking-dot:nth-child(2) { animation-delay: 0.15s; }
-    .thinking-float .thinking-dot:nth-child(3) { animation-delay: 0.3s; }
+      .thinking-float .thinking-dot:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .thinking-float .thinking-dot:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .thinking-float .thinking-dot:nth-child(3) {
+        animation-delay: 0.3s;
+      }
     
     @keyframes floatDotPulse {
-      0%, 100% { opacity: 0.3; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.1); }
+        0%,
+        100% {
+          opacity: 0.3;
+          transform: scale(0.9);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
     }
     
     .thinking-float .thinking-text {
@@ -2438,21 +2845,21 @@
     }
     
     /* Zen theme thinking */
-    [data-theme="zen"] .thinking-float {
+      [data-theme='zen'] .thinking-float {
       background: rgba(255, 255, 255, 0.9);
       border-color: rgba(0, 0, 0, 0.06);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
     
-    [data-theme="zen"] .thinking-float .thinking-text {
+      [data-theme='zen'] .thinking-float .thinking-text {
       color: rgba(0, 0, 0, 0.7);
     }
     
     /* Persona-specific thinking speeds */
-    [data-persona="nayan-patel"] #coach.is-thinking #avatarRing {
+      [data-persona='nayan-patel'] #coach.is-thinking #avatarRing {
       animation-duration: 2.5s; /* Wise, measured - contemplative pace */
     }
-    [data-persona="peter-john"] #coach.is-thinking #avatarRing {
+      [data-persona='peter-john'] #coach.is-thinking #avatarRing {
       animation-duration: 1.5s; /* Energetic - research enthusiasm */
     }
 
@@ -2550,15 +2957,13 @@
         0 0 0 1px rgba(255, 255, 255, 0.08) inset,
         0 -20px 40px -20px rgba(255, 255, 255, 0.1) inset;
       /* Smooth transitions for box-shadow only - transforms handled by JS */
-      transition: box-shadow var(--transition-base), filter var(--transition-base);
-      overflow: hidden;
-      /* GPU acceleration for inner avatar */
-      will-change: transform, filter;
-      transform: translateZ(0);
+        transition:
+          box-shadow var(--transition-base),
+          filter var(--transition-base);
       transform-origin: center center;
-      /* Backface visibility for 3D acceleration */
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
+      /* Safari fix: transparent outline forces correct repainting during animations */
+      outline: 1px solid transparent;
+      -webkit-tap-highlight-color: transparent;
     }
 
     /* Subtle shine overlay */
@@ -2567,12 +2972,224 @@
       position: absolute;
       inset: 0;
       border-radius: inherit;
-      background: linear-gradient(
-        160deg,
-        rgba(255, 255, 255, 0.15) 0%,
-        transparent 40%
-      );
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.15) 0%, transparent 40%);
       pointer-events: none;
+    }
+
+    /* ========================================================================
+       🎬 FERNI AWARENESS - Three testable presence modes
+       1. PUPIL: Simple dark circle + catchlight (Pixar lamp)
+       2. SPARKLE: Just a sparkle/star (ultra minimal)
+       3. AWARE GLOW: Original orb with glow changes (Apple style)
+       ======================================================================== */
+    
+    /* ---- BASE STYLES ---- */
+    .ferni-eye {
+      position: absolute;
+      inset: 20%;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.7);
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 5;
+    }
+    
+    .ferni-eye__svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.25));
+    }
+    
+    .ferni-eye__pupil-group {
+      transition: transform 0.12s ease-out;
+    }
+    
+    /* ---- MODE 1: PUPIL (default) ---- */
+    .ferni-eye[data-style="pupil"] .ferni-eye__glow { opacity: 0.6; }
+    .ferni-eye[data-style="pupil"] .ferni-eye__pupil { opacity: 1; }
+    .ferni-eye[data-style="pupil"] .ferni-eye__catchlight { opacity: 0.95; }
+    .ferni-eye[data-style="pupil"] .ferni-eye__sparkle-center { opacity: 0; }
+    .ferni-eye[data-style="pupil"] .ferni-eye__sparkle-core { opacity: 0; }
+    
+    /* ---- MODE 2: SPARKLE ONLY (ultra minimal) ---- */
+    .ferni-eye[data-style="sparkle"] .ferni-eye__glow { opacity: 0; }
+    .ferni-eye[data-style="sparkle"] .ferni-eye__pupil { opacity: 0; }
+    .ferni-eye[data-style="sparkle"] .ferni-eye__catchlight { opacity: 0; }
+    .ferni-eye[data-style="sparkle"] .ferni-eye__sparkle-center { 
+      opacity: 0.4;
+      filter: blur(3px);
+    }
+    .ferni-eye[data-style="sparkle"] .ferni-eye__sparkle-core { 
+      opacity: 1;
+      filter: drop-shadow(0 0 6px white);
+    }
+    
+    .ferni-eye[data-style="sparkle"].eye-visible .ferni-eye__sparkle-core,
+    .ferni-eye[data-style="sparkle"].eye-peek .ferni-eye__sparkle-core {
+      animation: sparkleBreath 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes sparkleBreath {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.8; }
+    }
+    
+    /* Sparkle 4-point star effect */
+    .ferni-eye[data-style="sparkle"].eye-curious .ferni-eye__sparkle-core {
+      animation: sparkleFlare 0.6s ease-out;
+    }
+    
+    @keyframes sparkleFlare {
+      0% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(2) rotate(45deg); filter: drop-shadow(0 0 12px white); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    
+    /* ---- MODE 3: AWARE GLOW (no eye, just orb enhancement) ---- */
+    .ferni-aware-glow {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(
+        circle at 35% 35%,
+        rgba(255, 255, 255, 0.25) 0%,
+        rgba(255, 255, 255, 0.1) 30%,
+        transparent 60%
+      );
+      transition: opacity 0.4s ease;
+      z-index: 4;
+    }
+    
+    .ferni-aware-glow.glow-visible {
+      opacity: 1;
+      animation: awareGlowPulse 2s ease-in-out infinite;
+    }
+    
+    .ferni-aware-glow.glow-peek {
+      animation: awareGlowPeek 2.2s ease-out forwards;
+    }
+    
+    @keyframes awareGlowPulse {
+      0%, 100% { 
+        opacity: 0.7;
+        transform: scale(1);
+      }
+      50% { 
+        opacity: 1;
+        transform: scale(1.03);
+      }
+    }
+    
+    @keyframes awareGlowPeek {
+      0% { opacity: 0; transform: scale(0.95); }
+      15% { opacity: 1; transform: scale(1.05); }
+      25%, 75% { opacity: 0.9; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.98); }
+    }
+    
+    /* Aware glow cursor tracking - glow position shifts */
+    .ferni-aware-glow[data-offset] {
+      transition: background 0.15s ease-out, opacity 0.4s ease;
+    }
+    
+    /* Aware glow curious - brighter flash */
+    .ferni-aware-glow.glow-curious {
+      animation: awareGlowFlash 0.5s ease-out;
+    }
+    
+    @keyframes awareGlowFlash {
+      0%, 100% { opacity: 0.7; }
+      50% { 
+        opacity: 1; 
+        background: radial-gradient(
+          circle at 35% 35%,
+          rgba(255, 255, 255, 0.4) 0%,
+          rgba(255, 255, 255, 0.2) 40%,
+          transparent 70%
+        );
+      }
+    }
+    
+    /* ---- SHARED ANIMATIONS ---- */
+    
+    /* Eye visible state */
+    .ferni-eye.eye-visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    /* Peek animation */
+    .ferni-eye.eye-peek {
+      animation: awarenessPeek 2.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    
+    @keyframes awarenessPeek {
+      0% { opacity: 0; transform: scale(0.5); }
+      12% { opacity: 1; transform: scale(1.08); }
+      20% { transform: scale(0.95); }
+      28%, 72% { opacity: 1; transform: scale(1); }
+      85% { opacity: 0.8; transform: scale(1.03); }
+      100% { opacity: 0; transform: scale(0.6); }
+    }
+    
+    /* Looking around */
+    .ferni-eye.eye-look-around .ferni-eye__pupil-group {
+      animation: awarenessLook 2s ease-in-out;
+    }
+    
+    @keyframes awarenessLook {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(6px, -2px); }
+      50% { transform: translate(-4px, 3px); }
+      75% { transform: translate(3px, -1px); }
+    }
+    
+    /* Curious - mode-specific above */
+    .ferni-eye[data-style="pupil"].eye-curious .ferni-eye__catchlight {
+      animation: catchlightBrighten 0.5s ease-out;
+    }
+    
+    @keyframes catchlightBrighten {
+      0%, 100% { opacity: 0.95; }
+      50% { opacity: 1; transform: scale(1.5); }
+    }
+    
+    /* Wink */
+    .ferni-eye.eye-wink .ferni-eye__pupil-group {
+      animation: awarenessWink 0.35s ease-in-out;
+    }
+    
+    @keyframes awarenessWink {
+      0%, 100% { transform: scaleY(1); }
+      40%, 60% { transform: scaleY(0.1); }
+    }
+    
+    /* Blink */
+    .ferni-eye.eye-blink .ferni-eye__pupil-group {
+      animation: awarenessBlink 0.12s ease-in-out;
+    }
+    
+    @keyframes awarenessBlink {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.05); }
+    }
+    
+    /* Hide initials when eye/sparkle is visible (not for glow mode) */
+    .ferni-eye.eye-visible ~ #avatarText,
+    .ferni-eye.eye-peek ~ #avatarText {
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .ferni-eye, .ferni-eye.eye-peek, .ferni-eye__pupil-group,
+      .ferni-aware-glow, .ferni-aware-glow.glow-peek {
+        animation: none !important;
+        transition: opacity 0.3s ease !important;
+      }
     }
 
     #coachAvatar:hover {
@@ -2588,9 +3205,15 @@
     }
 
     @keyframes avatarFlash {
-      0% { filter: brightness(1); }
-      40% { filter: brightness(1.2); }
-      100% { filter: brightness(1); }
+        0% {
+          filter: brightness(1);
+        }
+        40% {
+          filter: brightness(1.2);
+        }
+        100% {
+          filter: brightness(1);
+        }
     }
     
     /* Connected state - elegant green accent */
@@ -2627,7 +3250,9 @@
 
     #statusIndicator.status-connected {
       background: var(--color-success);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 12px rgba(16, 185, 129, 0.5);
+        box-shadow:
+          0 2px 8px rgba(0, 0, 0, 0.3),
+          0 0 12px rgba(16, 185, 129, 0.5);
     }
 
     #statusIndicator.status-connecting {
@@ -2651,21 +3276,45 @@
     }
 
     @keyframes statusPulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.6; transform: scale(0.95); }
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.6;
+          transform: scale(0.95);
+        }
     }
     
     @keyframes statusReconnecting {
-      0%, 100% { opacity: 0.4; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.1); }
+        0%,
+        100% {
+          opacity: 0.4;
+          transform: scale(0.9);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
     }
     
     @keyframes statusError {
-      0% { transform: scale(1); }
-      25% { transform: scale(1.2); }
-      50% { transform: scale(0.9); }
-      75% { transform: scale(1.1); }
-      100% { transform: scale(1); }
+        0% {
+          transform: scale(1);
+        }
+        25% {
+          transform: scale(1.2);
+        }
+        50% {
+          transform: scale(0.9);
+        }
+        75% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
     }
 
     /* Status whisper - subtle floating status text below avatar
@@ -2676,21 +3325,21 @@
       left: 50%;
       transform: translateX(-50%) translateY(8px) scale(0.95);
       padding: var(--space-xs, 4px) var(--space-sm, 8px);
-      background: var(--color-bg-elevated, rgba(255,253,251,0.95));
-      border: 1px solid var(--color-border-subtle, rgba(44,37,32,0.08));
+        background: var(--color-bg-elevated, rgba(255, 253, 251, 0.95));
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-full, 9999px);
       font-family: var(--font-body, 'Inter', -apple-system, sans-serif);
       font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.01em;
-      color: var(--color-text-secondary, #5C544A);
+        color: var(--color-text-secondary, #5c544a);
       white-space: nowrap;
       opacity: 0;
       pointer-events: none;
       z-index: 5;
       box-shadow: 
-        0 1px 3px rgba(44,37,32,0.04),
-        0 4px 12px rgba(44,37,32,0.06);
+          0 1px 3px rgba(44, 37, 32, 0.04),
+          0 4px 12px rgba(44, 37, 32, 0.06);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       transition: 
@@ -2752,11 +3401,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      /* Bigger waveform */
-      height: 64px;
-      padding: 8px 0;
-      /* Pull Connect button closer by reducing bottom margin */
-      margin-bottom: calc(-1 * var(--space-xs));
+      /* Compact waveform - enough room to react, close to Connect button */
+      height: 44px;
+      padding: 4px 0;
       opacity: 0.8;
       transition: opacity 0.3s ease;
     }
@@ -2771,7 +3418,8 @@
     }
     
     @keyframes barShimmer {
-      0%, 100% {
+        0%,
+        100% {
         opacity: 0.4;
         filter: brightness(0.8);
       }
@@ -2782,15 +3430,33 @@
     }
     
     /* Stagger the shimmer for each bar */
-    #waveformContainer.transitioning .waveform-bar:nth-child(1) { animation-delay: 0s; }
-    #waveformContainer.transitioning .waveform-bar:nth-child(2) { animation-delay: 0.1s; }
-    #waveformContainer.transitioning .waveform-bar:nth-child(3) { animation-delay: 0.2s; }
-    #waveformContainer.transitioning .waveform-bar:nth-child(4) { animation-delay: 0.3s; }
-    #waveformContainer.transitioning .waveform-bar:nth-child(5) { animation-delay: 0.4s; }
-    #waveformContainer.transitioning .waveform-bar:nth-child(6) { animation-delay: 0.3s; }
-    #waveformContainer.transitioning .waveform-bar:nth-child(7) { animation-delay: 0.2s; }
-    #waveformContainer.transitioning .waveform-bar:nth-child(8) { animation-delay: 0.1s; }
-    #waveformContainer.transitioning .waveform-bar:nth-child(9) { animation-delay: 0s; }
+      #waveformContainer.transitioning .waveform-bar:nth-child(1) {
+        animation-delay: 0s;
+      }
+      #waveformContainer.transitioning .waveform-bar:nth-child(2) {
+        animation-delay: 0.1s;
+      }
+      #waveformContainer.transitioning .waveform-bar:nth-child(3) {
+        animation-delay: 0.2s;
+      }
+      #waveformContainer.transitioning .waveform-bar:nth-child(4) {
+        animation-delay: 0.3s;
+      }
+      #waveformContainer.transitioning .waveform-bar:nth-child(5) {
+        animation-delay: 0.4s;
+      }
+      #waveformContainer.transitioning .waveform-bar:nth-child(6) {
+        animation-delay: 0.3s;
+      }
+      #waveformContainer.transitioning .waveform-bar:nth-child(7) {
+        animation-delay: 0.2s;
+      }
+      #waveformContainer.transitioning .waveform-bar:nth-child(8) {
+        animation-delay: 0.1s;
+      }
+      #waveformContainer.transitioning .waveform-bar:nth-child(9) {
+        animation-delay: 0s;
+      }
     
     /* Bars container */
     .waveform-bars {
@@ -2798,7 +3464,7 @@
       align-items: flex-end;
       justify-content: center;
       gap: 4px;
-      height: 48px;
+      height: 36px;
     }
     
     /* Individual bar */
@@ -2838,27 +3504,27 @@
     }
     
     /* Emotion-specific bar colors - Earthy palette */
-    #waveformContainer[data-emotion="happy"] .waveform-bar {
+      #waveformContainer[data-emotion='happy'] .waveform-bar {
       background: #4a6741; /* Forest sage - grounded joy */
     }
     
-    #waveformContainer[data-emotion="excited"] .waveform-bar {
+      #waveformContainer[data-emotion='excited'] .waveform-bar {
       background: #c4856a; /* Warm coral - energetic but earthy */
     }
     
-    #waveformContainer[data-emotion="sad"] .waveform-bar {
+      #waveformContainer[data-emotion='sad'] .waveform-bar {
       background: #5a6b8a; /* Slate blue - contemplative */
     }
     
-    #waveformContainer[data-emotion="anxious"] .waveform-bar {
+      #waveformContainer[data-emotion='anxious'] .waveform-bar {
       background: #a67a6a; /* Terracotta - warm concern */
     }
     
-    #waveformContainer[data-emotion="frustrated"] .waveform-bar {
+      #waveformContainer[data-emotion='frustrated'] .waveform-bar {
       background: #7a5a52; /* Deep rose earth - controlled intensity */
     }
     
-    #waveformContainer[data-emotion="calm"] .waveform-bar {
+      #waveformContainer[data-emotion='calm'] .waveform-bar {
       background: #3a6b73; /* Deep teal - serene */
     }
     
@@ -2928,7 +3594,9 @@
       border: 1px solid var(--color-border-subtle);
       opacity: 1;
       transform: translateY(0);
-      transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
       margin-top: 8px;
     }
     
@@ -2954,7 +3622,9 @@
     }
     
     @keyframes handoffSpin {
-      to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
     }
     
     .handoff-text {
@@ -3003,10 +3673,20 @@
     }
 
     @keyframes toastSuccessBounce {
-      0% { transform: scale(0.5) rotate(-10deg); opacity: 0; }
-      50% { transform: scale(1.2) rotate(5deg); }
-      70% { transform: scale(0.9) rotate(-3deg); }
-      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        0% {
+          transform: scale(0.5) rotate(-10deg);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.2) rotate(5deg);
+        }
+        70% {
+          transform: scale(0.9) rotate(-3deg);
+        }
+        100% {
+          transform: scale(1) rotate(0deg);
+          opacity: 1;
+        }
     }
 
     .thinking-float .toast-icon-error svg {
@@ -3014,11 +3694,22 @@
     }
 
     @keyframes toastErrorShake {
-      0%, 100% { transform: translateX(0); }
-      20% { transform: translateX(-2px) rotate(-2deg); }
-      40% { transform: translateX(2px) rotate(2deg); }
-      60% { transform: translateX(-1px) rotate(-1deg); }
-      80% { transform: translateX(1px) rotate(1deg); }
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        20% {
+          transform: translateX(-2px) rotate(-2deg);
+        }
+        40% {
+          transform: translateX(2px) rotate(2deg);
+        }
+        60% {
+          transform: translateX(-1px) rotate(-1deg);
+        }
+        80% {
+          transform: translateX(1px) rotate(1deg);
+        }
     }
 
     .thinking-float .toast-icon-warning svg {
@@ -3026,8 +3717,15 @@
     }
 
     @keyframes toastWarningPulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(0.95); }
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.7;
+          transform: scale(0.95);
+        }
     }
 
     .thinking-float .toast-icon-loading svg {
@@ -3035,8 +3733,12 @@
     }
 
     @keyframes toastLoadingSpin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
     }
 
     /* Error state - slightly tinted background */
@@ -3046,7 +3748,7 @@
     }
 
     /* Zen theme error tint */
-    [data-theme="zen"] .thinking-float.toast-type-error {
+      [data-theme='zen'] .thinking-float.toast-type-error {
       background: rgba(254, 242, 242, 0.95);
       border-color: rgba(239, 68, 68, 0.15);
     }
@@ -3091,7 +3793,9 @@
     .status-pill.exiting {
       opacity: 0;
       transform: translateY(-12px) scale(0.97);
-      transition: opacity 0.2s ease-out, transform 0.25s ease-out;
+        transition:
+          opacity 0.2s ease-out,
+          transform 0.25s ease-out;
     }
 
     /* Transcript indicator (legacy) */
@@ -3113,7 +3817,7 @@
     /* ========================================================================
        ZEN THEME - Legacy status pill adjustments
        ======================================================================== */
-    [data-theme="zen"] .status-pill {
+      [data-theme='zen'] .status-pill {
       background: rgba(255, 255, 255, 0.95);
       border-color: rgba(0, 0, 0, 0.04);
       box-shadow:
@@ -3121,7 +3825,7 @@
         0 0 0 1px rgba(0, 0, 0, 0.02) inset;
     }
 
-    [data-theme="zen"] #transcriptContainer .transcript-text {
+      [data-theme='zen'] #transcriptContainer .transcript-text {
       color: rgba(0, 0, 0, 0.8);
     }
 
@@ -3137,8 +3841,6 @@
       justify-content: center;
       width: 100%;
       max-width: 600px;
-      /* Pull much closer to waveform above */
-      margin-top: calc(-1 * var(--space-lg));
     }
     
     .controls {
@@ -3279,7 +3981,8 @@
     }
 
     @keyframes btnMagicBreath {
-      0%, 100% { 
+        0%,
+        100% {
         box-shadow: 
           0 1px 2px rgba(0, 0, 0, 0.3),
           0 4px 8px rgba(0, 0, 0, 0.2),
@@ -3356,8 +4059,14 @@
     }
     
     @keyframes connectTextFade {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
     }
     
     /* Spinning indicator - Apple-style minimal */
@@ -3389,7 +4098,9 @@
     }
     
     @keyframes btnSpin {
-      to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
     }
     
     /* Disable breathing animation when connecting */
@@ -3403,7 +4114,8 @@
        ======================================================================== */
     
     /* Both buttons use smooth opacity/scale transitions */
-    #connectBtn, #disconnectBtn {
+      #connectBtn,
+      #disconnectBtn {
       transition: 
         opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
@@ -3427,14 +4139,18 @@
     }
     
     /* Apply spring animation when disconnect button appears */
-    #disconnectBtn:not([style*="display: none"]) {
+      #disconnectBtn:not([style*='display: none']) {
       animation: btnSpringIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
     
     /* Subtle shimmer on successful connection */
     @keyframes successShimmer {
-      0% { background-position: -200% center; }
-      100% { background-position: 200% center; }
+        0% {
+          background-position: -200% center;
+        }
+        100% {
+          background-position: 200% center;
+        }
     }
     
     #disconnectBtn.btn-primary {
@@ -3447,33 +4163,63 @@
        ======================================================================== */
     
     /* Ferni - Forest Sage Green */
-    [data-persona="ferni"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-ferni-secondary, #3d5a35) 0%, var(--color-ferni, #4a6741) 50%, #5a7751 100%) !important;
+      [data-persona='ferni'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-ferni-secondary, #3d5a35) 0%,
+          var(--color-ferni, #4a6741) 50%,
+          #5a7751 100%
+        ) !important;
     }
     
     /* Peter John - Deep Teal (research, insights) */
-    [data-persona="peter-john"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-peter-secondary, #2d5359) 0%, var(--color-peter, #3a6b73) 50%, #4a7b83 100%) !important;
+      [data-persona='peter-john'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-peter-secondary, #2d5359) 0%,
+          var(--color-peter, #3a6b73) 50%,
+          #4a7b83 100%
+        ) !important;
     }
     
     /* Nayan Patel - Golden Amber (wisdom) */
-    [data-persona="nayan-patel"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-nayan-secondary, #9a7a52) 0%, var(--color-nayan, #b8956a) 50%, #c8a57a 100%) !important;
+      [data-persona='nayan-patel'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-nayan-secondary, #9a7a52) 0%,
+          var(--color-nayan, #b8956a) 50%,
+          #c8a57a 100%
+        ) !important;
     }
     
     /* Alex Chen - Slate Blue */
-    [data-persona="alex-chen"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-alex-secondary, #4a5a73) 0%, var(--color-alex, #5a6b8a) 50%, #6a7b9a 100%) !important;
+      [data-persona='alex-chen'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-alex-secondary, #4a5a73) 0%,
+          var(--color-alex, #5a6b8a) 50%,
+          #6a7b9a 100%
+        ) !important;
     }
     
     /* Maya Santos - Dusty Terracotta */
-    [data-persona="maya-santos"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-maya-secondary, #8a635a) 0%, var(--color-maya, #a67a6a) 50%, #b68a7a 100%) !important;
+      [data-persona='maya-santos'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-maya-secondary, #8a635a) 0%,
+          var(--color-maya, #a67a6a) 50%,
+          #b68a7a 100%
+        ) !important;
     }
     
     /* Jordan Taylor - Warm Coral */
-    [data-persona="jordan-taylor"] .btn-primary {
-      background: linear-gradient(145deg, var(--color-jordan-secondary, #a86d55) 0%, var(--color-jordan, #c4856a) 50%, #d4957a 100%) !important;
+      [data-persona='jordan-taylor'] .btn-primary {
+        background: linear-gradient(
+          145deg,
+          var(--color-jordan-secondary, #a86d55) 0%,
+          var(--color-jordan, #c4856a) 50%,
+          #d4957a 100%
+        ) !important;
     }
 
     /* Secondary button - glass morphism, elegant */
@@ -3528,7 +4274,9 @@
     }
 
     @keyframes btnSpin {
-      to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
     }
 
     /* ========================================================================
@@ -3542,8 +4290,7 @@
     }
     
     .btn-magnetic:hover {
-      transform: 
-        translate(calc(var(--magnetic-x) * 0.3px), calc(var(--magnetic-y) * 0.3px))
+        transform: translate(calc(var(--magnetic-x) * 0.3px), calc(var(--magnetic-y) * 0.3px))
         translateY(-2px);
     }
     
@@ -3644,20 +4391,20 @@
     }
     
     /* Interactive cursor styles */
-    .cursor-pointer { cursor: pointer; }
+      .cursor-pointer {
+        cursor: pointer;
+      }
     
     /* Glow cursor trail effect on buttons */
     .btn-primary::before {
-      background: linear-gradient(
-        160deg,
-        rgba(255, 255, 255, 0.25) 0%,
-        transparent 50%
-      );
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.25) 0%, transparent 50%);
     }
     
     /* Hover lift for all interactive elements */
     .interactive-lift {
-      transition: transform var(--transition-base), box-shadow var(--transition-base);
+        transition:
+          transform var(--transition-base),
+          box-shadow var(--transition-base);
     }
     
     .interactive-lift:hover {
@@ -3685,8 +4432,7 @@
       border-radius: 16px 14px 18px 15px / 14px 16px 15px 17px;
       border: 1px solid var(--color-border-subtle);
       flex-wrap: wrap;
-      /* FIX: Prevent layout recalculation during animations */
-      contain: layout style;
+      /* NOTE: Do NOT add contain here - causes visible box in Safari */
     }
 
     #teamRoster.hidden {
@@ -3706,7 +4452,8 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(90deg, 
+        background: linear-gradient(
+          90deg,
         transparent 0%, 
         rgba(255, 255, 255, 0.1) 50%, 
         transparent 100%
@@ -3717,8 +4464,12 @@
     }
     
     @keyframes skeletonShimmer {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
     }
     
     /* Skeleton team member placeholder */
@@ -3890,16 +4641,28 @@
     }
 
     /* Persona-specific colors (canonical IDs) */
-    .team-member[data-persona-id="ferni"] { --member-color: #4a6741; }  /* Deep sage - grounding leader */
-    .team-member[data-persona-id="alex-chen"] { --member-color: #5a6b8a; }  /* Soft indigo - communication */
-    .team-member[data-persona-id="jordan-taylor"] { --member-color: #c4856a; }  /* Warm sunset - celebration */
-    .team-member[data-persona-id="maya-santos"] { --member-color: #a67a6a; }  /* Dusty terracotta - nurturing */
-    .team-member[data-persona-id="nayan-patel"] { --member-color: #b8956a; }  /* Golden amber - wisdom */
-    .team-member[data-persona-id="peter-john"] { --member-color: #3a6b73; }  /* Ocean teal - research */
+      .team-member[data-persona-id='ferni'] {
+        --member-color: #4a6741;
+      } /* Deep sage - grounding leader */
+      .team-member[data-persona-id='alex-chen'] {
+        --member-color: #5a6b8a;
+      } /* Soft indigo - communication */
+      .team-member[data-persona-id='jordan-taylor'] {
+        --member-color: #c4856a;
+      } /* Warm sunset - celebration */
+      .team-member[data-persona-id='maya-santos'] {
+        --member-color: #a67a6a;
+      } /* Dusty terracotta - nurturing */
+      .team-member[data-persona-id='nayan-patel'] {
+        --member-color: #b8956a;
+      } /* Golden amber - wisdom */
+      .team-member[data-persona-id='peter-john'] {
+        --member-color: #3a6b73;
+      } /* Ocean teal - research */
     
     /* Marketplace button - Add more agents */
     .team-member--marketplace {
-      --member-color: var(--color-text-muted, #A89D90);
+        --member-color: var(--color-text-muted, #a89d90);
       border: 1px dashed var(--color-border, rgba(92, 84, 74, 0.2));
       background: transparent;
       opacity: 0.5;
@@ -3907,7 +4670,7 @@
     
     .team-member--marketplace:hover {
       opacity: 0.8;
-      border-color: var(--color-text-muted, #5C544A);
+        border-color: var(--color-text-muted, #5c544a);
       background: rgba(92, 84, 74, 0.06);
     }
     
@@ -3915,7 +4678,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-text-muted, #A89D90) !important;
+        background: var(--color-text-muted, #a89d90) !important;
       color: white;
     }
     
@@ -3927,17 +4690,17 @@
     
     .marketplace-ring {
       border-style: dashed;
-      border-color: var(--color-text-muted, #A89D90);
+        border-color: var(--color-text-muted, #a89d90);
       opacity: 0.4;
     }
     
     .team-member--marketplace:hover .marketplace-ring {
       opacity: 0.7;
-      border-color: var(--color-text-muted, #5C544A);
+        border-color: var(--color-text-muted, #5c544a);
     }
     
     .team-member--marketplace:hover .marketplace-avatar {
-      background: var(--color-text-secondary, #5C544A) !important;
+        background: var(--color-text-secondary, #5c544a) !important;
     }
     
     /* Installed marketplace agents */
@@ -4005,7 +4768,8 @@
     }
     
     @keyframes switchingPulse {
-      0%, 100% { 
+        0%,
+        100% {
         opacity: 0.8;
         transform: scale(1);
       }
@@ -4021,9 +4785,15 @@
     }
     
     @keyframes tapPulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
     }
     
     .team-member--coach .team-avatar {
@@ -4060,7 +4830,9 @@
       color: var(--color-text-secondary, #5c544a);
       margin: 0;
       text-align: center;
-      transition: opacity 0.3s ease, color 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          color 0.3s ease;
     }
     
     /* On hover - subtle emphasis */
@@ -4069,11 +4841,11 @@
     }
 
     /* Dark theme (Cedar Night) */
-    [data-theme="midnight"] #helperText {
+      [data-theme='midnight'] #helperText {
       color: var(--color-text-muted, #d0c4b4);
     }
 
-    [data-theme="midnight"] #helperText:hover {
+      [data-theme='midnight'] #helperText:hover {
       color: var(--color-text-secondary, #e0d5c8);
     }
     
@@ -4094,8 +4866,13 @@
     }
     
     @keyframes helperPulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
     }
 
     /* ========================================================================
@@ -4122,7 +4899,7 @@
     }
 
     .spotify-status.ready {
-      color: #1DB954;
+        color: #1db954;
       background: rgba(29, 185, 84, 0.1);
     }
 
@@ -4132,14 +4909,13 @@
     }
 
     .spotify-status.playing {
-      color: #1DB954;
+        color: #1db954;
       background: rgba(29, 185, 84, 0.15);
     }
 
     .spotify-status.playing .spotify-icon {
       animation: musicBounce 0.5s ease-in-out infinite alternate;
     }
-
 
     .spotify-icon {
       font-size: var(--text-sm);
@@ -4224,14 +5000,16 @@
       }
       
       .main {
-        gap: var(--space-3xl);
+        /* Keep gap tight - waveform and button should be close */
+        gap: var(--space-md);
       }
     }
     
     /* Tablet (768px - 1199px) - Balanced */
     @media (max-width: 1199px) and (min-width: 769px) {
       .main {
-        gap: var(--space-2xl);
+        /* Keep gap tight - waveform and button should be close */
+        gap: var(--space-md);
         padding: var(--space-lg);
       }
       
@@ -4249,7 +5027,8 @@
       }
       
       .main {
-        gap: var(--space-xl);
+        /* Keep gap tight - waveform and button should be close */
+        gap: var(--space-sm);
         padding: var(--space-sm);
       }
       
@@ -4436,7 +5215,8 @@
       }
 
       .main {
-        gap: var(--space-lg);
+        /* Keep gap tight - waveform and button should be close */
+        gap: var(--space-sm);
         padding: 0;
         flex: 1;
         justify-content: center;
@@ -4775,7 +5555,9 @@
     
     /* Reduced motion - accessibility */
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
@@ -4798,7 +5580,6 @@
         border: 2px solid currentColor;
       }
     }
-
     
     /* ========================================================================
        THINKING DOTS - When processing
@@ -4817,13 +5598,27 @@
       animation: thinkingBounce 1.4s ease-in-out infinite;
     }
     
-    .thinking-dot:nth-child(1) { animation-delay: 0s; }
-    .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
-    .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+      .thinking-dot:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .thinking-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .thinking-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
     
     @keyframes thinkingBounce {
-      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-      40% { transform: scale(1); opacity: 1; }
+        0%,
+        80%,
+        100% {
+          transform: scale(0.6);
+          opacity: 0.4;
+        }
+        40% {
+          transform: scale(1);
+          opacity: 1;
+        }
     }
     
     /* ========================================================================
@@ -4834,9 +5629,19 @@
     }
     
     @keyframes celebrateGlow {
-      0% { background: var(--gradient-radial); }
-      50% { background: radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.15) 0%, transparent 50%); }
-      100% { background: var(--gradient-radial); }
+        0% {
+          background: var(--gradient-radial);
+        }
+        50% {
+          background: radial-gradient(
+            circle at 50% 0%,
+            rgba(34, 197, 94, 0.15) 0%,
+            transparent 50%
+          );
+        }
+        100% {
+          background: var(--gradient-radial);
+        }
     }
 
     #app.first-connection {
@@ -4844,9 +5649,19 @@
     }
 
     @keyframes firstConnectionWarmth {
-      0% { background: var(--gradient-radial); }
-      30% { background: radial-gradient(circle at 50% 30%, var(--color-semantic-success-glow) 0%, transparent 60%); }
-      100% { background: var(--gradient-radial); }
+        0% {
+          background: var(--gradient-radial);
+        }
+        30% {
+          background: radial-gradient(
+            circle at 50% 30%,
+            var(--color-semantic-success-glow) 0%,
+            transparent 60%
+          );
+        }
+        100% {
+          background: var(--gradient-radial);
+        }
     }
 
     /* ========================================================================
@@ -4872,21 +5687,45 @@
     }
     
     @keyframes warmthGlowSubtle {
-      0% { box-shadow: 0 0 0 0 var(--persona-glow); }
-      50% { box-shadow: 0 0 20px 5px var(--persona-glow); }
-      100% { box-shadow: 0 0 0 0 var(--persona-glow); }
+        0% {
+          box-shadow: 0 0 0 0 var(--persona-glow);
+        }
+        50% {
+          box-shadow: 0 0 20px 5px var(--persona-glow);
+        }
+        100% {
+          box-shadow: 0 0 0 0 var(--persona-glow);
+        }
     }
     
     @keyframes warmthGlowGentle {
-      0% { box-shadow: 0 0 0 0 var(--persona-glow); transform: scale(1); }
-      50% { box-shadow: 0 0 30px 10px var(--persona-glow); transform: scale(1.01); }
-      100% { box-shadow: 0 0 0 0 var(--persona-glow); transform: scale(1); }
+        0% {
+          box-shadow: 0 0 0 0 var(--persona-glow);
+          transform: scale(1);
+        }
+        50% {
+          box-shadow: 0 0 30px 10px var(--persona-glow);
+          transform: scale(1.01);
+        }
+        100% {
+          box-shadow: 0 0 0 0 var(--persona-glow);
+          transform: scale(1);
+        }
     }
     
     @keyframes warmthGlowWarm {
-      0% { box-shadow: 0 0 0 0 var(--persona-glow); transform: scale(1); }
-      40% { box-shadow: 0 0 40px 15px var(--persona-glow); transform: scale(1.02); }
-      100% { box-shadow: 0 0 0 0 var(--persona-glow); transform: scale(1); }
+        0% {
+          box-shadow: 0 0 0 0 var(--persona-glow);
+          transform: scale(1);
+        }
+        40% {
+          box-shadow: 0 0 40px 15px var(--persona-glow);
+          transform: scale(1.02);
+        }
+        100% {
+          box-shadow: 0 0 0 0 var(--persona-glow);
+          transform: scale(1);
+        }
     }
     
     /* Gentle bounce - understated acknowledgement */
@@ -4895,10 +5734,18 @@
     }
     
     @keyframes gentleBounce {
-      0% { transform: scale(1); }
-      30% { transform: scale(1.03); }
-      60% { transform: scale(0.98); }
-      100% { transform: scale(1); }
+        0% {
+          transform: scale(1);
+        }
+        30% {
+          transform: scale(1.03);
+        }
+        60% {
+          transform: scale(0.98);
+        }
+        100% {
+          transform: scale(1);
+        }
     }
     
     /* Connection warmth - spreading glow for connection moments */
@@ -4927,9 +5774,18 @@
     }
     
     @keyframes softAcknowledge {
-      0% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.008); opacity: 0.97; }
-      100% { transform: scale(1); opacity: 1; }
+        0% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.008);
+          opacity: 0.97;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
     }
 
     /* Milestone toast - clean, minimal */
@@ -4965,7 +5821,9 @@
        ACCESSIBILITY
        ======================================================================== */
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
@@ -5048,8 +5906,13 @@
     }
     
     @keyframes cursorBlink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
     }
     
     /* ========================================================================
@@ -5100,16 +5963,32 @@
       transition: background var(--transition-fast);
     }
     
-    .quality-bar:nth-child(1) { height: 4px; }
-    .quality-bar:nth-child(2) { height: 7px; }
-    .quality-bar:nth-child(3) { height: 10px; }
-    .quality-bar:nth-child(4) { height: 12px; }
+      .quality-bar:nth-child(1) {
+        height: 4px;
+      }
+      .quality-bar:nth-child(2) {
+        height: 7px;
+      }
+      .quality-bar:nth-child(3) {
+        height: 10px;
+      }
+      .quality-bar:nth-child(4) {
+        height: 12px;
+      }
     
     /* Quality levels */
-    .connection-quality.excellent .quality-bar { background: var(--color-success); }
-    .connection-quality.good .quality-bar:nth-child(-n+3) { background: var(--color-success); }
-    .connection-quality.fair .quality-bar:nth-child(-n+2) { background: var(--color-warning); }
-    .connection-quality.poor .quality-bar:nth-child(1) { background: var(--color-error); }
+      .connection-quality.excellent .quality-bar {
+        background: var(--color-success);
+      }
+      .connection-quality.good .quality-bar:nth-child(-n + 3) {
+        background: var(--color-success);
+      }
+      .connection-quality.fair .quality-bar:nth-child(-n + 2) {
+        background: var(--color-warning);
+      }
+      .connection-quality.poor .quality-bar:nth-child(1) {
+        background: var(--color-error);
+      }
     
     /* ========================================================================
        KEYBOARD SHORTCUTS HINT
@@ -5231,8 +6110,8 @@
       transition: all var(--transition-fast);
     }
     
-    .swipe-indicator[data-direction="left"] .swipe-arrow-right,
-    .swipe-indicator[data-direction="right"] .swipe-arrow-left {
+      .swipe-indicator[data-direction='left'] .swipe-arrow-right,
+      .swipe-indicator[data-direction='right'] .swipe-arrow-left {
       opacity: calc(var(--swipe-progress, 0) * 0.8);
       transform: scale(calc(0.8 + var(--swipe-progress, 0) * 0.2));
     }
@@ -5418,7 +6297,8 @@
     }
     
     @keyframes presenceGlow {
-      0%, 100% { 
+        0%,
+        100% {
         opacity: 0.15; 
         transform: scale(1); 
       }
@@ -5435,13 +6315,53 @@
     }
     
     #coachAvatar.presence-speaking::after {
-      /* More active glow during speech */
-      animation: presenceGlowSpeaking 2000ms var(--ease-in-out) infinite;
+      /* 🆕 NATURAL SPEAKING: Subtle steady glow instead of pulsing 
+         More like a warm presence than a beacon */
+      opacity: 0.22;
+      transform: scale(1.02);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      animation: none; /* No more constant pulsing! */
     }
     
-    @keyframes presenceGlowSpeaking {
-      0%, 100% { opacity: 0.2; transform: scale(1); }
-      50% { opacity: 0.35; transform: scale(1.06); }
+    /* 🆕 CONVERSATIONAL AVATAR - Natural head movements while speaking
+       Like Ferni is actually engaged in conversation, not a pulsing orb */
+    #coach.is-speaking .avatar-container,
+    #coach.is-speaking #coachAvatar {
+      animation: conversationalSpeaking 3.5s ease-in-out infinite;
+    }
+    
+    @keyframes conversationalSpeaking {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+      }
+      /* Slight engagement lean - like nodding while talking */
+      15% {
+        transform: translateY(-1.5px) rotate(0.3deg);
+      }
+      /* Natural micro-pause */
+      30% {
+        transform: translateY(-0.5px) rotate(-0.2deg);
+      }
+      /* Emphasis moment - slight lean forward */
+      50% {
+        transform: translateY(-2px) rotate(0.5deg);
+      }
+      /* Relaxed moment */
+      70% {
+        transform: translateY(-0.8px) rotate(-0.3deg);
+      }
+      /* Another emphasis */
+      85% {
+        transform: translateY(-1.2px) rotate(0.2deg);
+      }
+    }
+    
+    /* Reduce motion: just subtle warmth, no movement */
+    @media (prefers-reduced-motion: reduce) {
+      #coach.is-speaking .avatar-container,
+      #coach.is-speaking #coachAvatar {
+        animation: none;
+      }
     }
     
     #coachAvatar.presence-listening::after {
@@ -5450,14 +6370,22 @@
     }
     
     @keyframes presenceGlowListening {
-      0%, 100% { opacity: 0.18; transform: scale(1); }
-      50% { opacity: 0.25; transform: scale(1.04); }
+        0%,
+        100% {
+          opacity: 0.18;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.25;
+          transform: scale(1.04);
+        }
     }
     
     /* ========================================================================
        RIPPLE EFFECT - Click feedback
        ======================================================================== */
-    .btn, .team-member {
+      .btn,
+      .team-member {
       position: relative;
       overflow: hidden;
     }
@@ -5543,15 +6471,34 @@
     }
     
     @keyframes secretWiggle {
-      0%, 100% { transform: rotate(0deg); }
-      10% { transform: rotate(-10deg); }
-      20% { transform: rotate(10deg); }
-      30% { transform: rotate(-8deg); }
-      40% { transform: rotate(8deg); }
-      50% { transform: rotate(-5deg); }
-      60% { transform: rotate(5deg); }
-      70% { transform: rotate(-2deg); }
-      80% { transform: rotate(2deg); }
+        0%,
+        100% {
+          transform: rotate(0deg);
+        }
+        10% {
+          transform: rotate(-10deg);
+        }
+        20% {
+          transform: rotate(10deg);
+        }
+        30% {
+          transform: rotate(-8deg);
+        }
+        40% {
+          transform: rotate(8deg);
+        }
+        50% {
+          transform: rotate(-5deg);
+        }
+        60% {
+          transform: rotate(5deg);
+        }
+        70% {
+          transform: rotate(-2deg);
+        }
+        80% {
+          transform: rotate(2deg);
+        }
     }
     
     /* Disco mode */
@@ -5564,13 +6511,21 @@
     }
     
     @keyframes discoBackground {
-      0% { filter: hue-rotate(0deg); }
-      100% { filter: hue-rotate(360deg); }
+        0% {
+          filter: hue-rotate(0deg);
+        }
+        100% {
+          filter: hue-rotate(360deg);
+        }
     }
     
     @keyframes discoAvatar {
-      0% { transform: scale(1) rotate(-5deg); }
-      100% { transform: scale(1.1) rotate(5deg); }
+        0% {
+          transform: scale(1) rotate(-5deg);
+        }
+        100% {
+          transform: scale(1.1) rotate(5deg);
+        }
     }
     
     /* Rainbow mode */
@@ -5582,8 +6537,12 @@
     }
     
     @keyframes rainbowShift {
-      0% { --rainbow-hue: 0; }
-      100% { --rainbow-hue: 360; }
+        0% {
+          --rainbow-hue: 0;
+        }
+        100% {
+          --rainbow-hue: 360;
+        }
     }
     
     /* Konami mode - temporary golden glow */
@@ -5702,7 +6661,8 @@
     
     /* Playful - bouncy, bright */
     .persona-playful #coachAvatar {
-      animation: personaPulse var(--persona-pulse-speed) ease-in-out infinite,
+        animation:
+          personaPulse var(--persona-pulse-speed) ease-in-out infinite,
                  personaBounce 0.8s ease-in-out infinite;
       filter: brightness(1.1) saturate(1.15) hue-rotate(10deg);
     }
@@ -5746,18 +6706,26 @@
     
     /* Persona pulse animation - uses CSS variable for proper persona theming */
     @keyframes personaPulse {
-      0%, 100% {
-        box-shadow: 0 0 calc(40px * var(--persona-glow)) var(--persona-glow, rgba(74, 103, 65, 0.3));
+        0%,
+        100% {
+          box-shadow: 0 0 calc(40px * var(--persona-glow))
+            var(--persona-glow, rgba(74, 103, 65, 0.3));
       }
       50% {
-        box-shadow: 0 0 calc(60px * var(--persona-glow)) var(--persona-glow, rgba(74, 103, 65, 0.4));
+          box-shadow: 0 0 calc(60px * var(--persona-glow))
+            var(--persona-glow, rgba(74, 103, 65, 0.4));
       }
     }
     
     /* Playful bounce */
     @keyframes personaBounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-2px); }
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-2px);
+        }
     }
     
     /* ========================================================================
@@ -5778,7 +6746,9 @@
     .team-member--dragging {
       opacity: 0.4;
       transform: scale(0.95);
-      transition: opacity 0.15s ease, transform 0.15s ease;
+        transition:
+          opacity 0.15s ease,
+          transform 0.15s ease;
     }
     
     /* Visual indicator that agent is draggable - subtle shake on long hover */
@@ -5787,9 +6757,16 @@
     }
     
     @keyframes subtleWiggle {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-1deg); }
-      75% { transform: rotate(1deg); }
+        0%,
+        100% {
+          transform: rotate(0deg);
+        }
+        25% {
+          transform: rotate(-1deg);
+        }
+        75% {
+          transform: rotate(1deg);
+        }
     }
     
     /* Drag hint - subtle tooltip on hover */
@@ -5805,10 +6782,10 @@
       transition: opacity 0.2s ease;
       pointer-events: none;
       z-index: 10;
-      background: var(--color-bg-elevated, rgba(255,253,251,0.9));
+        background: var(--color-bg-elevated, rgba(255, 253, 251, 0.9));
       padding: 2px 6px;
       border-radius: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
     
     .team-member--marketplace-agent:hover .drag-hint {
@@ -5838,7 +6815,8 @@
       position: absolute;
       inset: -30px;
       border-radius: 50%;
-      background: radial-gradient(circle, 
+        background: radial-gradient(
+          circle,
         rgba(196, 162, 101, 0.15) 0%, 
         rgba(196, 162, 101, 0.05) 50%,
         transparent 70%
@@ -5852,14 +6830,15 @@
       position: absolute;
       inset: -20px;
       border-radius: 50%;
-      border: 2px dashed var(--color-highlight, #C4A265);
+        border: 2px dashed var(--color-highlight, #c4a265);
       opacity: 0.7;
       animation: hungryPulse 0.8s ease-in-out infinite;
       pointer-events: none;
     }
     
     @keyframes hungryGlow {
-      0%, 100% { 
+        0%,
+        100% {
         opacity: 0.5;
         transform: scale(1);
       }
@@ -5870,7 +6849,8 @@
     }
     
     @keyframes hungryPulse {
-      0%, 100% { 
+        0%,
+        100% {
         transform: scale(1);
         opacity: 0.5;
       }
@@ -5891,16 +6871,17 @@
     }
     
     /* Zen theme overrides for drag-to-eat */
-    [data-theme="zen"] .drag-hint {
+      [data-theme='zen'] .drag-hint {
       color: var(--color-text-muted, rgba(44, 37, 32, 0.4));
     }
     
-    [data-theme="zen"] .avatar-container.avatar-hungry::after {
+      [data-theme='zen'] .avatar-container.avatar-hungry::after {
       border-color: var(--color-ferni, #4a6741);
     }
     
-    [data-theme="zen"] .avatar-container.avatar-hungry::before {
-      background: radial-gradient(circle, 
+      [data-theme='zen'] .avatar-container.avatar-hungry::before {
+        background: radial-gradient(
+          circle,
         rgba(74, 103, 65, 0.15) 0%, 
         rgba(74, 103, 65, 0.05) 50%,
         transparent 70%
@@ -5948,26 +6929,86 @@
       animation: floatParticle var(--particle-speed, 20s) infinite linear;
     }
     
-    .ambient-particle:nth-child(1) { left: 10%; animation-delay: 0s; }
-    .ambient-particle:nth-child(2) { left: 20%; animation-delay: -2s; }
-    .ambient-particle:nth-child(3) { left: 30%; animation-delay: -4s; }
-    .ambient-particle:nth-child(4) { left: 40%; animation-delay: -6s; }
-    .ambient-particle:nth-child(5) { left: 50%; animation-delay: -8s; }
-    .ambient-particle:nth-child(6) { left: 60%; animation-delay: -10s; }
-    .ambient-particle:nth-child(7) { left: 70%; animation-delay: -12s; }
-    .ambient-particle:nth-child(8) { left: 80%; animation-delay: -14s; }
-    .ambient-particle:nth-child(9) { left: 90%; animation-delay: -16s; }
-    .ambient-particle:nth-child(10) { left: 15%; animation-delay: -1s; }
-    .ambient-particle:nth-child(11) { left: 25%; animation-delay: -3s; }
-    .ambient-particle:nth-child(12) { left: 35%; animation-delay: -5s; }
-    .ambient-particle:nth-child(13) { left: 45%; animation-delay: -7s; }
-    .ambient-particle:nth-child(14) { left: 55%; animation-delay: -9s; }
-    .ambient-particle:nth-child(15) { left: 65%; animation-delay: -11s; }
-    .ambient-particle:nth-child(16) { left: 75%; animation-delay: -13s; }
-    .ambient-particle:nth-child(17) { left: 85%; animation-delay: -15s; }
-    .ambient-particle:nth-child(18) { left: 5%; animation-delay: -17s; }
-    .ambient-particle:nth-child(19) { left: 95%; animation-delay: -18s; }
-    .ambient-particle:nth-child(20) { left: 50%; animation-delay: -19s; }
+      .ambient-particle:nth-child(1) {
+        left: 10%;
+        animation-delay: 0s;
+      }
+      .ambient-particle:nth-child(2) {
+        left: 20%;
+        animation-delay: -2s;
+      }
+      .ambient-particle:nth-child(3) {
+        left: 30%;
+        animation-delay: -4s;
+      }
+      .ambient-particle:nth-child(4) {
+        left: 40%;
+        animation-delay: -6s;
+      }
+      .ambient-particle:nth-child(5) {
+        left: 50%;
+        animation-delay: -8s;
+      }
+      .ambient-particle:nth-child(6) {
+        left: 60%;
+        animation-delay: -10s;
+      }
+      .ambient-particle:nth-child(7) {
+        left: 70%;
+        animation-delay: -12s;
+      }
+      .ambient-particle:nth-child(8) {
+        left: 80%;
+        animation-delay: -14s;
+      }
+      .ambient-particle:nth-child(9) {
+        left: 90%;
+        animation-delay: -16s;
+      }
+      .ambient-particle:nth-child(10) {
+        left: 15%;
+        animation-delay: -1s;
+      }
+      .ambient-particle:nth-child(11) {
+        left: 25%;
+        animation-delay: -3s;
+      }
+      .ambient-particle:nth-child(12) {
+        left: 35%;
+        animation-delay: -5s;
+      }
+      .ambient-particle:nth-child(13) {
+        left: 45%;
+        animation-delay: -7s;
+      }
+      .ambient-particle:nth-child(14) {
+        left: 55%;
+        animation-delay: -9s;
+      }
+      .ambient-particle:nth-child(15) {
+        left: 65%;
+        animation-delay: -11s;
+      }
+      .ambient-particle:nth-child(16) {
+        left: 75%;
+        animation-delay: -13s;
+      }
+      .ambient-particle:nth-child(17) {
+        left: 85%;
+        animation-delay: -15s;
+      }
+      .ambient-particle:nth-child(18) {
+        left: 5%;
+        animation-delay: -17s;
+      }
+      .ambient-particle:nth-child(19) {
+        left: 95%;
+        animation-delay: -18s;
+      }
+      .ambient-particle:nth-child(20) {
+        left: 50%;
+        animation-delay: -19s;
+      }
     
     @keyframes floatParticle {
       0% {
@@ -6126,9 +7167,15 @@
     }
     
     @keyframes textBounce {
-      0% { transform: translateY(0); }
-      30% { transform: translateY(-2px); }
-      100% { transform: translateY(0); }
+        0% {
+          transform: translateY(0);
+        }
+        30% {
+          transform: translateY(-2px);
+        }
+        100% {
+          transform: translateY(0);
+        }
     }
     
     /* Connected state: subtle ambient pulse on whole UI */
@@ -6137,8 +7184,13 @@
     }
     
     @keyframes connectedAmbient {
-      0%, 100% { opacity: 0.8; }
-      50% { opacity: 1; }
+        0%,
+        100% {
+          opacity: 0.8;
+        }
+        50% {
+          opacity: 1;
+        }
     }
     
     /* Speaking state: more dynamic background */
@@ -6147,8 +7199,15 @@
     }
     
     @keyframes ambientSpeaking {
-      0%, 100% { opacity: 0.4; transform: translateX(-50%) scale(1); }
-      50% { opacity: 0.6; transform: translateX(-50%) scale(1.1); }
+        0%,
+        100% {
+          opacity: 0.4;
+          transform: translateX(-50%) scale(1);
+        }
+        50% {
+          opacity: 0.6;
+          transform: translateX(-50%) scale(1.1);
+        }
     }
     
     /* Loading shimmer effect */
@@ -6164,8 +7223,12 @@
     }
     
     @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
     }
 
     /* ========================================================================
@@ -6212,26 +7275,28 @@
     .theme-icon {
       width: 20px;
       height: 20px;
-      transition: transform 0.4s var(--ease-out-expo), opacity 0.3s ease;
+        transition:
+          transform 0.4s var(--ease-out-expo),
+          opacity 0.3s ease;
       position: absolute;
     }
 
     /* Sun visible in dark theme (midnight), moon hidden */
-    [data-theme="midnight"] .theme-icon--sun {
+      [data-theme='midnight'] .theme-icon--sun {
       opacity: 1;
       transform: rotate(0deg) scale(1);
     }
-    [data-theme="midnight"] .theme-icon--moon {
+      [data-theme='midnight'] .theme-icon--moon {
       opacity: 0;
       transform: rotate(-90deg) scale(0.5);
     }
 
     /* Moon visible in light theme (zen), sun hidden */
-    [data-theme="zen"] .theme-icon--sun {
+      [data-theme='zen'] .theme-icon--sun {
       opacity: 0;
       transform: rotate(90deg) scale(0.5);
     }
-    [data-theme="zen"] .theme-icon--moon {
+      [data-theme='zen'] .theme-icon--moon {
       opacity: 1;
       transform: rotate(0deg) scale(1);
     }
@@ -6252,6 +7317,125 @@
       .footer {
         display: none;
       }
+    }
+
+    /* ========================================================================
+       ACCESSIBILITY TOGGLES (Dev Panel)
+       ======================================================================== */
+    
+    /* Reduced Motion - Disable animations for users who prefer reduced motion */
+    html.reduce-motion *,
+    html.reduce-motion *::before,
+    html.reduce-motion *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    
+    /* High Contrast - Enhanced visibility */
+    html.high-contrast {
+      --color-text-primary: #ffffff !important;
+      --color-text-secondary: #f0f0f0 !important;
+      --color-text-muted: #e0e0e0 !important;
+      --color-bg: #000000 !important;
+      --color-bg-elevated: #1a1a1a !important;
+      --color-border-subtle: #ffffff !important;
+    }
+    
+    html.high-contrast [data-theme='zen'] {
+      --color-text-primary: #000000 !important;
+      --color-text-secondary: #1a1a1a !important;
+      --color-bg: #ffffff !important;
+      --color-bg-elevated: #f5f5f5 !important;
+      --color-border-subtle: #000000 !important;
+    }
+    
+    /* Large Text - Increase font sizes */
+    html.large-text {
+      font-size: 125% !important;
+    }
+    
+    html.large-text .dev-panel {
+      font-size: 100% !important; /* Keep dev panel readable */
+    }
+
+    /* ========================================================================
+       AMBIENT EFFECTS (Dev Panel)
+       ======================================================================== */
+    
+    /* Particles - Subtle floating dots */
+    body.ambient-particles::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='10' cy='10' r='1' fill='rgba(124,181,113,0.3)'/%3E%3Ccircle cx='90' cy='20' r='1.5' fill='rgba(124,181,113,0.2)'/%3E%3Ccircle cx='50' cy='80' r='1' fill='rgba(124,181,113,0.4)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      animation: ambient-float 20s linear infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    @keyframes ambient-float {
+      from { background-position: 0 0; }
+      to { background-position: 200px 200px; }
+    }
+    
+    /* Ambient Glow - Radial glow from center */
+    body.ambient-glow::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(74, 103, 65, 0.15) 0%,
+        transparent 70%
+      );
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    /* Aurora - Shifting gradient background */
+    body.ambient-aurora {
+      background: linear-gradient(
+        45deg,
+        rgba(74, 103, 65, 0.08),
+        rgba(124, 181, 113, 0.08),
+        rgba(157, 214, 144, 0.08)
+      );
+      background-size: 400% 400%;
+      animation: ambient-aurora 15s ease infinite;
+    }
+    
+    @keyframes ambient-aurora {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    /* ========================================================================
+       SKELETON LOADING (Global)
+       ======================================================================== */
+    
+    .skeleton-loading {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .skeleton-loading::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.08),
+        transparent
+      );
+      animation: skeleton-shimmer 1.5s infinite;
+    }
+    
+    @keyframes skeleton-shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
     }
   </style>
 </head>
@@ -6286,13 +7470,32 @@
 
   <div id="app">
     <!-- Theme Toggle Button -->
-    <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme" title="Switch theme (T)">
-      <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="5"/>
-        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+      <button
+        id="themeToggle"
+        class="theme-toggle"
+        aria-label="Toggle theme"
+        title="Switch theme (T)"
+      >
+        <svg
+          class="theme-icon theme-icon--sun"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="5" />
+          <path
+            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+          />
       </svg>
-      <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        <svg
+          class="theme-icon theme-icon--moon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
       </svg>
     </button>
 
@@ -6307,6 +7510,25 @@
           <div id="avatarRing"></div>
           <div id="coachAvatar">
             <span id="avatarText">FN</span>
+            <!-- 🎬 FERNI AWARENESS - Testable presence indicators
+                 Three modes: pupil, sparkle-only, aware-glow -->
+            <div id="ferniEye" class="ferni-eye" data-style="pupil" aria-hidden="true">
+              <svg viewBox="0 0 100 100" class="ferni-eye__svg">
+                <g class="ferni-eye__pupil-group">
+                  <!-- MODE 1: Pupil style (default) -->
+                  <circle cx="50" cy="50" r="24" fill="rgba(255,255,255,0.15)" class="ferni-eye__glow"/>
+                  <circle cx="50" cy="50" r="18" fill="#2c2520" class="ferni-eye__pupil"/>
+                  <circle cx="42" cy="42" r="5" fill="white" opacity="0.95" class="ferni-eye__catchlight"/>
+                  
+                  <!-- MODE 2: Sparkle only (shows when data-style="sparkle") -->
+                  <circle cx="50" cy="50" r="8" fill="white" opacity="0" class="ferni-eye__sparkle-center"/>
+                  <circle cx="50" cy="50" r="3" fill="white" opacity="0" class="ferni-eye__sparkle-core"/>
+                </g>
+              </svg>
+            </div>
+            
+            <!-- MODE 3: Aware Glow overlay (no eye, just orb awareness) -->
+            <div id="ferniAwareGlow" class="ferni-aware-glow" aria-hidden="true"></div>
           </div>
           <div id="statusIndicator" class="status-disconnected"></div>
           <!-- Thinking indicator - floats below avatar, no layout shift -->
@@ -6325,10 +7547,21 @@
         <!-- Team Roster - All specialists -->
         <div id="teamRoster" class="entrance-roster">
           <!-- Ferni - Main Coach (always first) -->
-          <div class="team-member team-member--coach" data-persona-id="ferni" role="button" tabindex="0" aria-label="Talk to Ferni">
+            <div
+              class="team-member team-member--coach"
+              data-persona-id="ferni"
+              role="button"
+              tabindex="0"
+              aria-label="Talk to Ferni"
+            >
             <div class="team-avatar-container">
               <div class="team-avatar-ring"></div>
-              <div class="team-avatar" style="--persona-gradient: linear-gradient(135deg, #3d5a35, #4a6741);">FN</div>
+                <div
+                  class="team-avatar"
+                  style="--persona-gradient: linear-gradient(135deg, #3d5a35, #4a6741)"
+                >
+                  FN
+                </div>
             </div>
             <span class="team-name">Ferni</span>
           </div>
@@ -6336,52 +7569,113 @@
           <span class="team-divider"></span>
           
           <!-- Peter John - Research & Insights -->
-          <div class="team-member" data-persona-id="peter-john" role="button" tabindex="0" aria-label="Talk to Peter">
+            <div
+              class="team-member"
+              data-persona-id="peter-john"
+              role="button"
+              tabindex="0"
+              aria-label="Talk to Peter"
+            >
             <div class="team-avatar-container">
             <div class="team-avatar-ring"></div>
-            <div class="team-avatar" style="--persona-gradient: linear-gradient(135deg, #2d5359, #3a6b73);">PJ</div>
+                <div
+                  class="team-avatar"
+                  style="--persona-gradient: linear-gradient(135deg, #2d5359, #3a6b73)"
+                >
+                  PJ
+                </div>
             </div>
             <span class="team-name">Peter</span>
           </div>
           
           <!-- Maya - Life Habits Coach -->
-          <div class="team-member" data-persona-id="maya-santos" role="button" tabindex="0" aria-label="Talk to Maya">
+            <div
+              class="team-member"
+              data-persona-id="maya-santos"
+              role="button"
+              tabindex="0"
+              aria-label="Talk to Maya"
+            >
             <div class="team-avatar-container">
             <div class="team-avatar-ring"></div>
-            <div class="team-avatar" style="--persona-gradient: linear-gradient(135deg, #8a635a, #a67a6a);">MY</div>
+                <div
+                  class="team-avatar"
+                  style="--persona-gradient: linear-gradient(135deg, #8a635a, #a67a6a)"
+                >
+                  MY
+                </div>
             </div>
             <span class="team-name">Maya</span>
           </div>
           
           <!-- Jordan - Life Planner -->
-          <div class="team-member" data-persona-id="jordan-taylor" role="button" tabindex="0" aria-label="Talk to Jordan">
+            <div
+              class="team-member"
+              data-persona-id="jordan-taylor"
+              role="button"
+              tabindex="0"
+              aria-label="Talk to Jordan"
+            >
             <div class="team-avatar-container">
             <div class="team-avatar-ring"></div>
-            <div class="team-avatar" style="--persona-gradient: linear-gradient(135deg, #a86d55, #c4856a);">JD</div>
+                <div
+                  class="team-avatar"
+                  style="--persona-gradient: linear-gradient(135deg, #a86d55, #c4856a)"
+                >
+                  JD
+                </div>
             </div>
             <span class="team-name">Jordan</span>
           </div>
           
           <!-- Alex - Communications -->
-          <div class="team-member" data-persona-id="alex-chen" role="button" tabindex="0" aria-label="Talk to Alex">
+            <div
+              class="team-member"
+              data-persona-id="alex-chen"
+              role="button"
+              tabindex="0"
+              aria-label="Talk to Alex"
+            >
             <div class="team-avatar-container">
             <div class="team-avatar-ring"></div>
-            <div class="team-avatar" style="--persona-gradient: linear-gradient(135deg, #4a5a73, #5a6b8a);">AX</div>
+                <div
+                  class="team-avatar"
+                  style="--persona-gradient: linear-gradient(135deg, #4a5a73, #5a6b8a)"
+                >
+                  AX
+                </div>
             </div>
             <span class="team-name">Alex</span>
           </div>
           
           <!-- Nayan - Lifetime Advisor -->
-          <div class="team-member" data-persona-id="nayan-patel" role="button" tabindex="0" aria-label="Talk to Nayan">
+            <div
+              class="team-member"
+              data-persona-id="nayan-patel"
+              role="button"
+              tabindex="0"
+              aria-label="Talk to Nayan"
+            >
             <div class="team-avatar-container">
             <div class="team-avatar-ring"></div>
-            <div class="team-avatar" style="--persona-gradient: linear-gradient(135deg, #9a7a52, #b8956a);">NP</div>
+                <div
+                  class="team-avatar"
+                  style="--persona-gradient: linear-gradient(135deg, #9a7a52, #b8956a)"
+                >
+                  NP
+                </div>
             </div>
             <span class="team-name">Nayan</span>
           </div>
           
           <!-- Marketplace Button -->
-          <button id="marketplaceBtn" class="team-member team-member--marketplace" role="button" tabindex="0" aria-label="Open Agent Marketplace">
+            <button
+              id="marketplaceBtn"
+              class="team-member team-member--marketplace"
+              role="button"
+              tabindex="0"
+              aria-label="Open Agent Marketplace"
+            >
             <div class="team-avatar-container">
               <div class="team-avatar-ring marketplace-ring"></div>
               <div class="team-avatar marketplace-avatar">+</div>
@@ -6389,7 +7683,6 @@
             <span class="team-name">More</span>
           </button>
         </div>
-        
       </div>
     </header>
 
@@ -6408,10 +7701,19 @@
       <!-- Control Buttons Row -->
       <div class="controls-row entrance-controls">
         <div class="controls">
-          <button id="connectBtn" class="btn btn-primary btn-magnetic anticipate-btn anticipate-focus" type="button">
+            <button
+              id="connectBtn"
+              class="btn btn-primary btn-magnetic anticipate-btn anticipate-focus"
+              type="button"
+            >
             <span class="btn-content">Connect</span>
           </button>
-          <button id="disconnectBtn" class="btn btn-secondary anticipate-btn anticipate-focus" type="button" style="display: none;">
+            <button
+              id="disconnectBtn"
+              class="btn btn-secondary anticipate-btn anticipate-focus"
+              type="button"
+              style="display: none"
+            >
             <span class="btn-content">Disconnect</span>
           </button>
         </div>
@@ -6426,12 +7728,11 @@
         <span id="spotifyStatusText">Initializing...</span>
       </div>
     </main>
-
   </div>
 
   <!-- Magical Interactions -->
   <script>
-    (function() {
+      (function () {
       'use strict';
       
       // ========================================
@@ -6462,7 +7763,7 @@
       function initMagneticButtons() {
         const magneticBtns = document.querySelectorAll('.btn-magnetic');
         
-        magneticBtns.forEach(btn => {
+          magneticBtns.forEach((btn) => {
           btn.addEventListener('mousemove', (e) => {
             const rect = btn.getBoundingClientRect();
             const x = e.clientX - rect.left - rect.width / 2;
@@ -6485,13 +7786,13 @@
       function initRippleEffect() {
         const buttons = document.querySelectorAll('.btn');
         
-        buttons.forEach(btn => {
+          buttons.forEach((btn) => {
           btn.addEventListener('click', (e) => {
             const rect = btn.getBoundingClientRect();
             const ripple = document.createElement('span');
             ripple.className = 'ripple';
-            ripple.style.left = (e.clientX - rect.left) + 'px';
-            ripple.style.top = (e.clientY - rect.top) + 'px';
+              ripple.style.left = e.clientX - rect.left + 'px';
+              ripple.style.top = e.clientY - rect.top + 'px';
             ripple.style.width = ripple.style.height = Math.max(rect.width, rect.height) + 'px';
             
             btn.appendChild(ripple);
@@ -6504,11 +7805,12 @@
       // ========================================
       // CONNECTION CELEBRATION
       // ========================================
-      window.celebrateConnection = function() {
+        window.celebrateConnection = function () {
         // Create celebration burst
         const burst = document.createElement('div');
         burst.className = 'celebration-burst';
-        burst.innerHTML = '<div class="celebration-ring"></div><div class="celebration-ring"></div><div class="celebration-ring"></div>';
+          burst.innerHTML =
+            '<div class="celebration-ring"></div><div class="celebration-ring"></div><div class="celebration-ring"></div>';
         document.body.appendChild(burst);
         
         // Add pulse to avatar
@@ -6525,7 +7827,7 @@
       // ========================================
       // PERSONA TRANSITION EFFECT
       // ========================================
-      window.triggerPersonaTransition = function() {
+        window.triggerPersonaTransition = function () {
         const avatar = document.getElementById('coachAvatar');
         if (avatar) {
           avatar.classList.add('persona-transition');
@@ -6565,7 +7867,7 @@
   </script>
   
   <!-- Immersive 3D Zen Landing Experience - DISABLED (using ferni-website landing page instead) -->
-  <div class="landing-scene hidden" id="landingScene" style="display: none !important;">
+    <div class="landing-scene hidden" id="landingScene" style="display: none !important">
     <!-- 3D Scene -->
     <div class="landing-3d-scene">
       <!-- Background: Distant landscape -->
@@ -6586,8 +7888,8 @@
     <div class="landing-tap-hint" id="tapHint">
       <div class="landing-tap-hint-circle">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-          <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+            <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+            <path d="M19 10v2a7 7 0 01-14 0v-2" />
         </svg>
       </div>
       <span class="landing-tap-hint-text">Tap to enter</span>
@@ -6609,7 +7911,7 @@
         </div>
 
         <h1 class="landing-headline">
-          Your AI team,<br>
+            Your AI team,<br />
           <span class="landing-headline-accent">always listening.</span>
         </h1>
         <p class="landing-subhead">
@@ -6624,34 +7926,32 @@
             placeholder="Enter your email"
             required
             autocomplete="email"
-          >
+            />
           <button type="submit" class="landing-submit">Get Early Access</button>
         </form>
 
-        <button type="button" class="landing-skip" id="landingSkip">
-          Skip to demo
-        </button>
+          <button type="button" class="landing-skip" id="landingSkip">Skip to demo</button>
 
         <div class="landing-features">
           <div class="landing-feature">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-              <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+                <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                <path d="M19 10v2a7 7 0 01-14 0v-2" />
             </svg>
             <span>Voice Native</span>
           </div>
           <div class="landing-feature">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
             </svg>
             <span>Remembers You</span>
           </div>
           <div class="landing-feature">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 00-3-3.87" />
             </svg>
             <span>Expert Team</span>
           </div>
@@ -6660,18 +7960,25 @@
 
       <div class="landing-success" id="landingSuccess">
         <div class="landing-success-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6L9 17l-5-5"/>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M20 6L9 17l-5-5" />
           </svg>
         </div>
         <h2 class="landing-headline">You're on the list</h2>
         <p class="landing-success-text">
-          We'll reach out when your spot opens.<br>
+            We'll reach out when your spot opens.<br />
           Explore the demo in the meantime.
         </p>
         <button type="button" class="landing-demo-btn" id="landingTryDemo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5 3 19 12 5 21 5 3"/>
+              <polygon points="5 3 19 12 5 21 5 3" />
           </svg>
           Try the Demo
         </button>
@@ -6684,7 +7991,7 @@
 
   <script>
     // Immersive 3D Zen Landing - Click to Reveal
-    (function() {
+      (function () {
       const scene = document.getElementById('landingScene');
       const shojiLeft = document.getElementById('shojiLeft');
       const shojiRight = document.getElementById('shojiRight');
@@ -6716,12 +8023,12 @@
         gsap.to(shojiLeft, {
           x: '-100%',
           duration: 1.2,
-          ease: 'power2.inOut'
+            ease: 'power2.inOut',
         });
         gsap.to(shojiRight, {
           x: '100%',
           duration: 1.2,
-          ease: 'power2.inOut'
+            ease: 'power2.inOut',
         });
 
         // Fade in content card after doors start opening
@@ -6730,7 +8037,7 @@
           y: 0,
           duration: 0.8,
           delay: 0.4,
-          ease: 'power2.out'
+            ease: 'power2.out',
         });
       }
 
@@ -6769,7 +8076,7 @@
         gsap.to(scene, {
           opacity: 0,
           duration: 0.5,
-          onComplete: () => scene.classList.add('hidden')
+            onComplete: () => scene.classList.add('hidden'),
         });
       }
 
@@ -6780,7 +8087,5 @@
 
   <!-- Application -->
   <script type="module" src="/src/index.ts"></script>
-
 </body>
 </html>
-

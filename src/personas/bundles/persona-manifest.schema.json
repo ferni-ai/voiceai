@@ -325,6 +325,139 @@
         }
       }
     },
+    "cognitive": {
+      "type": "object",
+      "description": "Cognitive profile summary - defines how this persona thinks",
+      "properties": {
+        "reasoning_style": {
+          "type": "string",
+          "enum": ["analytical", "intuitive", "empathetic", "systematic", "narrative", "pragmatic"],
+          "description": "Primary reasoning approach"
+        },
+        "secondary_reasoning": {
+          "type": "string",
+          "enum": ["analytical", "intuitive", "empathetic", "systematic", "narrative", "pragmatic"],
+          "description": "Secondary reasoning style (used situationally)"
+        },
+        "uncertainty_response": {
+          "type": "string",
+          "enum": ["explore", "converge", "synthesize", "defer"],
+          "description": "Decision-making approach when uncertain"
+        },
+        "attention_focus": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What this persona naturally focuses on"
+        },
+        "blind_spots": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What this persona tends to overlook"
+        },
+        "curiosity_triggers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Topics that trigger deep curiosity"
+        },
+        "adaptiveness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "How much they adapt to user expertise (0-1)"
+        },
+        "default_expertise": {
+          "type": "string",
+          "enum": ["novice", "intermediate", "expert"],
+          "description": "Default assumption about user expertise"
+        },
+        "strengths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Known cognitive strengths"
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Known cognitive limitations"
+        },
+        "profile_path": {
+          "type": "string",
+          "description": "Path to full cognitive profile JSON (relative to bundle)"
+        }
+      }
+    },
+    "llm_context": {
+      "type": "object",
+      "description": "LLM context instructions for handoffs",
+      "properties": {
+        "identity_reminder": {
+          "type": "string",
+          "description": "Identity reminder injected after handoffs"
+        },
+        "role_summary": {
+          "type": "string",
+          "description": "Brief role summary for context"
+        },
+        "tool_guidance": {
+          "type": "object",
+          "description": "Tool guidance organized by category",
+          "properties": {
+            "specialized": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Primary specialized tools for this agent"
+            },
+            "stock_research": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Stock research tools (for Peter)"
+            },
+            "memory": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Memory tools"
+            },
+            "handoffs": {
+              "oneOf": [
+                { "type": "array", "items": { "type": "string" } },
+                { "type": "object", "additionalProperties": { "type": "string" } }
+              ],
+              "description": "Handoff tools available to this agent"
+            }
+          }
+        }
+      }
+    },
+    "emotional": {
+      "type": "object",
+      "description": "Emotional expression configuration",
+      "properties": {
+        "default_state": {
+          "type": "string",
+          "description": "Default emotional state"
+        },
+        "expression_intensity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "How intensely emotions are expressed"
+        },
+        "empathy_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Base empathy level"
+        },
+        "emotional_triggers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "description": "Keywords that trigger specific emotions"
+        }
+      }
+    },
     "metadata": {
       "type": "object",
       "properties": {

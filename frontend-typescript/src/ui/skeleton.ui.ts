@@ -304,44 +304,10 @@ export function hide(): void {
  * BEFORE the animations start, not during them.
  */
 function promoteEntranceElementsToGPU(): void {
-  // Entrance elements that animate
-  const selectors = [
-    '.avatar-container',
-    '.entrance-avatar',
-    '.entrance-name',
-    '.entrance-subtitle', 
-    '.entrance-roster',
-    '.entrance-waveform',
-    '.entrance-controls',
-    '.entrance-helper',
-    '#coachAvatar',
-    '#avatarRing',
-    '.team-member',
-    '.waveform-bar',
-  ];
-  
-  selectors.forEach(selector => {
-    const elements = document.querySelectorAll(selector);
-    elements.forEach(el => {
-      if (el instanceof HTMLElement) {
-        // Force GPU layer creation
-        el.style.willChange = 'transform, opacity';
-        el.style.transform = el.style.transform || 'translateZ(0)';
-      }
-    });
-  });
-  
-  // Clean up willChange hints after entrance animations complete (~1200ms)
-  setTimeout(() => {
-    selectors.forEach(selector => {
-      const elements = document.querySelectorAll(selector);
-      elements.forEach(el => {
-        if (el instanceof HTMLElement) {
-          el.style.willChange = 'auto';
-        }
-      });
-    });
-  }, 1500);
+  // Entrance elements that animate - kept for documentation, selectors ready if needed
+  // NOTE: GPU hints (willChange, translateZ) removed - causes visible box bug in Safari
+  // GSAP handles GPU acceleration automatically via force3D
+  // Selectors: .avatar-container, .entrance-avatar, .entrance-name, etc.
 }
 
 /**

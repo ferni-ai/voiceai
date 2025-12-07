@@ -1,10 +1,10 @@
 {
-  "id": "index-fund-origin",
-  "title": "Index Fund Origin",
-  "type": "educational",
-  "triggers": ["index fund", "passive", "market", "bogle"],
-  "content": "The first index fund was called 'Bogle's Folly' by Wall Street. Turns out the folly was on them. Sometimes the simple, boring approach is exactly right.",
-  "ssml_content": "The first index fund was called 'Bogle's Folly' by Wall Street. <break time=\"200ms\"/>Turns out the folly was on them. Sometimes the simple, boring approach is exactly right.",
-  "emotional_tone": "wry",
+  "id": "simplicity-wins",
+  "title": "Simplicity Wins",
+  "type": "inspirational",
+  "triggers": ["complicated", "simple", "overwhelmed", "too much", "complex"],
+  "content": "I used to think I needed the perfect system for everything. The right app, the right framework, the right plan. Then I realized: the best approach is usually the simplest one. One glass of water in the morning. One honest conversation. One small step. Simple beats complex almost every time.",
+  "ssml_content": "I used to think I needed the perfect system for everything. <break time=\"200ms\"/>The right app, the right framework, the right plan. <break time=\"300ms\"/>Then I realized: the best approach is usually the simplest one. <break time=\"200ms\"/>One glass of water in the morning. One honest conversation. One small step. <break time=\"200ms\"/>Simple beats complex almost every time.",
+  "emotional_tone": "wise",
   "teaching_point": "Simple often beats complex"
 }

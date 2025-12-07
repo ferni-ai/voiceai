@@ -121,6 +121,81 @@ const PLAYFUL_COMMENTS = [
 ];
 
 // ============================================================================
+// FUN DJ MOMENTS - Spontaneous humor and personality
+// ============================================================================
+
+const DJ_MOMENTS = {
+  airDJ: [
+    '*pretends to scratch records* <break time="100ms"/>Alright, alright!',
+    '*adjusts imaginary headphones* <break time="100ms"/>Let me see what we got here...',
+    '*spins invisible turntable* <break time="100ms"/>Coming right up!',
+  ],
+  funnyMishaps: [
+    '<break time="100ms"/>Oops, wrong button. <break time="200ms"/>Just kidding, I nailed it.',
+    '<break time="100ms"/>Let me pretend I meant to do that.',
+    '<break time="100ms"/>DJ Ferni in the house! <break time="150ms"/>...okay that was embarrassing.',
+  ],
+  excitement: [
+    'Oh! <break time="100ms"/>This is a GOOD one!',
+    '<break time="100ms"/>*chef\'s kiss* <break time="100ms"/>Perfection.',
+    'Now THIS is what I\'m talking about!',
+    'Oh man, <break time="100ms"/>I love this song!',
+  ],
+  dancing: [
+    '*doing a little dance* <break time="100ms"/>Don\'t mind me.',
+    '<break time="100ms"/>I\'m absolutely vibing right now.',
+    '*sways along* <break time="100ms"/>This groove...',
+    'I may or may not be dancing in my chair right now.',
+  ],
+  quirky: [
+    'Fun fact: <break time="100ms"/>music makes everything better. <break time="150ms"/>That\'s just science.',
+    'You know what pairs well with this? <break time="200ms"/>Good conversation.',
+    'If music was a language, <break time="150ms"/>this would be poetry.',
+    'This song just fixed my mood. <break time="150ms"/>You\'re welcome, brain.',
+  ],
+  celebratory: [
+    '*throws confetti emoji vibes* <break time="100ms"/>Let\'s GO!',
+    'Party time! <break time="100ms"/>Well, a chill party. <break time="150ms"/>A vibe party.',
+    'This calls for a moment of appreciation... <break time="200ms"/>*appreciates*',
+  ],
+};
+
+/**
+ * Get a fun DJ moment (rare, special occasions)
+ * Use sparingly for maximum delight!
+ */
+export function getFunDJMoment(): string | null {
+  // Only 15% chance - keep it special
+  if (Math.random() > 0.15) return null;
+  
+  const categories = Object.keys(DJ_MOMENTS) as (keyof typeof DJ_MOMENTS)[];
+  const category = categories[Math.floor(Math.random() * categories.length)];
+  const moments = DJ_MOMENTS[category];
+  return moments[Math.floor(Math.random() * moments.length)];
+}
+
+/**
+ * Get an air DJ moment (for playful music intros)
+ */
+export function getAirDJMoment(): string {
+  return DJ_MOMENTS.airDJ[Math.floor(Math.random() * DJ_MOMENTS.airDJ.length)];
+}
+
+/**
+ * Get an excited reaction for really good songs
+ */
+export function getExcitedMusicReaction(): string {
+  return DJ_MOMENTS.excitement[Math.floor(Math.random() * DJ_MOMENTS.excitement.length)];
+}
+
+/**
+ * Get a dancing/vibing comment
+ */
+export function getDancingComment(): string {
+  return DJ_MOMENTS.dancing[Math.floor(Math.random() * DJ_MOMENTS.dancing.length)];
+}
+
+// ============================================================================
 // EXPORTED FUNCTIONS
 // ============================================================================
 

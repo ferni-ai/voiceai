@@ -38,6 +38,25 @@ import { handleTeamRoutes } from './routes/team.js';
 import { handleDataRoutes } from './routes/data.js';
 import { handleRelationshipRoutes } from './routes/relationship.js';
 
+// Route prefixes handled by this module (for early bailout)
+const ENGAGEMENT_ROUTE_PREFIXES = [
+  '/api/conversations',
+  '/api/analytics',
+  '/api/predictions',
+  '/api/rituals',
+  '/api/cognitive',
+  '/api/huddles',
+  '/api/export',
+  '/api/relationship',
+];
+
+/**
+ * Check if a pathname matches an engagement route prefix
+ */
+function isEngagementRoute(pathname: string): boolean {
+  return ENGAGEMENT_ROUTE_PREFIXES.some(prefix => pathname.startsWith(prefix));
+}
+
 /**
  * Handle engagement API routes
  * @returns true if route was handled
@@ -48,6 +67,12 @@ export async function handleEngagementRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
+  // EARLY BAILOUT: Don't process routes we don't handle
+  // This prevents auth errors for routes like /api/agents
+  if (!isEngagementRoute(pathname)) {
+    return false;
+  }
+
   // Handle CORS preflight
   if (handleCorsPreflightIfNeeded(req, res)) {
     return true;

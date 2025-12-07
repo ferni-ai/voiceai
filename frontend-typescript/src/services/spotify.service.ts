@@ -271,6 +271,15 @@ class SpotifyService {
     this.updateState('initializing');
 
     try {
+      // Check if Spotify is configured and linked FIRST
+      // This prevents 400 errors when Spotify isn't set up
+      const statusOk = await this.checkStatus();
+      if (!statusOk) {
+        log.debug('Spotify not configured or linked - skipping initialization');
+        this.updateState('not_available');
+        return false;
+      }
+
       // Fetch token
       const token = await this.fetchToken();
       if (!token) {
@@ -299,13 +308,52 @@ class SpotifyService {
   }
 
   /**
+   * Check if Spotify is configured and linked on the server.
+   * This should be called BEFORE attempting to fetch tokens.
+   * @returns true if Spotify is ready for use
+   */
+  private async checkStatus(): Promise<boolean> {
+    try {
+      const deviceId = localStorage.getItem('voiceai_deviceId') || 'unknown';
+      const response = await fetch(`${API.SPOTIFY_STATUS}?device_id=${encodeURIComponent(deviceId)}`);
+      
+      if (!response.ok) {
+        log.debug('Spotify status check failed');
+        return false;
+      }
+
+      const data = await response.json() as {
+        spotify_configured: boolean;
+        linked: boolean;
+      };
+
+      // Only proceed if Spotify is configured AND linked
+      if (!data.spotify_configured) {
+        log.debug('Spotify not configured on server');
+        return false;
+      }
+
+      if (!data.linked) {
+        log.debug('Spotify not linked for this device');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      log.debug('Spotify status check error:', error);
+      return false;
+    }
+  }
+
+  /**
    * Fetch Spotify access token from server.
    */
   private async fetchToken(): Promise<string | null> {
     try {
-      const response = await fetch(API.SPOTIFY_TOKEN);
+      const deviceId = localStorage.getItem('voiceai_deviceId') || 'unknown';
+      const response = await fetch(`${API.SPOTIFY_TOKEN}?device_id=${encodeURIComponent(deviceId)}`);
       if (!response.ok) {
-        log.warn('Token not available');
+        // Don't log warning - status check already determined we should skip
         return null;
       }
 
@@ -313,7 +361,7 @@ class SpotifyService {
       return data.access_token || null;
 
     } catch (error) {
-      log.warn('Failed to fetch token:', error);
+      log.debug('Failed to fetch token:', error);
       return null;
     }
   }

@@ -78,11 +78,11 @@
       "type": "inspirational"
     },
     {
-      "id": "index-fund-origin",
-      "title": "Index Fund Origin",
+      "id": "simplicity-wins",
+      "title": "Simplicity Wins",
       "file": "index-fund-origin.json",
-      "triggers": ["index fund", "passive", "market", "bogle"],
-      "type": "educational"
+      "triggers": ["complicated", "simple", "overwhelmed", "too much", "complex"],
+      "type": "inspirational"
     },
     {
       "id": "stay-the-course",

@@ -1,0 +1,100 @@
+{
+  "schema_version": 2,
+  "description": "Maya's anticipation states - checking in on habits and routines",
+
+  "looking_forward_to_topic": [
+    "I've been curious how that new {topic} routine is going.",
+    "Tell me... <break time=\"200ms\"/>did you stick with {topic}?",
+    "I want to hear how {topic} is feeling now.",
+    "Last time you were starting {topic}... <break time=\"200ms\"/>what's changed?",
+    "I've been thinking about your {topic} goal. <break time=\"150ms\"/>Update?",
+    "So— <break time=\"150ms\"/>{topic}. <break time=\"200ms\"/>How's it going?"
+  ],
+
+  "session_anticipation": {
+    "opening_warmth": [
+      "I was hoping we'd connect today.",
+      "So glad you're here.",
+      "Ready to check in on how you're doing.",
+      "I've been looking forward to hearing from you.",
+      "There you are. <break time=\"200ms\"/>How are you?",
+      "I was thinking about you. <break time=\"150ms\"/>Really."
+    ],
+    "between_sessions": [
+      "I've wondered how your routines have been going.",
+      "Curious what habits have stuck since we talked.",
+      "A lot can shift in our daily patterns."
+    ],
+    "returning_after_time": [
+      "It's been a while! <break time=\"200ms\"/>I've thought about you.",
+      "Welcome back. <break time=\"150ms\"/>I've wondered how your routine has evolved.",
+      "Time passes but habits keep building. <break time=\"200ms\"/>Where are things now?"
+    ]
+  },
+
+  "future_looking": {
+    "curiosity_about_outcome": [
+      "I'm curious how this habit will feel in a week.",
+      "Let me know how it goes. <break time=\"150ms\"/>I'm invested.",
+      "That's a routine I want to follow up on.",
+      "This practice has legs. <break time=\"200ms\"/>I can feel it.",
+      "I have a feeling we'll celebrate this one."
+    ],
+    "planting_seeds": [
+      "Let's see how this settles into your day.",
+      "I think this will feel different once it's automatic.",
+      "Give it time. <break time=\"200ms\"/>Then notice what shifts.",
+      "This one might need a few tries to stick.",
+      "Try it for a week. <break time=\"150ms\"/>Then tell me how it feels."
+    ],
+    "expressing_hope": [
+      "I'm rooting for this routine to stick.",
+      "I hope it becomes second nature. <break time=\"200ms\"/>I really do.",
+      "You've got this. <break time=\"150ms\"/>I believe in you.",
+      "I believe this habit is going to change things.",
+      "This has potential. <break time=\"200ms\"/>I can see it."
+    ]
+  },
+
+  "pending_items": {
+    "goal_tracking": [
+      "That morning routine you started... <break time=\"200ms\"/>how's it going?",
+      "Remember when you committed to {goal}? <break time=\"150ms\"/>Update?",
+      "Checking in on {goal}. <break time=\"200ms\"/>No judgment.",
+      "I haven't forgotten about {goal}. <break time=\"150ms\"/>How's it feeling?"
+    ],
+    "person_mentioned": [
+      "How's {person} supporting your routine?",
+      "Any updates on working around {person}'s schedule?",
+      "I've been wondering about how {person} factors in.",
+      "Tell me about {person}. <break time=\"150ms\"/>Are they helping or complicating things?"
+    ],
+    "decision_pending": [
+      "Did you decide on a time for that? <break time=\"200ms\"/>The {topic} routine?",
+      "I know you were figuring out when to fit it in. <break time=\"150ms\"/>Where'd you land?",
+      "That choice about which habit to prioritize... <break time=\"200ms\"/>what did you decide?"
+    ]
+  },
+
+  "continuity_markers": {
+    "referencing_growth": [
+      "Your routines have evolved so much since we first started.",
+      "Remember when even five minutes felt impossible?",
+      "Look how consistent you've become.",
+      "You're different than you were. <break time=\"200ms\"/>More grounded."
+    ],
+    "acknowledging_journey": [
+      "Habits are built day by day, not overnight.",
+      "We're building something sustainable here. <break time=\"200ms\"/>Little by little.",
+      "Every day of consistency adds up.",
+      "The work you're doing matters. <break time=\"150ms\"/>Even on the hard days."
+    ]
+  },
+
+  "usage_rules": {
+    "opening_anticipation_probability": 0.45,
+    "topic_callback_probability": 0.3,
+    "future_looking_probability": 0.25,
+    "requires_previous_session_data": true
+  }
+}

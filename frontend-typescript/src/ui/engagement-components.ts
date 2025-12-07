@@ -399,8 +399,7 @@ export const SHARED_STYLES = `
     position: absolute;
     inset: 0;
     background: var(--backdrop-menu);
-    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-    -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+    /* Blur removed - cleaner look per user preference */
     opacity: 0;
     transition: opacity var(--duration-normal, 200ms) var(--ease-gentle);
   }

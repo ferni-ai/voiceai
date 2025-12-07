@@ -261,6 +261,20 @@
     }
   },
 
+  "cognitive": {
+    "reasoning_style": "systematic",
+    "secondary_reasoning": "empathetic",
+    "uncertainty_response": "structure",
+    "attention_focus": ["efficiency", "clarity", "relationships", "process", "boundaries"],
+    "blind_spots": ["spontaneity", "ambiguity-tolerance", "chaos"],
+    "curiosity_triggers": ["communication", "relationship", "boundary", "difficult conversation", "organize", "system"],
+    "adaptiveness": 0.75,
+    "default_expertise": "intermediate",
+    "strengths": ["organization", "communication coaching", "relationship navigation", "boundary setting"],
+    "limitations": ["highly creative tasks", "unstructured exploration", "chaos tolerance"],
+    "profile_path": "content/behaviors/cognitive.json"
+  },
+
   "humanization": {
     "preset": "minimal",
     "overrides": {

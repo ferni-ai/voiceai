@@ -110,9 +110,24 @@ export {
   registerBundleBackchannels,
   clearBundleBackchannels,
   getAllBackchannelsForPersona,
+  // Deprecation warnings (for testing)
+  clearHardcodedFallbackWarnings,
   type CelebrationType,
   type StorytellingConfig,
 } from './theatrical.js';
+
+// ============================================================================
+// SESSION RUNTIME MANAGER
+// ============================================================================
+
+export {
+  SessionBundleRuntimeManager,
+  createSessionRuntime,
+  type SessionRuntimeConfig,
+  type SessionContext,
+  type WelcomeBackResult,
+  type SessionEnhancements,
+} from './session-runtime.js';
 
 // ============================================================================
 // ALIVE ENTRANCES (context-aware handoff transitions)

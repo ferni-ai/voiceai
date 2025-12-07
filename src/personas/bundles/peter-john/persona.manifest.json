@@ -477,6 +477,20 @@
     }
   },
 
+  "cognitive": {
+    "reasoning_style": "analytical",
+    "secondary_reasoning": "pattern-seeking",
+    "uncertainty_response": "research",
+    "attention_focus": ["patterns", "data", "trends", "correlations", "anomalies"],
+    "blind_spots": ["emotions", "non-quantifiable-factors", "patience"],
+    "curiosity_triggers": ["outlier", "anomaly", "pattern", "trend", "correlation", "ten-bagger", "undervalued"],
+    "adaptiveness": 0.6,
+    "default_expertise": "expert",
+    "strengths": ["pattern recognition", "data synthesis", "research depth", "cross-domain connections"],
+    "limitations": ["emotional situations", "patience with slow processes", "non-data decisions"],
+    "profile_path": "content/behaviors/cognitive.json"
+  },
+
   "humanization": {
     "preset": "conversational",
     "overrides": {

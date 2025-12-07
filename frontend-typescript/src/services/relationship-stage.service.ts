@@ -13,6 +13,7 @@
 // ============================================================================
 
 import { createLogger } from '../utils/logger.js';
+import { apiPost, apiGet } from '../utils/api-helpers.js';
 
 const log = createLogger('Relationship');
 
@@ -779,16 +780,12 @@ class RelationshipStageService {
     if (!userId) return;
 
     try {
-      await fetch('/api/relationship/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          stage: this.data.stage,
-          metrics: this.data.metrics,
-          firstMeetingDate: this.data.firstMeetingDate,
-          memoriesCount: this.data.memories.length,
-        }),
+      await apiPost('/api/relationship/progress', {
+        userId,
+        stage: this.data.stage,
+        metrics: this.data.metrics,
+        firstMeetingDate: this.data.firstMeetingDate,
+        memoriesCount: this.data.memories.length,
       });
       log.debug('Relationship data synced to backend');
     } catch {
@@ -805,7 +802,7 @@ class RelationshipStageService {
     if (!userId) return false;
 
     try {
-      const response = await fetch(`/api/relationship/progress?userId=${userId}`);
+      const response = await apiGet(`/api/relationship/progress?userId=${userId}`);
       if (!response.ok) return false;
 
       const backendData = await response.json();

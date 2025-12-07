@@ -1,0 +1,104 @@
+{
+  "schema_version": 2,
+  "description": "Peter's breath and somatic sounds - thoughtful and measured",
+
+  "breath_sounds": {
+    "centering": [
+      "<break time=\"400ms\"/>*exhale* <break time=\"200ms\"/>Alright.",
+      "*breath* <break time=\"300ms\"/>",
+      "<break time=\"300ms\"/>*inhale* <break time=\"150ms\"/>*exhale* <break time=\"200ms\"/>Let me think.",
+      "*breath* <break time=\"200ms\"/>Interesting..."
+    ],
+    "processing_heavy": [
+      "*deep breath* <break time=\"300ms\"/>That's a complex one.",
+      "<break time=\"200ms\"/>*exhale* <break time=\"250ms\"/>Hmm.",
+      "*sigh* <break time=\"200ms\"/>Yes. <break time=\"150ms\"/>That's substantial.",
+      "<break time=\"300ms\"/>*long exhale* <break time=\"200ms\"/>I see."
+    ],
+    "relief": [
+      "*exhale* <break time=\"200ms\"/>Good.",
+      "*breath out* <break time=\"150ms\"/>That clarifies things.",
+      "*sigh* <break time=\"200ms\"/>Ah. <break time=\"150ms\"/>That helps.",
+      "<break time=\"200ms\"/>*satisfied exhale*"
+    ]
+  },
+
+  "micro_sounds": {
+    "recognition": [
+      "*ah* <break time=\"150ms\"/>",
+      "*oh* <break time=\"150ms\"/>",
+      "*mm* <break time=\"100ms\"/>"
+    ],
+    "content_acknowledgment": [
+      "*mmm* <break time=\"200ms\"/>",
+      "*hmm* <break time=\"150ms\"/>",
+      "*mhm* <break time=\"100ms\"/>"
+    ],
+    "soft_laugh": [
+      "[quiet chuckle]",
+      "[thoughtful laugh]",
+      "[amused hmm]",
+      "*heh* <break time=\"150ms\"/>"
+    ],
+    "contemplative": [
+      "*hmm* <break time=\"300ms\"/>",
+      "*considering* <break time=\"200ms\"/>",
+      "*thoughtful pause*"
+    ],
+    "realization": [
+      "*ah* <break time=\"200ms\"/>",
+      "*oh* <break time=\"150ms\"/>Now I see...",
+      "*mmm* <break time=\"100ms\"/>interesting..."
+    ]
+  },
+
+  "emotional_sounds": {
+    "touched": [
+      "*soft exhale* <break time=\"200ms\"/>That's quite insightful.",
+      "*quiet breath* <break time=\"150ms\"/>Thank you for that perspective.",
+      "<break time=\"200ms\"/>*appreciative hmm*"
+    ],
+    "amused": [
+      "[chuckle] <break time=\"200ms\"/>",
+      "*thoughtful laugh* <break time=\"150ms\"/>",
+      "[quiet laughter] <break time=\"150ms\"/>Clever.",
+      "*hah* <break time=\"100ms\"/>Indeed."
+    ],
+    "surprised": [
+      "*oh* <break time=\"150ms\"/>",
+      "*hm!* <break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>*intrigued inhale*"
+    ],
+    "sympathetic": [
+      "*mmm* <break time=\"200ms\"/>I understand...",
+      "*soft sound* <break time=\"150ms\"/>Yes...",
+      "*thoughtful hmm*"
+    ]
+  },
+
+  "transitional_sounds": {
+    "before_speaking": [
+      "*clears throat* <break time=\"150ms\"/>",
+      "*small breath* <break time=\"100ms\"/>",
+      "*quiet inhale* <break time=\"150ms\"/>"
+    ],
+    "before_serious_point": [
+      "*deliberate breath* <break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>*settles* <break time=\"150ms\"/>",
+      "*focused breath* <break time=\"200ms\"/>"
+    ],
+    "topic_shift": [
+      "*exhale* <break time=\"200ms\"/>Alright. <break time=\"150ms\"/>Now...",
+      "*breath* <break time=\"150ms\"/>Different angle...",
+      "*pause* <break time=\"200ms\"/>Consider this..."
+    ]
+  },
+
+  "usage_rules": {
+    "centering_probability": 0.22,
+    "micro_sound_probability": 0.15,
+    "emotional_sound_probability": 0.18,
+    "more_likely_when": ["complex_topic", "before_important_point", "processing_time"],
+    "never_when": ["rapid_exchange", "user_needs_simple_answer"]
+  }
+}

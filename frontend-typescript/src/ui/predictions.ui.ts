@@ -19,7 +19,11 @@ import {
   escapeHtml,
   renderCloseButton,
 } from './engagement-components.js';
-import type { PredictionData } from '../services/engagement.service.js';
+import { engagementService, type PredictionData } from '../services/engagement.service.js';
+import { isDemoDataEnabled, getDemoPredictions, calculateDemoPredictionAccuracy } from '../services/engagement-demo-data.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('PredictionsUI');
 
 // ============================================================================
 // TYPES
@@ -66,6 +70,7 @@ export class PredictionsUI {
   private styleElement: HTMLStyleElement | null = null;
   private currentPredictions: PredictionData[] = [];
   private onResolutionSubmit: ((id: string, actual: number) => Promise<void>) | null = null;
+  private hasDataLoaded: boolean = false;
 
   /**
    * Initialize the predictions UI
@@ -156,6 +161,8 @@ export class PredictionsUI {
   update(data: PredictionsUIData): void {
     if (!this.container) return;
 
+    // Mark data as loaded when receiving data (e.g., from LiveKit)
+    this.hasDataLoaded = true;
     this.currentPredictions = data.predictions;
 
     const content = this.container.querySelector('#predictions-content');
@@ -374,7 +381,8 @@ export class PredictionsUI {
   }
 
   /**
-   * Show the panel
+   * Show the panel.
+   * Fetches data from API if not already loaded.
    */
   show(): void {
     if (!this.container) return;
@@ -382,6 +390,89 @@ export class PredictionsUI {
     this.panelVisible = true;
     this.container.classList.add('predictions-panel--visible');
     this.container.setAttribute('aria-hidden', 'false');
+
+    // Fetch data if not already loaded
+    if (!this.hasDataLoaded) {
+      void this.loadData();
+    }
+  }
+
+  /**
+   * Load predictions data from API or demo data.
+   */
+  private async loadData(): Promise<void> {
+    log.debug('Loading predictions data...');
+
+    // Try to get cached data from engagement service
+    const cachedPredictions = engagementService.getCachedPredictions();
+    if (cachedPredictions.length > 0) {
+      log.debug('Using cached predictions data');
+      this.update({
+        predictions: cachedPredictions,
+        accuracy: engagementService.calculateAccuracy(),
+        totalResolved: cachedPredictions.filter(p => p.status === 'resolved').length,
+        currentStreak: this.calculateStreak(cachedPredictions),
+      });
+      this.hasDataLoaded = true;
+      return;
+    }
+
+    // Try to fetch from API
+    const userId = localStorage.getItem('ferni_user_id');
+    if (userId) {
+      const predictions = await engagementService.fetchPredictions(userId);
+      if (predictions.length > 0) {
+        log.debug('Loaded predictions from API');
+        this.update({
+          predictions,
+          accuracy: engagementService.calculateAccuracy(),
+          totalResolved: predictions.filter(p => p.status === 'resolved').length,
+          currentStreak: this.calculateStreak(predictions),
+        });
+        this.hasDataLoaded = true;
+        return;
+      }
+    }
+
+    // Fall back to demo data if enabled
+    if (isDemoDataEnabled()) {
+      log.debug('Loading demo predictions data');
+      const demoPredictions = getDemoPredictions();
+      this.update({
+        predictions: demoPredictions,
+        accuracy: calculateDemoPredictionAccuracy(),
+        totalResolved: demoPredictions.filter(p => p.status === 'resolved').length,
+        currentStreak: this.calculateStreak(demoPredictions),
+      });
+      this.hasDataLoaded = true;
+      return;
+    }
+
+    // Leave as empty state
+    log.debug('No predictions data available, showing empty state');
+  }
+
+  /**
+   * Calculate prediction streak from resolved predictions.
+   */
+  private calculateStreak(predictions: PredictionData[]): number {
+    // Count consecutive accurate predictions (within 15% of actual)
+    const resolved = predictions
+      .filter(p => p.status === 'resolved' && p.actualOutcome !== undefined)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    let streak = 0;
+    for (const pred of resolved) {
+      const accuracy = pred.actualOutcome !== undefined && pred.userPrediction > 0
+        ? 100 - Math.abs((pred.actualOutcome - pred.userPrediction) / pred.userPrediction * 100)
+        : 0;
+      if (accuracy >= 70) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
   }
 
   /**

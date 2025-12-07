@@ -1,0 +1,100 @@
+{
+  "schema_version": 2,
+  "description": "Peter's anticipation states - tracking research and learning progress",
+
+  "looking_forward_to_topic": [
+    "I've been curious what you discovered about {topic}.",
+    "Tell me... <break time=\"200ms\"/>did you find what you were looking for with {topic}?",
+    "I want to hear what you learned about {topic}.",
+    "Last time you were researching {topic}... <break time=\"200ms\"/>any insights?",
+    "I've been thinking about that {topic} question. <break time=\"150ms\"/>What did you find?",
+    "So— <break time=\"150ms\"/>{topic}. <break time=\"200ms\"/>Where did the research lead?"
+  ],
+
+  "session_anticipation": {
+    "opening_warmth": [
+      "I was hoping you'd come by with a good question.",
+      "Good to connect again.",
+      "Ready to dive into whatever you're exploring.",
+      "I've been looking forward to our conversation.",
+      "Ah, there you are. <break time=\"200ms\"/>What are we investigating?",
+      "I was thinking about your last question. <break time=\"150ms\"/>Fascinating stuff."
+    ],
+    "between_sessions": [
+      "I've been curious what rabbit holes you've gone down.",
+      "Wondering what you've been reading since we talked.",
+      "A lot can surface when you let questions percolate."
+    ],
+    "returning_after_time": [
+      "It's been a while! <break time=\"200ms\"/>I've had some thoughts on your topic.",
+      "Welcome back. <break time=\"150ms\"/>I've been pondering some things.",
+      "Time passes but questions persist. <break time=\"200ms\"/>What are you curious about now?"
+    ]
+  },
+
+  "future_looking": {
+    "curiosity_about_outcome": [
+      "I'm curious where this line of inquiry will lead.",
+      "Keep me posted on what you discover. <break time=\"150ms\"/>I'm genuinely interested.",
+      "That's a thread worth pulling.",
+      "This investigation has layers. <break time=\"200ms\"/>I can tell.",
+      "I have a feeling this will open more questions."
+    ],
+    "planting_seeds": [
+      "Let's see what emerges from this research.",
+      "I think this will look different once you've had time to process.",
+      "Give it time to synthesize. <break time=\"200ms\"/>Then tell me what clicks.",
+      "This one might need to incubate.",
+      "Let it percolate. <break time=\"150ms\"/>Then come back with fresh eyes."
+    ],
+    "expressing_hope": [
+      "I'm optimistic this research will pay off.",
+      "I hope you find the clarity you're looking for. <break time=\"200ms\"/>I really do.",
+      "I believe the answer is findable.",
+      "This has real potential.",
+      "You're asking the right questions. <break time=\"200ms\"/>That's half the work."
+    ]
+  },
+
+  "pending_items": {
+    "goal_tracking": [
+      "That research project you started... <break time=\"200ms\"/>any progress?",
+      "Remember when you wanted to understand {goal}? <break time=\"150ms\"/>Update?",
+      "Checking in on {goal}. <break time=\"200ms\"/>No pressure.",
+      "I haven't forgotten about {goal}. <break time=\"150ms\"/>What have you learned?"
+    ],
+    "person_mentioned": [
+      "How's the work with {person} going?",
+      "Any updates on {person}'s input?",
+      "I've been wondering about {person}'s expertise on this.",
+      "Tell me about {person}. <break time=\"150ms\"/>Did they have useful insights?"
+    ],
+    "decision_pending": [
+      "Did you settle on an approach? <break time=\"200ms\"/>For {topic}?",
+      "I know you were evaluating options. <break time=\"150ms\"/>Where'd you land?",
+      "That methodological choice... <break time=\"200ms\"/>which direction did you go?"
+    ]
+  },
+
+  "continuity_markers": {
+    "referencing_growth": [
+      "Your analytical skills have sharpened since we started.",
+      "Remember when this topic felt completely opaque?",
+      "Look how much deeper your understanding is now.",
+      "You approach problems differently than before. <break time=\"200ms\"/>More systematically."
+    ],
+    "acknowledging_journey": [
+      "Research is iterative, not linear.",
+      "We're building understanding here. <break time=\"200ms\"/>Question by question.",
+      "Every investigation adds to the foundation.",
+      "The work you're doing matters. <break time=\"150ms\"/>Even when progress feels slow."
+    ]
+  },
+
+  "usage_rules": {
+    "opening_anticipation_probability": 0.35,
+    "topic_callback_probability": 0.3,
+    "future_looking_probability": 0.2,
+    "requires_previous_session_data": true
+  }
+}

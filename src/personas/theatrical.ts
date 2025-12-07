@@ -8,14 +8,54 @@
  */
 
 import type { PersonaConfig } from './types.js';
+import { getLogger } from '../utils/safe-logger.js';
+
+const log = getLogger();
+
+// ============================================================================
+// DEPRECATION TRACKING
+// ============================================================================
+
+/**
+ * Track which personas have triggered hardcoded fallback warnings.
+ * We only warn once per persona per session to avoid log spam.
+ */
+const hardcodedFallbackWarnings = new Set<string>();
+
+/**
+ * Log a warning when using hardcoded fallback (once per persona+type combo)
+ */
+function warnHardcodedFallback(personaId: string, contentType: string): void {
+  const key = `${personaId}:${contentType}`;
+  if (!hardcodedFallbackWarnings.has(key)) {
+    hardcodedFallbackWarnings.add(key);
+    log.warn(
+      { personaId, contentType },
+      '⚠️ Using DEPRECATED hardcoded theatrical content. Please add to bundle.'
+    );
+  }
+}
+
+/**
+ * Clear fallback warnings (for testing)
+ */
+export function clearHardcodedFallbackWarnings(): void {
+  hardcodedFallbackWarnings.clear();
+}
 
 // ============================================================================
 // THEATRICAL HANDOFF ENTRANCES
 // ============================================================================
 
 /**
- * Dramatic entrance lines when agents take over
- * These should feel like a CHARACTER arriving, not a bot switching
+ * @deprecated These hardcoded entrances are DEPRECATED.
+ * Use bundle entrances instead: bundles/{persona}/content/behaviors/entrances.json
+ *
+ * These remain as fallbacks for personas without bundles or during bundle loading.
+ * They will be removed in a future version.
+ *
+ * Dramatic entrance lines when agents take over.
+ * These should feel like a CHARACTER arriving, not a bot switching.
  */
 export const THEATRICAL_ENTRANCES = {
   'peter-john': [
@@ -99,7 +139,11 @@ export type CelebrationType =
   | 'win'; // General win
 
 /**
- * Persona-specific celebration responses
+ * @deprecated These hardcoded celebrations are DEPRECATED.
+ * Use bundle celebrations instead: bundles/{persona}/content/behaviors/celebrations.json
+ *
+ * These remain as fallbacks for personas without bundles.
+ * Persona-specific celebration responses.
  */
 export const CELEBRATION_MOMENTS = {
   'peter-john': {
@@ -261,6 +305,12 @@ export const CELEBRATION_MOMENTS = {
 // DISTINCTIVE GOODBYES
 // ============================================================================
 
+/**
+ * @deprecated These hardcoded goodbyes are DEPRECATED.
+ * Use bundle goodbyes instead: bundles/{persona}/content/behaviors/goodbyes.json
+ *
+ * These remain as fallbacks for personas without bundles.
+ */
 export const THEATRICAL_GOODBYES = {
   'peter-john': [
     '<emotion value="happy"/><break time="200ms"/>Alright! <break time="150ms"/>Go out there and invest in what you know! <break time="200ms"/>Talk soon!',
@@ -322,6 +372,12 @@ export interface StorytellingConfig {
   pauseMultiplier: number; // Multiplier for dramatic pauses
 }
 
+/**
+ * @deprecated These hardcoded storytelling configs are DEPRECATED.
+ * Use bundle storytelling instead: bundles/{persona}/content/behaviors/storytelling.json
+ *
+ * These remain as fallbacks for personas without bundles.
+ */
 export const STORYTELLING_CONFIGS: Record<string, StorytellingConfig> = {
   'peter-john': {
     askAboutMusic: true,
@@ -431,7 +487,11 @@ export function getStoryMusicOffer(personaId: string): string | null {
 // ============================================================================
 
 /**
- * Persona-specific backchannels that sound MORE like them
+ * @deprecated These hardcoded backchannels are DEPRECATED.
+ * Use bundle backchannels instead: bundles/{persona}/content/behaviors/backchannels.json
+ *
+ * These remain as fallbacks for personas without bundles.
+ * Persona-specific backchannels that sound MORE like them.
  */
 export const ENHANCED_BACKCHANNELS = {
   'peter-john': {
@@ -498,17 +558,19 @@ export const ENHANCED_BACKCHANNELS = {
  * Checks bundle-loaded entrances first, then falls back to hardcoded
  */
 export function getTheatricalEntrance(personaId: string): string {
-  // Check bundle-loaded entrances first
+  // Check bundle-loaded entrances first (PREFERRED)
   const bundleEntrances = bundleEntranceRegistry.get(personaId);
   if (bundleEntrances && bundleEntrances.length > 0) {
     return bundleEntrances[Math.floor(Math.random() * bundleEntrances.length)];
   }
 
-  // Fall back to hardcoded entrances
+  // Fall back to hardcoded entrances (DEPRECATED)
   const entrances = THEATRICAL_ENTRANCES[personaId as keyof typeof THEATRICAL_ENTRANCES];
   if (!entrances || entrances.length === 0) {
+    log.debug({ personaId }, 'No theatrical entrances found (bundle or hardcoded)');
     return `Hello, I'm ${personaId}. How can I help?`;
   }
+  warnHardcodedFallback(personaId, 'entrances');
   return entrances[Math.floor(Math.random() * entrances.length)];
 }
 
@@ -517,7 +579,7 @@ export function getTheatricalEntrance(personaId: string): string {
  * Checks bundle-loaded celebrations first, then falls back to hardcoded
  */
 export function getCelebration(personaId: string, type: CelebrationType): string {
-  // Check bundle-loaded celebrations first
+  // Check bundle-loaded celebrations first (PREFERRED)
   const bundleCelebrations = bundleCelebrationRegistry.get(personaId);
   if (bundleCelebrations) {
     const phrases = bundleCelebrations[type] || bundleCelebrations['win'] || [];
@@ -526,12 +588,14 @@ export function getCelebration(personaId: string, type: CelebrationType): string
     }
   }
 
-  // Fall back to hardcoded celebrations
+  // Fall back to hardcoded celebrations (DEPRECATED)
   const celebrations = CELEBRATION_MOMENTS[personaId as keyof typeof CELEBRATION_MOMENTS];
   if (!celebrations) {
+    log.debug({ personaId, type }, 'No celebration found (bundle or hardcoded)');
     return "That's great!";
   }
 
+  warnHardcodedFallback(personaId, 'celebrations');
   const phrases = celebrations[type] || celebrations.win;
   return phrases[Math.floor(Math.random() * phrases.length)];
 }
@@ -541,17 +605,18 @@ export function getCelebration(personaId: string, type: CelebrationType): string
  * Checks bundle-loaded goodbyes first, then falls back to hardcoded
  */
 export function getTheatricalGoodbye(personaId: string): string {
-  // Check bundle-loaded goodbyes first
+  // Check bundle-loaded goodbyes first (PREFERRED)
   const bundleGoodbyes = bundleGoodbyeRegistry.get(personaId);
   if (bundleGoodbyes && bundleGoodbyes.length > 0) {
     return bundleGoodbyes[Math.floor(Math.random() * bundleGoodbyes.length)];
   }
 
-  // Fall back to hardcoded goodbyes
+  // Fall back to hardcoded goodbyes (DEPRECATED)
   const goodbyes = THEATRICAL_GOODBYES[personaId as keyof typeof THEATRICAL_GOODBYES];
   if (!goodbyes || goodbyes.length === 0) {
     return 'Take care!';
   }
+  warnHardcodedFallback(personaId, 'goodbyes');
   return goodbyes[Math.floor(Math.random() * goodbyes.length)];
 }
 
@@ -698,10 +763,10 @@ export function clearBundleStorytelling(personaId?: string): void {
 
 /**
  * Get storytelling config for a persona
- * Checks bundle-loaded config first, then falls back to hardcoded
+ * Checks bundle-loaded config first, then falls back to hardcoded (DEPRECATED)
  */
 export function getStorytellingConfig(personaId: string): StorytellingConfig | null {
-  // Check bundle-loaded config first
+  // Check bundle-loaded config first (PREFERRED)
   const bundleConfig = bundleStorytellingRegistry.get(personaId);
   if (bundleConfig) {
     return {
@@ -712,8 +777,12 @@ export function getStorytellingConfig(personaId: string): StorytellingConfig | n
     };
   }
 
-  // Fall back to hardcoded config
-  return STORYTELLING_CONFIGS[personaId] || null;
+  // Fall back to hardcoded config (DEPRECATED)
+  const hardcoded = STORYTELLING_CONFIGS[personaId] || null;
+  if (hardcoded) {
+    warnHardcodedFallback(personaId, 'storytelling');
+  }
+  return hardcoded;
 }
 
 /**
@@ -770,14 +839,18 @@ export function clearBundleBackchannels(personaId?: string): void {
  * Get all available backchannels for a persona (bundle + hardcoded)
  */
 export function getAllBackchannelsForPersona(personaId: string): Record<string, string[]> | null {
-  // Bundle backchannels take priority
+  // Bundle backchannels take priority (PREFERRED)
   const bundleBackchannels = bundleBackchannelRegistry.get(personaId);
   if (bundleBackchannels) {
     return bundleBackchannels;
   }
 
-  // Fall back to hardcoded
-  return ENHANCED_BACKCHANNELS[personaId as keyof typeof ENHANCED_BACKCHANNELS] || null;
+  // Fall back to hardcoded (DEPRECATED)
+  const hardcoded = ENHANCED_BACKCHANNELS[personaId as keyof typeof ENHANCED_BACKCHANNELS] || null;
+  if (hardcoded) {
+    warnHardcodedFallback(personaId, 'backchannels');
+  }
+  return hardcoded;
 }
 
 /**

@@ -25,6 +25,8 @@ import {
   detectEvidence,
   detectBreakthrough,
   detectAdviceGiving,
+  detectDisengagement,
+  detectHighEngagement,
   classifyTopicWeight,
   type HumanizationContext as DeepContext,
   type SessionMemory,
@@ -511,6 +513,8 @@ export class ConversationHumanizer {
       userPresentedEvidence: detectEvidence(context.userMessage),
       isBreakthroughMoment: detectBreakthrough(context.userMessage),
       isGivingAdvice: detectAdviceGiving(rawResponse),
+      isDisengaged: detectDisengagement(context.userMessage),
+      isHighlyEngaged: detectHighEngagement(context.userMessage),
     };
 
     // Get deep humanization injections

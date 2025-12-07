@@ -1442,9 +1442,12 @@
   100% { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
 }
 
-/* Speaking state - pulsing glow */
+/* Speaking state - 🆕 subtle steady glow instead of constant pulsing
+   More like a warm presence than a beacon */
 .voice-glow.speaking {
-  animation: voiceGlowPulse var(--glow-pulse-speed) ease-in-out infinite;
+  box-shadow: 0 0 calc(var(--glow-spread) * 1.2) var(--glow-color);
+  transition: box-shadow 0.4s ease;
+  animation: none; /* No more constant pulsing! */
 }
 
 /* Listening state - gentle breathing */

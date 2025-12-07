@@ -391,11 +391,11 @@ const RELATIONSHIP_STYLES: Record<RelationshipStage, {
   },
   friend: {
     warmthMultiplier: 1.0,
-    tooltipHint: '💙',
+    tooltipHint: '💚', // Ferni sage green heart
   },
   trusted_advisor: {
     warmthMultiplier: 1.1,
-    tooltipHint: '💜',
+    tooltipHint: '🤎', // Warm brown heart (brand-aligned, not purple)
   },
 };
 

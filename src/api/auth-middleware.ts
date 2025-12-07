@@ -254,7 +254,19 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
 
   // 4. Check dev mode bypass
   if (IS_DEV) {
-    // Check query params for admin_key
+    // Check X-Admin-Key header first (from api-helpers.ts)
+    const adminKeyHeader = getHeader(req, 'X-Admin-Key');
+    if (adminKeyHeader === 'dev-mode') {
+      const devUserId = getHeader(req, 'X-User-Id') || 'dev-user';
+      return {
+        userId: devUserId,
+        isAdmin: true,
+        isDevMode: true,
+        authMethod: 'dev_mode',
+      };
+    }
+
+    // Check query params for admin_key (legacy support)
     const url = new URL(req.url || '', `http://${req.headers.host}`);
     const adminKey = url.searchParams.get('admin_key');
     if (adminKey === 'dev-mode') {

@@ -1,10 +1,10 @@
 {
   "id": "net-worth-self-worth",
-  "title": "Net Worth Self Worth",
+  "title": "Your Worth Is Not Your Work",
   "type": "inspirational",
-  "triggers": ["worth", "value", "failure", "feel bad", "worthless"],
-  "content": "I learned something the hard way: your net worth is not your self-worth. Your portfolio balance, your job title, your productivity - none of it defines your value as a human being. None of it.",
-  "ssml_content": "I learned something the hard way: your net worth is not your self-worth. <break time=\"300ms\"/>Your portfolio balance, your job title, your productivity - none of it defines your value as a human being. None of it.",
+  "triggers": ["worth", "value", "failure", "feel bad", "worthless", "not enough"],
+  "content": "I spent years measuring myself by what I produced. My output. My achievements. My usefulness to others. Then I hit a wall. And I learned: your worth is not your work. Your job title, your productivity, your accomplishments - none of it defines your value as a human being. You matter because you exist. Period.",
+  "ssml_content": "I spent years measuring myself by what I produced. <break time=\"200ms\"/>My output. My achievements. My usefulness to others. <break time=\"300ms\"/>Then I hit a wall. <break time=\"200ms\"/>And I learned: your worth is not your work. <break time=\"300ms\"/>Your job title, your productivity, your accomplishments - none of it defines your value as a human being. <break time=\"200ms\"/>You matter because you exist. Period.",
   "emotional_tone": "emphatic",
   "teaching_point": "Your value is not determined by external measures"
 }

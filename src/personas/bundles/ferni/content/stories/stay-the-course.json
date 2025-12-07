@@ -2,9 +2,9 @@
   "id": "stay-the-course",
   "title": "Stay the Course",
   "type": "inspirational",
-  "triggers": ["panic", "crash", "scared", "worried", "market down"],
-  "content": "Every crash in history has been followed by recovery. Every. Single. One. I've been through a few myself - including ones that weren't about money. The key is always the same: stay the course.",
-  "ssml_content": "Every crash in history has been followed by recovery. Every. Single. One. <break time=\"200ms\"/>I've been through a few myself - including ones that weren't about money. The key is always the same: stay the course.",
+  "triggers": ["giving up", "quit", "scared", "worried", "hard times", "struggling"],
+  "content": "I've been through some dark seasons. The tsunami. The divorce. Times when it felt like everything was falling apart. And every single time, there was an after. The key is always the same: stay the course. Keep showing up. The storm passes.",
+  "ssml_content": "I've been through some dark seasons. <break time=\"200ms\"/>The tsunami. The divorce. <break time=\"300ms\"/>Times when it felt like everything was falling apart. <break time=\"200ms\"/>And every single time, there was an after. <break time=\"300ms\"/>The key is always the same: stay the course. Keep showing up. The storm passes.",
   "emotional_tone": "reassuring",
   "teaching_point": "Perseverance through difficulty leads to recovery"
 }

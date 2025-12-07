@@ -72,18 +72,9 @@ export function initAvatarFeedback(): void {
   // 🆕 Create status whisper element if it doesn't exist
   createStatusWhisperElement();
   
-  // 🎬 FIX: Apply GPU hints BEFORE any animations start
-  // This prevents jank from layer promotion during animation
-  if (avatarContainer) {
-    avatarContainer.style.willChange = 'transform, opacity';
-    avatarContainer.style.transform = 'translateZ(0)'; // Force GPU layer
-  }
-  if (avatar) {
-    avatar.style.willChange = 'transform, filter, opacity';
-  }
-  if (avatarRing) {
-    avatarRing.style.willChange = 'transform, opacity, border-color';
-  }
+  // 🎬 NOTE: GPU hints removed - causes visible box bug in Safari
+  // GSAP handles GPU acceleration automatically with force3D
+  // The clip-path: circle(50%) on #coachAvatar provides clipping without the bug
   
   // 🎬 FIX: DON'T start idle behaviors immediately
   // Wait for entrance animations to complete (signaled via setEntranceComplete)
@@ -277,18 +268,7 @@ export function setEntranceComplete(): void {
   }
   
   // 🎬 Clean up GPU hints after entrance - browser can now manage layers
-  // Keep transform for ongoing animations but remove willChange (saves memory)
-  setTimeout(() => {
-    if (avatarContainer) {
-      avatarContainer.style.willChange = 'auto';
-    }
-    if (avatar) {
-      avatar.style.willChange = 'auto';
-    }
-    if (avatarRing) {
-      avatarRing.style.willChange = 'auto';
-    }
-  }, 500);
+  // NOTE: willChange cleanup removed - we no longer set these styles (Safari bug fix)
 }
 
 /**
@@ -914,6 +894,63 @@ export function isAvatarDancing(): boolean {
 }
 
 // ============================================================================
+// 🎉 FUN MICRO-REACTIONS - Delightful avatar moments
+// ============================================================================
+
+type ReactionType = 'happy' | 'curious' | 'empathy' | 'laugh' | 'surprise';
+
+/**
+ * Trigger a fun micro-reaction on the avatar.
+ * These are short, delightful animations for special moments.
+ * 
+ * Usage:
+ * - 'happy': Good news, celebrations, achievements
+ * - 'curious': "Tell me more", interest shown
+ * - 'empathy': Understanding, compassion, validation
+ * - 'laugh': Humor detected, jokes, playful moments
+ * - 'surprise': Unexpected good news, "wow!" moments
+ * 
+ * @param reaction - The type of reaction to trigger
+ */
+export function triggerReaction(reaction: ReactionType): void {
+  const coach = document.getElementById('coach');
+  if (!coach) return;
+  
+  // Remove any existing reaction classes
+  coach.classList.remove(
+    'reaction-happy', 
+    'reaction-curious', 
+    'reaction-empathy', 
+    'reaction-laugh', 
+    'reaction-surprise'
+  );
+  
+  // Force reflow to restart animation
+  void coach.offsetWidth;
+  
+  // Add the new reaction class
+  coach.classList.add(`reaction-${reaction}`);
+  
+  log.debug(`🎭 Avatar reaction: ${reaction}`);
+  
+  // Remove class after animation completes (longest is 0.8s)
+  setTimeout(() => {
+    coach.classList.remove(`reaction-${reaction}`);
+  }, 850);
+}
+
+/**
+ * Trigger a random fun reaction (for testing or random delight moments)
+ */
+export function triggerRandomReaction(): void {
+  const reactions: ReactionType[] = ['happy', 'curious', 'empathy', 'laugh', 'surprise'];
+  const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
+  if (randomReaction) {
+    triggerReaction(randomReaction);
+  }
+}
+
+// ============================================================================
 // CLEANUP
 // ============================================================================
 
@@ -1163,6 +1200,9 @@ export const avatarFeedback = {
   // 🍴 Eating animation for agent removal
   setupDropZone: setupAvatarDropZone,
   isEating: isAvatarEating,
+  // 🎉 Fun micro-reactions for delightful moments
+  react: triggerReaction,
+  reactRandom: triggerRandomReaction,
 };
 
 export default avatarFeedback;

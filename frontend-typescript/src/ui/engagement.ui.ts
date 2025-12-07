@@ -26,6 +26,11 @@ import {
   getStreakMilestoneMessage,
   type IconName,
 } from './engagement-components.js';
+import { engagementService } from '../services/engagement.service.js';
+import { isDemoDataEnabled, getDemoEngagementData } from '../services/engagement-demo-data.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('EngagementUI');
 
 // ============================================================================
 // TYPES
@@ -71,6 +76,7 @@ export class EngagementUI {
   private container: HTMLElement | null = null;
   private panelVisible: boolean = false;
   private styleElement: HTMLStyleElement | null = null;
+  private hasDataLoaded: boolean = false;
 
   /**
    * Initialize the engagement UI
@@ -157,6 +163,9 @@ export class EngagementUI {
    */
   update(data: EngagementData): void {
     if (!this.container) return;
+
+    // Mark data as loaded when receiving data (e.g., from LiveKit)
+    this.hasDataLoaded = true;
 
     const content = this.container.querySelector('#engagement-content');
     if (!content) return;
@@ -391,7 +400,8 @@ export class EngagementUI {
   }
 
   /**
-   * Show the panel with smooth animation
+   * Show the panel with smooth animation.
+   * Fetches data from API if not already loaded.
    */
   show(): void {
     if (!this.container) return;
@@ -399,6 +409,51 @@ export class EngagementUI {
     this.panelVisible = true;
     this.container.classList.add('engagement-panel--visible');
     this.container.setAttribute('aria-hidden', 'false');
+
+    // Fetch data if not already loaded
+    if (!this.hasDataLoaded) {
+      void this.loadData();
+    }
+  }
+
+  /**
+   * Load engagement data from API or demo data.
+   */
+  private async loadData(): Promise<void> {
+    log.debug('Loading engagement data...');
+
+    // Try to get cached data from engagement service
+    const cachedData = engagementService.getCachedData();
+    if (cachedData) {
+      log.debug('Using cached engagement data');
+      this.update(cachedData);
+      this.hasDataLoaded = true;
+      return;
+    }
+
+    // Try to fetch from API
+    const userId = localStorage.getItem('ferni_user_id');
+    if (userId) {
+      const data = await engagementService.fetchEngagementData(userId);
+      if (data) {
+        log.debug('Loaded engagement data from API');
+        this.update(data);
+        this.hasDataLoaded = true;
+        return;
+      }
+    }
+
+    // Fall back to demo data if enabled
+    if (isDemoDataEnabled()) {
+      log.debug('Loading demo engagement data');
+      const demoData = getDemoEngagementData();
+      this.update(demoData);
+      this.hasDataLoaded = true;
+      return;
+    }
+
+    // Leave as empty state
+    log.debug('No engagement data available, showing empty state');
   }
 
   /**

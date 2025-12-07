@@ -10,96 +10,120 @@ import type { PersonaId } from './types/persona.js';
 // Theme system
 import {
   initTheme,
-  toggleTheme,
-  setPersona as setThemePersona,
   onThemeChange,
+  setPersona as setThemePersona,
   startAmbientCycle,
+  toggleTheme,
 } from './theme/index.js';
 
 // State
-import { appState, setUserName, setAudioState, setSelectedPersona } from './state/app.state.js';
+import { appState, setAudioState, setSelectedPersona, setUserName } from './state/app.state.js';
 
 // Services
-import {
-  connectionService,
-  audioService,
-  handoffService,
-  spotifyService,
-  moodService,
-  engagementService,
-  relationshipStageService,
-} from './services/index.js';
 import { delightService } from './services/delight.service.js';
+import {
+  audioService,
+  connectionService,
+  engagementService,
+  handoffService,
+  moodService,
+  relationshipStageService,
+  spotifyService,
+} from './services/index.js';
 
 // Core UI Components
 import { coachUI, initCoachUI } from './ui/coach.ui.js';
-import { teamUI, initTeamUI } from './ui/team.ui.js';
-import { messageUI, initMessageUI } from './ui/message.ui.js';
-import { waveformUI, initWaveformUI } from './ui/waveform.ui.js';
 import { controlsUI, initControlsUI } from './ui/controls.ui.js';
-import { initSpotifyUI, triggerSpotifyLinkToggle, onSpotifyLinkStateChange, getSpotifyLinkStatus } from './ui/spotify.ui.js';
+import { initMessageUI, messageUI } from './ui/message.ui.js';
+import {
+  getSpotifyLinkStatus,
+  initSpotifyUI,
+  onSpotifyLinkStateChange,
+  triggerSpotifyLinkToggle,
+} from './ui/spotify.ui.js';
+import { initTeamUI, teamUI } from './ui/team.ui.js';
+import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
 
 // Premium UI Features
-import { soundUI, initSoundUI } from './ui/sound.ui.js';
-import { gesturesUI, initGesturesUI } from './ui/gestures.ui.js';
 import { celebrationsUI, initCelebrationsUI } from './ui/celebrations.ui.js';
-import { statsUI, initStatsUI } from './ui/stats.ui.js';
-import { presenceUI, initPresenceUI } from './ui/presence.ui.js';
-import { rippleUI, initRippleUI } from './ui/ripple.ui.js';
 import { easterEggsUI, initEasterEggsUI } from './ui/easter-eggs.ui.js';
+import { gesturesUI, initGesturesUI } from './ui/gestures.ui.js';
+import { initPresenceUI, presenceUI } from './ui/presence.ui.js';
+import { initRippleUI, rippleUI } from './ui/ripple.ui.js';
+import { initSoundUI, soundUI } from './ui/sound.ui.js';
+import { initStatsUI, statsUI } from './ui/stats.ui.js';
 // ✨ Micro-Interactions - Pixar-quality button & interactive effects
-import { microInteractionsUI, initMicroInteractions } from './ui/micro-interactions.ui.js';
+import { initMicroInteractions, microInteractionsUI } from './ui/micro-interactions.ui.js';
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
-import { transcriptUI, initTranscriptUI } from './ui/transcript.ui.js';
-import { thinkingUI, initThinkingUI } from './ui/thinking.ui.js';
-import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
-import { greetingUI } from './ui/greeting.ui.js';
-import { moodUI, initMoodUI } from './ui/mood.ui.js';
-import { skeletonUI, initSkeletonUI } from './ui/skeleton.ui.js';
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
+import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
+import { initFerniEye } from './ui/ferni-eye.ui.js';
+import { greetingUI } from './ui/greeting.ui.js';
+import { initMoodUI, moodUI } from './ui/mood.ui.js';
+import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
+import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
+import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 // Marketplace UI
 import { marketplaceUI } from './ui/marketplace.ui.js';
 // Admin UI
 import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
 // Engagement UI
+import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
 import { getEngagementUI, initializeEngagementUI } from './ui/engagement.ui.js';
 import { getPredictionsUI, initializePredictionsUI } from './ui/predictions.ui.js';
-import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
 // Notifications & Celebrations
 import { initNotificationsUI, showStreakMilestone } from './ui/notifications.ui.js';
 import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.js';
+// Weather Effects - Seasonal ambient atmosphere (available via dev panel)
+import { initWeatherEffects } from './ui/weather-effects.ui.js';
+// Ferni Moments - Pixar-style character expressions
+import { initFerniMoments } from './ui/ferni-moments.ui.js';
 // Demo data for testing without backend
-import { getDemoEngagementData, getDemoPredictions, enableDemoData, disableDemoData } from './services/engagement-demo-data.js';
+import {
+  disableDemoData,
+  enableDemoData,
+  getDemoEngagementData,
+  getDemoPredictions,
+} from './services/engagement-demo-data.js';
 // Environment detection
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
-import { initSettingsMenuUI, getSettingsMenuUI } from './ui/settings-menu.ui.js';
-import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
 import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
 import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
-import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
-import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
+import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
 import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
+import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
+import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
+import { getSettingsMenuUI, initSettingsMenuUI } from './ui/settings-menu.ui.js';
 // Services for feature persistence
-import { ritualsService, initRitualsService } from './services/rituals.service.js';
+import {
+  conversationTracker,
+  initConversationTracker,
+} from './services/conversation-tracker.service.js';
 import { dataExportService } from './services/data-export.service.js';
-import { conversationTracker, initConversationTracker } from './services/conversation-tracker.service.js';
+import { initRitualsService, ritualsService } from './services/rituals.service.js';
 import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui/onboarding.ui.js';
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
+import {
+  initRelationshipProgressUI,
+  showProgressPanel as showRelationshipProgress,
+} from './ui/relationship-progress.ui.js';
 import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
-import { initRelationshipProgressUI, showProgressPanel as showRelationshipProgress } from './ui/relationship-progress.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
-import { initNotificationSettingsUI, showNotificationSettings } from './ui/notification-settings.ui.js';
+import {
+  initNotificationSettingsUI,
+  showNotificationSettings,
+} from './ui/notification-settings.ui.js';
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
 
 // 🎬 Pixar-quality Animation Orchestrator
-import { 
-  initAnimationOrchestrator, 
+import {
   animatePersonaTransition,
+  initAnimationOrchestrator,
   playPixarReaction,
 } from './ui/animation-orchestrator.ui.js';
 // ⚡ GSAP Performance Utilities
@@ -111,18 +135,26 @@ import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 import { getPersona } from './config/personas.js';
 
 // Platform Detection
-import { initPlatform, platform, isNative, hideSplashScreen } from './utils/platform.js';
+import { hideSplashScreen, initPlatform, isNative, platform } from './utils/platform.js';
 
 // Magnetic hover effect
 import { initMagneticHover } from './ui/magnetic-hover.ui.js';
 
+// 🌟 Soul System - The living presence that makes people fall in love
+import { hasSeenAwakening, initSoul, showFerniAwakens } from './ui/soul.ui.js';
+// 🧪 Soul test utilities (available as window.testSoul in dev)
+import './ui/soul.test.js';
+
+// 🛠️ Dev Panel - Testing & validation tools
+import { initDevPanel } from './ui/dev-panel.ui.js';
+
 // Panel methods (extracted for file size)
 import {
-  showConversationHistory,
   showAnalyticsDashboard,
   showCognitiveInsights,
-  showPredictionTracker,
+  showConversationHistory,
   showDataExport,
+  showPredictionTracker,
   showTeamHuddle,
 } from './app/panel-methods.js';
 
@@ -165,6 +197,13 @@ class VoiceAIApp {
     initSkeletonUI();
 
     try {
+      // 🌟 FIRST: Show Ferni Awakens for first-time users
+      // This creates the magical first impression before anything else
+      if (!hasSeenAwakening()) {
+        void this.showFirstLaunchExperience();
+        return; // Awakening will call initialize() again when complete
+      }
+
       // Initialize platform detection (Electron/iOS/Web)
       void initPlatform();
       log.info('Running on:', platform());
@@ -190,12 +229,12 @@ class VoiceAIApp {
       requestAnimationFrame(() => {
         setTimeout(() => {
           skeletonUI.hide();
-          
+
           // Hide native splash screen on iOS/Android
           if (isNative()) {
             void hideSplashScreen(300);
           }
-          
+
           // Trigger entrance animations
           document.body.classList.add('app-loaded');
 
@@ -209,7 +248,7 @@ class VoiceAIApp {
 
             const rosterContainer = document.querySelector('.entrance-roster');
             rosterContainer?.classList.add('entrance-complete');
-            
+
             // 🎬 FIX: Signal entrance complete to avatar feedback system
             // This unlocks idle behaviors AFTER entrance animations finish
             // Prevents animation contention that caused jarring on startup
@@ -217,11 +256,10 @@ class VoiceAIApp {
           }, 1100); // Buffer after all animations complete
         }, 100);
       });
-
     } catch (error) {
       log.error('Initialization failed:', error);
       skeletonUI.hide();
-      messageUI.show("Having trouble starting up. Try refreshing?", 'error');
+      messageUI.show('Having trouble starting up. Try refreshing?', 'error');
     }
   }
 
@@ -230,14 +268,16 @@ class VoiceAIApp {
    */
   async connect(): Promise<void> {
     const persona = appState.get('selectedPersona');
-    
+
     // Show immediate feedback - user tapped the button
     messageUI.show('Getting ready...', 'info', 30000);
-    
+
     // iOS CRITICAL: Create and resume AudioContext FIRST in user gesture
     // This must happen synchronously at the start of the click handler
     try {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         const tempCtx = new AudioCtx();
         await tempCtx.resume();
@@ -245,19 +285,19 @@ class VoiceAIApp {
     } catch (e) {
       log.debug('AudioContext pre-init:', e);
     }
-    
+
     // Play connect sound (soundUI only - has debouncing for mobile)
     try {
       soundUI.play('connect');
     } catch (e) {
       log.debug('Sound play failed (OK on iOS):', e);
     }
-    
+
     // Show thinking indicator with connection progress
     thinkingUI.show('Connecting');
     thinkingUI.showProgress(0); // Step 0: Authenticating
     waveformUI.setThinking(true);
-    
+
     // Resume audio context (required after user interaction)
     try {
       await audioService.resumeContext();
@@ -281,28 +321,28 @@ class VoiceAIApp {
       const timeoutPromise = new Promise<boolean>((_, reject) => {
         setTimeout(() => reject(new Error('Connection timeout')), CONNECTION_TIMEOUT);
       });
-      
+
       success = await Promise.race([connectionPromise, timeoutPromise]);
     } catch (error) {
       log.error('Connection failed:', error);
       thinkingUI.hideProgress();
       thinkingUI.hide();
       waveformUI.setThinking(false);
-      
+
       // Human-friendly error messages (not robotic!)
       let errorMessage = "Hmm, couldn't connect. Let's try that again.";
       if (error instanceof Error) {
         if (error.message === 'Connection timeout') {
-          errorMessage = "Taking longer than usual... check your internet connection?";
+          errorMessage = 'Taking longer than usual... check your internet connection?';
         } else if (error.message.includes('permission') || error.message.includes('Permission')) {
           errorMessage = "I'll need microphone access to hear you. Mind enabling it?";
         } else if (error.message.includes('network') || error.message.includes('Network')) {
-          errorMessage = "Having trouble reaching the server. Is your internet working?";
+          errorMessage = 'Having trouble reaching the server. Is your internet working?';
         } else {
-          errorMessage = "Something went wrong on our end. Try again in a moment?";
+          errorMessage = 'Something went wrong on our end. Try again in a moment?';
         }
       }
-      
+
       messageUI.show(errorMessage, 'error');
       soundUI.play('disconnect');
 
@@ -323,7 +363,7 @@ class VoiceAIApp {
       }
       return;
     }
-    
+
     // Step 3: Ready! Hide thinking indicator
     thinkingUI.showProgress(3);
     setTimeout(() => {
@@ -337,38 +377,38 @@ class VoiceAIApp {
       waveformUI.start();
       waveformUI.setPersona(persona.id);
       avatarFeedback.setPersona(persona.id);
-      
+
       // Particles disabled for cleaner professional look
       // void agentParticlesUI.start(persona.id);
-      
+
       // Update all UI systems
       presenceUI.setConnected(true);
       // keyboardUI.setConnected(true);
-      
+
       // Connection quality indicator disabled for clean UI
       // connectionQualityUI.show();
       // connectionQualityUI.setQuality('good');
-      
+
       // Start session stats
       statsUI.startSession();
       statsUI.setPersona(persona.name);
-      
+
       // Update gesture system
       gesturesUI.setCurrentPersona(persona.id);
-      
+
       // Show engagement triggers (with slight delay for visual flow)
       setTimeout(() => engagementTriggerUI.show(), 500);
-      
+
       // Show success message
       messageUI.show(`Connected to ${persona.name}!`, 'success', 2000);
-      
+
       // 📝 Start tracking this conversation for history
       conversationTracker.startSession(persona.id, persona.name);
-      
+
       // Celebrate the connection! 🎉
       delightService.celebrateConnection();
       delightService.haptic('medium');
-      
+
       // First connection gets extra celebration
       // Minimal, zen aesthetic - no celebration effects on connection
       try {
@@ -379,16 +419,16 @@ class VoiceAIApp {
       } catch {
         // Private browsing - continue without celebration
       }
-      
+
       // Check microphone permission and show helpful message if denied
       void this.checkMicrophoneStatus();
-      
+
       // Record conversation for engagement tracking
       greetingUI.recordConversation();
-      
+
       // 🎭 Track relationship progression for dynamic Ferni subtitle
       relationshipStageService.recordConversation();
-      
+
       // Check conversation milestones - zen aesthetic, no visual effects
       const convCount = greetingUI.getConversationCount();
       if ([5, 10, 25, 50, 100].includes(convCount)) {
@@ -407,16 +447,15 @@ class VoiceAIApp {
    * Disconnect from the AI advisor.
    */
   async disconnect(): Promise<void> {
-    
     // Stop waveform visualization
     waveformUI.stop();
-    
+
     // Clean up audio visualization
     if (this.audioCleanup) {
       this.audioCleanup();
       this.audioCleanup = null;
     }
-    
+
     // Update all UI systems
     presenceUI.setConnected(false);
     presenceUI.setSpeaking(false);
@@ -425,31 +464,31 @@ class VoiceAIApp {
     connectionQualityUI.hide();
     transcriptUI.hide();
     engagementTriggerUI.hide();
-    
+
     // End session stats
     statsUI.endSession();
-    
+
     // 📝 End conversation tracking and persist
     await conversationTracker.endSession();
-    
+
     // Pause Spotify if playing
     await spotifyService.pause();
-    
+
     // Disconnect from LiveKit
     await connectionService.disconnect();
-    
+
     // FIX BUG: Reset handoff service to clear stuck transition states
     handoffService.resetSession();
-    
+
     // Play disconnect sound (soundUI only - has debouncing for mobile)
     soundUI.play('disconnect');
-    
+
     // Reset audio state
     setAudioState('idle');
-    
+
     // Update delight state
     delightService.onDisconnect();
-    
+
     // Clear mood state (persona back to neutral)
     moodService.clearMood();
   }
@@ -480,7 +519,7 @@ class VoiceAIApp {
    */
   private async initializeAdmin(): Promise<void> {
     log.info('Initializing Admin Dashboard...');
-    
+
     // Clear the main app content and show admin container
     const appContent = document.getElementById('app') || document.body;
     appContent.innerHTML = `
@@ -489,13 +528,13 @@ class VoiceAIApp {
         ← Back to App
       </a>
     `;
-    
+
     // Inject admin styles
     injectAdminStyles();
-    
+
     // Initialize the admin dashboard
     await initAdminDashboard();
-    
+
     this.isInitialized = true;
   }
 
@@ -551,7 +590,14 @@ class VoiceAIApp {
    */
   private updatePersonaTheme(personaId: PersonaId): void {
     // Use canonical persona IDs (CSS selectors now use these)
-    const validIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+    const validIds = [
+      'ferni',
+      'peter-john',
+      'alex-chen',
+      'maya-santos',
+      'jordan-taylor',
+      'nayan-patel',
+    ];
     const themePersona = validIds.includes(personaId) ? personaId : 'ferni';
     setThemePersona(themePersona as Parameters<typeof setThemePersona>[0]);
   }
@@ -574,11 +620,14 @@ class VoiceAIApp {
 
     // Initialize Spotify silently in the background
     // iTunes is the default for everyone, so no need to show Spotify status
-    void spotifyService.initialize().then((_success) => {
-      // Spotify integration ready (or fell back to iTunes)
-    }).catch((_err) => {
-      // No error shown - iTunes is the default anyway
-    });
+    void spotifyService
+      .initialize()
+      .then((_success) => {
+        // Spotify integration ready (or fell back to iTunes)
+      })
+      .catch((_err) => {
+        // No error shown - iTunes is the default anyway
+      });
   }
 
   /**
@@ -601,7 +650,9 @@ class VoiceAIApp {
     this.safeInit('GSAP', () => {
       initGSAP();
       // Promote frequently animated elements to GPU layers
-      promoteAllToGPU('.waveform-bar, .team-avatar, .btn, #coachAvatar');
+      // NOTE: #coachAvatar removed - causes visible box bug in Safari
+      // GSAP's force3D handles GPU acceleration for avatar animations
+      promoteAllToGPU('.waveform-bar, .btn');
     });
 
     // Core UI - Initialize in order of dependency (these are critical)
@@ -610,12 +661,18 @@ class VoiceAIApp {
     this.safeInit('CoachUI', () => initCoachUI());
     this.safeInit('TeamUI', () => initTeamUI());
     this.safeInit('SpotifyUI', () => initSpotifyUI());
-    this.safeInit('ControlsUI', () => initControlsUI({
-      onConnect: () => { void this.connect(); },
-      onDisconnect: () => { void this.disconnect(); },
-      onMuteToggle: () => this.toggleMute(),
-    }));
-    
+    this.safeInit('ControlsUI', () =>
+      initControlsUI({
+        onConnect: () => {
+          void this.connect();
+        },
+        onDisconnect: () => {
+          void this.disconnect();
+        },
+        onMuteToggle: () => this.toggleMute(),
+      })
+    );
+
     // Premium Features - Initialize all the delightful extras (non-critical)
     this.safeInit('SoundUI', () => initSoundUI());
     this.safeInit('CelebrationsUI', () => initCelebrationsUI());
@@ -629,9 +686,33 @@ class VoiceAIApp {
     this.safeInit('EasterEggsUI', () => initEasterEggsUI());
     this.safeInit('MoodUI', () => initMoodUI());
     this.safeInit('AvatarFeedback', () => initAvatarFeedback()); // ✨ For music dancing!
+    this.safeInit('FerniEye', () => initFerniEye()); // 👁️ Pixar-style eye peek-throughs!
+    // 🌨️ Weather Effects - Seasonal ambient atmosphere (snow, rain, leaves, fireflies)
+    // Available via dev panel - not auto-started to keep things subtle
+    this.safeInit('WeatherEffects', () => {
+      initWeatherEffects();
+      // Weather can be triggered from dev panel or contextually - not always on
+    });
+    // 🎭 Ferni Moments - Character expressions with time-of-day awareness
+    this.safeInit('FerniMoments', () => {
+      initFerniMoments();
+      // Auto-aware of time-of-day, moments triggered contextually
+    });
     // 🎬 Animation Orchestrator - Pixar-quality coordinated animations
     this.safeInit('AnimationOrchestrator', () => initAnimationOrchestrator());
-    
+
+    // 🌟 Soul System - Living presence with eye tracking, logo expressions, persona magic
+    this.safeInit('Soul', () => {
+      void initSoul({
+        showFirstLaunch: false, // Already handled in initialize()
+        enableEyeTracking: true,
+        enablePersonaMagic: true,
+      });
+    });
+
+    // 🛠️ Dev Panel - Developer testing tools (only in dev mode)
+    this.safeInit('DevPanel', () => initDevPanel());
+
     // 📊 Engagement UI - Daily practice, streaks, predictions
     this.safeInit('EngagementUI', () => initializeEngagementUI());
     this.safeInit('PredictionsUI', () => {
@@ -645,7 +726,7 @@ class VoiceAIApp {
             body: JSON.stringify({ actuals: { result: actualValue } }),
           });
           if (!response.ok) throw new Error('Failed to save');
-          
+
           // Refresh predictions data
           const refreshResponse = await fetch('/api/predictions');
           if (refreshResponse.ok) {
@@ -658,15 +739,16 @@ class VoiceAIApp {
                 question: `Week of ${p.weekOf}`,
                 userPrediction: 50,
                 actualOutcome: p.accuracy as number | undefined,
-                status: p.completedAt ? 'resolved' as const : 'pending' as const,
+                status: p.completedAt ? ('resolved' as const) : ('pending' as const),
                 createdAt: p.createdAt as string,
               })),
               accuracy: data.stats?.averageAccuracy || null,
-              totalResolved: predictions.filter((p: Record<string, unknown>) => p.completedAt).length,
+              totalResolved: predictions.filter((p: Record<string, unknown>) => p.completedAt)
+                .length,
               currentStreak: 0,
             });
           }
-          
+
           messageUI.show('Result recorded! Nice work tracking your predictions.', 'success', 3000);
         } catch (err) {
           log.error('Failed to save prediction result', err);
@@ -674,22 +756,24 @@ class VoiceAIApp {
         }
       });
     });
-    this.safeInit('EngagementTriggerUI', () => initEngagementTriggerUI({
-      onEngagementClick: () => getEngagementUI().toggle(),
-      onPredictionsClick: () => getPredictionsUI().toggle(),
-    }));
-    
+    this.safeInit('EngagementTriggerUI', () =>
+      initEngagementTriggerUI({
+        onEngagementClick: () => getEngagementUI().toggle(),
+        onPredictionsClick: () => getPredictionsUI().toggle(),
+      })
+    );
+
     // 🔔 Notifications UI - Proactive engagement notifications
     this.safeInit('NotificationsUI', () => initNotificationsUI());
-    
+
     // 🆕 New Feature UIs (v2)
     this.safeInit('ConversationHistoryUI', () => initConversationHistoryUI());
     this.safeInit('AnalyticsDashboardUI', () => initAnalyticsDashboardUI());
     this.safeInit('CognitiveInsightsUI', () => initCognitiveInsightsUI());
-    
+
     // 🔥 Ritual Builder - with persistence callbacks
     this.safeInit('RitualsService', () => initRitualsService());
-    
+
     // 📝 Conversation Tracker - for history persistence
     this.safeInit('ConversationTracker', () => initConversationTracker());
     this.safeInit('RitualBuilderUI', () => {
@@ -703,9 +787,9 @@ class VoiceAIApp {
         onClose: () => log.debug('Ritual builder closed'),
       });
     });
-    
+
     this.safeInit('PredictionTrackerUI', () => initPredictionTrackerUI());
-    
+
     // 📦 Data Export - with actual export/delete functionality
     this.safeInit('DataExportUI', () => {
       initDataExportUI();
@@ -723,7 +807,7 @@ class VoiceAIApp {
         onDeleteData: async () => {
           try {
             await dataExportService.deleteAllData();
-            messageUI.show("Your data has been removed. Fresh start!", 'info', 4000);
+            messageUI.show('Your data has been removed. Fresh start!', 'info', 4000);
             // Optionally reload to reset state
             setTimeout(() => window.location.reload(), 2000);
           } catch (err) {
@@ -738,7 +822,7 @@ class VoiceAIApp {
     this.safeInit('PersonaTransitionUI', () => initPersonaTransitionUI());
     this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
-    
+
     // 📋 Settings Menu - Central navigation hub
     this.safeInit('SettingsMenuUI', () => {
       initSettingsMenuUI({
@@ -755,21 +839,21 @@ class VoiceAIApp {
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         onTeamHuddleClick: () => showTeamHuddle(),
       });
-      
+
       // Wire up Spotify state changes to menu
       onSpotifyLinkStateChange((linked, configured) => {
         getSettingsMenuUI().updateSpotifyState(linked, configured);
       });
-      
+
       // Initialize menu with current Spotify state
       const spotifyStatus = getSpotifyLinkStatus();
       getSettingsMenuUI().updateSpotifyState(spotifyStatus.linked, spotifyStatus.configured);
     });
-    
+
     // 🔔 Push Notifications
     this.safeInit('NotificationSettingsUI', () => initNotificationSettingsUI());
     this.safeInit('PushNotifications', () => void initPushNotifications());
-    
+
     // 📬 Listen for push notification navigation events
     window.addEventListener('ferni:open-engagement', () => {
       getEngagementUI().show();
@@ -781,32 +865,91 @@ class VoiceAIApp {
       showTeamHuddle();
     });
 
+    // 📊 Dev Panel modal event listeners
+    window.addEventListener('ferni:open-analytics', () => {
+      void showAnalyticsDashboard();
+    });
+    window.addEventListener('ferni:open-history', () => {
+      void showConversationHistory();
+    });
+    window.addEventListener('ferni:open-insights', () => {
+      void showCognitiveInsights();
+    });
+    window.addEventListener('ferni:start-tour', () => {
+      getOnboardingUI().start();
+    });
+    window.addEventListener('ferni:open-daily-practice', () => {
+      // Daily check-in uses engagement UI rituals
+      getEngagementUI().show();
+    });
+    window.addEventListener('ferni:open-marketplace', () => {
+      void marketplaceUI.open();
+    });
+
+    // 💬 Dev Panel transcript injection
+    window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
+      const { type, text, isFinal } = e.detail;
+      // transcriptUI.show() handles both user and agent messages
+      // User messages are typically interim, agent messages are final
+      if (type === 'user') {
+        transcriptUI.updateInterim(text);
+      } else if (type === 'agent') {
+        transcriptUI.show(text, isFinal ?? true);
+      }
+    }) as EventListener);
+
+    // 📶 Dev Panel connection quality simulation
+    window.addEventListener('ferni:connection-quality', ((e: CustomEvent) => {
+      const { quality } = e.detail;
+      // Map dev panel values to ConnectionQuality type
+      const qualityMap: Record<string, 'excellent' | 'good' | 'fair' | 'poor' | 'disconnected'> = {
+        excellent: 'excellent',
+        good: 'good',
+        poor: 'poor',
+        offline: 'disconnected', // Map 'offline' to 'disconnected'
+      };
+      const mappedQuality = qualityMap[quality] ?? 'good';
+      connectionQualityUI.setQuality(mappedQuality);
+      connectionQualityUI.show();
+    }) as EventListener);
+
+    // 🎊 Dev Panel streak milestone simulation
+    window.addEventListener('ferni:streak-milestone', ((e: CustomEvent) => {
+      const { days, intensity } = e.detail;
+      // Show streak notification UI
+      showStreakMilestone('Daily Check-in', days, 'ferni');
+      // Also trigger celebration animation if high enough
+      if (intensity === 'large' || intensity === 'epic') {
+        celebrateStreak(days, 'ferni');
+      }
+    }) as EventListener);
+
     // Set up team huddle callback for data message handlers
     setShowTeamHuddleCallback(() => showTeamHuddle());
-    
+
     // 📊 Load demo data for testing (when not connected to backend)
     this.loadDemoEngagementData();
     // Agent particles disabled for cleaner professional UI
     // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
-    
+
     // Show personalized greeting and track visit
     this.showWelcome();
-    
+
     // Keyboard shortcuts with app callbacks (disabled for now)
     // initKeyboardUI({
     //   onConnect: () => { void this.connect(); },
     //   onDisconnect: () => { void this.disconnect(); },
     //   onSelectPersona: (personaId: PersonaId) => { this.selectPersona(personaId); },
     // });
-    
+
     // Gesture support for mobile with swipe navigation
     initGesturesUI({
-      onSwipeLeft: () => { 
+      onSwipeLeft: () => {
         const next = gesturesUI.getNextPersona();
         this.selectPersona(next);
         soundUI.play('switch');
       },
-      onSwipeRight: () => { 
+      onSwipeRight: () => {
         const prev = gesturesUI.getPreviousPersona();
         this.selectPersona(prev);
         soundUI.play('switch');
@@ -815,7 +958,7 @@ class VoiceAIApp {
         // Could show context menu in the future
       },
     });
-    
+
     // Marketplace button - opens agent marketplace modal
     const marketplaceBtn = document.getElementById('marketplaceBtn');
     if (marketplaceBtn) {
@@ -825,7 +968,7 @@ class VoiceAIApp {
       });
     }
   }
-  
+
   /**
    * Select a persona (for keyboard shortcuts and gestures).
    * Now with Pixar-quality transition animations!
@@ -859,22 +1002,42 @@ class VoiceAIApp {
     if (appState.get('connection') === 'connected') {
       this.requestHandoff(personaId);
     }
-
   }
-  
+
+  /**
+   * Show the magical first-launch experience for new users.
+   * This creates an emotional moment before they see the app.
+   */
+  private async showFirstLaunchExperience(): Promise<void> {
+    log.info('🌅 Starting first launch experience');
+
+    // Hide the skeleton for the awakening
+    skeletonUI.hide();
+
+    // Show the cinematic awakening
+    await showFerniAwakens();
+
+    log.info('✨ First launch experience complete, resuming initialization');
+
+    // Now continue with normal initialization
+    // Reset initialized flag so we can continue
+    this.isInitialized = false;
+    this.initialize();
+  }
+
   /**
    * Show personalized welcome message and track engagement.
    */
   private showWelcome(): void {
     // Record visit
     greetingUI.recordVisit();
-    
+
     // Get personalized greeting
     const greeting = greetingUI.getGreeting();
-    
+
     // Show greeting as helper text
     messageUI.setHelper(greeting);
-    
+
     // Check for streak milestone
     const streakMilestone = greetingUI.checkStreakMilestone();
     if (streakMilestone) {
@@ -886,25 +1049,25 @@ class VoiceAIApp {
         soundUI.play('success');
       }, 2000);
     }
-    
+
     // Show streak badge if streak >= 3
     const streak = greetingUI.getStreak();
     if (streak >= 3) {
       this.showStreakBadge(streak);
     }
-    
-    // Create ambient particles for atmosphere
-    moodUI.createAmbientParticles();
-    
+
+    // Ambient particles removed - keeping UI clean and human
+    // Weather effects available via dev panel when contextually appropriate
+
     // 🆕 Auto-start onboarding for first-time users (after a short delay)
     setTimeout(() => {
       startOnboardingIfNeeded();
     }, 1500);
   }
-  
+
   /**
    * Load engagement data - uses demo data in development, real data in production.
-   * 
+   *
    * PRODUCTION BEHAVIOR:
    * - In development: Loads demo data for UI testing
    * - In production: Skips demo data, waits for real data from backend
@@ -916,30 +1079,30 @@ class VoiceAIApp {
       disableDemoData();
       return;
     }
-    
+
     // Enable demo data mode
     enableDemoData();
-    
+
     // Load demo data into engagement panel
     const demoData = getDemoEngagementData();
     getEngagementUI().update(demoData);
-    
+
     // Update badge counts from demo data
-    const dueCount = demoData.ritualStreaks.filter(s => s.dueToday).length;
+    const dueCount = demoData.ritualStreaks.filter((s) => s.dueToday).length;
     engagementTriggerUI.updateBadges({ ritualsdue: dueCount });
-    
+
     // Load demo predictions
     const demoPredictions = getDemoPredictions();
-    const pendingCount = demoPredictions.filter(p => p.status === 'pending').length;
+    const pendingCount = demoPredictions.filter((p) => p.status === 'pending').length;
     engagementTriggerUI.updateBadges({ predictionsReady: pendingCount });
-    
+
     getPredictionsUI().update({
       predictions: demoPredictions,
       accuracy: 78, // From demo data
-      totalResolved: demoPredictions.filter(p => p.status === 'resolved').length,
+      totalResolved: demoPredictions.filter((p) => p.status === 'resolved').length,
       currentStreak: 4,
     });
-    
+
     log.debug('Demo engagement data loaded (development mode)');
   }
 
@@ -949,7 +1112,7 @@ class VoiceAIApp {
   private showStreakBadge(streak: number): void {
     // Check if badge already exists
     if (document.getElementById('streakBadge')) return;
-    
+
     const badge = document.createElement('div');
     badge.id = 'streakBadge';
     badge.className = 'streak-badge';
@@ -957,9 +1120,9 @@ class VoiceAIApp {
       <span class="streak-count">${streak}</span>
       <span class="streak-label">day streak</span>
     `;
-    
+
     document.body.appendChild(badge);
-    
+
     // Animate in after a delay
     setTimeout(() => {
       badge.classList.add('visible');
@@ -974,13 +1137,14 @@ class VoiceAIApp {
       // Check if we have an audio track enabled
       const room = connectionService.getRoom();
       const localParticipant = room?.localParticipant;
-      
+
       if (localParticipant) {
-        const audioTracks = localParticipant.getTrackPublications() as Array<{ kind?: string; track?: unknown }>;
-        const hasAudio = audioTracks.some(
-          (pub) => pub.kind === 'audio' && pub.track
-        );
-        
+        const audioTracks = localParticipant.getTrackPublications() as Array<{
+          kind?: string;
+          track?: unknown;
+        }>;
+        const hasAudio = audioTracks.some((pub) => pub.kind === 'audio' && pub.track);
+
         if (!hasAudio) {
           // Mic permission was likely denied - show subtle prompt
           setTimeout(() => {
@@ -999,17 +1163,16 @@ class VoiceAIApp {
   private requestHandoff(targetPersonaId: PersonaId): void {
     const room = connectionService.getRoom();
     if (!room?.localParticipant) return;
-    
+
     const message = JSON.stringify({
       type: 'handoff_request',
       target: targetPersonaId,
       timestamp: Date.now(),
     });
-    
-    room.localParticipant.publishData(
-      new TextEncoder().encode(message),
-      { reliable: true }
-    ).catch(err => log.error('Handoff request failed:', err));
+
+    room.localParticipant
+      .publishData(new TextEncoder().encode(message), { reliable: true })
+      .catch((err) => log.error('Handoff request failed:', err));
   }
 
   /**
@@ -1019,7 +1182,6 @@ class VoiceAIApp {
     // Connection service callbacks
     connectionService.setCallbacks({
       onStateChange: (state) => {
-        
         // Update presence and waveform based on connection state
         if (state === 'connecting') {
           thinkingUI.show('Connecting');
@@ -1038,7 +1200,7 @@ class VoiceAIApp {
       onAgentConnected: () => {
         const persona = appState.get('activePersona');
         messageUI.show(`${persona.name} joined`, 'success', 2000);
-        
+
         // Avatar reaction
         presenceUI.bounce();
         soundUI.play('success');
@@ -1088,23 +1250,23 @@ class VoiceAIApp {
 
       onError: (error) => {
         log.error('Connection error:', error);
-        messageUI.show("Something went wrong. Let me reconnect...", 'error');
+        messageUI.show('Something went wrong. Let me reconnect...', 'error');
         thinkingUI.hide();
         waveformUI.setThinking(false);
       },
     });
 
     // Handoff service callbacks
-    
+
     // When handoff starts - show transitioning state
     // FIX BUG: Store timeout ID for cleanup
     let handoffUITimeout: ReturnType<typeof setTimeout> | null = null;
-    
+
     handoffService.onHandoffStart((toPersona, _fromPersona) => {
       log.debug('onHandoffStart:', { toPersona });
       // Show shimmer effect on waveform
       waveformUI.setTransitioning(true);
-      
+
       // Show handoff progress indicator
       const handoffProgress = document.getElementById('handoffProgress');
       const handoffTargetName = document.getElementById('handoffTargetName');
@@ -1116,7 +1278,7 @@ class VoiceAIApp {
       } else {
         log.warn('handoffProgress element not found!');
       }
-      
+
       // FIX BUG: Safety timeout - force hide UI after 20 seconds max
       if (handoffUITimeout) clearTimeout(handoffUITimeout);
       handoffUITimeout = setTimeout(() => {
@@ -1127,16 +1289,19 @@ class VoiceAIApp {
         thinkingUI.hide();
       }, 20000);
     });
-    
+
     // When handoff completes - agent is ready to speak
     handoffService.onHandoffComplete((toPersona) => {
       log.debug('onHandoffComplete:', { toPersona });
       // FIX BUG: Clear safety timeout
-      if (handoffUITimeout) { clearTimeout(handoffUITimeout); handoffUITimeout = null; }
-      
+      if (handoffUITimeout) {
+        clearTimeout(handoffUITimeout);
+        handoffUITimeout = null;
+      }
+
       // End shimmer, return to normal
       waveformUI.setTransitioning(false);
-      
+
       // Hide handoff progress indicator
       const handoffProgress = document.getElementById('handoffProgress');
       if (handoffProgress) {
@@ -1146,15 +1311,18 @@ class VoiceAIApp {
       // Also make sure thinking is hidden
       thinkingUI.hide();
     });
-    
+
     // When handoff fails - hide indicator and show error
     handoffService.onHandoffFailed((error, targetPersona) => {
       log.error('onHandoffFailed:', { error, targetPersona });
       // FIX BUG: Clear safety timeout
-      if (handoffUITimeout) { clearTimeout(handoffUITimeout); handoffUITimeout = null; }
-      
+      if (handoffUITimeout) {
+        clearTimeout(handoffUITimeout);
+        handoffUITimeout = null;
+      }
+
       waveformUI.setTransitioning(false);
-      
+
       const handoffProgress = document.getElementById('handoffProgress');
       if (handoffProgress) {
         handoffProgress.classList.add('hidden');
@@ -1162,26 +1330,29 @@ class VoiceAIApp {
       thinkingUI.hide();
       messageUI.show("Couldn't reach them right now. I'm still here though!", 'error', 3000);
     });
-    
+
     // When handoff is cancelled - hide indicator
     handoffService.onHandoffCancelled((targetPersona, reason) => {
       log.info('onHandoffCancelled:', { targetPersona, reason });
       // FIX BUG: Clear safety timeout
-      if (handoffUITimeout) { clearTimeout(handoffUITimeout); handoffUITimeout = null; }
-      
+      if (handoffUITimeout) {
+        clearTimeout(handoffUITimeout);
+        handoffUITimeout = null;
+      }
+
       waveformUI.setTransitioning(false);
-      
+
       const handoffProgress = document.getElementById('handoffProgress');
       if (handoffProgress) {
         handoffProgress.classList.add('hidden');
       }
       thinkingUI.hide();
     });
-    
+
     // Main handoff callback (plays sounds, updates UI)
     handoffService.onHandoff((handoff) => {
       log.debug('onHandoff:', { toPersona: handoff.toPersona, fromPersona: handoff.fromPersona });
-      
+
       // Get the NEW persona directly from the handoff, not from state
       const newPersona = getPersona(handoff.toPersona);
       const enhanced = handoff as { entrancePhrase?: string; isFirstMeeting?: boolean };
@@ -1212,10 +1383,10 @@ class VoiceAIApp {
       statsUI.setPersona(newPersona.name);
       // Particles disabled for cleaner look
       // void agentParticlesUI.setPersona(newPersona.id);
-      
+
       // Play switch sound
       soundUI.play('switch');
-      
+
       // Show entrance phrase or welcome message
       if (enhanced.isFirstMeeting && enhanced.entrancePhrase) {
         // First time meeting - warm welcome
@@ -1225,7 +1396,7 @@ class VoiceAIApp {
         // Returning - show shorter message
         messageUI.show(`${newPersona.name} is back!`, 'success', 2000);
       }
-      
+
       // Update waveform colors to match persona
       if (newPersona.colors) {
         waveformUI.setEmotion('neutral', 0.7);
@@ -1244,34 +1415,36 @@ class VoiceAIApp {
       onEngagementUpdate: (data) => {
         // Update the engagement UI panel
         getEngagementUI().update(data);
-        
+
         // Update badge count for due rituals
-        const dueCount = data.ritualStreaks.filter(s => s.dueToday).length;
+        const dueCount = data.ritualStreaks.filter((s) => s.dueToday).length;
         engagementTriggerUI.updateBadges({ ritualsdue: dueCount });
-        
+
         // Check for streak at risk (streak > 3 days and due today)
-        const atRisk = data.ritualStreaks.some(s => s.currentStreak >= 3 && s.dueToday);
+        const atRisk = data.ritualStreaks.some((s) => s.currentStreak >= 3 && s.dueToday);
         if (atRisk) {
           engagementTriggerUI.updateBadges({ streakAtRisk: true });
         }
       },
-      
+
       onEngagementTrigger: (trigger) => {
         // Handle engagement triggers from the agent
         handleEngagementTrigger(trigger);
       },
-      
+
       onPredictionsUpdate: (predictions) => {
         // Update predictions UI
-        const readyCount = predictions.filter(p => p.status === 'resolved').length;
+        const readyCount = predictions.filter((p) => p.status === 'resolved').length;
         engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
-        
+
         // Update predictions panel
         // Calculate prediction streak: consecutive accurate predictions (within 15% of actual)
         const resolved = predictions
-          .filter(p => p.status === 'resolved' && p.actualOutcome !== undefined)
-          .sort((a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime());
-        
+          .filter((p) => p.status === 'resolved' && p.actualOutcome !== undefined)
+          .sort(
+            (a, b) => new Date(b.resolvedAt || 0).getTime() - new Date(a.resolvedAt || 0).getTime()
+          );
+
         let predictionStreak = 0;
         for (const p of resolved) {
           const error = Math.abs(p.userPrediction - (p.actualOutcome ?? 0));
@@ -1285,21 +1458,21 @@ class VoiceAIApp {
         getPredictionsUI().update({
           predictions,
           accuracy: engagementService.calculateAccuracy(),
-          totalResolved: predictions.filter(p => p.status === 'resolved').length,
+          totalResolved: predictions.filter((p) => p.status === 'resolved').length,
           currentStreak: predictionStreak,
         });
       },
-      
+
       onStreakMilestone: (streak) => {
         // Celebrate streak milestones with brand-aligned animations
         if (isStreakMilestone(streak.count)) {
           // Play Pixar-style particle celebration
           celebrateStreak(streak.count, streak.personaId);
-          
+
           // Show notification
           showStreakMilestone(streak.ritualName, streak.count, streak.personaId);
         }
-        
+
         // Always show warmth glow and haptic feedback
         celebrationsUI.warmthGlow({ intensity: streak.count >= 30 ? 'intense' : 'warm' });
         delightService.haptic(streak.count >= 7 ? 'heavy' : 'medium');
@@ -1312,7 +1485,10 @@ class VoiceAIApp {
    * Attach audio visualization to an audio element or track.
    * Uses MediaStreamTrack for better WebRTC support, falls back to audio element.
    */
-  private async attachAudioVisualization(audioElement: HTMLAudioElement, mediaStreamTrack?: MediaStreamTrack): Promise<void> {
+  private async attachAudioVisualization(
+    audioElement: HTMLAudioElement,
+    mediaStreamTrack?: MediaStreamTrack
+  ): Promise<void> {
     // Clean up previous
     if (this.audioCleanup) {
       this.audioCleanup();
@@ -1327,7 +1503,10 @@ class VoiceAIApp {
     if (mediaStreamTrack) {
       this.audioCleanup = await audioService.attachVisualization(mediaStreamTrack, volumeCallback);
     } else {
-      this.audioCleanup = audioService.attachAudioElementVisualization(audioElement, volumeCallback);
+      this.audioCleanup = audioService.attachAudioElementVisualization(
+        audioElement,
+        volumeCallback
+      );
     }
   }
 
@@ -1366,7 +1545,7 @@ class VoiceAIApp {
     messageUI.dispose();
     controlsUI.dispose();
     waveformUI.dispose();
-    
+
     // Dispose premium UI features
     soundUI.dispose();
     gesturesUI.dispose();
@@ -1409,4 +1588,3 @@ if (typeof document !== 'undefined') {
     void app.initialize();
   }
 }
-

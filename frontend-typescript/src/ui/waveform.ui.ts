@@ -33,7 +33,7 @@ const log = createLogger('Waveform');
 
 const BAR_COUNT = 9; // More bars for smoother curves
 const MIN_BAR_HEIGHT = 3;
-const MAX_BAR_HEIGHT = 52;
+const MAX_BAR_HEIGHT = 34; // Fits within 36px container with room for shadows
 
 // ============================================================================
 // EMOTION SHAPES - Bar height multipliers to form expressions
@@ -230,8 +230,8 @@ function createBars(): void {
     bar.style.height = `${MIN_BAR_HEIGHT}px`;
     // 🎬 Add 3D depth shadow
     bar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.2)';
-    bar.style.transform = 'scaleX(1) translateZ(0)'; // GPU acceleration
-    bar.style.willChange = 'height, transform, box-shadow';
+    bar.style.transform = 'scaleX(1)';
+    // NOTE: translateZ(0) and willChange removed - causes visible box bug in Safari
     barsContainer.appendChild(bar);
     bars.push(bar);
   }
@@ -599,9 +599,9 @@ function updateBars(): void {
     if (bar) {
       bar.style.height = `${currentBarHeight}px`;
       
-      // 🎬 Apply squash & stretch transform
+      // 🎬 Apply squash & stretch transform (no translateZ - Safari bug)
       const currentBarWidth = barWidths[i] ?? 1;
-      bar.style.transform = `scaleX(${currentBarWidth}) translateZ(0)`;
+      bar.style.transform = `scaleX(${currentBarWidth})`;
       
       // 🎬 Dynamic shadows based on height (3D depth illusion)
       const shadowIntensity = heightRatio * 0.3;
@@ -614,11 +614,11 @@ function updateBars(): void {
     }
   }
   
-  // 🎬 Detect volume peaks for ripple effects
-  // Skip during music - we want calm, not flashy
-  if (!isListeningToMusic && isSpeaking && smoothedVolume > peakVolume * 1.3 && smoothedVolume > 0.15) {
+  // 🎬 Volume peak tracking (ripple effects disabled for cleaner look)
+  // The waveform bars provide enough visual feedback without extra circles
+  if (smoothedVolume > peakVolume * 1.3) {
     peakVolume = smoothedVolume;
-    createRipple();
+    // Ripple effect removed - waveform bars are expressive enough
   }
   peakVolume *= 0.95; // Decay peak tracker
   

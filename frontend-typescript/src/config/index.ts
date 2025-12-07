@@ -14,6 +14,7 @@ export * from './persona-colors.js';
 export const API = {
   TOKEN: '/token',
   SPOTIFY_TOKEN: '/spotify/token',
+  SPOTIFY_STATUS: '/spotify/status',
   SPOTIFY_PLAY: '/spotify/play',
   SPOTIFY_PAUSE: '/spotify/pause',
 } as const;

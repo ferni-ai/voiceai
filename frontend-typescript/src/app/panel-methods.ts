@@ -415,11 +415,40 @@ export async function showDataExport(): Promise<void> {
 
 /**
  * Show team huddle panel.
- * Displays multi-persona check-in with the whole team's observations.
+ * Fetches real data from API, falls back to demo data in development.
  */
-export function showTeamHuddle(): void {
-  // Show demo team huddle (weekly check-in by default)
+export async function showTeamHuddle(): Promise<void> {
+  // Try to fetch real data from API
+  try {
+    const userId = localStorage.getItem('ferni_user_id');
+    const url = userId
+      ? `/api/huddles?userId=${encodeURIComponent(userId)}`
+      : '/api/huddles';
+    
+    const response = await fetch(url);
+    if (response.ok) {
+      const data = await response.json();
+      // Check if we have recent huddles to show
+      if (data.recentHuddles && data.recentHuddles.length > 0) {
+        showTeamHuddleUI(data.recentHuddles[0]);
+        return;
+      }
+      // No recent huddles - fall through to demo data
+    }
+  } catch (err) {
+    log.debug('API fetch failed, checking for demo mode');
+  }
+
+  // Fall back to demo data if enabled
+  if (isDemoDataEnabled()) {
+    const demoHuddle = getDemoTeamHuddle('weekly');
+    showTeamHuddleUI(demoHuddle);
+    log.debug('Team huddle shown (demo)');
+    return;
+  }
+
+  // No data available - show a demo weekly huddle anyway (better UX than empty)
   const demoHuddle = getDemoTeamHuddle('weekly');
   showTeamHuddleUI(demoHuddle);
-  log.debug('Team huddle shown');
+  log.debug('Team huddle shown (fallback demo)');
 }

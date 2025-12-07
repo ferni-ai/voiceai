@@ -698,6 +698,17 @@ import {
   type OpenerContext,
 } from '../conversation/proactive-starters.js';
 
+// Shared utilities integration
+import {
+  type LifeEvent,
+  findEventsToAcknowledge,
+  generateEventAcknowledgment,
+} from './shared/life-events.js';
+import {
+  isMilestoneConversation,
+  getMilestoneMessage,
+} from './shared/welcome-back.js';
+
 /**
  * Generate a greeting for the persona
  *
@@ -727,6 +738,69 @@ export async function generateGreeting(
     goals?: Array<{ name: string; type: string }>;
     primaryConcerns?: string[];
     upcomingEvents?: string[];
+    // Life events integration
+    lifeEvents?: LifeEvent[];
+    conversationCount?: number;
+  }
+): Promise<string> {
+  // Static is now last resort only
+  const staticGreeting = generateStaticGreeting(persona, options);
+
+  // Check for life events to acknowledge (highest priority - these are special!)
+  if (options?.lifeEvents && options.lifeEvents.length > 0) {
+    const eventsToAcknowledge = findEventsToAcknowledge(options.lifeEvents);
+    if (eventsToAcknowledge.length > 0) {
+      const event = eventsToAcknowledge[0]; // Most important event
+      const eventAck = generateEventAcknowledgment(event, options.userName);
+      if (eventAck) {
+        getLogger().info(
+          { persona: persona.id, eventType: event.type },
+          '🎂 Including life event acknowledgment in greeting'
+        );
+        // Prepend event acknowledgment to greeting
+        const baseGreeting = await generateGreetingWithoutLifeEvents(persona, options);
+        return `${eventAck} <break time="300ms"/> ${baseGreeting}`;
+      }
+    }
+  }
+
+  // Check for conversation milestone
+  if (options?.conversationCount && isMilestoneConversation(options.conversationCount)) {
+    const milestoneMsg = getMilestoneMessage(options.conversationCount);
+    if (milestoneMsg) {
+      getLogger().info(
+        { persona: persona.id, conversationCount: options.conversationCount },
+        '🎉 Including milestone message in greeting'
+      );
+      // Append milestone celebration after greeting
+      const baseGreeting = await generateGreetingWithoutLifeEvents(persona, options);
+      return `${baseGreeting} <break time="300ms"/> ${milestoneMsg}`;
+    }
+  }
+
+  return generateGreetingWithoutLifeEvents(persona, options);
+}
+
+/**
+ * Internal greeting generation without life events (to avoid recursion)
+ */
+async function generateGreetingWithoutLifeEvents(
+  persona: PersonaConfig,
+  options?: {
+    isReturningUser?: boolean;
+    userName?: string;
+    lastConversationSummary?: string;
+    personaMemories?: PersonaMemoryForGreeting[];
+    usedGreetings?: string[];
+    bundleRuntime?: BundleRuntimeEngine;
+    relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
+    lastConversationDate?: Date;
+    openQuestions?: string[];
+    goals?: Array<{ name: string; type: string }>;
+    primaryConcerns?: string[];
+    upcomingEvents?: string[];
+    lifeEvents?: LifeEvent[];
+    conversationCount?: number;
   }
 ): Promise<string> {
   // Static is now last resort only

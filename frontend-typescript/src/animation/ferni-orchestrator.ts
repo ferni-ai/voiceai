@@ -856,20 +856,10 @@ export class FerniOrchestrator {
   // ==========================================================================
   
   private promoteToGPU(): void {
-    const elements = [
-      this.elements.container,
-      this.elements.avatar,
-      this.elements.ring,
-      this.elements.glow,
-      this.elements.text,
-    ].filter(Boolean) as HTMLElement[];
-    
-    elements.forEach(el => {
-      gsap.set(el, {
-        force3D: true,
-        willChange: 'transform, opacity',
-      });
-    });
+    // Elements that would be promoted - kept for documentation
+    // NOTE: GPU promotion disabled - Safari shows visible containment boxes
+    // GSAP's force3D:'auto' default handles GPU when needed
+    // Elements: container, avatar, ring, glow, text
   }
   
   private demoteFromGPU(): void {

@@ -26,12 +26,12 @@ const toSeconds = (ms: number) => ms / 1000;
 /**
  * Force GPU layer promotion for an element
  * Call this on elements that will animate frequently
+ * NOTE: willChange removed - causes visible box bug in Safari
+ * GSAP's force3D handles GPU acceleration internally
  */
-export function promoteToGPU(element: HTMLElement): void {
-  gsap.set(element, {
-    force3D: true,
-    willChange: 'transform, opacity'
-  });
+export function promoteToGPU(_element: HTMLElement): void {
+  // NOTE: GPU promotion disabled - Safari shows visible containment boxes
+  // GSAP's force3D:'auto' default handles GPU when needed
 }
 
 /**
@@ -46,12 +46,11 @@ export function demoteFromGPU(element: HTMLElement): void {
 
 /**
  * Batch GPU promotion for multiple elements
+ * NOTE: willChange removed - causes visible box bug in Safari
  */
-export function promoteAllToGPU(selector: string): void {
-  gsap.set(selector, {
-    force3D: true,
-    willChange: 'transform'
-  });
+export function promoteAllToGPU(_selector: string): void {
+  // NOTE: GPU promotion disabled - Safari shows visible containment boxes
+  // GSAP's force3D:'auto' default handles GPU when needed
 }
 
 // ============================================================================
@@ -476,9 +475,10 @@ export function resumeAllAnimations(): void {
  */
 export function initGSAP(): void {
   // Set global defaults
+  // NOTE: force3D: true for GPU acceleration, but willChange is NOT set (Safari bug)
   gsap.defaults({
     overwrite: 'auto',
-    force3D: true
+    force3D: true // GPU acceleration via transforms - this is fine, willChange was the issue
   });
 
   // Optimize for transforms (GPU accelerated)

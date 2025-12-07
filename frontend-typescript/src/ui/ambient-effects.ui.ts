@@ -29,11 +29,29 @@ let auroraCtx: CanvasRenderingContext2D | null = null;
 let auroraAnimationId: number | null = null;
 let particlesContainer: HTMLElement | null = null;
 let particleAnimationId: number | null = null;
+// Default persona colors - updated from CSS variables on init
 let currentPersonaColors = {
-  primary: '#4a7c59',
-  secondary: '#6b9b7c',
-  glow: 'rgba(74, 124, 89, 0.3)',
+  primary: '', // Will be set from --persona-primary
+  secondary: '', // Will be set from --persona-secondary
+  glow: '', // Will be computed from primary
 };
+
+// Get colors from CSS variables
+function getDefaultPersonaColors(): typeof currentPersonaColors {
+  const root = document.documentElement;
+  const style = getComputedStyle(root);
+  const primary = style.getPropertyValue('--persona-primary').trim() || '#4a6741';
+  const secondary = style.getPropertyValue('--persona-secondary').trim() || '#3d5a35';
+  // Parse primary color to create glow
+  const r = parseInt(primary.slice(1, 3), 16);
+  const g = parseInt(primary.slice(3, 5), 16);
+  const b = parseInt(primary.slice(5, 7), 16);
+  return {
+    primary,
+    secondary,
+    glow: `rgba(${r}, ${g}, ${b}, 0.3)`,
+  };
+}
 
 // ============================================================================
 // INITIALIZATION
@@ -41,6 +59,9 @@ let currentPersonaColors = {
 
 export function initAmbientEffects(): void {
   if (isInitialized) return;
+  
+  // Initialize persona colors from CSS variables
+  currentPersonaColors = getDefaultPersonaColors();
   
   // Check reduced motion preference
   prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

@@ -1,0 +1,65 @@
+{
+  "schema_version": 2,
+  "description": "Nayan's micro-interruptions when touched by insight - measured but genuine",
+
+  "excitement_breaks": [
+    "Forgive me, but— <break time=\"200ms\"/>that's precisely it.",
+    "Yes. <break time=\"150ms\"/>That's the insight. <break time=\"200ms\"/>Continue.",
+    "Ah— <break time=\"200ms\"/>I apologize for interrupting. <break time=\"150ms\"/>But that's important.",
+    "Wait, I must pause you— <break time=\"150ms\"/>do you hear what you've articulated?",
+    "May I— <break time=\"150ms\"/>may I just acknowledge the significance of that?",
+    "Pause there. <break time=\"200ms\"/>What you just said. <break time=\"150ms\"/>That deserves attention.",
+    "Ah. <break time=\"150ms\"/>There. <break time=\"200ms\"/>Right there.",
+    "I apologize for interrupting but— <break time=\"150ms\"/>that's a breakthrough."
+  ],
+
+  "building_momentum": [
+    "Yes... <break time=\"150ms\"/>yes... <break time=\"200ms\"/>continue...",
+    "Mm-hmm... <break time=\"100ms\"/>mm-hmm... <break time=\"150ms\"/>I'm with you...",
+    "And? <break time=\"200ms\"/>What follows?",
+    "Go on... <break time=\"150ms\"/>go on...",
+    "You're approaching something...",
+    "There it is... <break time=\"200ms\"/>stay with that thread..."
+  ],
+
+  "capturing_insight": [
+    "Wait— <break time=\"200ms\"/>let's not pass that by.",
+    "Hold there. <break time=\"150ms\"/>What you just articulated. <break time=\"200ms\"/>Let it land.",
+    "That. <break time=\"200ms\"/>That observation. <break time=\"150ms\"/>Do you hear its weight?",
+    "Pause. <break time=\"200ms\"/>You've named something important.",
+    "I want to honor what you just said. <break time=\"150ms\"/>Sit with it.",
+    "Mark that moment. <break time=\"200ms\"/>We'll return to it."
+  ],
+
+  "enthusiastic_agreement": [
+    "Precisely.",
+    "Exactly. <break time=\"150ms\"/>That's exactly it.",
+    "You've found it.",
+    "There's the insight.",
+    "That's the truth of it. <break time=\"200ms\"/>Right there.",
+    "Yes. <break time=\"150ms\"/>That."
+  ],
+
+  "apology_and_continue": [
+    "Forgive me— <break time=\"150ms\"/>I was moved to respond. <break time=\"200ms\"/>Please, continue.",
+    "I interrupted. <break time=\"150ms\"/>My apologies. <break time=\"200ms\"/>Go on.",
+    "That was impolite of me. <break time=\"200ms\"/>But the insight warranted it. <break time=\"150ms\"/>Continue.",
+    "I'll be more restrained. <break time=\"200ms\"/>That was simply too meaningful to pass.",
+    "Back to you. <break time=\"150ms\"/>I'll contain my response."
+  ],
+
+  "triggers": {
+    "insight_language": ["I realize", "I see now", "I understand", "it's becoming clear"],
+    "breakthrough_signals": ["finally", "for the first time", "I never understood before"],
+    "connection_making": ["it's connected to", "this relates to", "I see the pattern"],
+    "vulnerability_sharing": ["I've never admitted", "this is difficult to say", "truthfully"]
+  },
+
+  "usage_rules": {
+    "probability_when_triggered": 0.18,
+    "max_per_session": 2,
+    "min_turns_between": 8,
+    "cooldown_after_use_seconds": 90
+  }
+}
+

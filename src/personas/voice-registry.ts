@@ -4,6 +4,9 @@
  * This module handles voice IDs and persona ID normalization.
  * Voice IDs are loaded from bundle manifests and cached for performance.
  *
+ * NOTE: Alias resolution is delegated to persona-ids.ts (SINGLE SOURCE OF TRUTH).
+ * This module only handles voice ID mapping.
+ *
  * PREFERRED IMPORT (via central module):
  *   import { getVoiceId, getCanonicalPersonaId } from '../personas/index.js';
  *
@@ -21,6 +24,15 @@
 import { getLogger } from '../utils/safe-logger.js';
 import { discoverAndLoadBundles } from './bundles/index.js';
 import { VOICE_IDS, getVoiceIdForPersona, isValidVoiceId } from '../config/voice-ids.js';
+// Import from persona-ids.ts - the SINGLE SOURCE OF TRUTH for alias resolution
+import {
+  toCanonical,
+  isKnownId,
+  DISPLAY_NAMES,
+  ALL_CANONICAL_IDS,
+  ALIAS_TO_CANONICAL,
+  type CanonicalPersonaId,
+} from './persona-ids.js';
 
 // Logger instance for this module
 const logger = getLogger();
@@ -61,8 +73,8 @@ interface VoiceEntry {
 // Main registry: canonical persona ID -> voice entry
 const voiceRegistry = new Map<string, VoiceEntry>();
 
-// Alias mapping: any alias -> canonical persona ID
-const aliasToCanonical = new Map<string, string>();
+// NOTE: Alias resolution is now handled by persona-ids.ts (SINGLE SOURCE OF TRUTH)
+// The aliasToCanonical map has been removed - use toCanonical() instead
 
 // Initialization state
 let initialized = false;
@@ -74,6 +86,9 @@ let initialized = false;
 /**
  * Initialize the voice registry from bundle manifests.
  * Call this once at application startup.
+ * 
+ * NOTE: Alias resolution is handled by persona-ids.ts (SINGLE SOURCE OF TRUTH).
+ * This function only maps canonical persona IDs to their voice IDs.
  */
 export async function initializeVoiceRegistry(): Promise<void> {
   if (initialized) {
@@ -88,29 +103,15 @@ export async function initializeVoiceRegistry(): Promise<void> {
       const { manifest } = bundle;
       const canonicalId = manifest.identity.id;
 
-      // Register the voice entry
+      // Register the voice entry (only for canonical IDs)
       voiceRegistry.set(canonicalId, {
         voiceId: manifest.voice.voice_id,
         personaName: manifest.identity.name,
         provider: manifest.voice.provider,
       });
 
-      // Register canonical ID as its own alias
-      aliasToCanonical.set(canonicalId, canonicalId);
-      aliasToCanonical.set(canonicalId.toLowerCase(), canonicalId);
-
-      // Register all aliases
-      const aliases = manifest.identity.aliases || [];
-      for (const alias of aliases) {
-        aliasToCanonical.set(alias, canonicalId);
-        aliasToCanonical.set(alias.toLowerCase(), canonicalId);
-      }
-
-      // Register name-based aliases (lowercase, hyphenated)
-      const nameAlias = manifest.identity.name.toLowerCase().replace(/\s+/g, '-');
-      if (!aliasToCanonical.has(nameAlias)) {
-        aliasToCanonical.set(nameAlias, canonicalId);
-      }
+      // NOTE: Alias registration is handled by persona-ids.ts
+      // Bundle aliases should be added to ALIAS_TO_CANONICAL in persona-ids.ts
     }
 
     initialized = true;
@@ -118,7 +119,6 @@ export async function initializeVoiceRegistry(): Promise<void> {
     logger.info(
       {
         voiceCount: voiceRegistry.size,
-        aliasCount: aliasToCanonical.size,
         personas: Array.from(voiceRegistry.keys()),
       },
       'Voice registry initialized from bundles'
@@ -132,91 +132,25 @@ export async function initializeVoiceRegistry(): Promise<void> {
 
 /**
  * Initialize with fallback values (used if bundle loading fails)
+ * 
+ * NOTE: Alias resolution is now handled by persona-ids.ts (SINGLE SOURCE OF TRUTH).
+ * This function only sets up voice ID mappings for canonical IDs.
  */
 function initializeFallbacks(): void {
-  // Display names for fallback initialization
-  const fallbackDisplayNames: Record<string, string> = {
-    ferni: 'Ferni',
-    'jack-b': 'Ferni',
-    'peter-john': 'Peter',
-    'alex-chen': 'Alex',
-    'maya-santos': 'Maya',
-    'jordan-taylor': 'Jordan',
-    'nayan-patel': 'Nayan',
-    'generic-advisor': 'Generic Advisor',
-  };
-
-  // Register fallback voices
-  for (const [id, voiceId] of Object.entries(FALLBACK_VOICE_IDS)) {
-    voiceRegistry.set(id, {
+  // Register fallback voices for all canonical personas
+  for (const canonicalId of ALL_CANONICAL_IDS) {
+    const voiceId = FALLBACK_VOICE_IDS[canonicalId] || VOICE_IDS.FERNI;
+    const displayName = DISPLAY_NAMES[canonicalId] || canonicalId;
+    
+    voiceRegistry.set(canonicalId, {
       voiceId,
-      personaName: fallbackDisplayNames[id] || id,
+      personaName: displayName,
       provider: 'cartesia',
     });
-    aliasToCanonical.set(id, id);
   }
 
-  // Common aliases - covers all ID formats used across the codebase:
-  // - Bundle IDs (canonical): ferni, alex-chen, maya-santos, jordan-taylor
-  // - Frontend IDs: jack-b, comm-specialist, spend-save, event-planner
-  // - Short names: alex, maya, jordan, jack, peter
-  // - Legacy IDs: coach, life-coach, etc.
-  const commonAliases: Record<string, string> = {
-    // Ferni (Coach) aliases
-    'jack-b': 'ferni',
-    coach: 'ferni',
-    'life-coach': 'ferni',
-    jackie: 'ferni',
-
-    // Peter John aliases
-    peter: 'peter-john',
-    lynch: 'peter-john',
-    researcher: 'peter-john',
-    'stock-storyteller': 'peter-john',
-
-    // Alex Chen aliases (frontend: comm-specialist, backend: alex-chen)
-    alex: 'alex-chen',
-    'comm-specialist': 'alex-chen',
-    comm: 'alex-chen',
-    communications: 'alex-chen',
-    communicator: 'alex-chen',
-    'generic-advisor': 'alex-chen', // Fallback maps to Alex
-
-    // Maya Santos aliases (frontend: spend-save, backend: maya-santos)
-    maya: 'maya-santos',
-    'spend-save': 'maya-santos',
-    spend: 'maya-santos',
-    save: 'maya-santos',
-    budget: 'maya-santos',
-    'habits-coach': 'maya-santos',
-    'debt-counselor': 'maya-santos', // Legacy
-    debt: 'maya-santos',
-
-    // Jordan Taylor aliases (frontend: event-planner, backend: jordan-taylor)
-    jordan: 'jordan-taylor',
-    'event-planner': 'jordan-taylor',
-    event: 'jordan-taylor',
-    planner: 'jordan-taylor',
-    events: 'jordan-taylor',
-    'retirement-specialist': 'jordan-taylor', // Legacy
-    retirement: 'jordan-taylor',
-
-    // Nayan Patel aliases (lifetime advisor, spiritual guide)
-    nayan: 'nayan-patel',
-    patel: 'nayan-patel',
-    sadhguru: 'nayan-patel',
-    guru: 'nayan-patel',
-    mystic: 'nayan-patel',
-    'lifetime-advisor': 'nayan-patel',
-    'spiritual-guide': 'nayan-patel',
-    sage: 'nayan-patel',
-    'sage-mentor': 'nayan-patel',
-    wisdom: 'nayan-patel',
-  };
-
-  for (const [alias, canonical] of Object.entries(commonAliases)) {
-    aliasToCanonical.set(alias, canonical);
-  }
+  // NOTE: Alias resolution is delegated to persona-ids.ts via toCanonical()
+  // No need to duplicate alias mappings here
 
   initialized = true;
   logger.warn('Voice registry initialized with fallback values');
@@ -228,6 +162,8 @@ function initializeFallbacks(): void {
 
 /**
  * Get voice ID for a persona by any ID or alias.
+ * 
+ * NOTE: Alias resolution is delegated to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  *
  * @param personaId - Canonical ID, alias, or short name
  * @returns Voice ID string
@@ -243,74 +179,58 @@ export function getVoiceId(personaId: string): string {
     initializeFallbacks();
   }
 
-  const normalized = personaId.toLowerCase();
+  // Use persona-ids.ts for alias resolution (SINGLE SOURCE OF TRUTH)
+  const canonicalId = toCanonical(personaId);
 
-  // Try to find canonical ID from alias
-  const canonicalId = aliasToCanonical.get(normalized);
-
-  if (canonicalId) {
-    const entry = voiceRegistry.get(canonicalId);
-    if (entry) {
-      return entry.voiceId;
-    }
-  }
-
-  // Try direct lookup
-  const directEntry = voiceRegistry.get(normalized);
-  if (directEntry) {
-    return directEntry.voiceId;
+  // Look up voice ID for canonical persona
+  const entry = voiceRegistry.get(canonicalId);
+  if (entry) {
+    return entry.voiceId;
   }
 
   // Check fallbacks
-  const fallback = FALLBACK_VOICE_IDS[normalized];
+  const fallback = FALLBACK_VOICE_IDS[canonicalId];
   if (fallback) {
     return fallback;
   }
 
-  logger.warn({ personaId }, 'Unknown persona ID, using default voice');
+  logger.warn({ personaId, canonicalId }, 'No voice ID found, using default');
   return DEFAULT_VOICE_ID;
 }
 
 /**
  * Get voice entry with full details for a persona.
+ * 
+ * NOTE: Alias resolution is delegated to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getVoiceEntry(personaId: string): VoiceEntry | undefined {
   if (!initialized) {
     initializeFallbacks();
   }
 
-  const normalized = personaId.toLowerCase();
-  const canonicalId = aliasToCanonical.get(normalized);
-
-  if (canonicalId) {
-    return voiceRegistry.get(canonicalId);
-  }
-
-  return voiceRegistry.get(normalized);
+  // Use persona-ids.ts for alias resolution
+  const canonicalId = toCanonical(personaId);
+  return voiceRegistry.get(canonicalId);
 }
 
 /**
  * Get canonical persona ID from any alias.
+ * 
+ * NOTE: Delegates to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getCanonicalPersonaId(personaId: string): string {
-  if (!initialized) {
-    initializeFallbacks();
-  }
-
-  const normalized = personaId.toLowerCase();
-  return aliasToCanonical.get(normalized) || personaId;
+  // Delegate to persona-ids.ts - no need for initialization here
+  return toCanonical(personaId);
 }
 
 /**
  * Check if a persona ID or alias is known.
+ * 
+ * NOTE: Delegates to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function isKnownPersona(personaId: string): boolean {
-  if (!initialized) {
-    initializeFallbacks();
-  }
-
-  const normalized = personaId.toLowerCase();
-  return aliasToCanonical.has(normalized) || voiceRegistry.has(normalized);
+  // Delegate to persona-ids.ts
+  return isKnownId(personaId);
 }
 
 /**
@@ -326,14 +246,12 @@ export function getAllPersonaIds(): string[] {
 
 /**
  * Get all aliases for a persona.
+ * 
+ * NOTE: Uses ALIAS_TO_CANONICAL from persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getAliasesForPersona(canonicalId: string): string[] {
-  if (!initialized) {
-    initializeFallbacks();
-  }
-
   const aliases: string[] = [];
-  for (const [alias, canonical] of aliasToCanonical.entries()) {
+  for (const [alias, canonical] of Object.entries(ALIAS_TO_CANONICAL)) {
     if (canonical === canonicalId && alias !== canonicalId) {
       aliases.push(alias);
     }
@@ -352,32 +270,19 @@ export function getFrontendPersonaId(personaId: string): string {
 
 /**
  * Get display name for a persona.
+ * 
+ * NOTE: Uses DISPLAY_NAMES from persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getPersonaDisplayName(personaId: string): string {
+  // Try to get from voice registry first (has bundle-loaded names)
   const entry = getVoiceEntry(personaId);
   if (entry) {
     return entry.personaName;
   }
 
-  // Fallback display names
-  const displayNames: Record<string, string> = {
-    ferni: 'Ferni',
-    'jack-b': 'Ferni',
-    'peter-john': 'Peter',
-    'alex-chen': 'Alex',
-    'comm-specialist': 'Alex',
-    'maya-santos': 'Maya',
-    'spend-save': 'Maya',
-    'jordan-taylor': 'Jordan',
-    'event-planner': 'Jordan',
-    'nayan-patel': 'Nayan',
-    sadhguru: 'Nayan',
-    nayan: 'Nayan',
-    'lifetime-advisor': 'Nayan',
-  };
-
-  const canonical = getCanonicalPersonaId(personaId);
-  return displayNames[canonical] || displayNames[personaId] || personaId;
+  // Fall back to DISPLAY_NAMES from persona-ids.ts
+  const canonical = toCanonical(personaId);
+  return DISPLAY_NAMES[canonical] || personaId;
 }
 
 /**
@@ -392,7 +297,6 @@ export function isVoiceRegistryInitialized(): boolean {
  */
 export function resetVoiceRegistry(): void {
   voiceRegistry.clear();
-  aliasToCanonical.clear();
   initialized = false;
 }
 

@@ -451,13 +451,12 @@ class SettingsMenuUI {
         visibility: visible;
       }
 
-      /* Backdrop overlay - subtle dim */
+      /* Backdrop overlay - subtle dim (NO BLUR per user preference) */
       .settings-menu__backdrop {
         position: absolute;
         inset: 0;
         background: var(--backdrop-menu);
-        backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-        -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
+        /* Blur removed - user preference for cleaner look */
         opacity: 0;
         transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
       }
@@ -476,7 +475,7 @@ class SettingsMenuUI {
         max-width: 85vw;
         background: var(--color-background-elevated, #fffdfb);
         box-shadow: var(--shadow-2xl, -8px 0 32px rgba(44, 37, 32, 0.15));
-        border-left: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        /* No border - cleaner look */
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -761,7 +760,7 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__card {
         background: var(--color-background-elevated);
-        border-left-color: var(--color-border-subtle);
+        /* No border - cleaner look */
         box-shadow: var(--shadow-2xl);
       }
 

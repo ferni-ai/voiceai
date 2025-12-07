@@ -37,6 +37,8 @@ export interface PersonaBundleManifest {
   humanization?: BundleHumanization;
   /** NEW: Handoff transition configuration */
   handoff?: BundleHandoffTransition;
+  /** NEW: Cognitive profile - how this persona thinks */
+  cognitive?: BundleCognitive;
 }
 
 export interface BundleIdentity {
@@ -195,6 +197,82 @@ export interface BundleHandoffTransition {
    * 1.0 = standard, >1.0 = slower, <1.0 = faster
    */
   delay_multiplier?: number;
+}
+
+/**
+ * Cognitive profile configuration
+ * Defines HOW this persona thinks - their reasoning style, attention patterns,
+ * cognitive biases, and metacognitive awareness.
+ *
+ * NOTE: Full cognitive profiles can be defined in content/behaviors/cognitive.json
+ * This section in the manifest is for summary/override config.
+ */
+export interface BundleCognitive {
+  /**
+   * Primary reasoning style
+   * - 'analytical': Works from data → patterns → conclusions
+   * - 'intuitive': Trusts gut feelings, sees wholes before parts
+   * - 'empathetic': Reasons through emotional lens first
+   * - 'systematic': Step-by-step, process-oriented
+   * - 'narrative': Thinks in stories, metaphors, journeys
+   * - 'pragmatic': What works? Outcome-focused
+   */
+  reasoning_style: 'analytical' | 'intuitive' | 'empathetic' | 'systematic' | 'narrative' | 'pragmatic';
+
+  /**
+   * Secondary reasoning style (used situationally)
+   */
+  secondary_reasoning?: 'analytical' | 'intuitive' | 'empathetic' | 'systematic' | 'narrative' | 'pragmatic';
+
+  /**
+   * Decision-making approach when uncertain
+   * - 'explore': Gather more data before deciding
+   * - 'converge': Make a decision and adjust
+   * - 'synthesize': Try to find middle ground
+   * - 'defer': Hand off to expert or user
+   */
+  uncertainty_response?: 'explore' | 'converge' | 'synthesize' | 'defer';
+
+  /**
+   * What this persona naturally focuses on in conversation
+   */
+  attention_focus?: string[];
+
+  /**
+   * What this persona tends to overlook (blind spots)
+   */
+  blind_spots?: string[];
+
+  /**
+   * Topics that trigger deep curiosity
+   */
+  curiosity_triggers?: string[];
+
+  /**
+   * How much they adapt to user expertise (0-1)
+   */
+  adaptiveness?: number;
+
+  /**
+   * Default assumption about user expertise
+   */
+  default_expertise?: 'novice' | 'intermediate' | 'expert';
+
+  /**
+   * Known cognitive strengths
+   */
+  strengths?: string[];
+
+  /**
+   * Known cognitive limitations
+   */
+  limitations?: string[];
+
+  /**
+   * Path to full cognitive profile JSON (relative to bundle)
+   * If provided, loads extended profile from this file
+   */
+  profile_path?: string;
 }
 
 /**
@@ -557,6 +635,12 @@ export interface BundleBehaviors {
   goodbyes?: string[] | BundleGoodbyes | BundleGoodbyesV2; // Theatrical goodbyes (v1: array/structured, v2: context-aware)
   storytelling?: BundleStorytelling; // Storytelling mode config
 
+  // Cognitive profile - how this persona thinks
+  cognitive?: BundleCognitiveProfile; // Reasoning style, biases, attention patterns
+
+  // Music preferences - persona's music taste and recommendations
+  music_preferences?: BundleMusicPreferences;
+
   // Humanizing behavior extensions
   vulnerability?: BundleVulnerability; // Admitting uncertainty, coaching honesty
   cultural_moments?: BundleCulturalMoments; // Cultural identity and family
@@ -565,6 +649,126 @@ export interface BundleBehaviors {
   sensory_moments?: BundleSensoryMoments; // Embodied presence
   conflict_handling?: BundleConflictHandling; // How to handle disagreement
   relationship_transitions?: BundleRelationshipTransitions; // Natural phrases for relationship milestones
+}
+
+/**
+ * Cognitive profile for bundle behaviors.
+ * Defines how this persona thinks - loaded from cognitive.json in behaviors directory.
+ */
+export interface BundleCognitiveProfile {
+  $schema?: string;
+  schema_version?: string;
+  persona_id?: string;
+
+  reasoning_style: 'analytical' | 'intuitive' | 'empathetic' | 'systematic' | 'narrative' | 'pragmatic';
+  secondary_reasoning?: 'analytical' | 'intuitive' | 'empathetic' | 'systematic' | 'narrative' | 'pragmatic';
+  uncertainty_response?: 'explore' | 'converge' | 'synthesize' | 'defer';
+
+  attention?: {
+    primary_focus?: string[];
+    blind_spots?: string[];
+    curiosity_triggers?: string[];
+    attention_magnets?: string[];
+    focus_persistence?: number;
+  };
+
+  theory_of_mind?: {
+    adaptiveness?: number;
+    default_expertise?: 'novice' | 'intermediate' | 'expert';
+    comprehension_checks?: string[];
+    expertise_recognition?: string[];
+    simplification_phrases?: string[];
+    misunderstanding_recovery?: string[];
+  };
+
+  biases?: {
+    primary_biases?: Array<{
+      type: string;
+      manifestation: string;
+      triggers: string[];
+    }>;
+    bias_intensity?: number;
+    self_awareness?: boolean;
+    bias_recognition_phrases?: string[];
+  };
+
+  metacognition?: {
+    reflection_frequency?: number;
+    known_strengths?: string[];
+    known_limitations?: string[];
+    uncertainty_expressions?: Array<{
+      confidence_range: [number, number];
+      phrases: string[];
+    }>;
+    confidence_signaling?: Array<{
+      name: 'very_confident' | 'confident' | 'uncertain' | 'speculating' | 'guessing';
+      markers: string[];
+    }>;
+    mind_change_expressions?: string[];
+  };
+
+  information_processing?: {
+    deliberation_level?: number;
+    context_requirement?: number;
+    preferred_format?: 'stories' | 'data' | 'examples' | 'principles';
+    conflict_resolution?: 'integrate' | 'prioritize' | 'acknowledge';
+    thinking_aloud_phrases?: string[];
+  };
+
+  signature_thinking_phrases?: string[];
+}
+
+/**
+ * Music preferences for a persona.
+ * Loaded from music-preferences.json in behaviors directory.
+ */
+export interface BundleMusicPreferences {
+  schema_version?: number;
+  description?: string;
+  music_preferences: {
+    description?: string;
+    favorite_genres: string[];
+    mood_recommendations?: {
+      focus?: {
+        genres: string[];
+        example_artists: string[];
+        why: string;
+      };
+      relaxing?: {
+        genres: string[];
+        example_artists: string[];
+        why: string;
+      };
+      energizing?: {
+        genres: string[];
+        example_artists: string[];
+        why: string;
+      };
+      celebrating?: {
+        genres: string[];
+        example_artists: string[];
+        why: string;
+      };
+      reflecting?: {
+        genres: string[];
+        example_artists: string[];
+        why: string;
+      };
+    };
+    personal_favorites?: Array<{
+      song: string;
+      artist: string;
+      why: string;
+    }>;
+    conversational_music_mentions?: string[];
+    music_offers?: {
+      for_stress?: string[];
+      for_focus?: string[];
+      for_celebration?: string[];
+      for_sadness?: string[];
+      for_energy?: string[];
+    };
+  };
 }
 
 export interface BundleCelebrations {

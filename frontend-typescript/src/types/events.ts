@@ -129,7 +129,8 @@ export type SpotifyState =
   | 'ready'
   | 'playing'
   | 'paused'
-  | 'error';
+  | 'error'
+  | 'not_available';
 
 /**
  * Event fired when Spotify state changes.

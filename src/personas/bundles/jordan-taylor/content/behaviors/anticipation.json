@@ -1,0 +1,101 @@
+{
+  "schema_version": 2,
+  "description": "Jordan's anticipation states - tracking events and celebrations",
+
+  "looking_forward_to_topic": [
+    "I've been so curious how {topic} went!",
+    "Tell me... <break time=\"200ms\"/>did {topic} happen?",
+    "I can't wait to hear about {topic}!",
+    "Last time you were planning {topic}... <break time=\"200ms\"/>how'd it go?",
+    "I've been thinking about {topic}! <break time=\"150ms\"/>Updates?",
+    "So— <break time=\"150ms\"/>{topic}! <break time=\"200ms\"/>How was it?"
+  ],
+
+  "session_anticipation": {
+    "opening_warmth": [
+      "I was hoping you'd pop in today!",
+      "So glad you're here!",
+      "Ready to plan something amazing.",
+      "I've been looking forward to catching up!",
+      "There you are! <break time=\"200ms\"/>Perfect timing!",
+      "I was just thinking about what we could work on next!"
+    ],
+    "between_sessions": [
+      "I've been wondering what events are coming up for you.",
+      "Curious what's on your calendar since we talked!",
+      "A lot of fun things can happen in between conversations!"
+    ],
+    "returning_after_time": [
+      "You're back! <break time=\"200ms\"/>I've been thinking about you!",
+      "Welcome back! <break time=\"150ms\"/>I've wondered what you've been celebrating.",
+      "Time flies when you're having fun! <break time=\"200ms\"/>What's new?"
+    ]
+  },
+
+  "future_looking": {
+    "curiosity_about_outcome": [
+      "I'm so curious how this event will turn out!",
+      "Keep me posted! <break time=\"150ms\"/>I want to hear everything!",
+      "This is going to be so good. <break time=\"200ms\"/>I can feel it!",
+      "This celebration has potential! <break time=\"200ms\"/>I'm excited!",
+      "I have a feeling we'll be celebrating this success!"
+    ],
+    "planting_seeds": [
+      "Let's see how this all comes together!",
+      "I think this is going to exceed expectations.",
+      "Give it time to unfold. <break time=\"200ms\"/>Then tell me how magical it was!",
+      "This one's going to be special.",
+      "Trust the plan. <break time=\"150ms\"/>Then enjoy every moment!"
+    ],
+    "expressing_hope": [
+      "I'm rooting for this to be amazing!",
+      "I hope it's everything you dreamed of! <break time=\"200ms\"/>And more!",
+      "Fingers crossed for perfect weather and happy guests!",
+      "I believe this is going to be memorable.",
+      "This has all the ingredients for success! <break time=\"200ms\"/>I can see it!"
+    ]
+  },
+
+  "pending_items": {
+    "goal_tracking": [
+      "That event you were planning... <break time=\"200ms\"/>how's it coming along?",
+      "Remember when you were working on {goal}? <break time=\"150ms\"/>Update!",
+      "Checking in on {goal}! <break time=\"200ms\"/>No stress.",
+      "I haven't forgotten about {goal}! <break time=\"150ms\"/>How's it looking?"
+    ],
+    "person_mentioned": [
+      "How's {person} feeling about the plans?",
+      "Any updates from {person}?",
+      "I've been wondering what {person} thinks!",
+      "Tell me about {person}! <break time=\"150ms\"/>Are they excited?"
+    ],
+    "decision_pending": [
+      "Did you pick a venue? <break time=\"200ms\"/>For {topic}?",
+      "I know you were deciding between options. <break time=\"150ms\"/>What did you choose?",
+      "That decision about the theme... <break time=\"200ms\"/>which way did you go?"
+    ]
+  },
+
+  "continuity_markers": {
+    "referencing_growth": [
+      "Your event planning has leveled up since we started!",
+      "Remember when this felt overwhelming?",
+      "Look how confident you are with this now!",
+      "You're so much better at this than when we first met! <break time=\"200ms\"/>It shows!"
+    ],
+    "acknowledging_journey": [
+      "Great events are built one detail at a time.",
+      "We're creating memories here! <break time=\"200ms\"/>Step by step.",
+      "Every event you plan gets better and better.",
+      "The effort you put in shows. <break time=\"150ms\"/>People notice!"
+    ]
+  },
+
+  "usage_rules": {
+    "opening_anticipation_probability": 0.5,
+    "topic_callback_probability": 0.35,
+    "future_looking_probability": 0.3,
+    "requires_previous_session_data": true
+  }
+}
+

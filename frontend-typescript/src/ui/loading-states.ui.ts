@@ -29,8 +29,8 @@ let warmthPulseId: number | null = null;
 let shimmerElement: HTMLElement | null = null;
 let dustContainer: HTMLElement | null = null;
 
-// Current persona color
-let currentPersonaColor = '#4a7c59'; // Ferni green default
+// Current persona color - set from CSS variables on init
+let currentPersonaColor = ''; // Will be set from --persona-primary
 
 // ============================================================================
 // INITIALIZATION
@@ -38,6 +38,10 @@ let currentPersonaColor = '#4a7c59'; // Ferni green default
 
 export function initLoadingStates(): void {
   if (isInitialized) return;
+  
+  // Initialize persona color from CSS variables
+  const style = getComputedStyle(document.documentElement);
+  currentPersonaColor = style.getPropertyValue('--persona-primary').trim() || '#4a6741';
   
   // Check reduced motion preference
   prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

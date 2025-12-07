@@ -396,16 +396,20 @@ export function updateAudioState(state: AudioState): void {
 
 /**
  * Set the audio visualization volume (0-1).
+ * 
+ * The outer ring should be subtle and stable.
+ * Most visual movement should come from the waveform and avatar itself.
  */
 export function setVisualizationVolume(volume: number): void {
   if (!elements) return;
 
-  // Scale the ring based on volume
-  const scale = 1 + volume * 0.3;
+  // Scale the ring VERY subtly - the waveform provides main visual feedback
+  // Ring should feel like a gentle halo, not bouncing wildly
+  const scale = 1 + volume * 0.06; // Reduced from 0.3 to 0.06 (6% max vs 30%)
   elements.avatarRing.style.transform = `scale(${scale})`;
 
-  // Also set opacity
-  elements.avatarRing.style.opacity = String(0.3 + volume * 0.7);
+  // Subtle opacity change - ring stays more consistent
+  elements.avatarRing.style.opacity = String(0.35 + volume * 0.35); // Narrower range
 }
 
 /**

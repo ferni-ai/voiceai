@@ -564,6 +564,61 @@ export class DeepHumanizationEngine {
     };
   }
 
+  /**
+   * Get engagement signal if user seems disengaged or highly engaged
+   * Detects short responses, disengagement words, or enthusiasm
+   */
+  async getEngagementSignal(
+    context: HumanizationContext,
+    isDisengaged: boolean,
+    isHighlyEngaged: boolean
+  ): Promise<HumanizationInjection | null> {
+    if (!this.canInject('engagement_signal', 6, 4)) return null;
+    if (!isDisengaged && !isHighlyEngaged) return null;
+
+    const content = await loadBehaviorContent(this.personaId, 'engagement-signals');
+    if (!content) return null;
+
+    let phrases: string[] = [];
+    let probability = 0;
+
+    if (isDisengaged) {
+      // User seems checked out - try to re-engage
+      const lowEngagement = content.low_engagement_recovery as Record<string, string[]>;
+      const categories = ['check_in', 'shift_offer', 'energy_acknowledgment'];
+      const category = categories[Math.floor(Math.random() * categories.length)];
+      phrases = lowEngagement?.[category] ?? [];
+      probability = 0.4; // Higher probability when disengaged
+    } else if (isHighlyEngaged) {
+      // User is really into it - acknowledge the connection
+      const highEngagement = content.sustained_engagement as Record<string, string[]>;
+      const enthusasmSpikes = content.enthusiasm_spikes as Record<string, string[]>;
+      
+      // 50/50 between deep rapport and enthusiasm spike
+      if (Math.random() < 0.5) {
+        const categories = ['deep_rapport_signals', 'flow_acknowledgment'];
+        const category = categories[Math.floor(Math.random() * categories.length)];
+        phrases = highEngagement?.[category] ?? [];
+      } else {
+        const categories = ['topic_interest', 'user_opening_up', 'connection_moment'];
+        const category = categories[Math.floor(Math.random() * categories.length)];
+        phrases = enthusasmSpikes?.[category] ?? [];
+      }
+      probability = 0.25;
+    }
+
+    if (phrases.length === 0 || Math.random() > probability) return null;
+
+    this.recordInjection('engagement_signal');
+    return {
+      type: 'engagement_signal',
+      content: phrases[Math.floor(Math.random() * phrases.length)],
+      placement: isDisengaged ? 'suffix' : 'prefix',
+      probability,
+      cooldownTurns: 6,
+    };
+  }
+
   // ==========================================================================
   // MAIN ORCHESTRATION
   // ==========================================================================
@@ -578,6 +633,8 @@ export class DeepHumanizationEngine {
       userPresentedEvidence?: boolean;
       isBreakthroughMoment?: boolean;
       isGivingAdvice?: boolean;
+      isDisengaged?: boolean;
+      isHighlyEngaged?: boolean;
     } = {}
   ): Promise<HumanizationInjection[]> {
     const injections: HumanizationInjection[] = [];
@@ -593,6 +650,7 @@ export class DeepHumanizationEngine {
       anticipation,
       contradiction,
       runningJoke,
+      engagement,
     ] = await Promise.all([
       this.getMoodSignal(context),
       this.getSpontaneousThought(context),
@@ -603,11 +661,18 @@ export class DeepHumanizationEngine {
       this.getAnticipation(context),
       this.getContradiction(context, signals.isGivingAdvice ?? false),
       this.getRunningJoke(context),
+      this.getEngagementSignal(
+        context,
+        signals.isDisengaged ?? false,
+        signals.isHighlyEngaged ?? false
+      ),
     ]);
 
-    // Collect non-null injections
-    if (excitement) injections.push(excitement); // Highest priority - interrupts
+    // Collect non-null injections (engagement is high priority when disengaged)
+    if (signals.isDisengaged && engagement) injections.push(engagement); // Priority: re-engage!
+    if (excitement) injections.push(excitement); // High priority - interrupts
     if (mindChange) injections.push(mindChange);
+    if (!signals.isDisengaged && engagement) injections.push(engagement); // Normal priority when engaged
     if (spontaneous) injections.push(spontaneous);
     if (moodSignal) injections.push(moodSignal);
     if (physical) injections.push(physical);
@@ -788,5 +853,88 @@ export function classifyTopicWeight(
   if (detectedEmotion === 'joy') return 'light';
 
   return 'medium';
+}
+
+/**
+ * Detect if user seems disengaged based on message content
+ * Short responses, disengagement words, or lack of substance
+ */
+export function detectDisengagement(userMessage: string): boolean {
+  const trimmed = userMessage.trim().toLowerCase();
+  
+  // Very short responses (under 15 chars) are often disengaged
+  if (trimmed.length < 15) {
+    // Check for common disengagement words
+    const disengagementWords = [
+      'yeah', 'ok', 'okay', 'sure', 'fine', 'whatever',
+      'i guess', 'uh huh', 'mhm', 'yep', 'nope', 'dunno',
+      'idk', 'meh', 'eh', 'k', 'kk', 'cool', 'right'
+    ];
+    
+    if (disengagementWords.some(word => trimmed === word || trimmed.startsWith(word + ' '))) {
+      return true;
+    }
+  }
+  
+  // Patterns indicating disengagement
+  const disengagementPatterns = [
+    /^yeah[.,!?]?$/i,
+    /^ok(ay)?[.,!?]?$/i,
+    /^sure[.,!?]?$/i,
+    /^i (guess|suppose)[.,!?]?$/i,
+    /^whatever[.,!?]?$/i,
+    /^fine[.,!?]?$/i,
+    /^not really[.,!?]?$/i,
+    /^i don'?t (know|care)[.,!?]?$/i,
+  ];
+  
+  return disengagementPatterns.some(p => p.test(trimmed));
+}
+
+/**
+ * Detect if user seems highly engaged based on message content
+ * Long responses, enthusiasm markers, or deep sharing
+ */
+export function detectHighEngagement(userMessage: string): boolean {
+  const trimmed = userMessage.trim().toLowerCase();
+  
+  // Long responses (over 100 chars) often indicate engagement
+  const isLongResponse = trimmed.length > 100;
+  
+  // Enthusiasm markers
+  const enthusiasmPatterns = [
+    /!{2,}/,  // Multiple exclamation marks
+    /that'?s (so |really )?(interesting|cool|amazing|fascinating)/i,
+    /i (love|really like) (this|that|what you)/i,
+    /wow/i,
+    /oh my (god|gosh)/i,
+    /yes!+/i,
+    /exactly!?/i,
+    /you know what/i,
+    /i'?ve (been thinking|never thought)/i,
+    /i want to tell you/i,
+    /can i share something/i,
+    /this is (hard|difficult|important)/i,
+    /i'?ve never told anyone/i,
+  ];
+  
+  const hasEnthusiasm = enthusiasmPatterns.some(p => p.test(trimmed));
+  
+  // Deep sharing indicators
+  const deepSharingPatterns = [
+    /i feel like/i,
+    /it makes me feel/i,
+    /i'?ve been struggling/i,
+    /honestly|truthfully/i,
+    /i realized/i,
+    /the thing is/i,
+    /what i really want/i,
+  ];
+  
+  const isDeepSharing = deepSharingPatterns.some(p => p.test(trimmed));
+  
+  // Combined heuristic
+  return (isLongResponse && (hasEnthusiasm || isDeepSharing)) || 
+         (hasEnthusiasm && isDeepSharing);
 }
 

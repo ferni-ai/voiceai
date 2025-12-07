@@ -1932,71 +1932,12 @@ export default defineAgent({
           participant.identity?.includes('sip') ||
           jobMetadata.includes('"source":"phone"'));
 
-      diag.state('Starting session', {
-        isPhoneCall,
-        isWebConnection,
-        participantId: participant.identity,
-      });
-
-      await session.start({
-        agent: voiceAgent,
-        room: ctx.room,
-        // Only use telephony noise cancellation for phone calls
-        // Web browsers handle their own echo cancellation via audioCaptureDefaults
-        inputOptions: isPhoneCall
-          ? {
-              noiseCancellation: TelephonyBackgroundVoiceCancellation(),
-            }
-          : undefined,
-      });
-
-      diag.state('Session started', { isPhoneCall, hasNoiseCancellation: isPhoneCall });
-
       // ===============================================
-      // STEP 7b: INITIALIZE FRONTEND PUBLISHER
+      // STEP 7a: INITIALIZE MUSIC PLAYER (BEFORE session.start!)
       // ===============================================
-      // Centralized real-time communication with the frontend
-      const { initializeFrontendPublisher, getFrontendPublisher } =
-        await import('./realtime/index.js');
-      const frontendPublisher = initializeFrontendPublisher(ctx.room);
-      diag.state('Frontend publisher initialized');
-
-      // ===============================================
-      // STEP 6b: INITIALIZE ENGAGEMENT DATA SENDER
-      // ===============================================
-      // Wire up real-time engagement data to frontend
-      try {
-        const engagementDataSender = getEngagementDataSender();
-        engagementDataSender.setRoom(
-          ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]
-        );
-
-        // Send initial engagement data to frontend
-        if (userId) {
-          await engagementDataSender.sendEngagementData(userId);
-          diag.state('Engagement data sent to frontend');
-        }
-      } catch (engageError) {
-        diag.warn('Engagement data init failed (non-fatal)', { error: String(engageError) });
-      }
-
-      // ===============================================
-      // STEP 6c: INITIALIZE COGNITIVE INTELLIGENCE
-      // ===============================================
-      try {
-        await onCognitiveSessionStart({
-          userId: userId || 'anonymous',
-          personaId: sessionPersona.id,
-          userProfile: services.userProfile,
-          sessionId,
-        });
-        diag.state('Cognitive session initialized');
-      } catch (cogError) {
-        diag.warn('Cognitive session init failed (non-fatal)', { error: String(cogError) });
-      }
-
-      // Initialize music player for ALL users (phone: in-call streaming, web: preview fallback)
-      // Only initialize if MUSIC_ENABLED=true
+      // CRITICAL: Initialize music player BEFORE session.start() to prevent race conditions.
+      // If we wait until after session.start(), the agent could try to play music
+      // before the music player is ready, causing silent "simulation mode" playback.
       const { isMusicEnabled } = await import('../config/environment.js');
       if (ctx.room && isMusicEnabled()) {
         try {
@@ -2073,11 +2014,10 @@ export default defineAgent({
                     state === 'paused'
                   );
 
-                  diag.state('🎧 Music stopped unexpectedly, acknowledging', {
-                    state,
-                    previousState: lastMusicState,
-                    trackName: lastTrackName,
-                    phrase: stoppedPhrase.slice(0, 50),
+                  diag.state('🎧 Music unexpectedly stopped', {
+                    track: lastTrackName,
+                    newState: state,
+                    wasPaused: state === 'paused',
                   });
 
                   session.say(stoppedPhrase, { allowInterruptions: true });
@@ -2086,44 +2026,98 @@ export default defineAgent({
                 }
               }
 
-              // Update state tracking for next callback
+              // Update tracking state
               lastMusicState = state;
               lastTrackName = track?.name;
 
               // Notify frontend for avatar dancing
+              // Note: sendMusicState only accepts specific states, so we map 'ducking' to 'playing'
+              // since ducking is just a volume change during playback
               try {
-                const musicMessage = JSON.stringify({
-                  type: 'music',
-                  state,
-                  trackName: track?.name,
-                  artistName: track?.artist,
-                  duration: track?.duration,
-                  isAmbient,
-                  timestamp: Date.now(),
-                });
-
-                await ctx.room.localParticipant?.publishData(
-                  new TextEncoder().encode(musicMessage),
-                  {
-                    reliable: true,
-                  }
-                );
-
-                diag.state('🎵 Music state sent to frontend', { state });
-              } catch (e) {
-                diag.warn('Failed to send music state to frontend', { error: String(e) });
+                const { getFrontendPublisher } = await import('./realtime/index.js');
+                const publisher = getFrontendPublisher();
+                if (publisher && ctx.room) {
+                  // Map ducking to playing for frontend (ducking is just volume control)
+                  const frontendState = state === 'ducking' ? 'playing' : state;
+                  // Convert null track to undefined for sendMusicState
+                  const trackInfo = track ? { name: track.name, artist: track.artist } : undefined;
+                  await publisher.sendMusicState(frontendState, trackInfo, isAmbient);
+                }
+              } catch (pubError) {
+                diag.warn('Failed to publish music state', { error: String(pubError) });
               }
             })();
           });
 
-          diag.session('Music player initialized with callbacks (including avatar dance!)', {
-            mode: identificationSource === 'phone' ? 'in-call' : 'fallback',
-          });
-        } catch (e) {
-          diag.warn('Music player init failed', { error: String(e) });
+          diag.state('Music player initialized (before session.start)');
+        } catch (musicError) {
+          diag.warn('Music player init failed (non-fatal)', { error: String(musicError) });
         }
       } else if (!isMusicEnabled()) {
         diag.session('Music player skipped (MUSIC_ENABLED not set)');
+      }
+
+      diag.state('Starting session', {
+        isPhoneCall,
+        isWebConnection,
+        participantId: participant.identity,
+      });
+
+      await session.start({
+        agent: voiceAgent,
+        room: ctx.room,
+        // Only use telephony noise cancellation for phone calls
+        // Web browsers handle their own echo cancellation via audioCaptureDefaults
+        inputOptions: isPhoneCall
+          ? {
+              noiseCancellation: TelephonyBackgroundVoiceCancellation(),
+            }
+          : undefined,
+      });
+
+      diag.state('Session started', { isPhoneCall, hasNoiseCancellation: isPhoneCall });
+
+      // ===============================================
+      // STEP 7b: INITIALIZE FRONTEND PUBLISHER
+      // ===============================================
+      // Centralized real-time communication with the frontend
+      const { initializeFrontendPublisher, getFrontendPublisher } =
+        await import('./realtime/index.js');
+      const frontendPublisher = initializeFrontendPublisher(ctx.room);
+      diag.state('Frontend publisher initialized');
+
+      // ===============================================
+      // STEP 6b: INITIALIZE ENGAGEMENT DATA SENDER
+      // ===============================================
+      // Wire up real-time engagement data to frontend
+      try {
+        const engagementDataSender = getEngagementDataSender();
+        engagementDataSender.setRoom(
+          ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]
+        );
+
+        // Send initial engagement data to frontend
+        if (userId) {
+          await engagementDataSender.sendEngagementData(userId);
+          diag.state('Engagement data sent to frontend');
+        }
+      } catch (engageError) {
+        diag.warn('Engagement data init failed (non-fatal)', { error: String(engageError) });
+      }
+
+      // ===============================================
+      // STEP 6c: INITIALIZE COGNITIVE INTELLIGENCE
+      // ===============================================
+      try {
+        await onCognitiveSessionStart({
+          userId: userId || 'anonymous',
+          personaId: sessionPersona.id,
+          userProfile: services.userProfile,
+          sessionId,
+        });
+        diag.state('Cognitive session initialized');
+      } catch (cogError) {
+        diag.warn('Cognitive session init failed (non-fatal)', { error: String(cogError) });
       }
 
       // ===============================================
@@ -2239,6 +2233,9 @@ export default defineAgent({
             goals: services.userProfile?.goals,
             primaryConcerns: services.userProfile?.primaryConcerns,
             openQuestions, // Questions from cross-session threads
+            // Note: lifeEvents not passed here due to type mismatch between user-profile and shared/life-events
+            // TODO: Implement type conversion for life events integration
+            conversationCount: services.userProfile?.totalConversations,
           });
 
           // If we have a thread starter and didn't use it in greeting, append it
@@ -2322,6 +2319,9 @@ export default defineAgent({
           goals: services.userProfile?.goals,
           primaryConcerns: services.userProfile?.primaryConcerns,
           openQuestions, // Questions from cross-session threads
+          // Note: lifeEvents not passed here due to type mismatch between user-profile and shared/life-events
+          // TODO: Implement type conversion for life events integration
+          conversationCount: services.userProfile?.totalConversations,
         });
 
         // If we have a thread starter and didn't use it in greeting, append it
