@@ -925,7 +925,6 @@ class VoiceAgent extends voice.Agent<UserData> {
   // Legacy turn processing code removed - now using TurnProcessor V2 exclusively
   // See processors/turn-processor.ts for the modular implementation
 
-
   /**
    * Process user turn using the extracted TurnProcessor module.
    *

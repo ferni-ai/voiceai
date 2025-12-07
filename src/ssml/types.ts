@@ -1,6 +1,6 @@
 /**
  * SSML Types
- * 
+ *
  * Type definitions for the SSML tagger module.
  */
 

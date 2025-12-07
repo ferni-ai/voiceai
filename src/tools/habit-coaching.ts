@@ -490,9 +490,7 @@ Use when:
         // Filter templates by domain and difficulty
         const relevant = HABIT_TEMPLATES.filter(
           (t) =>
-            t.domain === domain &&
-            t.difficulty === difficulty &&
-            t.goodFor.includes(data.lifeStage)
+            t.domain === domain && t.difficulty === difficulty && t.goodFor.includes(data.lifeStage)
         );
 
         // Prioritize keystone habits

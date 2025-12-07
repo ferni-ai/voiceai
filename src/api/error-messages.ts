@@ -24,8 +24,8 @@
  */
 export const API_ERRORS = {
   // Authentication
-  USER_ID_REQUIRED: "We need to know who you are. Please sign in and try again.",
-  AUTH_REQUIRED: "Hmm, looks like you need to sign in first.",
+  USER_ID_REQUIRED: 'We need to know who you are. Please sign in and try again.',
+  AUTH_REQUIRED: 'Hmm, looks like you need to sign in first.',
 
   // Conversations
   CONVERSATIONS_FETCH_FAILED: "Couldn't load your conversations right now. Mind trying again?",
@@ -33,7 +33,7 @@ export const API_ERRORS = {
   // Data management
   DATA_EXPORT_FAILED: "Hmm, couldn't export your data. Mind trying again?",
   DATA_DELETE_FAILED: "Couldn't delete your data right now. Try again?",
-  DATA_DELETE_CONFIRMATION: "This is a big step. Please confirm you want to delete your data.",
+  DATA_DELETE_CONFIRMATION: 'This is a big step. Please confirm you want to delete your data.',
   INVALID_REQUEST: "Something didn't look right. Could you try again?",
 
   // Rituals
@@ -46,7 +46,7 @@ export const API_ERRORS = {
   // Predictions
   PREDICTIONS_FETCH_FAILED: "Couldn't load your predictions right now. Try again?",
   PREDICTION_NOT_FOUND: "Hmm, couldn't find that prediction. It may have expired.",
-  PREDICTION_ALREADY_COMPLETED: "Looks like this prediction was already resolved.",
+  PREDICTION_ALREADY_COMPLETED: 'Looks like this prediction was already resolved.',
   PREDICTION_UPDATE_FAILED: "Couldn't update that prediction. Mind trying again?",
 
   // Memories

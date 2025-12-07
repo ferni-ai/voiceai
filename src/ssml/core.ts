@@ -1,21 +1,12 @@
 /**
  * SSML Core Functions
- * 
+ *
  * Main SSML tagging and sanitization functions.
  * These are the primary exports used throughout the application.
  */
 
-import {
-  FINANCIAL_PRONUNCIATIONS,
-  FINANCIAL_START,
-  FINANCIAL_END,
-} from './constants.js';
-import {
-  detectEmotion,
-  detectPacing,
-  detectVolume,
-  detectVocalCues,
-} from './detection.js';
+import { FINANCIAL_PRONUNCIATIONS, FINANCIAL_START, FINANCIAL_END } from './constants.js';
+import { detectEmotion, detectPacing, detectVolume, detectVocalCues } from './detection.js';
 import { clampSpeed, clampVolume } from './tags.js';
 
 // =============================================================================
@@ -27,7 +18,7 @@ import { clampSpeed, clampVolume } from './tags.js';
  */
 function applyFinancialPronunciations(text: string): string {
   let result = text;
-  
+
   for (const entry of FINANCIAL_PRONUNCIATIONS) {
     // Reset lastIndex for global regex
     entry.pattern.lastIndex = 0;
@@ -36,7 +27,7 @@ function applyFinancialPronunciations(text: string): string {
       return `${FINANCIAL_START}${entry.replacement}${FINANCIAL_END}`;
     });
   }
-  
+
   return result;
 }
 
@@ -106,11 +97,11 @@ export function sanitizeSsml(text: string): string {
     '[laughter] '
   );
   result = result.replace(/(?<!\[)\bchuckles?\b[,.!?:;—–-]?\s*/gi, '[laughter] ');
-  
+
   if (/chuckle/i.test(result)) {
     result = result.replace(/\bchuckles?\b/gi, '');
   }
-  
+
   result = result.replace(/(\[laughter\]\s*){2,}/gi, '[laughter] ');
 
   // ================================================
@@ -119,22 +110,22 @@ export function sanitizeSsml(text: string): string {
 
   // Remove parenthetical actions
   result = result.replace(/\([^)]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^)]*\)/gi, '');
-  
+
   // Remove bracketed actions (except [laughter])
   result = result.replace(
     /\[[^\]]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^\]]*\]/gi,
     ''
   );
-  
+
   // Remove asterisk actions
   result = result.replace(/\*[^*]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^*]*\*/gi, '');
-  
+
   // Remove common standalone stage directions
   result = result.replace(
     /\b(deep breath|long pause|brief pause|sighs heavily|clears throat)\b/gi,
     ''
   );
-  
+
   // Remove non-audio action verbs
   result = result.replace(
     /\b(sighs?|smiles?|grins?|nods?|pauses?|winks?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
@@ -144,7 +135,7 @@ export function sanitizeSsml(text: string): string {
     /\b(he|she|jack|i)\s+(sighs?|smiles?|grins?|pauses?|nods?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
     ''
   );
-  
+
   // Nuclear option for remaining action verbs
   result = result.replace(/\bsmiles?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bgrins?\b[,.!?:;—–-]?\s*/gi, '');
@@ -158,21 +149,21 @@ export function sanitizeSsml(text: string): string {
 
   // Fix malformed break tags
   result = result.replace(/<break\s+time="[^"<]*<[^"]*"\/>/g, '<break time="100ms"/>');
-  
+
   // Fix malformed speed/volume/emotion tags
   result = result.replace(/<speed\s+ratio="[^"<]*<[^"]*"\/>/g, '');
   result = result.replace(/<volume\s+ratio="[^"<]*<[^"]*"\/>/g, '');
   result = result.replace(/<emotion\s+value="[^"<]*<[^"]*"\/>/g, '');
-  
+
   // Clean up orphaned tag remnants
   result = result.replace(/(?<!")\s*\/>/g, '');
-  
+
   // Clean up doubled tags
   result = result.replace(/(<\w+[^>]*\/>)\1+/g, '$1');
-  
+
   // Clean up excessive breaks
   result = result.replace(/(<break time="[^"]*"\/>){3,}/g, '<break time="200ms"/>');
-  
+
   // Clean up multiple spaces
   result = result.replace(/\s{2,}/g, ' ');
 
@@ -195,10 +186,10 @@ interface SsmlTagOptions {
 
 /**
  * Tag text with SSML for natural speech
- * 
+ *
  * This is the main function used throughout the application.
  * It applies persona-aware SSML tagging to text.
- * 
+ *
  * @param text - The text to tag
  * @param optionsOrPersonaId - Either a personaId string or an options object
  * @returns Text with SSML tags applied
@@ -208,9 +199,8 @@ export function tagTextWithSsmlPersonaAware(
   optionsOrPersonaId?: string | SsmlTagOptions
 ): string {
   // Extract personaId from either form
-  const personaId = typeof optionsOrPersonaId === 'string'
-    ? optionsOrPersonaId
-    : optionsOrPersonaId?.personaId;
+  const personaId =
+    typeof optionsOrPersonaId === 'string' ? optionsOrPersonaId : optionsOrPersonaId?.personaId;
 
   if (!text || text.trim().length === 0) {
     return text;
@@ -269,18 +259,18 @@ export function tagTextWithSsmlPersonaAware(
  */
 function addBasicPauses(text: string): string {
   let result = text;
-  
+
   // Pause after sentences
   result = result.replace(/\.(\s+)([A-Z])/g, '.<break time="200ms"/>$1$2');
-  
+
   // Pause after questions
   result = result.replace(/\?(\s+)([A-Z])/g, '?<break time="250ms"/>$1$2');
-  
+
   // Pause after exclamations
   result = result.replace(/!(\s+)([A-Z])/g, '!<break time="200ms"/>$1$2');
-  
+
   // Brief pause at commas in longer clauses
   result = result.replace(/,(\s+)(\w{20,})/g, ',<break time="100ms"/>$1$2');
-  
+
   return result;
 }

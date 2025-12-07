@@ -1,6 +1,6 @@
 /**
  * SSML Tag Helpers
- * 
+ *
  * Helper functions for generating SSML tags.
  */
 
@@ -63,7 +63,7 @@ export function emotionTag(emotion: string): string {
     CARTESIA_EMOTIONS.AFFECTIONATE,
   ];
 
-  if (validEmotions.includes(emotion as typeof validEmotions[number])) {
+  if (validEmotions.includes(emotion as (typeof validEmotions)[number])) {
     return `<emotion value="${emotion}"/>`;
   }
   return '';
@@ -95,7 +95,7 @@ export function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
     surprised: CARTESIA_EMOTIONS.SURPRISED,
     curious: CARTESIA_EMOTIONS.CURIOUS,
     affectionate: CARTESIA_EMOTIONS.AFFECTIONATE,
-    
+
     // Extended mappings
     frustrated: CARTESIA_EMOTIONS.ANGRY,
     disappointed: CARTESIA_EMOTIONS.SAD,
@@ -111,7 +111,7 @@ export function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
     happy: CARTESIA_EMOTIONS.AFFECTIONATE,
     joyful: CARTESIA_EMOTIONS.AFFECTIONATE,
     grateful: CARTESIA_EMOTIONS.AFFECTIONATE,
-    
+
     // Neutral states (no emotion tag)
     neutral: CARTESIA_EMOTIONS.NEUTRAL,
     calm: CARTESIA_EMOTIONS.CALM,
@@ -127,29 +127,28 @@ export function mapToCartesiaEmotion(detected: string): CartesiaEmotion {
  */
 export function getContextualEmotion(text: string, baseEmotion: string): CartesiaEmotion {
   const lowerText = text.toLowerCase();
-  
+
   // Check for emotional context clues
   if (/\b(unfortunately|sadly|regret|sorry to|i'm afraid)\b/i.test(lowerText)) {
     return CARTESIA_EMOTIONS.SAD;
   }
-  
+
   if (/\b(great news|wonderful|fantastic|exciting|thrilled)\b/i.test(lowerText)) {
     return CARTESIA_EMOTIONS.SURPRISED;
   }
-  
+
   if (/\b(hmm|interesting|tell me more|i wonder|what if)\b/i.test(lowerText)) {
     return CARTESIA_EMOTIONS.CURIOUS;
   }
-  
+
   if (/\b(i understand|i hear you|that's tough|i'm here|you're not alone)\b/i.test(lowerText)) {
     return CARTESIA_EMOTIONS.AFFECTIONATE;
   }
-  
+
   if (/\b(annoying|frustrating|ridiculous|unacceptable)\b/i.test(lowerText)) {
     return CARTESIA_EMOTIONS.ANGRY;
   }
-  
+
   // Fall back to mapped base emotion
   return mapToCartesiaEmotion(baseEmotion);
 }
-

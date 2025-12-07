@@ -1,6 +1,6 @@
 /**
  * SSML Module Index
- * 
+ *
  * Re-exports all SSML functionality for backwards compatibility.
  * The main ssml-tagger.ts file imports from this module.
  */
@@ -25,12 +25,7 @@ export {
 } from './tags.js';
 
 // Detection
-export {
-  detectEmotion,
-  detectPacing,
-  detectVolume,
-  detectVocalCues,
-} from './detection.js';
+export { detectEmotion, detectPacing, detectVolume, detectVocalCues } from './detection.js';
 
 // Core functionality
 export {

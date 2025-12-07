@@ -129,12 +129,15 @@ function adjustExistingSsml(text: string, context: SpeechContext): string {
   // FIX BUG #voice-15: Use more robust regex patterns that handle edge cases
   try {
     // Adjust speed ratios (handling both self-closing and regular syntax)
-    result = result.replace(/<speed\s+ratio="([\d.]+)"\s*\/?>/gi, (match: string, ratio: string) => {
-      const original = parseFloat(ratio);
-      if (isNaN(original)) return match; // Skip if can't parse
-      const adjusted = original * context.baseSpeed * context.energyMultiplier;
-      return `<speed ratio="${Math.max(0.6, Math.min(1.2, adjusted)).toFixed(2)}"/>`;
-    });
+    result = result.replace(
+      /<speed\s+ratio="([\d.]+)"\s*\/?>/gi,
+      (match: string, ratio: string) => {
+        const original = parseFloat(ratio);
+        if (isNaN(original)) return match; // Skip if can't parse
+        const adjusted = original * context.baseSpeed * context.energyMultiplier;
+        return `<speed ratio="${Math.max(0.6, Math.min(1.2, adjusted)).toFixed(2)}"/>`;
+      }
+    );
 
     // Adjust break times based on pause multiplier
     result = result.replace(/<break\s+time="(\d+)ms"\s*\/?>/gi, (match: string, ms: string) => {

@@ -312,7 +312,7 @@ export function requireAuth(
   // Admin required but not admin
   if (requireAdmin && !auth.isAdmin) {
     log.warn({ url: req.url, userId: auth.userId }, 'Admin access required');
-    sendError(res, 'Admin access required', 403);  // Keep technical for admin
+    sendError(res, 'Admin access required', 403); // Keep technical for admin
     return null;
   }
 

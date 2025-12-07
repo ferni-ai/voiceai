@@ -1,6 +1,6 @@
 /**
  * SSML Detection
- * 
+ *
  * Functions for detecting emotion, pacing, volume, and vocal cues in text.
  */
 
@@ -162,7 +162,7 @@ export function detectVocalCues(text: string): DetectedVocalCues {
       laughterCount += matches.length;
     }
   }
-  
+
   const hasLaughter = laughterCount > 0;
   const hasSigh = SIGH_PATTERNS.some((pattern) => pattern.test(text));
   const hasDisfluency = DISFLUENCY_PATTERNS.some((pattern) => pattern.test(text));
@@ -170,8 +170,13 @@ export function detectVocalCues(text: string): DetectedVocalCues {
   const hasSarcasm = SARCASTIC_PATTERNS.some((pattern) => pattern.test(text));
 
   // Reset lastIndex for all patterns (they have /g flag)
-  [...LAUGHTER_PATTERNS, ...SIGH_PATTERNS, ...DISFLUENCY_PATTERNS, 
-   ...REPETITION_PATTERNS, ...SARCASTIC_PATTERNS].forEach((p) => {
+  [
+    ...LAUGHTER_PATTERNS,
+    ...SIGH_PATTERNS,
+    ...DISFLUENCY_PATTERNS,
+    ...REPETITION_PATTERNS,
+    ...SARCASTIC_PATTERNS,
+  ].forEach((p) => {
     p.lastIndex = 0;
   });
 
@@ -184,4 +189,3 @@ export function detectVocalCues(text: string): DetectedVocalCues {
     laughterCount,
   };
 }
-
