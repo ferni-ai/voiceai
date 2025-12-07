@@ -242,9 +242,9 @@ button { font-family: inherit; cursor: pointer; }
 
 .headline-xl {
   font-family: var(--font-display);
-  font-size: clamp(56px, 12vw, 120px); /* Apple-level hero typography */
+  font-size: clamp(64px, 14vw, 140px); /* Even bigger - Flow-level impact */
   font-weight: 800;
-  line-height: 1.02; /* Tighter for massive headlines */
+  line-height: 0.95; /* Tighter for massive headlines */
   letter-spacing: -0.04em; /* Apple-tight tracking */
   color: var(--color-text);
   text-rendering: optimizeLegibility;
@@ -268,19 +268,40 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .text-gradient {
+  /* Rich green gradient - saturated for contrast */
   background: linear-gradient(
     135deg, 
-    var(--color-accent) 0%, 
-    var(--color-moss) 30%,
-    var(--color-accent-hover) 50%,
-    var(--color-moss) 70%,
-    var(--color-accent) 100%
+    #1a3520 0%,      /* Very deep forest */
+    #2a4a32 30%,     /* Dark moss */
+    #1d3a25 50%,     /* Deepest sage */
+    #2a5235 70%,     /* Rich forest */
+    #1a3520 100%     /* Back to deep */
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: shimmer 8s linear infinite;
+  /* Position for pseudo-element technique */
+  position: relative;
+  display: inline-block;
+}
+
+/* White glow pseudo-element behind gradient text for readability */
+.text-gradient::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  /* Solid white text as a glowing backdrop */
+  color: rgba(255, 255, 255, 0.9);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.9);
+  z-index: -1;
+  /* Multiple text shadows create glow effect */
+  text-shadow: 
+    0 0 20px rgba(255, 255, 255, 1),
+    0 0 40px rgba(255, 255, 255, 0.9),
+    0 0 60px rgba(255, 255, 255, 0.7),
+    0 0 80px rgba(255, 255, 255, 0.5);
 }
 
 @keyframes shimmer {
@@ -380,6 +401,24 @@ button { font-family: inherit; cursor: pointer; }
 .btn-glow {
   position: relative;
   overflow: hidden;
+  /* Zen breathing animation - subtle, alive, human */
+  animation: zenBreathe 4s ease-in-out infinite;
+}
+
+@keyframes zenBreathe {
+  0%, 100% { 
+    box-shadow: 
+      0 2px 8px rgba(45, 90, 61, 0.25),
+      0 4px 20px var(--color-accent-glow),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 4px 16px rgba(45, 90, 61, 0.35),
+      0 8px 32px var(--color-accent-glow),
+      0 0 60px rgba(74, 103, 65, 0.15),
+      inset 0 1px 0 rgba(255,255,255,0.15);
+  }
 }
 
 .btn-glow::before {
@@ -397,10 +436,14 @@ button { font-family: inherit; cursor: pointer; }
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
   opacity: 0;
   transition: opacity 400ms var(--ease-apple);
   pointer-events: none;
+}
+
+.btn-glow:hover {
+  animation-play-state: paused; /* Pause breathing on hover for direct feedback */
 }
 
 .btn-glow:hover::after {
@@ -408,13 +451,19 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .btn-ghost {
-  background: transparent;
-  color: var(--color-text-secondary);
+  background: rgba(255, 253, 250, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--color-text);
   padding: 14px 24px;
+  border: 1px solid rgba(44, 37, 32, 0.1);
+  transition: all var(--transition-base);
 }
 
 .btn-ghost:hover {
+  background: rgba(255, 253, 250, 0.85);
   color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .btn-large {
@@ -792,14 +841,21 @@ button { font-family: inherit; cursor: pointer; }
   opacity: 0.7;
 }
 
-/* Omnichannel Links */
+/* Omnichannel Links - Hidden on desktop for cleaner hero, show on mobile */
 .hero-channels {
-  display: flex;
+  display: none; /* Hide by default - redundant with buttons above */
   align-items: center;
   justify-content: center;
   gap: 16px;
   margin-top: 48px;
   flex-wrap: wrap;
+}
+
+/* Show on mobile where buttons might stack */
+@media (max-width: 480px) {
+  .hero-channels {
+    display: flex;
+  }
 }
 
 .channels-label {
@@ -1076,15 +1132,38 @@ button { font-family: inherit; cursor: pointer; }
 .hero-content-wrapper .hero-buttons,
 .hero-content-wrapper .hero-channels {
   text-shadow: 
-    0 2px 20px rgba(250, 248, 245, 0.9),
-    0 4px 40px rgba(250, 248, 245, 0.6);
+    0 1px 2px rgba(255, 253, 250, 1),
+    0 2px 8px rgba(255, 253, 250, 0.95),
+    0 4px 20px rgba(255, 253, 250, 0.85),
+    0 8px 40px rgba(255, 253, 250, 0.6);
 }
 
-/* Stronger visibility for description text */
+/* Even stronger visibility for description text */
 .hero-content-wrapper .hero-description {
   text-shadow: 
-    0 1px 10px rgba(250, 248, 245, 0.95),
-    0 2px 30px rgba(250, 248, 245, 0.8);
+    0 1px 3px rgba(255, 253, 250, 1),
+    0 2px 12px rgba(255, 253, 250, 0.95),
+    0 4px 24px rgba(255, 253, 250, 0.8);
+}
+
+/* Add subtle backdrop for better readability on any background */
+.hero-content-wrapper .hero-text {
+  position: relative;
+}
+
+.hero-content-wrapper .hero-text::before {
+  content: '';
+  position: absolute;
+  inset: -40px -60px;
+  background: radial-gradient(
+    ellipse 100% 100% at center,
+    rgba(255, 253, 250, 0.4) 0%,
+    rgba(255, 253, 250, 0.2) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .hero-content-wrapper .btn {

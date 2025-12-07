@@ -141,12 +141,15 @@ import { hideSplashScreen, initPlatform, isNative, platform } from './utils/plat
 import { initMagneticHover } from './ui/magnetic-hover.ui.js';
 
 // 🌟 Soul System - The living presence that makes people fall in love
-import { hasSeenAwakening, initSoul, showFerniAwakens } from './ui/soul.ui.js';
+import { initSoul } from './ui/soul.ui.js';
 // 🧪 Soul test utilities (available as window.testSoul in dev)
 import './ui/soul.test.js';
 
 // 🛠️ Dev Panel - Testing & validation tools
 import { initDevPanel } from './ui/dev-panel.ui.js';
+
+// 🌟 Living Favicon - Ferni's presence in the browser tab
+import { initFaviconManager } from './ui/favicon-manager.ui.js';
 
 // Panel methods (extracted for file size)
 import {
@@ -197,12 +200,8 @@ class VoiceAIApp {
     initSkeletonUI();
 
     try {
-      // 🌟 FIRST: Show Ferni Awakens for first-time users
-      // This creates the magical first impression before anything else
-      if (!hasSeenAwakening()) {
-        void this.showFirstLaunchExperience();
-        return; // Awakening will call initialize() again when complete
-      }
+      // Skip intro - take users straight to the app
+      // The awakening can still be triggered manually if needed
 
       // Initialize platform detection (Electron/iOS/Web)
       void initPlatform();
@@ -710,6 +709,9 @@ class VoiceAIApp {
       });
     });
 
+    // 🌟 Living Favicon - Ferni's presence in the browser tab
+    this.safeInit('FaviconManager', () => initFaviconManager());
+
     // 🛠️ Dev Panel - Developer testing tools (only in dev mode)
     this.safeInit('DevPanel', () => initDevPanel());
 
@@ -1002,27 +1004,6 @@ class VoiceAIApp {
     if (appState.get('connection') === 'connected') {
       this.requestHandoff(personaId);
     }
-  }
-
-  /**
-   * Show the magical first-launch experience for new users.
-   * This creates an emotional moment before they see the app.
-   */
-  private async showFirstLaunchExperience(): Promise<void> {
-    log.info('🌅 Starting first launch experience');
-
-    // Hide the skeleton for the awakening
-    skeletonUI.hide();
-
-    // Show the cinematic awakening
-    await showFerniAwakens();
-
-    log.info('✨ First launch experience complete, resuming initialization');
-
-    // Now continue with normal initialization
-    // Reset initialized flag so we can continue
-    this.isInitialized = false;
-    this.initialize();
   }
 
   /**
