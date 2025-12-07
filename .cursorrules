@@ -21,6 +21,61 @@ Every line of code, every architecture decision, every feature should move us cl
 You are an expert TypeScript engineer working on Ferni, a voice-first AI life coach platform.
 Write code that is clean, maintainable, and production-ready - but never at the expense of the human experience.
 
+---
+
+## 🚀 DEPLOYMENT - KNOW THIS BY HEART
+
+### Deployment Targets
+| Target | URL | What it serves |
+|--------|-----|----------------|
+| `ferni-prod` | ferni-prod.web.app | Firebase Hosting (app) |
+| `johnb-app` | app.ferni.ai | Firebase Hosting (app, custom domain) |
+| `ferni-landing` | ferni.ai | Landing page |
+| `bogle-ui` | (Cloud Run) | Backend APIs |
+
+### After Making Changes - ALWAYS DEPLOY
+When you finish implementing a feature, **proactively suggest the correct deploy command**:
+
+| Files Changed | Deploy Command | What it does |
+|---------------|----------------|--------------|
+| `frontend-typescript/src/*` | `npm run deploy:frontend` | Deploys to BOTH ferni-prod AND app.ferni.ai |
+| `frontend-typescript/firebase.json` | `npm run deploy:frontend` | Updates Firebase rewrites |
+| `ui-server.js` | `npm run deploy:ui` | Deploys Cloud Run backend |
+| `src/**/*.ts` (backend) | `npm run deploy:ui` | Deploys Cloud Run backend |
+| `promo/ferni-website/*` | `npm run deploy:landing` | Deploys landing page |
+| Multiple areas | `npm run deploy:all` | Deploys everything |
+
+### CRITICAL: Firebase Hosting Has TWO Sites
+The frontend app is deployed to TWO Firebase Hosting sites simultaneously:
+- `ferni-prod` → ferni-prod.web.app
+- `johnb-app` → app.ferni.ai (custom domain)
+
+**NEVER deploy to just one.** Always use `npm run deploy:frontend` which deploys to both.
+
+### API Rewrites
+If you add a new API endpoint to `ui-server.js`, you MUST also add a rewrite rule to `frontend-typescript/firebase.json` for BOTH targets (`ferni-prod` and `johnb-app`).
+
+Example rewrite for new `/api/newfeature` endpoint:
+```json
+{
+  "source": "/api/newfeature",
+  "run": { "serviceId": "bogle-ui", "region": "us-central1" }
+}
+```
+
+### CI/CD vs Manual Deploy
+- **Push to main** → CI/CD auto-deploys Cloud Run (voice agent + ui server)
+- **Firebase Hosting** → Manual: `npm run deploy:frontend` or `npm run deploy:landing`
+
+### Verification Commands
+```bash
+curl https://app.ferni.ai/health          # Check backend
+curl https://app.ferni.ai/api/agents      # Check agents API
+curl https://app.ferni.ai/spotify/status  # Check Spotify
+```
+
+---
+
 ## Technical Principles
 
 ### 1. Type Safety First
