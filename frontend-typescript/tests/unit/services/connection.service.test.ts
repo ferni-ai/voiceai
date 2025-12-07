@@ -39,10 +39,6 @@ vi.mock('../../../src/utils/logger.js', () => ({
   })),
 }));
 
-vi.mock('../../../src/utils/fetch-retry.js', () => ({
-  isOffline: vi.fn(() => false),
-}));
-
 vi.mock('../../../src/utils/platform.js', () => ({
   lockToPortrait: vi.fn(),
   unlockOrientation: vi.fn(),
@@ -189,26 +185,12 @@ describe('ConnectionService', () => {
       expect(mockRoom.connect).toHaveBeenCalled();
     });
 
-    it('should retry token fetch on network errors', async () => {
-      const mockTokenResponse: TokenResponse = {
-        token: 'test-token',
-        url: 'wss://test.livekit.cloud',
-        room: 'voice-12345',
-        username: 'Test User',
-      };
-
-      // First call fails, second succeeds
-      mockFetch
-        .mockRejectedValueOnce(new Error('Network timeout'))
-        .mockResolvedValueOnce({
-          ok: true,
-          json: vi.fn().mockResolvedValue(mockTokenResponse),
-        });
+    it('should fail on network errors', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('Network timeout'));
 
       const result = await connectionService.connect();
 
-      expect(result).toBe(true);
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(result).toBe(false);
     });
 
     it('should not retry on 4xx client errors', async () => {
@@ -224,39 +206,16 @@ describe('ConnectionService', () => {
       expect(mockFetch).toHaveBeenCalledOnce(); // No retry
     });
 
-    it('should retry on 5xx server errors', async () => {
-      const mockTokenResponse: TokenResponse = {
-        token: 'test-token',
-        url: 'wss://test.livekit.cloud',
-        room: 'voice-12345',
-        username: 'Test User',
-      };
-
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 500,
-          text: vi.fn().mockResolvedValue('Server Error'),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: vi.fn().mockResolvedValue(mockTokenResponse),
-        });
-
-      const result = await connectionService.connect();
-
-      expect(result).toBe(true);
-      expect(mockFetch).toHaveBeenCalledTimes(2);
-    });
-
-    it('should handle offline state', async () => {
-      const { isOffline } = await import('../../../src/utils/fetch-retry.js');
-      vi.mocked(isOffline).mockReturnValueOnce(true);
+    it('should fail on 5xx server errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: vi.fn().mockResolvedValue('Server Error'),
+      });
 
       const result = await connectionService.connect();
 
       expect(result).toBe(false);
-      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('should skip already connected rooms', async () => {
@@ -786,40 +745,5 @@ describe('ConnectionService', () => {
     });
   });
 
-  describe('getLocalAudioTrack()', () => {
-    it('should return null when not connected', () => {
-      const track = connectionService.getLocalAudioTrack();
-      expect(track).toBeNull();
-    });
-
-    it('should return audio track when available', async () => {
-      const mockTokenResponse: TokenResponse = {
-        token: 'test-token',
-        url: 'wss://test.livekit.cloud',
-        room: 'voice-12345',
-        username: 'Test User',
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValue(mockTokenResponse),
-      });
-
-      const mockMediaStreamTrack = { id: 'audio-track-123' } as MediaStreamTrack;
-
-      mockRoom.localParticipant.getTrackPublications.mockReturnValueOnce([
-        {
-          kind: 'audio',
-          track: {
-            mediaStreamTrack: mockMediaStreamTrack,
-          },
-        },
-      ]);
-
-      await connectionService.connect();
-
-      const track = connectionService.getLocalAudioTrack();
-      expect(track).toBe(mockMediaStreamTrack);
-    });
-  });
+  // Note: getLocalAudioTrack() was removed from the service
 });

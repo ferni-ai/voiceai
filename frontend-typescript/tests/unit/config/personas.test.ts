@@ -1,8 +1,8 @@
 /**
  * Personas Config Tests
- * 
+ *
  * Tests for persona configuration and helpers.
- * Uses canonical IDs: ferni, alex-chen, maya-santos, jordan-taylor, jack-bogle, peter-lynch
+ * Uses canonical IDs: ferni, alex-chen, maya-santos, jordan-taylor, peter-john, nayan-patel
  */
 
 import { describe, it, expect } from 'vitest';
@@ -23,34 +23,34 @@ describe('Personas Config', () => {
       expect(PERSONAS['ferni'].role).toBe('coach');
     });
 
-    it('should have jack-bogle persona', () => {
-      expect(PERSONAS['jack-bogle']).toBeDefined();
-      expect(PERSONAS['jack-bogle'].name).toBe('Jack');
-      expect(PERSONAS['jack-bogle'].role).toBe('team');
-    });
-
-    it('should have peter-lynch persona', () => {
-      expect(PERSONAS['peter-lynch']).toBeDefined();
-      expect(PERSONAS['peter-lynch'].name).toBe('Peter');
-      expect(PERSONAS['peter-lynch'].role).toBe('team');
+    it('should have peter-john persona', () => {
+      expect(PERSONAS['peter-john']).toBeDefined();
+      expect(PERSONAS['peter-john'].name).toBe('Peter John');
+      expect(PERSONAS['peter-john'].role).toBe('team');
     });
 
     it('should have alex-chen persona', () => {
       expect(PERSONAS['alex-chen']).toBeDefined();
-      expect(PERSONAS['alex-chen'].name).toBe('Alex');
+      expect(PERSONAS['alex-chen'].name).toBe('Alex Chen');
       expect(PERSONAS['alex-chen'].role).toBe('team');
     });
 
     it('should have maya-santos persona', () => {
       expect(PERSONAS['maya-santos']).toBeDefined();
-      expect(PERSONAS['maya-santos'].name).toBe('Maya');
+      expect(PERSONAS['maya-santos'].name).toBe('Maya Santos');
       expect(PERSONAS['maya-santos'].role).toBe('team');
     });
 
     it('should have jordan-taylor persona', () => {
       expect(PERSONAS['jordan-taylor']).toBeDefined();
-      expect(PERSONAS['jordan-taylor'].name).toBe('Jordan');
+      expect(PERSONAS['jordan-taylor'].name).toBe('Jordan Taylor');
       expect(PERSONAS['jordan-taylor'].role).toBe('team');
+    });
+
+    it('should have nayan-patel persona', () => {
+      expect(PERSONAS['nayan-patel']).toBeDefined();
+      expect(PERSONAS['nayan-patel'].name).toBe('Nayan');
+      expect(PERSONAS['nayan-patel'].role).toBe('team');
     });
 
     it('should be frozen/immutable', () => {
@@ -77,11 +77,13 @@ describe('Personas Config', () => {
       expect(ferni.id).toBe('ferni');
       expect(ferni.name).toBe('Ferni');
 
-      const jackBogle = getPersona('jack-bogle');
-      expect(jackBogle.id).toBe('jack-bogle');
+      const peterJohn = getPersona('peter-john');
+      expect(peterJohn.id).toBe('peter-john');
+      expect(peterJohn.name).toBe('Peter John');
 
-      const peter = getPersona('peter-lynch');
-      expect(peter.id).toBe('peter-lynch');
+      const alexChen = getPersona('alex-chen');
+      expect(alexChen.id).toBe('alex-chen');
+      expect(alexChen.name).toBe('Alex Chen');
     });
 
     it('should return coach for invalid ID', () => {
@@ -109,7 +111,7 @@ describe('Personas Config', () => {
   describe('getTeamMembers', () => {
     it('should return only team members', () => {
       const team = getTeamMembers();
-      
+
       expect(team.length).toBe(5);
       expect(team.every(p => p.role === 'team')).toBe(true);
     });
@@ -122,31 +124,31 @@ describe('Personas Config', () => {
     it('should include all team members', () => {
       const team = getTeamMembers();
       const ids = team.map(p => p.id);
-      
-      expect(ids).toContain('jack-bogle');
-      expect(ids).toContain('peter-lynch');
+
+      expect(ids).toContain('peter-john');
       expect(ids).toContain('alex-chen');
       expect(ids).toContain('maya-santos');
       expect(ids).toContain('jordan-taylor');
+      expect(ids).toContain('nayan-patel');
     });
   });
 
   describe('normalizeAgentId', () => {
     it('should normalize short IDs to canonical', () => {
-      expect(normalizeAgentId('jack')).toBe('jack-bogle');
-      expect(normalizeAgentId('peter')).toBe('peter-lynch');
+      expect(normalizeAgentId('peter')).toBe('peter-john');
       expect(normalizeAgentId('alex')).toBe('alex-chen');
       expect(normalizeAgentId('maya')).toBe('maya-santos');
       expect(normalizeAgentId('jordan')).toBe('jordan-taylor');
+      expect(normalizeAgentId('nayan')).toBe('nayan-patel');
     });
 
     it('should pass through canonical IDs', () => {
       expect(normalizeAgentId('ferni')).toBe('ferni');
-      expect(normalizeAgentId('jack-bogle')).toBe('jack-bogle');
-      expect(normalizeAgentId('peter-lynch')).toBe('peter-lynch');
+      expect(normalizeAgentId('peter-john')).toBe('peter-john');
       expect(normalizeAgentId('alex-chen')).toBe('alex-chen');
       expect(normalizeAgentId('maya-santos')).toBe('maya-santos');
       expect(normalizeAgentId('jordan-taylor')).toBe('jordan-taylor');
+      expect(normalizeAgentId('nayan-patel')).toBe('nayan-patel');
     });
 
     it('should return coach (ferni) for unknown IDs', () => {
@@ -160,22 +162,24 @@ describe('Personas Config', () => {
     });
 
     it('should map legacy IDs to canonical IDs', () => {
-      // Legacy jack-b → ferni
+      // Legacy jack-b -> ferni
       expect(normalizeAgentId('jack-b')).toBe('ferni');
-      // Legacy comm-specialist → alex-chen
+      // Legacy peter-lynch -> peter-john
+      expect(normalizeAgentId('peter-lynch')).toBe('peter-john');
+      // Legacy comm-specialist -> alex-chen
       expect(normalizeAgentId('comm-specialist')).toBe('alex-chen');
-      // Legacy spend-save → maya-santos
+      // Legacy spend-save -> maya-santos
       expect(normalizeAgentId('spend-save')).toBe('maya-santos');
-      // Legacy event-planner → jordan-taylor
+      // Legacy event-planner -> jordan-taylor
       expect(normalizeAgentId('event-planner')).toBe('jordan-taylor');
     });
 
     it('should map backend legacy aliases to canonical IDs', () => {
-      // generic-advisor → alex-chen
+      // generic-advisor -> alex-chen
       expect(normalizeAgentId('generic-advisor')).toBe('alex-chen');
-      // debt-counselor → maya-santos
+      // debt-counselor -> maya-santos
       expect(normalizeAgentId('debt-counselor')).toBe('maya-santos');
-      // retirement-specialist → jordan-taylor
+      // retirement-specialist -> jordan-taylor
       expect(normalizeAgentId('retirement-specialist')).toBe('jordan-taylor');
     });
 
@@ -192,6 +196,11 @@ describe('Personas Config', () => {
     it('should normalize jordan aliases', () => {
       expect(normalizeAgentId('events')).toBe('jordan-taylor');
       expect(normalizeAgentId('retirement')).toBe('jordan-taylor');
+    });
+
+    it('should normalize nayan aliases', () => {
+      expect(normalizeAgentId('guru')).toBe('nayan-patel');
+      expect(normalizeAgentId('mystic')).toBe('nayan-patel');
     });
   });
 });

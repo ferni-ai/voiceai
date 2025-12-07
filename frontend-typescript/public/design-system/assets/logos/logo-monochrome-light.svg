@@ -1,0 +1,21 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Monochrome version for light backgrounds (dark logo) -->
+  
+  <!-- Outer ring -->
+  <circle cx="60" cy="60" r="54" fill="none" stroke="#1a1a2e" stroke-width="1" opacity="0.15"/>
+  
+  <!-- Main orb -->
+  <circle cx="60" cy="60" r="46" fill="#1a1a2e"/>
+  
+  <!-- Sound wave mark (white on dark) -->
+  <g fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="60" cy="60" r="5" fill="white"/>
+    <path d="M 50 60 Q 50 52, 60 52 Q 70 52, 70 60" stroke-width="2.5" opacity="0.95"/>
+    <path d="M 50 60 Q 50 68, 60 68 Q 70 68, 70 60" stroke-width="2.5" opacity="0.95"/>
+    <path d="M 44 60 Q 44 48, 60 48 Q 76 48, 76 60" stroke-width="2" opacity="0.7"/>
+    <path d="M 44 60 Q 44 72, 60 72 Q 76 72, 76 60" stroke-width="2" opacity="0.7"/>
+    <path d="M 38 60 Q 38 44, 60 44 Q 82 44, 82 60" stroke-width="1.5" opacity="0.4"/>
+    <path d="M 38 60 Q 38 76, 60 76 Q 82 76, 82 60" stroke-width="1.5" opacity="0.4"/>
+  </g>
+</svg>
+

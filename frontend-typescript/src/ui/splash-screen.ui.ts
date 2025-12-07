@@ -23,12 +23,15 @@ const log = createLogger('SplashScreen');
 
 const SPLASH_ID = 'ferni-splash-screen';
 
+// Note: These colors are CSS variable fallbacks for the splash screen,
+// which may render before the design system is fully loaded.
+// The values should match tokens.css: --color-background-primary, etc.
 const COLORS = {
-  background: '#F5F1E8',  // Paper cream
-  sage: '#4a6741',
-  sageLight: '#5a8060',
-  ink: '#2c2520',
-  white: '#ffffff',
+  background: 'var(--color-background-primary, #F5F1E8)',
+  sage: 'var(--persona-primary, #4a6741)',
+  sageLight: 'var(--persona-secondary, #5a8060)',
+  ink: 'var(--color-text-primary, #2c2520)',
+  white: 'var(--color-background-elevated, #ffffff)',
 };
 
 // ============================================================================
@@ -99,7 +102,8 @@ async function runSplashAnimation(container: HTMLElement): Promise<void> {
   ], 600, EASING.SPRING);
   
   // Phase 2: Eye "wakes up" - pupil dilates and looks around (600-1600ms)
-  animatePhase(pupilGroup, [
+  // Runs in parallel with Phase 2b (void marks this as intentional fire-and-forget)
+  void animatePhase(pupilGroup, [
     { transform: 'scale(1)' },
     { transform: 'scale(0.8)', offset: 0.2 },  // Dilate
     { transform: 'scale(1) translateX(4px)', offset: 0.4 },  // Look right
@@ -195,7 +199,7 @@ function getSplashStyles(): string {
   return `
     position: fixed;
     inset: 0;
-    z-index: 99999;
+    z-index: var(--z-system);
     display: flex;
     align-items: center;
     justify-content: center;

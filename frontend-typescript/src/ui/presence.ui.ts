@@ -438,7 +438,7 @@ function updateBreathingAnimation(): void {
   startBreathingAnimation();
   
   // Restore phase position (adjusted for new duration)
-  if (breathingAnimation && currentPhase !== null && currentPhase !== undefined) {
+  if (breathingAnimation && currentPhase !== undefined) {
     const newDuration = getBreathingDuration();
     const phaseTime = Number(currentPhase);
     const phaseRatio = (phaseTime % oldDuration) / oldDuration;

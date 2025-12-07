@@ -224,12 +224,12 @@ class NotificationSettingsUI {
       if (this.localPrefs?.enabled) {
         group.classList.remove('notif-settings__group--disabled');
         group.querySelectorAll('input').forEach(input => {
-          (input as HTMLInputElement).disabled = false;
+          (input).disabled = false;
         });
       } else {
         group.classList.add('notif-settings__group--disabled');
         group.querySelectorAll('input').forEach(input => {
-          (input as HTMLInputElement).disabled = true;
+          (input).disabled = true;
         });
       }
     });

@@ -50,10 +50,10 @@ export function initSpotifyUI(): void {
   spotifyService.onStateChange(handleStateChange);
 
   // Check Spotify link status on init
-  checkSpotifyStatus();
+  void checkSpotifyStatus();
 
   // Handle URL parameters (after OAuth callback)
-  handleOAuthCallback();
+  void handleOAuthCallback();
 
   // Set up link button click handler
   if (linkButton) {

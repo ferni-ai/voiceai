@@ -3,10 +3,27 @@
 ## Quick Reference
 ```bash
 npm run quality      # Typecheck + lint + format + test (run before commits)
+npm run quality:check # Code quality metrics (as any, console.log, file size)
+npm run quality:arch  # Architecture layer validation
+npm run quality:full  # All checks combined
 npm run typecheck    # TypeScript only
 npm run lint:fix     # Auto-fix lint issues
 npm test             # Vitest (60% coverage required)
 ```
+
+## Automated Quality Gates
+
+Pre-commit hooks validate both backend and frontend code. CI enforces all quality gates.
+
+| Check | Threshold | Script |
+|-------|-----------|--------|
+| TypeScript errors | 0 | `npm run typecheck` |
+| ESLint errors | 0 | `npm run lint` |
+| `as any` assertions | ≤30 | `npm run quality:check` |
+| `console.*` usage | ≤100 | `npm run quality:check` |
+| File size | ≤500 lines | `npm run quality:check` |
+| Layer violations | 0 | `npm run quality:arch` |
+| Design tokens (frontend) | 0 | `cd frontend-typescript && npm run lint:tokens` |
 
 ## 🚀 Development Servers (MUST RUN ALL 3)
 ```bash
@@ -97,15 +114,30 @@ Cmd/Ctrl+Shift+R  # Reset to free tier
 | Booleans | `is`/`has`/`can` prefix | `isActive`, `hasPermission` |
 
 ## Architecture Layers
+
+Import rules: Lower layers CANNOT import from higher layers (enforced by `npm run quality:arch`).
+
 ```
-agents/           → Voice agent implementations
-personas/         → Persona bundles + cognitive profiles
-intelligence/     → Context builders (emotion, memory, topics)
-services/         → Business logic, DI container, session mgmt
-memory/           → Storage: Firestore, Postgres, Redis, embeddings
-tools/            → 35+ LLM tools organized by domain
-conversation/     → Conversation state, quality tracking
-speech/           → Audio prosody, emotion detection, SSML
+Level 100 (Application):
+  agents/           → Voice agent implementations
+  api/              → API routes
+  cli/              → CLI tools
+
+Level 70 (Domain - peers can import each other):
+  personas/         → Persona bundles + cognitive profiles
+  intelligence/     → Context builders (emotion, memory, topics)
+  tools/            → 35+ LLM tools organized by domain
+  conversation/     → Conversation state, quality tracking
+  speech/           → Audio prosody, emotion detection, SSML
+
+Level 60 (Service):
+  services/         → Business logic, DI container, session mgmt
+
+Level 10-30 (Infrastructure):
+  memory/           → Storage: Firestore, Postgres, Redis, embeddings
+  config/           → Configuration
+  utils/            → Shared utilities
+  types/            → Type definitions
 ```
 
 ## Before Creating New Files

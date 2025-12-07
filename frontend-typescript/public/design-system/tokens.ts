@@ -6,7 +6,7 @@
  */
 
 export type ThemeName = 'midnight' | 'zen';
-export type PersonaId = 'ferni' | 'peter-john' | 'alex-chen' | 'maya-santos' | 'jordan-taylor' | 'nayan-patel';
+export type PersonaId = '_description' | 'ferni' | 'jack-bogle' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
 
 export interface ThemeMeta {
   name: string;
@@ -16,8 +16,8 @@ export interface ThemeMeta {
 
 export const THEMES: Record<ThemeName, ThemeMeta> = {
   "midnight": {
-    "name": "Midnight Gold",
-    "description": "Warm dark theme with golden light - like candlelit evening",
+    "name": "Cedar Night",
+    "description": "Warm cedar wood tones - Japanese zen garden under moonlight, open and welcoming",
     "mode": "dark"
   },
   "zen": {
@@ -27,7 +27,7 @@ export const THEMES: Record<ThemeName, ThemeMeta> = {
   }
 };
 
-export const PERSONA_IDS: PersonaId[] = ["ferni","alex-chen","jordan-taylor","maya-santos","nayan-patel","peter-john"];
+export const PERSONA_IDS: PersonaId[] = ["_description","ferni","jack-bogle","peter-lynch","alex-chen","maya-santos","jordan-taylor"];
 
 // ============================================================================
 // PIXAR ANIMATION CONSTANTS
@@ -135,7 +135,7 @@ export interface PersonaAnimationProfile {
   celebrationIntensity: string;
 }
 
-export type PersonaAnimationId = 'ferni' | 'peter-john' | 'alex-chen' | 'maya-santos' | 'jordan-taylor' | 'nayan-patel';
+export type PersonaAnimationId = 'ferni' | 'jack-bogle' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
 
 /**
  * Persona ID mapping - maps legacy frontend IDs to canonical design system IDs.
@@ -146,15 +146,12 @@ export const PERSONA_ID_MAPPING: Record<string, PersonaAnimationId> = {
   "comm-specialist": "alex-chen",
   "spend-save": "maya-santos",
   "event-planner": "jordan-taylor",
+  "jack-bogle": "jack-bogle",
+  "peter-lynch": "peter-lynch",
   "ferni": "ferni",
   "alex-chen": "alex-chen",
   "maya-santos": "maya-santos",
-  "jordan-taylor": "jordan-taylor",
-  "peter-john": "peter-john",
-  "nayan-patel": "nayan-patel",
-  // Legacy mappings
-  "peter-lynch": "peter-john",
-  "jack-bogle": "nayan-patel"
+  "jordan-taylor": "jordan-taylor"
 };
 
 /**
@@ -178,6 +175,22 @@ export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnima
     "thinkingStyle": "curious-tilt",
     "celebrationIntensity": "warm"
   },
+  "jack-bogle": {
+    "description": "Wise, measured, deliberate - like Carl from Up reflecting",
+    "timingMultiplier": 1.4,
+    "bounciness": 0.3,
+    "easingPreference": "gentle",
+    "thinkingStyle": "contemplative-pause",
+    "celebrationIntensity": "subtle"
+  },
+  "peter-lynch": {
+    "description": "Energetic, practical, quick - like Linguini's nervous energy",
+    "timingMultiplier": 0.8,
+    "bounciness": 0.6,
+    "easingPreference": "easeOutBack",
+    "thinkingStyle": "rapid-process",
+    "celebrationIntensity": "enthusiastic"
+  },
   "alex-chen": {
     "description": "Thoughtful, articulate, empathetic - like Joy explaining emotions",
     "timingMultiplier": 1.1,
@@ -185,14 +198,6 @@ export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnima
     "easingPreference": "smooth",
     "thinkingStyle": "careful-consideration",
     "celebrationIntensity": "warm"
-  },
-  "jordan-taylor": {
-    "description": "Creative, enthusiastic, expressive - like Dory's joyful energy",
-    "timingMultiplier": 0.85,
-    "bounciness": 0.8,
-    "easingPreference": "elastic",
-    "thinkingStyle": "brainstorm-burst",
-    "celebrationIntensity": "exuberant"
   },
   "maya-santos": {
     "description": "Organized, practical, steady - like EVE when focused",
@@ -202,21 +207,13 @@ export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnima
     "thinkingStyle": "methodical",
     "celebrationIntensity": "satisfied"
   },
-  "nayan-patel": {
-    "description": "Wise, measured, deliberate - like Carl from Up reflecting",
-    "timingMultiplier": 1.4,
-    "bounciness": 0.3,
-    "easingPreference": "gentle",
-    "thinkingStyle": "contemplative-pause",
-    "celebrationIntensity": "subtle"
-  },
-  "peter-john": {
-    "description": "Energetic, practical, quick - like Linguini's nervous energy",
-    "timingMultiplier": 0.8,
-    "bounciness": 0.6,
-    "easingPreference": "easeOutBack",
-    "thinkingStyle": "rapid-process",
-    "celebrationIntensity": "enthusiastic"
+  "jordan-taylor": {
+    "description": "Creative, enthusiastic, expressive - like Dory's joyful energy",
+    "timingMultiplier": 0.85,
+    "bounciness": 0.8,
+    "easingPreference": "elastic",
+    "thinkingStyle": "brainstorm-burst",
+    "celebrationIntensity": "exuberant"
   }
 };
 
@@ -286,30 +283,30 @@ export const WAVEFORM_PROFILES: Record<string, WaveformProfile> = {
     "smoothing": 0.7,
     "speed": 1
   },
+  "jack-bogle": {
+    "energy": 0.6,
+    "smoothing": 0.8,
+    "speed": 0.85
+  },
+  "peter-lynch": {
+    "energy": 0.9,
+    "smoothing": 0.55,
+    "speed": 1.2
+  },
   "alex-chen": {
     "energy": 0.7,
     "smoothing": 0.75,
     "speed": 1
-  },
-  "jordan-taylor": {
-    "energy": 0.95,
-    "smoothing": 0.5,
-    "speed": 1.15
   },
   "maya-santos": {
     "energy": 0.65,
     "smoothing": 0.8,
     "speed": 0.95
   },
-  "nayan-patel": {
-    "energy": 0.6,
-    "smoothing": 0.8,
-    "speed": 0.85
-  },
-  "peter-john": {
-    "energy": 0.9,
-    "smoothing": 0.55,
-    "speed": 1.2
+  "jordan-taylor": {
+    "energy": 0.95,
+    "smoothing": 0.5,
+    "speed": 1.15
   },
   "default": {
     "energy": 0.75,
@@ -369,6 +366,40 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
     "wobble": true,
     "description": "Warm welcoming energy"
   },
+  "jack-bogle": {
+    "speed": {
+      "min": 0.2,
+      "max": 0.6
+    },
+    "direction": "top",
+    "size": {
+      "min": 2,
+      "max": 5
+    },
+    "count": 25,
+    "shape": "circle",
+    "glow": true,
+    "twinkle": false,
+    "wobble": false,
+    "description": "Steady upward growth"
+  },
+  "peter-lynch": {
+    "speed": {
+      "min": 1,
+      "max": 3
+    },
+    "direction": "none",
+    "size": {
+      "min": 2,
+      "max": 6
+    },
+    "count": 45,
+    "shape": "star",
+    "glow": true,
+    "twinkle": true,
+    "wobble": true,
+    "description": "Dynamic research energy"
+  },
   "alex-chen": {
     "speed": {
       "min": 0.5,
@@ -386,6 +417,23 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
     "wobble": false,
     "description": "Flowing organization"
   },
+  "maya-santos": {
+    "speed": {
+      "min": 0.3,
+      "max": 0.8
+    },
+    "direction": "top",
+    "size": {
+      "min": 3,
+      "max": 6
+    },
+    "count": 28,
+    "shape": "circle",
+    "glow": true,
+    "twinkle": true,
+    "wobble": true,
+    "description": "Journey planning"
+  },
   "jordan-taylor": {
     "speed": {
       "min": 1,
@@ -402,57 +450,6 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
     "twinkle": true,
     "wobble": true,
     "description": "Celebration sparkles"
-  },
-  "maya-santos": {
-    "speed": {
-      "min": 0.3,
-      "max": 0.8
-    },
-    "direction": "top",
-    "size": {
-      "min": 3,
-      "max": 6
-    },
-    "count": 28,
-    "shape": "circle",
-    "glow": true,
-    "twinkle": true,
-    "wobble": true,
-    "description": "Nurturing warmth"
-  },
-  "nayan-patel": {
-    "speed": {
-      "min": 0.2,
-      "max": 0.6
-    },
-    "direction": "top",
-    "size": {
-      "min": 2,
-      "max": 5
-    },
-    "count": 25,
-    "shape": "circle",
-    "glow": true,
-    "twinkle": false,
-    "wobble": false,
-    "description": "Steady wisdom glow"
-  },
-  "peter-john": {
-    "speed": {
-      "min": 1,
-      "max": 3
-    },
-    "direction": "none",
-    "size": {
-      "min": 2,
-      "max": 6
-    },
-    "count": 45,
-    "shape": "star",
-    "glow": true,
-    "twinkle": true,
-    "wobble": true,
-    "description": "Dynamic research energy"
   },
   "default": {
     "speed": {
@@ -679,6 +676,190 @@ export function getImperfectBorder(size: 'sm' | 'md' | 'lg'): string {
 }
 
 // ============================================================================
+// VOICE EMOTION GLOW - Avatar responds to speaking tone
+// ============================================================================
+
+/**
+ * Voice emotion types that affect avatar glow.
+ */
+export type VoiceEmotion = 
+  | 'neutral'
+  | 'happy'
+  | 'excited'
+  | 'calm'
+  | 'thoughtful'
+  | 'empathetic'
+  | 'serious'
+  | 'anxious'
+  | 'encouraging';
+
+/**
+ * Speaking intensity levels.
+ */
+export type SpeakingIntensity = 'whisper' | 'normal' | 'emphasis' | 'exclamation';
+
+/**
+ * Voice emotion glow configuration.
+ */
+export interface VoiceGlowConfig {
+  color: string;
+  colorAlt: string;
+  intensity: number;
+  pulseSpeed: string;
+  spread: string;
+}
+
+/**
+ * Speaking intensity multipliers.
+ */
+export interface SpeakingIntensityConfig {
+  multiplier: number;
+  spread: number;
+}
+
+/**
+ * Voice emotion glow configurations.
+ */
+export const VOICE_EMOTION_GLOW: Record<VoiceEmotion, VoiceGlowConfig> = {
+  "neutral": {
+    "color": "rgba(139, 92, 246, 0.5)",
+    "colorAlt": "rgba(99, 102, 241, 0.4)",
+    "intensity": 0.6,
+    "pulseSpeed": "3s",
+    "spread": "20px"
+  },
+  "happy": {
+    "color": "rgba(251, 191, 36, 0.6)",
+    "colorAlt": "rgba(245, 158, 11, 0.5)",
+    "intensity": 0.8,
+    "pulseSpeed": "2s",
+    "spread": "28px"
+  },
+  "excited": {
+    "color": "rgba(236, 72, 153, 0.6)",
+    "colorAlt": "rgba(219, 39, 119, 0.5)",
+    "intensity": 1,
+    "pulseSpeed": "1.2s",
+    "spread": "35px"
+  },
+  "calm": {
+    "color": "rgba(34, 211, 238, 0.5)",
+    "colorAlt": "rgba(6, 182, 212, 0.4)",
+    "intensity": 0.5,
+    "pulseSpeed": "4s",
+    "spread": "25px"
+  },
+  "thoughtful": {
+    "color": "rgba(99, 102, 241, 0.5)",
+    "colorAlt": "rgba(79, 70, 229, 0.4)",
+    "intensity": 0.6,
+    "pulseSpeed": "3.5s",
+    "spread": "22px"
+  },
+  "empathetic": {
+    "color": "rgba(244, 114, 182, 0.5)",
+    "colorAlt": "rgba(236, 72, 153, 0.4)",
+    "intensity": 0.7,
+    "pulseSpeed": "2.5s",
+    "spread": "30px"
+  },
+  "serious": {
+    "color": "rgba(148, 163, 184, 0.5)",
+    "colorAlt": "rgba(100, 116, 139, 0.4)",
+    "intensity": 0.5,
+    "pulseSpeed": "4s",
+    "spread": "18px"
+  },
+  "anxious": {
+    "color": "rgba(251, 146, 60, 0.5)",
+    "colorAlt": "rgba(249, 115, 22, 0.4)",
+    "intensity": 0.7,
+    "pulseSpeed": "1.8s",
+    "spread": "24px"
+  },
+  "encouraging": {
+    "color": "rgba(16, 185, 129, 0.6)",
+    "colorAlt": "rgba(5, 150, 105, 0.5)",
+    "intensity": 0.8,
+    "pulseSpeed": "2.2s",
+    "spread": "28px"
+  }
+};
+
+/**
+ * Speaking intensity configurations.
+ */
+export const SPEAKING_INTENSITY: Record<SpeakingIntensity, SpeakingIntensityConfig> = {
+  "whisper": {
+    "multiplier": 0.5,
+    "spread": 0.6
+  },
+  "normal": {
+    "multiplier": 1,
+    "spread": 1
+  },
+  "emphasis": {
+    "multiplier": 1.3,
+    "spread": 1.2
+  },
+  "exclamation": {
+    "multiplier": 1.6,
+    "spread": 1.5
+  }
+};
+
+/**
+ * Voice glow transition timings.
+ */
+export const VOICE_GLOW_TRANSITIONS = {
+  "emotionChange": "all 800ms cubic-bezier(0.4, 0, 0.2, 1)",
+  "intensityChange": "all 150ms ease-out",
+  "speakingStart": "all 200ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+  "speakingEnd": "all 400ms ease-out"
+};
+
+/**
+ * Get glow configuration for a voice emotion.
+ */
+export function getVoiceGlow(emotion: VoiceEmotion): VoiceGlowConfig {
+  return VOICE_EMOTION_GLOW[emotion] || VOICE_EMOTION_GLOW.neutral;
+}
+
+/**
+ * Get CSS custom properties for voice glow.
+ * Apply these to the avatar container element.
+ */
+export function getVoiceGlowCSS(
+  emotion: VoiceEmotion,
+  intensity: SpeakingIntensity = 'normal'
+): Record<string, string> {
+  const glow = getVoiceGlow(emotion);
+  const intensityConfig = SPEAKING_INTENSITY[intensity] || SPEAKING_INTENSITY.normal;
+  
+  return {
+    '--glow-color': glow.color,
+    '--glow-color-alt': glow.colorAlt,
+    '--glow-intensity': String(glow.intensity * intensityConfig.multiplier),
+    '--glow-spread': `${parseInt(glow.spread) * intensityConfig.spread}px`,
+    '--glow-pulse-speed': glow.pulseSpeed,
+  };
+}
+
+/**
+ * Apply voice glow to an element.
+ */
+export function applyVoiceGlow(
+  element: HTMLElement,
+  emotion: VoiceEmotion,
+  intensity: SpeakingIntensity = 'normal'
+): void {
+  const cssProps = getVoiceGlowCSS(emotion, intensity);
+  Object.entries(cssProps).forEach(([prop, value]) => {
+    element.style.setProperty(prop, value);
+  });
+}
+
+// ============================================================================
 // THEME MANAGEMENT
 // ============================================================================
 
@@ -705,7 +886,7 @@ export function setPersona(persona: PersonaId): void {
 }
 
 /**
- * Initialize theme - defaults to zen theme
+ * Initialize theme from localStorage or system preference
  */
 export function initTheme(): ThemeName {
   const stored = localStorage.getItem('voiceai-theme') as ThemeName | null;
@@ -714,9 +895,11 @@ export function initTheme(): ThemeName {
     return stored;
   }
 
-  // Default to zen theme
-  setTheme('zen');
-  return 'zen';
+  // Check system preference
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme: ThemeName = prefersDark ? 'midnight' : 'zen';
+  setTheme(theme);
+  return theme;
 }
 
 // ============================================================================
@@ -880,6 +1063,98 @@ export function setConnectionProgress(
   progress: number
 ): void {
   element.style.width = Math.min(100, Math.max(0, progress)) + '%';
+}
+
+// ============================================================================
+// LANDING PAGE - Zen 3D Experience
+// ============================================================================
+
+/**
+ * CSS class names for landing page.
+ * NOTE: Requires GSAP for shoji door animations.
+ * CDN: https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js
+ */
+export const LANDING_CLASSES = {
+  scene: 'landing-scene',
+  sceneHidden: 'hidden',
+  sceneRevealed: 'revealed',
+  shojiLeft: 'landing-shoji-left',
+  shojiRight: 'landing-shoji-right',
+  contentCard: 'landing-content-card',
+  contentVisible: 'visible',
+  tapHint: 'landing-tap-hint',
+  form: 'landing-form',
+  input: 'landing-input',
+  submit: 'landing-submit',
+  skip: 'landing-skip',
+  success: 'landing-success',
+  successVisible: 'visible',
+} as const;
+
+/**
+ * Animate the landing page reveal.
+ * Requires GSAP to be loaded.
+ * @param shojiLeft - Left shoji door element
+ * @param shojiRight - Right shoji door element
+ * @param contentCard - Content card element
+ */
+export function animateLandingReveal(
+  shojiLeft: HTMLElement,
+  shojiRight: HTMLElement,
+  contentCard: HTMLElement
+): void {
+  // @ts-expect-error GSAP is loaded via CDN
+  const gsap = window.gsap;
+  if (!gsap) {
+    console.warn('GSAP not loaded - landing animation disabled');
+    contentCard.classList.add('visible');
+    return;
+  }
+  
+  gsap.to(shojiLeft, { x: '-100%', duration: 1.2, ease: 'power2.inOut' });
+  gsap.to(shojiRight, { x: '100%', duration: 1.2, ease: 'power2.inOut' });
+  gsap.to(contentCard, { opacity: 1, y: 0, duration: 0.8, delay: 0.4, ease: 'power2.out' });
+}
+
+// ============================================================================
+// TOAST SYSTEM - World-class Notifications
+// ============================================================================
+
+/**
+ * Toast types for semantic styling.
+ */
+export type ToastType = 'info' | 'success' | 'error' | 'warning' | 'loading';
+
+/**
+ * CSS class names for toast system.
+ */
+export const TOAST_CLASSES = {
+  container: 'toast-container',
+  toast: 'toast',
+  exiting: 'toast-exiting',
+  swiping: 'toast-swiping',
+  swipeOut: 'toast-swipe-out',
+  icon: 'toast-icon',
+  content: 'toast-content',
+  title: 'toast-title',
+  description: 'toast-description',
+  close: 'toast-close',
+  progress: 'toast-progress',
+  progressBar: 'toast-progress-bar',
+  action: 'toast-action',
+  // Type variants
+  info: 'toast-info',
+  success: 'toast-success',
+  error: 'toast-error',
+  warning: 'toast-warning',
+  loading: 'toast-loading',
+} as const;
+
+/**
+ * Get toast type class name.
+ */
+export function getToastTypeClass(type: ToastType): string {
+  return TOAST_CLASSES[type];
 }
 
 /**

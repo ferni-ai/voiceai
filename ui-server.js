@@ -13,6 +13,15 @@ import { AccessToken, RoomServiceClient, AgentDispatchClient } from 'livekit-ser
 // Engagement API routes (conversations, analytics, predictions, etc.)
 import { handleEngagementRoutes } from './dist/api/engagement-routes.js';
 
+// Diagnostics API routes (handoff metrics, etc.) - requires admin auth
+import { handleDiagnosticsRoutes } from './dist/api/handoff-diagnostics.js';
+
+// Feature flags, DORA metrics, voice presence, observability routes
+import { handleFeatureFlagRoutes } from './dist/api/feature-flag-routes.js';
+import { handleDORARoutes } from './dist/api/dora-routes.js';
+import { handleVoicePresenceRoutes } from './dist/api/voice-presence-routes.js';
+import { handleObservabilityRoutes } from './dist/api/observability-routes.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -322,6 +331,47 @@ const server = http.createServer(async (req, res) => {
     if (handled) return;
   } catch (err) {
     console.error('❌ Engagement route error:', err);
+  }
+
+  // ============================================================================
+  // DIAGNOSTICS API ROUTES (requires admin auth)
+  // ============================================================================
+  try {
+    const handled = await handleDiagnosticsRoutes(req, res, pathname, parsedUrl);
+    if (handled) return;
+  } catch (err) {
+    console.error('❌ Diagnostics route error:', err);
+  }
+
+  // ============================================================================
+  // FEATURE FLAGS, DORA, VOICE PRESENCE, OBSERVABILITY ROUTES
+  // ============================================================================
+  try {
+    // Feature flags
+    if (pathname.startsWith('/api/flags')) {
+      const handled = await handleFeatureFlagRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // DORA metrics
+    if (pathname.startsWith('/api/dora')) {
+      const handled = await handleDORARoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // Voice presence
+    if (pathname.startsWith('/api/voice-presence')) {
+      const handled = await handleVoicePresenceRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // Observability
+    if (pathname.startsWith('/api/observability')) {
+      const handled = await handleObservabilityRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+  } catch (err) {
+    console.error('❌ API route error:', err);
   }
 
   // Health check endpoint

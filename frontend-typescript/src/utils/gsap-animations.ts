@@ -417,7 +417,7 @@ export const GSAP_PRESETS = {
 // Performance Monitoring
 // ============================================================================
 
-let animationBudget = 16.67; // 60fps target
+const animationBudget = 16.67; // 60fps target
 let lastFrameTime = 0;
 
 /**

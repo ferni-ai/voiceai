@@ -477,7 +477,7 @@ function showRelationshipTransition(newStage: RelationshipStage): void {
     opacity: 0;
     animation: relationship-bloom 2s ease-out forwards;
     pointer-events: none;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
   `;
   indicator.textContent = style.tooltipHint;
 

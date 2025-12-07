@@ -358,7 +358,7 @@ function injectStyles(): void {
     .team-intro {
       position: fixed;
       inset: 0;
-      z-index: 10010;
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -377,8 +377,8 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(var(--glass-blur-modal));
+      -webkit-backdrop-filter: blur(var(--glass-blur-modal));
     }
     
     .team-intro__card {
@@ -512,7 +512,7 @@ function injectStyles(): void {
     
     .team-member-card:hover {
       border-color: var(--member-color, var(--persona-primary));
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      box-shadow: var(--shadow-md);
     }
     
     .team-member-card--locked {

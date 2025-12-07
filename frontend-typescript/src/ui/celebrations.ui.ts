@@ -88,7 +88,7 @@ function injectCelebrationStyles(): void {
     .warmth-subtle { animation-duration: var(--duration-celebration, 800ms); }
     .warmth-gentle { animation-duration: var(--duration-entrance, 1200ms); }
     .warmth-warm { animation-duration: var(--duration-glacial, 1500ms); }
-    .warmth-intense { animation-duration: 2000ms; }
+    .warmth-intense { animation-duration: var(--duration-epic, 2000ms); }
 
     /* Gentle bounce - acknowledgement nod */
     .gentle-bounce {

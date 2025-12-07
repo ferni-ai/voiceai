@@ -1,0 +1,485 @@
+#!/usr/bin/env npx tsx
+/**
+ * Unified Deployment CLI
+ *
+ * Single entry point for all deployments.
+ * Replaces: deploy-gcp.sh, deploy-ui.sh, deploy-all.sh, deploy-brand.sh
+ *
+ * Usage:
+ *   npx tsx scripts/deploy.ts                # Show help
+ *   npx tsx scripts/deploy.ts ui             # Deploy UI only
+ *   npx tsx scripts/deploy.ts agent          # Deploy voice agent
+ *   npx tsx scripts/deploy.ts all            # Deploy everything
+ *   npx tsx scripts/deploy.ts brand          # Deploy brand assets
+ *   npx tsx scripts/deploy.ts --dry-run ui   # Preview what would be deployed
+ *
+ * Or via npm:
+ *   npm run deploy ui
+ *   npm run deploy agent
+ *   npm run deploy all
+ */
+
+import { execSync, spawn } from 'child_process';
+import { existsSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = dirname(__dirname);
+
+const CONFIG = {
+  // GCP Settings
+  projectId: process.env.GCP_PROJECT_ID || 'johnb-2025',
+  region: process.env.GCP_REGION || 'us-central1',
+
+  // Service names
+  services: {
+    agent: process.env.AGENT_SERVICE_NAME || 'voiceai-agent',
+    ui: process.env.UI_SERVICE_NAME || 'john-bogle-ui',
+  },
+
+  // Build files
+  cloudbuildAgent: 'cloudbuild.yaml',
+  cloudbuildUi: 'cloudbuild-ui.yaml',
+
+  // Persona
+  personaId: process.env.PERSONA_ID || 'ferni',
+};
+
+// ============================================================================
+// COLORS
+// ============================================================================
+
+const colors = {
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+};
+
+const log = {
+  info: (msg: string) => console.log(`${colors.cyan}ℹ${colors.reset} ${msg}`),
+  success: (msg: string) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
+  warn: (msg: string) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
+  error: (msg: string) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
+  step: (msg: string) => console.log(`\n${colors.bold}${colors.cyan}━━━ ${msg} ━━━${colors.reset}\n`),
+};
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+
+function exec(cmd: string, options: { silent?: boolean } = {}): string {
+  try {
+    return execSync(cmd, {
+      cwd: PROJECT_ROOT,
+      encoding: 'utf-8',
+      stdio: options.silent ? 'pipe' : 'inherit',
+    });
+  } catch (error) {
+    if (!options.silent) {
+      throw error;
+    }
+    return '';
+  }
+}
+
+function checkCommand(cmd: string): boolean {
+  try {
+    execSync(`command -v ${cmd}`, { stdio: 'pipe' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getServiceUrl(serviceName: string): string {
+  try {
+    return exec(
+      `gcloud run services describe ${serviceName} --region ${CONFIG.region} --format 'value(status.url)'`,
+      { silent: true }
+    ).trim();
+  } catch {
+    return '';
+  }
+}
+
+// ============================================================================
+// DEPLOYMENT FUNCTIONS
+// ============================================================================
+
+interface DeployOptions {
+  dryRun: boolean;
+  skipBuild: boolean;
+  verbose: boolean;
+}
+
+async function deployAgent(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING VOICE AGENT');
+
+  if (options.dryRun) {
+    log.info(`Would build: gcloud builds submit --config ${CONFIG.cloudbuildAgent} .`);
+    log.info(`Would deploy: gcloud run deploy ${CONFIG.services.agent} ...`);
+    return true;
+  }
+
+  // Build container
+  log.info('Building container image...');
+  exec(`gcloud builds submit --config ${CONFIG.cloudbuildAgent} . --quiet`);
+
+  // Build secrets string
+  const secrets = [
+    'GOOGLE_API_KEY=google-api-key:latest',
+    'CARTESIA_API_KEY=cartesia-api-key:latest',
+    'LIVEKIT_URL=livekit-url:latest',
+    'LIVEKIT_API_KEY=livekit-api-key:latest',
+    'LIVEKIT_API_SECRET=livekit-api-secret:latest',
+  ];
+
+  // Check for optional secrets
+  const optionalSecrets = [
+    ['alpha-vantage-key', 'ALPHA_VANTAGE_API_KEY'],
+    ['finnhub-api-key', 'FINNHUB_API_KEY'],
+    ['sendgrid-api-key', 'SENDGRID_API_KEY'],
+  ];
+
+  for (const [secretName, envVar] of optionalSecrets) {
+    try {
+      exec(`gcloud secrets describe ${secretName}`, { silent: true });
+      secrets.push(`${envVar}=${secretName}:latest`);
+    } catch {
+      // Secret doesn't exist, skip
+    }
+  }
+
+  // Deploy to Cloud Run
+  log.info('Deploying to Cloud Run...');
+  const deployCmd = [
+    `gcloud run deploy ${CONFIG.services.agent}`,
+    `--image gcr.io/${CONFIG.projectId}/bogle-voice-agent:latest`,
+    `--region ${CONFIG.region}`,
+    '--platform managed',
+    '--allow-unauthenticated',
+    '--memory 2Gi',
+    '--cpu 2',
+    '--timeout 3600',
+    '--concurrency 1',
+    '--min-instances 0',
+    '--max-instances 20',
+    `--set-env-vars "NODE_ENV=production,PERSONA_ID=${CONFIG.personaId},GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
+    `--set-secrets "${secrets.join(',')}"`,
+    '--quiet',
+  ].join(' \\\n  ');
+
+  exec(deployCmd);
+
+  const url = getServiceUrl(CONFIG.services.agent);
+  log.success(`Voice Agent deployed: ${url}`);
+  return true;
+}
+
+async function deployUi(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING FRONTEND UI');
+
+  if (options.dryRun) {
+    log.info(`Would build: gcloud builds submit --config ${CONFIG.cloudbuildUi} .`);
+    log.info(`Would deploy: gcloud run deploy ${CONFIG.services.ui} ...`);
+    return true;
+  }
+
+  // Build container
+  log.info('Building container image...');
+  exec(`gcloud builds submit --config ${CONFIG.cloudbuildUi} . --quiet`);
+
+  // Deploy to Cloud Run
+  log.info('Deploying to Cloud Run...');
+  const deployCmd = [
+    `gcloud run deploy ${CONFIG.services.ui}`,
+    `--image gcr.io/${CONFIG.projectId}/${CONFIG.services.ui}:latest`,
+    `--region ${CONFIG.region}`,
+    '--platform managed',
+    '--allow-unauthenticated',
+    '--memory 512Mi',
+    '--cpu 1',
+    '--timeout 300',
+    '--min-instances 0',
+    '--max-instances 10',
+    '--set-env-vars "NODE_ENV=production"',
+    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest"',
+    '--quiet',
+  ].join(' \\\n  ');
+
+  exec(deployCmd);
+
+  const url = getServiceUrl(CONFIG.services.ui);
+  log.success(`Frontend UI deployed: ${url}`);
+  return true;
+}
+
+async function deployBrand(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING BRAND ASSETS');
+
+  const bucketName = `ferni-brand-${CONFIG.projectId}`;
+
+  if (options.dryRun) {
+    log.info(`Would upload to: gs://${bucketName}/`);
+    return true;
+  }
+
+  // First build the design system to ensure assets are up to date
+  log.info('Building design system assets...');
+  exec('npm run build:design-system');
+
+  // Check if bucket exists
+  try {
+    exec(`gsutil ls gs://${bucketName}`, { silent: true });
+  } catch {
+    log.info('Creating bucket...');
+    exec(`gsutil mb -l ${CONFIG.region} -p ${CONFIG.projectId} gs://${bucketName}`);
+    exec(`gsutil web set -m brand-book.html gs://${bucketName}`);
+    exec(`gsutil iam ch allUsers:objectViewer gs://${bucketName}`);
+  }
+
+  // Upload brand files
+  log.info('Uploading brand assets...');
+  exec(`gsutil -m cp design-system/brand/*.html gs://${bucketName}/`);
+  exec(`gsutil -m cp design-system/brand/*.md gs://${bucketName}/`);
+  exec(`gsutil -m cp design-system/dist/tokens.css gs://${bucketName}/`);
+  exec(`gsutil -m cp -r design-system/assets/* gs://${bucketName}/assets/`);
+
+  log.success(`Brand assets deployed to: https://storage.googleapis.com/${bucketName}/brand-book.html`);
+  return true;
+}
+
+async function deployLanding(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING LANDING PAGE');
+
+  const landingDir = join(PROJECT_ROOT, 'promo/ferni-website');
+
+  if (!existsSync(landingDir)) {
+    log.warn('Landing page directory not found: promo/ferni-website');
+    return false;
+  }
+
+  if (options.dryRun) {
+    log.info('Would deploy landing page via Firebase or Cloud Storage');
+    return true;
+  }
+
+  // Try Firebase first
+  if (checkCommand('firebase')) {
+    log.info('Deploying via Firebase Hosting...');
+    exec(`cd ${landingDir} && firebase deploy --only hosting --project ${CONFIG.projectId}`);
+    log.success('Landing page deployed via Firebase');
+  } else {
+    // Fall back to Cloud Storage
+    const bucketName = `ferni-landing-${CONFIG.projectId}`;
+
+    try {
+      exec(`gsutil ls gs://${bucketName}`, { silent: true });
+    } catch {
+      log.info('Creating bucket...');
+      exec(`gsutil mb -l ${CONFIG.region} gs://${bucketName}`);
+      exec(`gsutil web set -m index.html gs://${bucketName}`);
+      exec(`gsutil iam ch allUsers:objectViewer gs://${bucketName}`);
+    }
+
+    log.info('Uploading files...');
+    exec(`gsutil -m cp -r ${landingDir}/* gs://${bucketName}/`);
+    log.success(`Landing page deployed to: https://storage.googleapis.com/${bucketName}/index.html`);
+  }
+
+  return true;
+}
+
+// ============================================================================
+// PREFLIGHT CHECKS
+// ============================================================================
+
+function preflightChecks(): boolean {
+  log.step('PREFLIGHT CHECKS');
+
+  // Check gcloud
+  if (!checkCommand('gcloud')) {
+    log.error('gcloud CLI is required. Install from: https://cloud.google.com/sdk/docs/install');
+    return false;
+  }
+  log.success('gcloud CLI installed');
+
+  // Check authentication
+  try {
+    const account = exec('gcloud auth list --filter=status:ACTIVE --format="value(account)"', { silent: true }).trim();
+    if (!account) {
+      log.error('Not authenticated. Run: gcloud auth login');
+      return false;
+    }
+    log.success(`Authenticated as: ${account}`);
+  } catch {
+    log.error('Failed to check authentication');
+    return false;
+  }
+
+  // Set project
+  exec(`gcloud config set project ${CONFIG.projectId} --quiet`, { silent: true });
+  log.success(`Project: ${CONFIG.projectId}`);
+
+  // Check required secrets
+  const requiredSecrets = ['google-api-key', 'cartesia-api-key', 'livekit-url', 'livekit-api-key', 'livekit-api-secret'];
+  let allSecretsPresent = true;
+
+  log.info('Checking required secrets...');
+  for (const secret of requiredSecrets) {
+    try {
+      exec(`gcloud secrets describe ${secret}`, { silent: true });
+      log.success(`  ${secret}`);
+    } catch {
+      log.error(`  ${secret} - MISSING`);
+      allSecretsPresent = false;
+    }
+  }
+
+  if (!allSecretsPresent) {
+    log.warn('Some secrets are missing. Deployment may fail.');
+  }
+
+  return true;
+}
+
+// ============================================================================
+// CLI
+// ============================================================================
+
+function printHelp() {
+  console.log(`
+${colors.bold}${colors.cyan}FERNI DEPLOYMENT CLI${colors.reset}
+
+${colors.bold}Usage:${colors.reset}
+  npx tsx scripts/deploy.ts <target> [options]
+  npm run deploy <target> [options]
+
+${colors.bold}Targets:${colors.reset}
+  ${colors.green}ui${colors.reset}        Deploy frontend UI to Cloud Run
+  ${colors.green}agent${colors.reset}     Deploy voice agent to Cloud Run
+  ${colors.green}brand${colors.reset}     Deploy brand assets to Cloud Storage
+  ${colors.green}landing${colors.reset}   Deploy landing page (Firebase/Cloud Storage)
+  ${colors.green}all${colors.reset}       Deploy everything
+
+${colors.bold}Options:${colors.reset}
+  --dry-run     Show what would be deployed without making changes
+  --skip-build  Skip local build steps
+  --verbose     Show detailed output
+  --help, -h    Show this help
+
+${colors.bold}Environment Variables:${colors.reset}
+  GCP_PROJECT_ID    Google Cloud project (default: johnb-2025)
+  GCP_REGION        Deployment region (default: us-central1)
+  PERSONA_ID        Default persona (default: ferni)
+
+${colors.bold}Examples:${colors.reset}
+  npm run deploy ui              # Deploy UI only
+  npm run deploy all             # Deploy everything
+  npm run deploy -- --dry-run ui # Preview UI deployment
+  GCP_PROJECT_ID=my-project npm run deploy agent
+`);
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+
+  // Parse options
+  const options: DeployOptions = {
+    dryRun: args.includes('--dry-run'),
+    skipBuild: args.includes('--skip-build'),
+    verbose: args.includes('--verbose'),
+  };
+
+  // Get target (non-option argument)
+  const targets = args.filter(arg => !arg.startsWith('--') && !arg.startsWith('-'));
+
+  if (targets.length === 0 || args.includes('--help') || args.includes('-h')) {
+    printHelp();
+    process.exit(0);
+  }
+
+  const target = targets[0];
+
+  // Banner
+  console.log(`
+${colors.cyan}╔══════════════════════════════════════════════════════════════╗${colors.reset}
+${colors.cyan}║${colors.reset}  ${colors.bold}FERNI DEPLOYMENT${colors.reset}                                           ${colors.cyan}║${colors.reset}
+${colors.cyan}║${colors.reset}  Target: ${colors.green}${target}${colors.reset}                                               ${colors.cyan}║${colors.reset}
+${colors.cyan}╚══════════════════════════════════════════════════════════════╝${colors.reset}
+`);
+
+  if (options.dryRun) {
+    log.warn('DRY RUN - No changes will be made');
+  }
+
+  // Run preflight checks
+  if (!options.dryRun && !preflightChecks()) {
+    process.exit(1);
+  }
+
+  // Deploy based on target
+  let success = true;
+
+  switch (target) {
+    case 'ui':
+      success = await deployUi(options);
+      break;
+
+    case 'agent':
+      success = await deployAgent(options);
+      break;
+
+    case 'brand':
+      success = await deployBrand(options);
+      break;
+
+    case 'landing':
+      success = await deployLanding(options);
+      break;
+
+    case 'all':
+      success = (await deployAgent(options)) && (await deployUi(options)) && (await deployLanding(options));
+      break;
+
+    default:
+      log.error(`Unknown target: ${target}`);
+      printHelp();
+      process.exit(1);
+  }
+
+  // Summary
+  log.step('DEPLOYMENT COMPLETE');
+
+  if (success) {
+    log.success('All deployments successful!');
+    console.log(`
+${colors.bold}Services:${colors.reset}
+  Agent URL:   ${getServiceUrl(CONFIG.services.agent) || '(not deployed)'}
+  UI URL:      ${getServiceUrl(CONFIG.services.ui) || '(not deployed)'}
+
+${colors.bold}Next Steps:${colors.reset}
+  • Test: curl <SERVICE_URL>/health
+  • Logs: gcloud run services logs read <SERVICE_NAME> --region ${CONFIG.region}
+`);
+  } else {
+    log.error('Some deployments failed');
+    process.exit(1);
+  }
+}
+
+main().catch((error) => {
+  log.error(`Deployment failed: ${error.message}`);
+  process.exit(1);
+});
+

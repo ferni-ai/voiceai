@@ -1,0 +1,50 @@
+#!/usr/bin/env sh
+
+# =============================================================================
+# PRE-COMMIT QUALITY GATES
+# =============================================================================
+# Validates both frontend and backend code before allowing commits.
+# Run `git commit --no-verify` to bypass (use sparingly!)
+# =============================================================================
+
+set -e  # Exit on first error
+
+echo "🔍 Running pre-commit quality checks..."
+
+# =============================================================================
+# BACKEND VALIDATION
+# =============================================================================
+echo ""
+echo "📦 Backend checks..."
+
+# TypeScript type check (fast, catches type errors)
+echo "  → TypeScript..."
+npx tsc --noEmit
+
+# ESLint (catches code quality issues)
+echo "  → ESLint..."
+npm run lint --silent
+
+# Format check (ensures consistent formatting)
+echo "  → Prettier..."
+npm run format:check --silent
+
+echo "  ✓ Backend checks passed"
+
+# =============================================================================
+# FRONTEND VALIDATION
+# =============================================================================
+echo ""
+echo "🎨 Frontend checks..."
+
+# Run lint-staged in frontend (handles staged files only)
+cd frontend-typescript
+npx lint-staged
+
+echo "  ✓ Frontend checks passed"
+
+# =============================================================================
+# DONE
+# =============================================================================
+echo ""
+echo "✅ All pre-commit checks passed!"

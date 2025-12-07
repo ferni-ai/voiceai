@@ -1,298 +1,503 @@
-# John Bogle Voice AI - Architecture Documentation
+# 🏛️ Ferni AI Architecture
 
-## Overview
+This document provides a comprehensive overview of Ferni's architecture.
 
-The John Bogle Voice AI Agent is a deeply human, emotionally intelligent voice assistant that builds genuine relationships through:
-
-- **Emotion Detection**: Real-time analysis of user emotional state
-- **Intent Classification**: Understanding what users really need
-- **Topic Tracking**: Maintaining conversation threads
-- **Adaptive Speech**: Voice that responds to user pace and mood
-- **Persistent Memory**: Cross-session relationship building
-- **Semantic RAG**: Intelligent knowledge retrieval
-
-## System Architecture
+## System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        VOICE PIPELINE                           │
-├─────────────────────────────────────────────────────────────────┤
-│  User Audio → STT → Intelligence → LLM → SSML Tagger → TTS     │
-│                        ↓                      ↓                 │
-│              Context Injection        Adaptive Speech           │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                     INTELLIGENCE LAYER                          │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐ │
-│  │   Emotion    │ │   Intent    │ │   Topic     │ │  State   │ │
-│  │  Detector    │ │ Classifier  │ │  Tracker    │ │ Machine  │ │
-│  └──────────────┘ └─────────────┘ └─────────────┘ └──────────┘ │
-│         ↓               ↓               ↓             ↓        │
-│  ┌────────────────────────────────────────────────────────────┐│
-│  │                  Context Manager                            ││
-│  │    (Rolling summaries, relationship context, topics)        ││
-│  └────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                       MEMORY LAYER                              │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐ ┌─────────────┐ ┌─────────────────────────┐  │
-│  │ User Profile │ │ Conversation│ │      Vector Store       │  │
-│  │    Store     │ │   History   │ │    (Semantic RAG)       │  │
-│  └──────────────┘ └─────────────┘ └─────────────────────────┘  │
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                   Embeddings Utility                     │   │
-│  │        (Google/OpenAI/Local for semantic search)         │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                             Client Layer                                 │
+├─────────────────┬───────────────────────────────┬───────────────────────┤
+│   Web App       │      iOS/Android Apps         │    Voice Interface    │
+│   (TypeScript)  │      (Swift/Kotlin)           │    (LiveKit)          │
+└────────┬────────┴───────────────┬───────────────┴───────────┬───────────┘
+         │                        │                           │
+         ▼                        ▼                           ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           API Gateway Layer                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│  ui-server.js                                                           │
+│  - Static file serving        - REST API routing                        │
+│  - Authentication             - CORS handling                           │
+│  - Rate limiting              - Health checks                           │
+└────────┬────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Application Layer                                │
+├──────────────────────┬─────────────────────┬───────────────────────────┤
+│  Voice Agent         │   API Services      │   Background Services      │
+│  (voice-agent.ts)    │   (api/*.ts)        │   (Firebase Functions)     │
+├──────────────────────┴─────────────────────┴───────────────────────────┤
+│                                                                         │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐            │
+│  │ Context        │  │ Handoff        │  │ Memory         │            │
+│  │ Builders       │  │ System         │  │ System         │            │
+│  └────────────────┘  └────────────────┘  └────────────────┘            │
+│                                                                         │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐            │
+│  │ Tool           │  │ Persona        │  │ Intelligence   │            │
+│  │ Registry       │  │ Registry       │  │ Engine         │            │
+│  └────────────────┘  └────────────────┘  └────────────────┘            │
+│                                                                         │
+└────────┬────────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       External Services Layer                            │
+├───────────────┬───────────────┬───────────────┬─────────────────────────┤
+│   LiveKit     │   Gemini Live │   Cartesia    │   Other Services        │
+│   (Voice)     │   (STT/LLM)   │   (TTS)       │   (Spotify, Twilio...)  │
+└───────────────┴───────────────┴───────────────┴─────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          Storage Layer                                   │
+├───────────────┬───────────────┬─────────────────────────────────────────┤
+│   Firestore   │   Redis       │   Vector Store (planned)                │
+│   (Primary)   │   (Cache)     │   (Semantic Search)                     │
+└───────────────┴───────────────┴─────────────────────────────────────────┘
 ```
 
-## Module Directory Structure
+---
+
+## Voice Processing Pipeline
 
 ```
-src/
-├── bogle-agent.ts          # Main agent with all integrations
-├── ssml-tagger.ts          # Rule-based SSML tagging
-│
-├── intelligence/           # Conversational intelligence
-│   ├── emotion-detector.ts # Emotion analysis
-│   ├── intent-classifier.ts# Intent classification
-│   ├── topic-tracker.ts    # Topic extraction & tracking
-│   ├── conversation-state.ts# Phase state machine
-│   └── index.ts           # Combined analysis
-│
-├── memory/                 # Persistent memory system
-│   ├── embeddings.ts       # Embedding providers
-│   ├── vector-store.ts     # Semantic search
-│   ├── store.ts           # Abstract memory store
-│   ├── in-memory-store.ts  # Development store
-│   ├── history.ts         # Conversation history
-│   ├── summarizer.ts      # Conversation summaries
-│   └── index.ts           # Memory initialization
-│
-├── context/               # Context management
-│   └── context-manager.ts  # Prompt context builder
-│
-├── speech/                # Adaptive speech
-│   ├── speech-context.ts   # WPM tracking, energy detection
-│   ├── adaptive-ssml.ts    # Context-aware SSML
-│   └── index.ts
-│
-├── services/              # Service orchestration
-│   └── index.ts           # Bootstrap all services
-│
-├── tools/                 # LLM tools (35 total)
-│   ├── financial.ts       # Market data, calculations
-│   ├── conversation.ts    # Story, check-in, wrap-up
-│   ├── memory-tools.ts    # Remember, recall
-│   ├── proactive.ts       # Goals, follow-ups
-│   ├── awareness.ts       # Context awareness
-│   └── index.ts
-│
-├── types/                 # Type definitions
-│   └── user-profile.ts    # Comprehensive user profile
-│
-├── persona/               # Jack Bogle character
-│   ├── core-identity.ts   # Who Jack is
-│   ├── conversational-style.ts
-│   ├── memory-awareness.ts # Memory usage instructions
-│   └── ... (15 more modules)
-│
-└── tests/                 # Test suite
-    ├── memory.test.ts
-    ├── intelligence.test.ts
-    ├── speech.test.ts
-    └── continuity.test.ts
+User Speaks
+     │
+     ▼
+┌────────────────┐
+│    LiveKit     │  Real-time audio streaming
+│    Rooms API   │
+└────────┬───────┘
+         │
+         ▼
+┌────────────────┐
+│  Gemini Live   │  Speech-to-text + LLM reasoning
+│  Realtime API  │
+└────────┬───────┘
+         │
+         ▼
+┌────────────────┐
+│ Context System │  15+ modular context builders
+│ (turn-by-turn) │  inject intelligence per turn
+└────────┬───────┘
+         │
+         ├────────────────────────────────────────┐
+         │                                        │
+         ▼                                        ▼
+┌────────────────┐                      ┌────────────────┐
+│ Tool Execution │                      │   Handoff      │
+│   (if needed)  │                      │   Detection    │
+└────────┬───────┘                      └────────┬───────┘
+         │                                        │
+         └────────────────────────────────────────┘
+                          │
+                          ▼
+                 ┌────────────────┐
+                 │  SSML Tagger   │  Add prosody, pauses, emphasis
+                 └────────┬───────┘
+                          │
+                          ▼
+                 ┌────────────────┐
+                 │   Cartesia    │  Text-to-speech synthesis
+                 │   Sonic 3    │
+                 └────────┬───────┘
+                          │
+                          ▼
+                 ┌────────────────┐
+                 │    LiveKit     │  Audio stream to client
+                 └────────────────┘
 ```
+
+---
+
+## Context Builder System
+
+The intelligence engine that makes conversations feel human:
+
+```
+                         User Turn
+                             │
+                             ▼
+              ┌──────────────────────────┐
+              │    Parallel Execution    │
+              │                          │
+  ┌───────────┴──────────────────────────┴───────────┐
+  │                                                   │
+  ▼           ▼           ▼           ▼              ▼
+┌─────┐    ┌─────┐    ┌─────┐    ┌─────┐        ┌─────┐
+│emot-│    │crisi│    │memor│    │engag│   ...  │human│
+│ional│    │s    │    │y    │    │ement│        │izing│
+└──┬──┘    └──┬──┘    └──┬──┘    └──┬──┘        └──┬──┘
+   │          │          │          │              │
+   └──────────┴──────────┴──────────┴──────────────┘
+                          │
+                          ▼
+              ┌──────────────────────────┐
+              │    Context Aggregator    │
+              │   (priority-weighted)    │
+              └──────────┬───────────────┘
+                          │
+                          ▼
+              ┌──────────────────────────┐
+              │    Injected into LLM     │
+              │    System Prompt         │
+              └──────────────────────────┘
+```
+
+### Builder Responsibilities
+
+| Builder | Detection | Injection |
+|---------|-----------|-----------|
+| `emotional` | Sentiment, distress signals | Empathy instructions, tone guidance |
+| `crisis` | Financial panic, life events | Crisis response protocol |
+| `celebration` | Achievements, milestones | Celebration phrases, energy boost |
+| `memory` | Returning user, key moments | Callback prompts, context |
+| `engagement` | Curiosity, depth signals | Follow-up questions |
+| `pacing` | Response length patterns | Length/complexity guidance |
+| `discovery` | New user, missing info | Onboarding prompts |
+| `personal` | Name, personal details | Personalization cues |
+| `topics` | Active topics, threads | Topic management |
+| `intent` | 27 classified intents | Intent-appropriate response |
+| `goodbye` | Exit signals, wrap-up | Closing guidance |
+| `humanizing` | Conversation stage | Natural speech patterns |
+| `rag` | Knowledge queries | Retrieved knowledge |
+| `tasks` | Active tasks | Task progress/prompts |
+
+---
+
+## Persona Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Persona Registry                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Auto-discovers bundles from src/personas/bundles/*/                    │
+│  Validates manifests, lazy-loads content                                │
+└────────┬────────────────────────────────────────────────────────────────┘
+         │
+         ├──────────────┬──────────────┬──────────────┬──────────────┐
+         │              │              │              │              │
+         ▼              ▼              ▼              ▼              ▼
+  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
+  │   Ferni    │ │    Alex    │ │    Maya    │ │   Peter    │ │   Jordan   │
+  │ Coordinator│ │   Comms    │ │   Habits   │ │  Research  │ │  Planning  │
+  └────────────┘ └────────────┘ └────────────┘ └────────────┘ └────────────┘
+         │              │              │              │              │
+         └──────────────┴──────────────┴──────────────┴──────────────┘
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │    PersonaConfig     │
+                         │    Interface         │
+                         ├──────────────────────┤
+                         │ - identity           │
+                         │ - voice              │
+                         │ - personality        │
+                         │ - tools              │
+                         │ - handoff            │
+                         │ - content            │
+                         └──────────────────────┘
+```
+
+### Bundle Structure
+
+```
+src/personas/bundles/<agent-id>/
+├── persona.manifest.json     # Configuration
+│   ├── identity              # Name, description, aliases
+│   ├── voice                 # Cartesia voice config
+│   ├── personality           # Traits, moods, warmth
+│   ├── role                  # Domains, capabilities
+│   ├── team                  # Handoff triggers, phrases
+│   ├── tools                 # Available tool domains
+│   ├── emotional             # Empathy settings
+│   └── humanization          # Natural speech config
+│
+├── identity/
+│   ├── biography.md          # Background story
+│   └── system-prompt.md      # Behavioral instructions
+│
+└── content/
+    ├── behaviors/            # Response patterns
+    │   ├── greetings.json
+    │   ├── backchannels.json
+    │   ├── catchphrases.json
+    │   └── ...
+    ├── stories/              # Personal anecdotes
+    ├── knowledge/            # Domain expertise
+    └── voice/                # Expression patterns
+```
+
+---
+
+## Handoff System
+
+Seamless agent-to-agent transitions:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Handoff Detection                                │
+├────────────────────────────────────────────────────────────────────────┤
+│  1. Explicit triggers: "talk to Alex", "get Maya"                      │
+│  2. Intent detection: "send email" → Alex, "track habit" → Maya        │
+│  3. Domain matching: financial questions → Maya/Peter                   │
+│  4. LLM decision: Complex scenarios evaluated by model                 │
+└────────┬───────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Handoff Execution                                │
+├────────────────────────────────────────────────────────────────────────┤
+│  1. Save current context to memory                                      │
+│  2. Coordinator speaks introduction (optional)                          │
+│  3. Load target agent's persona config                                  │
+│  4. Target agent speaks entrance phrase                                 │
+│  5. Context transferred to new agent                                    │
+└────────┬───────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Metrics & Tracing                                │
+├────────────────────────────────────────────────────────────────────────┤
+│  - Duration tracking                                                    │
+│  - Success/failure logging                                              │
+│  - Distributed tracing                                                  │
+│  - Failure reason categorization                                        │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Tool System
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Tool Registry                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│  100+ tools organized by domain                                         │
+└────────┬────────────────────────────────────────────────────────────────┘
+         │
+         ├──────────────┬──────────────┬──────────────┬──────────────┐
+         │              │              │              │              │
+         ▼              ▼              ▼              ▼              ▼
+  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐
+  │  calendar  │ │communication│ │   habits   │ │  finance   │ │  handoff   │
+  └────────────┘ └────────────┘ └────────────┘ └────────────┘ └────────────┘
+  │ schedule   │ │ sendEmail  │ │ createHabit│ │ getBudget  │ │ handoffTo* │
+  │ getSlots   │ │ sendText   │ │ trackHabit │ │ trackSpend │ │            │
+  └────────────┘ └────────────┘ └────────────┘ └────────────┘ └────────────┘
+```
+
+### Tool Domain Assignment
+
+Personas receive tools based on their configured domains:
+
+```json
+{
+  "tools": {
+    "domains": ["memory", "handoff", "calendar", "communication"],
+    "required": ["scheduleAppointment"],
+    "optional": ["getWeather"],
+    "forbidden": ["dayTrade", "analyzeStock"]
+  }
+}
+```
+
+---
+
+## Memory System
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Memory Manager                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Coordinates all memory operations with cross-session awareness         │
+└────────┬────────────────────────────────────────────────────────────────┘
+         │
+         ├──────────────────────────────┬──────────────────────────────┐
+         │                              │                              │
+         ▼                              ▼                              ▼
+  ┌────────────────────┐    ┌────────────────────┐    ┌────────────────────┐
+  │    User Profile    │    │ Conversation State │    │  Semantic Memory   │
+  │                    │    │                    │    │                    │
+  │ - Name, life stage │    │ - Active topics    │    │ - Vector embeddings│
+  │ - Goals, prefs     │    │ - Emotional arc    │    │ - Key moments      │
+  │ - Relationship     │    │ - Running jokes    │    │ - RAG retrieval    │
+  │   stage            │    │ - Session context  │    │                    │
+  └─────────┬──────────┘    └─────────┬──────────┘    └─────────┬──────────┘
+            │                         │                         │
+            └─────────────────────────┴─────────────────────────┘
+                                      │
+                                      ▼
+                         ┌──────────────────────┐
+                         │   Storage Backend    │
+                         ├──────────────────────┤
+                         │ - Firestore (prod)   │
+                         │ - PostgreSQL (local) │
+                         │ - In-memory (dev)    │
+                         └──────────────────────┘
+```
+
+---
+
+## Deployment Architecture
+
+### Development (3 Servers)
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Token Server   │    │   UI Server     │    │   Vite Dev      │
+│  (port 3001)    │    │   (port 3002)   │    │   (port 3004)   │
+├─────────────────┤    ├─────────────────┤    ├─────────────────┤
+│ - LiveKit tokens│    │ - REST APIs     │    │ - Frontend HMR  │
+│ - Spotify OAuth │    │ - Engagement    │    │ - CSS hot reload│
+│ - Subscriptions │    │ - Agent registry│    │ - TypeScript    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### Production (Google Cloud)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          Cloud Run                                       │
+├───────────────────────────────┬─────────────────────────────────────────┤
+│       UI Server               │           Voice Agent                    │
+│  (cloudbuild-ui.yaml)         │  (cloudbuild.yaml)                      │
+│                               │                                          │
+│  - Frontend serving           │  - LiveKit agent                         │
+│  - All REST APIs              │  - Gemini Live                          │
+│  - Token generation           │  - Cartesia TTS                         │
+│  - Subscription handling      │  - Voice processing                     │
+└───────────────┬───────────────┴─────────────────────────────────────────┘
+                │
+                ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                          Google Cloud Services                         │
+├─────────────────────┬────────────────────┬────────────────────────────┤
+│    Firestore        │   Memorystore      │   Secret Manager           │
+│    (Database)       │   (Redis Cache)    │   (API Keys)               │
+└─────────────────────┴────────────────────┴────────────────────────────┘
+```
+
+---
 
 ## Data Flow
 
-### 1. User Message Processing
+### Conversation Flow
 
 ```
-User speaks
-    ↓
-STT transcribes
-    ↓
-onUserTurnCompleted hook
-    ↓
-┌──────────────────────────────────────┐
-│ Intelligence Analysis                 │
-│ • Emotion detection                   │
-│ • Intent classification               │
-│ • Topic extraction                    │
-│ • State machine update                │
-└──────────────────────────────────────┘
-    ↓
-┌──────────────────────────────────────┐
-│ Context Building                      │
-│ • Emotional awareness injection       │
-│ • Intent-based guidance               │
-│ • Topic threading context             │
-│ • Relationship context                │
-│ • Semantic RAG lookup                 │
-└──────────────────────────────────────┘
-    ↓
-Context injected into LLM chat
-    ↓
-LLM generates response
-    ↓
-transcriptionNode hook
-    ↓
-┌──────────────────────────────────────┐
-│ Adaptive SSML Tagging                 │
-│ • Build speech context from state     │
-│ • Adjust speed to user WPM            │
-│ • Gate laughter for heavy topics      │
-│ • Match energy level                  │
-│ • Apply emotion tags                  │
-└──────────────────────────────────────┘
-    ↓
-TTS speaks with natural prosody
+1. User opens app → Connect to LiveKit room
+2. User speaks → Audio streamed to Gemini Live
+3. Speech transcribed → Context builders execute (parallel)
+4. Context injected → LLM generates response
+5. Response processed → SSML tags added
+6. SSML to Cartesia → Audio synthesized
+7. Audio streamed → User hears response
+8. State persisted → Memory updated
 ```
 
-### 2. Session Lifecycle
+### Handoff Flow
 
 ```
-prewarm
-    ↓
-    • Load VAD
-    • Initialize services
-    • Index persona into vector store
-    ↓
-entry
-    ↓
-    • Parse metadata for user ID
-    • Create session services
-    • Load user profile (if returning)
-    • Set up event listeners
-    • Generate context-aware greeting
-    ↓
-conversation loop
-    ↓
-    • onUserTurnCompleted: analyze + inject context
-    • transcriptionNode: apply adaptive SSML
-    • Track conversation in history
-    ↓
-disconnect
-    ↓
-    • Save user profile
-    • Generate conversation summary
-    • Cleanup session resources
+1. Intent detected (explicit or implicit)
+2. Current context saved to memory
+3. Coordinator announces handoff (optional)
+4. Target agent loaded
+5. Target speaks entrance phrase
+6. Context transferred
+7. Conversation continues with new agent
 ```
 
-## Key Components
+### Memory Flow
 
-### EmotionDetector
-Analyzes text for emotional content:
-- Primary emotion (joy, sadness, anxiety, etc.)
-- Intensity (0-1)
-- Distress level (0-1) - triggers support mode when high
-- Valence (positive/negative/neutral)
-- Suggested tone for response
-
-### IntentClassifier
-Classifies user intent(s):
-- 27 intent types (seeking_advice, venting, greeting, etc.)
-- Multi-label support
-- Urgency assessment
-- Empathy/action requirements
-- Suggested approach
-
-### TopicTracker
-Tracks conversation topics:
-- Extracts topics from messages
-- Maintains topic stack
-- Detects topic shifts
-- Identifies topics to circle back to
-
-### ConversationStateMachine
-Manages conversation phases:
-- greeting → warming_up → exploring → advising → wrapping_up
-- supporting (triggered by high distress)
-- follow_up (for returning users)
-- Phase-specific guidance and voice modes
-
-### ContextManager
-Builds prompt context:
-- Rolling summaries (every 10 turns)
-- Relationship context from profile
-- Emotional context
-- Topic threading
-- Cross-session continuity
-
-### Adaptive SSML
-Context-aware speech synthesis:
-- Base speed adapted to user WPM
-- Pause multiplier for distressed users
-- Laughter gating for heavy topics
-- Energy mirroring
-- Specialized taggers for different content types
-
-## Configuration
-
-### Feature Flags
-```typescript
-const config = {
-  enableSemanticRag: true,
-  enableEmotionDetection: true,
-  enableIntentClassification: true,
-  enableAdaptiveSsml: true,
-  enablePersistentMemory: true,
-  enableCrossSessionContinuity: true,
-};
+```
+1. Conversation event occurs
+2. Memory manager notified
+3. Relevant stores updated:
+   - User profile (if personal info shared)
+   - Conversation state (topics, emotions)
+   - Semantic store (key moments)
+4. Cross-session thread maintained
+5. Next session loads full context
 ```
 
-### Memory Store Selection
-- Development: `InMemoryStore` (no persistence)
-- Production: PostgreSQL + Redis + Pinecone/Weaviate
+---
 
-### Embedding Providers
-- Google: `gemini-embedding-001` (default)
-- OpenAI: `text-embedding-3-small`
-- Local: Placeholder for testing
+## Security
 
-## Testing
+### Authentication
 
-Run the test suite:
-```bash
-npx vitest run
-```
+- **API Keys**: Server-to-server communication
+- **JWT Tokens**: Frontend/mobile apps
+- **Admin Keys**: Elevated privileges for diagnostics
+- **Dev Mode**: Bypasses auth in development
 
-Test categories:
-- Memory System (15 tests)
-- Intelligence System (25 tests)
-- Speech System (20 tests)
-- Cross-Session Continuity (15 tests)
+### Data Protection
 
-## Performance Considerations
+- **CORS**: Restricted origins in production
+- **Rate Limiting**: Per-IP and per-user limits
+- **Input Validation**: Zod schemas for all inputs
+- **Encryption**: TLS for all external communication
 
-### Latency
-- Intelligence analysis: ~5-10ms (rule-based)
-- Semantic RAG: ~50-100ms (embedding + search)
-- SSML tagging: ~1-2ms
-- Total overhead: ~60-120ms
+### Privacy
 
-### Memory
-- Session state: ~1-5KB per session
-- User profile: ~10-50KB per user
-- Vector store: ~100MB for persona knowledge
+- **User ID Isolation**: Data scoped to user
+- **Data Export**: GDPR-compliant export
+- **Data Deletion**: Full user data wipe
+- **Minimal Collection**: Only necessary data stored
 
-### Scaling
-- Session services are per-session (no shared state issues)
-- Memory stores can be backed by distributed databases
-- Vector store can use cloud-hosted solutions (Pinecone, etc.)
+---
 
-## Future Enhancements
+## Performance
 
-1. **Voice Emotion Detection**: Analyze user's voice tone, not just text
-2. **Proactive Outreach**: Schedule follow-up calls based on user needs
-3. **Multi-Modal**: Add screen sharing for financial visualizations
-4. **Advanced RAG**: Query external knowledge bases, market data
-5. **A/B Testing**: Test different persona variations
-6. **Analytics Dashboard**: Track relationship quality metrics
+### Targets
 
+| Metric | Target | Actual |
+|--------|--------|--------|
+| Voice response latency | < 200ms | ~150ms |
+| Context builder execution | < 50ms | ~30ms |
+| Handoff completion | < 500ms | ~300ms |
+| Memory retrieval | < 100ms | ~50ms |
+
+### Optimizations
+
+- **Parallel context builders**: Run simultaneously
+- **Lazy content loading**: Load stories/knowledge on demand
+- **Redis caching**: Frequently accessed data
+- **Connection pooling**: Database connections
+- **WebSocket reuse**: LiveKit connections
+
+---
+
+## Monitoring
+
+### Dashboards
+
+| Dashboard | Purpose |
+|-----------|---------|
+| Cognitive Dashboard | AI reasoning, context builder performance |
+| Persistence Metrics | Memory system, Firestore operations |
+| Tools Dashboard | Tool usage, success rates |
+| Handoff Diagnostics | Agent transfer metrics |
+
+### Alerting
+
+- **Latency spikes**: Response time > 500ms
+- **Error rates**: > 1% failure rate
+- **Handoff failures**: > 5% failure rate
+- **Memory operations**: > 1% failure rate
+
+---
+
+## Future Architecture
+
+Planned enhancements:
+
+1. **Vector Store**: Pinecone/Weaviate for semantic search
+2. **Multi-model**: Support for Claude, GPT-4 alongside Gemini
+3. **Federated Learning**: Cross-user pattern learning
+4. **Edge Processing**: Client-side voice detection
+5. **Multi-tenant**: Multiple team configurations

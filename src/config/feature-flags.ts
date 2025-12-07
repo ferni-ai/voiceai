@@ -112,6 +112,36 @@ export interface FeatureFlags {
     /** Push notifications */
     pushNotifications: boolean;
   };
+
+  /**
+   * Life Coach Domain features - new coaching tool domains
+   */
+  lifeCoachDomains: {
+    /** Master switch for all life coach domains */
+    enabled: boolean;
+    /** Crisis & Safety tools (ALWAYS enabled for safety) */
+    crisis: boolean;
+    /** Health & Fitness tools */
+    health: boolean;
+    /** Career & Professional tools */
+    career: boolean;
+    /** Decision Support tools */
+    decisions: boolean;
+    /** Family & Parenting tools */
+    family: boolean;
+    /** Home & Living tools */
+    home: boolean;
+    /** Education & Learning tools */
+    learning: boolean;
+    /** Creativity & Hobbies tools */
+    creativity: boolean;
+    /** Community & Impact tools */
+    community: boolean;
+    /** Legal & Administrative tools */
+    legalAdmin: boolean;
+    /** Track tool usage analytics */
+    analytics: boolean;
+  };
 }
 
 // ============================================================================
@@ -155,6 +185,20 @@ const DEFAULT_FLAGS: FeatureFlags = {
     email: true,
     pushNotifications: true,
   },
+  lifeCoachDomains: {
+    enabled: true,
+    crisis: true, // ALWAYS enabled for safety
+    health: true,
+    career: true,
+    decisions: true,
+    family: true,
+    home: true,
+    learning: true,
+    creativity: true,
+    community: true,
+    legalAdmin: true,
+    analytics: true,
+  },
 };
 
 // ============================================================================
@@ -193,6 +237,20 @@ const ENV_MAPPINGS: Record<string, string> = {
   ENABLE_GOOGLE_CALENDAR: 'integrations.googleCalendar',
   ENABLE_EMAIL: 'integrations.email',
   ENABLE_PUSH_NOTIFICATIONS: 'integrations.pushNotifications',
+
+  // Life Coach Domains
+  LIFE_COACH_DOMAINS_ENABLED: 'lifeCoachDomains.enabled',
+  LIFE_COACH_CRISIS: 'lifeCoachDomains.crisis',
+  LIFE_COACH_HEALTH: 'lifeCoachDomains.health',
+  LIFE_COACH_CAREER: 'lifeCoachDomains.career',
+  LIFE_COACH_DECISIONS: 'lifeCoachDomains.decisions',
+  LIFE_COACH_FAMILY: 'lifeCoachDomains.family',
+  LIFE_COACH_HOME: 'lifeCoachDomains.home',
+  LIFE_COACH_LEARNING: 'lifeCoachDomains.learning',
+  LIFE_COACH_CREATIVITY: 'lifeCoachDomains.creativity',
+  LIFE_COACH_COMMUNITY: 'lifeCoachDomains.community',
+  LIFE_COACH_LEGAL_ADMIN: 'lifeCoachDomains.legalAdmin',
+  LIFE_COACH_ANALYTICS: 'lifeCoachDomains.analytics',
 };
 
 // ============================================================================
@@ -382,4 +440,87 @@ export function getEnabledDebugCategories(): Array<keyof FeatureFlags['debug']> 
   return (Object.keys(flags.debug) as Array<keyof FeatureFlags['debug']>).filter(
     (key) => flags.debug[key]
   );
+}
+
+// ============================================================================
+// LIFE COACH DOMAIN HELPERS
+// ============================================================================
+
+export type LifeCoachDomain =
+  | 'crisis'
+  | 'health'
+  | 'career'
+  | 'decisions'
+  | 'family'
+  | 'home'
+  | 'learning'
+  | 'creativity'
+  | 'community'
+  | 'legalAdmin';
+
+/**
+ * Check if a life coach domain is enabled
+ * Note: Crisis domain is ALWAYS enabled for safety, regardless of flags
+ */
+export function isLifeCoachDomainEnabled(domain: LifeCoachDomain): boolean {
+  // Crisis is ALWAYS enabled for safety
+  if (domain === 'crisis') return true;
+
+  const flags = getFeatureFlags();
+  if (!flags.lifeCoachDomains.enabled) return false;
+  return flags.lifeCoachDomains[domain] === true;
+}
+
+/**
+ * Get all enabled life coach domains
+ */
+export function getEnabledLifeCoachDomains(): LifeCoachDomain[] {
+  const flags = getFeatureFlags();
+  const domains: LifeCoachDomain[] = [
+    'crisis', // Always included
+    'health',
+    'career',
+    'decisions',
+    'family',
+    'home',
+    'learning',
+    'creativity',
+    'community',
+    'legalAdmin',
+  ];
+
+  if (!flags.lifeCoachDomains.enabled) {
+    return ['crisis']; // Only crisis when disabled
+  }
+
+  return domains.filter((d) => flags.lifeCoachDomains[d]);
+}
+
+/**
+ * Check if life coach analytics is enabled
+ */
+export function isLifeCoachAnalyticsEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.lifeCoachDomains.enabled && flags.lifeCoachDomains.analytics;
+}
+
+/**
+ * Emergency: Disable a life coach domain at runtime
+ * Note: Cannot disable crisis domain for safety
+ */
+export function emergencyDisableLifeCoachDomain(
+  domain: LifeCoachDomain,
+  reason: string
+): boolean {
+  if (domain === 'crisis') {
+    getLogger().error({ domain, reason }, 'Cannot disable crisis domain - safety critical');
+    return false;
+  }
+
+  const flags = getFeatureFlags();
+  flags.lifeCoachDomains[domain] = false;
+  cachedFlags = flags;
+
+  getLogger().warn({ domain, reason }, 'Life coach domain emergency disabled');
+  return true;
 }

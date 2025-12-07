@@ -148,20 +148,20 @@ class AudioService {
       
       return new Promise<void>((resolve) => {
         const onEnded = () => {
-          audio!.removeEventListener('ended', onEnded);
-          audio!.removeEventListener('error', onError);
+          audio.removeEventListener('ended', onEnded);
+          audio.removeEventListener('error', onError);
           resolve();
         };
         const onError = () => {
-          audio!.removeEventListener('ended', onEnded);
-          audio!.removeEventListener('error', onError);
+          audio.removeEventListener('ended', onEnded);
+          audio.removeEventListener('error', onError);
           resolve();
         };
         
-        audio!.addEventListener('ended', onEnded, { once: true });
-        audio!.addEventListener('error', onError, { once: true });
+        audio.addEventListener('ended', onEnded, { once: true });
+        audio.addEventListener('error', onError, { once: true });
         
-        audio!.play().catch(() => {
+        audio.play().catch(() => {
           // Autoplay policy may block this - resolve anyway
           resolve();
         });

@@ -13,7 +13,16 @@
     "test:e2e": "playwright test",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx --fix",
-    "typecheck": "tsc --noEmit"
+    "lint:tokens": "node scripts/validate-design-tokens.js",
+    "audit:ui": "node scripts/audit-ui.js",
+    "typecheck": "tsc --noEmit",
+    "quality": "npm run typecheck && npm run lint && npm run lint:tokens && npm run test -- --run",
+    "quality:full": "npm run quality && npm run audit:ui",
+    "bundle:check": "node scripts/bundle-size-check.js",
+    "build:check": "npm run build && npm run bundle:check",
+    "quality:check": "node scripts/quality-check.js",
+    "precommit": "lint-staged",
+    "prepare": "husky"
   },
   "dependencies": {
     "@capacitor/core": "^7.4.4",
@@ -35,7 +44,9 @@
     "@vitest/ui": "^1.0.0",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
     "jsdom": "^23.0.0",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.1.0",
     "typescript": "^5.3.0",
     "vite": "^5.0.0",
@@ -43,5 +54,17 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "src/ui/**/*.ts": [
+      "node scripts/validate-design-tokens.js"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
   }
 }

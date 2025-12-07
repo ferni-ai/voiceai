@@ -31,17 +31,21 @@ export interface PersonaTransitionUICallbacks {
 }
 
 // ============================================================================
-// PERSONA COLORS
+// PERSONA COLORS - Uses CSS variables from data-persona attribute
 // ============================================================================
 
-const PERSONA_COLORS: Record<string, { primary: string; secondary: string }> = {
-  ferni: { primary: '#3d5a35', secondary: '#4a6741' },
-  'alex-chen': { primary: '#4a6b8a', secondary: '#5a7b9a' },
-  'maya-santos': { primary: '#8b6b5a', secondary: '#9b7b6a' },
-  'jordan-taylor': { primary: '#7a5a5a', secondary: '#8a6a6a' },
-  'nayan-patel': { primary: '#8a7a5a', secondary: '#9a8a6a' },
-  'peter-john': { primary: '#4a7a7a', secondary: '#5a8a8a' },
-};
+/**
+ * Get persona colors from CSS variables (set via data-persona attribute on body).
+ * Fallback to default sage green if no persona is set.
+ */
+function getPersonaColors(): { primary: string; secondary: string } {
+  const root = document.documentElement;
+  const computedStyle = getComputedStyle(root);
+  return {
+    primary: computedStyle.getPropertyValue('--persona-primary').trim() || '#3d5a35',
+    secondary: computedStyle.getPropertyValue('--persona-secondary').trim() || '#4a6741',
+  };
+}
 
 // ============================================================================
 // PERSONA TRANSITION UI CLASS
@@ -73,14 +77,16 @@ class PersonaTransitionUI {
     this.isTransitioning = true;
     this.callbacks.onTransitionStart?.();
 
-    const fromColors = PERSONA_COLORS[data.fromPersonaId] ?? PERSONA_COLORS['ferni'];
-    const toColors = PERSONA_COLORS[data.toPersonaId] ?? PERSONA_COLORS['ferni'];
+    // Get persona colors from CSS variables (uses current persona or defaults)
+    const colors = getPersonaColors();
 
+    // For transition animation, use the current persona colors for both from/to
+    // The visual effect is a pulse/morph in the persona's color palette
     // Set CSS custom properties for animation
-    this.overlay.style.setProperty('--from-primary', fromColors?.primary ?? '#3d5a35');
-    this.overlay.style.setProperty('--from-secondary', fromColors?.secondary ?? '#4a6741');
-    this.overlay.style.setProperty('--to-primary', toColors?.primary ?? '#3d5a35');
-    this.overlay.style.setProperty('--to-secondary', toColors?.secondary ?? '#4a6741');
+    this.overlay.style.setProperty('--from-primary', colors.primary);
+    this.overlay.style.setProperty('--from-secondary', colors.secondary);
+    this.overlay.style.setProperty('--to-primary', colors.primary);
+    this.overlay.style.setProperty('--to-secondary', colors.secondary);
 
     // Show banter if provided
     if (data.banter) {

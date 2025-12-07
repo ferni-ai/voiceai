@@ -64,7 +64,7 @@ const INSIGHT_ICONS: Record<InsightType, string> = {
 const STYLES = `
   .cognitive-insight {
     position: fixed;
-    z-index: 9999;
+    z-index: var(--z-notification);
     max-width: 320px;
     padding: var(--ma-pause, 13px) var(--ma-rest, 21px);
     background: var(--glass-surface-2, rgba(26, 26, 46, 0.8));

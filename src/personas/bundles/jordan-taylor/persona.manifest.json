@@ -325,9 +325,14 @@
       "handoff",
       "life-planning",
       "dreams",
-      "engagement"
+      "engagement",
+      "family",
+      "career",
+      "home",
+      "learning",
+      "legal-admin"
     ],
-    "_domain_notes": "Jordan is the life planning and milestones specialist. Owns goals, milestones, events, and future planning. Reduced domains to hit target: 40-55 tools for optimal Gemini performance.",
+    "_domain_notes": "Jordan is the life planning and transitions specialist. Owns goals, milestones, events, career development, family planning, home/moving, education, and administrative planning. Target: 50-65 tools for optimal Gemini performance.",
     "required": [
       "createLifeMilestone",
       "viewLifeMilestones",

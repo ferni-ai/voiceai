@@ -92,7 +92,7 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
   } = options;
 
   let currentExpression: LogoExpression = expression;
-  let animationFrame: number | null = null;
+  const animationFrame: number | null = null;
 
   // Create SVG element
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

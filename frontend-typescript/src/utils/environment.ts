@@ -49,7 +49,7 @@ interface ViteImportMeta {
 export function getEnvironment(): Environment {
   // Check Vite environment variable first
   const meta = import.meta as unknown as ViteImportMeta;
-  if (typeof meta !== 'undefined' && meta.env?.MODE) {
+  if (meta?.env?.MODE) {
     const mode = meta.env.MODE;
     if (mode === 'development') return 'development';
     if (mode === 'staging') return 'staging';

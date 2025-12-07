@@ -54,10 +54,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test -- --reporter=verbose
+      - name: Run tests with coverage
+        run: npm run test:coverage -- --reporter=verbose
         env:
           NODE_ENV: test
+
+      - name: Check coverage threshold
+        run: |
+          # Extract coverage percentage from coverage summary
+          COVERAGE=$(cat coverage/coverage-summary.json 2>/dev/null | grep -o '"pct":[0-9.]*' | head -1 | grep -o '[0-9.]*' || echo "0")
+          echo "Coverage: ${COVERAGE}%"
+          # Fail if coverage is below 60%
+          if (( $(echo "$COVERAGE < 60" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below 60% threshold"
+            exit 1
+          fi
+          echo "✓ Coverage ${COVERAGE}% meets 60% threshold"
+        continue-on-error: true
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -139,6 +152,76 @@ jobs:
           head: HEAD
           extra_args: --only-verified
         continue-on-error: true
+
+  # ============================================================================
+  # CODE QUALITY METRICS
+  # ============================================================================
+  code-quality:
+    name: Code Quality Metrics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run code quality check
+        run: npm run quality:check
+
+      - name: Run architecture validation
+        run: npm run quality:arch
+
+  # ============================================================================
+  # FRONTEND QUALITY
+  # ============================================================================
+  frontend-quality:
+    name: Frontend Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend-typescript
+          npm ci
+
+      - name: TypeScript type check
+        run: |
+          cd frontend-typescript
+          npm run typecheck
+
+      - name: ESLint check
+        run: |
+          cd frontend-typescript
+          npm run lint
+
+      - name: Design token validation
+        run: |
+          cd frontend-typescript
+          npm run lint:tokens
+
+      - name: UI audit
+        run: |
+          cd frontend-typescript
+          npm run audit:ui
+
+      - name: Build and check bundle size
+        run: |
+          cd frontend-typescript
+          npm run build:check
 
   # ============================================================================
   # DEPENDENCY CHECK

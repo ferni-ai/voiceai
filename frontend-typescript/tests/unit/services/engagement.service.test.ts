@@ -22,16 +22,15 @@ import type {
 } from '../../../src/services/engagement.service.js';
 import type { EngagementData } from '../../../src/ui/engagement.ui.js';
 
-// Mock fetch-retry utilities
-vi.mock('../../../src/utils/fetch-retry.js', () => ({
-  getWithRetry: vi.fn(),
-  isOffline: vi.fn(),
-}));
+// Mock global fetch
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
 describe('EngagementService', () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    mockFetch.mockReset();
   });
 
   afterEach(() => {
@@ -405,7 +404,6 @@ describe('EngagementService', () => {
   describe('fetchEngagementData', () => {
     it('should return cached data if available', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry } = await import('../../../src/utils/fetch-retry.js');
 
       // Set up cached data
       const cachedData: EngagementData = {
@@ -435,18 +433,17 @@ describe('EngagementService', () => {
       expect(result).toEqual(expect.objectContaining({
         stats: cachedData.stats,
       }));
-      expect(getWithRetry).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('should fetch from API when no cache', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry, isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
-      vi.mocked(isOffline).mockReturnValue(false);
-      vi.mocked(getWithRetry).mockResolvedValue({
-        data: {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
           streaks: [{
             ritualId: 'ferni-sky-check',
             personaId: 'ferni',
@@ -459,26 +456,18 @@ describe('EngagementService', () => {
             totalRitualDays: 15,
             longestOverallStreak: 10,
           },
-        },
-        error: null,
-        status: 200,
-        retries: 0,
-        offline: false,
+        }),
       });
 
       const result = await engagementService.fetchEngagementData('user123');
 
-      expect(getWithRetry).toHaveBeenCalledWith(
-        '/api/rituals?userId=user123',
-        { maxRetries: 2, timeout: 15000 }
-      );
+      expect(mockFetch).toHaveBeenCalledWith('/api/rituals?userId=user123');
       expect(result).not.toBeNull();
       expect(result?.ritualStreaks).toHaveLength(1);
     });
 
     it('should return cached data on API error', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry, isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
@@ -499,14 +488,7 @@ describe('EngagementService', () => {
       engagementService.handleDataMessage(engagementMessage);
 
       // Now simulate API failure
-      vi.mocked(isOffline).mockReturnValue(false);
-      vi.mocked(getWithRetry).mockResolvedValue({
-        data: null,
-        error: new Error('Network error'),
-        status: null,
-        retries: 2,
-        offline: false,
-      });
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const result = await engagementService.fetchEngagementData('user123');
 
@@ -516,7 +498,6 @@ describe('EngagementService', () => {
 
     it('should return cached data when offline', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
@@ -536,7 +517,8 @@ describe('EngagementService', () => {
 
       engagementService.handleDataMessage(engagementMessage);
 
-      vi.mocked(isOffline).mockReturnValue(true);
+      // Simulate API failure (offline behavior)
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const result = await engagementService.fetchEngagementData('user123');
 
@@ -545,13 +527,12 @@ describe('EngagementService', () => {
 
     it('should transform API response correctly', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry, isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
-      vi.mocked(isOffline).mockReturnValue(false);
-      vi.mocked(getWithRetry).mockResolvedValue({
-        data: {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
           streaks: [{
             ritualId: 'maya-habit-heartbeat',
             personaId: 'maya',
@@ -574,11 +555,7 @@ describe('EngagementService', () => {
             teamHuddlesAttended: 3,
           },
           lastEngagementAt: '2025-12-06T10:00:00Z',
-        },
-        error: null,
-        status: 200,
-        retries: 0,
-        offline: false,
+        }),
       });
 
       const result = await engagementService.fetchEngagementData('user123');
@@ -592,19 +569,14 @@ describe('EngagementService', () => {
 
     it('should handle missing fields in API response', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry, isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
-      vi.mocked(isOffline).mockReturnValue(false);
-      vi.mocked(getWithRetry).mockResolvedValue({
-        data: {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
           // Minimal response
-        },
-        error: null,
-        status: 200,
-        retries: 0,
-        offline: false,
+        }),
       });
 
       const result = await engagementService.fetchEngagementData('user123');
@@ -617,24 +589,19 @@ describe('EngagementService', () => {
 
     it('should fire onEngagementUpdate callback after successful fetch', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry, isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
       const updateCallback = vi.fn();
       engagementService.setCallbacks({ onEngagementUpdate: updateCallback });
 
-      vi.mocked(isOffline).mockReturnValue(false);
-      vi.mocked(getWithRetry).mockResolvedValue({
-        data: {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
           streaks: [],
           weatherHistory: [],
           stats: { totalRitualDays: 5 },
-        },
-        error: null,
-        status: 200,
-        retries: 0,
-        offline: false,
+        }),
       });
 
       await engagementService.fetchEngagementData('user123');
@@ -646,7 +613,6 @@ describe('EngagementService', () => {
   describe('fetchPredictions', () => {
     it('should return cached predictions if available', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
@@ -679,18 +645,17 @@ describe('EngagementService', () => {
       const result = await engagementService.fetchPredictions('user123');
 
       expect(result).toEqual(predictions);
-      expect(getWithRetry).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('should fetch from API when no cache', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry, isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
-      vi.mocked(isOffline).mockReturnValue(false);
-      vi.mocked(getWithRetry).mockResolvedValue({
-        data: {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
           predictions: [{
             id: 'pred-1',
             predictions: {
@@ -699,32 +664,24 @@ describe('EngagementService', () => {
             weekOf: 'Dec 1',
             createdAt: '2025-12-01',
           }],
-        },
-        error: null,
-        status: 200,
-        retries: 0,
-        offline: false,
+        }),
       });
 
       const result = await engagementService.fetchPredictions('user123');
 
-      expect(getWithRetry).toHaveBeenCalledWith(
-        '/api/predictions?userId=user123',
-        { maxRetries: 2, timeout: 15000 }
-      );
+      expect(mockFetch).toHaveBeenCalledWith('/api/predictions?userId=user123');
       expect(result).toHaveLength(1);
       expect(result[0].category).toBe('mood');
     });
 
     it('should transform prediction data correctly', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry, isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
-      vi.mocked(isOffline).mockReturnValue(false);
-      vi.mocked(getWithRetry).mockResolvedValue({
-        data: {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
           predictions: [
             {
               id: 'pred-1',
@@ -746,11 +703,7 @@ describe('EngagementService', () => {
               createdAt: '2025-12-08',
             },
           ],
-        },
-        error: null,
-        status: 200,
-        retries: 0,
-        offline: false,
+        }),
       });
 
       const result = await engagementService.fetchPredictions('user123');
@@ -765,11 +718,11 @@ describe('EngagementService', () => {
 
     it('should handle offline status for predictions', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
-      vi.mocked(isOffline).mockReturnValue(true);
+      // Simulate API failure (offline)
+      mockFetch.mockRejectedValue(new Error('Network error'));
 
       const result = await engagementService.fetchPredictions('user123');
 
@@ -778,13 +731,12 @@ describe('EngagementService', () => {
 
     it('should extract category correctly', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry, isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
-      vi.mocked(isOffline).mockReturnValue(false);
-      vi.mocked(getWithRetry).mockResolvedValue({
-        data: {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
           predictions: [
             {
               id: 'pred-1',
@@ -811,11 +763,7 @@ describe('EngagementService', () => {
               createdAt: '2025-12-01',
             },
           ],
-        },
-        error: null,
-        status: 200,
-        retries: 0,
-        offline: false,
+        }),
       });
 
       const result = await engagementService.fetchPredictions('user123');
@@ -828,13 +776,12 @@ describe('EngagementService', () => {
 
     it('should calculate main value as average', async () => {
       const { engagementService } = await import('../../../src/services/engagement.service.js');
-      const { getWithRetry, isOffline } = await import('../../../src/utils/fetch-retry.js');
 
       engagementService.clearCache();
 
-      vi.mocked(isOffline).mockReturnValue(false);
-      vi.mocked(getWithRetry).mockResolvedValue({
-        data: {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({
           predictions: [{
             id: 'pred-1',
             predictions: {
@@ -845,11 +792,7 @@ describe('EngagementService', () => {
             weekOf: 'Dec 1',
             createdAt: '2025-12-01',
           }],
-        },
-        error: null,
-        status: 200,
-        retries: 0,
-        offline: false,
+        }),
       });
 
       const result = await engagementService.fetchPredictions('user123');

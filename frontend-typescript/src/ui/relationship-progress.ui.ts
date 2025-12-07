@@ -1010,13 +1010,16 @@ export function showCelebration(event: StageChangeEvent): void {
   // Show with animation
   celebrationOverlay.classList.add('visible');
   
-  // Sound effect (non-blocking)
+  // Sound effect (non-blocking, may fail due to autoplay restrictions)
   try {
     const audio = new Audio('/sounds/level-up.mp3');
     audio.volume = 0.3;
-    audio.play().catch(() => {});
+    audio.play().catch((e) => {
+      // Autoplay blocked or audio unavailable - non-critical
+      if (import.meta.env?.DEV) console.debug('Audio play blocked:', e);
+    });
   } catch {
-    // Sound not critical
+    // Sound initialization failed - non-critical
   }
 }
 

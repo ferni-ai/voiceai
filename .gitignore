@@ -51,3 +51,14 @@ Thumbs.db
 *.tsbuildinfo
 .spotify-tokens.json
 .spotify-device.json
+
+# Generated design system files
+frontend-typescript/src/config/sounds.generated.ts
+frontend-typescript/src/config/persona-colors.generated.ts
+frontend-typescript/public/design-system/manifest.json
+design-system/dist/
+
+# Test artifacts
+playwright-report/
+test-results/
+coverage/

@@ -159,7 +159,7 @@ export function getContrastRatio(color1: string, color2: string): number {
     }
     // Handle rgb/rgba
     const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-    if (match && match[1] && match[2] && match[3]) {
+    if (match?.[1] && match[2] && match[3]) {
       return [parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10)];
     }
     return [0, 0, 0];

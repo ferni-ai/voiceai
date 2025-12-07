@@ -5,7 +5,19 @@
   "scripts": {
     "dev": "eleventy --serve --port=8080",
     "build": "eleventy",
-    "clean": "rm -rf _site"
+    "clean": "rm -rf _site",
+    "lint:design": "./scripts/lint-design.sh",
+    "precommit": "npm run lint:design && npm run audit:content",
+    
+    "marketing:images": "node scripts/generate-assets.js",
+    "marketing:optimize": "node scripts/optimize-assets.js",
+    "marketing:optimize:images": "node scripts/optimize-assets.js --images",
+    "marketing:optimize:videos": "node scripts/optimize-assets.js --videos",
+    "marketing:audit": "./scripts/audit-content.sh",
+    
+    "audit:content": "./scripts/audit-content.sh",
+    "audit:design": "./scripts/lint-design.sh",
+    "audit:all": "npm run audit:design && npm run audit:content"
   },
   "devDependencies": {
     "@11ty/eleventy": "^2.0.1",

@@ -12,11 +12,11 @@ describe('Event Types', () => {
     it('should return true for valid handoff messages', () => {
       const validMessage = {
         type: 'handoff',
-        newAgent: 'peter-lynch',
-        direction: 'jack-to-peter',
+        newAgent: 'peter-john',
+        direction: 'ferni-to-peter',
         timestamp: Date.now(),
       };
-      
+
       expect(isHandoffMessage(validMessage)).toBe(true);
     });
 

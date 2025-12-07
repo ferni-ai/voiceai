@@ -341,7 +341,7 @@ function attachEventListeners(container: HTMLElement): void {
   container.addEventListener('click', handleClick);
 
   // Drag and drop
-  const roster = container.querySelector('#adminRoster') as HTMLElement | null;
+  const roster = container.querySelector('#adminRoster');
   if (roster) {
     roster.addEventListener('dragstart', handleDragStart as EventListener);
     roster.addEventListener('dragover', handleDragOver as EventListener);
@@ -363,27 +363,28 @@ function handleClick(e: Event): void {
       if (agentId) openAgentDetail(agentId);
       break;
     case 'preview-voice':
-      if (agentId) previewVoice(agentId);
+      if (agentId) void previewVoice(agentId);
       break;
     case 'close-panel':
       closeDetailPanel();
       break;
     case 'save-agent':
-      if (agentId) saveAgentChanges(agentId);
+      if (agentId) void saveAgentChanges(agentId);
       break;
     case 'create':
       showCreateDialog();
       break;
     case 'validate':
-      validateAllAgents();
+      void validateAllAgents();
       break;
     case 'refresh':
-      refreshAgents();
+      void refreshAgents();
       break;
-    case 'use-template':
+    case 'use-template': {
       const template = target.closest('[data-template]')?.getAttribute('data-template');
-      if (template) useTemplate(template);
+      if (template) void useTemplate(template);
       break;
+    }
   }
 }
 
@@ -492,7 +493,7 @@ function closeDetailPanel(): void {
 
 async function previewVoice(agentId: string): Promise<void> {
   const agent = state.agents.find((a) => a.id === agentId);
-  if (!agent || !agent.voiceId) return;
+  if (!agent?.voiceId) return;
 
   showToast(`Opening voice preview for ${agent.name}...`);
 
@@ -693,7 +694,7 @@ export function injectAdminStyles(): void {
       padding: 0.5rem 1rem;
       border: 1px solid rgba(255,255,255,0.2);
       background: rgba(255,255,255,0.1);
-      color: #fff;
+      color: var(--color-text-primary);
       border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s;
@@ -786,7 +787,7 @@ export function injectAdminStyles(): void {
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      color: #fff;
+      color: var(--color-text-primary);
     }
 
     .admin-agent-info {
@@ -852,7 +853,7 @@ export function injectAdminStyles(): void {
       height: 18px;
       left: 2px;
       bottom: 2px;
-      background: #fff;
+      background: var(--color-background-elevated);
       border-radius: 50%;
       transition: transform 0.2s;
     }
@@ -930,7 +931,7 @@ export function injectAdminStyles(): void {
     .admin-detail-panel {
       position: fixed;
       inset: 0;
-      z-index: 1000;
+      z-index: var(--z-dropdown);
       display: flex;
       justify-content: flex-end;
     }
@@ -965,7 +966,7 @@ export function injectAdminStyles(): void {
       right: 1rem;
       background: none;
       border: none;
-      color: #fff;
+      color: var(--color-text-primary);
       font-size: 1.5rem;
       cursor: pointer;
       z-index: 1;
@@ -988,7 +989,7 @@ export function injectAdminStyles(): void {
       justify-content: center;
       font-weight: bold;
       font-size: 1.5rem;
-      color: #fff;
+      color: var(--color-text-primary);
     }
 
     .admin-detail-title h2 {
@@ -1028,7 +1029,7 @@ export function injectAdminStyles(): void {
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2);
       border-radius: 4px;
-      color: #fff;
+      color: var(--color-text-primary);
       font-size: 1rem;
     }
 
@@ -1054,7 +1055,7 @@ export function injectAdminStyles(): void {
       padding: 1rem;
       border-radius: 8px;
       text-align: center;
-      color: #fff;
+      color: var(--color-text-primary);
     }
 
     .admin-detail-actions {
@@ -1079,7 +1080,7 @@ export function injectAdminStyles(): void {
       border-radius: var(--radius-lg, 8px);
       opacity: 0;
       transition: all 0.3s var(--ease-standard, ease);
-      z-index: 2000;
+      z-index: var(--z-notification);
     }
 
     .admin-toast.show {
@@ -1100,7 +1101,7 @@ export function injectAdminStyles(): void {
       width: 40px;
       height: 40px;
       border: 3px solid rgba(255,255,255,0.2);
-      border-top-color: #fff;
+      border-top-color: var(--color-text-primary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }

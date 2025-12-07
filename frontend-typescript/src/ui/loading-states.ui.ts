@@ -244,7 +244,7 @@ export function createDustParticles(container?: HTMLElement): void {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 9998;
+    z-index: var(--z-loading);
     overflow: hidden;
   `;
   

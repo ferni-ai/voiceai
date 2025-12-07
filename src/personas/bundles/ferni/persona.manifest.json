@@ -248,9 +248,12 @@
       "entertainment",
       "wisdom",
       "awareness",
-      "engagement"
+      "engagement",
+      "crisis",
+      "decisions",
+      "relationships"
     ],
-    "_domain_notes": "Ferni focuses on coordination and high-level coaching. Deep engagement domains (relationships, meaning, grief, etc.) are delegated to specialists: Maya (wellness/self-compassion), Peter (wisdom/meaning/stories), Jordan (life-planning). Target: 40-50 tools for optimal Gemini performance.",
+    "_domain_notes": "Ferni focuses on coordination, safety, and high-level coaching. Crisis tools are safety-critical and always available. Decisions domain helps with life coaching. Specialists handle: Maya (health/wellness/self-compassion), Jordan (family/career/home/learning/life-planning), Peter (creativity/community/wisdom/meaning/stories), Nayan (presence/meaning). Target: 40-50 tools for optimal Gemini performance.",
     "required": [
       "handoffToAlex",
       "handoffToMaya",

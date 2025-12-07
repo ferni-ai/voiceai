@@ -348,7 +348,7 @@ function injectStyles(): void {
     .team-unlock-celebration {
       position: fixed;
       inset: 0;
-      z-index: 10001;
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -367,8 +367,8 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.7);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      backdrop-filter: blur(var(--glass-blur-strong));
+      -webkit-backdrop-filter: blur(var(--glass-blur-strong));
     }
     
     .unlock-card {

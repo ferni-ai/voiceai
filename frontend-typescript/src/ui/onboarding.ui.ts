@@ -326,7 +326,7 @@ class OnboardingUI {
 
       .onboarding-highlight {
         position: relative;
-        z-index: 1500;
+        z-index: var(--z-dropdown);
         box-shadow: 0 0 0 4px var(--color-accent-primary, #2d5a3d), 0 0 0 8px rgba(45, 90, 61, 0.2), 0 0 20px rgba(45, 90, 61, 0.3);
         border-radius: var(--radius-lg, 0.75rem);
         animation: onboarding-pulse 2s infinite;

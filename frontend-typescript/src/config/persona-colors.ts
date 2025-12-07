@@ -1,98 +1,71 @@
 /**
  * Persona Colors - Centralized Color System
  * 
- * 🎨 SINGLE SOURCE OF TRUTH for all persona colors.
+ * 🎨 SINGLE SOURCE OF TRUTH: design-system/tokens/colors.json
  * 
- * Colors can come from:
- * 1. Bundle manifests (via API) - preferred for dynamic agents
- * 2. This hardcoded registry - fallback for known agents
- * 3. Auto-generated from agent ID - fallback for unknown agents
+ * This file imports generated colors from the design system and provides:
+ * - ID alias mapping (peter-john ↔ peter-lynch)
+ * - Runtime color registration for dynamic agents
+ * - Fallback color generation for unknown agents
  * 
- * To add a new agent:
- * 1. Add colors to the bundle's persona.manifest.json under "marketplace.colors"
- * 2. OR add the persona ID to this registry below (for hardcoded colors)
- * 3. Colors will automatically flow to:
- *    - CSS variables ([data-persona="..."])
- *    - TypeScript PersonaConfig
- *    - Team roster UI
- *    - Avatar gradients
- *    - Selection rings & buttons
- * 
- * The earthy color palette is designed to feel:
- * - Warm and approachable
- * - Natural and organic
- * - Professional yet friendly
- * - Accessible (WCAG AA compliant)
+ * To add a new persona's colors:
+ * 1. Add to design-system/tokens/colors.json under "personas"
+ * 2. Run: npm run build:persona-colors
+ * 3. Colors automatically flow to CSS variables and TypeScript
  */
 
 import { generateColorForAgent, getOrGenerateColor } from './color-generator.js';
 import type { PersonaColorConfig, ApiColorData, PersonalityForColors } from '../types/colors.js';
+import { GENERATED_PERSONA_COLORS, getGeneratedPersonaColors } from './persona-colors.generated.js';
 
 // Re-export types for backwards compatibility
 export type { PersonaColorConfig, ApiColorData, PersonalityForColors };
 
 // ============================================================================
-// PERSONA COLOR DEFINITIONS
-// Synchronized with design-system/tokens/colors.json
+// ID ALIASES - Map between different naming conventions
+// ============================================================================
+
+/**
+ * Maps alternative persona IDs to canonical IDs.
+ * Both directions work: peter-john → peter-lynch AND peter-lynch → peter-john
+ */
+const ID_ALIASES: Record<string, string> = {
+  // Frontend uses peter-john, design tokens use peter-lynch
+  'peter-john': 'peter-lynch',
+  'peter-lynch': 'peter-john',
+  // Jack Bogle aliases
+  'jack-b': 'jack-bogle',
+  'jack': 'jack-bogle',
+};
+
+/**
+ * Normalize persona ID to find colors.
+ * Tries the ID directly first, then checks aliases.
+ */
+function normalizePersonaId(personaId: string): string {
+  const lower = personaId.toLowerCase();
+  // If we have generated colors for this ID, use it
+  if (GENERATED_PERSONA_COLORS[lower]) return lower;
+  // Check if there's an alias
+  const alias = ID_ALIASES[lower];
+  if (alias && GENERATED_PERSONA_COLORS[alias]) return alias;
+  // Return original for fallback handling
+  return lower;
+}
+
+// ============================================================================
+// PERSONA COLORS - Combined from generated + runtime
 // ============================================================================
 
 /**
  * 🌿 EARTHY COLOR PALETTE
- * Each persona has a distinctive natural color that reflects their personality.
+ * Colors are imported from generated file (design-system/tokens/colors.json)
+ * with additional runtime colors for dynamic agents.
+ * 
+ * Add additional hardcoded colors here that aren't in design tokens:
  */
-export const PERSONA_COLORS: Record<string, PersonaColorConfig> = {
-  // ========== COACH ==========
-  'ferni': {
-    primary: '#4a6741',
-    secondary: '#3d5a35',
-    text: '#ffffff',
-    glow: 'rgba(74, 103, 65, 0.28)',
-    tint: 'rgba(74, 103, 65, 0.06)',
-    gradient: 'linear-gradient(135deg, #3d5a35 0%, #4a6741 100%)',
-    description: 'Forest Sage - grounding, wise, natural leader',
-  },
-
-  // ========== TEAM MEMBERS ==========
-  'peter-john': {
-    primary: '#3a6b73',
-    secondary: '#2d5359',
-    text: '#ffffff',
-    glow: 'rgba(58, 107, 115, 0.32)',
-    tint: 'rgba(58, 107, 115, 0.06)',
-    gradient: 'linear-gradient(135deg, #2d5359 0%, #3a6b73 100%)',
-    description: 'Deep Teal - curiosity, research, discovery',
-  },
-
-  'alex-chen': {
-    primary: '#5a6b8a',
-    secondary: '#4a5a73',
-    text: '#ffffff',
-    glow: 'rgba(90, 107, 138, 0.32)',
-    tint: 'rgba(90, 107, 138, 0.06)',
-    gradient: 'linear-gradient(135deg, #4a5a73 0%, #5a6b8a 100%)',
-    description: 'Slate Blue - clarity, flow, communication',
-  },
-
-  'maya-santos': {
-    primary: '#a67a6a',
-    secondary: '#8a635a',
-    text: '#ffffff',
-    glow: 'rgba(166, 122, 106, 0.32)',
-    tint: 'rgba(166, 122, 106, 0.06)',
-    gradient: 'linear-gradient(135deg, #8a635a 0%, #a67a6a 100%)',
-    description: 'Dusty Terracotta - nurturing, warmth, habits',
-  },
-
-  'jordan-taylor': {
-    primary: '#c4856a',
-    secondary: '#a86d55',
-    text: '#ffffff',
-    glow: 'rgba(196, 133, 106, 0.32)',
-    tint: 'rgba(196, 133, 106, 0.06)',
-    gradient: 'linear-gradient(135deg, #a86d55 0%, #c4856a 100%)',
-    description: 'Warm Coral - celebration, joy, events',
-  },
-
+const ADDITIONAL_COLORS: Record<string, PersonaColorConfig> = {
+  // Nayan isn't in design tokens yet - add him here
   'nayan-patel': {
     primary: '#b8956a',
     secondary: '#9a7a52',
@@ -104,16 +77,26 @@ export const PERSONA_COLORS: Record<string, PersonaColorConfig> = {
   },
 };
 
+/**
+ * Combined persona colors: generated + additional + aliases
+ */
+export const PERSONA_COLORS: Record<string, PersonaColorConfig> = {
+  ...GENERATED_PERSONA_COLORS,
+  ...ADDITIONAL_COLORS,
+  // Add alias entries pointing to the same colors
+  'peter-john': GENERATED_PERSONA_COLORS['peter-lynch'] || ADDITIONAL_COLORS['peter-john'],
+};
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
 /**
  * Get color config for a persona.
- * Falls back to Ferni's colors if persona not found.
+ * Checks: 1) PERSONA_COLORS, 2) aliases, 3) generates for unknown
  */
 export function getPersonaColors(personaId: string): PersonaColorConfig {
-  const normalized = personaId.toLowerCase();
+  const normalized = normalizePersonaId(personaId);
   const colors = PERSONA_COLORS[normalized];
   if (colors) return colors;
   

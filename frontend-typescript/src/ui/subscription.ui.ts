@@ -476,7 +476,7 @@ function injectStyles(): void {
     .subscription-modal {
       position: fixed;
       inset: 0;
-      z-index: 10005;
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -495,8 +495,8 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(var(--glass-blur-modal));
+      -webkit-backdrop-filter: blur(var(--glass-blur-modal));
     }
     
     .subscription-card {
@@ -812,7 +812,7 @@ function injectStyles(): void {
       box-shadow: var(--shadow-lg);
       opacity: 0;
       transition: all ${DURATION.SLOW}ms ${EASING.SPRING};
-      z-index: 10001;
+      z-index: var(--z-notification);
     }
     
     .subscription-toast--visible {

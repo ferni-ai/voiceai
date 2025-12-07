@@ -267,7 +267,7 @@ export function celebrateConfetti(
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 9999;
+    z-index: var(--z-notification);
     overflow: hidden;
   `;
   document.body.appendChild(container);
@@ -344,7 +344,7 @@ export function createSparkle(x: number, y: number, color?: string): void {
     left: ${x}px;
     top: ${y}px;
     pointer-events: none;
-    z-index: 9999;
+    z-index: var(--z-notification);
     background: ${sparkleColor};
     border-radius: 50%;
     box-shadow: 0 0 6px ${sparkleColor}, 0 0 12px ${sparkleColor};

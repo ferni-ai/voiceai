@@ -242,10 +242,10 @@ button { font-family: inherit; cursor: pointer; }
 
 .headline-xl {
   font-family: var(--font-display);
-  font-size: clamp(48px, 10vw, 96px);
+  font-size: clamp(56px, 12vw, 120px); /* Apple-level hero typography */
   font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  line-height: 1.02; /* Tighter for massive headlines */
+  letter-spacing: -0.04em; /* Apple-tight tracking */
   color: var(--color-text);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -3089,8 +3089,8 @@ button { font-family: inherit; cursor: pointer; }
   }
   
   .headline-xl {
-    font-size: clamp(32px, 9vw, 48px);
-    line-height: 1.1;
+    font-size: clamp(36px, 10vw, 56px); /* Apple mobile scale */
+    line-height: 1.08;
   }
   
   .headline-lg {

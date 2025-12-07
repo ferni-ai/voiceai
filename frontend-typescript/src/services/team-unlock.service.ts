@@ -260,7 +260,7 @@ export function setSubscriptionTier(tier: 'free' | 'friend' | 'partner'): void {
 /**
  * Update unlock state from current relationship and subscription
  */
-export async function updateUnlockState(): Promise<TeamUnlockState> {
+export function updateUnlockState(): TeamUnlockState {
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
   

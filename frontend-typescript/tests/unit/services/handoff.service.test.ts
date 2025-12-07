@@ -31,11 +31,11 @@ describe('HandoffService', () => {
 
     it('should return true for handoff messages', async () => {
       const { handoffService } = await import('../../../src/services/handoff.service.js');
-      
+
       const message: DataMessage = {
         type: 'handoff',
         newAgent: 'peter',
-        direction: 'jack-to-peter',
+        direction: 'ferni-to-peter',
         timestamp: Date.now(),
       };
       const result = await handoffService.processDataMessage(message);
@@ -45,36 +45,36 @@ describe('HandoffService', () => {
     it('should update active persona on handoff', async () => {
       const { handoffService } = await import('../../../src/services/handoff.service.js');
       const { appState } = await import('../../../src/state/app.state.js');
-      
+
       const message: DataMessage = {
         type: 'handoff',
-        newAgent: 'peter-lynch',
-        direction: 'jack-to-peter',
+        newAgent: 'peter-john',
+        direction: 'ferni-to-peter',
         timestamp: Date.now(),
       };
-      
+
       // processDataMessage is now async and waits for handoff completion
       await handoffService.processDataMessage(message);
-      
-      expect(appState.get('activePersona').id).toBe('peter-lynch');
+
+      expect(appState.get('activePersona').id).toBe('peter-john');
     });
 
     it('should normalize short agent IDs', async () => {
       const { handoffService } = await import('../../../src/services/handoff.service.js');
       const { appState } = await import('../../../src/state/app.state.js');
-      
+
       const message: DataMessage = {
         type: 'handoff',
         newAgent: 'peter', // Short form
-        direction: 'jack-to-peter',
+        direction: 'ferni-to-peter',
         timestamp: Date.now(),
       };
-      
+
       // processDataMessage is now async and waits for handoff completion
       await handoffService.processDataMessage(message);
-      
-      // Should normalize 'peter' to 'peter-lynch'
-      expect(appState.get('activePersona').id).toBe('peter-lynch');
+
+      // Should normalize 'peter' to 'peter-john'
+      expect(appState.get('activePersona').id).toBe('peter-john');
     });
   });
 

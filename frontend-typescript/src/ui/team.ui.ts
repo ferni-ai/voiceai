@@ -130,7 +130,7 @@ function handleAgentDropped(agentId: string): void {
   const element = teamMemberElements.get(agentId as PersonaId);
   if (element) {
     // Animate removal using design system constants
-    element.animate([
+    void element.animate([
       { transform: 'scale(1)', opacity: '1' },
       { transform: 'scale(0)', opacity: '0' },
     ], {
@@ -140,7 +140,7 @@ function handleAgentDropped(agentId: string): void {
     }).finished.then(() => {
       element.remove();
       teamMemberElements.delete(agentId as PersonaId);
-      
+
       // Check if we need to remove the marketplace divider
       const marketplaceDivider = rosterContainer?.querySelector('.team-divider--marketplace');
       const remainingMarketplaceAgents = rosterContainer?.querySelectorAll('.team-member--marketplace-agent');
@@ -342,7 +342,7 @@ async function loadDynamicAgents(): Promise<void> {
 /**
  * Load and render installed marketplace agents
  */
-async function loadInstalledMarketplaceAgents(): Promise<void> {
+function loadInstalledMarketplaceAgents(): void {
   if (!rosterContainer) return;
   
   const installed = marketplaceService.getInstalledAgents();
@@ -813,7 +813,7 @@ function createEnergyTransfer(fromEl: HTMLElement, toEl: HTMLElement, toPersonaI
     background: radial-gradient(circle, ${color} 0%, transparent 70%);
     box-shadow: 0 0 20px ${glow}, 0 0 40px ${glow}, 0 0 60px ${glow};
     pointer-events: none;
-    z-index: 10000;
+    z-index: var(--z-modal);
     transform: translate(-50%, -50%);
     left: ${fromRect.left + fromRect.width / 2}px;
     top: ${fromRect.top + fromRect.height / 2}px;
@@ -905,7 +905,7 @@ function createTrailParticle(x: number, y: number, color: string): void {
     border-radius: 50%;
     background: ${color};
     pointer-events: none;
-    z-index: 9999;
+    z-index: var(--z-modal);
     left: ${x}px;
     top: ${y}px;
     transform: translate(-50%, -50%);

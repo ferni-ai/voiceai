@@ -5,8 +5,14 @@ A centralized design token system for theming the VoiceAI landing page and appli
 ## Quick Start
 
 ```bash
-# Build tokens (generates CSS, TypeScript, and Tailwind config)
+# Build everything (tokens + assets) - recommended
+npm run build:design-system
+
+# Build tokens only (CSS, TypeScript, Tailwind config)
 npm run build:tokens
+
+# Build assets only (copies to frontend)
+npm run build:assets
 
 # Start the style guide with hot reload
 npm run design-system:dev
@@ -18,26 +24,71 @@ npm run design-system:test
 
 ## Structure
 
+This is the **single source of truth** for all Ferni brand assets and design tokens.
+
 ```
 design-system/
-├── tokens/                    # Source of truth (edit these)
+├── tokens/                    # 🎯 Source of truth - JSON tokens (edit these)
 │   ├── colors.json           # Theme colors + persona colors
 │   ├── typography.json       # Fonts, sizes, weights
 │   ├── spacing.json          # Spacing scale, shadows, z-index
-│   └── animation.json        # Easings, durations, keyframes
-├── dist/                      # Generated output (don't edit)
+│   ├── animation.json        # Easings, durations, keyframes
+│   └── effects.json          # Gradients, glows, blur effects
+├── assets/                    # 🎨 Brand assets (edit these)
+│   ├── logos/                # Logo SVGs + generated PNGs
+│   │   ├── ferni-logo.svg    # Master logo
+│   │   ├── ferni-logo-dark.svg
+│   │   ├── ferni-logo-simple.svg
+│   │   └── ...
+│   ├── icons/                # App icons for iOS/Android
+│   │   ├── app-icon-1024.svg
+│   │   ├── app-icon-ios-simple.svg
+│   │   └── app-icon-android.svg
+│   ├── favicons/             # Browser/PWA icons
+│   │   ├── favicon-16.svg
+│   │   ├── favicon-32.svg
+│   │   └── favicon-192.svg
+│   └── sounds/               # Audio assets
+│       ├── connect.mp3
+│       ├── disconnect.mp3
+│       └── handoff-to-*.mp3
+├── brand/                     # 📚 Brand documentation
+│   ├── GUIDELINES.md         # Full brand identity guide
+│   ├── SCREEN-GUIDELINES.md  # Digital design standards
+│   └── brand-book.html       # Interactive brand book
+├── dist/                      # ⚙️ Generated output (DON'T EDIT)
 │   ├── tokens.css            # CSS custom properties
 │   ├── tokens.ts             # TypeScript types + utilities
 │   ├── tailwind.config.js    # Tailwind v3 config
-│   └── tailwind-theme.css    # Tailwind v4 @theme block
+│   └── components.css        # Component styles
 ├── preview/
 │   └── index.html            # Visual style guide
 ├── tests/
 │   └── visual.test.ts        # Playwright visual tests
 ├── build.js                   # Token compiler
+├── build-assets.js            # Asset builder + copier
 ├── dev-server.js             # Style guide server + watch
 └── README.md
 ```
+
+### Build Output
+
+Running `npm run build:design-system` generates and copies assets to:
+
+```
+frontend-typescript/public/design-system/
+├── tokens.css                # CSS custom properties
+├── tokens.ts                 # TypeScript utilities
+├── assets/                   # All brand assets
+│   ├── logos/
+│   ├── icons/
+│   └── favicons/
+├── sounds/                   # Audio files
+├── brand/                    # Brand documentation
+└── manifest.json             # Asset inventory
+```
+
+Legacy paths (`/sounds/`, `/icons/`, `/logo.svg`) are also maintained for backwards compatibility.
 
 ## Themes
 

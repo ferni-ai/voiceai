@@ -224,11 +224,13 @@ export const expressionPresets = {
   },
 
   /** Thinking animation - thinking with occasional looks */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async deepThinking() {
     setLogoExpression('thinking', 0);
   },
 
   /** Stop thinking */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async stopThinking() {
     setLogoExpression('zen', 0);
   },
@@ -242,17 +244,20 @@ export const expressionPresets = {
   },
 
   /** Error/concern expression */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async showConcern() {
     setLogoExpression('sad', DURATION.CELEBRATION);
   },
 
   /** Surprise reaction */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async showSurprise() {
     setLogoExpression('surprised', DURATION.SLOW);
     triggerLogoReaction('bounce');
   },
 
   /** Humor/joke reaction */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async chuckle() {
     setLogoExpression('chuckle', DURATION.CELEBRATION);
     triggerLogoReaction('wiggle');

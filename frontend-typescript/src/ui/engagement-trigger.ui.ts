@@ -236,7 +236,7 @@ class EngagementTriggerUI {
         color: var(--color-text-secondary, #5c544a);
         cursor: pointer;
         transition: var(--transition-all-fast, all 150ms ease);
-        box-shadow: 0 2px 8px rgba(44, 37, 32, 0.08);
+        box-shadow: var(--shadow-sm);
       }
 
       .engagement-trigger-btn:hover {
@@ -244,7 +244,7 @@ class EngagementTriggerUI {
         color: var(--color-text-primary, #2c2520);
         border-color: var(--color-border-strong, rgba(44, 37, 32, 0.18));
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(44, 37, 32, 0.12);
+        box-shadow: var(--shadow-md);
       }
 
       .engagement-trigger-btn:active {

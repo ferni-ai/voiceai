@@ -226,9 +226,11 @@
       "information",
       "stories",
       "engagement",
-      "curiosity"
+      "curiosity",
+      "creativity",
+      "community"
     ],
-    "_domain_notes": "Peter is the Quant and insights specialist. Owns stock research, pattern discovery, and storytelling. Finance domain moved to Maya for spending habits. Target: 50-60 tools for optimal Gemini performance.",
+    "_domain_notes": "Peter is the Quant, insights, and creative exploration specialist. Owns stock research, pattern discovery, storytelling, creative projects, and community engagement. Finance domain moved to Maya for spending habits. Target: 50-60 tools for optimal Gemini performance.",
     "required": ["synthesizeInsights", "analyzeStock", "getStockQuote", "spotAnomalies"],
     "optional": [
       "getMarketSummary", 

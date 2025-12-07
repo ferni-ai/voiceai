@@ -539,13 +539,8 @@ class ConversationHistoryUI {
         background: var(--persona-primary, var(--color-accent-primary));
       }
 
-      /* Persona-specific colors */
-      .history__session-persona[data-persona="ferni"] { background: #3d5a35; }
-      .history__session-persona[data-persona="alex-chen"] { background: #4a6b8a; }
-      .history__session-persona[data-persona="maya-santos"] { background: #8b6b5a; }
-      .history__session-persona[data-persona="jordan-taylor"] { background: #7a5a5a; }
-      .history__session-persona[data-persona="nayan-patel"] { background: #8a7a5a; }
-      .history__session-persona[data-persona="peter-john"] { background: #4a7a7a; }
+      /* Persona colors come from CSS tokens via data-persona attribute */
+      /* --persona-primary is set by [data-persona="..."] in tokens.css */
 
       .history__session-meta {
         flex: 1;

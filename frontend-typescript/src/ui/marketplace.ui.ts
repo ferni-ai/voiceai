@@ -28,42 +28,30 @@ import { createLogger } from '../utils/logger.js';
 const log = createLogger('Marketplace');
 
 // ============================================================================
-// PERSONA COLORS - Single source of truth from design system
-// Use data-persona attributes in HTML and let CSS handle the gradients
+// PERSONA COLORS - Use CSS variables from design system tokens.css
+// Colors are applied via data-persona attribute on elements
 // ============================================================================
 
 /**
- * Persona color configuration mapped from design system tokens.
- * These match the CSS variables defined in tokens.css under [data-persona="..."]
+ * Get gradient for a persona using CSS variables.
+ * Applies via data-persona attribute which sets --persona-primary and --persona-secondary.
  */
-const PERSONA_GRADIENTS: Record<string, string> = {
-  'ferni': 'var(--gradient-ferni, linear-gradient(135deg, var(--persona-secondary, #3d5a35), var(--persona-primary, #4a6741)))',
-  'peter-john': 'var(--gradient-peter, linear-gradient(135deg, var(--persona-secondary, #2d5359), var(--persona-primary, #3a6b73)))',
-  'alex-chen': 'var(--gradient-alex, linear-gradient(135deg, var(--persona-secondary, #4a5a73), var(--persona-primary, #5a6b8a)))',
-  'maya-santos': 'var(--gradient-maya, linear-gradient(135deg, var(--persona-secondary, #8a635a), var(--persona-primary, #a67a6a)))',
-  'jordan-taylor': 'var(--gradient-jordan, linear-gradient(135deg, var(--persona-secondary, #a86d55), var(--persona-primary, #c4856a)))',
-  'nayan-patel': 'var(--gradient-nayan, linear-gradient(135deg, #9a7a52, #b8956a))',
-  // Co-founders (external AI companies)
-  'claude': 'linear-gradient(135deg, #8B5CF6, #A78BFA)',
-  'gemini': 'linear-gradient(135deg, #4285F4, #34A853)',
-  'gpt': 'linear-gradient(135deg, #10A37F, #1A7F64)',
-};
+function getPersonaGradient(personaId: string): string {
+  // External AI companies have their own brand colors defined in CSS
+  const externalBrands = ['claude', 'gemini', 'gpt'];
+  if (externalBrands.includes(personaId)) {
+    return `var(--gradient-${personaId})`;
+  }
+  // Internal personas use the persona CSS variables
+  return 'linear-gradient(135deg, var(--persona-secondary), var(--persona-primary))';
+}
 
 /**
- * Persona glow colors for avatar shadows - creates subtle ambient glow effect
+ * Get glow color for avatar shadows using CSS variables.
  */
-const PERSONA_GLOW_COLORS: Record<string, { primary: string; glow: string }> = {
-  'ferni': { primary: '#4a6741', glow: 'rgba(74, 103, 65, 0.4)' },
-  'peter-john': { primary: '#3a6b73', glow: 'rgba(58, 107, 115, 0.4)' },
-  'alex-chen': { primary: '#5a6b8a', glow: 'rgba(90, 107, 138, 0.4)' },
-  'maya-santos': { primary: '#a67a6a', glow: 'rgba(166, 122, 106, 0.4)' },
-  'jordan-taylor': { primary: '#c4856a', glow: 'rgba(196, 133, 106, 0.4)' },
-  'nayan-patel': { primary: '#b8956a', glow: 'rgba(184, 149, 106, 0.4)' },
-  // Co-founders
-  'claude': { primary: '#8B5CF6', glow: 'rgba(139, 92, 246, 0.45)' },
-  'gemini': { primary: '#4285F4', glow: 'rgba(66, 133, 244, 0.45)' },
-  'gpt': { primary: '#10A37F', glow: 'rgba(16, 163, 127, 0.45)' },
-};
+function getPersonaGlow(_personaId: string): string {
+  return 'var(--persona-glow)';
+}
 
 // ============================================================================
 // STATE
@@ -357,17 +345,16 @@ async function renderInstalledTab(): Promise<void> {
 /**
  * Render the "Meet the Team" narrative section
  * The first company built by AI, run by AI.
- * 
- * Uses PERSONA_GRADIENTS and PERSONA_GLOW_COLORS for consistent styling from design system.
+ *
+ * Uses CSS variables from design system tokens.css via data-persona attribute.
  * Each avatar now has a subtle ambient glow that matches its persona color.
  */
 function renderTeamNarrative(): string {
-  // Helper to get glow style for an avatar
+  // Helper to get glow style for an avatar - uses CSS variables
   const getAvatarStyle = (personaId: string): string => {
-    const glow = PERSONA_GLOW_COLORS[personaId];
-    const gradient = PERSONA_GRADIENTS[personaId];
-    if (!glow || !gradient) return `background: ${gradient || '#4a6741'};`;
-    return `background: ${gradient}; --avatar-glow: ${glow.glow}; --avatar-primary: ${glow.primary};`;
+    const gradient = getPersonaGradient(personaId);
+    const glow = getPersonaGlow(personaId);
+    return `background: ${gradient}; --avatar-glow: ${glow}; --avatar-primary: var(--persona-primary);`;
   };
 
   return `
@@ -466,13 +453,11 @@ function renderTeamNarrative(): string {
 function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[]): string {
   return agents.map(agent => {
     const initials = agent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-    // Check if this agent has a persona gradient defined, otherwise use their colors
-    const gradient = PERSONA_GRADIENTS[agent.id] 
-      || `linear-gradient(135deg, ${agent.colors.secondary}, ${agent.colors.primary})`;
-    
+    // Use CSS variables via data-persona attribute - gradient comes from design system
+    const gradient = getPersonaGradient(agent.id);
+
     return `
-    <article class="marketplace-agent coming-soon" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem"
-      style="--agent-primary: ${agent.colors.primary}; --agent-secondary: ${agent.colors.secondary};">
+    <article class="marketplace-agent coming-soon" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem">
       <div class="agent-header">
         <div class="agent-avatar" style="background: ${gradient};">
           ${initials}
@@ -683,7 +668,7 @@ function getMarketplaceStyles(): string {
     .marketplace-modal {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;

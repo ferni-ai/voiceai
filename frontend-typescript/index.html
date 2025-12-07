@@ -1059,7 +1059,7 @@
     .landing-scene {
       position: fixed;
       inset: 0;
-      z-index: 10000;
+      z-index: var(--z-modal);
       overflow: hidden;
       background: var(--color-background-primary, #1c1917);
       cursor: pointer;
@@ -1722,7 +1722,7 @@
       font-size: 24px;
       pointer-events: none;
       animation: heartBurst 1s var(--ease-out-expo) forwards;
-      z-index: 1000;
+      z-index: var(--z-dropdown);
     }
 
     /* Connected celebration rings */
@@ -2909,8 +2909,8 @@
       top: calc(16px + env(safe-area-inset-top, 0px));
       left: 50%;
       transform: translateX(-50%);
-      z-index: 1000;
-      
+      z-index: var(--z-dropdown);
+
       /* Flexbox for stacking multiple indicators */
       display: flex;
       flex-direction: column;
@@ -3571,7 +3571,7 @@
       height: 100px;
       transform: translate(-50%, -50%);
       pointer-events: none;
-      z-index: 1000;
+      z-index: var(--z-dropdown);
     }
     
     .celebration-ring {
@@ -5022,11 +5022,11 @@
       border-radius: var(--radius-md);
       box-shadow: var(--shadow-lg);
       font-weight: 500;
-      z-index: 9999;
+      z-index: var(--z-system);
       transition: top 0.2s ease-out;
       text-decoration: none;
     }
-    
+
     .skip-to-content:focus {
       top: var(--space-md);
       outline: 2px solid var(--persona-primary);
@@ -5513,7 +5513,7 @@
       box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
       opacity: 0;
       transition: all 0.5s var(--ease-out-expo);
-      z-index: 10000;
+      z-index: var(--z-modal);
     }
     
     .secret-message.visible {

@@ -550,8 +550,8 @@ class RitualBuilderUI {
         justify-content: center;
         padding: var(--ma-rest);
         background: var(--color-background-overlay);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(var(--glass-blur-subtle));
+        -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
         opacity: 0;
         visibility: hidden;
         transition: 

@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-04T12:52:38.861Z
+ * Build: 2025-12-07T13:52:10.479Z
  */
 
 /* ========================================
@@ -17,11 +17,10 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
-  /* Text colors - WCAG AA compliant (4.5:1+ on #70605a background) */
-  --color-text-primary: #faf6f0;    /* 5.56:1 contrast */
-  --color-text-secondary: #f0ebe4;  /* 5.05:1 contrast */
-  --color-text-muted: #e8e2da;      /* 4.65:1 contrast - WCAG AA compliant */
-  --color-text-dimmed: #ddd6cc;     /* 4.15:1 contrast - for large text only */
+  --color-text-primary: #faf6f0;
+  --color-text-secondary: #e0d5c8;
+  --color-text-muted: #d0c4b4;
+  --color-text-dimmed: #a89c8c;
   --color-text-inverse: #2a2420;
   --color-border-subtle: rgba(215, 185, 145, 0.12);
   --color-border-medium: rgba(215, 185, 145, 0.20);
@@ -55,7 +54,6 @@
    ======================================== */
 /* Theme: Cedar Night */
 /* Warm cedar wood tones - Japanese zen garden under moonlight, open and welcoming */
-/* Updated 2025-12-05: WCAG AA compliant text contrast (4.5:1+ on #70605a) */
 [data-theme="midnight"] {
   color-scheme: dark;
   --color-background-primary: #584840;
@@ -64,11 +62,10 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
-  /* Text colors - WCAG AA compliant (4.5:1+ on #70605a background) */
-  --color-text-primary: #faf6f0;    /* 5.56:1 contrast */
-  --color-text-secondary: #f0ebe4;  /* 5.05:1 contrast */
-  --color-text-muted: #e8e2da;      /* 4.65:1 contrast - WCAG AA compliant */
-  --color-text-dimmed: #ddd6cc;     /* 4.15:1 contrast - for large text only */
+  --color-text-primary: #faf6f0;
+  --color-text-secondary: #e0d5c8;
+  --color-text-muted: #d0c4b4;
+  --color-text-dimmed: #a89c8c;
   --color-text-inverse: #2a2420;
   --color-border-subtle: rgba(215, 185, 145, 0.12);
   --color-border-medium: rgba(215, 185, 145, 0.20);
@@ -160,22 +157,22 @@
   --persona-tint: rgba(74, 103, 65, 0.06);
 }
 
-/* Persona: peter-john (Research & Insights - Deep Teal) */
-[data-persona="peter-john"] {
+/* Persona: jack-bogle */
+[data-persona="jack-bogle"] {
+  --persona-primary: #9a7b5a;
+  --persona-secondary: #7d6348;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(154, 123, 90, 0.28);
+  --persona-tint: rgba(154, 123, 90, 0.06);
+}
+
+/* Persona: peter-lynch */
+[data-persona="peter-lynch"] {
   --persona-primary: #3a6b73;
   --persona-secondary: #2d5359;
   --persona-text: #ffffff;
-  --persona-glow: rgba(58, 107, 115, 0.32);
+  --persona-glow: rgba(58, 107, 115, 0.28);
   --persona-tint: rgba(58, 107, 115, 0.06);
-}
-
-/* Persona: nayan-patel (Wisdom & Long-term - Golden Amber) */
-[data-persona="nayan-patel"] {
-  --persona-primary: #b8956a;
-  --persona-secondary: #9a7a52;
-  --persona-text: #ffffff;
-  --persona-glow: rgba(184, 149, 106, 0.35);
-  --persona-tint: rgba(184, 149, 106, 0.06);
 }
 
 /* Persona: alex-chen */
@@ -392,12 +389,6 @@
   --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.3), 0 12px 24px rgba(0, 0, 0, 0.2);
   --shadow-glow: 0 0 20px var(--color-accent-glow);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.4);
-  
-  /* Button/Interactive Element Shadows - Midnight Theme */
-  --shadow-button-rest: inset 0 1px 2px rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.15);
-  --shadow-button-hover: inset 0 1px 2px rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.2);
-  --shadow-button-pressed: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-button-focus: 0 0 0 2px var(--persona-primary), 0 0 0 4px var(--persona-tint);
 }
 
 /* Shadows - Zen Theme */
@@ -410,12 +401,6 @@
   --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.06);
   --shadow-glow: 0 0 20px var(--color-accent-glow);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.04);
-  
-  /* Button/Interactive Element Shadows - Zen Theme */
-  --shadow-button-rest: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 1px 3px rgba(44, 37, 32, 0.04);
-  --shadow-button-hover: inset 0 1px 2px rgba(255, 255, 255, 0.6), 0 2px 6px rgba(44, 37, 32, 0.08);
-  --shadow-button-pressed: inset 0 2px 4px rgba(44, 37, 32, 0.08);
-  --shadow-button-focus: 0 0 0 2px var(--persona-primary), 0 0 0 4px var(--persona-tint);
 }
 
 /* ========================================
@@ -450,39 +435,6 @@
   --glass-border-medium: 1px solid rgba(0, 0, 0, 0.12);
   --glass-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.8);
   --glass-outer-glow: 0 0 40px -10px var(--persona-glow);
-}
-
-/* ========================================
-   BACKDROP & OVERLAY SYSTEM
-   Centralized modal/panel backdrop styles
-   ======================================== */
-
-/* Backdrop - Midnight Theme (Cedar Night) */
-[data-theme="midnight"] {
-  /* Modal backdrop intensities */
-  --backdrop-light: rgba(44, 37, 32, 0.3);
-  --backdrop-medium: rgba(44, 37, 32, 0.5);
-  --backdrop-heavy: rgba(44, 37, 32, 0.7);
-  
-  /* Menu/Navigation backdrop (lighter to show hierarchy) */
-  --backdrop-menu: rgba(0, 0, 0, 0.5);
-  
-  /* Full-page overlay (loading, transitions) */
-  --backdrop-page: rgba(88, 72, 64, 0.95);
-}
-
-/* Backdrop - Zen Theme (Light) */
-[data-theme="zen"] {
-  /* Modal backdrop intensities */
-  --backdrop-light: rgba(44, 37, 32, 0.2);
-  --backdrop-medium: rgba(44, 37, 32, 0.4);
-  --backdrop-heavy: rgba(44, 37, 32, 0.6);
-  
-  /* Menu/Navigation backdrop */
-  --backdrop-menu: rgba(44, 37, 32, 0.3);
-  
-  /* Full-page overlay (loading, transitions) */
-  --backdrop-page: rgba(250, 248, 245, 0.95);
 }
 
 /* ========================================
@@ -1451,13 +1403,12 @@
    VOICE EMOTION GLOW - Avatar responds to speaking tone
    ======================================== */
 
-/* Base voice glow setup - Earthy palette from brand guidelines */
+/* Base voice glow setup */
 .voice-glow {
-  /* Default: Ferni sage green */
-  --glow-color: rgba(74, 103, 65, 0.25);
-  --glow-color-alt: rgba(61, 90, 53, 0.2);
+  --glow-color: rgba(139, 92, 246, 0.5);
+  --glow-color-alt: rgba(99, 102, 241, 0.4);
   --glow-intensity: 0.6;
-  --glow-spread: 16px;
+  --glow-spread: 20px;
   --glow-pulse-speed: 3s;
   transition: var(--glow-transition, all 800ms cubic-bezier(0.4, 0, 0.2, 1));
 }
@@ -1499,71 +1450,62 @@
   animation: none;
 }
 
-/* Emotion-specific glow colors - Earthy palette from brand guidelines */
+/* Emotion-specific glow colors */
 .voice-glow[data-emotion="neutral"] {
-  /* Ferni sage green - grounding, present */
-  --glow-color: rgba(74, 103, 65, 0.25);
-  --glow-color-alt: rgba(61, 90, 53, 0.2);
+  --glow-color: rgba(139, 92, 246, 0.5);
+  --glow-color-alt: rgba(99, 102, 241, 0.4);
 }
 
 .voice-glow[data-emotion="happy"] {
-  /* Warm amber/highlight - joy, warmth */
-  --glow-color: rgba(196, 162, 101, 0.35);
-  --glow-color-alt: rgba(166, 137, 50, 0.3);
+  --glow-color: rgba(251, 191, 36, 0.6);
+  --glow-color-alt: rgba(245, 158, 11, 0.5);
   --glow-pulse-speed: 2s;
 }
 
 .voice-glow[data-emotion="excited"] {
-  /* Jordan warm sunset - celebration, energy */
-  --glow-color: rgba(196, 133, 106, 0.4);
-  --glow-color-alt: rgba(168, 109, 85, 0.35);
-  --glow-pulse-speed: 1.5s;
-  --glow-spread: 24px;
+  --glow-color: rgba(236, 72, 153, 0.6);
+  --glow-color-alt: rgba(219, 39, 119, 0.5);
+  --glow-pulse-speed: 1.2s;
+  --glow-spread: 35px;
 }
 
 .voice-glow[data-emotion="calm"] {
-  /* Peter ocean teal - depth, clarity */
-  --glow-color: rgba(58, 107, 115, 0.3);
-  --glow-color-alt: rgba(45, 83, 89, 0.25);
+  --glow-color: rgba(34, 211, 238, 0.5);
+  --glow-color-alt: rgba(6, 182, 212, 0.4);
   --glow-pulse-speed: 4s;
 }
 
 .voice-glow[data-emotion="thoughtful"] {
-  /* Alex soft indigo - communication, clarity */
-  --glow-color: rgba(90, 107, 138, 0.3);
-  --glow-color-alt: rgba(74, 90, 115, 0.25);
+  --glow-color: rgba(99, 102, 241, 0.5);
+  --glow-color-alt: rgba(79, 70, 229, 0.4);
   --glow-pulse-speed: 3.5s;
 }
 
 .voice-glow[data-emotion="empathetic"] {
-  /* Maya dusty terracotta - nurturing, warmth */
-  --glow-color: rgba(166, 122, 106, 0.35);
-  --glow-color-alt: rgba(138, 99, 90, 0.3);
+  --glow-color: rgba(244, 114, 182, 0.5);
+  --glow-color-alt: rgba(236, 72, 153, 0.4);
   --glow-pulse-speed: 2.5s;
-  --glow-spread: 22px;
+  --glow-spread: 30px;
 }
 
 .voice-glow[data-emotion="serious"] {
-  /* Slate/earthy neutral - grounded, focused */
-  --glow-color: rgba(92, 84, 74, 0.3);
-  --glow-color-alt: rgba(75, 68, 60, 0.25);
+  --glow-color: rgba(148, 163, 184, 0.5);
+  --glow-color-alt: rgba(100, 116, 139, 0.4);
   --glow-pulse-speed: 4s;
-  --glow-spread: 16px;
+  --glow-spread: 18px;
 }
 
 .voice-glow[data-emotion="anxious"] {
-  /* Muted warm amber - concern, attention */
-  --glow-color: rgba(166, 133, 74, 0.35);
-  --glow-color-alt: rgba(140, 110, 58, 0.3);
+  --glow-color: rgba(251, 146, 60, 0.5);
+  --glow-color-alt: rgba(249, 115, 22, 0.4);
   --glow-pulse-speed: 1.8s;
 }
 
 .voice-glow[data-emotion="encouraging"] {
-  /* Ferni sage green - supportive, growth */
-  --glow-color: rgba(74, 103, 65, 0.4);
-  --glow-color-alt: rgba(61, 90, 53, 0.35);
+  --glow-color: rgba(16, 185, 129, 0.6);
+  --glow-color-alt: rgba(5, 150, 105, 0.5);
   --glow-pulse-speed: 2.2s;
-  --glow-spread: 20px;
+  --glow-spread: 28px;
 }
 
 /* Intensity modifiers */
@@ -1607,54 +1549,6 @@
   transform-origin: center center;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-}
-
-/* ========================================
-   ICONOGRAPHY - Lucide Icons
-   Per FERNI-SCREEN-GUIDELINES.md Section 7
-   ======================================== */
-
-/* Icon base styles - use with inline SVGs from https://lucide.dev */
-.icon {
-  width: 24px;
-  height: 24px;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-  flex-shrink: 0;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-/* Icon sizes */
-.icon-xs { width: 12px; height: 12px; stroke-width: 1.5; }
-.icon-sm { width: 16px; height: 16px; stroke-width: 1.5; }
-.icon-md { width: 20px; height: 20px; }
-.icon-lg { width: 32px; height: 32px; }
-.icon-xl { width: 48px; height: 48px; }
-
-/* Icon colors - semantic */
-.icon-default { color: var(--color-text-secondary); }
-.icon-muted { color: var(--color-text-muted); }
-.icon-primary { color: var(--color-text-primary); }
-.icon-accent { color: var(--color-accent-primary); }
-.icon-success { color: var(--color-semantic-success); }
-.icon-error { color: var(--color-semantic-error); }
-.icon-warning { color: var(--color-semantic-warning); }
-.icon-info { color: var(--color-semantic-info); }
-.icon-persona { color: var(--persona-primary); }
-
-/* Icon in buttons */
-.btn .icon,
-button .icon {
-  margin-right: var(--space-2);
-}
-
-.btn .icon:only-child,
-button .icon:only-child {
-  margin-right: 0;
 }
 
 /* ========================================
@@ -2451,91 +2345,4 @@ button .icon:only-child {
   .toast-progress-bar { animation: none; transform: scaleX(0); }
   .toast-loading .toast-icon { animation: none; }
   .toast-container:hover .toast { transition: none; }
-}
-
-/* ========================================
-   ICONOGRAPHY SYSTEM
-   Per FERNI-BRAND-GUIDELINES.md Section 7
-   ======================================== */
-
-/*
- * Icon Style Guidelines:
- * - Style: Outlined (stroke), NOT filled
- * - Stroke weight: 1.5px - 2px
- * - Corner radius: Rounded (2px)
- * - Size scale: 16px, 20px (base), 24px, 32px
- * - Icon set: Lucide Icons (https://lucide.dev) or custom matching style
- *
- * Usage:
- * <svg class="icon" viewBox="0 0 24 24">
- *   <path d="..."/>
- * </svg>
- */
-
-:root {
-  /* Icon sizing */
-  --icon-size-sm: 16px;
-  --icon-size-base: 20px;
-  --icon-size-md: 24px;
-  --icon-size-lg: 32px;
-  
-  /* Icon stroke */
-  --icon-stroke-weight: 1.75;
-  --icon-stroke-linecap: round;
-  --icon-stroke-linejoin: round;
-}
-
-/* Base icon styles */
-.icon {
-  width: var(--icon-size-base);
-  height: var(--icon-size-base);
-  stroke: currentColor;
-  stroke-width: var(--icon-stroke-weight);
-  stroke-linecap: var(--icon-stroke-linecap);
-  stroke-linejoin: var(--icon-stroke-linejoin);
-  fill: none;
-  flex-shrink: 0;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-/* Icon size variants */
-.icon-sm {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
-}
-
-.icon-md {
-  width: var(--icon-size-md);
-  height: var(--icon-size-md);
-}
-
-.icon-lg {
-  width: var(--icon-size-lg);
-  height: var(--icon-size-lg);
-}
-
-/* Icon color variants - per brand guidelines */
-.icon-default {
-  color: var(--color-text-secondary); /* #5C544A in zen */
-}
-
-.icon-muted {
-  color: var(--color-text-dimmed); /* #A89D90 */
-}
-
-.icon-active {
-  color: var(--color-accent-primary); /* Forest Green #3D5A45 in zen */
-}
-
-/* Semantic icon colors */
-.icon-success { color: var(--color-semantic-success); }
-.icon-error { color: var(--color-semantic-error); }
-.icon-warning { color: var(--color-semantic-warning); }
-.icon-info { color: var(--color-semantic-info); }
-
-/* On dark backgrounds */
-[data-theme="midnight"] .icon-on-dark,
-.icon-inverse {
-  color: var(--color-text-primary); /* Paper Cream #F5F1E8 */
 }

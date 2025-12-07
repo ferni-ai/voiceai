@@ -808,7 +808,7 @@ function showAchievementNotification(achievement: Achievement): void {
     align-items: center;
     gap: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    z-index: 10000;
+    z-index: var(--z-notification);
     transform: translateX(120%);
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   `;

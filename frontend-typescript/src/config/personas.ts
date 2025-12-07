@@ -237,7 +237,7 @@ export const COORDINATOR_ID: PersonaId = generated.coordinatorId as PersonaId;
  * Team order from generated data
  */
 export const TEAM_ORDER: readonly PersonaId[] = Object.freeze(
-  generated.teamOrder.filter(isValidPersonaId) as PersonaId[]
+  generated.teamOrder.filter(isValidPersonaId)
 );
 
 // ============================================================================

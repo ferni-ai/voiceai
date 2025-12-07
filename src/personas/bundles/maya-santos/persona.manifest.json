@@ -536,9 +536,10 @@
       "wellness",
       "self-compassion",
       "engagement",
-      "presence"
+      "presence",
+      "health"
     ],
-    "_domain_notes": "Maya is the wellness and habits specialist. Owns all habit/routine tools plus emotional wellness and self-care domains. Target: 45-55 tools for optimal Gemini performance.",
+    "_domain_notes": "Maya is the wellness, habits, and health specialist. Owns all habit/routine tools plus emotional wellness, self-care, exercise, nutrition, and sleep hygiene domains. Target: 45-55 tools for optimal Gemini performance.",
     "required": [
       "createHabit",
       "getHabits",

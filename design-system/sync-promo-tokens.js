@@ -1,0 +1,251 @@
+#!/usr/bin/env node
+/**
+ * Sync Design Tokens to Promo Website
+ *
+ * Copies essential design tokens from design-system to promo/ferni-website
+ * for brand consistency.
+ *
+ * Usage:
+ *   node design-system/sync-promo-tokens.js
+ *   npm run sync:promo
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.dirname(__dirname);
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+const CONFIG = {
+  // Source: design-system/tokens/colors.json
+  sourceColors: path.join(__dirname, 'tokens/colors.json'),
+  sourceSpacing: path.join(__dirname, 'tokens/spacing.json'),
+  sourceTypography: path.join(__dirname, 'tokens/typography.json'),
+  sourceAnimation: path.join(__dirname, 'tokens/animation.json'),
+
+  // Output: promo/ferni-website/css/design-tokens.css
+  outputFile: path.join(PROJECT_ROOT, 'promo/ferni-website/css/design-tokens.css'),
+};
+
+// ============================================================================
+// GENERATORS
+// ============================================================================
+
+function loadJson(filepath) {
+  return JSON.parse(fs.readFileSync(filepath, 'utf-8'));
+}
+
+function generateColorVars(colors) {
+  const lines = [];
+  const zen = colors.themes.zen;
+
+  // Background colors
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Background');
+  lines.push('     ============================================ */');
+  lines.push(`  --color-bg-primary: ${zen.background.primary};`);
+  lines.push(`  --color-bg-secondary: ${zen.background.secondary};`);
+  lines.push(`  --color-bg-elevated: ${zen.background.elevated};`);
+  lines.push(`  --color-bg-glass: ${zen.background.glass};`);
+  lines.push(`  --color-bg-overlay: ${zen.background.overlay};`);
+  lines.push('');
+
+  // Text colors
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Text');
+  lines.push('     ============================================ */');
+  lines.push(`  --color-text-primary: ${zen.text.primary};`);
+  lines.push(`  --color-text-secondary: ${zen.text.secondary};`);
+  lines.push(`  --color-text-muted: ${zen.text.muted};`);
+  lines.push(`  --color-text-dimmed: ${zen.text.dimmed};`);
+  lines.push(`  --color-text-inverse: ${zen.text.inverse};`);
+  lines.push('');
+
+  // Accent colors
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Accent');
+  lines.push('     ============================================ */');
+  lines.push(`  --color-accent: ${zen.accent.primary};`);
+  lines.push(`  --color-accent-hover: ${zen.accent.hover};`);
+  lines.push(`  --color-accent-pressed: ${zen.accent.pressed};`);
+  lines.push(`  --color-accent-glow: ${zen.accent.glow};`);
+  lines.push(`  --color-accent-subtle: ${zen.accent.subtle};`);
+  lines.push('');
+
+  // Border colors
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Borders');
+  lines.push('     ============================================ */');
+  lines.push(`  --color-border-subtle: ${zen.border.subtle};`);
+  lines.push(`  --color-border-medium: ${zen.border.medium};`);
+  lines.push(`  --color-border-strong: ${zen.border.strong};`);
+  lines.push('');
+
+  // Semantic colors
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Semantic');
+  lines.push('     ============================================ */');
+  lines.push(`  --color-success: ${zen.semantic.success};`);
+  lines.push(`  --color-success-bg: ${zen.semantic.successGlow};`);
+  lines.push(`  --color-error: ${zen.semantic.error};`);
+  lines.push(`  --color-error-bg: ${zen.semantic.errorGlow};`);
+  lines.push(`  --color-warning: ${zen.semantic.warning};`);
+  lines.push(`  --color-warning-bg: ${zen.semantic.warningGlow};`);
+  lines.push('');
+
+  // Persona colors
+  lines.push('  /* ============================================');
+  lines.push('     COLORS - Personas');
+  lines.push('     ============================================ */');
+  for (const [personaId, persona] of Object.entries(colors.personas)) {
+    if (personaId.startsWith('_')) continue;
+    const shortId = personaId.split('-')[0]; // ferni, jack, peter, etc.
+    lines.push(`  --color-${shortId}: ${persona.primary};`);
+    lines.push(`  --color-${shortId}-secondary: ${persona.secondary};`);
+    lines.push(`  --color-${shortId}-glow: ${persona.glow};`);
+    lines.push('');
+  }
+
+  return lines;
+}
+
+function generateSpacingVars(spacing) {
+  const lines = [];
+
+  // Spacing scale
+  lines.push('  /* ============================================');
+  lines.push('     SPACING');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(spacing.spacing)) {
+    const varName = key.replace('.', '_');
+    lines.push(`  --space-${varName}: ${value};`);
+  }
+  lines.push('');
+
+  // Border radius
+  lines.push('  /* ============================================');
+  lines.push('     BORDER RADIUS');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(spacing.borderRadius)) {
+    lines.push(`  --radius-${key}: ${value};`);
+  }
+  lines.push('');
+
+  // Shadows (zen theme)
+  lines.push('  /* ============================================');
+  lines.push('     SHADOWS');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(spacing.shadows.zen)) {
+    lines.push(`  --shadow-${key}: ${value};`);
+  }
+  lines.push('');
+
+  return lines;
+}
+
+function generateTypographyVars(typography) {
+  const lines = [];
+
+  // Font families
+  lines.push('  /* ============================================');
+  lines.push('     TYPOGRAPHY - Fonts');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(typography.fontFamilies)) {
+    const font = typeof value === 'object' ? value.zen : value;
+    lines.push(`  --font-${key}: ${font};`);
+  }
+  lines.push('');
+
+  // Font sizes
+  lines.push('  /* ============================================');
+  lines.push('     TYPOGRAPHY - Sizes');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(typography.fontSizes)) {
+    lines.push(`  --text-${key}: ${value};`);
+  }
+  lines.push('');
+
+  // Font weights
+  lines.push('  /* ============================================');
+  lines.push('     TYPOGRAPHY - Weights');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(typography.fontWeights)) {
+    lines.push(`  --font-weight-${key}: ${value};`);
+  }
+  lines.push('');
+
+  return lines;
+}
+
+function generateAnimationVars(animation) {
+  const lines = [];
+
+  // Easings
+  lines.push('  /* ============================================');
+  lines.push('     ANIMATION - Easings');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(animation.easings)) {
+    const varName = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+    lines.push(`  --ease-${varName}: ${value};`);
+  }
+  lines.push('');
+
+  // Durations
+  lines.push('  /* ============================================');
+  lines.push('     ANIMATION - Durations');
+  lines.push('     ============================================ */');
+  for (const [key, value] of Object.entries(animation.durations)) {
+    const varName = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+    lines.push(`  --duration-${varName}: ${value};`);
+  }
+  lines.push('');
+
+  return lines;
+}
+
+// ============================================================================
+// MAIN
+// ============================================================================
+
+function build() {
+  console.log('🎨 Syncing design tokens to promo website...\n');
+
+  // Load source tokens
+  const colors = loadJson(CONFIG.sourceColors);
+  const spacing = loadJson(CONFIG.sourceSpacing);
+  const typography = loadJson(CONFIG.sourceTypography);
+  const animation = loadJson(CONFIG.sourceAnimation);
+
+  // Generate CSS
+  const output = [
+    '/**',
+    ' * Ferni Design Tokens',
+    ' * CSS Custom Properties implementing brand guidelines',
+    ' *',
+    ' * 🎨 AUTO-GENERATED FROM design-system/tokens/',
+    ' * Do not edit directly - run: npm run sync:promo',
+    ` * Generated: ${new Date().toISOString()}`,
+    ' */',
+    '',
+    ':root {',
+    ...generateColorVars(colors),
+    ...generateSpacingVars(spacing),
+    ...generateTypographyVars(typography),
+    ...generateAnimationVars(animation),
+    '}',
+  ];
+
+  // Write output
+  fs.writeFileSync(CONFIG.outputFile, output.join('\n'));
+  console.log(`  ✅ Generated: ${CONFIG.outputFile}`);
+
+  console.log('\n✅ Promo website tokens synced!\n');
+}
+
+build();
+

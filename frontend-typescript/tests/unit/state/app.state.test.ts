@@ -123,14 +123,14 @@ describe('AppState', () => {
     });
 
     it('setActivePersona should update activePersona', () => {
-      setActivePersona('peter-lynch');
-      expect(appState.get('activePersona').id).toBe('peter-lynch');
+      setActivePersona('peter-john');
+      expect(appState.get('activePersona').id).toBe('peter-john');
     });
 
     it('setSelectedPersona should update both selected and active', () => {
-      setSelectedPersona('jack-bogle');
-      expect(appState.get('selectedPersona').id).toBe('jack-bogle');
-      expect(appState.get('activePersona').id).toBe('jack-bogle');
+      setSelectedPersona('maya-santos');
+      expect(appState.get('selectedPersona').id).toBe('maya-santos');
+      expect(appState.get('activePersona').id).toBe('maya-santos');
     });
 
     it('setUserName should update userName', () => {
@@ -166,8 +166,8 @@ describe('AppState', () => {
     });
 
     it('should persist selectedPersona to localStorage', () => {
-      setSelectedPersona('peter-lynch');
-      expect(localStorage.getItem('voiceai_selectedPersona')).toBe('peter-lynch');
+      setSelectedPersona('peter-john');
+      expect(localStorage.getItem('voiceai_selectedPersona')).toBe('peter-john');
     });
   });
 

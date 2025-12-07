@@ -195,7 +195,7 @@ function addHintStyles(): void {
       bottom: 1.5rem;
       right: 1.5rem;
       background: var(--color-bg-secondary, rgba(26, 26, 46, 0.95));
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(var(--glass-blur-medium));
       border: 1px solid var(--color-border-primary, rgba(255, 255, 255, 0.1));
       border-radius: 12px;
       padding: 1rem;
@@ -204,8 +204,8 @@ function addHintStyles(): void {
       opacity: 0;
       transform: translateY(10px);
       transition: opacity 0.3s ease, transform 0.3s ease;
-      z-index: 1000;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      z-index: var(--z-dropdown);
+      box-shadow: var(--shadow-xl);
     }
 
     .keyboard-hint.visible {
