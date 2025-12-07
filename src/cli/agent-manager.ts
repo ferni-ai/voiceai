@@ -19,10 +19,10 @@
  *
  * EXAMPLES:
  *   npx ts-node src/cli/agent-manager.ts list
- *   npx ts-node src/cli/agent-manager.ts show jack-bogle
+ *   npx ts-node src/cli/agent-manager.ts show ferni
  *   npx ts-node src/cli/agent-manager.ts create my-advisor --template sage
  *   npx ts-node src/cli/agent-manager.ts validate
- *   npx ts-node src/cli/agent-manager.ts install joel-dickson --from github:sethdford/voiceai-agents
+ *   npx ts-node src/cli/agent-manager.ts install moxie-accountability --from github:sethdford/voiceai-agents
  */
 
 import { readdir, stat, readFile, writeFile, mkdir, copyFile, rm } from 'fs/promises';
@@ -900,19 +900,19 @@ ${colors.bold}Options for 'install' and 'search':${colors.reset}
 ${colors.bold}Examples:${colors.reset}
   ${colors.dim}# List and manage local agents${colors.reset}
   npm run agents list
-  npm run agents show jack-bogle
+  npm run agents show ferni
   npm run agents validate
-  npm run agents validate jack-bogle
+  npm run agents validate ferni
 
   ${colors.dim}# Create a new agent from template${colors.reset}
   npm run agents create my-advisor --template sage
 
   ${colors.dim}# Install agents from external repository${colors.reset}
   npm run agents search mentor --from github:sethdford/voiceai-agents
-  npm run agents install joel-dickson --from github:sethdford/voiceai-agents
+  npm run agents install moxie-accountability --from github:sethdford/voiceai-agents
 
   ${colors.dim}# Remove an agent${colors.reset}
-  npm run agents uninstall joel-dickson
+  npm run agents uninstall moxie-accountability
 
 ${colors.bold}Adding a New Agent:${colors.reset}
   1. Run: npm run agents create my-agent --template sage

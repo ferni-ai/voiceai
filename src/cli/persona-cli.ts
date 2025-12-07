@@ -700,10 +700,10 @@ Commands:
 
 Examples:
   npx tsx src/cli/persona-cli.ts list
-  npx tsx src/cli/persona-cli.ts info jack-bogle
+  npx tsx src/cli/persona-cli.ts info ferni
   npx tsx src/cli/persona-cli.ts create my-new-persona "My New Persona"
   npx tsx src/cli/persona-cli.ts validate
-  npx tsx src/cli/persona-cli.ts build jack-bogle
+  npx tsx src/cli/persona-cli.ts build ferni
 `);
 }
 

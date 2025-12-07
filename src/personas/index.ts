@@ -39,8 +39,8 @@ import { GENERIC_ADVISOR_PERSONA } from './generic-advisor/index.js';
 // Wellness coach persona (created from generic-advisor template)
 import { WELLNESS_COACH_PERSONA } from './wellness-coach/index.js';
 
-// External agents (jack-bogle, joel-dickson) now hosted at voiceai-agents repo
-// Install with: npx ferni install jack-bogle --from https://github.com/sethdford/voiceai-agents
+// External agents available at marketplace-agents/
+// Install with: npm run agents install <agent-id>
 
 // ============================================================================
 // SHARED UTILITIES EXPORTS
@@ -361,7 +361,7 @@ export { WELLNESS_COACH_PERSONA } from './wellness-coach/index.js';
 
 // NOTE: Main personas (peter-john, alex-chen, maya-santos, jordan-taylor, ferni, nayan-patel)
 // are now bundle-based. Use getPersona() or getPersonaAsync() to access them.
-// External agents (jack-bogle, joel-dickson) available at voiceai-agents repo.
+// Additional marketplace agents available in marketplace-agents/ directory.
 
 // ============================================================================
 // COGNITIVE INTELLIGENCE SYSTEM

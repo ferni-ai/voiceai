@@ -372,11 +372,6 @@ export function getDJOutroPhrase(
       '<break time="150ms"/>Ha! <break time="100ms"/>Love that track. <break time="150ms"/>How you feeling?',
       '<emotion value="happy"/><break time="100ms"/>Good stuff! <break time="150ms"/>Music always hits different, doesn\'t it?',
     ],
-    'jack-bogle': [
-      '<break time="200ms"/>Good music. <break time="150ms"/>Just like a good investment, <break time="100ms"/>some things never get old.',
-      '<break time="200ms"/>That was nice. <break time="150ms"/>Sometimes you gotta take a moment.',
-      '<break time="200ms"/>Wonderful. <break time="150ms"/>Now, <break time="100ms"/>what\'s on your mind?',
-    ],
     maya: [
       '<break time="200ms"/>That was a nice break. <break time="150ms"/>Music can really shift your energy.',
       '<break time="200ms"/>Love it. <break time="150ms"/>How are you feeling after that?',
@@ -462,10 +457,6 @@ export function getMusicStoppedPhrase(personaId?: string, wasPaused = false): st
         '<break time="150ms"/>Got it. <break time="100ms"/>Music on pause.',
         '<break time="150ms"/>Sure. <break time="100ms"/>We can get back to that later.',
       ],
-      'jack-bogle': [
-        '<break time="200ms"/>Alright. <break time="150ms"/>Music paused.',
-        '<break time="200ms"/>Sure thing. <break time="150ms"/>What\'s on your mind?',
-      ],
       maya: [
         '<break time="150ms"/>Pausing the music. <break time="100ms"/>What\'s up?',
         '<break time="150ms"/>Okay. <break time="100ms"/>Silence can be nice too.',
@@ -510,10 +501,6 @@ export function getMusicStoppedPhrase(personaId?: string, wasPaused = false): st
     'jack-b': [
       '<break time="150ms"/>Oh! <break time="100ms"/>Music stopped. <break time="150ms"/>All good though. <break time="100ms"/>What\'s up?',
       '<break time="150ms"/>Hm, music cut out. <break time="100ms"/>No biggie. <break time="100ms"/>How you doing?',
-    ],
-    'jack-bogle': [
-      '<break time="200ms"/>Looks like the music stopped. <break time="150ms"/>Well, <break time="100ms"/>silence is golden too.',
-      '<break time="200ms"/>Music ended there. <break time="150ms"/>Anyway, <break time="100ms"/>what were we discussing?',
     ],
     maya: [
       '<break time="150ms"/>Oh, music stopped. <break time="100ms"/>That\'s okay. <break time="150ms"/>I\'m here.',

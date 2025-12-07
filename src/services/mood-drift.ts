@@ -89,7 +89,6 @@ export function getMoodState(sessionId: string): MoodState | null {
 function getPersonaBaselineMood(personaId: string): MoodType {
   const baselines: Record<string, MoodType> = {
     ferni: 'warm',
-    'jack-bogle': 'warm',
     'alex-chen': 'focused',
     'maya-santos': 'warm',
     'jordan-taylor': 'energized',
@@ -287,7 +286,7 @@ export function getMoodExpression(
  */
 function getMoodExpressions(personaId: string, mood: MoodType, energy: number): string[] {
   // Ferni-specific expressions
-  if (personaId === 'ferni' || personaId === 'jack-bogle') {
+  if (personaId === 'ferni') {
     switch (mood) {
       case 'tender':
         return [

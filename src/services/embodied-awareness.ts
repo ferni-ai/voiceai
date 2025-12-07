@@ -156,7 +156,7 @@ export function getPhysicalStateComment(sessionId: string, personaId: string): s
   const comments: string[] = [];
 
   // Coffee-related comments (persona-specific)
-  if (personaId === 'ferni' || personaId === 'jack-bogle') {
+  if (personaId === 'ferni') {
     if (session.physicalState.coffeeStatus === 'cold') {
       comments.push(
         "Hold on, my coffee's gone cold. <break time=\"300ms\"/>That's what happens when the conversation's good."

@@ -4,10 +4,10 @@
  * Multi-persona voice agent that loads personas dynamically.
  *
  * Usage:
- *   PERSONA_ID=jack-bogle tsx src/agent.ts dev    # Jack Bogle (original voice)
- *   PERSONA_ID=jack-b tsx src/agent.ts dev        # Jack B (younger voice)
+ *   PERSONA_ID=ferni tsx src/agent.ts dev         # Ferni (life coach, default)
+ *   PERSONA_ID=peter-john tsx src/agent.ts dev    # Peter John (research)
  *
- * Default: jack-bogle
+ * Default: ferni
  *
  * See src/personas/ for available personas and how to add new ones.
  */
