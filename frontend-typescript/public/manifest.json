@@ -1,8 +1,10 @@
 {
-  "name": "Ferni - AI That Feels Human",
+  "name": "Ferni - Your Personal AI Life Coach",
   "short_name": "Ferni",
   "description": "Your personal life coaching team that listens, remembers, and grows with you.",
-  "start_url": "/",
+  "start_url": "https://app.ferni.ai/",
+  "scope": "https://app.ferni.ai/",
+  "id": "ferni-ai-coach",
   "display": "standalone",
   "background_color": "#F5F1E8",
   "theme_color": "#4a6741",
