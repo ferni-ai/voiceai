@@ -1,4 +1,4 @@
-# 🏔️ Ferni AI - Voice-First Life Coaching Platform
+# Ferni AI
 
 <p align="center">
   <img src="brand/logo.png" alt="Ferni AI" width="120" />
@@ -9,540 +9,223 @@
 </p>
 
 <p align="center">
-  <a href="#-quick-start">Quick Start</a> •
-  <a href="#-meet-the-team">Meet the Team</a> •
-  <a href="#-architecture">Architecture</a> •
-  <a href="#-features">Features</a> •
-  <a href="#-deployment">Deployment</a>
+  <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#meet-the-team">Meet the Team</a> &bull;
+  <a href="#architecture">Architecture</a> &bull;
+  <a href="#documentation">Docs</a>
 </p>
 
 ---
 
-## 💡 Our Mission
+## Our Mission
 
 > **We believe in making AI human, and the decisions we make will reflect that.**
 
-Ferni isn't trying to pass the Turing test. We're trying to pass the "would I want to talk to this AI again?" test.
+Ferni isn't trying to pass the Turing test. We're trying to pass the *"would I want to talk to this AI again?"* test.
 
-Every feature we build, every architectural decision we make, every line of code we write is guided by a simple question: **Does this make the AI feel more human?**
+Every feature we build, every line of code we write is guided by a simple question: **Does this make the AI feel more human?**
 
-This means:
-- **Human connection over technical perfection** — The warmth of a conversation matters more than response speed
-- **Relationship over transaction** — Every interaction is part of an ongoing relationship
-- **Growth through gentleness** — Sustainable change comes from compassion, not pressure
-- **Authentic personality** — Real character, not corporate neutrality
-- **Presence over performance** — Being truly present matters more than being impressive
+| Principle | What It Means |
+|-----------|---------------|
+| **Human connection over technical perfection** | Warmth matters more than speed |
+| **Relationship over transaction** | Every interaction builds on the last |
+| **Growth through gentleness** | Sustainable change, not pressure |
+| **Authentic personality** | Real character, not corporate neutrality |
+| **Presence over performance** | Truly listening, not just responding |
 
 See [`CORE-PRINCIPLES.md`](./CORE-PRINCIPLES.md) for our complete philosophy.
 
 ---
 
-## 🌟 What is Ferni?
+## What is Ferni?
 
-Ferni is a sophisticated multi-persona voice AI platform built with TypeScript. Using Google's Gemini Live API for real-time speech recognition and Cartesia Sonic 3 for natural text-to-speech, Ferni creates deeply human, emotionally intelligent conversations with persistent memory and adaptive behaviors.
+Ferni is a voice-first AI life coaching platform. Using real-time speech recognition (Gemini Live) and natural text-to-speech (Cartesia Sonic), Ferni creates emotionally intelligent conversations with persistent memory and adaptive behaviors.
 
-**Product Philosophy**: "Get to Know Ferni First" — Team members unlock naturally as your relationship deepens, or instantly with a subscription.
+**The Experience**: Start with Ferni, your life coach. As your relationship deepens, meet the rest of the team - each specialist brings unique expertise while sharing context about you.
 
-## 🚀 Quick Start
+---
+
+## Quick Start
 
 ```bash
-# 1. Clone and install
-git clone <repo-url>
-cd voiceai
-npm install
+# Clone and install
+git clone <repo-url> && cd voiceai && npm install
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env with your API keys
+# Configure environment
+cp .env.example .env  # Add your API keys
 
-# 3. Run in development (3 servers)
-npm run dev              # Starts all servers
+# Start development (3 servers)
+npm run dev
 ```
 
 **Development URLs:**
-- **UI**: http://localhost:3004 (Vite HMR)
-- **Token Server**: http://localhost:3001
-- **UI Server**: http://localhost:3002
+| Server | URL | Purpose |
+|--------|-----|---------|
+| Frontend | http://localhost:3004 | Vite with HMR |
+| UI Server | http://localhost:3002 | APIs |
+| Token Server | http://localhost:3001 | Auth |
 
-**Keyboard Shortcuts:**
-- `Cmd/Ctrl+Shift+D` — Toggle dev panel
-- `Cmd/Ctrl+Shift+U` — Quick unlock all team members
-- `Cmd/Ctrl+Shift+R` — Reset to free tier
+**Dev Shortcuts:** `Cmd+Shift+D` (dev panel) &bull; `Cmd+Shift+U` (unlock team)
 
-## 👥 Meet the Team
+---
 
-Ferni's team is a group of AI specialists, each with unique expertise, personalities, and stories. They hand off to each other seamlessly based on your needs.
+## Meet the Team
 
-| Agent | Role | Specialty | Icon |
-|-------|------|-----------|------|
-| **Ferni** | Life Coach & Coordinator | Team orchestration, powerful questions, purpose, relationships, resilience | 🏔️ |
-| **Alex Chen** | Communication Coach & Chief of Staff | Emails, calendar, scheduling, difficult conversations, assertiveness | 💬 |
-| **Maya Santos** | Life Habits Coach | Habits, routines, wellness, budgeting, behavior science (Atomic Habits, Tiny Habits) | 🌱 |
-| **Peter John** | The Quant & Research Specialist | Pattern analysis, stock research, cross-domain insights, data storytelling | 🔬 |
-| **Jordan Taylor** | Lifetime Planner | Life milestones, events, vacations, goal planning, celebrations | 🌟 |
-| **Nayan** | Lifetime Advisor (Premium) | Wisdom, philosophy, meditation, long-term thinking, spiritual guidance | 🕉️ |
+| Agent | Role | Specialty |
+|-------|------|-----------|
+| **Ferni** | Life Coach | Team orchestration, purpose, relationships, resilience |
+| **Maya Santos** | Habits Coach | Routines, wellness, behavior science |
+| **Peter John** | Research Analyst | Pattern analysis, data insights |
+| **Alex Chen** | Communications | Emails, calendar, difficult conversations |
+| **Jordan Taylor** | Life Planner | Milestones, events, celebrations |
+| **Nayan** | Wisdom Sage | Philosophy, meditation, long-term thinking |
 
-### Team Unlocking
+Team members unlock naturally through conversation or instantly with subscription.
 
-| Relationship Stage | Unlocks | Requires |
-|-------------------|---------|----------|
-| **First Meeting** | Ferni only | New user |
-| **Getting Started** | + Maya Santos | 2 conversations |
-| **Building Trust** | + Peter John | 7 conversations, 3 days |
-| **Established** | + Alex Chen, Jordan Taylor | 20 conversations, 7 days |
-| **Deep Partnership** | + Nayan (Premium) | Partner tier subscription |
+---
 
-## 🏗️ Architecture
-
-### High-Level Flow
+## Architecture
 
 ```
-User Speech → LiveKit → Gemini Live (STT) → Context Builders → LLM → SSML Tagger → Cartesia (TTS) → Audio
-                                                   ↑
-                                           PersonaConfig + Tools
+User Speech → LiveKit → Gemini (STT) → Context Builders → LLM → SSML → Cartesia (TTS) → Audio
+                                              ↑
+                                      PersonaConfig + Tools + Memory
 ```
 
-### The Context Builder System
+### What Makes Ferni Human
 
-The intelligence engine that makes conversations feel human. 15+ modular builders analyze each turn and inject contextual guidance:
+| System | Purpose |
+|--------|---------|
+| **Context Builders** | 15+ modules that inject emotional awareness, memory, pacing |
+| **Persona Bundles** | Rich character files: biography, behaviors, stories, voice |
+| **Persistent Memory** | Cross-session recall, relationship tracking, key moments |
+| **Natural Speech** | Backchannels, thinking sounds, adaptive prosody |
+| **Meaningful Silence** | Comfortable pauses, not awkward gaps |
 
-| Builder | Purpose |
-|---------|---------|
-| `emotional` | Detects distress, validates feelings, mirrors emotion |
-| `crisis` | Market panic, grief, job loss, divorce detection |
-| `celebration` | Financial milestones, achievements, good news |
-| `memory` | Cross-session callbacks, key moments, time awareness |
-| `engagement` | Curiosity moments, depth tracking, running jokes |
-| `pacing` | Response length matching, fatigue detection |
-| `discovery` | New user onboarding (name, life stage, goals) |
-| `personal` | Name usage, small details, personal callbacks |
-| `topics` | Topic threading, circle-back, goal connection |
-| `intent` | 27 intent types, empathy-first responses |
-| `goodbye` | Warm wrap-ups, interruption recovery |
-| `humanizing` | Self-corrections, humor, catchphrases |
-| `rag` | Semantic knowledge retrieval |
-| `tasks` | Task manager integration |
-
-### Persona Bundle Architecture
-
-Each persona is a self-contained bundle with rich content:
+### Project Structure
 
 ```
-src/personas/bundles/ferni/
-├── persona.manifest.json       # Configuration, tools, handoffs
-├── identity/
-│   ├── biography.md           # Background story
-│   └── system-prompt.md       # Behavioral instructions
-└── content/
-    ├── behaviors/             # 40+ behavior files
-    │   ├── greetings.json
-    │   ├── backchannels.json
-    │   ├── catchphrases.json
-    │   ├── vulnerability.json
-    │   └── ...
-    ├── stories/               # Personal anecdotes
-    │   ├── tsunami-story.json
-    │   └── ...
-    ├── knowledge/             # Domain expertise
-    │   ├── powerful-questions.md
-    │   └── ...
-    └── voice/                 # Expression patterns
-        └── expressions.json
+src/
+├── agents/          # Voice agent core
+├── personas/        # AI personalities (bundles/)
+├── intelligence/    # Context builders, emotion, intent
+├── tools/           # 100+ LLM tools by domain
+├── services/        # Business logic
+├── memory/          # Firestore, Postgres, vectors
+├── speech/          # SSML, prosody, naturalness
+└── api/             # REST endpoints
+
+frontend-typescript/ # TypeScript UI
+docs/               # Architecture, guides, features
+brand/              # Design assets
 ```
 
-## ✨ Features
+---
 
-### Voice & Conversation
-- **Real-time Voice AI** — Sub-200ms response latency
-- **Emotion Detection** — Detects distress, joy, fear, confusion
-- **Adaptive Speech** — WPM tracking, SSML tagging, energy mirroring
-- **Natural Humanization** — Disfluencies, backchannels, thinking sounds
-- **Meaningful Silence** — Comfortable pauses, not just dead air
+## Configuration
 
-### Memory & Intelligence
-- **Persistent Memory** — Cross-session memory with Firestore/PostgreSQL
-- **Semantic RAG** — Vector-based knowledge retrieval
-- **User Profiles** — Life stage, goals, preferences, history
-- **Relationship Stages** — Deepening connection over time
+### Required API Keys
 
-### Team Capabilities
+| Variable | Source |
+|----------|--------|
+| `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | [LiveKit Cloud](https://cloud.livekit.io) |
+| `GOOGLE_API_KEY` | [Google AI Studio](https://aistudio.google.com) |
+| `CARTESIA_API_KEY` | [Cartesia](https://play.cartesia.ai) |
 
-| Domain | Tools | Example |
-|--------|-------|---------|
-| **Communication** | Email, calendar, SMS, calls | "Send an email to my boss about Thursday" |
-| **Habits** | Create, track, streaks, challenges | "Help me build a morning routine" |
-| **Research** | Stock analysis, pattern discovery | "Analyze Apple's fundamentals" |
-| **Life Planning** | Milestones, goals, events | "Help me plan my wedding" |
-| **Wisdom** | Philosophy, meditation guidance | "What should I focus on in life?" |
-| **Memory** | Remember facts, recall history | "What do you know about me?" |
+### Optional Integrations
 
-### Integrations
-- **Spotify** — Voice-controlled music playback
-- **Plaid** — Bank account linking for financial insights
-- **Google Calendar** — Scheduling and reminders
-- **Twilio** — SMS and voice calls
+Spotify, Plaid, Stripe, Twilio, Google Calendar - see `.env.example`
 
-## 📁 Project Structure
+---
 
-```
-voiceai/
-├── src/
-│   ├── agents/                 # Voice agent core
-│   │   ├── voice-agent.ts      # Main agent implementation
-│   │   ├── handlers/           # Event handlers
-│   │   ├── processors/         # Turn processing
-│   │   └── shared/             # Shared utilities
-│   │
-│   ├── personas/               # AI personalities
-│   │   ├── bundles/            # Auto-discovered persona bundles
-│   │   │   ├── ferni/          # Life coach (coordinator)
-│   │   │   ├── alex-chen/      # Communications specialist
-│   │   │   ├── maya-santos/    # Habits coach
-│   │   │   ├── peter-john/     # Research analyst
-│   │   │   ├── jordan-taylor/  # Life planner
-│   │   │   └── nayan-patel/    # Wisdom sage
-│   │   ├── registry/           # Unified agent registry
-│   │   └── types.ts            # PersonaConfig interface
-│   │
-│   ├── intelligence/           # Conversational intelligence
-│   │   ├── context-builders/   # 15+ context builders
-│   │   ├── emotion-detector.ts
-│   │   ├── intent-classifier.ts
-│   │   └── topic-tracker.ts
-│   │
-│   ├── tools/                  # 100+ LLM tools
-│   │   ├── domains/            # Domain-organized tools
-│   │   │   ├── calendar/
-│   │   │   ├── communication/
-│   │   │   ├── finance/
-│   │   │   ├── habits/
-│   │   │   ├── handoff/
-│   │   │   └── ...
-│   │   ├── habit-coaching/     # Habit system
-│   │   └── handoff/            # Handoff system
-│   │
-│   ├── services/               # Backend services
-│   │   ├── engagement/         # User engagement tracking
-│   │   ├── conversation/       # Conversation management
-│   │   ├── team-handler-registry/
-│   │   └── stripe-subscription.ts
-│   │
-│   ├── api/                    # REST API routes
-│   │   ├── auth-middleware.ts  # JWT/API key auth
-│   │   ├── engagement-routes.ts
-│   │   ├── subscription-routes.ts
-│   │   └── ...
-│   │
-│   ├── memory/                 # Persistence layer
-│   │   ├── firestore-store.ts
-│   │   ├── postgres-store.ts
-│   │   ├── vector-store.ts
-│   │   └── semantic-rag.ts
-│   │
-│   └── speech/                 # Speech processing
-│       ├── speech-context.ts
-│       └── adaptive-ssml.ts
-│
-├── frontend-typescript/        # TypeScript frontend
-│   ├── src/
-│   │   ├── ui/                 # UI components
-│   │   ├── services/           # Frontend services
-│   │   └── config/             # Design system
-│   └── public/
-│
-├── docs/                       # Documentation
-│   ├── architecture/
-│   ├── deployment/
-│   ├── features/
-│   └── guides/
-│
-├── brand/                      # Brand assets
-├── scripts/                    # Build & deploy scripts
-├── token-server.js             # LiveKit token server
-├── ui-server.js                # Production UI server
-└── package.json
-```
-
-## 🔧 Configuration
-
-### Required Environment Variables
-
-| Variable | Source | Purpose |
-|----------|--------|---------|
-| `LIVEKIT_URL` | [LiveKit Cloud](https://cloud.livekit.io) | Real-time voice streaming |
-| `LIVEKIT_API_KEY` | LiveKit Cloud | Authentication |
-| `LIVEKIT_API_SECRET` | LiveKit Cloud | Authentication |
-| `GOOGLE_API_KEY` | [Google AI Studio](https://aistudio.google.com) | Gemini Live STT/LLM |
-| `CARTESIA_API_KEY` | [Cartesia](https://play.cartesia.ai) | Text-to-speech |
-
-### Optional Services
-
-| Variable | Purpose |
-|----------|---------|
-| `SPOTIFY_CLIENT_ID/SECRET` | Music playback |
-| `PLAID_CLIENT_ID/SECRET` | Bank account linking |
-| `STRIPE_SECRET_KEY` | Subscription payments |
-| `TWILIO_*` | SMS and voice calls |
-| `GOOGLE_CALENDAR_*` | Calendar integration |
-
-### Storage Options
-
-| Environment | Storage | Cache | Setup |
-|-------------|---------|-------|-------|
-| **Local (default)** | In-memory | None | Just run `npm run dev` |
-| **Local (persistent)** | PostgreSQL | Redis | `npm run services:up` |
-| **Google Cloud** | Firestore | Memorystore | Automatic |
-
-## 🚀 Deployment
-
-### Development (3 Servers)
+## Deployment
 
 ```bash
-# Terminal 1: Token Server
-node token-server.js
-
-# Terminal 2: UI Server
-PORT=3002 node ui-server.js
-
-# Terminal 3: Frontend (Vite)
-cd frontend-typescript && npm run dev
+# Production (Google Cloud Run)
+./scripts/deploy-gcp.sh   # Voice agent
+./scripts/deploy-ui.sh    # UI + APIs
 ```
 
-### Production (Google Cloud)
+See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for details.
+
+---
+
+## Testing
 
 ```bash
-# Deploy voice agent
-./scripts/deploy-gcp.sh
-
-# Deploy UI server (serves everything)
-./scripts/deploy-ui.sh
+npm test              # Run all tests
+npm run test:watch    # Watch mode
+npm run test:coverage # Coverage report
+npm run quality       # Typecheck + lint + test
 ```
 
-**Production architecture:**
-- **UI Server** — Cloud Run, handles frontend + APIs
-- **Voice Agent** — Cloud Run, LiveKit agent only
-- **Database** — Firestore
-- **Cache** — Memorystore (Redis)
+---
 
-See [docs/deployment/](docs/deployment/) for detailed guides.
+## Documentation
 
-## 🧪 Testing
+### Getting Started
+| Doc | Purpose |
+|-----|---------|
+| [`ONBOARDING.md`](./ONBOARDING.md) | New developer guide |
+| [`CONTRIBUTING.md`](./CONTRIBUTING.md) | How to contribute |
+| [`CLAUDE.md`](./CLAUDE.md) | Quick coding reference |
 
-```bash
-# Run all tests
-npm test
+### Architecture
+| Doc | Purpose |
+|-----|---------|
+| [`CORE-PRINCIPLES.md`](./CORE-PRINCIPLES.md) | Our mission and philosophy |
+| [`docs/architecture/CLEAN-ARCHITECTURE.md`](./docs/architecture/CLEAN-ARCHITECTURE.md) | System design |
+| [`docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`](./docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md) | Tool/persona patterns |
 
-# Watch mode
-npm run test:watch
+### Features
+| Doc | Purpose |
+|-----|---------|
+| [`docs/guides/FERNI-COMPLETE-GUIDE.md`](./docs/guides/FERNI-COMPLETE-GUIDE.md) | Full Ferni implementation |
+| [`docs/guides/creating-personas.md`](./docs/guides/creating-personas.md) | Building personas |
+| [`docs/architecture/MONETIZATION-SYSTEM.md`](./docs/architecture/MONETIZATION-SYSTEM.md) | Subscriptions & unlocks |
 
-# Specific file
-npx vitest run src/tests/context-builders.test.ts
+---
 
-# Coverage
-npm run test:coverage
-```
+## Brand & Design
 
-### Test Categories
-- **Context Builders** — Crisis detection, emotional responses
-- **Memory** — User profiles, conversation history
-- **Intelligence** — Emotion, intent, topic tracking
-- **Handoffs** — Agent transitions
-- **Tools** — Tool execution and validation
+Ferni uses a warm, earthy design language:
 
-## 📊 Monitoring Dashboards
-
-| Dashboard | URL | Purpose |
-|-----------|-----|---------|
-| **Cognitive Intelligence** | `/cognitive-dashboard.html` | AI reasoning, adaptation |
-| **Persistence Metrics** | `/metrics-dashboard.html` | Memory system, sessions |
-| **Tools Analytics** | `/tools-dashboard.html` | Tool usage, optimization |
-| **Handoff Diagnostics** | `/api/diagnostics/handoffs` | Agent transfer metrics |
-
-## 🛠️ CLI Tools
-
-### Unified Ferni CLI
-
-```bash
-# Interactive mode
-npm run ferni
-
-# Direct commands
-npm run ferni deploy ui        # Deploy UI server
-npm run ferni test quick       # Run quick tests
-npm run ferni generate all     # Generate all assets
-npm run ferni health           # Health check
-
-# Individual CLIs
-npm run deploy -- ui           # Deploy
-npm run test:cli -- e2e        # Test
-npm run validate -- all        # Validate
-npm run audit -- quality       # Quality audit
-npm run build:cli -- apps      # Build native apps
-npm run generate -- personas   # Generate personas
-```
-
-### Shell Completions (Optional)
-
-For tab completion of `ferni` commands:
-
-**Bash:**
-```bash
-# Add to ~/.bashrc
-source /path/to/voiceai/scripts/ferni-completions.bash
-```
-
-**Zsh:**
-```bash
-# Add to ~/.zshrc
-source /path/to/voiceai/scripts/ferni-completions.zsh
-```
-
-### Agent Management
-
-```bash
-# List all agents
-npm run agents list
-
-# Create new agent
-npm run agents create my-advisor --template sage
-
-# Validate agent bundle
-npm run agents validate my-advisor
-
-# Test specific agent
-PERSONA_ID=my-advisor npm run dev
-```
-
-## 📚 Documentation
-
-| Guide | Description |
-|-------|-------------|
-| [FERNI-COMPLETE-GUIDE.md](docs/FERNI-COMPLETE-GUIDE.md) | Full Ferni implementation |
-| [AGENT-MANAGEMENT.md](docs/AGENT-MANAGEMENT.md) | Creating and managing agents |
-| [COGNITIVE-INTELLIGENCE-ARCHITECTURE.md](docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | How personas think differently |
-| [HANDOFF_ARCHITECTURE.md](docs/HANDOFF_ARCHITECTURE.md) | Agent handoff system |
-| [creating-personas.md](docs/creating-personas.md) | Building custom personas |
-| [local-setup.md](docs/local-setup.md) | Development environment |
-| [google-cloud-deployment.md](docs/google-cloud-deployment.md) | Production deployment |
-
-## 🎨 Brand & Design
-
-Ferni uses a warm, earthy design system:
-
-| Element | Color | Use |
-|---------|-------|-----|
+| Color | Hex | Use |
+|-------|-----|-----|
 | **Ferni Sage** | `#4a6741` | Primary, life coach |
 | **Cedar Brown** | `#9a7b5a` | Secondary, grounded |
-| **Ocean Teal** | `#3a6b73` | Peter, research |
-| **Slate Blue** | `#5a6b8a` | Alex, communications |
-| **Rose** | `#a67a6a` | Maya, wellness |
-| **Coral** | `#c4856a` | Jordan, celebrations |
-| **Warm Gray** | `#8a7a6a` | Nayan, wisdom |
+| **Ocean Teal** | `#3a6b73` | Research |
+| **Slate Blue** | `#5a6b8a` | Communications |
+| **Rose** | `#a67a6a` | Wellness |
 
-See [brand/FERNI-BRAND-GUIDELINES.md](brand/FERNI-BRAND-GUIDELINES.md) for full design system.
+See [`brand/FERNI-BRAND-GUIDELINES.md`](./brand/FERNI-BRAND-GUIDELINES.md) for the full design system.
 
-## 🔐 API Authentication
+---
 
-All API routes support multiple authentication methods:
-
-1. **API Key** — `X-API-Key` header
-2. **JWT Bearer** — `Authorization: Bearer <token>`
-3. **Dev Mode** — `?admin_key=dev-mode` (development only)
+## CLI
 
 ```bash
-# Set in production
-API_KEYS=key1,key2,key3
-ADMIN_API_KEYS=admin_key1
-JWT_SECRET=your-256-bit-secret
-ALLOWED_ORIGINS=https://ferni.ai
+npm run ferni              # Interactive CLI
+npm run ferni deploy ui    # Deploy
+npm run ferni test quick   # Quick tests
+npm run ferni health       # Health check
 ```
 
-## 📱 Mobile Apps
+See [`SCRIPTS.md`](./SCRIPTS.md) for all commands.
 
-Native iOS and Android apps are available:
+---
 
-- **iOS**: `apps/ios/` — Swift/SwiftUI
-- **Android**: `apps/android/` — Kotlin
+## Contributing
 
-See [apps/README.md](apps/README.md) for build instructions.
-
-## 💻 VS Code Integration
-
-This project includes VS Code configurations for an optimal development experience:
-
-### Recommended Setup
-
-1. Install recommended extensions: `@recommended` in Extensions view
-2. Use built-in tasks: `Cmd/Ctrl+Shift+P` → "Tasks: Run Task"
-3. Debug with F5: Multiple debug configurations available
-
-### Tasks (Cmd/Ctrl+Shift+B)
-
-| Task | Description |
-|------|-------------|
-| Start Development | Start all dev servers |
-| Run Quick Tests | Fast validation tests |
-| Run All Tests | Complete test suite |
-| Build Frontend | Build production frontend |
-| Deploy All | Deploy everything to production |
-
-### Debug Configurations
-
-| Config | Description |
-|--------|-------------|
-| Voice Agent (Ferni) | Debug main voice agent |
-| UI Server | Debug UI server |
-| Token Server | Debug token server |
-| Full Stack | Debug all services simultaneously |
-
-### Settings
-
-Workspace settings include:
-- Format on save with ESLint + Prettier
-- Organize imports on save
-- File nesting for cleaner explorer
-- Search exclusions for node_modules, dist
-
-## 🎨 Storybook
-
-Interactive component documentation:
-
-```bash
-# Run locally
-npm run storybook           # http://localhost:6006
-
-# Build static
-npm run storybook:build     # Output to storybook-static/
-```
-
-## 🤝 Contributing
-
-**New to the codebase?** Start with [ONBOARDING.md](ONBOARDING.md) for a guided week-1 experience.
-
-| Document | Purpose |
-|----------|---------|
-| [ONBOARDING.md](ONBOARDING.md) | New developer guide (day-by-day) |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, PR process |
-| [BACKLOG.md](BACKLOG.md) | Product backlog and roadmap |
-| [CLAUDE.md](CLAUDE.md) | Quick coding reference |
-| [.cursorrules](.cursorrules) | Complete coding standards |
-
-### Key Rules
-
-1. Use `createLogger()` for all logging (never `console.log`)
-2. Add explicit types for all function parameters (no `any`)
-3. Files should be < 500 lines
-4. Run `npm run quality` before committing
-5. Include tests for new features
-
-## 📄 License
-
-MIT
+1. Read [`CORE-PRINCIPLES.md`](./CORE-PRINCIPLES.md) first
+2. Follow standards in [`.cursorrules`](./.cursorrules)
+3. Run `npm run quality` before committing
+4. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for PR process
 
 ---
 
 <p align="center">
-  <strong>Built with ❤️ by the Ferni AI Team</strong>
+  <strong>Built with care by the Ferni AI team</strong>
 </p>
 
 <p align="center">

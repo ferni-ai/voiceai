@@ -128,7 +128,7 @@ export function runBackgroundBatch(
   promises: Array<Promise<unknown>>,
   context: BackgroundTaskContext
 ): void {
-  Promise.allSettled(promises).then((results) => {
+  void Promise.allSettled(promises).then((results) => {
     const failures = results.filter((r) => r.status === 'rejected');
     if (failures.length > 0) {
       getLogger().warn(

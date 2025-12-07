@@ -114,7 +114,7 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
           getLogger().warn(
             `Rate limited, retrying in ${RETRY_DELAY_MS}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`
           );
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
+          await new Promise<void>((resolve) => { setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)); });
           return this.embedBatch(texts, retryCount + 1);
         }
 
@@ -153,7 +153,7 @@ export class GoogleEmbeddings extends EmbeddingProvider {
     this._model = config?.model || 'text-embedding-004';
     this._dimensions = config?.dimensions || 768;
     // Use explicit apiKey if provided (even empty string), otherwise fall back to env var
-    this.apiKey = config?.apiKey !== undefined ? config.apiKey : (process.env.GOOGLE_API_KEY || '');
+    this.apiKey = config?.apiKey !== undefined ? config.apiKey : process.env.GOOGLE_API_KEY || '';
 
     if (!this.apiKey) {
       getLogger().warn('Google API key not set. Embeddings will fail.');

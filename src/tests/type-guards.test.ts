@@ -11,7 +11,7 @@
  * @module tests/type-guards
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import {
   isValidUserProfile,
@@ -399,5 +399,3 @@ describe('Type Guards', () => {
   });
 });
 
-// Import vi for mocking in safeParse test
-import { vi } from 'vitest';

@@ -556,7 +556,7 @@ async function main(): Promise<void> {
       await createExperiment();
       break;
 
-    case 'start-template':
+    case 'start-template': {
       const templateNum = parseInt(args[1], 10);
       if (isNaN(templateNum)) {
         console.log(color('\n  Usage: experiments-cli start-template <number>\n', 'red'));
@@ -564,6 +564,7 @@ async function main(): Promise<void> {
       }
       await startTemplate(templateNum);
       break;
+    }
 
     case 'export':
       await exportData();
