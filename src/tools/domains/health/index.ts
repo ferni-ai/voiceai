@@ -20,6 +20,8 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { persistTrackedItem, persistKeyMoment, type ToolCtxWithUserData } from '../shared/persistence.js';
+import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
 
 // ============================================================================
@@ -131,10 +133,31 @@ const logExerciseDef: ToolDefinition = {
         howTheyFeel: z.string().optional().describe('How they feel after'),
         notes: z.string().optional(),
       }),
-      execute: async ({ activityType, activityName, durationMinutes, intensity, howTheyFeel, notes }) => {
-        getLogger().info({ agentId: ctx.agentId, activityType, durationMinutes }, 'Logging exercise');
+      execute: async ({ activityType, activityName, durationMinutes, intensity, howTheyFeel, notes }, { ctx: toolCtx }) => {
+        // Track analytics if enabled
+        const tracker = isLifeCoachAnalyticsEnabled()
+          ? trackToolUsage('logExercise', 'health', { agentId: ctx.agentId })
+          : null;
 
-        const encouragement = EXERCISE_ENCOURAGEMENT[Math.floor(Math.random() * EXERCISE_ENCOURAGEMENT.length)];
+        try {
+          getLogger().info({ agentId: ctx.agentId, activityType, durationMinutes }, 'Logging exercise');
+
+          // Persist exercise log for tracking
+          persistTrackedItem(toolCtx as ToolCtxWithUserData, {
+            domain: 'health',
+            itemType: 'exercise_log',
+            item: {
+              activityType,
+              activityName,
+              durationMinutes,
+              intensity,
+              howTheyFeel,
+              notes,
+            },
+            importance: durationMinutes && durationMinutes > 30 ? 'medium' : 'low',
+          });
+
+          const encouragement = EXERCISE_ENCOURAGEMENT[Math.floor(Math.random() * EXERCISE_ENCOURAGEMENT.length)];
 
         let response = `**Exercise Logged!** ✅\n\n`;
         response += `**Activity:** ${activityName || activityType}\n`;
@@ -155,7 +178,12 @@ const logExerciseDef: ToolDefinition = {
 
         response += `Would you like to set a fitness goal or see your recent activity?`;
 
-        return response;
+          tracker?.success({ activityType, durationMinutes });
+          return response;
+        } catch (error) {
+          tracker?.error(error instanceof Error ? error : String(error));
+          throw error;
+        }
       },
     });
   },
@@ -253,8 +281,26 @@ const trackFitnessGoalDef: ToolDefinition = {
         goalDescription: z.string().optional().describe('Description of the goal'),
         currentProgress: z.string().optional().describe('Current progress'),
       }),
-      execute: async ({ action, goalType, goalDescription, currentProgress }) => {
+      execute: async ({ action, goalType, goalDescription, currentProgress }, { ctx: toolCtx }) => {
         getLogger().info({ agentId: ctx.agentId, action, goalType }, 'Tracking fitness goal');
+
+        // Persist goal when set or celebrate
+        if (action === 'set' && goalDescription) {
+          persistTrackedItem(toolCtx as ToolCtxWithUserData, {
+            domain: 'health',
+            itemType: 'fitness_goal',
+            item: { goalType, goalDescription, action: 'set', status: 'active' },
+            importance: 'medium',
+          });
+        } else if (action === 'celebrate') {
+          persistKeyMoment(toolCtx as ToolCtxWithUserData, {
+            domain: 'health',
+            type: 'milestone',
+            summary: `Achieved fitness goal: ${goalDescription || goalType || 'fitness goal'}`,
+            emotionalWeight: 'heavy',
+            topics: ['health', 'fitness', 'achievement'],
+          });
+        }
 
         let response = '';
 

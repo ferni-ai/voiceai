@@ -20,6 +20,7 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { persistKeyMoment, type ToolCtxWithUserData } from '../shared/persistence.js';
 import { z } from 'zod';
 
 // ============================================================================
@@ -92,7 +93,7 @@ const DEVELOPMENTAL_STAGES = {
     commonChallenges: ['independence battles', 'risky behavior', 'academic pressure', 'mental health'],
     keyNeeds: ['Trust', 'Independence', 'Continued connection', 'Safety'],
   },
-  youngAdult: {
+  'young-adult': {
     ages: '18+',
     normalBehaviors: [
       'Still need support, differently',
@@ -172,7 +173,7 @@ const coachParentingChallengeDef: ToolDefinition = {
 
         response += `**Developmental Context:**\n\n`;
         response += `At this stage, it's normal for children to:\n`;
-        stage.normalBehaviors.forEach(b => response += `• ${b}\n`);
+        stage.normalBehaviors.forEach((b: string) => response += `• ${b}\n`);
         response += `\nKey needs at this stage: ${stage.keyNeeds.join(', ')}\n\n`;
 
         response += `---\n\n`;
@@ -386,8 +387,17 @@ const trackChildMilestoneDef: ToolDefinition = {
         date: z.string().optional().describe('When it happened'),
         reaction: z.string().optional().describe('Their reaction'),
       }),
-      execute: async ({ childName, milestone, date, reaction }) => {
+      execute: async ({ childName, milestone, date, reaction }, { ctx: toolCtx }) => {
         getLogger().info({ agentId: ctx.agentId, milestone }, 'Tracking child milestone');
+
+        // Persist this milestone as a key moment
+        persistKeyMoment(toolCtx as ToolCtxWithUserData, {
+          domain: 'family',
+          type: 'milestone',
+          summary: `${childName}: ${milestone}`,
+          emotionalWeight: 'heavy',
+          topics: ['family', 'parenting', 'milestone', childName.toLowerCase()],
+        });
 
         let response = `**🎉 Milestone Recorded!**\n\n`;
         response += `**${childName}:** ${milestone}\n`;

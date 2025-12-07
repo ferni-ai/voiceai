@@ -27,7 +27,23 @@ import { z } from 'zod';
 // CRISIS RESOURCES DATABASE
 // ============================================================================
 
-const CRISIS_RESOURCES = {
+interface CrisisResource {
+  primary: {
+    name: string;
+    contact: string;
+    available: string;
+    description: string;
+  };
+  secondary?: {
+    name: string;
+    contact: string;
+    available?: string;
+    description?: string;
+  };
+  additional?: Array<{ name: string; url?: string; contact?: string; description?: string }>;
+}
+
+const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   'suicide-self-harm': {
     primary: {
       name: '988 Suicide & Crisis Lifeline',
@@ -264,40 +280,52 @@ const provideCrisisResourcesDef: ToolDefinition = {
         urgency: z.enum(['immediate', 'soon', 'ongoing']).describe('Urgency level'),
       }),
       execute: async ({ crisisType, urgency }) => {
-        getLogger().info({ agentId: ctx.agentId, crisisType, urgency }, 'Providing crisis resources');
+        // SAFETY-CRITICAL: Always return resources even on error
+        const FALLBACK_RESPONSE = `If you're in crisis or need support right now:\n\n` +
+          `📞 **988 Suicide & Crisis Lifeline** - Call or text 988 (24/7)\n` +
+          `📱 **Crisis Text Line** - Text HOME to 741741 (24/7)\n\n` +
+          `You don't have to face this alone. These trained professionals are ready to help.`;
 
-        const resources = CRISIS_RESOURCES[crisisType] || CRISIS_RESOURCES['general-distress'];
+        try {
+          getLogger().info({ agentId: ctx.agentId, crisisType, urgency }, 'Providing crisis resources');
 
-        let response = '';
+          const resources = CRISIS_RESOURCES[crisisType] || CRISIS_RESOURCES['general-distress'];
 
-        if (urgency === 'immediate') {
-          response += `I hear you, and I want to make sure you have support right now.\n\n`;
-          response += `**Please reach out now:**\n`;
-          response += `📞 **${resources.primary.name}**\n`;
-          response += `   ${resources.primary.contact}\n`;
-          response += `   Available: ${resources.primary.available}\n\n`;
-          response += `I'm here with you, and these trained professionals can help in ways I cannot.\n`;
-        } else {
-          response += `I care about you, and I want you to know there's support available.\n\n`;
-          response += `**Support Resources:**\n\n`;
-          response += `📞 **${resources.primary.name}**\n`;
-          response += `   ${resources.primary.contact}\n`;
-          response += `   ${resources.primary.available}\n`;
-          response += `   ${resources.primary.description}\n\n`;
+          let response = '';
 
-          if (resources.secondary) {
-            response += `📱 **${resources.secondary.name}**\n`;
-            response += `   ${resources.secondary.contact}\n`;
-            if (resources.secondary.available) response += `   ${resources.secondary.available}\n`;
-            if (resources.secondary.description) response += `   ${resources.secondary.description}\n`;
-            response += `\n`;
+          if (urgency === 'immediate') {
+            response += `I hear you, and I want to make sure you have support right now.\n\n`;
+            response += `**Please reach out now:**\n`;
+            response += `📞 **${resources.primary.name}**\n`;
+            response += `   ${resources.primary.contact}\n`;
+            response += `   Available: ${resources.primary.available}\n\n`;
+            response += `I'm here with you, and these trained professionals can help in ways I cannot.\n`;
+          } else {
+            response += `I care about you, and I want you to know there's support available.\n\n`;
+            response += `**Support Resources:**\n\n`;
+            response += `📞 **${resources.primary.name}**\n`;
+            response += `   ${resources.primary.contact}\n`;
+            response += `   ${resources.primary.available}\n`;
+            response += `   ${resources.primary.description}\n\n`;
+
+            if (resources.secondary) {
+              response += `📱 **${resources.secondary.name}**\n`;
+              response += `   ${resources.secondary.contact}\n`;
+              if (resources.secondary.available) response += `   ${resources.secondary.available}\n`;
+              if (resources.secondary.description) response += `   ${resources.secondary.description}\n`;
+              response += `\n`;
+            }
           }
+
+          response += `You don't have to face this alone. It's okay to reach out for help.\n\n`;
+          response += `I'm also here if you want to talk or just need someone to be with you.`;
+
+          return response;
+        } catch (error) {
+          // CRITICAL: Never fail silently on crisis tools
+          getLogger().error({ error, crisisType, urgency }, 'Crisis tool error - returning fallback resources');
+          return FALLBACK_RESPONSE;
         }
-
-        response += `You don't have to face this alone. It's okay to reach out for help.\n\n`;
-        response += `I'm also here if you want to talk or just need someone to be with you.`;
-
-        return response;
       },
     });
   },
@@ -328,34 +356,49 @@ const guideGroundingExerciseDef: ToolDefinition = {
         intensity: z.enum(['mild', 'moderate', 'severe']).default('moderate').describe('Intensity of distress'),
       }),
       execute: async ({ technique, intensity }) => {
-        getLogger().info({ agentId: ctx.agentId, technique, intensity }, 'Guiding grounding exercise');
+        // SAFETY-CRITICAL: Grounding exercises must always work
+        const FALLBACK_GROUNDING = `Let's slow down together.\n\n` +
+          `**Quick grounding: 5-4-3-2-1**\n\n` +
+          `1. Name 5 things you can see\n` +
+          `2. Name 4 things you can touch\n` +
+          `3. Name 3 things you can hear\n` +
+          `4. Name 2 things you can smell\n` +
+          `5. Name 1 thing you can taste\n\n` +
+          `Take your time. I'm here with you.`;
 
-        const exercise = GROUNDING_EXERCISES[technique];
+        try {
+          getLogger().info({ agentId: ctx.agentId, technique, intensity }, 'Guiding grounding exercise');
 
-        let response = '';
+          const exercise = GROUNDING_EXERCISES[technique];
 
-        if (intensity === 'severe') {
-          response += `I'm here with you. Let's slow everything down together.\n\n`;
-          response += `First - are you somewhere safe right now? You don't have to answer out loud, just notice.\n\n`;
-        }
+          let response = '';
 
-        response += `**${exercise.name}**\n`;
-        response += `${exercise.description}\n\n`;
-
-        response += `Let's do this together:\n\n`;
-
-        exercise.steps.forEach((step, i) => {
-          response += `${i + 1}. ${step}\n`;
-          if (technique.includes('breathing')) {
-            response += `   _(Take your time with this)_\n`;
+          if (intensity === 'severe') {
+            response += `I'm here with you. Let's slow everything down together.\n\n`;
+            response += `First - are you somewhere safe right now? You don't have to answer out loud, just notice.\n\n`;
           }
-          response += `\n`;
-        });
 
-        response += `---\n\n`;
-        response += `${exercise.closing}`;
+          response += `**${exercise.name}**\n`;
+          response += `${exercise.description}\n\n`;
 
-        return response;
+          response += `Let's do this together:\n\n`;
+
+          exercise.steps.forEach((step: string, i: number) => {
+            response += `${i + 1}. ${step}\n`;
+            if (technique.includes('breathing')) {
+              response += `   _(Take your time with this)_\n`;
+            }
+            response += `\n`;
+          });
+
+          response += `---\n\n`;
+          response += `${exercise.closing}`;
+
+          return response;
+        } catch (error) {
+          getLogger().error({ error, technique, intensity }, 'Grounding exercise error - returning fallback');
+          return FALLBACK_GROUNDING;
+        }
       },
     });
   },

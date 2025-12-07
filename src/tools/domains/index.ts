@@ -33,6 +33,18 @@
  *   domains/self-compassion/ - Inner critic, self-kindness, acceptance
  *   domains/play/          - Joy, fun, playfulness, lightness
  *   domains/presence/      - Grounding, mindfulness, savoring, flow
+ *
+ *   === LIFE COACHING DOMAINS (NEW) ===
+ *   domains/crisis/        - Crisis support, grounding, safety planning
+ *   domains/health/        - Exercise, nutrition, sleep, energy
+ *   domains/career/        - Job search, interviews, professional development
+ *   domains/decisions/     - Decision frameworks, analysis, values alignment
+ *   domains/family/        - Parenting, family dynamics, elder care
+ *   domains/home/          - Home maintenance, organization, moving
+ *   domains/learning/      - Education, skill development, study planning
+ *   domains/creativity/    - Hobbies, creative projects, artistic pursuits
+ *   domains/community/     - Volunteering, giving, civic engagement
+ *   domains/legal-admin/   - Documents, estate planning, insurance
  */
 
 // ============================================================================
@@ -121,6 +133,43 @@ export { getToolDefinitions as getPresenceToolDefinitions } from './presence/ind
 // Engagement domain - daily rituals, games, persona-specific activities
 export { getToolDefinitions as getEngagementToolDefinitions } from './engagement/index.js';
 
+// Awareness domain - time, context, environment awareness
+export { getToolDefinitions as getAwarenessToolDefinitions } from './awareness/index.js';
+
+// ============================================================================
+// LIFE COACHING DOMAINS (NEW)
+// ============================================================================
+
+// Crisis domain - crisis resources, grounding, safety planning
+export { getToolDefinitions as getCrisisToolDefinitions } from './crisis/index.js';
+
+// Health domain - exercise, nutrition, sleep, energy
+export { getToolDefinitions as getHealthToolDefinitions } from './health/index.js';
+
+// Career domain - job search, interviews, professional development
+export { getToolDefinitions as getCareerToolDefinitions } from './career/index.js';
+
+// Decisions domain - frameworks, analysis, values alignment
+export { getToolDefinitions as getDecisionsToolDefinitions } from './decisions/index.js';
+
+// Family domain - parenting, family dynamics, elder care
+export { getToolDefinitions as getFamilyToolDefinitions } from './family/index.js';
+
+// Home domain - maintenance, organization, moving
+export { getToolDefinitions as getHomeToolDefinitions } from './home/index.js';
+
+// Learning domain - education, skill development, study
+export { getToolDefinitions as getLearningToolDefinitions } from './learning/index.js';
+
+// Creativity domain - hobbies, creative projects, artistic pursuits
+export { getToolDefinitions as getCreativityToolDefinitions } from './creativity/index.js';
+
+// Community domain - volunteering, giving, civic engagement
+export { getToolDefinitions as getCommunityToolDefinitions } from './community/index.js';
+
+// Legal-Admin domain - documents, estate planning, insurance
+export { getToolDefinitions as getLegalAdminToolDefinitions } from './legal-admin/index.js';
+
 // ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
@@ -177,6 +226,19 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./presence/index.js').then(async (m) => m.getToolDefinitions()),
     // Engagement domain - daily rituals, games, persona activities
     import('./engagement/index.js').then(async (m) => m.getToolDefinitions()),
+    // Awareness domain - time, context, environment
+    import('./awareness/index.js').then(async (m) => m.getToolDefinitions()),
+    // Life Coaching domains (NEW)
+    import('./crisis/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./health/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./career/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./decisions/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./family/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./home/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./learning/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./creativity/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./community/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./legal-admin/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -349,6 +411,73 @@ export const DOMAIN_METADATA = {
     name: 'Engagement & Rituals',
     description: 'Daily rituals, persona games, team interactions, and streak tracking',
     icon: '🎮',
+    status: 'active',
+  },
+  awareness: {
+    name: 'Awareness & Context',
+    description: 'Time awareness, environmental context, and situational understanding',
+    icon: '👁️',
+    status: 'active',
+  },
+  // Life Coaching Domains (NEW)
+  crisis: {
+    name: 'Crisis & Safety',
+    description: 'Crisis resources, grounding exercises, safety planning, recovery support',
+    icon: '🆘',
+    status: 'active',
+  },
+  health: {
+    name: 'Health & Fitness',
+    description: 'Exercise tracking, nutrition coaching, sleep hygiene, energy management',
+    icon: '💪',
+    status: 'active',
+  },
+  career: {
+    name: 'Career & Professional',
+    description: 'Job search, interview prep, salary negotiation, career development',
+    icon: '💼',
+    status: 'active',
+  },
+  decisions: {
+    name: 'Decision Support',
+    description: 'Decision frameworks, pros/cons analysis, values alignment, risk assessment',
+    icon: '🎯',
+    status: 'active',
+  },
+  family: {
+    name: 'Family & Parenting',
+    description: 'Parenting coaching, family dynamics, elder care, traditions',
+    icon: '👨‍👩‍👧‍👦',
+    status: 'active',
+  },
+  home: {
+    name: 'Home & Living',
+    description: 'Home maintenance, organization, decluttering, moving, emergency prep',
+    icon: '🏠',
+    status: 'active',
+  },
+  learning: {
+    name: 'Education & Learning',
+    description: 'Learning goals, study planning, spaced repetition, knowledge testing',
+    icon: '📚',
+    status: 'active',
+  },
+  creativity: {
+    name: 'Creativity & Hobbies',
+    description: 'Creative projects, hobby exploration, artistic blocks, inspiration',
+    icon: '🎨',
+    status: 'active',
+  },
+  community: {
+    name: 'Community & Impact',
+    description: 'Volunteering, charitable giving, civic engagement, social impact',
+    icon: '🤲',
+    status: 'active',
+  },
+  'legal-admin': {
+    name: 'Legal & Administrative',
+    description: 'Document organization, estate planning, insurance review, tax prep',
+    icon: '📋',
     status: 'active',
   },
 } as const;

@@ -19,6 +19,8 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { persistTrackedItem, persistKeyMoment, type ToolCtxWithUserData } from '../shared/persistence.js';
+import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
 
 // ============================================================================
@@ -343,10 +345,37 @@ const trackJobApplicationDef: ToolDefinition = {
         ]).optional().describe('Application status'),
         notes: z.string().optional().describe('Notes about the application'),
       }),
-      execute: async ({ action, company, role, status, notes }) => {
-        getLogger().info({ agentId: ctx.agentId, action, company, status }, 'Tracking job application');
+      execute: async ({ action, company, role, status, notes }, { ctx: toolCtx }) => {
+        // Track analytics if enabled
+        const tracker = isLifeCoachAnalyticsEnabled()
+          ? trackToolUsage('trackJobApplication', 'career', { agentId: ctx.agentId })
+          : null;
 
-        let response = '';
+        try {
+          getLogger().info({ agentId: ctx.agentId, action, company, status }, 'Tracking job application');
+
+          // Persist job application data
+          if (action === 'add' || action === 'update') {
+            persistTrackedItem(toolCtx as ToolCtxWithUserData, {
+              domain: 'career',
+              itemType: 'job_application',
+              item: { company, role, status: status || 'applied', notes, action },
+              importance: status === 'offer' || status === 'interview-scheduled' ? 'high' : 'medium',
+            });
+          }
+
+          // Persist key moments for significant events
+          if (status === 'offer') {
+            persistKeyMoment(toolCtx as ToolCtxWithUserData, {
+              domain: 'career',
+              type: 'milestone',
+              summary: `Received job offer from ${company} for ${role}`,
+              emotionalWeight: 'heavy',
+              topics: ['career', 'job-search', 'milestone'],
+            });
+          }
+
+          let response = '';
 
         if (action === 'add') {
           response = `**Application Logged** ✅\n\n`;
@@ -401,7 +430,12 @@ const trackJobApplicationDef: ToolDefinition = {
           response += `Job searching is a numbers game, but quality matters too. Are you customizing applications or applying broadly?`;
         }
 
-        return response;
+          tracker?.success({ action, status });
+          return response;
+        } catch (error) {
+          tracker?.error(error instanceof Error ? error : String(error));
+          throw error;
+        }
       },
     });
   },
@@ -979,8 +1013,8 @@ const assessBurnoutDef: ToolDefinition = {
           'exhaustion',
           'cynicism',
           'inefficacy',
-          'sleep-issues',
-          'physical-symptoms',
+          'sleep_issues',
+          'physical_symptoms',
           'dread',
           'isolation',
           'concentration',
