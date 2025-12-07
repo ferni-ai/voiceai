@@ -1,186 +1,286 @@
 /**
- * Core SSML Tagging Module - Persona-Aware
- *
- * This module provides persona-aware SSML tagging that adapts:
- * - Speaking speed per persona
- * - Default emotion per persona
- * - Humanization features (disfluencies, thinking sounds)
- *
- * Uses the legacy tagTextWithSsml from ssml-tagger.ts as a base,
- * with persona-specific overlays.
+ * SSML Core Functions
+ * 
+ * Main SSML tagging and sanitization functions.
+ * These are the primary exports used throughout the application.
  */
 
-import { tagTextWithSsml, sanitizeSsml } from '../ssml-tagger.js';
-import { breakTag, speedTag, volumeTag, emotionTag, clampSpeed } from './cartesia.js';
+import {
+  FINANCIAL_PRONUNCIATIONS,
+  FINANCIAL_START,
+  FINANCIAL_END,
+} from './constants.js';
+import {
+  detectEmotion,
+  detectPacing,
+  detectVolume,
+  detectVocalCues,
+} from './detection.js';
+import { clampSpeed, clampVolume } from './tags.js';
+
+// =============================================================================
+// FINANCIAL PRONUNCIATION HANDLING
+// =============================================================================
 
 /**
- * Options for persona-aware SSML tagging
+ * Apply financial pronunciation dictionary to text
  */
-export interface PersonaAwareSsmlOptions {
-  /** Persona ID for persona-specific styling */
-  personaId?: string;
-  /** Enable humanization features (disfluencies, thinking sounds) */
-  humanize?: boolean;
-  /** Base speaking speed multiplier */
-  baseSpeed?: number;
-  /** Base volume multiplier */
-  baseVolume?: number;
-  /** Default emotion for neutral text */
-  defaultEmotion?: string;
-}
-
-/**
- * Persona-specific SSML configurations
- */
-const PERSONA_CONFIGS: Record<
-  string,
-  {
-    baseSpeed: number;
-    defaultEmotion: string;
-    humanizeLevel: 'low' | 'medium' | 'high';
+function applyFinancialPronunciations(text: string): string {
+  let result = text;
+  
+  for (const entry of FINANCIAL_PRONUNCIATIONS) {
+    // Reset lastIndex for global regex
+    entry.pattern.lastIndex = 0;
+    result = result.replace(entry.pattern, (match) => {
+      // Wrap replacement in protection markers
+      return `${FINANCIAL_START}${entry.replacement}${FINANCIAL_END}`;
+    });
   }
-> = {
-  'nayan-patel': {
-    baseSpeed: 0.78,
-    defaultEmotion: 'affectionate',
-    humanizeLevel: 'high', // Jack has lots of thinking sounds, pauses
-  },
-  'peter-john': {
-    baseSpeed: 0.92,
-    defaultEmotion: 'curious',
-    humanizeLevel: 'medium', // Peter is more energetic
-  },
-  'alex-chen': {
-    baseSpeed: 0.88,
-    defaultEmotion: 'content',
-    humanizeLevel: 'low', // Alex is professional, efficient
-  },
-  'maya-santos': {
-    baseSpeed: 0.85,
-    defaultEmotion: 'affectionate',
-    humanizeLevel: 'medium', // Maya is warm but focused
-  },
-  'jordan-taylor': {
-    baseSpeed: 0.9,
-    defaultEmotion: 'excited',
-    humanizeLevel: 'medium', // Jordan is enthusiastic
-  },
-  ferni: {
-    baseSpeed: 0.82,
-    defaultEmotion: 'content',
-    humanizeLevel: 'medium', // Ferni is the balanced coach
-  },
-};
-
-/**
- * Cache for compiled regex patterns (performance optimization)
- * Provides a .get(pattern, flags) method that creates and caches RegExp instances
- */
-class RegexCache {
-  private cache = new Map<string, RegExp>();
-
-  /**
-   * Get or create a cached regex
-   */
-  get(pattern: string, flags: string): RegExp {
-    const key = `${pattern}:${flags}`;
-    if (!this.cache.has(key)) {
-      this.cache.set(key, new RegExp(pattern, flags));
-    }
-    return this.cache.get(key)!;
-  }
-
-  /**
-   * Clear all cached patterns
-   */
-  clear(): void {
-    this.cache.clear();
-  }
-
-  /**
-   * Number of cached patterns
-   */
-  get size(): number {
-    return this.cache.size;
-  }
-}
-
-export const regexCache = new RegexCache();
-
-/**
- * Tag text with SSML, with persona-specific adaptations
- *
- * @param text - The text to tag with SSML
- * @param options - Persona-aware options
- * @returns SSML-tagged text
- */
-export function tagTextWithSsmlPersonaAware(
-  text: string,
-  options: PersonaAwareSsmlOptions = {}
-): string {
-  if (!text || text.trim().length === 0) {
-    return text;
-  }
-
-  const {
-    personaId = 'ferni',
-    humanize = true,
-    baseSpeed: customSpeed,
-    defaultEmotion: customEmotion,
-  } = options;
-
-  // Get persona config or use defaults
-  const config = PERSONA_CONFIGS[personaId] || PERSONA_CONFIGS['ferni'];
-  const baseSpeed = customSpeed ?? config.baseSpeed;
-  const defaultEmotion = customEmotion ?? config.defaultEmotion;
-
-  // For now, delegate to the legacy tagger
-  // In the future, this will use a fully modular pipeline
-  let result = tagTextWithSsml(text);
-
-  // Apply persona-specific speed adjustment if different from default
-  if (baseSpeed !== 0.8) {
-    // The legacy tagger uses 0.8 as default
-    // Adjust by prepending a speed tag
-    const speedRatio = clampSpeed(baseSpeed);
-    result = speedTag(speedRatio) + result;
-  }
-
-  // Apply persona-specific emotion if text doesn't already have emotion tags
-  if (!result.includes('<emotion') && defaultEmotion !== 'affectionate') {
-    result = emotionTag(defaultEmotion) + result;
-  }
-
-  // Add humanization based on persona level
-  if (humanize && config.humanizeLevel === 'high') {
-    // High humanization: add occasional thinking pauses at start
-    if (text.length > 50 && Math.random() < 0.15) {
-      const thinkingPhrases = ['Hmm... ', 'Well... ', 'Let me think... '];
-      const phrase = thinkingPhrases[Math.floor(Math.random() * thinkingPhrases.length)];
-      result = phrase + breakTag('200ms') + result;
-    }
-  }
-
+  
   return result;
 }
 
 /**
- * Strip all SSML tags from text
+ * Remove protection markers from processed text
+ */
+function removeProtectionMarkers(text: string): string {
+  return text
+    .replace(new RegExp(FINANCIAL_START, 'g'), '')
+    .replace(new RegExp(FINANCIAL_END, 'g'), '');
+}
+
+// =============================================================================
+// SSML DETECTION
+// =============================================================================
+
+/**
+ * Check if text already contains SSML tags
+ */
+export function hasSsmlTags(text: string): boolean {
+  return (
+    /<(speed|volume|emotion|break|spell)\b/.test(text) ||
+    /<\/(speed|volume|emotion|spell)>/.test(text)
+  );
+}
+
+/**
+ * Strip all SSML tags from text, returning plain text
  */
 export function stripSsmlTags(text: string): string {
   return text
-    .replace(/<[^>]+>/g, '')
-    .replace(/\[laughter\]/gi, '')
+    .replace(/<speed[^>]*\/?>/gi, '')
+    .replace(/<volume[^>]*\/?>/gi, '')
+    .replace(/<emotion[^>]*\/?>/gi, '')
+    .replace(/<break[^>]*\/?>/gi, '')
+    .replace(/<spell>/gi, '')
+    .replace(/<\/spell>/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
+// =============================================================================
+// SANITIZATION
+// =============================================================================
+
 /**
- * Check if text contains SSML tags
+ * Sanitize malformed SSML output
+ * Fixes corrupted tags and removes stage directions like "*chuckles*"
  */
-export function hasSsmlTags(text: string): boolean {
-  return /<[^>]+>/.test(text);
+export function sanitizeSsml(text: string): string {
+  let result = text;
+
+  // ================================================
+  // FIRST: CONVERT laugh/chuckle to [laughter]
+  // Cartesia Sonic-3 supports [laughter] for actual laugh sounds
+  // ================================================
+
+  result = result.replace(/\*[^*]*(?:chuckle|laugh)[^*]*\*/gi, '[laughter]');
+  result = result.replace(/\([^)]*(?:chuckle|laugh)[^)]*\)/gi, '[laughter]');
+  result = result.replace(/\[chuckles?\]/gi, '[laughter]');
+  result = result.replace(
+    /(?<!\[)\b(chuckles?|laughs?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
+    '[laughter] '
+  );
+  result = result.replace(
+    /(?<!\[)\b(he|she|jack|i)\s+(chuckles?|laughs?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    '[laughter] '
+  );
+  result = result.replace(/(?<!\[)\bchuckles?\b[,.!?:;—–-]?\s*/gi, '[laughter] ');
+  
+  if (/chuckle/i.test(result)) {
+    result = result.replace(/\bchuckles?\b/gi, '');
+  }
+  
+  result = result.replace(/(\[laughter\]\s*){2,}/gi, '[laughter] ');
+
+  // ================================================
+  // THEN: Remove stage directions
+  // ================================================
+
+  // Remove parenthetical actions
+  result = result.replace(/\([^)]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^)]*\)/gi, '');
+  
+  // Remove bracketed actions (except [laughter])
+  result = result.replace(
+    /\[[^\]]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^\]]*\]/gi,
+    ''
+  );
+  
+  // Remove asterisk actions
+  result = result.replace(/\*[^*]*(?:sigh|breath|pause|smile|nod|think|clear|cough)[^*]*\*/gi, '');
+  
+  // Remove common standalone stage directions
+  result = result.replace(
+    /\b(deep breath|long pause|brief pause|sighs heavily|clears throat)\b/gi,
+    ''
+  );
+  
+  // Remove non-audio action verbs
+  result = result.replace(
+    /\b(sighs?|smiles?|grins?|nods?|pauses?|winks?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
+    ''
+  );
+  result = result.replace(
+    /\b(he|she|jack|i)\s+(sighs?|smiles?|grins?|pauses?|nods?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    ''
+  );
+  
+  // Nuclear option for remaining action verbs
+  result = result.replace(/\bsmiles?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bgrins?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bnods?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bwinks?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bsighs?\b[,.!?:;—–-]?\s*/gi, '');
+
+  // ================================================
+  // THEN: Fix malformed SSML tags
+  // ================================================
+
+  // Fix malformed break tags
+  result = result.replace(/<break\s+time="[^"<]*<[^"]*"\/>/g, '<break time="100ms"/>');
+  
+  // Fix malformed speed/volume/emotion tags
+  result = result.replace(/<speed\s+ratio="[^"<]*<[^"]*"\/>/g, '');
+  result = result.replace(/<volume\s+ratio="[^"<]*<[^"]*"\/>/g, '');
+  result = result.replace(/<emotion\s+value="[^"<]*<[^"]*"\/>/g, '');
+  
+  // Clean up orphaned tag remnants
+  result = result.replace(/(?<!")\s*\/>/g, '');
+  
+  // Clean up doubled tags
+  result = result.replace(/(<\w+[^>]*\/>)\1+/g, '$1');
+  
+  // Clean up excessive breaks
+  result = result.replace(/(<break time="[^"]*"\/>){3,}/g, '<break time="200ms"/>');
+  
+  // Clean up multiple spaces
+  result = result.replace(/\s{2,}/g, ' ');
+
+  return result;
 }
 
-// Re-export sanitizeSsml for convenience
-export { sanitizeSsml } from '../ssml-tagger.js';
+// =============================================================================
+// MAIN TAGGING FUNCTION
+// =============================================================================
+
+/**
+ * Options for persona-aware SSML tagging.
+ */
+interface SsmlTagOptions {
+  personaId?: string;
+  baseSpeed?: number;
+  baseVolume?: number;
+  humanize?: boolean;
+}
+
+/**
+ * Tag text with SSML for natural speech
+ * 
+ * This is the main function used throughout the application.
+ * It applies persona-aware SSML tagging to text.
+ * 
+ * @param text - The text to tag
+ * @param optionsOrPersonaId - Either a personaId string or an options object
+ * @returns Text with SSML tags applied
+ */
+export function tagTextWithSsmlPersonaAware(
+  text: string,
+  optionsOrPersonaId?: string | SsmlTagOptions
+): string {
+  // Extract personaId from either form
+  const personaId = typeof optionsOrPersonaId === 'string'
+    ? optionsOrPersonaId
+    : optionsOrPersonaId?.personaId;
+
+  if (!text || text.trim().length === 0) {
+    return text;
+  }
+
+  // If already has SSML tags, just sanitize
+  if (hasSsmlTags(text)) {
+    return sanitizeSsml(text);
+  }
+
+  // Apply financial pronunciation dictionary FIRST
+  let processedText = applyFinancialPronunciations(text);
+
+  // Analyze text
+  const emotion = detectEmotion(processedText);
+  const { speed: rawSpeed } = detectPacing(processedText);
+  const { volume: rawVolume } = detectVolume(processedText);
+  const { hasLaughter, hasSigh, laughterCount } = detectVocalCues(processedText);
+
+  // Clamp values to Cartesia's valid ranges
+  const speed = clampSpeed(rawSpeed);
+  const volume = clampVolume(rawVolume);
+
+  // Build opening tags
+  let tagged = `<speed ratio="${speed.toFixed(2)}"/><volume ratio="${volume.toFixed(2)}"/>`;
+
+  if (emotion && emotion !== 'neutral') {
+    tagged += `<emotion value="${emotion}"/>`;
+  }
+
+  // Add pauses for emotional moments
+  if (hasSigh) {
+    tagged += '<volume ratio="0.85"/><break time="400ms"/><volume ratio="1.0"/>';
+  }
+
+  if (hasLaughter || (emotion === 'affectionate' && (laughterCount ?? 0) > 0)) {
+    tagged += '<break time="200ms"/>';
+  }
+
+  // Add natural pauses at sentence boundaries
+  processedText = addBasicPauses(processedText);
+
+  // Remove protection markers
+  processedText = removeProtectionMarkers(processedText);
+
+  // Sanitize malformed SSML
+  processedText = sanitizeSsml(processedText);
+
+  tagged += processedText;
+
+  return tagged;
+}
+
+/**
+ * Add basic pauses at natural break points
+ */
+function addBasicPauses(text: string): string {
+  let result = text;
+  
+  // Pause after sentences
+  result = result.replace(/\.(\s+)([A-Z])/g, '.<break time="200ms"/>$1$2');
+  
+  // Pause after questions
+  result = result.replace(/\?(\s+)([A-Z])/g, '?<break time="250ms"/>$1$2');
+  
+  // Pause after exclamations
+  result = result.replace(/!(\s+)([A-Z])/g, '!<break time="200ms"/>$1$2');
+  
+  // Brief pause at commas in longer clauses
+  result = result.replace(/,(\s+)(\w{20,})/g, ',<break time="100ms"/>$1$2');
+  
+  return result;
+}
