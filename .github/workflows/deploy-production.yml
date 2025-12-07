@@ -109,6 +109,9 @@ jobs:
         run: npm run build
         continue-on-error: true  # TODO: Fix pre-existing TS errors. Docker handles its own build.
 
+      - name: Build design-system
+        run: node design-system/build.js
+
       - name: Build frontend
         run: |
           cd frontend-typescript
@@ -271,6 +274,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Build design-system (required for Docker)
+        run: |
+          # Install minimal deps for build script
+          npm ci --ignore-scripts
+          # Build design-system tokens (generates dist/tokens.css and dist/tokens.ts)
+          node design-system/build.js
+          echo "✅ Design system built successfully"
+          ls -la design-system/dist/
 
       - name: Download build artifacts
         if: ${{ !inputs.skip_tests }}
