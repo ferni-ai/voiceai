@@ -16,9 +16,9 @@ maya-habit-coach.ts   # Wrong - persona-specific
 ```typescript
 import { z } from 'zod';
 import { defineTool } from './builder.js';
-import { createLogger } from '../utils/logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 
-const log = createLogger('tools:my-domain');
+const log = createLogger({ module: 'tools:my-domain' });
 
 export const myTool = defineTool({
   name: 'tool_name',

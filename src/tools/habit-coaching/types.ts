@@ -1,13 +1,38 @@
 /**
- * Type definitions for the Habit Coaching System
+ * Habit Coaching Type Definitions
  *
- * @module habit-coaching/types
+ * All interfaces and types used by the habit coaching system.
+ * Split from habit-coaching.ts for maintainability.
  */
 
-import type { LifeDomain, LifeStage } from './constants.js';
+// ============================================================================
+// LIFE DOMAIN TYPES
+// ============================================================================
+
+export type LifeDomain =
+  | 'health'
+  | 'mind'
+  | 'relationships'
+  | 'career'
+  | 'learning'
+  | 'finance'
+  | 'home'
+  | 'selfCare';
+
+export type LifeStage =
+  | 'student'
+  | 'early_career'
+  | 'new_parent'
+  | 'mid_career'
+  | 'empty_nester'
+  | 'pre_retirement'
+  | 'retirement'
+  | 'transition';
+
+export type FourTendency = 'upholder' | 'questioner' | 'obliger' | 'rebel';
 
 // ============================================================================
-// IDENTITY & BEHAVIOR TYPES
+// IDENTITY & HABIT BREAKING
 // ============================================================================
 
 export interface IdentityShift {
@@ -32,6 +57,10 @@ export interface HabitBreakPlan {
   successStreak: number;
 }
 
+// ============================================================================
+// ENVIRONMENT & TEMPTATION
+// ============================================================================
+
 export interface EnvironmentDesign {
   id: string;
   habit: string;
@@ -50,6 +79,10 @@ export interface TemptationBundle {
   createdAt: string;
   usageLog: Array<{ date: string; completed: boolean }>;
 }
+
+// ============================================================================
+// SETBACKS & ACCOUNTABILITY
+// ============================================================================
 
 export interface SetbackLog {
   id: string;
@@ -71,7 +104,7 @@ export interface AccountabilitySystem {
 }
 
 // ============================================================================
-// CHALLENGE TYPES
+// CHALLENGES
 // ============================================================================
 
 export interface ThirtyDayChallenge {
@@ -100,7 +133,90 @@ export interface ChallengeDefinition {
 }
 
 // ============================================================================
-// GLIDEPATH & PROGRESSION TYPES
+// HABIT BUNDLES
+// ============================================================================
+
+export interface HabitBundleDefinition {
+  name: string;
+  description: string;
+  habits: Array<{
+    name: string;
+    frequency: string;
+    duration: string;
+  }>;
+  synergies: string[];
+  startTiny: string;
+}
+
+// ============================================================================
+// MOOD & TRANSITIONS
+// ============================================================================
+
+export interface MoodLog {
+  id: string;
+  mood: number | string;
+  energy: number;
+  notes?: string;
+  tags?: string[];
+  timestamp: string;
+  /** Time of day for pattern analysis */
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  /** Habits completed on this day */
+  habitsCompleted?: string[];
+}
+
+/**
+ * Diagnosis of why a habit isn't working
+ */
+export interface HabitDiagnosis {
+  issue: string;
+  explanation: string;
+  science?: string;
+  fixes: string[];
+  reframe: string;
+  nextStep: string;
+}
+
+/**
+ * Motivational content for coaching
+ */
+export interface MotivationalContent {
+  message: string;
+  source?: string;
+  action: string;
+  followUp: string;
+}
+
+/**
+ * Mood pattern analysis results
+ */
+export interface MoodPatterns {
+  insights: string[];
+  habitCorrelations: Record<string, string>;
+}
+
+export interface LifeTransitionSupport {
+  name: string;
+  /** Empathetic acknowledgment of what the person is going through */
+  validation: string;
+  /** What to expect during this transition */
+  expectations: string[];
+  /** Core habits to maintain during transition */
+  habitsToProtect: string[];
+  /** Habits that can be paused temporarily */
+  habitsToPause: string[];
+  /** New habits to consider adding */
+  habitsToAdd: string[];
+  /** Order of priorities during transition */
+  priorityOrder: string[];
+  /** Expected time to adjust */
+  adjustmentPeriod: string;
+  /** Self-compassion note */
+  selfCareNote: string;
+}
+
+// ============================================================================
+// GLIDEPATH & BEHAVIOR SCIENCE
 // ============================================================================
 
 export interface GlidepathLevel {
@@ -108,32 +224,58 @@ export interface GlidepathLevel {
   name: string;
   description: string;
   duration: string;
-  intensity: number;
-  focus: string;
+  criteria: string;
 }
 
-// ============================================================================
-// HABIT SCIENCE FRAMEWORK TYPES
-// ============================================================================
-
 export interface HabitLoop {
+  id: string;
+  habit: string;
+  cue: string;
+  cueType: 'time' | 'location' | 'emotion' | 'preceding_action' | 'people';
+  routine: string;
+  reward: string;
+  rewardType: 'intrinsic' | 'extrinsic';
+  active: boolean;
+}
+
+/**
+ * Rich habit loop structure for templates (blueprints).
+ * More detailed than HabitLoop which is used for tracking.
+ */
+export interface HabitLoopTemplate {
   cue: {
-    type: 'time' | 'location' | 'emotion' | 'preceding_action' | 'other_people';
+    type: 'time' | 'location' | 'emotion' | 'preceding_action' | 'people';
     description: string;
     specificity: string;
   };
   routine: {
     behavior: string;
     duration: number;
-    difficulty: 'tiny' | 'easy' | 'medium' | 'challenging';
+    difficulty: 'tiny' | 'easy' | 'medium' | 'hard';
   };
   reward: {
     intrinsic: string;
-    extrinsic?: string;
     celebration: string;
   };
 }
 
+/**
+ * Habit stack for behavior science (implementation intentions).
+ * Use this when defining how habits chain together.
+ */
+export interface HabitStackDefinition {
+  id: string;
+  anchorHabit: string;
+  newHabit: string;
+  position: 'before' | 'after';
+  implementation: string;
+  active: boolean;
+}
+
+/**
+ * Habit stack for storage and runtime use.
+ * Represents a collection of habits stacked together.
+ */
 export interface HabitStack {
   id: string;
   name: string;
@@ -145,44 +287,51 @@ export interface HabitStack {
 }
 
 export interface KeystoneHabit {
-  habitId: string;
-  cascadeEffects: string[];
-  multiplierScore: number;
-  evidence: string;
+  habit: string;
+  rippleEffects: string[];
+  identityShift: string;
 }
 
 // ============================================================================
-// ENHANCED HABIT TYPE
+// ENHANCED HABITS
 // ============================================================================
 
+/**
+ * Enhanced habit with full tracking and behavior science elements.
+ * This matches the storage layer (EnhancedHabitData in productivity-store.ts).
+ */
 export interface EnhancedHabit {
   id: string;
-  userId: string;
+  userId?: string;
   name: string;
   description?: string;
   domain: LifeDomain;
   subdomain?: string;
 
-  // Glidepath
+  // Glidepath progression
   currentLevel: number;
   targetLevel: number;
   levelStartDate: Date;
   levelHistory: Array<{ level: number; achievedAt: Date }>;
 
-  // Habit loop
-  habitLoop: HabitLoop;
+  // Habit loop (rich structure)
+  habitLoop?: {
+    cue: { type: string; description: string; specificity: string };
+    routine: { behavior: string; duration: number; difficulty: string };
+    reward: { intrinsic: string; extrinsic?: string; celebration: string };
+  };
 
   // Stacking
   stackedOnto?: string;
   isAnchorFor?: string[];
 
-  // Keystone analysis
+  // Keystone
   isKeystone: boolean;
   keystoneScore?: number;
   cascadeEffects?: string[];
 
   // Tracking
-  frequency: 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'custom';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
   customDays?: number[];
   targetPerDay: number;
   currentStreak: number;
@@ -199,15 +348,15 @@ export interface EnhancedHabit {
   isPaused: boolean;
   pauseReason?: string;
 
-  // Metadata
+  // Meta
   createdAt: Date;
   updatedAt: Date;
-  tags: string[];
+  tags?: string[];
   notes?: string;
 }
 
 // ============================================================================
-// HABIT TEMPLATE TYPE
+// HABIT TEMPLATES
 // ============================================================================
 
 export interface HabitTemplate {
@@ -215,127 +364,13 @@ export interface HabitTemplate {
   name: string;
   description: string;
   domain: LifeDomain;
-  subdomain?: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  timeRequired: number;
-  tinyVersion: string;
-  fullVersion: string;
-  habitLoop: HabitLoop;
-  benefits: string[];
-  isKeystone: boolean;
-  cascadeEffects?: string[];
-  bestForStages: LifeStage[];
-  commonCues: string[];
-  suggestedCelebrations: string[];
+  subdomain: string;
+  defaultFrequency: 'daily' | 'weekly' | 'monthly';
+  suggestedCue: string;
+  suggestedReward: string;
+  glidepathStart: string;
+  glidepathEnd: string;
+  keystonePotential: number;
+  rippleEffects: string[];
+  goodFor: LifeStage[];
 }
-
-// ============================================================================
-// USER DATA TYPES
-// ============================================================================
-
-export interface HabitCoachData {
-  lifeStage: LifeStage;
-  tendency: 'upholder' | 'questioner' | 'obliger' | 'rebel' | null;
-  domainPriorities: LifeDomain[];
-  enhancedHabits: EnhancedHabit[];
-  habitStacks: HabitStack[];
-  keystoneHabits: string[];
-  activeChallenges: ThirtyDayChallenge[];
-  identityShifts: IdentityShift[];
-  habitBreakPlans: HabitBreakPlan[];
-  environmentDesigns: EnvironmentDesign[];
-  temptationBundles: TemptationBundle[];
-  setbackLogs: SetbackLog[];
-  accountabilitySystems: AccountabilitySystem[];
-  weeklyReflections: WeeklyReflection[];
-}
-
-export interface WeeklyReflection {
-  id: string;
-  date: string;
-  wins: string[];
-  challenges: string[];
-  insights: string[];
-  adjustments: string[];
-}
-
-export interface MoodLog {
-  id: string;
-  date: string;
-  mood: 'great' | 'good' | 'okay' | 'low' | 'struggling';
-  energy: 'high' | 'moderate' | 'low' | 'depleted';
-  timeOfDay: 'morning' | 'midday' | 'afternoon' | 'evening' | 'night';
-  habitsCompleted: string[];
-  notes?: string;
-}
-
-// ============================================================================
-// LIFE TRANSITION TYPES
-// ============================================================================
-
-export interface LifeTransitionSupport {
-  name: string;
-  validation: string;
-  expectations: string[];
-  habitsToProtect: string[];
-  habitsToPause: string[];
-  habitsToAdd: string[];
-  priorityOrder: string[];
-  adjustmentPeriod: string;
-  selfCareNote: string;
-}
-
-// ============================================================================
-// MOTIVATION TYPES
-// ============================================================================
-
-export interface MotivationalContent {
-  message: string;
-  source?: string;
-  action: string;
-  followUp: string;
-}
-
-// ============================================================================
-// HABIT BUNDLE TYPES
-// ============================================================================
-
-export interface HabitBundleHabit {
-  name: string;
-  minutes: number;
-  tinyVersion: string;
-  priority: 'core' | 'recommended' | 'optional';
-  order: number;
-}
-
-export interface HabitBundle {
-  id: string;
-  name: string;
-  goal: string;
-  description: string;
-  timeOfDay: 'morning' | 'afternoon' | 'evening' | 'anytime';
-  totalMinutes: number;
-  coreMinutes: number;
-  habits: HabitBundleHabit[];
-  stackFormula: string;
-  science: string;
-}
-
-// ============================================================================
-// DIAGNOSIS TYPES
-// ============================================================================
-
-export interface HabitDiagnosis {
-  issue: string;
-  explanation: string;
-  science: string;
-  fixes: string[];
-  reframe: string;
-  nextStep: string;
-}
-
-export interface MoodPatterns {
-  insights: string[];
-  habitCorrelations: Record<string, string>;
-}
-

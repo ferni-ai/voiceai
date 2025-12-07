@@ -6,7 +6,7 @@
  */
 
 import { getEngagementStore } from '../engagement/store.js';
-import { getLogger } from '../../utils/logger.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES

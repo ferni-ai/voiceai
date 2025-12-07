@@ -458,21 +458,17 @@ export function removeSessionWPMTracker(sessionId: string): void {
 }
 
 // ============================================================================
-// GLOBAL SINGLETON TRACKER (BACKWARD COMPATIBILITY)
+// LEGACY COMPATIBILITY (Remove after all callers migrated)
 // ============================================================================
 
-/** @deprecated SUNSET: 2025-03-31 - Use getSessionWPMTracker for session isolation */
-let defaultWPMTracker: WPMTracker | null = null;
-
 /**
- * Get the default WPM tracker
- * @deprecated SUNSET: 2025-03-31 - Use getSessionWPMTracker for session isolation
+ * Get or create a global WPM tracker.
+ *
+ * @deprecated Use getSessionWPMTracker(sessionId) for proper session isolation.
+ * This function creates a tracker with a synthetic session ID.
  */
 export function getWPMTracker(): WPMTracker {
-  if (!defaultWPMTracker) {
-    defaultWPMTracker = new WPMTracker();
-  }
-  return defaultWPMTracker;
+  return getSessionWPMTracker('__global__');
 }
 
 export default {

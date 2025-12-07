@@ -70,11 +70,13 @@ export class ConversationHistoryTracker {
    * Add a turn to the history
    */
   addTurn(turn: Omit<TrackedTurn, 'id' | 'turnIndex' | 'wordCount'>): TrackedTurn {
+    // Calculate word count, handling empty content
+    const words = turn.content.trim().split(/\s+/).filter(w => w.length > 0);
     const trackedTurn: TrackedTurn = {
       ...turn,
       id: `turn_${this.sessionId}_${this.turns.length}`,
       turnIndex: this.turns.length,
-      wordCount: turn.content.split(/\s+/).length,
+      wordCount: words.length,
       timestamp: turn.timestamp || new Date(),
     };
 
@@ -258,9 +260,11 @@ export class ConversationHistoryTracker {
   getContextWindow(maxTurns = 10, maxChars = 4000): string {
     const recent = this.getRecentTurns(maxTurns);
     let context = '';
+    const personaName = getActivePersonaName();
 
     for (const turn of recent) {
-      const line = `${turn.role === 'user' ? 'User' : 'Jack'}: ${turn.content}\n`;
+      const speaker = turn.role === 'user' ? 'User' : personaName;
+      const line = `${speaker}: ${turn.content}\n`;
       if (context.length + line.length > maxChars) {
         break;
       }
@@ -332,10 +336,48 @@ export function clearAllHistoryTrackers(): void {
   activeTrackers.clear();
 }
 
+// ============================================================================
+// ACTIVE PERSONA NAME TRACKING
+// ============================================================================
+
+/**
+ * Default persona name when none is set
+ */
+const DEFAULT_PERSONA_NAME = 'Assistant';
+
+/**
+ * Active persona name for current conversation context
+ */
+let activePersonaName: string = DEFAULT_PERSONA_NAME;
+
+/**
+ * Set the active persona name
+ */
+export function setActivePersonaName(name: string): void {
+  activePersonaName = name;
+}
+
+/**
+ * Get the active persona name
+ */
+export function getActivePersonaName(): string {
+  return activePersonaName;
+}
+
+/**
+ * Reset the active persona name to default
+ */
+export function resetActivePersonaName(): void {
+  activePersonaName = DEFAULT_PERSONA_NAME;
+}
+
 export default {
   ConversationHistoryTracker,
   getHistoryTracker,
   removeHistoryTracker,
   getActiveSessionIds,
   clearAllHistoryTrackers,
+  setActivePersonaName,
+  getActivePersonaName,
+  resetActivePersonaName,
 };

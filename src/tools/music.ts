@@ -98,23 +98,23 @@ export function setMusicSource(source: MusicSource): void {
  * This ensures delightful music for all users, regardless of subscriptions.
  */
 export async function playMusicUnified(query: string): Promise<string> {
-  // DIAGNOSTIC: Log to console as well for visibility
-  console.log('🎵🎵🎵 [MUSIC DEBUG] playMusicUnified called', {
+  const log = getLogger();
+  log.debug('playMusicUnified called', {
     query,
     userRequestedSpotify: musicConfig.userRequestedSpotify,
     spotifyLinked: musicConfig.spotifyLinked,
     preferredSource: musicConfig.preferredSource,
   });
-  getLogger().info({ query, config: musicConfig }, '🎵 Playing music');
+  log.info({ query, config: musicConfig }, '🎵 Playing music');
 
   // Check if user wants Spotify AND it's available
   if (musicConfig.userRequestedSpotify && musicConfig.spotifyLinked) {
-    console.log('🎵🎵🎵 [MUSIC DEBUG] Taking SPOTIFY path');
+    log.debug('Taking SPOTIFY path');
     return playViaSpotify(query);
   }
 
   // Default: Play via iTunes (free for everyone!)
-  console.log('🎵🎵🎵 [MUSIC DEBUG] Taking iTunes path (default)');
+  log.debug('Taking iTunes path (default)');
   return playViaItunes(query);
 }
 
@@ -122,15 +122,15 @@ export async function playMusicUnified(query: string): Promise<string> {
  * Play via iTunes - Free 30-second previews.
  */
 export async function playViaItunes(query: string): Promise<string> {
-  console.log('🎵🎵🎵 [ITUNES DEBUG] playViaItunes called with query:', query);
-  getLogger().info({ query }, '🎵 [iTunes] Starting search...');
+  const log = getLogger();
+  log.debug('playViaItunes called', { query });
+  log.info({ query }, '🎵 [iTunes] Starting search...');
 
   try {
     // Step 1: Search iTunes
-    console.log('🎵🎵🎵 [ITUNES DEBUG] Step 1: Calling findTrack...');
-    getLogger().info({ query }, '🎵 [iTunes] Calling findTrack...');
+    log.debug('Step 1: Calling findTrack...');
     const result = await findTrack(query);
-    console.log('🎵🎵🎵 [ITUNES DEBUG] findTrack result:', {
+    log.debug('findTrack result', {
       found: result.found,
       trackName: result.track?.name,
       hasPreviewUrl: !!result.track?.previewUrl,
@@ -138,18 +138,17 @@ export async function playViaItunes(query: string): Promise<string> {
     });
 
     if (!result.found || !result.track) {
-      console.log('🎵🎵🎵 [ITUNES DEBUG] ❌ Track NOT found!');
-      getLogger().warn({ query, error: result.error }, '🎵 [iTunes] Track not found');
+      log.warn({ query, error: result.error }, '🎵 [iTunes] Track not found');
       return result.error || `Couldn't find "${query}". Try a different song?`;
     }
 
     const { track } = result;
-    console.log('🎵🎵🎵 [ITUNES DEBUG] ✅ Track found:', {
+    log.debug('Track found', {
       name: track.name,
       artist: track.artist,
       previewUrl: track.previewUrl,
     });
-    getLogger().info(
+    log.info(
       {
         name: track.name,
         artist: track.artist,
@@ -159,14 +158,13 @@ export async function playViaItunes(query: string): Promise<string> {
     );
 
     // Step 2: Get music player
-    console.log('🎵🎵🎵 [ITUNES DEBUG] Step 2: Getting music player...');
+    log.debug('Step 2: Getting music player...');
     const musicPlayer = getMusicPlayer();
     const playerState = {
       isInitialized: musicPlayer.isInitialized(),
       isPlaying: musicPlayer.isPlaying(),
     };
-    console.log('🎵🎵🎵 [ITUNES DEBUG] Music player state:', playerState);
-    getLogger().info(playerState, '🎵 [iTunes] Music player state');
+    log.debug('Music player state', playerState);
 
     // Step 3: Create track object
     const musicTrack: MusicTrack = {
@@ -177,19 +175,16 @@ export async function playViaItunes(query: string): Promise<string> {
     };
 
     // Step 4: Play the track
-    console.log('🎵🎵🎵 [ITUNES DEBUG] Step 4: Calling playFromUrl with:', track.previewUrl);
-    getLogger().info({ previewUrl: track.previewUrl }, '🎵 [iTunes] Calling playFromUrl...');
+    log.debug('Step 4: Calling playFromUrl', { previewUrl: track.previewUrl });
     const success = await musicPlayer.playFromUrl(track.previewUrl, musicTrack);
-    console.log('🎵🎵🎵 [ITUNES DEBUG] playFromUrl returned:', success);
+    log.debug('playFromUrl returned', { success });
 
     if (!success) {
-      console.log('🎵🎵🎵 [ITUNES DEBUG] ❌ playFromUrl FAILED!');
-      getLogger().error({ track: track.name }, '🎵 [iTunes] playFromUrl returned false!');
+      log.error({ track: track.name }, '🎵 [iTunes] playFromUrl returned false!');
       return 'Had trouble playing that. Let me try again in a moment.';
     }
 
-    console.log('🎵🎵🎵 [ITUNES DEBUG] ✅ NOW PLAYING:', track.name);
-    getLogger().info(
+    log.info(
       {
         track: track.name,
         artist: track.artist,
@@ -209,7 +204,7 @@ export async function playViaItunes(query: string): Promise<string> {
       if (genreReaction && Math.random() < 0.4) {
         intro = `${genreReaction} `;
       } else {
-        intro = `${getPlayfulMusicIntro(query)} `;
+        intro = `${getPlayfulMusicIntro()} `;
       }
     } else if (shouldReactToMusic()) {
       intro = `${getMusicReaction('intro')} `;
@@ -358,25 +353,19 @@ Users with Spotify linked get full tracks.`,
         query: z.string().describe('Song name, artist, genre, or search query'),
       }),
       execute: async ({ query }) => {
-        console.log('🎵🎵🎵 [TOOL DEBUG] ========================================');
-        console.log('🎵🎵🎵 [TOOL DEBUG] playMusic TOOL INVOKED BY LLM!');
-        console.log('🎵🎵🎵 [TOOL DEBUG] Query:', query);
-        console.log('🎵🎵🎵 [TOOL DEBUG] ========================================');
-        getLogger().info({ query }, '🎵 TOOL: playMusic CALLED');
+        const log = getLogger();
+        log.debug('playMusic TOOL INVOKED BY LLM', { query });
+        log.info({ query }, '🎵 TOOL: playMusic CALLED');
         try {
           const result = await playMusicUnified(query);
-          console.log(
-            '🎵🎵🎵 [TOOL DEBUG] playMusic SUCCESS! Result preview:',
-            result.slice(0, 150)
-          );
-          getLogger().info(
+          log.debug('playMusic SUCCESS', { resultPreview: result.slice(0, 150) });
+          log.info(
             { query, resultPreview: result.slice(0, 100) },
             '🎵 TOOL: playMusic SUCCESS'
           );
           return result;
         } catch (error) {
-          console.log('🎵🎵🎵 [TOOL DEBUG] playMusic ERROR!', error);
-          getLogger().error({ query, error }, '🎵 TOOL: playMusic ERROR');
+          log.error({ query, error }, '🎵 TOOL: playMusic ERROR');
           return `I had trouble playing "${query}". Let me try again in a moment.`;
         }
       },

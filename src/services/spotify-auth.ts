@@ -14,6 +14,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getLogger } from '../utils/safe-logger.js';
+import { getCircuitBreaker } from '../utils/circuit-breaker.js';
 
 // File to store tokens (gitignored)
 const TOKEN_FILE = path.join(process.cwd(), '.spotify-tokens.json');
@@ -46,47 +47,12 @@ let refreshInProgress: Promise<TokenData | null> | null = null;
 // CIRCUIT BREAKER FOR REPEATED FAILURES
 // ============================================================================
 
-interface CircuitBreakerState {
-  failures: number;
-  lastFailure: number;
-  isOpen: boolean;
-}
-
-const circuitBreaker: CircuitBreakerState = {
-  failures: 0,
-  lastFailure: 0,
-  isOpen: false,
-};
-
-const CIRCUIT_BREAKER_THRESHOLD = 3; // Open after 3 failures
-const CIRCUIT_BREAKER_RESET_MS = 60 * 1000; // Reset after 1 minute
-
-function checkCircuitBreaker(): boolean {
-  // Reset circuit if enough time has passed
-  if (circuitBreaker.isOpen && Date.now() - circuitBreaker.lastFailure > CIRCUIT_BREAKER_RESET_MS) {
-    getLogger().info('🔌 Spotify circuit breaker reset - retrying');
-    circuitBreaker.isOpen = false;
-    circuitBreaker.failures = 0;
-  }
-  return !circuitBreaker.isOpen;
-}
-
-function recordFailure(): void {
-  circuitBreaker.failures++;
-  circuitBreaker.lastFailure = Date.now();
-  if (circuitBreaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
-    circuitBreaker.isOpen = true;
-    getLogger().warn(
-      { failures: circuitBreaker.failures },
-      '🔌 Spotify circuit breaker OPEN - pausing requests for 1 minute'
-    );
-  }
-}
-
-function recordSuccess(): void {
-  circuitBreaker.failures = 0;
-  circuitBreaker.isOpen = false;
-}
+// Use the centralized circuit breaker utility
+const spotifyCircuitBreaker = getCircuitBreaker('spotify-token-refresh', {
+  failureThreshold: 3,
+  resetTimeout: 60 * 1000, // 1 minute
+  successThreshold: 1,
+});
 
 /**
  * Load tokens from file
@@ -211,7 +177,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenData | nul
  */
 export async function getSpotifyAccessToken(forceRefresh = false): Promise<string | null> {
   // Check circuit breaker first
-  if (!checkCircuitBreaker()) {
+  if (!spotifyCircuitBreaker.canRequest()) {
     getLogger().warn('🎵 Spotify circuit breaker is OPEN - skipping request');
     return null;
   }
@@ -249,13 +215,18 @@ export async function getSpotifyAccessToken(forceRefresh = false): Promise<strin
     refreshInProgress = refreshAccessToken(cachedTokens.refresh_token);
 
     try {
-      const newTokens = await refreshInProgress;
-      if (!newTokens) {
-        recordFailure();
-        return null;
-      }
+      // Execute through circuit breaker - it handles success/failure tracking
+      const newTokens = await spotifyCircuitBreaker.execute(async () => {
+        const result = await refreshInProgress;
+        if (!result) {
+          throw new Error('Token refresh returned null');
+        }
+        return result;
+      });
       cachedTokens = newTokens;
-      recordSuccess();
+    } catch {
+      // Circuit breaker already logged the failure
+      return null;
     } finally {
       refreshInProgress = null;
     }
@@ -434,6 +405,7 @@ export function getSpotifyHealthStatus(): SpotifyHealthStatus {
   const hasRefreshToken = hasTokenFile || !!process.env.SPOTIFY_REFRESH_TOKEN;
 
   const tokenStatus = getSpotifyTokenStatus();
+  const circuitStats = spotifyCircuitBreaker.getStats();
 
   return {
     configured: isSpotifyConfigured(),
@@ -443,8 +415,8 @@ export function getSpotifyHealthStatus(): SpotifyHealthStatus {
     hasRefreshToken,
     tokenValid: tokenStatus.valid,
     tokenMinutesRemaining: tokenStatus.minutesRemaining,
-    circuitBreakerOpen: circuitBreaker.isOpen,
-    circuitBreakerFailures: circuitBreaker.failures,
+    circuitBreakerOpen: circuitStats.state === 'open',
+    circuitBreakerFailures: circuitStats.failures,
     lastError,
   };
 }
@@ -485,8 +457,9 @@ export function logSpotifyDiagnostics(): void {
   }
 
   if (status.circuitBreakerOpen) {
+    const stats = spotifyCircuitBreaker.getStats();
     getLogger().warn(
-      `🎵 Circuit breaker OPEN after ${status.circuitBreakerFailures} failures. ` +
+      `🎵 Circuit breaker OPEN after ${stats.totalFailures} failures. ` +
         'Will retry in 1 minute.'
     );
   }
@@ -496,9 +469,7 @@ export function logSpotifyDiagnostics(): void {
  * Reset the circuit breaker manually (for testing/recovery)
  */
 export function resetSpotifyCircuitBreaker(): void {
-  circuitBreaker.failures = 0;
-  circuitBreaker.isOpen = false;
-  circuitBreaker.lastFailure = 0;
+  spotifyCircuitBreaker.reset();
   lastError = null;
   getLogger().info('🎵 Spotify circuit breaker reset manually');
 }

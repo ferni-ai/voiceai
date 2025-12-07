@@ -5,7 +5,7 @@
  * integration into persona responses.
  */
 
-import { getLogger } from '../utils/logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 import { loadPersonaBehaviors } from './persona-behavior-manager.js';
 
 const logger = getLogger().child({ service: 'CulturalAwareness' });

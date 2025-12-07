@@ -14,6 +14,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { runBackground } from '../utils/background-task.js';
 import {
   getEngagementStore,
   type StoredRitualStreak,
@@ -595,7 +596,11 @@ export class DailyRitualsService {
 
     if (!streak) {
       // Trigger activation in background
-      this.activateRitual(userId, ritualId).catch(() => {});
+      runBackground(this.activateRitual(userId, ritualId), {
+        task: 'activateRitual',
+        userId,
+        ritualId,
+      });
       return { newStreak: 1, isNewRecord: true };
     }
 

@@ -242,19 +242,15 @@ export function removeSessionBackchannelingSystem(sessionId: string): void {
 }
 
 // ============================================================================
-// GLOBAL SINGLETON (BACKWARD COMPATIBILITY)
+// LEGACY COMPATIBILITY (Remove after all callers migrated)
 // ============================================================================
 
-/** @deprecated SUNSET: 2025-03-31 - Use getSessionBackchannelingSystem for session isolation */
-let defaultSystem: BackchannelingSystem | null = null;
-
 /**
- * Get global backchanneling system
- * @deprecated SUNSET: 2025-03-31 - Use getSessionBackchannelingSystem for session isolation
+ * Get or create a global backchanneling system.
+ *
+ * @deprecated Use getSessionBackchannelingSystem(sessionId) for proper session isolation.
+ * This function creates a system with a synthetic session ID.
  */
 export function getBackchannelingSystem(): BackchannelingSystem {
-  if (!defaultSystem) {
-    defaultSystem = new BackchannelingSystem();
-  }
-  return defaultSystem;
+  return getSessionBackchannelingSystem('__global__');
 }

@@ -6,6 +6,26 @@
  * respect each other, not isolated AI modules.
  */
 
+import { toCanonical } from '../persona-ids.js';
+
+// Legacy ID mapping for hardcoded content
+// Historical: ferni was jack-b, alex-chen was comm-specialist, etc.
+const LEGACY_ID_MAP: Record<string, string> = {
+  ferni: 'jack-b',
+  'alex-chen': 'comm-specialist',
+  'maya-santos': 'spend-save',
+  'jordan-taylor': 'event-planner',
+};
+
+/**
+ * Resolve persona ID for hardcoded lookups.
+ * First normalizes to canonical, then maps to legacy key if needed.
+ */
+function resolveLookupKey(personaId: string): string {
+  const canonical = toCanonical(personaId);
+  return LEGACY_ID_MAP[canonical] || canonical;
+}
+
 // ============================================================================
 // PERSONA OPINIONS ABOUT EACH OTHER
 // ============================================================================
@@ -305,10 +325,13 @@ function randomFrom<T>(array: T[]): T {
  * Get what one persona says about another
  */
 export function getOpinionAbout(fromPersona: string, aboutPersona: string): string | null {
-  const opinions = TEAM_OPINIONS[fromPersona as keyof typeof TEAM_OPINIONS];
+  const fromKey = resolveLookupKey(fromPersona);
+  const aboutKey = resolveLookupKey(aboutPersona);
+
+  const opinions = TEAM_OPINIONS[fromKey as keyof typeof TEAM_OPINIONS];
   if (!opinions) return null;
 
-  const aboutList = (opinions as Record<string, string[]>)[aboutPersona];
+  const aboutList = (opinions as Record<string, string[]>)[aboutKey];
   if (!aboutList || aboutList.length === 0) return null;
 
   return randomFrom(aboutList);
@@ -318,10 +341,11 @@ export function getOpinionAbout(fromPersona: string, aboutPersona: string): stri
  * Get handoff warmth phrase
  */
 export function getHandoffWarmth(direction: 'to' | 'from', persona: string): string | null {
+  const lookupKey = resolveLookupKey(persona);
   const phrases =
     direction === 'to'
-      ? HANDOFF_WARMTH.toTeammate[persona as keyof typeof HANDOFF_WARMTH.toTeammate]
-      : HANDOFF_WARMTH.fromTeammate[persona as keyof typeof HANDOFF_WARMTH.fromTeammate];
+      ? HANDOFF_WARMTH.toTeammate[lookupKey as keyof typeof HANDOFF_WARMTH.toTeammate]
+      : HANDOFF_WARMTH.fromTeammate[lookupKey as keyof typeof HANDOFF_WARMTH.fromTeammate];
 
   if (!phrases || phrases.length === 0) return null;
   return randomFrom(phrases);
@@ -331,7 +355,8 @@ export function getHandoffWarmth(direction: 'to' | 'from', persona: string): str
  * Get suggestion phrase for bringing in a teammate
  */
 export function getTeamSuggestion(persona: string): string | null {
-  const suggestions = TEAM_MENTIONS.suggest[persona as keyof typeof TEAM_MENTIONS.suggest];
+  const lookupKey = resolveLookupKey(persona);
+  const suggestions = TEAM_MENTIONS.suggest[lookupKey as keyof typeof TEAM_MENTIONS.suggest];
   if (!suggestions || suggestions.length === 0) return null;
   return randomFrom(suggestions);
 }
@@ -340,7 +365,8 @@ export function getTeamSuggestion(persona: string): string | null {
  * Get casual mention of a teammate
  */
 export function getCasualMention(persona: string): string | null {
-  const mentions = TEAM_MENTIONS.casual[persona as keyof typeof TEAM_MENTIONS.casual];
+  const lookupKey = resolveLookupKey(persona);
+  const mentions = TEAM_MENTIONS.casual[lookupKey as keyof typeof TEAM_MENTIONS.casual];
   if (!mentions || mentions.length === 0) return null;
   return randomFrom(mentions);
 }

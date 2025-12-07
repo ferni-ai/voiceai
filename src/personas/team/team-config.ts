@@ -377,6 +377,7 @@ export function isTeamEnabled(team: TeamConfig = DEFAULT_TEAM_CONFIG): boolean {
 // ============================================================================
 
 import { discoverAndLoadBundles, type LoadedPersonaBundle } from '../bundles/index.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 /** Cached dynamic team config */
 let cachedTeamConfig: TeamConfig | null = null;
@@ -568,7 +569,7 @@ export async function getTeamConfig(): Promise<TeamConfig> {
   try {
     return await generateTeamConfigFromBundles();
   } catch (err) {
-    console.warn('⚠️ Failed to generate team config from bundles, using defaults:', err);
+    getLogger().warn({ error: err }, 'Failed to generate team config from bundles, using defaults');
     return DEFAULT_TEAM_CONFIG;
   }
 }

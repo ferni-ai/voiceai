@@ -18,6 +18,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { runBackground, runBackgroundBatch } from '../utils/background-task.js';
 import { getConfig } from '../config/environment.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
@@ -539,7 +540,11 @@ export function startOrder(restaurant: DeliveryRestaurant, userId?: string): Del
   activeOrders.set(order.id, order);
   if (userId) {
     orderUserMap.set(order.id, userId);
-    void persistOrder(order, userId);
+    runBackground(persistOrder(order, userId), {
+      task: 'persistOrder',
+      orderId: order.id,
+      userId,
+    });
   }
   return order;
 }
@@ -571,7 +576,12 @@ export function addToOrder(
   // Persist changes
   const userId = orderUserMap.get(orderId);
   if (userId) {
-    void persistOrder(order, userId);
+    runBackground(persistOrder(order, userId), {
+      task: 'persistOrder',
+      orderId,
+      userId,
+      operation: 'addItem',
+    });
   }
   return order;
 }
@@ -655,8 +665,10 @@ export function finalizeOrder(orderId: string): DeliveryOrder | null {
   // Save to order history
   const userId = orderUserMap.get(orderId);
   if (userId) {
-    void saveOrderToHistory(order, userId);
-    void persistOrder(order, userId);
+    runBackgroundBatch(
+      [saveOrderToHistory(order, userId), persistOrder(order, userId)],
+      { task: 'saveCompletedOrder', orderId, userId }
+    );
   }
 
   return order;

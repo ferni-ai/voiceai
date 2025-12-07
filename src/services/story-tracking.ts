@@ -7,7 +7,7 @@
  * Persists to user profile for cross-session narrative continuity.
  */
 
-import { getLogger } from '../utils/logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 import { getDefaultStore } from '../memory/index.js';
 import type { PersonaRelationshipStage } from '../types/user-profile.js';
 

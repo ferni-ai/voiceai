@@ -19,52 +19,17 @@ import {
   type VoicePresenceConfig,
   type TuningRecommendation,
 } from '../services/voice-presence-analytics.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
+import {
+  parseBody,
+  sendJSON,
+  sendError,
+  handleCorsPreflightIfNeeded,
+} from './helpers.js';
+import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';
+import { validateBody, UpdateVoicePresenceConfigSchema } from './validators.js';
 
-const log = getLogger();
-
-/**
- * Send JSON response
- */
-function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
-  res.writeHead(status, {
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache',
-    'Access-Control-Allow-Origin': '*',
-  });
-  res.end(JSON.stringify(data, null, 2));
-}
-
-/**
- * Send error response
- */
-function sendError(res: ServerResponse, message: string, status = 500): void {
-  res.writeHead(status, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-  });
-  res.end(JSON.stringify({ error: message }));
-}
-
-/**
- * Parse request body as JSON
- */
-async function parseBody<T>(req: IncomingMessage): Promise<T> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(body) as T);
-      } catch {
-        reject(new Error('Invalid JSON body'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
+const log = createLogger({ module: 'VoicePresenceAPI' });
 
 /**
  * Handle voice presence API routes
@@ -80,14 +45,23 @@ export async function handleVoicePresenceRoutes(
   }
 
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    });
-    res.end();
+  if (handleCorsPreflightIfNeeded(req, res)) {
     return true;
+  }
+
+  // Rate limiting
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+    return true;
+  }
+
+  // Write operations require admin access
+  if (req.method === 'POST') {
+    const auth = requireAdmin(req, res);
+    if (!auth) return true;
+  } else {
+    // Read operations require basic auth
+    const auth = requireAuth(req, res, { allowDevMode: true });
+    if (!auth) return true;
   }
 
   const analytics = getVoicePresenceAnalytics();
@@ -114,8 +88,10 @@ export async function handleVoicePresenceRoutes(
 
     // POST /api/voice-presence/config - Update configuration
     if (pathname === '/api/voice-presence/config' && req.method === 'POST') {
-      const updates = await parseBody<Partial<VoicePresenceConfig>>(req);
-      analytics.updateConfig(updates);
+      const updates = await validateBody(req, res, UpdateVoicePresenceConfigSchema);
+      if (!updates) return true; // Validation failed
+      
+      analytics.updateConfig(updates as Partial<VoicePresenceConfig>);
       log.info({ updates }, 'Voice presence config updated via API');
       sendJSON(res, { success: true, config: analytics.getConfig() });
       return true;

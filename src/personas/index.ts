@@ -155,7 +155,6 @@ export function getPersona(id: PersonaId): PersonaConfig | undefined {
 
 /**
  * Get the default persona (from env or fallback)
- * NOTE: Uses console.warn for early startup (before LiveKit logger is initialized)
  *
  * Fallback chain:
  * 1. Requested persona (PERSONA_ID env var or 'ferni')
@@ -163,6 +162,7 @@ export function getPersona(id: PersonaId): PersonaConfig | undefined {
  * 3. 'generic-advisor' (always available, legacy persona)
  */
 export function getDefaultPersona(): PersonaConfig {
+  const logger = getLogger();
   const defaultId = process.env.PERSONA_ID || 'ferni';
 
   // Try requested persona
@@ -170,23 +170,21 @@ export function getDefaultPersona(): PersonaConfig {
   if (persona) return persona;
 
   // Try ferni (coordinator)
-
-  // Try ferni/jack-b
-  persona = personaRegistry.get('ferni') || personaRegistry.get('jack-b');
+  persona = personaRegistry.get('ferni');
   if (persona) return persona;
 
   // Fall back to generic-advisor (always available as legacy persona)
   persona = personaRegistry.get('generic-advisor');
   if (persona) {
-    console.warn(
-      `[personas] Persona '${defaultId}' not found, using generic-advisor (bundles may not be loaded yet)`
+    logger.warn(
+      { requestedId: defaultId },
+      'Persona not found, using generic-advisor (bundles may not be loaded yet)'
     );
     return persona;
   }
 
   // This should never happen, but handle it gracefully
-
-  console.error(`[personas] CRITICAL: No personas available in registry!`);
+  logger.error('CRITICAL: No personas available in registry!');
   throw new Error('No personas available. Check that persona bundles are properly configured.');
 }
 
@@ -195,7 +193,7 @@ export function getDefaultPersona(): PersonaConfig {
  */
 export function registerPersona(persona: PersonaConfig): void {
   if (personaRegistry.has(persona.id)) {
-    console.warn(`[personas] Persona '${persona.id}' already registered, overwriting`);
+    getLogger().warn({ personaId: persona.id }, 'Persona already registered, overwriting');
   }
   personaRegistry.set(persona.id, persona);
 }

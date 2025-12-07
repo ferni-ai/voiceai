@@ -18,10 +18,13 @@
  * - Recent contacts
  * - Smart matching ("call John" finds the right John)
  *
+ * @module services/contacts
+ *
  * PERSISTENCE: Uses Firestore with in-memory caching for fast access.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { runBackground } from '../utils/background-task.js';
 import { getConfig } from '../config/environment.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
@@ -252,7 +255,11 @@ export function createContact(
   contactsStore.set(id, contact);
 
   // Persist to Firestore (async, don't block)
-  void persistContact(contact);
+  runBackground(persistContact(contact), {
+    task: 'persistContact',
+    contactId: id,
+    userId,
+  });
 
   getLogger().info(
     {
@@ -281,7 +288,11 @@ export function updateContact(
   contactsStore.set(contactId, contact);
 
   // Persist to Firestore (async)
-  void persistContact(contact);
+  runBackground(persistContact(contact), {
+    task: 'persistContact',
+    contactId,
+    operation: 'update',
+  });
 
   return contact;
 }
@@ -292,7 +303,10 @@ export function updateContact(
 export function deleteContact(contactId: string): boolean {
   const deleted = contactsStore.delete(contactId);
   if (deleted) {
-    void deleteContactFromFirestore(contactId);
+    runBackground(deleteContactFromFirestore(contactId), {
+      task: 'deleteContact',
+      contactId,
+    });
   }
   return deleted;
 }

@@ -10,9 +10,11 @@
  * - Personalized insights
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
+import { createLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
+
+const log = createLogger({ module: 'tools:daily-briefing' });
 
 // Import from other tools to aggregate data
 // Note: In production, these would be services
@@ -184,8 +186,8 @@ Use when user says:
             response += `📋 **Tasks:** All clear! ✨\n`;
           }
           response += '\n';
-        } catch {
-          // Tasks module not loaded
+        } catch (error) {
+          log.debug({ error }, 'Tasks module not loaded (optional)');
         }
 
         // Habits
@@ -200,8 +202,8 @@ Use when user says:
             });
             response += '\n';
           }
-        } catch {
-          // Habits module not loaded
+        } catch (error) {
+          log.debug({ error }, 'Habits module not loaded (optional)');
         }
 
         // Medications
@@ -228,8 +230,8 @@ Use when user says:
           if (needsRefill.length > 0) {
             response += `⚠️ **Refill needed:** ${needsRefill.map((m: Medication) => m.name).join(', ')}\n\n`;
           }
-        } catch {
-          // Medications module not loaded
+        } catch (error) {
+          log.debug({ error }, 'Medications module not loaded (optional)');
         }
 
         // Bills
@@ -239,8 +241,8 @@ Use when user says:
             const total = upcomingBills.reduce((sum: number, b: Bill) => sum + b.amount, 0);
             response += `💰 **Bills this week:** ${upcomingBills.length} ($${total.toFixed(0)})\n\n`;
           }
-        } catch {
-          // Bills module not loaded
+        } catch (error) {
+          log.debug({ error }, 'Bills module not loaded (optional)');
         }
 
         // Motivational quote
@@ -282,8 +284,8 @@ Use when user says:
             response += `  ⚠️ Overdue: ${overdueTasks.length}\n`;
           }
           response += '\n';
-        } catch {
-          // Tasks module not loaded
+        } catch (error) {
+          log.debug({ error }, 'Tasks module not loaded for reflection (optional)');
         }
 
         // Habit progress
@@ -298,8 +300,8 @@ Use when user says:
             });
             response += '\n';
           }
-        } catch {
-          // Habits module not loaded
+        } catch (error) {
+          log.debug({ error }, 'Habits module not loaded for reflection (optional)');
         }
 
         // Journal prompt
@@ -314,8 +316,8 @@ Use when user says:
           } else {
             response += `📓 **Journaled today** ✅ (${journalStreak} day streak)\n\n`;
           }
-        } catch {
-          // Notes module not loaded
+        } catch (error) {
+          log.debug({ error }, 'Notes module not loaded for journal (optional)');
         }
 
         // Reflection prompt
@@ -350,7 +352,9 @@ Use for "what's up?" or "quick update" requests.`,
             response += `⚠️ **${overdue.length} overdue task${overdue.length > 1 ? 's' : ''}**\n`;
             hasItems = true;
           }
-        } catch {}
+        } catch (error) {
+          log.debug({ error, userId }, 'Failed to fetch overdue tasks');
+        }
 
         // Due medications
         try {
@@ -359,7 +363,9 @@ Use for "what's up?" or "quick update" requests.`,
             response += `💊 **${dueMeds.length} medication${dueMeds.length > 1 ? 's' : ''} due**\n`;
             hasItems = true;
           }
-        } catch {}
+        } catch (error) {
+          log.debug({ error, userId }, 'Failed to fetch due medications');
+        }
 
         // Due habits
         try {
@@ -368,7 +374,9 @@ Use for "what's up?" or "quick update" requests.`,
             response += `✨ **${dueHabits.length} habit${dueHabits.length > 1 ? 's' : ''} to do**\n`;
             hasItems = true;
           }
-        } catch {}
+        } catch (error) {
+          log.debug({ error, userId }, 'Failed to fetch due habits');
+        }
 
         // Bills due soon
         try {
@@ -377,7 +385,9 @@ Use for "what's up?" or "quick update" requests.`,
             response += `💰 **${urgentBills.length} bill${urgentBills.length > 1 ? 's' : ''} due in 3 days**\n`;
             hasItems = true;
           }
-        } catch {}
+        } catch (error) {
+          log.debug({ error, userId }, 'Failed to fetch urgent bills');
+        }
 
         if (!hasItems) {
           response += `✅ All clear! Nothing urgent right now.\n`;
@@ -409,7 +419,9 @@ Use for Sunday/Monday weekly reviews.`,
             response += `  • Overdue: ${overdue.length}\n`;
           }
           response += '\n';
-        } catch {}
+        } catch (error) {
+          log.debug({ error, userId }, 'Failed to fetch tasks overview');
+        }
 
         // Bill summary
         try {
@@ -422,14 +434,18 @@ Use for Sunday/Monday weekly reviews.`,
             response += `  • Monthly total: $${monthlyTotal.toFixed(0)}\n`;
           }
           response += '\n';
-        } catch {}
+        } catch (error) {
+          log.debug({ error, userId }, 'Failed to fetch bills summary');
+        }
 
         // Journal streak
         try {
           const journalStreak = getJournalStreak(userId);
           response += `**📓 Journaling**\n`;
           response += `  • Current streak: ${journalStreak} day${journalStreak !== 1 ? 's' : ''}\n\n`;
-        } catch {}
+        } catch (error) {
+          log.debug({ error, userId }, 'Failed to fetch journal streak');
+        }
 
         // Planning prompts
         response += `---\n`;

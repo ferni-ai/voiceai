@@ -27,41 +27,17 @@ import {
   errorMetrics,
   personaMetrics,
 } from '../services/observability/index.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
+import { sendJSON, sendError, parsePositiveInt, handleCorsPreflightIfNeeded } from './helpers.js';
+import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';
 
-const log = getLogger();
+const log = createLogger({ module: 'ObservabilityAPI' });
 
 /**
  * Parse window minutes from query string
  */
 function getWindowMinutes(url: URL): number {
-  const windowParam = url.searchParams.get('window');
-  if (windowParam) {
-    const minutes = parseInt(windowParam, 10);
-    if (!isNaN(minutes) && minutes > 0 && minutes <= 1440) {
-      return minutes;
-    }
-  }
-  return 60; // Default 1 hour
-}
-
-/**
- * Send JSON response
- */
-function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
-  res.writeHead(status, { 
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache',
-  });
-  res.end(JSON.stringify(data, null, 2));
-}
-
-/**
- * Send error response
- */
-function sendError(res: ServerResponse, message: string, status = 500): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: message }));
+  return parsePositiveInt(url.searchParams.get('window'), 60, 1440);
 }
 
 /**
@@ -75,6 +51,26 @@ export async function handleObservabilityRoutes(
   // Only handle /api/observability routes
   if (!pathname.startsWith('/api/observability')) {
     return false;
+  }
+
+  // Handle CORS preflight
+  if (handleCorsPreflightIfNeeded(req, res)) {
+    return true;
+  }
+
+  // Rate limiting
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+    return true;
+  }
+
+  // Write operations (clear) require admin access
+  if (req.method === 'POST') {
+    const auth = requireAdmin(req, res);
+    if (!auth) return true;
+  } else {
+    // Read operations require basic auth
+    const auth = requireAuth(req, res, { allowDevMode: true });
+    if (!auth) return true;
   }
 
   const url = new URL(req.url || '', `http://${req.headers.host}`);

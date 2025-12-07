@@ -123,8 +123,19 @@ export class AudioProsodyAnalyzer {
   private featureHistory: ProsodyFeatures[] = [];
   private readonly historySize = 5;
 
-  constructor() {
+  // Session ID for metrics tracking (set when created via getSessionAudioProsodyAnalyzer)
+  private sessionId: string | null = null;
+
+  constructor(sessionId?: string) {
+    this.sessionId = sessionId ?? null;
     getLogger().debug('AudioProsodyAnalyzer initialized');
+  }
+
+  /**
+   * Set session ID for metrics tracking
+   */
+  setSessionId(sessionId: string): void {
+    this.sessionId = sessionId;
   }
 
   /**
@@ -133,35 +144,46 @@ export class AudioProsodyAnalyzer {
   processAudioFrame(frame: AudioFrame): void {
     if (!frame.data || frame.data.length === 0) return;
 
-    // Convert to Float32Array
-    const samples = this.convertToFloat32(frame.data);
+    try {
+      // Convert to Float32Array
+      const samples = this.convertToFloat32(frame.data);
 
-    this.buffers.push({
-      samples,
-      sampleRate: frame.sampleRate,
-      channels: frame.channels,
-      timestamp: Date.now(),
-    });
+      this.buffers.push({
+        samples,
+        sampleRate: frame.sampleRate,
+        channels: frame.channels,
+        timestamp: Date.now(),
+      });
 
-    // Trim old buffers
-    const cutoff = Date.now() - this.maxBufferMs;
-    this.buffers = this.buffers.filter((b) => b.timestamp >= cutoff);
+      // Trim old buffers
+      const cutoff = Date.now() - this.maxBufferMs;
+      this.buffers = this.buffers.filter((b) => b.timestamp >= cutoff);
+    } catch (error) {
+      // Gracefully handle malformed audio data
+      getLogger().warn({ error: String(error) }, 'Failed to process audio frame');
+    }
   }
 
   /**
    * Process raw audio samples
    */
   processSamples(samples: Float32Array, sampleRate: number): void {
-    this.buffers.push({
-      samples,
-      sampleRate,
-      channels: 1,
-      timestamp: Date.now(),
-    });
+    try {
+      if (!samples || samples.length === 0) return;
 
-    // Trim old buffers
-    const cutoff = Date.now() - this.maxBufferMs;
-    this.buffers = this.buffers.filter((b) => b.timestamp >= cutoff);
+      this.buffers.push({
+        samples,
+        sampleRate,
+        channels: 1,
+        timestamp: Date.now(),
+      });
+
+      // Trim old buffers
+      const cutoff = Date.now() - this.maxBufferMs;
+      this.buffers = this.buffers.filter((b) => b.timestamp >= cutoff);
+    } catch (error) {
+      getLogger().warn({ error: String(error) }, 'Failed to process audio samples');
+    }
   }
 
   /**
@@ -205,7 +227,7 @@ export class AudioProsodyAnalyzer {
     const stressLevel = this.calculateStressLevel(smoothed, dimensions);
     const anxietyMarkers = this.detectAnxietyMarkers(smoothed);
 
-    return {
+    const result: VoiceEmotionResult = {
       primary: emotion.emotion,
       confidence: emotion.confidence,
       valence: dimensions.valence,
@@ -217,6 +239,13 @@ export class AudioProsodyAnalyzer {
       sampleCount: totalSamples,
       processingTimeMs: Date.now() - startTime,
     };
+
+    // Record metrics if this analyzer has a session ID
+    if (this.sessionId) {
+      recordProsodyAnalysisInternal(this.sessionId, result);
+    }
+
+    return result;
   }
 
   /**
@@ -635,30 +664,36 @@ export class AudioProsodyAnalyzer {
 
     const smoothed = { ...history[history.length - 1] };
 
-    const numericKeys: Array<keyof ProsodyFeatures> = [
-      'pitchMean',
-      'pitchVariance',
-      'pitchRange',
-      'energyMean',
-      'energyVariance',
-      'energyPeaks',
-      'speechRate',
-      'pauseDuration',
-      'pauseFrequency',
-      'jitter',
-      'shimmer',
-      'breathiness',
-      'utteranceDuration',
-      'speakingRatio',
-    ];
-
-    for (const key of numericKeys) {
-      let weightedSum = 0;
-      for (let i = 0; i < history.length; i++) {
-        weightedSum += (history[i][key] as number) * weights[i];
+    // Type-safe smoothing for numeric properties
+    const smoothNumeric = (key: keyof ProsodyFeatures): void => {
+      if (typeof smoothed[key] === 'number') {
+        let weightedSum = 0;
+        for (let i = 0; i < history.length; i++) {
+          const value = history[i][key];
+          if (typeof value === 'number') {
+            weightedSum += value * weights[i];
+          }
+        }
+        // Use Object.assign to maintain type safety
+        Object.assign(smoothed, { [key]: weightedSum / totalWeight });
       }
-      (smoothed as Record<string, unknown>)[key] = weightedSum / totalWeight;
-    }
+    };
+
+    // Apply smoothing to all numeric properties
+    smoothNumeric('pitchMean');
+    smoothNumeric('pitchVariance');
+    smoothNumeric('pitchRange');
+    smoothNumeric('energyMean');
+    smoothNumeric('energyVariance');
+    smoothNumeric('energyPeaks');
+    smoothNumeric('speechRate');
+    smoothNumeric('pauseDuration');
+    smoothNumeric('pauseFrequency');
+    smoothNumeric('jitter');
+    smoothNumeric('shimmer');
+    smoothNumeric('breathiness');
+    smoothNumeric('utteranceDuration');
+    smoothNumeric('speakingRatio');
 
     return smoothed;
   }
@@ -673,21 +708,28 @@ export class AudioProsodyAnalyzer {
     dominance: number;
   } {
     // Map prosodic features to Russell's circumplex model dimensions
+    // Helper to ensure finite values (guard against NaN from edge cases)
+    const safeNumber = (n: number, fallback = 0): number =>
+      Number.isFinite(n) ? n : fallback;
 
     // Arousal: high pitch variance, high energy, fast rate = high arousal
-    const pitchDeviation = this.calibrated
-      ? (prosody.pitchMean - this.baselinePitch) / this.baselinePitch
+    const pitchDeviation =
+      this.calibrated && this.baselinePitch > 0
+        ? safeNumber((prosody.pitchMean - this.baselinePitch) / this.baselinePitch)
+        : 0;
+    const energyDeviation = this.calibrated
+      ? safeNumber((prosody.energyMean - this.baselineEnergy) / 20)
       : 0;
-    const energyDeviation = this.calibrated ? (prosody.energyMean - this.baselineEnergy) / 20 : 0;
-    const rateDeviation = this.calibrated
-      ? (prosody.speechRate - this.baselineRate) / this.baselineRate
-      : 0;
+    const rateDeviation =
+      this.calibrated && this.baselineRate > 0
+        ? safeNumber((prosody.speechRate - this.baselineRate) / this.baselineRate)
+        : 0;
 
     const arousal = this.clamp(
-      pitchDeviation * 0.3 +
-        energyDeviation * 0.3 +
-        rateDeviation * 0.2 +
-        (prosody.pitchVariance / 200) * 0.2,
+      safeNumber(pitchDeviation * 0.3) +
+        safeNumber(energyDeviation * 0.3) +
+        safeNumber(rateDeviation * 0.2) +
+        safeNumber((prosody.pitchVariance / 200) * 0.2),
       -1,
       1
     );
@@ -698,23 +740,23 @@ export class AudioProsodyAnalyzer {
       dynamic: 0.1,
       flat: -0.1,
       falling: -0.3,
-    }[prosody.pitchContour];
+    }[prosody.pitchContour] ?? 0;
 
     const valence = this.clamp(
-      contourScore +
-        (prosody.speakingRatio - 0.5) * 0.3 +
-        (prosody.pitchRange / 100) * 0.2 -
-        prosody.breathiness * 0.3,
+      safeNumber(contourScore) +
+        safeNumber((prosody.speakingRatio - 0.5) * 0.3) +
+        safeNumber((prosody.pitchRange / 100) * 0.2) -
+        safeNumber(prosody.breathiness * 0.3),
       -1,
       1
     );
 
     // Dominance: loud, fast, low pitch = dominant
     const dominance = this.clamp(
-      energyDeviation * 0.4 +
-        rateDeviation * 0.2 -
-        pitchDeviation * 0.2 +
-        prosody.energyPeaks * 0.05,
+      safeNumber(energyDeviation * 0.4) +
+        safeNumber(rateDeviation * 0.2) -
+        safeNumber(pitchDeviation * 0.2) +
+        safeNumber(prosody.energyPeaks * 0.05),
       -1,
       1
     );
@@ -764,7 +806,9 @@ export class AudioProsodyAnalyzer {
 
     // Calculate confidence based on distance (closer = more confident)
     const maxDistance = Math.sqrt(12); // Max possible distance in VAD space
-    const confidence = 1 - minDistance / maxDistance;
+    // Guard against NaN/Infinity from bad input data
+    const normalizedDistance = Number.isFinite(minDistance) ? minDistance : maxDistance;
+    const confidence = Math.max(0, Math.min(1, 1 - normalizedDistance / maxDistance));
 
     // Boost confidence if prosodic features strongly support the emotion
     let boostedConfidence = confidence;
@@ -826,7 +870,7 @@ const sessionAnalyzers = new Map<string, AudioProsodyAnalyzer>();
 export function getSessionAudioProsodyAnalyzer(sessionId: string): AudioProsodyAnalyzer {
   let analyzer = sessionAnalyzers.get(sessionId);
   if (!analyzer) {
-    analyzer = new AudioProsodyAnalyzer();
+    analyzer = new AudioProsodyAnalyzer(sessionId);
     sessionAnalyzers.set(sessionId, analyzer);
   }
   return analyzer;
@@ -841,24 +885,136 @@ export function removeSessionAudioProsodyAnalyzer(sessionId: string): void {
     analyzer.reset();
     sessionAnalyzers.delete(sessionId);
   }
+  // Also clear metrics for this session
+  sessionMetrics.delete(sessionId);
 }
 
 // ============================================================================
-// GLOBAL SINGLETON (BACKWARD COMPATIBILITY)
+// PROSODY METRICS TRACKING
 // ============================================================================
 
-/** @deprecated SUNSET: 2025-03-31 - Use getSessionAudioProsodyAnalyzer for session isolation */
-let analyzerInstance: AudioProsodyAnalyzer | null = null;
+/**
+ * Metrics for prosody analysis
+ */
+export interface ProsodyMetrics {
+  /** Total number of analyses performed */
+  totalAnalyses: number;
+  /** Number of analyses that successfully detected emotion */
+  successfulDetections: number;
+  /** Detection rate (0-1) */
+  detectionRate: number;
+  /** Average confidence of detections */
+  averageConfidence: number;
+  /** Most common detected emotion */
+  dominantEmotion: VoiceEmotion | null;
+}
 
 /**
- * Get the singleton audio prosody analyzer
- * @deprecated SUNSET: 2025-03-31 - Use getSessionAudioProsodyAnalyzer for session isolation
+ * Session-scoped metrics storage
+ */
+const sessionMetrics = new Map<string, {
+  totalAnalyses: number;
+  successfulDetections: number;
+  confidenceSum: number;
+  emotionCounts: Map<VoiceEmotion, number>;
+}>();
+
+/**
+ * Get metrics for a specific session's prosody analysis
+ */
+export function getProsodyMetrics(sessionId: string): ProsodyMetrics {
+  const metrics = sessionMetrics.get(sessionId);
+  
+  if (!metrics || metrics.totalAnalyses === 0) {
+    return {
+      totalAnalyses: 0,
+      successfulDetections: 0,
+      detectionRate: 0,
+      averageConfidence: 0,
+      dominantEmotion: null,
+    };
+  }
+
+  // Find dominant emotion
+  let dominantEmotion: VoiceEmotion | null = null;
+  let maxCount = 0;
+  metrics.emotionCounts.forEach((count, emotion) => {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantEmotion = emotion;
+    }
+  });
+
+  return {
+    totalAnalyses: metrics.totalAnalyses,
+    successfulDetections: metrics.successfulDetections,
+    detectionRate: metrics.successfulDetections / metrics.totalAnalyses,
+    averageConfidence: metrics.successfulDetections > 0 
+      ? metrics.confidenceSum / metrics.successfulDetections 
+      : 0,
+    dominantEmotion,
+  };
+}
+
+/**
+ * Internal function to record prosody analysis (called by AudioProsodyAnalyzer.analyze())
+ */
+function recordProsodyAnalysisInternal(
+  sessionId: string,
+  result: VoiceEmotionResult | null
+): void {
+  let metrics = sessionMetrics.get(sessionId);
+
+  if (!metrics) {
+    metrics = {
+      totalAnalyses: 0,
+      successfulDetections: 0,
+      confidenceSum: 0,
+      emotionCounts: new Map(),
+    };
+    sessionMetrics.set(sessionId, metrics);
+  }
+
+  metrics.totalAnalyses++;
+
+  if (result && result.confidence > 0.3) {
+    metrics.successfulDetections++;
+    metrics.confidenceSum += result.confidence;
+
+    const count = metrics.emotionCounts.get(result.primary) || 0;
+    metrics.emotionCounts.set(result.primary, count + 1);
+  }
+}
+
+/**
+ * Record a prosody analysis result for metrics (public API)
+ */
+export function recordProsodyAnalysis(
+  sessionId: string, 
+  result: VoiceEmotionResult | null
+): void {
+  recordProsodyAnalysisInternal(sessionId, result);
+}
+
+/**
+ * Clear metrics for a specific session
+ */
+export function clearProsodyMetrics(sessionId: string): void {
+  sessionMetrics.delete(sessionId);
+}
+
+// ============================================================================
+// LEGACY COMPATIBILITY (Remove after all callers migrated)
+// ============================================================================
+
+/**
+ * Get or create a global audio prosody analyzer.
+ *
+ * @deprecated Use getSessionAudioProsodyAnalyzer(sessionId) for proper session isolation.
+ * This function creates an analyzer with a synthetic session ID.
  */
 export function getAudioProsodyAnalyzer(): AudioProsodyAnalyzer {
-  if (!analyzerInstance) {
-    analyzerInstance = new AudioProsodyAnalyzer();
-  }
-  return analyzerInstance;
+  return getSessionAudioProsodyAnalyzer('__global__');
 }
 
 export default AudioProsodyAnalyzer;

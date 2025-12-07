@@ -24,21 +24,27 @@ import { getVoiceId, getCanonicalPersonaId } from '../personas/voice-registry.js
 
 /**
  * All supported agent IDs for voice switching.
- * Includes both primary IDs and aliases for flexibility.
+ * Includes canonical IDs and aliases for flexibility.
  */
 export type VoiceAgentId =
-  | 'jack-b'
-  | 'ferni' // Coach (Ferni)
+  // Canonical IDs (preferred)
+  | 'ferni'
   | 'peter-john'
-  | 'peter' // Research Coach
-  | 'comm-specialist'
-  | 'alex' // Communication
-  | 'spend-save'
-  | 'maya' // Financial Habits
-  | 'event-planner'
-  | 'jordan' // Life Planning
+  | 'alex-chen'
+  | 'maya-santos'
+  | 'jordan-taylor'
   | 'nayan-patel'
-  | 'nayan'; // Lifetime Advisor / Sage
+  // Short aliases
+  | 'alex'
+  | 'maya'
+  | 'jordan'
+  | 'peter'
+  | 'nayan'
+  // Legacy aliases
+  | 'jack-b'
+  | 'comm-specialist'
+  | 'spend-save'
+  | 'event-planner';
 
 // ============================================================================
 // VOICE CONFIGURATION
@@ -99,7 +105,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
     model: 'sonic-3',
     description: 'Enthusiastic, organized - life & event planner',
   },
-  // Aliases for coach
+  // Canonical ID for coach
   ferni: {
     get id() {
       return getVoiceId('ferni');
@@ -108,7 +114,32 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
     model: 'sonic-3',
     description: 'Confident, friendly coach - orchestrates the team',
   },
-  // Aliases for team members
+  // Canonical IDs for team members
+  'alex-chen': {
+    get id() {
+      return getVoiceId('alex-chen');
+    },
+    name: 'Alex',
+    model: 'sonic-3',
+    description: 'Professional, efficient - communication specialist',
+  },
+  'maya-santos': {
+    get id() {
+      return getVoiceId('maya-santos');
+    },
+    name: 'Maya',
+    model: 'sonic-3',
+    description: 'Warm, non-judgmental - spend & save specialist',
+  },
+  'jordan-taylor': {
+    get id() {
+      return getVoiceId('jordan-taylor');
+    },
+    name: 'Jordan',
+    model: 'sonic-3',
+    description: 'Enthusiastic, organized - life & event planner',
+  },
+  // Short aliases for team members
   alex: {
     get id() {
       return getVoiceId('alex-chen');
@@ -168,35 +199,25 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
 /**
  * Normalize agent ID to canonical form for voice lookup.
  * Uses the voice registry for consistent ID resolution.
- * FIX BUG #voice-4: Defaults to ferni instead of jack-b
+ * Always returns canonical IDs (e.g., 'jordan-taylor' not 'jordan').
  */
 function normalizeAgentId(agentId: string): VoiceAgentId {
   // Use voice registry for canonical resolution
   const canonical = getCanonicalPersonaId(agentId);
 
-  // Map canonical bundle IDs to voice agent IDs
-  // NOTE: VOICES record still uses some legacy keys for backwards compatibility
-  const bundleToVoiceId: Record<string, VoiceAgentId> = {
-    ferni: 'ferni',
-    'alex-chen': 'alex',
-    'maya-santos': 'maya',
-    'jordan-taylor': 'jordan',
-    'peter-john': 'peter-john',
-    'nayan-patel': 'nayan-patel',
-  };
-
-  // Check if canonical is a bundle ID that needs mapping
-  if (canonical in bundleToVoiceId) {
-    return bundleToVoiceId[canonical];
+  // All canonical IDs are valid voice agent IDs
+  const canonicalIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+  if (canonicalIds.includes(canonical)) {
+    return canonical as VoiceAgentId;
   }
 
-  // Check if it's already a valid voice agent ID
+  // Check if it's already a valid voice agent ID (legacy/alias support)
   const normalized = agentId.toLowerCase();
   if (normalized in VOICES) {
     return normalized as VoiceAgentId;
   }
 
-  // FIX BUG #voice-4: Default to ferni (the coach) instead of legacy jack-b
+  // Default to ferni (the coach)
   getLogger().warn({ agentId }, 'Unknown agent ID, defaulting to ferni');
   return 'ferni';
 }

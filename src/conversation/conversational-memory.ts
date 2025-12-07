@@ -63,6 +63,18 @@ export interface TopicChange {
   transitionPhrase?: string;
 }
 
+/**
+ * Tuning preferences that can be exported/imported for persistence
+ */
+export interface ConversationTuningPreferences {
+  /** Multiplier for callback probability (0.5 = half, 1.5 = 50% more) */
+  callbackMultiplier: number;
+  /** Number of callbacks given in this session */
+  callbacksGiven: number;
+  /** Number of positive reactions to callbacks */
+  positiveCallbackReactions: number;
+}
+
 // ============================================================================
 // CONVERSATIONAL MEMORY ENGINE
 // ============================================================================
@@ -129,6 +141,42 @@ export class ConversationalMemoryEngine {
    */
   getCallbackMultiplier(): number {
     return this.callbackMultiplier;
+  }
+
+  /**
+   * Export tuning preferences for persistence
+   * These can be saved and restored across sessions
+   */
+  exportTuningPreferences(): ConversationTuningPreferences {
+    return {
+      callbackMultiplier: this.callbackMultiplier,
+      callbacksGiven: this.callbacksGiven,
+      positiveCallbackReactions: this.positiveCallbackReactions,
+    };
+  }
+
+  /**
+   * Import tuning preferences from a previous session
+   * Allows restoration of learned user preferences
+   */
+  importTuningPreferences(prefs: Partial<ConversationTuningPreferences>): void {
+    if (prefs.callbackMultiplier !== undefined) {
+      this.callbackMultiplier = prefs.callbackMultiplier;
+    }
+    if (prefs.callbacksGiven !== undefined) {
+      this.callbacksGiven = prefs.callbacksGiven;
+    }
+    if (prefs.positiveCallbackReactions !== undefined) {
+      this.positiveCallbackReactions = prefs.positiveCallbackReactions;
+    }
+
+    getLogger().debug(
+      {
+        imported: prefs,
+        current: this.exportTuningPreferences(),
+      },
+      'Imported tuning preferences'
+    );
   }
 
   /**

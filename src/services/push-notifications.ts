@@ -5,7 +5,7 @@
  * Supports scheduled notifications, ritual reminders, and engagement triggers.
  */
 
-import { getLogger } from '../utils/logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 import { AgentRole } from '../personas/index.js';
 
 // Web-push module interface (optional dependency)

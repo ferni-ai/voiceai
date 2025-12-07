@@ -17,52 +17,17 @@ import {
   getFeatureFlags,
   type FeatureFlag,
 } from '../services/feature-flags.js';
-import { getLogger } from '../utils/safe-logger.js';
+import { createLogger } from '../utils/safe-logger.js';
+import {
+  parseBody,
+  sendJSON,
+  sendError,
+  handleCorsPreflightIfNeeded,
+} from './helpers.js';
+import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';
+import { validateBody, CreateFeatureFlagSchema, UpdateFeatureFlagSchema } from './validators.js';
 
-const log = getLogger();
-
-/**
- * Send JSON response
- */
-function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
-  res.writeHead(status, {
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  });
-  res.end(JSON.stringify(data, null, 2));
-}
-
-/**
- * Send error response
- */
-function sendError(res: ServerResponse, message: string, status = 500): void {
-  res.writeHead(status, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-  });
-  res.end(JSON.stringify({ error: message }));
-}
-
-/**
- * Parse request body as JSON
- */
-async function parseBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (e) {
-        reject(new Error('Invalid JSON body'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
+const log = createLogger({ module: 'FeatureFlagAPI' });
 
 /**
  * Handle feature flag API routes
@@ -76,19 +41,28 @@ export async function handleFeatureFlagRoutes(
   const method = req.method || 'GET';
 
   // Handle CORS preflight
-  if (method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    });
-    res.end();
+  if (handleCorsPreflightIfNeeded(req, res)) {
     return true;
   }
 
   // Only handle /api/flags routes
   if (!pathname.startsWith('/api/flags')) {
     return false;
+  }
+
+  // Rate limiting
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+    return true;
+  }
+
+  // Write operations require admin access
+  if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
+    const auth = requireAdmin(req, res);
+    if (!auth) return true;
+  } else {
+    // Read operations require basic auth
+    const auth = requireAuth(req, res, { allowDevMode: true });
+    if (!auth) return true;
   }
 
   const flags = getFeatureFlags();
@@ -122,12 +96,8 @@ export async function handleFeatureFlagRoutes(
 
     // POST /api/flags - Create new flag
     if (pathname === '/api/flags' && method === 'POST') {
-      const body = (await parseBody(req)) as Partial<FeatureFlag>;
-
-      if (!body.id || !body.name || !body.type || !body.category) {
-        sendError(res, 'Missing required fields: id, name, type, category', 400);
-        return true;
-      }
+      const body = await validateBody(req, res, CreateFeatureFlagSchema);
+      if (!body) return true; // Validation failed
 
       try {
         const newFlag = flags.createFlag({
@@ -135,12 +105,12 @@ export async function handleFeatureFlagRoutes(
           name: body.name,
           description: body.description || '',
           type: body.type,
-          enabled: body.enabled ?? false,
+          enabled: body.enabled,
           percentage: body.percentage,
           userIds: body.userIds,
           value: body.value,
           category: body.category,
-          metadata: body.metadata,
+          metadata: body.metadata as Record<string, unknown>,
         });
 
         sendJSON(res, { success: true, flag: newFlag }, 201);
@@ -186,7 +156,8 @@ export async function handleFeatureFlagRoutes(
     // PUT /api/flags/:id - Update flag
     if (flagIdMatch && method === 'PUT') {
       const flagId = decodeURIComponent(flagIdMatch[1]);
-      const body = (await parseBody(req)) as Partial<FeatureFlag>;
+      const body = await validateBody(req, res, UpdateFeatureFlagSchema);
+      if (!body) return true; // Validation failed
 
       const updatedFlag = flags.updateFlag(flagId, body, 'api');
 

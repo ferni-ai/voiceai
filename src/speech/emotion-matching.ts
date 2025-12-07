@@ -204,7 +204,12 @@ export function getEmotionModulation(
 
 /**
  * Convert emotion modulation to SSML wrapper
- * Wraps the response text in prosody tags to match user emotion
+ * Wraps the response text in Cartesia-compatible SSML tags to match user emotion
+ *
+ * Uses Cartesia Sonic-3 compatible tags:
+ * - <speed ratio="X"> for pace (0.6-1.2)
+ * - <volume ratio="X"> for loudness (0.5-1.5)
+ * - <emotion value="X"> for tone (affectionate, sad, curious, etc.)
  */
 export function wrapWithEmotionProsody(text: string, modulation: VoiceEmotionModulation): string {
   // Only apply if there's meaningful modulation
@@ -212,36 +217,42 @@ export function wrapWithEmotionProsody(text: string, modulation: VoiceEmotionMod
     return text;
   }
 
-  const { ssmlHints } = modulation;
-  const attrs: string[] = [];
+  const { ssmlHints, responseStyle, volumeAdjust } = modulation;
+  let result = text;
 
-  if (ssmlHints.prosodyRate && ssmlHints.prosodyRate !== 'medium') {
-    attrs.push(`rate="${ssmlHints.prosodyRate}"`);
+  // Apply warmth as emotion tag (Cartesia: affectionate for high warmth)
+  if (responseStyle.warmth === 'high') {
+    result = `<emotion value="affectionate">${result}</emotion>`;
   }
 
-  if (ssmlHints.prosodyPitch && ssmlHints.prosodyPitch !== 'medium') {
-    attrs.push(`pitch="${ssmlHints.prosodyPitch}"`);
+  // Apply volume adjustment (Cartesia uses <volume ratio="X">)
+  if (ssmlHints.prosodyVolume === 'soft' || volumeAdjust < 0.95) {
+    const volumeRatio = volumeAdjust < 0.95 ? volumeAdjust.toFixed(2) : '0.85';
+    result = `<volume ratio="${volumeRatio}">${result}</volume>`;
   }
 
-  if (ssmlHints.prosodyVolume && ssmlHints.prosodyVolume !== 'medium') {
-    attrs.push(`volume="${ssmlHints.prosodyVolume}"`);
+  // Apply speed adjustment (Cartesia uses <speed ratio="X">)
+  if (ssmlHints.prosodyRate === 'slow') {
+    result = `<speed ratio="0.85">${result}</speed>`;
+  } else if (ssmlHints.prosodyRate === 'fast') {
+    result = `<speed ratio="1.1">${result}</speed>`;
   }
 
-  // Only wrap if there are modifications
-  if (attrs.length === 0) {
-    return text;
+  // Log if we made changes
+  if (result !== text) {
+    getLogger().debug(
+      {
+        emotion: modulation.matchedEmotion,
+        confidence: modulation.confidence,
+        warmth: responseStyle.warmth,
+        rate: ssmlHints.prosodyRate,
+        volume: ssmlHints.prosodyVolume,
+      },
+      '🎭 Applying emotion prosody to response'
+    );
   }
 
-  getLogger().debug(
-    {
-      emotion: modulation.matchedEmotion,
-      confidence: modulation.confidence,
-      attrs,
-    },
-    '🎭 Applying emotion prosody to response'
-  );
-
-  return `<prosody ${attrs.join(' ')}>${text}</prosody>`;
+  return result;
 }
 
 /**

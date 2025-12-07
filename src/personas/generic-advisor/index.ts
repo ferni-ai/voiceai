@@ -1,6 +1,23 @@
 /**
  * Generic Advisor / Coach / Mentor Persona Template
  *
+ * ⚠️ TEMPLATE PERSONA - NOT A PRODUCTION PERSONA
+ *
+ * This persona exists as:
+ * 1. A TEMPLATE for creating new advisor-type personas
+ * 2. A FALLBACK when bundles fail to load (maps to Alex Chen's voice)
+ *
+ * For production use, prefer the bundle-based personas:
+ * - ferni (life coach, team coordinator)
+ * - alex-chen (communications specialist)
+ * - maya-santos (habits coach)
+ * - jordan-taylor (lifetime planner)
+ * - peter-john (researcher)
+ * - nayan-patel (sage/wisdom)
+ *
+ * In voice-registry.ts, 'generic-advisor' maps to alex-chen's voice ID
+ * as a fallback mechanism when persona resolution fails.
+ *
  * USE THIS AS A STARTING POINT FOR CREATING NEW ADVISOR-TYPE PERSONAS.
  *
  * This template works for any domain:

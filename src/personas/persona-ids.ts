@@ -21,6 +21,10 @@
  * SOLUTION: Use this module EVERYWHERE for persona ID handling.
  */
 
+import { getLogger } from '../utils/safe-logger.js';
+
+const log = getLogger();
+
 // ============================================================================
 // CANONICAL IDS - The ONLY IDs that should be used internally
 // ============================================================================
@@ -28,6 +32,15 @@
 /**
  * Canonical persona IDs.
  * These are the ONLY valid internal IDs.
+ *
+ * 🔑 SINGLE SOURCE OF TRUTH
+ * This file (persona-ids.ts) is the authoritative source for:
+ * - Canonical persona IDs
+ * - Alias mappings (all variations → canonical)
+ * - Display names
+ *
+ * Other modules (voice-registry.ts, id-mapping.ts) should import from here
+ * rather than defining their own mappings.
  */
 export const CANONICAL_IDS = {
   COACH: 'ferni',
@@ -80,6 +93,10 @@ export const FRONTEND_TO_CANONICAL: Record<CanonicalPersonaId, CanonicalPersonaI
 
 /**
  * ALL known aliases → canonical ID
+ *
+ * 🔑 SINGLE SOURCE OF TRUTH for alias resolution.
+ * ALL other modules should use toCanonical() from this file
+ * rather than maintaining separate alias maps.
  */
 export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   // Ferni (Coach)
@@ -169,7 +186,7 @@ export function toCanonical(id: string, strict = false): CanonicalPersonaId {
     if (strict) {
       throw new Error(`Unknown persona ID: ${id}`);
     }
-    console.warn(`⚠️ Unknown persona ID "${id}", defaulting to ferni`);
+    log.warn({ unknownId: id }, 'Unknown persona ID, defaulting to ferni');
     return 'ferni';
   }
 
@@ -222,7 +239,7 @@ export function assertCanonical(id: string, context?: string): asserts id is Can
   if (!isCanonicalId(id)) {
     const canonical = toCanonical(id);
     const msg = `Expected canonical ID but got "${id}" (canonical: ${canonical})${context ? ` in ${context}` : ''}`;
-    console.error(`🚨 ${msg}`);
+    log.error({ id, canonical, context }, msg);
     // Don't throw in production, just log
     if (process.env.NODE_ENV !== 'production') {
       throw new Error(msg);
@@ -236,7 +253,7 @@ export function assertCanonical(id: string, context?: string): asserts id is Can
 export function validateAndLog(id: string, context: string): CanonicalPersonaId {
   const canonical = toCanonical(id);
   if (id !== canonical) {
-    console.debug(`🔄 [${context}] ID converted: "${id}" → "${canonical}"`);
+    log.debug({ context, originalId: id, canonical }, 'ID converted');
   }
   return canonical;
 }

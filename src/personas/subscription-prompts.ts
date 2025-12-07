@@ -11,7 +11,7 @@
  * - Post-upgrade: celebrate relationship, not purchase
  */
 
-import { createLogger } from '../utils/logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SubscriptionPrompts' });
 

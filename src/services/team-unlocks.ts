@@ -19,7 +19,7 @@
  * 5. Deep Partnership → +Nayan (the sage, earned through commitment)
  */
 
-import { createLogger } from '../utils/logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
 
 const log = createLogger({ module: 'TeamUnlocks' });

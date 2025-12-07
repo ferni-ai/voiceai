@@ -4,7 +4,7 @@
  * Detects user milestones, anniversaries, and moments worth celebrating.
  */
 
-import { getLogger } from '../utils/logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, PersonaRelationshipStage } from '../types/user-profile.js';
 
 const logger = getLogger().child({ service: 'MilestoneDetection' });

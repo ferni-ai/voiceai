@@ -203,6 +203,7 @@ function initializeFallbacks(): void {
 
     // Nayan Patel aliases (lifetime advisor, spiritual guide)
     nayan: 'nayan-patel',
+    patel: 'nayan-patel',
     sadhguru: 'nayan-patel',
     guru: 'nayan-patel',
     mystic: 'nayan-patel',

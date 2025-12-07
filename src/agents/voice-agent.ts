@@ -311,8 +311,25 @@ class VoiceAgent extends voice.Agent<UserData> {
 
   /**
    * Send a data message to the frontend via LiveKit data channel
+   * Uses the centralized FrontendPublisher for consistent error handling
    */
   async sendDataMessage(type: string, payload: Record<string, unknown>): Promise<void> {
+    // Use FrontendPublisher singleton if available
+    try {
+      const { getFrontendPublisher } = await import('./realtime/index.js');
+      const publisher = getFrontendPublisher();
+      
+      // If publisher has room set, use it (preferred)
+      if (publisher.isConnected()) {
+        await publisher.sendData(type, payload);
+        return;
+      }
+    } catch (e) {
+      // Fall through to legacy approach - publisher not ready or not initialized
+      this.logger.debug({ error: String(e) }, 'FrontendPublisher not available, using legacy');
+    }
+
+    // Legacy fallback using _room reference
     if (!this._room?.localParticipant) {
       this.logger.debug(`Cannot send ${type}: no room connection`);
       return;
@@ -522,8 +539,9 @@ class VoiceAgent extends voice.Agent<UserData> {
                   if (currentPhase && speechContext) {
                     taggedText = applyPhasePersonality(taggedText, currentPhase, speechContext);
                   }
-                } catch {
+                } catch (e) {
                   // Don't block audio if phase personality fails
+                  log().debug({ error: String(e) }, 'Phase personality application failed (non-blocking)');
                 }
 
                 services.addTurn('assistant', accumulatedText);
@@ -686,8 +704,8 @@ class VoiceAgent extends voice.Agent<UserData> {
                 voiceEmotion.primary,
                 voiceEmotion.confidence
               );
-            } catch {
-              // Non-blocking
+            } catch (e) {
+              log().debug({ error: String(e) }, 'Voice emotion recording failed (non-blocking)');
             }
           }
 
@@ -801,47 +819,48 @@ class VoiceAgent extends voice.Agent<UserData> {
    * Send celebration events to frontend based on context injections
    * Uses fireworks for major achievements (professional, not gamified)
    * Uses sparkles for lighter moments (aha moments, good news)
+   * 
+   * Now uses centralized FrontendPublisher for consistent handling
    */
   private async sendCelebrationEvents(
     injections: Array<{ category: string; content: string }>
   ): Promise<void> {
+    // Use FrontendPublisher for celebration events
+    try {
+      const { getFrontendPublisher } = await import('./realtime/index.js');
+      const publisher = getFrontendPublisher();
+      
+      if (publisher.isConnected()) {
+        await publisher.sendCelebrationEvents(injections);
+        return;
+      }
+    } catch (e) {
+      // Fall through to legacy approach - publisher not ready
+      this.logger.debug({ error: String(e) }, 'FrontendPublisher not available for celebrations');
+    }
+
+    // Legacy fallback
     if (!this._room?.localParticipant) return;
 
     // Map context injection categories to celebration configs
-    // Using fireworks instead of confetti (professional, not gamified like Robinhood)
     const celebrationConfigs: Record<
       string,
       { celebrationType: string; effect: 'fireworks' | 'sparkles'; message?: string }
     > = {
-      milestone: {
-        celebrationType: 'milestone',
-        effect: 'fireworks', // Professional celebration
-        message: '🎆 Milestone achieved!',
-      },
-      achievement: {
-        celebrationType: 'achievement',
-        effect: 'fireworks', // Professional celebration
-        message: '🎆 Great achievement!',
-      },
-      aha_moment: {
-        celebrationType: 'aha_moment',
-        effect: 'sparkles', // Lighter, subtler
-      },
-      good_news: {
-        celebrationType: 'good_news',
-        effect: 'sparkles', // Lighter, subtler
-      },
+      milestone: { celebrationType: 'milestone', effect: 'fireworks', message: '🎆 Milestone achieved!' },
+      achievement: { celebrationType: 'achievement', effect: 'fireworks', message: '🎆 Great achievement!' },
+      aha_moment: { celebrationType: 'aha_moment', effect: 'sparkles' },
+      good_news: { celebrationType: 'good_news', effect: 'sparkles' },
     };
 
     for (const injection of injections) {
       const config = celebrationConfigs[injection.category];
-
       if (config) {
         try {
           const celebrationMessage = JSON.stringify({
             type: 'celebration',
             celebrationType: config.celebrationType,
-            effect: config.effect, // Tell frontend which effect to use
+            effect: config.effect,
             message: config.message,
             timestamp: Date.now(),
           });
@@ -865,6 +884,9 @@ class VoiceAgent extends voice.Agent<UserData> {
   /**
    * Enhanced user turn completion hook
    * Uses modular context builders to inject intelligent guidance
+   * 
+   * NOTE: A refactored version using the extracted TurnProcessor is available.
+   * Enable with USE_TURN_PROCESSOR=true environment variable.
    */
   async onUserTurnCompleted(turnCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
     const userText = newMessage.textContent;
@@ -877,6 +899,26 @@ class VoiceAgent extends voice.Agent<UserData> {
     if (!userText || userText.trim().length === 0) {
       diag.warn('Empty user text, returning early');
       return;
+    }
+
+    // ============================================================
+    // TurnProcessor: Use extracted, modular turn processing
+    // Default: enabled for cleaner architecture
+    // Disable with USE_TURN_PROCESSOR=false to use legacy code
+    // ============================================================
+    const useTurnProcessor = process.env['USE_TURN_PROCESSOR'] !== 'false';
+    if (useTurnProcessor) {
+      try {
+        await this.onUserTurnCompletedV2(turnCtx, newMessage);
+        return;
+      } catch (processorError) {
+        // Fallback to legacy processing if TurnProcessor fails
+        this.logger.warn(
+          { error: String(processorError) }, 
+          'TurnProcessor failed, falling back to legacy processing'
+        );
+        // Continue to legacy processing below
+      }
     }
 
     const contextBuildStart = Date.now();
@@ -1883,6 +1925,88 @@ CRITICAL REMINDERS:
       this.logger.warn(`Context building failed: ${error}`);
     }
   }
+
+  /**
+   * V2: Refactored user turn completion using extracted TurnProcessor
+   * 
+   * Enable with USE_TURN_PROCESSOR=true environment variable.
+   * 
+   * Benefits:
+   * - Modular, testable code (~800 lines extracted to turn-processor.ts)
+   * - Clear data flow with typed interfaces
+   * - Easier to maintain and extend
+   */
+  private async onUserTurnCompletedV2(
+    turnCtx: llm.ChatContext,
+    newMessage: llm.ChatMessage
+  ): Promise<void> {
+    const userText = newMessage.textContent;
+    if (!userText || userText.trim().length === 0) {
+      return;
+    }
+
+    const userData = this.getUserDataFromContext();
+    const services = userData?.services || globalSessionServices;
+
+    if (!services) {
+      this.logger.warn('No services available for turn processing');
+      return;
+    }
+
+    try {
+      // Import the turn processor (cached after first load)
+      const { processTurn, injectTurnContext, getCelebrationEvents } = 
+        await import('./processors/index.js');
+      
+      // Build turn context
+      const turnContext = {
+        turnCtx,
+        userText,
+        persona: this.persona,
+        bundleRuntime: this.bundleRuntime,
+        services,
+        userData: userData as UserData,
+        logger: this.logger,
+      };
+
+      // Process the turn (all analysis, context building, emotional tracking)
+      const result = await processTurn(turnContext);
+
+      // Inject context into LLM
+      injectTurnContext(turnCtx, result);
+
+      // Send celebration events to frontend
+      const celebrations = getCelebrationEvents(result);
+      if (celebrations.length > 0) {
+        await this.sendCelebrationEvents(celebrations);
+      }
+
+      // Send mood update to frontend
+      if (result.context.humanizingResult) {
+        const hr = result.context.humanizingResult;
+        await this.sendDataMessage('mood', {
+          state: hr.mood.state,
+          energyLevel: hr.mood.energyLevel,
+          relationshipStage: hr.relationship.stage,
+          hasTransition: !!hr.relationshipTransition,
+        });
+      }
+
+      this.logger.info(
+        {
+          elapsedMs: result.context.elapsedMs,
+          contextCount: result.context.injections.length,
+          emotion: result.emotional.primary,
+        },
+        '🎯 Turn processed with TurnProcessor V2'
+      );
+    } catch (error) {
+      this.logger.error({ error: String(error) }, 'TurnProcessor V2 failed');
+      // Note: No fallback to V1 here - if USE_TURN_PROCESSOR is true,
+      // the user wants the new path, so we should surface errors
+      throw error;
+    }
+  }
 }
 
 // ============================================================================
@@ -1918,6 +2042,15 @@ export default defineAgent({
       } catch (fallbackError) {
         diag.error('Fallback initialization also failed', { error: String(fallbackError) });
       }
+    }
+
+    // Preload commonly used modules for faster first turn response
+    try {
+      const { preloadCommonModules } = await import('./shared/cached-imports.js');
+      await preloadCommonModules();
+      diag.prewarm('Common modules preloaded');
+    } catch (preloadError) {
+      diag.warn('Module preload failed (non-fatal)', { error: String(preloadError) });
     }
 
     proc.userData.vadLoaded = false;
@@ -2332,8 +2465,9 @@ export default defineAgent({
                 !hasError,
                 latencyMs
               );
-            } catch {
+            } catch (e) {
               // Analytics recording is non-critical, don't fail the tool execution
+              log().debug({ error: String(e) }, 'Tool analytics recording failed (non-critical)');
             }
 
             diag.tool('Tool execution tracked', {
@@ -2587,8 +2721,9 @@ export default defineAgent({
               // Also set time awareness
               silenceContext.currentHour = new Date().getHours();
               silenceContext.isWeekend = [0, 6].includes(new Date().getDay());
-            } catch {
+            } catch (e) {
               // Services might not be ready
+              log().debug({ error: String(e) }, 'Silence context initialization failed (services not ready)');
             }
 
             // Get meaningful silence response instead of generic filler
@@ -2809,6 +2944,14 @@ export default defineAgent({
       diag.state('Session started', { isPhoneCall, hasNoiseCancellation: isPhoneCall });
 
       // ===============================================
+      // STEP 7b: INITIALIZE FRONTEND PUBLISHER
+      // ===============================================
+      // Centralized real-time communication with the frontend
+      const { initializeFrontendPublisher, getFrontendPublisher } = await import('./realtime/index.js');
+      const frontendPublisher = initializeFrontendPublisher(ctx.room);
+      diag.state('Frontend publisher initialized');
+
+      // ===============================================
       // STEP 6b: INITIALIZE ENGAGEMENT DATA SENDER
       // ===============================================
       // Wire up real-time engagement data to frontend
@@ -2868,15 +3011,69 @@ export default defineAgent({
             }
           });
 
-          // ✨ Set up callback for music state changes - notify frontend for avatar dancing!
+          // ✨ Set up callback for music state changes - notify frontend AND do DJ-style interactions!
+          // Track previous state to detect unexpected stops
+          let lastMusicState: string = 'idle';
+          let lastTrackName: string | undefined;
+          
           player.setOnMusicStateChangeCallback((state, track, isAmbient) => {
             void (async () => {
-            diag.state('Music state changed, notifying frontend', {
+            diag.state('Music state changed', {
               state,
+              previousState: lastMusicState,
               track: track?.name,
               isAmbient,
             });
 
+            // 🎧 DJ-STYLE OUTRO: When music is FADING (not ended), speak over it like a real DJ!
+            // This creates that professional radio/DJ feel where the host talks as the track winds down
+            if (state === 'fading' && !isAmbient && track) {
+              try {
+                // Dynamic import to avoid circular dependency
+                const { getDJOutroPhrase } = await import('../audio/ambient-music.js');
+                const djOutro = getDJOutroPhrase(track.name, track.artist, sessionPersona.id);
+                
+                diag.state('🎧 DJ outro - speaking over fading music', { 
+                  track: track.name,
+                  phrase: djOutro.slice(0, 50) 
+                });
+                
+                // Speak the outro - the music is still playing but fading!
+                // This is the magic moment where we feel like a real DJ
+                session.say(djOutro, { allowInterruptions: true });
+              } catch (e) {
+                diag.warn('Failed to speak DJ outro', { error: String(e) });
+              }
+            }
+            
+            // 🎧 UNEXPECTED STOP: Music stopped/paused without fading first
+            // This means it crashed, network dropped, or user stopped it manually
+            // The agent should acknowledge this naturally
+            if ((state === 'stopped' || state === 'paused') && !isAmbient && lastMusicState === 'playing') {
+              // Only speak if music was actually playing (not if we just connected)
+              // And don't speak if we already did a DJ outro (lastMusicState would be 'fading')
+              try {
+                const { getMusicStoppedPhrase } = await import('../audio/ambient-music.js');
+                const stoppedPhrase = getMusicStoppedPhrase(sessionPersona.id, state === 'paused');
+                
+                diag.state('🎧 Music stopped unexpectedly, acknowledging', { 
+                  state,
+                  previousState: lastMusicState,
+                  trackName: lastTrackName,
+                  phrase: stoppedPhrase.slice(0, 50)
+                });
+                
+                session.say(stoppedPhrase, { allowInterruptions: true });
+              } catch (e) {
+                diag.warn('Failed to speak music-stopped phrase', { error: String(e) });
+              }
+            }
+            
+            // Update state tracking for next callback
+            lastMusicState = state;
+            lastTrackName = track?.name;
+
+            // Notify frontend for avatar dancing
             try {
               const musicMessage = JSON.stringify({
                 type: 'music',
@@ -2892,7 +3089,7 @@ export default defineAgent({
                 reliable: true,
               });
 
-              diag.state('🎵 Music state sent to frontend - avatar should dance!', { state });
+              diag.state('🎵 Music state sent to frontend', { state });
             } catch (e) {
               diag.warn('Failed to send music state to frontend', { error: String(e) });
             }
@@ -3061,8 +3258,8 @@ export default defineAgent({
                 proactiveInsightId = insightResult.suggestedInsightId;
               }
             }
-          } catch {
-            // Non-blocking
+          } catch (e) {
+            log().debug({ error: String(e) }, 'Proactive insights fetch failed (non-blocking)');
           }
         }
 
@@ -3081,8 +3278,8 @@ export default defineAgent({
                 reference: topCheckIn.reference,
               });
             }
-          } catch {
-            // Non-blocking
+          } catch (e) {
+            log().debug({ error: String(e) }, 'Emotional check-in fetch failed (non-blocking)');
           }
         }
 
@@ -3380,7 +3577,8 @@ export default defineAgent({
             }
           }
         } catch {
-          // Not JSON or not a handoff request - ignore silently
+          // Not JSON or not a handoff request - this is expected for non-handoff data
+          // Silently ignore as data channel is used for multiple message types
         }
       };
 
@@ -3452,8 +3650,8 @@ export default defineAgent({
               resetMusicPlayer();
               diag.session('Spotify and music player reset');
             }
-          } catch {
-            // Non-fatal
+          } catch (e) {
+            log().debug({ error: String(e) }, 'Music cleanup failed (non-fatal)');
           }
 
           // Flush optimization data (patterns, feedback)
@@ -3462,8 +3660,8 @@ export default defineAgent({
             autoOptimizer.endSession(sessionId);
             await feedbackCollector.flush();
             diag.session('Optimization data flushed');
-          } catch {
-            // Non-fatal
+          } catch (e) {
+            log().debug({ error: String(e) }, 'Optimization flush failed (non-fatal)');
           }
 
           diag.session('Session cleanup complete');

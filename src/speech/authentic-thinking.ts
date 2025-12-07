@@ -278,8 +278,8 @@ export function generateThinkingSSML(pause: ThinkingPause): string {
 
   // Thinking phrase
   if (pause.thinkingPhrase) {
-    // Wrap in softer emotion for naturalness
-    parts.push(`<emotion name="thoughtful">${pause.thinkingPhrase}</emotion>`);
+    // Wrap in curious emotion for naturalness (Cartesia valid: angry, sad, surprised, curious, affectionate)
+    parts.push(`<emotion value="curious">${pause.thinkingPhrase}</emotion>`);
     parts.push(`<break time="${Math.round(pause.pauseDurationMs * 0.3)}ms"/>`);
   }
 

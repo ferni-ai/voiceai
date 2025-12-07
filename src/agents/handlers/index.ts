@@ -19,9 +19,9 @@ export {
 } from './silence-handler.js';
 
 // User identification
+// NOTE: isRealName is exported from shared/session-setup.ts, not re-exported here to avoid ambiguity
 export {
   identifyUser,
-  isRealName,
   parseRoomMetadata,
   isReturningUser,
   type RoomMetadata,

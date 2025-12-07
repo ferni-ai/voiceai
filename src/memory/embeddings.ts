@@ -85,7 +85,10 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
     return results[0];
   }
 
-  async embedBatch(texts: string[]): Promise<number[][]> {
+  async embedBatch(texts: string[], retryCount = 0): Promise<number[][]> {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 1000;
+
     if (!this.apiKey) {
       throw new Error('OpenAI API key not configured');
     }
@@ -105,6 +108,14 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
 
       if (!response.ok) {
         const error = await response.text();
+        
+        // Retry on rate limit (429) errors
+        if (response.status === 429 && retryCount < MAX_RETRIES) {
+          getLogger().warn(`Rate limited, retrying in ${RETRY_DELAY_MS}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
+          return this.embedBatch(texts, retryCount + 1);
+        }
+        
         throw new Error(`OpenAI API error: ${response.status} - ${error}`);
       }
 
@@ -461,6 +472,50 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
   return getEmbeddingProvider().embedBatch(texts);
 }
 
+// ============================================================================
+// EMBEDDING DIMENSIONS
+// ============================================================================
+
+/**
+ * Standard embedding dimensions for various models
+ */
+export const EMBEDDING_DIMENSIONS: Record<string, number> = {
+  // OpenAI models
+  'text-embedding-3-small': 1536,
+  'text-embedding-3-large': 3072,
+  'text-embedding-ada-002': 1536,
+  // Google models
+  'text-embedding-004': 768,
+  'textembedding-gecko': 768,
+  'textembedding-gecko@003': 768,
+  // Local/hash embeddings
+  'local-hash': 384,
+};
+
+/**
+ * Get the dimensions for a specific model
+ * Returns undefined for unknown models
+ */
+export function getModelDimensions(model: string): number | undefined {
+  return EMBEDDING_DIMENSIONS[model];
+}
+
+/**
+ * Validate that two embeddings have compatible dimensions
+ */
+export function validateEmbeddingDimensions(
+  embedding1: number[],
+  embedding2: number[],
+  context?: string
+): void {
+  if (embedding1.length !== embedding2.length) {
+    const contextStr = context ? ` in ${context}` : '';
+    throw new Error(
+      `Embedding dimension mismatch${contextStr}: ${embedding1.length} vs ${embedding2.length}`
+    );
+  }
+}
+
 export default {
   embed,
   embedBatch,
@@ -473,4 +528,7 @@ export default {
   GoogleEmbeddings,
   VertexAIEmbeddings,
   LocalEmbeddings,
+  EMBEDDING_DIMENSIONS,
+  getModelDimensions,
+  validateEmbeddingDimensions,
 };

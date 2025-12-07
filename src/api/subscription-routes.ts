@@ -7,7 +7,7 @@
  * Philosophy: Keep it simple. Let Stripe handle complexity.
  */
 
-import { createLogger } from '../utils/logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 import {
   isStripeConfigured,
   createCheckoutSession,

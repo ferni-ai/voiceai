@@ -351,12 +351,12 @@ export function analyzeMoodPatterns(moodLogs: MoodLog[]): MoodPatterns {
   // Analyze habit correlations
   const habitsSet = new Set<string>();
   moodLogs.forEach((log) => {
-    log.habitsCompleted.forEach((h) => habitsSet.add(h));
+    (log.habitsCompleted ?? []).forEach((h: string) => habitsSet.add(h));
   });
 
   habitsSet.forEach((habit) => {
-    const withHabit = moodLogs.filter((l) => l.habitsCompleted.includes(habit));
-    const withoutHabit = moodLogs.filter((l) => !l.habitsCompleted.includes(habit));
+    const withHabit = moodLogs.filter((l) => (l.habitsCompleted ?? []).includes(habit));
+    const withoutHabit = moodLogs.filter((l) => !(l.habitsCompleted ?? []).includes(habit));
 
     if (withHabit.length >= 2 && withoutHabit.length >= 2) {
       const withScore = calculateMoodScore(withHabit);

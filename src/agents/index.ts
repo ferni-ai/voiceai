@@ -3,18 +3,28 @@
  *
  * Multi-persona voice agent system with modular intelligence.
  *
- * Architecture:
+ * Architecture (REFACTORED):
  * ┌─────────────────────────────────────────────────────────────────┐
  * │ src/agents/                                                     │
  * │   ├── shared/             - Utilities for ANY agent            │
  * │   │   ├── types.ts        - Session types (UserData)           │
  * │   │   ├── health-server.ts - HTTP health check                 │
- * │   │   └── external-apis.ts - Stock quotes, weather             │
+ * │   │   ├── external-apis.ts - Stock quotes, weather             │
+ * │   │   └── handoff-handler.ts - Handoff event handling          │
  * │   │                                                             │
  * │   ├── handlers/           - Event and lifecycle handlers       │
- * │   │   ├── handoff-handler.ts - Persona handoff                 │
  * │   │   ├── silence-handler.ts - Silence detection               │
  * │   │   └── user-identification.ts - User identification         │
+ * │   │                                                             │
+ * │   ├── processors/         - Turn processing (NEW)              │
+ * │   │   ├── turn-processor.ts - Message analysis & context       │
+ * │   │   └── types.ts        - Processor type definitions         │
+ * │   │                                                             │
+ * │   ├── realtime/           - Frontend communication (NEW)       │
+ * │   │   └── frontend-publisher.ts - Data channel messages        │
+ * │   │                                                             │
+ * │   ├── session/            - Session state management (NEW)     │
+ * │   │   └── session-state.ts - Unified state manager             │
  * │   │                                                             │
  * │   └── voice-agent.ts      - ⭐ PRIMARY: Generic agent          │
  * │                                                                 │
@@ -30,14 +40,15 @@
  * └─────────────────────────────────────────────────────────────────┘
  *
  * Usage:
- *   PERSONA_ID=jack-bogle node dist/agents/voice-agent.js start
- *   PERSONA_ID=jack-b node dist/agents/voice-agent.js start
+ *   PERSONA_ID=ferni node dist/agents/voice-agent.js start
  *   PERSONA_ID=peter-john node dist/agents/voice-agent.js start
  *
  * Available personas:
- *   - jack-bogle: The legendary Jack Bogle
- *   - jack-b: Younger Bogle-inspired advisor
- *   - peter-john: The ten-bagger hunter
+ *   - ferni: The life coach (main persona)
+ *   - peter-john: Research specialist
+ *   - alex-chen: Communications specialist
+ *   - maya-santos: Habits & routines specialist
+ *   - jordan-taylor: Event planning specialist
  */
 
 // ============================================================================
@@ -45,6 +56,30 @@
 // ============================================================================
 
 export * from './shared/index.js';
+
+// ============================================================================
+// PROCESSORS (extracted turn processing)
+// ============================================================================
+
+export * from './processors/index.js';
+
+// ============================================================================
+// REALTIME COMMUNICATION (frontend data channel)
+// ============================================================================
+
+export * from './realtime/index.js';
+
+// ============================================================================
+// SESSION MANAGEMENT (unified state)
+// ============================================================================
+
+export * from './session/index.js';
+
+// ============================================================================
+// HANDLERS (event handling)
+// ============================================================================
+
+export * from './handlers/index.js';
 
 // ============================================================================
 // PRIMARY AGENT

@@ -20,7 +20,7 @@ This makes personas:
 ```
 src/personas/
 ├── bundles/                # Persona bundles (the main system)
-│   ├── jack-bogle/
+│   ├── ferni/              # Life coach, team coordinator
 │   │   ├── persona.manifest.json
 │   │   ├── identity/
 │   │   │   ├── biography.md
@@ -38,11 +38,11 @@ src/personas/
 │   │           ├── _index.json
 │   │           └── *.md
 │   │
-│   ├── peter-john/
-│   ├── alex-chen/
-│   ├── maya-santos/
-│   ├── jordan-taylor/
-│   └── ferni/
+│   ├── peter-john/         # Researcher
+│   ├── alex-chen/          # Communicator
+│   ├── maya-santos/        # Habits coach
+│   ├── jordan-taylor/      # Lifetime planner
+│   └── nayan-patel/        # Sage/wisdom
 │
 ├── team/                   # Team coordination and handoffs
 │   ├── team-config.ts
@@ -63,12 +63,12 @@ src/personas/
 
 | ID | Name | Role | Description |
 |----|------|------|-------------|
-| `jack-bogle` | Jack Bogle | Investment sage | Wise grandfather energy, index fund philosophy |
-| `peter-john` | Peter John | Stock analyst | Energetic, enthusiastic stock picker |
-| `alex-chen` | Alex Chen | Communications | Efficient, organized, inbox zero |
-| `maya-santos` | Maya Santos | Spend/save coach | Warm, non-judgmental money coach |
-| `jordan-taylor` | Jordan Taylor | Event planner | Enthusiastic milestone coordinator |
-| `ferni` | Ferni | Life coach | Team coordinator, holistic coach |
+| `ferni` | Ferni | Life coach | Team coordinator, holistic coach, second chances believer |
+| `peter-john` | Peter John | Researcher | Energetic, pattern-finding stock storyteller |
+| `alex-chen` | Alex Chen | Communicator | Efficient Chief of Staff, inbox zero expert |
+| `maya-santos` | Maya Santos | Habits coach | Warm, non-judgmental habit builder |
+| `jordan-taylor` | Jordan Taylor | Lifetime planner | Enthusiastic milestone coordinator |
+| `nayan-patel` | Nayan Patel | Sage | Wisdom, patience, lifetime perspective |
 
 ## Quick Start
 
@@ -86,14 +86,14 @@ import {
 await initializeFromBundles();
 
 // Get a persona synchronously (after initialization)
-const jack = getPersona('jack-bogle');
+const ferni = getPersona('ferni');
 
 // Get a persona async (loads from bundle if not cached)
 const peter = await getPersonaAsync('peter-john');
 
 // List all registered personas
 const allPersonas = listPersonas();
-// ['jack-bogle', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'ferni', ...]
+// ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel', ...]
 ```
 
 ### Using Behaviors
@@ -137,8 +137,8 @@ const entrance = getTheatricalEntrance('peter-john');
 // "<emotion value=\"excited\"/>Whoa whoa whoa! Did someone say stock picking?!"
 
 // Celebrate user achievements
-const celebration = getCelebration('jack-bogle', 'goal_reached');
-// "You did it. And you did it the right way. Congratulations."
+const celebration = getCelebration('ferni', 'goal_reached');
+// "<emotion value=\"excited\"/>You did it!! I knew you could!"
 ```
 
 ## Creating a New Persona Bundle

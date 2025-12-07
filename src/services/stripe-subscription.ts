@@ -15,7 +15,7 @@
  */
 
 import { getStore } from '../memory/store-factory.js';
-import { createLogger } from '../utils/logger.js';
+import { createLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
 import {
   type SubscriptionTier,

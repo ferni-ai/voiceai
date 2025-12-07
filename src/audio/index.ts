@@ -28,4 +28,6 @@ export {
   getAmbientTracks,
   getRandomAmbientTrack,
   getAmbientMusicEndedPhrase,
+  getDJOutroPhrase,
+  getMusicStoppedPhrase,
 } from './ambient-music.js';

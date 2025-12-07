@@ -4,7 +4,7 @@
  * Detects user emotions from text to enable emotional mirroring and adaptive responses.
  */
 
-import { getLogger } from '../utils/logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 const logger = getLogger().child({ service: 'EmotionDetection' });
 

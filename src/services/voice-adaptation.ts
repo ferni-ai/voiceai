@@ -5,7 +5,7 @@
  * adjustments based on context and emotion.
  */
 
-import { getLogger } from '../utils/logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 import { loadPersonaBehaviors } from './persona-behavior-manager.js';
 import type { EmotionResult } from './emotion-detection.js';
 

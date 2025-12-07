@@ -12,6 +12,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { runBackground } from '../utils/background-task.js';
 import { feedbackCollector, type FeedbackSummary } from './feedback-collector.js';
 import {
   patternAnalyzer,
@@ -132,15 +133,14 @@ export class RecommendationEngine {
 
     // Persist recommendations to Firestore (async, non-blocking)
     if (this.recommendations.length > 0) {
-      import('../services/optimization-persistence.js')
-        .then(({ optimizationPersistence }) => {
+      runBackground(
+        import('../services/optimization-persistence.js').then(({ optimizationPersistence }) => {
           for (const rec of this.recommendations) {
             optimizationPersistence.bufferRecommendation(rec);
           }
-        })
-        .catch(() => {
-          // Persistence failure is non-critical
-        });
+        }),
+        { task: 'bufferRecommendations', count: this.recommendations.length }
+      );
     }
 
     getLogger().info({ count: this.recommendations.length }, '💡 Generated tool recommendations');

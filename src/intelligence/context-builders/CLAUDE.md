@@ -19,9 +19,9 @@ import {
   type ContextBuilderInput,
   type ContextInjection
 } from './registry.js';
-import { createLogger } from '../../utils/logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 
-const log = createLogger('context:my-builder');
+const log = createLogger({ module: 'context:my-builder' });
 
 export const myBuilder: ContextBuilder = {
   name: 'my-builder',

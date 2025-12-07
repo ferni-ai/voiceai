@@ -8,7 +8,7 @@
 import { getEngagementStore } from './engagement-store.js';
 import { getConversationHistoryService } from './conversation-history.js';
 import { getCognitiveMemoryService } from './cognitive-memory.js';
-import { getLogger } from '../utils/logger.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES

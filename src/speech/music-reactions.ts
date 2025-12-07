@@ -144,7 +144,7 @@ export function shouldReactToMusic(): boolean {
 /**
  * Get a playful intro for music
  */
-export function getPlayfulMusicIntro(_query?: string): string {
+export function getPlayfulMusicIntro(): string {
   return PLAYFUL_INTROS[Math.floor(Math.random() * PLAYFUL_INTROS.length)];
 }
 

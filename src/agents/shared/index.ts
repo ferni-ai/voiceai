@@ -8,6 +8,7 @@
  * - health-server.ts: HTTP health check for Cloud Run
  * - external-apis.ts: Stock quotes, weather, historical events
  * - session-setup.ts: Session initialization helpers
+ * - cached-imports.ts: Performance-optimized dynamic imports
  *
  * Usage:
  * ```ts
@@ -16,6 +17,7 @@
  *   startHealthCheckServer,
  *   identifyUserFromMetadata,
  *   setupSessionServices,
+ *   getContextBuilders,  // Cached import
  * } from './shared/index.js';
  * ```
  */
@@ -74,3 +76,19 @@ export {
   type VoiceAgentRef,
   type HandoffHandlerConfig,
 } from './handoff-handler.js';
+
+// Cached Imports (performance optimization)
+export {
+  getContextBuilders,
+  getEasterEggChecker,
+  getTaskManagerCached,
+  getPersonaAsyncCached,
+  getBundleFunctionsCached,
+  getVoiceManagerCached,
+  getMusicPlayerCached,
+  getIdentifyFromMetadataCached,
+  getStartupFunctionsCached,
+  isMusicEnabledCached,
+  preloadCommonModules,
+  resetCachedModules,
+} from './cached-imports.js';

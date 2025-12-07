@@ -196,7 +196,7 @@ export class PronunciationMemoryService {
     for (const pattern of INTRODUCTION_PATTERNS) {
       const match = message.match(pattern);
       if (match) {
-        return this.handleIntroduction(match, message);
+        return this.handleIntroduction(match);
       }
     }
 
@@ -214,10 +214,7 @@ export class PronunciationMemoryService {
   /**
    * Handle a name introduction
    */
-  private handleIntroduction(
-    match: RegExpMatchArray,
-    _fullMessage: string
-  ): PronunciationEntry | null {
+  private handleIntroduction(match: RegExpMatchArray): PronunciationEntry | null {
     const name = match[1]?.trim();
     if (!name) return null;
 

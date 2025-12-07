@@ -1,127 +1,111 @@
 /**
- * Habit & Routine Coaching System - Modular Components
+ * Habit Coaching Module
  *
- * This module provides clean, modular access to the habit coaching system's
- * types, constants, and helper functions.
+ * Re-exports from modular files for cleaner imports.
+ * This provides a migration path from the monolithic habit-coaching.ts.
  *
- * KEY CAPABILITIES:
- * - Multi-domain habit tracking (health, relationships, career, etc.)
- * - Glidepath progression (start tiny → build up)
- * - Life stage awareness (student, parent, retiree, etc.)
- * - Habit stacking & bundling
- * - Keystone habit identification
- * - Behavior science framework (cue-routine-reward)
- * - Personalized recommendations
- * - Accountability & encouragement
+ * USAGE:
+ *   // New modular imports (preferred)
+ *   import { LIFE_DOMAINS, LIFE_STAGES } from './habit-coaching/constants.js';
+ *   import type { EnhancedHabit, HabitTemplate } from './habit-coaching/types.js';
  *
- * Based on: Atomic Habits, Tiny Habits, The Power of Habit
+ *   // Or import from index
+ *   import { LIFE_DOMAINS, type EnhancedHabit } from './habit-coaching/index.js';
  *
- * @module habit-coaching
+ * MIGRATION STATUS:
+ *   - types.ts: ✅ Complete (all interfaces/types extracted)
+ *   - constants.ts: ✅ Complete (core constants extracted)
+ *   - challenges.ts: 🔜 TODO (THIRTY_DAY_CHALLENGES - 600+ lines)
+ *   - templates.ts: 🔜 TODO (HABIT_TEMPLATES - 300+ lines)
+ *   - bundles.ts: 🔜 TODO (HABIT_BUNDLES - 500+ lines)
+ *   - tools.ts: 🔜 TODO (createHabitCoachingTools - 1700+ lines)
  *
- * ## Usage
- *
- * For types and constants (new code should import from here):
- * ```typescript
- * import { LIFE_DOMAINS, LifeDomain, EnhancedHabit } from './tools/habit-coaching/index.js';
- * ```
- *
- * For the main tool creation function (maintained for backward compatibility):
- * ```typescript
- * import createHabitCoachingTools from './tools/habit-coaching.js';
- * ```
+ * For now, the main habit-coaching.ts still exports everything.
+ * These modules can be used for new code while migration continues.
  */
 
 // ============================================================================
-// RE-EXPORTS FROM SUBMODULES
+// TYPE EXPORTS
 // ============================================================================
 
-// Types
 export type {
+  // Domain types
+  LifeDomain,
+  LifeStage,
+  FourTendency,
+
+  // Identity & breaking
   IdentityShift,
   HabitBreakPlan,
+
+  // Environment & temptation
   EnvironmentDesign,
   TemptationBundle,
+
+  // Tracking
   SetbackLog,
   AccountabilitySystem,
+  MoodLog,
+
+  // Challenges
   ThirtyDayChallenge,
   ChallengeWeek,
   ChallengeDefinition,
+
+  // Bundles
+  HabitBundleDefinition,
+
+  // Transitions
+  LifeTransitionSupport,
+
+  // Glidepath & behavior science
   GlidepathLevel,
   HabitLoop,
   HabitStack,
   KeystoneHabit,
+
+  // Enhanced habits
   EnhancedHabit,
   HabitTemplate,
-  HabitCoachData,
-  WeeklyReflection,
-  MoodLog,
-  LifeTransitionSupport,
-  MotivationalContent,
-  HabitBundleHabit,
-  HabitBundle,
-  HabitDiagnosis,
-  MoodPatterns,
 } from './types.js';
 
-// Constants
+// ============================================================================
+// CONSTANT EXPORTS
+// ============================================================================
+
 export {
+  // Core data
   LIFE_DOMAINS,
   LIFE_STAGES,
+  FOUR_TENDENCIES_STRATEGIES,
   GLIDEPATH_LEVELS,
+
+  // Support messages
+  SELF_COMPASSION_MESSAGES,
+  ACCOUNTABILITY_TIPS,
+
+  // Environment strategies
   ENVIRONMENT_BUILD_STRATEGIES,
   ENVIRONMENT_BREAK_STRATEGIES,
-  ACCOUNTABILITY_TIPS,
-  SELF_COMPASSION_MESSAGES,
 } from './constants.js';
 
-export type { LifeDomain, LifeStage } from './constants.js';
+// ============================================================================
+// LEGACY RE-EXPORTS
+// ============================================================================
 
-// Four Tendencies
+/**
+ * Re-export from original monolithic file for backward compatibility.
+ *
+ * TODO: Once migration is complete, these will be replaced with
+ * exports from the modular files (challenges.ts, templates.ts, tools.ts).
+ */
 export {
-  FOUR_TENDENCIES_STRATEGIES,
-  getTendencyStrategies,
-  getTendencyAvoid,
-  getTendencyMotivation,
-} from './tendencies.js';
-
-export type { FourTendency } from './tendencies.js';
-
-// Challenges
-export {
+  // Large constants (not yet migrated)
   THIRTY_DAY_CHALLENGES,
-  getChallenge,
-  getChallengeTypes,
-  getChallengeDay,
-} from './challenges.js';
-
-// Life Transitions
-export {
+  HABIT_BUNDLES,
   LIFE_TRANSITION_SUPPORT,
-  getTransitionSupport,
-  getTransitionTypes,
-} from './transitions.js';
+  HABIT_TEMPLATES,
 
-// Helper Functions
-export {
-  generateFrictionTips,
-  detectSetbackPattern,
-  diagnoseHabitFailure,
-  getMotivationalContent,
-  analyzeMoodPatterns,
-  getEncouragement,
-  getMoodBasedTip,
-} from './helpers.js';
-
-// ============================================================================
-// NOTE ON MAIN TOOLS
-// ============================================================================
-// The main createHabitCoachingTools function and getUserCoachData are exported
-// from the parent file: ../habit-coaching.js
-//
-// This is intentional to avoid circular dependencies and maintain backward
-// compatibility. Future refactoring should migrate the tools to use these
-// modular imports.
-//
-// For tools, import from:
-// import createHabitCoachingTools, { getUserCoachData } from '../tools/habit-coaching.js';
-
+  // Tool creator (not yet migrated)
+  createHabitCoachingTools,
+} from '../habit-coaching.js';

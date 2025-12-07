@@ -216,14 +216,62 @@ export interface ServiceRegistry {
 }
 
 /**
+ * Base tool interface for strict custom implementations
+ * 
+ * Use this interface when you want TypeScript to validate your tool structure.
+ */
+export interface StrictToolInterface {
+  /** Description shown to the LLM */
+  description: string;
+
+  /** 
+   * Parameter schema - can be JSON Schema or Zod schema
+   * Optional when tool takes no parameters
+   */
+  parameters?: unknown;
+
+  /** 
+   * Execute the tool with provided parameters
+   * Returns string for simple responses, or object for structured data
+   */
+  execute: (params: Record<string, unknown>) => Promise<unknown>;
+
+  /** Tool name (optional, defaults to ID) */
+  name?: string;
+}
+
+/**
  * A callable tool function (LiveKit agents compatible)
  *
- * Note: This is a flexible type that accommodates both our custom tools
- * and LiveKit's FunctionTool. When using llm.tool(), cast the result
- * to Tool using `as Tool` or `as unknown as Tool`.
+ * This type is intentionally flexible to accommodate:
+ * 1. LiveKit's FunctionTool with Zod schemas
+ * 2. Our custom tool implementations  
+ * 3. Third-party tool formats
+ *
+ * The flexibility is necessary because:
+ * - LiveKit FunctionTool has a complex generic signature
+ * - Different tool formats have different execute() signatures
+ * - JSON Schema and Zod parameters are not directly compatible
+ *
+ * For strict typing in custom implementations, use StrictToolInterface.
+ * 
+ * NOTE: This uses a permissive type to avoid breaking existing code.
+ * Tools should still implement description and execute at minimum.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Tool = any;
+
+/**
+ * Type guard to check if an object has the minimum Tool structure
+ */
+export function isTool(obj: unknown): obj is StrictToolInterface {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const tool = obj as Record<string, unknown>;
+  return (
+    typeof tool.description === 'string' &&
+    typeof tool.execute === 'function'
+  );
+}
 
 /**
  * Stricter tool interface for custom implementations

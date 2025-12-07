@@ -22,34 +22,17 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getDORAMetricsService } from '../services/dora-metrics.js';
 import type { Deployment, Incident } from '../services/dora-metrics.js';
+import { createLogger } from '../utils/safe-logger.js';
+import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from './helpers.js';
+import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';
+import {
+  validateBody,
+  RecordDeploymentSchema,
+  RecordIncidentSchema,
+  ResolveIncidentSchema,
+} from './validators.js';
 
-// Helper to parse JSON body
-async function parseBody<T>(req: IncomingMessage): Promise<T> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (e) {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
-
-// Helper to send JSON response
-function sendJson(res: ServerResponse, data: unknown, status = 200): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-// Helper to send error
-function sendError(res: ServerResponse, message: string, status = 400): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: message }));
-}
+const log = createLogger({ module: 'DORA-API' });
 
 export async function handleDORARoutes(
   req: IncomingMessage,
@@ -63,48 +46,69 @@ export async function handleDORARoutes(
     return false;
   }
 
+  // Handle CORS preflight
+  if (handleCorsPreflightIfNeeded(req, res)) {
+    return true;
+  }
+
+  // Rate limiting
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000 })) {
+    return true;
+  }
+
+  // Webhooks don't require auth (they use signatures)
+  const isWebhook = url.includes('/webhook/');
+  
+  // For non-webhooks, require authentication
+  if (!isWebhook) {
+    // Write operations (POST) require admin
+    if (method === 'POST') {
+      const auth = requireAdmin(req, res);
+      if (!auth) return true;
+    } else {
+      // Read operations require basic auth
+      const auth = requireAuth(req, res, { allowDevMode: true });
+      if (!auth) return true;
+    }
+  }
+
   const doraService = getDORAMetricsService();
 
   try {
     // GET /api/dora/metrics
     if (url === '/api/dora/metrics' && method === 'GET') {
       const metrics = doraService.getMetrics();
-      sendJson(res, metrics);
+      sendJSON(res, metrics);
       return true;
     }
 
     // GET /api/dora/deployments
     if (url.match(/^\/api\/dora\/deployments(\?.*)?$/) && method === 'GET') {
       const deployments = doraService.getDeployments();
-      sendJson(res, { deployments });
+      sendJSON(res, { deployments });
       return true;
     }
 
     // POST /api/dora/deployments
     if (url === '/api/dora/deployments' && method === 'POST') {
-      const body = await parseBody<Partial<Deployment>>(req);
-      
-      // Validate required fields
-      if (!body.timestamp || !body.commitSha || !body.branch || !body.environment) {
-        sendError(res, 'Missing required fields: timestamp, commitSha, branch, environment');
-        return true;
-      }
+      const body = await validateBody(req, res, RecordDeploymentSchema);
+      if (!body) return true; // Validation failed
 
       const deployment = doraService.recordDeployment({
         timestamp: body.timestamp,
         commitSha: body.commitSha,
         commitMessage: body.commitMessage,
         branch: body.branch,
-        environment: body.environment as Deployment['environment'],
+        environment: body.environment,
         duration: body.duration || 0,
-        success: body.success !== false,
+        success: body.success,
         triggeredBy: body.triggeredBy || 'api',
         buildId: body.buildId,
         rollback: body.rollback,
-        metadata: body.metadata,
+        metadata: body.metadata as Record<string, unknown>,
       });
 
-      sendJson(res, { success: true, deployment }, 201);
+      sendJSON(res, { success: true, deployment }, 201);
       return true;
     }
 
@@ -124,7 +128,7 @@ export async function handleDORARoutes(
         return true;
       }
 
-      sendJson(res, { success: true, deployment });
+      sendJSON(res, { success: true, deployment });
       return true;
     }
 
@@ -137,29 +141,24 @@ export async function handleDORARoutes(
         ? doraService.getActiveIncidents()
         : doraService.getIncidents();
       
-      sendJson(res, { incidents });
+      sendJSON(res, { incidents });
       return true;
     }
 
     // POST /api/dora/incidents
     if (url === '/api/dora/incidents' && method === 'POST') {
-      const body = await parseBody<Partial<Incident>>(req);
-      
-      // Validate required fields
-      if (!body.title || !body.severity || !body.startedAt) {
-        sendError(res, 'Missing required fields: title, severity, startedAt');
-        return true;
-      }
+      const body = await validateBody(req, res, RecordIncidentSchema);
+      if (!body) return true; // Validation failed
 
       const incident = doraService.recordIncident({
         title: body.title,
-        severity: body.severity as Incident['severity'],
+        severity: body.severity,
         startedAt: body.startedAt,
         deploymentId: body.deploymentId,
         affectedServices: body.affectedServices || [],
       });
 
-      sendJson(res, { success: true, incident }, 201);
+      sendJSON(res, { success: true, incident }, 201);
       return true;
     }
 
@@ -171,7 +170,8 @@ export async function handleDORARoutes(
         sendError(res, 'Missing incident ID');
         return true;
       }
-      const body = await parseBody<{ resolvedAt?: string; resolution?: string; rootCause?: string }>(req);
+      const body = await validateBody(req, res, ResolveIncidentSchema);
+      if (!body) return true; // Validation failed
       
       const incident = doraService.resolveIncident(incidentId, {
         resolvedAt: body.resolvedAt || new Date().toISOString(),
@@ -184,7 +184,7 @@ export async function handleDORARoutes(
         return true;
       }
 
-      sendJson(res, { success: true, incident });
+      sendJSON(res, { success: true, incident });
       return true;
     }
 
@@ -195,7 +195,7 @@ export async function handleDORARoutes(
         return true;
       }
       doraService.seedSampleData();
-      sendJson(res, { success: true, message: 'Sample data seeded' });
+      sendJSON(res, { success: true, message: 'Sample data seeded' });
       return true;
     }
 
@@ -206,7 +206,7 @@ export async function handleDORARoutes(
         return true;
       }
       doraService.reset();
-      sendJson(res, { success: true, message: 'Data reset' });
+      sendJSON(res, { success: true, message: 'Data reset' });
       return true;
     }
 
@@ -245,12 +245,12 @@ export async function handleDORARoutes(
             },
           });
 
-          sendJson(res, { success: true, deployment });
+          sendJSON(res, { success: true, deployment });
           return true;
         }
       }
 
-      sendJson(res, { success: true, message: 'Event ignored' });
+      sendJSON(res, { success: true, message: 'Event ignored' });
       return true;
     }
 
@@ -277,11 +277,11 @@ export async function handleDORARoutes(
           },
         });
 
-        sendJson(res, { success: true, deployment });
+        sendJSON(res, { success: true, deployment });
         return true;
       }
 
-      sendJson(res, { success: true, message: 'Build status ignored' });
+      sendJSON(res, { success: true, message: 'Build status ignored' });
       return true;
     }
 
@@ -290,7 +290,7 @@ export async function handleDORARoutes(
     return true;
 
   } catch (error) {
-    console.error('[DORA API Error]', error);
+    log.error({ error }, 'DORA API error');
     sendError(res, error instanceof Error ? error.message : 'Internal error', 500);
     return true;
   }
