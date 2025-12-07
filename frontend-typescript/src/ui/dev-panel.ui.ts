@@ -78,10 +78,44 @@ const isDevEnvironment = (): boolean => {
   }
 };
 
-const DEV_MODE_ENABLED =
-  isDevEnvironment() ||
-  localStorage.getItem('ferni_dev_mode') === 'true' ||
-  new URLSearchParams(window.location.search).has('dev');
+// Admin key for production dev panel access
+// Set via: localStorage.setItem('ferni_admin_key', 'your-secret-key')
+// Or URL: ?dev=your-secret-key
+// Configure via VITE_DEV_PANEL_KEY environment variable, or defaults to 'ferni2024'
+const ADMIN_KEY_HASH = (() => {
+  try {
+    const env = (import.meta as { env?: { VITE_DEV_PANEL_KEY?: string } }).env;
+    return env?.VITE_DEV_PANEL_KEY || 'ferni2024';
+  } catch {
+    return 'ferni2024';
+  }
+})();
+
+const checkAdminAccess = (): boolean => {
+  // Check URL parameter with key
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlKey = urlParams.get('dev');
+  if (urlKey && urlKey === ADMIN_KEY_HASH) {
+    // Store it so they don't need to pass it every time
+    localStorage.setItem('ferni_admin_key', urlKey);
+    return true;
+  }
+
+  // Check stored admin key
+  const storedKey = localStorage.getItem('ferni_admin_key');
+  if (storedKey === ADMIN_KEY_HASH) {
+    return true;
+  }
+
+  // Legacy check for simple dev mode flag (still works in dev environment)
+  if (isDevEnvironment()) {
+    return localStorage.getItem('ferni_dev_mode') === 'true' || urlParams.has('dev');
+  }
+
+  return false;
+};
+
+const DEV_MODE_ENABLED = isDevEnvironment() || checkAdminAccess();
 
 // ============================================================================
 // ICONS (Lucide-style)

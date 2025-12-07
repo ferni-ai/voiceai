@@ -78,6 +78,54 @@ npm run build
 npm run preview
 ```
 
+## Dev Panel 🛠️
+
+The Dev Panel provides testing tools for personas, celebrations, tier simulation, and more.
+
+### Accessing the Dev Panel
+
+| Environment | Method |
+|-------------|--------|
+| **Development** | `?dev` URL param, or `Cmd/Ctrl+Shift+D` keyboard shortcut |
+| **Production** | `?dev=YOUR_KEY` URL param (key required) |
+
+### Production Access
+
+In production, you need the admin key to access the dev panel:
+
+```bash
+# Option 1: URL parameter (stores key for future visits)
+https://your-site.com/?dev=ferni2024
+
+# Option 2: Browser console
+localStorage.setItem('ferni_admin_key', 'ferni2024');
+location.reload();
+```
+
+Once authenticated, use `Cmd/Ctrl+Shift+D` to toggle the panel anytime.
+
+### Custom Admin Key
+
+Set a custom key via environment variable:
+
+```bash
+# In .env or deployment config
+VITE_DEV_PANEL_KEY=your-super-secret-key
+```
+
+Then access with: `?dev=your-super-secret-key`
+
+### Dev Panel Features
+
+- **Persona Switching**: Test handoffs between team members
+- **Tier Simulation**: Test Free/Friend/Partner tier behaviors
+- **Relationship Stage**: Override progression stages
+- **Celebrations**: Trigger unlock celebrations and effects
+- **Avatar Expressions**: Test all avatar states and emotions
+- **Voice Modes**: Simulate listening/speaking states
+- **Weather Effects**: Toggle ambient atmosphere effects
+- **Favicon States**: Test living favicon animations
+
 ## Design Decisions
 
 ### State Management

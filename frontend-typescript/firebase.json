@@ -10,6 +10,13 @@
       ],
       "rewrites": [
         {
+          "source": "/api/**",
+          "run": {
+            "serviceId": "bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/token",
           "run": {
             "serviceId": "bogle-ui",
@@ -18,6 +25,13 @@
         },
         {
           "source": "/spotify/**",
+          "run": {
+            "serviceId": "bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/subscription/**",
           "run": {
             "serviceId": "bogle-ui",
             "region": "us-central1"
@@ -91,6 +105,13 @@
       ],
       "rewrites": [
         {
+          "source": "/api/**",
+          "run": {
+            "serviceId": "bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/token",
           "run": {
             "serviceId": "bogle-ui",
@@ -99,6 +120,13 @@
         },
         {
           "source": "/spotify/**",
+          "run": {
+            "serviceId": "bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/subscription/**",
           "run": {
             "serviceId": "bogle-ui",
             "region": "us-central1"

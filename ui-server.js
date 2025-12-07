@@ -656,6 +656,23 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   
+  // Check Spotify link status
+  if (pathname === '/spotify/status') {
+    const refreshToken = getSpotifyRefreshToken();
+    const isConfigured = !!(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET);
+    const isLinked = !!(refreshToken && isConfigured);
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      linked: isLinked,
+      configured: isConfigured,
+      hasRefreshToken: !!refreshToken,
+      hasWebDevice: !!spotifyWebDeviceId,
+      deviceId: spotifyWebDeviceId,
+    }));
+    return;
+  }
+  
   // ============================================================================
   // MARKETPLACE PROXY ROUTES (GitHub private repo access)
   // ============================================================================
