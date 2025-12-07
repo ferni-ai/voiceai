@@ -314,11 +314,12 @@ describe('Handoff Flow', () => {
       expect(voiceSwitch!.time).toBeLessThanOrEqual(greetingStart!.time);
     });
 
-    // SKIPPED: Flaky test - fake timers + async setTimeout causes deadlock
-    it.skip('should retry voice switch on failure', async () => {
+    it('should retry voice switch on failure', async () => {
+      // Use real timers for this test since we need actual delays
+      vi.useRealTimers();
+      
       const MAX_RETRIES = 2;
       let attempts = 0;
-      let success = false;
 
       const switchVoiceWithRetry = async (): Promise<boolean> => {
         for (let i = 0; i <= MAX_RETRIES; i++) {
@@ -327,15 +328,11 @@ describe('Handoff Flow', () => {
             if (attempts < 3) {
               throw new Error('Voice switch failed');
             }
-            success = true;
             return true;
           } catch {
             if (i < MAX_RETRIES) {
-              // Wait before retry
-              await new Promise((r) => {
-                setTimeout(r, 100);
-              });
-              vi.advanceTimersByTime(100);
+              // Wait before retry (using minimal delay for test speed)
+              await new Promise((r) => setTimeout(r, 1));
             }
           }
         }
@@ -345,6 +342,9 @@ describe('Handoff Flow', () => {
       const result = await switchVoiceWithRetry();
       expect(result).toBe(true);
       expect(attempts).toBe(3); // 1 initial + 2 retries
+      
+      // Restore fake timers for other tests
+      vi.useFakeTimers();
     });
   });
 });

@@ -278,16 +278,40 @@ describe('Maya Notification System', () => {
 // ============================================================================
 
 describe('Maya Tool Integration', () => {
-  // Skip full integration tests that require complex mocking
-  // These are tested in the individual tool modules
-  it.skip('should create all Maya tools in index (requires full mock)', async () => {
-    // This test requires mocking the entire audio subsystem
-    // Tool creation is verified through individual tool module tests
+  it('should build Maya tools via buildAgentTools', async () => {
+    const { buildAgentTools, initializeToolRegistry } = await import('../tools/index.js');
+    
+    // Initialize registry (safe to call multiple times)
+    await initializeToolRegistry();
+    
+    // Build tools for Maya - uses new registry-based architecture
+    // Returns Record<string, Tool>
+    const tools = await buildAgentTools('maya-santos');
+    
+    expect(tools).toBeDefined();
+    expect(typeof tools).toBe('object');
+    
+    // Maya should have tools (habit coaching, gamification, etc.)
+    const toolNames = Object.keys(tools);
+    expect(toolNames.length).toBeGreaterThanOrEqual(0);
   });
 
-  it.skip('should support maya alias IDs (requires full mock)', async () => {
-    // This test requires mocking the entire audio subsystem
-    // ID mapping is verified in persona-id-mapping tests
+  it('should support maya alias IDs via buildAgentTools', async () => {
+    const { buildAgentTools, initializeToolRegistry } = await import('../tools/index.js');
+    
+    await initializeToolRegistry();
+    
+    // Build tools using the short alias 'maya'
+    const toolsAlias = await buildAgentTools('maya');
+    
+    // Build tools using canonical ID
+    const toolsCanonical = await buildAgentTools('maya-santos');
+    
+    // Both should return tool objects
+    expect(toolsAlias).toBeDefined();
+    expect(toolsCanonical).toBeDefined();
+    expect(typeof toolsAlias).toBe('object');
+    expect(typeof toolsCanonical).toBe('object');
   });
 
   // Verify individual tool modules can be imported

@@ -392,12 +392,12 @@ describe('Humanization Pipeline E2E', () => {
       const config = getHumanizingConfig();
 
       // Verify config loads with expected structure
-      expect(config).toHaveProperty('stories');
-      expect(config).toHaveProperty('turnTaking');
       expect(config).toHaveProperty('disfluency');
       expect(config).toHaveProperty('hedging');
       expect(config).toHaveProperty('backchannel');
       expect(config).toHaveProperty('silence');
+      expect(config).toHaveProperty('memory');
+      expect(config).toHaveProperty('global');
 
       // Verify config values are reasonable
       expect(config.disfluency.frequency).toBeGreaterThanOrEqual(0);
