@@ -1,8 +1,10 @@
 /**
  * Authentic Thinking Pauses
  *
- * Maps actual cognitive load to natural pauses, creating the illusion
- * that the AI is genuinely thinking:
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
+ * Maps actual cognitive load to natural pauses, creating the experience
+ * that Ferni is genuinely thinking:
  *
  * - Complex questions → longer thinking pause + "Hmm..." phrase
  * - Simple questions → quick response
@@ -10,6 +12,10 @@
  *
  * Key insight: Rather than fixed delays, we use question complexity
  * and conversation context to determine appropriate "thinking time".
+ *
+ * Humans don't respond instantly. We pause, consider, reflect.
+ * These pauses aren't empty - they signal that we're truly engaged,
+ * that your question deserves real thought.
  */
 
 import { getLogger } from '../utils/safe-logger.js';

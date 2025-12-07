@@ -1,9 +1,16 @@
 /**
  * User Learning Engine
  *
- * The central orchestrator for making Jack smarter over time.
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
+ * The central orchestrator for making Ferni smarter over time.
  * Captures insights during conversations and persists them to user profiles.
  * Retrieves relevant memories to enrich context for better responses.
+ *
+ * Real friends remember what matters to you. They notice patterns,
+ * celebrate your wins, and understand your struggles. This engine
+ * is how Ferni becomes that friend - not through scripts, but through
+ * genuine learning about each person.
  *
  * KEY RESPONSIBILITIES:
  * 1. Learn user preferences from conversation patterns

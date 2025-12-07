@@ -1,12 +1,15 @@
 /**
  * Audio Prosody Analyzer
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Voice-based emotion detection through audio analysis.
  * Analyzes pitch, volume, speech rate, and other prosodic features
  * to detect emotional state from the user's voice, not just text.
  *
- * This complements text-based emotion detection for more accurate
- * emotional awareness.
+ * Real humans listen to *how* things are said, not just what's said.
+ * A slight tremor in someone's voice tells us more than their words.
+ * This module gives Ferni that same emotional intelligence.
  */
 
 import { getLogger } from '../utils/safe-logger.js';

@@ -1,14 +1,19 @@
 /**
  * Human-Like Behaviors Module
  *
- * Implements sophisticated human behaviors that make Jack feel alive:
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
+ * Implements sophisticated human behaviors that make Ferni feel alive:
  * - Real-time backchannels during speech
  * - Voice prosody response
  * - Cultural moment awareness
  * - User engagement detection
  * - Running jokes with returning users
- * - Jack's spontaneous thoughts
+ * - Spontaneous thoughts and observations
  * - Preference learning
+ *
+ * This is the heart of what makes us different: we don't just process
+ * conversations, we participate in them like a friend would.
  */
 
 // Use a safe logger that works in both runtime and test environments

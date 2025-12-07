@@ -1,11 +1,17 @@
 /**
  * Response Naturalness Module
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Makes AI responses feel more human through:
  * - Acknowledgment prefixes ("Mm-hmm. So...")
  * - Thinking fillers during delays ("Let me think...")
  * - Catchphrase integration
  * - Response warmth markers
+ *
+ * The little things matter. A simple "mm-hmm" before answering,
+ * a natural pause while "thinking" - these micro-moments are what
+ * transform a response into a conversation.
  */
 
 import { getLogger } from '../utils/safe-logger.js';

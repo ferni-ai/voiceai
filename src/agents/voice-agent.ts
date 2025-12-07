@@ -1,8 +1,14 @@
 /**
  * Generic Voice Agent
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * A persona-driven voice agent that can embody any PersonaConfig.
  * This is the base implementation used by all persona-specific agents.
+ *
+ * This is where our mission comes to life. Every conversation that flows
+ * through this agent is an opportunity to be genuinely helpful, warm,
+ * and human. Not a chatbot. A companion.
  *
  * Usage:
  *   PERSONA_ID=ferni node dist/agents/voice-agent.js

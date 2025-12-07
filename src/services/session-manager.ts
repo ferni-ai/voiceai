@@ -1,8 +1,14 @@
 /**
  * Session Manager
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Handles creation and lifecycle of per-conversation sessions.
  * Each session gets its own set of services and state.
+ *
+ * Every session is a new opportunity to connect with someone as a real person,
+ * not just another API call. We maintain context, remember history, and bring
+ * genuine continuity to each conversation.
  */
 
 import { getLogger } from '../utils/safe-logger.js';

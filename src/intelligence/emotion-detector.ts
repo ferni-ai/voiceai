@@ -1,8 +1,14 @@
 /**
  * Emotion Detector
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Analyzes text for emotional content to enable empathetic responses.
  * Uses keyword matching, pattern recognition, and linguistic markers.
+ *
+ * Empathy starts with understanding. Before we can respond with care,
+ * we need to truly *hear* what someone is feeling. This module is our
+ * emotional awareness - the foundation of genuine connection.
  */
 
 import { getLogger } from '../utils/safe-logger.js';

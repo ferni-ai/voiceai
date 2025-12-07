@@ -1,14 +1,20 @@
 /**
  * Conversation Quality Module
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Implements sophisticated conversation tracking and enhancement:
  * - Farewell summary generation
  * - Session recovery
  * - Graceful error handling
  * - Small detail memory
- * - Jack's physical state
+ * - Physical/emotional state awareness
  * - Follow-up scheduling
  * - Conversation pacing score
+ *
+ * Every conversation should feel complete - even when interrupted.
+ * We track what matters so we can pick up naturally, remember the
+ * little things, and always leave conversations feeling heard.
  */
 
 import { getLogger } from '../utils/safe-logger.js';

@@ -1,10 +1,16 @@
 /**
  * Semantic RAG (Retrieval-Augmented Generation)
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Provides semantic search over the knowledge base and conversation history.
  * Replaces keyword-based lookup with embedding-based similarity search.
  *
- * Now supports both ephemeral VectorStore and persistent FirestoreVectorStore.
+ * Memory isn't just storage - it's connection. When someone mentions
+ * something they told you months ago, finding that memory through
+ * meaning (not just keywords) is what makes recall feel natural.
+ *
+ * Supports both ephemeral VectorStore and persistent FirestoreVectorStore.
  */
 
 import { getLogger } from '../utils/safe-logger.js';

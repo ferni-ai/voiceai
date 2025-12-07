@@ -1,6 +1,8 @@
 /**
  * Cognitive Memory Service
  *
+ * > "We believe in making AI human, and the decisions we make will reflect that."
+ *
  * Integrates cognitive learning with persistent user profiles.
  * Loads cognitive state on session start, saves on session end.
  *
@@ -9,6 +11,10 @@
  * - Remember user's thinking style
  * - Don't re-explain topics
  * - Track what approaches work over time
+ *
+ * A good friend remembers how you think, not just what you've said.
+ * They learn what explanations resonate with you, what makes you light up,
+ * what approaches help you most. This module builds that understanding.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
