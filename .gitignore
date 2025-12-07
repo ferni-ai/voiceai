@@ -62,3 +62,4 @@ design-system/dist/
 playwright-report/
 test-results/
 coverage/
+src/api/routes/
