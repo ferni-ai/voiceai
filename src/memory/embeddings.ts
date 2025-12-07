@@ -152,7 +152,8 @@ export class GoogleEmbeddings extends EmbeddingProvider {
     super();
     this._model = config?.model || 'text-embedding-004';
     this._dimensions = config?.dimensions || 768;
-    this.apiKey = config?.apiKey || process.env.GOOGLE_API_KEY || '';
+    // Use explicit apiKey if provided (even empty string), otherwise fall back to env var
+    this.apiKey = config?.apiKey !== undefined ? config.apiKey : (process.env.GOOGLE_API_KEY || '');
 
     if (!this.apiKey) {
       getLogger().warn('Google API key not set. Embeddings will fail.');
