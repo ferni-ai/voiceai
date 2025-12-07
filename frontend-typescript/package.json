@@ -15,9 +15,12 @@
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx --fix",
     "lint:tokens": "node scripts/validate-design-tokens.js",
     "lint:brand": "node scripts/check-brand-compliance.js",
+    "lint:a11y": "node scripts/check-a11y-colors.js",
+    "lint:a11y:strict": "node scripts/check-a11y-colors.js --strict",
+    "lint:a11y:fix": "node scripts/check-a11y-colors.js --fix",
     "audit:ui": "node scripts/audit-ui.js",
     "typecheck": "tsc --noEmit",
-    "quality": "npm run typecheck && npm run lint && npm run lint:tokens && npm run lint:brand && npm run test -- --run",
+    "quality": "npm run typecheck && npm run lint && npm run lint:tokens && npm run lint:brand && npm run lint:a11y && npm run test -- --run",
     "quality:full": "npm run quality && npm run audit:ui",
     "bundle:check": "node scripts/bundle-size-check.js",
     "build:check": "npm run build && npm run bundle:check",
@@ -62,7 +65,8 @@
       "prettier --write"
     ],
     "src/ui/**/*.ts": [
-      "node scripts/validate-design-tokens.js"
+      "node scripts/validate-design-tokens.js",
+      "node scripts/check-a11y-colors.js --strict"
     ],
     "src/**/*.{ts,tsx,css}": [
       "node scripts/check-brand-compliance.js"

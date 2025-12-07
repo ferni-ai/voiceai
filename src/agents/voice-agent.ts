@@ -475,13 +475,15 @@ class VoiceAgent extends voice.Agent<UserData> {
             // POST-LLM HUMANIZATION
             // Apply speech naturalization, vocabulary mirroring, etc.
             // This makes the LLM output feel more human before TTS
+            // Now includes deep humanization: mood drift, spontaneous thoughts,
+            // physical presence, excitement interruptions, etc.
             // ============================================================
             try {
               const humanizer = getConversationHumanizer(agent.persona.id);
               const lastUserMessage = userData?.lastUserMessage || '';
               const turnNumber = userData?.turnCount || 0;
 
-              // Build humanization context
+              // Build humanization context (now includes deep humanization fields)
               const humanizationContext = {
                 personaId: agent.persona.id,
                 turnNumber,
@@ -490,10 +492,13 @@ class VoiceAgent extends voice.Agent<UserData> {
                 topic: userData?.lastTopic,
                 isSeriousContext: (userData?.lastEmotionAnalysis?.distressLevel ?? 0) > 0.3,
                 wasPersonalSharing: (userData?.lastEmotionAnalysis?.intensity ?? 0) > 0.7,
+                relationshipStage: userData?.relationshipStage ?? 'acquaintance',
+                sessionData: userData?.sessionData,
               };
 
-              // Apply humanization to the raw LLM output
-              const humanized = humanizer.humanizeResponse(accumulatedText, humanizationContext);
+              // Apply humanization (async) - includes deep humanization features
+              // like mood drift, spontaneous thoughts, excitement interruptions
+              const humanized = await humanizer.humanizeResponseAsync(accumulatedText, humanizationContext);
 
               // Use the humanized text
               taggedText = humanized.text;

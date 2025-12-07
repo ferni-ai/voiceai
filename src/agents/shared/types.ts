@@ -115,6 +115,20 @@ export interface UserData {
   /** Previous relationship stage (for transition detection) */
   previousRelationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
 
+  /** Current relationship stage */
+  relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
+
+  /** Session memory data for deep humanization (running jokes, patterns, etc.) */
+  sessionData?: {
+    previousTopics?: string[];
+    pendingItems?: { type: string; content: string; timestamp: Date }[];
+    patterns?: { trait: string; count: number }[];
+    memorableQuotes?: string[];
+    goals?: string[];
+    peopleMentioned?: string[];
+    sessionCount?: number;
+  };
+
   // ============================================================
   // CONVERSATION STATE (Orchestration Integration)
   // Shared context across all tools for human-level conversation
