@@ -1,0 +1,36 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}{% if title %} | {% endif %}{{ site.name }}</title>
+<meta name="description" content="{{ description or site.tagline }}">
+
+<!-- Open Graph -->
+<meta property="og:title" content="{{ title or site.name }}">
+<meta property="og:description" content="{{ description or site.tagline }}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ site.url }}{{ page.url }}">
+{% if ogImage %}
+<meta property="og:image" content="{{ site.url }}{{ ogImage }}">
+{% endif %}
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ title or site.name }}">
+<meta name="twitter:description" content="{{ description or site.tagline }}">
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Styles -->
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/layout.css">
+{% if extraCss %}
+<link rel="stylesheet" href="{{ extraCss }}">
+{% endif %}
+

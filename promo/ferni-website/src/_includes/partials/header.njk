@@ -1,0 +1,30 @@
+<header class="header">
+  <div class="container header-inner">
+    <a href="/" class="logo">
+      <img src="/images/logo.svg" alt="Ferni" class="logo-icon-img" width="32" height="32">
+      <span>{{ site.name }}</span>
+      {% if badge %}
+      <span class="logo-badge">{{ badge }}</span>
+      {% endif %}
+    </a>
+    <nav class="nav">
+      {% if isDocs %}
+        {# Developer docs navigation #}
+        {% for item in site.navigation.developers %}
+        <a href="{{ item.url }}" {% if page.url == item.url %}class="active"{% endif %}>
+          {{ item.title }}
+        </a>
+        {% endfor %}
+        <a href="/">← {{ site.name }}</a>
+      {% else %}
+        {# Main site navigation #}
+        {% for item in site.navigation.main %}
+        <a href="{{ item.url }}" {% if page.url == item.url %}class="active"{% endif %}>
+          {{ item.title }}
+        </a>
+        {% endfor %}
+      {% endif %}
+    </nav>
+  </div>
+</header>
+

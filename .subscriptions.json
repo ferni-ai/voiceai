@@ -1,0 +1,14 @@
+{
+  "device_1764508743827_us9ate3": {
+    "tier": "free",
+    "status": "active",
+    "monthlyUsage": {
+      "period": "2025-12",
+      "conversationCount": 0,
+      "minutesTalked": 0
+    },
+    "manuallyUpgraded": true,
+    "upgradedAt": 1765049004077,
+    "updatedAt": 1765049004077
+  }
+}

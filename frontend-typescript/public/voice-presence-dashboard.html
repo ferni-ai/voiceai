@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Presence Tuning | Ferni Observability</title>
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <style>
+    :root {
+      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-body);
+      background: var(--color-background-base, #1a1614);
+      color: var(--color-text-primary, #faf6f0);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+    .nav-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: var(--color-background-elevated, #252220);
+      border-bottom: 1px solid rgba(250, 246, 240, 0.1);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 0.75rem; }
+    .nav-brand-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #4a6741, #3d5a35); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .nav-brand-text { font-family: var(--font-display); font-size: 1.125rem; font-weight: 600; }
+    .nav-links { display: flex; gap: 0.5rem; }
+    .nav-link { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 8px; color: var(--color-text-secondary, #e8e2da); text-decoration: none; font-size: 0.875rem; transition: all 200ms ease; }
+    .nav-link:hover { background: rgba(250, 246, 240, 0.05); color: var(--color-text-primary); }
+    .nav-link.active { background: #4a6741; color: white; }
+    .nav-link .icon { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; }
+    .main-content { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+    .page-header { margin-bottom: 2rem; display: flex; align-items: flex-start; justify-content: space-between; }
+    .page-eyebrow { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #4a6741; margin-bottom: 0.5rem; }
+    .page-title { font-family: var(--font-display); font-size: 2rem; font-weight: 700; }
+    .page-subtitle { color: var(--color-text-secondary, #c4bdb4); font-size: 1rem; margin-top: 0.25rem; }
+    
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--color-background-elevated, #252220); border-radius: 12px; padding: 1.25rem; border: 1px solid rgba(250, 246, 240, 0.1); }
+    .stat-label { font-size: 0.75rem; color: var(--color-text-muted, #a09890); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .stat-label .icon { width: 14px; height: 14px; stroke: #4a6741; }
+    .stat-value { font-family: var(--font-mono); font-size: 1.75rem; font-weight: 700; }
+    .stat-value.good { color: #4a6741; }
+    .stat-value.warning { color: #c4856a; }
+    .stat-value.critical { color: #e07070; }
+    .stat-subtext { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+    
+    /* Feature Cards */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .feature-card { background: var(--color-background-elevated, #252220); border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(250, 246, 240, 0.1); }
+    .feature-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .feature-title { font-family: var(--font-display); font-weight: 600; font-size: 1.125rem; display: flex; align-items: center; gap: 0.5rem; }
+    .feature-title .icon { width: 20px; height: 20px; stroke: #4a6741; }
+    .feature-status { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
+    .feature-status.healthy { background: rgba(74, 103, 65, 0.2); color: #6b8f60; }
+    .feature-status.warning { background: rgba(196, 133, 106, 0.2); color: #c4856a; }
+    .feature-status.critical { background: rgba(224, 112, 112, 0.2); color: #e07070; }
+    
+    /* Metrics Row */
+    .metrics-row { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .metric-item { flex: 1; min-width: 100px; padding: 0.75rem; background: rgba(26, 22, 20, 0.5); border-radius: 8px; }
+    .metric-label { font-size: 0.7rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-value { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 600; margin-top: 0.25rem; }
+    
+    /* Tuning Controls */
+    .tuning-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(250, 246, 240, 0.1); }
+    .tuning-label { font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
+    .tuning-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
+    .tuning-name { font-size: 0.875rem; flex: 1; }
+    .tuning-input { width: 80px; padding: 0.375rem 0.5rem; background: var(--color-background-base, #1a1614); border: 1px solid rgba(250, 246, 240, 0.1); border-radius: 6px; color: var(--color-text-primary); font-family: var(--font-mono); font-size: 0.875rem; text-align: right; }
+    .tuning-input:focus { outline: none; border-color: #4a6741; }
+    .tuning-unit { font-size: 0.75rem; color: var(--color-text-muted); width: 30px; }
+    
+    /* Recommendations */
+    .recommendations { background: var(--color-background-elevated, #252220); border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(250, 246, 240, 0.1); margin-bottom: 2rem; }
+    .recommendations-title { font-family: var(--font-display); font-weight: 600; font-size: 1.125rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .recommendations-title .icon { width: 20px; height: 20px; stroke: #c4856a; }
+    .recommendation-item { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; background: rgba(26, 22, 20, 0.5); border-radius: 8px; margin-bottom: 0.75rem; }
+    .recommendation-item:last-child { margin-bottom: 0; }
+    .recommendation-impact { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+    .recommendation-impact.high { background: rgba(224, 112, 112, 0.2); color: #e07070; }
+    .recommendation-impact.medium { background: rgba(196, 133, 106, 0.2); color: #c4856a; }
+    .recommendation-impact.low { background: rgba(74, 103, 65, 0.2); color: #6b8f60; }
+    .recommendation-content { flex: 1; }
+    .recommendation-text { font-size: 0.875rem; margin-bottom: 0.5rem; }
+    .recommendation-action { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; color: var(--color-text-muted); }
+    .recommendation-action code { background: rgba(74, 103, 65, 0.2); padding: 0.125rem 0.375rem; border-radius: 4px; font-family: var(--font-mono); }
+    .apply-btn { padding: 0.375rem 0.75rem; background: #4a6741; color: white; border: none; border-radius: 6px; font-size: 0.75rem; cursor: pointer; transition: all 200ms ease; }
+    .apply-btn:hover { background: #5a7751; }
+    
+    /* Auto-tune Toggle */
+    .auto-tune { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: rgba(74, 103, 65, 0.1); border-radius: 8px; border: 1px solid rgba(74, 103, 65, 0.3); margin-bottom: 2rem; }
+    .auto-tune-label { flex: 1; }
+    .auto-tune-label strong { display: block; margin-bottom: 0.25rem; }
+    .auto-tune-label span { font-size: 0.875rem; color: var(--color-text-secondary); }
+    .toggle { position: relative; width: 48px; height: 26px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; inset: 0; background: var(--color-background-base); border-radius: 13px; transition: 0.3s; cursor: pointer; }
+    .toggle-slider:before { content: ''; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+    .toggle input:checked + .toggle-slider { background: #4a6741; }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(22px); }
+    
+    /* Buttons */
+    .header-actions { display: flex; gap: 0.75rem; }
+    .btn { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; cursor: pointer; transition: all 200ms ease; border: none; }
+    .btn-primary { background: #4a6741; color: white; }
+    .btn-primary:hover { background: #5a7751; }
+    .btn-secondary { background: transparent; border: 1px solid rgba(250, 246, 240, 0.1); color: var(--color-text-secondary); }
+    .btn-secondary:hover { background: rgba(250, 246, 240, 0.05); color: var(--color-text-primary); }
+    .btn .icon { width: 16px; height: 16px; }
+    
+    /* Event Log */
+    .event-log { background: var(--color-background-elevated, #252220); border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(250, 246, 240, 0.1); }
+    .event-log-title { font-family: var(--font-display); font-weight: 600; font-size: 1.125rem; margin-bottom: 1rem; }
+    .event-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid rgba(250, 246, 240, 0.05); font-size: 0.8rem; }
+    .event-item:last-child { border-bottom: none; }
+    .event-time { font-family: var(--font-mono); color: var(--color-text-muted); width: 70px; }
+    .event-feature { padding: 0.125rem 0.5rem; border-radius: 4px; background: rgba(74, 103, 65, 0.2); color: #6b8f60; font-size: 0.7rem; text-transform: uppercase; }
+    .event-action { flex: 1; }
+    .event-status { width: 16px; height: 16px; border-radius: 50%; }
+    .event-status.success { background: #4a6741; }
+    .event-status.failure { background: #e07070; }
+  </style>
+</head>
+<body>
+  <nav class="nav-header">
+    <div class="nav-brand">
+      <div class="nav-brand-icon">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" x2="12" y1="19" y2="22"/>
+        </svg>
+      </div>
+      <span class="nav-brand-text">Ferni Observability</span>
+    </div>
+    <div class="nav-links">
+      <a href="/observability-hub.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Hub</a>
+      <a href="/ux-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>UX</a>
+      <a href="/voice-presence-dashboard.html" class="nav-link active"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>Voice</a>
+      <a href="/llm-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>LLM</a>
+      <a href="/error-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Errors</a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <header class="page-header">
+      <div>
+        <p class="page-eyebrow">Voice Presence</p>
+        <h1 class="page-title">Tuning Dashboard</h1>
+        <p class="page-subtitle">Monitor, tune, and auto-optimize voice presence features</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="refreshData()">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+          Refresh
+        </button>
+        <button class="btn btn-primary" onclick="saveConfig()">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+          Save Config
+        </button>
+      </div>
+    </header>
+
+    <!-- Auto-tune Toggle -->
+    <div class="auto-tune">
+      <div class="auto-tune-label">
+        <strong>🤖 AI Auto-Tuning</strong>
+        <span>Automatically apply high-confidence recommendations based on user feedback</span>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="autoTuneToggle" onchange="toggleAutoTune()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/></svg>
+          Overall Health
+        </div>
+        <div class="stat-value good" id="overallHealth">92%</div>
+        <div class="stat-subtext">Based on all feature metrics</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Latency Saved
+        </div>
+        <div class="stat-value" id="latencySaved">~180ms</div>
+        <div class="stat-subtext">Avg via turn prediction</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Backchannel Success
+        </div>
+        <div class="stat-value" id="backchannelSuccess">67%</div>
+        <div class="stat-subtext">User continued talking</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Turn Prediction Accuracy
+        </div>
+        <div class="stat-value" id="turnAccuracy">78%</div>
+        <div class="stat-subtext">Correct completions</div>
+      </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="recommendations" id="recommendationsSection">
+      <h3 class="recommendations-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        AI Recommendations
+      </h3>
+      <div id="recommendationsList">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- Feature Cards -->
+    <div class="features-grid">
+      <!-- Adaptive Endpointing -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <h3 class="feature-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Adaptive Endpointing
+          </h3>
+          <span class="feature-status healthy" id="endpointingStatus">Healthy</span>
+        </div>
+        <div class="metrics-row">
+          <div class="metric-item">
+            <div class="metric-label">Avg Min Delay</div>
+            <div class="metric-value" id="endpointingMinDelay">420ms</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Avg Max Delay</div>
+            <div class="metric-value" id="endpointingMaxDelay">1180ms</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Cut-off Rate</div>
+            <div class="metric-value" id="endpointingCutOff">8%</div>
+          </div>
+        </div>
+        <div class="tuning-section">
+          <div class="tuning-label">Tuning Parameters</div>
+          <div class="tuning-row">
+            <span class="tuning-name">Base Min Delay</span>
+            <input type="number" class="tuning-input" id="baseMinDelay" value="400">
+            <span class="tuning-unit">ms</span>
+          </div>
+          <div class="tuning-row">
+            <span class="tuning-name">Base Max Delay</span>
+            <input type="number" class="tuning-input" id="baseMaxDelay" value="1200">
+            <span class="tuning-unit">ms</span>
+          </div>
+          <div class="tuning-row">
+            <span class="tuning-name">Heavy Topic Multiplier</span>
+            <input type="number" class="tuning-input" id="heavyTopicMult" value="1.3" step="0.1">
+            <span class="tuning-unit">x</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Backchanneling -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <h3 class="feature-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Live Backchanneling
+          </h3>
+          <span class="feature-status healthy" id="backchannelStatus">Healthy</span>
+        </div>
+        <div class="metrics-row">
+          <div class="metric-item">
+            <div class="metric-label">Total Fired</div>
+            <div class="metric-value" id="backchannelTotal">156</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Positive Rate</div>
+            <div class="metric-value" id="backchannelRate">67%</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Avg Trigger</div>
+            <div class="metric-value" id="backchannelTrigger">4.2s</div>
+          </div>
+        </div>
+        <div class="tuning-section">
+          <div class="tuning-label">Tuning Parameters</div>
+          <div class="tuning-row">
+            <span class="tuning-name">Min Speaking Duration</span>
+            <input type="number" class="tuning-input" id="minSpeakingDuration" value="4000">
+            <span class="tuning-unit">ms</span>
+          </div>
+          <div class="tuning-row">
+            <span class="tuning-name">Base Probability</span>
+            <input type="number" class="tuning-input" id="baseProbability" value="0.25" step="0.05">
+            <span class="tuning-unit"></span>
+          </div>
+          <div class="tuning-row">
+            <span class="tuning-name">Soft Volume Ratio</span>
+            <input type="number" class="tuning-input" id="softVolumeRatio" value="0.3" step="0.05">
+            <span class="tuning-unit"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Turn Prediction -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <h3 class="feature-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
+            Turn Prediction
+          </h3>
+          <span class="feature-status healthy" id="turnPredictionStatus">Healthy</span>
+        </div>
+        <div class="metrics-row">
+          <div class="metric-item">
+            <div class="metric-label">Predictions</div>
+            <div class="metric-value" id="turnPredictionTotal">423</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Accuracy</div>
+            <div class="metric-value" id="turnPredictionAccuracy">78%</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Latency Saved</div>
+            <div class="metric-value" id="turnPredictionLatency">180ms</div>
+          </div>
+        </div>
+        <div class="tuning-section">
+          <div class="tuning-label">Tuning Parameters</div>
+          <div class="tuning-row">
+            <span class="tuning-name">Confidence Threshold</span>
+            <input type="number" class="tuning-input" id="confidenceThreshold" value="0.6" step="0.05">
+            <span class="tuning-unit"></span>
+          </div>
+          <div class="tuning-row">
+            <span class="tuning-name">Preemptive Gen Threshold</span>
+            <input type="number" class="tuning-input" id="preemptiveThreshold" value="0.65" step="0.05">
+            <span class="tuning-unit"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pronunciation Memory -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <h3 class="feature-title">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            Pronunciation Memory
+          </h3>
+          <span class="feature-status healthy" id="pronunciationStatus">Active</span>
+        </div>
+        <div class="metrics-row">
+          <div class="metric-item">
+            <div class="metric-label">Names Learned</div>
+            <div class="metric-value" id="namesLearned">12</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Corrections</div>
+            <div class="metric-value" id="correctionsReceived">3</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Applications</div>
+            <div class="metric-value" id="applicationsCount">45</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Events -->
+    <div class="event-log">
+      <h3 class="event-log-title">Recent Events</h3>
+      <div id="eventsList">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Dashboard data - starts empty, fetched from API
+    let dashboardData = {
+      config: {
+        adaptiveEndpointing: { baseMinDelay: 400, baseMaxDelay: 1200, heavyTopicMultiplier: 1.3 },
+        liveBackchanneling: { minSpeakingDuration: 4000, baseProbability: 0.25, softVolumeRatio: 0.3 },
+        turnPrediction: { completionConfidenceThreshold: 0.6, preemptiveGenerationThreshold: 0.65 }
+      },
+      metrics: {
+        adaptive_endpointing: { avgMinDelay: 400, avgMaxDelay: 1200, cutOffRate: 0, completenessAccuracy: 0.7 },
+        live_backchanneling: { totalFired: 0, positiveRate: 0.5, avgTriggerTime: 4000 },
+        turn_prediction: { totalPredictions: 0, accuracy: 0.7, avgLatencySaved: 200, falsePositiveRate: 0.1 },
+        pronunciation_memory: { namesLearned: 0, correctionsReceived: 0, applicationsCount: 0 }
+      },
+      recommendations: [],
+      recentEvents: []
+    };
+
+    let isLoading = false;
+
+    async function refreshData() {
+      if (isLoading) return;
+      isLoading = true;
+
+      try {
+        const response = await fetch('/api/voice-presence/dashboard');
+        if (response.ok) {
+          const data = await response.json();
+          
+          // Map API response to dashboard format
+          dashboardData.config = data.config || dashboardData.config;
+          
+          // Map metrics from API format
+          if (data.metrics) {
+            dashboardData.metrics.adaptive_endpointing = data.metrics.adaptive_endpointing?.custom || dashboardData.metrics.adaptive_endpointing;
+            dashboardData.metrics.live_backchanneling = data.metrics.live_backchanneling?.custom || dashboardData.metrics.live_backchanneling;
+            dashboardData.metrics.turn_prediction = data.metrics.turn_prediction?.custom || dashboardData.metrics.turn_prediction;
+            dashboardData.metrics.pronunciation_memory = data.metrics.pronunciation_memory?.custom || dashboardData.metrics.pronunciation_memory;
+          }
+          
+          dashboardData.recommendations = data.recommendations || [];
+          
+          // Format recent events with timestamps
+          dashboardData.recentEvents = (data.recentEvents || []).slice(0, 10).map(ev => ({
+            time: new Date(ev.timestamp).toLocaleTimeString('en-US', { hour12: false }),
+            feature: ev.feature,
+            action: ev.action,
+            success: ev.success
+          }));
+
+          console.log('📊 Dashboard data refreshed from API');
+        } else {
+          console.warn('⚠️ API returned non-OK status, using cached data');
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not fetch from API, using cached data:', err.message);
+      } finally {
+        isLoading = false;
+        updateUI();
+      }
+    }
+
+    function updateUI() {
+      // Update stats
+      document.getElementById('latencySaved').textContent = `~${dashboardData.metrics.turn_prediction.avgLatencySaved}ms`;
+      document.getElementById('backchannelSuccess').textContent = `${Math.round(dashboardData.metrics.live_backchanneling.positiveRate * 100)}%`;
+      document.getElementById('turnAccuracy').textContent = `${Math.round(dashboardData.metrics.turn_prediction.accuracy * 100)}%`;
+
+      // Update feature cards
+      document.getElementById('endpointingMinDelay').textContent = `${dashboardData.metrics.adaptive_endpointing.avgMinDelay}ms`;
+      document.getElementById('endpointingMaxDelay').textContent = `${dashboardData.metrics.adaptive_endpointing.avgMaxDelay}ms`;
+      document.getElementById('endpointingCutOff').textContent = `${Math.round(dashboardData.metrics.adaptive_endpointing.cutOffRate * 100)}%`;
+
+      document.getElementById('backchannelTotal').textContent = dashboardData.metrics.live_backchanneling.totalFired;
+      document.getElementById('backchannelRate').textContent = `${Math.round(dashboardData.metrics.live_backchanneling.positiveRate * 100)}%`;
+      document.getElementById('backchannelTrigger').textContent = `${(dashboardData.metrics.live_backchanneling.avgTriggerTime / 1000).toFixed(1)}s`;
+
+      document.getElementById('turnPredictionTotal').textContent = dashboardData.metrics.turn_prediction.totalPredictions;
+      document.getElementById('turnPredictionAccuracy').textContent = `${Math.round(dashboardData.metrics.turn_prediction.accuracy * 100)}%`;
+      document.getElementById('turnPredictionLatency').textContent = `${dashboardData.metrics.turn_prediction.avgLatencySaved}ms`;
+
+      document.getElementById('namesLearned').textContent = dashboardData.metrics.pronunciation_memory.namesLearned;
+      document.getElementById('correctionsReceived').textContent = dashboardData.metrics.pronunciation_memory.correctionsReceived;
+      document.getElementById('applicationsCount').textContent = dashboardData.metrics.pronunciation_memory.applicationsCount;
+
+      // Update recommendations
+      const recList = document.getElementById('recommendationsList');
+      if (dashboardData.recommendations.length === 0) {
+        recList.innerHTML = '<p style="color: var(--color-text-muted); font-size: 0.875rem;">✨ All systems optimally tuned - no recommendations</p>';
+      } else {
+        recList.innerHTML = dashboardData.recommendations.map(rec => `
+          <div class="recommendation-item">
+            <span class="recommendation-impact ${rec.impact}">${rec.impact}</span>
+            <div class="recommendation-content">
+              <div class="recommendation-text">${rec.reason}</div>
+              <div class="recommendation-action">
+                <code>${rec.parameter}: ${rec.currentValue} → ${rec.recommendedValue}</code>
+                <span>Confidence: ${Math.round(rec.confidence * 100)}%</span>
+                <button class="apply-btn" onclick="applyRecommendation('${rec.feature}', '${rec.parameter}', ${rec.recommendedValue})">Apply</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Update events
+      const eventsList = document.getElementById('eventsList');
+      eventsList.innerHTML = dashboardData.recentEvents.map(ev => `
+        <div class="event-item">
+          <span class="event-time">${ev.time}</span>
+          <span class="event-feature">${ev.feature.replace('_', ' ')}</span>
+          <span class="event-action">${ev.action}</span>
+          <span class="event-status ${ev.success ? 'success' : 'failure'}"></span>
+        </div>
+      `).join('');
+    }
+
+    async function saveConfig() {
+      const config = {
+        adaptiveEndpointing: {
+          baseMinDelay: parseInt(document.getElementById('baseMinDelay').value),
+          baseMaxDelay: parseInt(document.getElementById('baseMaxDelay').value),
+          heavyTopicMultiplier: parseFloat(document.getElementById('heavyTopicMult').value)
+        },
+        liveBackchanneling: {
+          minSpeakingDuration: parseInt(document.getElementById('minSpeakingDuration').value),
+          baseProbability: parseFloat(document.getElementById('baseProbability').value),
+          softVolumeRatio: parseFloat(document.getElementById('softVolumeRatio').value)
+        },
+        turnPrediction: {
+          completionConfidenceThreshold: parseFloat(document.getElementById('confidenceThreshold').value),
+          preemptiveGenerationThreshold: parseFloat(document.getElementById('preemptiveThreshold').value)
+        }
+      };
+
+      try {
+        const response = await fetch('/api/voice-presence/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          dashboardData.config = result.config;
+          alert('✅ Configuration saved! Changes will apply to new sessions.');
+          console.log('Config saved:', result);
+        } else {
+          alert('❌ Failed to save configuration');
+        }
+      } catch (err) {
+        console.error('Save config error:', err);
+        alert('❌ Error saving configuration: ' + err.message);
+      }
+    }
+
+    async function applyRecommendation(feature, parameter, value) {
+      try {
+        // Find the full recommendation object
+        const rec = dashboardData.recommendations.find(
+          r => r.feature === feature && r.parameter === parameter
+        );
+        
+        if (!rec) {
+          console.error('Recommendation not found');
+          return;
+        }
+
+        const response = await fetch('/api/voice-presence/apply-recommendation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rec)
+        });
+        
+        if (response.ok) {
+          // Update the UI input
+          if (feature === 'adaptive_endpointing' && parameter === 'baseMinDelay') {
+            document.getElementById('baseMinDelay').value = value;
+          } else if (feature === 'adaptive_endpointing' && parameter === 'baseMaxDelay') {
+            document.getElementById('baseMaxDelay').value = value;
+          } else if (feature === 'live_backchanneling' && parameter === 'baseProbability') {
+            document.getElementById('baseProbability').value = value;
+          } else if (feature === 'live_backchanneling' && parameter === 'minSpeakingDuration') {
+            document.getElementById('minSpeakingDuration').value = value;
+          } else if (feature === 'turn_prediction' && parameter === 'completionConfidenceThreshold') {
+            document.getElementById('confidenceThreshold').value = value;
+          }
+          
+          // Remove from recommendations list
+          dashboardData.recommendations = dashboardData.recommendations.filter(
+            r => !(r.feature === feature && r.parameter === parameter)
+          );
+          
+          console.log('✅ Recommendation applied:', feature, parameter, value);
+          updateUI();
+        } else {
+          alert('❌ Failed to apply recommendation');
+        }
+      } catch (err) {
+        console.error('Apply recommendation error:', err);
+        alert('❌ Error applying recommendation: ' + err.message);
+      }
+    }
+
+    async function toggleAutoTune() {
+      const enabled = document.getElementById('autoTuneToggle').checked;
+      
+      try {
+        const response = await fetch('/api/voice-presence/auto-tune', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        
+        if (response.ok) {
+          console.log('Auto-tune:', enabled ? 'enabled' : 'disabled');
+        }
+      } catch (err) {
+        console.warn('Auto-tune toggle failed:', err);
+      }
+    }
+
+    // Initialize - fetch data from API
+    refreshData();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(refreshData, 30000);
+  </script>
+</body>
+</html>
+

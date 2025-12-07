@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory & RAG | Ferni Observability</title>
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <style>
+    :root { --font-display: 'Plus Jakarta Sans', system-ui, sans-serif; --font-body: 'Inter', system-ui, sans-serif; --font-mono: 'JetBrains Mono', 'Fira Code', monospace; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-body); background: var(--color-background-base, #1a1614); color: var(--color-text-primary, #faf6f0); min-height: 100vh; line-height: 1.6; }
+    .nav-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: var(--color-background-elevated, #252220); border-bottom: 1px solid rgba(250, 246, 240, 0.1); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { display: flex; align-items: center; gap: 0.75rem; }
+    .nav-brand-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #4a6741, #3d5a35); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .nav-brand-text { font-family: var(--font-display); font-size: 1.125rem; font-weight: 600; }
+    .nav-links { display: flex; gap: 0.5rem; }
+    .nav-link { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 8px; color: var(--color-text-secondary, #e8e2da); text-decoration: none; font-size: 0.875rem; transition: all 200ms ease; }
+    .nav-link:hover { background: rgba(250, 246, 240, 0.05); color: var(--color-text-primary); }
+    .nav-link.active { background: #4a6741; color: white; }
+    .nav-link .icon { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; }
+    .main-content { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+    .page-header { margin-bottom: 2rem; display: flex; align-items: flex-start; justify-content: space-between; }
+    .page-eyebrow { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #4a6741; margin-bottom: 0.5rem; }
+    .page-title { font-family: var(--font-display); font-size: 2rem; font-weight: 700; }
+    .page-subtitle { color: var(--color-text-secondary, #c4bdb4); font-size: 1rem; margin-top: 0.25rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--color-background-elevated, #252220); border-radius: 12px; padding: 1.25rem; border: 1px solid rgba(250, 246, 240, 0.1); }
+    .stat-label { font-size: 0.75rem; color: var(--color-text-muted, #a09890); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .stat-value { font-family: var(--font-mono); font-size: 1.75rem; font-weight: 700; }
+    .stat-subtext { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+    .section { background: var(--color-background-elevated, #252220); border-radius: 16px; padding: 1.5rem; border: 1px solid rgba(250, 246, 240, 0.1); margin-bottom: 1.5rem; }
+    .section-title { font-family: var(--font-display); font-weight: 600; font-size: 1.125rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .section-title .icon { width: 20px; height: 20px; stroke: #4a6741; stroke-width: 2; fill: none; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+    .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid rgba(250, 246, 240, 0.05); }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-name { color: var(--color-text-secondary, #c4bdb4); font-size: 0.875rem; }
+    .metric-value { font-family: var(--font-mono); font-weight: 600; }
+    .progress-bar { height: 8px; background: var(--color-background-base, #1a1614); border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .progress-fill.green { background: linear-gradient(90deg, #3d5a35, #4a6741); }
+    .progress-fill.yellow { background: linear-gradient(90deg, #9a7b5a, #c4856a); }
+    .progress-fill.red { background: linear-gradient(90deg, #b05050, #e07070); }
+    .gauge-container { display: flex; justify-content: center; gap: 2rem; padding: 1rem 0; }
+    .gauge { text-align: center; }
+    .gauge-value { font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; line-height: 1; }
+    .gauge-value.good { color: #4a6741; }
+    .gauge-value.warning { color: #c4856a; }
+    .gauge-value.bad { color: #e07070; }
+    .gauge-label { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.5rem; text-transform: uppercase; letter-spacing: 0.1em; }
+    .refresh-btn { display: flex; align-items: center; gap: 0.375rem; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(250, 246, 240, 0.1); background: transparent; color: var(--color-text-secondary); font-size: 0.875rem; cursor: pointer; transition: all 200ms ease; }
+    .refresh-btn:hover { background: rgba(250, 246, 240, 0.05); color: var(--color-text-primary); }
+    .refresh-btn .icon { width: 16px; height: 16px; }
+    .loading-overlay { display: flex; align-items: center; justify-content: center; padding: 4rem; color: var(--color-text-muted); }
+    .loading-spinner { width: 32px; height: 32px; border: 3px solid var(--color-background-elevated); border-top-color: #4a6741; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 1rem; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    [data-theme="light"] { --color-background-base: #faf6f0; --color-background-elevated: #ffffff; --color-text-primary: #2C2520; --color-text-secondary: #5a524a; --color-text-muted: #8a827a; }
+    .theme-toggle { padding: 0.375rem; border-radius: 8px; border: 1px solid rgba(250, 246, 240, 0.1); background: transparent; cursor: pointer; }
+    .theme-toggle .icon { width: 18px; height: 18px; stroke: var(--color-text-secondary); stroke-width: 2; fill: none; }
+  </style>
+</head>
+<body>
+  <nav class="nav-header">
+    <div class="nav-brand">
+      <div class="nav-brand-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+      <span class="nav-brand-text">Ferni Observability</span>
+    </div>
+    <div class="nav-links">
+      <a href="/observability-hub.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Hub</a>
+      <a href="/llm-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>LLM</a>
+      <a href="/memory-dashboard.html" class="nav-link active"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Memory</a>
+      <a href="/persona-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Personas</a>
+      <a href="/cost-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Cost</a>
+      <button class="theme-toggle" onclick="toggleTheme()"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/></svg></button>
+    </div>
+  </nav>
+
+  <main class="main-content" id="app">
+    <div class="loading-overlay"><div class="loading-spinner"></div><span>Loading memory metrics...</span></div>
+  </main>
+
+  <script>
+    let data = null;
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+      localStorage.setItem('ferni-theme', current === 'dark' ? 'light' : 'dark');
+    }
+    const savedTheme = localStorage.getItem('ferni-theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/observability/memory');
+        if (!response.ok) throw new Error('Failed to fetch');
+        data = await response.json();
+        render();
+      } catch (err) {
+        console.error('Failed to fetch memory data:', err);
+        document.getElementById('app').innerHTML = `<div class="loading-overlay"><span style="color: #c4856a">Failed to load data.</span></div>`;
+      }
+    }
+
+    function formatDuration(ms) {
+      if (ms < 1) return `${(ms * 1000).toFixed(0)}µs`;
+      if (ms < 1000) return `${ms.toFixed(0)}ms`;
+      return `${(ms / 1000).toFixed(1)}s`;
+    }
+    function formatPercent(v) { return `${(v * 100).toFixed(1)}%`; }
+    function getScoreClass(score) {
+      if (score >= 0.7) return 'good';
+      if (score >= 0.5) return 'warning';
+      return 'bad';
+    }
+    function getProgressClass(value, isInverse = false) {
+      if (isInverse) { value = 1 - value; }
+      if (value >= 0.7) return 'green';
+      if (value >= 0.4) return 'yellow';
+      return 'red';
+    }
+
+    function render() {
+      if (!data) return;
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <header class="page-header">
+          <div>
+            <p class="page-eyebrow">Knowledge Retrieval</p>
+            <h1 class="page-title">Memory & RAG</h1>
+            <p class="page-subtitle">Monitor vector search performance, relevance scores, and storage</p>
+          </div>
+          <button class="refresh-btn" onclick="fetchData()">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Refresh
+          </button>
+        </header>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Avg Search Latency</div>
+            <div class="stat-value">${formatDuration(data.avgSearchLatencyMs || 0)}</div>
+            <div class="stat-subtext">p95: ${formatDuration(data.p95SearchLatencyMs || 0)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Relevance</div>
+            <div class="stat-value" style="color: ${(data.avgRelevanceScore || 0) >= 0.7 ? '#4a6741' : '#c4856a'}">${formatPercent(data.avgRelevanceScore || 0)}</div>
+            <div class="stat-subtext">Search quality</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cache Hit Rate</div>
+            <div class="stat-value" style="color: ${(data.cacheHitRate || 0) >= 0.5 ? '#4a6741' : '#c4856a'}">${formatPercent(data.cacheHitRate || 0)}</div>
+            <div class="stat-subtext">${data.cacheMisses || 0} misses</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Searches/min</div>
+            <div class="stat-value">${(data.searchesPerMinute || 0).toFixed(1)}</div>
+            <div class="stat-subtext">Query rate</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="section">
+            <h2 class="section-title">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              Vector Search Performance
+            </h2>
+            <div class="gauge-container">
+              <div class="gauge">
+                <div class="gauge-value ${getScoreClass(data.avgTopScore || 0)}">${formatPercent(data.avgTopScore || 0)}</div>
+                <div class="gauge-label">Avg Top Score</div>
+              </div>
+              <div class="gauge">
+                <div class="gauge-value">${(data.avgResultsPerQuery || 0).toFixed(1)}</div>
+                <div class="gauge-label">Avg Results</div>
+              </div>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Low Relevance Searches</span>
+              <span class="metric-value" style="color: ${(data.lowRelevanceSearches || 0) > 5 ? '#e07070' : '#4a6741'}">${data.lowRelevanceSearches || 0}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Empty Result Searches</span>
+              <span class="metric-value" style="color: ${(data.emptyResultSearches || 0) > 3 ? '#e07070' : '#4a6741'}">${data.emptyResultSearches || 0}</span>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Embedding Generation
+            </h2>
+            <div class="metric-row">
+              <span class="metric-name">Embeddings Generated</span>
+              <span class="metric-value">${data.embeddingsGenerated || 0}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Avg Embedding Latency</span>
+              <span class="metric-value">${formatDuration(data.avgEmbeddingLatencyMs || 0)}</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Embedding Error Rate</span>
+              <span class="metric-value" style="color: ${(data.embeddingErrorRate || 0) > 0.05 ? '#e07070' : '#4a6741'}">${formatPercent(data.embeddingErrorRate || 0)}</span>
+            </div>
+            <div class="progress-bar" style="margin-top: 1rem;">
+              <div class="progress-fill ${getProgressClass(1 - (data.embeddingErrorRate || 0))}" style="width: ${(1 - (data.embeddingErrorRate || 0)) * 100}%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            Storage
+          </h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="metric-row" style="flex-direction: column; align-items: flex-start;">
+              <span class="metric-name">Documents Stored</span>
+              <span class="metric-value" style="font-size: 1.5rem;">${(data.documentsStored || 0).toLocaleString()}</span>
+            </div>
+            <div class="metric-row" style="flex-direction: column; align-items: flex-start;">
+              <span class="metric-name">Store Type</span>
+              <span class="metric-value" style="font-size: 1.5rem;">${data.storeType || 'memory'}</span>
+            </div>
+          </div>
+          ${data.storageBySource && Object.keys(data.storageBySource).length > 0 ? `
+            <div style="margin-top: 1rem;">
+              <span class="metric-name">By Source:</span>
+              <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                ${Object.entries(data.storageBySource).map(([source, count]) => `
+                  <div style="background: var(--color-background-base); padding: 0.5rem 1rem; border-radius: 8px;">
+                    <span style="font-weight: 600;">${source}:</span> ${count}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    fetchData();
+    setInterval(fetchData, 30000);
+  </script>
+</body>
+</html>
+

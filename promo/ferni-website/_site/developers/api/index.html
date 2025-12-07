@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Reference | Ferni</title>
+<meta name="description" content="REST endpoints for agent management and voice integration">
+
+<!-- Open Graph -->
+<meta property="og:title" content="API Reference">
+<meta property="og:description" content="REST endpoints for agent management and voice integration">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ferni.ai/developers/api/">
+
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="API Reference">
+<meta name="twitter:description" content="REST endpoints for agent management and voice integration">
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Styles -->
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/layout.css">
+
+
+
+  
+</head>
+<body>
+  
+  <header class="header">
+  <div class="container header-inner">
+    <a href="/" class="logo">
+      <img src="/images/logo.svg" alt="Ferni" class="logo-icon-img" width="32" height="32">
+      <span>Ferni</span>
+      
+      <span class="logo-badge">Developers</span>
+      
+    </a>
+    <nav class="nav">
+      
+        
+        
+        <a href="/developers/getting-started/" >
+          Getting Started
+        </a>
+        
+        <a href="/developers/api/" class="active">
+          API
+        </a>
+        
+        <a href="/developers/testing/" >
+          Testing
+        </a>
+        
+        <a href="/">← Ferni</a>
+      
+    </nav>
+  </div>
+</header>
+
+
+  
+  
+  <main>
+    
+<div class="container container-narrow">
+  <div class="doc-header">
+    <h1>API Reference</h1>
+    
+    <p>REST endpoints for agent management and voice integration</p>
+    
+  </div>
+
+  <div class="doc-content">
+    <h2>Base URL</h2>
+<pre><code>http://localhost:3000/api
+</code></pre>
+<h2>Agents</h2>
+<p>Endpoints for managing AI agents in your team.</p>
+<h3>List All Agents</h3>
+<pre class="language-http"><code class="language-http">GET /api/agents</code></pre>
+<p>Returns all enabled agents with UI-ready data.</p>
+<p><strong>Response:</strong></p>
+<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>
+  <span class="token property">"agents"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+      <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"ferni"</span><span class="token punctuation">,</span>
+      <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"Ferni"</span><span class="token punctuation">,</span>
+      <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"Your AI life coach"</span><span class="token punctuation">,</span>
+      <span class="token property">"subtitle"</span><span class="token operator">:</span> <span class="token string">"Life Coach"</span><span class="token punctuation">,</span>
+      <span class="token property">"enabled"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+      <span class="token property">"colors"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token property">"primary"</span><span class="token operator">:</span> <span class="token string">"#4a6741"</span><span class="token punctuation">,</span>
+        <span class="token property">"secondary"</span><span class="token operator">:</span> <span class="token string">"#3d5a35"</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">]</span><span class="token punctuation">,</span>
+  <span class="token property">"total"</span><span class="token operator">:</span> <span class="token number">7</span>
+<span class="token punctuation">}</span></code></pre>
+<h3>Get Agent Details</h3>
+<pre class="language-http"><code class="language-http">GET /api/agents/:id</code></pre>
+<p>Get detailed information for a specific agent by ID or alias.</p>
+<p><strong>Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>Agent ID or alias (e.g., &quot;ferni&quot;, &quot;jack-bogle&quot;)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Response:</strong></p>
+<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>
+  <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"ferni"</span><span class="token punctuation">,</span>
+  <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"Ferni"</span><span class="token punctuation">,</span>
+  <span class="token property">"description"</span><span class="token operator">:</span> <span class="token string">"Your AI life coach"</span><span class="token punctuation">,</span>
+  <span class="token property">"personality"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token property">"warmth"</span><span class="token operator">:</span> <span class="token number">0.85</span><span class="token punctuation">,</span>
+    <span class="token property">"energy"</span><span class="token operator">:</span> <span class="token number">0.7</span><span class="token punctuation">,</span>
+    <span class="token property">"directness"</span><span class="token operator">:</span> <span class="token number">0.6</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token property">"voice"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token property">"provider"</span><span class="token operator">:</span> <span class="token string">"cartesia"</span><span class="token punctuation">,</span>
+    <span class="token property">"voiceId"</span><span class="token operator">:</span> <span class="token string">"..."</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token property">"team"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token property">"handoff_triggers"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"life"</span><span class="token punctuation">,</span> <span class="token string">"coach"</span><span class="token punctuation">,</span> <span class="token string">"help"</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+    <span class="token property">"can_handoff_to"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"jack"</span><span class="token punctuation">,</span> <span class="token string">"maya"</span><span class="token punctuation">,</span> <span class="token string">"jordan"</span><span class="token punctuation">]</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+<h3>Enable/Disable Agent</h3>
+<pre class="language-http"><code class="language-http">POST /api/agents/:id/enable</code></pre>
+<p>Enable or disable an agent in the team roster.</p>
+<p><strong>Request Body:</strong></p>
+<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>
+  <span class="token property">"enabled"</span><span class="token operator">:</span> <span class="token boolean">true</span>
+<span class="token punctuation">}</span></code></pre>
+<h3>Update Agent</h3>
+<pre class="language-http"><code class="language-http">PUT /api/agents/:id</code></pre>
+<p>Update agent settings like colors, subtitle, or display name.</p>
+<p><strong>Request Body:</strong></p>
+<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>
+  <span class="token property">"subtitle"</span><span class="token operator">:</span> <span class="token string">"Career Advisor"</span><span class="token punctuation">,</span>
+  <span class="token property">"colors"</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token property">"primary"</span><span class="token operator">:</span> <span class="token string">"#4a6741"</span><span class="token punctuation">,</span>
+    <span class="token property">"secondary"</span><span class="token operator">:</span> <span class="token string">"#3d5a35"</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+<h2>Team Management</h2>
+<h3>Update Team Order</h3>
+<pre class="language-http"><code class="language-http">POST /api/team/order</code></pre>
+<p>Update the display order of agents in the team roster.</p>
+<p><strong>Request Body:</strong></p>
+<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>
+  <span class="token property">"order"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"ferni"</span><span class="token punctuation">,</span> <span class="token string">"jack"</span><span class="token punctuation">,</span> <span class="token string">"maya"</span><span class="token punctuation">,</span> <span class="token string">"peter"</span><span class="token punctuation">,</span> <span class="token string">"alex"</span><span class="token punctuation">,</span> <span class="token string">"jordan"</span><span class="token punctuation">]</span>
+<span class="token punctuation">}</span></code></pre>
+<h2>Validation</h2>
+<h3>Validate All Bundles</h3>
+<pre class="language-http"><code class="language-http">POST /api/agents/validate</code></pre>
+<p>Run validation on all agent bundles. Returns errors and warnings.</p>
+<p><strong>Response:</strong></p>
+<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>
+  <span class="token property">"valid"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+  <span class="token property">"results"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+    <span class="token punctuation">{</span>
+      <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"ferni"</span><span class="token punctuation">,</span>
+      <span class="token property">"valid"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+      <span class="token property">"errors"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+      <span class="token property">"warnings"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token punctuation">{</span>
+      <span class="token property">"id"</span><span class="token operator">:</span> <span class="token string">"my-advisor"</span><span class="token punctuation">,</span>
+      <span class="token property">"valid"</span><span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+      <span class="token property">"errors"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"Missing required field: voice.voiceId"</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+      <span class="token property">"warnings"</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">"No stories defined"</span><span class="token punctuation">]</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">]</span>
+<span class="token punctuation">}</span></code></pre>
+<h2>Voice</h2>
+<h3>Preview Voice</h3>
+<pre class="language-http"><code class="language-http">GET /api/voice/preview/:voiceId</code></pre>
+<p>Get Cartesia playground URL for previewing a voice.</p>
+<p><strong>Response:</strong></p>
+<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>
+  <span class="token property">"url"</span><span class="token operator">:</span> <span class="token string">"https://play.cartesia.ai/..."</span><span class="token punctuation">,</span>
+  <span class="token property">"voiceId"</span><span class="token operator">:</span> <span class="token string">"a0e99841-438c-4a64-b679-ae501e7d6091"</span>
+<span class="token punctuation">}</span></code></pre>
+<h2>WebSocket Connection</h2>
+<p>For real-time voice communication, connect via WebSocket:</p>
+<pre class="language-javascript"><code class="language-javascript"><span class="token comment">// Connect to voice agent</span>
+<span class="token keyword">const</span> ws <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">WebSocket</span><span class="token punctuation">(</span><span class="token string">'ws://localhost:3000/ws'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+ws<span class="token punctuation">.</span><span class="token function-variable function">onopen</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token comment">// Start session with specific agent</span>
+  ws<span class="token punctuation">.</span><span class="token function">send</span><span class="token punctuation">(</span><span class="token constant">JSON</span><span class="token punctuation">.</span><span class="token function">stringify</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    <span class="token literal-property property">type</span><span class="token operator">:</span> <span class="token string">'start'</span><span class="token punctuation">,</span>
+    <span class="token literal-property property">agentId</span><span class="token operator">:</span> <span class="token string">'ferni'</span><span class="token punctuation">,</span>
+    <span class="token literal-property property">options</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+      <span class="token literal-property property">voice</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+      <span class="token literal-property property">transcript</span><span class="token operator">:</span> <span class="token boolean">true</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+ws<span class="token punctuation">.</span><span class="token function-variable function">onmessage</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">event</span><span class="token punctuation">)</span> <span class="token operator">=></span> <span class="token punctuation">{</span>
+  <span class="token keyword">const</span> data <span class="token operator">=</span> <span class="token constant">JSON</span><span class="token punctuation">.</span><span class="token function">parse</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token comment">// Handle agent responses</span>
+  <span class="token keyword">if</span> <span class="token punctuation">(</span>data<span class="token punctuation">.</span>type <span class="token operator">===</span> <span class="token string">'transcript'</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+    console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token string">'Agent:'</span><span class="token punctuation">,</span> data<span class="token punctuation">.</span>text<span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span></code></pre>
+<h2>Error Handling</h2>
+<p>All endpoints return standard error responses:</p>
+<pre class="language-json"><code class="language-json"><span class="token punctuation">{</span>
+  <span class="token property">"error"</span><span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+  <span class="token property">"code"</span><span class="token operator">:</span> <span class="token string">"AGENT_NOT_FOUND"</span><span class="token punctuation">,</span>
+  <span class="token property">"message"</span><span class="token operator">:</span> <span class="token string">"Agent 'unknown-id' not found"</span>
+<span class="token punctuation">}</span></code></pre>
+<h3>Error Codes</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>HTTP Status</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AGENT_NOT_FOUND</code></td>
+<td>404</td>
+<td>The requested agent ID does not exist</td>
+</tr>
+<tr>
+<td><code>VALIDATION_ERROR</code></td>
+<td>400</td>
+<td>Request body failed validation</td>
+</tr>
+<tr>
+<td><code>BUNDLE_INVALID</code></td>
+<td>400</td>
+<td>Agent bundle has structural errors</td>
+</tr>
+<tr>
+<td><code>VOICE_UNAVAILABLE</code></td>
+<td>503</td>
+<td>Voice synthesis service is unavailable</td>
+</tr>
+</tbody>
+</table>
+
+
+    
+    
+    
+    
+      
+    
+      
+        
+      
+    
+      
+    
+    
+    
+    <div class="doc-nav-buttons">
+      
+        
+        <a href="/developers/getting-started/" class="doc-nav-btn">
+          <span class="doc-nav-label">← Previous</span>
+          <span class="doc-nav-title">Getting Started</span>
+        </a>
+      
+      
+      
+        
+        <a href="/developers/testing/" class="doc-nav-btn next">
+          <span class="doc-nav-label">Next →</span>
+          <span class="doc-nav-title">Testing Guide</span>
+        </a>
+      
+    </div>
+    
+  </div>
+</div>
+
+
+  </main>
+  
+  
+  <footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/" class="logo">
+          <img src="/images/logo.svg" alt="Ferni" class="logo-icon-img" width="32" height="32">
+          <span>Ferni</span>
+        </a>
+        <p class="footer-tagline">Your personal AI life coach</p>
+        
+        <!-- Social Links -->
+        <div class="footer-social">
+          <a href="https://twitter.com/ferniAI" class="social-link" aria-label="X (Twitter)" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+          <a href="https://linkedin.com/company/ferni" class="social-link" aria-label="LinkedIn" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+          </a>
+          <a href="https://instagram.com/ferni.ai" class="social-link" aria-label="Instagram" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+          </a>
+          <a href="https://github.com/ferni-ai/ferni-agents" class="social-link" aria-label="GitHub" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      
+      <div class="footer-links">
+        <div class="footer-column">
+          <h4>Product</h4>
+          <a href="/#features">Features</a>
+          <a href="/team/">Meet the Team</a>
+          <a href="/pricing/">Pricing</a>
+          <a href="/#faq">FAQ</a>
+        </div>
+        <div class="footer-column">
+          <h4>Connect</h4>
+          <a href="https://app.ferni.ai">Web App</a>
+          <a href="tel:+14844813081">Call Ferni</a>
+          <a href="/contact/">Contact Us</a>
+        </div>
+        <div class="footer-column">
+          <h4>Developers</h4>
+          <a href="/developers/">Documentation</a>
+          <a href="/developers/api/">API Reference</a>
+          <a href="/developers/getting-started/">Getting Started</a>
+          <a href="/platform/">Platform</a>
+        </div>
+        <div class="footer-column">
+          <h4>Company</h4>
+          <a href="/press/">Press Kit</a>
+          <a href="/privacy/">Privacy Policy</a>
+          <a href="/terms/">Terms of Service</a>
+          <a href="/accessibility/">Accessibility</a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>© 2025 Ferni. All rights reserved.</p>
+      <p>Made in Park City, Utah</p>
+    </div>
+  </div>
+</footer>
+
+
+  
+  
+  
+</body>
+</html>
+

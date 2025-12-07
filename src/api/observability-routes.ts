@@ -1,0 +1,168 @@
+/**
+ * Observability API Routes
+ * 
+ * Exposes all observability metrics via HTTP endpoints.
+ * 
+ * Endpoints:
+ * - GET /api/observability - Full observability snapshot
+ * - GET /api/observability/llm - LLM health metrics
+ * - GET /api/observability/connection - Connection health metrics
+ * - GET /api/observability/ux - User experience metrics
+ * - GET /api/observability/memory - Memory/RAG metrics
+ * - GET /api/observability/cost - Cost tracking metrics
+ * - GET /api/observability/errors - Error & recovery metrics
+ * - GET /api/observability/personas - Persona health metrics
+ * - GET /api/observability/alerts - Recent alerts
+ * - POST /api/observability/clear - Clear all metrics
+ */
+
+import type { IncomingMessage, ServerResponse } from 'http';
+import {
+  observabilityHub,
+  llmHealthMetrics,
+  connectionHealthMetrics,
+  uxQualityMetrics,
+  memoryMetrics,
+  costMetrics,
+  errorMetrics,
+  personaMetrics,
+} from '../services/observability/index.js';
+import { getLogger } from '../utils/safe-logger.js';
+
+const log = getLogger();
+
+/**
+ * Parse window minutes from query string
+ */
+function getWindowMinutes(url: URL): number {
+  const windowParam = url.searchParams.get('window');
+  if (windowParam) {
+    const minutes = parseInt(windowParam, 10);
+    if (!isNaN(minutes) && minutes > 0 && minutes <= 1440) {
+      return minutes;
+    }
+  }
+  return 60; // Default 1 hour
+}
+
+/**
+ * Send JSON response
+ */
+function sendJSON(res: ServerResponse, data: unknown, status = 200): void {
+  res.writeHead(status, { 
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache',
+  });
+  res.end(JSON.stringify(data, null, 2));
+}
+
+/**
+ * Send error response
+ */
+function sendError(res: ServerResponse, message: string, status = 500): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: message }));
+}
+
+/**
+ * Handle observability API routes
+ */
+export async function handleObservabilityRoutes(
+  req: IncomingMessage,
+  res: ServerResponse,
+  pathname: string
+): Promise<boolean> {
+  // Only handle /api/observability routes
+  if (!pathname.startsWith('/api/observability')) {
+    return false;
+  }
+
+  const url = new URL(req.url || '', `http://${req.headers.host}`);
+  const windowMinutes = getWindowMinutes(url);
+
+  try {
+    // GET /api/observability - Full snapshot
+    if (pathname === '/api/observability' && req.method === 'GET') {
+      const snapshot = observabilityHub.getSnapshot(windowMinutes);
+      sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/llm - LLM health
+    if (pathname === '/api/observability/llm' && req.method === 'GET') {
+      const snapshot = llmHealthMetrics.getSnapshot(windowMinutes);
+      sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/connection - Connection health
+    if (pathname === '/api/observability/connection' && req.method === 'GET') {
+      const snapshot = connectionHealthMetrics.getSnapshot(windowMinutes);
+      sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/ux - UX quality
+    if (pathname === '/api/observability/ux' && req.method === 'GET') {
+      const snapshot = uxQualityMetrics.getSnapshot(windowMinutes);
+      sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/memory - Memory/RAG health
+    if (pathname === '/api/observability/memory' && req.method === 'GET') {
+      const snapshot = memoryMetrics.getSnapshot();
+      sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/cost - Cost tracking
+    if (pathname === '/api/observability/cost' && req.method === 'GET') {
+      const snapshot = costMetrics.getSnapshot();
+      sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/errors - Error & recovery
+    if (pathname === '/api/observability/errors' && req.method === 'GET') {
+      const snapshot = errorMetrics.getSnapshot();
+      sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/personas - Persona health
+    if (pathname === '/api/observability/personas' && req.method === 'GET') {
+      const snapshot = personaMetrics.getSnapshot();
+      sendJSON(res, snapshot);
+      return true;
+    }
+
+    // GET /api/observability/alerts - Recent alerts
+    if (pathname === '/api/observability/alerts' && req.method === 'GET') {
+      const limitParam = url.searchParams.get('limit');
+      const limit = limitParam ? parseInt(limitParam, 10) : 50;
+      const alerts = observabilityHub.getRecentAlerts(limit);
+      sendJSON(res, { alerts, count: alerts.length });
+      return true;
+    }
+
+    // POST /api/observability/clear - Clear all metrics
+    if (pathname === '/api/observability/clear' && req.method === 'POST') {
+      observabilityHub.clearAlerts();
+      sendJSON(res, { message: 'All observability metrics cleared' });
+      log.info('All observability metrics cleared via API');
+      return true;
+    }
+
+    // Unknown observability route
+    sendError(res, 'Unknown observability endpoint', 404);
+    return true;
+
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    log.error({ error: err }, 'Observability API error');
+    sendError(res, message, 500);
+    return true;
+  }
+}
+

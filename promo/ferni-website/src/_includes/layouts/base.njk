@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include "partials/head.njk" %}
+  {% block head %}{% endblock %}
+</head>
+<body{% if bodyClass %} class="{{ bodyClass }}"{% endif %}>
+  {% block header %}
+  {% include "partials/header.njk" %}
+  {% endblock %}
+  
+  <main>
+    {% block content %}{{ content | safe }}{% endblock %}
+  </main>
+  
+  {% block footer %}
+  {% include "partials/footer.njk" %}
+  {% endblock %}
+  
+  {% block scripts %}{% endblock %}
+</body>
+</html>
+

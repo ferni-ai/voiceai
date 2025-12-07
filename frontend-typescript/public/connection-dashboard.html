@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connection Health | Ferni Observability</title>
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <style>
+    :root {
+      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-background-base, #1a1614);
+      color: var(--color-text-primary, #faf6f0);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .nav-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: var(--color-background-elevated, #252220);
+      border-bottom: 1px solid rgba(250, 246, 240, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand { display: flex; align-items: center; gap: 0.75rem; }
+    .nav-brand-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #4a6741, #3d5a35);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-brand-text { font-family: var(--font-display); font-size: 1.125rem; font-weight: 600; }
+    .nav-links { display: flex; gap: 0.5rem; }
+    .nav-link {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1rem; border-radius: 8px;
+      color: var(--color-text-secondary, #e8e2da);
+      text-decoration: none; font-size: 0.875rem;
+      transition: all 200ms ease;
+    }
+    .nav-link:hover { background: rgba(250, 246, 240, 0.05); color: var(--color-text-primary); }
+    .nav-link.active { background: #4a6741; color: white; }
+    .nav-link .icon { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+    .main-content { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+    .page-header { margin-bottom: 2rem; display: flex; align-items: flex-start; justify-content: space-between; }
+    .page-eyebrow { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #4a6741; margin-bottom: 0.5rem; }
+    .page-title { font-family: var(--font-display); font-size: 2rem; font-weight: 700; }
+    .page-subtitle { color: var(--color-text-secondary, #c4bdb4); font-size: 1rem; margin-top: 0.25rem; }
+
+    .status-hero {
+      background: var(--color-background-elevated, #252220);
+      border-radius: 16px;
+      padding: 2rem;
+      border: 1px solid rgba(250, 246, 240, 0.1);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .status-indicator {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem;
+      flex-shrink: 0;
+    }
+
+    .status-indicator.connected {
+      background: rgba(74, 103, 65, 0.2);
+      border: 3px solid #4a6741;
+      color: #4a6741;
+    }
+    .status-indicator.connecting {
+      background: rgba(196, 133, 106, 0.2);
+      border: 3px solid #c4856a;
+      color: #c4856a;
+      animation: pulse 2s infinite;
+    }
+    .status-indicator.disconnected {
+      background: rgba(180, 80, 80, 0.2);
+      border: 3px solid #e07070;
+      color: #e07070;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .status-details { flex: 1; }
+    .status-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .status-subtitle { color: var(--color-text-secondary); margin-bottom: 1rem; }
+
+    .status-metrics { display: flex; gap: 2rem; flex-wrap: wrap; }
+    .status-metric { }
+    .status-metric-label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted, #a09890); }
+    .status-metric-value { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 600; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card {
+      background: var(--color-background-elevated, #252220);
+      border-radius: 12px; padding: 1.25rem;
+      border: 1px solid rgba(250, 246, 240, 0.1);
+    }
+    .stat-label { font-size: 0.75rem; color: var(--color-text-muted, #a09890); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+    .stat-value { font-family: var(--font-mono); font-size: 1.75rem; font-weight: 700; }
+    .stat-subtext { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+
+    .section {
+      background: var(--color-background-elevated, #252220);
+      border-radius: 16px; padding: 1.5rem;
+      border: 1px solid rgba(250, 246, 240, 0.1);
+      margin-bottom: 1.5rem;
+    }
+    .section-title { font-family: var(--font-display); font-weight: 600; font-size: 1.125rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .section-title .icon { width: 20px; height: 20px; stroke: #4a6741; stroke-width: 2; fill: none; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+    .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid rgba(250, 246, 240, 0.05); }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-name { color: var(--color-text-secondary, #c4bdb4); font-size: 0.875rem; }
+    .metric-value { font-family: var(--font-mono); font-weight: 600; }
+
+    .progress-bar { height: 8px; background: var(--color-background-base, #1a1614); border-radius: 4px; overflow: hidden; margin-top: 0.5rem; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .progress-fill.green { background: linear-gradient(90deg, #3d5a35, #4a6741); }
+    .progress-fill.yellow { background: linear-gradient(90deg, #9a7b5a, #c4856a); }
+    .progress-fill.red { background: linear-gradient(90deg, #b05050, #e07070); }
+
+    .quality-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .quality-item { text-align: center; padding: 1rem; background: var(--color-background-base, #1a1614); border-radius: 8px; }
+    .quality-label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 0.5rem; }
+    .quality-value { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; }
+    .quality-unit { font-size: 0.75rem; color: var(--color-text-muted); }
+
+    .track-status { display: flex; gap: 1rem; margin-top: 1rem; }
+    .track-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; background: var(--color-background-base); border-radius: 8px; flex: 1; }
+    .track-indicator { width: 12px; height: 12px; border-radius: 50%; }
+    .track-indicator.active { background: #4a6741; box-shadow: 0 0 8px rgba(74, 103, 65, 0.5); }
+    .track-indicator.inactive { background: #5a524a; }
+    .track-label { font-size: 0.875rem; }
+
+    .refresh-btn {
+      display: flex; align-items: center; gap: 0.375rem;
+      padding: 0.5rem 1rem; border-radius: 8px;
+      border: 1px solid rgba(250, 246, 240, 0.1);
+      background: transparent; color: var(--color-text-secondary);
+      font-size: 0.875rem; cursor: pointer; transition: all 200ms ease;
+    }
+    .refresh-btn:hover { background: rgba(250, 246, 240, 0.05); color: var(--color-text-primary); }
+    .refresh-btn .icon { width: 16px; height: 16px; }
+
+    .loading-overlay { display: flex; align-items: center; justify-content: center; padding: 4rem; color: var(--color-text-muted); }
+    .loading-spinner { width: 32px; height: 32px; border: 3px solid var(--color-background-elevated); border-top-color: #4a6741; border-radius: 50%; animation: spin 1s linear infinite; margin-right: 1rem; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    [data-theme="light"] {
+      --color-background-base: #faf6f0;
+      --color-background-elevated: #ffffff;
+      --color-text-primary: #2C2520;
+      --color-text-secondary: #5a524a;
+      --color-text-muted: #8a827a;
+    }
+    .theme-toggle { padding: 0.375rem; border-radius: 8px; border: 1px solid rgba(250, 246, 240, 0.1); background: transparent; cursor: pointer; }
+    .theme-toggle .icon { width: 18px; height: 18px; stroke: var(--color-text-secondary); stroke-width: 2; fill: none; }
+  </style>
+</head>
+<body>
+  <nav class="nav-header">
+    <div class="nav-brand">
+      <div class="nav-brand-icon">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <span class="nav-brand-text">Ferni Observability</span>
+    </div>
+    <div class="nav-links">
+      <a href="/observability-hub.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Hub</a>
+      <a href="/llm-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>LLM</a>
+      <a href="/connection-dashboard.html" class="nav-link active"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><circle cx="12" cy="20" r="1"/></svg>Connection</a>
+      <a href="/cost-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Cost</a>
+      <a href="/handoff-dashboard.html" class="nav-link"><svg class="icon" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/></svg>Handoffs</a>
+      <button class="theme-toggle" onclick="toggleTheme()"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/></svg></button>
+    </div>
+  </nav>
+
+  <main class="main-content" id="app">
+    <div class="loading-overlay"><div class="loading-spinner"></div><span>Loading connection metrics...</span></div>
+  </main>
+
+  <script>
+    let data = null;
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+      localStorage.setItem('ferni-theme', current === 'dark' ? 'light' : 'dark');
+    }
+
+    const savedTheme = localStorage.getItem('ferni-theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/observability/connection?window=60');
+        if (!response.ok) throw new Error('Failed to fetch');
+        data = await response.json();
+        render();
+      } catch (err) {
+        console.error('Failed to fetch connection data:', err);
+        document.getElementById('app').innerHTML = `<div class="loading-overlay"><span style="color: #c4856a">Failed to load data.</span></div>`;
+      }
+    }
+
+    function formatDuration(ms) {
+      if (ms < 1000) return `${ms.toFixed(0)}ms`;
+      if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+      return `${(ms / 60000).toFixed(1)}m`;
+    }
+
+    function formatPercent(v) { return `${v.toFixed(1)}%`; }
+
+    function getStatusInfo(state) {
+      switch (state) {
+        case 'connected': return { class: 'connected', icon: '✓', title: 'Connected', subtitle: 'All systems operational' };
+        case 'reconnecting': return { class: 'connecting', icon: '↻', title: 'Reconnecting', subtitle: 'Attempting to restore connection' };
+        default: return { class: 'disconnected', icon: '✕', title: 'Disconnected', subtitle: 'Connection lost' };
+      }
+    }
+
+    function render() {
+      if (!data) return;
+
+      const status = getStatusInfo(data.connectionState);
+      const app = document.getElementById('app');
+
+      app.innerHTML = `
+        <header class="page-header">
+          <div>
+            <p class="page-eyebrow">Network Status</p>
+            <h1 class="page-title">Connection Health</h1>
+            <p class="page-subtitle">Monitor WebSocket, LiveKit, and data channel status</p>
+          </div>
+          <button class="refresh-btn" onclick="fetchData()">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Refresh
+          </button>
+        </header>
+
+        <section class="status-hero">
+          <div class="status-indicator ${status.class}">${status.icon}</div>
+          <div class="status-details">
+            <h2 class="status-title">${status.title}</h2>
+            <p class="status-subtitle">${status.subtitle}</p>
+            <div class="status-metrics">
+              <div class="status-metric">
+                <div class="status-metric-label">Active Connections</div>
+                <div class="status-metric-value">${data.activeConnections || 0}</div>
+              </div>
+              <div class="status-metric">
+                <div class="status-metric-label">ICE State</div>
+                <div class="status-metric-value">${data.iceState || 'N/A'}</div>
+              </div>
+              <div class="status-metric">
+                <div class="status-metric-label">Data Channel</div>
+                <div class="status-metric-value">${data.dataChannelState || 'N/A'}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Availability</div>
+            <div class="stat-value">${formatPercent(data.availabilityPercent || 100)}</div>
+            <div class="stat-subtext">Uptime this hour</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Reconnections</div>
+            <div class="stat-value">${data.reconnectionCount || 0}</div>
+            <div class="stat-subtext">Avg ${formatDuration(data.avgReconnectTimeMs || 0)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Messages Delivered</div>
+            <div class="stat-value">${(data.messagesDelivered || 0).toLocaleString()}</div>
+            <div class="stat-subtext">${data.messagesFailed || 0} failed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Delivery Rate</div>
+            <div class="stat-value">${formatPercent(data.deliveryRate || 100)}</div>
+            <div class="stat-subtext">Messages successfully sent</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="section">
+            <h2 class="section-title">
+              <svg class="icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Network Quality
+            </h2>
+            <div class="quality-grid">
+              <div class="quality-item">
+                <div class="quality-label">Packet Loss</div>
+                <div class="quality-value">${formatPercent(data.packetLossPercent || 0)}</div>
+              </div>
+              <div class="quality-item">
+                <div class="quality-label">Jitter</div>
+                <div class="quality-value">${(data.jitterMs || 0).toFixed(0)}<span class="quality-unit">ms</span></div>
+              </div>
+              <div class="quality-item">
+                <div class="quality-label">RTT</div>
+                <div class="quality-value">${(data.roundTripTimeMs || 0).toFixed(0)}<span class="quality-unit">ms</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              Media Tracks
+            </h2>
+            <div class="track-status">
+              <div class="track-item">
+                <div class="track-indicator ${data.audioTrackActive ? 'active' : 'inactive'}"></div>
+                <span class="track-label">Audio ${data.audioTrackActive ? 'Active' : 'Inactive'}</span>
+              </div>
+              <div class="track-item">
+                <div class="track-indicator ${data.videoTrackActive ? 'active' : 'inactive'}"></div>
+                <span class="track-label">Video ${data.videoTrackActive ? 'Active' : 'Inactive'}</span>
+              </div>
+            </div>
+            <div class="metric-row" style="margin-top: 1rem;">
+              <span class="metric-name">Track State Changes</span>
+              <span class="metric-value">${data.trackStateChanges || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2 class="section-title">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Uptime Statistics
+          </h2>
+          <div class="metric-row">
+            <span class="metric-name">Connection Uptime</span>
+            <span class="metric-value">${formatDuration(data.connectionUptimeMs || 0)}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill green" style="width: ${Math.min(100, data.availabilityPercent || 100)}%"></div>
+          </div>
+          <div class="metric-row" style="margin-top: 1rem;">
+            <span class="metric-name">Total Disconnect Time</span>
+            <span class="metric-value">${formatDuration(data.totalDisconnectTimeMs || 0)}</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-name">Reconnect Success Rate</span>
+            <span class="metric-value">${formatPercent(data.reconnectSuccessRate || 100)}</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-name">Connection Errors</span>
+            <span class="metric-value">${data.connectionErrors || 0}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    fetchData();
+    setInterval(fetchData, 10000);
+  </script>
+</body>
+</html>
+

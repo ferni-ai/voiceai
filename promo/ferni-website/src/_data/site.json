@@ -1,0 +1,30 @@
+{
+  "name": "Ferni",
+  "tagline": "Your personal AI life coach",
+  "url": "https://ferni.ai",
+  "appUrl": "https://app.ferni.ai",
+  "phone": "+1 (484) 481-3081",
+  "email": "hello@ferni.ai",
+  "social": {
+    "twitter": "https://twitter.com/ferniAI",
+    "linkedin": "https://linkedin.com/company/ferni",
+    "instagram": "https://instagram.com/ferni.ai",
+    "tiktok": "https://tiktok.com/@ferni.ai",
+    "youtube": "https://youtube.com/@ferniAI",
+    "github": "https://github.com/ferni-ai/ferni-agents"
+  },
+  "navigation": {
+    "main": [
+      { "title": "Features", "url": "/#features" },
+      { "title": "Team", "url": "/team/" },
+      { "title": "Pricing", "url": "/pricing/" },
+      { "title": "Platform", "url": "/platform/" }
+    ],
+    "developers": [
+      { "title": "Getting Started", "url": "/developers/getting-started/" },
+      { "title": "API", "url": "/developers/api/" },
+      { "title": "Testing", "url": "/developers/testing/" }
+    ]
+  }
+}
+

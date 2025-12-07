@@ -1,0 +1,123 @@
+[
+  {
+    "id": "voice-presence",
+    "name": "Voice Presence (Master)",
+    "description": "Master toggle for all voice presence features",
+    "type": "boolean",
+    "enabled": false,
+    "category": "voice-presence",
+    "createdAt": "2025-12-06T23:05:46.800Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "voice-presence-breath-pause",
+    "name": "Breath Pause Detection",
+    "description": "Audio-based breath pause detection for backchanneling",
+    "type": "boolean",
+    "enabled": true,
+    "category": "voice-presence",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "voice-presence-live-backchannel",
+    "name": "Live Backchanneling",
+    "description": "Soft backchannels during user speech at breath pauses",
+    "type": "boolean",
+    "enabled": true,
+    "category": "voice-presence",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "voice-presence-turn-prediction",
+    "name": "Turn Prediction",
+    "description": "Predict when user will finish speaking for preemptive generation",
+    "type": "boolean",
+    "enabled": true,
+    "category": "voice-presence",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "voice-presence-cartesia-context",
+    "name": "Cartesia Context Patch",
+    "description": "Prosody continuity across TTS streams via context_id",
+    "type": "boolean",
+    "enabled": true,
+    "category": "voice-presence",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "voice-presence-analytics",
+    "name": "Voice Presence Analytics",
+    "description": "Record metrics for voice presence features",
+    "type": "boolean",
+    "enabled": true,
+    "category": "voice-presence",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "meaningful-silence",
+    "name": "Meaningful Silence",
+    "description": "Transform silent moments into connection opportunities",
+    "type": "boolean",
+    "enabled": true,
+    "category": "conversation",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "spontaneous-shares",
+    "name": "Spontaneous Shares",
+    "description": "Persona shares personal stories unprompted",
+    "type": "boolean",
+    "enabled": true,
+    "category": "conversation",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "thinking-fillers",
+    "name": "Thinking Fillers",
+    "description": "Natural \"hmm\", \"let me think\" during processing",
+    "type": "boolean",
+    "enabled": true,
+    "category": "conversation",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "debug-logging",
+    "name": "Debug Logging",
+    "description": "Enable verbose debug logging",
+    "type": "boolean",
+    "enabled": false,
+    "category": "debug",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "dev-panel",
+    "name": "Dev Panel Access",
+    "description": "Enable dev panel for all users (not just dev mode)",
+    "type": "boolean",
+    "enabled": false,
+    "category": "debug",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  },
+  {
+    "id": "experimental-greeting-v2",
+    "name": "New Greeting System",
+    "description": "Alive intros with personality bleed-through",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 100,
+    "category": "experimental",
+    "createdAt": "2025-12-06T23:05:46.801Z",
+    "updatedAt": "2025-12-06T23:05:46.801Z"
+  }
+]

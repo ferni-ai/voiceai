@@ -1,0 +1,94 @@
+# Persona Development
+
+## Reference Docs
+- Full guide: `docs/creating-personas.md`
+- Cognitive profiles: `docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md`
+- Example bundles: `bundles/ferni/`, `bundles/maya-santos/`
+
+## Bundle Structure
+```
+bundles/{persona-id}/
+├── persona.manifest.json      # Required: configuration
+├── identity/
+│   ├── biography.md           # Background story, experiences
+│   └── system-prompt.md       # Core personality prompt
+└── content/
+    ├── behaviors/
+    │   ├── greetings.json     # Opening lines
+    │   └── backchannels.json  # "mm-hmm", "I see"
+    ├── stories/
+    │   └── anecdotes.json     # Personal stories to share
+    └── knowledge/
+        └── expertise.json     # Domain knowledge
+```
+
+## Manifest Required Fields
+```json
+{
+  "identity": {
+    "id": "persona-id",          // kebab-case, unique
+    "name": "Display Name",
+    "tagline": "Brief description"
+  },
+  "voice": {
+    "provider": "cartesia",
+    "voice_id": "voice-uuid-here"
+  },
+  "personality": {
+    "warmth": 0.8,               // 0-1 scale
+    "humor_level": 0.4,
+    "formality": 0.3,
+    "traits": ["empathetic", "curious", "grounded"]
+  },
+  "knowledge": {
+    "domains": ["wellness", "productivity"],
+    "outOfScopeTopics": ["medical-diagnosis", "legal-advice"]
+  },
+  "cognitive": {
+    "profile": "analytical"      // See cognitive-profiles.ts
+  }
+}
+```
+
+## Cognitive Profiles
+Defined in `src/personas/cognitive-profiles.ts`:
+- `analytical` - Structured thinking, data-driven
+- `intuitive` - Pattern recognition, holistic
+- `empathetic` - Emotion-first, relationship-focused
+- `practical` - Action-oriented, solution-focused
+
+## Rules
+
+### Do
+- Use manifest.json for all configuration
+- Create rich backstory in biography.md
+- Define clear domain boundaries
+- Test persona with multiple conversation flows
+- Add to persona registry after creation
+
+### Don't
+- Create persona-specific tools (tools are agent-agnostic)
+- Hardcode persona logic in services
+- Skip cognitive profile (affects reasoning style)
+- Duplicate content from other personas
+- Use generic/bland personality traits
+
+## Persona Colors (Brand)
+| Persona | Primary | CSS Variable |
+|---------|---------|--------------|
+| Ferni | `#4a6741` | `--color-ferni` |
+| Jack | `#9a7b5a` | `--color-jack` |
+| Peter | `#3a6b73` | `--color-peter` |
+| Alex | `#5a6b8a` | `--color-alex` |
+| Maya | `#a67a6a` | `--color-maya` |
+| Jordan | `#c4856a` | `--color-jordan` |
+
+## Adding a New Persona
+
+1. Create bundle directory: `bundles/{persona-id}/`
+2. Create `persona.manifest.json` with required fields
+3. Write `identity/biography.md` and `identity/system-prompt.md`
+4. Add voice ID to `src/config/voice-ids.ts`
+5. Register in `src/personas/registry/unified-registry.ts`
+6. Add color to design tokens if needed
+7. Test with: `npm run dev -- --persona={persona-id}`

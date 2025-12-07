@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="midnight">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni AI - Handoff Diagnostics</title>
+  <meta name="description" content="Monitor how well your team members are working together. Track successful handoffs, identify issues, and understand conversation flow.">
+  <link rel="stylesheet" href="/design-system/tokens.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- 
+    ========================================
+    HANDOFF DIAGNOSTICS DASHBOARD
+    ========================================
+    
+    PURPOSE:
+    This dashboard provides visibility into the health of the handoff system,
+    helping identify when and why handoffs between AI team members succeed or fail.
+    
+    KEY METRICS:
+    - Success Rate: Percentage of handoffs that complete successfully
+    - Failure Breakdown: Why handoffs fail (persona not found, rate limited, etc.)
+    - Agent Flow: Which agents hand off to which most often
+    - Latency: How long handoffs take
+    
+    API ENDPOINTS:
+    - GET /api/diagnostics/handoff - Retrieve all handoff metrics
+    - POST /api/diagnostics/handoff/clear - Clear collected metrics
+    
+    BRAND COMPLIANCE:
+    - Uses Ferni design tokens (tokens.css)
+    - Warm, earthy color palette
+    - Plus Jakarta Sans for headlines, Inter for body
+    - Lucide-style outlined icons
+    - Zen-inspired minimal aesthetic
+    
+    ACCESSIBILITY:
+    - WCAG AA compliant contrast ratios
+    - Semantic HTML structure
+    - Keyboard navigation support
+    - Reduced motion support
+    
+    AUTHOR: Ferni AI Team
+    VERSION: 1.0.0
+    LAST UPDATED: December 2024
+    ======================================== 
+  -->
+  
+  <style>
+    /* ========================================
+       HANDOFF DASHBOARD - ON BRAND
+       Using Ferni Design System tokens
+       ======================================== */
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 15px;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-background-primary);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      padding: var(--ma-silence);
+      line-height: var(--leading-normal);
+      position: relative;
+    }
+
+    /* Subtle texture overlay for warmth */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ========================================
+       ICONS - Lucide-style outlined
+       ======================================== */
+    .icon {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    .icon-sm { width: 16px; height: 16px; }
+    .icon-lg { width: 24px; height: 24px; }
+    .icon-xl { width: 32px; height: 32px; }
+
+    /* ========================================
+       HEADER
+       ======================================== */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--ma-silence);
+      padding-bottom: var(--ma-rest);
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: var(--tracking-tight);
+      display: flex;
+      align-items: center;
+      gap: var(--ma-pause);
+    }
+
+    h1 .brand {
+      background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-natural-cedar-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--color-text-muted);
+      font-weight: var(--font-weight-regular);
+    }
+
+    .header-controls {
+      display: flex;
+      gap: var(--ma-pause);
+      align-items: center;
+    }
+
+    /* ========================================
+       NAVIGATION LINKS
+       ======================================== */
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-background-glass);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-medium);
+      text-decoration: none;
+      transition: var(--transition-all-fast);
+    }
+
+    .nav-link:hover {
+      background: var(--color-background-secondary);
+      border-color: var(--color-border-medium);
+      color: var(--color-text-primary);
+    }
+
+    /* ========================================
+       STATUS INDICATOR
+       ======================================== */
+    .status {
+      display: flex;
+      align-items: center;
+      gap: var(--ma-breath);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: var(--color-semantic-success);
+      box-shadow: 0 0 12px var(--color-semantic-success-glow);
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .status-dot.error {
+      background: var(--color-semantic-error);
+      box-shadow: 0 0 12px var(--color-semantic-error-glow);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(0.95); }
+    }
+
+    /* ========================================
+       BUTTONS
+       ======================================== */
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: var(--ma-breath);
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-subtle);
+      color: var(--color-text-secondary);
+      padding: var(--ma-breath) var(--ma-pause);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-medium);
+      transition: var(--transition-all);
+    }
+
+    .btn:hover {
+      background: var(--color-background-tertiary);
+      border-color: var(--color-accent-primary);
+      color: var(--color-text-primary);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-danger {
+      border-color: var(--color-semantic-error);
+      color: var(--color-semantic-error);
+    }
+
+    .btn-danger:hover {
+      background: var(--color-semantic-error-glow);
+      border-color: var(--color-semantic-error);
+      color: var(--color-semantic-error);
+    }
+
+    .icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--color-background-secondary);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-full);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: var(--transition-all);
+    }
+
+    .icon-btn:hover {
+      background: var(--color-background-tertiary);
+      border-color: var(--color-accent-primary);
+      color: var(--color-text-primary);
+      transform: scale(1.05);
+    }
+
+    /* ========================================
+       CARD GRID
+       ======================================== */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--ma-rest);
+      margin-bottom: var(--ma-silence);
+    }
+
+    .card {
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-xl);
+      padding: var(--ma-rest);
+      border: 1px solid var(--color-border-subtle);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition-all);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--color-accent-glow), transparent);
+      opacity: 0;
+      transition: opacity var(--duration-slow);
+    }
+
+    .card:hover {
+      border-color: var(--color-border-medium);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--ma-rest);
+    }
+
+    .card-title {
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wider);
+    }
+
+    .card-icon {
+      color: var(--color-text-dimmed);
+    }
+
+    .card-full {
+      grid-column: 1 / -1;
+    }
+
+    /* ========================================
+       HERO METRIC (Success Rate)
+       ======================================== */
+    .hero-metric {
+      text-align: center;
+      padding: var(--ma-rest) 0;
+    }
+
+    .hero-value {
+      font-family: var(--font-mono);
+      font-size: var(--text-5xl);
+      font-weight: var(--font-weight-bold);
+      letter-spacing: var(--tracking-tight);
+      line-height: var(--leading-tight);
+    }
+
+    .hero-value.good {
+      background: linear-gradient(135deg, var(--color-semantic-success) 0%, var(--color-natural-bamboo) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-value.okay {
+      background: linear-gradient(135deg, var(--color-semantic-warning) 0%, var(--color-accent-primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-value.poor {
+      background: linear-gradient(135deg, var(--color-semantic-error) 0%, var(--color-natural-cedar-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-label {
+      font-size: var(--text-sm);
+      color: var(--color-text-dimmed);
+      margin-top: var(--ma-breath);
+    }
+
+    .hero-sub {
+      display: flex;
+      justify-content: center;
+      gap: var(--ma-silence);
+      margin-top: var(--ma-pause);
+      padding-top: var(--ma-pause);
+      border-top: 1px solid var(--color-border-subtle);
+    }
+
+    .hero-stat {
+      text-align: center;
+    }
+
+    .hero-stat-value {
+      font-family: var(--font-mono);
+      font-size: var(--text-xl);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .hero-stat-label {
+      font-size: var(--text-2xs);
+      color: var(--color-text-dimmed);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wider);
+    }
+
+    /* ========================================
+       METRIC VALUES
+       ======================================== */
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: var(--text-3xl);
+      font-weight: var(--font-weight-bold);
+      letter-spacing: var(--tracking-tight);
+      margin-bottom: var(--ma-breath);
+    }
+
+    .metric-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-dimmed);
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--ma-pause) 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .metric-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .metric-name {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .metric-stat {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-medium);
+    }
+
+    /* Semantic colors */
+    .stat-success { color: var(--color-semantic-success); }
+    .stat-warning { color: var(--color-semantic-warning); }
+    .stat-error { color: var(--color-semantic-error); }
+    .stat-info { color: var(--color-semantic-info); }
+    .stat-accent { color: var(--color-accent-primary); }
+    .stat-cedar { color: var(--color-natural-cedar-light); }
+
+    /* ========================================
+       FAILURE REASONS BREAKDOWN
+       ======================================== */
+    .failure-item {
+      display: flex;
+      align-items: center;
+      gap: var(--ma-pause);
+      padding: var(--ma-pause);
+      background: var(--color-background-tertiary);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--ma-pause);
+      border: 1px solid var(--color-border-subtle);
+    }
+
+    .failure-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .failure-bar {
+      height: 4px;
+      background: var(--color-semantic-error);
+      border-radius: var(--radius-full);
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .failure-bar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--color-background-tertiary);
+    }
+
+    .failure-bar-fill {
+      height: 100%;
+      background: var(--color-semantic-error);
+      border-radius: var(--radius-full);
+      position: relative;
+      z-index: 1;
+      transition: width var(--duration-slow) var(--ease-out);
+    }
+
+    .failure-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      min-width: 140px;
+    }
+
+    .failure-count {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-semantic-error);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* ========================================
+       AGENT FLOW (Sankey-lite)
+       ======================================== */
+    .flow-item {
+      display: flex;
+      align-items: center;
+      gap: var(--ma-pause);
+      padding: var(--ma-pause);
+      background: var(--color-background-tertiary);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--ma-pause);
+      border: 1px solid var(--color-border-subtle);
+    }
+
+    .flow-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .flow-agent {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-width: 100px;
+    }
+
+    .agent-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: var(--radius-full);
+    }
+
+    .agent-name {
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .flow-arrow {
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, var(--from-color, var(--color-border-medium)), var(--to-color, var(--color-border-medium)));
+      position: relative;
+    }
+
+    .flow-arrow::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid var(--to-color, var(--color-border-medium));
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+    }
+
+    .flow-count {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      background: var(--color-background-secondary);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      min-width: 40px;
+      text-align: center;
+    }
+
+    /* Persona colors */
+    .agent-ferni { background: #4a6741; }
+    .agent-jack { background: #9a7b5a; }
+    .agent-peter { background: #3a6b73; }
+    .agent-alex { background: #5a6b8a; }
+    .agent-maya { background: #a67a6a; }
+    .agent-jordan { background: #c4856a; }
+    .agent-unknown { background: var(--color-text-dimmed); }
+
+    /* ========================================
+       RECENT HANDOFFS LIST
+       ======================================== */
+    .handoff-list {
+      max-height: 400px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border-medium) transparent;
+    }
+
+    .handoff-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .handoff-list::-webkit-scrollbar-thumb {
+      background: var(--color-border-medium);
+      border-radius: var(--radius-full);
+    }
+
+    .handoff-item {
+      display: flex;
+      align-items: center;
+      gap: var(--ma-pause);
+      padding: var(--ma-pause);
+      background: var(--color-background-tertiary);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--ma-pause);
+      border: 1px solid var(--color-border-subtle);
+      transition: var(--transition-all);
+    }
+
+    .handoff-item:hover {
+      border-color: var(--color-border-medium);
+      background: var(--color-background-elevated);
+    }
+
+    .handoff-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .handoff-status {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
+
+    .handoff-status.success {
+      background: var(--color-semantic-success);
+      box-shadow: 0 0 8px var(--color-semantic-success-glow);
+    }
+
+    .handoff-status.failure {
+      background: var(--color-semantic-error);
+      box-shadow: 0 0 8px var(--color-semantic-error-glow);
+    }
+
+    .handoff-status.pending {
+      background: var(--color-semantic-warning);
+      box-shadow: 0 0 8px var(--color-semantic-warning-glow);
+    }
+
+    .handoff-agents {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .handoff-from, .handoff-to {
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .handoff-arrow {
+      color: var(--color-text-dimmed);
+    }
+
+    .handoff-meta {
+      text-align: right;
+    }
+
+    .handoff-time {
+      font-family: var(--font-mono);
+      font-size: var(--text-2xs);
+      color: var(--color-text-dimmed);
+    }
+
+    .handoff-duration {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+
+    .handoff-error {
+      font-size: var(--text-2xs);
+      color: var(--color-semantic-error);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ========================================
+       EMPTY STATE
+       ======================================== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--ma-meditation);
+      color: var(--color-text-dimmed);
+      text-align: center;
+    }
+
+    .empty-state-icon {
+      margin-bottom: var(--ma-pause);
+      opacity: 0.5;
+    }
+
+    .empty-state-title {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      margin-bottom: var(--ma-breath);
+    }
+
+    .empty-state-text {
+      font-size: var(--text-sm);
+      max-width: 300px;
+    }
+
+    /* ========================================
+       FOOTER
+       ======================================== */
+    footer {
+      text-align: center;
+      padding-top: var(--ma-silence);
+      border-top: 1px solid var(--color-border-subtle);
+      color: var(--color-text-dimmed);
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wide);
+    }
+
+    footer span {
+      color: var(--color-accent-primary);
+    }
+
+    /* ========================================
+       ANIMATIONS
+       Use animation-fill-mode: both for reliable animation
+       ======================================== */
+    @keyframes cardEntrance {
+      from { 
+        opacity: 0; 
+        transform: translateY(20px) scale(0.95); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+      }
+    }
+
+    .grid > .card {
+      animation: cardEntrance 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .grid > .card:nth-child(1) { animation-delay: 0ms; }
+    .grid > .card:nth-child(2) { animation-delay: 50ms; }
+    .grid > .card:nth-child(3) { animation-delay: 100ms; }
+    .grid > .card:nth-child(4) { animation-delay: 150ms; }
+    .grid > .card:nth-child(5) { animation-delay: 200ms; }
+
+    /* ========================================
+       RESPONSIVE
+       ======================================== */
+    @media (max-width: 768px) {
+      body {
+        padding: var(--ma-rest);
+      }
+
+      header {
+        flex-direction: column;
+        gap: var(--ma-pause);
+        text-align: center;
+      }
+
+      h1 {
+        font-size: var(--text-xl);
+        flex-direction: column;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-sub {
+        flex-direction: column;
+        gap: var(--ma-pause);
+      }
+    }
+
+    /* ========================================
+       REDUCED MOTION
+       ======================================== */
+    @media (prefers-reduced-motion: reduce) {
+      .grid > .card {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+
+      .status-dot {
+        animation: none;
+      }
+
+      .card:hover {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>
+        <!-- Lucide arrow-left-right icon (handoff symbol) -->
+        <svg class="icon icon-lg" style="color: var(--color-accent-primary);" viewBox="0 0 24 24">
+          <path d="m16 3 4 4-4 4"/>
+          <path d="M20 7H4"/>
+          <path d="m8 21-4-4 4-4"/>
+          <path d="M4 17h16"/>
+        </svg>
+        <span class="brand">Ferni AI</span>
+        <span class="subtitle">Handoff Diagnostics</span>
+      </h1>
+      <div class="header-controls">
+        <a href="/metrics-dashboard.html" class="nav-link" title="Persistence Metrics">
+          <!-- Lucide database icon -->
+          <svg class="icon icon-sm" viewBox="0 0 24 24">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+            <path d="M3 12A9 3 0 0 0 21 12"/>
+          </svg>
+          Persistence
+        </a>
+        <a href="/tools-dashboard.html" class="nav-link" title="Tools Dashboard">
+          <!-- Lucide wrench icon -->
+          <svg class="icon icon-sm" viewBox="0 0 24 24">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+          Tools
+        </a>
+        <div class="status">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="updateTime">Connecting...</span>
+        </div>
+        <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme" id="themeBtn">
+          <!-- Lucide moon icon -->
+          <svg class="icon" viewBox="0 0 24 24" id="themeIcon">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+        </button>
+        <button class="btn" onclick="fetchMetrics()">
+          <!-- Lucide refresh-cw icon -->
+          <svg class="icon icon-sm" viewBox="0 0 24 24">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M8 16H3v5"/>
+          </svg>
+          Refresh
+        </button>
+        <button class="btn btn-danger" onclick="clearMetrics()" title="Clear all collected metrics">
+          <!-- Lucide trash-2 icon -->
+          <svg class="icon icon-sm" viewBox="0 0 24 24">
+            <path d="M3 6h18"/>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            <line x1="10" x2="10" y1="11" y2="17"/>
+            <line x1="14" x2="14" y1="11" y2="17"/>
+          </svg>
+          Clear
+        </button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Success Rate (Hero) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">How Your Team Is Doing</span>
+          <span class="card-icon">
+            <!-- Lucide heart-pulse icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+              <path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>
+            </svg>
+          </span>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-value good" id="successRate">--</div>
+          <div class="hero-label">Handoff Success Rate</div>
+        </div>
+        <div class="hero-sub">
+          <div class="hero-stat">
+            <div class="hero-stat-value stat-success" id="totalSuccess">0</div>
+            <div class="hero-stat-label">Successful</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value stat-error" id="totalFailure">0</div>
+            <div class="hero-stat-label">Failed</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value stat-warning" id="totalPending">0</div>
+            <div class="hero-stat-label">Pending</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">At a Glance</span>
+          <span class="card-icon">
+            <!-- Lucide activity icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Total Handoffs</span>
+          <span class="metric-stat stat-accent" id="totalHandoffs">0</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Average Duration</span>
+          <span class="metric-stat stat-cedar" id="avgDuration">0ms</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">From UI Clicks</span>
+          <span class="metric-stat stat-info" id="fromUI">0</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">From LLM Tools</span>
+          <span class="metric-stat stat-info" id="fromLLM">0</span>
+        </div>
+      </div>
+
+      <!-- Failure Reasons -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">What's Going Wrong</span>
+          <span class="card-icon">
+            <!-- Lucide alert-triangle icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+              <path d="M12 9v4"/>
+              <path d="M12 17h.01"/>
+            </svg>
+          </span>
+        </div>
+        <div id="failureReasons">
+          <div class="empty-state">
+            <div class="empty-state-text" style="color: var(--color-semantic-success);">
+              No failures yet - everything is working smoothly!
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Flow -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Team Handoff Patterns</span>
+          <span class="card-icon">
+            <!-- Lucide git-branch icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <line x1="6" x2="6" y1="3" y2="15"/>
+              <circle cx="18" cy="6" r="3"/>
+              <circle cx="6" cy="18" r="3"/>
+              <path d="M18 9a9 9 0 0 1-9 9"/>
+            </svg>
+          </span>
+        </div>
+        <div id="agentFlow">
+          <div class="empty-state">
+            <div class="empty-state-text">
+              No handoff patterns recorded yet.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Handoffs -->
+      <div class="card card-full">
+        <div class="card-header">
+          <span class="card-title">Recent Handoffs</span>
+          <span class="card-icon">
+            <!-- Lucide history icon -->
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M12 7v5l4 2"/>
+            </svg>
+          </span>
+        </div>
+        <div class="handoff-list" id="recentHandoffs">
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <!-- Lucide users icon -->
+              <svg class="icon icon-xl" viewBox="0 0 24 24">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div class="empty-state-title">No Handoffs Yet</div>
+            <div class="empty-state-text">
+              When your team members pass conversations to each other, you'll see them here.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>Auto-refreshes every 5 seconds <span>|</span> <span>Ferni AI</span> Handoff Diagnostics</p>
+    </footer>
+  </div>
+
+  <script>
+    /**
+     * ========================================
+     * HANDOFF DIAGNOSTICS DASHBOARD
+     * JavaScript Controller
+     * ========================================
+     * 
+     * This script fetches handoff metrics from the backend API
+     * and renders them in the dashboard.
+     * 
+     * API ENDPOINTS:
+     * - GET /api/diagnostics/handoffs - Retrieve metrics summary
+     * - GET /api/diagnostics/handoffs/recent - Recent handoff traces
+     * - GET /api/diagnostics/handoffs/failures - Recent failures
+     * - GET /api/diagnostics/handoffs/in-progress - Active handoffs
+     * 
+     * DATA STRUCTURE (HandoffTrace):
+     * {
+     *   id: string,
+     *   sessionId: string,
+     *   fromAgent: string,
+     *   toAgent: string,
+     *   source: 'ui_click' | 'voice_request' | 'tool_call' | 'auto_routing' | 'return_to_coach',
+     *   startTime: number,
+     *   endTime?: number,
+     *   durationMs?: number,
+     *   currentPhase: string,
+     *   success?: boolean,
+     *   failureReason?: string,
+     *   errorMessage?: string
+     * }
+     */
+
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:8080'
+      : '';
+
+    let currentTheme = 'midnight';
+
+    // Persona color mapping for visual distinction
+    const PERSONA_COLORS = {
+      ferni: { bg: '#4a6741', name: 'Ferni' },
+      jack: { bg: '#9a7b5a', name: 'Jack' },
+      peter: { bg: '#3a6b73', name: 'Peter' },
+      alex: { bg: '#5a6b8a', name: 'Alex' },
+      maya: { bg: '#a67a6a', name: 'Maya' },
+      jordan: { bg: '#c4856a', name: 'Jordan' },
+    };
+
+    // Friendly failure reason labels
+    const FAILURE_LABELS = {
+      'UNKNOWN_PERSONA': 'Unknown team member',
+      'ALREADY_ACTIVE': 'Already talking to this agent',
+      'RATE_LIMITED': 'Too many handoffs too quickly',
+      'NO_LISTENERS': 'Backend handler not ready',
+      'EVENT_CREATION_FAILED': 'Failed to create handoff event',
+      'EXECUTION_ERROR': 'Something went wrong',
+      'CONNECTION_LOST': 'Connection dropped',
+      'VOICE_SWITCH_FAILED': 'Voice switch failed',
+      'BUNDLE_LOAD_FAILED': 'Agent bundle failed to load',
+      'PERSONA_UPDATE_FAILED': 'Persona update failed',
+      'FRONTEND_TIMEOUT': 'Took too long to respond',
+      'CANCELLED': 'User cancelled',
+      'INVALID_TOOL': 'Invalid handoff tool',
+    };
+
+    // Theme icons (Lucide style)
+    const moonIcon = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
+    const sunIcon = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
+
+    /**
+     * Toggle between midnight and zen themes
+     */
+    function toggleTheme() {
+      currentTheme = currentTheme === 'midnight' ? 'zen' : 'midnight';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      document.getElementById('themeIcon').innerHTML = currentTheme === 'midnight' ? moonIcon : sunIcon;
+      localStorage.setItem('ferni-handoff-theme', currentTheme);
+    }
+
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('ferni-handoff-theme');
+    if (savedTheme) {
+      currentTheme = savedTheme;
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      document.getElementById('themeIcon').innerHTML = currentTheme === 'midnight' ? moonIcon : sunIcon;
+    }
+
+    /**
+     * Get persona display info
+     */
+    function getPersonaInfo(agentId) {
+      if (!agentId) return { name: 'Unknown', colorClass: 'agent-unknown' };
+      const id = agentId.toLowerCase();
+      const persona = PERSONA_COLORS[id];
+      if (persona) {
+        return { name: persona.name, colorClass: `agent-${id}` };
+      }
+      // Title case for unknown agents
+      return { 
+        name: agentId.charAt(0).toUpperCase() + agentId.slice(1), 
+        colorClass: 'agent-unknown' 
+      };
+    }
+
+    /**
+     * Format duration for display
+     */
+    function formatDuration(ms) {
+      if (!ms || ms === 0) return '--';
+      if (ms < 1000) return `${Math.round(ms)}ms`;
+      return `${(ms / 1000).toFixed(1)}s`;
+    }
+
+    /**
+     * Format timestamp for display
+     */
+    function formatTime(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+    }
+
+    /**
+     * Transform API response to dashboard format
+     */
+    function transformMetrics(summary, inProgress, recentTraces) {
+      // Count by source from flow patterns
+      const flowPatterns = {};
+      const fromUI = 0;
+      const fromLLM = 0;
+      
+      // Build flow patterns from agent stats
+      Object.keys(summary.byFromAgent || {}).forEach(from => {
+        Object.keys(summary.byToAgent || {}).forEach(to => {
+          if (from !== to) {
+            const fromStats = summary.byFromAgent[from] || { attempts: 0 };
+            const toStats = summary.byToAgent[to] || { attempts: 0 };
+            // Estimate flow based on min of attempts (rough heuristic)
+            const key = `${from} → ${to}`;
+            if (!flowPatterns[key]) {
+              flowPatterns[key] = Math.min(fromStats.attempts, toStats.attempts);
+            }
+          }
+        });
+      });
+
+      return {
+        total: summary.totalAttempts || 0,
+        successful: summary.totalSuccesses || 0,
+        failed: summary.totalFailures || 0,
+        pending: (inProgress || []).length,
+        successRate: Math.round((summary.successRate || 0) * 100),
+        avgDuration: summary.avgDurationMs || 0,
+        fromUI: summary.byFromAgent ? Object.values(summary.byFromAgent).reduce((sum, a) => sum + (a.attempts || 0), 0) : 0,
+        fromLLM: 0, // Would need source tracking
+        failureReasons: summary.byFailureReason || {},
+        flowPatterns,
+        recent: recentTraces || summary.recentFailures || []
+      };
+    }
+
+    /**
+     * Update the dashboard UI with calculated metrics
+     */
+    function updateUI(stats) {
+      // Success rate with color coding
+      const rateEl = document.getElementById('successRate');
+      rateEl.textContent = `${stats.successRate}%`;
+      rateEl.className = 'hero-value';
+      if (stats.successRate >= 90) {
+        rateEl.classList.add('good');
+      } else if (stats.successRate >= 70) {
+        rateEl.classList.add('okay');
+      } else {
+        rateEl.classList.add('poor');
+      }
+
+      // Quick stats
+      document.getElementById('totalSuccess').textContent = stats.successful;
+      document.getElementById('totalFailure').textContent = stats.failed;
+      document.getElementById('totalPending').textContent = stats.pending;
+      document.getElementById('totalHandoffs').textContent = stats.total;
+      document.getElementById('avgDuration').textContent = formatDuration(stats.avgDuration);
+      document.getElementById('fromUI').textContent = stats.fromUI;
+      document.getElementById('fromLLM').textContent = stats.fromLLM;
+
+      // Failure reasons
+      updateFailureReasons(stats.failureReasons, stats.failed);
+
+      // Agent flow
+      updateAgentFlow(stats.flowPatterns);
+
+      // Recent handoffs
+      updateRecentHandoffs(stats.recent);
+
+      // Status indicator
+      document.getElementById('updateTime').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      document.getElementById('statusDot').classList.remove('error');
+    }
+
+    /**
+     * Render failure reasons breakdown
+     */
+    function updateFailureReasons(reasons, totalFailures) {
+      const container = document.getElementById('failureReasons');
+      
+      if (Object.keys(reasons).length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-text" style="color: var(--color-semantic-success);">
+              No failures yet - everything is working smoothly!
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Sort by count descending
+      const sorted = Object.entries(reasons).sort((a, b) => b[1] - a[1]);
+      
+      container.innerHTML = sorted.map(([reason, count]) => {
+        const percentage = totalFailures > 0 ? (count / totalFailures) * 100 : 0;
+        const label = FAILURE_LABELS[reason] || reason;
+        
+        return `
+          <div class="failure-item">
+            <span class="failure-label">${label}</span>
+            <div class="failure-bar">
+              <div class="failure-bar-fill" style="width: ${percentage}%"></div>
+            </div>
+            <span class="failure-count">${count}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * Render agent flow patterns
+     */
+    function updateAgentFlow(patterns) {
+      const container = document.getElementById('agentFlow');
+      
+      if (Object.keys(patterns).length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-text">
+              No handoff patterns recorded yet.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Sort by count descending, take top 5
+      const sorted = Object.entries(patterns)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      container.innerHTML = sorted.map(([flow, count]) => {
+        const [from, to] = flow.split(' → ');
+        const fromInfo = getPersonaInfo(from);
+        const toInfo = getPersonaInfo(to);
+
+        return `
+          <div class="flow-item">
+            <div class="flow-agent">
+              <div class="agent-dot ${fromInfo.colorClass}"></div>
+              <span class="agent-name">${fromInfo.name}</span>
+            </div>
+            <div class="flow-arrow"></div>
+            <div class="flow-agent">
+              <div class="agent-dot ${toInfo.colorClass}"></div>
+              <span class="agent-name">${toInfo.name}</span>
+            </div>
+            <span class="flow-count">${count}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * Render recent handoffs list
+     */
+    function updateRecentHandoffs(handoffs) {
+      const container = document.getElementById('recentHandoffs');
+      
+      if (!handoffs || handoffs.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg class="icon icon-xl" viewBox="0 0 24 24">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div class="empty-state-title">No Handoffs Yet</div>
+            <div class="empty-state-text">
+              When your team members pass conversations to each other, you'll see them here.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = handoffs.map(h => {
+        const fromInfo = getPersonaInfo(h.fromAgent);
+        const toInfo = getPersonaInfo(h.toAgent);
+        // Handle both old (status) and new (success) formats
+        const isSuccess = h.success === true || h.status === 'success';
+        const isFailure = h.success === false || h.status === 'failure';
+        const statusClass = isSuccess ? 'success' : isFailure ? 'failure' : 'pending';
+        // Use startTime or timestamp depending on data source
+        const time = h.startTime || h.timestamp || Date.now();
+
+        return `
+          <div class="handoff-item">
+            <div class="handoff-status ${statusClass}"></div>
+            <div class="handoff-agents">
+              <span class="handoff-from">${fromInfo.name}</span>
+              <span class="handoff-arrow">→</span>
+              <span class="handoff-to">${toInfo.name}</span>
+            </div>
+            <div class="handoff-meta">
+              <div class="handoff-time">${formatTime(time)}</div>
+              ${h.durationMs ? `<div class="handoff-duration">${formatDuration(h.durationMs)}</div>` : ''}
+              ${h.errorMessage ? `<div class="handoff-error" title="${h.errorMessage}">${FAILURE_LABELS[h.failureReason] || h.errorMessage}</div>` : ''}
+              ${h.currentPhase && !isSuccess ? `<div class="handoff-duration">Phase: ${h.currentPhase}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * Fetch metrics from API
+     */
+    async function fetchMetrics() {
+      try {
+        // Fetch all data in parallel
+        const [summaryRes, inProgressRes, recentRes] = await Promise.all([
+          fetch(`${API_BASE}/api/diagnostics/handoffs?window=60`),
+          fetch(`${API_BASE}/api/diagnostics/handoffs/in-progress`),
+          fetch(`${API_BASE}/api/diagnostics/handoffs/recent?limit=50`)
+        ]);
+        
+        if (!summaryRes.ok || !inProgressRes.ok || !recentRes.ok) {
+          throw new Error('API request failed');
+        }
+        
+        const [summaryData, inProgressData, recentData] = await Promise.all([
+          summaryRes.json(),
+          inProgressRes.json(),
+          recentRes.json()
+        ]);
+        
+        const stats = transformMetrics(
+          summaryData.data || {},
+          inProgressData.data?.inProgress || [],
+          recentData.data?.traces || []
+        );
+        
+        updateUI(stats);
+        
+      } catch (error) {
+        console.error('Failed to fetch handoff metrics:', error);
+        document.getElementById('updateTime').textContent = 'Connection error';
+        document.getElementById('statusDot').classList.add('error');
+      }
+    }
+
+    /**
+     * Clear all metrics (note: this resets the in-memory store)
+     */
+    async function clearMetrics() {
+      if (!confirm('Are you sure you want to clear all handoff metrics? This cannot be undone.')) {
+        return;
+      }
+      
+      // Note: The current API doesn't have a clear endpoint exposed
+      // This would need to be added to the backend if needed
+      alert('Metrics clearing is not currently available via API. Metrics will auto-expire after the time window.');
+    }
+
+    // Initial fetch
+    fetchMetrics();
+    
+    // Auto-refresh every 5 seconds
+    setInterval(fetchMetrics, 5000);
+  </script>
+</body>
+</html>
+

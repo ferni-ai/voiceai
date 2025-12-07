@@ -1,0 +1,34 @@
+<svg width="1128" height="191" viewBox="0 0 1128 191" xmlns="http://www.w3.org/2000/svg">
+  <!-- LinkedIn Company Banner - 1128x191 -->
+  
+  <!-- Background -->
+  <rect width="1128" height="191" fill="#F5F1E8"/>
+  
+  <!-- Subtle pattern/texture -->
+  <defs>
+    <pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse">
+      <circle cx="50" cy="50" r="40" fill="#4a6741" opacity="0.02"/>
+    </pattern>
+  </defs>
+  <rect width="1128" height="191" fill="url(#grain)"/>
+  
+  <!-- Logo on left -->
+  <g transform="translate(60, 25)">
+    <!-- Halo -->
+    <circle cx="70" cy="70" r="65" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.35"/>
+    <!-- Main circle -->
+    <circle cx="70" cy="70" r="58" fill="#4a6741"/>
+    <!-- FN -->
+    <text x="70" y="80" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="34" font-weight="600" fill="white" text-anchor="middle">FN</text>
+    <!-- Status -->
+    <circle cx="110" cy="110" r="13" fill="white"/>
+    <circle cx="110" cy="110" r="10" fill="#4a6741"/>
+  </g>
+  
+  <!-- Tagline -->
+  <text x="240" y="85" font-family="'Plus Jakarta Sans', -apple-system, sans-serif" font-size="28" font-weight="700" fill="#2C2520">Your personal AI life coach.</text>
+  <text x="240" y="120" font-family="'Inter', -apple-system, sans-serif" font-size="16" font-weight="500" fill="#5C544A">Six specialists. One conversation. Just talk.</text>
+  
+  <!-- CTA on right -->
+  <text x="980" y="100" font-family="'Inter', -apple-system, sans-serif" font-size="14" font-weight="600" fill="#4a6741">app.ferni.ai</text>
+</svg>

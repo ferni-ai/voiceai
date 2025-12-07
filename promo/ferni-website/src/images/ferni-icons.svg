@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <!-- Ferni Cyclops Icon Library - Inspired by Luxo Jr. / Mike Wazowski -->
+  <!-- Single eye creates maximum expressiveness with minimal elements -->
+
+  <!-- Default face - friendly, approachable -->
+  <symbol id="ferni-face" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+    <circle cx="50" cy="40" r="18" fill="white"/>
+    <circle cx="50" cy="40" r="12" fill="#5a8060"/>
+    <circle cx="50" cy="40" r="6" fill="#2c2520"/>
+    <circle cx="47" cy="37" r="2" fill="white" opacity="0.9"/>
+    <path d="M 35 65 A 18 12 0 0 0 65 65" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+  </symbol>
+
+  <!-- Outline version for light backgrounds -->
+  <symbol id="ferni-face-outline" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="none" stroke="#4a6741" stroke-width="5"/>
+    <circle cx="50" cy="40" r="18" fill="#4a6741"/>
+    <circle cx="50" cy="40" r="12" fill="#5a8060"/>
+    <circle cx="50" cy="40" r="6" fill="white"/>
+    <circle cx="47" cy="37" r="1.5" fill="white" opacity="0.6"/>
+    <path d="M 35 65 A 18 12 0 0 0 65 65" stroke="#4a6741" stroke-width="4" stroke-linecap="round" fill="none"/>
+  </symbol>
+
+  <!-- Minimal - just the eye and smile, no circle -->
+  <symbol id="ferni-face-minimal" viewBox="0 0 100 100">
+    <circle cx="50" cy="40" r="18" fill="#4a6741"/>
+    <circle cx="50" cy="40" r="12" fill="#5a8060"/>
+    <circle cx="50" cy="40" r="6" fill="white"/>
+    <circle cx="47" cy="37" r="1.5" fill="white" opacity="0.6"/>
+    <path d="M 35 65 A 18 12 0 0 0 65 65" stroke="#4a6741" stroke-width="4" stroke-linecap="round" fill="none"/>
+  </symbol>
+
+  <!-- Wink - playful, knowing -->
+  <symbol id="ferni-face-wink" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+    <!-- Winking eye - curved line -->
+    <path d="M 38 40 Q 50 32 62 40" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M 35 65 A 18 12 0 0 0 65 65" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+  </symbol>
+
+  <!-- Thinking - contemplative, curious -->
+  <symbol id="ferni-face-thinking" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+    <!-- Eye looking up/to side -->
+    <circle cx="50" cy="40" r="18" fill="white"/>
+    <circle cx="50" cy="40" r="12" fill="#5a8060"/>
+    <circle cx="53" cy="37" r="6" fill="#2c2520"/>
+    <circle cx="50" cy="34" r="2" fill="white" opacity="0.9"/>
+    <!-- Thinking mouth - smaller, uncertain -->
+    <path d="M 40 65 Q 50 68 60 65" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- Happy - joyful, excited -->
+  <symbol id="ferni-face-happy" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+    <!-- Wide happy eye -->
+    <circle cx="50" cy="40" r="20" fill="white"/>
+    <circle cx="50" cy="40" r="14" fill="#5a8060"/>
+    <circle cx="50" cy="40" r="7" fill="#2c2520"/>
+    <circle cx="46" cy="36" r="2.5" fill="white" opacity="0.9"/>
+    <circle cx="52" cy="34" r="1" fill="white" opacity="0.7"/>
+    <!-- Big smile -->
+    <path d="M 30 62 Q 50 80 70 62" stroke="white" stroke-width="5" stroke-linecap="round" fill="none"/>
+  </symbol>
+
+  <!-- Joyful - eyes squeezed shut with happiness -->
+  <symbol id="ferni-face-joyful" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+    <!-- Happy closed eye - arc -->
+    <path d="M 35 40 Q 50 30 65 40" stroke="white" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <!-- Huge smile -->
+    <path d="M 28 60 Q 50 85 72 60" stroke="white" stroke-width="5" stroke-linecap="round" fill="none"/>
+  </symbol>
+
+  <!-- Listening - attentive, focused -->
+  <symbol id="ferni-face-listening" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+    <!-- Slightly larger, attentive eye -->
+    <circle cx="50" cy="40" r="19" fill="white"/>
+    <circle cx="50" cy="40" r="13" fill="#5a8060"/>
+    <circle cx="50" cy="40" r="6" fill="#2c2520"/>
+    <circle cx="47" cy="37" r="2" fill="white" opacity="0.9"/>
+    <!-- Soft, attentive smile -->
+    <path d="M 38 65 A 14 10 0 0 0 62 65" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+  </symbol>
+
+  <!-- Surprised - wide eye, small mouth -->
+  <symbol id="ferni-face-surprised" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+    <!-- Extra wide surprised eye -->
+    <circle cx="50" cy="40" r="22" fill="white"/>
+    <circle cx="50" cy="40" r="15" fill="#5a8060"/>
+    <circle cx="50" cy="40" r="8" fill="#2c2520"/>
+    <circle cx="45" cy="35" r="3" fill="white" opacity="0.9"/>
+    <!-- Small O mouth -->
+    <ellipse cx="50" cy="68" rx="6" ry="8" fill="white"/>
+  </symbol>
+
+  <!-- Sleepy - half-closed eye -->
+  <symbol id="ferni-face-sleepy" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+    <!-- Half-closed droopy eye -->
+    <ellipse cx="50" cy="42" rx="18" ry="10" fill="white"/>
+    <ellipse cx="50" cy="44" rx="12" ry="6" fill="#5a8060"/>
+    <ellipse cx="50" cy="45" rx="6" ry="4" fill="#2c2520"/>
+    <!-- Sleepy lid -->
+    <path d="M 32 38 Q 50 30 68 38" fill="#4a6741"/>
+    <!-- Soft smile -->
+    <path d="M 40 65 A 12 8 0 0 0 60 65" stroke="white" stroke-width="3" stroke-linecap="round" fill="none"/>
+  </symbol>
+</svg>

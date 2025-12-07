@@ -1,0 +1,519 @@
+{
+  "generatedAt": "2025-12-06T13:47:22.214Z",
+  "series": {
+    "name": "Building in Public",
+    "description": "The authentic story of building an AI life coaching platform with AI as a development partner.",
+    "startDate": "2024-12-09",
+    "cadence": "Every 2 weeks"
+  },
+  "blogs": [
+    {
+      "id": 1,
+      "title": "Why We Let AI Help Build Ferni",
+      "slug": "why-we-let-ai-help-build-ferni",
+      "seriesPart": 1,
+      "publishDate": "2024-12-09",
+      "status": "draft",
+      "filePath": "apps/marketing/copy/blog-posts/01-why-we-let-ai-help-build-ferni.md"
+    },
+    {
+      "id": 2,
+      "title": "How an AI Helped Design Its Own Brain",
+      "slug": "how-ai-helped-design-its-own-brain",
+      "seriesPart": 2,
+      "publishDate": "2024-12-23",
+      "status": "draft",
+      "filePath": "apps/marketing/copy/blog-posts/02-how-ai-helped-design-its-own-brain.md"
+    },
+    {
+      "id": 3,
+      "title": "Giving AI a Personality (Without Losing Its Soul)",
+      "slug": "giving-ai-a-personality",
+      "seriesPart": 3,
+      "publishDate": "2025-01-06",
+      "status": "draft",
+      "filePath": "apps/marketing/copy/blog-posts/03-giving-ai-a-personality.md"
+    },
+    {
+      "id": 4,
+      "title": "Our Daily Standup Has an AI in the Room",
+      "slug": "daily-standup-with-ai",
+      "seriesPart": 4,
+      "publishDate": "2025-01-20",
+      "status": "draft",
+      "filePath": "apps/marketing/copy/blog-posts/04-daily-standup-with-ai.md"
+    },
+    {
+      "id": 5,
+      "title": "How Ferni Remembers You (Without Being Creepy)",
+      "slug": "how-ferni-remembers-you",
+      "seriesPart": 5,
+      "publishDate": "2025-02-03",
+      "status": "draft",
+      "filePath": "apps/marketing/copy/blog-posts/05-how-ferni-remembers-you.md"
+    },
+    {
+      "id": 6,
+      "title": "We Ship Every Day. Here's How.",
+      "slug": "we-ship-every-day",
+      "seriesPart": 6,
+      "publishDate": "2025-02-17",
+      "status": "draft",
+      "filePath": "apps/marketing/copy/blog-posts/06-we-ship-every-day.md"
+    },
+    {
+      "id": 7,
+      "title": "AI Should Make You Feel Less Alone",
+      "slug": "ai-should-make-you-feel-less-alone",
+      "seriesPart": 7,
+      "publishDate": "2025-03-03",
+      "status": "draft",
+      "filePath": "apps/marketing/copy/blog-posts/07-ai-should-make-you-feel-less-alone.md"
+    },
+    {
+      "id": 8,
+      "title": "What's Next for Ferni",
+      "slug": "whats-next-for-ferni",
+      "seriesPart": 8,
+      "publishDate": "2025-03-16",
+      "status": "draft",
+      "filePath": "apps/marketing/copy/blog-posts/08-whats-next-for-ferni.md"
+    }
+  ],
+  "social": [
+    {
+      "id": "why-we-let-ai-help-build-ferni-linkedin",
+      "blogId": 1,
+      "platform": "linkedin",
+      "scheduledTime": "2024-12-08T14:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/linkedin/why-we-let-ai-help-build-ferni.md",
+      "status": "draft"
+    },
+    {
+      "id": "why-we-let-ai-help-build-ferni-twitter",
+      "blogId": 1,
+      "platform": "twitter",
+      "scheduledTime": "2024-12-08T17:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/twitter/why-we-let-ai-help-build-ferni.json",
+      "status": "draft"
+    },
+    {
+      "id": "why-we-let-ai-help-build-ferni-instagram",
+      "blogId": 1,
+      "platform": "instagram",
+      "scheduledTime": "2024-12-09T16:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/instagram/why-we-let-ai-help-build-ferni.json",
+      "status": "draft"
+    },
+    {
+      "id": "how-ai-helped-design-its-own-brain-linkedin",
+      "blogId": 2,
+      "platform": "linkedin",
+      "scheduledTime": "2024-12-22T14:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/linkedin/how-ai-helped-design-its-own-brain.md",
+      "status": "draft"
+    },
+    {
+      "id": "how-ai-helped-design-its-own-brain-twitter",
+      "blogId": 2,
+      "platform": "twitter",
+      "scheduledTime": "2024-12-22T17:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/twitter/how-ai-helped-design-its-own-brain.json",
+      "status": "draft"
+    },
+    {
+      "id": "how-ai-helped-design-its-own-brain-instagram",
+      "blogId": 2,
+      "platform": "instagram",
+      "scheduledTime": "2024-12-23T16:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/instagram/how-ai-helped-design-its-own-brain.json",
+      "status": "draft"
+    },
+    {
+      "id": "giving-ai-a-personality-linkedin",
+      "blogId": 3,
+      "platform": "linkedin",
+      "scheduledTime": "2025-01-05T14:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/linkedin/giving-ai-a-personality.md",
+      "status": "draft"
+    },
+    {
+      "id": "giving-ai-a-personality-twitter",
+      "blogId": 3,
+      "platform": "twitter",
+      "scheduledTime": "2025-01-05T17:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/twitter/giving-ai-a-personality.json",
+      "status": "draft"
+    },
+    {
+      "id": "giving-ai-a-personality-instagram",
+      "blogId": 3,
+      "platform": "instagram",
+      "scheduledTime": "2025-01-06T16:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/instagram/giving-ai-a-personality.json",
+      "status": "draft"
+    },
+    {
+      "id": "daily-standup-with-ai-linkedin",
+      "blogId": 4,
+      "platform": "linkedin",
+      "scheduledTime": "2025-01-19T14:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/linkedin/daily-standup-with-ai.md",
+      "status": "draft"
+    },
+    {
+      "id": "daily-standup-with-ai-twitter",
+      "blogId": 4,
+      "platform": "twitter",
+      "scheduledTime": "2025-01-19T17:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/twitter/daily-standup-with-ai.json",
+      "status": "draft"
+    },
+    {
+      "id": "daily-standup-with-ai-instagram",
+      "blogId": 4,
+      "platform": "instagram",
+      "scheduledTime": "2025-01-20T16:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/instagram/daily-standup-with-ai.json",
+      "status": "draft"
+    },
+    {
+      "id": "how-ferni-remembers-you-linkedin",
+      "blogId": 5,
+      "platform": "linkedin",
+      "scheduledTime": "2025-02-02T14:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/linkedin/how-ferni-remembers-you.md",
+      "status": "draft"
+    },
+    {
+      "id": "how-ferni-remembers-you-twitter",
+      "blogId": 5,
+      "platform": "twitter",
+      "scheduledTime": "2025-02-02T17:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/twitter/how-ferni-remembers-you.json",
+      "status": "draft"
+    },
+    {
+      "id": "how-ferni-remembers-you-instagram",
+      "blogId": 5,
+      "platform": "instagram",
+      "scheduledTime": "2025-02-03T16:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/instagram/how-ferni-remembers-you.json",
+      "status": "draft"
+    },
+    {
+      "id": "we-ship-every-day-linkedin",
+      "blogId": 6,
+      "platform": "linkedin",
+      "scheduledTime": "2025-02-16T14:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/linkedin/we-ship-every-day.md",
+      "status": "draft"
+    },
+    {
+      "id": "we-ship-every-day-twitter",
+      "blogId": 6,
+      "platform": "twitter",
+      "scheduledTime": "2025-02-16T17:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/twitter/we-ship-every-day.json",
+      "status": "draft"
+    },
+    {
+      "id": "we-ship-every-day-instagram",
+      "blogId": 6,
+      "platform": "instagram",
+      "scheduledTime": "2025-02-17T16:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/instagram/we-ship-every-day.json",
+      "status": "draft"
+    },
+    {
+      "id": "ai-should-make-you-feel-less-alone-linkedin",
+      "blogId": 7,
+      "platform": "linkedin",
+      "scheduledTime": "2025-03-02T14:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/linkedin/ai-should-make-you-feel-less-alone.md",
+      "status": "draft"
+    },
+    {
+      "id": "ai-should-make-you-feel-less-alone-twitter",
+      "blogId": 7,
+      "platform": "twitter",
+      "scheduledTime": "2025-03-02T17:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/twitter/ai-should-make-you-feel-less-alone.json",
+      "status": "draft"
+    },
+    {
+      "id": "ai-should-make-you-feel-less-alone-instagram",
+      "blogId": 7,
+      "platform": "instagram",
+      "scheduledTime": "2025-03-03T16:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/instagram/ai-should-make-you-feel-less-alone.json",
+      "status": "draft"
+    },
+    {
+      "id": "whats-next-for-ferni-linkedin",
+      "blogId": 8,
+      "platform": "linkedin",
+      "scheduledTime": "2025-03-15T13:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/linkedin/whats-next-for-ferni.md",
+      "status": "draft"
+    },
+    {
+      "id": "whats-next-for-ferni-twitter",
+      "blogId": 8,
+      "platform": "twitter",
+      "scheduledTime": "2025-03-15T16:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/twitter/whats-next-for-ferni.json",
+      "status": "draft"
+    },
+    {
+      "id": "whats-next-for-ferni-instagram",
+      "blogId": 8,
+      "platform": "instagram",
+      "scheduledTime": "2025-03-16T15:00:00.000Z",
+      "content": "",
+      "contentFile": "apps/marketing/content/social/instagram/whats-next-for-ferni.json",
+      "status": "draft"
+    }
+  ],
+  "schedule": [
+    {
+      "week": 1,
+      "startDate": "2024-12-10",
+      "blogPost": 1,
+      "tasks": [
+        {
+          "day": "2024-12-09",
+          "platform": "blog",
+          "action": "Publish: \"Why We Let AI Help Build Ferni\""
+        },
+        {
+          "day": "2024-12-08",
+          "platform": "linkedin",
+          "action": "Post article"
+        },
+        {
+          "day": "2024-12-08",
+          "platform": "twitter",
+          "action": "Post thread"
+        },
+        {
+          "day": "2024-12-09",
+          "platform": "instagram",
+          "action": "Post carousel"
+        }
+      ]
+    },
+    {
+      "week": 3,
+      "startDate": "2024-12-24",
+      "blogPost": 2,
+      "tasks": [
+        {
+          "day": "2024-12-23",
+          "platform": "blog",
+          "action": "Publish: \"How an AI Helped Design Its Own Brain\""
+        },
+        {
+          "day": "2024-12-22",
+          "platform": "linkedin",
+          "action": "Post article"
+        },
+        {
+          "day": "2024-12-22",
+          "platform": "twitter",
+          "action": "Post thread"
+        },
+        {
+          "day": "2024-12-23",
+          "platform": "instagram",
+          "action": "Post carousel"
+        }
+      ]
+    },
+    {
+      "week": 5,
+      "startDate": "2025-01-07",
+      "blogPost": 3,
+      "tasks": [
+        {
+          "day": "2025-01-06",
+          "platform": "blog",
+          "action": "Publish: \"Giving AI a Personality (Without Losing Its Soul)\""
+        },
+        {
+          "day": "2025-01-05",
+          "platform": "linkedin",
+          "action": "Post article"
+        },
+        {
+          "day": "2025-01-05",
+          "platform": "twitter",
+          "action": "Post thread"
+        },
+        {
+          "day": "2025-01-06",
+          "platform": "instagram",
+          "action": "Post carousel"
+        }
+      ]
+    },
+    {
+      "week": 7,
+      "startDate": "2025-01-21",
+      "blogPost": 4,
+      "tasks": [
+        {
+          "day": "2025-01-20",
+          "platform": "blog",
+          "action": "Publish: \"Our Daily Standup Has an AI in the Room\""
+        },
+        {
+          "day": "2025-01-19",
+          "platform": "linkedin",
+          "action": "Post article"
+        },
+        {
+          "day": "2025-01-19",
+          "platform": "twitter",
+          "action": "Post thread"
+        },
+        {
+          "day": "2025-01-20",
+          "platform": "instagram",
+          "action": "Post carousel"
+        }
+      ]
+    },
+    {
+      "week": 9,
+      "startDate": "2025-02-04",
+      "blogPost": 5,
+      "tasks": [
+        {
+          "day": "2025-02-03",
+          "platform": "blog",
+          "action": "Publish: \"How Ferni Remembers You (Without Being Creepy)\""
+        },
+        {
+          "day": "2025-02-02",
+          "platform": "linkedin",
+          "action": "Post article"
+        },
+        {
+          "day": "2025-02-02",
+          "platform": "twitter",
+          "action": "Post thread"
+        },
+        {
+          "day": "2025-02-03",
+          "platform": "instagram",
+          "action": "Post carousel"
+        }
+      ]
+    },
+    {
+      "week": 11,
+      "startDate": "2025-02-18",
+      "blogPost": 6,
+      "tasks": [
+        {
+          "day": "2025-02-17",
+          "platform": "blog",
+          "action": "Publish: \"We Ship Every Day. Here's How.\""
+        },
+        {
+          "day": "2025-02-16",
+          "platform": "linkedin",
+          "action": "Post article"
+        },
+        {
+          "day": "2025-02-16",
+          "platform": "twitter",
+          "action": "Post thread"
+        },
+        {
+          "day": "2025-02-17",
+          "platform": "instagram",
+          "action": "Post carousel"
+        }
+      ]
+    },
+    {
+      "week": 13,
+      "startDate": "2025-03-04",
+      "blogPost": 7,
+      "tasks": [
+        {
+          "day": "2025-03-03",
+          "platform": "blog",
+          "action": "Publish: \"AI Should Make You Feel Less Alone\""
+        },
+        {
+          "day": "2025-03-02",
+          "platform": "linkedin",
+          "action": "Post article"
+        },
+        {
+          "day": "2025-03-02",
+          "platform": "twitter",
+          "action": "Post thread"
+        },
+        {
+          "day": "2025-03-03",
+          "platform": "instagram",
+          "action": "Post carousel"
+        }
+      ]
+    },
+    {
+      "week": 14,
+      "startDate": "2025-03-11",
+      "blogPost": 8,
+      "tasks": [
+        {
+          "day": "2025-03-16",
+          "platform": "blog",
+          "action": "Publish: \"What's Next for Ferni\""
+        },
+        {
+          "day": "2025-03-15",
+          "platform": "linkedin",
+          "action": "Post article"
+        },
+        {
+          "day": "2025-03-15",
+          "platform": "twitter",
+          "action": "Post thread"
+        },
+        {
+          "day": "2025-03-16",
+          "platform": "instagram",
+          "action": "Post carousel"
+        }
+      ]
+    }
+  ]
+}

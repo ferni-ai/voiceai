@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Platform | AI Agent Framework for Developers & Businesses</title>
+  <meta name="description" content="Build custom AI voice agents with Ferni's open platform. The same technology behind Ferni's life coaching team, now available for your business.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Ferni Platform | Build AI Voice Agents">
+  <meta property="og:description" content="The same technology behind Ferni's AI life coaching team. Now open for developers.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ferni.ai/platform">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+  <link rel="stylesheet" href="css/design-tokens.css">
+  
+  <style>
+    :root {
+      --color-bg-primary: #F5F1E8;
+      --color-bg-secondary: #E8E0D5;
+      --color-bg-elevated: #FFFDFB;
+      --color-bg-dark: #2C2520;
+      --color-text-primary: #2C2520;
+      --color-text-secondary: #5C544A;
+      --color-text-muted: #756A5E;
+      --color-text-inverse: #F5F1E8;
+      --color-accent: #3D5A45;
+      --color-accent-hover: #4a6d52;
+      --color-highlight: #C4A265;
+      --color-border-medium: rgba(44, 37, 32, 0.10);
+      --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-body: 'Inter', -apple-system, sans-serif;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --space-2xl: 3rem;
+      --space-3xl: 4rem;
+      --space-4xl: 6rem;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.08);
+      --shadow-lg: 0 8px 24px rgba(44, 37, 32, 0.12);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--space-lg);
+    }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      background: rgba(245, 241, 232, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border-medium);
+      z-index: 100;
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-md) 0;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--color-text-primary);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--color-accent);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    .nav { display: flex; gap: var(--space-xl); align-items: center; }
+    .nav a {
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav a:hover { color: var(--color-accent); }
+
+    /* Hero */
+    .hero {
+      padding: var(--space-4xl) 0;
+      text-align: center;
+      background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-lg);
+      background: rgba(61, 90, 69, 0.1);
+      color: var(--color-accent);
+      border-radius: 100px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: var(--space-lg);
+    }
+    .hero h1 span {
+      color: var(--color-accent);
+    }
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: var(--color-text-secondary);
+      max-width: 600px;
+      margin: 0 auto var(--space-xl);
+    }
+    .hero-ctas {
+      display: flex;
+      gap: var(--space-md);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-md) var(--space-xl);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--color-accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--color-accent-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .btn-secondary {
+      background: var(--color-bg-elevated);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border-medium);
+    }
+    .btn-secondary:hover {
+      background: var(--color-bg-secondary);
+    }
+
+    /* Two Paths */
+    .paths {
+      padding: var(--space-4xl) 0;
+    }
+    .paths-header {
+      text-align: center;
+      margin-bottom: var(--space-2xl);
+    }
+    .paths-header h2 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--space-sm);
+    }
+    .paths-header p {
+      color: var(--color-text-secondary);
+      font-size: 1.125rem;
+    }
+    .paths-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-xl);
+    }
+    @media (max-width: 768px) {
+      .paths-grid { grid-template-columns: 1fr; }
+    }
+    .path-card {
+      background: var(--color-bg-elevated);
+      border: 2px solid var(--color-border-medium);
+      border-radius: var(--radius-xl);
+      padding: var(--space-2xl);
+      transition: all 0.3s;
+    }
+    .path-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--color-accent);
+    }
+    .path-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, rgba(61, 90, 69, 0.1), rgba(61, 90, 69, 0.05));
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      margin-bottom: var(--space-lg);
+    }
+    .path-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: var(--space-sm);
+    }
+    .path-card .tagline {
+      color: var(--color-accent);
+      font-weight: 600;
+      font-size: 0.9375rem;
+      margin-bottom: var(--space-md);
+    }
+    .path-card p {
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-lg);
+    }
+    .path-features {
+      list-style: none;
+      margin-bottom: var(--space-lg);
+    }
+    .path-features li {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) 0;
+      color: var(--color-text-secondary);
+      font-size: 0.9375rem;
+    }
+    .path-features li::before {
+      content: '✓';
+      color: var(--color-accent);
+      font-weight: 700;
+    }
+
+    /* Stats */
+    .stats {
+      background: var(--color-bg-dark);
+      color: var(--color-text-inverse);
+      padding: var(--space-2xl) 0;
+    }
+    .stats-grid {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-4xl);
+      flex-wrap: wrap;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--color-highlight);
+    }
+    .stat-label {
+      color: rgba(245, 241, 232, 0.6);
+      font-size: 0.875rem;
+      margin-top: var(--space-sm);
+    }
+
+    /* Use Cases */
+    .use-cases {
+      padding: var(--space-4xl) 0;
+      background: var(--color-bg-secondary);
+    }
+    .use-cases-header {
+      text-align: center;
+      margin-bottom: var(--space-2xl);
+    }
+    .use-cases-header h2 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--space-sm);
+    }
+    .use-cases-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-lg);
+    }
+    @media (max-width: 768px) {
+      .use-cases-grid { grid-template-columns: 1fr; }
+    }
+    .use-case {
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      transition: all 0.2s;
+    }
+    .use-case:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .use-case-icon {
+      font-size: 1.5rem;
+      margin-bottom: var(--space-md);
+    }
+    .use-case h4 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+    }
+    .use-case p {
+      font-size: 0.9375rem;
+      color: var(--color-text-secondary);
+    }
+
+    /* CTA */
+    .cta {
+      padding: var(--space-4xl) 0;
+      text-align: center;
+    }
+    .cta h2 {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: var(--space-md);
+    }
+    .cta p {
+      color: var(--color-text-secondary);
+      font-size: 1.125rem;
+      margin-bottom: var(--space-xl);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--color-bg-dark);
+      color: var(--color-text-inverse);
+      padding: var(--space-2xl) 0;
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-links { display: flex; gap: var(--space-xl); }
+    .footer-links a {
+      color: rgba(245, 241, 232, 0.6);
+      text-decoration: none;
+      font-size: 0.9375rem;
+    }
+    .footer-links a:hover { color: var(--color-text-inverse); }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="/" class="logo">
+        <div class="logo-icon">FE</div>
+        <span>Ferni</span>
+      </a>
+      <nav class="nav">
+        <a href="/">Product</a>
+        <a href="platform.html" style="color: var(--color-accent);">Platform</a>
+        <a href="developers/">Developers</a>
+        <a href="pricing.html">Pricing</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-eyebrow">
+        <span>🚀</span> Now Open Source
+      </div>
+      <h1>One Platform.<br><span>Two Paths.</span></h1>
+      <p class="hero-subtitle">
+        Experience Ferni as your AI life coach, or build your own voice agents with our open platform. Same technology, your choice.
+      </p>
+      <div class="hero-ctas">
+        <a href="https://app.ferni.ai" class="btn btn-primary">Try Ferni Free →</a>
+        <a href="developers/" class="btn btn-secondary">Start Building</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-value">7</div>
+          <div class="stat-label">Built-in AI Specialists</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">&lt;200ms</div>
+          <div class="stat-label">Voice Response Time</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">100%</div>
+          <div class="stat-label">TypeScript</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">MIT</div>
+          <div class="stat-label">Open Source License</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two Paths -->
+  <section class="paths">
+    <div class="container">
+      <div class="paths-header">
+        <h2>Choose Your Path</h2>
+        <p>Whether you want to use Ferni or build with it, we've got you covered</p>
+      </div>
+      
+      <div class="paths-grid">
+        <!-- Consumer Path -->
+        <div class="path-card">
+          <div class="path-icon">🌿</div>
+          <h3>Use Ferni</h3>
+          <p class="tagline">For Individuals</p>
+          <p>Meet your personal AI life coaching team. Seven specialists ready to help with career, habits, planning, wisdom, and more.</p>
+          
+          <ul class="path-features">
+            <li>Talk via web app or phone call</li>
+            <li>24/7 availability, no appointments</li>
+            <li>Specialists for different life areas</li>
+            <li>Free tier with generous limits</li>
+            <li>Premium for unlimited conversations</li>
+          </ul>
+          
+          <a href="/" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Learn More About Ferni →
+          </a>
+        </div>
+        
+        <!-- Developer Path -->
+        <div class="path-card">
+          <div class="path-icon">⚡</div>
+          <h3>Build with Ferni</h3>
+          <p class="tagline">For Developers & Businesses</p>
+          <p>Build your own AI voice agents using the same platform that powers Ferni. Open source, fully customizable, production-ready.</p>
+          
+          <ul class="path-features">
+            <li>Bundle-based agent architecture</li>
+            <li>CLI tools for rapid development</li>
+            <li>Smart handoff between agents</li>
+            <li>Cartesia voice integration</li>
+            <li>Full TypeScript, Zod validation</li>
+          </ul>
+          
+          <a href="developers/" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            View Developer Docs →
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Use Cases -->
+  <section class="use-cases">
+    <div class="container">
+      <div class="use-cases-header">
+        <h2>What You Can Build</h2>
+        <p>The Ferni platform powers diverse voice AI applications</p>
+      </div>
+      
+      <div class="use-cases-grid">
+        <div class="use-case">
+          <div class="use-case-icon">🏥</div>
+          <h4>Healthcare Companions</h4>
+          <p>Patient support agents for medication reminders, symptom tracking, and wellness check-ins.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">📚</div>
+          <h4>Educational Tutors</h4>
+          <p>Subject-matter experts that adapt to learning styles and provide personalized guidance.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">🏢</div>
+          <h4>Customer Support</h4>
+          <p>Voice agents that handle inquiries with personality and can escalate to specialists.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">🧘</div>
+          <h4>Wellness Coaches</h4>
+          <p>Mental health support, meditation guides, and daily check-in companions.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">💼</div>
+          <h4>Business Advisors</h4>
+          <p>Domain experts for legal, financial, or strategic guidance.</p>
+        </div>
+        <div class="use-case">
+          <div class="use-case-icon">🎮</div>
+          <h4>Interactive Characters</h4>
+          <p>Game NPCs and storytelling companions with rich personalities.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container">
+      <h2>Ready to get started?</h2>
+      <p>Join thousands of users and developers building with Ferni</p>
+      <div class="hero-ctas">
+        <a href="https://app.ferni.ai" class="btn btn-primary">Try Ferni Free</a>
+        <a href="developers/getting-started.html" class="btn btn-secondary">Read the Docs</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <a href="/" class="logo" style="color: var(--color-text-inverse);">
+        <div class="logo-icon">FE</div>
+        <span>Ferni</span>
+      </a>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="developers/">Developers</a>
+        <a href="https://github.com/ferni-ai/ferni-agents">GitHub</a>
+        <a href="privacy.html">Privacy</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+

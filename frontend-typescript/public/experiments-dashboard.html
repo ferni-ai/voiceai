@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="midnight">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A/B Experiments | Ferni AI</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Design System -->
+  <link rel="stylesheet" href="design-system/tokens.css">
+  
+  <style>
+    /* ================================================================
+       BASE STYLES
+       ================================================================ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-background-primary);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      padding: var(--space-6);
+    }
+
+    /* ================================================================
+       HEADER
+       ================================================================ */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-8);
+    }
+
+    .header-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .header-title svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--color-accent-primary);
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    .header-eyebrow {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: var(--space-1);
+    }
+
+    .header-controls {
+      display: flex;
+      gap: var(--space-4);
+      align-items: center;
+    }
+
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border-medium);
+      border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .refresh-btn:hover {
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
+    }
+
+    .refresh-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    /* ================================================================
+       SUMMARY CARDS
+       ================================================================ */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-8);
+    }
+
+    .summary-card {
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      transition: all 0.3s ease;
+    }
+
+    .summary-card:hover {
+      border-color: var(--color-border-medium);
+      transform: translateY(-2px);
+    }
+
+    .summary-label {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-2);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .summary-label svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .summary-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      line-height: 1;
+    }
+
+    .summary-value.running {
+      color: var(--color-semantic-success);
+    }
+
+    .summary-value.concluded {
+      color: var(--color-semantic-info);
+    }
+
+    .summary-value.positive {
+      color: var(--color-semantic-success);
+    }
+
+    .summary-value.negative {
+      color: var(--color-semantic-error);
+    }
+
+    /* ================================================================
+       EXPERIMENTS LIST
+       ================================================================ */
+    .section-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .section-title svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--color-accent-primary);
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .experiments-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      margin-bottom: var(--space-8);
+    }
+
+    .experiment-card {
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .experiment-card:hover {
+      border-color: var(--color-border-medium);
+    }
+
+    .experiment-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: var(--space-5);
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+
+    .experiment-info {
+      flex: 1;
+    }
+
+    .experiment-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .experiment-hypothesis {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+      max-width: 600px;
+    }
+
+    .experiment-meta {
+      display: flex;
+      gap: var(--space-3);
+      margin-top: var(--space-2);
+    }
+
+    .meta-badge {
+      font-size: 0.75rem;
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .meta-badge.persona {
+      background: var(--color-accent-subtle);
+      color: var(--color-accent-primary);
+    }
+
+    .experiment-status {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: var(--space-2);
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .status-badge.running {
+      background: var(--color-semantic-success-glow);
+      color: var(--color-semantic-success);
+    }
+
+    .status-badge.concluded {
+      background: var(--color-semantic-info-glow);
+      color: var(--color-semantic-info);
+    }
+
+    .status-badge.draft {
+      background: var(--color-semantic-warning-glow);
+      color: var(--color-semantic-warning);
+    }
+
+    .winner-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+    }
+
+    .winner-badge.treatment {
+      background: var(--color-semantic-success-glow);
+      color: var(--color-semantic-success);
+    }
+
+    .winner-badge.control {
+      background: var(--color-semantic-info-glow);
+      color: var(--color-semantic-info);
+    }
+
+    .winner-badge.inconclusive {
+      background: var(--color-semantic-warning-glow);
+      color: var(--color-semantic-warning);
+    }
+
+    /* Experiment body with metrics */
+    .experiment-body {
+      padding: var(--space-5);
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .metric-item {
+      text-align: center;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-1);
+    }
+
+    .metric-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .metric-value.positive {
+      color: var(--color-semantic-success);
+    }
+
+    .metric-value.negative {
+      color: var(--color-semantic-error);
+    }
+
+    .metric-delta {
+      font-size: 0.75rem;
+      margin-top: var(--space-1);
+    }
+
+    .metric-delta.positive {
+      color: var(--color-semantic-success);
+    }
+
+    .metric-delta.negative {
+      color: var(--color-semantic-error);
+    }
+
+    /* Progress bar */
+    .progress-container {
+      margin-top: var(--space-4);
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-accent-primary), var(--color-semantic-success));
+      border-radius: var(--radius-full);
+      transition: width 0.5s ease;
+    }
+
+    /* Variants comparison */
+    .variants-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+      margin-top: var(--space-4);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--color-border-subtle);
+    }
+
+    .variant-card {
+      background: var(--color-background-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+    }
+
+    .variant-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-2);
+    }
+
+    .variant-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .variant-label.control {
+      color: var(--color-semantic-info);
+    }
+
+    .variant-label.treatment {
+      color: var(--color-semantic-success);
+    }
+
+    .variant-samples {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    .variant-description {
+      font-size: 0.8125rem;
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+    }
+
+    .variant-score {
+      margin-top: var(--space-3);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .variant-score.control {
+      color: var(--color-semantic-info);
+    }
+
+    .variant-score.treatment {
+      color: var(--color-semantic-success);
+    }
+
+    /* ================================================================
+       TEMPLATES SECTION
+       ================================================================ */
+    .templates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-4);
+    }
+
+    .template-card {
+      background: var(--color-background-elevated);
+      border: 1px solid var(--color-border-subtle);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .template-card:hover {
+      border-color: var(--color-accent-primary);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .template-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-2);
+    }
+
+    .template-hypothesis {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+      margin-bottom: var(--space-3);
+    }
+
+    .template-cta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-accent-primary);
+    }
+
+    .template-cta svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    /* ================================================================
+       EMPTY STATE
+       ================================================================ */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-6);
+      background: var(--color-background-elevated);
+      border: 1px dashed var(--color-border-medium);
+      border-radius: var(--radius-lg);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      stroke: var(--color-text-muted);
+      stroke-width: 1.5;
+      fill: none;
+      margin-bottom: var(--space-4);
+    }
+
+    .empty-state h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-2);
+    }
+
+    .empty-state p {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* ================================================================
+       LOADING STATE
+       ================================================================ */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: var(--space-12);
+    }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--color-border-medium);
+      border-top-color: var(--color-accent-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ================================================================
+       FOOTER
+       ================================================================ */
+    .footer {
+      margin-top: var(--space-12);
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--color-border-subtle);
+      text-align: center;
+    }
+
+    .footer-text {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+    }
+
+    .footer-link {
+      color: var(--color-accent-primary);
+      text-decoration: none;
+    }
+
+    .footer-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ================================================================
+       RESPONSIVE
+       ================================================================ */
+    @media (max-width: 768px) {
+      body {
+        padding: var(--space-4);
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-4);
+      }
+
+      .variants-comparison {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div>
+      <p class="header-eyebrow">Persona Optimization</p>
+      <h1 class="header-title">
+        <!-- Flask/beaker icon -->
+        <svg viewBox="0 0 24 24">
+          <path d="M9 3h6M12 3v5.586c0 .266.105.52.293.707L19 16H5l6.707-6.707A1 1 0 0012 8.586V3"/>
+          <path d="M5 16l1 5h12l1-5"/>
+        </svg>
+        A/B Experiments
+      </h1>
+    </div>
+    <div class="header-controls">
+      <button class="refresh-btn" onclick="loadData()">
+        <svg viewBox="0 0 24 24">
+          <path d="M1 4v6h6M23 20v-6h-6"/>
+          <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid" id="summaryGrid">
+    <div class="summary-card">
+      <div class="summary-label">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Running
+      </div>
+      <div class="summary-value running" id="runningCount">-</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">
+        <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+        Concluded
+      </div>
+      <div class="summary-value concluded" id="concludedCount">-</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Total Samples
+      </div>
+      <div class="summary-value" id="totalSamples">-</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">
+        <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        Avg. Improvement
+      </div>
+      <div class="summary-value" id="avgImprovement">-</div>
+    </div>
+  </div>
+
+  <!-- Experiments List -->
+  <section id="experimentsSection">
+    <h2 class="section-title">
+      <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+      Active Experiments
+    </h2>
+    <div class="experiments-list" id="experimentsList">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Templates Section -->
+  <section>
+    <h2 class="section-title">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Start New Experiment
+    </h2>
+    <div class="templates-grid" id="templatesGrid">
+      <!-- Templates loaded dynamically -->
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p class="footer-text">
+      Ferni AI Experiment Dashboard • 
+      <a href="#" class="footer-link" onclick="exportData()">Export Data</a> •
+      <a href="/" class="footer-link">Back to App</a>
+    </p>
+  </footer>
+
+  <script>
+    // ================================================================
+    // DATA LOADING
+    // ================================================================
+    
+    // API base - use token server port in dev, or same origin in production
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? 'http://localhost:8080/api' 
+      : '/api';
+    
+    async function loadData() {
+      try {
+        const data = await fetchExperimentData();
+        renderSummary(data.summary);
+        renderExperiments(data.experiments);
+        renderTemplates();
+      } catch (error) {
+        console.error('Failed to load experiment data:', error);
+        showError();
+      }
+    }
+    
+    async function fetchExperimentData() {
+      // Try to fetch from API, fall back to sample data
+      try {
+        const response = await fetch(`${API_BASE}/experiments/dashboard`, {
+          headers: { 'Accept': 'application/json' },
+        });
+        if (response.ok) {
+          const result = await response.json();
+          // API returns { success: true, data: {...} }
+          return result.data || result;
+        }
+      } catch (e) {
+        console.log('API not available, using sample data');
+      }
+      
+      // Sample data for demonstration
+      return {
+        summary: {
+          total: 3,
+          running: 2,
+          concluded: 1,
+          draft: 0,
+          totalSamples: 247,
+          avgImprovement: 0.12
+        },
+        experiments: [
+          {
+            id: 'exp_ferni_1733471234567',
+            name: 'Humor Frequency Test',
+            personaId: 'ferni',
+            status: 'running',
+            hypothesis: 'More frequent light humor improves engagement',
+            trafficAllocation: 0.5,
+            minimumSampleSize: 100,
+            currentSamples: 87,
+            progress: 87,
+            controlEngagement: 0.62,
+            treatmentEngagement: 0.71,
+            improvement: 0.09,
+            startedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+          },
+          {
+            id: 'exp_ferni_1733384834567',
+            name: 'Question Style Test',
+            personaId: 'ferni',
+            status: 'running',
+            hypothesis: 'Open-ended questions lead to deeper conversations',
+            trafficAllocation: 0.5,
+            minimumSampleSize: 100,
+            currentSamples: 45,
+            progress: 45,
+            controlEngagement: 0.58,
+            treatmentEngagement: 0.67,
+            improvement: 0.09,
+            startedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+          },
+          {
+            id: 'exp_ferni_1733211234567',
+            name: 'Empathy Expression Test',
+            personaId: 'ferni',
+            status: 'concluded',
+            hypothesis: 'Explicit empathy statements increase satisfaction',
+            trafficAllocation: 0.5,
+            minimumSampleSize: 100,
+            currentSamples: 115,
+            progress: 100,
+            winner: 'treatment',
+            winnerConfidence: 0.94,
+            controlEngagement: 0.55,
+            treatmentEngagement: 0.70,
+            improvement: 0.15,
+            startedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+            endedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+          }
+        ],
+        adjustments: [],
+        breakthroughs: []
+      };
+    }
+    
+    // ================================================================
+    // RENDERING
+    // ================================================================
+    
+    function renderSummary(summary) {
+      document.getElementById('runningCount').textContent = summary.running;
+      document.getElementById('concludedCount').textContent = summary.concluded;
+      document.getElementById('totalSamples').textContent = summary.totalSamples.toLocaleString();
+      
+      const avgImprovement = summary.avgImprovement;
+      const improvementEl = document.getElementById('avgImprovement');
+      improvementEl.textContent = (avgImprovement > 0 ? '+' : '') + (avgImprovement * 100).toFixed(1) + '%';
+      improvementEl.className = 'summary-value ' + (avgImprovement > 0 ? 'positive' : avgImprovement < 0 ? 'negative' : '');
+    }
+    
+    function renderExperiments(experiments) {
+      const container = document.getElementById('experimentsList');
+      
+      if (experiments.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24">
+              <path d="M9 3h6M12 3v5.586c0 .266.105.52.293.707L19 16H5l6.707-6.707A1 1 0 0012 8.586V3"/>
+              <path d="M5 16l1 5h12l1-5"/>
+            </svg>
+            <h3>No experiments yet</h3>
+            <p>Start your first A/B test by choosing a template below. Experiments help you discover what works best for your users.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = experiments.map(exp => renderExperimentCard(exp)).join('');
+    }
+    
+    function renderExperimentCard(exp) {
+      const improvement = exp.improvement;
+      const improvementClass = improvement > 0 ? 'positive' : improvement < 0 ? 'negative' : '';
+      const improvementStr = (improvement > 0 ? '+' : '') + (improvement * 100).toFixed(1) + '%';
+      
+      return `
+        <div class="experiment-card">
+          <div class="experiment-header">
+            <div class="experiment-info">
+              <h3 class="experiment-name">${escapeHtml(exp.name)}</h3>
+              <p class="experiment-hypothesis">${escapeHtml(exp.hypothesis)}</p>
+              <div class="experiment-meta">
+                <span class="meta-badge persona">${exp.personaId}</span>
+              </div>
+            </div>
+            <div class="experiment-status">
+              <span class="status-badge ${exp.status}">${exp.status}</span>
+              ${exp.winner ? `<span class="winner-badge ${exp.winner}">${exp.winner === 'treatment' ? '✓ Treatment Wins' : exp.winner === 'control' ? '✓ Control Wins' : 'Inconclusive'}</span>` : ''}
+            </div>
+          </div>
+          <div class="experiment-body">
+            <div class="metrics-row">
+              <div class="metric-item">
+                <div class="metric-label">Samples</div>
+                <div class="metric-value">${exp.currentSamples}</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">Control</div>
+                <div class="metric-value">${(exp.controlEngagement * 100).toFixed(1)}%</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">Treatment</div>
+                <div class="metric-value">${(exp.treatmentEngagement * 100).toFixed(1)}%</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">Improvement</div>
+                <div class="metric-value ${improvementClass}">${improvementStr}</div>
+              </div>
+            </div>
+            
+            <div class="progress-container">
+              <div class="progress-header">
+                <span>Progress to conclusion</span>
+                <span>${exp.progress}% (${exp.currentSamples}/${exp.minimumSampleSize})</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${exp.progress}%"></div>
+              </div>
+            </div>
+            
+            ${exp.winnerConfidence ? `
+              <div style="margin-top: var(--space-3); font-size: 0.875rem; color: var(--color-text-secondary);">
+                Confidence: <strong>${(exp.winnerConfidence * 100).toFixed(0)}%</strong>
+              </div>
+            ` : ''}
+            
+            ${exp.bayesian ? `
+              <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-border-subtle);">
+                <h4 style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: var(--space-2);">BAYESIAN ANALYSIS</h4>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); text-align: center;">
+                  <div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted);">P(Treatment Wins)</div>
+                    <div style="font-size: 1.25rem; font-weight: 600; color: ${exp.bayesian.probabilityTreatmentWins > 0.5 ? 'var(--color-semantic-success)' : 'var(--color-semantic-error)'};">
+                      ${(exp.bayesian.probabilityTreatmentWins * 100).toFixed(0)}%
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted);">Expected Loss</div>
+                    <div style="font-size: 1.25rem; font-weight: 600;">${(exp.bayesian.expectedLoss * 100).toFixed(1)}%</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted);">Recommendation</div>
+                    <div style="font-size: 0.875rem; font-weight: 600; color: var(--color-accent-primary);">
+                      ${exp.bayesian.recommendation.replace(/_/g, ' ')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+            
+            ${exp.segments && exp.segments.length > 0 ? `
+              <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-border-subtle);">
+                <h4 style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: var(--space-2);">SEGMENT ANALYSIS</h4>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+                  ${exp.segments.slice(0, 4).map(seg => `
+                    <div style="background: var(--color-background-secondary); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);">
+                      <div style="font-size: 0.75rem; color: var(--color-text-muted);">${seg.segmentName}</div>
+                      <div style="font-size: 0.875rem; font-weight: 600; color: ${seg.improvement > 0 ? 'var(--color-semantic-success)' : 'var(--color-semantic-error)'};">
+                        ${seg.improvement > 0 ? '+' : ''}${(seg.improvement * 100).toFixed(1)}%
+                        ${seg.isSignificant ? '✓' : ''}
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+    
+    function renderTemplates() {
+      const templates = [
+        {
+          name: 'Humor Frequency Test',
+          hypothesis: 'More frequent light humor improves engagement',
+          index: 0
+        },
+        {
+          name: 'Storytelling Frequency Test',
+          hypothesis: 'More personal stories increase user engagement',
+          index: 1
+        },
+        {
+          name: 'Question Style Test',
+          hypothesis: 'Open-ended questions lead to deeper conversations',
+          index: 2
+        },
+        {
+          name: 'Empathy Expression Test',
+          hypothesis: 'Explicit empathy statements increase satisfaction',
+          index: 3
+        },
+        {
+          name: 'Pacing Test',
+          hypothesis: 'Slower, more deliberate responses feel more thoughtful',
+          index: 4
+        }
+      ];
+      
+      const container = document.getElementById('templatesGrid');
+      container.innerHTML = templates.map(t => `
+        <div class="template-card" onclick="startTemplate(${t.index})">
+          <h3 class="template-name">${escapeHtml(t.name)}</h3>
+          <p class="template-hypothesis">${escapeHtml(t.hypothesis)}</p>
+          <div class="template-cta">
+            Start Experiment
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // ================================================================
+    // ACTIONS
+    // ================================================================
+    
+    async function startTemplate(index) {
+      if (!confirm('Start this experiment? Users will begin being assigned to control and treatment groups.')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}/experiments/start-template/${index}`, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          alert(`Experiment started successfully! ID: ${result.data?.id || 'N/A'}`);
+          loadData();
+        } else {
+          const error = await response.json().catch(() => ({}));
+          alert(`Failed to start experiment: ${error.error || 'Unknown error'}`);
+        }
+      } catch (error) {
+        console.error('API error:', error);
+        alert('Could not connect to the experiment API. Make sure the backend is running.');
+      }
+    }
+    
+    async function exportData() {
+      try {
+        const data = await fetchExperimentData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `experiments-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        alert('Failed to export data');
+      }
+    }
+    
+    function showError() {
+      document.getElementById('experimentsList').innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+          <h3>Unable to load experiments</h3>
+          <p>Please check your connection and try again.</p>
+        </div>
+      `;
+    }
+    
+    // ================================================================
+    // UTILITIES
+    // ================================================================
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // ================================================================
+    // INITIALIZATION
+    // ================================================================
+    
+    document.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
+
