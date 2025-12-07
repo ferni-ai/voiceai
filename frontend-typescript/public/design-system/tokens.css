@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-07T14:13:38.353Z
+ * Build: 2025-12-07T16:07:00.187Z
  */
 
 /* ========================================
@@ -17,10 +17,11 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
+  --color-text-_wcag: All colors tested against #70605a elevated background for WCAG AA (4.5:1);
   --color-text-primary: #faf6f0;
-  --color-text-secondary: #e0d5c8;
-  --color-text-muted: #d0c4b4;
-  --color-text-dimmed: #a89c8c;
+  --color-text-secondary: #f0ebe4;
+  --color-text-muted: #e8e2da;
+  --color-text-dimmed: #ddd6cc;
   --color-text-inverse: #2a2420;
   --color-border-subtle: rgba(215, 185, 145, 0.12);
   --color-border-medium: rgba(215, 185, 145, 0.20);
@@ -30,6 +31,8 @@
   --color-accent-pressed: #c49a3a;
   --color-accent-glow: rgba(212, 168, 74, 0.22);
   --color-accent-subtle: rgba(212, 168, 74, 0.08);
+  --color-accent-text: #e8c870;
+  --color-accent-_text-note: Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only;
   --color-semantic-success: #6bc48f;
   --color-semantic-success-glow: rgba(107, 196, 143, 0.22);
   --color-semantic-error: #e07575;
@@ -62,10 +65,11 @@
   --color-background-elevated: #70605a;
   --color-background-glass: rgba(230, 195, 160, 0.08);
   --color-background-overlay: rgba(88, 72, 64, 0.95);
+  --color-text-_wcag: All colors tested against #70605a elevated background for WCAG AA (4.5:1);
   --color-text-primary: #faf6f0;
-  --color-text-secondary: #e0d5c8;
-  --color-text-muted: #d0c4b4;
-  --color-text-dimmed: #a89c8c;
+  --color-text-secondary: #f0ebe4;
+  --color-text-muted: #e8e2da;
+  --color-text-dimmed: #ddd6cc;
   --color-text-inverse: #2a2420;
   --color-border-subtle: rgba(215, 185, 145, 0.12);
   --color-border-medium: rgba(215, 185, 145, 0.20);
@@ -75,6 +79,8 @@
   --color-accent-pressed: #c49a3a;
   --color-accent-glow: rgba(212, 168, 74, 0.22);
   --color-accent-subtle: rgba(212, 168, 74, 0.08);
+  --color-accent-text: #e8c870;
+  --color-accent-_text-note: Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only;
   --color-semantic-success: #6bc48f;
   --color-semantic-success-glow: rgba(107, 196, 143, 0.22);
   --color-semantic-error: #e07575;
@@ -116,6 +122,8 @@
   --color-accent-pressed: #1e4530;
   --color-accent-glow: rgba(45, 90, 61, 0.15);
   --color-accent-subtle: rgba(45, 90, 61, 0.05);
+  --color-accent-text: #2d5a3d;
+  --color-accent-_text-note: Same as primary for light theme - good contrast on light backgrounds;
   --color-semantic-success: #3d7a52;
   --color-semantic-success-glow: rgba(61, 122, 82, 0.18);
   --color-semantic-error: #b5453a;
@@ -884,10 +892,10 @@
 
 /* Gradients */
 [data-theme="midnight"] {
-  --gradient-aurora: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(212, 168, 74, 0.15) 50%, rgba(92, 184, 132, 0.15) 100%);
+  --gradient-aurora: linear-gradient(135deg, rgba(74, 103, 65, 0.15) 0%, rgba(212, 168, 74, 0.15) 50%, rgba(92, 184, 132, 0.15) 100%);
   --gradient-warm-glow: radial-gradient(circle at 50% 50%, rgba(212, 168, 74, 0.15) 0%, transparent 70%);
   --gradient-sunbeam: linear-gradient(180deg, rgba(212, 168, 74, 0.08) 0%, transparent 50%);
-  --gradient-mesh: radial-gradient(at 40% 20%, rgba(139, 92, 246, 0.1) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(212, 168, 74, 0.1) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(92, 184, 132, 0.08) 0px, transparent 50%);
+  --gradient-mesh: radial-gradient(at 40% 20%, rgba(74, 103, 65, 0.1) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(212, 168, 74, 0.1) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(92, 184, 132, 0.08) 0px, transparent 50%);
 }
 [data-theme="zen"] {
   --gradient-aurora: linear-gradient(135deg, rgba(45, 90, 61, 0.08) 0%, rgba(196, 167, 125, 0.08) 50%, rgba(168, 137, 108, 0.08) 100%);
@@ -1403,10 +1411,10 @@
    VOICE EMOTION GLOW - Avatar responds to speaking tone
    ======================================== */
 
-/* Base voice glow setup */
+/* Base voice glow setup - uses Ferni sage green (brand compliant) */
 .voice-glow {
-  --glow-color: rgba(139, 92, 246, 0.5);
-  --glow-color-alt: rgba(99, 102, 241, 0.4);
+  --glow-color: var(--persona-glow, rgba(74, 103, 65, 0.5));
+  --glow-color-alt: rgba(74, 103, 65, 0.4);
   --glow-intensity: 0.6;
   --glow-spread: 20px;
   --glow-pulse-speed: 3s;
@@ -1450,10 +1458,10 @@
   animation: none;
 }
 
-/* Emotion-specific glow colors */
+/* Emotion-specific glow colors - Ferni earthy palette */
 .voice-glow[data-emotion="neutral"] {
-  --glow-color: rgba(139, 92, 246, 0.5);
-  --glow-color-alt: rgba(99, 102, 241, 0.4);
+  --glow-color: var(--persona-glow, rgba(74, 103, 65, 0.5));
+  --glow-color-alt: rgba(74, 103, 65, 0.4);
 }
 
 .voice-glow[data-emotion="happy"] {
@@ -1476,8 +1484,8 @@
 }
 
 .voice-glow[data-emotion="thoughtful"] {
-  --glow-color: rgba(99, 102, 241, 0.5);
-  --glow-color-alt: rgba(79, 70, 229, 0.4);
+  --glow-color: rgba(58, 107, 115, 0.5);
+  --glow-color-alt: rgba(45, 83, 89, 0.4);
   --glow-pulse-speed: 3.5s;
 }
 

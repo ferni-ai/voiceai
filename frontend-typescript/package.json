@@ -14,9 +14,10 @@
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts,.tsx --fix",
     "lint:tokens": "node scripts/validate-design-tokens.js",
+    "lint:brand": "node scripts/check-brand-compliance.js",
     "audit:ui": "node scripts/audit-ui.js",
     "typecheck": "tsc --noEmit",
-    "quality": "npm run typecheck && npm run lint && npm run lint:tokens && npm run test -- --run",
+    "quality": "npm run typecheck && npm run lint && npm run lint:tokens && npm run lint:brand && npm run test -- --run",
     "quality:full": "npm run quality && npm run audit:ui",
     "bundle:check": "node scripts/bundle-size-check.js",
     "build:check": "npm run build && npm run bundle:check",
@@ -62,6 +63,12 @@
     ],
     "src/ui/**/*.ts": [
       "node scripts/validate-design-tokens.js"
+    ],
+    "src/**/*.{ts,tsx,css}": [
+      "node scripts/check-brand-compliance.js"
+    ],
+    "public/**/*.{css,html}": [
+      "node scripts/check-brand-compliance.js"
     ],
     "*.{json,md,css}": [
       "prettier --write"

@@ -31,6 +31,7 @@ import { fetchAgents, type ApiAgent } from '../services/agents.service.js';
 import { marketplaceUI } from './marketplace.ui.js';
 import * as marketplaceService from '../services/marketplace.service.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
+import { rosterPreferences, type TeamMemberId } from '../services/roster-preferences.service.js';
 
 const log = createLogger('TeamUI');
 
@@ -270,10 +271,20 @@ async function loadDynamicAgents(): Promise<void> {
       throw new Error('No agents returned from API');
     }
 
-    // FIX: Sort agents to ensure consistent order regardless of API response
+    // Filter agents by roster preferences ("Get to Know Ferni First" UX pattern)
+    // Only show agents that are visible in the user's roster
+    const visibleMemberIds = rosterPreferences.getVisibleMembers();
+    const visibleAgents = agents.filter(agent => {
+      // Coordinator (Ferni) always visible
+      if (agent.isCoordinator) return true;
+      // Other team members only if in visible roster
+      return visibleMemberIds.includes(agent.id as TeamMemberId);
+    });
+
+    // Sort agents to ensure consistent order regardless of API response
     // Order: Ferni (coordinator) first, then team members in canonical order
     const CANONICAL_ORDER = ['ferni', 'peter-john', 'maya-santos', 'jordan-taylor', 'alex-chen', 'nayan-patel'];
-    const sortedAgents = [...agents].sort((a, b) => {
+    const sortedAgents = [...visibleAgents].sort((a, b) => {
       // Coordinator always first
       if (a.isCoordinator && !b.isCoordinator) return -1;
       if (!a.isCoordinator && b.isCoordinator) return 1;

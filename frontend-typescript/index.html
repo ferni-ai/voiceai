@@ -5744,13 +5744,13 @@
       filter: brightness(0.95) saturate(0.95) sepia(0.1) hue-rotate(15deg);
     }
     
-    /* Persona pulse animation */
+    /* Persona pulse animation - uses CSS variable for proper persona theming */
     @keyframes personaPulse {
       0%, 100% {
-        box-shadow: 0 0 calc(40px * var(--persona-glow)) rgba(139, 92, 246, calc(0.3 * var(--persona-warmth)));
+        box-shadow: 0 0 calc(40px * var(--persona-glow)) var(--persona-glow, rgba(74, 103, 65, 0.3));
       }
       50% {
-        box-shadow: 0 0 calc(60px * var(--persona-glow)) rgba(139, 92, 246, calc(0.4 * var(--persona-warmth)));
+        box-shadow: 0 0 calc(60px * var(--persona-glow)) var(--persona-glow, rgba(74, 103, 65, 0.4));
       }
     }
     

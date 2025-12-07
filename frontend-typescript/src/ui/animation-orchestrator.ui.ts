@@ -523,7 +523,7 @@ export function createRipple(
     top: ${y - rect.top - size / 2}px;
     width: ${size}px;
     height: ${size}px;
-    background: ${color || 'var(--persona-glow, rgba(139, 92, 246, 0.3))'};
+    background: ${color || 'var(--persona-glow, rgba(74, 103, 65, 0.3))'};
     border-radius: 50%;
     pointer-events: none;
     transform: scale(0);

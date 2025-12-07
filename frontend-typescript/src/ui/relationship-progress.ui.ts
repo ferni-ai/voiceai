@@ -228,7 +228,7 @@ function injectStyles(): void {
       font-weight: var(--font-weight-bold, 700);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-2, 8px);
     }
     
@@ -267,7 +267,7 @@ function injectStyles(): void {
     }
     
     .stage-arrow {
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .stage-arrow svg {
@@ -279,7 +279,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 14px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
     }
     
     /* Primary CTA button - per Brand Guidelines Section 8 */
@@ -382,7 +382,7 @@ function injectStyles(): void {
       font-weight: var(--font-weight-bold, 700);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .journey-title {
@@ -468,7 +468,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-xl, 20px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-1, 4px);
     }
     
@@ -563,7 +563,7 @@ function injectStyles(): void {
       width: 32px;
       height: 32px;
       margin: 0 auto var(--space-2, 8px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .stat-icon svg {
@@ -599,7 +599,7 @@ function injectStyles(): void {
     }
     
     .memories-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .memories-icon svg {
@@ -643,7 +643,7 @@ function injectStyles(): void {
       height: 32px;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-full, 9999px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       flex-shrink: 0;
     }
     
@@ -728,7 +728,7 @@ function injectStyles(): void {
     .memory-filter--active {
       background: var(--persona-primary, #4a6741);
       color: white;
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-accent-text);
     }
     
     .memory-filter--active:hover {

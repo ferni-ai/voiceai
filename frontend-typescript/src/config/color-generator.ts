@@ -29,12 +29,12 @@ const COLOR_PALETTES = {
     { h: 45, s: 40, l: 45 },   // Amber
   ],
 
-  // Cool palettes (for high-directness personalities)
+  // Cool palettes (for high-directness personalities) - NO PURPLE per brand guidelines
   cool: [
     { h: 200, s: 35, l: 40 },  // Steel blue
     { h: 220, s: 40, l: 45 },  // Slate
     { h: 180, s: 30, l: 40 },  // Teal
-    { h: 260, s: 30, l: 45 },  // Muted purple
+    { h: 195, s: 32, l: 42 },  // Ocean teal (replaces purple)
     { h: 170, s: 35, l: 40 },  // Sea green
   ],
 
@@ -47,12 +47,12 @@ const COLOR_PALETTES = {
     { h: 60, s: 30, l: 40 },   // Moss
   ],
 
-  // Vibrant palettes (for high-energy personalities)
+  // Vibrant palettes (for high-energy personalities) - NO PURPLE per brand guidelines
   vibrant: [
     { h: 150, s: 50, l: 45 },  // Green
-    { h: 340, s: 55, l: 50 },  // Pink
-    { h: 270, s: 45, l: 50 },  // Purple
-    { h: 190, s: 60, l: 45 },  // Cyan
+    { h: 15, s: 55, l: 50 },   // Coral/Terracotta (replaces pink)
+    { h: 25, s: 60, l: 48 },   // Warm amber (replaces purple)
+    { h: 180, s: 45, l: 42 },  // Teal (replaces cyan - more earthy)
     { h: 30, s: 65, l: 50 },   // Orange
   ],
 };
