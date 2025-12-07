@@ -5,9 +5,7 @@
  * A premium experience that rivals Apple and Google.
  */
 
-import type { DataMessage, CelebrationEvent, EmotionEvent, ExpressionEvent, MoodEvent, MusicEvent, EngagementTriggerEvent } from './types/events.js';
 import type { PersonaId } from './types/persona.js';
-import { isCelebrationMessage, isEmotionMessage, isExpressionMessage, isMoodMessage, isMusicMessage, isEngagementTriggerMessage } from './types/events.js';
 
 // Theme system
 import {
@@ -71,17 +69,17 @@ import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-tr
 import { initNotificationsUI, showStreakMilestone } from './ui/notifications.ui.js';
 import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.js';
 // Demo data for testing without backend
-import { getDemoEngagementData, getDemoPredictions, getDemoTeamHuddle, enableDemoData, disableDemoData, isDemoDataEnabled } from './services/engagement-demo-data.js';
+import { getDemoEngagementData, getDemoPredictions, enableDemoData, disableDemoData } from './services/engagement-demo-data.js';
 // Environment detection
 import { shouldUseDemoData } from './utils/environment.js';
 
 // New Feature UIs (v2)
 import { initSettingsMenuUI, getSettingsMenuUI } from './ui/settings-menu.ui.js';
-import { getConversationHistoryUI, initConversationHistoryUI } from './ui/conversation-history.ui.js';
-import { getAnalyticsDashboardUI, initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
-import { getCognitiveInsightsUI, initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
+import { initConversationHistoryUI } from './ui/conversation-history.ui.js';
+import { initAnalyticsDashboardUI } from './ui/analytics-dashboard.ui.js';
+import { initCognitiveInsightsUI } from './ui/cognitive-insights.ui.js';
 import { getRitualBuilderUI, initRitualBuilderUI } from './ui/ritual-builder.ui.js';
-import { getPredictionTrackerUI, initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
+import { initPredictionTrackerUI } from './ui/prediction-tracker.ui.js';
 import { getDataExportUI, initDataExportUI } from './ui/data-export.ui.js';
 // Services for feature persistence
 import { ritualsService, initRitualsService } from './services/rituals.service.js';
@@ -89,7 +87,7 @@ import { dataExportService } from './services/data-export.service.js';
 import { conversationTracker, initConversationTracker } from './services/conversation-tracker.service.js';
 import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui/onboarding.ui.js';
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
-import { initTeamHuddleUI, showTeamHuddle } from './ui/team-huddle.ui.js';
+import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 import { initRelationshipProgressUI, showProgressPanel as showRelationshipProgress } from './ui/relationship-progress.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
@@ -115,55 +113,25 @@ import { getPersona } from './config/personas.js';
 // Platform Detection
 import { initPlatform, platform, isNative, hideSplashScreen } from './utils/platform.js';
 
-// ============================================================================
-// MAGNETIC HOVER EFFECT (WALL-E curiosity)
-// Buttons "reach" toward the cursor like WALL-E's curious head tilts
-// ============================================================================
+// Magnetic hover effect
+import { initMagneticHover } from './ui/magnetic-hover.ui.js';
 
-function initMagneticHover(): void {
-  const magneticStrength = 0.4; // How much buttons "reach" toward cursor
-  const magneticRadius = 100; // Pixels - how far the magnetic effect extends
+// Panel methods (extracted for file size)
+import {
+  showConversationHistory,
+  showAnalyticsDashboard,
+  showCognitiveInsights,
+  showPredictionTracker,
+  showDataExport,
+  showTeamHuddle,
+} from './app/panel-methods.js';
 
-  document.addEventListener('mousemove', (e) => {
-    const magneticElements = document.querySelectorAll('.btn-magnetic, .btn-primary, .btn-connect');
-
-    magneticElements.forEach((el) => {
-      const rect = el.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-
-      const deltaX = e.clientX - centerX;
-      const deltaY = e.clientY - centerY;
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-      if (distance < magneticRadius) {
-        // Within magnetic range - calculate pull
-        const pull = (1 - distance / magneticRadius) * magneticStrength;
-        const moveX = deltaX * pull;
-        const moveY = deltaY * pull;
-
-        (el as HTMLElement).style.setProperty('--magnetic-x', moveX.toString());
-        (el as HTMLElement).style.setProperty('--magnetic-y', moveY.toString());
-        el.classList.add('magnetic-active');
-      } else {
-        // Outside range - reset
-        (el as HTMLElement).style.setProperty('--magnetic-x', '0');
-        (el as HTMLElement).style.setProperty('--magnetic-y', '0');
-        el.classList.remove('magnetic-active');
-      }
-    });
-  });
-
-  // Reset all on mouse leave
-  document.addEventListener('mouseleave', () => {
-    const magneticElements = document.querySelectorAll('.btn-magnetic, .btn-primary, .btn-connect');
-    magneticElements.forEach((el) => {
-      (el as HTMLElement).style.setProperty('--magnetic-x', '0');
-      (el as HTMLElement).style.setProperty('--magnetic-y', '0');
-      el.classList.remove('magnetic-active');
-    });
-  });
-}
+// Data message handlers (extracted for file size)
+import {
+  handleDataMessage,
+  handleEngagementTrigger,
+  setShowTeamHuddleCallback,
+} from './app/data-message-handlers.js';
 
 // ============================================================================
 // APPLICATION CLASS
@@ -774,18 +742,18 @@ class VoiceAIApp {
     // 📋 Settings Menu - Central navigation hub
     this.safeInit('SettingsMenuUI', () => {
       initSettingsMenuUI({
-        onHistoryClick: () => this.showConversationHistory(),
-        onAnalyticsClick: () => this.showAnalyticsDashboard(),
-        onCognitiveClick: () => this.showCognitiveInsights(),
+        onHistoryClick: () => void showConversationHistory(),
+        onAnalyticsClick: () => void showAnalyticsDashboard(),
+        onCognitiveClick: () => void showCognitiveInsights(),
         onRitualBuilderClick: () => getRitualBuilderUI().show(),
-        onPredictionTrackerClick: () => this.showPredictionTracker(),
-        onExportDataClick: () => this.showDataExport(),
+        onPredictionTrackerClick: () => void showPredictionTracker(),
+        onExportDataClick: () => void showDataExport(),
         onOnboardingClick: () => getOnboardingUI().start(),
         onThemeToggle: () => toggleTheme(),
         onRelationshipProgressClick: () => showRelationshipProgress(),
         onNotificationSettingsClick: () => showNotificationSettings(),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
-        onTeamHuddleClick: () => this.showTeamHuddle(),
+        onTeamHuddleClick: () => showTeamHuddle(),
       });
       
       // Wire up Spotify state changes to menu
@@ -810,8 +778,11 @@ class VoiceAIApp {
       getPredictionsUI().show();
     });
     window.addEventListener('ferni:open-team-huddle', () => {
-      this.showTeamHuddle();
+      showTeamHuddle();
     });
+
+    // Set up team huddle callback for data message handlers
+    setShowTeamHuddleCallback(() => showTeamHuddle());
     
     // 📊 Load demo data for testing (when not connected to backend)
     this.loadDemoEngagementData();
@@ -845,12 +816,12 @@ class VoiceAIApp {
       },
     });
     
-    // 🏪 Marketplace button - opens agent marketplace modal
+    // Marketplace button - opens agent marketplace modal
     const marketplaceBtn = document.getElementById('marketplaceBtn');
     if (marketplaceBtn) {
       marketplaceBtn.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent team roster from handling this
-        marketplaceUI.open();
+        void marketplaceUI.open();
       });
     }
   }
@@ -971,382 +942,7 @@ class VoiceAIApp {
     
     log.debug('Demo engagement data loaded (development mode)');
   }
-  
-  /**
-   * Show conversation history panel.
-   * Fetches real data from API, falls back to demo data in development.
-   */
-  private async showConversationHistory(): Promise<void> {
-    // Try to fetch real data from API
-    try {
-      const response = await fetch('/api/conversations');
-      if (response.ok) {
-        const data = await response.json();
-        getConversationHistoryUI().show(data);
-        return;
-      }
-    } catch (err) {
-      log.debug('API fetch failed, checking for demo mode');
-    }
-    
-    // Fall back to demo data if enabled
-    if (isDemoDataEnabled()) {
-      const demoData = {
-        sessions: [
-          {
-            id: '1',
-            date: new Date(Date.now() - 86400000).toISOString(),
-            personaId: 'ferni',
-            personaName: 'Ferni',
-            duration: 15,
-            messageCount: 24,
-            mood: 'sunny' as const,
-            insights: ['You mentioned wanting to exercise more', 'Morning routines seem important to you'],
-            highlights: ['Great progress on sleep goals'],
-            topicsDiscussed: ['Sleep', 'Exercise', 'Mindfulness'],
-          },
-          {
-            id: '2',
-            date: new Date(Date.now() - 172800000).toISOString(),
-            personaId: 'maya-santos',
-            personaName: 'Maya Santos',
-            duration: 8,
-            messageCount: 12,
-            mood: 'partly-cloudy' as const,
-            insights: ['Two-minute rule resonates with you'],
-            highlights: [],
-            topicsDiscussed: ['Habits', 'Productivity'],
-          },
-          {
-            id: '3',
-            date: new Date(Date.now() - 259200000).toISOString(),
-            personaId: 'alex-chen',
-            personaName: 'Alex Chen',
-            duration: 22,
-            messageCount: 35,
-            mood: 'sunny' as const,
-            insights: ['Communication patterns at work', 'Meeting prep strategies'],
-            highlights: ['Clarity on project priorities'],
-            topicsDiscussed: ['Work', 'Communication', 'Planning'],
-          },
-        ],
-        totalSessions: 3,
-        totalMinutes: 45,
-        favoritePersona: 'ferni',
-        insightCount: 5,
-      };
-      getConversationHistoryUI().show(demoData);
-      return;
-    }
-    
-    // Show empty state
-    getConversationHistoryUI().show({
-      sessions: [],
-      totalSessions: 0,
-      totalMinutes: 0,
-      favoritePersona: undefined,
-      insightCount: 0,
-    });
-  }
-  
-  /**
-   * Show analytics dashboard.
-   * Shows loading state, fetches real data from API, falls back to demo data in development.
-   */
-  private async showAnalyticsDashboard(): Promise<void> {
-    // Show loading state immediately
-    getAnalyticsDashboardUI().showLoading();
-    
-    // Try to fetch real data from API
-    try {
-      const userId = localStorage.getItem('ferni_user_id');
-      const url = userId 
-        ? `/api/analytics/user?userId=${encodeURIComponent(userId)}`
-        : '/api/analytics/user';
-      
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        getAnalyticsDashboardUI().show(data);
-        return;
-      }
-      log.debug('API returned non-OK status:', response.status);
-    } catch (err) {
-      log.debug('API fetch failed, checking for demo mode');
-    }
-    
-    // Fall back to demo data if enabled
-    if (isDemoDataEnabled()) {
-      const demoData = {
-        totalDays: 14,
-        totalRituals: 28,
-        currentLongestStreak: 7,
-        averageMood: 3.8,
-        predictionAccuracy: 72,
-        streakTrends: Array.from({ length: 14 }, (_, i) => ({
-          date: new Date(Date.now() - (13 - i) * 86400000).toISOString(),
-          count: Math.floor(Math.random() * 3) + 1,
-          ritualId: 'morning-sky',
-          personaId: 'ferni',
-        })),
-        moodTrends: Array.from({ length: 14 }, (_, i) => {
-          const moods: Array<'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy'> = ['sunny', 'partly-cloudy', 'cloudy', 'sunny', 'sunny'];
-          const energies: Array<'high' | 'medium' | 'low'> = ['high', 'medium', 'low'];
-          return {
-            date: new Date(Date.now() - (13 - i) * 86400000).toISOString(),
-            mood: moods[Math.floor(Math.random() * moods.length)] ?? 'sunny',
-            energy: energies[Math.floor(Math.random() * energies.length)] ?? 'medium',
-          };
-        }),
-        predictionTrends: Array.from({ length: 7 }, (_, i) => ({
-          date: new Date(Date.now() - (6 - i) * 86400000).toISOString(),
-          accuracy: 60 + Math.floor(Math.random() * 30),
-          totalPredictions: i + 1,
-        })),
-        bestDay: 'Monday',
-        mostConsistentRitual: 'Morning Sky Check',
-        improvementAreas: ['Evening rituals could be more consistent', 'Try predictions in new categories'],
-      };
-      getAnalyticsDashboardUI().show(demoData);
-      return;
-    }
-    
-    // Show empty state (real user with no data yet)
-    getAnalyticsDashboardUI().show({
-      totalDays: 0,
-      totalRituals: 0,
-      currentLongestStreak: 0,
-      averageMood: 0,
-      predictionAccuracy: null,
-      streakTrends: [],
-      moodTrends: [],
-      predictionTrends: [],
-      bestDay: null,
-      mostConsistentRitual: null,
-      improvementAreas: [],
-    });
-  }
-  
-  /**
-   * Show cognitive insights panel.
-   * Fetches real data from API, falls back to demo data in development.
-   */
-  private async showCognitiveInsights(): Promise<void> {
-    // Set up callbacks for user actions
-    getCognitiveInsightsUI().setCallbacks({
-      onDeleteMemory: async (memoryId: string) => {
-        await this.deleteMemory(memoryId);
-      },
-    });
-    
-    // Try to fetch real data from API
-    try {
-      const response = await fetch('/api/cognitive/memories');
-      if (response.ok) {
-        const data = await response.json();
-        // API now returns data in correct UI format
-        getCognitiveInsightsUI().show({
-          memories: data.memories || [],
-          patterns: data.patterns || [],
-          totalInteractions: data.totalInteractions || 0,
-          knowledgeScore: data.knowledgeScore || 0,
-        });
-        return;
-      }
-    } catch (err) {
-      log.debug('API fetch failed, checking for demo mode');
-    }
-    
-    // Fall back to demo data if enabled
-    if (isDemoDataEnabled()) {
-      const demoData = {
-        memories: [
-          { id: '1', type: 'fact' as const, content: 'You live in Seattle and work in tech', confidence: 0.95, source: 'Ferni', learnedAt: new Date(Date.now() - 604800000).toISOString() },
-          { id: '2', type: 'preference' as const, content: 'You prefer morning workouts over evening', confidence: 0.88, source: 'Maya', learnedAt: new Date(Date.now() - 432000000).toISOString() },
-          { id: '3', type: 'goal' as const, content: 'Building a meditation habit is a priority', confidence: 0.92, source: 'Ferni', learnedAt: new Date(Date.now() - 259200000).toISOString() },
-          { id: '4', type: 'pattern' as const, content: 'Energy tends to dip around 3pm', confidence: 0.75, source: 'observation', learnedAt: new Date(Date.now() - 172800000).toISOString() },
-          { id: '5', type: 'relationship' as const, content: 'Partner Sarah is supportive of your goals', confidence: 0.85, source: 'Ferni', learnedAt: new Date(Date.now() - 86400000).toISOString() },
-          { id: '6', type: 'preference' as const, content: 'You prefer index funds over individual stocks', confidence: 0.90, source: 'Jack Bogle', learnedAt: new Date(Date.now() - 518400000).toISOString() },
-          { id: '7', type: 'fact' as const, content: 'Mom\'s birthday is on March 15th', confidence: 0.98, source: 'Jordan', learnedAt: new Date(Date.now() - 345600000).toISOString() },
-        ],
-        patterns: [
-          // Communication patterns
-          { id: 'comm_style', pattern: 'You prefer direct, to-the-point communication', frequency: 45, examples: [], category: 'communication' as const },
-          { id: 'humor', pattern: 'You enjoy humor and lighter moments in our conversations', frequency: 45, examples: [], category: 'communication' as const },
-          // Timing patterns
-          { id: 'preferred_time', pattern: 'You tend to chat most in the morning', frequency: 8, examples: [], category: 'timing' as const },
-          { id: 'avg_duration', pattern: 'Our conversations typically last around 12 minutes', frequency: 45, examples: [], category: 'timing' as const },
-          // Interest patterns
-          { id: 'preferred_topics', pattern: 'Topics you love: personal growth, wellness, finance', frequency: 3, examples: ['personal growth', 'wellness', 'finance'], category: 'interests' as const },
-          { id: 'high_engagement_topics', pattern: 'You light up when we discuss: morning routines, meditation, goal-setting', frequency: 3, examples: ['morning routines', 'meditation', 'goal-setting'], category: 'interests' as const },
-          // Relationship patterns
-          { id: 'relationship_stage', pattern: 'We have a solid, established relationship', frequency: 45, examples: [], category: 'relationship' as const },
-          { id: 'key_moments', pattern: 'We\'ve shared 3 meaningful moments together', frequency: 3, examples: ['breakthrough on habits', 'celebration of first streak', 'opening up about stress'], category: 'relationship' as const },
-          { id: 'time_together', pattern: 'We\'ve spent about 2 hours and 15 minutes in conversation', frequency: 45, examples: [], category: 'relationship' as const },
-          // Engagement patterns  
-          { id: 'likes_stories', pattern: 'You engage well when I share stories and examples', frequency: 45, examples: [], category: 'engagement' as const },
-          { id: 'response_length', pattern: 'You prefer concise, to-the-point responses', frequency: 45, examples: [], category: 'communication' as const },
-          // Goals & achievements
-          { id: 'active_goals', pattern: 'You\'re working toward 2 goals', frequency: 2, examples: ['meditation habit', 'better sleep schedule'], category: 'goals' as const },
-          { id: 'completed_goals', pattern: 'You\'ve achieved 1 goal we discussed', frequency: 1, examples: ['morning routine consistency'], category: 'achievements' as const },
-          // Voice patterns
-          { id: 'speaking_pace', pattern: 'You think quickly and prefer fast-paced exchanges', frequency: 45, examples: [], category: 'voice' as const },
-          // Life context
-          { id: 'life_stage', pattern: 'You\'re building your career and establishing foundations', frequency: 1, examples: [], category: 'life' as const },
-          // Boundaries
-          { id: 'avoid_topics', pattern: 'I know to be careful around certain topics', frequency: 2, examples: [], category: 'boundaries' as const },
-        ],
-        totalInteractions: 45,
-        knowledgeScore: 78,
-      };
-      getCognitiveInsightsUI().show(demoData);
-      return;
-    }
-    
-    // Show empty state
-    getCognitiveInsightsUI().show({
-      memories: [],
-      patterns: [],
-      totalInteractions: 0,
-      knowledgeScore: 0,
-    });
-  }
-  
-  /**
-   * Delete a memory from "What I've Learned" and refresh the UI.
-   */
-  private async deleteMemory(memoryId: string): Promise<void> {
-    try {
-      const response = await fetch(`/api/cognitive/memories/${encodeURIComponent(memoryId)}`, {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
-        log.info({ memoryId }, 'Memory deleted successfully');
-        // Refresh the cognitive insights panel with updated data
-        await this.showCognitiveInsights();
-      } else {
-        const error = await response.json();
-        log.warn({ memoryId, error }, 'Failed to delete memory');
-      }
-    } catch (err) {
-      log.error({ err, memoryId }, 'Error deleting memory');
-    }
-  }
-  
-  /**
-   * Show prediction tracker panel.
-   * Fetches real data from API, falls back to demo data in development.
-   */
-  private async showPredictionTracker(): Promise<void> {
-    // Try to fetch real data from API
-    try {
-      const response = await fetch('/api/predictions');
-      if (response.ok) {
-        const data = await response.json();
-        // Transform API data to UI format
-        const predictions = data.predictions || [];
-        const completed = predictions.filter((p: { accuracy?: number }) => p.accuracy !== undefined);
-        const totalCorrect = completed.reduce((sum: number, p: { accuracy: number }) => sum + (p.accuracy >= 70 ? 1 : 0), 0);
-        
-        getPredictionTrackerUI().show({
-          overallAccuracy: data.stats?.averageAccuracy || 0,
-          totalPredictions: data.stats?.totalPredictions || predictions.length,
-          correctPredictions: totalCorrect,
-          byCategory: [],
-          recentTrend: completed.slice(0, 7).map((p: { accuracy: number }) => p.accuracy),
-          bestStreak: 0,
-          currentStreak: 0,
-        });
-        return;
-      }
-    } catch (err) {
-      log.debug('API fetch failed, checking for demo mode');
-    }
-    
-    // Fall back to demo data if enabled
-    if (isDemoDataEnabled()) {
-      const demoData = {
-        overallAccuracy: 72,
-        totalPredictions: 18,
-        correctPredictions: 13,
-        byCategory: [
-          { category: 'personal', correct: 5, total: 7, accuracy: 71 },
-          { category: 'work', correct: 4, total: 5, accuracy: 80 },
-          { category: 'health', correct: 3, total: 4, accuracy: 75 },
-          { category: 'habits', correct: 1, total: 2, accuracy: 50 },
-        ],
-        recentTrend: [60, 70, 65, 80, 75, 72, 78],
-        bestStreak: 5,
-        currentStreak: 3,
-      };
-      getPredictionTrackerUI().show(demoData);
-      return;
-    }
-    
-    // Show empty state
-    getPredictionTrackerUI().show({
-      overallAccuracy: 0,
-      totalPredictions: 0,
-      correctPredictions: 0,
-      byCategory: [],
-      recentTrend: [],
-      bestStreak: 0,
-      currentStreak: 0,
-    });
-  }
-  
-  /**
-   * Show data export panel.
-   * Fetches real data from API, falls back to demo data in development.
-   */
-  private async showDataExport(): Promise<void> {
-    // Try to fetch real data from API
-    try {
-      const response = await fetch('/api/export/categories');
-      if (response.ok) {
-        const data = await response.json();
-        getDataExportUI().show(data.categories || []);
-        return;
-      }
-    } catch (err) {
-      log.debug('API fetch failed, checking for demo mode');
-    }
-    
-    // Fall back to demo data if enabled
-    if (isDemoDataEnabled()) {
-      const demoData = [
-        { category: 'Conversations', description: 'All conversation transcripts', itemCount: 45, exportable: true },
-        { category: 'Insights', description: 'AI-learned memories and patterns', itemCount: 23, exportable: true },
-        { category: 'Rituals', description: 'Daily practice history and streaks', itemCount: 156, exportable: true },
-        { category: 'Predictions', description: 'Your predictions and outcomes', itemCount: 18, exportable: true },
-        { category: 'Mood History', description: 'Emotional weather records', itemCount: 42, exportable: true },
-      ];
-      getDataExportUI().show(demoData);
-      return;
-    }
-    
-    // Show empty/placeholder state
-    getDataExportUI().show([
-      { category: 'Conversations', description: 'All conversation transcripts', itemCount: 0, exportable: true },
-      { category: 'Insights', description: 'AI-learned memories and patterns', itemCount: 0, exportable: true },
-      { category: 'Rituals', description: 'Daily practice history and streaks', itemCount: 0, exportable: true },
-      { category: 'Predictions', description: 'Your predictions and outcomes', itemCount: 0, exportable: true },
-      { category: 'Mood History', description: 'Emotional weather records', itemCount: 0, exportable: true },
-    ]);
-  }
-  
-  /**
-   * Show team huddle panel.
-   * Displays multi-persona check-in with the whole team's observations.
-   */
-  private showTeamHuddle(): void {
-    // Show demo team huddle (weekly check-in by default)
-    const demoHuddle = getDemoTeamHuddle('weekly');
-    showTeamHuddle(demoHuddle);
-    log.debug('Team huddle shown');
-  }
-  
+
   /**
    * Show streak badge.
    */
@@ -1454,7 +1050,7 @@ class VoiceAIApp {
       },
 
       onDataMessage: (message) => {
-        this.handleDataMessage(message);
+        handleDataMessage(message);
         statsUI.incrementMessages();
       },
 
@@ -1662,7 +1258,7 @@ class VoiceAIApp {
       
       onEngagementTrigger: (trigger) => {
         // Handle engagement triggers from the agent
-        this.handleEngagementTrigger(trigger);
+        handleEngagementTrigger(trigger);
       },
       
       onPredictionsUpdate: (predictions) => {
@@ -1710,284 +1306,6 @@ class VoiceAIApp {
         presenceUI.bounce();
       },
     });
-  }
-
-  /**
-   * Handle incoming data messages from the agent.
-   */
-  private handleDataMessage(message: DataMessage): void {
-    // Try to process as handoff (async - fire and forget)
-    void handoffService.processDataMessage(message);
-
-    // Try to process as mood update (from humanizing system)
-    if (moodService.isMoodUpdate(message)) {
-      moodService.processMoodUpdate(message);
-      return;
-    }
-
-    // Try to process as celebration
-    if (isCelebrationMessage(message)) {
-      this.handleCelebration(message);
-      return;
-    }
-
-    // Try to process as emotion update
-    if (isEmotionMessage(message)) {
-      this.handleEmotion(message);
-      return;
-    }
-
-    // Try to process as expression (emoji morph)
-    if (isExpressionMessage(message)) {
-      this.handleExpression(message);
-      return;
-    }
-
-    // Try to process as persona mood update
-    if (isMoodMessage(message)) {
-      this.handleMood(message);
-      return;
-    }
-
-    // ✨ Try to process as music event (for avatar dancing)
-    if (isMusicMessage(message)) {
-      this.handleMusic(message);
-      return;
-    }
-
-    // 📊 Try to process as engagement update
-    if (engagementService.handleDataMessage(message)) {
-      return;
-    }
-
-    // 💬 Try to process as engagement trigger
-    if (isEngagementTriggerMessage(message)) {
-      this.handleEngagementTrigger(message);
-      return;
-    }
-
-    // Handle other message types
-    switch (message.type) {
-      case 'spotify':
-        // Spotify-related message
-        break;
-
-      case 'status':
-        // Status update
-        if (typeof message['text'] === 'string') {
-          messageUI.show(message['text'], 'info');
-        }
-        break;
-      
-      case 'transcript':
-      case 'agent_transcript':
-        // Track agent message for conversation history
-        if (typeof message['text'] === 'string') {
-          conversationTracker.addMessage('agent', message['text'], message['personaId'] as string | undefined);
-        }
-        break;
-      
-      case 'user_transcript':
-        // Track user message for conversation history
-        if (typeof message['text'] === 'string') {
-          conversationTracker.addMessage('user', message['text']);
-        }
-        break;
-      
-      case 'insight':
-      case 'memory':
-        // Track insights for conversation history
-        if (typeof message['content'] === 'string') {
-          conversationTracker.addInsight(message['content']);
-        }
-        break;
-      
-      case 'topic':
-        // Track topics discussed
-        if (typeof message['topic'] === 'string') {
-          conversationTracker.addTopic(message['topic']);
-        }
-        break;
-
-      default:
-    }
-  }
-
-  /**
-   * Handle celebration events from the agent.
-   * Zen aesthetic: warmth and breathing, not explosions.
-   */
-  private handleCelebration(event: CelebrationEvent): void {
-
-    // Milestone/achievement - warm acknowledgement
-    if (event.celebrationType === 'milestone' || event.celebrationType === 'achievement') {
-      celebrationsUI.warmthGlow({ intensity: 'warm' });
-      delightService.haptic('light');
-      waveformUI.celebrate();
-      
-      if (event.message) {
-        celebrationsUI.celebrateMilestone(event.message);
-      }
-    }
-
-    // Aha moment / good news - gentle recognition
-    if (event.celebrationType === 'aha_moment' || event.celebrationType === 'good_news') {
-      celebrationsUI.gentleBounce();
-      celebrationsUI.warmthGlow({ intensity: 'gentle' });
-      soundUI.play('success');
-      delightService.haptic('light');
-      presenceUI.bounce();
-      // Flash encouraging emotion for aha moments
-      presenceUI.flashEmotion('encouraging', 800);
-    }
-  }
-
-  /**
-   * Handle emotion events from voice prosody analysis.
-   * Updates waveform particles to reflect detected user emotion.
-   */
-  private handleEmotion(event: EmotionEvent): void {
-    
-    // Lower threshold (40%) for more responsive emotion display
-    if (event.confidence < 0.4) return;
-    
-    // Update waveform with emotion shape (smile, frown, etc.)
-    waveformUI.setEmotion(event.emotion, event.intensity);
-    
-    // Update coach avatar glow based on emotion
-    coachUI.setEmotion?.(event.emotion);
-    
-    // Update presence glow to reflect voice emotion (design system integration)
-    // Map event emotions to design system voice emotions
-    const emotionMap: Record<string, 'neutral' | 'happy' | 'excited' | 'calm' | 'thoughtful' | 'empathetic' | 'serious' | 'anxious' | 'encouraging'> = {
-      'neutral': 'neutral',
-      'happy': 'happy',
-      'sad': 'empathetic',      // Sad → empathetic glow (supportive)
-      'anxious': 'anxious',
-      'excited': 'excited',
-      'frustrated': 'serious',   // Frustrated → serious glow (grounded)
-      'calm': 'calm',
-    };
-    const voiceEmotion = emotionMap[event.emotion] || 'neutral';
-    presenceUI.setVoiceEmotion(voiceEmotion);
-    
-    // Also update intensity based on event intensity
-    if (event.intensity > 0.8) {
-      presenceUI.setSpeakingIntensity('exclamation');
-    } else if (event.intensity > 0.6) {
-      presenceUI.setSpeakingIntensity('emphasis');
-    } else if (event.intensity < 0.3) {
-      presenceUI.setSpeakingIntensity('whisper');
-    } else {
-      presenceUI.setSpeakingIntensity('normal');
-    }
-  }
-
-  /**
-   * Handle expression events from agents.
-   * (Emoji morphing disabled for now - may revisit later)
-   */
-  private handleExpression(_event: ExpressionEvent): void {
-    // Future: could show emoji in UI or trigger visual effect
-  }
-
-  /**
-   * Handle persona mood events from the humanizing system.
-   * Creates subtle UI changes to reflect the AI's "emotional" state.
-   */
-  private handleMood(event: MoodEvent): void {
-    // Update mood UI with new state
-    moodUI.setPersonaMood(
-      event.state,
-      event.energyLevel,
-      event.relationshipStage,
-      event.hasTransition || false
-    );
-
-    // If there's a relationship transition, also show a delight moment
-    if (event.hasTransition) {
-      delightService.haptic('medium');
-    }
-  }
-
-  /**
-   * Handle music events from the agent.
-   * The avatar is the speaker - warm and human, not flashy.
-   * The waveform responds gently and reflectively.
-   */
-  private handleMusic(event: MusicEvent): void {
-    log.debug('Music event:', event.state, event.trackName);
-    
-    if (event.state === 'playing') {
-      // Avatar: Bass speaker pulse - music is playing
-      avatarFeedback.dancing();
-      
-      // Waveform: Gentle, reflective visualization (NOT aggressive)
-      waveformUI.setMusicPlaying(true);
-      
-      // Subtle haptic for music start
-      delightService.haptic('light');
-      
-      // Show track info briefly
-      if (event.trackName && event.artistName) {
-        messageUI.show(`${event.trackName} by ${event.artistName}`, 'info', 3000);
-      }
-      
-      log.debug('Music playing:', event.trackName);
-    } else if (event.state === 'ducking') {
-      // Agent speaking over music - subtle the pulse
-      avatarFeedback.ducking();
-      // Waveform stays in music mode but is naturally calmer during speech
-      log.debug('Music ducking (agent speaking)');
-    } else if (event.state === 'fading') {
-      // DJ-style fade out - track ending soon
-      avatarFeedback.fading();
-      log.debug('Music fading out...');
-    } else if (event.state === 'paused' || event.state === 'stopped' || event.state === 'idle') {
-      // Gracefully return to rest
-      avatarFeedback.stopDancing();
-      
-      // Waveform: Return to normal behavior
-      waveformUI.setMusicPlaying(false);
-      
-      log.debug('Music stopped');
-    }
-  }
-
-  /**
-   * Handle engagement triggers from the agent.
-   * These are natural conversation prompts about rituals, streaks, predictions.
-   */
-  private handleEngagementTrigger(event: EngagementTriggerEvent): void {
-    log.debug('Engagement trigger:', event.triggerType, event.message);
-
-    // Update badge state based on trigger type
-    switch (event.triggerType) {
-      case 'streak_due':
-        engagementTriggerUI.updateBadges({ ritualsdue: 1, streakAtRisk: event.priority === 'high' });
-        engagementTriggerUI.pulseEngagement();
-        break;
-      case 'streak_milestone':
-        // Show a warm acknowledgement
-        celebrationsUI.warmthGlow({ intensity: 'gentle' });
-        delightService.haptic('medium');
-        break;
-      case 'prediction_result':
-        engagementTriggerUI.updateBadges({ predictionsReady: 1 });
-        break;
-      case 'ritual_reminder':
-        engagementTriggerUI.pulseEngagement();
-        break;
-      case 'team_suggestion':
-        // Show team huddle when the agent suggests it
-        this.showTeamHuddle();
-        break;
-    }
-
-    // For high-priority triggers, show a subtle message
-    if (event.priority === 'high' && event.message) {
-      messageUI.show(event.message, 'info', 4000);
-    }
   }
 
   /**
