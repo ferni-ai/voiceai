@@ -1,7 +1,7 @@
 # Ferni AI
 
 <p align="center">
-  <img src="brand/logo.png" alt="Ferni AI" width="120" />
+  <img src="brand/logos/ferni-logo.svg" alt="Ferni AI" width="120" />
 </p>
 
 <p align="center">
