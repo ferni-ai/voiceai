@@ -35,3 +35,24 @@ export {
   hasSsmlTags,
   sanitizeSsml,
 } from './core.js';
+
+// Regex cache for performance optimization
+const regexCacheMap = new Map<string, RegExp>();
+
+export const regexCache = {
+  get(pattern: string, flags?: string): RegExp {
+    const key = `${pattern}:${flags || ''}`;
+    let cached = regexCacheMap.get(key);
+    if (!cached) {
+      cached = new RegExp(pattern, flags);
+      regexCacheMap.set(key, cached);
+    }
+    return cached;
+  },
+  clear(): void {
+    regexCacheMap.clear();
+  },
+  get size(): number {
+    return regexCacheMap.size;
+  },
+};
