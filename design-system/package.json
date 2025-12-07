@@ -5,9 +5,14 @@
   "type": "module",
   "scripts": {
     "build": "node build.js",
+    "build:strict": "node build.js --strict",
+    "check:a11y": "node check-accessibility.js",
+    "check:a11y:strict": "node check-accessibility.js --strict",
+    "check:a11y:fix": "node check-accessibility.js --fix",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:a11y": "npm run build:strict && npm run check:a11y:strict"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^8.4.0",

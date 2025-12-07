@@ -701,7 +701,7 @@ class SettingsMenuUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-accent-text);
       }
 
       .settings-menu__stage-progress {
@@ -737,7 +737,7 @@ class SettingsMenuUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-accent-text);
       }
 
       /* ========================================================================

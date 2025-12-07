@@ -548,7 +548,7 @@ export class EngagementUI {
       .engagement-badge {
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
         background: var(--persona-tint, var(--color-accent-subtle));
         padding: var(--space-1, 4px) var(--space-2, 8px);
         border-radius: var(--radius-full, 9999px);
@@ -602,7 +602,7 @@ export class EngagementUI {
       }
 
       .energy-medium .engagement-weather__icon {
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
         background: var(--persona-tint, var(--color-accent-subtle));
       }
 
@@ -661,7 +661,7 @@ export class EngagementUI {
       }
 
       .engagement-streaks__cta {
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
         font-weight: var(--font-weight-medium, 500);
       }
 
@@ -783,7 +783,7 @@ export class EngagementUI {
         background: var(--color-background-elevated);
         border-radius: var(--radius-full);
         box-shadow: var(--shadow-sm);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
         transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
@@ -853,7 +853,7 @@ export class EngagementUI {
         justify-content: center;
         background: var(--persona-tint, var(--color-accent-subtle));
         border-radius: var(--radius-full);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
         margin-bottom: var(--space-4, 16px);
       }
 

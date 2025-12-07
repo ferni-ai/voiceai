@@ -423,7 +423,7 @@ function injectStyles(): void {
     
     .sparkle {
       position: absolute;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       opacity: 0;
     }
     
@@ -517,7 +517,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-2, 8px);
     }
     
@@ -533,7 +533,7 @@ function injectStyles(): void {
     .unlock-role {
       font-size: 1rem;
       font-weight: 500;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       margin: 0 0 var(--space-4, 16px);
     }
     

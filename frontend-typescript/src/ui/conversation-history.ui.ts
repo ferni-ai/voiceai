@@ -563,7 +563,7 @@ class ConversationHistoryUI {
       .history__session-mood {
         width: 24px;
         height: 24px;
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
       }
 
       .history__session-mood svg {
@@ -623,7 +623,7 @@ class ConversationHistoryUI {
       .history__favorite-icon {
         width: 24px;
         height: 24px;
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
       }
 
       .history__favorite-icon svg {
@@ -649,12 +649,12 @@ class ConversationHistoryUI {
         font-family: var(--font-display);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
       }
 
       /* Favorite Session Highlight */
       .history__session--favorite {
-        border-color: var(--persona-primary, var(--color-accent-primary));
+        border-color: var(--color-accent-text);
         background: linear-gradient(90deg, var(--persona-tint), var(--color-background-primary));
       }
 

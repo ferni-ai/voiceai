@@ -653,7 +653,7 @@ export class PredictionsUI {
         padding: var(--space-1, 4px) var(--space-3, 12px);
         font-size: var(--text-xs);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
         background: var(--persona-tint, var(--color-accent-subtle));
         border: none;
         border-radius: var(--radius-md, 0.5rem);
@@ -778,7 +778,7 @@ export class PredictionsUI {
       }
 
       .prediction-resolution-modal__input:focus {
-        border-color: var(--persona-primary, var(--color-accent-primary));
+        border-color: var(--color-accent-text);
       }
 
       .prediction-resolution-modal__input--error {
@@ -854,7 +854,7 @@ export class PredictionsUI {
         justify-content: center;
         background: var(--persona-tint, var(--color-accent-subtle));
         border-radius: var(--radius-full);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
         margin-bottom: var(--space-4, 16px);
       }
 

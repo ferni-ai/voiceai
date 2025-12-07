@@ -11,17 +11,17 @@
  * @module tests/type-guards
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
-  isValidUserProfile,
-  parseUserProfile,
   isValidConversationSummary,
-  parseConversationSummary,
-  isValidKeyMoment,
-  parseKeyMoment,
   isValidFinancialGoal,
+  isValidKeyMoment,
+  isValidUserProfile,
+  parseConversationSummary,
   parseFinancialGoal,
+  parseKeyMoment,
+  parseUserProfile,
   safeParse,
   safeParseArray,
 } from '../memory/type-guards.js';
@@ -398,4 +398,3 @@ describe('Type Guards', () => {
     });
   });
 });
-

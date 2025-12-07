@@ -634,7 +634,7 @@ class CognitiveInsightsUI {
       .cognitive-insights__section-icon {
         width: 18px;
         height: 18px;
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
       }
 
       .cognitive-insights__section-icon svg {
@@ -708,7 +708,7 @@ class CognitiveInsightsUI {
       }
 
       .cognitive-insights__memory-confidence {
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
       }
 
       .cognitive-insights__memory-delete {
@@ -755,7 +755,7 @@ class CognitiveInsightsUI {
       .cognitive-insights__patterns-icon {
         width: 20px;
         height: 20px;
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
       }
 
       .cognitive-insights__patterns-icon svg {
@@ -797,7 +797,7 @@ class CognitiveInsightsUI {
       }
 
       .cognitive-insights__pattern--high {
-        border-left-color: var(--persona-primary, var(--color-accent-primary));
+        border-left-color: var(--color-accent-text);
         background: linear-gradient(90deg, var(--persona-tint), var(--color-background-elevated));
       }
 
@@ -844,7 +844,7 @@ class CognitiveInsightsUI {
       .cognitive-insights__pattern-confidence {
         font-size: var(--text-xs);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
       }
 
       .cognitive-insights__pattern--medium .cognitive-insights__pattern-confidence {
@@ -889,7 +889,7 @@ class CognitiveInsightsUI {
         justify-content: center;
         width: 24px;
         height: 24px;
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
       }
 
       .cognitive-insights__pattern-category-icon svg {
@@ -922,7 +922,7 @@ class CognitiveInsightsUI {
 
       .cognitive-insights__patterns-hint {
         font-size: var(--text-xs);
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
         font-style: italic;
       }
 

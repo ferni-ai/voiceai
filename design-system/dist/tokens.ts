@@ -722,8 +722,8 @@ export interface SpeakingIntensityConfig {
  */
 export const VOICE_EMOTION_GLOW: Record<VoiceEmotion, VoiceGlowConfig> = {
   "neutral": {
-    "color": "rgba(139, 92, 246, 0.5)",
-    "colorAlt": "rgba(99, 102, 241, 0.4)",
+    "color": "var(--persona-glow, rgba(74, 103, 65, 0.5))",
+    "colorAlt": "rgba(74, 103, 65, 0.4)",
     "intensity": 0.6,
     "pulseSpeed": "3s",
     "spread": "20px"
@@ -750,8 +750,8 @@ export const VOICE_EMOTION_GLOW: Record<VoiceEmotion, VoiceGlowConfig> = {
     "spread": "25px"
   },
   "thoughtful": {
-    "color": "rgba(99, 102, 241, 0.5)",
-    "colorAlt": "rgba(79, 70, 229, 0.4)",
+    "color": "rgba(58, 107, 115, 0.5)",
+    "colorAlt": "rgba(45, 83, 89, 0.4)",
     "intensity": 0.6,
     "pulseSpeed": "3.5s",
     "spread": "22px"

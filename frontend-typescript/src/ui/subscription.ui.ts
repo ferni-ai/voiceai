@@ -554,7 +554,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-2, 8px);
     }
     
@@ -581,7 +581,7 @@ function injectStyles(): void {
       padding: var(--space-4, 16px);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
       border-radius: var(--radius-full, 9999px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .limit-icon svg {
@@ -619,7 +619,7 @@ function injectStyles(): void {
     }
     
     .tier-card--popular {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-accent-text);
       background: linear-gradient(135deg, 
         var(--persona-tint, rgba(74, 103, 65, 0.05)) 0%,
         var(--color-background-secondary, #faf8f5) 100%
@@ -709,7 +709,7 @@ function injectStyles(): void {
     .tier-features svg {
       width: 16px;
       height: 16px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       flex-shrink: 0;
     }
     
@@ -718,7 +718,7 @@ function injectStyles(): void {
       padding: var(--space-3, 12px) var(--space-4, 16px);
       border: 2px solid var(--persona-primary, #4a6741);
       background: transparent;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       font-size: 1rem;
       font-weight: 600;
       border-radius: var(--radius-lg, 12px);

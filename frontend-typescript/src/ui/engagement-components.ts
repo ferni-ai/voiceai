@@ -610,7 +610,7 @@ export const SHARED_STYLES = `
   .engagement-badge {
     font-size: var(--text-2xs);
     font-weight: var(--font-weight-semibold, 600);
-    color: var(--persona-primary, var(--color-accent-primary));
+    color: var(--color-accent-text);
     background: var(--persona-tint, var(--color-accent-subtle));
     padding: 2px var(--ma-breath, 8px);
     border-radius: var(--radius-full);
@@ -687,7 +687,7 @@ export const SHARED_STYLES = `
   .engagement-input:focus,
   .engagement-textarea:focus,
   .engagement-select:focus {
-    border-color: var(--persona-primary, var(--color-accent-primary));
+    border-color: var(--color-accent-text);
   }
 
   .engagement-input::placeholder,
@@ -807,7 +807,7 @@ export const SHARED_STYLES = `
   }
 
   [data-theme="midnight"] .engagement-badge {
-    color: var(--persona-primary);
+    color: var(--color-accent-text);
     background: var(--persona-tint);
   }
 

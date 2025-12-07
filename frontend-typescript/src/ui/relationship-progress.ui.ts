@@ -855,7 +855,7 @@ function injectStyles(): void {
     
     [data-theme="midnight"] .stage-description {
       background: var(--color-background-secondary, #60504a);
-      border-left-color: var(--persona-primary, #6b8f5a);
+      border-left-color: var(--color-accent-primary);
       color: var(--color-text-secondary, #f0ebe4);  /* WCAG AA: 5.05:1 */
     }
     

@@ -642,7 +642,7 @@ class RitualBuilderUI {
       .ritual-builder__template-icon {
         width: 32px;
         height: 32px;
-        color: var(--persona-primary, var(--color-accent-primary));
+        color: var(--color-accent-text);
       }
 
       .ritual-builder__template-icon svg {
@@ -712,7 +712,7 @@ class RitualBuilderUI {
       .ritual-builder__time-btn--active {
         background: var(--persona-primary, var(--color-accent-primary));
         color: white;
-        border-color: var(--persona-primary, var(--color-accent-primary));
+        border-color: var(--color-accent-text);
       }
 
       /* Input error state */

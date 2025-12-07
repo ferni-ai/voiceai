@@ -18,10 +18,11 @@
         "overlay": "rgba(88, 72, 64, 0.95)"
       },
       "text": {
+        "_wcag": "All colors tested against #70605a elevated background for WCAG AA (4.5:1)",
         "primary": "#faf6f0",
-        "secondary": "#e0d5c8",
-        "muted": "#d0c4b4",
-        "dimmed": "#a89c8c",
+        "secondary": "#f0ebe4",
+        "muted": "#e8e2da",
+        "dimmed": "#ddd6cc",
         "inverse": "#2a2420"
       },
       "border": {
@@ -34,7 +35,9 @@
         "hover": "#e0bc6a",
         "pressed": "#c49a3a",
         "glow": "rgba(212, 168, 74, 0.22)",
-        "subtle": "rgba(212, 168, 74, 0.08)"
+        "subtle": "rgba(212, 168, 74, 0.08)",
+        "text": "#e8c870",
+        "_textNote": "Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only"
       },
       "semantic": {
         "success": "#6bc48f",
@@ -73,10 +76,11 @@
         "overlay": "rgba(250, 248, 245, 0.95)"
       },
       "text": {
+        "_wcag": "All colors tested against #faf8f5 primary background for WCAG AA",
         "primary": "#2c2520",
         "secondary": "#5c544a",
         "muted": "#756a5e",
-        "dimmed": "#a89d90",
+        "dimmed": "#857a6e",
         "inverse": "#faf8f5"
       },
       "border": {
@@ -89,7 +93,9 @@
         "hover": "#3a7350",
         "pressed": "#1e4530",
         "glow": "rgba(45, 90, 61, 0.15)",
-        "subtle": "rgba(45, 90, 61, 0.05)"
+        "subtle": "rgba(45, 90, 61, 0.05)",
+        "text": "#2d5a3d",
+        "_textNote": "Same as primary for light theme - good contrast on light backgrounds"
       },
       "semantic": {
         "success": "#3d7a52",

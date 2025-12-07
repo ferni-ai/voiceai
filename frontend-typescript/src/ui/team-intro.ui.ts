@@ -411,7 +411,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       margin-bottom: var(--space-2, 8px);
     }
     
@@ -475,7 +475,7 @@ function injectStyles(): void {
     
     .team-intro__progress-count {
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
     }
     
     .team-intro__progress-bar {
@@ -524,12 +524,12 @@ function injectStyles(): void {
     }
     
     .team-member-card--ferni {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-accent-text);
       background: linear-gradient(135deg, rgba(74, 103, 65, 0.03) 0%, transparent 100%);
     }
     
     .team-member-card--added {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-accent-text);
       background: rgba(74, 103, 65, 0.05);
     }
     
@@ -654,7 +654,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 4px);
       font-size: 0.8rem;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-accent-text);
       font-weight: 500;
     }
     

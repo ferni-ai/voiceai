@@ -501,15 +501,105 @@ npm run design-system:test
 npm run design-system:test:update
 ```
 
-### Accessibility
+### Accessibility (WCAG 2.1 AA Compliance)
 
-The build automatically validates WCAG AA contrast ratios:
+The design system enforces WCAG 2.1 AA accessibility standards through automated checks in the build pipeline.
+
+#### Automated Checks
 
 ```bash
-npm run build:tokens
-# Output includes:
-# ✅ Primary text on background: 19.15:1 (AAA)
-# ✅ Secondary text on background: 7.87:1 (AAA)
+# Build with accessibility validation (warns on issues)
+npm run build
+
+# Build with strict mode (fails on accessibility errors)
+npm run build:strict
+
+# Run standalone accessibility check
+npm run check:a11y
+
+# Run check with fix suggestions
+npm run check:a11y:fix
+
+# Full test (build + codebase scan)
+npm run test:a11y
+```
+
+#### WCAG 2.1 AA Requirements
+
+| Text Type | Minimum Contrast | Tokens |
+|-----------|-----------------|--------|
+| Normal text (<18pt) | 4.5:1 | `--color-text-primary`, `--color-text-secondary`, `--color-text-muted` |
+| Large text (≥18pt) | 3.0:1 | `--color-text-dimmed`, `--color-accent-text` |
+| UI components | 3.0:1 | Borders, icons, focus indicators |
+
+#### Dark Theme Text Colors (Cedar Night)
+
+All text colors tested against `#70605a` (elevated background):
+
+| Token | Color | Contrast | Use |
+|-------|-------|----------|-----|
+| `--color-text-primary` | `#faf6f0` | 5.56:1 ✅ | Headings, important content |
+| `--color-text-secondary` | `#f0ebe4` | 5.05:1 ✅ | Body text, descriptions |
+| `--color-text-muted` | `#e8e2da` | 4.65:1 ✅ | Labels, eyebrows, hints |
+| `--color-text-dimmed` | `#ddd6cc` | 4.15:1 ✅ | Large text only (18pt+) |
+| `--color-accent-text` | `#e8c870` | 3.68:1 ✅ | Gold accent text (large only) |
+
+#### ⚠️ PROHIBITED: Persona Colors as Text
+
+**NEVER use `--persona-primary` or `--member-color` as text colors on dark backgrounds.** These colors fail WCAG AA:
+
+| Color | Contrast on Dark BG | Status |
+|-------|---------------------|--------|
+| Ferni Green (`#4a6741`) | 1.06:1 | ❌ FAIL |
+| Jack Brown (`#9a7b5a`) | 1.53:1 | ❌ FAIL |
+| Peter Teal (`#3a6b73`) | 1.01:1 | ❌ FAIL |
+| Alex Blue (`#5a6b8a`) | 1.18:1 | ❌ FAIL |
+| Maya Terracotta (`#a67a6a`) | 1.60:1 | ❌ FAIL |
+| Jordan Coral (`#c4856a`) | 2.03:1 | ❌ FAIL |
+
+```typescript
+// ❌ WRONG - fails accessibility
+color: var(--persona-primary)
+color: #4a6741
+
+// ✅ CORRECT - use text tokens
+color: var(--color-text-primary)      // For body text
+color: var(--color-accent-text)       // For accent text (large only)
+```
+
+#### Persona Colors - Correct Usage
+
+Persona colors should ONLY be used for:
+- ✅ Backgrounds and fills
+- ✅ Borders and outlines
+- ✅ Decorative elements
+- ✅ Glows and shadows
+- ❌ **NEVER for text**
+
+```css
+/* Correct persona usage */
+.persona-card {
+  border-color: var(--persona-primary);
+  box-shadow: 0 0 20px var(--persona-glow);
+  background: var(--persona-tint);
+}
+
+/* Text should use text tokens */
+.persona-card h2 {
+  color: var(--color-text-primary);  /* NOT --persona-primary */
+}
+```
+
+#### CI/CD Integration
+
+The accessibility checks run automatically:
+1. **Pre-commit hook**: `lint-staged` runs `check-a11y-colors.js --strict` on UI files
+2. **Build time**: `build.js --strict` validates all token contrast ratios
+3. **Quality gate**: `npm run quality` includes accessibility in the check suite
+
+To skip checks (not recommended):
+```bash
+npm run build -- --skip-a11y
 ```
 
 ## Modifying Tokens

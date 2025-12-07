@@ -20,14 +20,10 @@ import {
   getAgentEvolution,
   initializeAgentEvolution,
   saveAgentEvolutionToFirestore,
-  type PersonaExperiment,
   type PersonaEvolutionState,
+  type PersonaExperiment,
 } from '../intelligence/agent-evolution.js';
-import {
-  startExperiment,
-  getRunningExperiments,
-  getExperimentResults,
-} from '../services/experiments/integration.js';
+import { startExperiment } from '../services/experiments/integration.js';
 
 // ============================================================================
 // COLORS FOR CONSOLE OUTPUT

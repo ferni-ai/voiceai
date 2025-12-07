@@ -114,7 +114,9 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
           getLogger().warn(
             `Rate limited, retrying in ${RETRY_DELAY_MS}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`
           );
-          await new Promise<void>((resolve) => { setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)); });
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1));
+          });
           return this.embedBatch(texts, retryCount + 1);
         }
 
