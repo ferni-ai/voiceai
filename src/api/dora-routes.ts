@@ -1,8 +1,8 @@
 /**
  * DORA Metrics API Routes
- * 
+ *
  * REST API for tracking and retrieving DORA metrics.
- * 
+ *
  * Endpoints:
  *   GET  /api/dora/metrics        - Get current DORA snapshot
  *   GET  /api/dora/deployments    - List recent deployments
@@ -13,15 +13,14 @@
  *   POST /api/dora/incidents/:id/resolve - Resolve an incident
  *   POST /api/dora/seed           - Seed sample data (dev only)
  *   POST /api/dora/reset          - Reset all data (dev only)
- * 
+ *
  * Webhook endpoints (for CI/CD):
  *   POST /api/dora/webhook/github - GitHub Actions webhook
  *   POST /api/dora/webhook/cloudbuild - Cloud Build webhook
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getDORAMetricsService } from '../services/dora-metrics.js';
-import type { Deployment, Incident } from '../services/dora-metrics.js';
+import { getDORAMetricsService, type Deployment, type Incident } from '../services/dora-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from './helpers.js';
 import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';
@@ -58,7 +57,7 @@ export async function handleDORARoutes(
 
   // Webhooks don't require auth (they use signatures)
   const isWebhook = url.includes('/webhook/');
-  
+
   // For non-webhooks, require authentication
   if (!isWebhook) {
     // Write operations (POST) require admin
@@ -122,7 +121,7 @@ export async function handleDORARoutes(
       }
       const body = await parseBody<{ rollback?: boolean }>(req);
       const deployment = doraService.markDeploymentFailed(deploymentId, body.rollback);
-      
+
       if (!deployment) {
         sendError(res, 'Deployment not found', 404);
         return true;
@@ -136,11 +135,9 @@ export async function handleDORARoutes(
     if (url.match(/^\/api\/dora\/incidents(\?.*)?$/) && method === 'GET') {
       const urlObj = new URL(url, 'http://localhost');
       const activeOnly = urlObj.searchParams.get('active') === 'true';
-      
-      const incidents = activeOnly 
-        ? doraService.getActiveIncidents()
-        : doraService.getIncidents();
-      
+
+      const incidents = activeOnly ? doraService.getActiveIncidents() : doraService.getIncidents();
+
       sendJSON(res, { incidents });
       return true;
     }
@@ -172,13 +169,13 @@ export async function handleDORARoutes(
       }
       const body = await validateBody(req, res, ResolveIncidentSchema);
       if (!body) return true; // Validation failed
-      
+
       const incident = doraService.resolveIncident(incidentId, {
         resolvedAt: body.resolvedAt || new Date().toISOString(),
         resolution: body.resolution,
         rootCause: body.rootCause,
       });
-      
+
       if (!incident) {
         sendError(res, 'Incident not found', 404);
         return true;
@@ -225,8 +222,9 @@ export async function handleDORARoutes(
 
         // Only track deployments from specific workflows
         const workflowName = workflow.name?.toLowerCase() || '';
-        const isDeployWorkflow = workflowName.includes('deploy') || workflowName.includes('release');
-        
+        const isDeployWorkflow =
+          workflowName.includes('deploy') || workflowName.includes('release');
+
         if (isDeployWorkflow) {
           const deployment = doraService.recordDeployment({
             timestamp: workflow.updated_at || new Date().toISOString(),
@@ -259,12 +257,13 @@ export async function handleDORARoutes(
       const body = await parseBody<CloudBuildWebhookPayload>(req);
 
       if (body.status === 'SUCCESS' || body.status === 'FAILURE') {
-        const isProduction = body.substitutions?._ENVIRONMENT === 'production' ||
-                            body.tags?.includes('production');
+        const isProduction =
+          body.substitutions?._ENVIRONMENT === 'production' || body.tags?.includes('production');
 
         const deployment = doraService.recordDeployment({
           timestamp: body.finishTime || new Date().toISOString(),
-          commitSha: body.substitutions?.COMMIT_SHA || body.source?.repoSource?.commitSha || 'unknown',
+          commitSha:
+            body.substitutions?.COMMIT_SHA || body.source?.repoSource?.commitSha || 'unknown',
           branch: body.substitutions?.BRANCH_NAME || 'main',
           environment: isProduction ? 'production' : 'staging',
           duration: calculateDuration(body.startTime, body.finishTime),
@@ -288,7 +287,6 @@ export async function handleDORARoutes(
     // Unknown DORA endpoint
     sendError(res, 'Unknown DORA endpoint', 404);
     return true;
-
   } catch (error) {
     log.error({ error }, 'DORA API error');
     sendError(res, error instanceof Error ? error.message : 'Internal error', 500);
@@ -341,4 +339,3 @@ function calculateDuration(start?: string, end?: string): number {
   const endTime = new Date(end).getTime();
   return Math.max(0, Math.floor((endTime - startTime) / 1000));
 }
-

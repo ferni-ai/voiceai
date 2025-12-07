@@ -2679,7 +2679,7 @@ export function animateLandingReveal(
   shojiRight: HTMLElement,
   contentCard: HTMLElement
 ): void {
-  // @ts-expect-error GSAP is loaded via CDN
+  // @ts-ignore GSAP is loaded via CDN
   const gsap = window.gsap;
   if (!gsap) {
     console.warn('GSAP not loaded - landing animation disabled');

@@ -109,7 +109,7 @@ jobs:
         run: npm run build --if-present
 
       - name: Build design-system
-        run: node design-system/build.js
+        run: npm run build:design-system
 
       - name: Build frontend
         run: |
@@ -203,7 +203,7 @@ jobs:
         run: npm ci
 
       - name: Build design-system
-        run: node design-system/build.js
+        run: npm run build:design-system
 
       - name: Install frontend dependencies
         run: |
