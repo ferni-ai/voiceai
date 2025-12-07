@@ -14,10 +14,7 @@ import {
   type VectorDocument,
   type VectorFilter,
 } from './vector-store.js';
-import {
-  getFirestoreVectorStore,
-  type FirestoreVectorStore,
-} from './firestore-vector-store.js';
+import { getFirestoreVectorStore, type FirestoreVectorStore } from './firestore-vector-store.js';
 import { embed } from './embeddings.js';
 
 // Type for any vector store implementation

@@ -256,13 +256,13 @@ jobs:
         run: |
           cd frontend-typescript
           npm run audit:ui
-        continue-on-error: true  # Non-blocking until UI issues are resolved
+        continue-on-error: true
 
       - name: Build and check bundle size
         run: |
           cd frontend-typescript
           npm run build:check
-        continue-on-error: true  # Non-blocking until bundle size is optimized
+        continue-on-error: true
 
   # ============================================================================
   # DEPENDENCY CHECK

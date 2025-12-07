@@ -80,7 +80,7 @@ export class DifficultConversationTask extends IntelligentTask<DifficultConversa
             let response = `Primary goal: ${primaryGoal}.`;
             if (secondaryGoal) response += ` Bonus if: ${secondaryGoal}.`;
             response += ` Bottom line: ${minimumAcceptable}.`;
-            return response + " Good - knowing your goals keeps you focused.";
+            return `${response} Good - knowing your goals keeps you focused.`;
           },
         }),
 
@@ -131,9 +131,25 @@ export class DifficultConversationTask extends IntelligentTask<DifficultConversa
             backupApproaches: z.array(z.string()),
             confidence: z.enum(['low', 'medium', 'high']),
           }),
-          execute: async ({ topic, recipient, keyPoints, anticipatedResponse, openingLine, backupApproaches, confidence }) => {
-            this.complete({ topic, recipient, keyPoints, anticipatedResponse, openingLine, backupApproaches, confidence });
-            
+          execute: async ({
+            topic,
+            recipient,
+            keyPoints,
+            anticipatedResponse,
+            openingLine,
+            backupApproaches,
+            confidence,
+          }) => {
+            this.complete({
+              topic,
+              recipient,
+              keyPoints,
+              anticipatedResponse,
+              openingLine,
+              backupApproaches,
+              confidence,
+            });
+
             if (confidence === 'low') {
               return "You're as ready as you can be. Remember: the goal is progress, not perfection. You can always pause and continue later.";
             }
@@ -200,7 +216,14 @@ export class MessageCraftingTask extends IntelligentTask<MessageCraftingResult> 
             desiredTone: z.string(),
             desiredAction: z.string().optional().describe('What you want them to do'),
           }),
-          execute: async ({ messageType, recipient, relationship, purpose, desiredTone, desiredAction }) => {
+          execute: async ({
+            messageType,
+            recipient,
+            relationship,
+            purpose,
+            desiredTone,
+            desiredAction,
+          }) => {
             let response = `${messageType} to ${recipient} (${relationship}). Purpose: ${purpose}. Tone: ${desiredTone}.`;
             if (desiredAction) response += ` You want them to: ${desiredAction}.`;
             return response;
@@ -241,7 +264,7 @@ export class MessageCraftingTask extends IntelligentTask<MessageCraftingResult> 
           }),
           execute: async ({ messageType, recipient, purpose, draftMessage, tone, revised }) => {
             this.complete({ messageType, recipient, purpose, draftMessage, tone, revised });
-            return "Your message is ready. Read it one more time before sending - out loud if you can. That catches a lot.";
+            return 'Your message is ready. Read it one more time before sending - out loud if you can. That catches a lot.';
           },
         }),
       },
@@ -350,8 +373,24 @@ export class BoundarySettingTask extends IntelligentTask<BoundarySettingResult> 
             response: z.string(),
             confidence: z.enum(['low', 'medium', 'high']),
           }),
-          execute: async ({ boundary, person, reason, scriptPrepared, anticipatedPushback, response, confidence }) => {
-            this.complete({ boundary, person, reason, scriptPrepared, anticipatedPushback, response, confidence });
+          execute: async ({
+            boundary,
+            person,
+            reason,
+            scriptPrepared,
+            anticipatedPushback,
+            response,
+            confidence,
+          }) => {
+            this.complete({
+              boundary,
+              person,
+              reason,
+              scriptPrepared,
+              anticipatedPushback,
+              response,
+              confidence,
+            });
             return "You're ready. Remember: setting a boundary might feel uncomfortable, but so does not having one. Choose your discomfort.";
           },
         }),
@@ -435,7 +474,8 @@ export class SchedulingTask extends IntelligentTask<SchedulingResult> {
           execute: async ({ message, includesAllDetails }) => {
             let response = `Draft invite:\n\n---\n${message}\n---`;
             if (!includesAllDetails) {
-              response += "\n\nMake sure to add: time, location/link, duration, and any prep needed.";
+              response +=
+                '\n\nMake sure to add: time, location/link, duration, and any prep needed.';
             }
             return response;
           },
@@ -451,9 +491,23 @@ export class SchedulingTask extends IntelligentTask<SchedulingResult> {
             communicationSent: z.boolean(),
             confirmed: z.boolean(),
           }),
-          execute: async ({ eventType, participants, constraints, proposedTimes, communicationSent, confirmed }) => {
-            this.complete({ eventType, participants, constraints, proposedTimes, communicationSent, confirmed });
-            
+          execute: async ({
+            eventType,
+            participants,
+            constraints,
+            proposedTimes,
+            communicationSent,
+            confirmed,
+          }) => {
+            this.complete({
+              eventType,
+              participants,
+              constraints,
+              proposedTimes,
+              communicationSent,
+              confirmed,
+            });
+
             if (confirmed) {
               return "It's on the calendar! Don't forget to send a reminder closer to the date.";
             }
@@ -478,4 +532,3 @@ export default {
   BoundarySettingTask,
   SchedulingTask,
 };
-

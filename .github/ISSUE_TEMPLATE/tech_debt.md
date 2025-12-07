@@ -26,6 +26,7 @@ assignees: ''
 - [ ] Security
 - [ ] Developer Experience
 - [ ] Test Coverage
+- [ ] **Human Experience** - Does this debt make AI feel less human?
 
 ## Effort Estimate
 <!-- How big is this? -->

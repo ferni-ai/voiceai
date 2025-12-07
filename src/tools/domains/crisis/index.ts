@@ -21,6 +21,7 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
 
 // ============================================================================
@@ -286,6 +287,11 @@ const provideCrisisResourcesDef: ToolDefinition = {
           `📱 **Crisis Text Line** - Text HOME to 741741 (24/7)\n\n` +
           `You don't have to face this alone. These trained professionals are ready to help.`;
 
+        // Track crisis tool usage for safety monitoring
+        const tracker = isLifeCoachAnalyticsEnabled()
+          ? trackToolUsage('provideCrisisResources', 'crisis', { agentId: ctx.agentId })
+          : null;
+
         try {
           getLogger().info({ agentId: ctx.agentId, crisisType, urgency }, 'Providing crisis resources');
 
@@ -320,10 +326,12 @@ const provideCrisisResourcesDef: ToolDefinition = {
           response += `You don't have to face this alone. It's okay to reach out for help.\n\n`;
           response += `I'm also here if you want to talk or just need someone to be with you.`;
 
+          tracker?.success({ crisisType, urgency });
           return response;
         } catch (error) {
           // CRITICAL: Never fail silently on crisis tools
           getLogger().error({ error, crisisType, urgency }, 'Crisis tool error - returning fallback resources');
+          tracker?.error(error instanceof Error ? error : String(error));
           return FALLBACK_RESPONSE;
         }
       },

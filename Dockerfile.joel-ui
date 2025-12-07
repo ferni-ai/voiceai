@@ -1,3 +1,12 @@
+# ============================================================================
+# ⚠️  DEPRECATED - Use docker/Dockerfile.landing instead
+# ============================================================================
+# This file is kept for backwards compatibility.
+# New builds should use:
+#   docker build -f docker/Dockerfile.landing --build-arg LANDING_DIR=promo/meet-joel .
+# See docker/README.md for documentation.
+# ============================================================================
+
 # Joel Dickson UI + Token Server
 # Serves the landing page and generates LiveKit tokens
 

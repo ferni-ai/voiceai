@@ -263,5 +263,3 @@ export const DEFAULT_PROBABILITIES = {
   /** Probability of adding uncertainty hedge */
   UNCERTAINTY_HEDGE: 0.1,
 } as const;
-
-

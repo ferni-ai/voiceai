@@ -148,7 +148,7 @@ const personaThinkingPhrases: Record<string, string[]> = {
     "That's a good question...",
     'You know...',
     'Well...',
-    "Let me sit with that for a moment...",
+    'Let me sit with that for a moment...',
   ],
   'nayan-patel': [
     'Hmm...',
@@ -158,35 +158,15 @@ const personaThinkingPhrases: Record<string, string[]> = {
     "That's worth considering...",
   ],
   'peter-john': [
-    'Oh, that\'s interesting...',
+    "Oh, that's interesting...",
     'Hmm, let me think...',
     'You know what...',
     'Good question...',
   ],
-  'maya-santos': [
-    'Hmm...',
-    "Let's see...",
-    "That's a thoughtful question...",
-    'You know...',
-  ],
-  'alex-chen': [
-    'Let me think...',
-    'Good question...',
-    'Hmm...',
-    "Okay, let's see...",
-  ],
-  'jordan-taylor': [
-    'Ooh, good question...',
-    'Let me think...',
-    'Hmm...',
-    'You know what...',
-  ],
-  default: [
-    'Hmm...',
-    'Let me think about that...',
-    'Well...',
-    "That's a good question...",
-  ],
+  'maya-santos': ['Hmm...', "Let's see...", "That's a thoughtful question...", 'You know...'],
+  'alex-chen': ['Let me think...', 'Good question...', 'Hmm...', "Okay, let's see..."],
+  'jordan-taylor': ['Ooh, good question...', 'Let me think...', 'Hmm...', 'You know what...'],
+  default: ['Hmm...', 'Let me think about that...', 'Well...', "That's a good question..."],
 };
 
 /**
@@ -295,10 +275,7 @@ export function generateThinkingSSML(pause: ThinkingPause): string {
 /**
  * Wrap response with thinking pause SSML
  */
-export function wrapWithThinkingPause(
-  response: string,
-  context: ThinkingContext
-): string {
+export function wrapWithThinkingPause(response: string, context: ThinkingContext): string {
   const pause = calculateThinkingPause(context);
 
   // Skip if minimal pause needed
@@ -309,9 +286,11 @@ export function wrapWithThinkingPause(
   const thinkingSSML = generateThinkingSSML(pause);
 
   // Don't double-add if response already starts with thinking
-  if (response.trim().toLowerCase().startsWith('hmm') ||
-      response.trim().toLowerCase().startsWith('well') ||
-      response.trim().toLowerCase().startsWith('let me')) {
+  if (
+    response.trim().toLowerCase().startsWith('hmm') ||
+    response.trim().toLowerCase().startsWith('well') ||
+    response.trim().toLowerCase().startsWith('let me')
+  ) {
     return response;
   }
 
@@ -342,7 +321,4 @@ export function createThinkingContext(
   };
 }
 
-export {
-  personaThinkingPhrases,
-  getThinkingPhrase,
-};
+export { personaThinkingPhrases, getThinkingPhrase };

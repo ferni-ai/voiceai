@@ -4,7 +4,7 @@
 
 ---
 
-## 🎨 The Ferni Look
+##  The Ferni Look
 
 **In one sentence:** Warm, soft, film-like — like a memory bathed in golden hour light.
 
@@ -16,7 +16,7 @@
 
 ---
 
-## ⚡ Quick CSS Filter (Easiest Method)
+##  Quick CSS Filter (Easiest Method)
 
 Add this class to any `<img>` tag:
 
@@ -34,7 +34,7 @@ Add this class to any `<img>` tag:
 
 ---
 
-## 📊 Detailed Color Grading Specs
+##  Detailed Color Grading Specs
 
 ### For Lightroom / Camera Raw
 
@@ -89,7 +89,7 @@ The goal: **Push blues toward teal, desaturate them, and warm everything else.**
 
 ---
 
-## 🖼️ Photoshop Method
+##  Photoshop Method
 
 ### Quick Action
 
@@ -115,7 +115,7 @@ Save as "Ferni Grade" action for one-click application.
 
 ---
 
-## 📱 Mobile Apps
+##  Mobile Apps
 
 ### VSCO Settings
 - Filter: A6 or C1 (base)
@@ -134,7 +134,7 @@ Use the same settings as desktop Lightroom above.
 
 ---
 
-## 🎬 Video Color Grading (DaVinci Resolve / Premiere)
+##  Video Color Grading (DaVinci Resolve / Premiere)
 
 ### LUT Approach
 Create a custom LUT with these values:
@@ -151,7 +151,7 @@ Create a custom LUT with these values:
 
 ---
 
-## ✅ Before/After Checklist
+##  Before/After Checklist
 
 Run through this checklist for every image:
 
@@ -164,7 +164,7 @@ Run through this checklist for every image:
 
 ---
 
-## 🚫 What to Avoid
+##  What to Avoid
 
 | Don't | Why |
 |-------|-----|
@@ -177,7 +177,7 @@ Run through this checklist for every image:
 
 ---
 
-## 📦 Batch Processing
+##  Batch Processing
 
 ### ImageMagick (Command Line)
 
@@ -213,7 +213,7 @@ async function ferniGrade(inputPath, outputPath) {
 
 ---
 
-## 🎯 Reference Images
+##  Reference Images
 
 These images nail the Ferni aesthetic:
 
@@ -224,11 +224,11 @@ These images nail the Ferni aesthetic:
 
 ---
 
-## 📋 Quick Reference Card
+##  Quick Reference Card
 
 ```
 FERNI IMAGE FORMULA
-═══════════════════════════════════════
+
 Temperature:  +15 (warmer)
 Tint:         +6 (toward magenta)
 Exposure:     +0.15
@@ -238,9 +238,9 @@ Blacks:       +12 (lift)
 Saturation:   -8 (muted)
 Blues:        -30 saturation
 Grain:        20 amount
-═══════════════════════════════════════
+
 CSS: sepia(12%) saturate(0.92) contrast(0.95)
-═══════════════════════════════════════
+
 ```
 
 ---

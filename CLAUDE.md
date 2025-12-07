@@ -1,5 +1,11 @@
 # Ferni AI Voice Agent
 
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+See `CORE-PRINCIPLES.md` for our complete philosophy. Every architecture decision, feature, and line of code should make AI feel more human, serve relationships over transactions, and support gentle growth.
+
+---
+
 ## Quick Reference
 ```bash
 npm run quality      # Typecheck + lint + format + test (run before commits)
@@ -173,8 +179,44 @@ log.warn({ attempt }, 'Retry needed');
 log.error({ error: String(err) }, 'Operation failed');
 ```
 
+## Module Organization Principles
+
+When modules grow large (>500 lines), split into domain-focused submodules:
+
+```
+src/tools/habit-coaching.ts (monolith)  →  src/tools/habit-coaching/
+                                              ├── types.ts       # Interfaces/types only
+                                              ├── constants.ts   # Static data, enums
+                                              ├── templates.ts   # Habit templates
+                                              ├── bundles.ts     # Habit bundles
+                                              ├── helpers.ts     # Utility functions
+                                              ├── storage.ts     # Persistence layer
+                                              └── index.ts       # Re-exports for backward compatibility
+```
+
+**Key patterns:**
+- **Types first**: Extract interfaces to `types.ts`, import everywhere else
+- **Index re-exports**: `index.ts` re-exports everything for backward-compatible imports
+- **Data separate from logic**: Constants/templates in dedicated files, tools in main file
+- **No circular imports**: Types → Constants → Data → Helpers → Main
+
+## Behavior Science Integration
+
+Habit coaching uses evidence-based methodologies:
+
+| Concept | Implementation | Source |
+|---------|---------------|--------|
+| Glidepath Levels | 5-level progression from tiny (2 min) to full lifestyle | Tiny Habits |
+| Habit Loops | cue → routine → reward structure | The Power of Habit |
+| Habit Stacking | "After [CURRENT], I will [NEW]" | Atomic Habits |
+| Keystone Habits | High-ripple habits that cascade changes | The Power of Habit |
+| Four Tendencies | Upholder/Questioner/Obliger/Rebel strategies | Gretchen Rubin |
+
+Templates include: `tinyVersion`, `miniVersion`, `fullVersion`, `habitLoop`, `stacksWellWith`, `keystonePotential`
+
 ## Subdirectory CLAUDE.md Files
 - `src/tools/CLAUDE.md` - How to create tools
+- `src/tools/habit-coaching/CLAUDE.md` - Habit coaching module structure
 - `src/personas/CLAUDE.md` - How to create personas
 - `src/intelligence/context-builders/CLAUDE.md` - Context builder patterns
 - `frontend-typescript/CLAUDE.md` - Frontend/design system rules

@@ -3,7 +3,7 @@
  *
  * A series of tasks for onboarding users in a warm, human style.
  * These tasks collect information while building genuine connection.
- * 
+ *
  * Designed to work with any agent persona - the persona's character
  * should come through in the instructions and conversation style.
  */
@@ -40,7 +40,7 @@ export interface GoalsResult {
 
 /**
  * Welcome task - get to know the person first
- * 
+ *
  * The FIRST priority is connecting as humans - building rapport before
  * diving into any specific topics or problem-solving.
  */
@@ -91,7 +91,7 @@ export class WelcomeTask extends AgentTask<WelcomeResult> {
 
 /**
  * Situation assessment task - understand where they're at
- * 
+ *
  * Gently explore what brought them here and what's on their mind.
  * Be sensitive - don't interrogate, have a conversation.
  */
@@ -151,7 +151,7 @@ export class SituationAssessmentTask extends AgentTask<SituationResult> {
 
 /**
  * Goals task - understand what they want to achieve
- * 
+ *
  * Help them think about their goals in a holistic way.
  * Goals aren't just about outcomes - they're about what matters to them.
  */
@@ -269,4 +269,3 @@ export default {
   createOnboardingFlow,
   runOnboarding,
 };
-

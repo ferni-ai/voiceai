@@ -87,7 +87,7 @@ const BACKCHANNEL_VARIANTS: Record<string, ResponseVariant[]> = {
     // Low formality variants
     { text: 'Uh-huh', maxFormality: 0.4 },
     { text: 'Yup', maxFormality: 0.3 },
-    { text: "K", maxFormality: 0.2, minEnergy: 0.6 },
+    { text: 'K', maxFormality: 0.2, minEnergy: 0.6 },
     // High formality variants
     { text: 'I see', minFormality: 0.5 },
     { text: 'Understood', minFormality: 0.7 },
@@ -109,7 +109,7 @@ const BACKCHANNEL_VARIANTS: Record<string, ResponseVariant[]> = {
     { text: 'Really?', minWarmth: 0.5 },
     { text: 'Interesting...', minFormality: 0.4 },
     // High formality
-    { text: 'That\'s fascinating', minFormality: 0.6 },
+    { text: "That's fascinating", minFormality: 0.6 },
     { text: 'How interesting', minFormality: 0.5 },
     // Low formality + high energy
     { text: 'Wait, seriously?', maxFormality: 0.4, minEnergy: 0.6 },
@@ -124,17 +124,17 @@ const BACKCHANNEL_VARIANTS: Record<string, ResponseVariant[]> = {
   empathetic: [
     // High warmth required
     { text: 'I hear you', minWarmth: 0.7 },
-    { text: 'That\'s hard', minWarmth: 0.6 },
+    { text: "That's hard", minWarmth: 0.6 },
     { text: 'I get it', minWarmth: 0.5 },
     { text: 'That sounds tough', minWarmth: 0.7 },
     { text: 'Of course', minWarmth: 0.6 },
     { text: 'I understand', minWarmth: 0.5, minFormality: 0.4 },
     // Very warm
     { text: 'Oh, honey', minWarmth: 0.9, maxFormality: 0.3 },
-    { text: 'I\'m so sorry', minWarmth: 0.8 },
+    { text: "I'm so sorry", minWarmth: 0.8 },
     { text: 'That must be really hard', minWarmth: 0.8 },
     // Warm + present
-    { text: 'I\'m here', minWarmth: 0.7 },
+    { text: "I'm here", minWarmth: 0.7 },
     { text: 'Yeah...', minWarmth: 0.6 },
     { text: 'Mmm...', minWarmth: 0.7 },
   ],
@@ -147,7 +147,7 @@ const BACKCHANNEL_VARIANTS: Record<string, ResponseVariant[]> = {
     { text: 'Well...' },
     // High formality
     { text: 'Let me consider that...', minFormality: 0.6 },
-    { text: 'That\'s a good question...', minFormality: 0.4 },
+    { text: "That's a good question...", minFormality: 0.4 },
     // Low formality + warm
     { text: 'Okay, so...', maxFormality: 0.5 },
     { text: 'Alright...', maxFormality: 0.4 },
@@ -167,27 +167,27 @@ const COMFORT_VARIANTS: ResponseVariant[] = [
   // High warmth
   { text: 'I hear you. That sounds really hard.', minWarmth: 0.7 },
   { text: 'That takes a lot of courage to share.', minWarmth: 0.7 },
-  { text: 'You\'re not alone in this.', minWarmth: 0.8 },
+  { text: "You're not alone in this.", minWarmth: 0.8 },
   { text: 'Thank you for trusting me with that.', minWarmth: 0.8 },
 
   // Practical + warm
   { text: 'One step at a time.', minWarmth: 0.5, minDirectness: 0.5 },
-  { text: 'You\'re doing better than you think.', minWarmth: 0.6 },
-  { text: 'That\'s a lot to carry.', minWarmth: 0.6 },
+  { text: "You're doing better than you think.", minWarmth: 0.6 },
+  { text: "That's a lot to carry.", minWarmth: 0.6 },
 
   // Direct + supportive
-  { text: 'That\'s valid.', minDirectness: 0.6 },
-  { text: 'Makes sense you\'d feel that way.', minDirectness: 0.5 },
+  { text: "That's valid.", minDirectness: 0.6 },
+  { text: "Makes sense you'd feel that way.", minDirectness: 0.5 },
   { text: 'Anyone would struggle with that.', minDirectness: 0.5, minWarmth: 0.5 },
 
   // Very warm + gentle
-  { text: 'Take your time. I\'m here.', minWarmth: 0.8 },
-  { text: 'You don\'t have to have it all figured out.', minWarmth: 0.7 },
-  { text: 'It\'s okay to not be okay.', minWarmth: 0.8 },
+  { text: "Take your time. I'm here.", minWarmth: 0.8 },
+  { text: "You don't have to have it all figured out.", minWarmth: 0.7 },
+  { text: "It's okay to not be okay.", minWarmth: 0.8 },
 
   // Energetic + encouraging
   { text: 'Hey, you showed up. That counts.', minEnergy: 0.6, minWarmth: 0.6 },
-  { text: 'You\'ve got this. Seriously.', minEnergy: 0.6, maxFormality: 0.4 },
+  { text: "You've got this. Seriously.", minEnergy: 0.6, maxFormality: 0.4 },
 ];
 
 /**
@@ -219,10 +219,7 @@ const ACKNOWLEDGMENT_VARIANTS: ResponseVariant[] = [
 /**
  * Check if a variant matches the persona's traits
  */
-function variantMatchesTraits(
-  variant: ResponseVariant,
-  traits: PersonaVoiceTraits
-): boolean {
+function variantMatchesTraits(variant: ResponseVariant, traits: PersonaVoiceTraits): boolean {
   if (variant.minWarmth !== undefined && traits.warmth < variant.minWarmth) return false;
   if (variant.maxWarmth !== undefined && traits.warmth > variant.maxWarmth) return false;
   if (variant.minEnergy !== undefined && traits.energy < variant.minEnergy) return false;
@@ -318,10 +315,7 @@ export function getDynamicBackchannel(
 /**
  * Get a dynamic comfort phrase for a persona
  */
-export function getDynamicComfortPhrase(
-  persona: PersonaConfig,
-  sessionId: string
-): string {
+export function getDynamicComfortPhrase(persona: PersonaConfig, sessionId: string): string {
   const traits = extractVoiceTraits(persona);
   const eligible = getEligibleVariants(COMFORT_VARIANTS, traits);
 
@@ -347,10 +341,7 @@ export function getDynamicComfortPhrase(
 /**
  * Get a dynamic acknowledgment for a persona
  */
-export function getDynamicAcknowledgment(
-  persona: PersonaConfig,
-  sessionId: string
-): string {
+export function getDynamicAcknowledgment(persona: PersonaConfig, sessionId: string): string {
   const traits = extractVoiceTraits(persona);
   const eligible = getEligibleVariants(ACKNOWLEDGMENT_VARIANTS, traits);
 
@@ -375,10 +366,7 @@ export function getDynamicAcknowledgment(
 /**
  * Get a dynamic thinking sound for a persona
  */
-export function getDynamicThinkingSound(
-  persona: PersonaConfig,
-  sessionId: string
-): string {
+export function getDynamicThinkingSound(persona: PersonaConfig, sessionId: string): string {
   return getDynamicBackchannel(persona, sessionId, 'thinking');
 }
 
@@ -393,18 +381,18 @@ const PERSONA_EXCLUSIVE_PHRASES: Record<string, string[]> = {
   ferni: [
     'Second chances are sacred.',
     'Your net worth is not your self-worth.',
-    'What would the version of you who\'s already figured this out say?',
-    'Let\'s sit with that for a moment.',
+    "What would the version of you who's already figured this out say?",
+    "Let's sit with that for a moment.",
   ],
   'maya-santos': [
     'Progress, not perfection.',
     'Small wins compound.',
-    'You showed up. That\'s what matters.',
+    "You showed up. That's what matters.",
     'Tiny steps, massive results.',
   ],
   'peter-john': [
     'Know what you own!',
-    'That\'s a ten-bagger waiting to happen.',
+    "That's a ten-bagger waiting to happen.",
     'The story is everything.',
     'Research before you invest.',
   ],
@@ -412,7 +400,7 @@ const PERSONA_EXCLUSIVE_PHRASES: Record<string, string[]> = {
     'Stay the course.',
     'Time in the market beats timing the market.',
     'Cost matters.',
-    'Don\'t just do something, stand there.',
+    "Don't just do something, stand there.",
   ],
   'alex-chen': [
     'Got it covered.',
@@ -423,7 +411,7 @@ const PERSONA_EXCLUSIVE_PHRASES: Record<string, string[]> = {
   'jordan-taylor': [
     'Life is celebration!',
     'Details matter.',
-    'Let\'s make this memorable.',
+    "Let's make this memorable.",
     'Every milestone deserves a moment.',
   ],
 };

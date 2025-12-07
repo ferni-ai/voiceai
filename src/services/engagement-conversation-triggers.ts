@@ -283,16 +283,16 @@ async function getPendingPredictions(
   userId: string
 ): Promise<StoredPrediction[]> {
   const predictions = await store.getRecentPredictions(userId, 10);
-  
+
   // Filter to predictions that need resolution (7+ days old, not completed)
   const EXPIRY_DAYS = 7;
   const now = Date.now();
-  const resolveThreshold = now - (EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-  
-  return predictions.filter(p => {
+  const resolveThreshold = now - EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+
+  return predictions.filter((p) => {
     // Not completed yet
     if (p.completedAt) return false;
-    
+
     // Old enough to resolve
     const createdAt = new Date(p.createdAt).getTime();
     return createdAt < resolveThreshold;

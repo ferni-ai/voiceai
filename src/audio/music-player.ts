@@ -191,12 +191,13 @@ export class CallMusicPlayer {
    * @param isAmbient - If true, this is ambient/thinking music (for callback context)
    */
   async playFromUrl(url: string, track: MusicTrack, isAmbient = false): Promise<boolean> {
-    if (DEBUG_MUSIC) log.debug('playFromUrl called', {
-      url,
-      trackName: track.name,
-      artist: track.artist,
-      isAmbient,
-    });
+    if (DEBUG_MUSIC)
+      log.debug('playFromUrl called', {
+        url,
+        trackName: track.name,
+        artist: track.artist,
+        isAmbient,
+      });
     getLogger().info(
       { url: url.slice(0, 50), track: track.name, artist: track.artist, isAmbient },
       'Playing from URL'
@@ -217,10 +218,11 @@ export class CallMusicPlayer {
       // Download the audio file
       if (DEBUG_MUSIC) log.debug('Downloading audio', { url });
       const audioPath = await this.downloadAudio(url, track.name);
-      if (DEBUG_MUSIC) log.debug('Download result', {
-        success: audioPath ? 'SUCCESS' : 'FAILED',
-        audioPath,
-      });
+      if (DEBUG_MUSIC)
+        log.debug('Download result', {
+          success: audioPath ? 'SUCCESS' : 'FAILED',
+          audioPath,
+        });
       if (!audioPath) {
         log.error('Failed to download audio');
         return false;
@@ -234,16 +236,18 @@ export class CallMusicPlayer {
 
       // Calculate volume (consider ducking state)
       const volume = this.state.isDucked ? this.state.duckingVolume : this.state.volume;
-      if (DEBUG_MUSIC) log.debug('Playing with volume', {
-        volume,
-        isDucked: this.state.isDucked,
-      });
+      if (DEBUG_MUSIC)
+        log.debug('Playing with volume', {
+          volume,
+          isDucked: this.state.isDucked,
+        });
 
       // Play via BackgroundAudioPlayer
-      if (DEBUG_MUSIC) log.debug('Calling BackgroundAudioPlayer.play()', {
-        source: audioPath,
-        volume,
-      });
+      if (DEBUG_MUSIC)
+        log.debug('Calling BackgroundAudioPlayer.play()', {
+          source: audioPath,
+          volume,
+        });
       this.currentPlayHandle = this.backgroundPlayer.play(
         { source: audioPath, volume },
         false // Don't loop previews

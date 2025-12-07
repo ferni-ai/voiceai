@@ -42,4 +42,3 @@ export const VOICE_PRESENCE_FLAGS = {
     return getFeatureFlags().isEnabled('voice-presence-analytics');
   },
 } as const;
-

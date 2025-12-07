@@ -1,5 +1,11 @@
 # Tool Development
 
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+Tools give our AI the ability to take meaningful action in users' lives. Every tool should support gentle growth and authentic connection. See `../../CORE-PRINCIPLES.md` for our complete philosophy.
+
+---
+
 ## Reference Docs
 - Full guide: `docs/AGENT-AGNOSTIC-ARCHITECTURE.md`
 - Examples: See existing tools in this directory

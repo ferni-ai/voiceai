@@ -890,7 +890,9 @@ class BackgroundTaskService extends EventEmitter {
     };
 
     // Process queue every 10 seconds
-    setInterval(() => { void processQueue(); }, 10000);
+    setInterval(() => {
+      void processQueue();
+    }, 10000);
   }
 
   private startScheduleChecker(): void {
@@ -931,7 +933,9 @@ class BackgroundTaskService extends EventEmitter {
       }
     };
 
-    this.checkInterval = setInterval(() => { void checkSchedules(); }, 60000); // Every minute
+    this.checkInterval = setInterval(() => {
+      void checkSchedules();
+    }, 60000); // Every minute
   }
 
   private calculateNextRun(schedule: string, timezone: string): Date {

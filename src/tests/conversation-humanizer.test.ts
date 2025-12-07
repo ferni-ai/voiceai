@@ -309,7 +309,9 @@ describe('ConversationHumanizer', () => {
       expect(result).toBeDefined();
       // May have silence action
       if (result.silenceAction) {
-        expect(['wait', 'gentle_prompt', 'continue', 'backchannel']).toContain(result.silenceAction);
+        expect(['wait', 'gentle_prompt', 'continue', 'backchannel']).toContain(
+          result.silenceAction
+        );
       }
     });
   });

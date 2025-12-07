@@ -811,6 +811,142 @@ Prerequisites:
   return true;
 }
 
+/**
+ * Secrets Upload
+ * Uploads secrets from .env to GCP Secret Manager
+ */
+async function setupSecrets(options: SetupOptions): Promise<boolean> {
+  log.step('GCP SECRETS UPLOAD');
+
+  if (!checkCommand('gcloud')) {
+    log.error('gcloud CLI is required. Install from: https://cloud.google.com/sdk/docs/install');
+    return false;
+  }
+  log.success('gcloud CLI found');
+
+  // Check for .env file
+  const envPath = join(PROJECT_ROOT, '.env');
+  if (!existsSync(envPath)) {
+    log.error('.env file not found');
+    return false;
+  }
+
+  // Get project ID
+  let projectId = exec('gcloud config get-value project 2>/dev/null', { silent: true }).trim();
+  if (!projectId && !options.skipPrompts) {
+    projectId = await prompt('Enter your GCP project ID: ');
+    if (projectId) {
+      exec(`gcloud config set project "${projectId}"`, { silent: true });
+    }
+  }
+
+  if (!projectId) {
+    log.error('No project ID configured');
+    return false;
+  }
+  log.info(`Project: ${projectId}`);
+
+  // Enable Secret Manager API
+  log.info('Enabling Secret Manager API...');
+  exec('gcloud services enable secretmanager.googleapis.com --quiet 2>/dev/null || true', { silent: true });
+
+  // Map of env var names to GCP secret names
+  const secretMapping: Record<string, string> = {
+    LIVEKIT_URL: 'livekit-url',
+    LIVEKIT_API_KEY: 'livekit-api-key',
+    LIVEKIT_API_SECRET: 'livekit-api-secret',
+    GOOGLE_API_KEY: 'google-api-key',
+    CARTESIA_API_KEY: 'cartesia-api-key',
+    ALPHA_VANTAGE_API_KEY: 'alpha-vantage-key',
+    FINNHUB_API_KEY: 'finnhub-api-key',
+    TWILIO_ACCOUNT_SID: 'twilio-account-sid',
+    TWILIO_AUTH_TOKEN: 'twilio-auth-token',
+    TWILIO_PHONE_NUMBER: 'twilio-phone-number',
+    SENDGRID_API_KEY: 'sendgrid-api-key',
+    SENDGRID_FROM_EMAIL: 'sendgrid-from-email',
+    SPOTIFY_CLIENT_ID: 'spotify-client-id',
+    SPOTIFY_CLIENT_SECRET: 'spotify-client-secret',
+    SPOTIFY_REFRESH_TOKEN: 'spotify-refresh-token',
+    SPOTIFY_REDIRECT_URI: 'spotify-redirect-uri',
+    PLAID_CLIENT_ID: 'plaid-client-id',
+    PLAID_SECRET: 'plaid-secret',
+    DATABASE_URL: 'database-url',
+    REDIS_URL: 'redis-url',
+    STRIPE_SECRET_KEY: 'stripe-secret-key',
+    STRIPE_WEBHOOK_SECRET: 'stripe-webhook-secret',
+    SLACK_WEBHOOK_URL: 'slack-webhook-url',
+  };
+
+  // Read .env file
+  const envContent = readFileSync(envPath, 'utf-8');
+  const envLines = envContent.split('\n');
+
+  let created = 0;
+
+  log.info('Uploading secrets from .env...');
+
+  for (const line of envLines) {
+    // Skip comments and empty lines
+    if (!line || line.startsWith('#') || !line.includes('=')) continue;
+
+    const [key, ...valueParts] = line.split('=');
+    let value = valueParts.join('=').trim();
+
+    // Remove quotes
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+
+    const secretName = secretMapping[key.trim()];
+    if (!secretName || !value) continue;
+
+    try {
+      // Check if secret exists
+      try {
+        exec(`gcloud secrets describe "${secretName}" --project="${projectId}"`, { silent: true });
+        // Update existing
+        exec(`echo -n "${value}" | gcloud secrets versions add "${secretName}" --data-file=- --project="${projectId}" --quiet`, { silent: true });
+        log.success(`Updated ${secretName}`);
+      } catch {
+        // Create new
+        exec(`echo -n "${value}" | gcloud secrets create "${secretName}" --data-file=- --project="${projectId}" --quiet`, { silent: true });
+        log.success(`Created ${secretName}`);
+      }
+      created++;
+    } catch (error) {
+      log.warn(`Failed to upload ${secretName}`);
+    }
+  }
+
+  log.success(`Uploaded ${created} secrets to ${projectId}`);
+
+  // Grant Cloud Run access
+  log.info('Granting Cloud Run service account access...');
+  try {
+    const projectNumber = exec(`gcloud projects describe ${projectId} --format='value(projectNumber)'`, { silent: true }).trim();
+    if (projectNumber) {
+      const serviceAccount = `${projectNumber}-compute@developer.gserviceaccount.com`;
+      
+      // Grant access to all secrets
+      const secrets = exec(`gcloud secrets list --format='value(name)' --project="${projectId}"`, { silent: true }).trim().split('\n');
+      for (const secretName of secrets) {
+        if (!secretName) continue;
+        exec(`gcloud secrets add-iam-policy-binding "${secretName}" --member="serviceAccount:${serviceAccount}" --role="roles/secretmanager.secretAccessor" --project="${projectId}" --quiet 2>/dev/null || true`, { silent: true });
+      }
+      log.success('Access granted to Cloud Run service account');
+    }
+  } catch {
+    log.warn('Could not grant Cloud Run access');
+  }
+
+  console.log(`
+View secrets:  gcloud secrets list --project=${projectId}
+Deploy agent:  npm run deploy agent
+`);
+
+  return true;
+}
+
 // ============================================================================
 // CLI
 // ============================================================================
@@ -831,6 +967,7 @@ ${colors.bold}Commands:${colors.reset}
   ${colors.green}persistence${colors.reset}  Set up production persistence (Firestore)
   ${colors.green}signing${colors.reset}      Configure code signing (interactive)
   ${colors.green}slack${colors.reset}        Configure Slack notifications
+  ${colors.green}secrets${colors.reset}      Upload .env secrets to GCP Secret Manager
   ${colors.green}all${colors.reset}          Run all setup steps
 
 ${colors.bold}Options:${colors.reset}
@@ -841,6 +978,7 @@ ${colors.bold}Options:${colors.reset}
 ${colors.bold}Examples:${colors.reset}
   npm run setup local           # Set up for local development
   npm run setup icons           # Generate app icons
+  npm run setup secrets         # Upload secrets to GCP
   npm run setup all -- --yes    # Run all setup steps non-interactively
 `);
 }
@@ -901,6 +1039,10 @@ ${colors.cyan}╚═════════════════════
 
     case 'slack':
       success = await setupSlack(options);
+      break;
+
+    case 'secrets':
+      success = await setupSecrets(options);
       break;
 
     case 'all':

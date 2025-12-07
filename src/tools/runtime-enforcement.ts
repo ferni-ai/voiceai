@@ -45,41 +45,15 @@ export interface ToolCallMetrics {
  */
 const DOMAIN_OWNERSHIP: Record<string, string[]> = {
   // Peter owns stock/research tools
-  'peter-john': [
-    'searchStocks',
-    'getStockQuote',
-    'analyzeCompany',
-    'getEarnings',
-    'stockResearch',
-  ],
+  'peter-john': ['searchStocks', 'getStockQuote', 'analyzeCompany', 'getEarnings', 'stockResearch'],
   // Nayan owns philosophy/index fund tools
-  'nayan-patel': [
-    'explainIndexFunds',
-    'compareExpenseRatios',
-    'longTermStrategy',
-  ],
+  'nayan-patel': ['explainIndexFunds', 'compareExpenseRatios', 'longTermStrategy'],
   // Maya owns habit/budget tools
-  'maya-santos': [
-    'trackHabit',
-    'getHabitStreak',
-    'setBudget',
-    'trackSpending',
-    'habitGlidepath',
-  ],
+  'maya-santos': ['trackHabit', 'getHabitStreak', 'setBudget', 'trackSpending', 'habitGlidepath'],
   // Alex owns calendar/communication tools
-  'alex-chen': [
-    'createAppointment',
-    'sendEmail',
-    'draftMessage',
-    'scheduleReminder',
-  ],
+  'alex-chen': ['createAppointment', 'sendEmail', 'draftMessage', 'scheduleReminder'],
   // Jordan owns event planning tools
-  'jordan-taylor': [
-    'planEvent',
-    'createGuestList',
-    'trackMilestone',
-    'celebrationIdeas',
-  ],
+  'jordan-taylor': ['planEvent', 'createGuestList', 'trackMilestone', 'celebrationIdeas'],
   // Ferni can use most tools (team coordinator)
   ferni: [], // Empty means no exclusive tools - can handoff to specialists
 };
@@ -122,8 +96,7 @@ function recordToolCall(
     existing.callCount++;
     existing.lastCallTime = Date.now();
     existing.averageDurationMs =
-      (existing.averageDurationMs * (existing.callCount - 1) + durationMs) /
-      existing.callCount;
+      (existing.averageDurationMs * (existing.callCount - 1) + durationMs) / existing.callCount;
     if (error) existing.errors++;
   } else {
     toolCallMetrics.set(key, {
@@ -271,10 +244,7 @@ export function validateToolCall(
   // No specific owner = available to all
   if (!expectedOwner) {
     if (currentConfig.logAllCalls) {
-      log.debug(
-        { personaId, toolName, sessionId },
-        'Tool call allowed (no owner restriction)'
-      );
+      log.debug({ personaId, toolName, sessionId }, 'Tool call allowed (no owner restriction)');
     }
     return { allowed: true };
   }
@@ -282,10 +252,7 @@ export function validateToolCall(
   // Check if current persona is the owner
   if (expectedOwner === personaId) {
     if (currentConfig.logAllCalls) {
-      log.debug(
-        { personaId, toolName, sessionId },
-        'Tool call allowed (persona owns tool)'
-      );
+      log.debug({ personaId, toolName, sessionId }, 'Tool call allowed (persona owns tool)');
     }
     return { allowed: true };
   }
@@ -360,8 +327,4 @@ export function wrapToolWithEnforcement<T extends (...args: unknown[]) => Promis
 // EXPORTS
 // ============================================================================
 
-export {
-  DOMAIN_OWNERSHIP,
-  getToolOwner,
-  type DomainViolation,
-};
+export { DOMAIN_OWNERSHIP, getToolOwner, type DomainViolation };

@@ -206,7 +206,14 @@ function normalizeAgentId(agentId: string): VoiceAgentId {
   const canonical = getCanonicalPersonaId(agentId);
 
   // All canonical IDs are valid voice agent IDs
-  const canonicalIds = ['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+  const canonicalIds = [
+    'ferni',
+    'peter-john',
+    'alex-chen',
+    'maya-santos',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
   if (canonicalIds.includes(canonical)) {
     return canonical as VoiceAgentId;
   }

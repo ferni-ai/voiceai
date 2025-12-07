@@ -300,6 +300,173 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
   return true;
 }
 
+async function deployJoel(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING JOEL DICKSON');
+
+  const joelConfig = {
+    agentService: 'joel-dickson-agent',
+    uiService: 'joel-dickson-ui',
+    personaId: 'joel-dickson',
+  };
+
+  if (options.dryRun) {
+    log.info(`Would deploy Joel agent: ${joelConfig.agentService}`);
+    log.info(`Would deploy Joel UI: ${joelConfig.uiService}`);
+    return true;
+  }
+
+  // Build agent
+  log.info('Building Joel agent container...');
+  exec(`gcloud builds submit --tag gcr.io/${CONFIG.projectId}/${joelConfig.agentService}:latest . --quiet`);
+
+  // Deploy agent
+  log.info('Deploying Joel agent...');
+  const agentSecrets = [
+    'GOOGLE_API_KEY=google-api-key:latest',
+    'CARTESIA_API_KEY=cartesia-api-key:latest',
+    'LIVEKIT_URL=livekit-url:latest',
+    'LIVEKIT_API_KEY=livekit-api-key:latest',
+    'LIVEKIT_API_SECRET=livekit-api-secret:latest',
+  ];
+
+  exec([
+    `gcloud run deploy ${joelConfig.agentService}`,
+    `--image gcr.io/${CONFIG.projectId}/${joelConfig.agentService}:latest`,
+    `--region ${CONFIG.region}`,
+    '--platform managed',
+    '--allow-unauthenticated',
+    '--memory 2Gi',
+    '--cpu 2',
+    '--timeout 3600',
+    '--concurrency 1',
+    '--min-instances 0',
+    '--max-instances 20',
+    `--set-env-vars "NODE_ENV=production,PERSONA_ID=${joelConfig.personaId},GOOGLE_CLOUD_PROJECT=${CONFIG.projectId},MUSIC_ENABLED=true"`,
+    `--set-secrets "${agentSecrets.join(',')}"`,
+    '--quiet',
+  ].join(' \\\n  '));
+
+  const agentUrl = getServiceUrl(joelConfig.agentService);
+  log.success(`Joel agent deployed: ${agentUrl}`);
+
+  // Build UI
+  log.info('Building Joel UI...');
+  exec(`gcloud builds submit --config cloudbuild-joel-ui.yaml . --quiet`);
+
+  // Deploy UI
+  log.info('Deploying Joel UI...');
+  const uiSecrets = [
+    'LIVEKIT_URL=livekit-url:latest',
+    'LIVEKIT_API_KEY=livekit-api-key:latest',
+    'LIVEKIT_API_SECRET=livekit-api-secret:latest',
+  ];
+
+  exec([
+    `gcloud run deploy ${joelConfig.uiService}`,
+    `--image gcr.io/${CONFIG.projectId}/${joelConfig.uiService}:latest`,
+    `--region ${CONFIG.region}`,
+    '--platform managed',
+    '--allow-unauthenticated',
+    '--memory 512Mi',
+    '--cpu 1',
+    '--timeout 300',
+    '--min-instances 0',
+    '--max-instances 10',
+    '--set-env-vars "NODE_ENV=production,AGENT_NAME=voice-agent,TOKEN_SERVER_PORT=8080"',
+    `--set-secrets "${uiSecrets.join(',')}"`,
+    '--quiet',
+  ].join(' \\\n  '));
+
+  const uiUrl = getServiceUrl(joelConfig.uiService);
+  log.success(`Joel UI deployed: ${uiUrl}`);
+
+  return true;
+}
+
+async function deployEvolution(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING EVOLUTION SCHEDULER');
+
+  if (options.dryRun) {
+    log.info('Would deploy evolution scheduler Cloud Function');
+    return true;
+  }
+
+  const functionsDir = join(PROJECT_ROOT, 'functions');
+  
+  if (!existsSync(functionsDir)) {
+    log.error('Functions directory not found');
+    return false;
+  }
+
+  // Install and build
+  log.info('Installing dependencies...');
+  exec('npm install', { cwd: functionsDir });
+  
+  log.info('Building TypeScript...');
+  exec('npm run build', { cwd: functionsDir });
+
+  // Create Pub/Sub topic
+  log.info('Creating Pub/Sub topic...');
+  exec(`gcloud pubsub topics create evolution-trigger --project=${CONFIG.projectId} 2>/dev/null || true`, { silent: true });
+
+  // Deploy Pub/Sub triggered function
+  log.info('Deploying Cloud Function (Pub/Sub trigger)...');
+  exec([
+    'gcloud functions deploy evolutionScheduler',
+    '--runtime=nodejs20',
+    '--trigger-topic=evolution-trigger',
+    '--entry-point=evolutionScheduler',
+    '--timeout=540s',
+    '--memory=1GB',
+    `--region=${CONFIG.region}`,
+    `--project=${CONFIG.projectId}`,
+    `--set-env-vars="GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
+    '--quiet',
+  ].join(' \\\n  '), { cwd: functionsDir });
+
+  // Deploy HTTP triggered function
+  log.info('Deploying Cloud Function (HTTP trigger)...');
+  exec([
+    'gcloud functions deploy evolutionSchedulerHttp',
+    '--runtime=nodejs20',
+    '--trigger-http',
+    '--entry-point=evolutionSchedulerHttp',
+    '--timeout=540s',
+    '--memory=1GB',
+    `--region=${CONFIG.region}`,
+    `--project=${CONFIG.projectId}`,
+    '--allow-unauthenticated',
+    `--set-env-vars="GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
+    '--quiet',
+  ].join(' \\\n  '), { cwd: functionsDir });
+
+  // Create Cloud Scheduler job
+  log.info('Creating Cloud Scheduler job...');
+  exec(`gcloud scheduler jobs delete daily-evolution --location=${CONFIG.region} --quiet 2>/dev/null || true`, { silent: true });
+  exec([
+    'gcloud scheduler jobs create pubsub daily-evolution',
+    '--schedule="0 3 * * *"',
+    '--topic=evolution-trigger',
+    '--message-body="{}"',
+    '--time-zone="America/New_York"',
+    `--location=${CONFIG.region}`,
+    `--project=${CONFIG.projectId}`,
+  ].join(' \\\n  '));
+
+  log.success('Evolution scheduler deployed');
+  console.log(`
+The system will now automatically:
+  • Run daily at 3:00 AM ET
+  • Process learning signals from all conversations
+  • Make all personas smarter over time
+
+Manual trigger:
+  curl -X POST https://${CONFIG.region}-${CONFIG.projectId}.cloudfunctions.net/evolutionSchedulerHttp
+`);
+
+  return true;
+}
+
 // ============================================================================
 // PREFLIGHT CHECKS
 // ============================================================================
@@ -366,11 +533,13 @@ ${colors.bold}Usage:${colors.reset}
   npm run deploy <target> [options]
 
 ${colors.bold}Targets:${colors.reset}
-  ${colors.green}ui${colors.reset}        Deploy frontend UI to Cloud Run
-  ${colors.green}agent${colors.reset}     Deploy voice agent to Cloud Run
-  ${colors.green}brand${colors.reset}     Deploy brand assets to Cloud Storage
-  ${colors.green}landing${colors.reset}   Deploy landing page (Firebase/Cloud Storage)
-  ${colors.green}all${colors.reset}       Deploy everything
+  ${colors.green}ui${colors.reset}         Deploy frontend UI to Cloud Run
+  ${colors.green}agent${colors.reset}      Deploy voice agent to Cloud Run
+  ${colors.green}brand${colors.reset}      Deploy brand assets to Cloud Storage
+  ${colors.green}landing${colors.reset}    Deploy landing page (Firebase/Cloud Storage)
+  ${colors.green}joel${colors.reset}       Deploy Joel Dickson (agent + UI)
+  ${colors.green}evolution${colors.reset}  Deploy evolution scheduler Cloud Function
+  ${colors.green}all${colors.reset}        Deploy everything (ui, agent, landing)
 
 ${colors.bold}Options:${colors.reset}
   --dry-run     Show what would be deployed without making changes
@@ -446,6 +615,14 @@ ${colors.cyan}╚═════════════════════
 
     case 'landing':
       success = await deployLanding(options);
+      break;
+
+    case 'joel':
+      success = await deployJoel(options);
+      break;
+
+    case 'evolution':
+      success = await deployEvolution(options);
       break;
 
     case 'all':

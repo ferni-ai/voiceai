@@ -1,0 +1,95 @@
+# ============================================================================
+# FERNI UI SERVER DOCKERFILE
+# ============================================================================
+# Multi-stage build for the main UI server.
+# Includes: backend API, frontend app, engagement routes, etc.
+#
+# Build:
+#   docker build -f docker/Dockerfile.ui -t ferni-ui .
+#
+# Run:
+#   docker run -p 8080:8080 -e LIVEKIT_URL=... ferni-ui
+# ============================================================================
+
+ARG NODE_VERSION=20
+
+# ============================================================================
+# Stage 1: Build Backend TypeScript
+# ============================================================================
+FROM node:${NODE_VERSION}-slim AS backend-builder
+
+WORKDIR /app
+
+COPY package*.json ./
+COPY tsconfig.json ./
+
+RUN npm ci
+
+COPY src/ ./src/
+
+RUN npm run build
+
+# ============================================================================
+# Stage 2: Build Frontend
+# ============================================================================
+FROM node:${NODE_VERSION}-slim AS frontend-builder
+
+WORKDIR /app
+
+# Copy design-system dist (needed for @design-system imports)
+COPY design-system/dist ./design-system/dist/
+
+# Copy frontend package files
+COPY frontend-typescript/package*.json ./frontend-typescript/
+
+WORKDIR /app/frontend-typescript
+
+RUN npm ci
+
+COPY frontend-typescript/ ./
+
+RUN npm run build
+
+# ============================================================================
+# Stage 3: Production Server
+# ============================================================================
+FROM node:${NODE_VERSION}-slim AS production
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy UI server
+COPY ui-server.js ./
+
+# Copy built backend
+COPY --from=backend-builder /app/dist ./dist/
+
+# Copy JS source files (not compiled by tsc)
+COPY src/api/ ./dist/api/
+
+# Copy persona bundles
+COPY src/personas/bundles ./src/personas/bundles/
+
+# Create frontend directory and copy built frontend
+RUN mkdir -p frontend-typescript/dist
+COPY --from=frontend-builder /app/frontend-typescript/dist ./frontend-typescript/dist/
+
+# Environment
+ENV NODE_ENV=production
+ENV PORT=8080
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+CMD ["node", "ui-server.js"]
+

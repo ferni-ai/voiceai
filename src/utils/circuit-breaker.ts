@@ -1,12 +1,12 @@
 /**
  * Circuit Breaker Pattern
- * 
+ *
  * Prevents cascading failures by stopping requests to failing services
  * after a threshold of failures. The circuit "opens" to prevent more
  * requests, then "half-opens" to test if the service has recovered.
- * 
+ *
  * FIX BUG #10: Added to prevent hammering failing external APIs
- * 
+ *
  * Usage:
  *   const breaker = new CircuitBreaker('spotify-api', { failureThreshold: 5 });
  *   const result = await breaker.execute(() => spotifyRequest('/me'));
@@ -21,16 +21,16 @@ import { getLogger } from './safe-logger.js';
 export interface CircuitBreakerOptions {
   /** Number of failures before opening the circuit (default: 5) */
   failureThreshold?: number;
-  
+
   /** Time in ms before trying a request in half-open state (default: 30000) */
   resetTimeout?: number;
-  
+
   /** Time in ms for the success threshold window (default: 60000) */
   successThresholdWindow?: number;
-  
+
   /** Number of successes in half-open state to close circuit (default: 2) */
   successThreshold?: number;
-  
+
   /** Custom error to throw when circuit is open */
   openCircuitError?: Error;
 }
@@ -57,7 +57,7 @@ export class CircuitBreaker {
   private readonly failureThreshold: number;
   private readonly resetTimeout: number;
   private readonly successThreshold: number;
-  
+
   private state: CircuitState = 'closed';
   private failures = 0;
   private successes = 0;
@@ -87,7 +87,9 @@ export class CircuitBreaker {
         this.state = 'half-open';
         getLogger().info({ name: this.name }, 'Circuit breaker entering half-open state');
       } else {
-        const waitMs = this.nextAttempt ? this.nextAttempt.getTime() - Date.now() : this.resetTimeout;
+        const waitMs = this.nextAttempt
+          ? this.nextAttempt.getTime() - Date.now()
+          : this.resetTimeout;
         throw new CircuitOpenError(
           `Circuit breaker "${this.name}" is OPEN. Service unavailable. Retry in ${Math.ceil(waitMs / 1000)}s`
         );
@@ -236,12 +238,12 @@ export function resetAllCircuitBreakers(): void {
 
 /**
  * Wrap an async function with circuit breaker protection
- * 
+ *
  * @param name - Name for the circuit breaker
  * @param fn - Async function to wrap
  * @param options - Circuit breaker options
  * @returns Wrapped function with circuit breaker protection
- * 
+ *
  * @example
  * const safeSpotifyCall = withCircuitBreaker('spotify', spotifyRequest);
  * const result = await safeSpotifyCall('/me');
@@ -252,11 +254,10 @@ export function withCircuitBreaker<T extends (...args: unknown[]) => Promise<unk
   options?: CircuitBreakerOptions
 ): T {
   const breaker = getCircuitBreaker(name, options);
-  
+
   return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
-    return breaker.execute(() => fn(...args)) as Promise<ReturnType<T>>;
+    return breaker.execute(async () => fn(...args)) as Promise<ReturnType<T>>;
   }) as T;
 }
 
 export default CircuitBreaker;
-

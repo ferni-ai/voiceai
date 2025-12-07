@@ -5,37 +5,37 @@
 
 ---
 
-## ✅ ON-BRAND (Use These)
+##  ON-BRAND (Use These)
 
 ### Portraits & People
 
 | File | Description | Best Use | Brand Score |
 |------|-------------|----------|-------------|
-| `window-phone-morning.jpg` | Woman portrait, golden hour, contemplative | Testimonials, blog hero | ⭐⭐⭐⭐⭐ |
-| `contemplative-man.jpg` | Asian man, warm smile, natural | Testimonials | ⭐⭐⭐⭐ |
-| `warm-smile-natural.jpg` | Woman with topknot, clean, friendly | Testimonials | ⭐⭐⭐⭐ |
-| `man-thinking-warm.jpg` | Black man, genuine smile, outdoors | Testimonials, blog | ⭐⭐⭐⭐ |
+| `window-phone-morning.jpg` | Woman portrait, golden hour, contemplative | Testimonials, blog hero |  |
+| `contemplative-man.jpg` | Asian man, warm smile, natural | Testimonials |  |
+| `warm-smile-natural.jpg` | Woman with topknot, clean, friendly | Testimonials |  |
+| `man-thinking-warm.jpg` | Black man, genuine smile, outdoors | Testimonials, blog |  |
 
 ### Lifestyle & Environment
 
 | File | Description | Best Use | Brand Score |
 |------|-------------|----------|-------------|
-| `late-night-cozy.jpg` | Warm sweater, laptop, wooden desk | "Cozy evening" feature | ⭐⭐⭐⭐⭐ |
-| `cozy-evening-reading.jpg` | Clean home office, plants, warm light | Home office hero | ⭐⭐⭐⭐ |
-| `coffee-morning.jpg` | Coffee cups from above, warm tones | Community/connection | ⭐⭐⭐⭐ |
-| `cafe-phone.jpg` | Cozy cabin workspace, warm wood | Working lifestyle | ⭐⭐⭐⭐ |
+| `late-night-cozy.jpg` | Warm sweater, laptop, wooden desk | "Cozy evening" feature |  |
+| `cozy-evening-reading.jpg` | Clean home office, plants, warm light | Home office hero |  |
+| `coffee-morning.jpg` | Coffee cups from above, warm tones | Community/connection |  |
+| `cafe-phone.jpg` | Cozy cabin workspace, warm wood | Working lifestyle |  |
 
 ### Good But Limited Use
 
 | File | Description | Best Use | Brand Score |
 |------|-------------|----------|-------------|
-| `professional-woman.jpg` | Woman at office window, warm wall | Professional context | ⭐⭐⭐ |
-| `golden-hour-reflect.jpg` | Man with hat, casual | Blog variety | ⭐⭐⭐ |
-| `outdoors-earthy.jpg` | Man in suit, professional | Business context | ⭐⭐⭐ |
+| `professional-woman.jpg` | Woman at office window, warm wall | Professional context |  |
+| `golden-hour-reflect.jpg` | Man with hat, casual | Blog variety |  |
+| `outdoors-earthy.jpg` | Man in suit, professional | Business context |  |
 
 ---
 
-## ⚠️ MARGINAL (Use With Caution)
+##  MARGINAL (Use With Caution)
 
 | File | Issue | Can Be Fixed? |
 |------|-------|---------------|
@@ -45,7 +45,7 @@
 
 ---
 
-## ❌ OFF-BRAND (Do Not Use)
+##  OFF-BRAND (Do Not Use)
 
 | File | Issue | Brand Violation |
 |------|-------|-----------------|
@@ -56,7 +56,7 @@
 
 ---
 
-## 📋 Recommended Usage
+##  Recommended Usage
 
 ### For Testimonials
 1. `window-phone-morning.jpg` - Hero testimonial
@@ -75,7 +75,7 @@
 
 ---
 
-## 🎨 Color Grading Notes
+##  Color Grading Notes
 
 Some images may need light color grading to match Ferni's warm palette:
 
@@ -93,7 +93,7 @@ Adjustments:
 
 ---
 
-## ⚠️ Images to Delete
+##  Images to Delete
 
 Consider removing these to avoid accidental misuse:
 
@@ -106,7 +106,7 @@ rm walking-golden-hour.jpg  # children
 
 ---
 
-## 📸 Still Needed
+##  Still Needed
 
 For a full Apple-quality library, you'd still benefit from:
 

@@ -144,9 +144,7 @@ describe('Variant Assignment', () => {
     const state2 = initializeSessionExperiments('session-b', 'same-user', 'ferni');
 
     // Should get same variant
-    expect(state1.assignments.get(experiment.id)).toBe(
-      state2.assignments.get(experiment.id)
-    );
+    expect(state1.assignments.get(experiment.id)).toBe(state2.assignments.get(experiment.id));
   });
 
   it('should distribute traffic according to allocation', () => {
@@ -167,11 +165,7 @@ describe('Variant Assignment', () => {
     for (let i = 0; i < totalUsers; i++) {
       // Use more varied user IDs to ensure better hash distribution
       const userId = `user_${Math.random().toString(36).slice(2)}_${i}`;
-      const state = initializeSessionExperiments(
-        `session-dist-${i}`,
-        userId,
-        'ferni'
-      );
+      const state = initializeSessionExperiments(`session-dist-${i}`, userId, 'ferni');
       const variants = Array.from(state.assignments.values());
       if (variants.some((v) => v === 'treatment')) {
         treatmentCount++;
@@ -213,11 +207,7 @@ describe('Metric Recording', () => {
     recordSatisfactionSignal('session-6', 'positive');
 
     const state = getSessionExperimentState('session-6');
-    expect(state?.metrics.satisfactionSignals).toEqual([
-      'positive',
-      'neutral',
-      'positive',
-    ]);
+    expect(state?.metrics.satisfactionSignals).toEqual(['positive', 'neutral', 'positive']);
   });
 
   it('should record conversation depth', () => {
@@ -541,4 +531,3 @@ describe('Full Integration Flow', () => {
     expect(totalSamples).toBeLessThanOrEqual(userCount); // At most all users
   });
 });
-

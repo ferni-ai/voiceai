@@ -2,6 +2,24 @@
 
 Welcome! We're excited you want to contribute to Ferni. This guide will help you get started.
 
+---
+
+## Before Everything Else: Our Mission
+
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+This isn't just a tagline. It's the lens through which every contribution should be viewed.
+
+Before you write any code, ask yourself:
+1. **Does this make the AI feel more human?** - If it adds warmth, connection, or natural interaction: do it
+2. **Does this serve the relationship?** - Every interaction is part of an ongoing relationship, not a transaction
+3. **Does this support gentle growth?** - Sustainable change comes from compassion, not pressure
+4. **Is this authentic?** - Real character, not corporate neutrality
+
+Read [`CORE-PRINCIPLES.md`](./CORE-PRINCIPLES.md) for our complete philosophy. This is **required reading** before your first PR.
+
+---
+
 ## Quick Start
 
 ```bash
@@ -24,6 +42,7 @@ npm run dev
 
 | Document | What You'll Learn |
 |----------|-------------------|
+| `CORE-PRINCIPLES.md` | **START HERE** - Our mission and philosophy |
 | `.cursorrules` | Complete coding standards (required reading) |
 | `CLAUDE.md` | Quick reference for common patterns |
 | `src/tools/CLAUDE.md` | How to create tools |

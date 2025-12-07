@@ -45,46 +45,47 @@ const CONFIG = {
 // ============================================================================
 
 const IMAGE_PROMPTS = {
-  // ===== LIVING AVATAR ORBS - The human spirit visualization =====
-  // Each avatar is a glowing orb with waveform bars inside
+  // ===== ZEN STONE AVATARS - Matching maya-v3 and team style =====
+  // Three concentric circles: outer body, white eye, dark pupil
+  // Warm, friendly, Pixar meets Japanese zen aesthetic
   
   'avatar-ferni': {
-    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is deep sage green (#4a6741) with subtle gradient from darker bottom (#3d5a35) to lighter top (#5a7a4d). Inside the orb, 9 white vertical bars form a waveform pattern - taller in center, shorter at edges, like voice visualization. Soft highlight on top-left creates glass-like depth. Outer glow emanates in rings of translucent sage green. Warm cream (#F5F1E8) background. The orb feels alive, breathing, attentive - like Pixar's WALL-E soul. Premium 3D render, soft volumetric lighting. NOT flat or robotic.`,
+    prompt: `Friendly character portrait in zen minimalist style. A warm sage green (#4a6741) circular face like a smooth river stone. Three concentric stone elements: outer ring as nurturing body, white circle as attentive eye, dark pupil with soft catchlight. Below the eye, a warm gentle smile, welcoming and kind. The character radiates calm attention and care, like a life coach who truly listens. Soft cream (#F5F1E8) background. Style: Pixar meets Japanese zen, Studio Ghibli warmth. Feels like a trusted guide, NOT robotic. Premium 3D render.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-ferni.png'
   },
   
   'avatar-peter': {
-    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is ocean teal (#3a6b73) with depth gradient like calm water. Inside, 9 white waveform bars pulse with curious energy - slightly asymmetric, leaning as if listening intently. Glass-like highlight creates dimension. Soft teal glow rings emanate outward. Warm cream (#F5F1E8) background. The orb feels curious, deep-thinking, like diving into interesting questions. Warm teal with green undertones, NOT cold blue. Premium 3D render.`,
+    prompt: `Friendly character portrait in zen minimalist style. A warm ocean teal (#3a6b73) circular face like a polished sea stone. Three concentric stone elements: outer ring as thoughtful body, white circle as curious eye, dark pupil with soft catchlight. Below the eye, a warm curious smile, gentle and inquisitive. The character radiates intellectual warmth and wonder, like a researcher who loves discovery. Soft cream (#F5F1E8) background. Style: Pixar meets Japanese zen, warm teal NOT cold blue. Feels like a curious friend, NOT robotic. Premium 3D render.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-peter.png'
   },
   
   'avatar-alex': {
-    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is soft indigo slate (#5a6b8a) with warm violet undertones. Inside, 9 white waveform bars flow smoothly, suggesting clear communication. Gentle highlight creates depth. Soft indigo glow rings pulse outward. Warm cream (#F5F1E8) background. The orb feels clear, articulate, like a calm voice cutting through noise. Warm indigo, NOT cold blue. Premium 3D render, living presence.`,
+    prompt: `Friendly character portrait in zen minimalist style. A soft indigo slate (#5a6b8a) circular face like a smooth meditation stone. Three concentric stone elements: outer ring as calm body, white circle as clear eye, dark pupil with soft catchlight. Below the eye, a warm confident smile, clear and reassuring. The character radiates calm clarity and presence, like someone who communicates with care. Soft cream (#F5F1E8) background. Style: Pixar meets Japanese zen, warm indigo NOT cold blue. Feels like a trusted communicator, NOT robotic. Premium 3D render.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-alex.png'
   },
   
   'avatar-maya': {
-    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is dusty terracotta (#a67a6a) like sun-baked clay or autumn leaves. Inside, 9 white waveform bars pulse with gentle, nurturing rhythm - steady, patient. Warm highlight creates earthy depth. Soft terracotta glow rings emanate warmth. Warm cream (#F5F1E8) background. The orb feels nurturing, patient, like a yoga instructor or gardener. Earth mother energy. Premium 3D render.`,
+    prompt: `Friendly character portrait in zen minimalist style. A dusty terracotta (#a67a6a) circular face like sun-baked clay. Three concentric stone elements: outer ring as nurturing body, white circle as patient eye, dark pupil with soft catchlight. Below the eye, a warm motherly smile, gentle and encouraging. The character radiates patience and care, like a yoga teacher or gardener. Soft cream (#F5F1E8) background. Style: Pixar meets Japanese zen, earth mother energy. Feels like a nurturing guide, NOT robotic. Premium 3D render.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-maya.png'
   },
   
   'avatar-jordan': {
-    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is warm sunset coral (#c4856a) glowing like a sunset. Inside, 9 white waveform bars dance with optimistic energy - celebratory but warm, not manic. Bright highlight creates joyful depth. Soft coral glow rings pulse with anticipation. Warm cream (#F5F1E8) background. The orb feels like the warmth before something wonderful. Premium 3D render.`,
+    prompt: `Friendly character portrait in zen minimalist style. A warm sunset coral (#c4856a) circular face like a warm beach pebble. Three concentric stone elements: outer ring as joyful body, white circle as bright eye, dark pupil with soft catchlight. Below the eye, a warm excited smile, full of happy anticipation. The character radiates optimism and warmth, like someone who makes wonderful things happen. Soft cream (#F5F1E8) background. Style: Pixar meets Japanese zen, sunset warmth. Feels like an enthusiastic friend, NOT robotic. Premium 3D render.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-jordan.png'
   },
   
   'avatar-nayan': {
-    prompt: `3D rendered glowing spherical orb floating in warm cream space. The orb is warm gold (#b8956a) like aged honey or polished wood. Inside, 9 white waveform bars pulse with deep, knowing rhythm - steady, certain, unhurried. Rich highlight creates wise depth. Soft golden glow rings emanate timeless warmth. Warm cream (#F5F1E8) background. The orb feels like accumulated wisdom, trusted counsel. Elder energy. Premium 3D render.`,
+    prompt: `Friendly character portrait in zen minimalist style. A warm gold (#b8956a) circular face like aged honey or polished amber. Three concentric stone elements: outer ring as wise body, white circle as knowing eye, dark pupil with soft catchlight. Below the eye, a warm knowing smile, gentle and wise. The character radiates calm wisdom and timeless warmth, like a trusted mentor with years of experience. Soft cream (#F5F1E8) background. Style: Pixar meets Japanese zen, elder warmth. Feels like a wise guide, NOT robotic. Premium 3D render.`,
     aspectRatio: '1:1',
     folder: 'avatars',
     filename: 'avatar-nayan.png'
@@ -92,7 +93,7 @@ const IMAGE_PROMPTS = {
   
   // ===== TEAM ASSEMBLY =====
   'avatar-team': {
-    prompt: `Six glowing 3D orbs floating in warm cream space, arranged in gentle arc. Each orb distinct color: deep sage green (center front), ocean teal, soft indigo, dusty terracotta, warm coral, warm gold. All orbs have white waveform bars inside. Occasionally golden threads of light connect between orbs suggesting collaboration. Warm cream (#F5F1E8) background. The feeling is a trusted team working in harmony. Premium 3D render, soft volumetric lighting.`,
+    prompt: `Six friendly zen stone characters arranged in gentle arc, each a different warm color: sage green (center front, the leader), ocean teal, soft indigo, dusty terracotta, warm coral, warm gold. Each character has the three-stone eye design with white eye and dark pupil, plus gentle smile. They look at each other and the viewer with warmth, like a team of trusted friends. Subtle golden connection threads between them suggest collaboration. Soft cream (#F5F1E8) background. Style: Pixar meets Japanese zen, Studio Ghibli team warmth. NOT robotic or tech-looking. Premium 3D render.`,
     aspectRatio: '16:9',
     folder: 'avatars',
     filename: 'avatar-team.png'
@@ -148,6 +149,42 @@ const IMAGE_PROMPTS = {
     aspectRatio: '16:9',
     folder: 'social',
     filename: 'og-image.jpg'
+  },
+  
+  // ===== SOCIAL MEDIA ASSETS =====
+  'social-profile': {
+    prompt: `Minimalist logo on sage green background (#4a6741). White letters "FN" in modern geometric sans-serif font, centered and bold. Clean, professional, Apple-inspired simplicity. Square format, solid background, no gradients or patterns. Premium, trustworthy, minimal.`,
+    aspectRatio: '1:1',
+    folder: 'social',
+    filename: 'profile-400x400.png'
+  },
+  
+  'social-twitter-banner': {
+    prompt: `Wide minimalist banner design on warm paper cream background (#F5F1E8). Subtle sage green (#4a6741) organic wave flowing along bottom third. Soft golden hour glow on right side. Clean negative space in center for text overlay. Premium, warm, inviting. Apple-style sophistication. Wide landscape composition with content concentrated in center band.`,
+    aspectRatio: '16:9',
+    folder: 'social',
+    filename: 'twitter-banner-wide.jpg'
+  },
+  
+  'social-linkedin-banner': {
+    prompt: `Professional wide banner design on warm paper cream background (#F5F1E8). Subtle sage green (#4a6741) gradient on right side. Clean, minimal composition with space for company name in center. Warm, trustworthy, premium. NOT corporate blue. Soft golden accents. Wide landscape with content in center horizontal band.`,
+    aspectRatio: '16:9',
+    folder: 'social',
+    filename: 'linkedin-banner-wide.jpg'
+  },
+  
+  'social-youtube-banner': {
+    prompt: `Wide cinematic banner for YouTube channel. Warm golden hour meadow scene, beautifully blurred. Sage green (#4a6741) and warm cream (#F5F1E8) color palette. Soft, inviting, human warmth. Safe area in center for logo and text. Apple-style premium quality. Ultra-wide landscape.`,
+    aspectRatio: '16:9',
+    folder: 'social',
+    filename: 'youtube-banner-2560x1440.jpg'
+  },
+  
+  'social-instagram-post': {
+    prompt: `Instagram post template background. Warm paper cream (#F5F1E8) with subtle sage green (#4a6741) accent bar on left side. Clean minimal design with space for quote text. Soft organic texture. Premium, warm, Apple-inspired minimalism. Square format.`,
+    aspectRatio: '1:1',
+    folder: 'social',
+    filename: 'instagram-quote-template.jpg'
   },
 };
 

@@ -420,10 +420,8 @@ describe('env-validator', () => {
 describe('session-manager helpers', () => {
   describe('session state management', () => {
     it('should track active sessions', async () => {
-      const {
-        getActiveSessionIds,
-        getActiveSessionCount,
-      } = await import('../services/session-manager.js');
+      const { getActiveSessionIds, getActiveSessionCount } =
+        await import('../services/session-manager.js');
 
       const initialCount = getActiveSessionCount();
       const initialIds = getActiveSessionIds();
@@ -489,10 +487,7 @@ describe('session-manager helpers', () => {
 describe('test suite summary', () => {
   it('should have comprehensive test coverage', () => {
     // This test serves as documentation of what we're testing
-    const testedModules = [
-      'env-validator',
-      'session-manager helpers',
-    ];
+    const testedModules = ['env-validator', 'session-manager helpers'];
 
     const testCategories = [
       'validation logic',

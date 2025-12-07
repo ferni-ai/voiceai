@@ -8,321 +8,220 @@
   <meta name="theme-color" content="#faf8f5">
   <meta name="robots" content="noindex, nofollow">
   
-  <!-- Open Graph -->
-  <meta property="og:title" content="Page Not Found — Ferni">
-  <meta property="og:description" content="Oops! This page doesn't exist. Let's get you back on track.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://ferni.ai/404">
-  <meta property="og:image" content="https://ferni.ai/images/og-image.jpg">
-  
-  <!-- Favicon - Forest Green -->
+  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234a6741' rx='20' width='100' height='100'/><text x='50' y='68' font-family='system-ui' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>FN</text></svg>">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/design-tokens.css?v=1">
+  <link rel="stylesheet" href="css/styles.css?v=30">
   <style>
-    :root {
-      --color-bg: #F5F1E8;
-      --color-bg-elevated: #FFFDFB;
-      --color-text: #2C2520;
-      --color-text-secondary: #5C544A;
-      --color-text-muted: #756A5E;
-      --color-accent: #4a6741;
-      --color-accent-light: #5a7a51;
-      --color-border: rgba(44, 37, 32, 0.1);
-      --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      --font-body: 'Inter', -apple-system, sans-serif;
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: var(--font-body);
-      background: var(--color-bg);
-      color: var(--color-text);
+    .error-page {
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: var(--space-8);
+      background: var(--color-bg-primary);
+    }
+    
+    .error-container {
       text-align: center;
+      max-width: 500px;
     }
     
-    .container {
-      max-width: 540px;
-    }
-    
-    /* Animated Avatar */
-    .avatar {
+    .error-avatar {
       width: 120px;
       height: 120px;
-      background: linear-gradient(135deg, #3d5a35, #4a6741);
-      border-radius: 50%;
+      margin: 0 auto var(--space-8);
+      background: var(--color-ferni);
+      border-radius: var(--radius-full);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 32px;
-      font-family: var(--font-display);
-      font-size: 40px;
-      font-weight: 700;
-      color: white;
-      box-shadow: 
-        0 20px 40px rgba(74, 103, 65, 0.25),
-        0 0 0 4px rgba(74, 103, 65, 0.1);
-      animation: float 4s ease-in-out infinite;
       position: relative;
-    }
-    
-    .avatar::before {
-      content: '';
-      position: absolute;
-      inset: -8px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(74, 103, 65, 0.15) 0%, transparent 70%);
-      animation: pulse 3s ease-in-out infinite;
+      animation: float 3s ease-in-out infinite;
     }
     
     @keyframes float {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
+      50% { transform: translateY(-10px); }
     }
     
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 0.5; }
-      50% { transform: scale(1.1); opacity: 0.8; }
+    .error-avatar::before {
+      content: '';
+      position: absolute;
+      inset: -12px;
+      background: var(--color-ferni-glow);
+      border-radius: var(--radius-full);
+      z-index: -1;
+      filter: blur(20px);
     }
     
-    /* Expression - confused/searching */
     .avatar-face {
-      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
     }
     
     .avatar-eyes {
       display: flex;
-      gap: 16px;
-      margin-bottom: 8px;
+      gap: var(--space-4);
     }
     
     .eye {
       width: 12px;
       height: 12px;
       background: white;
-      border-radius: 50%;
-      animation: look 3s ease-in-out infinite;
+      border-radius: var(--radius-full);
+      position: relative;
     }
     
-    .eye:nth-child(2) {
-      animation-delay: 0.1s;
+    .eye::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: var(--color-text-primary);
+      border-radius: var(--radius-full);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: lookAround 4s ease-in-out infinite;
     }
     
-    @keyframes look {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-3px); }
-      75% { transform: translateX(3px); }
+    @keyframes lookAround {
+      0%, 100% { transform: translate(-50%, -50%); }
+      25% { transform: translate(-20%, -50%); }
+      75% { transform: translate(-80%, -50%); }
     }
     
     .avatar-mouth {
-      width: 20px;
-      height: 10px;
-      border: 3px solid white;
-      border-top: none;
-      border-radius: 0 0 20px 20px;
-      margin: 0 auto;
+      width: 24px;
+      height: 4px;
+      background: white;
+      border-radius: var(--radius-full);
+      opacity: 0.8;
     }
     
     .error-code {
       font-family: var(--font-display);
-      font-size: 96px;
+      font-size: clamp(80px, 20vw, 140px);
       font-weight: 800;
-      color: var(--color-accent);
+      color: var(--color-border-medium);
       line-height: 1;
-      margin-bottom: 16px;
-      letter-spacing: -4px;
+      margin-bottom: var(--space-4);
     }
     
-    h1 {
+    .error-container h1 {
       font-family: var(--font-display);
-      font-size: 32px;
+      font-size: var(--text-3xl);
       font-weight: 700;
-      color: var(--color-text);
-      margin-bottom: 16px;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-4);
     }
     
-    .message {
-      font-size: 18px;
+    .error-message {
+      font-size: var(--text-lg);
       color: var(--color-text-secondary);
+      margin-bottom: var(--space-8);
       line-height: 1.6;
-      margin-bottom: 40px;
     }
     
-    .actions {
+    .error-actions {
       display: flex;
-      flex-direction: column;
-      gap: 12px;
-      align-items: center;
-    }
-    
-    .btn {
-      display: inline-flex;
-      align-items: center;
+      gap: var(--space-4);
       justify-content: center;
-      gap: 8px;
-      padding: 16px 32px;
-      font-family: var(--font-body);
-      font-size: 16px;
-      font-weight: 600;
-      text-decoration: none;
-      border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      cursor: pointer;
-      border: none;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-10);
     }
     
-    .btn-primary {
-      background: var(--color-accent);
-      color: white;
-      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+    .error-suggestions {
+      padding-top: var(--space-8);
+      border-top: 1px solid var(--color-border-subtle);
     }
     
-    .btn-primary:hover {
-      background: var(--color-accent-light);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(74, 103, 65, 0.4);
-    }
-    
-    .btn-ghost {
-      background: transparent;
-      color: var(--color-text-secondary);
-    }
-    
-    .btn-ghost:hover {
-      color: var(--color-accent);
-      background: rgba(74, 103, 65, 0.08);
-    }
-    
-    .suggestions {
-      margin-top: 48px;
-      padding-top: 32px;
-      border-top: 1px solid var(--color-border);
-    }
-    
-    .suggestions h2 {
+    .error-suggestions h2 {
       font-family: var(--font-display);
-      font-size: 14px;
+      font-size: var(--text-sm);
       font-weight: 600;
-      color: var(--color-text-muted);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-4);
     }
     
     .suggestion-links {
       display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
+      gap: var(--space-4);
       justify-content: center;
+      flex-wrap: wrap;
     }
     
     .suggestion-link {
-      padding: 10px 20px;
-      background: var(--color-bg-elevated);
-      color: var(--color-text-secondary);
+      font-size: var(--text-sm);
+      color: var(--color-accent);
       text-decoration: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      border: 1px solid var(--color-border);
-      transition: all 0.2s;
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-accent-subtle);
+      border-radius: var(--radius-full);
+      transition: background var(--transition-fast), color var(--transition-fast);
     }
     
     .suggestion-link:hover {
-      background: white;
-      color: var(--color-accent);
-      border-color: var(--color-accent);
-      transform: translateY(-1px);
-    }
-    
-    /* Decorative elements */
-    .bg-decoration {
-      position: fixed;
-      pointer-events: none;
-      opacity: 0.03;
-    }
-    
-    .bg-decoration-1 {
-      top: 10%;
-      left: 5%;
-      width: 300px;
-      height: 300px;
       background: var(--color-accent);
-      border-radius: 50%;
-      filter: blur(80px);
-    }
-    
-    .bg-decoration-2 {
-      bottom: 10%;
-      right: 5%;
-      width: 400px;
-      height: 400px;
-      background: var(--color-accent);
-      border-radius: 50%;
-      filter: blur(100px);
+      color: white;
     }
   </style>
 </head>
 <body>
-  <div class="bg-decoration bg-decoration-1"></div>
-  <div class="bg-decoration bg-decoration-2"></div>
-  
-  <div class="container">
-    <div class="avatar">
-      <div class="avatar-face">
-        <div class="avatar-eyes">
-          <div class="eye"></div>
-          <div class="eye"></div>
+  <main class="error-page">
+    <div class="error-container">
+      <div class="error-avatar">
+        <div class="avatar-face">
+          <div class="avatar-eyes">
+            <div class="eye"></div>
+            <div class="eye"></div>
+          </div>
+          <div class="avatar-mouth"></div>
         </div>
-        <div class="avatar-mouth"></div>
+      </div>
+      
+      <div class="error-code">404</div>
+      <h1>Page not found</h1>
+      <p class="error-message">
+        Even the best conversations take unexpected turns. 
+        Let's get you back to familiar ground.
+      </p>
+      
+      <div class="error-actions">
+        <a href="/" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span>Go Home</span>
+        </a>
+        <a href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=404" class="btn btn-ghost">
+          Open the App
+        </a>
+      </div>
+      
+      <div class="error-suggestions">
+        <h2>Popular Pages</h2>
+        <div class="suggestion-links">
+          <a href="/" class="suggestion-link">Home</a>
+          <a href="/team" class="suggestion-link">Meet the Team</a>
+          <a href="/pricing" class="suggestion-link">Pricing</a>
+          <a href="/contact" class="suggestion-link">Contact</a>
+        </div>
       </div>
     </div>
-    
-    <div class="error-code">404</div>
-    <h1>Hmm, I can't find that page</h1>
-    <p class="message">
-      Even the best conversations take unexpected turns. 
-      Let's get you back to familiar ground.
-    </p>
-    
-    <div class="actions">
-      <a href="/" class="btn btn-primary">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-        Go Home
-      </a>
-      <a href="https://app.ferni.ai" class="btn btn-ghost">
-        Open the App Instead
-      </a>
-    </div>
-    
-    <div class="suggestions">
-      <h2>Popular Pages</h2>
-      <div class="suggestion-links">
-        <a href="/" class="suggestion-link">Home</a>
-        <a href="/team" class="suggestion-link">Meet the Team</a>
-        <a href="/pricing" class="suggestion-link">Pricing</a>
-        <a href="/contact" class="suggestion-link">Contact</a>
-      </div>
-    </div>
-  </div>
+  </main>
 </body>
 </html>
-

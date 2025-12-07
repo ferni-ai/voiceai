@@ -12,11 +12,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import {
-  InMemoryStore,
-  getDefaultStore,
-  resetDefaultStore,
-} from '../memory/in-memory-store.js';
+import { InMemoryStore, getDefaultStore, resetDefaultStore } from '../memory/in-memory-store.js';
 import type {
   UserProfile,
   ConversationSummary,
@@ -39,7 +35,10 @@ function createTestProfile(id: string, overrides?: Partial<UserProfile>): UserPr
   } as UserProfile;
 }
 
-function createTestSummary(id: string, overrides?: Partial<ConversationSummary>): ConversationSummary {
+function createTestSummary(
+  id: string,
+  overrides?: Partial<ConversationSummary>
+): ConversationSummary {
   return {
     id,
     timestamp: new Date(),
@@ -250,7 +249,10 @@ describe('InMemoryStore', () => {
 
     it('should sort summaries by timestamp descending by default', async () => {
       const now = Date.now();
-      await store.saveSummary(userId, createTestSummary('old', { timestamp: new Date(now - 1000) }));
+      await store.saveSummary(
+        userId,
+        createTestSummary('old', { timestamp: new Date(now - 1000) })
+      );
       await store.saveSummary(userId, createTestSummary('new', { timestamp: new Date(now) }));
 
       const summaries = await store.getSummaries(userId);
@@ -260,7 +262,10 @@ describe('InMemoryStore', () => {
 
     it('should support ascending sort', async () => {
       const now = Date.now();
-      await store.saveSummary(userId, createTestSummary('old', { timestamp: new Date(now - 1000) }));
+      await store.saveSummary(
+        userId,
+        createTestSummary('old', { timestamp: new Date(now - 1000) })
+      );
       await store.saveSummary(userId, createTestSummary('new', { timestamp: new Date(now) }));
 
       const summaries = await store.getSummaries(userId, { sortOrder: 'asc' });
@@ -313,7 +318,10 @@ describe('InMemoryStore', () => {
 
     it('should sort moments by timestamp descending by default', async () => {
       const now = Date.now();
-      await store.addKeyMoment(userId, createTestMoment('old', { timestamp: new Date(now - 1000) }));
+      await store.addKeyMoment(
+        userId,
+        createTestMoment('old', { timestamp: new Date(now - 1000) })
+      );
       await store.addKeyMoment(userId, createTestMoment('new', { timestamp: new Date(now) }));
 
       const moments = await store.getKeyMoments(userId);

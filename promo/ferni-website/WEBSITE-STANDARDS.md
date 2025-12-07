@@ -62,20 +62,20 @@ DO:                              DON'T:
 ### Hero Structure (The Apple Pattern)
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                                                        │
-│                    [Eyebrow Label]                     │
-│                  MEET YOUR AI TEAM                     │
-│                                                        │
-│                      Ferni                             │  ← Product name (bold)
-│                                                        │
-│              Finally, someone who                      │  ← Benefit (split across
-│                 actually listens.                      │     lines for rhythm)
-│                                                        │
-│            [Start Free]  [Call Now]                    │  ← Clear CTAs
-│                                                        │
-│                       ↓                                │  ← Scroll indicator
-└────────────────────────────────────────────────────────┘
+
+                                                        
+                    [Eyebrow Label]                     
+                  MEET YOUR AI TEAM                     
+                                                        
+                      Ferni                                Product name (bold)
+                                                        
+              Finally, someone who                         Benefit (split across
+                 actually listens.                           lines for rhythm)
+                                                        
+            [Start Free]  [Call Now]                       Clear CTAs
+                                                        
+                                                          Scroll indicator
+
 ```
 
 ### Section Storytelling (Emotional Frames)
@@ -96,9 +96,9 @@ DO:                              DON'T:
 ### Copy Rhythm (Break Lines for Impact)
 
 ```
-❌ WRONG: "Your AI team remembers everything and is always there for you."
+ WRONG: "Your AI team remembers everything and is always there for you."
 
-✅ RIGHT: "Your AI team.
+ RIGHT: "Your AI team.
           They remember everything.
           They're always there."
 ```
@@ -238,14 +238,14 @@ Every page should include trust elements:
 
 ```
 design-system/
-├── dist/
-│   └── tokens.css        ← THE canonical source
-├── tokens/
-│   ├── colors.json
-│   ├── typography.json
-│   ├── spacing.json
-│   └── animation.json
-└── build.js              ← Generates tokens.css from JSON
+ dist/
+    tokens.css         THE canonical source
+ tokens/
+    colors.json
+    typography.json
+    spacing.json
+    animation.json
+ build.js               Generates tokens.css from JSON
 ```
 
 **RULE**: All consumers import from `design-system/dist/tokens.css`. No copying.
@@ -254,18 +254,18 @@ design-system/
 
 ```
 promo/ferni-website/
-├── src/
-│   ├── _includes/
-│   │   ├── layouts/base.njk
-│   │   └── partials/
-│   │       ├── header.njk
-│   │       └── footer.njk
-│   ├── css/
-│   │   └── styles.css    ← Imports from design-system
-│   └── pages/
-│       └── index.njk
-├── _site/                ← Build output
-└── .eleventy.js
+ src/
+    _includes/
+       layouts/base.njk
+       partials/
+           header.njk
+           footer.njk
+    css/
+       styles.css     Imports from design-system
+    pages/
+        index.njk
+ _site/                 Build output
+ .eleventy.js
 ```
 
 ### Automated Auditing

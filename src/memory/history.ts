@@ -71,7 +71,10 @@ export class ConversationHistoryTracker {
    */
   addTurn(turn: Omit<TrackedTurn, 'id' | 'turnIndex' | 'wordCount'>): TrackedTurn {
     // Calculate word count, handling empty content
-    const words = turn.content.trim().split(/\s+/).filter(w => w.length > 0);
+    const words = turn.content
+      .trim()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
     const trackedTurn: TrackedTurn = {
       ...turn,
       id: `turn_${this.sessionId}_${this.turns.length}`,

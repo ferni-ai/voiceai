@@ -348,7 +348,12 @@ describe('EmotionalArcTracker', () => {
       tracker.recordEmotion(textEmotion, voiceEmotion);
 
       const textEmotion2 = createEmotionResult('happy', 0.6, 'positive');
-      const voiceEmotion2 = { primary: 'excited' as any, confidence: 0.7, arousal: 0.8, valence: 0.5 };
+      const voiceEmotion2 = {
+        primary: 'excited' as any,
+        confidence: 0.7,
+        arousal: 0.8,
+        valence: 0.5,
+      };
 
       const arc = tracker.recordEmotion(textEmotion2, voiceEmotion2);
       expect(arc).toBeDefined();

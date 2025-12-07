@@ -1,5 +1,11 @@
 # Agent-Agnostic Architecture
 
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+This architecture enables each persona to feel like a genuine individual - with their own voice, knowledge, and personality - while sharing the foundation that makes AI feel human. See `../../CORE-PRINCIPLES.md` for our complete philosophy.
+
+---
+
 This document describes the new agent-agnostic tool and team handler architecture for the Ferni Voice AI platform.
 
 ## Overview

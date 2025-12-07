@@ -241,7 +241,7 @@ function mapStripeStatus(stripeStatus: any): SubscriptionStatus {
 /**
  * Sync subscription data from Stripe to user profile
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export async function syncSubscriptionFromStripe(
   userId: string,
   subscription: any // Stripe.Subscription
@@ -361,7 +361,7 @@ export async function downgradeToFree(userId: string): Promise<void> {
  */
 export async function recordConversation(
   userId: string,
-  durationMinutes: number = 0
+  durationMinutes = 0
 ): Promise<UsageStatus> {
   const store = await getStore();
   const profile = await store.getProfile(userId);
@@ -380,7 +380,7 @@ export async function recordConversation(
     };
   }
 
-  let subscription = profile.subscription ?? createDefaultSubscription();
+  const subscription = profile.subscription ?? createDefaultSubscription();
 
   // Reset usage if new month
   if (needsUsageReset(subscription.monthlyUsage)) {
@@ -604,4 +604,3 @@ export async function getSubscriptionInfo(userId: string): Promise<{
     prices,
   };
 }
-

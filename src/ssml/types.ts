@@ -1,59 +1,61 @@
 /**
- * SSML Type Definitions
- * Shared types for the SSML tagging system
+ * SSML Types
+ * 
+ * Type definitions for the SSML tagger module.
  */
 
-/**
- * Pronunciation entry for the financial dictionary
- */
 export interface PronunciationEntry {
   pattern: RegExp;
   replacement: string;
   description?: string;
 }
 
-/**
- * Supported emotion types from text analysis
- */
-export type EmotionType = 'angry' | 'sad' | 'surprised' | 'curious' | 'affectionate' | null;
-
-/**
- * Vocal cues detected in text
- */
-export interface VocalCues {
-  hasLaughter: boolean;
-  hasSigh: boolean;
-  laughterCount: number;
-}
-
-/**
- * Volume analysis result
- */
-export interface VolumeAnalysis {
-  volume: number;
-  hasEmphasis: boolean;
-  hasWhisper: boolean;
-}
-
-/**
- * Pacing analysis result
- */
-export interface PacingAnalysis {
-  speed: number;
-  reason: string;
-}
-
-/**
- * Context for SSML tagging
- */
 export interface TaggingContext {
-  emotion?: string;
+  emotion: string;
   baseSpeed: number;
   baseVolume: number;
   hasEmphasis: boolean;
   hasWhisper: boolean;
   hasLaughter: boolean;
   hasSigh: boolean;
-  sentenceCount: number;
-  avgSentenceLength: number;
+  hasDisfluency: boolean;
+  hasRepetition: boolean;
+  hasSarcasm: boolean;
 }
+
+export interface DetectedPacing {
+  speed: number;
+  reason: string;
+}
+
+export interface DetectedVolume {
+  volume: number;
+  hasEmphasis: boolean;
+  hasWhisper: boolean;
+}
+
+export interface DetectedVocalCues {
+  hasLaughter: boolean;
+  hasSigh: boolean;
+  hasDisfluency: boolean;
+  hasRepetition: boolean;
+  hasSarcasm: boolean;
+  laughterCount?: number;
+}
+
+// Cartesia emotion types
+export const CARTESIA_EMOTIONS = {
+  ANGRY: 'angry',
+  SAD: 'sad',
+  SURPRISED: 'surprised',
+  CURIOUS: 'curious',
+  AFFECTIONATE: 'affectionate',
+  // Extended neutral states (no SSML tag)
+  NEUTRAL: 'neutral',
+  CALM: 'calm',
+  THOUGHTFUL: 'thoughtful',
+  CONFIDENT: 'confident',
+  WARM: 'warm',
+} as const;
+
+export type CartesiaEmotion = (typeof CARTESIA_EMOTIONS)[keyof typeof CARTESIA_EMOTIONS];

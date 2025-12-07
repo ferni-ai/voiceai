@@ -817,9 +817,8 @@ export { createCommunicationCoachingTools } from './communication-coaching.js';
  * Create all communication tools - base + coaching combined
  */
 export async function createAllCommunicationTools() {
-  const { createCommunicationCoachingTools: getCoachingTools } = await import(
-    './communication-coaching.js'
-  );
+  const { createCommunicationCoachingTools: getCoachingTools } =
+    await import('./communication-coaching.js');
   return {
     ...createCommunicationTools(),
     ...getCoachingTools(),

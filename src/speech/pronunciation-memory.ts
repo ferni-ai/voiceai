@@ -201,10 +201,7 @@ export class PronunciationMemoryService {
     }
 
     // Check for pronunciation corrections
-    if (
-      message.toLowerCase().includes('pronounced') ||
-      message.toLowerCase().includes('say it')
-    ) {
+    if (message.toLowerCase().includes('pronounced') || message.toLowerCase().includes('say it')) {
       return this.handlePronunciationCorrection(message);
     }
 
@@ -313,12 +310,7 @@ export class PronunciationMemoryService {
   /**
    * Learn a pronunciation from context (e.g., technical domain)
    */
-  learnFromContext(
-    term: string,
-    phonetic: string,
-    context: string,
-    confidence = 0.7
-  ): void {
+  learnFromContext(term: string, phonetic: string, context: string, confidence = 0.7): void {
     const entry: PronunciationEntry = {
       text: term,
       phonetic,
@@ -525,4 +517,3 @@ export function resetPronunciationMemory(sessionId: string): void {
 export function resetAllPronunciationMemory(): void {
   sessionInstances.clear();
 }
-

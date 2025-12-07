@@ -162,14 +162,14 @@ jobs:
           docker build \
             --build-arg BUILD_SHA=${{ github.sha }} \
             --build-arg BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-            -t gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:${{ github.sha }} \
-            -t gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:latest \
-            -f Dockerfile .
+            -t gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-voice-agent:${{ github.sha }} \
+            -t gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-voice-agent:latest \
+            -f docker/Dockerfile.agent .
 
       - name: Push Docker image
         run: |
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:${{ github.sha }}
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:latest
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-voice-agent:${{ github.sha }}
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-voice-agent:latest
 
       - name: Deploy green revision (no traffic)
         id: deploy
@@ -178,7 +178,7 @@ jobs:
           REVISION_SUFFIX=$(echo ${{ github.sha }} | cut -c1-8)
           
           gcloud run deploy voiceai-agent \
-            --image gcr.io/${{ env.GCP_PROJECT_ID }}/bogle-voice-agent:${{ github.sha }} \
+            --image gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-voice-agent:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --no-traffic \
@@ -314,22 +314,22 @@ jobs:
           docker build \
             --build-arg BUILD_SHA=${{ github.sha }} \
             --build-arg BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-            -t gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:${{ github.sha }} \
-            -t gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:latest \
-            -f Dockerfile.ui .
+            -t gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-ui:${{ github.sha }} \
+            -t gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-ui:latest \
+            -f docker/Dockerfile.ui .
 
       - name: Push Docker image
         run: |
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:${{ github.sha }}
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:latest
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-ui:${{ github.sha }}
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-ui:latest
 
       - name: Deploy green revision (no traffic)
         id: deploy
         run: |
           REVISION_SUFFIX=$(echo ${{ github.sha }} | cut -c1-8)
           
-          gcloud run deploy john-bogle-ui \
-            --image gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:${{ github.sha }} \
+          gcloud run deploy ferni-ui \
+            --image gcr.io/${{ env.GCP_PROJECT_ID }}/ferni-ui:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --no-traffic \
@@ -344,8 +344,8 @@ jobs:
             --max-instances 10 \
             --set-env-vars "NODE_ENV=production,BUILD_SHA=${{ github.sha }}"
           
-          REVISION=$(gcloud run revisions list --service=john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
-          URL=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(status.url)")
+          REVISION=$(gcloud run revisions list --service=ferni-ui --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
+          URL=$(gcloud run services describe ferni-ui --region=${{ env.GCP_REGION }} --format="value(status.url)")
           
           echo "revision=$REVISION" >> $GITHUB_OUTPUT
           echo "url=$URL" >> $GITHUB_OUTPUT
@@ -373,11 +373,11 @@ jobs:
           TRAFFIC_PERCENT=${{ inputs.traffic_percent || 100 }}
           
           if [ "$TRAFFIC_PERCENT" == "100" ]; then
-            gcloud run services update-traffic john-bogle-ui \
+            gcloud run services update-traffic ferni-ui \
               --region=${{ env.GCP_REGION }} \
               --to-latest
           else
-            gcloud run services update-traffic john-bogle-ui \
+            gcloud run services update-traffic ferni-ui \
               --region=${{ env.GCP_REGION }} \
               --to-tags green=$TRAFFIC_PERCENT
           fi
@@ -386,7 +386,7 @@ jobs:
         if: steps.health.outputs.healthy != 'true'
         run: |
           echo "Health check failed - keeping traffic on current revision"
-          gcloud run services update-traffic john-bogle-ui \
+          gcloud run services update-traffic ferni-ui \
             --region=${{ env.GCP_REGION }} \
             --remove-tags green || true
           exit 1

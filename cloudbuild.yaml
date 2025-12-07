@@ -14,7 +14,7 @@
 
 steps:
   # Validate agent bundles before build
-  - name: 'node:18'
+  - name: 'node:20'
     entrypoint: 'sh'
     args:
       - '-c'
@@ -23,16 +23,16 @@ steps:
         npm run build
         npm run agents validate || echo "Warning: Some agents have validation issues"
 
-  # Build the container image (no cache to ensure fresh build)
+  # Build the container image using modular Dockerfile
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/bogle-voice-agent:latest', '.']
+    args: ['build', '--no-cache', '-f', 'docker/Dockerfile.agent', '-t', 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest', '.']
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/bogle-voice-agent:latest']
+    args: ['push', 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest']
 
 images:
-  - 'gcr.io/$PROJECT_ID/bogle-voice-agent:latest'
+  - 'gcr.io/$PROJECT_ID/ferni-voice-agent:latest'
 
 options:
   machineType: 'E2_HIGHCPU_8'

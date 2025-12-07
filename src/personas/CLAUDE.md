@@ -1,5 +1,11 @@
 # Persona Development
 
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+Personas are the heart of Ferni's human AI experience. Each persona should feel like a real person with genuine character, not a corporate chatbot. See `../../CORE-PRINCIPLES.md` for our complete philosophy.
+
+---
+
 ## Reference Docs
 - Full guide: `docs/creating-personas.md`
 - Cognitive profiles: `docs/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md`

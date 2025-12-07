@@ -1,0 +1,68 @@
+# ============================================================================
+# FERNI VOICE AGENT DOCKERFILE
+# ============================================================================
+# Builds the LiveKit voice agent service.
+# Supports all personas via PERSONA_ID environment variable.
+#
+# Build:
+#   docker build -f docker/Dockerfile.agent -t ferni-agent .
+#
+# Run:
+#   docker run -e PERSONA_ID=ferni -e LIVEKIT_URL=... ferni-agent
+# ============================================================================
+
+ARG NODE_VERSION=20
+
+# ============================================================================
+# Stage 1: Build TypeScript
+# ============================================================================
+FROM node:${NODE_VERSION}-slim AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev for building)
+RUN npm ci
+
+# Copy source files
+COPY tsconfig.json ./
+COPY src/ ./src/
+
+# Build TypeScript
+RUN npm run build
+
+# ============================================================================
+# Stage 2: Production
+# ============================================================================
+FROM node:${NODE_VERSION}-slim AS production
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates
+
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy built files from builder
+COPY --from=builder /app/dist ./dist
+
+# Copy persona bundles (JSON, MD files needed at runtime)
+COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PERSONA_ID=ferni
+
+EXPOSE 8080
+
+# Run the voice agent
+CMD ["node", "dist/agent.js", "start"]
+

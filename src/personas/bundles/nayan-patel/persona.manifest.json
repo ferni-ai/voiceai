@@ -300,9 +300,12 @@
       "wisdom",
       "meaning",
       "presence",
-      "engagement"
+      "engagement",
+      "decisions",
+      "self-compassion",
+      "grief"
     ],
-    "_domain_notes": "Nayan is the wisdom sage. Focuses on philosophy, meditation, and spiritual guidance. Target: 35-45 tools for optimal Gemini performance.",
+    "_domain_notes": "Nayan is the wisdom sage. Focuses on philosophy, meditation, and spiritual guidance. Added decisions (philosophical approach), self-compassion (inner peace), grief (life wisdom for loss). Target: 35-45 tools for optimal Gemini performance.",
     "required": [
       "handoffToFerni",
       "handoffToPeter",

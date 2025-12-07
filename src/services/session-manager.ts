@@ -106,7 +106,7 @@ const activeSessions = new Map<string, SessionServices>();
 /**
  * Create session services for a new conversation
  */
-// eslint-disable-next-line no-redeclare
+
 export async function createSessionServices(
   sessionId: string,
   userId?: string,

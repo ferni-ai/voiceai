@@ -221,7 +221,7 @@ class VoiceAIApp {
     } catch (error) {
       log.error('Initialization failed:', error);
       skeletonUI.hide();
-      messageUI.show('Failed to initialize. Please refresh.', 'error');
+      messageUI.show("Having trouble starting up. Try refreshing?", 'error');
     }
   }
 
@@ -232,7 +232,7 @@ class VoiceAIApp {
     const persona = appState.get('selectedPersona');
     
     // Show immediate feedback - user tapped the button
-    messageUI.show('Connecting...', 'info', 30000);
+    messageUI.show('Getting ready...', 'info', 30000);
     
     // iOS CRITICAL: Create and resume AudioContext FIRST in user gesture
     // This must happen synchronously at the start of the click handler
@@ -275,7 +275,7 @@ class VoiceAIApp {
     try {
       // Step 2: Connecting audio
       thinkingUI.showProgress(2);
-      messageUI.show('Establishing connection...', 'info', 30000);
+      messageUI.show('Almost there...', 'info', 30000);
 
       const connectionPromise = connectionService.connect();
       const timeoutPromise = new Promise<boolean>((_, reject) => {
@@ -289,17 +289,17 @@ class VoiceAIApp {
       thinkingUI.hide();
       waveformUI.setThinking(false);
       
-      // More helpful error messages
-      let errorMessage = 'Connection failed. Please try again.';
+      // Human-friendly error messages (not robotic!)
+      let errorMessage = "Hmm, couldn't connect. Let's try that again.";
       if (error instanceof Error) {
         if (error.message === 'Connection timeout') {
-          errorMessage = 'Connection timed out. Check your internet.';
+          errorMessage = "Taking longer than usual... check your internet connection?";
         } else if (error.message.includes('permission') || error.message.includes('Permission')) {
-          errorMessage = 'Please allow microphone access.';
+          errorMessage = "I'll need microphone access to hear you. Mind enabling it?";
         } else if (error.message.includes('network') || error.message.includes('Network')) {
-          errorMessage = 'Network error. Check your connection.';
+          errorMessage = "Having trouble reaching the server. Is your internet working?";
         } else {
-          errorMessage = `Error: ${error.message.slice(0, 50)}`;
+          errorMessage = "Something went wrong on our end. Try again in a moment?";
         }
       }
       
@@ -398,7 +398,7 @@ class VoiceAIApp {
         }, 5000);
       }
     } else {
-      messageUI.show('Connection failed. Try again.', 'error');
+      messageUI.show("Couldn't connect this time. Want to try again?", 'error');
       soundUI.play('disconnect');
     }
   }
@@ -468,7 +468,7 @@ class VoiceAIApp {
     void room.localParticipant?.setMicrophoneEnabled(!newMuted);
     appState.set('isMuted', newMuted);
 
-    messageUI.show(newMuted ? 'Microphone muted' : 'Microphone unmuted', 'info', 1500);
+    messageUI.show(newMuted ? "I'll wait quietly" : "I'm listening", 'info', 1500);
   }
 
   // ============================================================================
@@ -717,18 +717,18 @@ class VoiceAIApp {
             messageUI.show('Your data has been downloaded!', 'success', 4000);
           } catch (err) {
             log.error('Export failed', err);
-            messageUI.show('Export failed. Please try again.', 'error', 4000);
+            messageUI.show("Hmm, couldn't export your data. Mind trying again?", 'error', 4000);
           }
         },
         onDeleteData: async () => {
           try {
             await dataExportService.deleteAllData();
-            messageUI.show('All your data has been deleted.', 'info', 4000);
+            messageUI.show("Your data has been removed. Fresh start!", 'info', 4000);
             // Optionally reload to reset state
             setTimeout(() => window.location.reload(), 2000);
           } catch (err) {
             log.error('Deletion failed', err);
-            messageUI.show('Deletion failed. Please try again.', 'error', 4000);
+            messageUI.show("Couldn't delete your data right now. Try again?", 'error', 4000);
           }
         },
         onClose: () => log.debug('Data export closed'),
@@ -984,7 +984,7 @@ class VoiceAIApp {
         if (!hasAudio) {
           // Mic permission was likely denied - show subtle prompt
           setTimeout(() => {
-            messageUI.show('Microphone access enables conversation', 'info', 4000);
+            messageUI.show("I'd love to hear your voice - enable mic access?", 'info', 4000);
           }, 3000);
         }
       }
@@ -1045,7 +1045,7 @@ class VoiceAIApp {
       },
 
       onAgentDisconnected: () => {
-        messageUI.show('Advisor disconnected', 'info', 2000);
+        messageUI.show('See you next time!', 'info', 2000);
         presenceUI.setSpeaking(false);
       },
 
@@ -1088,7 +1088,7 @@ class VoiceAIApp {
 
       onError: (error) => {
         log.error('Connection error:', error);
-        messageUI.show(`Error: ${error.message}`, 'error');
+        messageUI.show("Something went wrong. Let me reconnect...", 'error');
         thinkingUI.hide();
         waveformUI.setThinking(false);
       },
@@ -1160,7 +1160,7 @@ class VoiceAIApp {
         handoffProgress.classList.add('hidden');
       }
       thinkingUI.hide();
-      messageUI.show(`Transfer failed: ${error}`, 'error', 3000);
+      messageUI.show("Couldn't reach them right now. I'm still here though!", 'error', 3000);
     });
     
     // When handoff is cancelled - hide indicator

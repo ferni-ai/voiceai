@@ -5,7 +5,15 @@
   "scripts": {
     "dev": "eleventy --serve --port=8080",
     "build": "eleventy",
+    "build:prod": "eleventy && node scripts/minify.js",
+    "minify": "node scripts/minify.js",
     "clean": "rm -rf _site",
+    "preview": "npm run build && cd _site && python3 -m http.server 8080",
+    
+    "deploy": "npm run build:prod && firebase deploy --only hosting:ferni-landing",
+    "deploy:prod": "npm run build:prod && firebase deploy --only hosting:ferni-prod",
+    "deploy:all": "npm run build:prod && firebase deploy --only hosting",
+    
     "lint:design": "./scripts/lint-design.sh",
     "precommit": "npm run lint:design && npm run audit:content",
     
@@ -21,7 +29,8 @@
   },
   "devDependencies": {
     "@11ty/eleventy": "^2.0.1",
-    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0"
+    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0",
+    "clean-css-cli": "^5.6.3",
+    "esbuild": "^0.27.1"
   }
 }
-

@@ -1,4 +1,4 @@
-# 🚀 Ferni Quick Start Prompts - Copy & Paste Ready
+#  Ferni Quick Start Prompts - Copy & Paste Ready
 
 ## 1. HERO VIDEO (Veo 3) - Mountain Meadow
 
@@ -94,32 +94,32 @@ Warm portrait of a confident but approachable man in his early 40s. Genuine smil
 
 ---
 
-## 📁 Save Files As:
+##  Save Files As:
 
 ```
 images/
-├── og-image.png (1200x630)
-├── hero-park-city.jpg (1920x1080)
-├── avatars/
-│   ├── ferni.png (400x400)
-│   ├── jack.png (400x400)
-│   ├── peter.png (400x400)
-│   ├── alex.png (400x400)
-│   ├── maya.png (400x400)
-│   └── jordan.png (400x400)
-└── testimonials/
-    ├── sarah.jpg (200x200)
-    ├── michael.jpg (200x200)
-    ├── jessica.jpg (200x200)
-    └── david.jpg (200x200)
+ og-image.png (1200x630)
+ hero-park-city.jpg (1920x1080)
+ avatars/
+    ferni.png (400x400)
+    jack.png (400x400)
+    peter.png (400x400)
+    alex.png (400x400)
+    maya.png (400x400)
+    jordan.png (400x400)
+ testimonials/
+     sarah.jpg (200x200)
+     michael.jpg (200x200)
+     jessica.jpg (200x200)
+     david.jpg (200x200)
 
 videos/
-└── hero-background.mp4
+ hero-background.mp4
 ```
 
 ---
 
-## 🎨 Color Hex Codes Reference
+##  Color Hex Codes Reference
 
 | Name | Hex | Usage |
 |------|-----|-------|
@@ -136,5 +136,5 @@ videos/
 
 ---
 
-Made with ♥ in Park City, Utah
+Made with  in Park City, Utah
 

@@ -5,14 +5,14 @@ Based on analysis of [Apple Vision Pro](https://www.apple.com/apple-vision-pro/)
 
 ---
 
-## 🍎 Apple's Core Design Principles
+##  Apple's Core Design Principles
 
 ### 1. HERO STRUCTURE
 Apple uses a **layered headline approach**:
 ```
-[Product Name]           ← Simple, bold
-[Key Benefit Statement]  ← One compelling reason
-[CTA Buttons]            ← Clear actions
+[Product Name]            Simple, bold
+[Key Benefit Statement]   One compelling reason
+[CTA Buttons]             Clear actions
 ```
 
 **Apple Example:**
@@ -93,8 +93,8 @@ Apple uses **benefit-first feature cards**:
 
 ```
 [Large Visual]
-[Short Headline]        ← What it DOES for you
-[2-3 sentence detail]   ← How it works
+[Short Headline]         What it DOES for you
+[2-3 sentence detail]    How it works
 ```
 
 **Apple Example:**
@@ -115,7 +115,7 @@ Apple uses **benefit-first feature cards**:
 - **Video**: Autoplay on scroll, muted, cinematic
 
 **What Ferni Needs:**
-- [ ] Full-viewport hero with scroll animation ✓ (we have this)
+- [ ] Full-viewport hero with scroll animation  (we have this)
 - [ ] Section dividers with gradient fades
 - [ ] Floating card shadows with depth
 - [ ] Auto-playing micro-videos for each feature
@@ -182,14 +182,14 @@ Apple uses **benefit-first feature cards**:
 - Legal links
 - Region selector
 
-**Ferni Has This** ✓ - but could add:
+**Ferni Has This**  - but could add:
 - Detailed footnotes explaining claims
 - Transparency about AI limitations
 - Link to human support
 
 ---
 
-## 🚀 ACTION ITEMS FOR FERNI
+##  ACTION ITEMS FOR FERNI
 
 ### HIGH PRIORITY
 
@@ -200,8 +200,8 @@ Apple uses **benefit-first feature cards**:
 
 2. **Section Story Frames**
    - Each section needs an emotional headline
-   - "Just talk." → "Conversations that go somewhere."
-   - "Six minds." → "A team that actually knows you."
+   - "Just talk."  "Conversations that go somewhere."
+   - "Six minds."  "A team that actually knows you."
 
 3. **Feature Micro-Videos**
    - Each feature block gets a 5-second looping video
@@ -247,7 +247,7 @@ Apple uses **benefit-first feature cards**:
 
 ---
 
-## 📝 NEW COPY SUGGESTIONS
+##  NEW COPY SUGGESTIONS
 
 ### Hero Options
 
@@ -296,7 +296,7 @@ Six specialists. One conversation.
 
 ---
 
-## 🎬 WHAT APPLE DOES WITH VIDEO
+##  WHAT APPLE DOES WITH VIDEO
 
 Apple uses video for:
 1. **Hero background** - Cinematic product shots
@@ -305,10 +305,10 @@ Apple uses video for:
 4. **Product demos** - Showing real usage
 
 **Ferni Should Create:**
-1. ✓ Hero background (zen garden - have it)
-2. 🔲 Feature micro-videos (5-10 sec each)
-3. 🔲 Story video (60-90 sec brand film)
-4. 🔲 Demo video (showing real conversation)
+1.  Hero background (zen garden - have it)
+2.  Feature micro-videos (5-10 sec each)
+3.  Story video (60-90 sec brand film)
+4.  Demo video (showing real conversation)
 
 ---
 

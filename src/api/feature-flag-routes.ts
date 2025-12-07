@@ -13,17 +13,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import {
-  getFeatureFlags,
-  type FeatureFlag,
-} from '../services/feature-flags.js';
+import { getFeatureFlags, type FeatureFlag } from '../services/feature-flags.js';
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  parseBody,
-  sendJSON,
-  sendError,
-  handleCorsPreflightIfNeeded,
-} from './helpers.js';
+import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from './helpers.js';
 import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';
 import { validateBody, CreateFeatureFlagSchema, UpdateFeatureFlagSchema } from './validators.js';
 
@@ -192,4 +184,3 @@ export async function handleFeatureFlagRoutes(
     return true;
   }
 }
-

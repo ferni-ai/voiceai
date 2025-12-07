@@ -239,9 +239,7 @@ export class LiveBackchannelingService {
       const phrases = personaPhrases[emotionType] || personaPhrases['neutral'];
       if (phrases && phrases.length > 0) {
         // Avoid repeating recent backchannels
-        const availablePhrases = phrases.filter(
-          (p) => !this.recentBackchannels.includes(p)
-        );
+        const availablePhrases = phrases.filter((p) => !this.recentBackchannels.includes(p));
         if (availablePhrases.length > 0) {
           return availablePhrases[Math.floor(Math.random() * availablePhrases.length)];
         }
@@ -420,11 +418,9 @@ export class BreathPauseDetector {
     const p60 = sorted[Math.floor(sorted.length * 0.6)];
 
     // Blend with defaults (don't fully trust adaptive)
-    this.adaptiveSilenceThreshold =
-      0.5 * BREATH_PAUSE_CONFIG.SILENCE_THRESHOLD + 0.5 * (p10 * 1.5);
+    this.adaptiveSilenceThreshold = 0.5 * BREATH_PAUSE_CONFIG.SILENCE_THRESHOLD + 0.5 * (p10 * 1.5);
 
-    this.adaptiveSpeechThreshold =
-      0.5 * BREATH_PAUSE_CONFIG.SPEECH_THRESHOLD + 0.5 * (p60 * 0.7);
+    this.adaptiveSpeechThreshold = 0.5 * BREATH_PAUSE_CONFIG.SPEECH_THRESHOLD + 0.5 * (p60 * 0.7);
 
     // Ensure speech threshold is always above silence threshold
     if (this.adaptiveSpeechThreshold <= this.adaptiveSilenceThreshold * 1.5) {
@@ -613,9 +609,7 @@ export class BreathPauseDetector {
     adaptiveSilenceThreshold: number;
     adaptiveSpeechThreshold: number;
   } {
-    const breathPauses = this.pauseHistory.filter(
-      (d) => d >= 100 && d <= CONFIG.BREATH_PAUSE_MAX
-    );
+    const breathPauses = this.pauseHistory.filter((d) => d >= 100 && d <= CONFIG.BREATH_PAUSE_MAX);
     return {
       totalPauses: this.pauseHistory.length,
       breathPauseCount: breathPauses.length,
@@ -671,4 +665,3 @@ export function resetLiveBackchanneling(): void {
   breathPauseDetectorInstance?.reset();
   breathPauseDetectorInstance = null;
 }
-

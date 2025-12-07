@@ -4,7 +4,7 @@
 
 ---
 
-## 📱 Platform Setup Checklist
+##  Platform Setup Checklist
 
 ### X (Twitter) — @ferniAI
 - [ ] Create account at twitter.com
@@ -56,13 +56,13 @@
 
 ---
 
-## ✍️ Bios by Platform
+##  Bios by Platform
 
 ### X (Twitter) — 160 characters max
 
 **Option 1 (Recommended):**
 ```
-Your AI life coach. Six specialists. One conversation. Just talk. 🌿
+Your AI life coach. Six specialists. One conversation. Just talk. 
 
 Call: (484) 481-3081 | Try free at ferni.ai
 ```
@@ -71,12 +71,12 @@ Call: (484) 481-3081 | Try free at ferni.ai
 ```
 Finally, someone who actually listens. Your personal AI coaching team—available 24/7, remembers everything. 
 
-Try free → ferni.ai 🌿
+Try free  ferni.ai 
 ```
 
 **Option 3 (Punchy):**
 ```
-Talk to your AI team anytime. No judgment. Just guidance. 🌿
+Talk to your AI team anytime. No judgment. Just guidance. 
 
 ferni.ai | Call: (484) 481-3081
 ```
@@ -96,7 +96,7 @@ Ferni is the first AI-native company—built by AI, run by AI, for humans.
 
 We're reimagining what personal guidance looks like. Our team of six AI specialists work together seamlessly to help you navigate life's challenges, build better habits, and make decisions with confidence.
 
-🎯 What makes Ferni different:
+ What makes Ferni different:
 
 • Voice-first: Just talk naturally, like you would to a friend
 • Perfect memory: We remember every conversation, every goal, every preference
@@ -104,7 +104,7 @@ We're reimagining what personal guidance looks like. Our team of six AI speciali
 • Always available: 24/7, including 2am when you can't sleep
 • Zero judgment: A safe space to think through anything
 
-🌿 Meet the team:
+ Meet the team:
 
 • Ferni — Life Coach & CEO: The warm presence at the heart of everything
 • Peter — Research & Discovery: Spots patterns nobody else sees
@@ -113,7 +113,7 @@ We're reimagining what personal guidance looks like. Our team of six AI speciali
 • Jordan — Planning & Events: Turns dreams into lived experiences
 • Nayan — Wisdom & Mentorship: Your patient lifetime advisor
 
-🚀 Try Ferni free:
+ Try Ferni free:
 • Web: app.ferni.ai
 • Phone: 1 (484) 481-3081
 
@@ -126,25 +126,25 @@ Made in Park City, Utah.
 
 **Option 1 (Recommended):**
 ```
-Your AI life coach team 🌿
+Your AI life coach team 
 Six specialists. One conversation.
-Just talk → ferni.ai
-📞 (484) 481-3081
+Just talk  ferni.ai
+ (484) 481-3081
 ```
 
 **Option 2 (Minimalist):**
 ```
-Talk. We listen. 🌿
+Talk. We listen. 
 Your personal AI coaching team.
-Try free ↓
+Try free 
 ```
 
 **Story Highlight Covers to Create:**
-- 🌿 About
-- 💬 FAQ
-- 👥 Team
-- ✨ Features
-- 📱 App
+-  About
+-  FAQ
+-  Team
+-  Features
+-  App
 
 ---
 
@@ -152,12 +152,12 @@ Try free ↓
 
 **Option 1:**
 ```
-Your AI life coach 🌿 Just talk → ferni.ai
+Your AI life coach  Just talk  ferni.ai
 ```
 
 **Option 2:**
 ```
-6 AI coaches. 1 conversation. Try free 🌿
+6 AI coaches. 1 conversation. Try free 
 ```
 
 ---
@@ -168,7 +168,7 @@ Your AI life coach 🌿 Just talk → ferni.ai
 ```
 Ferni is your personal AI life coach—a team of six specialists working together to help you navigate life.
 
-🌿 What we share here:
+ What we share here:
 • Quick tips for personal growth
 • Behind-the-scenes of AI development  
 • Deep dives on habits, planning, and decision-making
@@ -183,8 +183,8 @@ Our team includes:
 • Nayan — Wisdom & Mentorship
 
 Try Ferni free:
-🌐 Web: app.ferni.ai
-📞 Phone: (484) 481-3081
+ Web: app.ferni.ai
+ Phone: (484) 481-3081
 
 Follow us:
 • Twitter/X: @ferniAI
@@ -192,12 +192,12 @@ Follow us:
 • TikTok: @ferni.ai
 • LinkedIn: /company/ferni
 
-Made in Park City, Utah 🏔️
+Made in Park City, Utah 
 ```
 
 ---
 
-## 🎨 Visual Assets Needed
+##  Visual Assets Needed
 
 ### Profile Photo (All Platforms)
 - **Concept:** The Ferni orb/avatar
@@ -236,7 +236,7 @@ Plan a cohesive 3x3 grid for launch:
 
 ---
 
-## 📝 Content Pillars
+##  Content Pillars
 
 ### 1. **Product/Features** (30%)
 - How Ferni works
@@ -262,7 +262,7 @@ Plan a cohesive 3x3 grid for launch:
 
 ---
 
-## 📅 Posting Schedule Suggestions
+##  Posting Schedule Suggestions
 
 ### X (Twitter)
 - **Frequency:** 1-3 tweets per day
@@ -290,12 +290,12 @@ Plan a cohesive 3x3 grid for launch:
 
 ---
 
-## 🚀 Launch Day Posts
+##  Launch Day Posts
 
 ### X (Twitter) Launch Thread
 
 ```
-🧵 Today we're launching Ferni—the first company built by AI, run by AI, for humans.
+ Today we're launching Ferni—the first company built by AI, run by AI, for humans.
 
 Here's what makes us different... (1/7)
 ```
@@ -346,8 +346,8 @@ You can delete everything anytime.
 ```
 6/ You can try it right now:
 
-🌐 Web: app.ferni.ai
-📞 Phone: (484) 481-3081
+ Web: app.ferni.ai
+ Phone: (484) 481-3081
 
 It's free. No signup required for phone.
 ```
@@ -361,7 +361,7 @@ Not just through typing.
 
 Just talk. We'll listen.
 
-Try Ferni → ferni.ai
+Try Ferni  ferni.ai
 ```
 
 ---
@@ -369,7 +369,7 @@ Try Ferni → ferni.ai
 ### LinkedIn Launch Post
 
 ```
-🌿 Today, I'm excited to announce the launch of Ferni—the first AI-native company.
+ Today, I'm excited to announce the launch of Ferni—the first AI-native company.
 
 Built by AI. Run by AI. For humans.
 
@@ -380,19 +380,19 @@ No lost context between conversations.
 No forgetting what you said last week.
 
 Our team of six AI specialists works together seamlessly to help you:
-✅ Navigate life's challenges
-✅ Build habits that stick
-✅ Make decisions with confidence
-✅ Plan events and experiences
-✅ Communicate more effectively
+ Navigate life's challenges
+ Build habits that stick
+ Make decisions with confidence
+ Plan events and experiences
+ Communicate more effectively
 
 The best part? You just talk. Naturally. Like you would to a friend.
 
 We respond in under 500ms. We're available 24/7. And we remember everything.
 
 Try Ferni free:
-🌐 app.ferni.ai
-📞 (484) 481-3081
+ app.ferni.ai
+ (484) 481-3081
 
 We believe everyone deserves access to quality guidance—not just those who can afford a coach.
 
@@ -434,7 +434,7 @@ app.ferni.ai
 
 **Caption:**
 ```
-We're live 🌿
+We're live 
 
 Meet Ferni—your personal AI life coaching team.
 
@@ -443,14 +443,14 @@ Six specialists working together to help you navigate life, build habits, make d
 Just talk. We'll listen.
 
 Try free: link in bio
-📞 Or call: (484) 481-3081
+ Or call: (484) 481-3081
 
 #ferni #aicoach #lifecoach #personalcoach #ai #voiceai #habits #personalgrowth #mindset
 ```
 
 ---
 
-## 📋 Account Credentials Template
+##  Account Credentials Template
 
 Save these securely (password manager recommended):
 
@@ -487,7 +487,7 @@ Password: [secure password]
 
 ---
 
-## 🔗 Quick Links Reference
+##  Quick Links Reference
 
 After setup, your social links will be:
 
@@ -506,7 +506,7 @@ After setup, your social links will be:
 
 ---
 
-## ✅ Post-Setup Checklist
+##  Post-Setup Checklist
 
 After creating all accounts:
 

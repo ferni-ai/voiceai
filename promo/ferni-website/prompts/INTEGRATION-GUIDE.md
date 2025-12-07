@@ -1,38 +1,38 @@
-# 🔧 Asset Integration Guide
+#  Asset Integration Guide
 
 Quick reference for adding generated images/videos to the Ferni website.
 
 ---
 
-## 📁 File Structure
+##  File Structure
 
 Place generated assets in these folders:
 
 ```
 promo/ferni-website/
-├── images/
-│   ├── avatars/           <- Team avatars (NEW)
-│   │   ├── ferni.png
-│   │   ├── jack.png
-│   │   ├── peter.png
-│   │   ├── alex.png
-│   │   ├── maya.png
-│   │   └── jordan.png
-│   ├── testimonials/      <- Testimonial photos (NEW)
-│   │   ├── sarah-k.jpg
-│   │   ├── michael-r.jpg
-│   │   ├── jessica-l.jpg
-│   │   └── david-w.jpg
-│   ├── og-image.png       <- Social sharing image (NEW)
-│   └── sequence/          <- Hero animation frames (existing)
-├── videos/                <- Video assets (NEW)
-│   ├── hero-bg.mp4
-│   └── cta-bg.mp4
+ images/
+    avatars/           <- Team avatars (NEW)
+       ferni.png
+       jack.png
+       peter.png
+       alex.png
+       maya.png
+       jordan.png
+    testimonials/      <- Testimonial photos (NEW)
+       sarah-k.jpg
+       michael-r.jpg
+       jessica-l.jpg
+       david-w.jpg
+    og-image.png       <- Social sharing image (NEW)
+    sequence/          <- Hero animation frames (existing)
+ videos/                <- Video assets (NEW)
+    hero-bg.mp4
+    cta-bg.mp4
 ```
 
 ---
 
-## 🎭 Team Avatars Integration
+##  Team Avatars Integration
 
 ### Current HTML (initials only):
 ```html
@@ -88,7 +88,7 @@ promo/ferni-website/
 
 ---
 
-## 💬 Testimonial Photos Integration
+##  Testimonial Photos Integration
 
 ### Current HTML:
 ```html
@@ -105,7 +105,7 @@ promo/ferni-website/
 
 ---
 
-## 🖼️ OG/Social Image Integration
+##  OG/Social Image Integration
 
 ### In `<head>` section of index.html:
 
@@ -121,7 +121,7 @@ promo/ferni-website/
 
 ---
 
-## 🎬 Hero Video Integration (Replace Image Sequence)
+##  Hero Video Integration (Replace Image Sequence)
 
 ### Option A: Video Background (Recommended)
 
@@ -175,7 +175,7 @@ The current image sequence animation works well. Only switch to video if:
 
 ---
 
-## 🎯 CTA Section Video Background
+##  CTA Section Video Background
 
 ### Add to CTA section:
 ```html
@@ -211,7 +211,7 @@ The current image sequence animation works well. Only switch to video if:
 
 ---
 
-## ✅ Integration Checklist
+##  Integration Checklist
 
 When you have generated assets ready:
 
@@ -228,7 +228,7 @@ When you have generated assets ready:
 
 ---
 
-## 🔗 Useful Tools
+##  Useful Tools
 
 - **Image Optimization:** [TinyPNG](https://tinypng.com), [Squoosh](https://squoosh.app)
 - **Video Compression:** [HandBrake](https://handbrake.fr)
@@ -237,7 +237,7 @@ When you have generated assets ready:
 
 ---
 
-## 📐 Image Size Reference
+##  Image Size Reference
 
 | Asset | Dimensions | Format | Max Size |
 |-------|-----------|--------|----------|

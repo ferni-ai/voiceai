@@ -171,9 +171,7 @@ const CONTINUATION_PHRASES = [
 /**
  * Analyze if a transcript represents a complete sentence/thought
  */
-export function analyzeTranscriptCompleteness(
-  transcript: string
-): SentenceCompletenessResult {
+export function analyzeTranscriptCompleteness(transcript: string): SentenceCompletenessResult {
   const trimmed = transcript.trim();
   const lower = trimmed.toLowerCase();
 
@@ -240,7 +238,7 @@ export function analyzeTranscriptCompleteness(
 
   // Check for continuation phrases at end (NOT complete)
   for (const phrase of CONTINUATION_PHRASES) {
-    if (lower.endsWith(phrase) || lower.endsWith(phrase + ',')) {
+    if (lower.endsWith(phrase) || lower.endsWith(`${phrase},`)) {
       return {
         isComplete: false,
         confidence: 0.8,
@@ -264,9 +262,10 @@ export function analyzeTranscriptCompleteness(
 
   // Grammatical completeness heuristics
   const hasSubject = /\b(i|you|he|she|it|we|they|that|this|there)\b/i.test(trimmed);
-  const hasVerb = /\b(is|are|was|were|have|has|had|do|does|did|will|would|can|could|should|might|'m|'re|'s|'ve|'d|'ll)\b/i.test(
-    trimmed
-  );
+  const hasVerb =
+    /\b(is|are|was|were|have|has|had|do|does|did|will|would|can|could|should|might|'m|'re|'s|'ve|'d|'ll)\b/i.test(
+      trimmed
+    );
 
   if (hasSubject && hasVerb && wordCount >= 4) {
     return {
@@ -303,9 +302,9 @@ export class TurnPredictionService {
     const sentenceAnalysis = analyzeTranscriptCompleteness(ctx.transcript);
 
     // Start with sentence completeness
-    let isComplete = sentenceAnalysis.isComplete;
-    let confidence = sentenceAnalysis.confidence;
-    let reason = sentenceAnalysis.reason;
+    let { isComplete } = sentenceAnalysis;
+    let { confidence } = sentenceAnalysis;
+    let { reason } = sentenceAnalysis;
 
     // Adjust based on silence duration
     if (ctx.silenceDurationMs > 0) {
@@ -597,4 +596,3 @@ export function resetTurnPredictionService(sessionId: string): void {
 export function resetAllTurnPrediction(): void {
   sessionInstances.clear();
 }
-

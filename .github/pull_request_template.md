@@ -2,6 +2,19 @@
 
 <!-- Brief description of what this PR does -->
 
+## Human-ness Check
+
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+<!-- Answer honestly - it's okay if not all apply to every PR -->
+
+- [ ] **Human Connection**: Does this make interactions feel more human?
+- [ ] **Relationship**: Does this serve the ongoing relationship, not just this transaction?
+- [ ] **Gentle Growth**: If user-facing, does this support without pressuring?
+- [ ] **Authenticity**: Does this feel genuine, not corporate or robotic?
+
+<!-- If you checked none, that's fine for pure technical/infra PRs. But pause and consider if there's an opportunity to add warmth. -->
+
 ## Type of Change
 
 - [ ] `feat` - New feature

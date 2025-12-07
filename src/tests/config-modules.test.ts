@@ -452,7 +452,11 @@ describe('feature-flags.ts', () => {
     originalEnv = { ...process.env };
     // Clear environment
     Object.keys(process.env).forEach((key) => {
-      if (key.startsWith('DEBUG_') || key.startsWith('ENABLE_') || key.startsWith('EXPERIMENTAL_')) {
+      if (
+        key.startsWith('DEBUG_') ||
+        key.startsWith('ENABLE_') ||
+        key.startsWith('EXPERIMENTAL_')
+      ) {
         delete process.env[key];
       }
     });
@@ -627,9 +631,8 @@ describe('feature-flags.ts', () => {
 
     it('should work with environment overrides', async () => {
       process.env.ENABLE_AB_TESTING = 'true';
-      const { reloadFeatureFlags, isExperimentalEnabled } = await import(
-        '../config/feature-flags.js'
-      );
+      const { reloadFeatureFlags, isExperimentalEnabled } =
+        await import('../config/feature-flags.js');
       reloadFeatureFlags();
 
       expect(isExperimentalEnabled('abTesting')).toBe(true);
@@ -645,9 +648,8 @@ describe('feature-flags.ts', () => {
 
     it('should respect environment override', async () => {
       process.env.HUMANIZATION_ENABLED = 'false';
-      const { reloadFeatureFlags, isHumanizationEnabled } = await import(
-        '../config/feature-flags.js'
-      );
+      const { reloadFeatureFlags, isHumanizationEnabled } =
+        await import('../config/feature-flags.js');
       reloadFeatureFlags();
 
       expect(isHumanizationEnabled()).toBe(false);
@@ -666,9 +668,8 @@ describe('feature-flags.ts', () => {
       process.env.DEBUG_MEMORY = 'true';
       process.env.DEBUG_TOOLS = 'true';
 
-      const { reloadFeatureFlags, getEnabledDebugCategories } = await import(
-        '../config/feature-flags.js'
-      );
+      const { reloadFeatureFlags, getEnabledDebugCategories } =
+        await import('../config/feature-flags.js');
       reloadFeatureFlags();
 
       const enabled = getEnabledDebugCategories();
@@ -681,9 +682,8 @@ describe('feature-flags.ts', () => {
 
   describe('setFeatureFlagsForTesting', () => {
     it('should override specific flags', async () => {
-      const { setFeatureFlagsForTesting, getFeatureFlags } = await import(
-        '../config/feature-flags.js'
-      );
+      const { setFeatureFlagsForTesting, getFeatureFlags } =
+        await import('../config/feature-flags.js');
 
       setFeatureFlagsForTesting({
         debug: { agent: true, humanizing: true },
@@ -695,9 +695,8 @@ describe('feature-flags.ts', () => {
     });
 
     it('should deep merge overrides', async () => {
-      const { setFeatureFlagsForTesting, getFeatureFlags } = await import(
-        '../config/feature-flags.js'
-      );
+      const { setFeatureFlagsForTesting, getFeatureFlags } =
+        await import('../config/feature-flags.js');
 
       setFeatureFlagsForTesting({
         humanization: { disfluencies: false },

@@ -53,15 +53,9 @@ export interface BackgroundTaskContext {
  * );
  * ```
  */
-export function runBackground<T>(
-  promise: Promise<T>,
-  context: BackgroundTaskContext
-): void {
+export function runBackground<T>(promise: Promise<T>, context: BackgroundTaskContext): void {
   promise.catch((err) => {
-    getLogger().warn(
-      { ...context, err: String(err) },
-      `Background task failed: ${context.task}`
-    );
+    getLogger().warn({ ...context, err: String(err) }, `Background task failed: ${context.task}`);
   });
 }
 
@@ -93,10 +87,7 @@ export function runBackgroundWithTimeout<T>(
 
   const timeout = setTimeout(() => {
     timedOut = true;
-    getLogger().warn(
-      { ...context, timeoutMs },
-      `Background task timed out: ${context.task}`
-    );
+    getLogger().warn({ ...context, timeoutMs }, `Background task timed out: ${context.task}`);
   }, timeoutMs);
 
   promise
@@ -111,10 +102,7 @@ export function runBackgroundWithTimeout<T>(
     })
     .catch((err) => {
       clearTimeout(timeout);
-      getLogger().warn(
-        { ...context, err: String(err) },
-        `Background task failed: ${context.task}`
-      );
+      getLogger().warn({ ...context, err: String(err) }, `Background task failed: ${context.task}`);
     });
 }
 
@@ -137,7 +125,7 @@ export function runBackgroundWithTimeout<T>(
  * ```
  */
 export function runBackgroundBatch(
-  promises: Promise<unknown>[],
+  promises: Array<Promise<unknown>>,
   context: BackgroundTaskContext
 ): void {
   Promise.allSettled(promises).then((results) => {
@@ -148,9 +136,7 @@ export function runBackgroundBatch(
           ...context,
           total: promises.length,
           failed: failures.length,
-          errors: failures.map((f) =>
-            f.status === 'rejected' ? String(f.reason) : ''
-          ),
+          errors: failures.map((f) => (f.status === 'rejected' ? String(f.reason) : '')),
         },
         `Background batch partially failed: ${context.task}`
       );

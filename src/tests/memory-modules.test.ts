@@ -739,10 +739,7 @@ describe('Embeddings Module', () => {
     });
 
     it('should embed batch via API', async () => {
-      const mockEmbeddings = [
-        new Array(1536).fill(0.1),
-        new Array(1536).fill(0.2),
-      ];
+      const mockEmbeddings = [new Array(1536).fill(0.1), new Array(1536).fill(0.2)];
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -799,10 +796,7 @@ describe('Embeddings Module', () => {
     });
 
     it('should sort embeddings by index', async () => {
-      const mockEmbeddings = [
-        new Array(1536).fill(0.1),
-        new Array(1536).fill(0.2),
-      ];
+      const mockEmbeddings = [new Array(1536).fill(0.1), new Array(1536).fill(0.2)];
 
       // Return in wrong order
       mockFetch.mockResolvedValueOnce({

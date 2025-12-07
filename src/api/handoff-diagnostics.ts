@@ -1,11 +1,11 @@
 /**
  * Handoff Diagnostics API
- * 
+ *
  * Provides endpoints for viewing handoff metrics and diagnostics.
- * 
+ *
  * NOTE: All diagnostics endpoints require admin authentication.
  * These endpoints expose operational data that should not be public.
- * 
+ *
  * Endpoints:
  *   GET /api/diagnostics/handoffs - Get handoff metrics summary
  *   GET /api/diagnostics/handoffs/recent - Get recent handoff traces
@@ -35,7 +35,7 @@ export async function getHandoffMetrics(req: Request, res: Response): Promise<vo
   try {
     const windowMinutes = parseInt(req.query['window'] as string) || 60;
     const summary = handoffMetrics.getSummary(windowMinutes);
-    
+
     res.json({
       success: true,
       data: summary,
@@ -61,14 +61,14 @@ export async function getRecentHandoffs(req: Request, res: Response): Promise<vo
   try {
     const limit = Math.min(parseInt(req.query['limit'] as string) || 50, 200);
     const windowMinutes = parseInt(req.query['window'] as string) || 60;
-    
+
     const summary = handoffMetrics.getSummary(windowMinutes);
-    
+
     // Combine successes and failures, sort by time
     const traces = [...summary.recentFailures]
       .sort((a, b) => b.startTime - a.startTime)
       .slice(0, limit);
-    
+
     res.json({
       success: true,
       data: {
@@ -99,10 +99,10 @@ export async function getHandoffFailures(req: Request, res: Response): Promise<v
   try {
     const limit = Math.min(parseInt(req.query['limit'] as string) || 50, 200);
     const windowMinutes = parseInt(req.query['window'] as string) || 60;
-    
+
     const summary = handoffMetrics.getSummary(windowMinutes);
     const failures = summary.recentFailures.slice(0, limit);
-    
+
     res.json({
       success: true,
       data: {
@@ -133,7 +133,7 @@ export async function getHandoffFailures(req: Request, res: Response): Promise<v
 export async function getInProgressHandoffs(req: Request, res: Response): Promise<void> {
   try {
     const inProgress = handoffMetrics.getInProgressHandoffs();
-    
+
     res.json({
       success: true,
       data: {
@@ -167,9 +167,9 @@ export async function getHandoffTrace(req: Request, res: Response): Promise<void
       });
       return;
     }
-    
+
     const trace = handoffMetrics.getTrace(traceId);
-    
+
     if (!trace) {
       res.status(404).json({
         success: false,
@@ -177,7 +177,7 @@ export async function getHandoffTrace(req: Request, res: Response): Promise<void
       });
       return;
     }
-    
+
     res.json({
       success: true,
       data: trace,
@@ -201,7 +201,7 @@ export async function getHandoffTrace(req: Request, res: Response): Promise<void
 /**
  * Handle diagnostics routes with raw HTTP (for ui-server.js integration).
  * All diagnostics endpoints require admin authentication.
- * 
+ *
  * @returns true if request was handled, false otherwise
  */
 export async function handleDiagnosticsRoutes(
@@ -230,7 +230,7 @@ export async function handleDiagnosticsRoutes(
         1440 // max 24 hours
       );
       const summary = handoffMetrics.getSummary(windowMinutes);
-      
+
       sendJSON(res, {
         success: true,
         data: summary,
@@ -246,12 +246,12 @@ export async function handleDiagnosticsRoutes(
     if (pathname === '/api/diagnostics/handoffs/recent') {
       const limit = parsePositiveInt(parsedUrl.searchParams.get('limit'), 50, 200);
       const windowMinutes = parsePositiveInt(parsedUrl.searchParams.get('window'), 60, 1440);
-      
+
       const summary = handoffMetrics.getSummary(windowMinutes);
       const traces = [...summary.recentFailures]
         .sort((a, b) => b.startTime - a.startTime)
         .slice(0, limit);
-      
+
       sendJSON(res, {
         success: true,
         data: {
@@ -268,10 +268,10 @@ export async function handleDiagnosticsRoutes(
     if (pathname === '/api/diagnostics/handoffs/failures') {
       const limit = parsePositiveInt(parsedUrl.searchParams.get('limit'), 50, 200);
       const windowMinutes = parsePositiveInt(parsedUrl.searchParams.get('window'), 60, 1440);
-      
+
       const summary = handoffMetrics.getSummary(windowMinutes);
       const failures = summary.recentFailures.slice(0, limit);
-      
+
       sendJSON(res, {
         success: true,
         data: {
@@ -288,7 +288,7 @@ export async function handleDiagnosticsRoutes(
     // GET /api/diagnostics/handoffs/in-progress
     if (pathname === '/api/diagnostics/handoffs/in-progress') {
       const inProgress = handoffMetrics.getInProgressHandoffs();
-      
+
       sendJSON(res, {
         success: true,
         data: { inProgress, count: inProgress.length },
@@ -302,12 +302,12 @@ export async function handleDiagnosticsRoutes(
     if (traceMatch) {
       const traceId = traceMatch[1];
       const trace = handoffMetrics.getTrace(traceId);
-      
+
       if (!trace) {
         sendError(res, `Trace ${traceId} not found`, 404);
         return true;
       }
-      
+
       sendJSON(res, {
         success: true,
         data: trace,
@@ -330,7 +330,7 @@ export async function handleDiagnosticsRoutes(
 
 /**
  * Set up handoff diagnostics routes on an Express app/router.
- * 
+ *
  * NOTE: For raw HTTP servers (like ui-server.js), use handleDiagnosticsRoutes()
  * instead, which includes built-in admin authentication.
  */
@@ -344,7 +344,7 @@ export function setupHandoffDiagnosticsRoutes(app: {
   app.get('/api/diagnostics/handoffs/failures', getHandoffFailures);
   app.get('/api/diagnostics/handoffs/in-progress', getInProgressHandoffs);
   app.get('/api/diagnostics/handoffs/:traceId', getHandoffTrace);
-  
+
   log.info('📊 Handoff diagnostics routes registered');
 }
 
@@ -401,4 +401,3 @@ export function getDashboardPage(_req: Request, res: Response): void {
   res.setHeader('Cache-Control', 'public, max-age=300'); // 5 min cache
   res.send(getDashboardHtml());
 }
-

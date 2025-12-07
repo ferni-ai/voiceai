@@ -57,13 +57,13 @@ const APPROACHING_PROMPTS = {
   midConversation: [
     // Natural mid-conversation mentions (rare, only if very low)
     "By the way, we're getting close to our monthly time limit. I just want to make sure we cover what matters most to you.",
-    "I should mention - we have limited time left this month. Is there anything important we should make sure to talk about?",
+    'I should mention - we have limited time left this month. Is there anything important we should make sure to talk about?',
   ],
 
   closing: [
     // At the end of conversation
-    "This was great. We have {remaining} more conversation{s} this month. If you want unlimited time together, just say the word.",
-    "Love talking with you. Fair warning - {remaining} left this month. But hey, quality over quantity, right?",
+    'This was great. We have {remaining} more conversation{s} this month. If you want unlimited time together, just say the word.',
+    'Love talking with you. Fair warning - {remaining} left this month. But hey, quality over quantity, right?',
   ],
 };
 
@@ -234,7 +234,10 @@ export function getSubscriptionPrompt(
   if (context.approaching && context.tier === 'free' && context.conversationsRemaining !== null) {
     // Only mention if very close (1-2 left) or at greeting/closing
     if (context.conversationsRemaining <= 2 || placement !== 'mid-conversation') {
-      log.debug({ remaining: context.conversationsRemaining, placement }, 'Generating approaching prompt');
+      log.debug(
+        { remaining: context.conversationsRemaining, placement },
+        'Generating approaching prompt'
+      );
       return getApproachingPrompt(context.conversationsRemaining, placement);
     }
   }
@@ -305,4 +308,3 @@ export function getClosingSubscriptionPrompt(context: SubscriptionContext): stri
 
   return getApproachingPrompt(context.conversationsRemaining, 'closing').prompt;
 }
-

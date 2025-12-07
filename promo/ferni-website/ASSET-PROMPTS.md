@@ -1,25 +1,25 @@
-# 🎬 Ferni Website - Complete Asset Library & Veo 3 Prompts
+#  Ferni Website - Complete Asset Library & Veo 3 Prompts
 
 This document contains all the image and video prompts needed to create a world-class Apple-quality landing page for Ferni.
 
 ---
 
-## 📊 Asset Overview
+##  Asset Overview
 
 | Section | Asset Type | Priority | Status |
 |---------|-----------|----------|--------|
-| Hero Background | Video (Image Sequence) | 🔴 Critical | ✅ Have zen garden |
-| OG/Social Image | Static Image | 🔴 Critical | ❌ Needs creation |
-| Team Avatars (6) | Static Images | 🟡 High | ❌ Needs creation |
-| Testimonial Photos (4) | Static Images | 🟡 High | ❌ Needs creation |
-| Feature Visuals (3) | Video/Animation | 🟢 Medium | ⚡ CSS animations exist |
-| CTA Background | Video | 🟢 Medium | ❌ Needs creation |
-| About/Story | Video | 🟢 Medium | ❌ Optional |
-| App Store Badge | Static Image | 🟢 Low | N/A (Web-first) |
+| Hero Background | Video (Image Sequence) |  Critical |  Have zen garden |
+| OG/Social Image | Static Image |  Critical |  Needs creation |
+| Team Avatars (6) | Static Images |  High |  Needs creation |
+| Testimonial Photos (4) | Static Images |  High |  Needs creation |
+| Feature Visuals (3) | Video/Animation |  Medium |  CSS animations exist |
+| CTA Background | Video |  Medium |  Needs creation |
+| About/Story | Video |  Medium |  Optional |
+| App Store Badge | Static Image |  Low | N/A (Web-first) |
 
 ---
 
-## 🎥 VIDEO ASSETS
+##  VIDEO ASSETS
 
 ### 1. HERO BACKGROUND VIDEO (Primary)
 **Current:** Zen garden image sequence
@@ -133,7 +133,7 @@ Colors: Natural ink (#2C2520) on warm paper cream (#F5F1E8).
 
 ---
 
-## 🖼️ STATIC IMAGE ASSETS
+##  STATIC IMAGE ASSETS
 
 ### 5. OG/SOCIAL SHARING IMAGE (1200x630)
 **Use Case:** Link previews on Twitter, LinkedIn, Facebook, iMessage
@@ -282,7 +282,7 @@ Dimensions: 600x400 pixels.
 
 ---
 
-## 🎨 COLOR REFERENCE
+##  COLOR REFERENCE
 
 | Color Name | Hex | Use |
 |------------|-----|-----|
@@ -295,7 +295,7 @@ Dimensions: 600x400 pixels.
 
 ---
 
-## 📐 TECHNICAL SPECIFICATIONS
+##  TECHNICAL SPECIFICATIONS
 
 ### Video Specs (Hero Background)
 - **Resolution:** 4K (3840x2160) minimum, 8K preferred for future-proofing
@@ -312,7 +312,7 @@ Dimensions: 600x400 pixels.
 
 ---
 
-## 🚀 GENERATION PRIORITY ORDER
+##  GENERATION PRIORITY ORDER
 
 1. **OG/Social Image** - Needed for any social sharing
 2. **Hero Video** - Replace or enhance current image sequence
@@ -323,7 +323,7 @@ Dimensions: 600x400 pixels.
 
 ---
 
-## 💡 VEO 3 TIPS
+##  VEO 3 TIPS
 
 1. **Always specify:**
    - Resolution: "8K", "4K"
@@ -346,7 +346,7 @@ Dimensions: 600x400 pixels.
 
 ---
 
-## 📝 NOTES
+##  NOTES
 
 - Current zen garden sequence has 70 frames (every 4th from 280 total)
 - Video could replace image sequence for smoother performance

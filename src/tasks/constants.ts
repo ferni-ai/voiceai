@@ -88,4 +88,3 @@ export const TASK_TURN_COUNTS = {
 
 export type DistressLevel = keyof typeof DISTRESS_THRESHOLDS;
 export type TaskPriority = keyof typeof TASK_PRIORITIES;
-

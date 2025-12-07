@@ -18,11 +18,30 @@
 
 ---
 
+## 💡 Our Mission
+
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+Ferni isn't trying to pass the Turing test. We're trying to pass the "would I want to talk to this AI again?" test.
+
+Every feature we build, every architectural decision we make, every line of code we write is guided by a simple question: **Does this make the AI feel more human?**
+
+This means:
+- **Human connection over technical perfection** — The warmth of a conversation matters more than response speed
+- **Relationship over transaction** — Every interaction is part of an ongoing relationship
+- **Growth through gentleness** — Sustainable change comes from compassion, not pressure
+- **Authentic personality** — Real character, not corporate neutrality
+- **Presence over performance** — Being truly present matters more than being impressive
+
+See [`CORE-PRINCIPLES.md`](./CORE-PRINCIPLES.md) for our complete philosophy.
+
+---
+
 ## 🌟 What is Ferni?
 
 Ferni is a sophisticated multi-persona voice AI platform built with TypeScript. Using Google's Gemini Live API for real-time speech recognition and Cartesia Sonic 3 for natural text-to-speech, Ferni creates deeply human, emotionally intelligent conversations with persistent memory and adaptive behaviors.
 
-**Philosophy**: "Get to Know Ferni First" — Team members unlock naturally as your relationship deepens, or instantly with a subscription.
+**Product Philosophy**: "Get to Know Ferni First" — Team members unlock naturally as your relationship deepens, or instantly with a subscription.
 
 ## 🚀 Quick Start
 
@@ -339,7 +358,46 @@ npm run test:coverage
 | **Tools Analytics** | `/tools-dashboard.html` | Tool usage, optimization |
 | **Handoff Diagnostics** | `/api/diagnostics/handoffs` | Agent transfer metrics |
 
-## 🛠️ Agent Management CLI
+## 🛠️ CLI Tools
+
+### Unified Ferni CLI
+
+```bash
+# Interactive mode
+npm run ferni
+
+# Direct commands
+npm run ferni deploy ui        # Deploy UI server
+npm run ferni test quick       # Run quick tests
+npm run ferni generate all     # Generate all assets
+npm run ferni health           # Health check
+
+# Individual CLIs
+npm run deploy -- ui           # Deploy
+npm run test:cli -- e2e        # Test
+npm run validate -- all        # Validate
+npm run audit -- quality       # Quality audit
+npm run build:cli -- apps      # Build native apps
+npm run generate -- personas   # Generate personas
+```
+
+### Shell Completions (Optional)
+
+For tab completion of `ferni` commands:
+
+**Bash:**
+```bash
+# Add to ~/.bashrc
+source /path/to/voiceai/scripts/ferni-completions.bash
+```
+
+**Zsh:**
+```bash
+# Add to ~/.zshrc
+source /path/to/voiceai/scripts/ferni-completions.zsh
+```
+
+### Agent Management
 
 ```bash
 # List all agents
@@ -407,6 +465,55 @@ Native iOS and Android apps are available:
 - **Android**: `apps/android/` — Kotlin
 
 See [apps/README.md](apps/README.md) for build instructions.
+
+## 💻 VS Code Integration
+
+This project includes VS Code configurations for an optimal development experience:
+
+### Recommended Setup
+
+1. Install recommended extensions: `@recommended` in Extensions view
+2. Use built-in tasks: `Cmd/Ctrl+Shift+P` → "Tasks: Run Task"
+3. Debug with F5: Multiple debug configurations available
+
+### Tasks (Cmd/Ctrl+Shift+B)
+
+| Task | Description |
+|------|-------------|
+| Start Development | Start all dev servers |
+| Run Quick Tests | Fast validation tests |
+| Run All Tests | Complete test suite |
+| Build Frontend | Build production frontend |
+| Deploy All | Deploy everything to production |
+
+### Debug Configurations
+
+| Config | Description |
+|--------|-------------|
+| Voice Agent (Ferni) | Debug main voice agent |
+| UI Server | Debug UI server |
+| Token Server | Debug token server |
+| Full Stack | Debug all services simultaneously |
+
+### Settings
+
+Workspace settings include:
+- Format on save with ESLint + Prettier
+- Organize imports on save
+- File nesting for cleaner explorer
+- Search exclusions for node_modules, dist
+
+## 🎨 Storybook
+
+Interactive component documentation:
+
+```bash
+# Run locally
+npm run storybook           # http://localhost:6006
+
+# Build static
+npm run storybook:build     # Output to storybook-static/
+```
 
 ## 🤝 Contributing
 

@@ -136,15 +136,43 @@ export interface ChallengeDefinition {
 // HABIT BUNDLES
 // ============================================================================
 
+/**
+ * Individual habit within a bundle
+ */
+export interface HabitBundleItem {
+  name: string;
+  /** Duration in minutes */
+  minutes: number;
+  /** Tiny version for glidepath level 1 */
+  tinyVersion: string;
+  /** Core habits are essential; enhancement habits are optional */
+  priority: 'core' | 'enhancement';
+  /** Order in the stack sequence */
+  order: number;
+}
+
+/**
+ * Pre-built habit bundle - curated habits that work well together.
+ * Each bundle includes timing, science backing, and a stack formula.
+ */
 export interface HabitBundleDefinition {
   name: string;
+  /** The outcome this bundle helps achieve */
+  goal: string;
   description: string;
-  habits: Array<{
-    name: string;
-    frequency: string;
-    duration: string;
-  }>;
+  /** Total minutes when all habits are performed */
+  totalMinutes: number;
+  /** Minutes for just the core habits */
+  coreMinutes: number;
+  /** The sequence formula, e.g., "After alarm → Water → Movement → Mindset" */
+  stackFormula: string;
+  /** Scientific backing for why this bundle works */
+  science: string;
+  /** Individual habits in this bundle */
+  habits: HabitBundleItem[];
+  /** How these habits reinforce each other */
   synergies: string[];
+  /** How to start tiny with this bundle */
   startTiny: string;
 }
 
@@ -155,12 +183,15 @@ export interface HabitBundleDefinition {
 export interface MoodLog {
   id: string;
   mood: number | string;
-  energy: number;
+  energy: number | string;
   notes?: string;
   tags?: string[];
-  timestamp: string;
+  /** ISO timestamp */
+  timestamp?: string;
+  /** Legacy date field */
+  date?: string;
   /** Time of day for pattern analysis */
-  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  timeOfDay?: 'morning' | 'midday' | 'afternoon' | 'evening' | 'night';
   /** Habits completed on this day */
   habitsCompleted?: string[];
 }
@@ -219,12 +250,21 @@ export interface LifeTransitionSupport {
 // GLIDEPATH & BEHAVIOR SCIENCE
 // ============================================================================
 
+/**
+ * Glidepath level for gradual habit progression.
+ * Based on "Tiny Habits" methodology - start small, build up.
+ */
 export interface GlidepathLevel {
   level: number;
   name: string;
   description: string;
   duration: string;
+  /** Success criteria to advance to next level */
   criteria: string;
+  /** Intensity percentage (0-100) for this level */
+  intensity: number;
+  /** What to focus on at this level */
+  focus: string;
 }
 
 export interface HabitLoop {
@@ -240,21 +280,28 @@ export interface HabitLoop {
 
 /**
  * Rich habit loop structure for templates (blueprints).
- * More detailed than HabitLoop which is used for tracking.
+ * Based on "The Power of Habit" cue-routine-reward framework.
+ * More detailed than HabitLoop which is used for runtime tracking.
  */
 export interface HabitLoopTemplate {
   cue: {
-    type: 'time' | 'location' | 'emotion' | 'preceding_action' | 'people';
+    type: 'time' | 'location' | 'emotion' | 'preceding_action' | 'other_people';
     description: string;
+    /** Implementation intention specificity, e.g., "After I pour my morning coffee" */
     specificity: string;
   };
   routine: {
     behavior: string;
+    /** Duration in minutes */
     duration: number;
-    difficulty: 'tiny' | 'easy' | 'medium' | 'hard';
+    difficulty: 'tiny' | 'easy' | 'medium' | 'challenging';
   };
   reward: {
+    /** Internal satisfaction from the habit itself */
     intrinsic: string;
+    /** Optional external reward */
+    extrinsic?: string;
+    /** Immediate celebration (per Tiny Habits methodology) */
     celebration: string;
   };
 }
@@ -359,18 +406,65 @@ export interface EnhancedHabit {
 // HABIT TEMPLATES
 // ============================================================================
 
+/**
+ * Complete habit template with behavior science backing.
+ * Templates are blueprints for creating habits - they include
+ * everything needed for AI coaching: glidepath versions, habit loops,
+ * benefits, stacking suggestions, and life stage fit.
+ */
 export interface HabitTemplate {
   id: string;
   name: string;
   description: string;
   domain: LifeDomain;
-  subdomain: string;
-  defaultFrequency: 'daily' | 'weekly' | 'monthly';
-  suggestedCue: string;
-  suggestedReward: string;
-  glidepathStart: string;
-  glidepathEnd: string;
-  keystonePotential: number;
-  rippleEffects: string[];
+  subdomain?: string;
+
+  /** The goal this habit helps achieve */
+  goal: string;
+  /** Skill level required */
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  /** Time required in minutes at full level */
+  timeRequired: number;
+  /** Default frequency */
+  defaultFrequency?: 'daily' | 'weekly' | 'monthly';
+
+  // Glidepath versions for gradual progression
+  /** Level 1: Tiny start (2 min or less) */
+  tinyVersion: string;
+  /** Level 2: Mini habit (5-10 min) */
+  miniVersion: string;
+  /** Level 5: Full lifestyle integration */
+  fullVersion: string;
+
+  // Behavior science
+  /** The cue-routine-reward loop for this habit */
+  habitLoop: HabitLoopTemplate;
+
+  // Benefits & identity
+  /** Direct benefits of this habit */
+  benefits: string[];
+  /** Ripple effects on other areas of life */
+  cascadeEffects?: string[];
+  /** Whether this is a keystone habit */
+  isKeystone: boolean;
+  /** Keystone potential score (0-100) */
+  keystonePotential?: number;
+
+  // Stacking suggestions
+  /** Habits this pairs well with */
+  stacksWellWith: string[];
+  /** Existing habits to stack this after */
+  stacksWellAfter: string[];
+
+  // Life stage fit
+  /** Life stages this habit is especially good for */
   goodFor: LifeStage[];
+
+  // Evidence & coaching
+  /** Scientific backing or source */
+  scienceNote?: string;
+  /** Suggested cue for implementation intention */
+  suggestedCue?: string;
+  /** Suggested reward */
+  suggestedReward?: string;
 }

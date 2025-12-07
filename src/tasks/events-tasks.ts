@@ -80,7 +80,7 @@ export class EventPlanningTask extends IntelligentTask<EventPlanningResult> {
             if (avoid && avoid.length > 0) {
               response += `\nAvoiding: ${avoid.join(', ')}`;
             }
-            return response + "\n\nLove it. Now let's make it happen.";
+            return `${response}\n\nLove it. Now let's make it happen.`;
           },
         }),
 
@@ -108,17 +108,21 @@ export class EventPlanningTask extends IntelligentTask<EventPlanningResult> {
           description: 'Set and break down budget.',
           parameters: z.object({
             totalBudget: z.number(),
-            breakdown: z.array(z.object({
-              category: z.string(),
-              amount: z.number(),
-            })),
+            breakdown: z.array(
+              z.object({
+                category: z.string(),
+                amount: z.number(),
+              })
+            ),
             bufferIncluded: z.boolean(),
           }),
           execute: async ({ totalBudget, breakdown, bufferIncluded }) => {
             let response = `Budget: $${totalBudget.toLocaleString()}\n`;
-            response += breakdown.map(b => `- ${b.category}: $${b.amount.toLocaleString()}`).join('\n');
+            response += breakdown
+              .map((b) => `- ${b.category}: $${b.amount.toLocaleString()}`)
+              .join('\n');
             if (!bufferIncluded) {
-              response += "\n\n💡 Tip: Add 10-15% buffer for surprises.";
+              response += '\n\n💡 Tip: Add 10-15% buffer for surprises.';
             }
             return response;
           },
@@ -127,20 +131,22 @@ export class EventPlanningTask extends IntelligentTask<EventPlanningResult> {
         createChecklist: llm.tool({
           description: 'Create a planning checklist.',
           parameters: z.object({
-            checklist: z.array(z.object({
-              task: z.string(),
-              deadline: z.string().optional(),
-              priority: z.enum(['high', 'medium', 'low']),
-            })),
+            checklist: z.array(
+              z.object({
+                task: z.string(),
+                deadline: z.string().optional(),
+                priority: z.enum(['high', 'medium', 'low']),
+              })
+            ),
             nextThreeActions: z.array(z.string()),
           }),
           execute: async ({ checklist, nextThreeActions }) => {
-            const high = checklist.filter(c => c.priority === 'high');
-            const medium = checklist.filter(c => c.priority === 'medium');
-            
-            let response = `📋 Checklist:\n\n🔴 High priority:\n${high.map(c => `- ${c.task}${c.deadline ? ` (by ${c.deadline})` : ''}`).join('\n')}`;
+            const high = checklist.filter((c) => c.priority === 'high');
+            const medium = checklist.filter((c) => c.priority === 'medium');
+
+            let response = `📋 Checklist:\n\n🔴 High priority:\n${high.map((c) => `- ${c.task}${c.deadline ? ` (by ${c.deadline})` : ''}`).join('\n')}`;
             if (medium.length > 0) {
-              response += `\n\n🟡 Medium priority:\n${medium.map(c => `- ${c.task}`).join('\n')}`;
+              response += `\n\n🟡 Medium priority:\n${medium.map((c) => `- ${c.task}`).join('\n')}`;
             }
             response += `\n\n👉 Next 3 actions:\n${nextThreeActions.map((a, i) => `${i + 1}. ${a}`).join('\n')}`;
             return response;
@@ -160,8 +166,28 @@ export class EventPlanningTask extends IntelligentTask<EventPlanningResult> {
             nextSteps: z.array(z.string()),
             excitementLevel: z.enum(['low', 'medium', 'high']),
           }),
-          execute: async ({ eventName, eventType, date, venue, guestCount, budget, checklist, nextSteps, excitementLevel }) => {
-            this.complete({ eventName, eventType, date, venue, guestCount, budget, checklist, nextSteps, excitementLevel });
+          execute: async ({
+            eventName,
+            eventType,
+            date,
+            venue,
+            guestCount,
+            budget,
+            checklist,
+            nextSteps,
+            excitementLevel,
+          }) => {
+            this.complete({
+              eventName,
+              eventType,
+              date,
+              venue,
+              guestCount,
+              budget,
+              checklist,
+              nextSteps,
+              excitementLevel,
+            });
             return `${eventName} is taking shape! You've got a vision, a plan, and next steps. This is going to be great. 🎉`;
           },
         }),
@@ -235,12 +261,14 @@ export class SpecialDateTask extends IntelligentTask<SpecialDateResult> {
         brainstormGifts: llm.tool({
           description: 'Brainstorm gift ideas.',
           parameters: z.object({
-            giftIdeas: z.array(z.object({
-              idea: z.string(),
-              whyTheyLoveIt: z.string(),
-              effort: z.enum(['low', 'medium', 'high']),
-              cost: z.enum(['$', '$$', '$$$']),
-            })),
+            giftIdeas: z.array(
+              z.object({
+                idea: z.string(),
+                whyTheyLoveIt: z.string(),
+                effort: z.enum(['low', 'medium', 'high']),
+                cost: z.enum(['$', '$$', '$$$']),
+              })
+            ),
           }),
           execute: async ({ giftIdeas }) => {
             return `Gift ideas:\n${giftIdeas.map((g, i) => `${i + 1}. ${g.idea} (${g.cost}, ${g.effort} effort) - ${g.whyTheyLoveIt}`).join('\n')}`;
@@ -250,10 +278,12 @@ export class SpecialDateTask extends IntelligentTask<SpecialDateResult> {
         brainstormCelebration: llm.tool({
           description: 'Brainstorm celebration ideas.',
           parameters: z.object({
-            celebrationIdeas: z.array(z.object({
-              idea: z.string(),
-              whySpecial: z.string(),
-            })),
+            celebrationIdeas: z.array(
+              z.object({
+                idea: z.string(),
+                whySpecial: z.string(),
+              })
+            ),
             topPick: z.string(),
           }),
           execute: async ({ celebrationIdeas, topPick }) => {
@@ -273,7 +303,7 @@ export class SpecialDateTask extends IntelligentTask<SpecialDateResult> {
           }),
           execute: async ({ dateName, date, person, giftIdeas, celebrationIdeas, reminderSet }) => {
             this.complete({ dateName, date, person, giftIdeas, celebrationIdeas, reminderSet });
-            
+
             if (reminderSet) {
               return `${dateName} is marked! I'll remind you when it's coming up. ${person ? `${person} is lucky to have someone who plans ahead.` : ''}`;
             }
@@ -342,7 +372,7 @@ export class TravelPlanningTask extends IntelligentTask<TravelPlanningResult> {
             dates: z.string().describe('Travel dates'),
             duration: z.string().describe('Trip length'),
             tripType: z.enum(['relaxation', 'adventure', 'cultural', 'mixed']),
-            travelCompanions: z.string().describe('Who they\'re traveling with'),
+            travelCompanions: z.string().describe("Who they're traveling with"),
             vibe: z.string().describe('The feeling they want from this trip'),
           }),
           execute: async ({ dates, duration, tripType, travelCompanions, vibe }) => {
@@ -370,17 +400,18 @@ export class TravelPlanningTask extends IntelligentTask<TravelPlanningResult> {
         planActivities: llm.tool({
           description: 'Plan activities and experiences.',
           parameters: z.object({
-            mustDo: z.array(z.string()).describe('Can\'t miss experiences'),
-            maybeActivities: z.array(z.string()).describe('If there\'s time'),
+            mustDo: z.array(z.string()).describe("Can't miss experiences"),
+            maybeActivities: z.array(z.string()).describe("If there's time"),
             restDays: z.boolean().describe('Building in downtime?'),
           }),
           execute: async ({ mustDo, maybeActivities, restDays }) => {
-            let response = `Must-do:\n${mustDo.map(a => `✓ ${a}`).join('\n')}`;
+            let response = `Must-do:\n${mustDo.map((a) => `✓ ${a}`).join('\n')}`;
             if (maybeActivities.length > 0) {
-              response += `\n\nMaybe:\n${maybeActivities.map(a => `○ ${a}`).join('\n')}`;
+              response += `\n\nMaybe:\n${maybeActivities.map((a) => `○ ${a}`).join('\n')}`;
             }
             if (!restDays) {
-              response += "\n\n💡 Remember to leave some unplanned time. The best travel moments are often unscripted.";
+              response +=
+                '\n\n💡 Remember to leave some unplanned time. The best travel moments are often unscripted.';
             }
             return response;
           },
@@ -398,9 +429,27 @@ export class TravelPlanningTask extends IntelligentTask<TravelPlanningResult> {
             mustDo: z.array(z.string()),
             bookingStatus: z.enum(['not_started', 'partial', 'complete']),
           }),
-          execute: async ({ destination, dates, tripType, activities, accommodationType, budget, mustDo, bookingStatus }) => {
-            this.complete({ destination, dates, tripType, activities, accommodationType, budget, mustDo, bookingStatus });
-            
+          execute: async ({
+            destination,
+            dates,
+            tripType,
+            activities,
+            accommodationType,
+            budget,
+            mustDo,
+            bookingStatus,
+          }) => {
+            this.complete({
+              destination,
+              dates,
+              tripType,
+              activities,
+              accommodationType,
+              budget,
+              mustDo,
+              bookingStatus,
+            });
+
             if (bookingStatus === 'complete') {
               return `${destination} is booked! Now the fun part - looking forward to it. Start a packing list a week before!`;
             }
@@ -473,7 +522,7 @@ export class LifeMilestoneTask extends IntelligentTask<LifeMilestoneResult> {
             milestone: z.string(),
             whatItMeans: z.string().describe('What this represents'),
             howTheyGotHere: z.string().describe('The journey to this point'),
-            emotions: z.array(z.string()).describe('Emotions they\'re feeling'),
+            emotions: z.array(z.string()).describe("Emotions they're feeling"),
           }),
           execute: async ({ milestone, whatItMeans, howTheyGotHere, emotions }) => {
             return `${milestone}. This represents: ${whatItMeans}.\n\nHow you got here: ${howTheyGotHere}.\n\nYou're feeling: ${emotions.join(', ')}. All of that is valid.`;
@@ -515,8 +564,24 @@ export class LifeMilestoneTask extends IntelligentTask<LifeMilestoneResult> {
             reflection: z.string(),
             acknowledged: z.boolean(),
           }),
-          execute: async ({ milestone, significance, celebrationPlan, documentationPlan, peopleToShare, reflection, acknowledged }) => {
-            this.complete({ milestone, significance, celebrationPlan, documentationPlan, peopleToShare, reflection, acknowledged });
+          execute: async ({
+            milestone,
+            significance,
+            celebrationPlan,
+            documentationPlan,
+            peopleToShare,
+            reflection,
+            acknowledged,
+          }) => {
+            this.complete({
+              milestone,
+              significance,
+              celebrationPlan,
+              documentationPlan,
+              peopleToShare,
+              reflection,
+              acknowledged,
+            });
             return `${milestone} - acknowledged and honored. These moments matter. You did something worth marking. 🌟`;
           },
         }),
@@ -535,4 +600,3 @@ export default {
   TravelPlanningTask,
   LifeMilestoneTask,
 };
-

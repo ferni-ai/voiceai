@@ -116,7 +116,7 @@ export const TEAM_MEMBERS: TeamMemberUnlock[] = [
       'Helps you build habits that stick through systems, not willpower. Start embarrassingly small. One habit at a time.',
     unlocksAt: 'getting-started',
     introductionMessage:
-      "I want you to meet someone special. Maya is incredible at helping people build habits that actually stick. She has this philosophy: start embarrassingly small. I think you two would really hit it off.",
+      'I want you to meet someone special. Maya is incredible at helping people build habits that actually stick. She has this philosophy: start embarrassingly small. I think you two would really hit it off.',
     teaserMessage:
       "I have a friend who's amazing at habits... once we get to know each other a bit more, I'll introduce you.",
   },
@@ -227,8 +227,7 @@ export function calculateRelationshipStage(metrics: {
     const meetsConversations = metrics.totalConversations >= threshold.minConversations;
     const meetsDays = metrics.daysSinceFirstMeeting >= threshold.minDays;
     const meetsStreak =
-      metrics.currentStreak >= threshold.minStreak ||
-      metrics.longestStreak >= threshold.minStreak;
+      metrics.currentStreak >= threshold.minStreak || metrics.longestStreak >= threshold.minStreak;
 
     if (meetsConversations && meetsDays && meetsStreak) {
       return stage;
@@ -457,11 +456,13 @@ export const UNLOCK_TEASERS = {
   // When user mentions something a locked member specializes in
   topicTeaser: {
     habits: "That's exactly Maya's specialty... stick with me and I'll introduce you.",
-    research: "Peter would have fascinating insights on that... you're getting close to meeting him.",
+    research:
+      "Peter would have fascinating insights on that... you're getting close to meeting him.",
     communication:
       "Alex could transform that conversation for you... a bit more trust and I'll connect you.",
     planning: "Jordan lives for this kind of planning... soon you'll meet them.",
-    wisdom: "Nayan... he'd have something profound to say about this. But he only speaks to those who've truly committed.",
+    wisdom:
+      "Nayan... he'd have something profound to say about this. But he only speaks to those who've truly committed.",
   },
 };
 
@@ -469,10 +470,7 @@ export const UNLOCK_TEASERS = {
  * Get a contextual teaser about upcoming unlocks.
  * Use sparingly - maybe 10% of conversations.
  */
-export function getContextualUnlockTeaser(
-  state: TeamUnlockState,
-  topic?: string
-): string | null {
+export function getContextualUnlockTeaser(state: TeamUnlockState, topic?: string): string | null {
   // Only tease if there's a next unlock
   if (!state.nextUnlock) return null;
 
@@ -487,23 +485,33 @@ export function getContextualUnlockTeaser(
     if (nextMember.memberId === 'maya-santos' && topicLower.includes('habit')) {
       return UNLOCK_TEASERS.topicTeaser.habits;
     }
-    if (nextMember.memberId === 'peter-john' && (topicLower.includes('data') || topicLower.includes('pattern'))) {
+    if (
+      nextMember.memberId === 'peter-john' &&
+      (topicLower.includes('data') || topicLower.includes('pattern'))
+    ) {
       return UNLOCK_TEASERS.topicTeaser.research;
     }
     if (nextMember.memberId === 'alex-chen' && topicLower.includes('communicat')) {
       return UNLOCK_TEASERS.topicTeaser.communication;
     }
-    if (nextMember.memberId === 'jordan-taylor' && (topicLower.includes('plan') || topicLower.includes('goal'))) {
+    if (
+      nextMember.memberId === 'jordan-taylor' &&
+      (topicLower.includes('plan') || topicLower.includes('goal'))
+    ) {
       return UNLOCK_TEASERS.topicTeaser.planning;
     }
   }
 
   // Generic teasers based on who's next
   if (nextMember.memberId === 'maya-santos') {
-    return UNLOCK_TEASERS.nearMayaUnlock[Math.floor(Math.random() * UNLOCK_TEASERS.nearMayaUnlock.length)];
+    return UNLOCK_TEASERS.nearMayaUnlock[
+      Math.floor(Math.random() * UNLOCK_TEASERS.nearMayaUnlock.length)
+    ];
   }
   if (nextMember.memberId === 'peter-john') {
-    return UNLOCK_TEASERS.nearPeterUnlock[Math.floor(Math.random() * UNLOCK_TEASERS.nearPeterUnlock.length)];
+    return UNLOCK_TEASERS.nearPeterUnlock[
+      Math.floor(Math.random() * UNLOCK_TEASERS.nearPeterUnlock.length)
+    ];
   }
 
   return null;
@@ -546,4 +554,3 @@ export function getTeamDisplayData(state: TeamUnlockState): Array<{
     };
   });
 }
-

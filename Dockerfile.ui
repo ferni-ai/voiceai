@@ -1,3 +1,11 @@
+# ============================================================================
+# ⚠️  DEPRECATED - Use docker/Dockerfile.ui instead
+# ============================================================================
+# This file is kept for backwards compatibility.
+# New builds should use: docker build -f docker/Dockerfile.ui .
+# See docker/README.md for documentation.
+# ============================================================================
+
 # UI Server for Ferni Voice AI
 # Multi-stage build: Build backend + frontend, then serve with Node.js
 

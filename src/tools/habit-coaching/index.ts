@@ -2,10 +2,9 @@
  * Habit Coaching Module
  *
  * Re-exports from modular files for cleaner imports.
- * This provides a migration path from the monolithic habit-coaching.ts.
  *
  * USAGE:
- *   // New modular imports (preferred)
+ *   // Direct imports (preferred for tree-shaking)
  *   import { LIFE_DOMAINS, LIFE_STAGES } from './habit-coaching/constants.js';
  *   import type { EnhancedHabit, HabitTemplate } from './habit-coaching/types.js';
  *
@@ -13,15 +12,16 @@
  *   import { LIFE_DOMAINS, type EnhancedHabit } from './habit-coaching/index.js';
  *
  * MIGRATION STATUS:
- *   - types.ts: ✅ Complete (all interfaces/types extracted)
- *   - constants.ts: ✅ Complete (core constants extracted)
- *   - challenges.ts: 🔜 TODO (THIRTY_DAY_CHALLENGES - 600+ lines)
- *   - templates.ts: 🔜 TODO (HABIT_TEMPLATES - 300+ lines)
- *   - bundles.ts: 🔜 TODO (HABIT_BUNDLES - 500+ lines)
- *   - tools.ts: 🔜 TODO (createHabitCoachingTools - 1700+ lines)
- *
- * For now, the main habit-coaching.ts still exports everything.
- * These modules can be used for new code while migration continues.
+ *   - types.ts: Complete (all interfaces/types)
+ *   - constants.ts: Complete (core constants, glidepath levels)
+ *   - challenges.ts: Complete (30-day challenges)
+ *   - templates.ts: Complete (habit templates)
+ *   - bundles.ts: Complete (habit bundles)
+ *   - transitions.ts: Complete (life transition support)
+ *   - helpers.ts: Complete (utility functions)
+ *   - storage.ts: Complete (persistence layer)
+ *   - tendencies.ts: Complete (Four Tendencies)
+ *   - tools.ts: TODO (createHabitCoachingTools - still in habit-coaching.ts)
  */
 
 // ============================================================================
@@ -53,6 +53,7 @@ export type {
   ChallengeDefinition,
 
   // Bundles
+  HabitBundleItem,
   HabitBundleDefinition,
 
   // Transitions
@@ -90,22 +91,44 @@ export {
 } from './constants.js';
 
 // ============================================================================
-// LEGACY RE-EXPORTS
+// CHALLENGE EXPORTS
 // ============================================================================
 
-/**
- * Re-export from original monolithic file for backward compatibility.
- *
- * TODO: Once migration is complete, these will be replaced with
- * exports from the modular files (challenges.ts, templates.ts, tools.ts).
- */
-export {
-  // Large constants (not yet migrated)
-  THIRTY_DAY_CHALLENGES,
-  HABIT_BUNDLES,
-  LIFE_TRANSITION_SUPPORT,
-  HABIT_TEMPLATES,
+export { THIRTY_DAY_CHALLENGES } from './challenges.js';
 
-  // Tool creator (not yet migrated)
-  createHabitCoachingTools,
-} from '../habit-coaching.js';
+// ============================================================================
+// TEMPLATE EXPORTS
+// ============================================================================
+
+export {
+  HABIT_TEMPLATES,
+  getTemplatesByDomain,
+  getTemplatesByDifficulty,
+  getKeystoneTemplates,
+  getTemplateById,
+  getTemplatesForStage,
+} from './templates.js';
+
+// ============================================================================
+// BUNDLE EXPORTS
+// ============================================================================
+
+export {
+  HABIT_BUNDLES,
+  getBundle,
+  getBundleKeys,
+  getBundleCoreHabits,
+  getBundleEnhancements,
+} from './bundles.js';
+
+// ============================================================================
+// TRANSITION EXPORTS
+// ============================================================================
+
+export { LIFE_TRANSITION_SUPPORT } from './transitions.js';
+
+// ============================================================================
+// TOOL CREATOR (still in monolithic file)
+// ============================================================================
+
+export { createHabitCoachingTools } from '../habit-coaching.js';

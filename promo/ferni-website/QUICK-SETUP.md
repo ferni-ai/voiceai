@@ -1,30 +1,30 @@
-# ⚡ Ferni Quick Setup Guide
+#  Ferni Quick Setup Guide
 
 > Complete setup in ~30 minutes. Open each link, follow the steps.
 
 ---
 
-## 🔗 One-Click Signup Links
+##  One-Click Signup Links
 
 Open each in a new tab and complete signup:
 
 | Platform | Signup Link | Username to Grab |
 |----------|-------------|------------------|
-| **X (Twitter)** | [Create Account →](https://twitter.com/i/flow/signup) | `@ferniAI` |
-| **LinkedIn** | [Create Company →](https://www.linkedin.com/company/setup/new/) | `ferni` |
-| **Instagram** | [Create Account →](https://www.instagram.com/accounts/emailsignup/) | `@ferni.ai` |
-| **TikTok** | [Create Account →](https://www.tiktok.com/signup) | `@ferni.ai` |
-| **YouTube** | [Create Channel →](https://www.youtube.com/channel_switcher) | `@ferniAI` |
-| **Google Analytics** | [Create Property →](https://analytics.google.com/analytics/web/#/provision) | N/A |
-| **Formspree** | [Create Account →](https://formspree.io/register) | N/A |
+| **X (Twitter)** | [Create Account ](https://twitter.com/i/flow/signup) | `@ferniAI` |
+| **LinkedIn** | [Create Company ](https://www.linkedin.com/company/setup/new/) | `ferni` |
+| **Instagram** | [Create Account ](https://www.instagram.com/accounts/emailsignup/) | `@ferni.ai` |
+| **TikTok** | [Create Account ](https://www.tiktok.com/signup) | `@ferni.ai` |
+| **YouTube** | [Create Channel ](https://www.youtube.com/channel_switcher) | `@ferniAI` |
+| **Google Analytics** | [Create Property ](https://analytics.google.com/analytics/web/#/provision) | N/A |
+| **Formspree** | [Create Account ](https://formspree.io/register) | N/A |
 
 ---
 
-## 📋 Copy-Paste Bios
+##  Copy-Paste Bios
 
 ### X (Twitter) Bio — *Copy this:*
 ```
-Your AI life coach. Six specialists. One conversation. Just talk. 🌿
+Your AI life coach. Six specialists. One conversation. Just talk. 
 
 Call: (484) 481-3081 | Try free at ferni.ai
 ```
@@ -36,15 +36,15 @@ Your personal AI life coach. Six specialists. One conversation.
 
 ### Instagram Bio — *Copy this:*
 ```
-Your AI life coach team 🌿
+Your AI life coach team 
 Six specialists. One conversation.
-Just talk → ferni.ai
-📞 (484) 481-3081
+Just talk  ferni.ai
+ (484) 481-3081
 ```
 
 ### TikTok Bio — *Copy this:*
 ```
-Your AI life coach 🌿 Just talk → ferni.ai
+Your AI life coach  Just talk  ferni.ai
 ```
 
 ### YouTube Description — *Copy this:*
@@ -54,7 +54,7 @@ Ferni is your personal AI life coach—a team of six specialists working togethe
 
 ---
 
-## 📧 Email Setup (Pick One Option)
+##  Email Setup (Pick One Option)
 
 ### Option A: Google Workspace (Recommended)
 1. Go to [Google Workspace](https://workspace.google.com/business/signup/welcome)
@@ -68,11 +68,11 @@ Ferni is your personal AI life coach—a team of six specialists working togethe
 
 ### Option C: Cloudflare Email Routing (Free forwarding)
 1. If domain is on Cloudflare, use [Email Routing](https://dash.cloudflare.com/)
-2. Forward hello@ferni.ai → your personal email
+2. Forward hello@ferni.ai  your personal email
 
 ---
 
-## 🔢 After Signup: Update These Files
+##  After Signup: Update These Files
 
 Once you have your IDs, update these files:
 
@@ -97,7 +97,7 @@ Once you have your IDs, update these files:
 
 ---
 
-## ✅ Checklist
+##  Checklist
 
 Print this and check off as you go:
 
@@ -157,7 +157,7 @@ FINAL
 
 ---
 
-## 🎨 Assets You'll Need
+##  Assets You'll Need
 
 Download/create these before starting:
 
@@ -172,7 +172,7 @@ Download/create these before starting:
 
 ---
 
-## 🚀 You're Done!
+##  You're Done!
 
 After completing setup:
 1. Post your first content (see SOCIAL-MEDIA-GUIDE.md for launch posts)

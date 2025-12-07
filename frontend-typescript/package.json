@@ -1,7 +1,7 @@
 {
   "name": "voiceai-frontend",
   "version": "1.0.0",
-  "description": "Voice AI Frontend - TypeScript with Clean Architecture",
+  "description": "Ferni Frontend - AI that feels human. Voice-first life coaching experience.",
   "type": "module",
   "scripts": {
     "dev": "vite",

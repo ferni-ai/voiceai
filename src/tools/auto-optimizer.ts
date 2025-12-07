@@ -105,12 +105,9 @@ export class AutoToolOptimizer {
     void this.runOptimizationCycle();
 
     // Schedule periodic analysis
-    this.analysisTimer = setInterval(
-      () => {
-        void this.runOptimizationCycle();
-      },
-      this.config.analysisIntervalMs
-    );
+    this.analysisTimer = setInterval(() => {
+      void this.runOptimizationCycle();
+    }, this.config.analysisIntervalMs);
   }
 
   /**

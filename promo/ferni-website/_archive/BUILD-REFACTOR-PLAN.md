@@ -1,6 +1,6 @@
 # Ferni Website Build Refactor Plan
 
-## 🚨 Current Problems
+##  Current Problems
 
 ### Duplication Audit
 | Issue | Impact |
@@ -18,13 +18,13 @@ platform.html:                358 lines
 developers/api.html:          331 lines
 developers/getting-started.html: 305 lines
 developers/testing.html:      304 lines
-─────────────────────────────────────
+
 Total duplicate CSS:          ~1,894 lines
 ```
 
 ---
 
-## ✅ Proposed Solution: Eleventy (11ty)
+##  Proposed Solution: Eleventy (11ty)
 
 **Why Eleventy?**
 - Simple, fast static site generator
@@ -36,55 +36,55 @@ Total duplicate CSS:          ~1,894 lines
 
 ---
 
-## 📁 New Directory Structure
+##  New Directory Structure
 
 ```
 promo/ferni-website/
-├── package.json              # Build dependencies
-├── .eleventy.js              # Eleventy config
-├── src/
-│   ├── _data/
-│   │   └── site.json         # Global site data (name, url, etc.)
-│   ├── _includes/
-│   │   ├── layouts/
-│   │   │   ├── base.njk      # Base HTML template
-│   │   │   ├── page.njk      # Standard page layout
-│   │   │   ├── docs.njk      # Developer docs layout
-│   │   │   └── blog.njk      # Blog post layout
-│   │   └── partials/
-│   │       ├── header.njk    # Shared header/nav
-│   │       ├── footer.njk    # Shared footer
-│   │       ├── head.njk      # <head> with meta, fonts, CSS
-│   │       └── dev-nav.njk   # Developer docs sidebar
-│   ├── css/
-│   │   ├── tokens.css        # Single source of truth
-│   │   ├── base.css          # Reset, typography
-│   │   ├── components.css    # Buttons, cards, forms
-│   │   ├── layouts.css       # Header, footer, grids
-│   │   ├── docs.css          # Developer docs styles
-│   │   └── utilities.css     # Spacing, text helpers
-│   ├── pages/
-│   │   ├── index.njk         # Homepage
-│   │   ├── platform.njk      # Platform page
-│   │   ├── pricing.njk       # Pricing page
-│   │   ├── press.njk         # Press kit
-│   │   └── ...
-│   ├── developers/
-│   │   ├── index.md          # Docs home
-│   │   ├── getting-started.md
-│   │   ├── api.md
-│   │   └── testing.md
-│   ├── blog/
-│   │   ├── blog.json         # Blog collection config
-│   │   └── *.md              # Blog posts in Markdown
-│   └── images/
-│       └── ...               # Static assets
-└── _site/                    # Build output (gitignored)
+ package.json              # Build dependencies
+ .eleventy.js              # Eleventy config
+ src/
+    _data/
+       site.json         # Global site data (name, url, etc.)
+    _includes/
+       layouts/
+          base.njk      # Base HTML template
+          page.njk      # Standard page layout
+          docs.njk      # Developer docs layout
+          blog.njk      # Blog post layout
+       partials/
+           header.njk    # Shared header/nav
+           footer.njk    # Shared footer
+           head.njk      # <head> with meta, fonts, CSS
+           dev-nav.njk   # Developer docs sidebar
+    css/
+       tokens.css        # Single source of truth
+       base.css          # Reset, typography
+       components.css    # Buttons, cards, forms
+       layouts.css       # Header, footer, grids
+       docs.css          # Developer docs styles
+       utilities.css     # Spacing, text helpers
+    pages/
+       index.njk         # Homepage
+       platform.njk      # Platform page
+       pricing.njk       # Pricing page
+       press.njk         # Press kit
+       ...
+    developers/
+       index.md          # Docs home
+       getting-started.md
+       api.md
+       testing.md
+    blog/
+       blog.json         # Blog collection config
+       *.md              # Blog posts in Markdown
+    images/
+        ...               # Static assets
+ _site/                    # Build output (gitignored)
 ```
 
 ---
 
-## 🎨 Single Source of Truth: Design Tokens
+##  Single Source of Truth: Design Tokens
 
 ### `src/css/tokens.css`
 ```css
@@ -141,7 +141,7 @@ promo/ferni-website/
 
 ---
 
-## 🧩 Shared Partials
+##  Shared Partials
 
 ### `src/_includes/partials/header.njk`
 ```njk
@@ -200,7 +200,7 @@ promo/ferni-website/
 
 ---
 
-## 📝 Page Example
+##  Page Example
 
 ### `src/pages/platform.njk`
 ```njk
@@ -212,11 +212,11 @@ description: Build custom AI voice agents with Ferni's open platform.
 
 <section class="hero">
   <div class="container">
-    <div class="hero-eyebrow">🚀 Now Open Source</div>
+    <div class="hero-eyebrow"> Now Open Source</div>
     <h1>One Platform.<br><span class="accent">Two Paths.</span></h1>
     <p class="hero-subtitle">Experience Ferni as your AI life coach, or build your own voice agents.</p>
     <div class="hero-ctas">
-      <a href="https://app.ferni.ai" class="btn btn-primary">Try Ferni Free →</a>
+      <a href="https://app.ferni.ai" class="btn btn-primary">Try Ferni Free </a>
       <a href="/developers/" class="btn btn-secondary">Start Building</a>
     </div>
   </div>
@@ -227,7 +227,7 @@ description: Build custom AI voice agents with Ferni's open platform.
 
 ---
 
-## 📚 Developer Docs in Markdown
+##  Developer Docs in Markdown
 
 ### `src/developers/getting-started.md`
 ```markdown
@@ -266,7 +266,7 @@ npm install
 
 ---
 
-## ⚙️ Build Configuration
+##  Build Configuration
 
 ### `package.json`
 ```json
@@ -317,7 +317,7 @@ module.exports = function(eleventyConfig) {
 
 ---
 
-## 📊 Before/After Comparison
+##  Before/After Comparison
 
 | Metric | Before | After |
 |--------|--------|-------|
@@ -330,7 +330,7 @@ module.exports = function(eleventyConfig) {
 
 ---
 
-## 🚀 Migration Steps
+##  Migration Steps
 
 ### Phase 1: Setup (30 min)
 1. [ ] Install Eleventy: `npm init -y && npm i -D @11ty/eleventy`
@@ -345,10 +345,10 @@ module.exports = function(eleventyConfig) {
 4. [ ] Create `head.njk` (meta, fonts, CSS links)
 
 ### Phase 3: Convert Pages (2 hours)
-1. [ ] Convert `index.html` → `index.njk`
-2. [ ] Convert `platform.html` → `platform.njk`
-3. [ ] Convert `pricing.html` → `pricing.njk`
-4. [ ] Convert developer docs → Markdown files
+1. [ ] Convert `index.html`  `index.njk`
+2. [ ] Convert `platform.html`  `platform.njk`
+3. [ ] Convert `pricing.html`  `pricing.njk`
+4. [ ] Convert developer docs  Markdown files
 5. [ ] Convert press, contact, etc.
 
 ### Phase 4: Cleanup (30 min)
@@ -359,7 +359,7 @@ module.exports = function(eleventyConfig) {
 
 ---
 
-## ✅ Quality Gates
+##  Quality Gates
 
 Before deploying, verify:
 
@@ -373,7 +373,7 @@ Before deploying, verify:
 
 ---
 
-## 🎯 Benefits After Refactor
+##  Benefits After Refactor
 
 1. **Single source of truth** for design tokens
 2. **~80% reduction** in total code

@@ -88,8 +88,20 @@ export class CuriosityExplorationTask extends IntelligentTask<CuriosityExplorati
             excitementLevel: z.enum(['low', 'medium', 'high']),
             nextSteps: z.array(z.string()),
           }),
-          execute: async ({ topic, questionsGenerated, researchDirection, excitementLevel, nextSteps }) => {
-            this.complete({ topic, questionsGenerated, researchDirection, excitementLevel, nextSteps });
+          execute: async ({
+            topic,
+            questionsGenerated,
+            researchDirection,
+            excitementLevel,
+            nextSteps,
+          }) => {
+            this.complete({
+              topic,
+              questionsGenerated,
+              researchDirection,
+              excitementLevel,
+              nextSteps,
+            });
             return "Now you've got some threads to pull on. That's the best part - following your curiosity and seeing where it leads.";
           },
         }),
@@ -155,7 +167,8 @@ export class LearningProjectTask extends IntelligentTask<LearningProjectResult> 
           execute: async ({ goal, measurable, timeframe }) => {
             let response = `So the goal is: ${goal}.`;
             if (!measurable) {
-              response += " Let's make that more concrete - how will you know when you've achieved it?";
+              response +=
+                " Let's make that more concrete - how will you know when you've achieved it?";
             }
             if (timeframe) {
               response += ` By ${timeframe}. Let's work backwards from there.`;
@@ -197,7 +210,14 @@ export class LearningProjectTask extends IntelligentTask<LearningProjectResult> 
             timeCommitment: z.string(),
             learningStyle: z.enum(['reading', 'watching', 'doing', 'mixed']),
           }),
-          execute: async ({ subject, goal, resources, milestones, timeCommitment, learningStyle }) => {
+          execute: async ({
+            subject,
+            goal,
+            resources,
+            milestones,
+            timeCommitment,
+            learningStyle,
+          }) => {
             this.complete({ subject, goal, resources, milestones, timeCommitment, learningStyle });
             return `You've got a learning plan for ${subject}! ${timeCommitment} commitment, ${milestones.length} milestones. The best part? You get to learn something new. That's always exciting.`;
           },
@@ -286,10 +306,10 @@ export class DeepResearchTask extends IntelligentTask<DeepResearchResult> {
               response += ` Potential bias: ${potentialBias}.`;
             }
             const recMap = {
-              trust: "Seems reliable.",
-              verify: "Worth checking against other sources.",
-              skeptical: "Take this with a grain of salt.",
-              dismiss: "I'd look elsewhere."
+              trust: 'Seems reliable.',
+              verify: 'Worth checking against other sources.',
+              skeptical: 'Take this with a grain of salt.',
+              dismiss: "I'd look elsewhere.",
             };
             return `${response} ${recMap[recommendation]}`;
           },
@@ -304,7 +324,7 @@ export class DeepResearchTask extends IntelligentTask<DeepResearchResult> {
             gaps: z.array(z.string()),
           }),
           execute: async ({ keyFindings, consensus, contradictions, gaps }) => {
-            let response = `What we've learned:\n${keyFindings.map(f => `• ${f}`).join('\n')}`;
+            let response = `What we've learned:\n${keyFindings.map((f) => `• ${f}`).join('\n')}`;
             if (consensus) response += `\n\nThe general consensus: ${consensus}`;
             if (contradictions) response += `\n\nBut there's disagreement about: ${contradictions}`;
             if (gaps.length > 0) response += `\n\nStill unanswered: ${gaps.join(', ')}`;
@@ -322,9 +342,23 @@ export class DeepResearchTask extends IntelligentTask<DeepResearchResult> {
             confidence: z.enum(['low', 'medium', 'high']),
             recommendation: z.string().optional(),
           }),
-          execute: async ({ topic, keySources, keyFindings, unansweredQuestions, confidence, recommendation }) => {
-            this.complete({ topic, keySources, keyFindings, unansweredQuestions, confidence, recommendation });
-            
+          execute: async ({
+            topic,
+            keySources,
+            keyFindings,
+            unansweredQuestions,
+            confidence,
+            recommendation,
+          }) => {
+            this.complete({
+              topic,
+              keySources,
+              keyFindings,
+              unansweredQuestions,
+              confidence,
+              recommendation,
+            });
+
             if (confidence === 'high') {
               return `Solid research on ${topic}. You've got a good foundation to make a decision.`;
             }
@@ -412,7 +446,7 @@ export class ExpertiseDevelopmentTask extends IntelligentTask<ExpertiseDevelopme
             if (timeframe) {
               response += ` in ${timeframe}.`;
             }
-            return response + " That's ambitious and achievable.";
+            return `${response} That's ambitious and achievable.`;
           },
         }),
 
@@ -438,8 +472,22 @@ export class ExpertiseDevelopmentTask extends IntelligentTask<ExpertiseDevelopme
             gapsIdentified: z.array(z.string()),
             developmentPlan: z.array(z.string()),
           }),
-          execute: async ({ domain, currentLevel, targetLevel, strengthsIdentified, gapsIdentified, developmentPlan }) => {
-            this.complete({ domain, currentLevel, targetLevel, strengthsIdentified, gapsIdentified, developmentPlan });
+          execute: async ({
+            domain,
+            currentLevel,
+            targetLevel,
+            strengthsIdentified,
+            gapsIdentified,
+            developmentPlan,
+          }) => {
+            this.complete({
+              domain,
+              currentLevel,
+              targetLevel,
+              strengthsIdentified,
+              gapsIdentified,
+              developmentPlan,
+            });
             return `From ${currentLevel} to ${targetLevel} in ${domain}. It's a journey, but you've got a map now. The secret? Show up every day and do the work.`;
           },
         }),
@@ -458,4 +506,3 @@ export default {
   DeepResearchTask,
   ExpertiseDevelopmentTask,
 };
-

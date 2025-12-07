@@ -428,3 +428,34 @@ export function getMoodBasedTip(
   return 'Steady state - maintain your normal routine and celebrate consistency.';
 }
 
+// ============================================================================
+// CHALLENGE ENCOURAGEMENT
+// ============================================================================
+
+/**
+ * Get encouragement message for challenge day
+ */
+export function getChallengeDayEncouragement(day: number): string {
+  if (day === 1) return 'Day 1! The hardest part is starting. You did it!';
+  if (day === 7) return "ONE WEEK! Most people don't make it this far. You're different.";
+  if (day === 14) return "Two weeks! You're building something real now.";
+  if (day === 21) return 'THREE WEEKS! Research says this is when habits start to stick.';
+  if (day === 30) return '30 DAYS! You did it! You transformed yourself!';
+  if (day % 7 === 0) return `Week ${day / 7} complete! Keep going!`;
+  return "Another day, another vote for who you're becoming.";
+}
+
+/**
+ * Check for challenge milestones
+ */
+export function checkChallengeMilestones(day: number, completedDays: number): string | null {
+  if (day === 7 && completedDays >= 5) return 'First Week Champion! 5+ days completed!';
+  if (day === 14 && completedDays >= 10) return 'Two Week Warrior! 10+ days completed!';
+  if (day === 21 && completedDays >= 15) return 'Three Week Titan! Habit forming!';
+  if (day === 30 && completedDays >= 25) return '30-Day Master! 25+ days! Incredible!';
+  if (completedDays === 7) return '7-day completion streak!';
+  if (completedDays === 14) return '14-day completion streak!';
+  if (completedDays === 21) return "21-day streak! You're unstoppable!";
+  return null;
+}
+

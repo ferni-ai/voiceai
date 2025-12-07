@@ -1,24 +1,28 @@
+# Cloud Build Configuration for Ferni UI Server
+#
+# Builds the main UI server with frontend app and API routes.
+# Uses modular Dockerfile from docker/ directory.
+
 steps:
   # Build the UI container image (includes frontend-typescript build)
-  # Using --no-cache to ensure fresh builds pick up all changes
   - name: 'gcr.io/cloud-builders/docker'
     args: 
       - 'build'
       - '--no-cache'
       - '-f'
-      - 'Dockerfile.ui'
+      - 'docker/Dockerfile.ui'
       - '-t'
-      - 'gcr.io/$PROJECT_ID/john-bogle-ui:latest'
+      - 'gcr.io/$PROJECT_ID/ferni-ui:latest'
       - '.'
     id: 'build-ui'
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/john-bogle-ui:latest']
+    args: ['push', 'gcr.io/$PROJECT_ID/ferni-ui:latest']
     waitFor: ['build-ui']
 
 images:
-  - 'gcr.io/$PROJECT_ID/john-bogle-ui:latest'
+  - 'gcr.io/$PROJECT_ID/ferni-ui:latest'
 
 options:
   machineType: 'E2_HIGHCPU_8'

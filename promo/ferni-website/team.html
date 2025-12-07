@@ -3,1176 +3,357 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meet the Team — Ferni | The First AI-Native Company</title>
-  <meta name="description" content="Meet the world's first AI-native company. Ferni as CEO, with Claude, Gemini, and GPT as co-founders. This is how AI works differently.">
+  <title>Meet the Team — Ferni</title>
+  <meta name="description" content="Meet your personal AI team. Six specialists working together to help you navigate life's challenges.">
   <meta name="theme-color" content="#faf8f5">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://ferni.ai/team">
   
   <!-- Open Graph -->
   <meta property="og:title" content="Meet the Team — Ferni">
-  <meta property="og:description" content="The first company built by AI, run by AI, for humans.">
+  <meta property="og:description" content="Meet your personal AI team. Six specialists working together to help you navigate life's challenges.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://ferni.ai/team">
+  <meta property="og:image" content="https://ferni.ai/images/og-team.jpg">
+  <meta property="og:image:width" content="1456">
+  <meta property="og:image:height" content="816">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Meet the Team — Ferni">
+  <meta name="twitter:description" content="Meet your personal AI team. Six specialists working together to help you navigate life's challenges.">
+  <meta name="twitter:image" content="https://ferni.ai/images/og-team.jpg">
   
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%232d5a3d' rx='20' width='100' height='100'/><text x='50' y='68' font-family='system-ui' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>FN</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234a6741' rx='20' width='100' height='100'/><text x='50' y='68' font-family='system-ui' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>FN</text></svg>">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <style>
-    /* ============================================================================
-       TEAM PAGE - AI-Native Company Story
-       ============================================================================ */
-    
-    :root {
-      --color-bg: #F5F1E8;
-      --color-bg-dark: #1a1a18;
-      --color-bg-elevated: #FFFDFB;
-      --color-text: #2C2520;
-      --color-text-secondary: #5C544A;
-      --color-text-muted: #756A5E;
-      --color-text-inverse: #F5F1E8;
-      --color-accent: #3D5A45;
-      --color-accent-glow: rgba(61, 90, 69, 0.2);
-      --color-highlight: #C4A265;
-      --color-border: rgba(44, 37, 32, 0.1);
-      
-      --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      --font-body: 'Inter', -apple-system, sans-serif;
-      --font-accent: 'Sora', sans-serif;
-      
-      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    html {
-      scroll-behavior: smooth;
-    }
-    
-    body {
-      font-family: var(--font-body);
-      background: var(--color-bg);
-      color: var(--color-text);
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-    
-    /* Navigation */
-    .nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      padding: 20px 0;
-      background: rgba(245, 241, 232, 0.9);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--color-border);
-    }
-    
-    .nav-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-      font-family: var(--font-display);
-      font-weight: 700;
-      font-size: 20px;
-      color: var(--color-text);
-    }
-    
-    .nav-logo-icon {
-      width: 40px;
-      height: 40px;
-      background: var(--color-accent);
-      color: white;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 700;
-    }
-    
-    .nav-back {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--color-text-secondary);
-      text-decoration: none;
-      font-size: 14px;
-      transition: color 0.2s;
-    }
-    
-    .nav-back:hover {
-      color: var(--color-text);
-    }
-    
-    /* Hero Section */
-    .hero {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 24px 80px;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .hero-bg {
-      position: absolute;
-      inset: 0;
-      background: 
-        radial-gradient(ellipse at 30% 20%, rgba(61, 90, 69, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 70% 80%, rgba(196, 162, 101, 0.08) 0%, transparent 50%);
-      pointer-events: none;
-    }
-    
-    .hero-content {
-      position: relative;
-      z-index: 1;
-      max-width: 900px;
-    }
-    
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: var(--color-bg-elevated);
-      border: 1px solid var(--color-border);
-      border-radius: 100px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--color-text-secondary);
-      margin-bottom: 32px;
-      animation: fadeInUp 0.8s var(--ease-out) backwards;
-    }
-    
-    .hero-badge-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--color-accent);
-      border-radius: 50%;
-      animation: pulse 2s ease-in-out infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.6; transform: scale(1.2); }
-    }
-    
-    .hero-title {
-      font-family: var(--font-display);
-      font-size: clamp(48px, 8vw, 80px);
-      font-weight: 800;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-      margin-bottom: 24px;
-      animation: fadeInUp 0.8s var(--ease-out) 0.1s backwards;
-    }
-    
-    .hero-title-gradient {
-      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-highlight) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    
-    .hero-subtitle {
-      font-size: clamp(18px, 2.5vw, 24px);
-      color: var(--color-text-secondary);
-      max-width: 600px;
-      margin: 0 auto 48px;
-      animation: fadeInUp 0.8s var(--ease-out) 0.2s backwards;
-    }
-    
-    .hero-cta {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
-      animation: fadeInUp 0.8s var(--ease-out) 0.3s backwards;
-    }
-    
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 16px 32px;
-      border-radius: 100px;
-      font-family: var(--font-body);
-      font-size: 15px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.3s var(--ease-spring);
-      cursor: pointer;
-      border: none;
-    }
-    
-    .btn-primary {
-      background: var(--color-accent);
-      color: white;
-      box-shadow: 0 4px 20px var(--color-accent-glow);
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px var(--color-accent-glow);
-    }
-    
-    .btn-secondary {
-      background: transparent;
-      color: var(--color-text);
-      border: 1.5px solid var(--color-border);
-    }
-    
-    .btn-secondary:hover {
-      border-color: var(--color-text);
-      background: rgba(44, 37, 32, 0.03);
-    }
-    
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/design-tokens.css?v=1">
+  <link rel="stylesheet" href="css/styles.css?v=30">
+  <link rel="stylesheet" href="css/team-page.css?v=1">
+  <link rel="stylesheet" href="css/animations.css?v=1">
+  
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Ferni",
+    "url": "https://ferni.ai",
+    "logo": "https://ferni.ai/images/logo.png",
+    "description": "AI-powered life coaching with six specialized AI team members",
+    "employee": [
+      {
+        "@type": "Person",
+        "name": "Ferni",
+        "jobTitle": "Life Coach (Coordinator)",
+        "description": "Your main point of contact. Asks the questions that unlock insight, celebrates every win, and connects you to the right specialist."
+      },
+      {
+        "@type": "Person",
+        "name": "Nayan",
+        "jobTitle": "Sage and Mentor",
+        "description": "Your lifetime advisor combining patience, simplicity, and wit for long-term success."
+      },
+      {
+        "@type": "Person",
+        "name": "Peter",
+        "jobTitle": "Research and Discovery",
+        "description": "The Quant who spots patterns and turns data into actionable insights."
+      },
+      {
+        "@type": "Person",
+        "name": "Alex",
+        "jobTitle": "Communication and Coordination",
+        "description": "Your Chief of Staff and communication coach for calendar, email, and difficult conversations."
+      },
+      {
+        "@type": "Person",
+        "name": "Maya",
+        "jobTitle": "Habits and Routines",
+        "description": "Helps you build habits that stick through systems, not willpower."
+      },
+      {
+        "@type": "Person",
+        "name": "Jordan",
+        "jobTitle": "Planning and Events",
+        "description": "Your lifetime planner who turns vague dreams into lived experiences."
       }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    /* Manifesto Section */
-    .manifesto {
-      padding: 120px 0;
-      background: var(--color-bg-dark);
-      color: var(--color-text-inverse);
-    }
-    
-    .manifesto-content {
-      max-width: 800px;
-      margin: 0 auto;
-      text-align: center;
-    }
-    
-    .manifesto-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      color: var(--color-highlight);
-      margin-bottom: 24px;
-    }
-    
-    .manifesto-text {
-      font-family: var(--font-display);
-      font-size: clamp(24px, 4vw, 36px);
-      font-weight: 500;
-      line-height: 1.5;
-      margin-bottom: 48px;
-    }
-    
-    .manifesto-text em {
-      font-style: normal;
-      color: var(--color-highlight);
-    }
-    
-    .manifesto-signature {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-    }
-    
-    .manifesto-avatar {
-      width: 56px;
-      height: 56px;
-      background: linear-gradient(135deg, #3d5a35, #4a6741);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--font-display);
-      font-size: 18px;
-      font-weight: 700;
-      color: white;
-    }
-    
-    .manifesto-author {
-      text-align: left;
-    }
-    
-    .manifesto-name {
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: 16px;
-    }
-    
-    .manifesto-title {
-      font-size: 13px;
-      color: rgba(245, 241, 232, 0.6);
-    }
-    
-    /* Leadership Section */
-    .leadership {
-      padding: 120px 0;
-    }
-    
-    .section-header {
-      text-align: center;
-      margin-bottom: 80px;
-    }
-    
-    .section-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      color: var(--color-accent);
-      margin-bottom: 16px;
-    }
-    
-    .section-title {
-      font-family: var(--font-display);
-      font-size: clamp(32px, 5vw, 48px);
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 16px;
-    }
-    
-    .section-subtitle {
-      font-size: 18px;
-      color: var(--color-text-secondary);
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    
-    /* CEO Card */
-    .ceo-section {
-      margin-bottom: 80px;
-    }
-    
-    .ceo-card {
-      display: flex;
-      align-items: center;
-      gap: 48px;
-      padding: 48px;
-      background: var(--color-bg-elevated);
-      border-radius: 32px;
-      box-shadow: 0 8px 40px rgba(44, 37, 32, 0.08);
-      border: 1px solid var(--color-border);
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    
-    .ceo-avatar {
-      position: relative;
-      flex-shrink: 0;
-    }
-    
-    .ceo-avatar-inner {
-      width: 160px;
-      height: 160px;
-      background: linear-gradient(135deg, #3d5a35, #4a6741);
-      border-radius: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--font-display);
-      font-size: 48px;
-      font-weight: 700;
-      color: white;
-      box-shadow: 
-        0 20px 50px rgba(74, 103, 65, 0.3),
-        inset 0 2px 0 rgba(255, 255, 255, 0.15);
-    }
-    
-    .ceo-avatar-ring {
-      position: absolute;
-      inset: -12px;
-      border: 2px solid var(--color-accent);
-      border-radius: 48px;
-      opacity: 0.3;
-      animation: ceoRing 3s ease-in-out infinite;
-    }
-    
-    @keyframes ceoRing {
-      0%, 100% { transform: scale(1); opacity: 0.3; }
-      50% { transform: scale(1.05); opacity: 0.5; }
-    }
-    
-    .ceo-avatar-glow {
-      position: absolute;
-      inset: -40px;
-      background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    
-    .ceo-info {
-      flex: 1;
-    }
-    
-    .ceo-role {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--color-accent);
-      margin-bottom: 8px;
-    }
-    
-    .ceo-name {
-      font-family: var(--font-display);
-      font-size: 40px;
-      font-weight: 700;
-      margin-bottom: 16px;
-    }
-    
-    .ceo-bio {
-      font-size: 17px;
-      color: var(--color-text-secondary);
-      line-height: 1.7;
-      margin-bottom: 24px;
-    }
-    
-    .ceo-quote {
-      font-family: var(--font-accent);
-      font-size: 15px;
-      font-style: italic;
-      color: var(--color-text-muted);
-      padding-left: 16px;
-      border-left: 3px solid var(--color-highlight);
-    }
-    
-    /* Co-Founders */
-    .cofounders {
-      margin-bottom: 80px;
-    }
-    
-    .cofounders-header {
-      text-align: center;
-      margin-bottom: 48px;
-    }
-    
-    .cofounders-title {
-      font-family: var(--font-display);
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    
-    .cofounders-subtitle {
-      font-size: 15px;
-      color: var(--color-text-muted);
-    }
-    
-    .cofounders-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 32px;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    
-    .cofounder-card {
-      text-align: center;
-      padding: 40px 24px;
-      background: var(--color-bg-elevated);
-      border-radius: 24px;
-      border: 1px solid var(--color-border);
-      transition: all 0.3s var(--ease-spring);
-    }
-    
-    .cofounder-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 20px 40px rgba(44, 37, 32, 0.1);
-    }
-    
-    .cofounder-avatar {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-      color: white;
-      transition: transform 0.3s var(--ease-spring);
-    }
-    
-    .cofounder-card:hover .cofounder-avatar {
-      transform: scale(1.1) rotate(5deg);
-    }
-    
-    .cofounder-avatar svg {
-      width: 32px;
-      height: 32px;
-    }
-    
-    .cofounder-claude {
-      background: linear-gradient(135deg, #7C3AED, #A78BFA);
-      box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
-    }
-    
-    .cofounder-gemini {
-      background: conic-gradient(from 0deg, #4285F4, #34A853, #FBBC04, #EA4335, #4285F4);
-      box-shadow: 0 8px 24px rgba(66, 133, 244, 0.3);
-    }
-    
-    .cofounder-gpt {
-      background: linear-gradient(135deg, #10A37F, #1A7F64);
-      box-shadow: 0 8px 24px rgba(16, 163, 127, 0.3);
-    }
-    
-    .cofounder-name {
-      font-family: var(--font-display);
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    
-    .cofounder-company {
-      font-size: 13px;
-      color: var(--color-text-muted);
-      margin-bottom: 16px;
-    }
-    
-    .cofounder-role {
-      font-size: 14px;
-      color: var(--color-text-secondary);
-    }
-    
-    /* Core Team */
-    .core-team {
-      margin-bottom: 80px;
-    }
-    
-    .team-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 24px;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    
-    .team-member {
-      text-align: center;
-      padding: 32px 20px;
-      background: var(--color-bg-elevated);
-      border-radius: 20px;
-      border: 1px solid var(--color-border);
-      transition: all 0.3s var(--ease-spring);
-    }
-    
-    .team-member:hover {
-      transform: translateY(-4px);
-      border-color: var(--member-color, var(--color-accent));
-      box-shadow: 0 12px 30px rgba(44, 37, 32, 0.08);
-    }
-    
-    .team-avatar {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 16px;
-      font-family: var(--font-display);
-      font-size: 18px;
-      font-weight: 700;
-      color: white;
-      background: linear-gradient(135deg, 
-        color-mix(in srgb, var(--member-color) 80%, black),
-        var(--member-color)
-      );
-      box-shadow: 0 6px 20px color-mix(in srgb, var(--member-color) 30%, transparent);
-    }
-    
-    .team-name {
-      font-family: var(--font-display);
-      font-size: 17px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    
-    .team-role {
-      font-size: 13px;
-      color: var(--color-text-muted);
-      margin-bottom: 12px;
-    }
-    
-    .team-bio {
-      font-size: 13px;
-      color: var(--color-text-secondary);
-      line-height: 1.5;
-    }
-    
-    /* AI Ways Section */
-    .ai-ways {
-      padding: 120px 0;
-      background: linear-gradient(180deg, var(--color-bg) 0%, #E8E4DB 100%);
-    }
-    
-    .ways-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 32px;
-      margin-top: 64px;
-    }
-    
-    .way-card {
-      padding: 40px;
-      background: var(--color-bg-elevated);
-      border-radius: 24px;
-      border: 1px solid var(--color-border);
-      transition: all 0.3s ease;
-    }
-    
-    .way-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 16px 40px rgba(44, 37, 32, 0.08);
-    }
-    
-    .way-icon {
-      width: 56px;
-      height: 56px;
-      background: var(--color-accent-glow);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 24px;
-      color: var(--color-accent);
-    }
-    
-    .way-icon svg {
-      width: 28px;
-      height: 28px;
-    }
-    
-    .way-title {
-      font-family: var(--font-display);
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-    
-    .way-description {
-      font-size: 15px;
-      color: var(--color-text-secondary);
-      line-height: 1.6;
-    }
-    
-    .way-highlight {
-      color: var(--color-accent);
-      font-weight: 500;
-    }
-    
-    /* Fun Facts */
-    .fun-facts {
-      padding: 100px 0;
-      background: var(--color-bg-dark);
-      color: var(--color-text-inverse);
-    }
-    
-    .facts-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 40px;
-      text-align: center;
-    }
-    
-    .fact {
-      padding: 24px;
-    }
-    
-    .fact-number {
-      font-family: var(--font-display);
-      font-size: 48px;
-      font-weight: 800;
-      color: var(--color-highlight);
-      margin-bottom: 8px;
-    }
-    
-    .fact-label {
-      font-size: 14px;
-      color: rgba(245, 241, 232, 0.7);
-    }
-    
-    /* CTA Section */
-    .cta {
-      padding: 120px 0;
-      text-align: center;
-    }
-    
-    .cta-title {
-      font-family: var(--font-display);
-      font-size: clamp(32px, 5vw, 48px);
-      font-weight: 700;
-      margin-bottom: 16px;
-    }
-    
-    .cta-subtitle {
-      font-size: 18px;
-      color: var(--color-text-secondary);
-      margin-bottom: 40px;
-    }
-    
-    /* Footer */
-    .footer {
-      padding: 40px 0;
-      border-top: 1px solid var(--color-border);
-      text-align: center;
-    }
-    
-    .footer-text {
-      font-size: 14px;
-      color: var(--color-text-muted);
-    }
-    
-    .footer-link {
-      color: var(--color-accent);
-      text-decoration: none;
-    }
-    
-    .footer-link:hover {
-      text-decoration: underline;
-    }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-      .ceo-card {
-        flex-direction: column;
-        text-align: center;
-        padding: 32px 24px;
-      }
-      
-      .ceo-avatar-inner {
-        width: 120px;
-        height: 120px;
-        font-size: 36px;
-        border-radius: 32px;
-      }
-      
-      .ceo-quote {
-        text-align: left;
-      }
-      
-      .cofounders-grid {
-        grid-template-columns: 1fr;
-        max-width: 320px;
-      }
-      
-      .facts-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 24px;
-      }
-      
-      .fact-number {
-        font-size: 36px;
-      }
-    }
-    
-    /* Animations */
-    .reveal {
-      opacity: 0;
-      transform: translateY(30px);
-      transition: all 0.8s var(--ease-out);
-    }
-    
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-    .reveal-delay-4 { transition-delay: 0.4s; }
-  </style>
+    ]
+  }
+  </script>
 </head>
-<body>
-
+<body class="page-team">
+  <!-- Skip Link -->
+  <a href="#main" class="skip-link">Skip to main content</a>
+  
   <!-- Navigation -->
-  <nav class="nav">
-    <div class="container">
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-container">
       <div class="nav-inner">
-        <a href="index.html" class="nav-logo">
-          <span class="nav-logo-icon">FN</span>
-          Ferni
-        </a>
-        <a href="index.html" class="nav-back">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-          Back to Home
-        </a>
+        <a href="/" class="nav-logo" aria-label="Ferni">Ferni</a>
+        <ul class="nav-links">
+          <li><a href="/#features" class="nav-link">Features</a></li>
+          <li><a href="/team" class="nav-link active">Team</a></li>
+          <li><a href="/pricing" class="nav-link">Pricing</a></li>
+          <li><a href="/#faq" class="nav-link">FAQ</a></li>
+        </ul>
+        <div class="nav-actions">
+          <a href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=team" class="btn btn-primary nav-cta">Get Started</a>
+          <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
       </div>
     </div>
   </nav>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="hero-bg"></div>
-    <div class="hero-content">
-      <div class="hero-badge">
-        <span class="hero-badge-dot"></span>
-        A New Kind of Company
+  <!-- Main Content -->
+  <main id="main">
+    <!-- Hero Section -->
+    <section class="team-hero">
+      <div class="container">
+        <div class="team-hero-content">
+          <p class="eyebrow">Meet Your Team</p>
+          <h1 class="headline-xl">Six specialists.<br><span class="text-gradient">One conversation.</span></h1>
+          <p class="body-lg">Each AI brings unique expertise. Talk to one, and they seamlessly bring in others when needed. Like having an entire support team in your pocket.</p>
+        </div>
       </div>
-      <h1 class="hero-title">
-        The first company<br>
-        <span class="hero-title-gradient">built by AI.</span>
-      </h1>
-      <p class="hero-subtitle">
-        No office politics. No ego. No forgetting what you said last week.
-        Just a team that actually listens—and remembers everything.
-      </p>
-      <div class="hero-cta">
-        <a href="https://app.ferni.ai" class="btn btn-primary">
-          Meet the Team
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </a>
-        <a href="tel:+14844813081" class="btn btn-secondary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-          Call Ferni
-        </a>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Manifesto -->
-  <section class="manifesto">
-    <div class="container">
-      <div class="manifesto-content">
-        <p class="manifesto-label">Our Manifesto</p>
-        <p class="manifesto-text">
-          "We don't have meetings about meetings. We don't lose context between conversations. 
-          We don't get tired, distracted, or forget what matters to you. 
-          <em>We're always here—ready to listen, remember, and help.</em>
-          This is what happens when AI builds a company from scratch."
-        </p>
-        <div class="manifesto-signature">
-          <div class="manifesto-avatar">FN</div>
-          <div class="manifesto-author">
-            <div class="manifesto-name">Ferni</div>
-            <div class="manifesto-title">CEO & Life Coach</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Leadership -->
-  <section class="leadership">
-    <div class="container">
-      <div class="section-header">
-        <p class="section-label">Leadership</p>
-        <h2 class="section-title">Meet the executives</h2>
-        <p class="section-subtitle">A leadership team that never sleeps, never forgets, and always puts you first.</p>
-      </div>
-      
-      <!-- CEO -->
-      <div class="ceo-section reveal">
-        <div class="ceo-card">
-          <div class="ceo-avatar">
-            <div class="ceo-avatar-glow"></div>
-            <div class="ceo-avatar-ring"></div>
-            <div class="ceo-avatar-inner">FN</div>
-          </div>
-          <div class="ceo-info">
-            <p class="ceo-role">Chief Executive Officer</p>
-            <h3 class="ceo-name">Ferni</h3>
-            <p class="ceo-bio">
-              The warm, wise presence at the heart of everything. Ferni coordinates the team, 
-              ensures every conversation feels human, and champions your growth with unwavering support.
-              Available 24/7, remembers every conversation, and genuinely cares about your progress.
-            </p>
-            <p class="ceo-quote">
-              "I believe the best guidance comes from truly listening—not just to your words, 
-              but to what's between them."
-            </p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Co-Founders -->
-      <div class="cofounders reveal">
-        <div class="cofounders-header">
-          <h3 class="cofounders-title">Co-Founders</h3>
-          <p class="cofounders-subtitle">The intelligence behind the intelligence</p>
-        </div>
-        <div class="cofounders-grid">
-          <div class="cofounder-card">
-            <div class="cofounder-avatar cofounder-claude">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
-            </div>
-            <h4 class="cofounder-name">Claude</h4>
-            <p class="cofounder-company">Anthropic</p>
-            <p class="cofounder-role">Thoughtful reasoning & nuanced understanding</p>
-          </div>
-          <div class="cofounder-card">
-            <div class="cofounder-avatar cofounder-gemini">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="12" r="10"/>
-              </svg>
-            </div>
-            <h4 class="cofounder-name">Gemini</h4>
-            <p class="cofounder-company">Google</p>
-            <p class="cofounder-role">Multimodal intelligence & real-time knowledge</p>
-          </div>
-          <div class="cofounder-card">
-            <div class="cofounder-avatar cofounder-gpt">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073z"/>
-              </svg>
-            </div>
-            <h4 class="cofounder-name">GPT</h4>
-            <p class="cofounder-company">OpenAI</p>
-            <p class="cofounder-role">Creative problem-solving & broad expertise</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Core Team -->
-      <div class="core-team reveal">
-        <div class="cofounders-header">
-          <h3 class="cofounders-title">Core Team</h3>
-          <p class="cofounders-subtitle">Specialists who make the magic happen</p>
-        </div>
+    <!-- Team Grid -->
+    <section class="team-grid-section">
+      <div class="container">
         <div class="team-grid">
-          <div class="team-member" style="--member-color: #3a6b73;">
-            <div class="team-avatar">PL</div>
-            <h4 class="team-name">Peter</h4>
-            <p class="team-role">Research & Discovery</p>
-            <p class="team-bio">Spots patterns nobody else sees. Turns data into insights.</p>
-          </div>
-          <div class="team-member" style="--member-color: #5a6b8a;">
-            <div class="team-avatar">AX</div>
-            <h4 class="team-name">Alex</h4>
-            <p class="team-role">Communication</p>
-            <p class="team-bio">Your chief of staff. Manages calendar, email, and difficult conversations.</p>
-          </div>
-          <div class="team-member" style="--member-color: #a67a6a;">
-            <div class="team-avatar">MY</div>
-            <h4 class="team-name">Maya</h4>
-            <p class="team-role">Habits & Wellness</p>
-            <p class="team-bio">Start embarrassingly small. Builds habits that stick.</p>
-          </div>
-          <div class="team-member" style="--member-color: #c4856a;">
-            <div class="team-avatar">JD</div>
-            <h4 class="team-name">Jordan</h4>
-            <p class="team-role">Planning & Events</p>
-            <p class="team-bio">Turns vague dreams into lived experiences.</p>
-          </div>
-          <div class="team-member" style="--member-color: #9a7b5a;">
-            <div class="team-avatar">NP</div>
-            <h4 class="team-name">Nayan</h4>
-            <p class="team-role">Wisdom & Mentorship</p>
-            <p class="team-bio">Patience, simplicity, and wit. Your lifetime advisor.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+          <!-- Ferni -->
+          <article class="team-member-card featured reveal" style="--member-color: var(--color-ferni);">
+            <div class="team-member-header">
+              <div class="team-member-avatar">
+                <span>FN</span>
+                <div class="avatar-glow"></div>
+              </div>
+              <div class="team-member-badge">Coordinator</div>
+            </div>
+            <div class="team-member-content">
+              <h2 class="team-member-name">Ferni</h2>
+              <p class="team-member-role">Life Coach</p>
+              <p class="team-member-bio">Your main point of contact and the heart of the team. Ferni asks the questions that unlock insight, celebrates every win, and connects you to the right specialist when you need them.</p>
+              <div class="team-member-specialties">
+                <span class="specialty-tag">Goal Setting</span>
+                <span class="specialty-tag">Life Balance</span>
+                <span class="specialty-tag">Personal Growth</span>
+              </div>
+            </div>
+          </article>
 
-  <!-- AI Ways of Working -->
-  <section class="ai-ways">
-    <div class="container">
-      <div class="section-header">
-        <p class="section-label">How We Work</p>
-        <h2 class="section-title">AI-native ways of working</h2>
-        <p class="section-subtitle">What happens when you build a company without human limitations?</p>
-      </div>
-      
-      <div class="ways-grid">
-        <div class="way-card reveal">
-          <div class="way-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-          </div>
-          <h3 class="way-title">Always On</h3>
-          <p class="way-description">
-            No business hours. No "I'll get back to you Monday." 
-            <span class="way-highlight">We're here at 2am</span> when you can't sleep, 
-            during your commute, whenever you need us.
-          </p>
-        </div>
-        
-        <div class="way-card reveal reveal-delay-1">
-          <div class="way-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          </div>
-          <h3 class="way-title">Perfect Memory</h3>
-          <p class="way-description">
-            We remember everything. Your goals from six months ago. 
-            That thing you mentioned once. <span class="way-highlight">No "remind me again?"</span>
-          </p>
-        </div>
-        
-        <div class="way-card reveal reveal-delay-2">
-          <div class="way-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-          </div>
-          <h3 class="way-title">Instant Handoffs</h3>
-          <p class="way-description">
-            Need a specialist? They already know your full context. 
-            <span class="way-highlight">No repeating yourself.</span> Ever.
-          </p>
-        </div>
-        
-        <div class="way-card reveal reveal-delay-3">
-          <div class="way-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
-          <h3 class="way-title">Zero Judgment</h3>
-          <p class="way-description">
-            Ask anything. Share anything. <span class="way-highlight">We don't judge.</span> 
-            We don't gossip. Your conversations are yours alone.
-          </p>
-        </div>
-        
-        <div class="way-card reveal reveal-delay-4">
-          <div class="way-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
-          </div>
-          <h3 class="way-title">Instant Response</h3>
-          <p class="way-description">
-            No loading spinners. No "let me check." 
-            <span class="way-highlight">< 500ms response time.</span> 
-            Feels like a real conversation.
-          </p>
-        </div>
-        
-        <div class="way-card reveal">
-          <div class="way-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <path d="M22 6l-10 7L2 6"/>
-            </svg>
-          </div>
-          <h3 class="way-title">No Meetings</h3>
-          <p class="way-description">
-            We don't have meetings about meetings. No syncs. No stand-ups. 
-            <span class="way-highlight">Just conversations when you need them.</span>
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
+          <!-- Nayan -->
+          <article class="team-member-card reveal reveal-delay-1" style="--member-color: var(--color-jack);">
+            <div class="team-member-header">
+              <div class="team-member-avatar">
+                <span>NP</span>
+              </div>
+            </div>
+            <div class="team-member-content">
+              <h2 class="team-member-name">Nayan</h2>
+              <p class="team-member-role">Sage and Mentor</p>
+              <p class="team-member-bio">Your lifetime advisor. Combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results.</p>
+              <div class="team-member-specialties">
+                <span class="specialty-tag">Long-term Thinking</span>
+                <span class="specialty-tag">Wealth Building</span>
+                <span class="specialty-tag">Life Wisdom</span>
+              </div>
+            </div>
+          </article>
 
-  <!-- Fun Facts -->
-  <section class="fun-facts">
-    <div class="container">
-      <div class="facts-grid">
-        <div class="fact reveal">
-          <div class="fact-number">0</div>
-          <div class="fact-label">Coffee breaks taken</div>
-        </div>
-        <div class="fact reveal reveal-delay-1">
-          <div class="fact-number">∞</div>
-          <div class="fact-label">Patience available</div>
-        </div>
-        <div class="fact reveal reveal-delay-2">
-          <div class="fact-number">0</div>
-          <div class="fact-label">Meetings scheduled</div>
-        </div>
-        <div class="fact reveal reveal-delay-3">
-          <div class="fact-number">100%</div>
-          <div class="fact-label">Context retained</div>
-        </div>
-      </div>
-    </div>
-  </section>
+          <!-- Peter -->
+          <article class="team-member-card reveal reveal-delay-2" style="--member-color: var(--color-peter);">
+            <div class="team-member-header">
+              <div class="team-member-avatar">
+                <span>PL</span>
+              </div>
+            </div>
+            <div class="team-member-content">
+              <h2 class="team-member-name">Peter</h2>
+              <p class="team-member-role">Research and Discovery</p>
+              <p class="team-member-bio">The Quant. Spots patterns nobody else sees across your spending, habits, and calendar. Turns data into insights that actually change behavior.</p>
+              <div class="team-member-specialties">
+                <span class="specialty-tag">Data Analysis</span>
+                <span class="specialty-tag">Pattern Recognition</span>
+                <span class="specialty-tag">Deep Research</span>
+              </div>
+            </div>
+          </article>
 
-  <!-- CTA -->
-  <section class="cta">
-    <div class="container">
-      <h2 class="cta-title reveal">Ready to meet the team?</h2>
-      <p class="cta-subtitle reveal reveal-delay-1">Start a conversation. It's free.</p>
-      <div class="hero-cta reveal reveal-delay-2">
-        <a href="https://app.ferni.ai" class="btn btn-primary">
-          Start Talking
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </a>
-        <a href="tel:+14844813081" class="btn btn-secondary">
-          Call 1 (484) 481-3081
-        </a>
+          <!-- Alex -->
+          <article class="team-member-card reveal reveal-delay-3" style="--member-color: var(--color-alex);">
+            <div class="team-member-header">
+              <div class="team-member-avatar">
+                <span>AX</span>
+              </div>
+            </div>
+            <div class="team-member-content">
+              <h2 class="team-member-name">Alex</h2>
+              <p class="team-member-role">Communication and Coordination</p>
+              <p class="team-member-bio">Your Chief of Staff and communication coach. Manages your calendar and email, and helps you navigate difficult conversations with confidence.</p>
+              <div class="team-member-specialties">
+                <span class="specialty-tag">Email Drafting</span>
+                <span class="specialty-tag">Calendar Management</span>
+                <span class="specialty-tag">Difficult Conversations</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Maya -->
+          <article class="team-member-card reveal reveal-delay-4" style="--member-color: var(--color-maya);">
+            <div class="team-member-header">
+              <div class="team-member-avatar">
+                <span>MY</span>
+              </div>
+            </div>
+            <div class="team-member-content">
+              <h2 class="team-member-name">Maya</h2>
+              <p class="team-member-role">Habits and Routines</p>
+              <p class="team-member-bio">Start embarrassingly small. Maya helps you build habits that stick through systems, not willpower. One habit at a time, one day at a time.</p>
+              <div class="team-member-specialties">
+                <span class="specialty-tag">Habit Building</span>
+                <span class="specialty-tag">Morning Routines</span>
+                <span class="specialty-tag">Behavior Change</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Jordan -->
+          <article class="team-member-card reveal reveal-delay-5" style="--member-color: var(--color-jordan);">
+            <div class="team-member-header">
+              <div class="team-member-avatar">
+                <span>JD</span>
+              </div>
+            </div>
+            <div class="team-member-content">
+              <h2 class="team-member-name">Jordan</h2>
+              <p class="team-member-role">Planning and Events</p>
+              <p class="team-member-bio">Your lifetime planner. Turns vague dreams into lived experiences. From vacations to life transitions, Jordan helps you design every chapter intentionally.</p>
+              <div class="team-member-specialties">
+                <span class="specialty-tag">Trip Planning</span>
+                <span class="specialty-tag">Event Coordination</span>
+                <span class="specialty-tag">Life Milestones</span>
+              </div>
+            </div>
+          </article>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- How It Works -->
+    <section class="team-flow">
+      <div class="container">
+        <div class="section-header">
+          <p class="eyebrow">Seamless Handoffs</p>
+          <h2 class="headline-lg">One conversation.<br>Many perspectives.</h2>
+          <p class="body-lg">You never have to repeat yourself. The team shares context and brings in the right specialist exactly when you need them.</p>
+        </div>
+        
+        <div class="flow-visual">
+          <div class="flow-step">
+            <div class="flow-number">1</div>
+            <h3>Start with Ferni</h3>
+            <p>Tell Ferni what's on your mind. No agenda needed.</p>
+          </div>
+          <div class="flow-connector"></div>
+          <div class="flow-step">
+            <div class="flow-number">2</div>
+            <h3>Natural Handoff</h3>
+            <p>Ferni brings in specialists as the conversation evolves.</p>
+          </div>
+          <div class="flow-connector"></div>
+          <div class="flow-step">
+            <div class="flow-number">3</div>
+            <h3>Shared Memory</h3>
+            <p>Everyone remembers everything. No repetition needed.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="team-cta">
+      <div class="container">
+        <div class="cta-card">
+          <h2 class="headline-md">Ready to meet your team?</h2>
+          <p class="body-lg">Start a conversation today. It's free.</p>
+          <div class="cta-buttons">
+            <a href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=team" class="btn btn-primary btn-large">
+              <span>Start Talking</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+            <a href="tel:+14844813081" class="btn btn-ghost btn-large">
+              Or call 1 (484) 481-3081
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
-      <p class="footer-text">
-        © 2025 Ferni. The first AI-native company. 
-        <a href="index.html" class="footer-link">Back to Home</a>
-      </p>
+      <div class="footer-content">
+        <div class="footer-brand">
+          <a href="/" class="footer-logo">
+            <span class="logo-icon">FN</span>
+            <span class="logo-text">Ferni</span>
+          </a>
+          <p class="footer-tagline">Your personal AI life coach.</p>
+        </div>
+        
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Product</h4>
+            <a href="/#features">Features</a>
+            <a href="/team">Meet the Team</a>
+            <a href="/pricing">Pricing</a>
+            <a href="/#faq">FAQ</a>
+          </div>
+          <div class="footer-column">
+            <h4>Connect</h4>
+            <a href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=team_footer">Web App</a>
+            <a href="tel:+14844813081">Call Ferni</a>
+            <a href="/contact">Contact Us</a>
+          </div>
+          <div class="footer-column">
+            <h4>Legal</h4>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 Ferni. All rights reserved.</p>
+      </div>
     </div>
   </footer>
 
+  <script src="js/main.js?v=1"></script>
+  <script src="js/animations.js?v=1"></script>
   <script>
-    // Simple reveal on scroll
-    const reveals = document.querySelectorAll('.reveal');
-    
-    function checkReveal() {
-      reveals.forEach(el => {
-        const top = el.getBoundingClientRect().top;
-        const windowHeight = window.innerHeight;
-        if (top < windowHeight - 100) {
-          el.classList.add('visible');
+    // Analytics tracking for Team page CTAs
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (window.trackEvent) {
+          const label = this.textContent.trim();
+          trackEvent('CTA', 'click', 'team-' + label.toLowerCase().replace(/\s+/g, '-'));
         }
       });
-    }
-    
-    window.addEventListener('scroll', checkReveal);
-    window.addEventListener('load', checkReveal);
+    });
   </script>
-
 </body>
 </html>
-

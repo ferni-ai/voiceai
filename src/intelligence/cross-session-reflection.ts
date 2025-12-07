@@ -180,27 +180,27 @@ export function detectReflectionMoment(
 const reflectionTemplates: Record<ReflectionMoment['type'], string[]> = {
   vulnerability_shared: [
     "I've been thinking about {seed}. Thank you for trusting me with that.",
-    "Since we last talked, {seed} has stayed with me. How are you feeling about it now?",
+    'Since we last talked, {seed} has stayed with me. How are you feeling about it now?',
     "You know, {seed} really meant a lot. I wanted you to know I haven't forgotten.",
   ],
   breakthrough_moment: [
     "I've been thinking about {seed}. Has that insight shifted anything for you?",
-    "Your realization last time was powerful. How has it been sitting with you?",
+    'Your realization last time was powerful. How has it been sitting with you?',
     "{seed} was a big moment. I'm curious how you're seeing things now.",
   ],
   difficult_admission: [
     "I haven't stopped thinking about {seed}. How are you doing with that?",
     "{seed}—it took courage to share that. I've been hoping you're okay.",
-    "What you shared last time about {topic} has been on my mind.",
+    'What you shared last time about {topic} has been on my mind.',
   ],
   meaningful_question: [
-    "You asked something last time that stuck with me—about {topic}.",
+    'You asked something last time that stuck with me—about {topic}.',
     "I've been thinking about your question regarding {topic}.",
-    "That question you raised about {topic} has had me reflecting too.",
+    'That question you raised about {topic} has had me reflecting too.',
   ],
   life_update: [
     "I've been wondering how things went with {topic}.",
-    "You mentioned {topic} last time—how did that turn out?",
+    'You mentioned {topic} last time—how did that turn out?',
     "I've been thinking about {topic}. Any updates?",
   ],
   goal_commitment: [
@@ -210,12 +210,12 @@ const reflectionTemplates: Record<ReflectionMoment['type'], string[]> = {
   ],
   fear_expressed: [
     "I've been thinking about {seed}. Those fears are real. How are you managing?",
-    "{seed}—I wanted to check in. How are you feeling about it now?",
-    "You shared some worries about {topic} last time. Are they still weighing on you?",
+    '{seed}—I wanted to check in. How are you feeling about it now?',
+    'You shared some worries about {topic} last time. Are they still weighing on you?',
   ],
   joy_shared: [
     "I've been smiling thinking about {seed}. Are you still riding that high?",
-    "That great news about {topic}—I hope the joy is still with you.",
+    'That great news about {topic}—I hope the joy is still with you.',
     "I've been thinking about {seed}. Moments like that are worth savoring.",
   ],
 };
@@ -230,9 +230,7 @@ export function generateReflection(
   const templates = reflectionTemplates[moment.type] || reflectionTemplates.difficult_admission;
   const template = templates[Math.floor(Math.random() * templates.length)];
 
-  let phrase = template
-    .replace('{seed}', moment.reflectionSeed)
-    .replace('{topic}', moment.topic);
+  let phrase = template.replace('{seed}', moment.reflectionSeed).replace('{topic}', moment.topic);
 
   // Add name occasionally
   if (userName && Math.random() < 0.3) {
@@ -341,10 +339,7 @@ export function getReflectionMoments(profile: UserProfile | null): ReflectionMom
 /**
  * Save a reflection moment to user profile
  */
-export function saveReflectionMoment(
-  profile: UserProfile,
-  moment: ReflectionMoment
-): void {
+export function saveReflectionMoment(profile: UserProfile, moment: ReflectionMoment): void {
   if (!profile.customData) {
     profile.customData = {};
   }
@@ -371,10 +366,7 @@ export function saveReflectionMoment(
 /**
  * Mark a moment as reflected on
  */
-export function markMomentReflectedOn(
-  profile: UserProfile,
-  momentId: string
-): void {
+export function markMomentReflectedOn(profile: UserProfile, momentId: string): void {
   const moments = getReflectionMoments(profile);
   const moment = moments.find((m) => m.id === momentId);
   if (moment) {
@@ -383,7 +375,4 @@ export function markMomentReflectedOn(
   }
 }
 
-export {
-  reflectionTemplates,
-  calculateAppropiateness,
-};
+export { reflectionTemplates, calculateAppropiateness };

@@ -638,7 +638,7 @@ describe('Voice Manager Edge Cases', () => {
 
   it('should handle multiple subscribers and unsubscribes', () => {
     const manager = getVoiceManager();
-    const callbacks: (() => void)[] = [];
+    const callbacks: Array<() => void> = [];
 
     // Add many subscribers
     for (let i = 0; i < 20; i++) {

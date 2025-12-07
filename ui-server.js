@@ -377,7 +377,48 @@ const server = http.createServer(async (req, res) => {
   // Health check endpoint
   if (pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', service: 'john-bogle-ui', timestamp: new Date().toISOString() }));
+    res.end(JSON.stringify({ status: 'ok', service: 'ferni-ui', timestamp: new Date().toISOString() }));
+    return;
+  }
+
+  // Comprehensive health dashboard endpoint
+  if (pathname === '/health/dashboard') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    const dashboard = {
+      status: 'ok',
+      service: 'ferni-ui',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      node: process.version,
+      checks: {
+        livekit: {
+          configured: !!(LIVEKIT_URL && LIVEKIT_API_KEY && LIVEKIT_API_SECRET),
+          url: LIVEKIT_URL ? LIVEKIT_URL.replace(/\/\/.*@/, '//***@') : null, // Mask creds
+        },
+        plaid: {
+          configured: !!(PLAID_CLIENT_ID && PLAID_SECRET),
+          environment: PLAID_ENV,
+        },
+        spotify: {
+          configured: !!(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET),
+          hasRefreshToken: !!getSpotifyRefreshToken(),
+          hasWebDevice: !!spotifyWebDeviceId,
+        },
+        firebase: {
+          projectId: process.env.GCP_PROJECT_ID || null,
+        },
+      },
+      environment: {
+        nodeEnv: process.env.NODE_ENV || 'development',
+        port: PORT,
+        version: process.env.npm_package_version || 'unknown',
+      },
+    };
+    
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(dashboard, null, 2));
     return;
   }
 

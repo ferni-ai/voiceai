@@ -1,12 +1,12 @@
 /**
  * DORA Metrics Service
- * 
+ *
  * Tracks DevOps Research and Assessment (DORA) metrics:
  * 1. Deployment Frequency - How often code is deployed to production
  * 2. Lead Time for Changes - Time from commit to production
  * 3. Mean Time to Recovery (MTTR) - Time to restore service after an incident
  * 4. Change Failure Rate - Percentage of deployments causing failures
- * 
+ *
  * Data is persisted to disk and can be populated via:
  * - Webhook from GitHub Actions / Cloud Build
  * - Manual API calls
@@ -107,25 +107,25 @@ const DORA_FILE = path.join(DATA_DIR, 'dora-metrics.json');
 const THRESHOLDS = {
   deploymentFrequency: {
     elite: 7, // 7+ per week (daily+)
-    high: 1,  // 1-6 per week
+    high: 1, // 1-6 per week
     medium: 0.25, // 1-4 per month
     // low: less than monthly
   },
   leadTimeHours: {
-    elite: 1,    // < 1 hour
-    high: 24,    // < 1 day
+    elite: 1, // < 1 hour
+    high: 24, // < 1 day
     medium: 168, // < 1 week
     // low: > 1 week
   },
   mttrMinutes: {
-    elite: 60,    // < 1 hour
-    high: 1440,   // < 1 day
+    elite: 60, // < 1 hour
+    high: 1440, // < 1 day
     medium: 10080, // < 1 week
     // low: > 1 week
   },
   changeFailureRate: {
     elite: 15, // < 15%
-    high: 30,  // 16-30%
+    high: 30, // 16-30%
     medium: 45, // 31-45%
     // low: > 45%
   },
@@ -143,7 +143,7 @@ function ensureDataDir(): void {
 
 function loadData(): DORAData {
   ensureDataDir();
-  
+
   if (fs.existsSync(DORA_FILE)) {
     try {
       const content = fs.readFileSync(DORA_FILE, 'utf-8');
@@ -152,7 +152,7 @@ function loadData(): DORAData {
       logger.warn({ error }, 'Failed to load DORA data, starting fresh');
     }
   }
-  
+
   return {
     deployments: [],
     incidents: [],
@@ -203,12 +203,12 @@ function calculateMetrics(data: DORAData): DORASnapshot {
   const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
   // Filter deployments by time
-  const prodDeployments = data.deployments.filter(d => d.environment === 'production');
-  const deploymentsLast24h = prodDeployments.filter(d => new Date(d.timestamp) > oneDayAgo);
-  const deploymentsLast7d = prodDeployments.filter(d => new Date(d.timestamp) > sevenDaysAgo);
-  const deploymentsLast30d = prodDeployments.filter(d => new Date(d.timestamp) > thirtyDaysAgo);
+  const prodDeployments = data.deployments.filter((d) => d.environment === 'production');
+  const deploymentsLast24h = prodDeployments.filter((d) => new Date(d.timestamp) > oneDayAgo);
+  const deploymentsLast7d = prodDeployments.filter((d) => new Date(d.timestamp) > sevenDaysAgo);
+  const deploymentsLast30d = prodDeployments.filter((d) => new Date(d.timestamp) > thirtyDaysAgo);
   const deploymentsPrevious30d = prodDeployments.filter(
-    d => new Date(d.timestamp) > sixtyDaysAgo && new Date(d.timestamp) <= thirtyDaysAgo
+    (d) => new Date(d.timestamp) > sixtyDaysAgo && new Date(d.timestamp) <= thirtyDaysAgo
   );
 
   // Deployment Frequency
@@ -220,75 +220,72 @@ function calculateMetrics(data: DORAData): DORASnapshot {
   );
 
   // Lead Time for Changes
-  const leadTimes = deploymentsLast30d
-    .filter(d => d.duration > 0)
-    .map(d => d.duration / 3600); // convert to hours
-  const avgLeadTimeHours = leadTimes.length > 0
-    ? leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length
-    : 0;
+  const leadTimes = deploymentsLast30d.filter((d) => d.duration > 0).map((d) => d.duration / 3600); // convert to hours
+  const avgLeadTimeHours =
+    leadTimes.length > 0 ? leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length : 0;
   const p50LeadTimeHours = percentile(leadTimes, 50);
   const p95LeadTimeHours = percentile(leadTimes, 95);
   const leadTimeRating = getRating(avgLeadTimeHours, THRESHOLDS.leadTimeHours, true);
 
   // Mean Time to Recovery
   const resolvedIncidents = data.incidents.filter(
-    i => i.resolvedAt && new Date(i.startedAt) > thirtyDaysAgo
+    (i) => i.resolvedAt && new Date(i.startedAt) > thirtyDaysAgo
   );
   const mttrValues = resolvedIncidents
-    .filter(i => i.duration !== undefined)
-    .map(i => i.duration!);
-  const avgMttrMinutes = mttrValues.length > 0
-    ? mttrValues.reduce((a, b) => a + b, 0) / mttrValues.length
-    : 0;
+    .filter((i) => i.duration !== undefined)
+    .map((i) => i.duration!);
+  const avgMttrMinutes =
+    mttrValues.length > 0 ? mttrValues.reduce((a, b) => a + b, 0) / mttrValues.length : 0;
   const p50MttrMinutes = percentile(mttrValues, 50);
   const p95MttrMinutes = percentile(mttrValues, 95);
   const mttrRating = getRating(avgMttrMinutes, THRESHOLDS.mttrMinutes, true);
 
   // Change Failure Rate
-  const failedDeployments = deploymentsLast30d.filter(d => !d.success || d.rollback);
-  const changeFailureRate = deploymentsLast30d.length > 0
-    ? (failedDeployments.length / deploymentsLast30d.length) * 100
-    : 0;
+  const failedDeployments = deploymentsLast30d.filter((d) => !d.success || d.rollback);
+  const changeFailureRate =
+    deploymentsLast30d.length > 0
+      ? (failedDeployments.length / deploymentsLast30d.length) * 100
+      : 0;
   const cfrRating = getRating(changeFailureRate, THRESHOLDS.changeFailureRate, true);
 
   // Overall Rating (average of all ratings)
   const ratingScores = { elite: 4, high: 3, medium: 2, low: 1 };
-  const avgScore = (
-    ratingScores[deploymentFrequencyRating] +
-    ratingScores[leadTimeRating] +
-    ratingScores[mttrRating] +
-    ratingScores[cfrRating]
-  ) / 4;
+  const avgScore =
+    (ratingScores[deploymentFrequencyRating] +
+      ratingScores[leadTimeRating] +
+      ratingScores[mttrRating] +
+      ratingScores[cfrRating]) /
+    4;
   const overallRating: 'elite' | 'high' | 'medium' | 'low' =
-    avgScore >= 3.5 ? 'elite' :
-    avgScore >= 2.5 ? 'high' :
-    avgScore >= 1.5 ? 'medium' : 'low';
+    avgScore >= 3.5 ? 'elite' : avgScore >= 2.5 ? 'high' : avgScore >= 1.5 ? 'medium' : 'low';
 
   // Trends (vs previous 30 days)
   const prevAvgDeploymentsPerWeek = deploymentsPrevious30d.length / 4.3;
   const prevLeadTimes = deploymentsPrevious30d
-    .filter(d => d.duration > 0)
-    .map(d => d.duration / 3600);
-  const prevAvgLeadTime = prevLeadTimes.length > 0
-    ? prevLeadTimes.reduce((a, b) => a + b, 0) / prevLeadTimes.length
-    : avgLeadTimeHours;
-  
+    .filter((d) => d.duration > 0)
+    .map((d) => d.duration / 3600);
+  const prevAvgLeadTime =
+    prevLeadTimes.length > 0
+      ? prevLeadTimes.reduce((a, b) => a + b, 0) / prevLeadTimes.length
+      : avgLeadTimeHours;
+
   const prevResolvedIncidents = data.incidents.filter(
-    i => i.resolvedAt && 
-    new Date(i.startedAt) > sixtyDaysAgo && 
-    new Date(i.startedAt) <= thirtyDaysAgo
+    (i) =>
+      i.resolvedAt && new Date(i.startedAt) > sixtyDaysAgo && new Date(i.startedAt) <= thirtyDaysAgo
   );
   const prevMttrValues = prevResolvedIncidents
-    .filter(i => i.duration !== undefined)
-    .map(i => i.duration!);
-  const prevAvgMttr = prevMttrValues.length > 0
-    ? prevMttrValues.reduce((a, b) => a + b, 0) / prevMttrValues.length
-    : avgMttrMinutes;
+    .filter((i) => i.duration !== undefined)
+    .map((i) => i.duration!);
+  const prevAvgMttr =
+    prevMttrValues.length > 0
+      ? prevMttrValues.reduce((a, b) => a + b, 0) / prevMttrValues.length
+      : avgMttrMinutes;
 
-  const prevFailedDeployments = deploymentsPrevious30d.filter(d => !d.success || d.rollback);
-  const prevCfr = deploymentsPrevious30d.length > 0
-    ? (prevFailedDeployments.length / deploymentsPrevious30d.length) * 100
-    : changeFailureRate;
+  const prevFailedDeployments = deploymentsPrevious30d.filter((d) => !d.success || d.rollback);
+  const prevCfr =
+    deploymentsPrevious30d.length > 0
+      ? (prevFailedDeployments.length / deploymentsPrevious30d.length) * 100
+      : changeFailureRate;
 
   const calculateTrend = (current: number, previous: number): number => {
     if (previous === 0) return current > 0 ? 100 : 0;
@@ -321,7 +318,9 @@ function calculateMetrics(data: DORAData): DORASnapshot {
     lastUpdated: new Date().toISOString(),
 
     trends: {
-      deploymentFrequency: Math.round(calculateTrend(avgDeploymentsPerWeek, prevAvgDeploymentsPerWeek)),
+      deploymentFrequency: Math.round(
+        calculateTrend(avgDeploymentsPerWeek, prevAvgDeploymentsPerWeek)
+      ),
       leadTime: Math.round(calculateTrend(avgLeadTimeHours, prevAvgLeadTime)),
       mttr: Math.round(calculateTrend(avgMttrMinutes, prevAvgMttr)),
       changeFailureRate: Math.round(calculateTrend(changeFailureRate, prevCfr)),
@@ -338,10 +337,13 @@ class DORAMetricsService {
 
   constructor() {
     this.data = loadData();
-    logger.info({ 
-      deployments: this.data.deployments.length,
-      incidents: this.data.incidents.length,
-    }, 'DORA metrics service initialized');
+    logger.info(
+      {
+        deployments: this.data.deployments.length,
+        incidents: this.data.incidents.length,
+      },
+      'DORA metrics service initialized'
+    );
   }
 
   /**
@@ -350,17 +352,20 @@ class DORAMetricsService {
   recordDeployment(deployment: Omit<Deployment, 'id'>): Deployment {
     const id = `deploy_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const newDeployment: Deployment = { id, ...deployment };
-    
+
     this.data.deployments.push(newDeployment);
     saveData(this.data);
-    
-    logger.info({
-      id,
-      environment: deployment.environment,
-      success: deployment.success,
-      duration: deployment.duration,
-    }, 'Deployment recorded');
-    
+
+    logger.info(
+      {
+        id,
+        environment: deployment.environment,
+        success: deployment.success,
+        duration: deployment.duration,
+      },
+      'Deployment recorded'
+    );
+
     return newDeployment;
   }
 
@@ -370,16 +375,19 @@ class DORAMetricsService {
   recordIncident(incident: Omit<Incident, 'id'>): Incident {
     const id = `incident_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const newIncident: Incident = { id, ...incident };
-    
+
     this.data.incidents.push(newIncident);
     saveData(this.data);
-    
-    logger.info({
-      id,
-      title: incident.title,
-      severity: incident.severity,
-    }, 'Incident recorded');
-    
+
+    logger.info(
+      {
+        id,
+        title: incident.title,
+        severity: incident.severity,
+      },
+      'Incident recorded'
+    );
+
     return newIncident;
   }
 
@@ -387,28 +395,31 @@ class DORAMetricsService {
    * Resolve an incident
    */
   resolveIncident(
-    incidentId: string, 
+    incidentId: string,
     resolution: { resolvedAt: string; resolution?: string; rootCause?: string }
   ): Incident | null {
-    const incident = this.data.incidents.find(i => i.id === incidentId);
+    const incident = this.data.incidents.find((i) => i.id === incidentId);
     if (!incident) return null;
 
     incident.resolvedAt = resolution.resolvedAt;
     incident.resolution = resolution.resolution;
     incident.rootCause = resolution.rootCause;
-    
+
     // Calculate duration
     const start = new Date(incident.startedAt).getTime();
     const end = new Date(resolution.resolvedAt).getTime();
     incident.duration = Math.round((end - start) / 60000); // minutes
 
     saveData(this.data);
-    
-    logger.info({
-      id: incidentId,
-      duration: incident.duration,
-    }, 'Incident resolved');
-    
+
+    logger.info(
+      {
+        id: incidentId,
+        duration: incident.duration,
+      },
+      'Incident resolved'
+    );
+
     return incident;
   }
 
@@ -416,15 +427,15 @@ class DORAMetricsService {
    * Mark a deployment as failed/rolled back
    */
   markDeploymentFailed(deploymentId: string, rollback = true): Deployment | null {
-    const deployment = this.data.deployments.find(d => d.id === deploymentId);
+    const deployment = this.data.deployments.find((d) => d.id === deploymentId);
     if (!deployment) return null;
 
     deployment.success = false;
     deployment.rollback = rollback;
     saveData(this.data);
-    
+
     logger.info({ id: deploymentId, rollback }, 'Deployment marked as failed');
-    
+
     return deployment;
   }
 
@@ -458,7 +469,7 @@ class DORAMetricsService {
    */
   getActiveIncidents(): Incident[] {
     return this.data.incidents
-      .filter(i => !i.resolvedAt)
+      .filter((i) => !i.resolvedAt)
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
   }
 
@@ -488,7 +499,7 @@ class DORAMetricsService {
       const daysAgo = Math.floor(Math.random() * 30);
       const timestamp = new Date(now - daysAgo * day - Math.random() * day);
       const success = Math.random() > 0.1; // 90% success rate
-      
+
       this.data.deployments.push({
         id: `deploy_seed_${i}`,
         timestamp: timestamp.toISOString(),
@@ -517,11 +528,13 @@ class DORAMetricsService {
       const startedAt = new Date(now - daysAgo * day - Math.random() * day);
       const duration = Math.floor(Math.random() * 120) + 5; // 5 to 125 minutes
       const resolvedAt = new Date(startedAt.getTime() + duration * 60000);
-      
+
       this.data.incidents.push({
         id: `incident_seed_${i}`,
         title: incidentTitles[i % incidentTitles.length] ?? 'Unknown incident',
-        severity: ['critical', 'major', 'minor'][Math.floor(Math.random() * 3)] as Incident['severity'],
+        severity: ['critical', 'major', 'minor'][
+          Math.floor(Math.random() * 3)
+        ] as Incident['severity'],
         startedAt: startedAt.toISOString(),
         resolvedAt: resolvedAt.toISOString(),
         duration,
@@ -532,10 +545,13 @@ class DORAMetricsService {
     }
 
     saveData(this.data);
-    logger.info({
-      deployments: this.data.deployments.length,
-      incidents: this.data.incidents.length,
-    }, 'Sample DORA data seeded');
+    logger.info(
+      {
+        deployments: this.data.deployments.length,
+        incidents: this.data.incidents.length,
+      },
+      'Sample DORA data seeded'
+    );
   }
 }
 
@@ -553,4 +569,3 @@ export function getDORAMetricsService(): DORAMetricsService {
 }
 
 export type { DORAMetricsService };
-

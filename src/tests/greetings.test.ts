@@ -112,7 +112,9 @@ describe('Greetings Module', () => {
     });
 
     it('should include persona name in new user greeting', () => {
-      const persona = createTestPersona({ identity: { ...createTestPersona().identity, selfReference: 'TestBot' } });
+      const persona = createTestPersona({
+        identity: { ...createTestPersona().identity, selfReference: 'TestBot' },
+      });
       const greeting = generateStaticGreeting(persona, { isReturningUser: false });
 
       expect(greeting).toContain('TestBot');
@@ -577,11 +579,13 @@ describe('Greetings Module', () => {
       // 30% chance to reference, should find at least one in 20 tries
       // If not found, that's statistically possible but unlikely
       // We just verify the greeting is always valid
-      expect(generateStaticGreeting(persona, {
-        isReturningUser: true,
-        userName: 'TestUser',
-        lastConversationSummary: 'test topic',
-      })).toBeDefined();
+      expect(
+        generateStaticGreeting(persona, {
+          isReturningUser: true,
+          userName: 'TestUser',
+          lastConversationSummary: 'test topic',
+        })
+      ).toBeDefined();
     });
   });
 

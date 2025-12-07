@@ -6,8 +6,13 @@ labels: 'enhancement'
 assignees: ''
 ---
 
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
 ## Summary
 <!-- A clear and concise description of the feature -->
+
+## How Does This Make AI Feel More Human?
+<!-- This is our north star. How does this feature support human connection, relationship, gentle growth, or authenticity? -->
 
 ## Problem Statement
 <!-- What problem does this solve? Who benefits? -->

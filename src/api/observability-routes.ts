@@ -1,8 +1,8 @@
 /**
  * Observability API Routes
- * 
+ *
  * Exposes all observability metrics via HTTP endpoints.
- * 
+ *
  * Endpoints:
  * - GET /api/observability - Full observability snapshot
  * - GET /api/observability/llm - LLM health metrics
@@ -153,7 +153,6 @@ export async function handleObservabilityRoutes(
     // Unknown observability route
     sendError(res, 'Unknown observability endpoint', 404);
     return true;
-
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     log.error({ error: err }, 'Observability API error');
@@ -161,4 +160,3 @@ export async function handleObservabilityRoutes(
     return true;
   }
 }
-

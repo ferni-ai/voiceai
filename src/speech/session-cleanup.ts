@@ -219,4 +219,3 @@ export default {
   getActiveSpeechSessionCount,
   getActiveSpeechSessions,
 };
-

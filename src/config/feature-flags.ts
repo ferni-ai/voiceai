@@ -508,10 +508,7 @@ export function isLifeCoachAnalyticsEnabled(): boolean {
  * Emergency: Disable a life coach domain at runtime
  * Note: Cannot disable crisis domain for safety
  */
-export function emergencyDisableLifeCoachDomain(
-  domain: LifeCoachDomain,
-  reason: string
-): boolean {
+export function emergencyDisableLifeCoachDomain(domain: LifeCoachDomain, reason: string): boolean {
   if (domain === 'crisis') {
     getLogger().error({ domain, reason }, 'Cannot disable crisis domain - safety critical');
     return false;

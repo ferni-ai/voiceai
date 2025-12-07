@@ -76,7 +76,7 @@ const ABSOLUTE_MAX_DELAY = 2500;
 
 /** Sentence completion indicators */
 const COMPLETION_SIGNALS = {
-  strong: ['?', '!', '.', 'so yeah', "you know?", "that's it", 'anyway'],
+  strong: ['?', '!', '.', 'so yeah', 'you know?', "that's it", 'anyway'],
   weak: ['...', 'um', 'like', 'I mean', 'well'],
   continuation: ['and', 'but', 'so', 'because', 'which', 'that'],
 };
@@ -88,9 +88,7 @@ const COMPLETION_SIGNALS = {
 /**
  * Calculate optimal endpointing thresholds based on conversation context
  */
-export function calculateEndpointingThresholds(
-  ctx: EndpointingContext
-): EndpointingThresholds {
+export function calculateEndpointingThresholds(ctx: EndpointingContext): EndpointingThresholds {
   let minDelay = DEFAULT_MIN_DELAY;
   let maxDelay = DEFAULT_MAX_DELAY;
   const reasons: string[] = [];
@@ -280,7 +278,7 @@ export function analyzeSentenceCompleteness(transcript: string): number {
 
   // ===== CONTINUATION SIGNALS =====
   for (const signal of COMPLETION_SIGNALS.continuation) {
-    if (text.endsWith(signal) || text.endsWith(signal + ' ')) {
+    if (text.endsWith(signal) || text.endsWith(`${signal} `)) {
       score -= 0.3;
       break;
     }
@@ -302,9 +300,20 @@ export function analyzeSentenceCompleteness(transcript: string): number {
   }
 
   // Sentence structure: starts with question word, should end with ?
-  const questionStarts = ['who', 'what', 'where', 'when', 'why', 'how', 'can', 'could', 'would', 'should'];
+  const questionStarts = [
+    'who',
+    'what',
+    'where',
+    'when',
+    'why',
+    'how',
+    'can',
+    'could',
+    'would',
+    'should',
+  ];
   for (const q of questionStarts) {
-    if (text.startsWith(q + ' ') && !text.includes('?')) {
+    if (text.startsWith(`${q} `) && !text.includes('?')) {
       score -= 0.15;
       break;
     }
@@ -456,4 +465,3 @@ export function resetAdaptiveEndpointingService(): void {
   serviceInstance?.reset();
   serviceInstance = null;
 }
-

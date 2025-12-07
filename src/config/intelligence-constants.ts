@@ -211,4 +211,3 @@ export const INTELLIGENCE_CONSTANTS = {
 } as const;
 
 export default INTELLIGENCE_CONSTANTS;
-

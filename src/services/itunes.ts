@@ -72,10 +72,11 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
     if (DEBUG_ITUNES) log.debug('Making fetch request', { url });
     const response = await fetch(url);
 
-    if (DEBUG_ITUNES) log.debug('Response received', {
-      status: response.status,
-      ok: response.ok,
-    });
+    if (DEBUG_ITUNES)
+      log.debug('Response received', {
+        status: response.status,
+        ok: response.ok,
+      });
     getLogger().info(
       { status: response.status, ok: response.ok },
       '🎵 [iTunes API] Response received'
@@ -88,13 +89,14 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
 
     const data = (await response.json()) as iTunesSearchResult;
 
-    if (DEBUG_ITUNES) log.debug('Results received', {
-      resultCount: data.resultCount,
-      firstTrack: data.results[0]?.trackName,
-      firstArtist: data.results[0]?.artistName,
-      hasPreviewUrl: !!data.results[0]?.previewUrl,
-      previewUrl: data.results[0]?.previewUrl?.slice(0, 80),
-    });
+    if (DEBUG_ITUNES)
+      log.debug('Results received', {
+        resultCount: data.resultCount,
+        firstTrack: data.results[0]?.trackName,
+        firstArtist: data.results[0]?.artistName,
+        hasPreviewUrl: !!data.results[0]?.previewUrl,
+        previewUrl: data.results[0]?.previewUrl?.slice(0, 80),
+      });
     getLogger().info(
       {
         query,

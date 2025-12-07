@@ -71,7 +71,7 @@ export class HabitTrackingTask extends IntelligentTask<HabitTrackingResult> {
           }),
           execute: async ({ habitName, streakLength, feelingAboutProgress, whatHelped }) => {
             getLogger().info(`Habit tracking: ${habitName}, streak=${streakLength}`);
-            
+
             if (feelingAboutProgress === 'proud') {
               return `${streakLength} days! That's amazing! ${whatHelped ? `And you figured out that ${whatHelped} helps - that's real self-awareness.` : ''}`;
             }
@@ -102,11 +102,23 @@ export class HabitTrackingTask extends IntelligentTask<HabitTrackingResult> {
             nextMilestone: z.string().optional().describe('Next goal to aim for'),
             supportNeeded: z.boolean().describe('Whether they need more support'),
           }),
-          execute: async ({ habitName, streakLength, feelingAboutProgress, nextMilestone, supportNeeded }) => {
-            this.complete({ habitName, streakLength, feelingAboutProgress, nextMilestone, supportNeeded });
-            return nextMilestone 
+          execute: async ({
+            habitName,
+            streakLength,
+            feelingAboutProgress,
+            nextMilestone,
+            supportNeeded,
+          }) => {
+            this.complete({
+              habitName,
+              streakLength,
+              feelingAboutProgress,
+              nextMilestone,
+              supportNeeded,
+            });
+            return nextMilestone
               ? `Next up: ${nextMilestone}. You've got this!`
-              : "Keep going. I believe in you.";
+              : 'Keep going. I believe in you.';
           },
         }),
       },
@@ -191,7 +203,9 @@ export class HabitBuildingTask extends IntelligentTask<HabitBuildingResult> {
           description: 'Add a reward to make the habit satisfying.',
           parameters: z.object({
             reward: z.string().describe('The reward'),
-            isIntrinsic: z.boolean().describe('Is this an internal reward (satisfaction) or external?'),
+            isIntrinsic: z
+              .boolean()
+              .describe('Is this an internal reward (satisfaction) or external?'),
           }),
           execute: async ({ reward, isIntrinsic }) => {
             if (isIntrinsic) {
@@ -208,12 +222,12 @@ export class HabitBuildingTask extends IntelligentTask<HabitBuildingResult> {
             trigger: z.string().describe('When/where it happens'),
             routine: z.string().describe('The tiny version to start'),
             reward: z.string().optional().describe('The reward'),
-            startDate: z.string().optional().describe('When they\'ll start'),
+            startDate: z.string().optional().describe("When they'll start"),
             commitmentLevel: z.enum(['tentative', 'moderate', 'strong']),
           }),
           execute: async ({ habitName, trigger, routine, reward, startDate, commitmentLevel }) => {
             this.complete({ habitName, trigger, routine, reward, startDate, commitmentLevel });
-            
+
             const summary = `So here's your habit: "${trigger} → ${routine}${reward ? ` → ${reward}` : ''}"`;
             if (startDate) {
               return `${summary}. Starting ${startDate}. I'll be here to cheer you on!`;
@@ -275,10 +289,17 @@ export class HabitStruggleTask extends IntelligentTask<HabitStruggleResult> {
       },
       tools: {
         identifyBarrier: llm.tool({
-          description: 'Identify what\'s blocking the habit.',
+          description: "Identify what's blocking the habit.",
           parameters: z.object({
             barrier: z.string().describe('The specific barrier'),
-            barrierType: z.enum(['motivation', 'environment', 'time', 'energy', 'identity', 'other']),
+            barrierType: z.enum([
+              'motivation',
+              'environment',
+              'time',
+              'energy',
+              'identity',
+              'other',
+            ]),
             isTemporary: z.boolean().describe('Is this a temporary or ongoing barrier?'),
           }),
           execute: async ({ barrier, barrierType, isTemporary }) => {
@@ -304,7 +325,7 @@ export class HabitStruggleTask extends IntelligentTask<HabitStruggleResult> {
         }),
 
         suggestRelease: llm.tool({
-          description: 'Suggest letting go of the habit - sometimes that\'s the right answer.',
+          description: "Suggest letting go of the habit - sometimes that's the right answer.",
           parameters: z.object({
             reason: z.string().describe('Why letting go might be right'),
             alternative: z.string().optional().describe('Alternative focus'),
@@ -314,7 +335,7 @@ export class HabitStruggleTask extends IntelligentTask<HabitStruggleResult> {
             if (alternative) {
               response += ` What if we focused on ${alternative} instead?`;
             }
-            return response + " That's not giving up - that's wisdom.";
+            return `${response} That's not giving up - that's wisdom.`;
           },
         }),
 
@@ -323,16 +344,37 @@ export class HabitStruggleTask extends IntelligentTask<HabitStruggleResult> {
           parameters: z.object({
             habitName: z.string(),
             barrier: z.string(),
-            barrierType: z.enum(['motivation', 'environment', 'time', 'energy', 'identity', 'other']),
+            barrierType: z.enum([
+              'motivation',
+              'environment',
+              'time',
+              'energy',
+              'identity',
+              'other',
+            ]),
             solutionExplored: z.boolean(),
             newApproach: z.string().optional(),
             stillWantsHabit: z.boolean(),
           }),
-          execute: async ({ habitName, barrier, barrierType, solutionExplored, newApproach, stillWantsHabit }) => {
-            this.complete({ habitName, barrier, barrierType, solutionExplored, newApproach, stillWantsHabit });
-            
+          execute: async ({
+            habitName,
+            barrier,
+            barrierType,
+            solutionExplored,
+            newApproach,
+            stillWantsHabit,
+          }) => {
+            this.complete({
+              habitName,
+              barrier,
+              barrierType,
+              solutionExplored,
+              newApproach,
+              stillWantsHabit,
+            });
+
             if (!stillWantsHabit) {
-              return "That took courage to admit. Focus on what matters most to you right now.";
+              return 'That took courage to admit. Focus on what matters most to you right now.';
             }
             if (newApproach) {
               return `Okay, let's try this new approach. I believe in you - and I'll check in on how it's going.`;
@@ -407,7 +449,7 @@ export class RoutineDesignTask extends IntelligentTask<RoutineDesignResult> {
         addStep: llm.tool({
           description: 'Add a step to the routine.',
           parameters: z.object({
-            step: z.string().describe('What they\'ll do'),
+            step: z.string().describe("What they'll do"),
             duration: z.number().describe('How long in minutes'),
             purpose: z.string().describe('Why this matters to them'),
             isNonNegotiable: z.boolean().describe('Is this essential?'),
@@ -428,11 +470,13 @@ export class RoutineDesignTask extends IntelligentTask<RoutineDesignResult> {
             steps: z.array(z.string()).describe('The steps in order'),
             totalTime: z.number().describe('Total time in minutes'),
             anchors: z.array(z.string()).describe('The anchor points'),
-            confidence: z.enum(['low', 'medium', 'high']).describe('Their confidence in sticking to it'),
+            confidence: z
+              .enum(['low', 'medium', 'high'])
+              .describe('Their confidence in sticking to it'),
           }),
           execute: async ({ routineName, routineType, steps, totalTime, anchors, confidence }) => {
             this.complete({ routineName, routineType, steps, totalTime, anchors, confidence });
-            
+
             const summary = `Your ${routineType} routine: ${steps.join(' → ')} (${totalTime} min total)`;
             if (confidence === 'low') {
               return `${summary}\n\nRemember: Start with just one or two of these. Build up gradually.`;
@@ -455,4 +499,3 @@ export default {
   HabitStruggleTask,
   RoutineDesignTask,
 };
-

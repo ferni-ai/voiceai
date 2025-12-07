@@ -100,7 +100,9 @@ describe('EmotionDetector', () => {
     });
 
     it('should detect regret', () => {
-      const result = detector.detect('I deeply regret that decision, I wish I had chosen differently');
+      const result = detector.detect(
+        'I deeply regret that decision, I wish I had chosen differently'
+      );
 
       expect(result.primary).toBe('regret');
       expect(result.valence).toBe('negative');

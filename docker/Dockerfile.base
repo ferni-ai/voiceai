@@ -1,0 +1,37 @@
+# ============================================================================
+# FERNI BASE DOCKERFILE
+# ============================================================================
+# Shared base image for all Ferni services.
+# Provides consistent Node.js environment and common dependencies.
+#
+# Usage in other Dockerfiles:
+#   FROM ferni-base AS base
+#   ... or use directly with build args
+# ============================================================================
+
+ARG NODE_VERSION=20
+
+# ============================================================================
+# Base image with common system dependencies
+# ============================================================================
+FROM node:${NODE_VERSION}-slim AS base
+
+WORKDIR /app
+
+# Install common system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates
+
+# Set common environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Health check (can be overridden)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+EXPOSE 8080
+

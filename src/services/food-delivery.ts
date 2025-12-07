@@ -665,10 +665,11 @@ export function finalizeOrder(orderId: string): DeliveryOrder | null {
   // Save to order history
   const userId = orderUserMap.get(orderId);
   if (userId) {
-    runBackgroundBatch(
-      [saveOrderToHistory(order, userId), persistOrder(order, userId)],
-      { task: 'saveCompletedOrder', orderId, userId }
-    );
+    runBackgroundBatch([saveOrderToHistory(order, userId), persistOrder(order, userId)], {
+      task: 'saveCompletedOrder',
+      orderId,
+      userId,
+    });
   }
 
   return order;

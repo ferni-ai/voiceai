@@ -74,8 +74,9 @@ export {
   type CognitiveSsmlOptions,
 } from './adaptive-ssml.js';
 
-// Re-export SSML functions from unified module
-export { tagTextWithSsml, tagTextWithSsmlPersonaAware, sanitizeSsml } from '../ssml/index.js';
+// Re-export SSML functions
+export { tagTextWithSsml, sanitizeSsml } from '../ssml-tagger.js';
+export { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 
 // ============================================================================
 // RESPONSE NATURALNESS

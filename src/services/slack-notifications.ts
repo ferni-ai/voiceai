@@ -1,14 +1,14 @@
 /**
  * Slack Notification Service
- * 
+ *
  * Sends notifications to Slack for:
  * - Feature rollouts (start, advance, rollback, complete)
  * - Deployment events
  * - Incident alerts
  * - System health changes
- * 
+ *
  * Workspace: https://ferniai.slack.com/
- * 
+ *
  * Setup:
  *   1. Go to https://api.slack.com/apps
  *   2. Create app → From scratch → "Ferni Notifications"
@@ -67,7 +67,7 @@ interface SlackAttachment {
   ts?: number;
 }
 
-export type NotificationType = 
+export type NotificationType =
   | 'rollout_started'
   | 'rollout_advanced'
   | 'rollout_complete'
@@ -104,10 +104,10 @@ const WEBHOOK_TIMEOUT_MS = 10000;
 
 // Color mapping for severity
 const SEVERITY_COLORS: Record<string, string> = {
-  info: '#2196F3',      // Blue
-  success: '#4CAF50',   // Green
-  warning: '#FF9800',   // Orange
-  error: '#F44336',     // Red
+  info: '#2196F3', // Blue
+  success: '#4CAF50', // Green
+  warning: '#FF9800', // Orange
+  error: '#F44336', // Red
 };
 
 // Emoji mapping for notification types
@@ -133,7 +133,7 @@ const TYPE_EMOJIS: Record<NotificationType, string> = {
 export class SlackNotificationService {
   private defaultWebhook: string;
   private webhooks: Record<string, string>;
-  
+
   constructor() {
     this.defaultWebhook = SLACK_WEBHOOK_URL;
     this.webhooks = {
@@ -141,35 +141,35 @@ export class SlackNotificationService {
       alerts: SLACK_ALERTS_WEBHOOK,
       rollouts: SLACK_ROLLOUTS_WEBHOOK,
     };
-    
+
     if (!this.defaultWebhook) {
       log.warn('SLACK_WEBHOOK_URL not configured - notifications will be logged only');
     } else {
       log.info('Slack notification service initialized');
     }
   }
-  
+
   /**
    * Send a notification
    */
   async notify(context: NotificationContext): Promise<boolean> {
     const emoji = TYPE_EMOJIS[context.type] || '📢';
     const color = SEVERITY_COLORS[context.severity || 'info'];
-    
+
     const message = this.buildMessage(context, emoji, color);
     const webhook = this.getWebhookForType(context.type);
-    
+
     // Always log the notification
     log.info({ type: context.type, title: context.title }, `${emoji} ${context.title}`);
-    
+
     if (!webhook) {
       log.debug('No webhook configured, notification logged only');
       return false;
     }
-    
+
     return this.sendToSlack(webhook, message);
   }
-  
+
   /**
    * Send a rollout notification
    */
@@ -191,7 +191,7 @@ export class SlackNotificationService {
       failed: 'rollout_failed',
       rolled_back: 'rollout_rolled_back',
     };
-    
+
     const severityMap: Record<string, 'info' | 'success' | 'warning' | 'error'> = {
       started: 'info',
       advanced: 'info',
@@ -199,7 +199,7 @@ export class SlackNotificationService {
       failed: 'error',
       rolled_back: 'warning',
     };
-    
+
     const titleMap: Record<string, string> = {
       started: `Rollout Started: ${featureId}`,
       advanced: `Rollout Advanced: ${featureId} → ${details.percentage}%`,
@@ -207,7 +207,7 @@ export class SlackNotificationService {
       failed: `Rollout Failed: ${featureId}`,
       rolled_back: `Rollout Rolled Back: ${featureId}`,
     };
-    
+
     return this.notify({
       type: typeMap[status],
       title: titleMap[status],
@@ -217,13 +217,13 @@ export class SlackNotificationService {
         featureId,
         ...details,
       },
-      actionUrl: process.env.DASHBOARD_URL 
+      actionUrl: process.env.DASHBOARD_URL
         ? `${process.env.DASHBOARD_URL}/rollouts/${featureId}`
         : undefined,
       actionText: 'View Rollout',
     });
   }
-  
+
   /**
    * Send a deployment notification
    */
@@ -245,19 +245,20 @@ export class SlackNotificationService {
       success: 'deployment_success',
       failed: 'deployment_failed',
     };
-    
+
     const severityMap: Record<string, 'info' | 'success' | 'error'> = {
       started: 'info',
       success: 'success',
       failed: 'error',
     };
-    
+
     return this.notify({
       type: typeMap[status],
       title: `Deployment ${status}: ${service}`,
-      message: status === 'failed' 
-        ? details.error || 'Deployment failed'
-        : `${service} deployed to ${details.environment || 'production'}`,
+      message:
+        status === 'failed'
+          ? details.error || 'Deployment failed'
+          : `${service} deployed to ${details.environment || 'production'}`,
       severity: severityMap[status],
       metadata: {
         service,
@@ -267,7 +268,7 @@ export class SlackNotificationService {
       actionText: status === 'success' ? 'View Service' : 'View Logs',
     });
   }
-  
+
   /**
    * Send an incident notification
    */
@@ -291,16 +292,12 @@ export class SlackNotificationService {
       actionText: 'View Incident',
     });
   }
-  
+
   // ============================================================================
   // INTERNAL METHODS
   // ============================================================================
-  
-  private buildMessage(
-    context: NotificationContext,
-    emoji: string,
-    color: string
-  ): SlackMessage {
+
+  private buildMessage(context: NotificationContext, emoji: string, color: string): SlackMessage {
     const blocks: SlackBlock[] = [
       {
         type: 'section',
@@ -310,7 +307,7 @@ export class SlackNotificationService {
         },
       },
     ];
-    
+
     // Add metadata fields if present
     if (context.metadata && Object.keys(context.metadata).length > 0) {
       const fields = Object.entries(context.metadata)
@@ -320,7 +317,7 @@ export class SlackNotificationService {
           type: 'mrkdwn',
           text: `*${this.formatKey(key)}:* ${this.formatValue(value)}`,
         }));
-      
+
       if (fields.length > 0) {
         blocks.push({
           type: 'section',
@@ -328,7 +325,7 @@ export class SlackNotificationService {
         });
       }
     }
-    
+
     // Add action button if present
     if (context.actionUrl) {
       blocks.push({
@@ -346,7 +343,7 @@ export class SlackNotificationService {
         ],
       });
     }
-    
+
     // Add timestamp context block
     blocks.push({
       type: 'context',
@@ -357,7 +354,7 @@ export class SlackNotificationService {
         },
       ],
     } as unknown as SlackBlock);
-    
+
     return {
       text: `${emoji} ${context.title}`,
       blocks,
@@ -370,14 +367,14 @@ export class SlackNotificationService {
       ],
     };
   }
-  
+
   private getWebhookForType(type: NotificationType): string {
     if (type.startsWith('rollout_')) return this.webhooks.rollouts;
     if (type.startsWith('deployment_')) return this.webhooks.deployments;
     if (type.startsWith('incident_') || type.startsWith('health_')) return this.webhooks.alerts;
     return this.defaultWebhook;
   }
-  
+
   private async sendToSlack(webhookUrl: string, message: SlackMessage): Promise<boolean> {
     try {
       const response = await fetch(webhookUrl, {
@@ -386,29 +383,29 @@ export class SlackNotificationService {
         body: JSON.stringify(message),
         signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
-      
+
       if (!response.ok) {
         log.error({ status: response.status }, 'Slack webhook failed');
         return false;
       }
-      
+
       return true;
     } catch (error) {
       log.error({ error }, 'Failed to send Slack notification');
       return false;
     }
   }
-  
+
   private formatKey(key: string): string {
     return key
       .replace(/([A-Z])/g, ' $1')
       .replace(/_/g, ' ')
       .trim()
       .split(' ')
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
       .join(' ');
   }
-  
+
   private formatValue(value: unknown): string {
     if (typeof value === 'number') {
       if (value >= 1000) return value.toLocaleString();
@@ -465,4 +462,3 @@ export async function notifyIncident(
 ): Promise<boolean> {
   return getSlackNotifications().notifyIncident(title, status, details);
 }
-

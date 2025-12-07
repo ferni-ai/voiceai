@@ -25,7 +25,7 @@ What if you had [BENEFIT]?
 With Ferni, you do.
 
 Just talk. We'll handle the rest.
-→ ferni.ai
+ ferni.ai
 ```
 
 **Quick Tip:**
@@ -39,7 +39,7 @@ Quick tip from [PERSONA]:
 
 **Thread Starter:**
 ```
-🧵 [NUMBER] things I learned about [TOPIC] this week:
+ [NUMBER] things I learned about [TOPIC] this week:
 
 (A thread)
 ```
@@ -48,7 +48,7 @@ Quick tip from [PERSONA]:
 ```
 What's one thing you wish you had help with today?
 
-👇
+
 ```
 
 ---
@@ -76,14 +76,14 @@ What do you think? I'd love to hear your perspective in the comments.
 
 **Product Update:**
 ```
-Exciting news from Ferni 🌿
+Exciting news from Ferni 
 
 [WHAT'S NEW - 1 paragraph]
 
 What this means for you:
-✅ [BENEFIT 1]
-✅ [BENEFIT 2]  
-✅ [BENEFIT 3]
+ [BENEFIT 1]
+ [BENEFIT 2]  
+ [BENEFIT 3]
 
 Try it now: app.ferni.ai
 
@@ -141,8 +141,8 @@ Here's what [PERSONA] would say about this:
 What do you think? Drop a [EMOJI] below if you agree.
 
 ---
-Try Ferni free → link in bio
-📞 Or call: (484) 481-3081
+Try Ferni free  link in bio
+ Or call: (484) 481-3081
 ---
 
 #ferni #aicoach #lifecoach #[TOPIC] #personalgrowth
@@ -208,7 +208,7 @@ CTA: "Try it free - ferni.ai"
 
 ### Welcome Email
 ```
-Subject: Welcome to Ferni 🌿
+Subject: Welcome to Ferni 
 
 Hi [NAME],
 
@@ -246,7 +246,7 @@ Hey there,
 
 ---
 
-💡 **Insight of the Week**
+ **Insight of the Week**
 
 [MAIN CONTENT - 2-3 paragraphs on a helpful topic]
 
@@ -254,20 +254,20 @@ Hey there,
 
 ---
 
-🆕 **What's New**
+**What's New**
 
 [BRIEF UPDATE ABOUT PRODUCT/FEATURE]
 
 ---
 
-💬 **From the Community**
+ **From the Community**
 
 "[TESTIMONIAL QUOTE]"
 — [NAME/ANONYMOUS]
 
 ---
 
-🎯 **Try This**
+ **Try This**
 
 This week, try asking Ferni: "[SUGGESTED PROMPT]"
 
@@ -329,14 +329,14 @@ P.S. [BRIEF P.S. WITH SECONDARY CTA]
 
 ## Voice Guidelines Cheat Sheet
 
-### DO ✅
+### DO 
 - Use "you" and "your" (personal)
 - Short sentences, clear language
 - Warm, encouraging tone
 - Specific over vague
 - Active voice
 
-### DON'T ❌
+### DON'T 
 - Use "users" (impersonal)
 - Use jargon or corporate speak
 - Be preachy or condescending
@@ -379,7 +379,7 @@ ferni.ai
 
 [ONE-LINE BENEFIT]
 
-Learn more →
+Learn more 
 ```
 
 ### Stats Card

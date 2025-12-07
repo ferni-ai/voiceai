@@ -87,7 +87,14 @@ export interface FlagCheckContext {
 
 export interface FlagEvaluationResult {
   enabled: boolean;
-  reason: 'flag_enabled' | 'flag_disabled' | 'percentage_match' | 'percentage_miss' | 'user_match' | 'user_miss' | 'flag_not_found';
+  reason:
+    | 'flag_enabled'
+    | 'flag_disabled'
+    | 'percentage_match'
+    | 'percentage_miss'
+    | 'user_match'
+    | 'user_miss'
+    | 'flag_not_found';
   value?: unknown;
 }
 
@@ -288,7 +295,7 @@ function saveFlags(flags: Map<string, FeatureFlag>): void {
 
 export class FeatureFlagService {
   private flags: Map<string, FeatureFlag>;
-  private lastReload: number = 0;
+  private lastReload = 0;
   private reloadIntervalMs = 30000; // Reload every 30s
 
   constructor() {
@@ -437,7 +444,11 @@ export class FeatureFlagService {
   /**
    * Update a flag
    */
-  updateFlag(flagId: string, updates: Partial<FeatureFlag>, updatedBy?: string): FeatureFlag | null {
+  updateFlag(
+    flagId: string,
+    updates: Partial<FeatureFlag>,
+    updatedBy?: string
+  ): FeatureFlag | null {
     const flag = this.flags.get(flagId);
     if (!flag) {
       log.warn({ flagId }, 'Cannot update non-existent flag');
@@ -455,10 +466,7 @@ export class FeatureFlagService {
     this.flags.set(flagId, updatedFlag);
     saveFlags(this.flags);
 
-    log.info(
-      { flagId, enabled: updatedFlag.enabled, updatedBy },
-      'Feature flag updated'
-    );
+    log.info({ flagId, enabled: updatedFlag.enabled, updatedBy }, 'Feature flag updated');
 
     return updatedFlag;
   }
@@ -554,7 +562,12 @@ export function isVoicePresenceEnabled(): boolean {
  * Returns false if master toggle is off
  */
 export function isVoicePresenceFeatureEnabled(
-  feature: 'breathPauseDetection' | 'liveBackchanneling' | 'turnPrediction' | 'cartesiaContextPatch' | 'analyticsRecording'
+  feature:
+    | 'breathPauseDetection'
+    | 'liveBackchanneling'
+    | 'turnPrediction'
+    | 'cartesiaContextPatch'
+    | 'analyticsRecording'
 ): boolean {
   const flags = getFeatureFlags();
 
@@ -575,4 +588,3 @@ export function isVoicePresenceFeatureEnabled(
   const flagId = flagMap[feature];
   return flagId ? flags.isEnabled(flagId) : false;
 }
-

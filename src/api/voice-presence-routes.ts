@@ -20,12 +20,7 @@ import {
   type TuningRecommendation,
 } from '../services/voice-presence-analytics.js';
 import { createLogger } from '../utils/safe-logger.js';
-import {
-  parseBody,
-  sendJSON,
-  sendError,
-  handleCorsPreflightIfNeeded,
-} from './helpers.js';
+import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from './helpers.js';
 import { requireAuth, requireAdmin, rateLimit } from './auth-middleware.js';
 import { validateBody, UpdateVoicePresenceConfigSchema } from './validators.js';
 
@@ -90,7 +85,7 @@ export async function handleVoicePresenceRoutes(
     if (pathname === '/api/voice-presence/config' && req.method === 'POST') {
       const updates = await validateBody(req, res, UpdateVoicePresenceConfigSchema);
       if (!updates) return true; // Validation failed
-      
+
       analytics.updateConfig(updates as Partial<VoicePresenceConfig>);
       log.info({ updates }, 'Voice presence config updated via API');
       sendJSON(res, { success: true, config: analytics.getConfig() });
@@ -137,4 +132,3 @@ export async function handleVoicePresenceRoutes(
     return true;
   }
 }
-

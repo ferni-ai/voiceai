@@ -1,5 +1,11 @@
 # Context Builders
 
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+Context builders are how we make AI emotionally intelligent. They inject the awareness, empathy, and memory that transforms responses from robotic to human. See `../../../CORE-PRINCIPLES.md` for our complete philosophy.
+
+---
+
 ## What They Do
 Context builders inject guidance into each conversation turn. They analyze the current state (emotion, memory, topic, etc.) and return instructions that shape the agent's response.
 

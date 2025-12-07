@@ -11,9 +11,9 @@ Testing AI agents is different from traditional software testing. This guide cov
 
 | Type | Purpose |
 |------|---------|
-| 🧪 **Unit Tests** | Test individual functions, utilities, and content parsing |
-| 🔗 **Integration Tests** | Test bundle loading, handoffs, and API endpoints |
-| 💬 **Conversation Tests** | Test full conversation flows and personality consistency |
+|  **Unit Tests** | Test individual functions, utilities, and content parsing |
+|  **Integration Tests** | Test bundle loading, handoffs, and API endpoints |
+|  **Conversation Tests** | Test full conversation flows and personality consistency |
 
 ## Running Tests
 
@@ -152,9 +152,9 @@ The Ferni dev panel provides interactive testing tools:
 http://localhost:3000?dev
 
 # Keyboard shortcuts
-Cmd/Ctrl + Shift + D  → Toggle dev panel
-Cmd/Ctrl + Shift + U  → Quick unlock all agents
-Cmd/Ctrl + Shift + R  → Reset to free tier
+Cmd/Ctrl + Shift + D   Toggle dev panel
+Cmd/Ctrl + Shift + U   Quick unlock all agents
+Cmd/Ctrl + Shift + R   Reset to free tier
 ```
 
 ### Dev Panel Features
@@ -202,10 +202,10 @@ jobs:
 
 Before deploying a new agent, verify:
 
-- ✅ Bundle validation passes (`npm run agents validate`)
-- ✅ Greetings and catchphrases are defined
-- ✅ Handoff triggers are tested
-- ✅ Personality is consistent across 10+ prompts
-- ✅ Dev panel features work
-- ✅ API endpoints return correct data
+-  Bundle validation passes (`npm run agents validate`)
+-  Greetings and catchphrases are defined
+-  Handoff triggers are tested
+-  Personality is consistent across 10+ prompts
+-  Dev panel features work
+-  API endpoints return correct data
 

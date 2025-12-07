@@ -41,7 +41,11 @@ import {
 } from '../conversation/question-patterns.js';
 
 // Humanizer
-import { getConversationHumanizer, resetConversationHumanizer, type ConversationHumanizer } from '../conversation/humanizer.js';
+import {
+  getConversationHumanizer,
+  resetConversationHumanizer,
+  type ConversationHumanizer,
+} from '../conversation/humanizer.js';
 
 // ============================================================================
 // SPEECH NATURALIZER TESTS

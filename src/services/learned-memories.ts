@@ -1,9 +1,9 @@
 /**
  * Learned Memories Service
- * 
+ *
  * Extracts what the AI has learned about a user from their profile
  * and transforms it into a format suitable for the "What I've Learned" UI.
- * 
+ *
  * Sources of learned information:
  * - keyMoments: Important moments from conversations
  * - emotionalPatterns: Emotional patterns observed
@@ -15,7 +15,12 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { UserProfile, KeyMoment, EmotionalPattern, FamilyMember } from '../types/user-profile.js';
+import type {
+  UserProfile,
+  KeyMoment,
+  EmotionalPattern,
+  FamilyMember,
+} from '../types/user-profile.js';
 
 // ============================================================================
 // TYPES - Match frontend UI expectations
@@ -41,7 +46,22 @@ export interface BehavioralPattern {
   pattern: string;
   frequency: number;
   examples: string[];
-  category?: 'timing' | 'communication' | 'engagement' | 'interests' | 'emotional' | 'relationship' | 'voice' | 'life' | 'goals' | 'knowledge' | 'preferences' | 'boundaries' | 'achievements' | 'continuity' | 'relationships';
+  category?:
+    | 'timing'
+    | 'communication'
+    | 'engagement'
+    | 'interests'
+    | 'emotional'
+    | 'relationship'
+    | 'voice'
+    | 'life'
+    | 'goals'
+    | 'knowledge'
+    | 'preferences'
+    | 'boundaries'
+    | 'achievements'
+    | 'continuity'
+    | 'relationships';
 }
 
 export interface LearnedMemoriesData {
@@ -84,9 +104,10 @@ function extractFromKeyMoments(keyMoments: KeyMoment[]): LearnedMemory[] {
       content: km.summary,
       confidence: emotionalWeightToConfidence[km.emotionalWeight] || 0.8,
       source: 'conversation',
-      learnedAt: km.timestamp instanceof Date 
-        ? km.timestamp.toISOString() 
-        : new Date(km.timestamp).toISOString(),
+      learnedAt:
+        km.timestamp instanceof Date
+          ? km.timestamp.toISOString()
+          : new Date(km.timestamp).toISOString(),
       sourceType: 'keyMoment' as const,
       sourceId: km.id,
     };
@@ -101,7 +122,7 @@ function extractFromEmotionalPatterns(patterns: EmotionalPattern[]): LearnedMemo
 
   // Group by emotion to find patterns
   const emotionCounts: Record<string, { count: number; contexts: string[]; lastSeen: Date }> = {};
-  
+
   for (const ep of patterns) {
     const emotion = ep.emotion.toLowerCase();
     if (!emotionCounts[emotion]) {
@@ -121,15 +142,16 @@ function extractFromEmotionalPatterns(patterns: EmotionalPattern[]): LearnedMemo
 
   for (const [emotion, data] of Object.entries(emotionCounts)) {
     if (data.count >= 2) {
-      const context = data.contexts.length > 0 
-        ? ` (often when discussing ${data.contexts.slice(0, 2).join(', ')})` 
-        : '';
-      
+      const context =
+        data.contexts.length > 0
+          ? ` (often when discussing ${data.contexts.slice(0, 2).join(', ')})`
+          : '';
+
       memories.push({
         id: `ep_${patternIdx++}`,
         type: 'pattern',
         content: `You often feel ${emotion}${context}`,
-        confidence: Math.min(0.95, 0.6 + (data.count * 0.1)),
+        confidence: Math.min(0.95, 0.6 + data.count * 0.1),
         source: 'observation',
         learnedAt: data.lastSeen.toISOString(),
         sourceType: 'emotionalPattern',
@@ -147,9 +169,7 @@ function extractFromFamilyMembers(members: FamilyMember[]): LearnedMemory[] {
   if (!members || members.length === 0) return [];
 
   return members.map((fm, idx) => {
-    let content = fm.name 
-      ? `${fm.name} is your ${fm.relationship}` 
-      : `Your ${fm.relationship}`;
+    let content = fm.name ? `${fm.name} is your ${fm.relationship}` : `Your ${fm.relationship}`;
     if (fm.mentionedTopics && fm.mentionedTopics.length > 0) {
       content += ` (topics: ${fm.mentionedTopics.slice(0, 2).join(', ')})`;
     }
@@ -160,9 +180,10 @@ function extractFromFamilyMembers(members: FamilyMember[]): LearnedMemory[] {
       content,
       confidence: 0.95,
       source: 'conversation',
-      learnedAt: fm.lastMentioned instanceof Date 
-        ? fm.lastMentioned.toISOString() 
-        : new Date(fm.lastMentioned || Date.now()).toISOString(),
+      learnedAt:
+        fm.lastMentioned instanceof Date
+          ? fm.lastMentioned.toISOString()
+          : new Date(fm.lastMentioned || Date.now()).toISOString(),
       sourceType: 'familyMember' as const,
       sourceId: fm.name || `family_${idx}`, // Use name as ID for family members
     };
@@ -180,7 +201,8 @@ function extractFromGoals(profile: UserProfile): LearnedMemory[] {
     for (const goal of profile.goals) {
       let content = `${goal.name}`;
       if (goal.targetDate) {
-        const targetDate = goal.targetDate instanceof Date ? goal.targetDate : new Date(goal.targetDate);
+        const targetDate =
+          goal.targetDate instanceof Date ? goal.targetDate : new Date(goal.targetDate);
         content += ` by ${targetDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
       }
       if (goal.status === 'on_track') content += ' (on track!)';
@@ -192,9 +214,10 @@ function extractFromGoals(profile: UserProfile): LearnedMemory[] {
         content,
         confidence: 0.9,
         source: 'conversation',
-        learnedAt: goal.createdAt instanceof Date 
-          ? goal.createdAt.toISOString() 
-          : new Date(goal.createdAt).toISOString(),
+        learnedAt:
+          goal.createdAt instanceof Date
+            ? goal.createdAt.toISOString()
+            : new Date(goal.createdAt).toISOString(),
         sourceType: 'goal',
         sourceId: goal.id,
       });
@@ -371,12 +394,12 @@ function extractFromLifeContext(profile: UserProfile): LearnedMemory[] {
   // Life stage
   if (profile.lifeStage) {
     const lifeStageLabels: Record<string, string> = {
-      student: 'You\'re currently a student',
-      early_career: 'You\'re in the early stages of your career',
-      mid_career: 'You\'re established in your career',
-      pre_retirement: 'You\'re approaching retirement',
-      retired: 'You\'re enjoying retirement',
-      career_change: 'You\'re going through a career transition',
+      student: "You're currently a student",
+      early_career: "You're in the early stages of your career",
+      mid_career: "You're established in your career",
+      pre_retirement: "You're approaching retirement",
+      retired: "You're enjoying retirement",
+      career_change: "You're going through a career transition",
     };
     const label = lifeStageLabels[profile.lifeStage];
     if (label) {
@@ -396,14 +419,16 @@ function extractFromLifeContext(profile: UserProfile): LearnedMemory[] {
   // Investment experience
   if (profile.investmentExperience && profile.investmentExperience !== 'unknown') {
     const expLabels: Record<string, string> = {
-      beginner: 'You\'re new to investing',
+      beginner: "You're new to investing",
       intermediate: 'You have some investing experience',
-      experienced: 'You\'re an experienced investor',
+      experienced: "You're an experienced investor",
     };
     memories.push({
       id: `life_${factIdx++}`,
       type: 'fact',
-      content: expLabels[profile.investmentExperience] || `Investment experience: ${profile.investmentExperience}`,
+      content:
+        expLabels[profile.investmentExperience] ||
+        `Investment experience: ${profile.investmentExperience}`,
       confidence: 0.85,
       source: 'conversation',
       learnedAt: new Date().toISOString(),
@@ -434,9 +459,10 @@ function extractFromLifeContext(profile: UserProfile): LearnedMemory[] {
       content: `Your name is ${profile.preferredName || profile.name}`,
       confidence: 0.99,
       source: 'conversation',
-      learnedAt: profile.firstContact instanceof Date 
-        ? profile.firstContact.toISOString() 
-        : new Date(profile.firstContact || Date.now()).toISOString(),
+      learnedAt:
+        profile.firstContact instanceof Date
+          ? profile.firstContact.toISOString()
+          : new Date(profile.firstContact || Date.now()).toISOString(),
       sourceType: 'preference',
       sourceId: 'name',
     });
@@ -473,11 +499,8 @@ function extractBehavioralPatterns(profile: UserProfile): BehavioralPattern[] {
       });
     }
     if (cp.avgDuration) {
-      const duration = cp.avgDuration < 10 
-        ? 'quick' 
-        : cp.avgDuration > 20 
-          ? 'longer' 
-          : 'moderate-length';
+      const duration =
+        cp.avgDuration < 10 ? 'quick' : cp.avgDuration > 20 ? 'longer' : 'moderate-length';
       patterns.push({
         id: 'pattern_duration',
         pattern: `Your conversations are typically ${duration} (avg ${Math.round(cp.avgDuration)} min)`,
@@ -496,8 +519,7 @@ function extractBehavioralPatterns(profile: UserProfile): BehavioralPattern[] {
         openingStyles[session.openingStyle] = (openingStyles[session.openingStyle] || 0) + 1;
       }
     }
-    const mostCommonOpening = Object.entries(openingStyles)
-      .sort((a, b) => b[1] - a[1])[0];
+    const mostCommonOpening = Object.entries(openingStyles).sort((a, b) => b[1] - a[1])[0];
     if (mostCommonOpening && mostCommonOpening[1] >= 2) {
       patterns.push({
         id: 'pattern_opening',
@@ -519,7 +541,7 @@ function extractBehavioralPatterns(profile: UserProfile): BehavioralPattern[] {
       category: 'interests',
     });
   }
-  
+
   // Voice pace patterns
   if (profile.voicePace?.preferences) {
     const vp = profile.voicePace.preferences;
@@ -534,7 +556,7 @@ function extractBehavioralPatterns(profile: UserProfile): BehavioralPattern[] {
       });
     }
   }
-  
+
   // Relationship milestones
   if (profile.humanizingState?.relationshipMilestones?.length) {
     const milestones = profile.humanizingState.relationshipMilestones;
@@ -542,13 +564,16 @@ function extractBehavioralPatterns(profile: UserProfile): BehavioralPattern[] {
       id: 'pattern_milestones',
       pattern: `Our relationship has grown through ${milestones.length} meaningful milestone${milestones.length > 1 ? 's' : ''}`,
       frequency: milestones.length,
-      examples: milestones.slice(0, 3).map(m => `${m.from} → ${m.to}`),
+      examples: milestones.slice(0, 3).map((m) => `${m.from} → ${m.to}`),
       category: 'relationship',
     });
   }
-  
+
   // Mood patterns
-  if (profile.humanizingState?.moodHistory?.length && profile.humanizingState.moodHistory.length >= 3) {
+  if (
+    profile.humanizingState?.moodHistory?.length &&
+    profile.humanizingState.moodHistory.length >= 3
+  ) {
     const moodCounts: Record<string, number> = {};
     for (const entry of profile.humanizingState.moodHistory) {
       moodCounts[entry.mood] = (moodCounts[entry.mood] || 0) + 1;
@@ -564,30 +589,30 @@ function extractBehavioralPatterns(profile: UserProfile): BehavioralPattern[] {
       });
     }
   }
-  
+
   // Financial journey progress
   if (profile.financialJourney?.milestones?.length) {
-    const achievements = profile.financialJourney.milestones.filter(m => m.celebrationGiven);
+    const achievements = profile.financialJourney.milestones.filter((m) => m.celebrationGiven);
     if (achievements.length > 0) {
       patterns.push({
         id: 'pattern_financial_wins',
         pattern: `We've celebrated ${achievements.length} financial milestone${achievements.length > 1 ? 's' : ''} together`,
         frequency: achievements.length,
-        examples: achievements.slice(0, 3).map(m => m.title),
+        examples: achievements.slice(0, 3).map((m) => m.title),
         category: 'achievements',
       });
     }
   }
-  
+
   // Pending follow-ups
   if (profile.pendingFollowUps?.length) {
-    const pending = profile.pendingFollowUps.filter(f => new Date(f.targetDate) >= new Date());
+    const pending = profile.pendingFollowUps.filter((f) => new Date(f.targetDate) >= new Date());
     if (pending.length > 0) {
       patterns.push({
         id: 'pattern_followups',
         pattern: `I have ${pending.length} thing${pending.length > 1 ? 's' : ''} I want to follow up on with you`,
         frequency: pending.length,
-        examples: pending.slice(0, 3).map(f => f.topic),
+        examples: pending.slice(0, 3).map((f) => f.topic),
         category: 'continuity',
       });
     }
@@ -631,7 +656,7 @@ function calculateKnowledgeScore(profile: UserProfile, totalMemories: number): n
  */
 export function extractLearnedMemories(profile: UserProfile): LearnedMemoriesData {
   const log = getLogger();
-  
+
   try {
     // Extract memories from all sources
     const memories: LearnedMemory[] = [
@@ -656,12 +681,15 @@ export function extractLearnedMemories(profile: UserProfile): LearnedMemoriesDat
     // Calculate knowledge score
     const knowledgeScore = calculateKnowledgeScore(profile, memories.length);
 
-    log.debug({
-      userId: profile.id,
-      memoryCount: memories.length,
-      patternCount: patterns.length,
-      knowledgeScore,
-    }, '📚 Extracted learned memories');
+    log.debug(
+      {
+        userId: profile.id,
+        memoryCount: memories.length,
+        patternCount: patterns.length,
+        knowledgeScore,
+      },
+      '📚 Extracted learned memories'
+    );
 
     return {
       memories,
@@ -689,10 +717,10 @@ export function deleteMemoryFromProfile(
   memoryId: string
 ): { success: boolean; profile: UserProfile; deletedType?: string } {
   const log = getLogger();
-  
+
   // Parse the memory ID to find the source
   // IDs are formatted as: km_0, ep_0, fm_0, goal_xxx, pref_0, etc.
-  
+
   const updated = { ...profile };
   let deletedType: string | undefined;
 
@@ -706,13 +734,13 @@ export function deleteMemoryFromProfile(
     } else {
       // Try matching by ID field
       const original = updated.keyMoments.length;
-      updated.keyMoments = updated.keyMoments.filter(km => km.id !== memoryId);
+      updated.keyMoments = updated.keyMoments.filter((km) => km.id !== memoryId);
       if (updated.keyMoments.length < original) {
         deletedType = 'keyMoment';
       }
     }
   }
-  
+
   // Family members
   else if (memoryId.startsWith('fm_') && updated.familyMembers) {
     const idx = parseInt(memoryId.replace('fm_', ''));
@@ -722,32 +750,32 @@ export function deleteMemoryFromProfile(
       log.info({ memoryId, type: 'familyMember' }, '🗑️ Deleted family member');
     }
   }
-  
+
   // Goals
   else if (memoryId.startsWith('goal_') && updated.goals) {
     const goalId = memoryId.replace('goal_', '');
     const original = updated.goals.length;
-    updated.goals = updated.goals.filter(g => g.id !== goalId);
+    updated.goals = updated.goals.filter((g) => g.id !== goalId);
     if (updated.goals.length < original) {
       deletedType = 'goal';
       log.info({ memoryId, type: 'goal' }, '🗑️ Deleted goal');
     }
   }
-  
+
   // Preferred topics
   else if (memoryId === 'topics_preferred' && updated.preferredTopics) {
     updated.preferredTopics = [];
     deletedType = 'preferredTopics';
     log.info({ memoryId }, '🗑️ Cleared preferred topics');
   }
-  
-  // Avoid topics  
+
+  // Avoid topics
   else if (memoryId === 'topics_avoid' && updated.avoidTopics) {
     updated.avoidTopics = [];
     deletedType = 'avoidTopics';
     log.info({ memoryId }, '🗑️ Cleared avoid topics');
   }
-  
+
   // Preferences - these need special handling
   else if (memoryId.startsWith('pref_')) {
     // For preferences, we can reset specific fields
@@ -755,7 +783,7 @@ export function deleteMemoryFromProfile(
     log.info({ memoryId }, '🗑️ Preference deletion requested (limited support)');
     deletedType = 'preference';
   }
-  
+
   // Life context facts
   else if (memoryId.startsWith('life_')) {
     // These are derived from profile fields, harder to delete individually
@@ -792,7 +820,7 @@ export function createLearnedMemoriesService(
     async getLearnedMemories(userId: string): Promise<LearnedMemoriesData> {
       const store = await getStore();
       const profile = await store.getProfile(userId);
-      
+
       if (!profile) {
         return {
           memories: [],
@@ -801,24 +829,24 @@ export function createLearnedMemoriesService(
           knowledgeScore: 0,
         };
       }
-      
+
       return extractLearnedMemories(profile);
     },
-    
+
     async deleteMemory(userId: string, memoryId: string): Promise<{ success: boolean }> {
       const store = await getStore();
       const profile = await store.getProfile(userId);
-      
+
       if (!profile) {
         return { success: false };
       }
-      
+
       const result = deleteMemoryFromProfile(profile, memoryId);
-      
+
       if (result.success) {
         await store.saveProfile(result.profile);
       }
-      
+
       return { success: result.success };
     },
   };
@@ -826,7 +854,9 @@ export function createLearnedMemoriesService(
 
 export function getLearnedMemoriesService(): LearnedMemoriesService {
   if (!serviceInstance) {
-    throw new Error('LearnedMemoriesService not initialized. Call createLearnedMemoriesService first.');
+    throw new Error(
+      'LearnedMemoriesService not initialized. Call createLearnedMemoriesService first.'
+    );
   }
   return serviceInstance;
 }
@@ -844,4 +874,3 @@ export default {
   getLearnedMemoriesService,
   initLearnedMemoriesService,
 };
-

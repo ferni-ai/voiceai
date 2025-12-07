@@ -301,9 +301,11 @@
       "calendar",
       "communication",
       "telephony",
-      "engagement"
+      "engagement",
+      "decisions",
+      "relationships"
     ],
-    "_domain_notes": "Alex is the communication specialist. Owns calendar, email, SMS, and phone call tools. Target: 40-50 tools for optimal Gemini performance.",
+    "_domain_notes": "Alex is the communication specialist. Owns calendar, email, SMS, and phone call tools. Added decisions (for difficult conversations) and relationships (relationship navigation). Target: 40-50 tools for optimal Gemini performance.",
     "required": [
       "scheduleAppointment",
       "getAppointments",

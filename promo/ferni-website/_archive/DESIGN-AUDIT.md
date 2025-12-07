@@ -8,11 +8,11 @@
 
 | Image | Location | Status |
 |-------|----------|--------|
-| `og-image.jpg` | `<meta og:image>` and `<meta twitter:image>` | ✅ Active |
-| `hero-zen-fallback.jpg` | CSS fallback for hero when canvas fails | ✅ Active |
-| `hero-meadow.jpg` | Available, not currently used | 📦 Available |
-| `testimonial-bg-*.jpg` | Replaced with CSS gradients (had text artifacts) | ❌ Not used |
-| `avatar-*.png` | Available, using initials instead per user preference | 📦 Available |
+| `og-image.jpg` | `<meta og:image>` and `<meta twitter:image>` |  Active |
+| `hero-zen-fallback.jpg` | CSS fallback for hero when canvas fails |  Active |
+| `hero-meadow.jpg` | Available, not currently used |  Available |
+| `testimonial-bg-*.jpg` | Replaced with CSS gradients (had text artifacts) |  Not used |
+| `avatar-*.png` | Available, using initials instead per user preference |  Available |
 
 ---
 
@@ -21,9 +21,9 @@
 ### Font Families
 | Token | Value | Used Correctly? |
 |-------|-------|-----------------|
-| `--font-display` | Plus Jakarta Sans | ⚠️ Check all headlines |
-| `--font-body` | Inter | ⚠️ Check body text |
-| `--font-accent` | Sora | ⚠️ Check accent elements |
+| `--font-display` | Plus Jakarta Sans |  Check all headlines |
+| `--font-body` | Inter |  Check body text |
+| `--font-accent` | Sora |  Check accent elements |
 
 ### Issues Found:
 - [ ] Some elements may use hardcoded font-family instead of tokens
@@ -111,13 +111,13 @@
 
 ```
 promo/ferni-website/
-├── css/
-│   ├── design-tokens.css   # Source of truth
-│   ├── styles.css          # Main styles (needs audit)
-│   └── living-avatar.css   # Avatar styles
-├── index.html              # Main page
-└── js/
-    └── main.js             # Interactions
+ css/
+    design-tokens.css   # Source of truth
+    styles.css          # Main styles (needs audit)
+    living-avatar.css   # Avatar styles
+ index.html              # Main page
+ js/
+     main.js             # Interactions
 ```
 
 ---

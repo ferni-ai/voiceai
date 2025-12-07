@@ -67,10 +67,7 @@ export function setSessionContextId(sessionId: string, contextId?: string): stri
   sessionContextIds.set(sessionId, id);
   activeSessionId = sessionId;
 
-  log.debug(
-    { sessionId, contextId: id },
-    'Session context ID set for Cartesia prosody continuity'
-  );
+  log.debug({ sessionId, contextId: id }, 'Session context ID set for Cartesia prosody continuity');
 
   return id;
 }

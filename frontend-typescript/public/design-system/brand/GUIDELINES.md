@@ -23,6 +23,12 @@
 
 # 1. Brand Overview
 
+## Our Mission
+
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+Every design choice, every interaction, every pixel should move us closer to AI that genuinely connects with humans. See [`../../../CORE-PRINCIPLES.md`](../../../CORE-PRINCIPLES.md) for our complete philosophy.
+
 ## Brand Essence
 
 **Ferni is the AI that actually listens.**

@@ -243,7 +243,7 @@ class EngagementDataSender {
         question: this.formatPredictionQuestion(p),
         userPrediction: this.extractMainPrediction(p),
         actualOutcome: p.accuracy,
-        status: p.completedAt ? 'resolved' as const : 'pending' as const,
+        status: p.completedAt ? ('resolved' as const) : ('pending' as const),
         createdAt: p.createdAt,
       }));
     } catch (error) {

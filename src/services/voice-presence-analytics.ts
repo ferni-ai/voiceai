@@ -307,10 +307,8 @@ export class VoicePresenceAnalytics {
     });
 
     // Update specific metrics
-    this.endpointingMetrics.avgMinDelay =
-      (this.endpointingMetrics.avgMinDelay + data.minDelay) / 2;
-    this.endpointingMetrics.avgMaxDelay =
-      (this.endpointingMetrics.avgMaxDelay + data.maxDelay) / 2;
+    this.endpointingMetrics.avgMinDelay = (this.endpointingMetrics.avgMinDelay + data.minDelay) / 2;
+    this.endpointingMetrics.avgMaxDelay = (this.endpointingMetrics.avgMaxDelay + data.maxDelay) / 2;
     this.endpointingMetrics.completenessAccuracy =
       (this.endpointingMetrics.completenessAccuracy + data.sentenceCompleteness) / 2;
   }
@@ -527,10 +525,7 @@ export class VoicePresenceAnalytics {
         feature: 'adaptive_endpointing',
         parameter: 'baseMinDelay',
         currentValue: this.config.adaptiveEndpointing.baseMinDelay,
-        recommendedValue: Math.min(
-          800,
-          this.config.adaptiveEndpointing.baseMinDelay + 100
-        ),
+        recommendedValue: Math.min(800, this.config.adaptiveEndpointing.baseMinDelay + 100),
         confidence: 0.7 + this.endpointingMetrics.cutOffRate,
         reason: `High cut-off rate (${(this.endpointingMetrics.cutOffRate * 100).toFixed(1)}%) suggests we're not waiting long enough`,
         impact: 'high',
@@ -542,10 +537,7 @@ export class VoicePresenceAnalytics {
         feature: 'adaptive_endpointing',
         parameter: 'baseMaxDelay',
         currentValue: this.config.adaptiveEndpointing.baseMaxDelay,
-        recommendedValue: Math.max(
-          800,
-          this.config.adaptiveEndpointing.baseMaxDelay - 150
-        ),
+        recommendedValue: Math.max(800, this.config.adaptiveEndpointing.baseMaxDelay - 150),
         confidence: 0.6 + this.endpointingMetrics.overWaitRate * 0.5,
         reason: `High over-wait rate (${(this.endpointingMetrics.overWaitRate * 100).toFixed(1)}%) suggests awkward silences`,
         impact: 'medium',
@@ -761,4 +753,3 @@ export function resetVoicePresenceAnalytics(): void {
   analyticsInstance?.reset();
   analyticsInstance = null;
 }
-

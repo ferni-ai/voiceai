@@ -14,7 +14,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getDefaultStore, resetDefaultStore, type InMemoryStore } from '../memory/in-memory-store.js';
+import {
+  getDefaultStore,
+  resetDefaultStore,
+  type InMemoryStore,
+} from '../memory/in-memory-store.js';
 import { createUserProfile, type UserProfile } from '../types/user-profile.js';
 import {
   exportIntelligenceState,

@@ -6,6 +6,8 @@
   <title>Terms of Service — Ferni</title>
   <meta name="description" content="Terms of Service for using Ferni AI life coaching service.">
   <meta name="theme-color" content="#faf8f5">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://ferni.ai/terms">
   
   <!-- Open Graph -->
   <meta property="og:title" content="Terms of Service — Ferni">
@@ -14,196 +16,200 @@
   <meta property="og:url" content="https://ferni.ai/terms">
   <meta property="og:image" content="https://ferni.ai/images/og-image.jpg">
   
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Terms of Service — Ferni">
+  <meta name="twitter:description" content="Terms of Service for using Ferni AI life coaching service.">
+  
+  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234a6741' rx='20' width='100' height='100'/><text x='50' y='68' font-family='system-ui' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>FN</text></svg>">
   
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/styles.css?v=4">
-  <style>
-    .legal-page {
-      padding: 140px 24px 100px;
-      min-height: 100vh;
-    }
-    
-    .legal-container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    
-    .legal-header {
-      margin-bottom: 60px;
-    }
-    
-    .legal-title {
-      font-family: var(--font-display);
-      font-size: clamp(36px, 6vw, 56px);
-      font-weight: 800;
-      color: var(--color-text);
-      margin-bottom: 16px;
-    }
-    
-    .legal-updated {
-      font-size: 14px;
-      color: var(--color-text-muted);
-    }
-    
-    .legal-content h2 {
-      font-family: var(--font-display);
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--color-text);
-      margin: 48px 0 16px;
-    }
-    
-    .legal-content h2:first-child {
-      margin-top: 0;
-    }
-    
-    .legal-content p {
-      font-size: 16px;
-      color: var(--color-text-secondary);
-      line-height: 1.8;
-      margin-bottom: 16px;
-    }
-    
-    .legal-content ul, .legal-content ol {
-      margin: 16px 0 24px 24px;
-      color: var(--color-text-secondary);
-    }
-    
-    .legal-content li {
-      font-size: 16px;
-      line-height: 1.8;
-      margin-bottom: 8px;
-    }
-    
-    .legal-content a {
-      color: var(--color-accent);
-      text-decoration: underline;
-    }
-    
-    .legal-content a:hover {
-      color: var(--color-accent-light);
-    }
-    
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--color-text-muted);
-      margin-bottom: 40px;
-      transition: color 0.2s;
-    }
-    
-    .back-link:hover {
-      color: var(--color-accent);
-    }
-  </style>
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/design-tokens.css?v=1">
+  <link rel="stylesheet" href="css/styles.css?v=30">
+  <link rel="stylesheet" href="css/legal-page.css?v=1">
 </head>
-<body>
+<body class="page-legal">
+  <!-- Skip Link -->
+  <a href="#main" class="skip-link">Skip to main content</a>
   
   <!-- Navigation -->
-  <nav class="nav scrolled">
-    <div class="container">
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-container">
       <div class="nav-inner">
-        <a href="/" class="nav-logo">
-          <span class="nav-logo-icon">FN</span>
-          Ferni
-        </a>
+        <a href="/" class="nav-logo" aria-label="Ferni">Ferni</a>
+        <ul class="nav-links">
+          <li><a href="/#features" class="nav-link">Features</a></li>
+          <li><a href="/team" class="nav-link">Team</a></li>
+          <li><a href="/pricing" class="nav-link">Pricing</a></li>
+          <li><a href="/#faq" class="nav-link">FAQ</a></li>
+        </ul>
         <div class="nav-actions">
-          <a href="https://app.ferni.ai" class="btn btn-primary nav-cta">Get Started</a>
+          <a href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=terms" class="btn btn-primary nav-cta">Get Started</a>
+          <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+          </button>
         </div>
       </div>
     </div>
   </nav>
 
-  <main class="legal-page">
-    <div class="legal-container">
-      <a href="/" class="back-link">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-        Back to Home
-      </a>
-      
-      <header class="legal-header">
-        <h1 class="legal-title">Terms of Service</h1>
-        <p class="legal-updated">Last updated: December 1, 2025</p>
-      </header>
-      
-      <div class="legal-content">
-        <h2>Agreement to Terms</h2>
-        <p>By accessing or using Ferni ("Service"), you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the Service.</p>
+  <!-- Main Content -->
+  <main id="main">
+    <article class="legal-page">
+      <div class="container">
+        <a href="/" class="back-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Home
+        </a>
         
-        <h2>Description of Service</h2>
-        <p>Ferni is an AI-powered life coaching service that provides conversational support through web and phone interfaces. Our team of AI specialists offers guidance on various aspects of personal development, decision-making, and life management.</p>
+        <header class="legal-header">
+          <h1 class="legal-title">Terms of Service</h1>
+          <p class="legal-updated">Last updated: December 7, 2025</p>
+        </header>
         
-        <h2>Important Disclaimers</h2>
-        <p><strong>Ferni is not a substitute for professional advice.</strong> Our AI coaching service is designed for general personal development support and should not be considered:</p>
-        <ul>
-          <li>Medical, psychological, or psychiatric advice or treatment</li>
-          <li>Financial, legal, or professional advice</li>
-          <li>Emergency or crisis intervention services</li>
-        </ul>
-        <p>If you are experiencing a mental health crisis or emergency, please contact emergency services (911) or a crisis helpline immediately.</p>
-        
-        <h2>User Responsibilities</h2>
-        <p>When using Ferni, you agree to:</p>
-        <ul>
-          <li>Provide accurate information about yourself</li>
-          <li>Use the service for lawful purposes only</li>
-          <li>Not attempt to reverse engineer or exploit the service</li>
-          <li>Not use the service to harm, harass, or defraud others</li>
-          <li>Not share your account access with others</li>
-        </ul>
-        
-        <h2>Intellectual Property</h2>
-        <p>The Service and its original content, features, and functionality are owned by Ferni and are protected by international copyright, trademark, and other intellectual property laws.</p>
-        
-        <h2>Privacy</h2>
-        <p>Your use of the Service is also governed by our <a href="/privacy">Privacy Policy</a>. Please review our Privacy Policy to understand our practices.</p>
-        
-        <h2>Limitation of Liability</h2>
-        <p>To the maximum extent permitted by law, Ferni shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from:</p>
-        <ul>
-          <li>Your use or inability to use the Service</li>
-          <li>Any decisions made based on information provided by the Service</li>
-          <li>Any unauthorized access to or use of our servers</li>
-          <li>Any bugs, viruses, or similar issues transmitted through the Service</li>
-        </ul>
-        
-        <h2>Termination</h2>
-        <p>We may terminate or suspend your access to the Service immediately, without prior notice, for any reason, including breach of these Terms. Upon termination, your right to use the Service will cease immediately.</p>
-        
-        <h2>Changes to Terms</h2>
-        <p>We reserve the right to modify these terms at any time. We will provide notice of any material changes by updating the "Last updated" date. Your continued use of the Service after changes constitutes acceptance of the new terms.</p>
-        
-        <h2>Governing Law</h2>
-        <p>These Terms shall be governed by the laws of the Commonwealth of Pennsylvania, United States, without regard to its conflict of law provisions.</p>
-        
-        <h2>Contact Us</h2>
-        <p>If you have questions about these Terms of Service, please contact us:</p>
-        <ul>
-          <li>Email: <a href="mailto:legal@ferni.ai">legal@ferni.ai</a></li>
-          <li>Phone: <a href="tel:+14844813081">1 (484) 481-3081</a></li>
-        </ul>
+        <div class="legal-content">
+          <section>
+            <h2>Agreement to Terms</h2>
+            <p>By accessing or using Ferni ("Service"), you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the Service.</p>
+          </section>
+          
+          <section>
+            <h2>Description of Service</h2>
+            <p>Ferni is an AI-powered life coaching service that provides conversational support through web and phone interfaces. Our team of AI specialists offers guidance on various aspects of personal development, decision-making, and life management.</p>
+          </section>
+          
+          <section>
+            <h2>Important Disclaimers</h2>
+            <p><strong>Ferni is not a substitute for professional advice.</strong> Our AI coaching service is designed for general personal development support and should not be considered:</p>
+            <ul>
+              <li>Medical, psychological, or psychiatric advice or treatment</li>
+              <li>Financial, legal, or professional advice</li>
+              <li>Emergency or crisis intervention services</li>
+            </ul>
+            <p>If you are experiencing a mental health crisis or emergency, please contact emergency services (911) or a crisis helpline immediately.</p>
+          </section>
+          
+          <section>
+            <h2>User Responsibilities</h2>
+            <p>When using Ferni, you agree to:</p>
+            <ul>
+              <li>Provide accurate information about yourself</li>
+              <li>Use the service for lawful purposes only</li>
+              <li>Not attempt to reverse engineer or exploit the service</li>
+              <li>Not use the service to harm, harass, or defraud others</li>
+              <li>Not share your account access with others</li>
+            </ul>
+          </section>
+          
+          <section>
+            <h2>Subscription and Billing</h2>
+            <p>Ferni offers free and paid subscription tiers:</p>
+            <ul>
+              <li><strong>Free:</strong> Limited conversations per month with basic features</li>
+              <li><strong>Friend ($9.99/month):</strong> Unlimited conversations with full team access</li>
+              <li><strong>Partner ($19.99/month):</strong> Premium features including Nayan advisor access</li>
+            </ul>
+            <p>Paid subscriptions are billed monthly. You may cancel at any time, and access continues until the end of your billing period.</p>
+          </section>
+          
+          <section>
+            <h2>Intellectual Property</h2>
+            <p>The Service and its original content, features, and functionality are owned by Ferni and are protected by international copyright, trademark, and other intellectual property laws.</p>
+          </section>
+          
+          <section>
+            <h2>Privacy</h2>
+            <p>Your use of the Service is also governed by our <a href="/privacy">Privacy Policy</a>. Please review our Privacy Policy to understand our practices.</p>
+          </section>
+          
+          <section>
+            <h2>Limitation of Liability</h2>
+            <p>To the maximum extent permitted by law, Ferni shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses resulting from:</p>
+            <ul>
+              <li>Your use or inability to use the Service</li>
+              <li>Any decisions made based on information provided by the Service</li>
+              <li>Any unauthorized access to or use of our servers</li>
+              <li>Any bugs, viruses, or similar issues transmitted through the Service</li>
+            </ul>
+          </section>
+          
+          <section>
+            <h2>Termination</h2>
+            <p>We may terminate or suspend your access to the Service immediately, without prior notice, for any reason, including breach of these Terms. Upon termination, your right to use the Service will cease immediately.</p>
+          </section>
+          
+          <section>
+            <h2>Changes to Terms</h2>
+            <p>We reserve the right to modify these terms at any time. We will provide notice of any material changes by updating the "Last updated" date. Your continued use of the Service after changes constitutes acceptance of the new terms.</p>
+          </section>
+          
+          <section>
+            <h2>Governing Law</h2>
+            <p>These Terms shall be governed by the laws of the Commonwealth of Pennsylvania, United States, without regard to its conflict of law provisions.</p>
+          </section>
+          
+          <section>
+            <h2>Contact Us</h2>
+            <p>If you have questions about these Terms of Service, please contact us:</p>
+            <ul>
+              <li>Email: <a href="mailto:legal@ferni.ai">legal@ferni.ai</a></li>
+              <li>Phone: <a href="tel:+14844813081">1 (484) 481-3081</a></li>
+            </ul>
+          </section>
+        </div>
       </div>
-    </div>
+    </article>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
-      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
-        <p>© 2025 Ferni. All rights reserved.</p>
+      <div class="footer-content">
+        <div class="footer-brand">
+          <a href="/" class="footer-logo">
+            <span class="logo-icon">FN</span>
+            <span class="logo-text">Ferni</span>
+          </a>
+          <p class="footer-tagline">Your personal AI life coach.</p>
+        </div>
+        
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Product</h4>
+            <a href="/#features">Features</a>
+            <a href="/team">Meet the Team</a>
+            <a href="/pricing">Pricing</a>
+            <a href="/#faq">FAQ</a>
+          </div>
+          <div class="footer-column">
+            <h4>Connect</h4>
+            <a href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=terms_footer">Web App</a>
+            <a href="tel:+14844813081">Call Ferni</a>
+            <a href="/contact">Contact Us</a>
+          </div>
+          <div class="footer-column">
+            <h4>Legal</h4>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms" aria-current="page">Terms of Service</a>
+            <a href="/accessibility">Accessibility</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 Ferni. All rights reserved.</p>
       </div>
     </div>
   </footer>
 
+  <script src="js/main.js?v=1"></script>
 </body>
 </html>
-

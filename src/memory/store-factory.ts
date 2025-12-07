@@ -44,7 +44,10 @@ export async function getStore(): Promise<MemoryStore> {
       logger.info('Using in-memory store');
     }
   } catch (error) {
-    logger.warn({ error: String(error) }, 'Failed to initialize preferred store, falling back to in-memory');
+    logger.warn(
+      { error: String(error) },
+      'Failed to initialize preferred store, falling back to in-memory'
+    );
     storeInstance = getDefaultStore();
   }
 
@@ -78,4 +81,3 @@ export default {
   resetStore,
   setStore,
 };
-

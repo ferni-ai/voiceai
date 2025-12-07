@@ -439,7 +439,7 @@
   }
 
   // ============================================================================
-  // NEWSLETTER FORM
+  // NEWSLETTER FORM (Mailchimp)
   // ============================================================================
   
   function initNewsletter() {
@@ -448,64 +448,33 @@
     
     if (!form) return;
     
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
+    // Mailchimp forms submit natively (opens in new tab)
+    // We just add tracking and visual feedback
+    form.addEventListener('submit', (e) => {
       const emailInput = form.querySelector('input[type="email"]');
       const email = emailInput.value;
       const submitBtn = form.querySelector('button[type="submit"]');
       
-      // Add loading state
+      // Track event
+      if (window.trackEvent) {
+        window.trackEvent('Newsletter', 'subscribe', 'homepage');
+      }
+      
+      // Store email in localStorage
+      localStorage.setItem('ferni_newsletter', email);
+      
+      // Add loading state briefly
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<span>Subscribing...</span>';
       
-      // Track event
-      if (window.trackEvent) {
-        window.trackEvent('Form', 'submit', 'newsletter');
-      }
-      
-      // Submit to Formspree (replace YOUR_FORM_ID with actual ID)
-      try {
-        const response = await fetch('https://formspree.io/f/YOUR_NEWSLETTER_FORM_ID', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            email: email,
-            _subject: 'New Newsletter Subscription'
-          })
-        });
-        
-        if (response.ok) {
-        // Success
+      // Show success after brief delay (form submits to new tab)
+      setTimeout(() => {
         form.classList.add('success');
         form.style.display = 'none';
         successMessage.classList.add('visible');
-        
-        // Store in localStorage to remember
-        localStorage.setItem('ferni_newsletter', email);
-          
-          // Track success
-          if (window.trackEvent) {
-            window.trackEvent('Form', 'success', 'newsletter');
-          }
-        } else {
-          throw new Error('Form submission failed');
-        }
-        
-      } catch (error) {
-        console.error('Newsletter submission error:', error);
-        // Reset button on error
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span>Subscribe</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
-        
-        // Track error
-        if (window.trackEvent) {
-          window.trackEvent('Form', 'error', 'newsletter');
-        }
-      }
+      }, 500);
+      
+      // Let the form submit naturally to Mailchimp
     });
     
     // Check if already subscribed
@@ -873,40 +842,91 @@
     const banner = $('#cookieBanner');
     const acceptBtn = $('#cookieAccept');
     const settingsBtn = $('#cookieSettings');
+    const settingsModal = $('#cookieSettingsModal');
+    const settingsCancel = $('#cookieSettingsCancel');
+    const settingsSave = $('#cookieSettingsSave');
+    const analyticsToggle = $('#analyticsCookies');
+    const functionalToggle = $('#functionalCookies');
     
     if (!banner) return;
     
-    // Check if user already accepted
-    const hasConsent = localStorage.getItem('ferni_cookie_consent');
+    // Check if user already consented
+    const consent = localStorage.getItem('ferni_cookie_consent');
     
-    if (!hasConsent) {
+    if (!consent) {
       // Show banner after a short delay
       setTimeout(() => {
         banner.classList.add('visible');
       }, 1500);
     } else {
       banner.classList.add('hidden');
+      // Apply saved preferences
+      applyConsent(JSON.parse(consent));
+    }
+    
+    function hideBanner() {
+      banner.classList.remove('visible');
+      setTimeout(() => banner.classList.add('hidden'), 400);
+    }
+    
+    function applyConsent(prefs) {
+      // Disable Google Analytics if not consented
+      if (!prefs.analytics && window.gtag) {
+        window['ga-disable-G-2JXL8SQPF2'] = true;
+      }
     }
     
     // Accept all cookies
     if (acceptBtn) {
       acceptBtn.addEventListener('click', () => {
-        localStorage.setItem('ferni_cookie_consent', 'all');
-        banner.classList.remove('visible');
-        setTimeout(() => {
-          banner.classList.add('hidden');
-        }, 400);
+        const prefs = { essential: true, analytics: true, functional: true };
+        localStorage.setItem('ferni_cookie_consent', JSON.stringify(prefs));
+        applyConsent(prefs);
+        hideBanner();
+        if (window.trackEvent) {
+          trackEvent('Cookie', 'consent', 'accept_all');
+        }
       });
     }
     
-    // Settings button - for now just accepts essential only
-    if (settingsBtn) {
+    // Open settings modal
+    if (settingsBtn && settingsModal) {
       settingsBtn.addEventListener('click', () => {
-        localStorage.setItem('ferni_cookie_consent', 'essential');
-        banner.classList.remove('visible');
-        setTimeout(() => {
-          banner.classList.add('hidden');
-        }, 400);
+        settingsModal.classList.add('visible');
+      });
+    }
+    
+    // Close settings modal
+    if (settingsCancel && settingsModal) {
+      settingsCancel.addEventListener('click', () => {
+        settingsModal.classList.remove('visible');
+      });
+    }
+    
+    // Save settings
+    if (settingsSave && settingsModal) {
+      settingsSave.addEventListener('click', () => {
+        const prefs = {
+          essential: true, // Always true
+          analytics: analyticsToggle?.checked ?? false,
+          functional: functionalToggle?.checked ?? true
+        };
+        localStorage.setItem('ferni_cookie_consent', JSON.stringify(prefs));
+        applyConsent(prefs);
+        settingsModal.classList.remove('visible');
+        hideBanner();
+        if (window.trackEvent && prefs.analytics) {
+          trackEvent('Cookie', 'consent', 'custom');
+        }
+      });
+    }
+    
+    // Close modal on backdrop click
+    if (settingsModal) {
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+          settingsModal.classList.remove('visible');
+        }
       });
     }
   }
@@ -946,4 +966,17 @@
   }
   
 })();
+
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        console.log('SW registered:', registration.scope);
+      })
+      .catch((error) => {
+        console.log('SW registration failed:', error);
+      });
+  });
+}
 

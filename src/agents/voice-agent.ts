@@ -318,7 +318,7 @@ class VoiceAgent extends voice.Agent<UserData> {
     try {
       const { getFrontendPublisher } = await import('./realtime/index.js');
       const publisher = getFrontendPublisher();
-      
+
       // If publisher has room set, use it (preferred)
       if (publisher.isConnected()) {
         await publisher.sendData(type, payload);
@@ -541,7 +541,10 @@ class VoiceAgent extends voice.Agent<UserData> {
                   }
                 } catch (e) {
                   // Don't block audio if phase personality fails
-                  log().debug({ error: String(e) }, 'Phase personality application failed (non-blocking)');
+                  log().debug(
+                    { error: String(e) },
+                    'Phase personality application failed (non-blocking)'
+                  );
                 }
 
                 services.addTurn('assistant', accumulatedText);
@@ -819,7 +822,7 @@ class VoiceAgent extends voice.Agent<UserData> {
    * Send celebration events to frontend based on context injections
    * Uses fireworks for major achievements (professional, not gamified)
    * Uses sparkles for lighter moments (aha moments, good news)
-   * 
+   *
    * Now uses centralized FrontendPublisher for consistent handling
    */
   private async sendCelebrationEvents(
@@ -829,7 +832,7 @@ class VoiceAgent extends voice.Agent<UserData> {
     try {
       const { getFrontendPublisher } = await import('./realtime/index.js');
       const publisher = getFrontendPublisher();
-      
+
       if (publisher.isConnected()) {
         await publisher.sendCelebrationEvents(injections);
         return;
@@ -847,8 +850,16 @@ class VoiceAgent extends voice.Agent<UserData> {
       string,
       { celebrationType: string; effect: 'fireworks' | 'sparkles'; message?: string }
     > = {
-      milestone: { celebrationType: 'milestone', effect: 'fireworks', message: '🎆 Milestone achieved!' },
-      achievement: { celebrationType: 'achievement', effect: 'fireworks', message: '🎆 Great achievement!' },
+      milestone: {
+        celebrationType: 'milestone',
+        effect: 'fireworks',
+        message: '🎆 Milestone achieved!',
+      },
+      achievement: {
+        celebrationType: 'achievement',
+        effect: 'fireworks',
+        message: '🎆 Great achievement!',
+      },
       aha_moment: { celebrationType: 'aha_moment', effect: 'sparkles' },
       good_news: { celebrationType: 'good_news', effect: 'sparkles' },
     };
@@ -884,7 +895,7 @@ class VoiceAgent extends voice.Agent<UserData> {
   /**
    * Enhanced user turn completion hook
    * Uses modular context builders to inject intelligent guidance
-   * 
+   *
    * NOTE: A refactored version using the extracted TurnProcessor is available.
    * Enable with USE_TURN_PROCESSOR=true environment variable.
    */
@@ -901,1036 +912,17 @@ class VoiceAgent extends voice.Agent<UserData> {
       return;
     }
 
-    // ============================================================
-    // TurnProcessor: Use extracted, modular turn processing
-    // Default: enabled for cleaner architecture
-    // Disable with USE_TURN_PROCESSOR=false to use legacy code
-    // ============================================================
-    const useTurnProcessor = process.env['USE_TURN_PROCESSOR'] !== 'false';
-    if (useTurnProcessor) {
-      try {
-        await this.onUserTurnCompletedV2(turnCtx, newMessage);
-        return;
-      } catch (processorError) {
-        // Fallback to legacy processing if TurnProcessor fails
-        this.logger.warn(
-          { error: String(processorError) }, 
-          'TurnProcessor failed, falling back to legacy processing'
-        );
-        // Continue to legacy processing below
-      }
-    }
-
-    const contextBuildStart = Date.now();
-
-    // Get session services
-    const userData = this.getUserDataFromContext();
-    const services = userData?.services || globalSessionServices;
-
-    if (!services) {
-      this.logger.warn('No services available for context building');
-      return;
-    }
-
-    try {
-      // Analyze the message
-      const analysis = services.analyze(userText);
-
-      // Track the user turn
-      services.addTurn('user', userText);
-
-      // ============================================================
-      // CONVERSATION STATE - Update shared context for tool orchestration
-      // ============================================================
-      if (userData?.conversationState) {
-        const convState = userData.conversationState;
-
-        // Increment turn count
-        convState.incrementTurn();
-
-        // Update emotional context from analysis
-        const emotionMap: Record<
-          string,
-          'happy' | 'excited' | 'calm' | 'anxious' | 'frustrated' | 'sad' | 'confused' | 'grateful'
-        > = {
-          happy: 'happy',
-          excited: 'excited',
-          content: 'calm',
-          neutral: 'calm',
-          anxious: 'anxious',
-          worried: 'anxious',
-          frustrated: 'frustrated',
-          angry: 'frustrated',
-          sad: 'sad',
-          confused: 'confused',
-          grateful: 'grateful',
-          thankful: 'grateful',
-        };
-
-        const mappedEmotion = emotionMap[analysis.emotion.primary.toLowerCase()];
-        if (mappedEmotion) {
-          convState.detectEmotion(mappedEmotion);
-        }
-
-        // Update sentiment
-        const intensity = analysis.emotion.intensity || 0.5;
-        let sentiment: 'positive' | 'neutral' | 'negative' | 'mixed' = 'neutral';
-        if (
-          ['happy', 'excited', 'grateful', 'content'].includes(
-            analysis.emotion.primary.toLowerCase()
-          )
-        ) {
-          sentiment = 'positive';
-        } else if (
-          ['sad', 'frustrated', 'angry', 'anxious'].includes(analysis.emotion.primary.toLowerCase())
-        ) {
-          sentiment = 'negative';
-        } else if (intensity > 0.7) {
-          sentiment = 'mixed';
-        }
-        convState.setEmotionalContext({ sentiment, confidence: intensity });
-
-        // Update topic if detected
-        const detectedTopic = analysis.topics.detected[0];
-        if (detectedTopic) {
-          convState.setCurrentTopic(detectedTopic);
-        }
-
-        // Store the user message
-        convState.addKeyMoment(
-          `User said: ${userText.slice(0, 100)}${userText.length > 100 ? '...' : ''}`
-        );
-
-        // Check for wrap-up signals in user text
-        const wrapUpPhrases = [
-          'gotta go',
-          'have to go',
-          'need to go',
-          'i should go',
-          'bye',
-          'goodbye',
-          'see you',
-          'talk later',
-          'later',
-          "that's all",
-          "that's it",
-          "i'm done",
-          'thanks for',
-        ];
-        if (wrapUpPhrases.some((phrase) => userText.toLowerCase().includes(phrase))) {
-          convState.markUserWantsToLeave();
-          diag.state('User wants to leave detected', { userText: userText.slice(0, 50) });
-        }
-      }
-
-      // Check for Easter eggs (birthday, holidays, secret commands, etc.)
-      const { checkForEasterEgg } = await import('../personas/easter-eggs.js');
-      const easterEgg = checkForEasterEgg(userText, this.persona?.id || 'jack-b', {
-        conversationCount: services.userProfile?.totalConversations || 0,
-        userSinceDate: services.userProfile?.createdAt,
-      });
-
-      // If easter egg triggers with interrupt, inject it as a context hint
-      if (easterEgg.type !== 'none' && easterEgg.response) {
-        this.logger.info({ type: easterEgg.type }, '🎉 Easter egg triggered!');
-
-        // Add the easter egg response as a context injection
-        turnCtx.addMessage({
-          role: 'user',
-          content: `[SPECIAL MOMENT: ${easterEgg.type.toUpperCase()}]\nThis is a special moment! Your response should include or start with:\n"${easterEgg.response}"\nThen continue naturally with your response to what they said.`,
-        });
-      }
-
-      // Build context using modular builders
-      const { buildConversationContext, formatContextForPrompt } =
-        await import('../intelligence/context-builders/index.js');
-
-      // Transform keyMoments from string[] to { summary, timestamp }[] format
-      const contextUserData: ContextUserData = {
-        ...(userData || {}),
-        // Transform string[] keyMoments to object format expected by context builders
-        keyMoments: userData?.keyMoments?.map((summary) => ({
-          summary,
-          timestamp: new Date(),
-        })),
-      };
-
-      const contextInput = {
-        userText,
-        analysis,
-        services,
-        userData: contextUserData,
-        userProfile: services.userProfile,
-        persona: this.persona,
-        bundleRuntime: this.bundleRuntime, // For quirks, inner world content
-      };
-
-      const contextInjections = await buildConversationContext(contextInput);
-
-      // ============================================================
-      // TASK MANAGER - Non-blocking task wisdom injection (NEW)
-      // ============================================================
-      const { getTaskManager } = await import('../tasks/task-manager.js');
-      const taskManager = getTaskManager();
-      const taskContext = taskManager.processUserTurn(analysis, userText, {
-        isReturningUser: userData?.isReturningUser,
-        lastSummary: services.userProfile?.lastConversationSummary,
-      });
-
-      // Log active tasks
-      const activeTasks = taskManager.getActiveTasks();
-      if (activeTasks.length > 0) {
-        this.logger.info({ activeTasks }, 'Task wisdom active');
-      }
-
-      // ============================================================
-      // HUMANIZER - Process user message for memory & dynamics
-      // ============================================================
-      const humanizer = getConversationHumanizer(this.persona?.id || 'default');
-      const humanizationContext = {
-        personaId: this.persona?.id || 'default',
-        turnNumber: userData?.turnCount || 0,
-        userMessage: userText,
-        userEmotion: analysis.emotion.primary,
-        topic: analysis.topics.detected[0],
-        isSeriousContext: (analysis.emotion.distressLevel || 0) > 0.5,
-        wasPersonalSharing: analysis.state.userNeedsSupport || false,
-      };
-
-      // This records to memory, dynamics, detects topic changes, etc.
-      const preResponseActions = humanizer.processUserMessage(humanizationContext);
-
-      // Track callback reaction from previous turn
-      if (humanizer.wasLastResponseCallback()) {
-        // User responded - check if they engaged with the callback
-        // Engagement signals: longer response, sharing more, or continuing the topic
-        const engagementIntents: string[] = [
-          'sharing_news',
-          'confiding',
-          'seeking_advice',
-          'venting',
-        ];
-        const wasEngaged =
-          userText.length > 30 || engagementIntents.includes(analysis.intent.primary);
-        humanizer.recordUserReactionToCallback(userText.length, wasEngaged);
-      }
-
-      // ============================================================
-      // RESPONSE DYNAMICS - Length adaptation & topic transitions
-      // ============================================================
-      const responseDynamics = getResponseDynamicsEngine();
-      responseDynamics.recordMessage('user', userText, analysis.topics.detected);
-
-      // ============================================================
-      // RESPONSE QUALITY TRACKING - Learn what responses work
-      // ============================================================
-      if (userData?.lastAgentResponse) {
-        const currentTopic = analysis.topics.detected[0] || 'general';
-        const conversationPhase = services.getPromptContext().phase || 'building';
-
-        services.recordResponseSignal({
-          agentResponse: userData.lastAgentResponse,
-          userResponse: userText,
-          topic: currentTopic,
-          conversationPhase: String(conversationPhase),
-          emotion: {
-            primary: analysis.emotion.primary,
-            intensity: analysis.emotion.intensity || 0.5,
-          },
-        });
-      }
-
-      // Get response length guidance
-      const lengthGuidance = responseDynamics.getLengthGuidance();
-
-      // Get topic transition if topic changed
-      const previousTopic = userData?.lastTopic;
-      const currentTopic = analysis.topics.detected[0];
-      let topicTransition: string | undefined;
-
-      // Use humanizer's topic change detection (more sophisticated)
-      if (
-        preResponseActions.topicChange?.detected &&
-        preResponseActions.topicChange.transitionPhrase
-      ) {
-        topicTransition = `[TOPIC SHIFT: ${preResponseActions.topicChange.transitionPhrase}]`;
-      } else if (previousTopic && currentTopic && previousTopic !== currentTopic) {
-        const transition = responseDynamics.getTopicTransition(previousTopic, currentTopic);
-        if (transition.phrase) {
-          topicTransition = `[TOPIC SHIFT: Smoothly transition from ${previousTopic} to ${currentTopic}. Consider: "${transition.phrase}"]`;
-        }
-      }
-
-      // ============================================================
-      // VOICE PACE ADAPTATION - Match user's speaking rhythm
-      // Store for later injection into allContext (which is declared later)
-      // ============================================================
-      let paceContextForInjection: string | undefined;
-      let paceLengthForInjection: { min: number; max: number } | undefined;
-      const paceContext = services.voicePaceAdapter.getPaceContext();
-      if (paceContext) {
-        paceContextForInjection = paceContext;
-        paceLengthForInjection = services.voicePaceAdapter.getRecommendedResponseLength();
-
-        this.logger.debug(
-          {
-            paceContext: paceContext.slice(0, 100),
-            recommendedLength: paceLengthForInjection,
-          },
-          'Voice pace adaptation prepared'
-        );
-      }
-      if (userData) {
-        userData.lastTopic = currentTopic;
-
-        // Store for post-LLM humanization in transcriptionNode
-        userData.lastUserMessage = userText;
-        userData.lastEmotionAnalysis = {
-          primary: analysis.emotion.primary,
-          intensity: analysis.emotion.intensity || 0.5,
-          distressLevel: analysis.emotion.distressLevel,
-        };
-
-        // CRITICAL: Update handoff system with user mood for alive entrances
-        // This enables context-aware persona entrances during handoffs
-        updateUserContextForHandoff({
-          lastUserMessage: userText,
-          emotionAnalysis: userData.lastEmotionAnalysis,
-        });
-      }
-
-      // ============================================================
-      // EMOTIONAL ARC - Cross-turn emotional tracking
-      // Feed BOTH text and voice emotion for complete picture
-      // ============================================================
-      const emotionalArc = getEmotionalArcTracker();
-
-      // Record text emotion from analysis (voice emotion recorded in sttNode)
-      // This combines semantic understanding (text) with tonal cues (voice)
-      // Feed combined text + voice emotion into arc tracker
-      // Voice emotion may already be recorded from sttNode, text emotion adds semantic context
-      emotionalArc.recordEmotion(analysis.emotion || null, userData?.voiceEmotion || null);
-
-      const arc = emotionalArc.getArc();
-      const emotionalResponse = emotionalArc.getResponseRecommendation();
-
-      // Get emotional guidance for LLM
-      const emotionModulation = userData?.emotionModulation;
-      const emotionalGuidance = emotionModulation ? getEmotionGuidance(emotionModulation) : null;
-
-      // Check for sudden emotional shift
-      const emotionalTransition = emotionalArc.getTransitionPhrase();
-
-      // ============================================================
-      // HUMANIZING CONTEXT - The Deep Soul of the AI
-      // Voice emotion intelligence, inner world, spontaneous shares,
-      // mood states, relationship-gated behaviors
-      // ============================================================
-      let humanizingResult: HumanizingResult | null = null;
-      try {
-        // Get relationship stage from UserProfile if available
-        const userProfileRelationshipStage = services.userProfile?.relationshipStage;
-
-        // Track previous relationship stage for transition detection
-        const previousRelationshipStage = userData?.previousRelationshipStage;
-
-        const humanizingContext = {
-          persona: this.persona,
-          bundleRuntime: this.bundleRuntime,
-          voiceEmotion: userData?.voiceEmotion || null,
-          textEmotion: analysis.emotion
-            ? {
-                primary: analysis.emotion.primary,
-                confidence: analysis.emotion.confidence || 0.7,
-                valence: analysis.emotion.valence || 'neutral',
-                distressLevel: analysis.emotion.distressLevel,
-                intensity: analysis.emotion.intensity || 0.5,
-                markers: analysis.emotion.markers || [],
-                suggestedTone: analysis.emotion.suggestedTone || 'neutral',
-              }
-            : null,
-          userMessage: userText,
-          currentTopic,
-          recentTopics: analysis.topics.detected,
-          turnCount: userData?.turnCount || 0,
-          sessionCount: services.userProfile?.totalConversations || 1,
-          userName: userData?.name,
-          isVulnerableMoment: analysis.emotion.distressLevel > 0.5,
-          userEmotionIntensity: analysis.emotion.intensity,
-          totalTurns: services.userProfile?.totalConversations
-            ? services.userProfile.totalConversations * 10 + (userData?.turnCount || 0)
-            : userData?.turnCount || 0,
-          // Estimate relationship depth from profile data
-          sharedVulnerabilities: Math.min((services.userProfile?.totalConversations || 0) / 3, 5),
-          celebratedTogether: Math.min((services.userProfile?.totalConversations || 0) / 5, 3),
-          difficultConversations: Math.min((services.userProfile?.totalConversations || 0) / 8, 2),
-          // UserProfile relationship stage for synced behavior
-          userProfileRelationshipStage,
-          // Previous stage for transition detection
-          previousRelationshipStage,
-          usedShareTags: userData?.usedShareTags || [],
-          spontaneousShareCount: userData?.spontaneousShareCount || 0,
-          lastMood: userData?.lastMood,
-        };
-
-        humanizingResult = buildHumanizingContext(humanizingContext);
-
-        // Update userData with tracking info
-        if (userData) {
-          userData.usedShareTags = humanizingResult.usedTags;
-          if (humanizingResult.spontaneousShare) {
-            userData.spontaneousShareCount = (userData.spontaneousShareCount || 0) + 1;
-          }
-          userData.lastMood = humanizingResult.mood.state;
-
-          // Track current relationship stage for next turn's transition detection
-          userData.previousRelationshipStage = humanizingResult.relationship.stage;
-        }
-
-        // ============================================================
-        // DYNAMIC MOOD SHIFTING
-        // If user's message warrants a mood change, shift the persona
-        // ============================================================
-        const topicWeight =
-          analysis.emotion.distressLevel > 0.6
-            ? ('heavy' as const)
-            : analysis.emotion.distressLevel > 0.3
-              ? ('medium' as const)
-              : ('light' as const);
-
-        if (shouldMoodShift(humanizingResult.mood, analysis.emotion.primary, topicWeight)) {
-          const newMoodState = getMoodShift(
-            humanizingResult.mood.state,
-            `${analysis.emotion.primary}_${topicWeight}`
-          );
-
-          this.logger.info(
-            { from: humanizingResult.mood.state, to: newMoodState, reason: topicWeight },
-            '🌤️ Mood shifting'
-          );
-
-          // Update userData with the shifted mood for next turn
-          if (userData) {
-            userData.lastMood = newMoodState;
-          }
-        }
-
-        this.logger.info(
-          { summary: getHumanizingSummary(humanizingResult) },
-          '🎭 Humanizing context built'
-        );
-
-        // Debug logging (enable with DEBUG_HUMANIZING=true)
-        logHumanizingResult(humanizingResult, userText);
-        logValidation(humanizingResult);
-
-        // ============================================================
-        // SEND MOOD TO FRONTEND
-        // Enables subtle UI changes based on persona state
-        // ============================================================
-        await this.sendDataMessage('mood', {
-          state: humanizingResult.mood.state,
-          energyLevel: humanizingResult.mood.energyLevel,
-          relationshipStage: humanizingResult.relationship.stage,
-          hasTransition: !!humanizingResult.relationshipTransition,
-        });
-
-        // ============================================================
-        // PERSIST HUMANIZING STATE FOR CROSS-SESSION CONTINUITY
-        // ============================================================
-        services.updateHumanizingState({
-          sessionId: services.sessionId,
-          newShareTags: humanizingResult.usedTags,
-          spontaneousShareCount: humanizingResult.spontaneousShare ? 1 : 0,
-          currentMood: humanizingResult.mood.state,
-          storiesTold:
-            humanizingResult.spontaneousShare?.type === 'micro_story'
-              ? humanizingResult.spontaneousShare.tags
-              : undefined,
-          hotTakesShared:
-            humanizingResult.spontaneousShare?.type === 'hot_take'
-              ? humanizingResult.spontaneousShare.tags
-              : undefined,
-          innerWorldRevealed: humanizingResult.innerWorldContent?.map((c) => ({
-            type: c.type,
-            content: c.content,
-          })),
-          relationshipTransition: humanizingResult.relationshipTransition
-            ? {
-                from: previousRelationshipStage || 'stranger',
-                to: humanizingResult.relationship.stage,
-                acknowledged: true,
-              }
-            : undefined,
-        });
-      } catch (humanizingError) {
-        this.logger.warn(
-          { error: String(humanizingError) },
-          'Humanizing context failed (non-fatal)'
-        );
-      }
-
-      // ============================================================
-      // STORY TIMING INTELLIGENCE
-      // ============================================================
-      const storyTiming = getStoryTimingEngine();
-      const storyContext = {
-        turnCount: userData?.turnCount || 0,
-        conversationDurationMs: Date.now() - services.sessionStartTime,
-        lastStoryTurn: userData?.lastStoryTurn,
-        storiesToldThisSession: userData?.storiesShared || [],
-        emotionalArc: arc,
-        userEngagement:
-          analysis.emotion.intensity > 0.6
-            ? ('high' as const)
-            : analysis.emotion.intensity < 0.3
-              ? ('low' as const)
-              : ('medium' as const),
-        userPacing: responseDynamics.getPacingAnalysis().userPacing,
-        currentTopic: currentTopic,
-        recentTopics: analysis.topics.detected,
-      };
-
-      const storyRecommendation = storyTiming.evaluateStoryTiming(this.persona, storyContext);
-      let storyGuidance: string | undefined;
-
-      if (storyRecommendation.shouldTell && storyRecommendation.story) {
-        storyGuidance = `[STORY OPPORTUNITY: Consider sharing this story: "${storyRecommendation.story.content.slice(0, 200)}..." Transition: "${storyRecommendation.transitionPhrase}"]`;
-        storyTiming.recordStoryTold(storyRecommendation.story.id, userData?.turnCount || 0);
-        if (userData) {
-          userData.lastStoryTurn = userData.turnCount || 0;
-          if (!userData.storiesShared) userData.storiesShared = [];
-          userData.storiesShared.push(storyRecommendation.story.id);
-        }
-      }
-
-      // Log analysis
-      this.logger.info(
-        {
-          emotion: analysis.emotion.primary,
-          distress: analysis.emotion.distressLevel.toFixed(2),
-          intent: analysis.intent.primary,
-          topics: analysis.topics.detected.slice(0, 3),
-          phase: analysis.state.phase,
-          contextCount: contextInjections.length,
-          taskCount: taskContext.length,
-          emotionalTrajectory: arc.trajectory,
-          storyTiming: storyRecommendation.timing,
-        },
-        'Message analysis complete'
-      );
-
-      // Inject context if we have any
-      const allContext: string[] = [];
-
-      // ============================================================
-      // CRITICAL: IDENTITY REINFORCEMENT ON EVERY TURN
-      // After handoffs, the LLM's base system prompt is still the original persona.
-      // We MUST inject strong identity reminders to prevent confusion.
-      // ============================================================
-      const activeAgentId = getCurrentAgent(); // Returns CANONICAL ID (ferni, alex-chen, etc.)
-      const sessionPersonaId = this.persona.id;
-
-      // Helper to check if two IDs refer to the same persona (handles all ID formats)
-      const isSamePersona = (id1: string, id2: string): boolean => {
-        const normalize = (id: string): string => {
-          const mapping: Record<string, string> = {
-            'jack-b': 'ferni',
-            'comm-specialist': 'alex-chen',
-            'spend-save': 'maya-santos',
-            'event-planner': 'jordan-taylor',
-            alex: 'alex-chen',
-            maya: 'maya-santos',
-            jordan: 'jordan-taylor',
-            peter: 'peter-john',
-          };
-          return mapping[id.toLowerCase()] || id.toLowerCase();
-        };
-        return normalize(id1) === normalize(id2);
-      };
-
-      const isCoach = (id: string): boolean => {
-        return isSamePersona(id, 'ferni') || isSamePersona(id, 'jack-b');
-      };
-
-      // If there was a handoff (active agent differs from session persona), inject identity
-      if (!isSamePersona(activeAgentId, sessionPersonaId) && !isCoach(activeAgentId)) {
-        // Get the agent-specific context with role and tool reminders
-        const identityContext = getAgentContext();
-        if (identityContext) {
-          allContext.push(`=== CURRENT IDENTITY (NON-NEGOTIABLE) ===
-${identityContext}
-
-CRITICAL REMINDERS:
-- You are NOT ${this.persona.name}. That was the previous persona.
-- Your current identity determines your personality, tools, and expertise.
-- If asked "who are you?" respond with your CURRENT identity.
-=== END IDENTITY ===`);
-
-          this.logger.debug(
-            { activeAgentId, sessionPersonaId },
-            'Injected identity reinforcement after handoff'
-          );
-        }
-      } else if (isCoach(activeAgentId) && !isCoach(sessionPersonaId)) {
-        // Returned to Ferni after being with another persona
-        const identityContext = getAgentContext();
-        if (identityContext) {
-          allContext.push(`=== CURRENT IDENTITY (NON-NEGOTIABLE) ===
-${identityContext}
-
-CRITICAL REMINDERS:
-- You are FERNI, the life coach.
-- You are NOT the previous specialist. You've returned to your coach role.
-=== END IDENTITY ===`);
-
-          this.logger.debug(
-            { activeAgentId, sessionPersonaId },
-            'Injected Ferni identity after returning from specialist'
-          );
-        }
-      }
-
-      if (contextInjections.length > 0) {
-        const contextStr = formatContextForPrompt(contextInjections);
-        allContext.push(contextStr);
-
-        this.logger.debug(`Injected ${contextInjections.length} context elements`);
-
-        // Send celebration events to frontend for visual feedback
-        // Filter to only injections with categories
-        const injectionsWithCategory = contextInjections
-          .filter((i): i is typeof i & { category: string } => typeof i.category === 'string')
-          .map((i) => ({ category: i.category, content: i.content }));
-        await this.sendCelebrationEvents(injectionsWithCategory);
-      }
-
-      // Add task wisdom if any (NEW)
-      if (taskContext.length > 0) {
-        allContext.push(`\n[TASK GUIDANCE]\n${taskContext.join('\n\n')}`);
-        this.logger.debug(`Injected ${taskContext.length} task wisdom elements`);
-      }
-
-      // ============================================================
-      // NEW: Response dynamics & emotional guidance
-      // ============================================================
-
-      // Response length guidance
-      allContext.push(lengthGuidance);
-
-      // Topic transition guidance
-      if (topicTransition) {
-        allContext.push(topicTransition);
-      }
-
-      // Voice pace adaptation guidance (prepared earlier)
-      if (paceContextForInjection) {
-        allContext.push(`[PACING GUIDANCE]\n${paceContextForInjection}`);
-        if (paceLengthForInjection) {
-          allContext.push(
-            `[RESPONSE LENGTH] Aim for ${paceLengthForInjection.min}-${paceLengthForInjection.max} words based on user's pace preferences.`
-          );
-        }
-      }
-
-      // ============================================================
-      // HUMAN-LEVEL INTERACTION FEATURES
-      // Communication mirroring, humor calibration, story preference,
-      // emotional memory - making the AI feel genuinely human
-      // ============================================================
-      try {
-        // 1. Communication Style Mirroring - Learn and match user's language style
-        services.communicationMirroring.analyzeMessage(userText);
-        const styleGuidance = services.communicationMirroring.formatGuidanceForPrompt();
-        if (styleGuidance) {
-          allContext.push(styleGuidance);
-        }
-
-        // 2. Humor Calibration - Analyze reaction to previous humor
-        if (userData?.lastResponseHadHumor) {
-          // Detect if user laughed (from voice or text)
-          const userLaughed =
-            userData?.voiceEmotion?.primary === 'happy' && userData?.voiceEmotion?.confidence > 0.6;
-          services.humorCalibration.analyzeReaction(userText, userLaughed);
-          userData.lastResponseHadHumor = false;
-        }
-
-        // Get humor guidance for this turn
-        const humorGuidance = services.humorCalibration.getHumorGuidance(
-          currentTopic || 'general',
-          analysis.emotion.primary,
-          userData?.turnCount || 0
-        );
-        if (humorGuidance.shouldAttempt) {
-          allContext.push(
-            `[HUMOR OK] ${humorGuidance.recommendedType ? `Try ${humorGuidance.recommendedType} humor.` : ''} ` +
-              `${humorGuidance.suggestedApproach || ''} ` +
-              `${humorGuidance.avoidTypes.length > 0 ? `Avoid: ${humorGuidance.avoidTypes.join(', ')}` : ''}`
-          );
-        } else if (humorGuidance.contextNote) {
-          allContext.push(`[HUMOR NOTE] ${humorGuidance.contextNote}`);
-        }
-
-        // 3. Story Preference - Analyze reaction to previous story
-        if (userData?.lastResponseHadStory) {
-          services.storyPreference.analyzeEngagement(userText);
-          userData.lastResponseHadStory = false;
-        }
-
-        // Get story guidance
-        const storyPrefGuidance = services.storyPreference.getStoryGuidance(
-          currentTopic || 'general',
-          analysis.emotion.primary,
-          userData?.turnCount || 0
-        );
-        if (storyPrefGuidance.shouldTellStory && storyPrefGuidance.recommendedType) {
-          allContext.push(
-            `[STORY PREFERENCE] User responds well to ${storyPrefGuidance.recommendedType} stories. ` +
-              `Preferred: ${storyPrefGuidance.recommendedLength || 'medium'} length, ${storyPrefGuidance.recommendedDepth || 'moderate'} depth.`
-          );
-        }
-
-        // 4. Emotional Memory - Record significant emotions and generate check-ins
-        if (analysis.emotion.primary !== 'neutral' && (analysis.emotion.intensity || 0.5) > 0.5) {
-          const intensity = (analysis.emotion.intensity || 0.5) >= 0.7 ? 'strong' : 'moderate';
-          services.emotionalMemory.recordMoment(
-            analysis.emotion
-              .primary as import('../intelligence/emotion-detector.js').PrimaryEmotion,
-            currentTopic || 'general',
-            userText.slice(0, 50),
-            userText,
-            intensity
-          );
-        }
-
-        // Get emotional memory context for check-ins
-        const emotionalContext = services.emotionalMemory.formatForPrompt();
-        if (emotionalContext) {
-          allContext.push(emotionalContext);
-        }
-
-        this.logger.debug(
-          {
-            styleConfidence: services.communicationMirroring.getStats().confidence,
-            humorShouldAttempt: humorGuidance.shouldAttempt,
-            storyShouldTell: storyPrefGuidance.shouldTellStory,
-            emotionalMoments: services.emotionalMemory.getStats().totalMoments,
-          },
-          '🎭 Human-level features processed'
-        );
-      } catch (humanLevelError) {
-        this.logger.warn(
-          { error: String(humanLevelError) },
-          'Human-level features failed (non-fatal)'
-        );
-      }
-
-      // Emotional guidance (based on voice emotion mirroring)
-      if (emotionalGuidance) {
-        allContext.push(emotionalGuidance);
-      }
-
-      // Emotional trajectory guidance
-      if (emotionalResponse.guidance) {
-        allContext.push(`[EMOTIONAL ARC: ${emotionalResponse.guidance}]`);
-      }
-
-      // Emotional transition phrase (for sudden shifts)
-      if (emotionalTransition) {
-        allContext.push(
-          `[EMOTIONAL SHIFT DETECTED: Consider acknowledging with something like: "${emotionalTransition}"]`
-        );
-      }
-
-      // Story guidance
-      if (storyGuidance) {
-        allContext.push(storyGuidance);
-      }
-
-      // ============================================================
-      // HUMANIZING CONTEXT INJECTION
-      // The deep soul of the AI - voice emotion, inner world, mood
-      // ============================================================
-      if (humanizingResult && humanizingResult.injections.length > 0) {
-        const humanizingPrompt = formatHumanizingForPrompt(humanizingResult);
-        if (humanizingPrompt) {
-          allContext.push(humanizingPrompt);
-          this.logger.debug(
-            { injectionCount: humanizingResult.injections.length },
-            'Injected humanizing context'
-          );
-        }
-      }
-
-      // ============================================================
-      // CONVERSATION HUMANIZING - Natural speech patterns
-      // Speech naturalization, active listening, memory callbacks,
-      // question diversity - making the AI feel genuinely human
-      // ============================================================
-      try {
-        const conversationHumanizingInput = {
-          userText,
-          analysis,
-          services,
-          userData: contextUserData,
-          userProfile: services.userProfile,
-          persona: this.persona,
-          bundleRuntime: this.bundleRuntime,
-          personaId: this.persona.id,
-          turnNumber: userData?.turnCount || 0,
-          wasPersonalSharing:
-            (analysis.emotion.distressLevel ?? 0) > 0.5 || analysis.emotion.intensity > 0.7,
-        };
-
-        const conversationHumanizingInjections = buildConversationHumanizingContext(
-          conversationHumanizingInput
-        );
-
-        if (conversationHumanizingInjections.length > 0) {
-          const conversationHumanizingPrompt = formatConversationHumanizingForPrompt(
-            conversationHumanizingInjections
-          );
-          if (conversationHumanizingPrompt) {
-            allContext.push(conversationHumanizingPrompt);
-            this.logger.debug(
-              { injectionCount: conversationHumanizingInjections.length },
-              'Injected conversation humanizing context'
-            );
-          }
-        }
-      } catch (convHumanizingError) {
-        this.logger.warn(
-          { error: String(convHumanizingError) },
-          'Conversation humanizing failed (non-fatal)'
-        );
-      }
-
-      // ============================================================
-      // BUNDLE RUNTIME - Rich persona behaviors
-      // Mode detection, situational responses, conflict handling
-      // ============================================================
-      if (this.bundleRuntime) {
-        // Increment turn in bundle runtime
-        this.bundleRuntime.incrementTurn();
-
-        // Detect and set persona mode based on user's message
-        const previousMode = this.bundleRuntime.getState().currentMode;
-        const newMode = this.bundleRuntime.detectAndSetMode(
-          userText,
-          analysis.emotion.distressLevel > 0.6
-            ? 'high_distress'
-            : analysis.emotion.primary === 'joy'
-              ? 'high_energy_positive'
-              : undefined
-        );
-
-        // Add mode transition phrase if mode changed
-        if (newMode !== previousMode) {
-          const transitionPhrase = this.bundleRuntime.getModeTransitionPhrase(
-            previousMode,
-            newMode
-          );
-          if (transitionPhrase) {
-            allContext.push(
-              `[MODE SHIFT: ${previousMode} → ${newMode}]\nConsider transitioning with: "${transitionPhrase}"`
-            );
-          }
-
-          // Get mode-specific behavior guidance
-          const mode = this.bundleRuntime.getCurrentMode();
-          if (mode) {
-            const modeGuidance = [
-              `[PERSONA MODE: ${newMode.toUpperCase()}]`,
-              `Style: ${mode.description}`,
-              `Response length: ${mode.response_length}`,
-              `Behaviors: ${mode.behaviors.join(', ')}`,
-            ].join('\n');
-            allContext.push(modeGuidance);
-          }
-
-          // Sync mode to userData for persistence
-          if (userData?.bundleRuntimeState) {
-            userData.bundleRuntimeState.currentMode = newMode;
-            userData.bundleRuntimeState.lastModeTransition = `${previousMode}_to_${newMode}`;
-          }
-        }
-
-        // Check for situational responses (celebrations, condolences)
-        const celebrationKeywords = [
-          'promotion',
-          'got the job',
-          'engaged',
-          'married',
-          'pregnant',
-          'retired',
-          'graduated',
-          'paid off',
-        ];
-        const condolenceKeywords = [
-          'died',
-          'passed away',
-          'cancer',
-          'lost my',
-          'funeral',
-          'divorce',
-          'laid off',
-          'fired',
-        ];
-
-        const lowerText = userText.toLowerCase();
-
-        for (const keyword of celebrationKeywords) {
-          if (lowerText.includes(keyword)) {
-            const situation = keyword.includes('job')
-              ? 'job_promotion'
-              : keyword.includes('engaged')
-                ? 'engagement'
-                : keyword.includes('pregnant')
-                  ? 'baby_news'
-                  : keyword.includes('retired')
-                    ? 'retirement'
-                    : keyword.includes('graduated')
-                      ? 'graduation'
-                      : keyword.includes('paid off')
-                        ? 'paid_off_debt'
-                        : 'general_good_news';
-
-            const response = this.bundleRuntime.getSituationalResponse('celebrations', situation);
-            if (response) {
-              allContext.push(
-                `[CELEBRATION DETECTED: ${situation}]\nUse this celebratory tone: "${response.immediate}"\nFollow-up: "${response.followUp || ''}"`
-              );
-              this.bundleRuntime.applyProgressionTrigger('celebrated_together');
-            }
-            break;
-          }
-        }
-
-        for (const keyword of condolenceKeywords) {
-          if (lowerText.includes(keyword)) {
-            const situation =
-              keyword.includes('died') || keyword.includes('passed')
-                ? 'death_family_member'
-                : keyword.includes('cancer')
-                  ? 'health_diagnosis'
-                  : keyword.includes('divorce')
-                    ? 'divorce_breakup'
-                    : keyword.includes('laid off') || keyword.includes('fired')
-                      ? 'job_loss'
-                      : 'general_loss';
-
-            const response = this.bundleRuntime.getSituationalResponse('condolences', situation);
-            if (response) {
-              const dontSayList = response.dontSay?.join(', ') || '';
-              allContext.push(
-                `[SENSITIVE MOMENT: ${situation}]\nRespond with care: "${response.immediate}"\nAVOID phrases like: ${dontSayList}`
-              );
-              this.bundleRuntime.applyProgressionTrigger('shared_vulnerability');
-            }
-            break;
-          }
-        }
-
-        // Check for user pushback/conflict
-        const pushback = this.bundleRuntime.detectPushback(userText);
-        if (pushback) {
-          allContext.push(
-            `[USER PUSHBACK DETECTED: ${pushback.type}]\nRespond with curiosity not defense: "${pushback.response}"`
-          );
-        }
-
-        // Log bundle runtime state
-        this.logger.debug(
-          {
-            mode: newMode,
-            relationshipStage: this.bundleRuntime.getRelationshipStageName(),
-            relationshipTurns: this.bundleRuntime.getState().relationshipTurns,
-          },
-          'Bundle runtime state'
-        );
-      }
-
-      // ============================================================
-      // RESPONSE NATURALNESS - Acknowledgment prefixes & catchphrases
-      // Makes responses feel more human with quick acknowledgments
-      // ============================================================
-      const turnCount = userData?.turnCount || 0;
-      const isQuestion = userText.includes('?');
-      const isPositiveMoment =
-        analysis.emotion.primary === 'joy' || analysis.emotion.primary === 'anticipation';
-
-      const enhancements = getResponseEnhancements({
-        personaId: this.persona?.id || 'ferni',
-        turnCount,
-        userEmotion: analysis.emotion.primary,
-        topicWeight: 'medium', // Default weight since TopicExtractionResult doesn't have weight
-        isQuestion,
-        isFollowUp: turnCount > 0,
-        isGreeting: turnCount === 0,
-        isPositiveMoment,
-      });
-
-      // Inject prefix guidance (LLM will start with acknowledgment)
-      if (enhancements.prefix) {
-        allContext.push(
-          `[RESPONSE STYLE]\nStart your response with a natural acknowledgment like: "${enhancements.prefix.replace(/<[^>]+>/g, '')}"\nThen continue with your substantive response.`
-        );
-        this.logger.debug(
-          { prefix: enhancements.prefix.slice(0, 30) },
-          'Added response prefix guidance'
-        );
-      }
-
-      // Inject catchphrase guidance for positive moments
-      if (enhancements.suffix) {
-        allContext.push(
-          `[CATCHPHRASE MOMENT]\nIf appropriate, weave in this signature phrase naturally: "${enhancements.suffix.replace(/<[^>]+>/g, '')}"`
-        );
-      }
-
-      // ============================================================
-      // CONVERSATION STATE SUMMARY - For tool-aware context
-      // ============================================================
-      if (userData?.conversationState) {
-        const convSummary = userData.conversationState.getSummaryForLLM();
-        if (convSummary) {
-          allContext.push(`[CONVERSATION STATE]\n${convSummary}`);
-        }
-
-        // Add wrap-up guidance if needed
-        const wrapUp = userData.conversationState.shouldWrapUp();
-        if (wrapUp.should) {
-          allContext.push(
-            `[CONSIDER WRAPPING UP]\nReasons: ${wrapUp.reasons.join(', ')}\nLook for a natural moment to offer a graceful conclusion.`
-          );
-        }
-      }
-
-      // Inject combined context
-      if (allContext.length > 0) {
-        turnCtx.addMessage({
-          role: 'user',
-          content: allContext.join('\n\n'),
-        });
-      }
-
-      // Log context build time
-      const elapsed = Date.now() - contextBuildStart;
-      if (elapsed > 1000) {
-        this.logger.warn({ elapsed }, 'Context building took longer than expected');
-      } else {
-        this.logger.debug({ elapsed }, 'Context built successfully');
-      }
-    } catch (error) {
-      this.logger.warn(`Context building failed: ${error}`);
-    }
+    // Use modular TurnProcessor for turn handling
+    await this.onUserTurnCompletedV2(turnCtx, newMessage);
   }
 
+  // Legacy turn processing code removed - now using TurnProcessor V2 exclusively
+  // See processors/turn-processor.ts for the modular implementation
+
+
   /**
-   * V2: Refactored user turn completion using extracted TurnProcessor
-   * 
-   * Enable with USE_TURN_PROCESSOR=true environment variable.
-   * 
+   * Process user turn using the extracted TurnProcessor module.
+   *
    * Benefits:
    * - Modular, testable code (~800 lines extracted to turn-processor.ts)
    * - Clear data flow with typed interfaces
@@ -1955,9 +947,9 @@ CRITICAL REMINDERS:
 
     try {
       // Import the turn processor (cached after first load)
-      const { processTurn, injectTurnContext, getCelebrationEvents } = 
+      const { processTurn, injectTurnContext, getCelebrationEvents } =
         await import('./processors/index.js');
-      
+
       // Build turn context
       const turnContext = {
         turnCtx,
@@ -2391,92 +1383,97 @@ export default defineAgent({
       // Also record analytics for tool usage optimization
       session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
         void (async () => {
-        const toolStartTime = Date.now();
+          const toolStartTime = Date.now();
 
-        // Debug logging (can be disabled in production)
-        if (DEBUG_STARTUP) {
-          console.log('🔧 [TOOLS] FunctionToolsExecuted event');
-        }
-        logger.info({ event }, '🔧 FUNCTION TOOLS EXECUTED');
-
-        // Update conversation state with tool execution
-        if (userData?.conversationState && event) {
-          const convState = userData.conversationState;
-
-          // Get tool information from event
-          // The event structure varies, but typically contains tool name/id
-          const toolInfo = event as {
-            name?: string;
-            toolName?: string;
-            result?: unknown;
-            error?: unknown;
-            tools?: Array<{ name?: string; result?: unknown; error?: unknown; startTime?: number }>;
-          };
-
-          // Handle single tool or multiple tools
-          const toolCalls = toolInfo.tools || [toolInfo];
-
-          for (const tool of toolCalls) {
-            const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown';
-            const resultSummary =
-              typeof tool.result === 'string'
-                ? tool.result.slice(0, 200)
-                : JSON.stringify(tool.result).slice(0, 200);
-
-            // Record in conversation state
-            convState.recordToolCall(toolName, resultSummary);
-
-            // Record analytics for tool usage optimization
-            try {
-              const { recordToolUsage } = await import('../services/tool-usage-analytics.js');
-              const toolWithStartTime = tool as { startTime?: number };
-              const latencyMs = toolWithStartTime.startTime
-                ? Date.now() - toolWithStartTime.startTime
-                : Date.now() - toolStartTime;
-              const hasError = !!tool.error || !!toolInfo.error;
-              recordToolUsage(
-                toolName,
-                'unknown', // Domain can be inferred later from registry
-                {
-                  agentId: sessionPersona?.id || 'unknown',
-                  userId: services.userId,
-                  sessionId: services.sessionId,
-                },
-                latencyMs,
-                !hasError,
-                hasError ? String(tool.error || toolInfo.error) : undefined
-              );
-
-              // Record for deprecation analysis (identifies unused/error-prone tools)
-              deprecationService.recordUsage(toolName, !hasError, latencyMs);
-
-              // Record for pattern analysis (co-occurrence, sequences, journeys)
-              patternAnalyzer.recordToolCall(
-                services.sessionId || sessionId,
-                toolName,
-                !hasError,
-                latencyMs
-              );
-
-              // Record for auto-optimizer (feeds recommendation engine)
-              autoOptimizer.recordToolExecution(
-                services.sessionId || sessionId,
-                toolName,
-                !hasError,
-                latencyMs
-              );
-            } catch (e) {
-              // Analytics recording is non-critical, don't fail the tool execution
-              log().debug({ error: String(e) }, 'Tool analytics recording failed (non-critical)');
-            }
-
-            diag.tool('Tool execution tracked', {
-              tool: toolName,
-              hasResult: !!tool.result,
-            });
+          // Debug logging (can be disabled in production)
+          if (DEBUG_STARTUP) {
+            console.log('🔧 [TOOLS] FunctionToolsExecuted event');
           }
-        }
-      })();
+          logger.info({ event }, '🔧 FUNCTION TOOLS EXECUTED');
+
+          // Update conversation state with tool execution
+          if (userData?.conversationState && event) {
+            const convState = userData.conversationState;
+
+            // Get tool information from event
+            // The event structure varies, but typically contains tool name/id
+            const toolInfo = event as {
+              name?: string;
+              toolName?: string;
+              result?: unknown;
+              error?: unknown;
+              tools?: Array<{
+                name?: string;
+                result?: unknown;
+                error?: unknown;
+                startTime?: number;
+              }>;
+            };
+
+            // Handle single tool or multiple tools
+            const toolCalls = toolInfo.tools || [toolInfo];
+
+            for (const tool of toolCalls) {
+              const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown';
+              const resultSummary =
+                typeof tool.result === 'string'
+                  ? tool.result.slice(0, 200)
+                  : JSON.stringify(tool.result).slice(0, 200);
+
+              // Record in conversation state
+              convState.recordToolCall(toolName, resultSummary);
+
+              // Record analytics for tool usage optimization
+              try {
+                const { recordToolUsage } = await import('../services/tool-usage-analytics.js');
+                const toolWithStartTime = tool as { startTime?: number };
+                const latencyMs = toolWithStartTime.startTime
+                  ? Date.now() - toolWithStartTime.startTime
+                  : Date.now() - toolStartTime;
+                const hasError = !!tool.error || !!toolInfo.error;
+                recordToolUsage(
+                  toolName,
+                  'unknown', // Domain can be inferred later from registry
+                  {
+                    agentId: sessionPersona?.id || 'unknown',
+                    userId: services.userId,
+                    sessionId: services.sessionId,
+                  },
+                  latencyMs,
+                  !hasError,
+                  hasError ? String(tool.error || toolInfo.error) : undefined
+                );
+
+                // Record for deprecation analysis (identifies unused/error-prone tools)
+                deprecationService.recordUsage(toolName, !hasError, latencyMs);
+
+                // Record for pattern analysis (co-occurrence, sequences, journeys)
+                patternAnalyzer.recordToolCall(
+                  services.sessionId || sessionId,
+                  toolName,
+                  !hasError,
+                  latencyMs
+                );
+
+                // Record for auto-optimizer (feeds recommendation engine)
+                autoOptimizer.recordToolExecution(
+                  services.sessionId || sessionId,
+                  toolName,
+                  !hasError,
+                  latencyMs
+                );
+              } catch (e) {
+                // Analytics recording is non-critical, don't fail the tool execution
+                log().debug({ error: String(e) }, 'Tool analytics recording failed (non-critical)');
+              }
+
+              diag.tool('Tool execution tracked', {
+                tool: toolName,
+                hasResult: !!tool.result,
+              });
+            }
+          }
+        })();
       });
 
       session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
@@ -2723,7 +1720,10 @@ export default defineAgent({
               silenceContext.isWeekend = [0, 6].includes(new Date().getDay());
             } catch (e) {
               // Services might not be ready
-              log().debug({ error: String(e) }, 'Silence context initialization failed (services not ready)');
+              log().debug(
+                { error: String(e) },
+                'Silence context initialization failed (services not ready)'
+              );
             }
 
             // Get meaningful silence response instead of generic filler
@@ -2744,9 +1744,9 @@ export default defineAgent({
                 setTimeout(() => {
                   void (async () => {
                     const musicStarted = await playAmbientMusicDuringSilence();
-                  if (musicStarted) {
-                    diag.state('Started ambient music during silence');
-                  }
+                    if (musicStarted) {
+                      diag.state('Started ambient music during silence');
+                    }
                   })();
                 }, 3000); // Wait 3 seconds for them to respond before starting music
               }
@@ -2854,7 +1854,6 @@ export default defineAgent({
         getVoiceAgentRef: () => voiceAgentRef as VoiceAgentRef | null,
       });
 
-
       handoffEvents.on('voiceSwitch', handoffHandler);
 
       // NOTE: The inline handler has been extracted to src/agents/shared/handoff-handler.ts
@@ -2947,7 +1946,8 @@ export default defineAgent({
       // STEP 7b: INITIALIZE FRONTEND PUBLISHER
       // ===============================================
       // Centralized real-time communication with the frontend
-      const { initializeFrontendPublisher, getFrontendPublisher } = await import('./realtime/index.js');
+      const { initializeFrontendPublisher, getFrontendPublisher } =
+        await import('./realtime/index.js');
       const frontendPublisher = initializeFrontendPublisher(ctx.room);
       diag.state('Frontend publisher initialized');
 
@@ -3013,86 +2013,96 @@ export default defineAgent({
 
           // ✨ Set up callback for music state changes - notify frontend AND do DJ-style interactions!
           // Track previous state to detect unexpected stops
-          let lastMusicState: string = 'idle';
+          let lastMusicState = 'idle';
           let lastTrackName: string | undefined;
-          
+
           player.setOnMusicStateChangeCallback((state, track, isAmbient) => {
             void (async () => {
-            diag.state('Music state changed', {
-              state,
-              previousState: lastMusicState,
-              track: track?.name,
-              isAmbient,
-            });
-
-            // 🎧 DJ-STYLE OUTRO: When music is FADING (not ended), speak over it like a real DJ!
-            // This creates that professional radio/DJ feel where the host talks as the track winds down
-            if (state === 'fading' && !isAmbient && track) {
-              try {
-                // Dynamic import to avoid circular dependency
-                const { getDJOutroPhrase } = await import('../audio/ambient-music.js');
-                const djOutro = getDJOutroPhrase(track.name, track.artist, sessionPersona.id);
-                
-                diag.state('🎧 DJ outro - speaking over fading music', { 
-                  track: track.name,
-                  phrase: djOutro.slice(0, 50) 
-                });
-                
-                // Speak the outro - the music is still playing but fading!
-                // This is the magic moment where we feel like a real DJ
-                session.say(djOutro, { allowInterruptions: true });
-              } catch (e) {
-                diag.warn('Failed to speak DJ outro', { error: String(e) });
-              }
-            }
-            
-            // 🎧 UNEXPECTED STOP: Music stopped/paused without fading first
-            // This means it crashed, network dropped, or user stopped it manually
-            // The agent should acknowledge this naturally
-            if ((state === 'stopped' || state === 'paused') && !isAmbient && lastMusicState === 'playing') {
-              // Only speak if music was actually playing (not if we just connected)
-              // And don't speak if we already did a DJ outro (lastMusicState would be 'fading')
-              try {
-                const { getMusicStoppedPhrase } = await import('../audio/ambient-music.js');
-                const stoppedPhrase = getMusicStoppedPhrase(sessionPersona.id, state === 'paused');
-                
-                diag.state('🎧 Music stopped unexpectedly, acknowledging', { 
-                  state,
-                  previousState: lastMusicState,
-                  trackName: lastTrackName,
-                  phrase: stoppedPhrase.slice(0, 50)
-                });
-                
-                session.say(stoppedPhrase, { allowInterruptions: true });
-              } catch (e) {
-                diag.warn('Failed to speak music-stopped phrase', { error: String(e) });
-              }
-            }
-            
-            // Update state tracking for next callback
-            lastMusicState = state;
-            lastTrackName = track?.name;
-
-            // Notify frontend for avatar dancing
-            try {
-              const musicMessage = JSON.stringify({
-                type: 'music',
+              diag.state('Music state changed', {
                 state,
-                trackName: track?.name,
-                artistName: track?.artist,
-                duration: track?.duration,
+                previousState: lastMusicState,
+                track: track?.name,
                 isAmbient,
-                timestamp: Date.now(),
               });
 
-              await ctx.room.localParticipant?.publishData(new TextEncoder().encode(musicMessage), {
-                reliable: true,
-              });
+              // 🎧 DJ-STYLE OUTRO: When music is FADING (not ended), speak over it like a real DJ!
+              // This creates that professional radio/DJ feel where the host talks as the track winds down
+              if (state === 'fading' && !isAmbient && track) {
+                try {
+                  // Dynamic import to avoid circular dependency
+                  const { getDJOutroPhrase } = await import('../audio/ambient-music.js');
+                  const djOutro = getDJOutroPhrase(track.name, track.artist, sessionPersona.id);
 
-              diag.state('🎵 Music state sent to frontend', { state });
-            } catch (e) {
-              diag.warn('Failed to send music state to frontend', { error: String(e) });
-            }
+                  diag.state('🎧 DJ outro - speaking over fading music', {
+                    track: track.name,
+                    phrase: djOutro.slice(0, 50),
+                  });
+
+                  // Speak the outro - the music is still playing but fading!
+                  // This is the magic moment where we feel like a real DJ
+                  session.say(djOutro, { allowInterruptions: true });
+                } catch (e) {
+                  diag.warn('Failed to speak DJ outro', { error: String(e) });
+                }
+              }
+
+              // 🎧 UNEXPECTED STOP: Music stopped/paused without fading first
+              // This means it crashed, network dropped, or user stopped it manually
+              // The agent should acknowledge this naturally
+              if (
+                (state === 'stopped' || state === 'paused') &&
+                !isAmbient &&
+                lastMusicState === 'playing'
+              ) {
+                // Only speak if music was actually playing (not if we just connected)
+                // And don't speak if we already did a DJ outro (lastMusicState would be 'fading')
+                try {
+                  const { getMusicStoppedPhrase } = await import('../audio/ambient-music.js');
+                  const stoppedPhrase = getMusicStoppedPhrase(
+                    sessionPersona.id,
+                    state === 'paused'
+                  );
+
+                  diag.state('🎧 Music stopped unexpectedly, acknowledging', {
+                    state,
+                    previousState: lastMusicState,
+                    trackName: lastTrackName,
+                    phrase: stoppedPhrase.slice(0, 50),
+                  });
+
+                  session.say(stoppedPhrase, { allowInterruptions: true });
+                } catch (e) {
+                  diag.warn('Failed to speak music-stopped phrase', { error: String(e) });
+                }
+              }
+
+              // Update state tracking for next callback
+              lastMusicState = state;
+              lastTrackName = track?.name;
+
+              // Notify frontend for avatar dancing
+              try {
+                const musicMessage = JSON.stringify({
+                  type: 'music',
+                  state,
+                  trackName: track?.name,
+                  artistName: track?.artist,
+                  duration: track?.duration,
+                  isAmbient,
+                  timestamp: Date.now(),
+                });
+
+                await ctx.room.localParticipant?.publishData(
+                  new TextEncoder().encode(musicMessage),
+                  {
+                    reliable: true,
+                  }
+                );
+
+                diag.state('🎵 Music state sent to frontend', { state });
+              } catch (e) {
+                diag.warn('Failed to send music state to frontend', { error: String(e) });
+              }
             })();
           });
 
@@ -3593,81 +2603,81 @@ export default defineAgent({
       // ===============================================
       ctx.room.on('disconnected', () => {
         void (async () => {
-        // FIX BUG #15: Remove dataReceived handler to prevent memory leaks
-        ctx.room.off('dataReceived', dataReceivedHandlerWrapper);
+          // FIX BUG #15: Remove dataReceived handler to prevent memory leaks
+          ctx.room.off('dataReceived', dataReceivedHandlerWrapper);
 
-        // FIX BUG #42: Remove handoffEvents listener to prevent memory leaks
-        handoffEvents.off('voiceSwitch', handoffHandler);
+          // FIX BUG #42: Remove handoffEvents listener to prevent memory leaks
+          handoffEvents.off('voiceSwitch', handoffHandler);
 
-        try {
-          // End conversation state and get final state for logging
-          const finalConvState = endConversationState(sessionId);
-          if (finalConvState) {
-            diag.session('Conversation state ended', {
-              turnCount: finalConvState.flow.turnCount,
-              durationMinutes: finalConvState.flow.durationMinutes,
-              topicsDiscussed: finalConvState.topic.history.length,
-              keyMoments: finalConvState.user.keyMoments.length,
-              finalSentiment: finalConvState.emotional.sentiment,
-            });
-          }
-
-          // End cognitive intelligence session and save learnings
           try {
-            const cognitiveResult = await onCognitiveSessionEnd({
-              userId: userId || 'anonymous',
-              personaId: sessionPersona.id,
-              sessionId,
-              sessionDurationMs: Date.now() - services.sessionStartTime,
-            });
-            if (cognitiveResult) {
-              diag.session('Cognitive session ended', {
-                approachesUsed: cognitiveResult.approachesUsed,
-                topicsExplained: cognitiveResult.topicsExplained,
-                userStyle: cognitiveResult.userStyle,
+            // End conversation state and get final state for logging
+            const finalConvState = endConversationState(sessionId);
+            if (finalConvState) {
+              diag.session('Conversation state ended', {
+                turnCount: finalConvState.flow.turnCount,
+                durationMinutes: finalConvState.flow.durationMinutes,
+                topicsDiscussed: finalConvState.topic.history.length,
+                keyMoments: finalConvState.user.keyMoments.length,
+                finalSentiment: finalConvState.emotional.sentiment,
               });
             }
-          } catch (cogError) {
-            diag.warn('Cognitive session end failed (non-fatal)', { error: String(cogError) });
-          }
 
-          await services.endSession();
-          globalSessionServices = undefined;
-
-          // Reset handoff state for next session (via SessionServices now)
-          // Note: resetHandoffState/resetMetPersonas are still called for any
-          // remaining global state, but primary state is now per-session
-          resetHandoffState();
-          resetMetPersonas();
-
-          // Shutdown Spotify and music player (only if music was enabled)
-          try {
-            const { isMusicEnabled } = await import('../config/environment.js');
-            if (isMusicEnabled()) {
-              const { shutdownSpotify } = await import('../tools/spotify.js');
-              shutdownSpotify();
-              const { resetMusicPlayer } = await import('../audio/index.js');
-              resetMusicPlayer();
-              diag.session('Spotify and music player reset');
+            // End cognitive intelligence session and save learnings
+            try {
+              const cognitiveResult = await onCognitiveSessionEnd({
+                userId: userId || 'anonymous',
+                personaId: sessionPersona.id,
+                sessionId,
+                sessionDurationMs: Date.now() - services.sessionStartTime,
+              });
+              if (cognitiveResult) {
+                diag.session('Cognitive session ended', {
+                  approachesUsed: cognitiveResult.approachesUsed,
+                  topicsExplained: cognitiveResult.topicsExplained,
+                  userStyle: cognitiveResult.userStyle,
+                });
+              }
+            } catch (cogError) {
+              diag.warn('Cognitive session end failed (non-fatal)', { error: String(cogError) });
             }
-          } catch (e) {
-            log().debug({ error: String(e) }, 'Music cleanup failed (non-fatal)');
-          }
 
-          // Flush optimization data (patterns, feedback)
-          try {
-            patternAnalyzer.endSession(sessionId);
-            autoOptimizer.endSession(sessionId);
-            await feedbackCollector.flush();
-            diag.session('Optimization data flushed');
-          } catch (e) {
-            log().debug({ error: String(e) }, 'Optimization flush failed (non-fatal)');
-          }
+            await services.endSession();
+            globalSessionServices = undefined;
 
-          diag.session('Session cleanup complete');
-        } catch (error) {
-          diag.error('Session cleanup error', { error: String(error) });
-        }
+            // Reset handoff state for next session (via SessionServices now)
+            // Note: resetHandoffState/resetMetPersonas are still called for any
+            // remaining global state, but primary state is now per-session
+            resetHandoffState();
+            resetMetPersonas();
+
+            // Shutdown Spotify and music player (only if music was enabled)
+            try {
+              const { isMusicEnabled } = await import('../config/environment.js');
+              if (isMusicEnabled()) {
+                const { shutdownSpotify } = await import('../tools/spotify.js');
+                shutdownSpotify();
+                const { resetMusicPlayer } = await import('../audio/index.js');
+                resetMusicPlayer();
+                diag.session('Spotify and music player reset');
+              }
+            } catch (e) {
+              log().debug({ error: String(e) }, 'Music cleanup failed (non-fatal)');
+            }
+
+            // Flush optimization data (patterns, feedback)
+            try {
+              patternAnalyzer.endSession(sessionId);
+              autoOptimizer.endSession(sessionId);
+              await feedbackCollector.flush();
+              diag.session('Optimization data flushed');
+            } catch (e) {
+              log().debug({ error: String(e) }, 'Optimization flush failed (non-fatal)');
+            }
+
+            diag.session('Session cleanup complete');
+          } catch (error) {
+            diag.error('Session cleanup error', { error: String(error) });
+          }
         })();
       });
     } catch (entryError) {

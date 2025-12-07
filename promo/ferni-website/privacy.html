@@ -6,6 +6,8 @@
   <title>Privacy Policy — Ferni</title>
   <meta name="description" content="Learn how Ferni protects your privacy and handles your data.">
   <meta name="theme-color" content="#faf8f5">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://ferni.ai/privacy">
   
   <!-- Open Graph -->
   <meta property="og:title" content="Privacy Policy — Ferni">
@@ -14,199 +16,190 @@
   <meta property="og:url" content="https://ferni.ai/privacy">
   <meta property="og:image" content="https://ferni.ai/images/og-image.jpg">
   
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Privacy Policy — Ferni">
+  <meta name="twitter:description" content="Learn how Ferni protects your privacy and handles your data.">
+  
+  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234a6741' rx='20' width='100' height='100'/><text x='50' y='68' font-family='system-ui' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>FN</text></svg>">
   
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/styles.css?v=4">
-  <style>
-    .legal-page {
-      padding: 140px 24px 100px;
-      min-height: 100vh;
-    }
-    
-    .legal-container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    
-    .legal-header {
-      margin-bottom: 60px;
-    }
-    
-    .legal-title {
-      font-family: var(--font-display);
-      font-size: clamp(36px, 6vw, 56px);
-      font-weight: 800;
-      color: var(--color-text);
-      margin-bottom: 16px;
-    }
-    
-    .legal-updated {
-      font-size: 14px;
-      color: var(--color-text-muted);
-    }
-    
-    .legal-content h2 {
-      font-family: var(--font-display);
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--color-text);
-      margin: 48px 0 16px;
-    }
-    
-    .legal-content h2:first-child {
-      margin-top: 0;
-    }
-    
-    .legal-content p {
-      font-size: 16px;
-      color: var(--color-text-secondary);
-      line-height: 1.8;
-      margin-bottom: 16px;
-    }
-    
-    .legal-content ul {
-      margin: 16px 0 24px 24px;
-      color: var(--color-text-secondary);
-    }
-    
-    .legal-content li {
-      font-size: 16px;
-      line-height: 1.8;
-      margin-bottom: 8px;
-    }
-    
-    .legal-content a {
-      color: var(--color-accent);
-      text-decoration: underline;
-    }
-    
-    .legal-content a:hover {
-      color: var(--color-accent-light);
-    }
-    
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--color-text-muted);
-      margin-bottom: 40px;
-      transition: color 0.2s;
-    }
-    
-    .back-link:hover {
-      color: var(--color-accent);
-    }
-  </style>
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/design-tokens.css?v=1">
+  <link rel="stylesheet" href="css/styles.css?v=30">
+  <link rel="stylesheet" href="css/legal-page.css?v=1">
 </head>
-<body>
+<body class="page-legal">
+  <!-- Skip Link -->
+  <a href="#main" class="skip-link">Skip to main content</a>
   
   <!-- Navigation -->
-  <nav class="nav scrolled">
-    <div class="container">
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-container">
       <div class="nav-inner">
-        <a href="/" class="nav-logo">
-          <span class="nav-logo-icon">FN</span>
-          Ferni
-        </a>
+        <a href="/" class="nav-logo" aria-label="Ferni">Ferni</a>
+        <ul class="nav-links">
+          <li><a href="/#features" class="nav-link">Features</a></li>
+          <li><a href="/team" class="nav-link">Team</a></li>
+          <li><a href="/pricing" class="nav-link">Pricing</a></li>
+          <li><a href="/#faq" class="nav-link">FAQ</a></li>
+        </ul>
         <div class="nav-actions">
-          <a href="https://app.ferni.ai" class="btn btn-primary nav-cta">Get Started</a>
+          <a href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=privacy" class="btn btn-primary nav-cta">Get Started</a>
+          <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+          </button>
         </div>
       </div>
     </div>
   </nav>
 
-  <main class="legal-page">
-    <div class="legal-container">
-      <a href="/" class="back-link">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-        Back to Home
-      </a>
-      
-      <header class="legal-header">
-        <h1 class="legal-title">Privacy Policy</h1>
-        <p class="legal-updated">Last updated: December 1, 2025</p>
-      </header>
-      
-      <div class="legal-content">
-        <h2>Introduction</h2>
-        <p>At Ferni ("we," "our," or "us"), we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI life coaching service, whether through our web application or phone service.</p>
+  <!-- Main Content -->
+  <main id="main">
+    <article class="legal-page">
+      <div class="container">
+        <a href="/" class="back-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back to Home
+        </a>
         
-        <h2>Information We Collect</h2>
-        <p>We collect information that you provide directly to us, including:</p>
-        <ul>
-          <li><strong>Conversation Data:</strong> The content of your conversations with Ferni and our AI specialists, which helps us provide personalized coaching.</li>
-          <li><strong>Account Information:</strong> Your email address and phone number if you choose to create an account or call our service.</li>
-          <li><strong>Usage Data:</strong> Information about how you interact with our service, including session duration and features used.</li>
-        </ul>
+        <header class="legal-header">
+          <h1 class="legal-title">Privacy Policy</h1>
+          <p class="legal-updated">Last updated: December 7, 2025</p>
+        </header>
         
-        <h2>How We Use Your Information</h2>
-        <p>We use the information we collect to:</p>
-        <ul>
-          <li>Provide, maintain, and improve our AI life coaching services</li>
-          <li>Remember your preferences and conversation history for a personalized experience</li>
-          <li>Respond to your requests and provide customer support</li>
-          <li>Send you updates about our service (with your consent)</li>
-          <li>Protect against fraudulent or unauthorized activity</li>
-        </ul>
-        
-        <h2>Data Security</h2>
-        <p>We implement industry-standard security measures to protect your personal information. Your conversations are encrypted in transit and at rest. We regularly review and update our security practices to ensure your data remains protected.</p>
-        
-        <h2>Data Retention</h2>
-        <p>We retain your conversation history to provide continuity in your coaching experience. You can request deletion of your data at any time by contacting us at <a href="mailto:privacy@ferni.ai">privacy@ferni.ai</a>.</p>
-        
-        <h2>Third-Party Services</h2>
-        <p>We use trusted third-party services to help operate our platform, including:</p>
-        <ul>
-          <li>Cloud hosting providers for data storage</li>
-          <li>AI language models for conversation processing</li>
-          <li>Analytics services to improve our product</li>
-        </ul>
-        <p>These partners are contractually obligated to protect your information and only use it as directed by us.</p>
-        
-        <h2>Your Rights</h2>
-        <p>You have the right to:</p>
-        <ul>
-          <li>Access the personal data we hold about you</li>
-          <li>Request correction of inaccurate data</li>
-          <li>Request deletion of your data</li>
-          <li>Opt out of marketing communications</li>
-          <li>Export your conversation history</li>
-        </ul>
-        
-        <h2>Children's Privacy</h2>
-        <p>Ferni is not intended for users under 13 years of age. We do not knowingly collect personal information from children under 13.</p>
-        
-        <h2>Changes to This Policy</h2>
-        <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.</p>
-        
-        <h2>Contact Us</h2>
-        <p>If you have questions about this Privacy Policy or our data practices, please contact us at:</p>
-        <ul>
-          <li>Email: <a href="mailto:privacy@ferni.ai">privacy@ferni.ai</a></li>
-          <li>Phone: <a href="tel:+14844813081">1 (484) 481-3081</a></li>
-        </ul>
+        <div class="legal-content">
+          <section>
+            <h2>Introduction</h2>
+            <p>At Ferni ("we," "our," or "us"), we take your privacy seriously. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI life coaching service, whether through our web application or phone service.</p>
+          </section>
+          
+          <section>
+            <h2>Information We Collect</h2>
+            <p>We collect information that you provide directly to us, including:</p>
+            <ul>
+              <li><strong>Conversation Data:</strong> The content of your conversations with Ferni and our AI specialists, which helps us provide personalized coaching.</li>
+              <li><strong>Account Information:</strong> Your email address and phone number if you choose to create an account or call our service.</li>
+              <li><strong>Usage Data:</strong> Information about how you interact with our service, including session duration and features used.</li>
+            </ul>
+          </section>
+          
+          <section>
+            <h2>How We Use Your Information</h2>
+            <p>We use the information we collect to:</p>
+            <ul>
+              <li>Provide, maintain, and improve our AI life coaching services</li>
+              <li>Remember your preferences and conversation history for a personalized experience</li>
+              <li>Respond to your requests and provide customer support</li>
+              <li>Send you updates about our service (with your consent)</li>
+              <li>Protect against fraudulent or unauthorized activity</li>
+            </ul>
+          </section>
+          
+          <section>
+            <h2>Data Security</h2>
+            <p>We implement industry-standard security measures to protect your personal information. Your conversations are encrypted in transit and at rest. We regularly review and update our security practices to ensure your data remains protected.</p>
+          </section>
+          
+          <section>
+            <h2>Data Retention</h2>
+            <p>We retain your conversation history to provide continuity in your coaching experience. You can request deletion of your data at any time by contacting us at <a href="mailto:privacy@ferni.ai">privacy@ferni.ai</a>.</p>
+          </section>
+          
+          <section>
+            <h2>Third-Party Services</h2>
+            <p>We use trusted third-party services to help operate our platform, including:</p>
+            <ul>
+              <li>Cloud hosting providers for data storage</li>
+              <li>AI language models for conversation processing</li>
+              <li>Analytics services to improve our product</li>
+            </ul>
+            <p>These partners are contractually obligated to protect your information and only use it as directed by us.</p>
+          </section>
+          
+          <section>
+            <h2>Your Rights</h2>
+            <p>You have the right to:</p>
+            <ul>
+              <li>Access the personal data we hold about you</li>
+              <li>Request correction of inaccurate data</li>
+              <li>Request deletion of your data</li>
+              <li>Opt out of marketing communications</li>
+              <li>Export your conversation history</li>
+            </ul>
+          </section>
+          
+          <section>
+            <h2>Children's Privacy</h2>
+            <p>Ferni is not intended for users under 13 years of age. We do not knowingly collect personal information from children under 13.</p>
+          </section>
+          
+          <section>
+            <h2>Changes to This Policy</h2>
+            <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.</p>
+          </section>
+          
+          <section>
+            <h2>Contact Us</h2>
+            <p>If you have questions about this Privacy Policy or our data practices, please contact us:</p>
+            <ul>
+              <li>Email: <a href="mailto:privacy@ferni.ai">privacy@ferni.ai</a></li>
+              <li>Phone: <a href="tel:+14844813081">1 (484) 481-3081</a></li>
+            </ul>
+          </section>
+        </div>
       </div>
-    </div>
+    </article>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="container">
-      <div class="footer-bottom" style="border-top: none; padding-top: 0;">
-        <p>© 2025 Ferni. All rights reserved.</p>
+      <div class="footer-content">
+        <div class="footer-brand">
+          <a href="/" class="footer-logo">
+            <span class="logo-icon">FN</span>
+            <span class="logo-text">Ferni</span>
+          </a>
+          <p class="footer-tagline">Your personal AI life coach.</p>
+        </div>
+        
+        <div class="footer-links">
+          <div class="footer-column">
+            <h4>Product</h4>
+            <a href="/#features">Features</a>
+            <a href="/team">Meet the Team</a>
+            <a href="/pricing">Pricing</a>
+            <a href="/#faq">FAQ</a>
+          </div>
+          <div class="footer-column">
+            <h4>Connect</h4>
+            <a href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=privacy_footer">Web App</a>
+            <a href="tel:+14844813081">Call Ferni</a>
+            <a href="/contact">Contact Us</a>
+          </div>
+          <div class="footer-column">
+            <h4>Legal</h4>
+            <a href="/privacy" aria-current="page">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="/accessibility">Accessibility</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 Ferni. All rights reserved.</p>
       </div>
     </div>
   </footer>
 
+  <script src="js/main.js?v=1"></script>
 </body>
 </html>
-

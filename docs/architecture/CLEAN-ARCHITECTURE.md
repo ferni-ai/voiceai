@@ -1,5 +1,11 @@
 # VoiceAI Clean Architecture
 
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+This architecture is designed to support genuinely human AI interactions - not just technically sound code, but code that enables warmth, memory, and authentic connection. See `../../CORE-PRINCIPLES.md` for our complete philosophy.
+
+---
+
 This document provides an overview of the VoiceAI codebase architecture after the clean architecture refactoring.
 
 ## Directory Structure

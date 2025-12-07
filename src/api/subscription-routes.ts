@@ -401,4 +401,3 @@ export async function handleSubscriptionRequest(ctx: RequestContext): Promise<Re
 
   return handler(ctx);
 }
-

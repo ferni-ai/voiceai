@@ -1,6 +1,6 @@
 # Ferni Content Development Workflow
 
-## 🎬 Video Content (Veo 3 / Runway / Production)
+##  Video Content (Veo 3 / Runway / Production)
 
 ### Priority 1: Hero Background Videos (Choose 1-2)
 
@@ -28,7 +28,7 @@
 
 ---
 
-## 🖼️ Image Content (Nana Banana / Midjourney / DALL-E)
+##  Image Content (Nana Banana / Midjourney / DALL-E)
 
 ### Priority 1: Critical Images
 
@@ -59,7 +59,7 @@
 
 ---
 
-## 🎥 Story Videos (Professional Production or Extended AI)
+##  Story Videos (Professional Production or Extended AI)
 
 For longer brand storytelling (see `MOVIE-STORY-PROMPTS.txt`):
 
@@ -72,38 +72,38 @@ For longer brand storytelling (see `MOVIE-STORY-PROMPTS.txt`):
 
 ---
 
-## 📁 File Organization
+##  File Organization
 
 ```
 promo/ferni-website/
-├── images/
-│   ├── og-image.png          # Social sharing
-│   ├── hero-park-city.jpg    # Main hero image
-│   ├── avatars/
-│   │   ├── ferni.png
-│   │   ├── jack.png
-│   │   ├── peter.png
-│   │   ├── alex.png
-│   │   ├── maya.png
-│   │   └── jordan.png
-│   └── testimonials/
-│       ├── sarah.jpg
-│       ├── michael.jpg
-│       ├── jessica.jpg
-│       └── david.jpg
-├── videos/
-│   ├── hero-background.mp4   # Main hero video
-│   ├── particles.mp4         # CTA section
-│   └── brand-film.mp4        # Full brand film
-└── prompts/
-    ├── VEO3-PROMPTS.txt
-    ├── IMAGE-PROMPTS.txt
-    └── MOVIE-STORY-PROMPTS.txt
+ images/
+    og-image.png          # Social sharing
+    hero-park-city.jpg    # Main hero image
+    avatars/
+       ferni.png
+       jack.png
+       peter.png
+       alex.png
+       maya.png
+       jordan.png
+    testimonials/
+        sarah.jpg
+        michael.jpg
+        jessica.jpg
+        david.jpg
+ videos/
+    hero-background.mp4   # Main hero video
+    particles.mp4         # CTA section
+    brand-film.mp4        # Full brand film
+ prompts/
+     VEO3-PROMPTS.txt
+     IMAGE-PROMPTS.txt
+     MOVIE-STORY-PROMPTS.txt
 ```
 
 ---
 
-## 🛠️ Tools & Services
+##  Tools & Services
 
 ### AI Video Generation
 - **Google Veo 3**: Primary for short loops
@@ -122,7 +122,7 @@ promo/ferni-website/
 
 ---
 
-## 🎨 Color Reference (Copy-Paste Ready)
+##  Color Reference (Copy-Paste Ready)
 
 ```css
 /* Primary */
@@ -146,7 +146,7 @@ promo/ferni-website/
 
 ---
 
-## ✅ Development Checklist
+##  Development Checklist
 
 ### Phase 1: Essential (Launch Ready)
 - [ ] Hero background video (mountain meadow or conversation)
@@ -168,7 +168,7 @@ promo/ferni-website/
 
 ---
 
-## 📍 Park City, Utah Location Notes
+##  Park City, Utah Location Notes
 
 All outdoor content should evoke the Park City mountain aesthetic:
 - **Mountains**: Wasatch Range, snow-capped peaks
@@ -179,7 +179,7 @@ All outdoor content should evoke the Park City mountain aesthetic:
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 1. **Start with the hero video** - Copy prompt #1 or #1C from `VEO3-PROMPTS.txt`
 2. **Generate team avatars** - 6 images from `IMAGE-PROMPTS.txt` #2-7
@@ -189,5 +189,5 @@ All outdoor content should evoke the Park City mountain aesthetic:
 
 ---
 
-Made with ♥ in Park City, Utah
+Made with  in Park City, Utah
 

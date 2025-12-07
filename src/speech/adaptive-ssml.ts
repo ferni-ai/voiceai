@@ -8,7 +8,8 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { tagTextWithSsml, sanitizeSsml, tagTextWithSsmlPersonaAware } from '../ssml/index.js';
+import { tagTextWithSsml, sanitizeSsml } from '../ssml-tagger.js';
+import { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 import type { SpeechContext } from './speech-context.js';
 import type { ConversationPhase } from '../intelligence/conversation-state.js';
 import type { CognitiveGuidance, ReasoningStyle } from '../personas/cognitive-types.js';
@@ -128,7 +129,7 @@ function adjustExistingSsml(text: string, context: SpeechContext): string {
   // FIX BUG #voice-15: Use more robust regex patterns that handle edge cases
   try {
     // Adjust speed ratios (handling both self-closing and regular syntax)
-    result = result.replace(/<speed\s+ratio="([\d.]+)"\s*\/?>/gi, (match, ratio) => {
+    result = result.replace(/<speed\s+ratio="([\d.]+)"\s*\/?>/gi, (match: string, ratio: string) => {
       const original = parseFloat(ratio);
       if (isNaN(original)) return match; // Skip if can't parse
       const adjusted = original * context.baseSpeed * context.energyMultiplier;
@@ -136,7 +137,7 @@ function adjustExistingSsml(text: string, context: SpeechContext): string {
     });
 
     // Adjust break times based on pause multiplier
-    result = result.replace(/<break\s+time="(\d+)ms"\s*\/?>/gi, (match, ms) => {
+    result = result.replace(/<break\s+time="(\d+)ms"\s*\/?>/gi, (match: string, ms: string) => {
       const original = parseInt(ms);
       if (isNaN(original)) return match; // Skip if can't parse
       const adjusted = Math.round(original * context.pauseMultiplier);

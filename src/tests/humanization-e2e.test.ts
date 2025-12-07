@@ -9,16 +9,16 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import {
-  getConversationHumanizer,
-  resetConversationHumanizer,
-} from '../conversation/humanizer.js';
+import { getConversationHumanizer, resetConversationHumanizer } from '../conversation/humanizer.js';
 import {
   getInterruptionHandler,
   resetInterruptionHandler,
   type InterruptionHandler,
 } from '../conversation/interruption-handler.js';
-import { getSpeechNaturalizer, resetSpeechNaturalizer } from '../conversation/speech-naturalizer.js';
+import {
+  getSpeechNaturalizer,
+  resetSpeechNaturalizer,
+} from '../conversation/speech-naturalizer.js';
 import {
   getActiveListeningEngine,
   resetActiveListeningEngine,
@@ -284,7 +284,8 @@ describe('Humanization Pipeline E2E', () => {
       expect(preActions.acknowledgment || preActions.backchannel).toBeTruthy();
 
       // Simulate LLM response
-      const llmResponse = 'I understand that debt can feel overwhelming. Let me help you think through some options.';
+      const llmResponse =
+        'I understand that debt can feel overwhelming. Let me help you think through some options.';
 
       // Humanize the response
       const humanized = humanizer.humanizeResponse(llmResponse, {
@@ -316,12 +317,15 @@ describe('Humanization Pipeline E2E', () => {
         topic: 'house_planning',
       });
 
-      humanizer.humanizeResponse('Great! Buying a house is a big decision. What is your timeline?', {
-        personaId: 'ferni',
-        turnNumber: 1,
-        userMessage: 'I want to talk about planning for a house',
-        topic: 'house_planning',
-      });
+      humanizer.humanizeResponse(
+        'Great! Buying a house is a big decision. What is your timeline?',
+        {
+          personaId: 'ferni',
+          turnNumber: 1,
+          userMessage: 'I want to talk about planning for a house',
+          topic: 'house_planning',
+        }
+      );
 
       // Turn 2: User continues
       humanizer.processUserMessage({
@@ -450,28 +454,22 @@ describe('Humanization Regression Tests', () => {
     const humanizer = getConversationHumanizer('ferni');
 
     expect(() => {
-      humanizer.humanizeResponse(
-        'Here are some symbols: <>&"\'!@#$%^&*()',
-        {
-          personaId: 'ferni',
-          turnNumber: 1,
-          userMessage: 'Test with symbols',
-        }
-      );
+      humanizer.humanizeResponse('Here are some symbols: <>&"\'!@#$%^&*()', {
+        personaId: 'ferni',
+        turnNumber: 1,
+        userMessage: 'Test with symbols',
+      });
     }).not.toThrow();
   });
 
   it('should handle unicode characters', () => {
     const humanizer = getConversationHumanizer('ferni');
 
-    const result = humanizer.humanizeResponse(
-      'Here are some unicode: Hello World',
-      {
-        personaId: 'ferni',
-        turnNumber: 1,
-        userMessage: 'Test with unicode',
-      }
-    );
+    const result = humanizer.humanizeResponse('Here are some unicode: Hello World', {
+      personaId: 'ferni',
+      turnNumber: 1,
+      userMessage: 'Test with unicode',
+    });
 
     expect(result.text).toBeTruthy();
   });

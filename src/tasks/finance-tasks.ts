@@ -596,7 +596,7 @@ export class MarketFearTask extends IntelligentTask<MarketFearResult> {
 
             return userCalmer
               ? "Fear is natural. How we respond to it is the choice. You're responding well."
-              : 'This fear may take time to process. That\'s okay. We can talk about it again.';
+              : "This fear may take time to process. That's okay. We can talk about it again.";
           },
         }),
       },
@@ -615,4 +615,3 @@ export default {
   FinancialGoalTask,
   MarketFearTask,
 };
-

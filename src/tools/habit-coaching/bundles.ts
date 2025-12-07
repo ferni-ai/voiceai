@@ -7,28 +7,10 @@
  * @module habit-coaching/bundles
  */
 
-// ============================================================================
-// BUNDLE INTERFACES
-// ============================================================================
+import type { HabitBundleItem, HabitBundleDefinition } from './types.js';
 
-export interface HabitBundleItem {
-  name: string;
-  minutes: number;
-  tinyVersion: string;
-  priority: 'core' | 'enhancement';
-  order: number;
-}
-
-export interface HabitBundleDefinition {
-  name: string;
-  goal: string;
-  description: string;
-  totalMinutes: number;
-  coreMinutes: number;
-  stackFormula: string;
-  science: string;
-  habits: HabitBundleItem[];
-}
+// Re-export types for consumers
+export type { HabitBundleItem, HabitBundleDefinition } from './types.js';
 
 // ============================================================================
 // HABIT BUNDLES
@@ -43,6 +25,12 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     coreMinutes: 15,
     stackFormula: 'After alarm → Water → Movement → Mindset → Ready',
     science: 'Morning routines reduce decision fatigue and set the tone for the day',
+    synergies: [
+      'Hydration prepares body for movement',
+      'Movement wakes up the mind for mindset work',
+      'Each habit creates momentum for the next',
+    ],
+    startTiny: 'Just do Immediate Rise + one sip of water for week one',
     habits: [
       {
         name: 'Immediate Rise',
@@ -97,6 +85,12 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     coreMinutes: 20,
     stackFormula: 'After dinner → Tidy → Screens off → Wind down → Bed ready',
     science: 'Evening routines signal the brain to produce melatonin and prepare for sleep',
+    synergies: [
+      'Clean space reduces mental clutter',
+      'Screens off allows melatonin production',
+      'Reflection creates mental closure',
+    ],
+    startTiny: 'Just put phone in another room 10 min before bed',
     habits: [
       {
         name: 'Kitchen Reset',
@@ -158,6 +152,12 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     stackFormula: 'After wake → Movement → Stretch → Hydrate → Log',
     science:
       'Consistency beats intensity. Short daily movement builds the habit faster than occasional long workouts.',
+    synergies: [
+      'Movement warms muscles for stretching',
+      'Stretching prevents next-day soreness',
+      'Hydration supports recovery',
+    ],
+    startTiny: 'Do 1 pushup or 30-second walk immediately after waking',
     habits: [
       {
         name: 'Morning Movement',
@@ -199,6 +199,12 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     stackFormula: 'Morning calm → Midday reset → Evening release',
     science:
       'Regular stress relief prevents cumulative buildup. Short practices multiple times beat one long session.',
+    synergies: [
+      'Morning calm sets a peaceful baseline',
+      'Midday reset prevents afternoon stress accumulation',
+      'Evening release processes the day before sleep',
+    ],
+    startTiny: 'Take 3 deep breaths before looking at your phone in the morning',
     habits: [
       {
         name: 'Morning Calm',
@@ -245,6 +251,12 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     coreMinutes: 15,
     stackFormula: 'Plan → Focus block → Review',
     science: 'Planning and intentional focus dramatically outperform reactive work.',
+    synergies: [
+      'Planning directs focus toward highest value work',
+      'Phone boundary eliminates biggest distraction',
+      'Review informs better planning tomorrow',
+    ],
+    startTiny: 'Write your ONE top priority before starting work',
     habits: [
       {
         name: 'Daily Planning',
@@ -292,6 +304,12 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     stackFormula: 'Morning stillness → Mindful moments → Evening reflection',
     science:
       'Regular mindfulness practice physically changes the brain, increasing gray matter in areas for focus and emotional regulation.',
+    synergies: [
+      'Morning stillness sets awareness baseline',
+      'Mindful eating creates daily touchpoint',
+      'Gratitude shifts perspective positively',
+    ],
+    startTiny: 'Take 3 conscious breaths before getting out of bed',
     habits: [
       {
         name: 'Morning Stillness',
@@ -338,6 +356,12 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     coreMinutes: 8,
     stackFormula: 'Morning check → Mindful spending → Evening review',
     science: 'Daily financial awareness reduces overspending by 20-30% without needing willpower.',
+    synergies: [
+      'Morning check creates awareness for the day',
+      'Spending pause activates at point of purchase',
+      'Evening review connects spending to outcomes',
+    ],
+    startTiny: 'Glance at your account balance while having morning coffee',
     habits: [
       {
         name: 'Morning Money Check',
@@ -378,6 +402,13 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     stackFormula: 'Consistent bedtime → Wind down → Sleep environment → Wake routine',
     science:
       'Sleep consistency is more important than duration. Same bed/wake times train your circadian rhythm.',
+    synergies: [
+      'Consistent timing trains circadian rhythm',
+      'Screens off allows melatonin production',
+      'Dark and cool optimize sleep cycles',
+      'Morning light resets the clock',
+    ],
+    startTiny: 'Set a bedtime alarm and put phone away when it rings',
     habits: [
       {
         name: 'Consistent Bedtime',
@@ -439,6 +470,12 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     stackFormula: 'Morning activation → Midday recharge → Energy protection',
     science:
       'Energy comes from sleep, movement, nutrition, and stress management - not just caffeine.',
+    synergies: [
+      'Movement increases blood flow and alertness',
+      'Hydration prevents fatigue-causing dehydration',
+      'Light exposure regulates energy hormones',
+    ],
+    startTiny: 'Drink a glass of water before your first coffee',
     habits: [
       {
         name: 'Morning Movement',
@@ -486,6 +523,12 @@ export const HABIT_BUNDLES: Record<string, HabitBundleDefinition> = {
     stackFormula: 'Daily reach out → Quality presence → Appreciation expression',
     science:
       'Relationships are the #1 predictor of happiness and longevity. Small daily investments compound.',
+    synergies: [
+      'Daily texts maintain connection even when busy',
+      'Presence deepens quality of interactions',
+      'Appreciation strengthens bonds over time',
+    ],
+    startTiny: 'Send one "thinking of you" text each day',
     habits: [
       {
         name: 'Daily Text',

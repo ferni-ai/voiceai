@@ -118,7 +118,7 @@ describe('QuestionPatternEngine', () => {
     });
 
     it('should generate questions for different intents', () => {
-      const intents: QuestionContext['intent'][] = [
+      const intents: Array<QuestionContext['intent']> = [
         'explore',
         'understand',
         'guide',

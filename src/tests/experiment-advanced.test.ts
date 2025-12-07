@@ -437,4 +437,3 @@ function createMockExperiment(config: {
     startedAt: new Date(),
   };
 }
-

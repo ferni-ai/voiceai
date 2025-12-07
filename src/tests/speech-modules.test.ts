@@ -135,7 +135,11 @@ describe('emotion-matching', () => {
         speedAdjust: 0.1,
         volumeAdjust: 1.1,
         ssmlHints: { prosodyRate: 'medium', prosodyPitch: 'medium', prosodyVolume: 'medium' },
-        responseStyle: { warmth: 'medium' as const, energy: 'medium' as const, pause: 'normal' as const },
+        responseStyle: {
+          warmth: 'medium' as const,
+          energy: 'medium' as const,
+          pause: 'normal' as const,
+        },
         matchedEmotion: 'happy',
         confidence: 0.3,
       };
@@ -166,7 +170,11 @@ describe('emotion-matching', () => {
         speedAdjust: 0,
         volumeAdjust: 0.85,
         ssmlHints: { prosodyRate: 'medium', prosodyPitch: 'medium', prosodyVolume: 'soft' },
-        responseStyle: { warmth: 'high' as const, energy: 'medium' as const, pause: 'normal' as const },
+        responseStyle: {
+          warmth: 'high' as const,
+          energy: 'medium' as const,
+          pause: 'normal' as const,
+        },
         matchedEmotion: 'anxious',
         confidence: 0.6,
       };
@@ -181,7 +189,11 @@ describe('emotion-matching', () => {
         speedAdjust: 0,
         volumeAdjust: 1.0,
         ssmlHints: { prosodyRate: 'medium', prosodyPitch: 'medium', prosodyVolume: 'medium' },
-        responseStyle: { warmth: 'high' as const, energy: 'medium' as const, pause: 'normal' as const },
+        responseStyle: {
+          warmth: 'high' as const,
+          energy: 'medium' as const,
+          pause: 'normal' as const,
+        },
         matchedEmotion: 'empathetic',
         confidence: 0.8,
       };
@@ -197,7 +209,11 @@ describe('emotion-matching', () => {
         speedAdjust: 0,
         volumeAdjust: 1.0,
         ssmlHints: {},
-        responseStyle: { warmth: 'medium' as const, energy: 'medium' as const, pause: 'normal' as const },
+        responseStyle: {
+          warmth: 'medium' as const,
+          energy: 'medium' as const,
+          pause: 'normal' as const,
+        },
         matchedEmotion: 'happy',
         confidence: 0.4,
       };
@@ -226,7 +242,11 @@ describe('emotion-matching', () => {
         speedAdjust: -0.15,
         volumeAdjust: 0.95,
         ssmlHints: {},
-        responseStyle: { warmth: 'high' as const, energy: 'medium' as const, pause: 'more' as const },
+        responseStyle: {
+          warmth: 'high' as const,
+          energy: 'medium' as const,
+          pause: 'more' as const,
+        },
         matchedEmotion: 'anxious',
         confidence: 0.7,
       };
@@ -294,7 +314,13 @@ describe('backchanneling', () => {
       const context = {
         userHasBeenSpeaking: 10000,
         userPausedBriefly: true,
-        userEmotion: { distressLevel: 0, confidence: 0.5, primary: 'neutral', intensity: 0.3, valence: 'neutral' as const },
+        userEmotion: {
+          distressLevel: 0,
+          confidence: 0.5,
+          primary: 'neutral',
+          intensity: 0.3,
+          valence: 'neutral' as const,
+        },
         topicWeight: 'medium' as const,
         lastBackchannelTime: Date.now() - 2000, // Only 2 seconds ago
       };
@@ -308,7 +334,13 @@ describe('backchanneling', () => {
       const context = {
         userHasBeenSpeaking: 9000, // > 8000ms threshold
         userPausedBriefly: true,
-        userEmotion: { distressLevel: 0, confidence: 0.5, primary: 'neutral', intensity: 0.3, valence: 'neutral' as const },
+        userEmotion: {
+          distressLevel: 0,
+          confidence: 0.5,
+          primary: 'neutral',
+          intensity: 0.3,
+          valence: 'neutral' as const,
+        },
         topicWeight: 'medium' as const,
         lastBackchannelTime: Date.now() - 10000,
       };
@@ -323,7 +355,13 @@ describe('backchanneling', () => {
       const context = {
         userHasBeenSpeaking: 6000, // > 5000ms threshold for heavy
         userPausedBriefly: true,
-        userEmotion: { distressLevel: 0.3, confidence: 0.5, primary: 'sad', intensity: 0.6, valence: 'negative' as const },
+        userEmotion: {
+          distressLevel: 0.3,
+          confidence: 0.5,
+          primary: 'sad',
+          intensity: 0.6,
+          valence: 'negative' as const,
+        },
         topicWeight: 'heavy' as const,
         lastBackchannelTime: Date.now() - 10000,
       };
@@ -336,7 +374,13 @@ describe('backchanneling', () => {
       const context = {
         userHasBeenSpeaking: 7000,
         userPausedBriefly: false,
-        userEmotion: { distressLevel: 0.7, confidence: 0.8, primary: 'anxious', intensity: 0.8, valence: 'negative' as const },
+        userEmotion: {
+          distressLevel: 0.7,
+          confidence: 0.8,
+          primary: 'anxious',
+          intensity: 0.8,
+          valence: 'negative' as const,
+        },
         topicWeight: 'medium' as const,
         lastBackchannelTime: Date.now() - 10000,
       };
@@ -346,15 +390,19 @@ describe('backchanneling', () => {
     });
 
     it('should return empathetic backchannels for heavy topics', () => {
-      const emotion = { distressLevel: 0.6, confidence: 0.7, primary: 'sad', intensity: 0.7, valence: 'negative' as const };
+      const emotion = {
+        distressLevel: 0.6,
+        confidence: 0.7,
+        primary: 'sad',
+        intensity: 0.7,
+        valence: 'negative' as const,
+      };
       const phrase = system.getBackchannel(emotion, 'heavy' as const);
 
       expect(phrase).toBeTruthy();
       // Empathetic backchannels can be either volume-wrapped or a simple pause
       // '<break time="300ms"/>' is valid - sometimes silence is the most empathetic response
-      expect(
-        phrase.includes('<volume ratio') || phrase.includes('<break time')
-      ).toBe(true);
+      expect(phrase.includes('<volume ratio') || phrase.includes('<break time')).toBe(true);
     });
 
     it('should track backchannel usage', () => {
@@ -648,7 +696,7 @@ describe('music-reactions', () => {
       for (let i = 0; i < 100; i++) {
         results.push(musicReactions.shouldReactToMusic());
       }
-      const trueCount = results.filter(r => r).length;
+      const trueCount = results.filter((r) => r).length;
       expect(trueCount).toBeGreaterThan(10); // Should react sometimes
       expect(trueCount).toBeLessThan(70); // But not always
     });
@@ -963,7 +1011,7 @@ describe('authentic-thinking', () => {
     });
 
     it('should consider message length', () => {
-      const long = 'x '.repeat(60) + '?';
+      const long = `${'x '.repeat(60)}?`;
       const short = 'What?';
 
       const longComplexity = authenticThinking.analyzeQuestionComplexity(long);
@@ -981,7 +1029,7 @@ describe('authentic-thinking', () => {
 
     it('should bound complexity between 0 and 1', () => {
       const complexity1 = authenticThinking.analyzeQuestionComplexity('?');
-      const complexity2 = authenticThinking.analyzeQuestionComplexity('x '.repeat(200) + '?');
+      const complexity2 = authenticThinking.analyzeQuestionComplexity(`${'x '.repeat(200)}?`);
 
       expect(complexity1).toBeGreaterThanOrEqual(0);
       expect(complexity1).toBeLessThanOrEqual(1);
@@ -1190,12 +1238,7 @@ describe('authentic-thinking', () => {
     });
 
     it('should set low complexity for non-questions', () => {
-      const context = authenticThinking.createThinkingContext(
-        'I agree with that.',
-        0.3,
-        false,
-        2
-      );
+      const context = authenticThinking.createThinkingContext('I agree with that.', 0.3, false, 2);
 
       expect(context.questionComplexity).toBeLessThan(0.5);
     });
@@ -1249,7 +1292,7 @@ describe('audio-prosody', () => {
       const samples = new Float32Array(50000);
       // Generate simple sine wave
       for (let i = 0; i < samples.length; i++) {
-        samples[i] = Math.sin(2 * Math.PI * 440 * i / 44100) * 0.5;
+        samples[i] = Math.sin((2 * Math.PI * 440 * i) / 44100) * 0.5;
       }
 
       analyzer.processSamples(samples, 44100);
@@ -1457,7 +1500,7 @@ describe('adaptive-ssml', () => {
     });
 
     it('should apply supporting personality', () => {
-      const result = adaptiveSsml.applyPhasePersonality("I understand", 'supporting', context);
+      const result = adaptiveSsml.applyPhasePersonality('I understand', 'supporting', context);
       expect(result).toContain('<speed');
     });
 

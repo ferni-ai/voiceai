@@ -317,7 +317,7 @@ describe('Handoff Flow', () => {
     it('should retry voice switch on failure', async () => {
       // Use real timers for this test since we need actual delays
       vi.useRealTimers();
-      
+
       const MAX_RETRIES = 2;
       let attempts = 0;
 
@@ -342,7 +342,7 @@ describe('Handoff Flow', () => {
       const result = await switchVoiceWithRetry();
       expect(result).toBe(true);
       expect(attempts).toBe(3); // 1 initial + 2 retries
-      
+
       // Restore fake timers for other tests
       vi.useFakeTimers();
     });

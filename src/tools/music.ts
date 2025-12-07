@@ -359,10 +359,7 @@ Users with Spotify linked get full tracks.`,
         try {
           const result = await playMusicUnified(query);
           log.debug('playMusic SUCCESS', { resultPreview: result.slice(0, 150) });
-          log.info(
-            { query, resultPreview: result.slice(0, 100) },
-            '🎵 TOOL: playMusic SUCCESS'
-          );
+          log.info({ query, resultPreview: result.slice(0, 100) }, '🎵 TOOL: playMusic SUCCESS');
           return result;
         } catch (error) {
           log.error({ query, error }, '🎵 TOOL: playMusic ERROR');

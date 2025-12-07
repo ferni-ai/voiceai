@@ -342,15 +342,19 @@ export function getAmbientMusicEndedPhrase(personaId?: string): string {
 /**
  * Get a DJ-style outro phrase when user-requested music is fading out.
  * Spoken DURING the fade (~5 seconds before track ends) like a real DJ.
- * 
+ *
  * The agent becomes the DJ - wrapping up the track with style!
  * Includes track name for that authentic radio feel.
- * 
+ *
  * @param trackName - The name of the track (for DJ-style callout)
  * @param artistName - The artist name (optional, for fuller callout)
  * @param personaId - The persona speaking (for voice variation)
  */
-export function getDJOutroPhrase(trackName?: string, artistName?: string, personaId?: string): string {
+export function getDJOutroPhrase(
+  trackName?: string,
+  artistName?: string,
+  personaId?: string
+): string {
   // Persona-specific DJ outro styles
   const personaPhrases: Record<string, string[]> = {
     'peter-john': [
@@ -417,27 +421,23 @@ export function getDJOutroPhrase(trackName?: string, artistName?: string, person
     '<break time="200ms"/>Good stuff. <break time="150ms"/>How you feeling?',
   ];
 
-  const phrases = personaId && personaPhrases[personaId] 
-    ? personaPhrases[personaId] 
-    : defaultPhrases;
+  const phrases =
+    personaId && personaPhrases[personaId] ? personaPhrases[personaId] : defaultPhrases;
 
   const basePhrase = phrases[Math.floor(Math.random() * phrases.length)];
-  
+
   // Optionally prepend a DJ-style track callout (30% chance for variety)
   if (trackName && Math.random() < 0.3) {
-    const callouts = artistName 
+    const callouts = artistName
       ? [
           `<break time="100ms"/>That was "${trackName}" by ${artistName}. `,
           `<break time="100ms"/>"${trackName}", ${artistName}. `,
         ]
-      : [
-          `<break time="100ms"/>That was "${trackName}". `,
-          `<break time="100ms"/>"${trackName}". `,
-        ];
+      : [`<break time="100ms"/>That was "${trackName}". `, `<break time="100ms"/>"${trackName}". `];
     const callout = callouts[Math.floor(Math.random() * callouts.length)];
     return callout + basePhrase;
   }
-  
+
   return basePhrase;
 }
 
@@ -448,9 +448,9 @@ export function getDJOutroPhrase(trackName?: string, artistName?: string, person
 /**
  * Get a phrase when music stops unexpectedly (crash, network issue, user pause).
  * The agent acknowledges something happened without making it awkward.
- * 
+ *
  * These are casual, human reactions - not error messages!
- * 
+ *
  * @param personaId - The persona speaking
  * @param wasPaused - True if user explicitly paused (vs stopped/crashed)
  */
@@ -487,18 +487,16 @@ export function getMusicStoppedPhrase(personaId?: string, wasPaused = false): st
         '<break time="200ms"/>Sure. <break time="150ms"/>I\'m here.',
       ],
     };
-    
+
     const defaultPause = [
       '<break time="150ms"/>Music paused. <break time="100ms"/>What\'s up?',
       '<break time="150ms"/>Got it. <break time="100ms"/>I\'m listening.',
     ];
-    
-    const phrases = personaId && pausePhrases[personaId] 
-      ? pausePhrases[personaId] 
-      : defaultPause;
+
+    const phrases = personaId && pausePhrases[personaId] ? pausePhrases[personaId] : defaultPause;
     return phrases[Math.floor(Math.random() * phrases.length)];
   }
-  
+
   // Music stopped unexpectedly (crash, network, etc.) - acknowledge casually
   const stoppedPhrases: Record<string, string[]> = {
     'peter-john': [
@@ -552,9 +550,8 @@ export function getMusicStoppedPhrase(personaId?: string, wasPaused = false): st
     '<break time="200ms"/>Looks like the music ended. <break time="150ms"/>How are you doing?',
   ];
 
-  const phrases = personaId && stoppedPhrases[personaId] 
-    ? stoppedPhrases[personaId] 
-    : defaultStopped;
+  const phrases =
+    personaId && stoppedPhrases[personaId] ? stoppedPhrases[personaId] : defaultStopped;
   return phrases[Math.floor(Math.random() * phrases.length)];
 }
 

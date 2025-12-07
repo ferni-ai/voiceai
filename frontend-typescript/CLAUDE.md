@@ -1,5 +1,11 @@
 # VoiceAI Frontend Design Standards
 
+> **We believe in making AI human, and the decisions we make will reflect that.**
+
+The frontend is where users experience our AI. Every design choice should make interactions feel warm, personal, and genuinely human. See `../CORE-PRINCIPLES.md` for our complete philosophy.
+
+---
+
 ## Quick Reference - Quality Commands
 
 ```bash

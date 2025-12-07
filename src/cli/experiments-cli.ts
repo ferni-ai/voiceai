@@ -88,7 +88,9 @@ async function showOverview(): Promise<void> {
   const states = engine.exportState();
 
   if (states.size === 0) {
-    console.log(color('\n  No experiments found. Create one with: experiments-cli create\n', 'dim'));
+    console.log(
+      color('\n  No experiments found. Create one with: experiments-cli create\n', 'dim')
+    );
     return;
   }
 
@@ -124,8 +126,7 @@ async function showOverview(): Promise<void> {
 
     for (const exp of state.experiments) {
       const statusStr = statusColor(exp.status);
-      const samples =
-        exp.metrics.engagement.controlN + exp.metrics.engagement.treatmentN;
+      const samples = exp.metrics.engagement.controlN + exp.metrics.engagement.treatmentN;
       const samplesStr =
         samples > 0 ? `${samples}/${exp.minimumSampleSize} samples` : 'No data yet';
 
@@ -152,23 +153,13 @@ async function showDetailedStatus(): Promise<void> {
     for (const exp of state.experiments) {
       console.log(color(`\n┌${'─'.repeat(68)}┐`, 'dim'));
       console.log(
-        color('│', 'dim') +
-          ` ${color(exp.name, 'bright')}`.padEnd(77) +
-          color('│', 'dim')
+        color('│', 'dim') + ` ${color(exp.name, 'bright')}`.padEnd(77) + color('│', 'dim')
       );
       console.log(color(`├${'─'.repeat(68)}┤`, 'dim'));
 
       // Basic info
-      console.log(
-        color('│', 'dim') +
-          `  ID:          ${exp.id}`.padEnd(69) +
-          color('│', 'dim')
-      );
-      console.log(
-        color('│', 'dim') +
-          `  Persona:     ${personaId}`.padEnd(69) +
-          color('│', 'dim')
-      );
+      console.log(color('│', 'dim') + `  ID:          ${exp.id}`.padEnd(69) + color('│', 'dim'));
+      console.log(color('│', 'dim') + `  Persona:     ${personaId}`.padEnd(69) + color('│', 'dim'));
       console.log(
         color('│', 'dim') +
           `  Status:      ${exp.status.toUpperCase()}`.padEnd(69) +
@@ -176,13 +167,25 @@ async function showDetailedStatus(): Promise<void> {
       );
       console.log(
         color('│', 'dim') +
-          `  Hypothesis:  ${exp.hypothesis.slice(0, 50)}${exp.hypothesis.length > 50 ? '...' : ''}`.padEnd(69) +
+          `  Hypothesis:  ${exp.hypothesis.slice(0, 50)}${exp.hypothesis.length > 50 ? '...' : ''}`.padEnd(
+            69
+          ) +
           color('│', 'dim')
       );
 
       // Variants
-      console.log(color('│', 'dim') + color('  Control:     ', 'cyan') + `${exp.control.description.slice(0, 45)}`.padEnd(54) + color('│', 'dim'));
-      console.log(color('│', 'dim') + color('  Treatment:   ', 'green') + `${exp.treatment.description.slice(0, 45)}`.padEnd(54) + color('│', 'dim'));
+      console.log(
+        color('│', 'dim') +
+          color('  Control:     ', 'cyan') +
+          `${exp.control.description.slice(0, 45)}`.padEnd(54) +
+          color('│', 'dim')
+      );
+      console.log(
+        color('│', 'dim') +
+          color('  Treatment:   ', 'green') +
+          `${exp.treatment.description.slice(0, 45)}`.padEnd(54) +
+          color('│', 'dim')
+      );
 
       // Traffic allocation
       const trafficPct = `${(exp.trafficAllocation * 100).toFixed(0)}%`;
@@ -194,21 +197,29 @@ async function showDetailedStatus(): Promise<void> {
 
       // Metrics
       const { engagement, satisfaction, depth } = exp.metrics;
-      console.log(color('│', 'dim') + color('  ─ Metrics ─', 'bright').padEnd(78) + color('│', 'dim'));
+      console.log(
+        color('│', 'dim') + color('  ─ Metrics ─', 'bright').padEnd(78) + color('│', 'dim')
+      );
 
       console.log(
         color('│', 'dim') +
-          `  Engagement:  Control: ${engagement.control.toFixed(3)} (n=${engagement.controlN})  Treatment: ${engagement.treatment.toFixed(3)} (n=${engagement.treatmentN})`.padEnd(69) +
+          `  Engagement:  Control: ${engagement.control.toFixed(3)} (n=${engagement.controlN})  Treatment: ${engagement.treatment.toFixed(3)} (n=${engagement.treatmentN})`.padEnd(
+            69
+          ) +
           color('│', 'dim')
       );
       console.log(
         color('│', 'dim') +
-          `  Satisfaction: Control: ${satisfaction.control.toFixed(3)} (n=${satisfaction.controlN})  Treatment: ${satisfaction.treatment.toFixed(3)} (n=${satisfaction.treatmentN})`.padEnd(69) +
+          `  Satisfaction: Control: ${satisfaction.control.toFixed(3)} (n=${satisfaction.controlN})  Treatment: ${satisfaction.treatment.toFixed(3)} (n=${satisfaction.treatmentN})`.padEnd(
+            69
+          ) +
           color('│', 'dim')
       );
       console.log(
         color('│', 'dim') +
-          `  Depth:       Control: ${depth.control.toFixed(3)} (n=${depth.controlN})  Treatment: ${depth.treatment.toFixed(3)} (n=${depth.treatmentN})`.padEnd(69) +
+          `  Depth:       Control: ${depth.control.toFixed(3)} (n=${depth.controlN})  Treatment: ${depth.treatment.toFixed(3)} (n=${depth.treatmentN})`.padEnd(
+            69
+          ) +
           color('│', 'dim')
       );
 
@@ -219,13 +230,17 @@ async function showDetailedStatus(): Promise<void> {
       const bar = '█'.repeat(barFilled) + '░'.repeat(20 - barFilled);
       console.log(
         color('│', 'dim') +
-          `  Progress:    [${bar}] ${progress}% (${totalSamples}/${exp.minimumSampleSize})`.padEnd(69) +
+          `  Progress:    [${bar}] ${progress}% (${totalSamples}/${exp.minimumSampleSize})`.padEnd(
+            69
+          ) +
           color('│', 'dim')
       );
 
       // Conclusion
       if (exp.status === 'concluded') {
-        console.log(color('│', 'dim') + color('  ─ Result ─', 'bright').padEnd(78) + color('│', 'dim'));
+        console.log(
+          color('│', 'dim') + color('  ─ Result ─', 'bright').padEnd(78) + color('│', 'dim')
+        );
         console.log(
           color('│', 'dim') +
             `  Winner:      ${winnerColor(exp.winner)}`.padEnd(78) +
@@ -246,9 +261,7 @@ async function showDetailedStatus(): Promise<void> {
             ? color(`+${(improvement * 100).toFixed(1)}%`, 'green')
             : color(`${(improvement * 100).toFixed(1)}%`, 'red');
         console.log(
-          color('│', 'dim') +
-            `  Improvement: ${improvementStr}`.padEnd(78) +
-            color('│', 'dim')
+          color('│', 'dim') + `  Improvement: ${improvementStr}`.padEnd(78) + color('│', 'dim')
         );
       }
 
@@ -280,22 +293,26 @@ async function showResults(): Promise<void> {
   }
 
   // Summary table
-  console.log(color('\n  Experiment                    Winner        Improvement   Confidence', 'dim'));
-  console.log(color('  ' + '─'.repeat(66), 'dim'));
+  console.log(
+    color('\n  Experiment                    Winner        Improvement   Confidence', 'dim')
+  );
+  console.log(color(`  ${'─'.repeat(66)}`, 'dim'));
 
   for (const { personaId, exp } of concludedExperiments) {
     const name = exp.name.slice(0, 28).padEnd(28);
     const winner = (exp.winner || 'N/A').padEnd(12);
     const improvement = exp.metrics.engagement.treatment - exp.metrics.engagement.control;
-    const improvementStr = (improvement > 0 ? '+' : '') + (improvement * 100).toFixed(1) + '%';
+    const improvementStr = `${(improvement > 0 ? '+' : '') + (improvement * 100).toFixed(1)}%`;
     const confidenceStr = exp.winnerConfidence
-      ? (exp.winnerConfidence * 100).toFixed(0) + '%'
+      ? `${(exp.winnerConfidence * 100).toFixed(0)}%`
       : 'N/A';
 
     const winnerColored =
       exp.winner === 'treatment' ? color(winner, 'green') : color(winner, 'cyan');
     const improvementColored =
-      improvement > 0 ? color(improvementStr.padEnd(12), 'green') : color(improvementStr.padEnd(12), 'red');
+      improvement > 0
+        ? color(improvementStr.padEnd(12), 'green')
+        : color(improvementStr.padEnd(12), 'red');
 
     console.log(`  ${name}  ${winnerColored}  ${improvementColored}  ${confidenceStr}`);
   }
@@ -396,8 +413,12 @@ async function createExperiment(): Promise<void> {
   });
 
   console.log(color('\n  To start an experiment:', 'bright'));
-  console.log(`  ${color('npx ts-node src/cli/experiments-cli.ts start-template <number>', 'green')}`);
-  console.log(`\n  Example: ${color('npx ts-node src/cli/experiments-cli.ts start-template 1', 'dim')}\n`);
+  console.log(
+    `  ${color('npx ts-node src/cli/experiments-cli.ts start-template <number>', 'green')}`
+  );
+  console.log(
+    `\n  Example: ${color('npx ts-node src/cli/experiments-cli.ts start-template 1', 'dim')}\n`
+  );
 }
 
 async function startTemplate(templateIndex: number): Promise<void> {
@@ -485,10 +506,7 @@ async function startTemplate(templateIndex: number): Promise<void> {
   console.log(`    Traffic: ${(template.trafficAllocation * 100).toFixed(0)}% to treatment`);
   console.log(`    Required samples: ${template.minimumSampleSize}`);
   console.log(
-    color(
-      '\n  Users will be automatically assigned to control or treatment groups.\n',
-      'dim'
-    )
+    color('\n  Users will be automatically assigned to control or treatment groups.\n', 'dim')
   );
 
   // Save to Firestore
@@ -582,4 +600,3 @@ main().catch((error) => {
   console.error(color(`\n  Error: ${error.message}\n`, 'red'));
   process.exit(1);
 });
-

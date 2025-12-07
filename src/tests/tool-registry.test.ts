@@ -48,12 +48,12 @@ describe('Tool Registry', () => {
 
     it('should be idempotent', async () => {
       const beforeTools = toolRegistry.getAll().length;
-      
+
       // Call initialize again
       await initializeToolRegistry();
-      
+
       const afterTools = toolRegistry.getAll().length;
-      
+
       // Should have same tools (no duplicates)
       expect(afterTools).toBe(beforeTools);
     });
@@ -62,7 +62,7 @@ describe('Tool Registry', () => {
   describe('Tool Discovery', () => {
     it('should find tools by ID', () => {
       const allTools = toolRegistry.getAll();
-      
+
       if (allTools.length > 0) {
         const firstTool = allTools[0];
         const found = getTool(firstTool.id);
@@ -78,14 +78,14 @@ describe('Tool Registry', () => {
 
     it('should return all registered tools', () => {
       const allTools = toolRegistry.getAll();
-      
+
       expect(allTools).toBeDefined();
       expect(Array.isArray(allTools)).toBe(true);
     });
 
     it('should have tools with required properties', () => {
       const allTools = toolRegistry.getAll();
-      
+
       for (const tool of allTools.slice(0, 10)) {
         // Check required properties
         expect(tool.id).toBeDefined();
@@ -112,10 +112,10 @@ describe('Agent Tool Building', () => {
   describe('buildAgentTools', () => {
     it('should build tools for Ferni (coach)', async () => {
       const tools = await buildAgentTools('ferni');
-      
+
       expect(tools).toBeDefined();
       expect(typeof tools).toBe('object');
-      
+
       // Should return a Record<string, Tool>
       const toolNames = Object.keys(tools);
       expect(toolNames.length).toBeGreaterThanOrEqual(0);
@@ -123,42 +123,42 @@ describe('Agent Tool Building', () => {
 
     it('should build tools for Maya (habits coach)', async () => {
       const tools = await buildAgentTools('maya-santos');
-      
+
       expect(tools).toBeDefined();
       expect(typeof tools).toBe('object');
     });
 
     it('should build tools for Peter (researcher)', async () => {
       const tools = await buildAgentTools('peter-john');
-      
+
       expect(tools).toBeDefined();
     });
 
     it('should build tools for Alex (communications)', async () => {
       const tools = await buildAgentTools('alex-chen');
-      
+
       expect(tools).toBeDefined();
     });
 
     it('should build tools for Jordan (planner)', async () => {
       const tools = await buildAgentTools('jordan-taylor');
-      
+
       expect(tools).toBeDefined();
     });
 
     it('should build tools for Nayan (sage)', async () => {
       const tools = await buildAgentTools('nayan-patel');
-      
+
       expect(tools).toBeDefined();
     });
 
     it('should handle alias IDs', async () => {
       // Build with alias
       const aliasTools = await buildAgentTools('maya');
-      
-      // Build with canonical ID  
+
+      // Build with canonical ID
       const canonicalTools = await buildAgentTools('maya-santos');
-      
+
       // Both should return tool objects
       expect(aliasTools).toBeDefined();
       expect(canonicalTools).toBeDefined();
@@ -166,7 +166,7 @@ describe('Agent Tool Building', () => {
 
     it('should return tools for unknown agents (fallback)', async () => {
       const tools = await buildAgentTools('unknown-agent');
-      
+
       // Should still return tools object (with defaults)
       expect(tools).toBeDefined();
       expect(typeof tools).toBe('object');
@@ -176,7 +176,7 @@ describe('Agent Tool Building', () => {
   describe('buildToolsForDomains', () => {
     it('should build tools for specific domains', async () => {
       const tools = await buildToolsForDomains(['memory', 'information']);
-      
+
       expect(tools).toBeDefined();
       expect(typeof tools).toBe('object');
     });
@@ -184,7 +184,7 @@ describe('Agent Tool Building', () => {
     it('should handle non-existent domains gracefully', async () => {
       // Cast to avoid type error - testing runtime behavior
       const tools = await buildToolsForDomains(['nonexistent-domain-xyz' as any]);
-      
+
       expect(tools).toBeDefined();
     });
   });
@@ -192,7 +192,7 @@ describe('Agent Tool Building', () => {
   describe('getAvailableToolsForAgent', () => {
     it('should list available tools for an agent', async () => {
       const tools = await getAvailableToolsForAgent('ferni');
-      
+
       expect(tools).toBeDefined();
     });
   });
@@ -216,7 +216,7 @@ describe('Tool Domains', () => {
   it('should include expected domains', () => {
     // Core domains that should always exist
     const expectedDomains = ['memory', 'handoff', 'information'];
-    
+
     for (const domain of expectedDomains) {
       expect(ALL_TOOL_DOMAINS).toContain(domain);
     }
@@ -225,10 +225,10 @@ describe('Tool Domains', () => {
   it('should get tools by domain', () => {
     // Try to get tools for a common domain
     const memoryTools = toolRegistry.getByDomain('memory');
-    
+
     // Should return an array (even if empty)
     expect(Array.isArray(memoryTools)).toBe(true);
-    
+
     // All returned tools should be in memory domain
     for (const tool of memoryTools) {
       expect(tool.domain).toBe('memory');
@@ -247,7 +247,7 @@ describe('Tool Structure', () => {
 
   it('should have tools with create functions', () => {
     const allTools = toolRegistry.getAll();
-    
+
     // Check that tools have create functions
     for (const tool of allTools.slice(0, 5)) {
       expect(typeof tool.create === 'function').toBe(true);
@@ -256,10 +256,10 @@ describe('Tool Structure', () => {
 
   it('should build LLM-compatible tools', async () => {
     const tools = await buildAgentTools('ferni');
-    
+
     // Tools should be in LLM-compatible format (Record<string, Tool>)
     const toolNames = Object.keys(tools);
-    
+
     for (const name of toolNames.slice(0, 3)) {
       const tool = tools[name];
       expect(tool).toBeDefined();
@@ -282,7 +282,7 @@ describe('Edge Cases', () => {
 
   it('should handle empty domain list', async () => {
     const tools = await buildToolsForDomains([]);
-    
+
     expect(tools).toBeDefined();
     // Empty domains should return empty or minimal toolset
   });
@@ -291,7 +291,7 @@ describe('Edge Cases', () => {
     const tools = await buildAgentTools('ferni', {
       userId: 'test-user-123',
     });
-    
+
     expect(tools).toBeDefined();
   });
 
@@ -326,9 +326,9 @@ describe('Registry Queries', () => {
 
   it('should query tools by domain', () => {
     const memoryTools = toolRegistry.getByDomain('memory');
-    
+
     expect(Array.isArray(memoryTools)).toBe(true);
-    
+
     // If there are memory tools, they should be in the memory domain
     for (const tool of memoryTools) {
       expect(tool.domain).toBe('memory');
@@ -337,29 +337,29 @@ describe('Registry Queries', () => {
 
   it('should get all tools', () => {
     const allTools = toolRegistry.getAll();
-    
+
     expect(Array.isArray(allTools)).toBe(true);
   });
 
   it('should check if registry is initialized', () => {
     const isInit = toolRegistry.isInitialized();
-    
+
     expect(isInit).toBe(true);
   });
 
   it('should get all tool IDs', () => {
     const ids = toolRegistry.getAllIds();
-    
+
     expect(Array.isArray(ids)).toBe(true);
   });
 
   it('should get tool metadata', () => {
     const allTools = toolRegistry.getAll();
-    
+
     if (allTools.length > 0) {
       const firstTool = allTools[0];
       const metadata = toolRegistry.getMetadata(firstTool.id);
-      
+
       expect(metadata).toBeDefined();
       expect(metadata?.id).toBe(firstTool.id);
       expect(metadata?.name).toBe(firstTool.name);
@@ -368,7 +368,7 @@ describe('Registry Queries', () => {
 
   it('should get registry stats', () => {
     const stats = toolRegistry.getStats();
-    
+
     expect(stats).toBeDefined();
     expect(typeof stats.totalTools).toBe('number');
   });

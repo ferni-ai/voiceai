@@ -1,15 +1,15 @@
 /**
  * Handoff Metrics Service
- * 
+ *
  * Tracks all handoff attempts, successes, failures, and timing.
  * Provides analytics for diagnosing handoff issues.
- * 
+ *
  * Usage:
  *   import { handoffMetrics } from './handoff-metrics.js';
- *   
+ *
  *   // Record a handoff attempt
  *   const traceId = handoffMetrics.startHandoff('ferni', 'peter-john', 'ui_click');
- *   
+ *
  *   // Record success/failure
  *   handoffMetrics.completeHandoff(traceId, true);
  *   // or
@@ -22,35 +22,35 @@ import { getLogger } from '../utils/safe-logger.js';
 // TYPES
 // ============================================================================
 
-export type HandoffSource = 
-  | 'ui_click'           // User clicked persona in UI
-  | 'voice_request'      // Voice command to switch
-  | 'tool_call'          // LLM called handoff tool
-  | 'auto_routing'       // System auto-routed based on topic
-  | 'return_to_coach';   // Returning to coordinator
+export type HandoffSource =
+  | 'ui_click' // User clicked persona in UI
+  | 'voice_request' // Voice command to switch
+  | 'tool_call' // LLM called handoff tool
+  | 'auto_routing' // System auto-routed based on topic
+  | 'return_to_coach'; // Returning to coordinator
 
 export type HandoffFailureReason =
-  | 'tool_not_found'           // Handoff tool not in registry
-  | 'persona_not_found'        // Persona not registered
-  | 'no_listeners'             // No voiceSwitch listeners registered
-  | 'rate_limited'             // Too many handoffs too quickly
-  | 'already_with_agent'       // Already talking to target agent
-  | 'connection_lost'          // Room disconnected during handoff
-  | 'voice_switch_failed'      // TTS voice switch failed
-  | 'timeout'                  // Handoff took too long
-  | 'validation_failed'        // Post-handoff validation failed
-  | 'team_locked'              // Team member not yet unlocked for user
-  | 'unknown';                 // Unknown error
+  | 'tool_not_found' // Handoff tool not in registry
+  | 'persona_not_found' // Persona not registered
+  | 'no_listeners' // No voiceSwitch listeners registered
+  | 'rate_limited' // Too many handoffs too quickly
+  | 'already_with_agent' // Already talking to target agent
+  | 'connection_lost' // Room disconnected during handoff
+  | 'voice_switch_failed' // TTS voice switch failed
+  | 'timeout' // Handoff took too long
+  | 'validation_failed' // Post-handoff validation failed
+  | 'team_locked' // Team member not yet unlocked for user
+  | 'unknown'; // Unknown error
 
 export type HandoffPhase =
-  | 'initiated'         // Handoff request received
-  | 'validated'         // Target validated, about to execute
-  | 'event_emitted'     // voiceSwitch event emitted
-  | 'handler_started'   // Handler received event
-  | 'voice_switched'    // Voice successfully switched
+  | 'initiated' // Handoff request received
+  | 'validated' // Target validated, about to execute
+  | 'event_emitted' // voiceSwitch event emitted
+  | 'handler_started' // Handler received event
+  | 'voice_switched' // Voice successfully switched
   | 'frontend_notified' // Frontend received handoff_complete
-  | 'completed'         // Fully complete
-  | 'failed';           // Failed at some phase
+  | 'completed' // Fully complete
+  | 'failed'; // Failed at some phase
 
 export interface HandoffTrace {
   id: string;
@@ -58,22 +58,22 @@ export interface HandoffTrace {
   fromAgent: string;
   toAgent: string;
   source: HandoffSource;
-  
+
   // Timing
   startTime: number;
   endTime?: number;
   durationMs?: number;
-  
+
   // Phase tracking
   currentPhase: HandoffPhase;
   phaseTimings: Record<HandoffPhase, number>;
-  
+
   // Result
   success?: boolean;
   failureReason?: HandoffFailureReason;
   errorMessage?: string;
   errorStack?: string;
-  
+
   // Context
   listenerCount?: number;
   toolName?: string;
@@ -86,23 +86,23 @@ export interface HandoffMetricsSummary {
   totalSuccesses: number;
   totalFailures: number;
   successRate: number;
-  
+
   // By agent
   byFromAgent: Record<string, { attempts: number; successes: number; failures: number }>;
   byToAgent: Record<string, { attempts: number; successes: number; failures: number }>;
-  
+
   // By failure reason
   byFailureReason: Record<HandoffFailureReason, number>;
-  
+
   // Timing
   avgDurationMs: number;
   p50DurationMs: number;
   p95DurationMs: number;
   maxDurationMs: number;
-  
+
   // Recent errors
   recentFailures: HandoffTrace[];
-  
+
   // Time window
   windowStartTime: number;
   windowEndTime: number;
@@ -113,13 +113,13 @@ export interface HandoffMetricsSummary {
 // ============================================================================
 
 class HandoffMetricsService {
-  private traces: Map<string, HandoffTrace> = new Map();
+  private traces = new Map<string, HandoffTrace>();
   private completedTraces: HandoffTrace[] = [];
   private readonly MAX_COMPLETED_TRACES = 1000;
   private readonly MAX_RECENT_FAILURES = 50;
-  
+
   private logger = getLogger();
-  
+
   /**
    * Start tracking a new handoff attempt.
    * Returns a trace ID for subsequent updates.
@@ -128,11 +128,11 @@ class HandoffMetricsService {
     fromAgent: string,
     toAgent: string,
     source: HandoffSource,
-    sessionId: string = 'unknown'
+    sessionId = 'unknown'
   ): string {
     const traceId = `hoff_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const now = Date.now();
-    
+
     const trace: HandoffTrace = {
       id: traceId,
       sessionId,
@@ -152,9 +152,9 @@ class HandoffMetricsService {
         failed: 0,
       },
     };
-    
+
     this.traces.set(traceId, trace);
-    
+
     this.logger.info(
       {
         traceId,
@@ -165,10 +165,10 @@ class HandoffMetricsService {
       },
       '📊 [HandoffMetrics] Handoff initiated'
     );
-    
+
     return traceId;
   }
-  
+
   /**
    * Update the current phase of a handoff.
    */
@@ -178,11 +178,11 @@ class HandoffMetricsService {
       this.logger.warn({ traceId, phase }, '📊 [HandoffMetrics] Trace not found for phase update');
       return;
     }
-    
+
     const now = Date.now();
     trace.currentPhase = phase;
     trace.phaseTimings[phase] = now;
-    
+
     // Add context if provided
     if (context) {
       if (context.listenerCount !== undefined) {
@@ -195,7 +195,7 @@ class HandoffMetricsService {
         trace.availableTools = context.availableTools as string[];
       }
     }
-    
+
     this.logger.debug(
       {
         traceId,
@@ -206,7 +206,7 @@ class HandoffMetricsService {
       `📊 [HandoffMetrics] Phase: ${phase}`
     );
   }
-  
+
   /**
    * Mark a handoff as successfully completed.
    */
@@ -216,17 +216,17 @@ class HandoffMetricsService {
       this.logger.warn({ traceId }, '📊 [HandoffMetrics] Trace not found for completion');
       return;
     }
-    
+
     const now = Date.now();
     trace.endTime = now;
     trace.durationMs = now - trace.startTime;
     trace.currentPhase = 'completed';
     trace.phaseTimings.completed = now;
     trace.success = true;
-    
+
     this.archiveTrace(trace);
     this.traces.delete(traceId);
-    
+
     this.logger.info(
       {
         traceId,
@@ -238,7 +238,7 @@ class HandoffMetricsService {
       '📊 [HandoffMetrics] ✅ Handoff completed successfully'
     );
   }
-  
+
   /**
    * Mark a handoff as failed.
    */
@@ -253,7 +253,7 @@ class HandoffMetricsService {
       this.logger.warn({ traceId, reason }, '📊 [HandoffMetrics] Trace not found for failure');
       return;
     }
-    
+
     const now = Date.now();
     trace.endTime = now;
     trace.durationMs = now - trace.startTime;
@@ -263,10 +263,10 @@ class HandoffMetricsService {
     trace.failureReason = reason;
     trace.errorMessage = errorMessage;
     trace.errorStack = errorStack;
-    
+
     this.archiveTrace(trace);
     this.traces.delete(traceId);
-    
+
     this.logger.error(
       {
         traceId,
@@ -283,26 +283,30 @@ class HandoffMetricsService {
       '📊 [HandoffMetrics] ❌ Handoff FAILED'
     );
   }
-  
+
   /**
    * Get the current summary of handoff metrics.
    */
-  getSummary(windowMinutes: number = 60): HandoffMetricsSummary {
+  getSummary(windowMinutes = 60): HandoffMetricsSummary {
     const now = Date.now();
     const windowStart = now - windowMinutes * 60 * 1000;
-    
+
     // Filter traces within window
-    const windowTraces = this.completedTraces.filter(t => t.startTime >= windowStart);
-    
+    const windowTraces = this.completedTraces.filter((t) => t.startTime >= windowStart);
+
     // Calculate totals
-    const successes = windowTraces.filter(t => t.success);
-    const failures = windowTraces.filter(t => !t.success);
-    
+    const successes = windowTraces.filter((t) => t.success);
+    const failures = windowTraces.filter((t) => !t.success);
+
     // By agent stats
-    const byFromAgent: Record<string, { attempts: number; successes: number; failures: number }> = {};
+    const byFromAgent: Record<string, { attempts: number; successes: number; failures: number }> =
+      {};
     const byToAgent: Record<string, { attempts: number; successes: number; failures: number }> = {};
-    const byFailureReason: Record<HandoffFailureReason, number> = {} as Record<HandoffFailureReason, number>;
-    
+    const byFailureReason: Record<HandoffFailureReason, number> = {} as Record<
+      HandoffFailureReason,
+      number
+    >;
+
     for (const trace of windowTraces) {
       // From agent
       if (!byFromAgent[trace.fromAgent]) {
@@ -314,7 +318,7 @@ class HandoffMetricsService {
       } else {
         byFromAgent[trace.fromAgent].failures++;
       }
-      
+
       // To agent
       if (!byToAgent[trace.toAgent]) {
         byToAgent[trace.toAgent] = { attempts: 0, successes: 0, failures: 0 };
@@ -325,37 +329,32 @@ class HandoffMetricsService {
       } else {
         byToAgent[trace.toAgent].failures++;
       }
-      
+
       // Failure reasons
       if (!trace.success && trace.failureReason) {
         byFailureReason[trace.failureReason] = (byFailureReason[trace.failureReason] || 0) + 1;
       }
     }
-    
+
     // Calculate timing stats
     const durations = successes
-      .map(t => t.durationMs)
+      .map((t) => t.durationMs)
       .filter((d): d is number => d !== undefined)
       .sort((a, b) => a - b);
-    
-    const avgDurationMs = durations.length > 0
-      ? durations.reduce((a, b) => a + b, 0) / durations.length
-      : 0;
-    const p50DurationMs = durations.length > 0
-      ? durations[Math.floor(durations.length * 0.5)] ?? 0
-      : 0;
-    const p95DurationMs = durations.length > 0
-      ? durations[Math.floor(durations.length * 0.95)] ?? 0
-      : 0;
-    const maxDurationMs = durations.length > 0
-      ? durations[durations.length - 1] ?? 0
-      : 0;
-    
+
+    const avgDurationMs =
+      durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+    const p50DurationMs =
+      durations.length > 0 ? (durations[Math.floor(durations.length * 0.5)] ?? 0) : 0;
+    const p95DurationMs =
+      durations.length > 0 ? (durations[Math.floor(durations.length * 0.95)] ?? 0) : 0;
+    const maxDurationMs = durations.length > 0 ? (durations[durations.length - 1] ?? 0) : 0;
+
     // Recent failures (most recent first)
     const recentFailures = failures
       .sort((a, b) => b.startTime - a.startTime)
       .slice(0, this.MAX_RECENT_FAILURES);
-    
+
     return {
       totalAttempts: windowTraces.length,
       totalSuccesses: successes.length,
@@ -373,21 +372,21 @@ class HandoffMetricsService {
       windowEndTime: now,
     };
   }
-  
+
   /**
    * Get all in-progress handoffs.
    */
   getInProgressHandoffs(): HandoffTrace[] {
     return Array.from(this.traces.values());
   }
-  
+
   /**
    * Get a specific trace by ID.
    */
   getTrace(traceId: string): HandoffTrace | undefined {
-    return this.traces.get(traceId) || this.completedTraces.find(t => t.id === traceId);
+    return this.traces.get(traceId) || this.completedTraces.find((t) => t.id === traceId);
   }
-  
+
   /**
    * Clear all metrics (for testing).
    */
@@ -396,20 +395,20 @@ class HandoffMetricsService {
     this.completedTraces = [];
     this.logger.info('📊 [HandoffMetrics] Metrics cleared');
   }
-  
+
   // ============================================================================
   // PRIVATE METHODS
   // ============================================================================
-  
+
   private archiveTrace(trace: HandoffTrace): void {
     this.completedTraces.push(trace);
-    
+
     // Trim if over max
     if (this.completedTraces.length > this.MAX_COMPLETED_TRACES) {
       this.completedTraces = this.completedTraces.slice(-this.MAX_COMPLETED_TRACES);
     }
   }
-  
+
   private getPhaseBreakdown(trace: HandoffTrace): Record<string, number> {
     const breakdown: Record<string, number> = {};
     const phases: HandoffPhase[] = [
@@ -421,21 +420,21 @@ class HandoffMetricsService {
       'frontend_notified',
       'completed',
     ];
-    
+
     for (let i = 1; i < phases.length; i++) {
       const prevPhase = phases[i - 1];
       const currPhase = phases[i];
       const prevTime = trace.phaseTimings[prevPhase];
       const currTime = trace.phaseTimings[currPhase];
-      
+
       if (prevTime && currTime) {
         breakdown[`${prevPhase}_to_${currPhase}`] = currTime - prevTime;
       }
     }
-    
+
     return breakdown;
   }
-  
+
   private getLastSuccessfulPhase(trace: HandoffTrace): HandoffPhase {
     const phases: HandoffPhase[] = [
       'initiated',
@@ -446,14 +445,14 @@ class HandoffMetricsService {
       'frontend_notified',
       'completed',
     ];
-    
+
     let lastPhase: HandoffPhase = 'initiated';
     for (const phase of phases) {
       if (trace.phaseTimings[phase] > 0) {
         lastPhase = phase;
       }
     }
-    
+
     return lastPhase;
   }
 }
@@ -510,4 +509,3 @@ export function trackHandoffFailure(
 ): void {
   handoffMetrics.failHandoff(traceId, reason, errorMessage, errorStack);
 }
-

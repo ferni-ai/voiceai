@@ -21,6 +21,9 @@ assignees: ''
 ## Actual Behavior
 <!-- What actually happens -->
 
+## Human Impact
+<!-- How does this bug affect the human experience? Does it make interactions feel robotic, cold, or frustrating? -->
+
 ## Environment
 - **OS**: [e.g., macOS 14.0, Windows 11, Ubuntu 22.04]
 - **Browser**: [e.g., Chrome 120, Safari 17]

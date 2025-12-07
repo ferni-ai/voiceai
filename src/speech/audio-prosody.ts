@@ -709,8 +709,7 @@ export class AudioProsodyAnalyzer {
   } {
     // Map prosodic features to Russell's circumplex model dimensions
     // Helper to ensure finite values (guard against NaN from edge cases)
-    const safeNumber = (n: number, fallback = 0): number =>
-      Number.isFinite(n) ? n : fallback;
+    const safeNumber = (n: number, fallback = 0): number => (Number.isFinite(n) ? n : fallback);
 
     // Arousal: high pitch variance, high energy, fast rate = high arousal
     const pitchDeviation =
@@ -735,12 +734,13 @@ export class AudioProsodyAnalyzer {
     );
 
     // Valence: rising pitch, varied energy = positive; flat/falling = negative
-    const contourScore = {
-      rising: 0.3,
-      dynamic: 0.1,
-      flat: -0.1,
-      falling: -0.3,
-    }[prosody.pitchContour] ?? 0;
+    const contourScore =
+      {
+        rising: 0.3,
+        dynamic: 0.1,
+        flat: -0.1,
+        falling: -0.3,
+      }[prosody.pitchContour] ?? 0;
 
     const valence = this.clamp(
       safeNumber(contourScore) +
@@ -912,19 +912,22 @@ export interface ProsodyMetrics {
 /**
  * Session-scoped metrics storage
  */
-const sessionMetrics = new Map<string, {
-  totalAnalyses: number;
-  successfulDetections: number;
-  confidenceSum: number;
-  emotionCounts: Map<VoiceEmotion, number>;
-}>();
+const sessionMetrics = new Map<
+  string,
+  {
+    totalAnalyses: number;
+    successfulDetections: number;
+    confidenceSum: number;
+    emotionCounts: Map<VoiceEmotion, number>;
+  }
+>();
 
 /**
  * Get metrics for a specific session's prosody analysis
  */
 export function getProsodyMetrics(sessionId: string): ProsodyMetrics {
   const metrics = sessionMetrics.get(sessionId);
-  
+
   if (!metrics || metrics.totalAnalyses === 0) {
     return {
       totalAnalyses: 0,
@@ -949,9 +952,8 @@ export function getProsodyMetrics(sessionId: string): ProsodyMetrics {
     totalAnalyses: metrics.totalAnalyses,
     successfulDetections: metrics.successfulDetections,
     detectionRate: metrics.successfulDetections / metrics.totalAnalyses,
-    averageConfidence: metrics.successfulDetections > 0 
-      ? metrics.confidenceSum / metrics.successfulDetections 
-      : 0,
+    averageConfidence:
+      metrics.successfulDetections > 0 ? metrics.confidenceSum / metrics.successfulDetections : 0,
     dominantEmotion,
   };
 }
@@ -959,10 +961,7 @@ export function getProsodyMetrics(sessionId: string): ProsodyMetrics {
 /**
  * Internal function to record prosody analysis (called by AudioProsodyAnalyzer.analyze())
  */
-function recordProsodyAnalysisInternal(
-  sessionId: string,
-  result: VoiceEmotionResult | null
-): void {
+function recordProsodyAnalysisInternal(sessionId: string, result: VoiceEmotionResult | null): void {
   let metrics = sessionMetrics.get(sessionId);
 
   if (!metrics) {
@@ -989,10 +988,7 @@ function recordProsodyAnalysisInternal(
 /**
  * Record a prosody analysis result for metrics (public API)
  */
-export function recordProsodyAnalysis(
-  sessionId: string, 
-  result: VoiceEmotionResult | null
-): void {
+export function recordProsodyAnalysis(sessionId: string, result: VoiceEmotionResult | null): void {
   recordProsodyAnalysisInternal(sessionId, result);
 }
 

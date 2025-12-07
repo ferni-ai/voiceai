@@ -1,3 +1,11 @@
+# ============================================================================
+# ⚠️  DEPRECATED - Use docker/Dockerfile.agent instead
+# ============================================================================
+# This file is kept for backwards compatibility.
+# New builds should use: docker build -f docker/Dockerfile.agent .
+# See docker/README.md for documentation.
+# ============================================================================
+
 # Build stage
 FROM node:20-slim AS builder
 

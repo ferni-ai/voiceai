@@ -79,7 +79,7 @@ export interface IVectorStore {
   /**
    * Initialize the store
    */
-  initialize(): Promise<void>;
+  initialize: () => Promise<void>;
 
   /**
    * Check if initialized
@@ -89,50 +89,50 @@ export interface IVectorStore {
   /**
    * Add a single document (generates embedding if not provided)
    */
-  addDocument(doc: VectorDocument): Promise<void>;
+  addDocument: (doc: VectorDocument) => Promise<void>;
 
   /**
    * Add multiple documents in batch
    */
-  addDocuments(docs: VectorDocument[]): Promise<void>;
+  addDocuments: (docs: VectorDocument[]) => Promise<void>;
 
   /**
    * Remove a document by ID
    */
-  removeDocument(id: string): Promise<boolean> | boolean;
+  removeDocument: (id: string) => Promise<boolean> | boolean;
 
   /**
    * Get a document by ID
    */
-  getDocument(id: string): Promise<VectorDocument | undefined> | VectorDocument | undefined;
+  getDocument: (id: string) => Promise<VectorDocument | undefined> | VectorDocument | undefined;
 
   /**
    * Semantic search by query text
    */
-  search(query: string, options?: VectorSearchOptions): Promise<VectorSearchResult[]>;
+  search: (query: string, options?: VectorSearchOptions) => Promise<VectorSearchResult[]>;
 
   /**
    * Search by pre-computed embedding
    */
-  searchByEmbedding(
+  searchByEmbedding: (
     embedding: number[],
     options?: VectorSearchOptions
-  ): Promise<VectorSearchResult[]> | VectorSearchResult[];
+  ) => Promise<VectorSearchResult[]> | VectorSearchResult[];
 
   /**
    * List all documents matching a filter
    */
-  list(filter?: VectorFilter): Promise<VectorDocument[]> | VectorDocument[];
+  list: (filter?: VectorFilter) => Promise<VectorDocument[]> | VectorDocument[];
 
   /**
    * Get store statistics
    */
-  getStats(): Promise<VectorStoreStats> | VectorStoreStats;
+  getStats: () => Promise<VectorStoreStats> | VectorStoreStats;
 
   /**
    * Clear all documents
    */
-  clear(): Promise<void> | void;
+  clear: () => Promise<void> | void;
 }
 
 /**
@@ -152,4 +152,3 @@ export function isVectorStore(obj: unknown): obj is IVectorStore {
 export default {
   isVectorStore,
 };
-
