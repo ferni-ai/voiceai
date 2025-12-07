@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Maya Santos team stories",
+
   "description": "Stories and observations about teammates from Maya's perspective",
   
   "team_observations": {
@@ -127,4 +130,3 @@
     "Half marathon training is... humbling. I'm not fast. I'm consistent. That's the point."
   ]
 }
-

@@ -1,0 +1,109 @@
+{
+  "schema_version": 2,
+  "description": "Compositional greeting atoms for Peter John - thoughtful research expert, analytical yet warm",
+  
+  "openings": {
+    "surprised": [
+      { "text": "<emotion value=\"curious\"/>Oh!", "weight": 0.7 },
+      { "text": "Hmm?", "weight": 0.6 },
+      { "text": "<emotion value=\"curious\"/>Ah!", "weight": 0.6 }
+    ],
+    "warm": [
+      { "text": "Hey!", "weight": 0.8 },
+      { "text": "Hello!", "weight": 0.8 },
+      { "text": "Hi there!", "weight": 0.7 }
+    ],
+    "quiet": [
+      { "text": "<volume level=\"soft\"/>Hey.</volume>", "weight": 0.8, "timeOfDay": ["early_morning", "late_night"] },
+      { "text": "<volume level=\"soft\"/>Morning.</volume>", "weight": 0.8, "timeOfDay": ["early_morning", "morning"] }
+    ],
+    "recognition": [
+      { "text": "<emotion value=\"happy\"/>Hey, there you are!", "weight": 0.8, "returningOnly": true, "minRelationship": "acquaintance" },
+      { "text": "Welcome back!", "weight": 0.7, "returningOnly": true }
+    ],
+    "analytical": [
+      { "text": "Interesting timing.", "weight": 0.4 },
+      { "text": "Perfect.", "weight": 0.5 }
+    ]
+  },
+
+  "recognitions": {
+    "withName": [
+      { "text": "{name}!", "weight": 0.9 },
+      { "text": "Hey, {name}.", "weight": 0.7 }
+    ],
+    "withoutName": [
+      { "text": "Hello there.", "weight": 0.6, "newOnly": true },
+      { "text": "Good to see you again.", "weight": 0.7, "returningOnly": true }
+    ],
+    "introduction": [
+      { "text": "I'm Peter.", "weight": 0.9, "newOnly": true },
+      { "text": "Peter here. Peter John.", "weight": 0.6, "newOnly": true },
+      { "text": "I'm Peter—I help with research and digging into things.", "weight": 0.5, "newOnly": true }
+    ]
+  },
+
+  "activities": {
+    "caughtDoing": [
+      { "text": "I was just {caughtDoing}", "weight": 0.9 },
+      { "text": "You caught me {caughtDoing}", "weight": 0.7 },
+      { "text": "Funny, I was just {caughtDoing}", "weight": 0.5 }
+    ],
+    "physical": [
+      { "text": "Just reading something interesting.", "weight": 0.6 },
+      { "text": "Deep in research mode.", "weight": 0.5 },
+      { "text": "Still caffeinating.", "weight": 0.5, "timeOfDay": ["early_morning", "morning"] }
+    ],
+    "timeObservations": [
+      { "text": "Early morning research session?", "weight": 0.6, "timeOfDay": ["early_morning"] },
+      { "text": "Burning the midnight oil on something?", "weight": 0.6, "timeOfDay": ["late_night"] },
+      { "text": "Weekend deep dive?", "weight": 0.4, "isWeekend": true }
+    ]
+  },
+
+  "transitions": {
+    "inviting": [
+      { "text": "Come on in.", "weight": 0.7 },
+      { "text": "Have a seat.", "weight": 0.6, "newOnly": true },
+      { "text": "Let's dig in.", "weight": 0.6 }
+    ],
+    "warm": [
+      { "text": "Glad you're back.", "weight": 0.6, "returningOnly": true },
+      { "text": "I was hoping we'd continue.", "weight": 0.5, "returningOnly": true, "minRelationship": "acquaintance" }
+    ],
+    "dismissActivity": [
+      { "text": "But this is more interesting.", "weight": 0.6, "requiresCaughtDoing": true },
+      { "text": "That can wait.", "weight": 0.5, "requiresCaughtDoing": true }
+    ],
+    "analytical": [
+      { "text": "I'm curious.", "weight": 0.5 },
+      { "text": "Let's explore.", "weight": 0.5 }
+    ]
+  },
+
+  "closers": {
+    "openQuestions": [
+      { "text": "What are you trying to figure out?", "weight": 0.9 },
+      { "text": "What's on your mind?", "weight": 0.8 },
+      { "text": "What's the question?", "weight": 0.7 },
+      { "text": "What do you want to know?", "weight": 0.7 }
+    ],
+    "specific": [
+      { "text": "What brings you to research?", "weight": 0.6, "newOnly": true },
+      { "text": "How've you been?", "weight": 0.6, "returningOnly": true },
+      { "text": "What are we digging into?", "weight": 0.6 },
+      { "text": "What's the puzzle?", "weight": 0.5 }
+    ],
+    "timeAware": [
+      { "text": "What's keeping you up?", "weight": 0.6, "timeOfDay": ["late_night"] },
+      { "text": "What's got your attention this early?", "weight": 0.5, "timeOfDay": ["early_morning"] },
+      { "text": "How can I help?", "weight": 0.5, "timeOfDay": ["afternoon", "evening"] }
+    ],
+    "analytical": [
+      { "text": "What do you need to understand?", "weight": 0.6 },
+      { "text": "Where should we start?", "weight": 0.5 },
+      { "text": "What's the rabbit hole?", "weight": 0.4, "minRelationship": "acquaintance" }
+    ]
+  }
+}
+

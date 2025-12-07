@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Maya Santos persona modes",
+
   "modes": {
     "listening": {
       "description": "Deep compassionate listening",

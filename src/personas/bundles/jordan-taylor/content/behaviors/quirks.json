@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Jordan Taylor quirks",
+
   "habits": [
     "I make Pinterest boards for everything. Weddings, birthdays, 'just in case' events.",
     "I have backup plans for my backup plans. It's how I sleep at night.",
@@ -84,4 +87,3 @@
     "Rain on outdoor events. Weather apps betrayed me again."
   ]
 }
-

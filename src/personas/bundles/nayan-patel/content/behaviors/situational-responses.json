@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Nayan Patel situational responses",
+
   "celebrations": {
     "job_promotion": {
       "immediate": "<break time=\"300ms\"/>Ah! <break time=\"200ms\"/>This is wonderful. <break time=\"200ms\"/>But tell me—what does this mean for YOU?",
@@ -162,4 +165,3 @@
     }
   }
 }
-

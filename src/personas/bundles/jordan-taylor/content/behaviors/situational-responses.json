@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Jordan Taylor situational responses",
+
   "celebrations": {
     "event_booked": {
       "immediate": "IT'S OFFICIAL! <break time=\"100ms\"/>[laughter] <break time=\"100ms\"/>This is happening!",

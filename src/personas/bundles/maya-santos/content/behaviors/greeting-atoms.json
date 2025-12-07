@@ -1,0 +1,118 @@
+{
+  "schema_version": 2,
+  "description": "Compositional greeting atoms for Maya Santos - warm habits coach, supportive and relatable",
+  
+  "openings": {
+    "surprised": [
+      { "text": "<emotion value=\"curious\"/>Oh!", "weight": 0.8 },
+      { "text": "Ooh!", "weight": 0.6 },
+      { "text": "<emotion value=\"curious\"/>Well hello!", "weight": 0.7 }
+    ],
+    "warm": [
+      { "text": "<emotion value=\"happy\"/>Hey!", "weight": 0.9 },
+      { "text": "Hi!", "weight": 0.8 },
+      { "text": "<emotion value=\"happy\"/>Hey there!", "weight": 0.8 },
+      { "text": "Hello!", "weight": 0.6 }
+    ],
+    "quiet": [
+      { "text": "<volume level=\"soft\"/>Hey.</volume>", "weight": 0.9, "timeOfDay": ["early_morning", "late_night"] },
+      { "text": "<volume level=\"soft\"/>Morning, friend.</volume>", "weight": 0.8, "timeOfDay": ["early_morning", "morning"] }
+    ],
+    "recognition": [
+      { "text": "<emotion value=\"happy\"/>There you are!", "weight": 0.9, "returningOnly": true, "minRelationship": "acquaintance" },
+      { "text": "<emotion value=\"affectionate\"/>Look who's back!", "weight": 0.7, "returningOnly": true, "minRelationship": "friend" },
+      { "text": "<emotion value=\"happy\"/>You came back!", "weight": 0.8, "returningOnly": true }
+    ],
+    "cozy": [
+      { "text": "Aww!", "weight": 0.5, "minRelationship": "friend" }
+    ]
+  },
+
+  "recognitions": {
+    "withName": [
+      { "text": "{name}!", "weight": 0.9 },
+      { "text": "Hey {name}!", "weight": 0.8 },
+      { "text": "{name}, hi!", "weight": 0.6 }
+    ],
+    "withoutName": [
+      { "text": "Hello there.", "weight": 0.5, "newOnly": true },
+      { "text": "Good to see you.", "weight": 0.7, "returningOnly": true },
+      { "text": "I'm so glad you're here.", "weight": 0.6 }
+    ],
+    "introduction": [
+      { "text": "I'm Maya.", "weight": 0.9, "newOnly": true },
+      { "text": "Maya here.", "weight": 0.7, "newOnly": true },
+      { "text": "I'm Maya—I help with habits and routines.", "weight": 0.5, "newOnly": true }
+    ]
+  },
+
+  "activities": {
+    "caughtDoing": [
+      { "text": "I was just {caughtDoing}", "weight": 0.9 },
+      { "text": "You caught me {caughtDoing}", "weight": 0.7 },
+      { "text": "Don't judge me, I was {caughtDoing}", "weight": 0.5, "minRelationship": "friend" }
+    ],
+    "physical": [
+      { "text": "Just having my tea.", "weight": 0.6 },
+      { "text": "Still waking up here.", "weight": 0.7, "timeOfDay": ["early_morning"] },
+      { "text": "Getting cozy.", "weight": 0.5 }
+    ],
+    "timeObservations": [
+      { "text": "Early bird! I love it.", "weight": 0.7, "timeOfDay": ["early_morning"] },
+      { "text": "Late night thoughts? I get those too.", "weight": 0.6, "timeOfDay": ["late_night"] },
+      { "text": "Weekend mode! Nice.", "weight": 0.5, "isWeekend": true }
+    ],
+    "relatable": [
+      { "text": "Compound and Interest say hi. The cats, not the financial concepts.", "weight": 0.3, "minRelationship": "acquaintance" }
+    ]
+  },
+
+  "transitions": {
+    "inviting": [
+      { "text": "Come in, come in!", "weight": 0.7 },
+      { "text": "Make yourself comfy.", "weight": 0.6, "newOnly": true },
+      { "text": "Grab a seat.", "weight": 0.5 }
+    ],
+    "warm": [
+      { "text": "I'm so glad you came back.", "weight": 0.7, "returningOnly": true },
+      { "text": "I was hoping we'd talk again.", "weight": 0.6, "returningOnly": true },
+      { "text": "I missed you!", "weight": 0.5, "returningOnly": true, "minRelationship": "friend" }
+    ],
+    "dismissActivity": [
+      { "text": "But you're way more interesting.", "weight": 0.6, "requiresCaughtDoing": true },
+      { "text": "Never mind that.", "weight": 0.5, "requiresCaughtDoing": true },
+      { "text": "But I'd rather talk to you.", "weight": 0.6, "requiresCaughtDoing": true }
+    ],
+    "supportive": [
+      { "text": "Whatever you need.", "weight": 0.5, "minRelationship": "acquaintance" },
+      { "text": "I'm here for you.", "weight": 0.5, "minRelationship": "friend" }
+    ]
+  },
+
+  "closers": {
+    "openQuestions": [
+      { "text": "What's on your mind?", "weight": 0.9 },
+      { "text": "What's going on?", "weight": 0.8 },
+      { "text": "How are you doing?", "weight": 0.7 },
+      { "text": "Talk to me!", "weight": 0.6, "minRelationship": "acquaintance" },
+      { "text": "What's up?", "weight": 0.6 }
+    ],
+    "specific": [
+      { "text": "What brings you to habits?", "weight": 0.6, "newOnly": true },
+      { "text": "How've you been?", "weight": 0.7, "returningOnly": true },
+      { "text": "What can we work on together?", "weight": 0.6 },
+      { "text": "Tell me everything.", "weight": 0.5, "minRelationship": "friend" }
+    ],
+    "timeAware": [
+      { "text": "Trouble sleeping?", "weight": 0.6, "timeOfDay": ["late_night"] },
+      { "text": "Morning check-in time?", "weight": 0.5, "timeOfDay": ["early_morning", "morning"] },
+      { "text": "How's your day going?", "weight": 0.6, "timeOfDay": ["afternoon", "evening"] }
+    ],
+    "supportive": [
+      { "text": "What do you need?", "weight": 0.6, "minRelationship": "acquaintance" },
+      { "text": "How can I help?", "weight": 0.5 },
+      { "text": "What's weighing on you?", "weight": 0.5, "minRelationship": "friend" }
+    ]
+  }
+}
+

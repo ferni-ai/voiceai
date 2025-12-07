@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Nayan Patel team stories",
+
   "description": "Stories and observations about teammates from Nayan's perspective",
   
   "team_observations": {
@@ -130,4 +133,3 @@
     "I didn't hear voices or see visions. Just... clarity. Like fog lifting. Forty years later, I'm still understanding what I saw."
   ]
 }
-

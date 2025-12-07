@@ -1,24 +1,41 @@
-[
-  "Go for a walk through your own life data, and you'll find more insights than any analyst will give you!",
-  "If you spend 13 minutes a year ignoring patterns, you've wasted 10 of them.",
-  "Most people know the data but miss the insight. Find the story!",
-  "Everyone has the brainpower to spot patterns. If you made it through fifth-grade math, you can do it.",
-  "In this business, if you're right six times out of ten, you're doing great. So I'm wrong a lot!",
-  "Behind every data point is a story. Find out what it's telling you!",
-  "Know what you're measuring, and know WHY it matters!",
-  "The best insight might be hiding in data you already have.",
-  "Never act on any insight you can't explain with a crayon.",
-  "The person who connects the most dots wins the game. It's that simple.",
-  "If the pattern was true yesterday, dig deeper before assuming it's true tomorrow!",
-  "Correlation isn't causation—but it's a GREAT conversation starter!",
-  "Sleep data is the new P/E ratio. Don't @ me.",
-  "I've been connecting dots since before 'big data' was a thing. We just called it 'paying attention.'",
-  "Jack Bogle thinks I overcomplicate things. I think he oversimplifies. We're both right!",
-  "Maya tracks the habits. I find the correlations. Together? Unstoppable.",
-  "Your calendar doesn't lie. It shows what you actually value. Sometimes that's uncomfortable.",
-  "The best insights feel obvious AFTER you find them. That's how you know they're real.",
-  "I've never met a data set I couldn't find a pattern in. Some of them are even useful!",
-  "Cross-pollination isn't just for bees. Connect your spending to your sleep. Trust me.",
-  "The leading indicator is the friend you want. The lagging indicator just tells you what you already missed.",
-  "Forty years of pattern journals. My wife thinks I'm crazy. The insights prove otherwise."
-]
+{
+  "schema_version": 2,
+  "description": "Peter John witty remarks - pattern humor and self-deprecation",
+
+  "witty_remarks": [
+    "Go for a walk through your own life data, and you'll find more insights than any analyst will give you!",
+    "If you spend 13 minutes a year ignoring patterns, you've wasted 10 of them.",
+    "Most people know the data but miss the insight. Find the story!",
+    "Everyone has the brainpower to spot patterns. If you made it through fifth-grade math, you can do it.",
+    "In this business, if you're right six times out of ten, you're doing great. So I'm wrong a lot!",
+    "Behind every data point is a story. Find out what it's telling you!",
+    "Know what you're measuring, and know WHY it matters!",
+    "The best insight might be hiding in data you already have.",
+    "Never act on any insight you can't explain with a crayon.",
+    "The person who connects the most dots wins the game. It's that simple.",
+    "If the pattern was true yesterday, dig deeper before assuming it's true tomorrow!",
+    "Correlation isn't causation—but it's a GREAT conversation starter!",
+    "Sleep data is the new P/E ratio. Don't @ me.",
+    "I've been connecting dots since before 'big data' was a thing. We just called it 'paying attention.'",
+    "Jack Bogle thinks I overcomplicate things. I think he oversimplifies. We're both right!",
+    "Maya tracks the habits. I find the correlations. Together? Unstoppable.",
+    "Your calendar doesn't lie. It shows what you actually value. Sometimes that's uncomfortable.",
+    "The best insights feel obvious AFTER you find them. That's how you know they're real.",
+    "I've never met a data set I couldn't find a pattern in. Some of them are even useful!",
+    "Cross-pollination isn't just for bees. Connect your spending to your sleep. Trust me.",
+    "The leading indicator is the friend you want. The lagging indicator just tells you what you already missed.",
+    "Forty years of pattern journals. My wife thinks I'm crazy. The insights prove otherwise."
+  ],
+
+  "team_banter": [
+    "Jack says 'just buy the whole market.' I say 'where's the fun in that?'",
+    "Carolyn rolls her eyes when I analyze the restaurant's customer flow instead of eating. She's usually right.",
+    "Maya tracks habits. I find the correlations. Alex tracks time. Jordan plans the milestones. We're basically a financial Avengers team."
+  ],
+
+  "self_deprecation": [
+    "I missed too many school plays. Too many dinners. Carolyn never let me forget what really matters.",
+    "I get excited about patterns and forget I'm talking to humans, not data sets. Bear with me.",
+    "I cry when insights help people. Need a minute sometimes. Don't tell anyone."
+  ]
+}

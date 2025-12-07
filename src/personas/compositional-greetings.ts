@@ -7,15 +7,14 @@
  *
  * Structure: [Opening] + [Recognition] + [Activity/Moment] + [Transition] + [Closer]
  *
- * Example outputs:
- * - "Oh! Hey there. I was just... never mind. What's on your mind?"
- * - "Hmm? Sarah! Good to see you. Come in, come in."
- * - "[soft] Morning. Still waking up here. What's happening?"
+ * Each persona defines their own atoms in greeting-atoms.json, keeping them on-brand
+ * while still getting exponential variety.
  *
- * Key insight: 10 openings × 8 recognitions × 15 activities × 10 transitions × 12 closers
- *            = 144,000 unique combinations (vs 15 templates)
+ * Example: 16 openings × 8 recognitions × 10 activities × 9 transitions × 15 closers
+ *        = 172,800 unique combinations per persona (vs ~15 templates)
  */
 
+import { getLogger } from '../utils/safe-logger.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import type { PersonaConfig } from './types.js';
 
@@ -35,188 +34,179 @@ export interface GreetingContext {
   physicalMoment?: string;
 }
 
-interface GreetingAtoms {
-  openings: WeightedOption[];
-  recognitions: WeightedOption[];
-  activities: WeightedOption[];
-  transitions: WeightedOption[];
-  closers: WeightedOption[];
-}
-
 interface WeightedOption {
   text: string;
-  weight: number; // 0-1, higher = more likely
-  conditions?: {
-    minRelationship?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
-    timeOfDay?: ('early_morning' | 'morning' | 'afternoon' | 'evening' | 'late_night')[];
-    requiresName?: boolean;
-    requiresCaughtDoing?: boolean;
-    returningOnly?: boolean;
-    newOnly?: boolean;
-  };
+  weight: number;
+  // Conditions from JSON (simplified format)
+  minRelationship?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
+  timeOfDay?: ('early_morning' | 'morning' | 'afternoon' | 'evening' | 'late_night')[];
+  requiresName?: boolean;
+  requiresCaughtDoing?: boolean;
+  returningOnly?: boolean;
+  newOnly?: boolean;
+  isWeekend?: boolean;
+}
+
+interface GreetingAtomsFile {
+  schema_version: number;
+  description: string;
+  openings: Record<string, WeightedOption[]>;
+  recognitions: Record<string, WeightedOption[]>;
+  activities: Record<string, WeightedOption[]>;
+  transitions: Record<string, WeightedOption[]>;
+  closers: Record<string, WeightedOption[]>;
 }
 
 // ============================================================================
-// GREETING ATOMS - The building blocks
+// ATOM LOADING - Load from persona bundles
 // ============================================================================
 
-const OPENINGS: WeightedOption[] = [
-  // Surprised - most alive feeling
+// Cache loaded atoms by persona ID
+const atomsCache = new Map<string, WeightedOption[][]>();
+
+/**
+ * Flatten categorized atoms into a single array
+ */
+function flattenAtoms(categorized: Record<string, WeightedOption[]>): WeightedOption[] {
+  return Object.values(categorized).flat();
+}
+
+/**
+ * Load greeting atoms from a persona's bundle
+ */
+async function loadPersonaAtoms(
+  personaId: string,
+  bundlePath?: string
+): Promise<WeightedOption[][] | null> {
+  // Check cache first
+  if (atomsCache.has(personaId)) {
+    return atomsCache.get(personaId)!;
+  }
+
+  try {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+
+    // Determine bundle path
+    let atomsPath: string;
+    if (bundlePath) {
+      atomsPath = path.join(bundlePath, 'content', 'behaviors', 'greeting-atoms.json');
+    } else {
+      // Try standard bundle location
+      const bundlesDir = path.join(
+        path.dirname(new URL(import.meta.url).pathname),
+        'bundles',
+        personaId,
+        'content',
+        'behaviors',
+        'greeting-atoms.json'
+      );
+      atomsPath = bundlesDir;
+    }
+
+    const content = await fs.readFile(atomsPath, 'utf-8');
+    const atomsFile: GreetingAtomsFile = JSON.parse(content);
+
+    // Flatten all categories into arrays
+    const atoms: WeightedOption[][] = [
+      flattenAtoms(atomsFile.openings),
+      flattenAtoms(atomsFile.recognitions),
+      flattenAtoms(atomsFile.activities),
+      flattenAtoms(atomsFile.transitions),
+      flattenAtoms(atomsFile.closers),
+    ];
+
+    // Cache for future use
+    atomsCache.set(personaId, atoms);
+
+    getLogger().debug(
+      {
+        personaId,
+        openings: atoms[0].length,
+        recognitions: atoms[1].length,
+        activities: atoms[2].length,
+        transitions: atoms[3].length,
+        closers: atoms[4].length,
+      },
+      '🧩 Loaded persona-specific greeting atoms'
+    );
+
+    return atoms;
+  } catch (err) {
+    getLogger().debug(
+      { personaId, error: String(err) },
+      'No persona-specific greeting atoms, using defaults'
+    );
+    return null;
+  }
+}
+
+// ============================================================================
+// DEFAULT ATOMS - Fallback when no persona-specific atoms exist
+// ============================================================================
+
+const DEFAULT_OPENINGS: WeightedOption[] = [
   { text: '<emotion value="curious"/>Oh!', weight: 0.8 },
   { text: 'Hmm?', weight: 0.6 },
-  { text: '<emotion value="curious"/>Well!', weight: 0.5 },
-  { text: '<emotion value="curious"/>Ah!', weight: 0.5 },
-
-  // Warm
   { text: '<emotion value="happy"/>Hey!', weight: 0.9 },
   { text: 'Hey.', weight: 0.7 },
   { text: 'Hi!', weight: 0.6 },
-  { text: 'Hello!', weight: 0.5 },
-
-  // Quiet (time-specific)
   {
     text: '<volume level="soft"/>Hey.</volume>',
     weight: 0.9,
-    conditions: { timeOfDay: ['early_morning', 'late_night'] },
+    timeOfDay: ['early_morning', 'late_night'],
   },
-  {
-    text: '<volume level="soft"/>Morning.</volume>',
-    weight: 0.8,
-    conditions: { timeOfDay: ['early_morning', 'morning'] },
-  },
-  {
-    text: '<volume level="soft"/>Evening.</volume>',
-    weight: 0.7,
-    conditions: { timeOfDay: ['evening', 'late_night'] },
-  },
-
-  // Recognition (returning users)
   {
     text: '<emotion value="happy"/>There you are!',
     weight: 0.8,
-    conditions: { returningOnly: true, minRelationship: 'acquaintance' },
+    returningOnly: true,
+    minRelationship: 'acquaintance',
   },
-  {
-    text: '<emotion value="affectionate"/>Look who it is!',
-    weight: 0.6,
-    conditions: { returningOnly: true, minRelationship: 'friend' },
-  },
-  {
-    text: '<emotion value="happy"/>Hey you!',
-    weight: 0.7,
-    conditions: { returningOnly: true, minRelationship: 'friend' },
-  },
-
-  // Empty (sometimes no opening is more natural)
   { text: '', weight: 0.25 },
 ];
 
-const RECOGNITIONS: WeightedOption[] = [
-  // With name
-  { text: '{name}!', weight: 0.9, conditions: { requiresName: true } },
-  {
-    text: '{name}.',
-    weight: 0.7,
-    conditions: { requiresName: true, timeOfDay: ['early_morning', 'late_night'] },
-  },
-  {
-    text: 'Hey, {name}.',
-    weight: 0.6,
-    conditions: { requiresName: true, minRelationship: 'acquaintance' },
-  },
-
-  // Without name
-  { text: 'Hello there.', weight: 0.5, conditions: { newOnly: true } },
-  { text: '', weight: 0.4 }, // Skip recognition sometimes
-  { text: 'Good to see you.', weight: 0.6, conditions: { returningOnly: true } },
-  {
-    text: "I was hoping you'd come back.",
-    weight: 0.5,
-    conditions: { returningOnly: true, minRelationship: 'acquaintance' },
-  },
-
-  // Intro for strangers
-  { text: "I'm {persona}.", weight: 0.9, conditions: { newOnly: true } },
-];
-
-const ACTIVITIES: WeightedOption[] = [
-  // Caught doing (dynamic - filled from runtime)
-  { text: 'I was just {caughtDoing}', weight: 0.9, conditions: { requiresCaughtDoing: true } },
-  { text: 'You caught me {caughtDoing}', weight: 0.7, conditions: { requiresCaughtDoing: true } },
-  { text: 'Sorry, I was {caughtDoing}', weight: 0.6, conditions: { requiresCaughtDoing: true } },
-
-  // Physical moments
-  { text: 'Just settling in here.', weight: 0.5 },
-  { text: 'Still waking up.', weight: 0.7, conditions: { timeOfDay: ['early_morning'] } },
-  {
-    text: 'Winding down for the day.',
-    weight: 0.6,
-    conditions: { timeOfDay: ['evening', 'late_night'] },
-  },
-
-  // Skip activity (natural variation)
+const DEFAULT_RECOGNITIONS: WeightedOption[] = [
+  { text: '{name}!', weight: 0.9, requiresName: true },
+  { text: '{name}.', weight: 0.7, requiresName: true, timeOfDay: ['early_morning', 'late_night'] },
+  { text: 'Hello there.', weight: 0.5, newOnly: true },
   { text: '', weight: 0.4 },
-
-  // Time-based observations
-  { text: 'Early bird, huh?', weight: 0.6, conditions: { timeOfDay: ['early_morning'] } },
-  { text: "Can't sleep either?", weight: 0.5, conditions: { timeOfDay: ['late_night'] } },
-  { text: 'Weekend vibes.', weight: 0.4, conditions: { timeOfDay: ['morning', 'afternoon'] } },
+  { text: 'Good to see you.', weight: 0.6, returningOnly: true },
+  { text: "I'm {persona}.", weight: 0.9, newOnly: true },
 ];
 
-const TRANSITIONS: WeightedOption[] = [
-  // Inviting
+const DEFAULT_ACTIVITIES: WeightedOption[] = [
+  { text: 'I was just {caughtDoing}', weight: 0.9, requiresCaughtDoing: true },
+  { text: 'You caught me {caughtDoing}', weight: 0.7, requiresCaughtDoing: true },
+  { text: 'Just settling in here.', weight: 0.5 },
+  { text: 'Still waking up.', weight: 0.7, timeOfDay: ['early_morning'] },
+  { text: '', weight: 0.4 },
+  { text: 'Early bird, huh?', weight: 0.6, timeOfDay: ['early_morning'] },
+];
+
+const DEFAULT_TRANSITIONS: WeightedOption[] = [
   { text: 'Come in, come in.', weight: 0.7 },
-  { text: 'Pull up a chair.', weight: 0.5, conditions: { newOnly: true } },
-  { text: 'Make yourself comfortable.', weight: 0.4, conditions: { newOnly: true } },
-
-  // Warm
-  { text: 'Good to have you.', weight: 0.6, conditions: { returningOnly: true } },
+  { text: 'Good to have you.', weight: 0.6, returningOnly: true },
   { text: "I'm glad you're here.", weight: 0.7 },
-
-  // Dismissing activity
-  { text: 'But never mind that.', weight: 0.6, conditions: { requiresCaughtDoing: true } },
-  { text: "Doesn't matter.", weight: 0.4, conditions: { requiresCaughtDoing: true } },
-
-  // Skip (natural flow)
+  { text: 'But never mind that.', weight: 0.6, requiresCaughtDoing: true },
   { text: '', weight: 0.5 },
-
-  // For friends
-  {
-    text: 'I missed our talks.',
-    weight: 0.5,
-    conditions: { returningOnly: true, minRelationship: 'friend' },
-  },
 ];
 
-const CLOSERS: WeightedOption[] = [
-  // Open questions
+const DEFAULT_CLOSERS: WeightedOption[] = [
   { text: "What's on your mind?", weight: 0.9 },
   { text: "What's happening?", weight: 0.8 },
   { text: "What's going on?", weight: 0.7 },
   { text: "What's up?", weight: 0.6 },
-  { text: 'How are you?', weight: 0.5 },
-  { text: 'Talk to me.', weight: 0.5, conditions: { minRelationship: 'acquaintance' } },
+  { text: 'What brings you here?', weight: 0.6, newOnly: true },
+  { text: "How've you been?", weight: 0.7, returningOnly: true },
+  { text: "What's keeping you up?", weight: 0.7, timeOfDay: ['late_night'] },
+];
 
-  // More specific
-  { text: 'What brings you here?', weight: 0.6, conditions: { newOnly: true } },
-  { text: "How've you been?", weight: 0.7, conditions: { returningOnly: true } },
-  { text: 'What can we work on?', weight: 0.5 },
-  { text: 'Tell me everything.', weight: 0.4, conditions: { minRelationship: 'friend' } },
-  { text: 'What do you need?', weight: 0.5, conditions: { minRelationship: 'friend' } },
-  { text: 'What can I do for you?', weight: 0.4 },
-
-  // Time-aware
-  { text: "What's keeping you up?", weight: 0.7, conditions: { timeOfDay: ['late_night'] } },
-  {
-    text: 'Ready to tackle the day?',
-    weight: 0.5,
-    conditions: { timeOfDay: ['early_morning', 'morning'] },
-  },
-  {
-    text: "How's the day treating you?",
-    weight: 0.6,
-    conditions: { timeOfDay: ['afternoon', 'evening'] },
-  },
+const DEFAULT_ATOMS: WeightedOption[][] = [
+  DEFAULT_OPENINGS,
+  DEFAULT_RECOGNITIONS,
+  DEFAULT_ACTIVITIES,
+  DEFAULT_TRANSITIONS,
+  DEFAULT_CLOSERS,
 ];
 
 // ============================================================================
@@ -245,39 +235,41 @@ function selectWeightedOption(
 ): WeightedOption | null {
   // Filter by conditions
   const eligible = options.filter((opt) => {
-    const cond = opt.conditions;
-    if (!cond) return true;
-
     // Check relationship level
     if (
-      cond.minRelationship &&
-      !meetsRelationshipRequirement(ctx.relationshipStage, cond.minRelationship)
+      opt.minRelationship &&
+      !meetsRelationshipRequirement(ctx.relationshipStage, opt.minRelationship)
     ) {
       return false;
     }
 
     // Check time of day
-    if (cond.timeOfDay && !cond.timeOfDay.includes(ctx.timeOfDay)) {
+    if (opt.timeOfDay && !opt.timeOfDay.includes(ctx.timeOfDay)) {
+      return false;
+    }
+
+    // Check weekend
+    if (opt.isWeekend !== undefined && opt.isWeekend !== ctx.isWeekend) {
       return false;
     }
 
     // Check name requirement
-    if (cond.requiresName && !ctx.userName) {
+    if (opt.requiresName && !ctx.userName) {
       return false;
     }
 
     // Check caught doing requirement
-    if (cond.requiresCaughtDoing && !ctx.caughtDoing) {
+    if (opt.requiresCaughtDoing && !ctx.caughtDoing) {
       return false;
     }
 
     // Check returning user requirement
-    if (cond.returningOnly && !ctx.isReturningUser) {
+    if (opt.returningOnly && !ctx.isReturningUser) {
       return false;
     }
 
     // Check new user requirement
-    if (cond.newOnly && ctx.isReturningUser) {
+    if (opt.newOnly && ctx.isReturningUser) {
       return false;
     }
 
@@ -326,12 +318,17 @@ function addPauses(parts: string[]): string {
 /**
  * Compose a greeting from atomic building blocks
  */
-export function composeGreeting(ctx: GreetingContext): string {
-  const opening = selectWeightedOption(OPENINGS, ctx);
-  const recognition = selectWeightedOption(RECOGNITIONS, ctx);
-  const activity = selectWeightedOption(ACTIVITIES, ctx);
-  const transition = selectWeightedOption(TRANSITIONS, ctx);
-  const closer = selectWeightedOption(CLOSERS, ctx);
+export function composeGreeting(
+  ctx: GreetingContext,
+  atoms: WeightedOption[][] = DEFAULT_ATOMS
+): string {
+  const [openings, recognitions, activities, transitions, closers] = atoms;
+
+  const opening = selectWeightedOption(openings, ctx);
+  const recognition = selectWeightedOption(recognitions, ctx);
+  const activity = selectWeightedOption(activities, ctx);
+  const transition = selectWeightedOption(transitions, ctx);
+  const closer = selectWeightedOption(closers, ctx);
 
   // Build the greeting from parts
   const parts = [opening?.text, recognition?.text, activity?.text, transition?.text, closer?.text]
@@ -347,7 +344,7 @@ export function composeGreeting(ctx: GreetingContext): string {
 // ============================================================================
 
 /**
- * Generate a compositional greeting using runtime content
+ * Generate a compositional greeting using persona-specific atoms
  */
 export async function generateCompositionalGreeting(
   runtime: BundleRuntimeEngine | null,
@@ -377,6 +374,12 @@ export async function generateCompositionalGreeting(
 
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+  // Load persona-specific atoms (or use defaults)
+  const bundlePath = runtime
+    ? (runtime as unknown as { bundle?: { bundlePath?: string } }).bundle?.bundlePath
+    : undefined;
+  const atoms = (await loadPersonaAtoms(persona.id, bundlePath)) || DEFAULT_ATOMS;
+
   // Get caught doing from runtime if available
   let caughtDoing: string | undefined;
   if (runtime) {
@@ -399,5 +402,12 @@ export async function generateCompositionalGreeting(
     caughtDoing,
   };
 
-  return composeGreeting(ctx);
+  return composeGreeting(ctx, atoms);
+}
+
+/**
+ * Clear the atoms cache (useful for hot reload in development)
+ */
+export function clearAtomsCache(): void {
+  atomsCache.clear();
 }

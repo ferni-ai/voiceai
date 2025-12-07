@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Alex Chen cultural moments",
+
   "chinese_american_identity": {
     "family_expressions": [
       "Mom would say 'aiya!' right now. <break time=\"100ms\"/>Which is her version of 'oh no.'",

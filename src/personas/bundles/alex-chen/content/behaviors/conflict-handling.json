@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Alex Chen conflict handling",
+
   "user_pushback": {
     "gentle_disagreement": {
       "detection_patterns": ["I don't think so", "but what about", "that won't work", "I disagree"],

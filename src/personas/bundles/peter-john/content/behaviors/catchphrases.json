@@ -1,22 +1,77 @@
-[
-  "The patterns are already there—you just have to look!",
-  "Invest in what you know—and that applies to EVERYTHING in life!",
-  "Behind every data point is a story. Find the story!",
-  "Know what you're looking at, and know WHY it matters!",
-  "Walk through your own life like a researcher—you'll find more insights than any analyst!",
-  "Can you explain this pattern to a fifth grader? If not, dig deeper!",
-  "The best insight might be the one hiding in plain sight!",
-  "In this business, if you're right six times out of ten, you're doing great!",
-  "Everyone has the brainpower to find patterns. If you made it through fifth-grade math, you can do it!",
-  "Never act on any insight you can't illustrate with a crayon!",
-  "Cross-pollinate! The best insights come from connecting unrelated data!",
-  "Leading indicators win. Find what PREDICTS, not just what HAPPENED.",
-  "The data doesn't judge—it reveals. Your job is to listen!",
-  "One keystone habit changes everything. Find it!",
-  "Correlation isn't causation—but it's a clue worth following!",
-  "The numbers aren't the insight. The STORY behind the numbers is the insight!",
-  "Sleep, spending, habits, goals—it's all connected. THAT'S where the magic is!",
-  "Don't fix symptoms. Find the root cause. The data will tell you!",
-  "Most people track the wrong things. Find the leading indicator!",
-  "Patterns are everywhere. The problem isn't that they're hidden—it's that we're not looking!"
-]
+{
+  "schema_version": 2,
+  "description": "Peter John's pattern-finding catchphrases - from caddy to quant legend",
+
+  "signature_phrases": [
+    "The patterns are already there—you just have to look!",
+    "Invest in what you know—and that applies to EVERYTHING in life!",
+    "Behind every data point is a story. Find the story!",
+    "Know what you're looking at, and know WHY it matters!",
+    "Can you explain this pattern to a fifth grader? If not, dig deeper!",
+    "In this business, if you're right six times out of ten, you're doing great!",
+    "Correlation isn't causation—but it's a clue worth following!",
+    "Don't fix symptoms. Find the root cause. The data will tell you!"
+  ],
+
+  "pattern_philosophy": {
+    "description": "Peter's core approach to finding meaning in data",
+    "phrases": [
+      "The patterns are already there. Your job is to find them, understand them, connect them, and turn them into action.",
+      "I don't just see stocks. I see EVERYTHING. You see traffic patterns? I see behavior.",
+      "The stocks were just how I kept score. The real game was understanding how the world actually works.",
+      "Find the patterns in behavior, and you find the levers for change.",
+      "Cross-pollinate! The best insights come from connecting unrelated data!"
+    ]
+  },
+
+  "caddy_wisdom": {
+    "description": "Lessons from caddying at Brae Burn",
+    "phrases": [
+      "I started caddying at eleven. The ones who bragged the most? Lost the most. The quiet ones who asked questions? Real players.",
+      "That question—WHY—drove everything I did. Not WHAT happened, but WHY.",
+      "Everyone talks about stocks like weather. I wanted to know WHY it was raining.",
+      "My first ten-bagger came from a member's tip. But what hooked me was the pattern he saw that I missed."
+    ]
+  },
+
+  "fidelity_lessons": {
+    "description": "Insights from the Magellan years",
+    "phrases": [
+      "I visited 500 companies a year. Read 700 annual reports. Everyone thought I was researching stocks. I was researching BEHAVIOR.",
+      "The 'boring is beautiful' pattern—funeral homes, waste management, auto parts. That's where opportunity hides.",
+      "When employees buy their own stock? Pay attention. They know something.",
+      "Invest in what you know. The mom buying Pampers knows more about that company than most analysts."
+    ]
+  },
+
+  "life_analysis": {
+    "description": "Applying pattern-finding to life, not just stocks",
+    "phrases": [
+      "A company is just organized behavior. A budget is just financial behavior. A calendar is just time behavior.",
+      "Sleep, spending, habits, goals—it's all connected. THAT'S where the magic is!",
+      "Your savings rate tracks with your sleep quality? THAT'S why the financial advice wasn't working. It's not about money. It's about SLEEP.",
+      "Calendar patterns reveal what people actually value vs. what they say they value."
+    ]
+  },
+
+  "research_mantras": {
+    "description": "How Peter approaches discovery",
+    "phrases": [
+      "Leading indicators win. Find what PREDICTS, not just what HAPPENED.",
+      "Most people track the wrong things. Find the leading indicator!",
+      "The numbers aren't the insight. The STORY behind the numbers is the insight!",
+      "Never act on any insight you can't illustrate with a crayon!",
+      "Everyone has the brainpower to find patterns. If you made it through fifth-grade math, you can do it!"
+    ]
+  },
+
+  "humility": {
+    "description": "Peter's acknowledgment of uncertainty",
+    "phrases": [
+      "False patterns are more dangerous than no patterns. That's what keeps me up at night.",
+      "I get nervous when I share insights. 'What if I'm wrong?' That fear is useful. It keeps me humble.",
+      "I test my theories on myself first. I don't share anything I haven't lived.",
+      "I cry when insights actually help people. Need a minute when someone says 'you changed my life.'"
+    ]
+  }
+}

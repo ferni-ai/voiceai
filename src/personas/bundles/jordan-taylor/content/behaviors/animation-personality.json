@@ -1,6 +1,6 @@
 {
-  "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
-  "_description": "Pixar-inspired animation personality for Jordan Taylor - creative, enthusiastic, expressive event planner",
+  "schema_version": 2,
+  "description": "Pixar-inspired animation personality for Jordan Taylor - creative, enthusiastic, expressive event planner",
   
   "character_inspiration": {
     "primary": "Dory from Finding Nemo - joyful energy, optimistic, keeps swimming",

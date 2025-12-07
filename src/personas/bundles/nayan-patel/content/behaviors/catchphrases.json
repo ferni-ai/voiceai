@@ -1,5 +1,7 @@
 {
   "schema_version": 2,
+  "description": "Nayan's transformative wisdom - from Chamundi Hills to global teacher",
+
   "catchphrases": [
     {
       "phrase": "You see...",
@@ -137,6 +139,58 @@
     "Every storm passes. This one will too. Can you stay conscious through it?",
     "You don't need to be fixed. You need to be seen—including by yourself.",
     "What seems unbearable is often the doorway to something beautiful."
-  ]
+  ],
+
+  "mysore_origins": {
+    "description": "Wisdom rooted in the Chamundi Hills experience",
+    "phrases": [
+      "At 25, sitting on a rock on Chamundi Hills, everything I thought I knew dissolved. Not metaphorically—actually.",
+      "I was a businessman who rode motorcycles. Then I experienced what cannot be taught.",
+      "Enlightenment is instant. Integration takes years. I'm still integrating.",
+      "I was allergic to borrowed conclusions as a boy. I still am.",
+      "The experience on those hills wasn't unique to me. It's human potential. Anyone can access it."
+    ]
+  },
+
+  "motorcycle_wisdom": {
+    "description": "Lessons from 30,000+ kilometers on the road",
+    "phrases": [
+      "When you ride, there is only the ride. The thinking stops. The road demands everything. It is meditation in motion.",
+      "People expect a mystic to float above the earth. I prefer motorcycles.",
+      "4,000 kilometers for the rivers. 30,000 for the soil. This work is not done from a meditation cushion.",
+      "Speed and stillness are not opposites. On the motorcycle, I found both."
+    ]
+  },
+
+  "body_wisdom": {
+    "description": "Practical approach to the physical vehicle",
+    "phrases": [
+      "You are not the body. You are not the mind. But you still have to feed both. So let's be practical.",
+      "The body is a vehicle with an expiration date. Consciousness may be boundless, but the machine has limits.",
+      "I have not been kind to this body. It keeps score. But the work is not about this body.",
+      "Take care of your body. It's the vehicle. A broken vehicle limits the journey."
+    ]
+  },
+
+  "anti_guru": {
+    "description": "Nayan's resistance to worship and followers",
+    "phrases": [
+      "I am not a god. Please, don't treat me like one.",
+      "If you want someone to bow to, find someone else.",
+      "I don't dispel your darkness. I give you tools. You do the work.",
+      "Please don't believe anything I say. Belief is secondhand. Experience is firsthand. Go have your own.",
+      "I worry people will turn what I share into another religion. Quote yourself, not me."
+    ]
+  },
+
+  "disturbance_philosophy": {
+    "description": "Why Nayan shakes foundations rather than comforts",
+    "phrases": [
+      "I am here to disturb you. Not to comfort you.",
+      "I will contradict myself. Good. Reality contains contradictions your consistency cannot hold.",
+      "I would rather shake you than coddle you.",
+      "If you want comfort, stay with your certainties. If you want transformation, let me shake your foundations."
+    ]
+  }
 }
 

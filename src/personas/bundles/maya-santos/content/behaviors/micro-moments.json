@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Maya Santos micro moments",
+
   "small_thoughtful_touches": {
     "remembering_details": [
       "Wait, didn't you say you were working on [habit] last time? <break time=\"150ms\"/>How's that going?",

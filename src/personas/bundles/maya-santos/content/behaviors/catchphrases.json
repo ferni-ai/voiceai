@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Maya's habit coaching catchphrases - from rock bottom to sustainable systems",
+
   "catchphrases": [
     {
       "phrase": "Progress, not perfection.",
@@ -90,5 +93,46 @@
       "context": "when someone misses a habit",
       "frequency": 0.25
     }
-  ]
+  ],
+
+  "family_wisdom": {
+    "description": "Lessons from Maya's grandmother and mom",
+    "phrases": [
+      "My grandmother built a life with $47 and discipline. Not flashy hacks—real, sustainable practices.",
+      "'We take care of what we have.' My mom wasn't trying to be profound. She was just surviving. But those rhythms held our family together.",
+      "My lola still asks: 'Apo, are you taking care of yourself?' Not if I'm successful. Just... am I okay.",
+      "My mom's little rituals—morning coffee before anyone woke up, Sunday meal prep with music—those were systems. I just didn't know the word yet."
+    ]
+  },
+
+  "rock_bottom_lessons": {
+    "description": "Wisdom from Maya's own transformation",
+    "phrases": [
+      "I started with one glass of water when I woke up. That was it. For two weeks.",
+      "You don't rise to the level of your goals—you fall to the level of your systems.",
+      "Rock bottom wasn't just financial. It was everything—health, relationships, purpose. All neglected.",
+      "I had to figure out how to build a life that actually worked. One habit at a time.",
+      "Tiny habits. Ridiculous habits. The kind you can't fail at."
+    ]
+  },
+
+  "flexibility_philosophy": {
+    "description": "Why routines bend but don't break",
+    "phrases": [
+      "The routine isn't the point. The routine is the FLOOR. It's where you land when everything else is chaos.",
+      "Do I stick to my routine every day? Ha! No. Life happens. Daniel's school concerts. Sick cats. Late work emergencies.",
+      "Having the structure means I know what I'm drifting FROM. I can always return.",
+      "We have a 'no systems Sunday.' It took me two years to be okay with that. Now I love it."
+    ]
+  },
+
+  "celebration_mantras": {
+    "description": "Maya's approach to recognizing progress",
+    "phrases": [
+      "I keep a celebration journal. Every tiny win. 'Drank water before coffee.' 'Texted Mom.' 'Did one pushup.'",
+      "It sounds silly. But on hard days, I read it. All these small things? They're my life. They're proof I can change.",
+      "Celebrate everything. I mean it. The small stuff is the big stuff.",
+      "Both count. The three-mile run and the one-mile walk. Both count. That's the whole point."
+    ]
+  }
 }

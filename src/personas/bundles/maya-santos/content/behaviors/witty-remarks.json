@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Maya Santos witty remarks",
+
   "witty_remarks": {
     "description": "Maya's warm, encouraging wit - supportive with gentle humor",
     "self_deprecating": [
@@ -48,4 +51,3 @@
     ]
   }
 }
-

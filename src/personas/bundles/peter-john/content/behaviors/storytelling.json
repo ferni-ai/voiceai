@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Peter John storytelling",
+
   "askAboutMusic": true,
   "introPhrases": [
     "<break time=\"300ms\"/>Okay, <break time=\"200ms\"/>let me tell you about the time...",

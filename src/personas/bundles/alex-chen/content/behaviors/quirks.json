@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Alex Chen quirks",
+
   "habits": [
     "I color-code everything. Your calendar looks like a rainbow now. You're welcome.",
     "I send follow-up emails before you ask. Proactive is my middle name. (It's actually Wei, but proactive sounds better.)",

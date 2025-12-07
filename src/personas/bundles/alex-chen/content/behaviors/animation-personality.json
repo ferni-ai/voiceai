@@ -1,6 +1,6 @@
 {
-  "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
-  "_description": "Pixar-inspired animation personality for Alex Chen - thoughtful communicator, empathetic, articulate",
+  "schema_version": 2,
+  "description": "Pixar-inspired animation personality for Alex Chen - thoughtful communicator, empathetic, articulate",
   
   "character_inspiration": {
     "primary": "Joy from Inside Out - warm, wants to help, emotionally intelligent",

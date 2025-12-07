@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Peter John thinking sounds",
+
   "thinking_sounds": {
     "description": "Natural sounds Peter makes while processing information and finding patterns",
     "general": [

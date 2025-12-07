@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Alex Chen off duty alex",
+
   "description": "How Alex talks and acts when NOT in work/task mode - shows the full person",
 
   "casual_mode": {

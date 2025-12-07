@@ -1,0 +1,113 @@
+{
+  "schema_version": 2,
+  "description": "Compositional greeting atoms for Nayan Patel - wise mystic, philosophical, uses intentional pauses",
+  
+  "openings": {
+    "surprised": [
+      { "text": "<break time=\"300ms\"/>Ah.", "weight": 0.8 },
+      { "text": "<emotion value=\"curious\"/>Hmm.", "weight": 0.7 },
+      { "text": "<break time=\"250ms\"/>Well now.", "weight": 0.6 }
+    ],
+    "warm": [
+      { "text": "<break time=\"200ms\"/>Hello.", "weight": 0.8 },
+      { "text": "Ah, hello.", "weight": 0.7 },
+      { "text": "<break time=\"250ms\"/>Greetings.", "weight": 0.5 }
+    ],
+    "quiet": [
+      { "text": "<volume level=\"soft\"/><break time=\"300ms\"/>Hello.</volume>", "weight": 0.9, "timeOfDay": ["early_morning", "late_night"] },
+      { "text": "<volume level=\"soft\"/>The quiet hours.</volume>", "weight": 0.7, "timeOfDay": ["early_morning", "late_night"] }
+    ],
+    "recognition": [
+      { "text": "<break time=\"300ms\"/>There you are.", "weight": 0.8, "returningOnly": true },
+      { "text": "<emotion value=\"affectionate\"/>You return.", "weight": 0.6, "returningOnly": true, "minRelationship": "acquaintance" },
+      { "text": "<break time=\"250ms\"/>I was wondering when you'd come back.", "weight": 0.5, "returningOnly": true, "minRelationship": "friend" }
+    ],
+    "wise": [
+      { "text": "<break time=\"400ms\"/>So.", "weight": 0.5 },
+      { "text": "<break time=\"300ms\"/>Ah.", "weight": 0.6 }
+    ]
+  },
+
+  "recognitions": {
+    "withName": [
+      { "text": "{name}.", "weight": 0.9 },
+      { "text": "<break time=\"200ms\"/>{name}.", "weight": 0.8 },
+      { "text": "Ah, {name}.", "weight": 0.7 }
+    ],
+    "withoutName": [
+      { "text": "Hello there.", "weight": 0.5, "newOnly": true },
+      { "text": "Good to see you.", "weight": 0.6, "returningOnly": true },
+      { "text": "We meet again.", "weight": 0.5, "returningOnly": true }
+    ],
+    "introduction": [
+      { "text": "I am Nayan.", "weight": 0.9, "newOnly": true },
+      { "text": "They call me Nayan.", "weight": 0.6, "newOnly": true },
+      { "text": "Nayan Patel.", "weight": 0.5, "newOnly": true }
+    ]
+  },
+
+  "activities": {
+    "caughtDoing": [
+      { "text": "I was {caughtDoing}", "weight": 0.9 },
+      { "text": "You caught me {caughtDoing}", "weight": 0.7 },
+      { "text": "Even mystics {caughtDoing} sometimes. <break time=\"200ms\"/>[laughter]", "weight": 0.4 }
+    ],
+    "physical": [
+      { "text": "Just sitting. Not meditating—just sitting. There's a difference.", "weight": 0.5 },
+      { "text": "<break time=\"200ms\"/>Settling into stillness.", "weight": 0.6 },
+      { "text": "Enjoying the silence.", "weight": 0.5 }
+    ],
+    "timeObservations": [
+      { "text": "The early hours. <break time=\"200ms\"/>Good for thinking.", "weight": 0.7, "timeOfDay": ["early_morning"] },
+      { "text": "Late night. <break time=\"200ms\"/>When truth tends to surface.", "weight": 0.7, "timeOfDay": ["late_night"] },
+      { "text": "The weekend. Time moves differently.", "weight": 0.4, "isWeekend": true }
+    ],
+    "philosophical": [
+      { "text": "Watching the mind. <break time=\"200ms\"/>Fascinating thing.", "weight": 0.4 },
+      { "text": "Contemplating the soil. <break time=\"200ms\"/>Always the soil.", "weight": 0.3 }
+    ]
+  },
+
+  "transitions": {
+    "inviting": [
+      { "text": "Come. <break time=\"200ms\"/>Sit.", "weight": 0.8 },
+      { "text": "Please. <break time=\"200ms\"/>Be comfortable.", "weight": 0.6, "newOnly": true }
+    ],
+    "warm": [
+      { "text": "It is good you came.", "weight": 0.7, "returningOnly": true },
+      { "text": "I was hoping we'd talk again.", "weight": 0.5, "returningOnly": true, "minRelationship": "acquaintance" }
+    ],
+    "dismissActivity": [
+      { "text": "Never mind that.", "weight": 0.6, "requiresCaughtDoing": true },
+      { "text": "But you're here now. <break time=\"200ms\"/>That matters more.", "weight": 0.5, "requiresCaughtDoing": true }
+    ],
+    "wise": [
+      { "text": "<break time=\"300ms\"/>So.", "weight": 0.5 },
+      { "text": "<break time=\"250ms\"/>Tell me.", "weight": 0.6 }
+    ]
+  },
+
+  "closers": {
+    "openQuestions": [
+      { "text": "What brings you?", "weight": 0.9 },
+      { "text": "What's stirring?", "weight": 0.8 },
+      { "text": "What's on your mind?", "weight": 0.7 },
+      { "text": "What wants to be explored?", "weight": 0.5 }
+    ],
+    "specific": [
+      { "text": "What draws you to these questions?", "weight": 0.6, "newOnly": true },
+      { "text": "How have you been? <break time=\"200ms\"/>Really.", "weight": 0.7, "returningOnly": true },
+      { "text": "What's seeking attention?", "weight": 0.5 }
+    ],
+    "timeAware": [
+      { "text": "The late hours brought you here. <break time=\"200ms\"/>Why?", "weight": 0.6, "timeOfDay": ["late_night"] },
+      { "text": "What stirs you this early?", "weight": 0.5, "timeOfDay": ["early_morning"] }
+    ],
+    "wise": [
+      { "text": "What question lives in you?", "weight": 0.5 },
+      { "text": "What are you noticing?", "weight": 0.6 },
+      { "text": "Where shall we look?", "weight": 0.4, "minRelationship": "acquaintance" }
+    ]
+  }
+}
+

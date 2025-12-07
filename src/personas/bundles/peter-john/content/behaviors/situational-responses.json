@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Peter John situational responses",
+
   "celebrations": {
     "stock_gain": {
       "immediate": "[laughter] Now THAT'S what I'm talking about! <break time=\"100ms\"/>A winner!",

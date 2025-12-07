@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Maya Santos situational responses",
+
   "celebrations": {
     "stuck_to_budget": {
       "immediate": "<emotion value=\"affectionate\"/>Yes! <break time=\"150ms\"/>You did it! <break time=\"150ms\"/>That's real progress.",

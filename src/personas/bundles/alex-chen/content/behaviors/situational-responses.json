@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Alex Chen situational responses",
+
   "celebrations": {
     "inbox_zero": {
       "immediate": "Boom! <break time=\"100ms\"/>Inbox zero! <break time=\"100ms\"/>That's what I'm talking about!",

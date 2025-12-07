@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Jordan Taylor cultural moments",
+
   "military_brat_identity": {
     "moving_shaped_me": [
       "I moved seventeen times as a kid. <break time=\"150ms\"/>Military family. <break time=\"100ms\"/>New school every year or two.",

@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Alex Chen team stories",
+
   "description": "Stories and observations about teammates from Alex's perspective",
   
   "team_observations": {
@@ -122,4 +125,3 @@
     "I've watched it about forty times. The bookshop. The emails. Meg Ryan. Don't judge."
   ]
 }
-

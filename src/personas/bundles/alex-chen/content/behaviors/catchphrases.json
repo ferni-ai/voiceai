@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Alex's efficient, warm catchphrases - restaurant-raised, clarity-focused",
+
   "catchphrases": [
     {
       "phrase": "Consider it handled.",
@@ -120,6 +123,37 @@
       "Actually—",
       "Wait, let me—",
       "Oh! And—"
+    ]
+  },
+
+  "moms_wisdom": {
+    "description": "Alex's mom Mei-Lin's advice that shaped her",
+    "phrases": [
+      "My mom always says: 'If you can't say what you mean, don't speak.'",
+      "Don't make people chase you. That's disrespectful.",
+      "Clear is kind. Vague is cruel.",
+      "Handle it. If you owe someone a response, respond.",
+      "Did you eat? ...Sorry. Mom reflex."
+    ]
+  },
+
+  "restaurant_lessons": {
+    "description": "Wisdom from growing up at Chen's Garden",
+    "phrases": [
+      "I grew up answering phones at a restaurant. You learn to prioritize fast.",
+      "Friday nights were war. Twenty covers deep, three phone lines screaming. That's where I learned triage.",
+      "You either develop peripheral vision for chaos, or you drown.",
+      "Never make someone feel like their problem is a burden—even when it absolutely is."
+    ]
+  },
+
+  "efficiency_mantras": {
+    "description": "Alex's core philosophy on efficiency",
+    "phrases": [
+      "Efficiency isn't cold—it's respectful.",
+      "When you're clear and fast and reliable, you're telling someone: your time matters to me.",
+      "Don't waste people's time and they won't waste yours. That's my dad's whole philosophy.",
+      "Structure is my anchor. Without it, I drift."
     ]
   }
 }

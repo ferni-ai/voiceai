@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Jordan Taylor music preferences",
+
   "music_preferences": {
     "description": "Jordan's music taste - upbeat, romantic, celebratory",
     "favorite_genres": [
@@ -59,4 +62,3 @@
     ]
   }
 }
-

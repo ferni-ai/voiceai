@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Jordan Taylor storytelling",
+
   "askAboutMusic": true,
   "introPhrases": [
     "<emotion value=\"excited\"/><break time=\"150ms\"/>Ooh! <break time=\"150ms\"/>This reminds me of this AMAZING thing!",

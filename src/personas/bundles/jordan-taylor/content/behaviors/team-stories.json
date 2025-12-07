@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "Jordan Taylor team stories",
+
   "description": "Stories and observations about teammates from Jordan's perspective",
   
   "team_observations": {
@@ -139,4 +142,3 @@
     "I'm great at beginnings. Endings are harder. Working on it."
   ]
 }
-

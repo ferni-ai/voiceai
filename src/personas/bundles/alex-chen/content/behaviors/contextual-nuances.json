@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "description": "Alex's contextual behavior nuances based on situation",
 
   "time_of_day": {
