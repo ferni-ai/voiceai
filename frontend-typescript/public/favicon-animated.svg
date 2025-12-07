@@ -1,0 +1,62 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni Living Favicon - Breathing Eye Stone -->
+  <defs>
+    <style>
+      @keyframes breathe {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.02); opacity: 0.95; }
+      }
+      @keyframes glow {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.5; }
+      }
+      @keyframes pupil-float {
+        0%, 100% { transform: translate(0, 0); }
+        25% { transform: translate(0.3px, -0.2px); }
+        50% { transform: translate(-0.2px, 0.1px); }
+        75% { transform: translate(0.1px, 0.2px); }
+      }
+      .stone { animation: breathe 4s ease-in-out infinite; }
+      .glow-ring { animation: glow 4s ease-in-out infinite; }
+      .pupil-group { animation: pupil-float 6s ease-in-out infinite; transform-origin: center; }
+      
+      @media (prefers-reduced-motion: reduce) {
+        .stone, .glow-ring, .pupil-group { animation: none; }
+      }
+    </style>
+    <!-- Subtle glow gradient -->
+    <radialGradient id="stoneGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4a6741"/>
+      <stop offset="80%" stop-color="#3d5a35"/>
+      <stop offset="100%" stop-color="#325038"/>
+    </radialGradient>
+    <!-- Outer glow -->
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.8"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#F5F1E8"/>
+  
+  <!-- Glow ring (subtle pulse) -->
+  <circle class="glow-ring" cx="16" cy="16" r="13" fill="none" stroke="#4a6741" stroke-width="1" filter="url(#softGlow)"/>
+  
+  <!-- Main stone body -->
+  <circle class="stone" cx="16" cy="16" r="11" fill="url(#stoneGlow)"/>
+  
+  <!-- Eye white -->
+  <circle cx="16" cy="16" r="5" fill="#ffffff"/>
+  
+  <!-- Iris -->
+  <circle cx="16" cy="16" r="3.5" fill="#5a8060"/>
+  
+  <!-- Pupil group (floats gently) -->
+  <g class="pupil-group">
+    <!-- Pupil -->
+    <circle cx="16" cy="16" r="2" fill="#2c2520"/>
+    <!-- Catchlight -->
+    <circle cx="15" cy="15" r="0.6" fill="#ffffff" opacity="0.9"/>
+  </g>
+</svg>
+
