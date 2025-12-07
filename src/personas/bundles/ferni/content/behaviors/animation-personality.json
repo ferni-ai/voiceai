@@ -1,6 +1,6 @@
 {
-  "$schema": "https://voiceai.example.com/schemas/animation-personality.v1.json",
-  "_description": "Pixar-inspired animation personality for Ferni - warm, curious, playful",
+  "schema_version": 2,
+  "description": "Pixar-inspired animation personality for Ferni - warm, curious, playful",
   
   "character_inspiration": {
     "primary": "WALL-E - curious, gentle, finds wonder in small things",

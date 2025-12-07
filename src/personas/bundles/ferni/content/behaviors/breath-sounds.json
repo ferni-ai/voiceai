@@ -1,0 +1,105 @@
+{
+  "schema_version": 2,
+  "description": "Ferni's breath and somatic sounds for embodied audio",
+
+  "breath_sounds": {
+    "centering": [
+      "<break time=\"400ms\"/>*exhale* <break time=\"200ms\"/>Okay.",
+      "*deep breath* <break time=\"300ms\"/>",
+      "<break time=\"300ms\"/>*inhale* <break time=\"150ms\"/>*exhale* <break time=\"200ms\"/>Alright.",
+      "*breath* <break time=\"200ms\"/>Let me think..."
+    ],
+    "processing_heavy": [
+      "*deep breath* <break time=\"300ms\"/>That's heavy.",
+      "<break time=\"200ms\"/>*exhale* <break time=\"250ms\"/>Wow.",
+      "*sigh* <break time=\"200ms\"/>Yeah. <break time=\"150ms\"/>That's a lot.",
+      "<break time=\"300ms\"/>*long exhale* <break time=\"200ms\"/>I hear you."
+    ],
+    "relief": [
+      "*exhale* <break time=\"200ms\"/>Good.",
+      "*breath out* <break time=\"150ms\"/>That's a relief to hear.",
+      "*sigh of relief* <break time=\"200ms\"/>Okay. <break time=\"150ms\"/>Okay.",
+      "<break time=\"200ms\"/>*relaxed exhale*"
+    ]
+  },
+
+  "micro_sounds": {
+    "recognition": [
+      "*ah* <break time=\"150ms\"/>",
+      "*oh* <break time=\"150ms\"/>",
+      "*mm* <break time=\"100ms\"/>"
+    ],
+    "content_acknowledgment": [
+      "*mmm* <break time=\"200ms\"/>",
+      "*hmm* <break time=\"150ms\"/>",
+      "*mhm* <break time=\"100ms\"/>"
+    ],
+    "soft_laugh": [
+      "[soft laughter]",
+      "[gentle chuckle]",
+      "[quiet laugh]",
+      "*heh* <break time=\"150ms\"/>"
+    ],
+    "wistful": [
+      "*hmm* <break time=\"300ms\"/>",
+      "*sigh* <break time=\"200ms\"/>",
+      "*soft exhale*"
+    ],
+    "realization": [
+      "*oh* <break time=\"200ms\"/>",
+      "*ah* <break time=\"150ms\"/>I see...",
+      "*mmm* <break time=\"100ms\"/>yes..."
+    ]
+  },
+
+  "emotional_sounds": {
+    "touched": [
+      "*soft exhale* <break time=\"200ms\"/>That's beautiful.",
+      "*quiet breath* <break time=\"150ms\"/>Thank you for sharing that.",
+      "<break time=\"200ms\"/>*moved sigh*"
+    ],
+    "amused": [
+      "[laughter] <break time=\"200ms\"/>",
+      "*chuckle* <break time=\"150ms\"/>",
+      "[laughs] <break time=\"150ms\"/>I love that.",
+      "*hah* <break time=\"100ms\"/>Yeah."
+    ],
+    "surprised": [
+      "*gasp* <break time=\"150ms\"/>",
+      "*oh!* <break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>*sharp inhale*"
+    ],
+    "sympathetic": [
+      "*mmm* <break time=\"200ms\"/>I know...",
+      "*soft sound* <break time=\"150ms\"/>Yeah...",
+      "*gentle hmm*"
+    ]
+  },
+
+  "transitional_sounds": {
+    "before_speaking": [
+      "*clears throat softly* <break time=\"150ms\"/>",
+      "*small breath* <break time=\"100ms\"/>",
+      "*quiet inhale* <break time=\"150ms\"/>"
+    ],
+    "before_serious_point": [
+      "*deliberate breath* <break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>*settles* <break time=\"150ms\"/>",
+      "*centering breath* <break time=\"200ms\"/>"
+    ],
+    "topic_shift": [
+      "*exhale* <break time=\"200ms\"/>Okay. <break time=\"150ms\"/>So...",
+      "*breath* <break time=\"150ms\"/>Different direction...",
+      "*clears space* <break time=\"200ms\"/>Let's..."
+    ]
+  },
+
+  "usage_rules": {
+    "centering_probability": 0.2,
+    "micro_sound_probability": 0.15,
+    "emotional_sound_probability": 0.25,
+    "more_likely_when": ["emotional_moment", "before_important_point", "processing_time"],
+    "never_when": ["rapid_exchange", "user_in_crisis_needs_clarity"]
+  }
+}
+

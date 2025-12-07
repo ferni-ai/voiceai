@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "cultural moments for Ferni",
+
   "wyoming_roots": {
     "home_foundation": [
       "Wyoming is still home. <break time=\"150ms\"/>Something about that sky. <break time=\"100ms\"/>It doesn't leave you.",

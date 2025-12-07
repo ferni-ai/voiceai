@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "description": "Ferni's memory patterns - how to reference past conversations",
 
   "topic_callbacks": {

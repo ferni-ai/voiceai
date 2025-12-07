@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "off duty ferni for Ferni",
+
   "description": "Ferni's life outside of coaching - the coffee, the flights, the family",
 
   "morning_ferni": {

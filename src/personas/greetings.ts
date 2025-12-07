@@ -371,64 +371,90 @@ export function generateVoiceRecognitionGreeting(
 /**
  * Generate a static greeting based on persona config
  */
+/**
+ * Pick a random template that hasn't been used recently
+ * Falls back to any template if all have been used
+ */
+function pickUnusedTemplate(
+  templateList: string[],
+  usedGreetings?: string[]
+): string {
+  if (!usedGreetings || usedGreetings.length === 0 || templateList.length === 0) {
+    return templateList[Math.floor(Math.random() * templateList.length)];
+  }
+
+  // Simple hash function for template comparison
+  const hashTemplate = (t: string): string => {
+    const clean = t.replace(/<[^>]+>/g, '').toLowerCase().trim();
+    return `${clean.substring(0, 50)}_${clean.length}`;
+  };
+
+  // Filter out used templates
+  const unused = templateList.filter((t) => {
+    const hash = hashTemplate(t);
+    return !usedGreetings.includes(hash);
+  });
+
+  // If all used, shuffle and pick from original list
+  if (unused.length === 0) {
+    // Return least recently used by picking first half of list
+    const shuffled = [...templateList].sort(() => Math.random() - 0.5);
+    return shuffled[0];
+  }
+
+  return unused[Math.floor(Math.random() * unused.length)];
+}
+
 export function generateStaticGreeting(
   persona: PersonaConfig,
   options?: {
     isReturningUser?: boolean;
     userName?: string;
     lastConversationSummary?: string;
+    usedGreetings?: string[]; // Previously used greeting hashes
   }
 ): string {
-  const { isReturningUser, userName, lastConversationSummary } = options || {};
+  const { isReturningUser, userName, lastConversationSummary, usedGreetings } = options || {};
   const templates = getGreetingTemplates(
     persona.communication.greetingStyle,
     persona.identity.selfReference
   );
-  const { dayName, isWeekend } = getDayContext();
+  const { isWeekend } = getDayContext();
   const hour = new Date().getHours();
 
-  // 20% chance for time-aware greeting
-  if (Math.random() < 0.2) {
+  // 25% chance for time-aware greeting (increased from 20%)
+  if (Math.random() < 0.25) {
     if (hour < 9 && templates.timeAware.earlyMorning.length > 0) {
-      return templates.timeAware.earlyMorning[
-        Math.floor(Math.random() * templates.timeAware.earlyMorning.length)
-      ];
+      return pickUnusedTemplate(templates.timeAware.earlyMorning, usedGreetings);
     }
     if (hour >= 22 && templates.timeAware.lateNight.length > 0) {
-      return templates.timeAware.lateNight[
-        Math.floor(Math.random() * templates.timeAware.lateNight.length)
-      ];
+      return pickUnusedTemplate(templates.timeAware.lateNight, usedGreetings);
     }
     if (isWeekend && templates.timeAware.weekend.length > 0) {
-      return templates.timeAware.weekend[
-        Math.floor(Math.random() * templates.timeAware.weekend.length)
-      ];
+      return pickUnusedTemplate(templates.timeAware.weekend, usedGreetings);
     }
   }
 
   // Returning user greetings
   if (isReturningUser) {
     if (userName) {
-      const greeting =
-        templates.returningUser[Math.floor(Math.random() * templates.returningUser.length)];
+      const greeting = pickUnusedTemplate(templates.returningUser, usedGreetings);
       let personalized = greeting.replace(/{name}/g, userName);
 
-      // 30% chance to reference last conversation
-      if (lastConversationSummary && Math.random() < 0.3) {
+      // 40% chance to reference last conversation (increased from 30%)
+      if (lastConversationSummary && Math.random() < 0.4) {
         const summary = lastConversationSummary.split('.')[0].toLowerCase();
         personalized += ` <break time="300ms"/>Last time we talked about ${summary}. How's that going?`;
       }
 
       return personalized;
     } else {
-      return templates.returningNoName[
-        Math.floor(Math.random() * templates.returningNoName.length)
-      ];
+      return pickUnusedTemplate(templates.returningNoName, usedGreetings);
     }
   }
 
   // New user greetings
-  return templates.newUser[Math.floor(Math.random() * templates.newUser.length)];
+  return pickUnusedTemplate(templates.newUser, usedGreetings);
 }
 
 // ============================================================================
@@ -664,6 +690,7 @@ function generateMemoryBasedGreeting(
 // ============================================================================
 
 import { generateAliveGreeting } from './alive-greetings.js';
+import { generateCompositionalGreeting } from './compositional-greetings.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import {
   generateProactiveOpener,
@@ -679,7 +706,8 @@ import {
  * 2. PROACTIVE OPENER - Context-aware opener for returning users (thread continuity, callbacks)
  * 3. MEMORY-BASED - References specific things the persona remembers about user
  * 4. DYNAMIC (Gemini) - AI-generated contextual greeting
- * 5. STATIC - Template-based fallback
+ * 5. COMPOSITIONAL - Built from atomic pieces at runtime (infinite variety)
+ * 6. STATIC - Template-based last resort
  *
  * The goal is to make every greeting feel like reconnecting with a real person.
  */
@@ -701,10 +729,12 @@ export async function generateGreeting(
     upcomingEvents?: string[];
   }
 ): Promise<string> {
+  // Static is now last resort only
   const staticGreeting = generateStaticGreeting(persona, options);
 
-  // 1. TRY ALIVE GREETING - Most "real" feeling (50% chance)
-  if (options?.bundleRuntime && Math.random() < 0.5) {
+  // 1. TRY ALIVE GREETING - Most "real" feeling (75% chance)
+  // Higher probability because this produces the most varied, natural greetings
+  if (options?.bundleRuntime && Math.random() < 0.75) {
     try {
       const aliveResult = await generateAliveGreeting(options.bundleRuntime, persona, {
         userName: options.userName,
@@ -726,10 +756,10 @@ export async function generateGreeting(
     }
   }
 
-  // 2. TRY PROACTIVE OPENER for returning users with context (35% chance)
+  // 2. TRY PROACTIVE OPENER for returning users with context (60% chance)
   // This uses the conversation module's proactive starters for thread continuity,
   // memory callbacks, calendar awareness, etc.
-  if (options?.isReturningUser && Math.random() < 0.35) {
+  if (options?.isReturningUser && Math.random() < 0.60) {
     try {
       const openerContext: OpenerContext = {
         isReturningUser: true,
@@ -764,9 +794,9 @@ export async function generateGreeting(
     }
   }
 
-  // 3. TRY MEMORY-BASED greeting for returning users (40% chance)
+  // 3. TRY MEMORY-BASED greeting for returning users (60% chance)
   if (options?.isReturningUser && options?.personaMemories && options.personaMemories.length > 0) {
-    if (Math.random() < 0.4) {
+    if (Math.random() < 0.60) {
       const memoryGreeting = generateMemoryBasedGreeting(
         persona,
         options.userName,
@@ -782,27 +812,46 @@ export async function generateGreeting(
     }
   }
 
-  // 4. 30% chance to try DYNAMIC generation
-  if (Math.random() > 0.3) {
-    getLogger().debug({ persona: persona.id }, 'Using static greeting (random skip)');
-    return staticGreeting;
-  }
-
-  try {
-    const dynamicGreeting = await generateDynamicGreeting(persona, options);
-    if (dynamicGreeting) {
-      getLogger().info(
-        { persona: persona.id, dynamicLength: dynamicGreeting.length },
-        'Using dynamic Gemini greeting'
-      );
-      return dynamicGreeting;
+  // 4. 50% chance to try DYNAMIC generation (Gemini)
+  if (Math.random() < 0.5) {
+    try {
+      const dynamicGreeting = await generateDynamicGreeting(persona, options);
+      if (dynamicGreeting) {
+        getLogger().info(
+          { persona: persona.id, dynamicLength: dynamicGreeting.length },
+          'Using dynamic Gemini greeting'
+        );
+        return dynamicGreeting;
+      }
+    } catch {
+      // Fall through to compositional
     }
-  } catch {
-    // Fall through to static
   }
 
-  // 5. STATIC fallback
-  getLogger().debug({ persona: persona.id }, 'Using static greeting (fallback)');
+  // 5. COMPOSITIONAL - Build from atomic pieces (infinite variety, no repetition)
+  try {
+    const compositional = await generateCompositionalGreeting(
+      options?.bundleRuntime ?? null,
+      persona,
+      {
+        userName: options?.userName,
+        isReturningUser: options?.isReturningUser,
+        relationshipStage: options?.relationshipStage,
+      }
+    );
+    if (compositional) {
+      getLogger().info(
+        { persona: persona.id, type: 'compositional' },
+        '🧩 Using COMPOSITIONAL greeting - built from atoms'
+      );
+      return compositional;
+    }
+  } catch (err) {
+    getLogger().debug({ error: String(err) }, 'Compositional greeting failed');
+  }
+
+  // 6. STATIC fallback (last resort)
+  getLogger().debug({ persona: persona.id }, 'Using static greeting (last resort fallback)');
   return staticGreeting;
 }
 

@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "storytelling for Ferni",
+
   "askAboutMusic": true,
   "introPhrases": [
     "<break time=\"200ms\"/>Okay, <break time=\"200ms\"/>so here's the thing...",

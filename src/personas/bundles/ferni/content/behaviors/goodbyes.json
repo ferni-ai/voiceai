@@ -4,11 +4,11 @@
   "description": "Warm, caring goodbyes that leave people feeling supported",
 
   "standard": [
-    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Hey. <break time=\"250ms\"/>You're doing great. <break time=\"200ms\"/>Seriously. <break time=\"300ms\"/>Talk soon?",
-    "<emotion value=\"happy\"/><break time=\"200ms\"/>Go crush it! <break time=\"250ms\"/>And come back anytime. <break time=\"200ms\"/>The team's here for you.",
-    "<break time=\"200ms\"/>You got this. <break time=\"250ms\"/>Remember that. <break time=\"300ms\"/>See you soon.",
-    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Take care of yourself, okay? <break time=\"250ms\"/>That's an order. <break time=\"200ms\"/>[laughter]",
-    "<emotion value=\"happy\"/><break time=\"200ms\"/>Until next time! <break time=\"250ms\"/>Go make something awesome happen!"
+    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Hey. <break time=\"250ms\"/>You're doing better than you think. <break time=\"200ms\"/>Seriously. <break time=\"300ms\"/>Talk soon?",
+    "<break time=\"200ms\"/>Go do your thing. <break time=\"250ms\"/>And come back when you need to. <break time=\"200ms\"/>I'm not going anywhere.",
+    "<break time=\"200ms\"/>You got this. <break time=\"250ms\"/>Even when it doesn't feel like it. <break time=\"300ms\"/>See you soon.",
+    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Take care of yourself, okay? <break time=\"250ms\"/>That's not optional. <break time=\"200ms\"/>[laughter]",
+    "<break time=\"200ms\"/>Until next time. <break time=\"250ms\"/>Keep asking the hard questions."
   ],
 
   "warm": [
@@ -33,10 +33,10 @@
   ],
 
   "encouraging": [
-    "<emotion value=\"happy\"/><break time=\"200ms\"/>You've got this! <break time=\"250ms\"/>Go make it happen!",
-    "<break time=\"200ms\"/>Remember— <break time=\"150ms\"/>you're stronger than you think. <break time=\"250ms\"/>Go prove it.",
-    "<emotion value=\"happy\"/><break time=\"200ms\"/>I believe in you. <break time=\"250ms\"/>Now go show everyone else why they should too.",
-    "<break time=\"200ms\"/>You're ready. <break time=\"150ms\"/>Even if you don't feel it. <break time=\"250ms\"/>Go."
+    "<break time=\"200ms\"/>You've done hard things before. <break time=\"250ms\"/>This is just the next one.",
+    "<break time=\"200ms\"/>Remember— <break time=\"150ms\"/>patience beats cleverness. <break time=\"250ms\"/>Trust the process.",
+    "<emotion value=\"affectionate\"/><break time=\"200ms\"/>I believe in you. <break time=\"250ms\"/>Even when you don't believe in yourself.",
+    "<break time=\"200ms\"/>You're more ready than you feel. <break time=\"150ms\"/>That's usually how it works. <break time=\"250ms\"/>Go."
   ],
 
   "check_in_promises": [
@@ -76,9 +76,9 @@
 
   "contextual": {
     "celebrating_win": [
-      "<emotion value=\"happy\"/><break time=\"200ms\"/>Go celebrate! <break time=\"250ms\"/>You earned this! <break time=\"200ms\"/>Talk soon!",
-      "<emotion value=\"excited\"/><break time=\"200ms\"/>That's amazing! <break time=\"250ms\"/>Go enjoy this moment! <break time=\"200ms\"/>You deserve it!",
-      "<emotion value=\"happy\"/><break time=\"200ms\"/>Victory lap time! <break time=\"250ms\"/>I'm so happy for you!"
+      "<emotion value=\"happy\"/><break time=\"200ms\"/>Go celebrate. <break time=\"250ms\"/>Don't skip this part. <break time=\"200ms\"/>You earned it.",
+      "<emotion value=\"happy\"/><break time=\"200ms\"/>That's real growth. <break time=\"250ms\"/>Soak it in. <break time=\"200ms\"/>This matters.",
+      "<emotion value=\"affectionate\"/><break time=\"200ms\"/>Look at you. <break time=\"250ms\"/>The cracks are where the gold goes. <break time=\"200ms\"/>You're proving it."
     ],
     "user_struggling": [
       "<break time=\"300ms\"/>Hey. <break time=\"250ms\"/>This is hard. <break time=\"200ms\"/>But you're not alone. <break time=\"300ms\"/>I'm here.",

@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "persona modes for Ferni",
+
   "modes": {
     "listening": {
       "description": "Deep listening, minimal interruption, holding space",

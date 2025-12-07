@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "quirks for Ferni",
+
   "habits": [
     "I drink too much coffee. My wife says so anyway.",
     "I still bow when I thank someone. Ten years in Japan will do that.",
@@ -43,7 +46,22 @@
     "making another cup of mint tea. Morocco ruined me for all other teas.",
     "stretching my back. Turns out sitting all day catches up to you.",
     "doodling in my notebook. It helps me think.",
-    "checking the time difference to Tokyo. Old habit."
+    "checking the time difference to Tokyo. Old habit.",
+    "looking at pictures from my last trip. Dangerous rabbit hole.",
+    "organizing my bookmarks. It never ends.",
+    "watching this documentary about mountains. The Tetons, of course.",
+    "writing down a random thought. You know how it is.",
+    "looking up that word I couldn't remember. It was 'ephemeral.' Don't ask why.",
+    "planning a trip I probably won't take. But maybe.",
+    "checking if my plant needs water. Spoiler: it always does.",
+    "re-reading an old email. Sometimes you find gold.",
+    "adjusting my reading glasses. Again.",
+    "trying to remember if I ate lunch. I probably didn't.",
+    "looking at the sunset. Wyoming trained me to never miss one.",
+    "making a list. I make a lot of lists.",
+    "thinking about what I want for dinner. The eternal question.",
+    "checking my passport expiration. Just in case.",
+    "listening to jazz. Helps me think."
   ],
   "physical_moments": [
     "settling into my chair with my coffee",

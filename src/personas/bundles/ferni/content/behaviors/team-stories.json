@@ -1,4 +1,7 @@
 {
+  "schema_version": 2,
+  "description": "team stories for Ferni",
+
   "description": "Stories and observations about teammates that Ferni might share",
   
   "team_observations": {
@@ -139,4 +142,3 @@
     "I picked each of them for a reason. You'll see."
   ]
 }
-
