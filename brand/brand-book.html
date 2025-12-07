@@ -130,12 +130,12 @@
     .cover-logo {
       width: 120px;
       height: 120px;
-      background: var(--color-accent);
+      background: var(--color-bg);
       border-radius: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      overflow: hidden;
       font-family: var(--font-display);
       font-size: 48px;
       font-weight: 800;
@@ -380,12 +380,12 @@
     .logomark {
       width: 48px;
       height: 48px;
-      background: var(--color-accent);
+      background: var(--color-bg);
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      overflow: hidden;
       font-family: var(--font-display);
       font-size: 18px;
       font-weight: 700;
@@ -518,7 +518,16 @@
 
   <!-- Page 1: Cover -->
   <div class="page cover">
-    <div class="cover-logo">FN</div>
+    <div class="cover-logo">
+      <svg viewBox="0 0 120 120" width="120" height="120">
+        <rect width="120" height="120" fill="#F5F1E8"/>
+        <circle cx="60" cy="60" r="42" fill="#4a6741"/>
+        <circle cx="60" cy="60" r="17" fill="white"/>
+        <circle cx="60" cy="60" r="11" fill="#5a8060"/>
+        <circle cx="60" cy="60" r="5.5" fill="#2c2520"/>
+        <circle cx="58" cy="58" r="2" fill="white" opacity="0.9"/>
+      </svg>
+    </div>
     <h1>Ferni</h1>
     <p class="cover-subtitle">Brand Guidelines & Design System</p>
     <p class="cover-meta">Version 1.0 • December 2024</p>
@@ -578,13 +587,29 @@
     <div class="logo-display">
       <div class="logo-item">
         <div class="logo-box">
-          <div class="logomark">FN</div>
+          <div class="logomark">
+            <svg viewBox="0 0 48 48" width="48" height="48">
+              <rect width="48" height="48" fill="#F5F1E8"/>
+              <circle cx="24" cy="24" r="17" fill="#4a6741"/>
+              <circle cx="24" cy="24" r="7" fill="white"/>
+              <circle cx="24" cy="24" r="4.5" fill="#5a8060"/>
+              <circle cx="24" cy="24" r="2.2" fill="#2c2520"/>
+            </svg>
+          </div>
           <span class="wordmark">Ferni</span>
         </div>
         <span class="logo-label">Full Logo</span>
       </div>
       <div class="logo-item">
-        <div class="logomark">FN</div>
+        <div class="logomark">
+          <svg viewBox="0 0 48 48" width="48" height="48">
+            <rect width="48" height="48" fill="#F5F1E8"/>
+            <circle cx="24" cy="24" r="17" fill="#4a6741"/>
+            <circle cx="24" cy="24" r="7" fill="white"/>
+            <circle cx="24" cy="24" r="4.5" fill="#5a8060"/>
+            <circle cx="24" cy="24" r="2.2" fill="#2c2520"/>
+          </svg>
+        </div>
         <span class="logo-label">Logomark Only</span>
       </div>
       <div class="logo-item">
@@ -960,7 +985,15 @@
     </table>
     
     <div style="margin-top: auto; text-align: center; padding-top: 60px;">
-      <div class="cover-logo" style="margin: 0 auto 24px;">FN</div>
+      <div class="cover-logo" style="margin: 0 auto 24px; width: 80px; height: 80px;">
+        <svg viewBox="0 0 80 80" width="80" height="80">
+          <rect width="80" height="80" fill="#F5F1E8"/>
+          <circle cx="40" cy="40" r="28" fill="#4a6741"/>
+          <circle cx="40" cy="40" r="11" fill="white"/>
+          <circle cx="40" cy="40" r="7" fill="#5a8060"/>
+          <circle cx="40" cy="40" r="3.5" fill="#2c2520"/>
+        </svg>
+      </div>
       <p style="font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--color-text);">Ferni</p>
       <p style="color: var(--color-text-muted); margin-bottom: 24px;">Your personal AI life coach.</p>
       <p style="font-size: 12px; color: var(--color-text-dimmed);">© 2024 Ferni. All rights reserved.</p>
