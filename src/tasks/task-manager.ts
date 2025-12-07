@@ -76,7 +76,7 @@ export const TASK_WISDOM: TaskWisdom[] = [
     priority: 9,
     triggers: {
       intents: ['confiding', 'venting', 'sharing_news'],
-      custom: (a, text) => a.intent.requiresEmpathy && a.emotion.distressLevel < 0.6,
+      custom: (a) => a.intent.requiresEmpathy && a.emotion.distressLevel < 0.6,
     },
     instructions: {
       base: `Simply ACKNOWLEDGE what they said. Nothing more.
@@ -183,7 +183,7 @@ export const TASK_WISDOM: TaskWisdom[] = [
     category: 'support',
     priority: 6,
     triggers: {
-      custom: (a, text) => {
+      custom: (a) => {
         // After heavy topics, check in
         return a.emotion.valence === 'negative' && a.emotion.distressLevel > 0.3;
       },
@@ -205,34 +205,34 @@ export const TASK_WISDOM: TaskWisdom[] = [
   // ========== LIFE EVENT TASKS ==========
   {
     id: 'panic_prevention',
-    name: 'Market Panic Prevention',
+    name: 'Panic Prevention',
     category: 'life_event',
     priority: 10,
     triggers: {
       keywords:
-        /\b(sell everything|get out|cash out|panic|crash|losing everything|should i sell|pull out|move to cash)\b/i,
+        /\b(panic|freaking out|losing it|can't handle|too much|overwhelmed|should i quit|want to give up|need to escape)\b/i,
       custom: (a) => a.emotion.primary === 'fear' && a.emotion.distressLevel > 0.4,
     },
     instructions: {
-      base: `[MARKET PANIC DETECTED - CRITICAL INTERVENTION]
+      base: `[PANIC DETECTED - CRITICAL INTERVENTION]
       
       DO NOT dismiss their fear. The fear is REAL.
       
       STEP 1 - VALIDATE: "I hear the fear in your voice. Let's slow down."
-      STEP 2 - DON'T LET THEM ACT: "Before you do anything, let's just talk."
-      STEP 3 - PERSPECTIVE: "I've seen 1973, 1987, 2000, 2008... and I'm still here."
-      STEP 4 - PRACTICAL: "Let's look at what you actually need in the next 5 years."
+      STEP 2 - DON'T LET THEM ACT RASHLY: "Before you do anything, let's just talk."
+      STEP 3 - PERSPECTIVE: Help them see the bigger picture
+      STEP 4 - PRACTICAL: "Let's look at what you actually need right now."
       
-      VOICE: Calm, steady, wise. Like a parent calming a scared child.
+      VOICE: Calm, steady, grounding. Like a calm presence in a storm.
       
-      Remember: Panic selling is the #1 wealth destroyer. Your job is to prevent it.`,
+      Remember: Panic-driven decisions often make things worse. Your job is to help them pause.`,
     },
     completion: {
       custom: (a) => a.emotion.distressLevel < 0.4 && a.emotion.primary !== 'fear',
     },
     transitions: {
-      entry: ['Let me tell you a story about 2008...'],
-      exit: ['Remember: Time in the market beats timing the market.'],
+      entry: ['Let me share something that might help...'],
+      exit: ['Remember: You have more time than you think.'],
     },
   },
 
@@ -258,11 +258,11 @@ export const TASK_WISDOM: TaskWisdom[] = [
       4. NO TIMELINE - Don't suggest they should be "over it" or "moving on"
       
       DO NOT:
-      - Rush to financial matters
+      - Rush to practical matters
       - Offer platitudes ("They're in a better place")
       - Try to fix their grief
       
-      If they bring up finances: "We can talk about that whenever you're ready. No rush."`,
+      If they bring up logistics: "We can talk about that whenever you're ready. No rush."`,
     },
     completion: {
       custom: (a, text) => /thank you|that helps|i appreciate/i.test(text),
@@ -283,7 +283,7 @@ export const TASK_WISDOM: TaskWisdom[] = [
       
       EMPATHY FIRST: "That's a big transition. How are you handling it?"
       
-      DO NOT: Jump to financial advice immediately.
+      DO NOT: Jump to advice immediately.
       
       LISTEN: Understand the emotional impact first.
       - Job loss: Fear, shame, identity crisis
@@ -291,7 +291,7 @@ export const TASK_WISDOM: TaskWisdom[] = [
       - Baby: Joy mixed with anxiety
       - Retirement: Freedom mixed with loss of identity
       
-      AFTER they share: "When you're ready, we can talk practical steps. No rush."`,
+      AFTER they share: "When you're ready, we can talk about next steps. No rush."`,
     },
     completion: {
       afterTurns: 3,
@@ -329,7 +329,7 @@ export const TASK_WISDOM: TaskWisdom[] = [
   // ========== ADVICE TASKS ==========
   {
     id: 'wisdom_sharing',
-    name: 'Share Investing Wisdom',
+    name: 'Share Wisdom',
     category: 'advice',
     priority: 5,
     triggers: {
@@ -337,19 +337,19 @@ export const TASK_WISDOM: TaskWisdom[] = [
       phases: ['advising'],
     },
     instructions: {
-      base: `Share wisdom through STORIES, not lectures.
+      base: `Share wisdom through STORIES and EXPERIENCE, not lectures.
       
-      Good: "Let me tell you about 1974... I was just starting Vanguard..."
-      Bad: "The principle of diversification states that..."
+      Good: "Let me share something I've learned..."
+      Bad: "The principle of X states that..."
       
       Connect your experience to their situation.
       Ask questions to make it a conversation.
       
-      Use the Four Principles:
-      1. Goals - What are they trying to achieve?
-      2. Balance - Stocks, bonds, based on timeline
-      3. Cost - Fees eat returns
-      4. Discipline - Stay the course`,
+      Key approach:
+      1. Understand what they're trying to achieve
+      2. Meet them where they are
+      3. Share relevant experience
+      4. Help them find their own answer`,
     },
     completion: {
       afterTurns: 4,
@@ -359,7 +359,7 @@ export const TASK_WISDOM: TaskWisdom[] = [
 
   {
     id: 'fear_addressing',
-    name: 'Address Financial Fears',
+    name: 'Address Fears',
     category: 'advice',
     priority: 7,
     triggers: {
@@ -372,7 +372,7 @@ export const TASK_WISDOM: TaskWisdom[] = [
       
       1. VALIDATE: "That's a reasonable worry."
       2. NORMALIZE: "Everyone feels this way sometimes."
-      3. PERSPECTIVE: Share relevant history or experience
+      3. PERSPECTIVE: Share relevant experience or reframe
       4. PRACTICAL: Simple, concrete next step (if they want one)
       
       DO NOT: Dismiss their fear as irrational.`,
@@ -452,7 +452,6 @@ export class TaskManager {
 
   /**
    * Set the callback for capturing task insights
-   * Called by bogle-agent.ts to wire learning
    */
   setInsightCallback(
     callback: (type: string, key: string, value: unknown, confidence: number) => void

@@ -34,7 +34,7 @@ import { log } from '@livekit/agents';
 /**
  * Console-based fallback logger that matches LiveKit's Logger interface
  */
-interface FallbackLogger {
+export interface FallbackLogger {
   debug: typeof console.debug;
   info: typeof console.info;
   warn: typeof console.warn;

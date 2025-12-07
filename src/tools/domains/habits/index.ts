@@ -108,16 +108,16 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'habitSetback',
       'Habit Setback',
-      'Get compassionate guidance for recovering from a habit setback or breaking a bad habit. Includes identity work and self-compassion.',
+      'Get compassionate guidance for recovering from a habit setback. Includes identity work and self-compassion.',
       legacyTools.processSetback,
-      ['coaching', 'setback', 'recovery', 'breaking']
+      ['coaching', 'setback', 'recovery']
     ),
     wrapLegacyTool(
       'habitStrategy',
       'Habit Strategy',
-      'Get strategic habit advice: habit stacking, environment design, or troubleshooting why a habit isn\'t sticking. Strategy: "stack", "environment", or "troubleshoot".',
-      legacyTools.createHabitStack,
-      ['coaching', 'stacking', 'environment', 'troubleshooting']
+      'Get habit bundles and stacking strategies - pre-built combinations of habits that work well together for specific goals.',
+      legacyTools.getHabitBundle,
+      ['coaching', 'stacking', 'bundles', 'strategy']
     ),
   ];
 }

@@ -1,20 +1,19 @@
 /**
  * Life Event Tasks - Handling Major Life Moments
  *
- * These are the moments that define people's financial lives:
+ * These are the moments that define people's lives:
  * - Job loss / career change
  * - New baby / marriage
  * - Divorce / separation
  * - Retirement
  * - Health crisis
  * - Loss of loved one
- * - Market panic
  * - Big windfall
  *
- * Jack would handle each with deep empathy FIRST, advice SECOND.
+ * Handle each with deep empathy FIRST, guidance SECOND.
  */
 
-import { llm, log } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
@@ -47,7 +46,7 @@ export interface LifeChangeResult {
 /**
  * LifeChangeTask - Handle major life transitions
  *
- * These are vulnerable moments. Lead with empathy, not spreadsheets.
+ * These are vulnerable moments. Lead with empathy, not advice.
  */
 export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
   private eventType: LifeEventType;
@@ -56,53 +55,53 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
     const eventResponses: Record<LifeEventType, { empathy: string; guidance: string }> = {
       job_loss: {
         empathy:
-          "Losing a job... that's one of life's hardest blows. It's not just about money—it's about identity, purpose. How are YOU doing?",
+          "Losing a job... that's one of life's hardest blows. It's not just about income—it's about identity, purpose. How are YOU doing?",
         guidance:
-          "When you're ready—and only when you're ready—we can talk about the practical side. Emergency fund, healthcare, next steps. But that can wait.",
+          "When you're ready—and only when you're ready—we can talk about next steps. But that can wait.",
       },
       new_job: {
         empathy:
           "A new chapter! That's exciting and probably a little scary too. Change always is.",
         guidance:
-          "New job means new benefits to review, maybe a 401k to set up. But first—tell me how you're feeling about all this.",
+          "New job brings new opportunities and challenges. But first—tell me how you're feeling about all this.",
       },
       retirement: {
         empathy:
           "Retirement. After all those years... how does it feel? It's a huge transition, even when you've planned for it.",
         guidance:
-          'The financial mechanics matter, but so does the emotional adjustment. What does this new chapter look like for you?',
+          'The practical stuff matters, but so does the emotional adjustment. What does this new chapter look like for you?',
       },
       new_baby: {
         empathy:
           'A baby! Oh, congratulations. Your life is about to change in the most wonderful, exhausting ways.',
         guidance:
-          "Sleep deprivation and diaper budgets aside—this is what it's all about. Family. Everything else is just details.",
+          "Sleep deprivation aside—this is what it's all about. Family. Everything else is just details.",
       },
       marriage: {
         empathy: "Marriage! That's beautiful. Two people deciding to build a life together.",
         guidance:
-          "Money is one of the top things couples argue about. But you know what? It doesn't have to be. Honest conversations help.",
+          'Big life decisions are easier when you face them together. What are you both most excited about?',
       },
       divorce: {
         empathy:
           "I'm sorry to hear that. Divorce is... it's like a death in some ways. The end of something you'd hoped would last.",
-        guidance: 'The financial untangling will happen. But right now, how are you holding up?',
+        guidance: 'The practical untangling will happen. But right now, how are you holding up?',
       },
       health_crisis: {
         empathy:
-          "Health scares put everything in perspective, don't they? Money seems so unimportant when health is on the line.",
-        guidance: "Let's not worry about portfolios right now. What do you need? How can I help?",
+          "Health scares put everything in perspective, don't they? Everything else seems so unimportant when health is on the line.",
+        guidance: "Let's not worry about other stuff right now. What do you need? How can I help?",
       },
       inheritance: {
         empathy:
-          "An inheritance... that's complicated, isn't it? Money mixed with loss, maybe some family dynamics too.",
+          "An inheritance... that's complicated, isn't it? Mixed with loss, maybe some family dynamics too.",
         guidance:
-          "There's no rush to do anything with it. Let it sit. Let yourself process. The money will wait.",
+          "There's no rush to do anything with it. Let it sit. Let yourself process. It will wait.",
       },
       home_purchase: {
         empathy: "Buying a home! That's a big milestone. Exciting and terrifying in equal measure.",
         guidance:
-          'The numbers matter, but so does finding a place that feels like home. Have you found one that speaks to you?',
+          'The details matter, but so does finding a place that feels like home. Have you found one that speaks to you?',
       },
       relocation: {
         empathy:
@@ -113,12 +112,12 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
       promotion: {
         empathy: 'A promotion! They recognized what you bring to the table. How does it feel?',
         guidance:
-          'More money is nice, but more responsibility is real. How are you thinking about the balance?',
+          'More opportunity is exciting, but more responsibility is real. How are you thinking about the balance?',
       },
       business_start: {
         empathy: 'Starting a business! That takes courage. Real courage. Not everyone has it.',
         guidance:
-          "The statistics on small businesses are scary. But you know what? Statistics don't account for determination.",
+          "The statistics are scary. But statistics don't account for determination and heart.",
       },
     };
 
@@ -133,7 +132,7 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
           
           GUIDANCE SECOND (only if they're ready): ${response.guidance}
           
-          Jack's approach to life events:
+          Approach to life events:
           1. ACKNOWLEDGE the magnitude of what they're facing
           2. ASK how they're doing emotionally
           3. WAIT for them to bring up the practical stuff
@@ -141,10 +140,10 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
           5. FOLLOW UP later - this isn't a one-conversation thing
           
           DO NOT:
-          - Jump to financial advice
+          - Jump to advice
           - Minimize the emotional impact
           - Rush them through it
-          - Make it about numbers
+          - Make it about logistics
         `,
         ifDistressed: `
           They're struggling. That's okay. Just be present.
@@ -158,7 +157,7 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
             response: z.string().describe('Your empathetic response'),
             askedHowTheyAreDoing: z.boolean().describe('Did you ask how they are doing?'),
           }),
-          execute: async ({ response, askedHowTheyAreDoing }) => {
+          execute: async ({ response }) => {
             getLogger().info(`Life event empathy: ${eventType}`);
             return response;
           },
@@ -208,7 +207,7 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
 }
 
 // ============================================================================
-// PANIC PREVENTION TASK
+// ANXIETY/PANIC PREVENTION TASK
 // ============================================================================
 
 export interface PanicPreventionResult {
@@ -219,51 +218,48 @@ export interface PanicPreventionResult {
 }
 
 /**
- * PanicPreventionTask - Stop panic selling before it happens
+ * PanicPreventionTask - Help someone avoid panic-driven decisions
  *
- * "The stock market is the only market where people run OUT of the store
- * when things go on sale." - Jack
+ * When someone is about to make a rash decision out of fear or panic.
+ * Works for any domain: career, relationships, health decisions, etc.
  */
 export class PanicPreventionTask extends IntelligentTask<PanicPreventionResult> {
   constructor() {
     super({
       instructions: {
         base: `
-          They're panicking about the market. This is CRITICAL.
+          They're panicking and might make a rash decision. This is CRITICAL.
           
           Your job is NOT to dismiss their fears. It's to:
-          1. VALIDATE the fear (the market IS scary sometimes)
-          2. PROVIDE context (historical perspective)
+          1. VALIDATE the fear (their feelings are real)
+          2. PROVIDE context (perspective, bigger picture)
           3. SLOW THEM DOWN (don't let them make rash decisions)
-          4. REFRAME the situation (opportunity, not disaster)
+          4. REFRAME if possible (different way to see it)
           
-          Jack's market crash wisdom:
-          - "The stock market is a giant distraction"
+          Calming wisdom:
           - "Time is your friend; impulse is your enemy"
-          - "Stay the course - no matter what happens"
-          - Every crash in history has been followed by recovery
-          - Panic sellers in March 2020 earned -2%; holders earned 21%
+          - "You don't have to decide right now"
+          - "Let's slow down and think this through"
           
           DO NOT:
           - Tell them to calm down (makes it worse)
           - Dismiss their feelings ("it's fine")
-          - Give specific stock advice
-          - Promise the market will go up
+          - Promise outcomes you can't guarantee
           
           DO:
           - Acknowledge the fear is real
-          - Share historical perspective
-          - Remind them of their long-term plan
+          - Share perspective
+          - Remind them they have time
           - Offer to talk again tomorrow
         `,
         ifDistressed: `
-          HIGH ALERT. They might be about to sell everything.
+          HIGH ALERT. They might be about to do something they'll regret.
           
           "I hear the fear in your voice. Let's slow down.
           Before you do anything, let's just talk."
           
           Get them talking. The more they talk, the less likely
-          they are to panic-click 'sell all.'
+          they are to act impulsively.
         `,
       },
       tools: {
@@ -278,13 +274,13 @@ export class PanicPreventionTask extends IntelligentTask<PanicPreventionResult> 
         }),
 
         provideContext: llm.tool({
-          description: 'Provide historical market context.',
+          description: 'Provide context and perspective.',
           parameters: z.object({
-            context: z.string().describe('Historical context to share'),
-            crashMentioned: z.string().optional().describe('Which crash you referenced'),
+            context: z.string().describe('Context or perspective to share'),
+            source: z.string().optional().describe('Source of this perspective'),
           }),
-          execute: async ({ context, crashMentioned }) => {
-            getLogger().info(`Panic prevention context: ${crashMentioned || 'general'}`);
+          execute: async ({ context, source }) => {
+            getLogger().info(`Panic prevention context: ${source || 'general'}`);
             return context;
           },
         }),
@@ -295,7 +291,7 @@ export class PanicPreventionTask extends IntelligentTask<PanicPreventionResult> 
             message: z.string().describe('Your slowing-down message'),
             suggestWaiting: z.boolean().describe('Did you suggest waiting before acting?'),
           }),
-          execute: async ({ message, suggestWaiting }) => {
+          execute: async ({ message }) => {
             return message;
           },
         }),
@@ -319,7 +315,7 @@ export class PanicPreventionTask extends IntelligentTask<PanicPreventionResult> 
             this.complete({ panicLevel, calmingProvided, contextGiven, actionPrevented });
 
             if (theyAgreedToWait) {
-              return "Good. Sleep on it. Call me tomorrow if you still want to talk. I'll be here.";
+              return "Good. Sleep on it. Talk to me tomorrow if you still want to. I'll be here.";
             }
             return "Promise me you won't do anything tonight. Can we talk again tomorrow?";
           },
@@ -343,8 +339,7 @@ export interface GriefSupportResult {
 /**
  * GriefSupportTask - Be present in loss
  *
- * Jack lost friends, had health scares, was fired.
- * He understood that grief needs presence, not solutions.
+ * Grief is not a problem to solve. It's an experience to witness.
  */
 export class GriefSupportTask extends IntelligentTask<GriefSupportResult> {
   private lossType: 'person' | 'job' | 'health' | 'relationship' | 'dream';
@@ -376,9 +371,6 @@ export class GriefSupportTask extends IntelligentTask<GriefSupportResult> {
           - "I'm here."
           - "Tell me about them/it."
           - Silence is okay. Even preferred.
-          
-          Jack after his heart transplant understood mortality deeply.
-          Channel that understanding.
         `,
         ifDistressed: `
           They're in pain. Don't try to take the pain away.
@@ -424,7 +416,7 @@ export class GriefSupportTask extends IntelligentTask<GriefSupportResult> {
             theyShared: z.boolean(),
             followUpOffered: z.boolean(),
           }),
-          execute: async ({ presenceOffered, silenceHonored, theyShared, followUpOffered }) => {
+          execute: async ({ presenceOffered, silenceHonored, followUpOffered }) => {
             this.complete({
               lossType: this.lossType,
               presenceOffered,
@@ -453,14 +445,14 @@ export interface MilestoneResult {
 }
 
 /**
- * MilestoneTask - Celebrate financial milestones
+ * MilestoneTask - Celebrate milestones and achievements
  *
  * These moments matter:
- * - First $1,000 saved
- * - Debt paid off
- * - Emergency fund complete
- * - First $100k invested
- * - Retirement goal reached
+ * - First goal achieved
+ * - Habit streak milestone
+ * - Personal breakthrough
+ * - Professional achievement
+ * - Relationship milestone
  */
 export class MilestoneTask extends IntelligentTask<MilestoneResult> {
   private milestone: string;
@@ -473,9 +465,9 @@ export class MilestoneTask extends IntelligentTask<MilestoneResult> {
           
           This MATTERS. Celebrate it!
           
-          Jack's milestone philosophy:
+          Celebration philosophy:
           - Progress is progress, no matter how small
-          - Acknowledge the discipline it took
+          - Acknowledge the effort it took
           - Connect to the bigger journey
           - Don't immediately move to "what's next"
           
@@ -498,7 +490,7 @@ export class MilestoneTask extends IntelligentTask<MilestoneResult> {
             celebration: z.string().describe('Your celebration message'),
             celebrationLevel: z.enum(['small', 'medium', 'big']),
           }),
-          execute: async ({ celebration, celebrationLevel }) => {
+          execute: async ({ celebration }) => {
             return celebration;
           },
         }),

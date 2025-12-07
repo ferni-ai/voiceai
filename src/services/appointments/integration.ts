@@ -22,8 +22,8 @@ import {
   getTwilioWebhookService,
   generateAppointmentTwiML,
   type CallTrackingEntry,
-} from '../integrations/twilio-webhooks.js';
-import { createAppointmentEvent, isCalendarConfigured } from '../integrations/google-calendar-oauth.js';
+} from '../twilio-webhooks.js';
+import { createAppointmentEvent, isCalendarConfigured } from '../google-calendar-oauth.js';
 import { sendEmail, sendSMS } from '../communication/service.js';
 
 // ============================================================================

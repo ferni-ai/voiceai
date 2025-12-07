@@ -10,7 +10,8 @@
  * - Life Event Tasks: Handling major life transitions
  * - Support Tasks: Emotional support, check-ins, crisis handling
  * - Relationship Tasks: Follow-ups, storytelling, deep dives, goodbyes
- * - Advice Tasks: Wisdom sharing, decisions, fear, goals, rebalancing
+ * - Advice Tasks: Wisdom sharing, decisions, fear, goals
+ * - Finance Tasks: Domain-specific financial coaching tasks
  * - Onboarding Tasks: Welcome, situation assessment, goal setting
  */
 
@@ -117,7 +118,7 @@ export type {
 } from './relationship-tasks.js';
 
 // ============================================================================
-// ADVICE TASKS
+// ADVICE TASKS (General-purpose)
 // ============================================================================
 
 export {
@@ -125,7 +126,6 @@ export {
   DecisionSupportTask,
   FearAddressingTask,
   GoalSettingTask,
-  RebalancingGuidanceTask,
 } from './advice-tasks.js';
 
 export type {
@@ -133,8 +133,90 @@ export type {
   DecisionResult,
   FearResult,
   GoalSettingResult,
-  RebalancingResult,
 } from './advice-tasks.js';
+
+// ============================================================================
+// DOMAIN-SPECIFIC TASKS
+// ============================================================================
+
+// Finance Tasks (Nayan/Jack Bogle domain)
+export {
+  InvestmentWisdomTask,
+  MarketPanicTask,
+  RebalancingTask,
+  FinancialGoalTask,
+  MarketFearTask,
+  // Legacy aliases
+  RebalancingTask as RebalancingGuidanceTask,
+} from './finance-tasks.js';
+
+export type {
+  InvestmentWisdomResult,
+  MarketPanicResult,
+  RebalancingResult,
+  FinancialGoalResult,
+  MarketFearResult,
+} from './finance-tasks.js';
+
+// Habits Tasks (Maya Santos domain)
+export {
+  HabitTrackingTask,
+  HabitBuildingTask,
+  HabitStruggleTask,
+  RoutineDesignTask,
+} from './habits-tasks.js';
+
+export type {
+  HabitTrackingResult,
+  HabitBuildingResult,
+  HabitStruggleResult,
+  RoutineDesignResult,
+} from './habits-tasks.js';
+
+// Research Tasks (Peter John domain)
+export {
+  CuriosityExplorationTask,
+  LearningProjectTask,
+  DeepResearchTask,
+  ExpertiseDevelopmentTask,
+} from './research-tasks.js';
+
+export type {
+  CuriosityExplorationResult,
+  LearningProjectResult,
+  DeepResearchResult,
+  ExpertiseDevelopmentResult,
+} from './research-tasks.js';
+
+// Communications Tasks (Alex Chen domain)
+export {
+  DifficultConversationTask,
+  MessageCraftingTask,
+  BoundarySettingTask,
+  SchedulingTask,
+} from './communications-tasks.js';
+
+export type {
+  DifficultConversationResult,
+  MessageCraftingResult,
+  BoundarySettingResult,
+  SchedulingResult,
+} from './communications-tasks.js';
+
+// Events Tasks (Jordan Taylor domain)
+export {
+  EventPlanningTask,
+  SpecialDateTask,
+  TravelPlanningTask,
+  LifeMilestoneTask,
+} from './events-tasks.js';
+
+export type {
+  EventPlanningResult,
+  SpecialDateResult,
+  TravelPlanningResult,
+  LifeMilestoneResult,
+} from './events-tasks.js';
 
 // ============================================================================
 // ONBOARDING TASKS
@@ -142,18 +224,20 @@ export type {
 
 export {
   WelcomeTask,
-  FinancialSituationTask,
+  SituationAssessmentTask,
+  FinancialSituationTask, // Legacy alias
   GoalsTask,
   createOnboardingFlow,
   runOnboarding,
-} from './bogle-onboarding.js';
+} from './onboarding.js';
 
 export type {
   WelcomeResult,
-  FinancialSituationResult,
+  SituationResult,
+  FinancialSituationResult, // Legacy alias
   GoalsResult as OnboardingGoalsResult,
   OnboardingResult,
-} from './bogle-onboarding.js';
+} from './onboarding.js';
 
 // ============================================================================
 // TASK FLOW BUILDERS
@@ -163,7 +247,7 @@ import { IntelligentTaskGroup, type TaskContext } from './intelligent-task.js';
 import { EmotionalSupportTask, CheckInTask } from './support-tasks.js';
 import { FollowUpTask, GoodbyeTask, DeepDiveTask } from './relationship-tasks.js';
 import { WisdomSharingTask, GoalSettingTask, FearAddressingTask } from './advice-tasks.js';
-import { WelcomeTask, FinancialSituationTask, GoalsTask } from './bogle-onboarding.js';
+import { WelcomeTask, SituationAssessmentTask, GoalsTask } from './onboarding.js';
 
 /**
  * Create an intelligent onboarding flow that adapts to user emotions
@@ -192,16 +276,16 @@ export function createIntelligentOnboardingFlow(context?: TaskContext): Intellig
     skipIfDistressed: false, // Always do this
   });
 
-  group.add(() => new FinancialSituationTask() as any, {
+  group.add(() => new SituationAssessmentTask() as any, {
     id: 'situation',
-    description: 'Understanding their current financial situation',
+    description: 'Understanding what brought them here',
     priority: 3,
     skipIfDistressed: true, // Skip if they need support
   });
 
   group.add(() => new GoalsTask() as any, {
     id: 'goals',
-    description: 'Exploring their financial goals',
+    description: 'Exploring their goals',
     priority: 4,
     skipIfDistressed: true,
   });
@@ -247,15 +331,13 @@ export function createReturningUserFlow(
 /**
  * Create a wisdom sharing session
  */
-export function createWisdomSession(
-  principle: 'goals' | 'balance' | 'cost' | 'discipline' | 'general'
-): IntelligentTaskGroup {
+export function createWisdomSession(topic: string): IntelligentTaskGroup {
   const group = new IntelligentTaskGroup();
   group.setSupportTask(() => new EmotionalSupportTask());
 
-  group.add(() => new WisdomSharingTask(principle), {
+  group.add(() => new WisdomSharingTask(topic), {
     id: 'wisdom',
-    description: `Share wisdom about ${principle}`,
+    description: `Share wisdom about ${topic}`,
     priority: 1,
   });
 
@@ -300,7 +382,7 @@ export function createGoalSettingSession(): IntelligentTaskGroup {
 
   group.add(() => new GoalSettingTask(), {
     id: 'goal_setting',
-    description: 'Help set financial goals',
+    description: 'Help set goals',
     priority: 1,
   });
 
@@ -392,14 +474,14 @@ export {
  */
 export function getTaskDocumentation(): string {
   return `
-# John Bogle Voice AI - Task Reference
+# Ferni Voice AI - Task Reference
 
 ## Base Tasks (3)
 - CollectConsentTask: Get recording consent
 - CollectNameTask: Get user's name
 - CollectEmailTask: Get email address
 
-## Micro Tasks (6) - NEW!
+## Micro Tasks (6)
 - QuickAcknowledgeTask: Just "I hear you"
 - QuickCelebrateTask: Brief joy moments
 - QuickValidateTask: "That makes sense"
@@ -407,9 +489,9 @@ export function getTaskDocumentation(): string {
 - ActiveListeningTask: Reflect back what you heard
 - PauseTask: Meaningful silence
 
-## Life Event Tasks (4) - NEW!
+## Life Event Tasks (4)
 - LifeChangeTask: Major transitions (job, baby, divorce, etc.)
-- PanicPreventionTask: Stop panic selling
+- PanicPreventionTask: Stop panic-driven decisions
 - GriefSupportTask: Be present in loss
 - MilestoneTask: Celebrate achievements
 
@@ -425,24 +507,56 @@ export function getTaskDocumentation(): string {
 
 ## Relationship Tasks (5)
 - FollowUpTask: Reconnect with returning users
-- StorytellingTask: Share relevant Jack stories
+- StorytellingTask: Share relevant stories
 - DeepDiveTask: Explore topics in depth
 - GoodbyeTask: Warm conversation endings
 - CelebrationTask: Celebrate wins and milestones
 
-## Advice Tasks (5)
-- WisdomSharingTask: Share investing principles
+## Advice Tasks (4) - General Purpose
+- WisdomSharingTask: Share wisdom on any topic
 - DecisionSupportTask: Help with decisions
-- FearAddressingTask: Address market fears
-- GoalSettingTask: Set financial goals
-- RebalancingGuidanceTask: Portfolio balance help
+- FearAddressingTask: Address fears and anxiety
+- GoalSettingTask: Help set clear goals
+
+## Domain-Specific Tasks
+
+### Finance Tasks (5) - Nayan/Jack Bogle
+- InvestmentWisdomTask: Share investment principles
+- MarketPanicTask: Address market panic
+- RebalancingTask: Portfolio rebalancing guidance
+- FinancialGoalTask: Set financial goals
+- MarketFearTask: Address market fears
+
+### Habits Tasks (4) - Maya Santos
+- HabitTrackingTask: Check in on habit progress
+- HabitBuildingTask: Design new habits (cue/routine/reward)
+- HabitStruggleTask: Help when habits aren't sticking
+- RoutineDesignTask: Design daily routines
+
+### Research Tasks (4) - Peter John
+- CuriosityExplorationTask: Fan the flames of curiosity
+- LearningProjectTask: Plan a learning journey
+- DeepResearchTask: Guide thorough research
+- ExpertiseDevelopmentTask: Develop expertise in a domain
+
+### Communications Tasks (4) - Alex Chen
+- DifficultConversationTask: Prepare for tough conversations
+- MessageCraftingTask: Help write important messages
+- BoundarySettingTask: Set boundaries with clarity
+- SchedulingTask: Coordinate schedules
+
+### Events Tasks (4) - Jordan Taylor
+- EventPlanningTask: Plan special events
+- SpecialDateTask: Remember important dates
+- TravelPlanningTask: Plan trips
+- LifeMilestoneTask: Acknowledge life milestones
 
 ## Onboarding Tasks (3)
-- WelcomeTask: Warm greeting
-- FinancialSituationTask: Understand their situation
+- WelcomeTask: Warm greeting and getting to know the user
+- SituationAssessmentTask: Understand what brought them here
 - GoalsTask: Explore their goals
 
-## Natural Transitions - NEW!
+## Natural Transitions
 - getTransition(): Get random phrase from category
 - getContextualTransition(): Smart transition picker
 - wrapWithTransitions(): Add entry/exit to any message
@@ -450,12 +564,21 @@ export function getTaskDocumentation(): string {
 ## Pre-built Flows (7)
 - createIntelligentOnboardingFlow: Full new user onboarding
 - createReturningUserFlow: Welcome back returning users
-- createWisdomSession: Teach investing principles
-- createFearAddressingFlow: Address financial fears
+- createWisdomSession: Share wisdom on a topic
+- createFearAddressingFlow: Address fears
 - createGoalSettingSession: Set goals together
 - createDeepDiveSession: Deep topic exploration
 - createWrapUpFlow: Graceful conversation ending
 
-Total: 32 tasks + 7 flows + transitions system
+Total: 52 tasks + 7 flows + transitions system
+
+Domain task breakdown:
+- General: 28 tasks (work with any persona)
+- Finance: 5 tasks (Nayan/Jack Bogle)
+- Habits: 4 tasks (Maya Santos)
+- Research: 4 tasks (Peter John)
+- Communications: 4 tasks (Alex Chen)
+- Events: 4 tasks (Jordan Taylor)
+- Plus 3 onboarding tasks
 `;
 }

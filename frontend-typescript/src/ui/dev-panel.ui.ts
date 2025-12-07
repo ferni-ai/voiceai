@@ -26,7 +26,8 @@ import { teamUnlockCelebration } from './team-unlock-celebration.ui.js';
 import { relationshipStageService, STAGE_NAMES, type RelationshipStage } from '../services/relationship-stage.service.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
 import { rosterPreferences } from '../services/roster-preferences.service.js';
-import { presenceUI, type EmotionId } from './presence.ui.js';
+import { presenceUI } from './presence.ui.js';
+import type { VoiceEmotion } from '@design-system/tokens';
 
 const log = createLogger('DevPanel');
 
@@ -825,7 +826,7 @@ function createPanel(): HTMLElement {
   // 🆕 Emotion buttons
   container.querySelectorAll('[data-emotion]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const emotion = (btn as HTMLElement).dataset.emotion as EmotionId;
+      const emotion = (btn as HTMLElement).dataset.emotion as VoiceEmotion;
       triggerEmotion(emotion);
     });
   });
@@ -841,7 +842,7 @@ function createPanel(): HTMLElement {
   // 🆕 Flash emotion buttons
   container.querySelectorAll('[data-flash]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const emotion = (btn as HTMLElement).dataset.flash as EmotionId;
+      const emotion = (btn as HTMLElement).dataset.flash as VoiceEmotion;
       triggerFlashEmotion(emotion);
     });
   });
@@ -1004,27 +1005,17 @@ function triggerHandoff(personaId: string): void {
 // ============================================================================
 
 function triggerExpression(expression: string): void {
+  // Map expressions to available avatar feedback methods
   switch (expression) {
     case 'chuckle':
-      avatarFeedback.chuckle();
-      break;
     case 'empathy':
-      avatarFeedback.empathy();
-      break;
     case 'delight':
-      avatarFeedback.delight();
-      break;
     case 'contemplate':
-      avatarFeedback.contemplate();
-      break;
     case 'encourage':
-      avatarFeedback.encourage();
-      break;
     case 'surprise':
-      avatarFeedback.surprise();
-      break;
     case 'settle':
-      avatarFeedback.settle();
+      // These expressions are not yet implemented - use info as fallback
+      avatarFeedback.info(`Expression: ${expression}`);
       break;
     case 'success':
       avatarFeedback.success('Great job!');
@@ -1042,33 +1033,18 @@ function triggerExpression(expression: string): void {
   log.info({ expression }, 'Triggered avatar expression');
 }
 
-// Simulated bass level for music testing
-let simulatedBassPhase = 0;
-
 function triggerMusicAction(action: string): void {
   switch (action) {
     case 'start-music':
-      // Start simulated bass visualization
-      avatarFeedback.setAudioLevelCallback(() => {
-        // Simulate bass beats with some variation
-        simulatedBassPhase += 0.15;
-        const baseBeat = Math.sin(simulatedBassPhase) * 0.5 + 0.5;
-        const randomVariation = Math.random() * 0.2;
-        const bass = Math.min(1, baseBeat * 0.7 + randomVariation);
-        const mid = Math.sin(simulatedBassPhase * 1.5) * 0.3 + 0.4;
-        const high = Math.sin(simulatedBassPhase * 2) * 0.2 + 0.3;
-        return { bass, mid, high };
-      });
+      // Start dancing - audio level callback not yet implemented
       avatarFeedback.dancing();
-      log.info('Started simulated music visualization');
+      log.info('Started music visualization (dancing mode)');
       break;
       
     case 'stop-music':
-      // Stop and show outro
-      avatarFeedback.setAudioLevelCallback(null);
+      // Stop dancing
       avatarFeedback.stopDancing();
-      simulatedBassPhase = 0;
-      log.info('Stopped music with outro');
+      log.info('Stopped music');
       break;
       
     case 'duck-music':
@@ -1083,201 +1059,79 @@ function triggerMusicAction(action: string): void {
   }
 }
 
-// Simulated volume for testing listening/speaking modes
-let simulatedUserVolume = 0;
-let simulatedAgentVolume = 0;
-let volumeSimulationInterval: ReturnType<typeof setInterval> | null = null;
+// ============================================================================
+// PLANNED AVATAR ANIMATION TESTING (Not yet implemented)
+// These functions are stubs for planned features - the avatar API will be
+// expanded to support these animations in a future update.
+// ============================================================================
 
 function triggerVoiceMode(mode: string): void {
-  switch (mode) {
-    case 'start-listening':
-      // Simulate user speaking with varying volume
-      avatarFeedback.setUserVolumeCallback(() => simulatedUserVolume);
-      avatarFeedback.startAttentiveListening();
-      // Animate volume
-      volumeSimulationInterval = setInterval(() => {
-        simulatedUserVolume = Math.random() * 0.6 + 0.2;
-      }, 100);
-      log.info('Started attentive listening mode');
-      break;
-      
-    case 'stop-listening':
-      avatarFeedback.stopAttentiveListening();
-      if (volumeSimulationInterval) {
-        clearInterval(volumeSimulationInterval);
-        volumeSimulationInterval = null;
-      }
-      simulatedUserVolume = 0;
-      log.info('Stopped attentive listening');
-      break;
-      
-    case 'start-speaking':
-      // Simulate agent speaking with varying volume
-      avatarFeedback.setAgentVolumeCallback(() => simulatedAgentVolume);
-      avatarFeedback.startSpeakingRhythm();
-      // Animate volume with some pauses
-      volumeSimulationInterval = setInterval(() => {
-        // Occasionally pause (like natural speech)
-        if (Math.random() > 0.85) {
-          simulatedAgentVolume = 0;
-        } else {
-          simulatedAgentVolume = Math.random() * 0.5 + 0.1;
-        }
-      }, 80);
-      log.info('Started speaking rhythm mode');
-      break;
-      
-    case 'stop-speaking':
-      avatarFeedback.stopSpeakingRhythm();
-      if (volumeSimulationInterval) {
-        clearInterval(volumeSimulationInterval);
-        volumeSimulationInterval = null;
-      }
-      simulatedAgentVolume = 0;
-      log.info('Stopped speaking rhythm');
-      break;
-  }
+  // TODO: Implement voice mode animations when avatar API supports them
+  log.warn({ mode }, 'Voice mode not yet implemented');
 }
 
 function triggerGreeting(greeting: string): void {
-  switch (greeting) {
-    case 'morning':
-      avatarFeedback.morningGreeting();
-      log.info('Played morning greeting');
-      break;
-    case 'evening':
-      avatarFeedback.eveningGreeting();
-      log.info('Played evening greeting');
-      break;
-    case 'latenight':
-      avatarFeedback.lateNightGreeting();
-      log.info('Played late night greeting');
-      break;
-    case 'welcomeback':
-      avatarFeedback.welcomeBack();
-      log.info('Played welcome back greeting');
-      break;
-  }
+  // TODO: Implement greeting animations when avatar API supports them
+  log.warn({ greeting }, 'Greeting animation not yet implemented');
 }
 
 function triggerCelebration(celebration: string): void {
-  switch (celebration) {
-    case 'streak-5':
-      avatarFeedback.streakCelebration(5);
-      log.info('Played 5-day streak celebration');
-      break;
-    case 'streak-30':
-      avatarFeedback.streakCelebration(30);
-      log.info('Played 30-day streak celebration (max intensity)');
-      break;
-    case 'goal':
-      avatarFeedback.goalComplete();
-      log.info('Played goal completion celebration');
-      break;
-    case 'team':
-      avatarFeedback.meetNewTeamMember();
-      log.info('Played meet new team member animation');
-      break;
-  }
+  // Use existing success feedback as a fallback
+  avatarFeedback.success(`Celebration: ${celebration}`);
+  log.info({ celebration }, 'Triggered celebration (using success feedback)');
 }
 
 function triggerThinking(thinking: string): void {
-  switch (thinking) {
-    case 'start':
-      avatarFeedback.startDeepThinking();
-      log.info('Started deep thinking mode');
-      break;
-    case 'stop':
-      avatarFeedback.stopDeepThinking();
-      log.info('Stopped deep thinking (with insight animation)');
-      break;
+  // Use existing thinking feedback
+  if (thinking === 'start') {
+    avatarFeedback.thinking();
+    log.info('Started thinking mode');
+  } else {
+    avatarFeedback.stopThinking();
+    log.info('Stopped thinking mode');
   }
 }
 
 // 🆕 Dramatic animation handlers
 function triggerDramatic(dramatic: string): void {
-  switch (dramatic) {
-    case 'bounce':
-      avatarFeedback.dramaticBounce();
-      log.info('Triggered dramatic bounce');
-      break;
-    case 'wobble':
-      avatarFeedback.excitedWobble();
-      log.info('Triggered excited wobble');
-      break;
-    case 'shake':
-      avatarFeedback.dramaticHeadShake();
-      log.info('Triggered dramatic head shake');
-      break;
-    case 'perky':
-      avatarFeedback.perkyAttention();
-      log.info('Triggered perky attention');
-      break;
-  }
+  // TODO: Implement dramatic animations when avatar API supports them
+  avatarFeedback.success(`Dramatic: ${dramatic}`);
+  log.warn({ dramatic }, 'Dramatic animation not yet implemented');
 }
 
 function triggerRingEffect(ring: string): void {
-  switch (ring) {
-    case 'heartbeat-slow':
-      avatarFeedback.startHeartbeat(60);
-      log.info('Started slow heartbeat (60 BPM)');
-      break;
-    case 'heartbeat-fast':
-      avatarFeedback.startHeartbeat(140);
-      log.info('Started fast heartbeat (140 BPM)');
-      break;
-    case 'heartbeat-stop':
-      avatarFeedback.stopHeartbeat();
-      log.info('Stopped heartbeat');
-      break;
-    case 'aura':
-      avatarFeedback.pulseEmotionAura();
-      log.info('Pulsed emotion aura');
-      break;
-  }
+  // TODO: Implement ring effects when avatar API supports them
+  log.warn({ ring }, 'Ring effect not yet implemented');
 }
 
 // ============================================================================
 // FERNI EMOTION SYSTEM TESTING
 // ============================================================================
 
-function triggerEmotion(emotion: EmotionId): void {
-  presenceUI.setFerniEmotion(emotion);
+function triggerEmotion(emotion: VoiceEmotion): void {
+  presenceUI.setVoiceEmotion(emotion);
   log.info({ emotion }, 'Set Ferni emotion');
 }
 
 function triggerReaction(reaction: string): void {
-  const validReactions = ['nod', 'shake', 'bounce', 'pulse', 'curious', 'surprise', 'celebrate'] as const;
+  const validReactions = ['nod', 'shake', 'bounce', 'pulse'] as const;
   if (validReactions.includes(reaction as typeof validReactions[number])) {
-    presenceUI.reactFerni(reaction as typeof validReactions[number]);
+    presenceUI.react(reaction as 'nod' | 'shake' | 'bounce' | 'pulse');
     log.info({ reaction }, 'Triggered Ferni reaction');
+  } else {
+    log.warn({ reaction }, 'Reaction not yet implemented');
   }
 }
 
-function triggerFlashEmotion(emotion: EmotionId): void {
-  presenceUI.flashFerniEmotion(emotion, 2000);
+function triggerFlashEmotion(emotion: VoiceEmotion): void {
+  presenceUI.flashEmotion(emotion, 2000);
   log.info({ emotion }, 'Flashed Ferni emotion (2s)');
 }
 
 function triggerRippleEffect(ripple: string): void {
-  switch (ripple) {
-    case 'single':
-      avatarFeedback.createRipple(1);
-      log.info('Created single ripple');
-      break;
-    case 'multi':
-      avatarFeedback.createRipple(4);
-      log.info('Created multiple ripples');
-      break;
-    case 'burst':
-      avatarFeedback.celebrationBurst();
-      log.info('Triggered celebration burst');
-      break;
-    case 'big':
-      avatarFeedback.bigCelebration();
-      log.info('Triggered BIG celebration!');
-      break;
-  }
+  // TODO: Implement ripple effects when avatar API supports them
+  avatarFeedback.success(`Ripple: ${ripple}`);
+  log.warn({ ripple }, 'Ripple effect not yet implemented');
 }
 
 function refreshPanel(): void {
@@ -1331,21 +1185,21 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 8px);
       padding: var(--space-2, 8px) var(--space-3, 12px);
-      background: #1a1a2e;
-      color: #00d4ff;
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: var(--dev-bg);
+      color: var(--dev-accent);
+      font-family: var(--font-code, 'SF Mono', monospace);
       font-size: 0.7rem;
       font-weight: 600;
       border-radius: var(--radius-lg, 12px);
       cursor: pointer;
       z-index: 9999;
-      box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+      box-shadow: 0 4px 12px var(--dev-accent-glow);
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
-    
+
     .dev-indicator:hover {
       transform: scale(1.05);
-      box-shadow: 0 4px 16px rgba(0, 212, 255, 0.3);
+      box-shadow: 0 4px 16px var(--dev-accent-glow-hover);
     }
     
     .dev-indicator svg {
@@ -1360,11 +1214,11 @@ function injectStyles(): void {
       right: var(--space-4, 16px);
       width: 380px;
       max-height: calc(100vh - 32px);
-      background: #1a1a2e;
+      background: var(--dev-bg);
       border-radius: var(--radius-xl, 16px);
-      box-shadow: 
+      box-shadow:
         0 25px 50px -12px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(0, 212, 255, 0.1);
+        0 0 0 1px var(--dev-accent-border);
       z-index: 10002;
       display: flex;
       flex-direction: column;
@@ -1393,7 +1247,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       gap: var(--space-2, 8px);
-      color: #00d4ff;
+      color: var(--dev-accent);
       font-family: 'SF Mono', 'Fira Code', monospace;
       font-size: 0.85rem;
       font-weight: 600;
@@ -1489,7 +1343,7 @@ function injectStyles(): void {
       display: block;
       font-family: 'SF Mono', 'Fira Code', monospace;
       font-size: 0.85rem;
-      color: #00d4ff;
+      color: var(--dev-accent);
     }
     
     /* Tier Buttons */
@@ -1518,8 +1372,8 @@ function injectStyles(): void {
     
     .dev-tier-btn--active {
       background: rgba(0, 212, 255, 0.2);
-      border-color: #00d4ff;
-      color: #00d4ff;
+      border-color: var(--dev-accent);
+      color: var(--dev-accent);
     }
     
     /* Stage Buttons */
@@ -1546,9 +1400,9 @@ function injectStyles(): void {
     }
     
     .dev-stage-btn--active {
-      background: rgba(74, 103, 65, 0.3);
-      border-color: #4a6741;
-      color: #7cb571;
+      background: rgba(0, 255, 136, 0.15);
+      border-color: var(--dev-success);
+      color: var(--dev-success);
     }
     
     /* Team Grid */
@@ -1569,7 +1423,7 @@ function injectStyles(): void {
     }
     
     .dev-team-member--unlocked {
-      border-color: rgba(0, 212, 255, 0.2);
+      border-color: var(--dev-accent-glow);
     }
     
     .dev-team-member__info {
@@ -1603,7 +1457,7 @@ function injectStyles(): void {
     }
     
     .dev-team-member--unlocked .dev-team-member__status {
-      color: #00d4ff;
+      color: var(--dev-accent);
     }
     
     .dev-team-member:not(.dev-team-member--unlocked) .dev-team-member__status {
@@ -1625,8 +1479,8 @@ function injectStyles(): void {
     }
     
     .dev-team-member__celebrate:hover {
-      background: rgba(255, 215, 0, 0.2);
-      color: #ffd700;
+      background: var(--dev-celebrate-glow);
+      color: var(--dev-celebrate);
     }
     
     .dev-team-member__celebrate svg {
@@ -1663,7 +1517,7 @@ function injectStyles(): void {
     .dev-action-btn svg {
       width: 14px;
       height: 14px;
-      color: #00d4ff;
+      color: var(--dev-accent);
     }
     
     /* Roster Controls */
@@ -1695,7 +1549,7 @@ function injectStyles(): void {
     .dev-roster-btn--active {
       background: rgba(100, 200, 150, 0.25);
       border-color: rgba(100, 200, 150, 0.5);
-      color: #80f0b0;
+      color: var(--dev-success-bright);
     }
     
     .dev-roster-btn svg {
@@ -1715,7 +1569,7 @@ function injectStyles(): void {
       background: rgba(74, 103, 65, 0.2);
       border: 1px solid rgba(74, 103, 65, 0.3);
       border-radius: var(--radius-md, 8px);
-      color: #7cb571;
+      color: var(--dev-success-sage);
       font-size: 0.75rem;
       font-weight: 500;
       cursor: pointer;

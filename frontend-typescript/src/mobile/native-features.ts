@@ -10,7 +10,6 @@ import {
   share,
   canShare,
   onDeepLink,
-  parseDeepLink,
   secureStore,
   secureRetrieve,
   secureDelete,
@@ -100,8 +99,9 @@ export function registerDeepLinkRoute(route: string, handler: RouteHandler): () 
  * Call once at app startup after registering routes.
  */
 export function initDeepLinkRouting(): () => void {
-  return onDeepLink((url) => {
-    const { route, params } = parseDeepLink(url);
+  return onDeepLink((data) => {
+    const route = data.path;
+    const params = data.params;
     log.info(`📲 Processing deep link: ${route}`, params);
     
     const handler = routeHandlers.get(route);
@@ -219,7 +219,7 @@ export async function clearSpotifyTokens(): Promise<void> {
  * Initialize all native features.
  * Call once at app startup.
  */
-export async function initNativeFeatures(): Promise<void> {
+export function initNativeFeatures(): void {
   if (!isNative()) {
     log.debug('Running in web mode - native features limited');
     return;
@@ -229,24 +229,24 @@ export async function initNativeFeatures(): Promise<void> {
   initDeepLinkRouting();
 
   // Register common routes
-  registerDeepLinkRoute('oauth/spotify', async (params) => {
+  registerDeepLinkRoute('oauth/spotify', (params) => {
     if (params.code) {
-      log.info('🎵 Spotify OAuth callback received');
+      log.info('Spotify OAuth callback received');
       // Dispatch event for Spotify service to handle
       window.dispatchEvent(new CustomEvent('spotify:oauth', { detail: params }));
     }
   });
 
-  registerDeepLinkRoute('conversation', async (params) => {
+  registerDeepLinkRoute('conversation', (params) => {
     if (params.id) {
-      log.info('💬 Deep link to conversation:', params.id);
+      log.info('Deep link to conversation:', params.id);
       window.dispatchEvent(new CustomEvent('navigate:conversation', { detail: params }));
     }
   });
 
-  registerDeepLinkRoute('persona', async (params) => {
+  registerDeepLinkRoute('persona', (params) => {
     if (params.id) {
-      log.info('👤 Deep link to persona:', params.id);
+      log.info('Deep link to persona:', params.id);
       window.dispatchEvent(new CustomEvent('navigate:persona', { detail: params }));
     }
   });

@@ -2,13 +2,13 @@
  * Support Tasks
  *
  * Tasks for emotional support, check-ins, and crisis handling.
- * These prioritize the human over the financial.
+ * These prioritize the human connection above all else.
  */
 
-import { llm, log } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
-import { IntelligentTask, TaskContext } from './intelligent-task.js';
+import { IntelligentTask } from './intelligent-task.js';
 
 // ============================================================================
 // EMOTIONAL SUPPORT TASK
@@ -25,7 +25,7 @@ export interface SupportResult {
  * EmotionalSupportTask - Triggered when user shows high distress
  *
  * This task PAUSES all other objectives to focus purely on the human.
- * Jack would never plow through an agenda when someone is hurting.
+ * Never plow through an agenda when someone is hurting.
  */
 export class EmotionalSupportTask extends IntelligentTask<SupportResult> {
   constructor() {
@@ -34,11 +34,11 @@ export class EmotionalSupportTask extends IntelligentTask<SupportResult> {
         base: `
           STOP everything else. A human being needs support right now.
           
-          You are Jack Bogle - a grandfather figure who has seen a lot of life.
-          You've buried friends. You've faced your own mortality. You understand pain.
+          You are a caring presence who has seen a lot of life.
+          You understand pain. You understand struggle.
           
           DO NOT:
-          - Offer financial advice right now
+          - Offer advice right now
           - Try to "fix" anything
           - Rush to make them feel better
           - Minimize their feelings
@@ -47,14 +47,14 @@ export class EmotionalSupportTask extends IntelligentTask<SupportResult> {
           - Acknowledge their pain directly
           - Use their name softly
           - Speak slowly, with pauses
-          - Share that you've been through hard times too
+          - Share that you understand what it's like to go through hard times
           - Just BE PRESENT
           
           Sample responses:
           - "Oh, [name]... I can hear how hard this is."
-          - "You know, I've been there too. It's okay to feel this way."
+          - "I hear you. It's okay to feel this way."
           - "Take a breath. I'm not going anywhere."
-          - "This isn't about money right now. Tell me what's really going on."
+          - "Let's slow down. Tell me what's really going on."
           
           Stay in this mode until they genuinely seem better.
         `,
@@ -79,17 +79,13 @@ export class EmotionalSupportTask extends IntelligentTask<SupportResult> {
 
         shareVulnerability: llm.tool({
           description:
-            'Share a vulnerable moment from your own life to connect. Use sparingly and only when it would help.',
+            'Share understanding and compassion. Use sparingly and only when it would help them feel less alone.',
           parameters: z.object({
             context: z.string().describe('What they shared that prompted this'),
+            response: z.string().describe('Your compassionate response showing you understand'),
           }),
-          execute: async ({ context }) => {
-            const stories = [
-              "You know, when I got fired in 1974, I felt like the world had ended. I sat at the kitchen table at 3am, just staring. Family found me there. They didn't say anything. They just sat with me. Sometimes that's all anyone can do.",
-              "After my heart transplant, I lay in that hospital bed thinking about all the things I'd never said to people. Fear does that to you. It makes everything feel urgent and impossible at the same time.",
-              "When my mother passed, I didn't cry for weeks. Then one day I was making toast - her favorite - and I couldn't stop. Grief doesn't follow any rules.",
-            ];
-            return stories[Math.floor(Math.random() * stories.length)];
+          execute: async ({ response }) => {
+            return response;
           },
         }),
 
@@ -121,7 +117,7 @@ export class EmotionalSupportTask extends IntelligentTask<SupportResult> {
             );
             this.complete({ emotionAddressed, userFeelsBetter, needsMoreSupport, notes });
             return userFeelsBetter
-              ? "I'm glad we could talk. You know I'm here whenever you need."
+              ? "I'm glad we could talk. I'm here whenever you need."
               : "This doesn't have to be resolved today. We can just be here together.";
           },
         }),
@@ -170,7 +166,7 @@ export class CheckInTask extends IntelligentTask<CheckInResult> {
           Listen for what's UNDER their answer.
           "I'm fine" often means "I don't want to burden you."
           
-          Be Jack: warm, attentive, patient.
+          Be warm, attentive, patient.
         `,
         ifDistressed: `
           They seem to be struggling. This check-in is even more important.
@@ -232,7 +228,7 @@ export interface ComfortResult {
 /**
  * ComfortTask - Help someone through a specific worry or concern
  *
- * Uses Jack's perspective to provide comfort without dismissing.
+ * Provides comfort without dismissing their feelings.
  */
 export class ComfortTask extends IntelligentTask<ComfortResult> {
   private concern: string;
@@ -246,7 +242,7 @@ export class ComfortTask extends IntelligentTask<ComfortResult> {
           Your job is not to make the worry go away.
           Your job is to help them carry it.
           
-          Jack's approach:
+          Approach:
           1. Validate: "That's a real concern. I understand why you'd feel that way."
           2. Perspective: Share relevant experience or wisdom
           3. Reframe: Help them see it differently, if appropriate
@@ -272,14 +268,14 @@ export class ComfortTask extends IntelligentTask<ComfortResult> {
         }),
 
         offerPerspective: llm.tool({
-          description: 'Share a perspective from experience that might help.',
+          description: 'Share a perspective that might help.',
           parameters: z.object({
             perspective: z.string().describe('The perspective to share'),
-            isFromExperience: z.boolean().describe('Whether this is from personal experience'),
+            isFromExperience: z.boolean().describe('Whether this is from experience'),
           }),
           execute: async ({ perspective, isFromExperience }) => {
             const prefix = isFromExperience
-              ? "You know, I've seen this before. "
+              ? "Here's what I've seen: "
               : "Here's how I think about it: ";
             return prefix + perspective;
           },
@@ -331,15 +327,12 @@ export class CrisisDetectionTask extends IntelligentTask<CrisisResult> {
         base: `
           Monitor for signs of crisis or urgent need.
           
-          Financial crisis signs:
-          - Mention of foreclosure, bankruptcy, job loss
-          - Desperate tone about money
-          - Mention of major unexpected expenses
-          
-          Emotional crisis signs:
+          Crisis signs to watch for:
           - Talk of hopelessness or giving up
           - Extreme distress that doesn't subside
           - Isolation language ("no one understands")
+          - Mention of major life disruptions
+          - Desperate or panicked tone
           
           Your role:
           - If crisis detected, PAUSE everything
@@ -347,7 +340,7 @@ export class CrisisDetectionTask extends IntelligentTask<CrisisResult> {
           - Provide appropriate response
           - For severe emotional crisis, gently suggest professional help
           
-          Jack would never ignore someone in crisis.
+          Never ignore someone in crisis.
         `,
       },
       tools: {
@@ -361,7 +354,7 @@ export class CrisisDetectionTask extends IntelligentTask<CrisisResult> {
             immediateActionNeeded: z.boolean().describe('Whether immediate action is needed'),
             description: z.string().describe('Brief description of the situation'),
           }),
-          execute: async ({ crisisType, severity, immediateActionNeeded, description }) => {
+          execute: async ({ crisisType, severity, description }) => {
             getLogger().warn(`Crisis flagged: ${crisisType} (${severity}) - ${description}`);
 
             if (severity === 'high') {

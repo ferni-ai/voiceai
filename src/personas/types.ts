@@ -184,6 +184,9 @@ export interface SpeechCharacteristics {
 // ============================================================================
 
 export interface IdentityConfig {
+  /** Unique persona identifier (e.g., 'ferni', 'maya', 'peter') */
+  id?: string;
+
   /** How the persona refers to themselves */
   selfReference: string;
 
@@ -457,7 +460,11 @@ export interface PersonaState {
 /** Partial config for extending/overriding base personas */
 export type PartialPersonaConfig = Partial<PersonaConfig> & Pick<PersonaConfig, 'id' | 'name'>;
 
-/** Persona ID type for type safety */
+/**
+ * Persona ID type for type safety.
+ * Note: For the strict union type of canonical IDs, import from id-mapping.ts.
+ * This generic string type is kept for backward compatibility with external code.
+ */
 export type PersonaId = string;
 
 /** Map of available personas */

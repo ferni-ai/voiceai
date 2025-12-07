@@ -5,6 +5,8 @@
  * preferences, relationship history, and financial context.
  */
 
+import type { SubscriptionData } from './subscription.js';
+
 // ============================================================================
 // VOICE MEMORY
 // ============================================================================
@@ -879,6 +881,13 @@ export interface UserProfile {
     /** Last updated */
     updatedAt: Date;
   };
+
+  // ============================================================================
+  // SUBSCRIPTION DATA
+  // ============================================================================
+
+  /** Subscription tier and usage tracking */
+  subscription?: SubscriptionData;
 
   // Metadata
   createdAt: Date;

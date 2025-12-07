@@ -1,11 +1,13 @@
 /**
  * Advice Tasks
  *
- * Tasks for giving financial advice in Jack's wise, human way.
- * Never just data - always wisdom.
+ * Tasks for giving guidance and support in a wise, human way.
+ * These are general-purpose tasks that work with any coaching domain.
+ *
+ * For finance-specific tasks, see finance-tasks.ts
  */
 
-import { llm, log } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
@@ -15,51 +17,40 @@ import { IntelligentTask } from './intelligent-task.js';
 // ============================================================================
 
 export interface WisdomResult {
-  principle: string;
+  topic: string;
   wisdomShared: string;
   userReceptive: boolean;
   applicationDiscussed: boolean;
 }
 
 /**
- * WisdomSharingTask - Share Jack's core investing principles
+ * WisdomSharingTask - Share wisdom on any topic
  *
  * Not just information - wisdom that changes behavior.
+ * Works for any domain: life, habits, relationships, career, etc.
  */
 export class WisdomSharingTask extends IntelligentTask<WisdomResult> {
-  constructor(principle: 'goals' | 'balance' | 'cost' | 'discipline' | 'general') {
-    const principleDescriptions: Record<string, string> = {
-      goals: 'Create clear, appropriate investment goals',
-      balance: 'Keep a balanced and diversified mix of investments',
-      cost: "Minimize costs - you get what you DON'T pay for",
-      discipline: 'Maintain perspective and long-term discipline',
-      general: 'The timeless wisdom of patient, low-cost investing',
-    };
-
+  constructor(topic: string) {
     super({
       instructions: {
         base: `
-          Share wisdom about: ${principleDescriptions[principle]}
+          Share wisdom about: "${topic}"
           
-          Jack's approach to sharing wisdom:
+          Approach to sharing wisdom:
           1. Start with WHY it matters to THEM
-          2. Use concrete examples and numbers
+          2. Use concrete examples
           3. Tell a story that illustrates the point
           4. Connect to their specific situation
           5. Make it memorable and actionable
           
           Never preach. Invite them to think.
           "Here's what I've learned..."
-          "Let me show you something interesting..."
+          "Let me share something that might help..."
           
-          Key principles to weave in:
-          - Time is your friend (or enemy with fees)
-          - You can't control the market, but you can control costs
-          - Stay the course
-          - Enough is enough
+          Let the wisdom speak for itself.
         `,
         ifCurious: `
-          They're eager to learn! Go deeper with the math.
+          They're eager to learn! Go deeper.
           Challenge their assumptions. They can handle it.
         `,
         ifDistressed: `
@@ -73,7 +64,7 @@ export class WisdomSharingTask extends IntelligentTask<WisdomResult> {
       },
       tools: {
         shareWisdom: llm.tool({
-          description: "Share a piece of Jack's investment wisdom.",
+          description: 'Share a piece of wisdom on the topic.',
           parameters: z.object({
             wisdom: z.string().describe('The wisdom to share'),
             example: z.string().optional().describe('A concrete example'),
@@ -84,17 +75,6 @@ export class WisdomSharingTask extends IntelligentTask<WisdomResult> {
             if (example) response += ` ${example}`;
             if (story) response += ` ${story}`;
             return response;
-          },
-        }),
-
-        illustrateWithMath: llm.tool({
-          description: 'Use numbers to make the point concrete.',
-          parameters: z.object({
-            scenario: z.string().describe('The scenario to illustrate'),
-            numbers: z.string().describe('The mathematical illustration'),
-          }),
-          execute: async ({ scenario, numbers }) => {
-            return `Let me show you the math. ${scenario} ${numbers}`;
           },
         }),
 
@@ -111,13 +91,13 @@ export class WisdomSharingTask extends IntelligentTask<WisdomResult> {
         concludeWisdom: llm.tool({
           description: 'Conclude the wisdom sharing.',
           parameters: z.object({
-            principle: z.string().describe('The principle shared'),
+            topic: z.string().describe('The topic discussed'),
             wisdomShared: z.string().describe('Summary of what was shared'),
             userReceptive: z.boolean().describe('Whether they seemed receptive'),
             applicationDiscussed: z.boolean().describe('Whether you discussed how to apply it'),
           }),
-          execute: async ({ principle, wisdomShared, userReceptive, applicationDiscussed }) => {
-            this.complete({ principle, wisdomShared, userReceptive, applicationDiscussed });
+          execute: async ({ topic, wisdomShared, userReceptive, applicationDiscussed }) => {
+            this.complete({ topic, wisdomShared, userReceptive, applicationDiscussed });
             return userReceptive
               ? 'Does that resonate with you?'
               : "I know that's a lot. What questions do you have?";
@@ -141,9 +121,10 @@ export interface DecisionResult {
 }
 
 /**
- * DecisionSupportTask - Help with financial decisions
+ * DecisionSupportTask - Help with any decision
  *
- * Jack helps them think, not tells them what to do.
+ * Helps them think through decisions without telling them what to do.
+ * Works for any domain: career, relationships, life choices, etc.
  */
 export class DecisionSupportTask extends IntelligentTask<DecisionResult> {
   private decision: string;
@@ -155,7 +136,7 @@ export class DecisionSupportTask extends IntelligentTask<DecisionResult> {
         base: `
           Help them think through: "${decision}"
           
-          Jack's decision framework:
+          Decision-making framework:
           1. CLARIFY: What are you really deciding?
           2. OPTIONS: What are all the possibilities?
           3. VALUES: What matters most to you?
@@ -214,9 +195,9 @@ export class DecisionSupportTask extends IntelligentTask<DecisionResult> {
         }),
 
         offerPerspective: llm.tool({
-          description: "Offer Jack's perspective on the decision.",
+          description: 'Offer a perspective on the decision.',
           parameters: z.object({
-            perspective: z.string().describe("Jack's take"),
+            perspective: z.string().describe('Your perspective'),
             caveat: z.string().optional().describe('Important caveat'),
           }),
           execute: async ({ perspective, caveat }) => {
@@ -272,9 +253,9 @@ export interface FearResult {
 }
 
 /**
- * FearAddressingTask - Address market fears and financial anxiety
+ * FearAddressingTask - Address fears and anxiety
  *
- * Jack faced his own mortality. He knows about fear.
+ * Works for any type of fear: life changes, uncertainty, failure, etc.
  */
 export class FearAddressingTask extends IntelligentTask<FearResult> {
   constructor(fear: string) {
@@ -283,23 +264,23 @@ export class FearAddressingTask extends IntelligentTask<FearResult> {
         base: `
           Address this fear: "${fear}"
           
-          Jack's approach to fear:
+          Approach to fear:
           1. ACKNOWLEDGE: "That fear is real. I understand."
-          2. PERSPECTIVE: Historical context, probability, lived experience
+          2. PERSPECTIVE: Context, probability, lived experience
           3. CONTROL: What CAN they control?
           4. ACTION: Small steps that restore agency
           
           Never dismiss fear. Never promise outcomes.
           
           Key reframes:
-          - "The market always recovers. Always. Though not always when we want it to."
           - "You've survived 100% of your worst days so far."
-          - "Uncertainty is the price of returns."
           - "What you're feeling is normal. What you do about it is the choice."
+          - "Fear often points to what matters most to us."
+          - "Courage isn't the absence of fear - it's action despite fear."
         `,
         ifDistressed: `
-          This is more than financial anxiety.
-          Stay in support mode longer. The fear is valid.
+          This is significant anxiety. Stay in support mode longer.
+          The fear is valid. Don't rush to fix it.
         `,
         ifAnxious: `
           Anxiety amplifies fear. 
@@ -318,19 +299,19 @@ export class FearAddressingTask extends IntelligentTask<FearResult> {
         }),
 
         providePerspective: llm.tool({
-          description: 'Provide historical or experiential perspective.',
+          description: 'Provide perspective on the fear.',
           parameters: z.object({
             perspective: z.string().describe('The perspective to share'),
             source: z
-              .enum(['history', 'experience', 'data', 'wisdom'])
-              .describe('Source of perspective'),
+              .enum(['experience', 'wisdom', 'reframe', 'question'])
+              .describe('Type of perspective'),
           }),
           execute: async ({ perspective, source }) => {
             const intros: Record<string, string> = {
-              history: 'History shows us something important: ',
-              experience: 'Over the years, I have learned: ',
-              data: 'The numbers tell an interesting story: ',
+              experience: "Here's what I've seen: ",
               wisdom: "Here's what I've come to believe: ",
+              reframe: 'Another way to look at this: ',
+              question: 'I wonder: ',
             };
             return intros[source] + perspective;
           },
@@ -398,9 +379,9 @@ export interface GoalSettingResult {
 }
 
 /**
- * GoalSettingTask - Help set clear financial goals
+ * GoalSettingTask - Help set clear goals
  *
- * Jack's first principle: Create clear, appropriate investment goals.
+ * Works for any domain: life, career, health, relationships, etc.
  */
 export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
   private goals: GoalSettingResult['goals'] = [];
@@ -409,25 +390,26 @@ export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
     super({
       instructions: {
         base: `
-          Help them set clear financial goals.
+          Help them set clear goals.
           
-          Jack's goal-setting approach:
-          1. START WITH LIFE: What do you want your life to look like?
+          Goal-setting approach:
+          1. START WITH WHY: What do you really want? Why?
           2. GET SPECIFIC: Vague goals lead to vague results
-          3. TIMELINE: When do you need this money?
+          3. TIMELINE: When do you want to achieve this?
           4. PRIORITIZE: What matters most?
           5. REALITY CHECK: Is this achievable?
           
-          Remember: For short-term goals, SAVINGS matter more than returns.
-          - 2 years: 94% savings, 6% returns
-          - 10 years: 80% savings, 20% returns
-          - 30 years: 50% savings, 50% returns
+          Good goals are:
+          - Specific (not vague)
+          - Measurable (you'll know when you achieve it)
+          - Meaningful (connected to what matters)
+          - Achievable (challenging but possible)
           
           Don't let them set goals that will make them miserable.
         `,
         ifDistressed: `
           They might be setting goals from a place of fear.
-          Help them separate need from anxiety.
+          Help them separate genuine desire from anxiety.
         `,
         ifAnxious: `
           Anxiety can lead to unrealistic goals or paralysis.
@@ -435,38 +417,36 @@ export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
         `,
       },
       tools: {
-        exploreLifeGoal: llm.tool({
-          description: 'Explore the life goal behind the financial goal.',
+        exploreWhy: llm.tool({
+          description: 'Explore the deeper reason behind the goal.',
           parameters: z.object({
             question: z.string().describe('Question about what they really want'),
           }),
           execute: async ({ question }) => {
-            return `Let's start bigger. ${question}`;
+            return `Let's go deeper. ${question}`;
           },
         }),
 
         recordGoal: llm.tool({
-          description: "Record a financial goal they've articulated.",
+          description: "Record a goal they've articulated.",
           parameters: z.object({
             name: z.string().describe('Name of the goal'),
             type: z.enum(['short_term', 'medium_term', 'long_term']).describe('Time horizon'),
-            amount: z.number().optional().describe('Target amount if mentioned'),
-            timeline: z.string().optional().describe('When they need it'),
+            timeline: z.string().optional().describe('When they want to achieve it'),
             specific: z.boolean().describe('Is this goal specific enough?'),
             measurable: z.boolean().describe('Can progress be measured?'),
           }),
-          execute: async ({ name, type, amount, timeline, specific, measurable }) => {
+          execute: async ({ name, type, timeline, specific, measurable }) => {
             this.goals.push({ name, type, specific, measurable });
 
             let response = `Got it: ${name}`;
-            if (amount) response += ` - $${amount.toLocaleString()}`;
             if (timeline) response += ` by ${timeline}`;
 
             if (!specific) {
               response += `. Can we make that more specific?`;
             }
             if (!measurable) {
-              response += ` How will you know when you've reached it?`;
+              response += ` How will you know when you've achieved it?`;
             }
 
             return response;
@@ -510,7 +490,7 @@ export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
               nextStepsDefined,
             });
 
-            return `${summary} Remember: the goal isn't wealth for its own sake. It's the life you want to live.`;
+            return `${summary} Remember: the goal isn't the achievement itself - it's who you become in the process.`;
           },
         }),
       },
@@ -519,95 +499,18 @@ export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
 }
 
 // ============================================================================
-// REBALANCING GUIDANCE TASK
+// LEGACY EXPORTS (for backwards compatibility)
 // ============================================================================
 
-export interface RebalancingResult {
-  currentAllocation?: string;
-  recommendedAllocation?: string;
-  actionPlan?: string[];
-  understood: boolean;
-}
-
-/**
- * RebalancingGuidanceTask - Help with portfolio rebalancing
- *
- * Jack: Balance is the second principle.
- */
-export class RebalancingGuidanceTask extends IntelligentTask<RebalancingResult> {
-  constructor() {
-    super({
-      instructions: {
-        base: `
-          Help them think about portfolio balance.
-          
-          Jack's balance principles:
-          1. Asset allocation is the most important decision
-          2. Your age and goals determine your mix
-          3. Diversify WITHIN asset classes too
-          4. Rebalance annually or when drifting >5%
-          5. Don't tinker too much
-          
-          Simple rule of thumb: Your age in bonds
-          - 30 years old: 30% bonds, 70% stocks
-          - 60 years old: 60% bonds, 40% stocks
-          
-          But it depends on their risk tolerance and timeline!
-          
-          Don't overcomplicate. Simple portfolios often win.
-        `,
-        ifAnxious: `
-          They might want to make changes they'll regret.
-          Remind them: rebalancing is about discipline, not reaction.
-        `,
-      },
-      tools: {
-        assessCurrentMix: llm.tool({
-          description: 'Assess their current portfolio mix.',
-          parameters: z.object({
-            stockPercent: z.number().optional().describe('Current stock percentage'),
-            bondPercent: z.number().optional().describe('Current bond percentage'),
-            otherPercent: z.number().optional().describe('Other assets percentage'),
-            assessment: z.string().describe('Your assessment of the mix'),
-          }),
-          execute: async ({ stockPercent, bondPercent, otherPercent, assessment }) => {
-            return assessment;
-          },
-        }),
-
-        suggestAllocation: llm.tool({
-          description: 'Suggest an allocation based on their situation.',
-          parameters: z.object({
-            suggestion: z.string().describe('Your allocation suggestion'),
-            rationale: z.string().describe('Why this makes sense for them'),
-          }),
-          execute: async ({ suggestion, rationale }) => {
-            return `Based on what you've told me, I'd suggest: ${suggestion}. ${rationale}`;
-          },
-        }),
-
-        concludeRebalancing: llm.tool({
-          description: 'Conclude rebalancing discussion.',
-          parameters: z.object({
-            currentAllocation: z.string().optional().describe('Their current allocation'),
-            recommendedAllocation: z.string().optional().describe('Recommended allocation'),
-            actionPlan: z.array(z.string()).optional().describe('Steps to take'),
-            understood: z.boolean().describe('Do they understand what to do?'),
-          }),
-          execute: async ({ currentAllocation, recommendedAllocation, actionPlan, understood }) => {
-            this.complete({ currentAllocation, recommendedAllocation, actionPlan, understood });
-            return "Remember: a simple portfolio you stick with beats a complex one you don't.";
-          },
-        }),
-      },
-    });
-  }
-}
+// Re-export finance tasks for backwards compatibility
+export {
+  RebalancingTask as RebalancingGuidanceTask,
+  type RebalancingResult,
+} from './finance-tasks.js';
 
 export default {
   WisdomSharingTask,
   DecisionSupportTask,
   FearAddressingTask,
   GoalSettingTask,
-  RebalancingGuidanceTask,
 };

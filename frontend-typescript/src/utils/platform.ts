@@ -396,6 +396,156 @@ export async function storeSet(key: string, value: unknown): Promise<void> {
 }
 
 // ============================================================================
+// SHARING (Capacitor Share plugin)
+// ============================================================================
+
+export interface ShareOptions {
+  title?: string;
+  text?: string;
+  url?: string;
+  dialogTitle?: string;
+}
+
+/**
+ * Check if native sharing is available.
+ */
+export function canShare(): boolean {
+  // Native platforms always have share capability
+  if (isNative()) return true;
+  // Web: check for Web Share API
+  return 'share' in navigator;
+}
+
+/**
+ * Share content using native share dialog.
+ */
+export async function share(options: ShareOptions): Promise<boolean> {
+  try {
+    if (isNative()) {
+      // Capacitor Share plugin would go here
+      // For now, fall through to web implementation
+    }
+    
+    if ('share' in navigator) {
+      await navigator.share({
+        title: options.title,
+        text: options.text,
+        url: options.url,
+      });
+      return true;
+    }
+    
+    log.warn('Share not supported on this platform');
+    return false;
+  } catch (err) {
+    if ((err as Error).name !== 'AbortError') {
+      log.debug('Share error:', err);
+    }
+    return false;
+  }
+}
+
+// ============================================================================
+// DEEP LINKING (Capacitor App plugin)
+// ============================================================================
+
+export interface DeepLinkData {
+  url: string;
+  path: string;
+  params: Record<string, string>;
+}
+
+/**
+ * Parse a deep link URL into its components.
+ */
+export function parseDeepLink(url: string): DeepLinkData {
+  try {
+    const parsed = new URL(url);
+    const params: Record<string, string> = {};
+    parsed.searchParams.forEach((value, key) => {
+      params[key] = value;
+    });
+    return {
+      url,
+      path: parsed.pathname,
+      params,
+    };
+  } catch {
+    return { url, path: '/', params: {} };
+  }
+}
+
+/**
+ * Listen for deep link events.
+ */
+export function onDeepLink(callback: (data: DeepLinkData) => void): () => void {
+  if (!isNative()) {
+    // Web: handle URL changes
+    const handler = () => {
+      callback(parseDeepLink(window.location.href));
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }
+  
+  // Native: Use Capacitor App plugin
+  const App = window.Capacitor?.Plugins?.App;
+  if (!App) return () => {};
+  
+  const listener = App.addListener('appUrlOpen', (event: unknown) => {
+    const { url } = event as { url: string };
+    callback(parseDeepLink(url));
+  });
+  
+  return () => listener?.remove();
+}
+
+// ============================================================================
+// SECURE STORAGE (Capacitor SecureStorage plugin)
+// ============================================================================
+
+/**
+ * Store a value securely (falls back to localStorage on web).
+ * Async interface for future native implementation with secure storage plugin.
+ */
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function secureStore(key: string, value: string): Promise<void> {
+  // Note: Would use @capacitor-community/secure-storage-plugin on native
+  // For now, use regular storage
+  try {
+    localStorage.setItem(`secure_${key}`, value);
+  } catch {
+    log.debug('SecureStore failed for key:', key);
+  }
+}
+
+/**
+ * Retrieve a securely stored value.
+ * Async interface for future native implementation with secure storage plugin.
+ */
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function secureRetrieve(key: string): Promise<string | null> {
+  try {
+    return localStorage.getItem(`secure_${key}`);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Delete a securely stored value.
+ * Async interface for future native implementation with secure storage plugin.
+ */
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function secureDelete(key: string): Promise<void> {
+  try {
+    localStorage.removeItem(`secure_${key}`);
+  } catch {
+    log.debug('SecureDelete failed for key:', key);
+  }
+}
+
+// ============================================================================
 // INITIALIZATION HELPER
 // ============================================================================
 

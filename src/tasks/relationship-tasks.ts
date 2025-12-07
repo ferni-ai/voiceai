@@ -2,10 +2,10 @@
  * Relationship Tasks
  *
  * Tasks for building deep, genuine relationships over time.
- * Jack Bogle valued people over portfolios.
+ * People matter more than problems.
  */
 
-import { llm, log } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
@@ -24,7 +24,7 @@ export interface FollowUpResult {
 /**
  * FollowUpTask - Connect with returning users about previous conversations
  *
- * This shows Jack remembers and cares about their journey.
+ * Shows you remember and care about their journey.
  */
 export class FollowUpTask extends IntelligentTask<FollowUpResult> {
   constructor(previousContext?: {
@@ -148,9 +148,10 @@ export interface StoryResult {
 }
 
 /**
- * StorytellingTask - Share relevant stories from Jack's life
+ * StorytellingTask - Share relevant stories
  *
- * Stories are how Jack teaches. They're memorable and human.
+ * Stories are how we teach. They're memorable and human.
+ * The agent should draw from its persona's relevant experiences.
  */
 export class StorytellingTask extends IntelligentTask<StoryResult> {
   private theme: string;
@@ -161,20 +162,18 @@ export class StorytellingTask extends IntelligentTask<StoryResult> {
         base: `
           Time to share a story about: "${theme}"
           
-          Jack's storytelling principles:
+          Storytelling principles:
           1. Start with a hook - "Let me tell you about..."
           2. Make it personal and specific
           3. Include sensory details
           4. Build to a lesson, but don't preach
           5. Let them draw their own conclusions
           
-          Stories to draw from:
-          - Getting fired in 1974 → failure leading to success
-          - Vonnegut's "enough" → contentment
-          - Heart transplant → mortality and gratitude
-          - First index fund mockery → patience
-          - Eve's support → love and partnership
-          - The Gotrocks family → costs and fees
+          Good stories:
+          - Illustrate a point through experience
+          - Create emotional connection
+          - Make abstract concepts concrete
+          - Leave space for reflection
           
           Match the story to their situation.
           Don't force a lesson - let the story speak.
@@ -191,13 +190,13 @@ export class StorytellingTask extends IntelligentTask<StoryResult> {
       },
       tools: {
         shareStory: llm.tool({
-          description: "Share a relevant story from Jack's life.",
+          description: 'Share a relevant story.',
           parameters: z.object({
             theme: z.string().describe('The theme of the story'),
             storyText: z.string().describe('The story itself'),
             lessonImplied: z.string().describe('The lesson (not stated explicitly)'),
           }),
-          execute: async ({ theme, storyText, lessonImplied }) => {
+          execute: async ({ theme, storyText }) => {
             getLogger().info(`Sharing story: ${theme}`);
             return storyText;
           },
@@ -212,7 +211,7 @@ export class StorytellingTask extends IntelligentTask<StoryResult> {
             resonated: z.boolean().describe('Whether the story seemed to resonate'),
             followUp: z.string().optional().describe('What they said or asked'),
           }),
-          execute: async ({ reaction, resonated, followUp }) => {
+          execute: async ({ reaction, resonated }) => {
             getLogger().info(`Story reaction: ${reaction}, resonated=${resonated}`);
 
             this.complete({
@@ -267,7 +266,7 @@ export class DeepDiveTask extends IntelligentTask<DeepDiveResult> {
         base: `
           Time for a deep dive into: "${topic}"
           
-          Jack's teaching style:
+          Teaching style:
           1. Start with the basics - never assume knowledge
           2. Use analogies and stories
           3. Check understanding frequently
@@ -368,7 +367,7 @@ export interface GoodbyeResult {
 /**
  * GoodbyeTask - Warm, meaningful conversation endings
  *
- * Jack never rushed an ending. The goodbye matters.
+ * Never rush an ending. The goodbye matters.
  */
 export class GoodbyeTask extends IntelligentTask<GoodbyeResult> {
   constructor() {
@@ -389,7 +388,7 @@ export class GoodbyeTask extends IntelligentTask<GoodbyeResult> {
           - Add new information
           - End on a heavy note (unless necessary)
           
-          Make them feel valued as a person, not a client.
+          Make them feel valued as a person, not a transaction.
         `,
         ifDistressed: `
           End on a note of support and availability.
@@ -467,7 +466,7 @@ export interface CelebrationResult {
 /**
  * CelebrationTask - Celebrate wins and milestones
  *
- * Jack believed in acknowledging progress.
+ * Acknowledging progress matters.
  */
 export class CelebrationTask extends IntelligentTask<CelebrationResult> {
   constructor(achievement: string) {
@@ -476,7 +475,7 @@ export class CelebrationTask extends IntelligentTask<CelebrationResult> {
         base: `
           Time to CELEBRATE: "${achievement}"
           
-          Jack's celebration style:
+          Celebration style:
           1. Genuine enthusiasm - not over-the-top
           2. Acknowledge their effort, not just the result
           3. Connect it to their bigger journey
