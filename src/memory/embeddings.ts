@@ -108,14 +108,16 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
 
       if (!response.ok) {
         const error = await response.text();
-        
+
         // Retry on rate limit (429) errors
         if (response.status === 429 && retryCount < MAX_RETRIES) {
-          getLogger().warn(`Rate limited, retrying in ${RETRY_DELAY_MS}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
+          getLogger().warn(
+            `Rate limited, retrying in ${RETRY_DELAY_MS}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`
+          );
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
           return this.embedBatch(texts, retryCount + 1);
         }
-        
+
         throw new Error(`OpenAI API error: ${response.status} - ${error}`);
       }
 
@@ -166,7 +168,13 @@ export class GoogleEmbeddings extends EmbeddingProvider {
   }
 
   async embed(text: string): Promise<number[]> {
+    if (!this.apiKey) {
+      throw new Error('Google API key not configured');
+    }
     const results = await this.embedBatch([text]);
+    if (!results || results.length === 0) {
+      throw new Error('No embedding results returned');
+    }
     return results[0];
   }
 
