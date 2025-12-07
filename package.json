@@ -57,6 +57,9 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json}\"",
     "quality": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "quality:check": "npx tsx scripts/code-quality-check.ts",
+    "quality:arch": "npx tsx scripts/architecture-validator.ts",
+    "quality:full": "npm run quality && npm run quality:check && npm run quality:arch",
     "setup": "bash scripts/setup-local.sh",
     "services:up": "docker compose -f docker-compose.local.yml up -d",
     "services:down": "docker compose -f docker-compose.local.yml down",
@@ -65,8 +68,16 @@
     "docker:run": "docker run --env-file .env -p 8080:8080 voice-agent",
     "deploy": "bash scripts/deploy-gcp.sh",
     "deploy:gcp": "bash scripts/deploy-gcp.sh",
+    "rollout": "npx tsx scripts/rollout.ts",
+    "rollout:start": "npx tsx scripts/rollout.ts start",
+    "rollout:status": "npx tsx scripts/rollout.ts status",
+    "rollout:advance": "npx tsx scripts/rollout.ts advance",
+    "rollout:rollback": "npx tsx scripts/rollout.ts rollback",
+    "rollout:list": "npx tsx scripts/rollout.ts list",
+    "rollout:presets": "npx tsx scripts/rollout.ts presets",
     "token-server": "node token-server.js",
-    "dev:full": "npm run token-server & npm run dev"
+    "dev:full": "npm run token-server & npm run dev",
+    "prepare": "husky"
   },
   "keywords": [
     "livekit",
