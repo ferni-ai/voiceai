@@ -915,13 +915,18 @@ describe('response-naturalness', () => {
       const tracker = new responseNaturalness.CatchphraseTracker({
         maxPerSession: 1,
         minTurnsBetween: 10,
+        positiveChance: 1.0, // Ensure deterministic injection
       });
 
-      tracker.shouldInject('ferni', 0, true);
-      tracker.shouldInject('ferni', 5, true); // Should be blocked
+      // First call at turn 0 should inject (100% chance)
+      const firstResult = tracker.shouldInject('ferni', 0, true);
+      expect(firstResult).toBe(true);
 
-      // Second call should return false due to minTurnsBetween
+      // Second call at turn 5 should be blocked by minTurnsBetween (5 < 10)
       expect(tracker.shouldInject('ferni', 5, true)).toBe(false);
+
+      // Third call at turn 15 should be blocked by maxPerSession (already used 1)
+      expect(tracker.shouldInject('ferni', 15, true)).toBe(false);
     });
   });
 });
