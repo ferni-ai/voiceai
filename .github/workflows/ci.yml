@@ -58,6 +58,11 @@ jobs:
         run: npm run test:coverage -- --reporter=verbose
         env:
           NODE_ENV: test
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Check coverage threshold
         run: |
