@@ -96,11 +96,7 @@ const SESSION_INTROS = {
       '<break time="200ms"/>Hi! <break time="150ms"/>Welcome. <break time="200ms"/>I\'m Ferni, <break time="100ms"/>your AI life coach.',
       '<break time="200ms"/>Hello! <break time="150ms"/>So glad you\'re here. <break time="200ms"/>I\'m Ferni.',
     ],
-    followUp: [
-      'What brings you here today?',
-      'What\'s on your mind?',
-      'How can I help you today?',
-    ],
+    followUp: ['What brings you here today?', "What's on your mind?", 'How can I help you today?'],
   },
 
   // Returning user - warm callback
@@ -508,8 +504,7 @@ class DJSessionService {
     }
 
     // Persona-specific outro
-    const personaOutros =
-      SESSION_OUTROS.persona[personaId as keyof typeof SESSION_OUTROS.persona];
+    const personaOutros = SESSION_OUTROS.persona[personaId as keyof typeof SESSION_OUTROS.persona];
     if (personaOutros) {
       return {
         phrase: this.randomFrom(personaOutros),
@@ -621,7 +616,8 @@ class DJSessionService {
 
     // From specialist back to Ferni
     if (toPersonaId === 'ferni' || toPersonaId === 'jack-b') {
-      const banterSet = HANDOFF_BANTER.toFerni[fromPersonaId as keyof typeof HANDOFF_BANTER.toFerni];
+      const banterSet =
+        HANDOFF_BANTER.toFerni[fromPersonaId as keyof typeof HANDOFF_BANTER.toFerni];
       if (banterSet) {
         return this.randomFrom(banterSet);
       }
@@ -634,10 +630,7 @@ class DJSessionService {
   /**
    * Get the "Guest DJ entrance" phrase when arriving after handoff
    */
-  getGuestDJEntrance(
-    arrivingPersonaId: string,
-    fromPersonaId: string
-  ): string | null {
+  getGuestDJEntrance(arrivingPersonaId: string, fromPersonaId: string): string | null {
     const entrances = GUEST_DJ_ENTRANCES[arrivingPersonaId as keyof typeof GUEST_DJ_ENTRANCES];
     if (!entrances) return null;
 
@@ -648,9 +641,9 @@ class DJSessionService {
 
     // Check if coming from Ferni vs other
     const isFromFerni = fromPersonaId === 'ferni' || fromPersonaId === 'jack-b';
-    
+
     if ('fromFerni' in entrances && 'fromOther' in entrances) {
-      const phraseSet = isFromFerni 
+      const phraseSet = isFromFerni
         ? (entrances.fromFerni as string[])
         : (entrances.fromOther as string[]);
       return this.randomFrom(phraseSet);
@@ -715,7 +708,7 @@ class DJSessionService {
     log.debug('🎧 Stopping thinking music');
 
     const player = getMusicPlayer();
-    
+
     // Fade out
     const steps = 10;
     const stepDelay = THINKING_MUSIC_CONFIG.fadeOutDurationMs / steps;
@@ -815,9 +808,7 @@ class DJSessionService {
     return {
       topics: this.sessionTopics,
       musicArtists: this.sessionMusicArtists,
-      duration: this.sessionStartTime
-        ? Date.now() - this.sessionStartTime.getTime()
-        : 0,
+      duration: this.sessionStartTime ? Date.now() - this.sessionStartTime.getTime() : 0,
     };
   }
 
@@ -858,4 +849,3 @@ export function resetDJSessionService(): void {
 }
 
 export default getDJSessionService;
-

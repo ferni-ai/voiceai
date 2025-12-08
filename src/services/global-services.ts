@@ -11,7 +11,10 @@ import { setGlobalStore } from './user-identification.js';
 import type { GlobalServices } from './types.js';
 import { validateAndLog, type StartupCapabilities } from './startup-validation.js';
 import { stopAllAutoSaves } from './intelligence-persistence.js';
-import { initializeUnifiedPersistence, shutdownUnifiedPersistence } from './trust-systems/unified-persistence.js';
+import {
+  initializeUnifiedPersistence,
+  shutdownUnifiedPersistence,
+} from './trust-systems/unified-persistence.js';
 
 // ============================================================================
 // GLOBAL STATE
@@ -227,14 +230,14 @@ export function getGlobalServicesSync(): GlobalServices | null {
 export async function resetGlobalServices(): Promise<void> {
   // Stop all auto-saves before resetting
   stopAllAutoSaves();
-  
+
   // Flush and shutdown unified trust persistence
   try {
     await shutdownUnifiedPersistence();
   } catch {
     // Non-critical
   }
-  
+
   globalServices = null;
   personaIndexed = false;
   startupCapabilities = null;

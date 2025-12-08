@@ -47,7 +47,7 @@ const log = getLogger();
 class DJIntegration {
   private orchestrator = getDJOrchestrator();
   private sessionActive = false;
-  private currentPersonaId: string = 'ferni';
+  private currentPersonaId = 'ferni';
 
   constructor() {
     log.info('🎧 DJ Integration initialized');
@@ -133,10 +133,7 @@ class DJIntegration {
    * @param additionalContext - Optional extra context for personalization
    * @returns Outro phrase to speak
    */
-  async wrapShow(additionalContext?: {
-    personaId?: string;
-    topics?: string[];
-  }): Promise<{
+  async wrapShow(additionalContext?: { personaId?: string; topics?: string[] }): Promise<{
     outro: SessionOutro;
     phrase: string;
     playedSound: boolean;
@@ -256,10 +253,7 @@ class DJIntegration {
   /**
    * Get mid-song moment phrase.
    */
-  getMidSongMoment(
-    momentType: 'buildup' | 'drop' | 'highlight',
-    trackName?: string
-  ): string {
+  getMidSongMoment(momentType: 'buildup' | 'drop' | 'highlight', trackName?: string): string {
     return this.orchestrator.getMidSongMoment(momentType, trackName);
   }
 
@@ -276,7 +270,7 @@ class DJIntegration {
   /**
    * Handle unexpected music stop.
    */
-  getMusicStoppedResponse(wasPaused: boolean = false): string {
+  getMusicStoppedResponse(wasPaused = false): string {
     return this.orchestrator.getMusicStoppedResponse(wasPaused);
   }
 
@@ -445,27 +439,24 @@ export const djIntegration = {
   reset: resetDJIntegration,
 
   // Expose key methods directly for ease of use
-  openShow: (context: Parameters<DJIntegration['openShow']>[0]) =>
+  openShow: async (context: Parameters<DJIntegration['openShow']>[0]) =>
     getDJIntegration().openShow(context),
-  wrapShow: (context?: Parameters<DJIntegration['wrapShow']>[0]) =>
+  wrapShow: async (context?: Parameters<DJIntegration['wrapShow']>[0]) =>
     getDJIntegration().wrapShow(context),
-  orchestrateHandoff: (from: string, to: string) =>
-    getDJIntegration().orchestrateHandoff(from, to),
+  orchestrateHandoff: (from: string, to: string) => getDJIntegration().orchestrateHandoff(from, to),
   getDepartingBanter: (to: string) => getDJIntegration().getDepartingBanter(to),
   getArrivingEntrance: (from: string, to: string) =>
     getDJIntegration().getArrivingEntrance(from, to),
   getDJOutro: (track?: MusicTrack) => getDJIntegration().getDJOutro(track),
   getDJTransition: (current?: MusicTrack, newName?: string) =>
     getDJIntegration().getDJTransition(current, newName),
-  getMusicMemoryCallback: (
-    history?: Parameters<DJIntegration['getMusicMemoryCallback']>[0]
-  ) => getDJIntegration().getMusicMemoryCallback(history),
-  startThinkingMusic: () => getDJIntegration().startThinkingMusic(),
-  stopThinkingMusic: () => getDJIntegration().stopThinkingMusic(),
+  getMusicMemoryCallback: (history?: Parameters<DJIntegration['getMusicMemoryCallback']>[0]) =>
+    getDJIntegration().getMusicMemoryCallback(history),
+  startThinkingMusic: async () => getDJIntegration().startThinkingMusic(),
+  stopThinkingMusic: async () => getDJIntegration().stopThinkingMusic(),
   trackTopic: (topic: string) => getDJIntegration().trackTopic(topic),
   trackMusicPlayed: (artist: string) => getDJIntegration().trackMusicPlayed(artist),
   setPersona: (id: string) => getDJIntegration().setPersona(id),
 };
 
 export default djIntegration;
-

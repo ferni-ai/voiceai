@@ -23,7 +23,12 @@ import {
   isCalendarConfigured,
   type CalendarEvent,
 } from './google-calendar-oauth.js';
-import { addBusyPeriod, addNeverDuringRule, type BusyPeriod, type NeverDuringRule } from './outreach/timing-intelligence.js';
+import {
+  addBusyPeriod,
+  addNeverDuringRule,
+  type BusyPeriod,
+  type NeverDuringRule,
+} from './outreach/timing-intelligence.js';
 
 const log = createLogger({ module: 'CalendarBusyDetection' });
 
@@ -40,25 +45,25 @@ export interface BusySlot {
 
 export interface CalendarBusyProfile {
   userId: string;
-  
+
   /** Current busy status */
   currentlyBusy: boolean;
   currentEvent?: string;
   busyUntil?: Date;
-  
+
   /** Today's remaining busy slots */
   todayBusySlots: BusySlot[];
-  
+
   /** Detected patterns (e.g., recurring meetings) */
   recurringBusyTimes: NeverDuringRule[];
-  
+
   /** Next window for outreach */
   nextFreeWindow?: {
     start: Date;
     end: Date;
     duration: number; // minutes
   };
-  
+
   /** Last sync time */
   lastSynced: Date;
 }
@@ -84,7 +89,7 @@ export async function isUserBusy(userId: string): Promise<{
 }> {
   try {
     const profile = await getCalendarBusyProfile(userId);
-    
+
     if (profile.currentlyBusy) {
       return {
         isBusy: true,
@@ -92,7 +97,7 @@ export async function isUserBusy(userId: string): Promise<{
         busyUntil: profile.busyUntil,
       };
     }
-    
+
     return { isBusy: false };
   } catch (error) {
     log.debug({ error, userId }, 'Could not check calendar busy status');
@@ -109,14 +114,14 @@ export async function getNextOutreachWindow(
 ): Promise<{ start: Date; end: Date } | null> {
   try {
     const profile = await getCalendarBusyProfile(userId);
-    
+
     if (profile.nextFreeWindow && profile.nextFreeWindow.duration >= minDurationMinutes) {
       return {
         start: profile.nextFreeWindow.start,
         end: profile.nextFreeWindow.end,
       };
     }
-    
+
     return null;
   } catch (error) {
     log.debug({ error, userId }, 'Could not get next outreach window');
@@ -168,7 +173,7 @@ export async function getCalendarBusyProfile(userId: string): Promise<CalendarBu
     // Get free/busy info
     const freeBusyData = await getFreeBusy(accessToken, ['primary'], now, endOfTomorrow);
     const busySlots: BusySlot[] = [];
-    
+
     for (const [_calId, slots] of Object.entries(freeBusyData)) {
       for (const slot of slots) {
         busySlots.push({
@@ -181,10 +186,10 @@ export async function getCalendarBusyProfile(userId: string): Promise<CalendarBu
 
     // Get actual events for more detail
     const events = await getEvents(accessToken, 'primary', now, endOfTomorrow);
-    
+
     // Enrich busy slots with event names
     for (const slot of busySlots) {
-      const matchingEvent = events.find(e => {
+      const matchingEvent = events.find((e) => {
         const eventStart = e.start.dateTime ? new Date(e.start.dateTime) : null;
         if (!eventStart) return false;
         return Math.abs(eventStart.getTime() - slot.start.getTime()) < 60000;
@@ -195,13 +200,13 @@ export async function getCalendarBusyProfile(userId: string): Promise<CalendarBu
     }
 
     // Detect current busy status
-    const currentSlot = busySlots.find(s => s.start <= now && s.end > now);
+    const currentSlot = busySlots.find((s) => s.start <= now && s.end > now);
     const currentlyBusy = !!currentSlot;
 
     // Find today's remaining busy slots
     const todayEnd = new Date(now);
     todayEnd.setHours(23, 59, 59, 999);
-    const todayBusySlots = busySlots.filter(s => s.start <= todayEnd);
+    const todayBusySlots = busySlots.filter((s) => s.start <= todayEnd);
 
     // Find next free window
     const nextFreeWindow = findNextFreeWindow(now, busySlots, 15);
@@ -227,7 +232,9 @@ export async function getCalendarBusyProfile(userId: string): Promise<CalendarBu
         userId,
         currentlyBusy,
         busySlotsToday: todayBusySlots.length,
-        nextFreeIn: nextFreeWindow ? Math.round((nextFreeWindow.start.getTime() - now.getTime()) / 60000) + 'min' : 'none',
+        nextFreeIn: nextFreeWindow
+          ? `${Math.round((nextFreeWindow.start.getTime() - now.getTime()) / 60000)}min`
+          : 'none',
       },
       '📅 Calendar busy profile updated'
     );
@@ -271,10 +278,7 @@ export async function syncCalendarToOutreach(userId: string): Promise<{
       rulesAdded++;
     }
 
-    log.info(
-      { userId, busyPeriodsAdded, rulesAdded },
-      '📅 Calendar synced to outreach timing'
-    );
+    log.info({ userId, busyPeriodsAdded, rulesAdded }, '📅 Calendar synced to outreach timing');
 
     return { busyPeriodsAdded, rulesAdded };
   } catch (error) {
@@ -304,9 +308,9 @@ function findNextFreeWindow(
 ): { start: Date; end: Date; duration: number } | undefined {
   // Sort busy slots by start time
   const sorted = [...busySlots].sort((a, b) => a.start.getTime() - b.start.getTime());
-  
+
   let searchStart = new Date(from);
-  
+
   // Look for gaps between busy slots
   for (const slot of sorted) {
     if (slot.start > searchStart) {
@@ -321,11 +325,11 @@ function findNextFreeWindow(
     }
     searchStart = new Date(Math.max(searchStart.getTime(), slot.end.getTime()));
   }
-  
+
   // After all slots, the rest of the day is free
   const endOfDay = new Date(from);
   endOfDay.setHours(22, 0, 0, 0); // Consider 10 PM as practical end of day
-  
+
   if (searchStart < endOfDay) {
     const remainingMinutes = (endOfDay.getTime() - searchStart.getTime()) / 60000;
     if (remainingMinutes >= minDurationMinutes) {
@@ -336,7 +340,7 @@ function findNextFreeWindow(
       };
     }
   }
-  
+
   return undefined;
 }
 
@@ -347,11 +351,11 @@ function detectRecurringPatterns(events: CalendarEvent[]): NeverDuringRule[] {
   // Group events by their start time
   for (const event of events) {
     if (!event.start.dateTime) continue;
-    
+
     const start = new Date(event.start.dateTime);
     const timeKey = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}`;
     const day = start.getDay();
-    
+
     if (!eventTimes.has(timeKey)) {
       eventTimes.set(timeKey, []);
     }
@@ -362,12 +366,12 @@ function detectRecurringPatterns(events: CalendarEvent[]): NeverDuringRule[] {
   for (const [time, days] of eventTimes.entries()) {
     if (days.length >= 2) {
       const uniqueDays = [...new Set(days)];
-      
+
       // Parse time
       const [hours, minutes] = time.split(':').map(Number);
       const endTime = new Date();
       endTime.setHours(hours + 1, minutes, 0, 0); // Assume 1 hour duration
-      
+
       rules.push({
         description: `Recurring event at ${time}`,
         startTime: time,
@@ -407,4 +411,3 @@ export default {
   clearBusyProfileCache,
   clearAllBusyProfileCaches,
 };
-

@@ -242,8 +242,8 @@ export class DJBooth {
       case 'stopped':
       case 'paused':
         if (prevState === 'playing' && !isAmbient) {
-          // Unexpected stop
-          this.onMusicUnexpectedStop(prevState === 'paused');
+          // Unexpected stop - check current state for pause vs stop
+          this.onMusicUnexpectedStop(state === 'paused');
         }
         this.clearScheduledMoments();
         break;
@@ -484,10 +484,8 @@ export class DJBooth {
   /**
    * Handle mid-song moment callback from music player
    */
-  private handleMidSongMoment(track: MusicTrack, momentType: 'buildup' | 'highlight'): void {
-    // Convert 'highlight' to our moment types
-    const type = momentType === 'highlight' ? 'drop' : 'buildup';
-    this.executeMoment(type, track);
+  private handleMidSongMoment(track: MusicTrack, momentType: 'buildup' | 'drop'): void {
+    this.executeMoment(momentType, track);
   }
 
   // ==========================================================================

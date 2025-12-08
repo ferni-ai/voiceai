@@ -39,65 +39,65 @@ const log = createLogger({ module: 'CrossPersonaInsights' });
 export type PersonaId = 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan' | 'jack';
 
 export type InsightCategory =
-  | 'emotional_state'     // User's emotional state
-  | 'life_event'          // Significant life event
-  | 'preference'          // User preference discovered
-  | 'concern'             // Something worrying the user
-  | 'goal'                // User's goal or aspiration
-  | 'struggle'            // Area where user is struggling
-  | 'win'                 // Achievement or success
-  | 'boundary'            // Topic to avoid
-  | 'relationship'        // Relationship insight
-  | 'health'              // Health-related
-  | 'work'                // Work/career related
-  | 'financial'           // Financial situation
-  | 'habit';              // Habit or routine
+  | 'emotional_state' // User's emotional state
+  | 'life_event' // Significant life event
+  | 'preference' // User preference discovered
+  | 'concern' // Something worrying the user
+  | 'goal' // User's goal or aspiration
+  | 'struggle' // Area where user is struggling
+  | 'win' // Achievement or success
+  | 'boundary' // Topic to avoid
+  | 'relationship' // Relationship insight
+  | 'health' // Health-related
+  | 'work' // Work/career related
+  | 'financial' // Financial situation
+  | 'habit'; // Habit or routine
 
 export type InsightPriority = 'critical' | 'high' | 'normal' | 'low';
 
 export interface SharedInsight {
   id: string;
   userId: string;
-  
+
   /** Which persona discovered this */
   sourcePersona: PersonaId;
-  
+
   /** When it was discovered */
   discoveredAt: Date;
-  
+
   /** Category of insight */
   category: InsightCategory;
-  
+
   /** Priority for sharing */
   priority: InsightPriority;
-  
+
   /** The actual insight content */
   content: string;
-  
+
   /** Brief summary for context injection */
   summary: string;
-  
+
   /** How confident we are (0-1) */
   confidence: number;
-  
+
   /** Evidence that led to this insight */
   evidence?: string;
-  
+
   /** How long this insight is relevant */
   expiresAt?: Date;
-  
+
   /** Which personas have acknowledged this */
   acknowledgedBy: PersonaId[];
-  
+
   /** Which personas this is particularly relevant for */
   relevantFor?: PersonaId[];
-  
+
   /** Should this be surfaced in next conversation? */
   surfaceInNextConversation: boolean;
-  
+
   /** Has this been surfaced to the user? */
   surfaced: boolean;
-  
+
   /** User's reaction when surfaced */
   userReaction?: 'positive' | 'neutral' | 'negative' | 'dismissed';
 }
@@ -129,13 +129,13 @@ const PERSONA_CATEGORY_RELEVANCE: Record<PersonaId, InsightCategory[]> = {
  * How each persona might reference insights from others
  */
 const PERSONA_REFERENCE_STYLES: Record<PersonaId, string> = {
-  ferni: "I noticed from a previous conversation that",
+  ferni: 'I noticed from a previous conversation that',
   maya: "From what you've shared before,",
-  peter: "Based on what I understand,",
-  alex: "I recall you mentioning",
-  jordan: "I remember you saying",
-  nayan: "I sense that",
-  jack: "From what I gather,",
+  peter: 'Based on what I understand,',
+  alex: 'I recall you mentioning',
+  jordan: 'I remember you saying',
+  nayan: 'I sense that',
+  jack: 'From what I gather,',
 };
 
 // ============================================================================
@@ -168,7 +168,7 @@ export async function recordInsight(
   }
 ): Promise<SharedInsight> {
   const id = `insight_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-  
+
   const newInsight: SharedInsight = {
     id,
     userId,
@@ -180,12 +180,14 @@ export async function recordInsight(
     summary: insight.summary,
     confidence: insight.confidence,
     evidence: insight.evidence,
-    expiresAt: insight.expiresInDays 
+    expiresAt: insight.expiresInDays
       ? new Date(Date.now() + insight.expiresInDays * 24 * 60 * 60 * 1000)
       : undefined,
     acknowledgedBy: [sourcePersona], // Source persona already knows
     relevantFor: insight.relevantFor,
-    surfaceInNextConversation: insight.surfaceInNextConversation ?? (insight.priority === 'high' || insight.priority === 'critical'),
+    surfaceInNextConversation:
+      insight.surfaceInNextConversation ??
+      (insight.priority === 'high' || insight.priority === 'critical'),
     surfaced: false,
   };
 
@@ -224,19 +226,14 @@ export function getInsightsForPersona(
     categories?: InsightCategory[];
   } = {}
 ): InsightForPersona[] {
-  const {
-    includeAcknowledged = false,
-    maxAge = 30,
-    minConfidence = 0.4,
-    categories,
-  } = options;
+  const { includeAcknowledged = false, maxAge = 30, minConfidence = 0.4, categories } = options;
 
   const userInsights = insightStore.get(userId) || [];
   const now = Date.now();
   const maxAgeMs = maxAge * 24 * 60 * 60 * 1000;
 
   // Filter insights
-  const relevantInsights = userInsights.filter(insight => {
+  const relevantInsights = userInsights.filter((insight) => {
     // Skip if already acknowledged (unless requested)
     if (!includeAcknowledged && insight.acknowledgedBy.includes(personaId)) {
       return false;
@@ -267,12 +264,12 @@ export function getInsightsForPersona(
 
   // Score and format for the persona
   return relevantInsights
-    .map(insight => ({
+    .map((insight) => ({
       insight,
       relevanceScore: calculateRelevance(insight, personaId),
       suggestedApproach: generateApproach(insight, personaId),
     }))
-    .filter(r => r.relevanceScore > 0.3)
+    .filter((r) => r.relevanceScore > 0.3)
     .sort((a, b) => {
       // Sort by priority first, then relevance
       const priorityOrder = { critical: 4, high: 3, normal: 2, low: 1 };
@@ -297,7 +294,7 @@ export function getInsightsToSurface(
   });
 
   return insights
-    .filter(i => i.insight.surfaceInNextConversation && !i.insight.surfaced)
+    .filter((i) => i.insight.surfaceInNextConversation && !i.insight.surfaced)
     .slice(0, limit);
 }
 
@@ -351,7 +348,7 @@ export async function acknowledgeInsight(
   const userInsights = insightStore.get(userId);
   if (!userInsights) return;
 
-  const insight = userInsights.find(i => i.id === insightId);
+  const insight = userInsights.find((i) => i.id === insightId);
   if (!insight) return;
 
   if (!insight.acknowledgedBy.includes(personaId)) {
@@ -371,7 +368,7 @@ export async function markInsightSurfaced(
   const userInsights = insightStore.get(userId);
   if (!userInsights) return;
 
-  const insight = userInsights.find(i => i.id === insightId);
+  const insight = userInsights.find((i) => i.id === insightId);
   if (!insight) return;
 
   insight.surfaced = true;
@@ -381,10 +378,7 @@ export async function markInsightSurfaced(
 
   await persistInsight(userId, insight);
 
-  log.info(
-    { userId, insightId, reaction },
-    '💬 Insight surfaced to user'
-  );
+  log.info({ userId, insightId, reaction }, '💬 Insight surfaced to user');
 }
 
 /**
@@ -503,7 +497,8 @@ function generateApproach(insight: SharedInsight, personaId: PersonaId): string 
   };
 
   const personaApproaches = approachMap[personaId] || {};
-  const approach = personaApproaches[category] || personaApproaches['default'] || 'Integrate naturally';
+  const approach =
+    personaApproaches[category] || personaApproaches['default'] || 'Integrate naturally';
 
   // Add attribution if from another persona
   if (sourcePersona !== personaId) {
@@ -553,14 +548,16 @@ export async function loadInsights(userId: string): Promise<void> {
       .limit(100)
       .get();
 
-    const insights: SharedInsight[] = snapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-      const data = doc.data();
-      return {
-        ...data,
-        discoveredAt: new Date(data.discoveredAt),
-        expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
-      } as SharedInsight;
-    });
+    const insights: SharedInsight[] = snapshot.docs.map(
+      (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+        const data = doc.data();
+        return {
+          ...data,
+          discoveredAt: new Date(data.discoveredAt),
+          expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+        } as SharedInsight;
+      }
+    );
 
     insightStore.set(userId, insights);
     lastSyncTime.set(userId, new Date());
@@ -581,7 +578,7 @@ export async function cleanupInsights(userId: string): Promise<number> {
   const now = Date.now();
   const originalCount = userInsights.length;
 
-  const validInsights = userInsights.filter(insight => {
+  const validInsights = userInsights.filter((insight) => {
     // Remove expired insights
     if (insight.expiresAt && insight.expiresAt.getTime() < now) {
       return false;
@@ -618,4 +615,3 @@ export default {
   loadInsights,
   cleanupInsights,
 };
-

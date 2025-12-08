@@ -9,7 +9,7 @@
  * - Pipeline utilities (pipe, executeAll, retryResult)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   tryCatch,
   tryCatchAsync,
@@ -55,6 +55,7 @@ describe('Result Utilities', () => {
 
     it('should wrap non-Error throws in Error', () => {
       const result = tryCatch(() => {
+        // eslint-disable-next-line no-throw-literal -- Testing non-Error throw handling
         throw 'string error';
       });
 
@@ -95,6 +96,7 @@ describe('Result Utilities', () => {
     });
 
     it('should wrap non-Error rejections', async () => {
+      // eslint-disable-next-line prefer-promise-reject-errors -- Testing non-Error rejection handling
       const result = await tryCatchAsync(Promise.reject('string rejection'));
 
       expect(isFailure(result)).toBe(true);

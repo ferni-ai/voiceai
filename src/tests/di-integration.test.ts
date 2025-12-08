@@ -254,4 +254,3 @@ describe('Service Registration', () => {
     expect(container2.tryResolve('test')).toBeUndefined();
   });
 });
-

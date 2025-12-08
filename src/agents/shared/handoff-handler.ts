@@ -404,6 +404,18 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           // Music player not available - ignore
         }
 
+        // 🎧 DJ BOOTH: Notify handoff for clean audio transition
+        try {
+          const { getDJBooth } = await import('../../audio/index.js');
+          const booth = getDJBooth();
+          if (booth) {
+            booth.onHandoff(persona.id);
+            diag.state('🎧 DJ Booth notified of handoff');
+          }
+        } catch {
+          // DJ Booth not available - that's fine
+        }
+
         await new Promise((resolve) => setTimeout(resolve, transitionDelayMs));
 
         // STEP 3: Switch the voice with retry logic

@@ -184,7 +184,7 @@ describe('Voice-Text Mismatch Detection', () => {
         textEmotion: 'neutral',
         voiceEmotion: 'anxious',
         type: 'masking_negative' as const,
-        interpretation: 'User says they\'re okay but voice reveals anxious emotion',
+        interpretation: "User says they're okay but voice reveals anxious emotion",
         suggestedApproach: 'Acknowledge without pushing',
         shouldSurface: true,
         surfacePhrase: "I hear you saying you're okay, but... I want you to know I'm here.",
@@ -263,7 +263,7 @@ describe('Cross-Persona Insight Sharing', () => {
 
   describe('getInsightsForPersona', () => {
     it('should filter insights by relevance to persona', async () => {
-      const testUserId = 'test-user-' + Date.now();
+      const testUserId = `test-user-${Date.now()}`;
 
       // Record insights from different personas
       await recordInsight(testUserId, 'maya', {
@@ -304,7 +304,7 @@ describe('Cross-Persona Insight Sharing', () => {
 
   describe('buildInsightContext', () => {
     it('should build LLM-ready context string', async () => {
-      const testUserId = 'test-user-context-' + Date.now();
+      const testUserId = `test-user-context-${Date.now()}`;
 
       await recordInsight(testUserId, 'maya', {
         category: 'struggle',
@@ -568,7 +568,7 @@ describe('Unified Trust Persistence', () => {
     // This tests the lifecycle without errors
     initializeUnifiedPersistence({ batchSyncIntervalMs: 100000 }); // Long interval for tests
     await shutdownUnifiedPersistence();
-    
+
     // Should be able to reinitialize
     initializeUnifiedPersistence({ batchSyncIntervalMs: 100000 });
     await shutdownUnifiedPersistence();
@@ -577,7 +577,7 @@ describe('Unified Trust Persistence', () => {
   it('should save and retrieve system data from cache', async () => {
     initializeUnifiedPersistence({ batchSyncIntervalMs: 100000 });
 
-    const testUserId = 'test-unified-' + Date.now();
+    const testUserId = `test-unified-${Date.now()}`;
     const testData = { testKey: 'testValue', number: 42 };
 
     // Save data
@@ -591,4 +591,3 @@ describe('Unified Trust Persistence', () => {
     await shutdownUnifiedPersistence();
   });
 });
-

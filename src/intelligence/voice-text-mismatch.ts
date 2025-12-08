@@ -31,47 +31,64 @@ const log = createLogger({ module: 'VoiceTextMismatch' });
 export interface MismatchResult {
   /** Is there a significant mismatch? */
   hasMismatch: boolean;
-  
+
   /** Confidence in the mismatch detection (0-1) */
   confidence: number;
-  
+
   /** What the text suggests */
   textEmotion: string;
-  
+
   /** What the voice reveals */
   voiceEmotion: string;
-  
+
   /** Type of mismatch */
   type: MismatchType;
-  
+
   /** Human-readable interpretation */
   interpretation: string;
-  
+
   /** How to approach this sensitively */
   suggestedApproach: string;
-  
+
   /** Should we surface this to the user? */
   shouldSurface: boolean;
-  
+
   /** If surfacing, what to say */
   surfacePhrase?: string;
 }
 
-export type MismatchType = 
-  | 'masking_negative'     // Saying fine but voice says distressed
+export type MismatchType =
+  | 'masking_negative' // Saying fine but voice says distressed
   | 'understating_positive' // Downplaying excitement
-  | 'deflecting'           // Changing topic with emotional voice
-  | 'suppressing'          // Trying to control emotion
-  | 'contradicting'        // Direct contradiction
-  | 'incongruent'          // General mismatch
-  | 'none';                // No mismatch
+  | 'deflecting' // Changing topic with emotional voice
+  | 'suppressing' // Trying to control emotion
+  | 'contradicting' // Direct contradiction
+  | 'incongruent' // General mismatch
+  | 'none'; // No mismatch
 
 // ============================================================================
 // EMOTION GROUPS
 // ============================================================================
 
-const POSITIVE_EMOTIONS = ['happy', 'excited', 'joy', 'grateful', 'trust', 'anticipation', 'confident'];
-const NEGATIVE_EMOTIONS = ['sad', 'angry', 'fearful', 'anxious', 'distressed', 'frustrated', 'disgusted', 'contempt'];
+const POSITIVE_EMOTIONS = [
+  'happy',
+  'excited',
+  'joy',
+  'grateful',
+  'trust',
+  'anticipation',
+  'confident',
+];
+const NEGATIVE_EMOTIONS = [
+  'sad',
+  'angry',
+  'fearful',
+  'anxious',
+  'distressed',
+  'frustrated',
+  'disgusted',
+  'contempt',
+];
 const NEUTRAL_EMOTIONS = ['neutral', 'curious', 'confused', 'bored'];
 
 // Common phrases used to mask true feelings
@@ -82,15 +99,15 @@ const MASKING_PHRASES = [
   "i'm alright",
   "it's fine",
   "it's okay",
-  "no big deal",
+  'no big deal',
   "doesn't matter",
-  "whatever",
-  "it is what it is",
+  'whatever',
+  'it is what it is',
   "can't complain",
-  "could be worse",
-  "same old",
-  "just tired",
-  "just stressed",
+  'could be worse',
+  'same old',
+  'just tired',
+  'just stressed',
   "it'll pass",
 ];
 
@@ -118,10 +135,10 @@ export function detectMismatch(
 
   // Check for masking phrases
   const textLower = userText.toLowerCase();
-  const isMaskingPhrase = MASKING_PHRASES.some(phrase => textLower.includes(phrase));
+  const isMaskingPhrase = MASKING_PHRASES.some((phrase) => textLower.includes(phrase));
 
   // Detect different types of mismatch
-  
+
   // Type 1: Masking negative emotions with "I'm fine"
   if (isMaskingPhrase && isNegativeEmotion(voicePrimary)) {
     return {
@@ -153,7 +170,11 @@ export function detectMismatch(
   }
 
   // Type 3: Understating positive emotions
-  if (isNeutralEmotion(textPrimary) && isPositiveEmotion(voicePrimary) && voiceEmotion.arousal > 0.5) {
+  if (
+    isNeutralEmotion(textPrimary) &&
+    isPositiveEmotion(voicePrimary) &&
+    voiceEmotion.arousal > 0.5
+  ) {
     return {
       hasMismatch: true,
       confidence: voiceEmotion.confidence * 0.7,
@@ -191,7 +212,7 @@ export function detectMismatch(
       voiceEmotion: 'anxious',
       type: 'masking_negative',
       interpretation: 'Voice shows anxiety markers despite calm words',
-      suggestedApproach: 'Offer calm presence, don\'t call out the anxiety directly',
+      suggestedApproach: "Offer calm presence, don't call out the anxiety directly",
       shouldSurface: voiceEmotion.confidence > 0.6,
       surfacePhrase: generateSurfacePhrase('masking_negative', 'anxious'),
     };
@@ -298,8 +319,8 @@ function generateSurfacePhrase(type: MismatchType, voiceEmotion: string): string
       "Your voice is telling me something different from your words. It's okay to share both.",
     ],
     understating_positive: [
-      "Wait, I can hear how excited you actually are! This sounds like a big deal!",
-      "Your voice is lighting up! Tell me more about this!",
+      'Wait, I can hear how excited you actually are! This sounds like a big deal!',
+      'Your voice is lighting up! Tell me more about this!',
     ],
     suppressing: [
       "I sense there might be some weight on your shoulders. We can talk about it if you'd like.",
@@ -316,7 +337,7 @@ function generateSurfacePhrase(type: MismatchType, voiceEmotion: string): string
 
   const options = phrases[type] || phrases.incongruent;
   if (options.length === 0) return '';
-  
+
   return options[Math.floor(Math.random() * options.length)];
 }
 
@@ -329,4 +350,3 @@ export default {
   recordMismatchInsight,
   buildMismatchGuidance,
 };
-

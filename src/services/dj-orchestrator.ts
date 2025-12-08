@@ -54,7 +54,7 @@ const log = getLogger();
  */
 export class DJOrchestrator {
   private sessionService = getDJSessionService();
-  private currentPersonaId: string = 'ferni';
+  private currentPersonaId = 'ferni';
   private sessionStarted = false;
   private lastMusicPlayedTime: number | null = null;
 
@@ -204,10 +204,7 @@ export class DJOrchestrator {
   /**
    * Get a DJ transition phrase when changing tracks
    */
-  getDJTransition(
-    currentTrack?: { name: string; artist?: string },
-    newTrackName?: string
-  ): string {
+  getDJTransition(currentTrack?: { name: string; artist?: string }, newTrackName?: string): string {
     return getDJTrackChangePhrase(currentTrack, newTrackName, this.currentPersonaId);
   }
 
@@ -221,10 +218,7 @@ export class DJOrchestrator {
   /**
    * Get a mid-song moment phrase ("Wait for it...")
    */
-  getMidSongMoment(
-    momentType: 'buildup' | 'drop' | 'highlight',
-    trackName?: string
-  ): string {
+  getMidSongMoment(momentType: 'buildup' | 'drop' | 'highlight', trackName?: string): string {
     return getMidSongMomentPhrase(momentType, trackName, this.currentPersonaId);
   }
 
@@ -246,7 +240,7 @@ export class DJOrchestrator {
   /**
    * Handle unexpected music stop
    */
-  getMusicStoppedResponse(wasPaused: boolean = false): string {
+  getMusicStoppedResponse(wasPaused = false): string {
     return getMusicStoppedPhrase(this.currentPersonaId, wasPaused);
   }
 
@@ -321,10 +315,7 @@ export class DJOrchestrator {
   /**
    * Get a session callback ("We listened to jazz earlier...")
    */
-  getSessionCallback(sessionVibe: {
-    genres: string[];
-    artists: string[];
-  }): string | null {
+  getSessionCallback(sessionVibe: { genres: string[]; artists: string[] }): string | null {
     return getSessionCallbackPhrase(sessionVibe, this.currentPersonaId);
   }
 
@@ -409,7 +400,7 @@ export class DJOrchestrator {
   /**
    * Check if music was played recently
    */
-  wasRecentMusicPlayed(withinMs: number = 300000): boolean {
+  wasRecentMusicPlayed(withinMs = 300000): boolean {
     if (!this.lastMusicPlayedTime) return false;
     return Date.now() - this.lastMusicPlayedTime < withinMs;
   }
@@ -455,4 +446,3 @@ export {
 } from '../audio/ambient-music.js';
 
 export default getDJOrchestrator;
-

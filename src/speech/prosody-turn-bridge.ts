@@ -60,9 +60,7 @@ export function mapPitchContourToIntonation(
 /**
  * Extract intonation from voice emotion result
  */
-export function getIntonationFromVoiceEmotion(
-  voiceEmotion: VoiceEmotionResult | null
-): Intonation {
+export function getIntonationFromVoiceEmotion(voiceEmotion: VoiceEmotionResult | null): Intonation {
   if (!voiceEmotion || voiceEmotion.confidence < 0.3) {
     return 'neutral';
   }
@@ -86,7 +84,13 @@ export function createTurnPredictionContext(
     topicWeight?: 'light' | 'medium' | 'heavy';
   }
 ): TurnPredictionContext {
-  const { voiceEmotion, speakingDurationMs = 0, silenceDurationMs = 0, turnCount = 0, topicWeight } = options;
+  const {
+    voiceEmotion,
+    speakingDurationMs = 0,
+    silenceDurationMs = 0,
+    turnCount = 0,
+    topicWeight,
+  } = options;
 
   return {
     transcript,
@@ -96,7 +100,7 @@ export function createTurnPredictionContext(
     topicWeight,
     emotionIntensity: voiceEmotion?.arousal ?? undefined,
     turnCount,
-    userWPM: voiceEmotion?.prosody.speechRate 
+    userWPM: voiceEmotion?.prosody.speechRate
       ? voiceEmotion.prosody.speechRate * 15 // Rough syllables/sec to WPM conversion
       : undefined,
   };
@@ -117,17 +121,17 @@ export function predictTurnWithVoice(
   } = {}
 ): EnhancedTurnPrediction {
   const turnPredictor = getTurnPredictionService(sessionId);
-  
+
   const context = createTurnPredictionContext(transcript, {
     voiceEmotion,
     ...options,
   });
 
   const basePrediction = turnPredictor.predict(context);
-  
+
   // Extract voice signals for logging/debugging
   const voiceSignals = {
-    intonation: context.intonation || 'neutral' as Intonation,
+    intonation: context.intonation || ('neutral' as Intonation),
     stressLevel: voiceEmotion?.stressLevel ?? 0,
     speechRate: voiceEmotion?.prosody.speechRate ?? 0,
     confidenceFromVoice: voiceEmotion?.confidence ?? 0,
@@ -157,9 +161,11 @@ export function predictTurnWithVoice(
  * Check if voice prosody strongly suggests turn completion
  * This can be used for faster response initiation
  */
-export function voiceSuggestsTurnComplete(
-  voiceEmotion: VoiceEmotionResult | null
-): { suggests: boolean; confidence: number; reason: string } {
+export function voiceSuggestsTurnComplete(voiceEmotion: VoiceEmotionResult | null): {
+  suggests: boolean;
+  confidence: number;
+  reason: string;
+} {
   if (!voiceEmotion || voiceEmotion.confidence < 0.4) {
     return {
       suggests: false,
@@ -233,4 +239,3 @@ export default {
   predictTurnWithVoice,
   voiceSuggestsTurnComplete,
 };
-

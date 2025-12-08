@@ -376,10 +376,7 @@ export {
   type DJPersonaStyle,
 } from './dj-orchestrator.js';
 
-export {
-  getDJSessionService,
-  resetDJSessionService,
-} from './dj-session.service.js';
+export { getDJSessionService, resetDJSessionService } from './dj-session.service.js';
 
 export {
   getDJStyle,

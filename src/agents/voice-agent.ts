@@ -142,6 +142,10 @@ import {
 // 🎧 DJ Integration - Radio show experience (intros, outros, music moments)
 import { djIntegration, getDJIntegration } from './dj-integration.js';
 
+// 🎧 DJ Booth - Audio-level orchestration (ducking, fading, timing)
+// This handles the "sound engineering" while DJ Integration handles "what to say"
+import { initializeDJBooth, getDJBooth, resetDJBooth, type DJBooth } from '../audio/index.js';
+
 // Conversation State - Shared context for human-level tool orchestration
 import {
   endConversation as endConversationState,
@@ -1615,40 +1619,56 @@ export default defineAgent({
         if (event.newState === 'speaking') {
           conversationManager.handleAgentStartedSpeaking('');
 
-          // Duck background music when agent speaks (only if music is enabled)
-          import('../config/environment.js')
-            .then(async ({ isMusicEnabled }) => {
-              if (!isMusicEnabled()) return;
-              return import('../audio/index.js');
-            })
-            .then((audioModule) => {
-              if (!audioModule) return;
-              const player = audioModule.getMusicPlayer();
-              if (player.isPlaying()) {
-                player.duck();
-                diag.state('Ducked background music for agent speech');
-              }
-            })
-            .catch((e) => log().debug({ error: String(e) }, 'Music ducking (non-critical)'));
+          // 🎧 DJ BOOTH: Notify agent speaking - smooth ducking with timing
+          // The DJ Booth handles volume fading (not abrupt duck/unduck)
+          const booth = getDJBooth();
+          if (booth) {
+            // DJ Booth will smoothly fade music to talk-over volume
+            // and manage timing for when to restore
+            diag.state('🎧 Agent speaking - DJ Booth managing music');
+          } else {
+            // Fallback to basic ducking if DJ Booth not initialized
+            import('../config/environment.js')
+              .then(async ({ isMusicEnabled }) => {
+                if (!isMusicEnabled()) return;
+                return import('../audio/index.js');
+              })
+              .then((audioModule) => {
+                if (!audioModule) return;
+                const player = audioModule.getMusicPlayer();
+                if (player.isPlaying()) {
+                  player.duck();
+                  diag.state('Ducked background music for agent speech (basic)');
+                }
+              })
+              .catch((e) => log().debug({ error: String(e) }, 'Music ducking (non-critical)'));
+          }
         }
         if (event.oldState === 'speaking' && event.newState !== 'speaking') {
           conversationManager.handleAgentFinishedSpeaking(0);
 
-          // Unduck background music when agent stops speaking (only if music is enabled)
-          import('../config/environment.js')
-            .then(async ({ isMusicEnabled }) => {
-              if (!isMusicEnabled()) return;
-              return import('../audio/index.js');
-            })
-            .then((audioModule) => {
-              if (!audioModule) return;
-              const player = audioModule.getMusicPlayer();
-              if (player.getState().isDucked) {
-                player.unduck();
-                diag.state('Unducked background music after agent speech');
-              }
-            })
-            .catch((e) => log().debug({ error: String(e) }, 'Music unducking (non-critical)'));
+          // 🎧 DJ BOOTH: Notify agent stopped speaking
+          const booth = getDJBooth();
+          if (booth) {
+            booth.onAgentFinishedSpeaking();
+            diag.state('🎧 Agent stopped - DJ Booth restoring music');
+          } else {
+            // Fallback to basic unducking
+            import('../config/environment.js')
+              .then(async ({ isMusicEnabled }) => {
+                if (!isMusicEnabled()) return;
+                return import('../audio/index.js');
+              })
+              .then((audioModule) => {
+                if (!audioModule) return;
+                const player = audioModule.getMusicPlayer();
+                if (player.getState().isDucked) {
+                  player.unduck();
+                  diag.state('Unducked background music after agent speech (basic)');
+                }
+              })
+              .catch((e) => log().debug({ error: String(e) }, 'Music unducking (non-critical)'));
+          }
         }
       });
 
@@ -1735,6 +1755,13 @@ export default defineAgent({
           stopAmbientMusic();
           conversationManager.handleUserStartedSpeaking();
 
+          // 🎧 DJ BOOTH: User started speaking - duck music to hear them clearly
+          const booth = getDJBooth();
+          if (booth) {
+            booth.onUserStartSpeaking();
+            diag.state('🎧 User speaking - DJ Booth ducking music');
+          }
+
           // 🎮 GAME DUCKING: Lower music volume when user speaks during a game
           // They're making a guess - let them be heard clearly!
           void (async () => {
@@ -1768,6 +1795,13 @@ export default defineAgent({
             conversationManager.handleUserFinishedSpeaking(
               Date.now() - userData.userSpeakingStartTime
             );
+          }
+
+          // 🎧 DJ BOOTH: User stopped speaking - restore music (unless agent is responding)
+          const userStopBooth = getDJBooth();
+          if (userStopBooth) {
+            userStopBooth.onUserStopSpeaking();
+            diag.state('🎧 User stopped - DJ Booth managing volume restore');
           }
 
           // 🎮 GAME UNDUCK: Restore music volume after user finishes speaking
@@ -2026,8 +2060,12 @@ export default defineAgent({
               lastToolResult,
             };
 
-            // Process feedback asynchronously
-            autoOptimizer.processUserMessage(event.transcript, feedbackContext, lastToolId);
+            // Process feedback (synchronous)
+            try {
+              autoOptimizer.processUserMessage(event.transcript, feedbackContext, lastToolId);
+            } catch (err) {
+              diag.debug('Feedback processing error', { error: String(err) });
+            }
           } catch (feedbackError) {
             // Feedback collection is non-critical
             diag.warn('Feedback collection error', { error: String(feedbackError) });
@@ -2059,7 +2097,11 @@ export default defineAgent({
         getVoiceAgentRef: () => voiceAgentRef as VoiceAgentRef | null,
       });
 
-      handoffEvents.on('voiceSwitch', handoffHandler);
+      handoffEvents.on('voiceSwitch', (data) => {
+        void handoffHandler(data).catch((err) => {
+          diag.error('Handoff handler error', { error: String(err) });
+        });
+      });
 
       // NOTE: The inline handler has been extracted to src/agents/shared/handoff-handler.ts
       // This reduces voice-agent.ts by ~350 lines while maintaining identical functionality
@@ -2134,6 +2176,8 @@ export default defineAgent({
       // If we wait until after session.start(), the agent could try to play music
       // before the music player is ready, causing silent "simulation mode" playback.
       const { isMusicEnabled } = await import('../config/environment.js');
+      let djBooth: DJBooth | null = null; // Track for cleanup
+
       if (ctx.room && isMusicEnabled()) {
         try {
           const { initializeMusicPlayer, getMusicPlayer, getAmbientMusicEndedPhrase } =
@@ -2143,6 +2187,27 @@ export default defineAgent({
 
           // Set up callback for when ambient music ends - agent comes back in
           const player = getMusicPlayer();
+
+          // 🎧 INITIALIZE DJ BOOTH - Audio-level orchestration
+          // This gives us smooth volume fading, smart ducking, and timed DJ moments
+          djBooth = initializeDJBooth({
+            personaId: sessionPersona.id,
+            speakCallback: (phrase, options) => {
+              try {
+                session.say(phrase, options);
+              } catch (e) {
+                diag.warn('DJ Booth speak callback failed', { error: String(e) });
+              }
+            },
+            onAgentSpeakStart: () => {
+              diag.state('🎧 DJ Booth: Agent speaking (music will duck)');
+            },
+            onAgentSpeakEnd: () => {
+              diag.state('🎧 DJ Booth: Agent stopped (music will restore)');
+            },
+          });
+
+          diag.state('🎧 DJ Booth initialized', { persona: sessionPersona.id });
           player.setOnTrackEndedCallback((track, wasAmbient) => {
             if (wasAmbient) {
               // Ambient music ended - agent acknowledges and comes back
@@ -2316,8 +2381,9 @@ export default defineAgent({
 
                 // 🎵 MUSIC APPRECIATION: Random comments during playback
                 // Like a real DJ who's vibing with the music
-                appreciationTimer = setInterval(async () => {
-                  try {
+                appreciationTimer = setInterval(() => {
+                  void (async () => {
+                    try {
                     const { getMusicAppreciationComment, getMusicElementAppreciation } =
                       await import('../services/dj-service.js');
 
@@ -2345,44 +2411,47 @@ export default defineAgent({
                         lastAppreciationTime = now;
                       }
                     }
-                  } catch (e) {
-                    diag.warn('Failed to generate appreciation', { error: String(e) });
-                  }
+                    } catch (e) {
+                      diag.warn('Failed to generate appreciation', { error: String(e) });
+                    }
+                  })();
                 }, 10000); // Check every 10 seconds
 
                 // 🎯 READ THE ROOM: Check if user is engaged with the music
-                readTheRoomTimer = setInterval(async () => {
-                  try {
-                    const { getReadTheRoomAction } = await import('../services/dj-service.js');
+                readTheRoomTimer = setInterval(() => {
+                  void (async () => {
+                    try {
+                      const { getReadTheRoomAction } = await import('../services/dj-service.js');
 
-                    const now = Date.now();
-                    const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
-                    const timeSinceLastCheck = lastReadTheRoomTime
-                      ? (now - lastReadTheRoomTime) / 1000
-                      : timeSinceStart;
+                      const now = Date.now();
+                      const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
+                      const timeSinceLastCheck = lastReadTheRoomTime
+                        ? (now - lastReadTheRoomTime) / 1000
+                        : timeSinceStart;
 
-                    // Only check every 60+ seconds
-                    if (timeSinceLastCheck > 60) {
-                      const action = getReadTheRoomAction(
-                        {
-                          musicHasBeenPlayingFor: timeSinceStart,
-                          userIsSilentDuringMusic: true, // We don't have VAD data here, assume silent
-                        },
-                        sessionPersona.id
-                      );
+                      // Only check every 60+ seconds
+                      if (timeSinceLastCheck > 60) {
+                        const action = getReadTheRoomAction(
+                          {
+                            musicHasBeenPlayingFor: timeSinceStart,
+                            userIsSilentDuringMusic: true, // We don't have VAD data here, assume silent
+                          },
+                          sessionPersona.id
+                        );
 
-                      if (action?.phrase && action.action !== 'continue') {
-                        diag.state('🎧 Read the room check', {
-                          action: action.action,
-                          timePlaying: Math.round(timeSinceStart),
-                        });
-                        session.say(action.phrase, { allowInterruptions: true });
-                        lastReadTheRoomTime = now;
+                        if (action?.phrase && action.action !== 'continue') {
+                          diag.state('🎧 Read the room check', {
+                            action: action.action,
+                            timePlaying: Math.round(timeSinceStart),
+                          });
+                          session.say(action.phrase, { allowInterruptions: true });
+                          lastReadTheRoomTime = now;
+                        }
                       }
+                    } catch (e) {
+                      diag.warn('Failed read-the-room check', { error: String(e) });
                     }
-                  } catch (e) {
-                    diag.warn('Failed read-the-room check', { error: String(e) });
-                  }
+                  })();
                 }, 30000); // Check every 30 seconds
               }
 
@@ -2834,7 +2903,9 @@ export default defineAgent({
           });
         } else if (djIntroResult.playedSound && djIntroResult.intro.delayMs) {
           // Sound played - add a small delay before greeting for timing
-          await new Promise((resolve) => setTimeout(resolve, djIntroResult.intro.delayMs));
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, djIntroResult.intro.delayMs);
+          });
         }
       } catch (djError) {
         diag.warn('🎧 DJ intro failed (non-fatal)', { error: String(djError) });
@@ -3107,12 +3178,12 @@ export default defineAgent({
                 logger.info({ welcomeMessage }, '🎮 Agent speaking game welcome...');
 
                 // Use generateReply to make the agent speak
-                await session.generateReply({
-                  instructions: `You are starting a music game called "${gameType}". 
+                session.generateReply({
+                  instructions: `You are starting a music game called "${gameType}".
                   Say the following welcome message naturally, with enthusiasm:
-                  
+
                   "${welcomeMessage}"
-                  
+
                   After speaking, wait for the user's response.`,
                 });
 
@@ -3137,8 +3208,8 @@ export default defineAgent({
 
               // Make agent acknowledge the error gracefully
               if (session) {
-                await session.generateReply({
-                  instructions: `Apologize briefly - there was a technical issue starting the game. 
+                session.generateReply({
+                  instructions: `Apologize briefly - there was a technical issue starting the game.
                   Suggest the user try saying "let's play ${gameType}" instead.`,
                 });
               }
@@ -3232,8 +3303,7 @@ export default defineAgent({
                   ].slice(-10), // Keep last 10 artists
                   lastPlayedArtist: djSummary.musicArtists[djSummary.musicArtists.length - 1],
                   totalTracksPlayed:
-                    (existingMemory?.totalTracksPlayed || 0) +
-                    djSummary.musicArtists.length,
+                    (existingMemory?.totalTracksPlayed || 0) + djSummary.musicArtists.length,
                 };
                 diag.session('🎧 DJ session summary saved', {
                   topics: djSummary.topics.length,
@@ -3242,6 +3312,14 @@ export default defineAgent({
               }
             } catch (djErr) {
               diag.warn('🎧 DJ summary save failed (non-fatal)', { error: String(djErr) });
+            }
+
+            // 🎧 DJ Booth: Clean up audio orchestration
+            try {
+              resetDJBooth();
+              diag.session('🎧 DJ Booth cleaned up');
+            } catch (boothErr) {
+              diag.warn('🎧 DJ Booth cleanup failed (non-fatal)', { error: String(boothErr) });
             }
 
             // Save trust profiles (boundaries, growth, callbacks, etc.)
