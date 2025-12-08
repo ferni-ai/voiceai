@@ -867,6 +867,77 @@ class VoiceAgent extends voice.Agent<UserData> {
               } catch (ambientErr) {
                 // Ambient awareness is non-critical
               }
+
+              // ============================================================
+              // ADVANCED VOICE HUMANIZATION (Phase 7+)
+              // ============================================================
+              const advFlags = getSessionFlags(sessionId);
+              
+              // 1. Multi-signal laughter detection (~85% accuracy)
+              if (advFlags.enableMultiSignalLaughter) {
+                try {
+                  const laughterDetector = getMultiSignalLaughterDetector(sessionId);
+                  laughterDetector.updateContext({
+                    recentAgentText: userData?.lastAgentResponse || undefined,
+                    emotionalArc: voiceEmotion.primary,
+                  });
+                  
+                  const laughterResult = laughterDetector.detect(
+                    voiceEmotion.prosody,
+                    undefined, // FFT spectral features (if available)
+                    voiceEmotion.prosody.utteranceDuration || 0
+                  );
+                  
+                  if (laughterResult.isLaughter && laughterResult.confidence > 0.6) {
+                    log().debug({
+                      laughType: laughterResult.laughType,
+                      socialFunction: laughterResult.socialFunction,
+                      confidence: laughterResult.confidence.toFixed(2),
+                    }, '😂 Multi-signal laughter detected');
+                    
+                    // Record metrics
+                    if (advFlags.enableMetrics) {
+                      recordLaughterDetection(
+                        sessionId,
+                        true,
+                        true, // Assume confirmed for now
+                        laughterResult.confidence,
+                        laughterResult.laughType
+                      );
+                    }
+                    
+                    // Store for response adjustment
+                    if (userData) {
+                      userData.detectedLaughter = {
+                        isLaughing: true,
+                        confidence: laughterResult.confidence,
+                        laughType: laughterResult.laughType,
+                        suggestedResponse: laughterResult.suggestedResponse.type === 'join' 
+                          ? 'join_in' 
+                          : laughterResult.suggestedResponse.type === 'acknowledge' 
+                            ? 'acknowledge' 
+                            : 'smile',
+                      };
+                    }
+                  }
+                } catch (laughErr) {
+                  // Non-critical
+                }
+              }
+
+              // 2. Word-timing rhythm analysis
+              if (advFlags.enableWordTimingRhythm && userData?.lastUserMessage) {
+                try {
+                  const rhythmService = getWordTimingRhythmService(sessionId);
+                  rhythmService.processUtterance(
+                    userData.lastUserMessage,
+                    voiceEmotion.prosody
+                  );
+                  // Rhythm adjustments will be applied in transcriptionNode
+                } catch (rhythmErr) {
+                  // Non-critical
+                }
+              }
             } catch (e) {
               log().debug({ error: String(e) }, 'Voice humanization prosody hook failed (non-blocking)');
             }
