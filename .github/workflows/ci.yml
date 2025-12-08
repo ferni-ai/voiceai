@@ -34,7 +34,6 @@ jobs:
 
       - name: Lint check
         run: npm run lint --if-present
-        continue-on-error: true
 
   # ============================================================================
   # UNIT TESTS
@@ -71,13 +70,12 @@ jobs:
           # Extract coverage percentage from coverage summary
           COVERAGE=$(cat coverage/coverage-summary.json 2>/dev/null | grep -o '"pct":[0-9.]*' | head -1 | grep -o '[0-9.]*' || echo "0")
           echo "Coverage: ${COVERAGE}%"
-          # Fail if coverage is below 60%
+          # Warn if coverage is below 60% (don't block for now)
           if (( $(echo "$COVERAGE < 60" | bc -l) )); then
-            echo "❌ Coverage ${COVERAGE}% is below 60% threshold"
-            exit 1
+            echo "⚠️ Coverage ${COVERAGE}% is below 60% threshold"
+          else
+            echo "✅ Coverage ${COVERAGE}% meets 60% threshold"
           fi
-          echo "✓ Coverage ${COVERAGE}% meets 60% threshold"
-        continue-on-error: true
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -148,8 +146,7 @@ jobs:
         run: npm ci
 
       - name: Run npm audit
-        run: npm audit --audit-level=high
-        continue-on-error: true
+        run: npm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
 
       - name: Check for secrets
         uses: trufflesecurity/trufflehog@main
@@ -158,7 +155,6 @@ jobs:
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
           extra_args: --only-verified
-        continue-on-error: true
 
   # ============================================================================
   # CODE QUALITY METRICS (using unified audit CLI)

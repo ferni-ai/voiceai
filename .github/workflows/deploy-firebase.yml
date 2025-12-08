@@ -1,0 +1,135 @@
+name: Deploy Firebase Hosting
+
+# Auto-deploy frontend to Firebase Hosting when pushed to main
+# Deploys to BOTH sites: ferni-prod AND johnb-app (app.ferni.ai)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend-typescript/**'
+      - 'design-system/**'
+      - 'public/**'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        type: choice
+        options:
+          - app
+          - landing
+          - both
+        default: 'app'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # DEPLOY APP (ferni-prod + johnb-app)
+  # ============================================================================
+  deploy-app:
+    name: Deploy App
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || inputs.target == 'app' || inputs.target == 'both' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build design-system
+        run: node design-system/build.js
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend-typescript
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend-typescript
+          npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Deploy to Firebase (ferni-prod)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          target: ferni-prod
+          entryPoint: ./frontend-typescript
+
+      - name: Deploy to Firebase (johnb-app / app.ferni.ai)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          target: johnb-app
+          entryPoint: ./frontend-typescript
+
+      - name: Deployment summary
+        run: |
+          echo "## 🚀 Firebase Hosting Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Site | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| ferni-prod | https://ferni-prod.web.app |" >> $GITHUB_STEP_SUMMARY
+          echo "| johnb-app | https://app.ferni.ai |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # DEPLOY LANDING PAGE
+  # ============================================================================
+  deploy-landing:
+    name: Deploy Landing
+    runs-on: ubuntu-latest
+    if: ${{ inputs.target == 'landing' || inputs.target == 'both' }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install landing dependencies
+        run: |
+          cd promo/ferni-website
+          npm ci
+
+      - name: Build landing page
+        run: |
+          cd promo/ferni-website
+          npm run build
+
+      - name: Deploy landing to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          target: ferni-landing
+          entryPoint: ./promo/ferni-website
+
+      - name: Deployment summary
+        run: |
+          echo "## 🌐 Landing Page Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Site | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Landing | https://ferni.ai |" >> $GITHUB_STEP_SUMMARY
+
