@@ -386,7 +386,9 @@ export async function cleanupOldVoiceMessages(maxAgeDays = 7): Promise<number> {
     let deleted = 0;
     for (const file of files) {
       const [metadata] = await file.getMetadata();
-      const created = new Date(metadata.timeCreated);
+      const timeCreated = metadata.timeCreated;
+      if (!timeCreated) continue;
+      const created = new Date(timeCreated);
 
       if (created < cutoff) {
         await file.delete();

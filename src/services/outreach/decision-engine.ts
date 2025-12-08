@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Outreach Decision Engine
  *
@@ -94,6 +93,7 @@ export interface OutreachDecision {
   decision: 'send' | 'skip' | 'defer';
   skipReason?: string;
   deferUntil?: Date;
+  decidedAt: Date; // When this decision was made
 
   // If sending
   persona?: AgentId;
@@ -523,7 +523,7 @@ class OutreachDecisionEngine extends EventEmitter {
     // Decision 3: Is this a good time?
     const timingDecision = this.evaluateTiming(state, trigger, now);
     if (timingDecision.defer) {
-      return this.createDecision(trigger, 'defer', timingDecision.reason, timingDecision.deferUntil);
+      return this.createDecision(trigger, 'defer', timingDecision.reason || 'Timing not optimal', timingDecision.deferUntil);
     }
 
     // Decision 4: Select persona
@@ -549,6 +549,7 @@ class OutreachDecisionEngine extends EventEmitter {
     const decision: OutreachDecision = {
       trigger,
       decision: 'send',
+      decidedAt: now,
       persona,
       channel,
       scheduledFor: now,
@@ -587,6 +588,7 @@ class OutreachDecisionEngine extends EventEmitter {
     const result: OutreachDecision = {
       trigger,
       decision,
+      decidedAt: new Date(),
       skipReason: decision === 'skip' ? reason : undefined,
       deferUntil: decision === 'defer' ? deferUntil : undefined,
     };
@@ -800,7 +802,7 @@ class OutreachDecisionEngine extends EventEmitter {
         recentTopics: state.context.recentTopics,
         recentWins: state.context.recentWins,
         currentStruggles: state.context.currentStruggles,
-        upcomingEvents: state.context.upcomingEvents,
+        upcomingEvents: state.context.upcomingEvents?.map((e) => e.description),
         emotionalState: state.context.emotionalState,
       },
 

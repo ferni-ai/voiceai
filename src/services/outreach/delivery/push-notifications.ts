@@ -270,7 +270,7 @@ async function getFCMAccessToken(): Promise<string> {
     throw new Error(`Failed to get FCM token: ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as { access_token: string; expires_in: number };
   fcmAccessToken = data.access_token;
   tokenExpiry = new Date(Date.now() + (data.expires_in - 60) * 1000);
 
@@ -441,7 +441,7 @@ async function sendToToken(
   );
 
   if (!response.ok) {
-    const errorBody = await response.json();
+    const errorBody = await response.json() as { error?: { message?: string; details?: Array<{ errorCode?: string }> } };
     const errorCode = errorBody.error?.details?.[0]?.errorCode;
 
     let failureReason: PushDeliveryResult['failureReason'] = 'unknown';
@@ -458,7 +458,7 @@ async function sendToToken(
     };
   }
 
-  const data = await response.json();
+  const data = await response.json() as { name: string };
   return {
     success: true,
     messageId: data.name,

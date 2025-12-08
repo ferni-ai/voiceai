@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Email Delivery Service
  *
@@ -604,7 +603,7 @@ async function sendViaResend(
     throw new Error(`Resend error: ${response.status} - ${errorBody}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as { id: string };
 
   return { success: true, messageId: data.id, status: 'sent' };
 }

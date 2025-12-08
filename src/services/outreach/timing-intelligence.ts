@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Timing Intelligence Service
  *
@@ -147,6 +146,8 @@ export interface TimingProfile {
     call: ChannelTimingData;
     sms: ChannelTimingData;
     email: ChannelTimingData;
+    push: ChannelTimingData;
+    voice_message: ChannelTimingData;
   };
 }
 
@@ -259,6 +260,16 @@ const DEFAULT_TIMING_PROFILE: Omit<TimingProfile, 'userId'> = {
       responseRateByHour: new Map(),
       avgResponseTimeMs: 4 * 60 * 60 * 1000,
     },
+    push: {
+      bestHours: [9, 10, 11, 12, 14, 15, 16, 17, 19, 20], // Similar to SMS
+      responseRateByHour: new Map(),
+      avgResponseTimeMs: 10 * 60 * 1000, // 10 minutes average
+    },
+    voice_message: {
+      bestHours: [10, 11, 14, 15, 19], // Similar to call
+      responseRateByHour: new Map(),
+      avgResponseTimeMs: 2 * 60 * 60 * 1000, // 2 hours average
+    },
   },
 };
 
@@ -310,6 +321,14 @@ export function getTimingProfile(userId: string): TimingProfile {
         },
         email: {
           ...DEFAULT_TIMING_PROFILE.channelTiming.email,
+          responseRateByHour: new Map(),
+        },
+        push: {
+          ...DEFAULT_TIMING_PROFILE.channelTiming.push,
+          responseRateByHour: new Map(),
+        },
+        voice_message: {
+          ...DEFAULT_TIMING_PROFILE.channelTiming.voice_message,
           responseRateByHour: new Map(),
         },
       },

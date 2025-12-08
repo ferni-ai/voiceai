@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Firestore Persistence for Outreach System
  *
@@ -58,6 +57,14 @@ export interface OutreachHistoryDocument {
 
 let firestoreClient: FirebaseFirestore.Firestore | null = null;
 let firestoreAvailable = false;
+
+// Collection names
+const COLLECTIONS = {
+  PROFILES: 'outreach_profiles',
+  TRIGGERS: 'outreach_triggers',
+  HISTORY: 'outreach_history',
+  CONTEXT: 'outreach_context',
+} as const;
 
 /**
  * Initialize Firestore for outreach persistence
@@ -549,7 +556,12 @@ export async function getOutreachStats(
 
     const snapshot = await query.limit(1000).get();
 
-    const stats = { ...defaultStats };
+    const stats: {
+      totalSent: number;
+      byChannel: Record<string, number>;
+      byTrigger: Record<string, number>;
+      responseRate: number;
+    } = { ...defaultStats };
 
     snapshot.docs.forEach((doc) => {
       const data = doc.data() as OutreachHistoryDocument;
