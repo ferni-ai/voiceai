@@ -1,72 +1,181 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read/write their own data
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    
+    // ============================================================================
+    // HELPER FUNCTIONS
+    // ============================================================================
+    
+    // Check if user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
     }
     
-    // Optimization data - admin only or authenticated users with custom claims
+    // Check if the authenticated user owns this document
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Check if user has admin claim
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+    
+    // Check if user is a service account (backend)
+    function isServiceAccount() {
+      return isSignedIn() && request.auth.token.service_account == true;
+    }
+    
+    // Rate limiting check (max 100 writes per hour per user)
+    // Note: This is a soft limit - real rate limiting is in auth-middleware.ts
+    
+    // ============================================================================
+    // USER PROFILES (bogle_users collection)
+    // This is the PRIMARY user data store - MOST SENSITIVE
+    // ============================================================================
+    
+    match /bogle_users/{userId} {
+      // Users can only read/write their OWN profile
+      // Admin/service accounts can read any profile for support
+      allow read: if isOwner(userId) || isAdmin() || isServiceAccount();
+      
+      // Users can only write their own profile
+      // Service accounts (backend) can write any profile
+      allow create: if isOwner(userId) || isServiceAccount();
+      allow update: if isOwner(userId) || isServiceAccount();
+      
+      // Only admins can delete profiles (GDPR requests go through admin)
+      allow delete: if isAdmin();
+      
+      // Subcollections under user profile
+      match /summaries/{summaryId} {
+        allow read, write: if isOwner(userId) || isServiceAccount();
+      }
+      
+      match /moments/{momentId} {
+        allow read, write: if isOwner(userId) || isServiceAccount();
+      }
+      
+      match /goals/{goalId} {
+        allow read, write: if isOwner(userId) || isServiceAccount();
+      }
+      
+      // Trust profiles (boundaries, growth, inside jokes, etc.)
+      match /trust_profiles/{profileId} {
+        allow read, write: if isOwner(userId) || isServiceAccount();
+      }
+      
+      // Utility preferences (timers, tips, timezone patterns, etc.)
+      // "Better than human" everyday helpers with cross-session memory
+      match /utility_preferences/{prefId} {
+        allow read, write: if isOwner(userId) || isServiceAccount();
+      }
+    }
+    
+    // ============================================================================
+    // LEGACY users COLLECTION (for Firebase Auth integration)
+    // ============================================================================
+    
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // ============================================================================
+    // SECURITY EVENTS (audit log - write only)
+    // ============================================================================
+    
+    match /security_events/{eventId} {
+      // Only service accounts can write security events
+      allow create: if isServiceAccount();
+      // Only admins can read security events
+      allow read: if isAdmin();
+      // No updates or deletes - audit trail must be immutable
+      allow update, delete: if false;
+    }
+    
+    // ============================================================================
+    // PHONE LOOKUP INDEX (for cross-device identification)
+    // Stores hashed phone -> userId mappings
+    // ============================================================================
+    
+    match /phone_index/{hashedPhone} {
+      // Only service accounts can read/write (backend manages this)
+      allow read, write: if isServiceAccount();
+    }
+    
+    // ============================================================================
+    // OPTIMIZATION & ANALYTICS DATA
+    // ============================================================================
+    
     match /optimization_feedback/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() || isServiceAccount();
     }
     
     match /optimization_recommendations/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isServiceAccount();
     }
     
     match /optimization_experiments/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isServiceAccount();
     }
     
     match /optimization_sessions/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() || isServiceAccount();
     }
     
     match /optimization_patterns/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isServiceAccount();
     }
     
     match /optimization_cycles/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isServiceAccount();
     }
     
     match /optimization_daily_summaries/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isServiceAccount();
     }
     
     match /optimization_weekly_reports/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isServiceAccount();
     }
     
+    // ============================================================================
+    // TOOL USAGE ANALYTICS
+    // ============================================================================
+    
     match /tool_usage_stats/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isServiceAccount();
     }
     
     match /tool_usage_calls/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isServiceAccount();
     }
     
-    // Learning signals - allow authenticated writes
+    // ============================================================================
+    // LEARNING SIGNALS
+    // ============================================================================
+    
     match /learning_signals/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() || isServiceAccount();
     }
     
-    // Default deny
+    // ============================================================================
+    // DEFAULT DENY - Everything else is blocked
+    // ============================================================================
+    
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
-

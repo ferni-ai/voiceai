@@ -260,14 +260,16 @@
       "handoff",
       "information",
       "entertainment",
+      "games",
       "wisdom",
       "awareness",
       "engagement",
       "crisis",
       "decisions",
-      "relationships"
+      "relationships",
+      "simple-utilities"
     ],
-    "_domain_notes": "Ferni focuses on coordination, safety, and high-level coaching. Crisis tools are safety-critical and always available. Decisions domain helps with life coaching. Specialists handle: Maya (health/wellness/self-compassion), Jordan (family/career/home/learning/life-planning), Peter (creativity/community/wisdom/meaning/stories), Nayan (presence/meaning). Target: 40-50 tools for optimal Gemini performance.",
+    "_domain_notes": "Ferni focuses on coordination, safety, and high-level coaching. Crisis tools are safety-critical and always available. Decisions domain helps with life coaching. Simple-utilities provides 'better than human' everyday helpers (timers, tips, timezone, etc.) with cross-session memory. Specialists handle: Maya (health/wellness/self-compassion), Jordan (family/career/home/learning/life-planning), Peter (creativity/community/wisdom/meaning/stories), Nayan (presence/meaning). Target: 40-50 tools for optimal Gemini performance.",
     "required": [
       "handoffToAlex",
       "handoffToMaya",

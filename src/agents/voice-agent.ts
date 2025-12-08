@@ -115,6 +115,15 @@ import { tagGreeting, applyPhasePersonality } from '../speech/adaptive-ssml.js';
 // Conversation Manager
 import { getConversationManager } from '../services/conversation-manager.js';
 
+// Trust Systems - "Better than human" trust profile loading
+import { onSessionStart as loadTrustProfiles, onSessionEnd as saveTrustProfiles } from '../services/trust-systems/index.js';
+
+// Simple Utilities - "Better than human" everyday helpers (timers, tips, timezone, etc.)
+import {
+  initializeUtilitiesIntegration,
+  weaveProactiveIntoGreeting,
+} from './shared/utilities-integration.js';
+
 // Cognitive Intelligence - Session lifecycle hooks for persistent learning
 import {
   onCognitiveSessionStart,
@@ -133,6 +142,7 @@ import {
   buildAgentTools,
   buildEssentialTools,
   isToolRegistryInitialized,
+  type Tool,
 } from '../tools/index.js';
 
 // Advanced Tool Systems - Dynamic loading, deprecation, analytics, optimization
@@ -395,8 +405,7 @@ class VoiceAgent extends voice.Agent<UserData> {
     const essentialTools = await buildEssentialTools();
 
     // Combine: persona-specific tools take precedence over essentials
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let toolsForAgent: any = {
+    let toolsForAgent: Record<string, Tool> = {
       ...essentialTools,
       ...personaTools,
     };
@@ -734,6 +743,19 @@ class VoiceAgent extends voice.Agent<UserData> {
               .catch((e) =>
                 log().debug({ error: String(e) }, 'Voice emotion publish (non-critical)')
               ); // Fire and forget
+
+            // 🎭 Update music player with current mood for mood-aware offers
+            // The music player can use this to offer contextually appropriate music
+            import('../audio/index.js')
+              .then(({ getMusicPlayer }) => {
+                const player = getMusicPlayer();
+                if (player.isInitialized()) {
+                  player.setCurrentUserMood(voiceEmotion.primary);
+                }
+              })
+              .catch(() => {
+                // Music player not available - that's fine
+              });
           }
         }
 
@@ -1208,6 +1230,16 @@ export default defineAgent({
       );
       globalSessionServices = services;
 
+      // Load trust profiles for "better than human" trust awareness
+      if (userId) {
+        try {
+          await loadTrustProfiles(userId);
+          diag.session('Trust profiles loaded for user', { userId });
+        } catch (trustErr) {
+          diag.warn('Failed to load trust profiles (non-fatal)', { error: String(trustErr) });
+        }
+      }
+
       const isReturningUser =
         services.userProfile !== null && (services.userProfile.totalConversations || 0) > 0;
 
@@ -1539,6 +1571,9 @@ export default defineAgent({
         recentEmotionalTone: 'neutral',
         userName: userData.name,
         memorableMoments: [],
+        isGameActive: false,
+        activeGameType: undefined,
+        isMusicPlaying: false,
       };
 
       // ===============================================
@@ -1607,6 +1642,21 @@ export default defineAgent({
           stopAmbientMusic();
           conversationManager.handleUserStartedSpeaking();
 
+          // 🎮 GAME DUCKING: Lower music volume when user speaks during a game
+          // They're making a guess - let them be heard clearly!
+          void (async () => {
+            try {
+              const { isGameCurrentlyActive, duckForUserGuess, updateGameActivity } = 
+                await import('../services/games/index.js');
+              if (isGameCurrentlyActive()) {
+                duckForUserGuess();
+                updateGameActivity(); // Track activity for auto-cleanup
+              }
+            } catch {
+              // Games module not loaded - that's fine
+            }
+          })();
+
           // Schedule potential backchannel after user has been speaking a while
           // Only for turn 3+ to establish rapport first
           if ((userData.turnCount || 0) >= 3) {
@@ -1626,6 +1676,19 @@ export default defineAgent({
               Date.now() - userData.userSpeakingStartTime
             );
           }
+
+          // 🎮 GAME UNDUCK: Restore music volume after user finishes speaking
+          void (async () => {
+            try {
+              const { isGameCurrentlyActive, unduckAfterGuess } = 
+                await import('../services/games/index.js');
+              if (isGameCurrentlyActive()) {
+                unduckAfterGuess();
+              }
+            } catch {
+              // Games module not loaded - that's fine
+            }
+          })();
         }
 
         // MEANINGFUL SILENCE HANDLING
@@ -1789,6 +1852,43 @@ export default defineAgent({
 
           // Update context with last user message
           silenceContext.lastUserMessage = event.transcript;
+
+          // ===============================================
+          // 🎮 GAME TOPIC CHANGE DETECTION
+          // ===============================================
+          // If a game is active and user seems to have moved on, end it gracefully
+          void (async () => {
+            try {
+              const { isGameCurrentlyActive, getCurrentGameType, detectTopicChange } = 
+                await import('../services/games/index.js');
+              
+              if (isGameCurrentlyActive()) {
+                const gameType = getCurrentGameType() as import('../services/games/types.js').GameType | null;
+                const hasChangedTopic = detectTopicChange(event.transcript, gameType);
+                
+                if (hasChangedTopic) {
+                  // User seems to have moved on from the game
+                  const { getGameEngine, resetGameActivity } = 
+                    await import('../services/games/index.js');
+                  const engine = getGameEngine();
+                  const session = engine.endGame();
+                  resetGameActivity();
+                  
+                  diag.state('🎮 Game auto-ended due to topic change', {
+                    gameType,
+                    score: session.score,
+                    rounds: session.roundsPlayed,
+                  });
+                }
+                
+                // Update silence context to reflect game state
+                silenceContext.isGameActive = isGameCurrentlyActive();
+                silenceContext.activeGameType = getCurrentGameType() || undefined;
+              }
+            } catch {
+              // Games module not loaded - that's fine
+            }
+          })();
 
           // ===============================================
           // DYNAMIC TOOL LOADING based on conversation topic
@@ -1962,6 +2062,28 @@ export default defineAgent({
             }
           });
 
+          // 🎤 Set up callback for "Wait for it..." mid-song moments
+          // These make the DJ feel alive - like they're enjoying the music with you!
+          player.setOnMidSongMomentCallback((track, momentType) => {
+            void (async () => {
+              try {
+                const { getMidSongMomentPhrase } = await import('../audio/ambient-music.js');
+                const phrase = getMidSongMomentPhrase(momentType, track.name, sessionPersona.id);
+
+                diag.state('🎤 Mid-song moment!', {
+                  track: track.name,
+                  momentType,
+                  phrase: phrase.slice(0, 50),
+                });
+
+                // Speak the interjection - brief and natural!
+                session.say(phrase, { allowInterruptions: true });
+              } catch (e) {
+                diag.warn('Failed to speak mid-song moment', { error: String(e) });
+              }
+            })();
+          });
+
           // ✨ Set up callback for music state changes - notify frontend AND do DJ-style interactions!
           // Track previous state to detect unexpected stops
           let lastMusicState = 'idle';
@@ -1975,6 +2097,31 @@ export default defineAgent({
                 track: track?.name,
                 isAmbient,
               });
+
+              // 🎧 DJ-STYLE CROSSFADE: When music is CHANGING, speak a transition phrase!
+              // This is the magic moment where Ferni acts like a real DJ switching tracks
+              if (state === 'changing' && !isAmbient) {
+                try {
+                  const { getDJTrackChangePhrase } = await import('../audio/ambient-music.js');
+                  const currentTrack = track ? { name: track.name, artist: track.artist } : undefined;
+                  const transitionPhrase = getDJTrackChangePhrase(
+                    currentTrack,
+                    undefined, // New track name not known yet
+                    sessionPersona.id
+                  );
+
+                  diag.state('🎧 DJ crossfade - speaking transition phrase', {
+                    currentTrack: track?.name,
+                    phrase: transitionPhrase.slice(0, 50),
+                  });
+
+                  // Speak the transition - this happens DURING the crossfade!
+                  // The music player waits 1.5s during crossfade for this phrase
+                  session.say(transitionPhrase, { allowInterruptions: false });
+                } catch (e) {
+                  diag.warn('Failed to speak DJ crossfade phrase', { error: String(e) });
+                }
+              }
 
               // 🎧 DJ-STYLE OUTRO: When music is FADING (not ended), speak over it like a real DJ!
               // This creates that professional radio/DJ feel where the host talks as the track winds down
@@ -2000,13 +2147,16 @@ export default defineAgent({
               // 🎧 UNEXPECTED STOP: Music stopped/paused without fading first
               // This means it crashed, network dropped, or user stopped it manually
               // The agent should acknowledge this naturally
-              if (
+              // NOTE: Don't speak if we're in a crossfade (changing state) - that's intentional!
+              const isUnexpectedStop =
                 (state === 'stopped' || state === 'paused') &&
                 !isAmbient &&
-                lastMusicState === 'playing'
-              ) {
+                lastMusicState === 'playing'; // Only if it was actively playing (not fading, changing, etc.)
+              
+              if (isUnexpectedStop) {
                 // Only speak if music was actually playing (not if we just connected)
                 // And don't speak if we already did a DJ outro (lastMusicState would be 'fading')
+                // And don't speak if we're changing tracks (lastMusicState would be 'changing')
                 try {
                   const { getMusicStoppedPhrase } = await import('../audio/ambient-music.js');
                   const stoppedPhrase = getMusicStoppedPhrase(
@@ -2031,17 +2181,14 @@ export default defineAgent({
               lastTrackName = track?.name;
 
               // Notify frontend for avatar dancing
-              // Note: sendMusicState only accepts specific states, so we map 'ducking' to 'playing'
-              // since ducking is just a volume change during playback
+              // All states are now supported: playing, ducking, fading, changing, paused, stopped, idle
               try {
                 const { getFrontendPublisher } = await import('./realtime/index.js');
                 const publisher = getFrontendPublisher();
                 if (publisher && ctx.room) {
-                  // Map ducking to playing for frontend (ducking is just volume control)
-                  const frontendState = state === 'ducking' ? 'playing' : state;
                   // Convert null track to undefined for sendMusicState
                   const trackInfo = track ? { name: track.name, artist: track.artist } : undefined;
-                  await publisher.sendMusicState(frontendState, trackInfo, isAmbient);
+                  await publisher.sendMusicState(state, trackInfo, isAmbient);
                 }
               } catch (pubError) {
                 diag.warn('Failed to publish music state', { error: String(pubError) });
@@ -2118,6 +2265,49 @@ export default defineAgent({
         diag.state('Cognitive session initialized');
       } catch (cogError) {
         diag.warn('Cognitive session init failed (non-fatal)', { error: String(cogError) });
+      }
+
+      // ===============================================
+      // STEP 6d: INITIALIZE GAME ENGINE
+      // ===============================================
+      // Load persisted game memory for "more than human" features
+      try {
+        const { getGameEngine } = await import('../services/games/index.js');
+        const engine = getGameEngine(sessionPersona.id);
+        if (userId) {
+          await engine.initializeForUser(userId);
+          diag.state('Game engine initialized', {
+            totalGames: engine.getGameMemory()?.totalGamesPlayed || 0,
+            bestStreak: engine.getGameMemory()?.bestStreak || 0,
+          });
+        }
+      } catch (gameError) {
+        diag.warn('Game engine init failed (non-fatal)', { error: String(gameError) });
+      }
+
+      // ===============================================
+      // STEP 6e: INITIALIZE SIMPLE UTILITIES
+      // ===============================================
+      // "Better than human" everyday helpers (timers, tips, timezone, etc.)
+      // Includes: voice callbacks, cross-session memory, proactive suggestions
+      let utilitiesCleanup: (() => Promise<void>) | undefined;
+      let utilitiesProactiveOpener: string | null = null;
+      if (userId) {
+        try {
+          const utilitiesResult = await initializeUtilitiesIntegration({
+            session,
+            userId,
+            enableProactive: isReturningUser, // Only proactive for returning users
+            enableVoiceCallbacks: true,
+          });
+          utilitiesCleanup = utilitiesResult.cleanup;
+          utilitiesProactiveOpener = utilitiesResult.proactiveOpener;
+          diag.state('Simple utilities initialized', {
+            hasProactiveOpener: !!utilitiesProactiveOpener,
+          });
+        } catch (utilError) {
+          diag.warn('Utilities init failed (non-fatal)', { error: String(utilError) });
+        }
       }
 
       // ===============================================
@@ -2344,6 +2534,17 @@ export default defineAgent({
             diag.session('Proactive insight delivered', { insightId: proactiveInsightId });
           }
         }
+      }
+
+      // ===============================================
+      // STEP 8b: WEAVE IN UTILITIES PROACTIVE OPENER
+      // ===============================================
+      // Add "better than human" utility suggestions (e.g., "Want your usual tea timer?")
+      if (utilitiesProactiveOpener) {
+        greeting = weaveProactiveIntoGreeting(greeting, utilitiesProactiveOpener, 0.3);
+        diag.session('Wove in utilities proactive opener', {
+          opener: utilitiesProactiveOpener.slice(0, 50),
+        });
       }
 
       diag.tts('Generated greeting', {
@@ -2596,8 +2797,53 @@ export default defineAgent({
               await sendFailure(`Invalid handoff target: ${targetPersona}`);
             }
           }
+
+          // =====================================================
+          // 🎮 GAME START REQUEST (from dev panel)
+          // =====================================================
+          if (message.type === 'game_start_request') {
+            const gameType = message.gameType;
+            logger.info({ gameType }, '🎮 User requested game start via UI');
+
+            try {
+              const { getGameEngine } = await import('../services/games/index.js');
+              const engine = getGameEngine(sessionPersona.id);
+              
+              // Start the game
+              const result = await engine.startGame(gameType);
+              const resultMessage = typeof result === 'object' && result !== null 
+                ? (result as { message?: string }).message || 'Game started'
+                : String(result);
+              
+              // Send ack
+              const ackMessage = JSON.stringify({
+                type: 'game_start_ack',
+                gameType,
+                success: true,
+                message: resultMessage,
+                timestamp: Date.now(),
+              });
+              await ctx.room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
+                reliable: true,
+              });
+
+              logger.info({ gameType, message: resultMessage }, '🎮 Game started successfully');
+            } catch (gameErr) {
+              logger.error({ error: String(gameErr), gameType }, '❌ Game start failed');
+              const errorMsg = JSON.stringify({
+                type: 'game_start_ack',
+                gameType,
+                success: false,
+                error: String(gameErr),
+                timestamp: Date.now(),
+              });
+              await ctx.room.localParticipant?.publishData(new TextEncoder().encode(errorMsg), {
+                reliable: true,
+              });
+            }
+          }
         } catch {
-          // Not JSON or not a handoff request - this is expected for non-handoff data
+          // Not JSON or not a valid request - this is expected for non-data-channel uses
           // Silently ignore as data channel is used for multiple message types
         }
       };
@@ -2651,6 +2897,26 @@ export default defineAgent({
               diag.warn('Cognitive session end failed (non-fatal)', { error: String(cogError) });
             }
 
+            // Save trust profiles (boundaries, growth, callbacks, etc.)
+            if (userId) {
+              try {
+                await saveTrustProfiles(userId);
+                diag.session('Trust profiles saved', { userId });
+              } catch (trustErr) {
+                diag.warn('Trust profile save failed (non-fatal)', { error: String(trustErr) });
+              }
+            }
+
+            // Save utility preferences and patterns (timers, tips, timezones, etc.)
+            if (utilitiesCleanup) {
+              try {
+                await utilitiesCleanup();
+                diag.session('Utility patterns saved');
+              } catch (utilErr) {
+                diag.warn('Utility cleanup failed (non-fatal)', { error: String(utilErr) });
+              }
+            }
+
             await services.endSession();
             globalSessionServices = undefined;
 
@@ -2672,6 +2938,17 @@ export default defineAgent({
               }
             } catch (e) {
               log().debug({ error: String(e) }, 'Music cleanup failed (non-fatal)');
+            }
+
+            // Flush game memory to storage
+            try {
+              const { getGameEngine, resetGameEngine } = await import('../services/games/index.js');
+              const engine = getGameEngine();
+              await engine.flushToStorage();
+              resetGameEngine();
+              diag.session('Game engine flushed and reset');
+            } catch (e) {
+              log().debug({ error: String(e) }, 'Game cleanup failed (non-fatal)');
             }
 
             // Flush optimization data (patterns, feedback)

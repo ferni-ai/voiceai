@@ -231,6 +231,81 @@ const DEFAULT_FLAGS: FeatureFlag[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+
+  // ============================================================================
+  // SIMPLE UTILITIES - "Better Than Human" Everyday Helpers
+  // ============================================================================
+  {
+    id: 'simple-utilities',
+    name: 'Simple Utilities (Master)',
+    description: 'Master toggle for all simple utility tools (timers, tips, timezone, etc.)',
+    type: 'boolean',
+    enabled: true,
+    category: 'simple-utilities',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'simple-utilities-voice-callbacks',
+    name: 'Voice Callbacks',
+    description: 'Speak when timer completes (vs silent completion)',
+    type: 'boolean',
+    enabled: true,
+    category: 'simple-utilities',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'simple-utilities-pattern-learning',
+    name: 'Pattern Learning',
+    description: 'Learn user patterns (tip %, timer duration, timezones)',
+    type: 'boolean',
+    enabled: true,
+    category: 'simple-utilities',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'simple-utilities-proactive',
+    name: 'Proactive Suggestions',
+    description: 'Offer help before asked ("Want your usual tea timer?")',
+    type: 'percentage',
+    enabled: true,
+    percentage: 30, // Start with 30% rollout
+    category: 'simple-utilities',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'simple-utilities-persistence',
+    name: 'Cross-Session Memory',
+    description: 'Remember preferences across conversations (Firestore)',
+    type: 'boolean',
+    enabled: true,
+    category: 'simple-utilities',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'simple-utilities-context-enrichment',
+    name: 'Context Enrichment',
+    description: 'Connect utilities to life context (travel, goals, habits)',
+    type: 'boolean',
+    enabled: false, // Disabled until context APIs are stable
+    category: 'simple-utilities',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'simple-utilities-insights',
+    name: 'Contextual Insights',
+    description: 'Add wisdom to responses ("That\'s 12% - fine if service was rough")',
+    type: 'boolean',
+    enabled: true,
+    category: 'simple-utilities',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ];
 
 // ============================================================================
@@ -587,4 +662,82 @@ export function isVoicePresenceFeatureEnabled(
 
   const flagId = flagMap[feature];
   return flagId ? flags.isEnabled(flagId) : false;
+}
+
+// ============================================================================
+// SIMPLE UTILITIES FLAGS
+// ============================================================================
+
+/**
+ * Check if simple utilities master toggle is enabled
+ */
+export function isSimpleUtilitiesEnabled(): boolean {
+  return getFeatureFlags().isEnabled('simple-utilities');
+}
+
+/**
+ * Check if a specific simple utilities feature is enabled
+ * Returns false if master toggle is off
+ */
+export function isSimpleUtilitiesFeatureEnabled(
+  feature:
+    | 'voiceCallbacks'
+    | 'patternLearning'
+    | 'proactive'
+    | 'persistence'
+    | 'contextEnrichment'
+    | 'insights',
+  context?: FlagCheckContext
+): boolean {
+  const flags = getFeatureFlags();
+
+  // Check master toggle first
+  if (!flags.isEnabled('simple-utilities')) {
+    return false;
+  }
+
+  // Map feature names to flag IDs
+  const flagMap: Record<string, string> = {
+    voiceCallbacks: 'simple-utilities-voice-callbacks',
+    patternLearning: 'simple-utilities-pattern-learning',
+    proactive: 'simple-utilities-proactive',
+    persistence: 'simple-utilities-persistence',
+    contextEnrichment: 'simple-utilities-context-enrichment',
+    insights: 'simple-utilities-insights',
+  };
+
+  const flagId = flagMap[feature];
+  if (!flagId) return false;
+
+  // For proactive, use percentage-based rollout
+  if (feature === 'proactive' && context) {
+    return flags.isEnabledForUser(flagId, context);
+  }
+
+  return flags.isEnabled(flagId);
+}
+
+/**
+ * Get simple utilities feature config for initialization
+ */
+export function getSimpleUtilitiesConfig(context?: FlagCheckContext): {
+  enabled: boolean;
+  voiceCallbacks: boolean;
+  patternLearning: boolean;
+  proactive: boolean;
+  persistence: boolean;
+  contextEnrichment: boolean;
+  insights: boolean;
+} {
+  const enabled = isSimpleUtilitiesEnabled();
+  
+  return {
+    enabled,
+    voiceCallbacks: enabled && isSimpleUtilitiesFeatureEnabled('voiceCallbacks'),
+    patternLearning: enabled && isSimpleUtilitiesFeatureEnabled('patternLearning'),
+    proactive: enabled && isSimpleUtilitiesFeatureEnabled('proactive', context),
+    persistence: enabled && isSimpleUtilitiesFeatureEnabled('persistence'),
+    contextEnrichment: enabled && isSimpleUtilitiesFeatureEnabled('contextEnrichment'),
+    insights: enabled && isSimpleUtilitiesFeatureEnabled('insights'),
+  };
 }

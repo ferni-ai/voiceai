@@ -48,6 +48,7 @@ export type ToolDomain =
   | 'proactive' // Proactive check-ins and follow-ups
   | 'awareness' // World awareness - time, context, environment
   | 'engagement' // Daily rituals, games, streaks, team interactions
+  | 'simple-utilities' // Everyday helpers: timers, tip calculator, unit conversions
   // Life Coaching Domains
   | 'crisis' // Crisis support, grounding, safety planning
   | 'health' // Exercise, nutrition, sleep, energy management
@@ -58,7 +59,8 @@ export type ToolDomain =
   | 'learning' // Education, skill development, study planning
   | 'creativity' // Hobbies, creative projects, artistic pursuits
   | 'community' // Volunteering, giving, civic engagement
-  | 'legal-admin'; // Documents, estate planning, insurance
+  | 'legal-admin' // Documents, estate planning, insurance
+  | 'games'; // Interactive music games, Name That Tune, etc.
 
 /**
  * All available tool domains
@@ -91,6 +93,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'proactive',
   'awareness',
   'engagement',
+  'simple-utilities',
   // Life Coaching Domains
   'crisis',
   'health',
@@ -102,6 +105,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'creativity',
   'community',
   'legal-admin',
+  'games',
 ] as const;
 
 // ============================================================================
@@ -152,6 +156,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   proactive: 'core',
   awareness: 'core',
   engagement: 'core',
+  'simple-utilities': 'core', // Everyday helpers should be available to all
   // Life Coaching domains
   crisis: 'core', // Safety-critical, should be available to all
   health: 'lifestyle',
@@ -163,6 +168,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   creativity: 'entertainment',
   community: 'lifestyle',
   'legal-admin': 'productivity',
+  games: 'entertainment',
 };
 
 // ============================================================================

@@ -93,6 +93,9 @@ export { getToolDefinitions as getLifePlanningToolDefinitions } from './life-pla
 // Entertainment domain - music, media
 export { getToolDefinitions as getEntertainmentToolDefinitions } from './entertainment/index.js';
 
+// Games domain - interactive music games
+export { getToolDefinitions as getGamesToolDefinitions } from './games/index.js';
+
 // Telephony domain - phone calls, callbacks
 export { getToolDefinitions as getTelephonyToolDefinitions } from './telephony/index.js';
 
@@ -135,6 +138,9 @@ export { getToolDefinitions as getEngagementToolDefinitions } from './engagement
 
 // Awareness domain - time, context, environment awareness
 export { getToolDefinitions as getAwarenessToolDefinitions } from './awareness/index.js';
+
+// Simple Utilities domain - everyday helper tools (timers, conversions, quick math)
+export { getToolDefinitions as getSimpleUtilitiesToolDefinitions } from './simple-utilities/index.js';
 
 // ============================================================================
 // LIFE COACHING DOMAINS (NEW)
@@ -212,6 +218,7 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./research/index.js').then(async (m) => m.getToolDefinitions()),
     import('./life-planning/index.js').then(async (m) => m.getToolDefinitions()),
     import('./entertainment/index.js').then(async (m) => m.getToolDefinitions()),
+    import('./games/index.js').then(async (m) => m.getToolDefinitions()),
     import('./telephony/index.js').then(async (m) => m.getToolDefinitions()),
     // Deep human engagement domains
     import('./relationships/index.js').then(async (m) => m.getToolDefinitions()),
@@ -228,6 +235,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./engagement/index.js').then(async (m) => m.getToolDefinitions()),
     // Awareness domain - time, context, environment
     import('./awareness/index.js').then(async (m) => m.getToolDefinitions()),
+    // Simple Utilities domain - everyday helpers
+    import('./simple-utilities/index.js').then(async (m) => m.getToolDefinitions()),
     // Life Coaching domains (NEW)
     import('./crisis/index.js').then(async (m) => m.getToolDefinitions()),
     import('./health/index.js').then(async (m) => m.getToolDefinitions()),
@@ -340,6 +349,12 @@ export const DOMAIN_METADATA = {
     icon: '🎵',
     status: 'active',
   },
+  games: {
+    name: 'Games',
+    description: 'Interactive music games - Name That Tune, Desert Island Discs, etc.',
+    icon: '🎮',
+    status: 'active',
+  },
   telephony: {
     name: 'Telephony',
     description: 'Phone calls and callbacks',
@@ -417,6 +432,12 @@ export const DOMAIN_METADATA = {
     name: 'Awareness & Context',
     description: 'Time awareness, environmental context, and situational understanding',
     icon: '👁️',
+    status: 'active',
+  },
+  'simple-utilities': {
+    name: 'Simple Utilities',
+    description: 'Everyday helper tools: timers, tip calculator, unit conversions, timezone lookup',
+    icon: '🛠️',
     status: 'active',
   },
   // Life Coaching Domains (NEW)

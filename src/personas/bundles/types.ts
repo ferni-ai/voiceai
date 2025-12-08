@@ -291,10 +291,12 @@ export type BundleToolDomain =
   | 'life-planning'
   | 'wellness'
   | 'entertainment'
+  | 'games'
   | 'information'
   | 'wisdom'
   | 'handoff'
   | 'telephony'
+  | 'simple-utilities' // "Better than human" everyday helpers
   // Deep human engagement domains
   | 'relationships'
   | 'meaning'
