@@ -1,14 +1,16 @@
 {
   "name": "ferni-website",
-  "version": "1.0.0",
-  "description": "Ferni marketing website",
+  "version": "2.0.0",
+  "description": "Ferni marketing website - design system integrated",
   "scripts": {
-    "dev": "eleventy --serve --port=8080",
-    "build": "eleventy",
-    "build:prod": "eleventy && node scripts/minify.js",
+    "dev": "npm run sync:tokens && eleventy --serve --port=8080",
+    "build": "npm run sync:tokens && eleventy",
+    "build:prod": "npm run sync:tokens && eleventy && node scripts/minify.js",
     "minify": "node scripts/minify.js",
     "clean": "rm -rf _site",
     "preview": "npm run build && cd _site && python3 -m http.server 8080",
+    
+    "sync:tokens": "node ../../design-system/sync-promo-tokens.js && cp css/design-tokens.css src/css/_tokens.css",
     
     "deploy": "npm run build:prod && firebase deploy --only hosting:ferni-landing",
     "deploy:prod": "npm run build:prod && firebase deploy --only hosting:ferni-prod",

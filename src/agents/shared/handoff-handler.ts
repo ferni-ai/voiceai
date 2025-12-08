@@ -28,6 +28,8 @@ import type { UserData } from './types.js';
 import type { SessionServices } from '../../services/types.js';
 // Cross-persona banter for warm handoffs
 import { getHandoffBanter } from '../../services/team-engagement.js';
+// 🎧 DJ Integration - Enhanced "Guest DJ" handoff experience
+import { getDJIntegration } from '../dj-integration.js';
 
 // ============================================================================
 // FIX BUG #50 & #51: Cached imports to reduce handoff latency
@@ -505,25 +507,38 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           }
         }
 
-        // STEP 6: Speak greeting with optional banter (no delay - voice already switched!)
+        // STEP 6: Speak greeting with "Guest DJ" entrance (40% chance for natural feel)
         if (greeting) {
           try {
-            // Add cross-persona banter if available (30% chance for natural feel)
             let finalGreeting = greeting;
-            const shouldUseBanter = Math.random() < 0.3;
+            const shouldUseDJEntrance = Math.random() < 0.4;
             
-            if (shouldUseBanter && prevPersona?.id) {
-              const banter = getHandoffBanter(prevPersona.id, persona.id);
-              if (banter) {
-                // The outgoing persona's warm intro, then the new persona's greeting
-                finalGreeting = `${banter} <break time="400ms"/> ${greeting}`;
-                diag.entry(`🎭 Handoff with banter from ${prevPersona.name}`);
+            if (shouldUseDJEntrance && prevPersona?.id) {
+              // 🎧 DJ Integration: Get "Guest DJ" entrance phrase
+              // This creates the radio show feel: "Ferni got me excited. What are we doing?"
+              try {
+                const dj = getDJIntegration();
+                dj.setPersona(persona.id);
+                
+                const entrance = dj.getArrivingEntrance(prevPersona.id, persona.id);
+                if (entrance) {
+                  // Use DJ entrance instead of generic greeting
+                  finalGreeting = entrance;
+                  diag.entry(`🎧 Guest DJ entrance for ${persona.name}`);
+                }
+              } catch (djErr) {
+                // Fallback to legacy banter system
+                const banter = getHandoffBanter(prevPersona.id, persona.id);
+                if (banter) {
+                  finalGreeting = `${banter} <break time="400ms"/> ${greeting}`;
+                  diag.entry(`🎭 Handoff with banter from ${prevPersona.name}`);
+                }
               }
             }
             
             // NOTE: Removed 150ms delay - voice is already switched, speak immediately!
             session.say(finalGreeting, { allowInterruptions: true });
-            diag.entry(`🎤 ${persona.name} greeting spoken: "${greeting.slice(0, 50)}..."`);
+            diag.entry(`🎤 ${persona.name} greeting spoken: "${finalGreeting.slice(0, 50)}..."`);
           } catch (greetingErr) {
             logger.warn({ error: String(greetingErr) }, 'Failed to speak handoff greeting');
           }

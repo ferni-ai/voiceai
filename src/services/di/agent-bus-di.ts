@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Agent Bus - DI-Enabled Version
  *
@@ -191,7 +190,7 @@ export class AgentBusService extends EventEmitter {
     // Check rate limit
     const rateLimitResult = this.checkRateLimit(userId);
     if (!rateLimitResult.success) {
-      return failure(rateLimitResult.error);
+      return failure((rateLimitResult as { success: false; error: RateLimitError }).error);
     }
 
     try {
@@ -264,7 +263,7 @@ export class AgentBusService extends EventEmitter {
       );
 
       if (!msgResult.success) {
-        return failure(msgResult.error);
+        return failure((msgResult as { success: false; error: Error }).error);
       }
 
       const message = msgResult.data;

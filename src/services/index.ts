@@ -362,6 +362,39 @@ export {
   type LifePortfolio,
 } from './life-data-store.js';
 
+// ============================================================================
+// DJ & MUSIC SERVICES
+// ============================================================================
+
+export {
+  getDJOrchestrator,
+  resetDJOrchestrator,
+  DJOrchestrator,
+  type SessionContext as DJSessionContext,
+  type SessionIntro,
+  type SessionOutro,
+  type DJPersonaStyle,
+} from './dj-orchestrator.js';
+
+export {
+  getDJSessionService,
+  resetDJSessionService,
+} from './dj-session.service.js';
+
+export {
+  getDJStyle,
+  getSpontaneousMusicOffer,
+  getQueueTeaser,
+  getMusicAppreciationComment,
+  getMusicElementAppreciation,
+  getMusicConversationStarter,
+  getReadTheRoomAction,
+  getContextualMusicSuggestion,
+  getMusicDiscoveryOffer,
+  getCrossSessionMusicCallback,
+  DJ_PERSONA_STYLES,
+} from './dj-service.js';
+
 export {
   getProactiveScheduler,
   startProactiveScheduler,

@@ -1,0 +1,331 @@
+/**
+ * 🎵 Session Sound Effects
+ *
+ * Audio stingers for session lifecycle events:
+ * - Session start (welcoming warmth)
+ * - Session end (satisfying closure)
+ * - Thinking moments (subtle processing indicator)
+ * - Success celebrations
+ * - Game sounds
+ *
+ * These are designed to be:
+ * - Short (under 2 seconds)
+ * - Warm and human (not robotic beeps)
+ * - Consistent with Ferni's earthy aesthetic
+ */
+
+import { getLogger } from '../utils/safe-logger.js';
+import { getMusicPlayer } from './music-player.js';
+
+const log = getLogger();
+
+// ============================================================================
+// SOUND TYPES
+// ============================================================================
+
+export type SessionSoundType =
+  | 'session-start' // Warm welcome chime
+  | 'session-end' // Satisfying outro
+  | 'thinking-start' // Subtle processing start
+  | 'thinking-end' // Processing complete
+  | 'success' // Celebration/achievement
+  | 'correct' // Game correct answer
+  | 'wrong' // Game wrong answer
+  | 'hint' // Game hint given
+  | 'game-start' // Game beginning
+  | 'game-end' // Game complete
+  | 'high-score' // New high score!
+  | 'handoff' // Generic handoff sound
+  | 'notification'; // Attention getter
+
+// ============================================================================
+// SOUND URLs - Using design system assets
+// ============================================================================
+
+/**
+ * Sound file paths - relative to public root
+ * These should be placed in /public/sounds/ or /design-system/assets/sounds/
+ */
+const SOUND_PATHS: Record<SessionSoundType, string> = {
+  'session-start': '/design-system/sounds/connect.mp3',
+  'session-end': '/design-system/sounds/disconnect.mp3',
+  'thinking-start': '/design-system/sounds/connect.mp3', // Reuse soft version
+  'thinking-end': '/design-system/sounds/connect.mp3',
+  success: '/design-system/sounds/dramatic-entrance.mp3',
+  correct: '/design-system/sounds/correct.mp3',
+  wrong: '/design-system/sounds/wrong.mp3',
+  hint: '/design-system/sounds/hint.mp3',
+  'game-start': '/design-system/sounds/game-start.mp3',
+  'game-end': '/design-system/sounds/game-end.mp3',
+  'high-score': '/design-system/sounds/high-score.mp3',
+  handoff: '/design-system/sounds/connect.mp3',
+  notification: '/design-system/sounds/connect.mp3',
+};
+
+/**
+ * Fallback sounds if primary isn't available
+ */
+const SOUND_FALLBACKS: Partial<Record<SessionSoundType, SessionSoundType>> = {
+  correct: 'success',
+  wrong: 'notification',
+  hint: 'notification',
+  'game-start': 'session-start',
+  'game-end': 'session-end',
+  'high-score': 'success',
+  'thinking-start': 'notification',
+  'thinking-end': 'notification',
+};
+
+/**
+ * Volume multipliers per sound type
+ */
+const SOUND_VOLUMES: Record<SessionSoundType, number> = {
+  'session-start': 0.5,
+  'session-end': 0.4,
+  'thinking-start': 0.2,
+  'thinking-end': 0.2,
+  success: 0.6,
+  correct: 0.5,
+  wrong: 0.3,
+  hint: 0.3,
+  'game-start': 0.5,
+  'game-end': 0.5,
+  'high-score': 0.6,
+  handoff: 0.5,
+  notification: 0.3,
+};
+
+// ============================================================================
+// VERBAL SOUND EFFECTS (TTS Fallbacks)
+// ============================================================================
+
+/**
+ * SSML verbal fallbacks when audio files aren't available
+ * These are spoken by TTS and still feel like "sounds"
+ */
+export const VERBAL_SOUNDS: Record<SessionSoundType, string[]> = {
+  'session-start': [
+    '<break time="200ms"/>',
+    '<break time="300ms"/><prosody pitch="+5%">Hey!</prosody><break time="100ms"/>',
+  ],
+  'session-end': [
+    '<break time="200ms"/>',
+    '<break time="300ms"/>',
+  ],
+  'thinking-start': [
+    '<break time="150ms"/><prosody rate="slow">Hmm</prosody><break time="200ms"/>',
+    '<break time="100ms"/>Let me think<break time="200ms"/>',
+  ],
+  'thinking-end': ['<break time="100ms"/>'],
+  success: [
+    '<break time="100ms"/><prosody rate="fast">Yes!</prosody><break time="100ms"/>',
+    '<break time="100ms"/><emphasis level="strong">Nice!</emphasis><break time="100ms"/>',
+  ],
+  correct: [
+    '<break time="100ms"/><prosody rate="fast">Ding ding ding!</prosody>',
+    '<break time="100ms"/><prosody pitch="+20%">Yes!</prosody>',
+    '<break time="100ms"/><emphasis level="strong">Boom!</emphasis>',
+    '<break time="100ms"/>Nailed it!',
+  ],
+  wrong: [
+    '<break time="150ms"/><prosody pitch="-10%">Ohhh</prosody><break time="100ms"/>',
+    '<break time="150ms"/>Hmm, not quite.',
+    '<break time="150ms"/><prosody rate="slow">Nope.</prosody>',
+  ],
+  hint: [
+    '<break time="100ms"/>Okay, here\'s a hint...<break time="150ms"/>',
+    '<break time="100ms"/>Alright, let me help you out...<break time="150ms"/>',
+  ],
+  'game-start': [
+    '<break time="200ms"/><prosody rate="fast">Let\'s go!</prosody><break time="200ms"/>',
+    '<break time="200ms"/>Ready? Here we go!<break time="200ms"/>',
+  ],
+  'game-end': [
+    '<break time="200ms"/>And that\'s the game!',
+    '<break time="200ms"/>Game over!',
+    '<break time="200ms"/>That\'s a wrap!',
+  ],
+  'high-score': [
+    '<break time="200ms"/><prosody pitch="+30%" rate="fast">New high score!</prosody><break time="200ms"/>',
+    '<break time="200ms"/><emphasis level="strong">Record breaker!</emphasis>',
+    '<break time="200ms"/>That\'s a new personal best!',
+  ],
+  handoff: ['<break time="300ms"/>'],
+  notification: ['<break time="150ms"/>'],
+};
+
+// ============================================================================
+// SESSION SOUNDS SERVICE
+// ============================================================================
+
+class SessionSoundsService {
+  private audioCache = new Map<string, ArrayBuffer>();
+  private isEnabled = true;
+
+  constructor() {
+    log.debug('🎵 Session sounds service initialized');
+  }
+
+  /**
+   * Enable or disable session sounds
+   */
+  setEnabled(enabled: boolean): void {
+    this.isEnabled = enabled;
+    log.debug('🎵 Session sounds', { enabled });
+  }
+
+  /**
+   * Play a session sound effect
+   * Returns the verbal fallback if audio couldn't play
+   */
+  async playSound(type: SessionSoundType): Promise<{
+    played: boolean;
+    verbalFallback?: string;
+  }> {
+    if (!this.isEnabled) {
+      return { played: false };
+    }
+
+    const player = getMusicPlayer();
+
+    // If music player not available, use verbal fallback
+    if (!player.isInitialized()) {
+      log.debug('🎵 Player not initialized, using verbal fallback', { type });
+      return {
+        played: false,
+        verbalFallback: this.getVerbalSound(type),
+      };
+    }
+
+    try {
+      // Don't interrupt currently playing music
+      if (player.isPlaying()) {
+        log.debug('🎵 Music playing, using verbal fallback', { type });
+        return {
+          played: false,
+          verbalFallback: this.getVerbalSound(type),
+        };
+      }
+
+      const soundPath = SOUND_PATHS[type];
+      const volume = SOUND_VOLUMES[type];
+
+      // Set volume for sound effect
+      player.setVolume(volume);
+
+      // Play the sound
+      const success = await player.playFromUrl(soundPath, {
+        name: `sound-${type}`,
+        artist: 'system',
+        previewUrl: soundPath,
+        duration: 2000, // Sound effects are short
+      });
+
+      if (success) {
+        log.debug('🎵 Played session sound', { type });
+        
+        // Wait for short sound to complete
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        player.stop();
+
+        return { played: true };
+      }
+
+      // Couldn't play - try fallback sound
+      const fallbackType = SOUND_FALLBACKS[type];
+      if (fallbackType && fallbackType !== type) {
+        log.debug('🎵 Trying fallback sound', { from: type, to: fallbackType });
+        return this.playSound(fallbackType);
+      }
+
+      // No audio available - use verbal
+      return {
+        played: false,
+        verbalFallback: this.getVerbalSound(type),
+      };
+    } catch (error) {
+      log.warn('🎵 Error playing session sound', { type, error: String(error) });
+      return {
+        played: false,
+        verbalFallback: this.getVerbalSound(type),
+      };
+    }
+  }
+
+  /**
+   * Get a random verbal sound effect for TTS
+   */
+  getVerbalSound(type: SessionSoundType): string {
+    const sounds = VERBAL_SOUNDS[type];
+    if (!sounds || sounds.length === 0) {
+      return '<break time="150ms"/>';
+    }
+    return sounds[Math.floor(Math.random() * sounds.length)];
+  }
+
+  /**
+   * Play session start sound
+   */
+  async playSessionStart(): Promise<string | undefined> {
+    const result = await this.playSound('session-start');
+    return result.verbalFallback;
+  }
+
+  /**
+   * Play session end sound
+   */
+  async playSessionEnd(): Promise<string | undefined> {
+    const result = await this.playSound('session-end');
+    return result.verbalFallback;
+  }
+
+  /**
+   * Play game sound with verbal fallback
+   */
+  async playGameSound(
+    type: 'correct' | 'wrong' | 'hint' | 'game-start' | 'game-end' | 'high-score'
+  ): Promise<string> {
+    const result = await this.playSound(type);
+    return result.verbalFallback || '';
+  }
+}
+
+// ============================================================================
+// SINGLETON EXPORT
+// ============================================================================
+
+let sessionSoundsInstance: SessionSoundsService | null = null;
+
+export function getSessionSounds(): SessionSoundsService {
+  if (!sessionSoundsInstance) {
+    sessionSoundsInstance = new SessionSoundsService();
+  }
+  return sessionSoundsInstance;
+}
+
+export function resetSessionSounds(): void {
+  sessionSoundsInstance = null;
+}
+
+// ============================================================================
+// CONVENIENCE EXPORTS
+// ============================================================================
+
+/**
+ * Play a session sound effect
+ */
+export async function playSessionSound(
+  type: SessionSoundType
+): Promise<{ played: boolean; verbalFallback?: string }> {
+  return getSessionSounds().playSound(type);
+}
+
+/**
+ * Get verbal sound for TTS (when audio not available)
+ */
+export function getVerbalSound(type: SessionSoundType): string {
+  return getSessionSounds().getVerbalSound(type);
+}
+
+export default getSessionSounds;
+

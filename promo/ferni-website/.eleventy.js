@@ -8,9 +8,16 @@ module.exports = function (eleventyConfig) {
   // PASSTHROUGH COPY - Static files to _site
   // ============================================
 
-  // CSS, JS, videos - map src paths to output
+  // CSS - new modular architecture from src/css
   eleventyConfig.addPassthroughCopy({'src/css': 'css'});
+  
+  // Legacy CSS (for backwards compatibility during migration)
+  eleventyConfig.addPassthroughCopy({'css': 'css-legacy'});
+  
+  // JS - including new hero-demo.js
   eleventyConfig.addPassthroughCopy({'src/js': 'js'});
+  
+  // Videos
   eleventyConfig.addPassthroughCopy({'videos': 'videos'});
 
   // Images - copy specific items (excluding large sequence folder - we use video instead)

@@ -536,7 +536,7 @@ function buildHumanizingContextForTurn(
         distressLevel: analysis.emotion.distressLevel,
         intensity: analysis.emotion.intensity || 0.5,
         markers: analysis.emotion.markers || [],
-        suggestedTone: analysis.emotion.suggestedTone || 'neutral',
+        suggestedTone: (analysis.emotion.suggestedTone || 'neutral') as 'warm' | 'gentle' | 'enthusiastic' | 'calm' | 'serious' | 'friendly' | 'reassuring' | 'informative' | 'measured',
       } : null,
       userMessage: userText,
       currentTopic,

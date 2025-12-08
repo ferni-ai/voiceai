@@ -1,0 +1,266 @@
+/**
+ * Animation Utilities
+ * Based on design-system animation tokens
+ */
+
+/* ============================================
+   PIXAR ANIMATION CLASSES
+   From design-system README
+   ============================================ */
+
+/* Continuous breathing - all avatars */
+.animate-pixar-breathe {
+  animation: pixarBreathe 5s var(--ease-smooth) infinite;
+}
+
+@keyframes pixarBreathe {
+  0%, 100% {
+    transform: scale3d(1, 1, 1) translateY(0);
+  }
+  50% {
+    transform: scale3d(0.994, 1.012, 1) translateY(-1.5px);
+  }
+}
+
+/* Floating animation (like balloons in Up) */
+.animate-pixar-float {
+  animation: pixarFloat 6s var(--ease-smooth) infinite;
+}
+
+@keyframes pixarFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+  75% {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+}
+
+/* Joy bounce - for celebrations */
+.animate-pixar-bounce {
+  animation: pixarBounce 0.8s var(--ease-spring);
+}
+
+@keyframes pixarBounce {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+  }
+  30% {
+    transform: scale(0.92, 1.08) translateY(0);
+  }
+  50% {
+    transform: scale(1.08, 0.92) translateY(-12px);
+  }
+  70% {
+    transform: scale(0.98, 1.02) translateY(0);
+  }
+}
+
+/* Anticipation - wind up before action */
+.animate-anticipate {
+  animation: anticipate 0.3s var(--ease-anticipate);
+}
+
+@keyframes anticipate {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Settle - overshoot and settle */
+.animate-settle {
+  animation: settle 0.5s var(--ease-ease-out-back);
+}
+
+@keyframes settle {
+  0% { transform: scale(1.1); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================
+   ENTRANCE ANIMATIONS
+   ============================================ */
+
+/* Fade in up */
+.animate-fade-in-up {
+  animation: fadeInUp var(--duration-deliberate) var(--ease-ease-out-expo) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scale in */
+.animate-scale-in {
+  animation: scaleIn var(--duration-slow) var(--ease-ease-out-back) forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Slide in from left */
+.animate-slide-in-left {
+  animation: slideInLeft var(--duration-deliberate) var(--ease-ease-out-expo) forwards;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide in from right */
+.animate-slide-in-right {
+  animation: slideInRight var(--duration-deliberate) var(--ease-ease-out-expo) forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================
+   HOVER ANIMATIONS
+   ============================================ */
+
+/* Lift on hover */
+.hover-lift {
+  transition: transform var(--duration-fast) var(--ease-ease-out-back);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Scale on hover */
+.hover-scale {
+  transition: transform var(--duration-fast) var(--ease-ease-out-back);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* Glow on hover */
+.hover-glow {
+  transition: box-shadow var(--duration-normal) var(--ease-ease-out);
+}
+
+.hover-glow:hover {
+  box-shadow: var(--shadow-glow);
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+
+/* Pulse loader */
+.animate-pulse {
+  animation: pulse 2s var(--ease-smooth) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Spinner */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-secondary) 25%,
+    var(--color-bg-elevated) 50%,
+    var(--color-bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s var(--ease-smooth) infinite;
+}
+
+@keyframes skeletonShimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* ============================================
+   STAGGER DELAYS
+   For choreographed reveals
+   ============================================ */
+
+.stagger-1 { animation-delay: 100ms; }
+.stagger-2 { animation-delay: 200ms; }
+.stagger-3 { animation-delay: 300ms; }
+.stagger-4 { animation-delay: 400ms; }
+.stagger-5 { animation-delay: 500ms; }
+.stagger-6 { animation-delay: 600ms; }
+.stagger-7 { animation-delay: 700ms; }
+.stagger-8 { animation-delay: 800ms; }
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pixar-breathe,
+  .animate-pixar-float,
+  .animate-pixar-bounce,
+  .animate-anticipate,
+  .animate-settle,
+  .animate-fade-in-up,
+  .animate-scale-in,
+  .animate-slide-in-left,
+  .animate-slide-in-right,
+  .animate-pulse,
+  .animate-spin {
+    animation: none;
+  }
+  
+  /* Show elements immediately without animation */
+  .animate-fade-in-up,
+  .animate-scale-in,
+  .animate-slide-in-left,
+  .animate-slide-in-right {
+    opacity: 1;
+    transform: none;
+  }
+}
+

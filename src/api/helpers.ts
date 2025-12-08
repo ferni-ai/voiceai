@@ -200,3 +200,29 @@ export type RouteHandler = (
   pathname: string,
   parsedUrl: URL
 ) => Promise<boolean>;
+
+// ============================================================================
+// LEGACY ALIASES (for backward compatibility)
+// ============================================================================
+
+/**
+ * Alias for parseBody - used in some route handlers
+ */
+export const parseRequestBody = parseBody;
+
+/**
+ * Alias for sendJSON - used in some route handlers
+ */
+export const sendSuccess = sendJSON;
+
+/**
+ * Validate auth and return userId - returns userId or null (sends 401 if missing)
+ * Note: This takes raw req/res without parsedUrl - parses URL internally
+ */
+export async function validateAuth(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<string | null> {
+  const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  return requireUserId(req, res, parsedUrl);
+}

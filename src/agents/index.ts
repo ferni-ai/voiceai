@@ -89,6 +89,16 @@ export * from './handlers/index.js';
 export * from './voice-agent.js';
 
 // ============================================================================
+// DJ INTEGRATION (radio show experience)
+// ============================================================================
+
+export {
+  djIntegration,
+  getDJIntegration,
+  resetDJIntegration,
+} from './dj-integration.js';
+
+// ============================================================================
 // VOICE IDS (for handoff and voice switching)
 // Use voice-registry.ts as the single source of truth
 // ============================================================================

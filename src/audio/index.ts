@@ -39,3 +39,13 @@ export {
   getSessionCallbackPhrase,
   getMusicStoppedPhrase,
 } from './ambient-music.js';
+
+// Session sounds (stingers, game sounds, etc.)
+export {
+  getSessionSounds,
+  resetSessionSounds,
+  playSessionSound,
+  getVerbalSound,
+  VERBAL_SOUNDS,
+  type SessionSoundType,
+} from './session-sounds.js';

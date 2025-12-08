@@ -1,0 +1,261 @@
+/**
+ * Button Components
+ * Based on FERNI-BRAND-GUIDELINES.md Section 8
+ */
+
+/* ============================================
+   BASE BUTTON
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  transition: 
+    transform var(--duration-fast) var(--ease-ease-out-back),
+    box-shadow var(--duration-normal) var(--ease-ease-out),
+    background var(--duration-normal) var(--ease-ease-out);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ============================================
+   PRIMARY BUTTON
+   Brand: Forest Green pill with glow
+   ============================================ */
+
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-full);
+  font-size: var(--text-base);
+  box-shadow: 
+    0 4px 14px var(--color-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.btn-primary:hover {
+  background: var(--color-accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 24px var(--color-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px var(--color-accent-glow);
+}
+
+/* Arrow animation on hover */
+.btn-primary .btn-arrow {
+  transition: transform var(--duration-fast) var(--ease-ease-out);
+}
+
+.btn-primary:hover .btn-arrow {
+  transform: translateX(4px);
+}
+
+/* ============================================
+   SECONDARY BUTTON (Outline)
+   ============================================ */
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text-primary);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-full);
+  font-size: var(--text-base);
+  border: 1.5px solid var(--color-border-medium);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg-glass);
+  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* ============================================
+   GHOST BUTTON
+   ============================================ */
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-full);
+  font-size: var(--text-base);
+}
+
+.btn-ghost:hover {
+  background: var(--color-bg-glass);
+  color: var(--color-text-primary);
+}
+
+/* ============================================
+   SIZE VARIANTS
+   ============================================ */
+
+.btn-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  gap: var(--space-1);
+}
+
+.btn-lg {
+  padding: var(--space-5) var(--space-10);
+  font-size: var(--text-lg);
+  gap: var(--space-3);
+}
+
+/* ============================================
+   SPECIAL: PHONE CTA BUTTON
+   Prominent, animated, voice-first emphasis
+   ============================================ */
+
+.btn-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-bg-elevated);
+  border: 1.5px solid var(--color-border-medium);
+  border-radius: var(--radius-full);
+  font-family: var(--font-display);
+  transition: all var(--duration-normal) var(--ease-ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-phone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    var(--color-ferni-glow) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-ease-out);
+}
+
+.btn-phone:hover {
+  border-color: var(--color-ferni);
+  transform: translateY(-2px);
+  box-shadow: 
+    var(--shadow-lg),
+    0 0 20px var(--color-ferni-glow);
+}
+
+.btn-phone:hover::before {
+  opacity: 1;
+}
+
+.btn-phone .phone-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-ferni);
+  position: relative;
+  z-index: 1;
+  animation: phoneRing 2s ease-in-out infinite;
+  animation-play-state: paused;
+}
+
+.btn-phone:hover .phone-icon {
+  animation-play-state: running;
+}
+
+@keyframes phoneRing {
+  0%, 100% { transform: rotate(0deg); }
+  5%, 15% { transform: rotate(-15deg); }
+  10%, 20% { transform: rotate(15deg); }
+  25% { transform: rotate(0deg); }
+}
+
+.btn-phone .phone-number {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  position: relative;
+  z-index: 1;
+}
+
+.btn-phone .phone-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================
+   GLOW EFFECT (for hero CTAs)
+   ============================================ */
+
+.btn-glow {
+  position: relative;
+}
+
+.btn-glow::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  opacity: 0;
+  filter: blur(12px);
+  z-index: -1;
+  transition: opacity var(--duration-normal) var(--ease-ease-out);
+}
+
+.btn-glow:hover::after {
+  opacity: 0.3;
+}
+
+/* ============================================
+   ICON BUTTONS
+   ============================================ */
+
+.btn-icon {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.btn-icon-sm {
+  width: 36px;
+  height: 36px;
+}
+
+.btn-icon-sm svg {
+  width: 18px;
+  height: 18px;
+}
+

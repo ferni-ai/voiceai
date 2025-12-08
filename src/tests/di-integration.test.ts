@@ -255,14 +255,3 @@ describe('Service Registration', () => {
   });
 });
 
-// ============================================================================
-// CONSOLIDATED TOOLS TESTS
-// ============================================================================
-
-describe.skip('Consolidated Tools', () => {
-  // NOTE: Skipped - Consolidated tools module has been removed.
-  // Tools are now organized by domain (domains/finance, domains/memory, etc.)
-  it('should export consolidated financial tool', async () => {});
-  it('should export consolidated memory tool', async () => {});
-  it('should export consolidated productivity tool', async () => {});
-});

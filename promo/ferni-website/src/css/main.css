@@ -1,0 +1,54 @@
+/**
+ * Ferni Website - Main Stylesheet
+ * 
+ * 🎨 SINGLE SOURCE OF TRUTH
+ * All styles flow from the design system tokens.
+ * DO NOT add hardcoded colors, spacing, or typography.
+ * 
+ * Architecture:
+ * 1. Tokens (from design-system/tokens/)
+ * 2. Base (reset, typography, global)
+ * 3. Components (buttons, cards, forms)
+ * 4. Sections (hero, team, features, etc.)
+ * 5. Utilities (helpers, animations)
+ */
+
+/* ============================================
+   1. DESIGN TOKENS
+   ============================================ */
+@import './_tokens.css';
+
+/* ============================================
+   2. BASE STYLES
+   ============================================ */
+@import './base/reset.css';
+@import './base/typography.css';
+@import './base/layout.css';
+
+/* ============================================
+   3. COMPONENTS
+   ============================================ */
+@import './components/buttons.css';
+@import './components/cards.css';
+@import './components/forms.css';
+@import './components/avatar.css';
+@import './components/nav.css';
+
+/* ============================================
+   4. SECTIONS
+   ============================================ */
+@import './sections/hero.css';
+@import './sections/team.css';
+@import './sections/features.css';
+@import './sections/testimonials.css';
+@import './sections/faq.css';
+@import './sections/cta.css';
+@import './sections/footer.css';
+
+/* ============================================
+   5. UTILITIES & ANIMATIONS
+   ============================================ */
+@import './utils/animations.css';
+@import './utils/reveal.css';
+@import './utils/helpers.css';
+

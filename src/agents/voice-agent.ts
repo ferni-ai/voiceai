@@ -139,6 +139,9 @@ import {
   onCognitiveSessionStart,
 } from '../services/cognitive-session-hooks.js';
 
+// 🎧 DJ Integration - Radio show experience (intros, outros, music moments)
+import { djIntegration, getDJIntegration } from './dj-integration.js';
+
 // Conversation State - Shared context for human-level tool orchestration
 import {
   endConversation as endConversationState,
@@ -2299,6 +2302,15 @@ export default defineAgent({
                 lastAppreciationTime = null;
                 lastReadTheRoomTime = null;
 
+                // 🎧 DJ Integration: Track music for cross-session callbacks
+                try {
+                  const dj = getDJIntegration();
+                  dj.trackMusicPlayed(track.artist);
+                  diag.state('🎧 Tracked music for session', { artist: track.artist });
+                } catch (e) {
+                  diag.warn('🎧 Failed to track music', { error: String(e) });
+                }
+
                 // Clear any existing timers
                 clearMusicTimers();
 
@@ -2793,6 +2805,41 @@ export default defineAgent({
         length: greeting.length,
       });
 
+      // ===============================================
+      // 🎧 DJ INTEGRATION: "Open the Show" moment
+      // ===============================================
+      // This creates the radio DJ feel - a warm musical opening
+      try {
+        const dj = getDJIntegration();
+        dj.setPersona(sessionPersona.id);
+
+        const djIntroResult = await dj.openShow({
+          personaId: sessionPersona.id,
+          userId: userId || undefined,
+          userName: userData.name || services.userProfile?.name,
+          isFirstSession: !isReturningUser,
+          sessionCount: services.userProfile?.totalConversations || 0,
+          musicHistory: services.userProfile?.musicMemory,
+          lastSessionTopics: services.userProfile?.lastConversationSummary
+            ? [services.userProfile.lastConversationSummary.slice(0, 100)]
+            : undefined,
+        });
+
+        // For first-time users or music callbacks, DJ intro may REPLACE the greeting
+        if (djIntroResult.shouldReplaceGreeting && djIntroResult.phrase) {
+          greeting = djIntroResult.phrase;
+          diag.session('🎧 Using DJ intro as greeting', {
+            type: djIntroResult.intro.introType,
+            playedSound: djIntroResult.playedSound,
+          });
+        } else if (djIntroResult.playedSound && djIntroResult.intro.delayMs) {
+          // Sound played - add a small delay before greeting for timing
+          await new Promise((resolve) => setTimeout(resolve, djIntroResult.intro.delayMs));
+        }
+      } catch (djError) {
+        diag.warn('🎧 DJ intro failed (non-fatal)', { error: String(djError) });
+      }
+
       const speechContext = services.getSpeechContext(greeting);
       const enhancedGreeting = tagGreeting(greeting, speechContext);
 
@@ -3161,6 +3208,40 @@ export default defineAgent({
               }
             } catch (cogError) {
               diag.warn('Cognitive session end failed (non-fatal)', { error: String(cogError) });
+            }
+
+            // 🎧 DJ Integration: Save session summary for cross-session callbacks
+            try {
+              const dj = getDJIntegration();
+              const djSummary = dj.getSessionSummary();
+              if (djSummary.musicArtists.length > 0 && services.userProfile) {
+                // Update music memory for next session's "Remember when we listened to..."
+                const existingMemory = services.userProfile.musicMemory;
+                services.userProfile.musicMemory = {
+                  favoriteGenres: existingMemory?.favoriteGenres || [],
+                  dislikedArtists: existingMemory?.dislikedArtists || [],
+                  lastPlayedTrack: existingMemory?.lastPlayedTrack,
+                  preferredMusicTimes: existingMemory?.preferredMusicTimes,
+                  musicMoods: existingMemory?.musicMoods,
+                  updatedAt: new Date(),
+                  favoriteArtists: [
+                    ...new Set([
+                      ...(existingMemory?.favoriteArtists || []),
+                      ...djSummary.musicArtists,
+                    ]),
+                  ].slice(-10), // Keep last 10 artists
+                  lastPlayedArtist: djSummary.musicArtists[djSummary.musicArtists.length - 1],
+                  totalTracksPlayed:
+                    (existingMemory?.totalTracksPlayed || 0) +
+                    djSummary.musicArtists.length,
+                };
+                diag.session('🎧 DJ session summary saved', {
+                  topics: djSummary.topics.length,
+                  artists: djSummary.musicArtists.length,
+                });
+              }
+            } catch (djErr) {
+              diag.warn('🎧 DJ summary save failed (non-fatal)', { error: String(djErr) });
             }
 
             // Save trust profiles (boundaries, growth, callbacks, etc.)

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Dynamic Response Generator
  *
@@ -60,7 +59,12 @@ interface ResponseVariant {
  * Extract voice traits from persona config
  */
 export function extractVoiceTraits(persona: PersonaConfig): PersonaVoiceTraits {
-  const personality = persona.personality || {};
+  const personality = (persona.personality || {}) as {
+    warmth?: number;
+    energy?: number;
+    directness?: number;
+    humorLevel?: number;
+  };
 
   return {
     warmth: personality.warmth ?? 0.7,

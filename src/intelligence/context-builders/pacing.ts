@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Pacing Context Builder
  *
@@ -126,7 +125,7 @@ function getConversationRhythm(turnCount: number, recentTension: boolean): strin
 function buildPacingContext(input: ContextBuilderInput): ContextInjection[] {
   const { userText, analysis, services, userData } = input;
   const extServices = services as unknown as ExtendedServices;
-  const extUserData = userData as ExtendedUserData;
+  const extUserData = userData as unknown as ExtendedUserData;
   const injections: ContextInjection[] = [];
   const turnCount = extUserData.turnCount || 0;
   // -----------------------------------------------
