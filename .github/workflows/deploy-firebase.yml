@@ -2,14 +2,15 @@ name: Deploy Firebase Hosting
 
 # Auto-deploy frontend to Firebase Hosting when pushed to main
 # Deploys to BOTH sites: ferni-prod AND johnb-app (app.ferni.ai)
+#
+# NOTE: Deploys on ALL pushes to main (not just frontend changes) because:
+# - Backend persona changes affect the app experience
+# - System prompt changes need fresh frontend for consistency
+# - Ensures frontend and backend stay in sync
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'frontend-typescript/**'
-      - 'design-system/**'
-      - 'public/**'
   workflow_dispatch:
     inputs:
       target:
