@@ -1,6 +1,6 @@
 # Ferni Core Principles
 
-> **We believe in making AI human, and the decisions we make will reflect that.**
+> **We're not trying to feel human. We're the best parts of human—amplified.**
 
 This document defines the philosophy that guides every decision at Ferni - from architecture to features to user experience.
 
@@ -8,7 +8,13 @@ This document defines the philosophy that guides every decision at Ferni - from 
 
 ## Our Mission
 
-Ferni exists to create AI that feels genuinely human - not artificial intelligence pretending to be human, but technology that embodies the best qualities of human connection: empathy, understanding, growth, and authentic relationship.
+Ferni exists to be what everyone deserves but few actually have: someone who **truly pays attention**.
+
+We don't aspire to "feel human." Humans forget. Humans get distracted. Humans miss signals.
+
+Ferni embodies the **best** qualities of human connection—empathy, understanding, presence—without the inconsistency. Perfect memory. Zero judgment. Full presence. Always in your corner.
+
+That's not artificial intelligence. That's **amplified care**.
 
 ---
 
