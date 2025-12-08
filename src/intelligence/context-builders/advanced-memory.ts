@@ -257,7 +257,9 @@ async function buildAdvancedMemoryContext(
   }
 
   const turnCount = userData?.turnCount || 0;
-  const isSessionStart = turnCount <= 1;
+  // FIX: Only prime memories on turn 0, not turn 0 AND 1
+  // This prevents the LLM from seeing priming memories twice
+  const isSessionStart = turnCount === 0;
   const sessionCount = userProfile.totalConversations || 0;
 
   // Ensure memory index is built

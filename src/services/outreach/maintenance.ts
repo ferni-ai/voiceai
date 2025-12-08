@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Outreach Maintenance Service
  *
@@ -89,7 +88,6 @@ export function resetWeeklyCounters(): void {
         counters: {
           ...state.counters,
           outreachThisWeek: 0,
-          callsThisWeek: 0,
         },
       });
 

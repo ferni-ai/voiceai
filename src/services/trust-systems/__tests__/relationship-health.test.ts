@@ -10,7 +10,6 @@ import {
   getHealthScore,
   getStageName,
   getStageDescription,
-  recordEngagement,
 } from '../relationship-health.js';
 
 describe('Relationship Health', () => {

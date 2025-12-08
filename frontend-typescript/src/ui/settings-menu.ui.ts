@@ -861,6 +861,24 @@ class SettingsMenuUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
+      
+      /* Tablet (769px - 1024px) - Wider panel for more content */
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .settings-menu__card {
+          width: 380px;
+          max-width: 50vw;
+        }
+      }
+      
+      /* Large phones / Small tablets (481px - 768px) */
+      @media (min-width: 481px) and (max-width: 768px) {
+        .settings-menu__card {
+          width: 340px;
+          max-width: 65vw;
+        }
+      }
+      
+      /* Mobile (max 480px) - Full width panel */
       @media (max-width: 480px) {
         .settings-trigger {
           top: var(--ma-breath, 13px);
@@ -882,6 +900,20 @@ class SettingsMenuUI {
 
         .settings-menu__section {
           padding: 0 var(--space-4, 16px);
+        }
+      }
+      
+      /* iPhone Pro specific (390-430px) - Full width but with safe areas */
+      @media (min-width: 390px) and (max-width: 430px) {
+        .settings-menu__card {
+          /* Full width for immersive feel on Pro phones */
+          width: 100%;
+          max-width: none;
+          padding-top: env(safe-area-inset-top, 0);
+        }
+        
+        .settings-menu__header {
+          padding-top: calc(var(--space-5, 20px) + env(safe-area-inset-top, 0));
         }
       }
 

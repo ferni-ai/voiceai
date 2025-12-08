@@ -27,12 +27,23 @@ interface GameOption {
 // GAME OPTIONS
 // ============================================================================
 
+// Lucide SVG icons (2px stroke, rounded corners)
+const ICONS = {
+  music: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+  messageCircle: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>`,
+  palmtree: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4"/><path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3"/><path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35z"/><path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14"/></svg>`,
+  zap: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  headphones: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>`,
+  gamepad: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>`,
+  lightbulb: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`,
+};
+
 const GAMES: GameOption[] = [
   {
     id: 'name-that-tune',
     name: 'Name That Tune',
     description: 'Guess the song from a short clip! Classic music trivia.',
-    icon: '🎵',
+    icon: ICONS.music,
     difficulty: 'medium',
     duration: '3-5 min',
   },
@@ -40,7 +51,7 @@ const GAMES: GameOption[] = [
     id: 'one-word-song',
     name: 'One Word Song',
     description: 'I say a word, you think of a song with that word in the title.',
-    icon: '💬',
+    icon: ICONS.messageCircle,
     difficulty: 'easy',
     duration: '2-3 min',
   },
@@ -48,7 +59,7 @@ const GAMES: GameOption[] = [
     id: 'desert-island-discs',
     name: 'Desert Island Discs',
     description: 'Pick 5 songs to take to a desert island. Share your story.',
-    icon: '🏝️',
+    icon: ICONS.palmtree,
     difficulty: 'easy',
     duration: '5-10 min',
   },
@@ -56,7 +67,7 @@ const GAMES: GameOption[] = [
     id: 'this-or-that',
     name: 'This or That',
     description: 'Quick-fire choices between two songs. Which speaks to you?',
-    icon: '⚡',
+    icon: ICONS.zap,
     difficulty: 'easy',
     duration: '2-3 min',
   },
@@ -64,7 +75,7 @@ const GAMES: GameOption[] = [
     id: 'mood-dj-challenge',
     name: 'Mood DJ Challenge',
     description: 'I give you a mood, you pick the perfect song for it.',
-    icon: '🎧',
+    icon: ICONS.headphones,
     difficulty: 'medium',
     duration: '3-5 min',
   },
@@ -249,11 +260,19 @@ class GamePickerUI {
       <div class="game-help-modal">
         <div class="game-help-modal__backdrop"></div>
         <div class="game-help-modal__content">
-          <button class="game-help-modal__close" aria-label="Close">×</button>
-          <h2>🎮 How to Play Music Games</h2>
+          <button class="game-help-modal__close" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <h2 class="game-help-modal__title">
+            <span class="game-help-modal__icon">${ICONS.gamepad}</span>
+            How to Play Music Games
+          </h2>
           
           <section class="game-help-section">
-            <h3>🎵 Name That Tune</h3>
+            <h3><span class="game-help-section__icon">${ICONS.music}</span> Name That Tune</h3>
             <p>Listen to a short music clip and guess the song or artist. The faster you guess, the more points!</p>
             <ul>
               <li>Just say your guess out loud</li>
@@ -263,7 +282,7 @@ class GamePickerUI {
           </section>
           
           <section class="game-help-section">
-            <h3>💬 One Word Song</h3>
+            <h3><span class="game-help-section__icon">${ICONS.messageCircle}</span> One Word Song</h3>
             <p>I give you a word, you think of a song with that word in the title.</p>
             <ul>
               <li>Any song with the word counts!</li>
@@ -272,7 +291,7 @@ class GamePickerUI {
           </section>
           
           <section class="game-help-section">
-            <h3>🏝️ Desert Island Discs</h3>
+            <h3><span class="game-help-section__icon">${ICONS.palmtree}</span> Desert Island Discs</h3>
             <p>Pick 5 songs to take with you to a desert island. Tell me why each one matters.</p>
             <ul>
               <li>No wrong answers - it's about your story</li>
@@ -281,7 +300,7 @@ class GamePickerUI {
           </section>
           
           <section class="game-help-section">
-            <h3>⚡ This or That</h3>
+            <h3><span class="game-help-section__icon">${ICONS.zap}</span> This or That</h3>
             <p>Quick choices between two songs. Which speaks to you more?</p>
             <ul>
               <li>Fast-paced and fun</li>
@@ -290,7 +309,7 @@ class GamePickerUI {
           </section>
           
           <section class="game-help-section">
-            <h3>🎧 Mood DJ Challenge</h3>
+            <h3><span class="game-help-section__icon">${ICONS.headphones}</span> Mood DJ Challenge</h3>
             <p>I give you a mood, you pick the perfect song for it.</p>
             <ul>
               <li>Be creative with your picks</li>
@@ -299,7 +318,8 @@ class GamePickerUI {
           </section>
           
           <div class="game-help-tip">
-            💡 <strong>Tip:</strong> Say "stop" or "end game" anytime to finish early. Your progress is always saved!
+            <span class="game-help-tip__icon">${ICONS.lightbulb}</span>
+            <strong>Tip:</strong> Say "stop" or "end game" anytime to finish early. Your progress is always saved!
           </div>
         </div>
       </div>
@@ -336,10 +356,21 @@ class GamePickerUI {
     
     try {
       const { connectionService } = await import('../services/connection.service.js');
+      const roomState = connectionService.getRoomState();
       const room = connectionService.getRoom();
       
-      if (!room?.localParticipant) {
+      log.info({ 
+        isConnected: roomState.isConnected, 
+        hasRoom: !!room, 
+        hasLocalParticipant: !!room?.localParticipant 
+      }, '🎮 Connection state check');
+      
+      if (!roomState.isConnected || !room?.localParticipant) {
+        log.warn('🎮 Not connected - showing error');
         this.showError('Connect to Ferni first to play games');
+        if (card) {
+          card.classList.remove('game-card--loading');
+        }
         return;
       }
 
@@ -350,12 +381,14 @@ class GamePickerUI {
         timestamp: Date.now(),
       });
 
+      log.info({ gameId, message }, '🎮 Sending game start request');
+      
       await room.localParticipant.publishData(
         new TextEncoder().encode(message),
         { reliable: true }
       );
       
-      log.info({ gameId }, '🎮 Game start request sent');
+      log.info({ gameId }, '🎮 Game start request sent successfully');
       
       // Close picker and show success
       this.hide();
@@ -389,13 +422,29 @@ class GamePickerUI {
    * Show a toast notification
    */
   private showToast(message: string, type: 'success' | 'error'): void {
+    // eslint-disable-next-line no-console
+    console.log('🎮🎮🎮 TOAST:', message, type);
+    log.info({ message, type }, '🎮 Showing toast');
+    
+    // Remove any existing toasts
+    document.querySelectorAll('.game-toast').forEach(el => el.remove());
+    
     const toast = document.createElement('div');
     toast.className = `game-toast game-toast--${type}`;
     toast.textContent = message;
     document.body.appendChild(toast);
     
+    // Log what we created
+    // eslint-disable-next-line no-console
+    console.log('🎮🎮🎮 TOAST CREATED:', toast.className, toast.textContent);
+    
+    // Force reflow before adding visible class
+    void toast.offsetWidth;
+    
     requestAnimationFrame(() => {
       toast.classList.add('game-toast--visible');
+      // eslint-disable-next-line no-console
+      console.log('🎮🎮🎮 TOAST VISIBLE:', toast.classList.toString());
     });
     
     setTimeout(() => {
@@ -565,8 +614,13 @@ class GamePickerUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
         flex-shrink: 0;
+        color: var(--persona-primary, #4a6741);
+      }
+      
+      .game-card__icon svg {
+        width: 24px;
+        height: 24px;
       }
       
       .game-card__info {
@@ -739,18 +793,36 @@ class GamePickerUI {
         border: none;
         background: var(--color-background-subtle, #F5F1E8);
         border-radius: var(--radius-full, 50%);
-        font-size: 20px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
+        color: var(--color-text-secondary, #6B5D52);
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
       
-      .game-help-modal__content h2 {
+      .game-help-modal__close:hover {
+        background: var(--color-background-hover, #E8E2DA);
+        color: var(--color-text-primary, #2C2520);
+      }
+      
+      .game-help-modal__title {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 24px;
         margin: 0 0 var(--space-4, 16px);
         color: var(--color-text-primary, #2C2520);
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+      }
+      
+      .game-help-modal__icon {
+        color: var(--persona-primary, #4a6741);
+      }
+      
+      .game-help-modal__icon svg {
+        width: 28px;
+        height: 28px;
       }
       
       .game-help-section {
@@ -768,6 +840,20 @@ class GamePickerUI {
         font-weight: 600;
         margin: 0 0 var(--space-2, 8px);
         color: var(--color-text-primary, #2C2520);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+      }
+      
+      .game-help-section__icon {
+        color: var(--persona-primary, #4a6741);
+        display: flex;
+        align-items: center;
+      }
+      
+      .game-help-section__icon svg {
+        width: 18px;
+        height: 18px;
       }
       
       .game-help-section p {
@@ -794,6 +880,20 @@ class GamePickerUI {
         border-radius: var(--radius-lg, 12px);
         font-size: 14px;
         color: var(--color-text-secondary, #6B5D52);
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3, 12px);
+      }
+      
+      .game-help-tip__icon {
+        color: var(--persona-primary, #4a6741);
+        flex-shrink: 0;
+        display: flex;
+      }
+      
+      .game-help-tip__icon svg {
+        width: 20px;
+        height: 20px;
       }
     `;
     

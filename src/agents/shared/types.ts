@@ -4,13 +4,13 @@
  * UserData: Session-scoped user state that persists across turns
  */
 
+import type { MoodState, PersonaMood } from '../../intelligence/context-builders/persona-mood.js';
+import type { ConversationStateManager } from '../../services/conversation-state.js';
 import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
-import type { MoodState, PersonaMood } from '../../intelligence/context-builders/persona-mood.js';
-import type { ConversationStateManager } from '../../services/conversation-state.js';
 
-export type { PersonaMood, MoodState };
+export type { MoodState, PersonaMood };
 
 // ============================================================================
 // HANDOFF TOOL TYPES
@@ -136,6 +136,20 @@ export interface UserData {
 
   /** Conversation state manager for this session */
   conversationState?: ConversationStateManager;
+
+  // ============================================================
+  // MEMORY REPETITION PREVENTION
+  // Tracks what has been referenced to avoid repeating
+  // ============================================================
+
+  /** Memory references already made this session (prevents repetition) */
+  referencedMemories?: string[];
+
+  /** Whether we've already referenced the last conversation topic in this session */
+  hasReferencedLastConversation?: boolean;
+
+  /** Personal themes already mentioned this session (prevents "always talks about Wyoming") */
+  mentionedPersonalThemes?: Set<string>;
 }
 
 // ============================================================================

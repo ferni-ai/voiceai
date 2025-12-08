@@ -20,6 +20,91 @@ import type { OutreachChannel } from './persona-voice-generator.js';
 import type { OutreachPriority } from './decision-engine.js';
 
 // ============================================================================
+// TIMEZONE UTILITIES
+// ============================================================================
+
+/**
+ * Get the user's local hour for a given UTC time
+ * Uses Intl.DateTimeFormat for proper timezone handling
+ */
+function getLocalHour(utcTime: Date, timezone: string): number {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      hour12: false,
+      timeZone: timezone,
+    });
+    const hourStr = formatter.format(utcTime);
+    return parseInt(hourStr, 10);
+  } catch {
+    // Fallback for invalid timezone
+    return utcTime.getHours();
+  }
+}
+
+/**
+ * Get the user's local day of week for a given UTC time
+ * Returns 0=Sun, 6=Sat
+ */
+function getLocalDayOfWeek(utcTime: Date, timezone: string): number {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      timeZone: timezone,
+    });
+    const dayStr = formatter.format(utcTime);
+    const dayMap: Record<string, number> = {
+      Sun: 0,
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+    };
+    return dayMap[dayStr] ?? utcTime.getDay();
+  } catch {
+    return utcTime.getDay();
+  }
+}
+
+/**
+ * Convert UTC time to user's local time representation
+ * Returns a Date-like object with user's local time values
+ */
+function toUserLocalTime(
+  utcTime: Date,
+  timezone: string
+): { hour: number; day: number; date: Date } {
+  return {
+    hour: getLocalHour(utcTime, timezone),
+    day: getLocalDayOfWeek(utcTime, timezone),
+    date: utcTime, // Keep original Date for comparisons
+  };
+}
+
+/**
+ * Check if current time is within quiet hours for user's timezone
+ */
+function isWithinQuietHours(
+  utcTime: Date,
+  timezone: string,
+  quietHoursStart: string, // "22:00"
+  quietHoursEnd: string // "07:00"
+): boolean {
+  const localHour = getLocalHour(utcTime, timezone);
+  const startHour = parseInt(quietHoursStart.split(':')[0], 10);
+  const endHour = parseInt(quietHoursEnd.split(':')[0], 10);
+
+  // Handle overnight quiet hours (e.g., 22:00 to 07:00)
+  if (startHour > endHour) {
+    return localHour >= startHour || localHour < endHour;
+  }
+  // Same day quiet hours (e.g., 12:00 to 14:00)
+  return localHour >= startHour && localHour < endHour;
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -451,26 +536,47 @@ export function calculateOptimalTime(
   const profile = getTimingProfile(userId);
   const now = new Date();
 
-  // Convert to user's timezone (simplified - in production use proper tz lib)
-  const userNow = now; // TODO: Timezone conversion
+  // Convert to user's timezone - we keep the UTC Date but use local time utilities for scoring
+  const userTimezone = profile.preferences.timezone || 'America/New_York';
+  const userLocalTime = toUserLocalTime(now, userTimezone);
+
+  // Check quiet hours in user's timezone
+  if (
+    isWithinQuietHours(
+      now,
+      userTimezone,
+      profile.preferences.quietHoursStart,
+      profile.preferences.quietHoursEnd
+    )
+  ) {
+    // During quiet hours - find next available time
+    const fallbackTime = getFirstAvailableTime(now, profile);
+    return {
+      shouldSendNow: false,
+      optimalTime: fallbackTime,
+      confidence: 0.5,
+      reasoning: `User is in quiet hours (${profile.preferences.quietHoursStart}-${profile.preferences.quietHoursEnd} ${userTimezone})`,
+      alternativeTimes: [],
+    };
+  }
 
   // Step 1: Check if now is a valid time
-  const nowScore = scoreTime(userNow, profile, context);
-  const nowBlocked = isTimeBlocked(userNow, profile, context);
+  const nowScore = scoreTime(now, profile, context);
+  const nowBlocked = isTimeBlocked(now, profile, context);
 
   if (!nowBlocked && nowScore > 0.7 && context.trigger.priority !== 'low') {
     return {
       shouldSendNow: true,
-      optimalTime: userNow,
+      optimalTime: now,
       confidence: nowScore,
-      reasoning: 'Current time scores well based on patterns',
+      reasoning: `Current time (${userLocalTime.hour}:00 local) scores well based on patterns`,
       alternativeTimes: [],
     };
   }
 
   // Step 2: Find optimal time within the priority window
   const windowMs = getPriorityWindow(context.trigger.priority);
-  const candidates = generateCandidateTimes(userNow, windowMs, profile);
+  const candidates = generateCandidateTimes(now, windowMs, profile);
 
   // Step 3: Score each candidate
   const scored = candidates
@@ -483,7 +589,7 @@ export function calculateOptimalTime(
 
   if (scored.length === 0) {
     // No good times found - use first available after quiet hours
-    const fallbackTime = getFirstAvailableTime(userNow, profile);
+    const fallbackTime = getFirstAvailableTime(now, profile);
     return {
       shouldSendNow: false,
       optimalTime: fallbackTime,
@@ -497,7 +603,7 @@ export function calculateOptimalTime(
   const alternatives = scored.slice(1, 4).map((s) => s.time);
 
   // Check if best time is now
-  const isNow = Math.abs(best.time.getTime() - userNow.getTime()) < 5 * 60 * 1000;
+  const isNow = Math.abs(best.time.getTime() - now.getTime()) < 5 * 60 * 1000;
 
   return {
     shouldSendNow: isNow && best.score > 0.5,

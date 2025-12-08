@@ -127,6 +127,12 @@ vi.mock('../../../config/handoff-timing.js', () => ({
   },
 }));
 
+// Mock team availability to allow all handoffs in tests
+vi.mock('../../../intelligence/context-builders/team-availability.js', () => ({
+  isTeamMemberUnlocked: () => true,
+  getLockedMemberTeaser: () => null,
+}));
+
 // Mock personas index module - provides getPersona used by types.ts
 vi.mock('../../../personas/index.js', () => {
   const mockPersonas: Record<string, { id: string; name: string; displayName: string }> = {

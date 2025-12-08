@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Outreach Session Integration
  *
@@ -128,7 +127,8 @@ function extractCommitments(text: string): ExtractedCommitment[] {
 // EMOTIONAL STATE EXTRACTION
 // ============================================================================
 
-type EmotionalState =
+// Local emotional states detected in conversations
+type DetectedEmotionalState =
   | 'happy'
   | 'excited'
   | 'content'
@@ -139,7 +139,32 @@ type EmotionalState =
   | 'frustrated'
   | 'overwhelmed';
 
-const EMOTION_PATTERNS: { state: EmotionalState; patterns: RegExp[] }[] = [
+// Map detected emotional states to context-aggregator EmotionalState
+// context-aggregator uses: 'thriving' | 'good' | 'stable' | 'struggling' | 'crisis'
+type ContextEmotionalState = 'thriving' | 'good' | 'stable' | 'struggling' | 'crisis';
+
+function mapToContextEmotionalState(state: DetectedEmotionalState): ContextEmotionalState {
+  switch (state) {
+    case 'excited':
+      return 'thriving';
+    case 'happy':
+    case 'content':
+      return 'good';
+    case 'neutral':
+      return 'stable';
+    case 'stressed':
+    case 'anxious':
+    case 'frustrated':
+      return 'struggling';
+    case 'sad':
+    case 'overwhelmed':
+      return 'crisis';
+    default:
+      return 'stable';
+  }
+}
+
+const EMOTION_PATTERNS: { state: DetectedEmotionalState; patterns: RegExp[] }[] = [
   {
     state: 'excited',
     patterns: [
@@ -285,8 +310,12 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     });
 
     // Record the interaction time for timing intelligence
-    const now = new Date();
-    recordTimingInteraction(userId, now.getHours(), now.getDay());
+    recordTimingInteraction(userId, {
+      channel: 'call', // Voice session
+      wasOutreach: false,
+      gotResponse: true,
+      timestamp: new Date(),
+    });
   } catch (error) {
     log.warn({ error, userId }, 'Failed to update user context');
   }

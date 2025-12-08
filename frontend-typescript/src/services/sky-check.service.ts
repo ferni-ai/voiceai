@@ -174,7 +174,7 @@ class SkyCheckService {
     if (this.history.length === 0) return 0;
     
     let streak = 0;
-    let currentDate = new Date();
+    const currentDate = new Date();
     
     // Check if today's check is done
     const todayStr = currentDate.toISOString().split('T')[0];

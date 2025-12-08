@@ -648,6 +648,37 @@ export async function handleOutreachRoutes(
       return true;
     }
 
+    // POST /api/outreach/contact - Set user contact info
+    if (route === '/contact' && method === 'POST') {
+      const body = await parseRequestBody(req);
+      const { userId, phone, email, preferredMethod, timezone } = body as {
+        userId: string;
+        phone?: string;
+        email?: string;
+        preferredMethod?: 'sms' | 'email' | 'call';
+        timezone?: string;
+      };
+
+      if (!userId) {
+        sendJsonResponse(res, 400, { success: false, error: 'userId is required' });
+        return true;
+      }
+
+      if (!phone && !email) {
+        sendJsonResponse(res, 400, { success: false, error: 'At least phone or email is required' });
+        return true;
+      }
+
+      // Import the outreach tools
+      const { setUserContactInfo } = await import('../tools/proactive-outreach.js');
+
+      await setUserContactInfo(userId, { phone, email, preferredMethod, timezone });
+
+      log.info({ userId, hasPhone: !!phone, hasEmail: !!email }, 'Contact info set');
+      sendJsonResponse(res, 200, { success: true, message: 'Contact info saved' });
+      return true;
+    }
+
     // POST /api/outreach/test/send
     if (route === '/test/send' && method === 'POST') {
       const body = await parseRequestBody(req);

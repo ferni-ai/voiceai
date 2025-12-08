@@ -34,7 +34,8 @@ export type EventType =
   | 'travel'
   | 'health'
   | 'work'
-  | 'personal';
+  | 'personal'
+  | 'interview';
 
 export type EventSentiment = 'excited' | 'nervous' | 'dreading' | 'neutral' | 'hopeful' | 'uncertain';
 
@@ -643,6 +644,10 @@ export function generateFollowUpMessage(event: LifeEvent): string {
     recurring: [
       `How was ${event.description} this time?`,
       `Another ${event.description} done - how was it?`,
+    ],
+    interview: [
+      `How did the interview go? I'm dying to know!`,
+      `Tell me about your interview - how did it go?`,
     ],
   };
 

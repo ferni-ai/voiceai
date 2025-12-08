@@ -5,7 +5,8 @@
  * - Swipe left/right between personas
  * - Pull down to refresh
  * - Long press for options
- * - Pinch for accessibility zoom
+ * - Swipe to close menus/panels
+ * - Edge swipe navigation
  */
 
 import type { PersonaId } from '../types/persona.js';
@@ -19,6 +20,7 @@ interface GestureCallbacks {
   onSwipeRight: () => void;
   onPullDown?: () => void;
   onLongPress?: (element: HTMLElement) => void;
+  onMenuClose?: () => void;
 }
 
 interface TouchState {
@@ -49,9 +51,14 @@ const SWIPE_THRESHOLD = 80;     // Minimum distance for swipe
 const SWIPE_VELOCITY = 0.3;     // Minimum velocity (px/ms)
 const LONG_PRESS_TIME = 500;    // Long press duration (ms)
 const PULL_DOWN_THRESHOLD = 100;
+const EDGE_SWIPE_ZONE = 30;     // Pixels from edge for swipe-to-close
+const MENU_DISMISS_THRESHOLD = 100; // Distance to dismiss menu
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 let swipeIndicator: HTMLElement | null = null;
+let edgeSwipeFeedback: HTMLElement | null = null;
+let isEdgeSwipe = false;
+let activeMenu: HTMLElement | null = null;
 
 // Persona order for navigation
 const PERSONA_ORDER: PersonaId[] = [
@@ -102,6 +109,19 @@ function handleTouchStart(e: TouchEvent): void {
     isTracking: true,
   };
   
+  // Check if touch started in edge zone (for swipe-to-close)
+  const screenWidth = window.innerWidth;
+  isEdgeSwipe = touch.clientX >= screenWidth - EDGE_SWIPE_ZONE;
+  
+  // Check if a menu/panel is currently open
+  activeMenu = document.querySelector('.settings-menu--visible .settings-menu__card') as HTMLElement
+    || document.querySelector('.ferni-menu--visible .ferni-menu__panel') as HTMLElement;
+  
+  // Show edge swipe feedback if in edge zone and menu is open
+  if (isEdgeSwipe && activeMenu) {
+    showEdgeSwipeFeedback('right');
+  }
+  
   // Start long press timer
   const target = e.target as HTMLElement;
   if (target.closest('.team-member, .btn, #coachAvatar')) {
@@ -137,6 +157,18 @@ function handleTouchMove(e: TouchEvent): void {
   const deltaX = touchState.currentX - touchState.startX;
   const deltaY = touchState.currentY - touchState.startY;
   
+  // Edge swipe for menu dismiss (swipe right from right edge)
+  if (isEdgeSwipe && activeMenu && deltaX > 0) {
+    e.preventDefault();
+    updateEdgeSwipeFeedback(deltaX);
+    
+    // Move menu with swipe (interactive dismiss)
+    const progress = Math.min(1, deltaX / MENU_DISMISS_THRESHOLD);
+    activeMenu.style.transform = `translateX(${deltaX * 0.5}px)`;
+    activeMenu.style.opacity = String(1 - progress * 0.3);
+    return;
+  }
+  
   // Horizontal swipe detection
   if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
     // Prevent scroll during horizontal swipe
@@ -166,6 +198,32 @@ function handleTouchEnd(_e: TouchEvent): void {
   const deltaTime = Date.now() - touchState.startTime;
   const velocityX = Math.abs(deltaX) / deltaTime;
   
+  // Check for menu swipe-to-close (swipe right from right edge)
+  if (isEdgeSwipe && activeMenu) {
+    if (deltaX > MENU_DISMISS_THRESHOLD) {
+      // Swipe right to close menu
+      callbacks?.onMenuClose?.();
+      vibrate(30);
+    } else {
+      // Didn't reach threshold - reset menu position with animation
+      activeMenu.style.transition = 'transform 200ms ease-out, opacity 200ms ease-out';
+      activeMenu.style.transform = '';
+      activeMenu.style.opacity = '';
+      // Remove transition after animation
+      setTimeout(() => {
+        if (activeMenu) {
+          activeMenu.style.transition = '';
+        }
+      }, 200);
+    }
+    hideEdgeSwipeFeedback();
+    isEdgeSwipe = false;
+    activeMenu = null;
+    touchState.isTracking = false;
+    hideSwipeIndicator();
+    return;
+  }
+  
   // Check for swipe
   if (Math.abs(deltaX) > SWIPE_THRESHOLD && velocityX > SWIPE_VELOCITY) {
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -189,6 +247,9 @@ function handleTouchEnd(_e: TouchEvent): void {
   
   // Reset
   hideSwipeIndicator();
+  hideEdgeSwipeFeedback();
+  isEdgeSwipe = false;
+  activeMenu = null;
   touchState.isTracking = false;
 }
 
@@ -198,7 +259,16 @@ function handleTouchCancel(): void {
     longPressTimer = null;
   }
   
+  // Reset menu position if edge swipe was cancelled
+  if (activeMenu) {
+    activeMenu.style.transform = '';
+    activeMenu.style.opacity = '';
+  }
+  
   hideSwipeIndicator();
+  hideEdgeSwipeFeedback();
+  isEdgeSwipe = false;
+  activeMenu = null;
   touchState.isTracking = false;
 }
 
@@ -245,6 +315,35 @@ function updatePullIndicator(deltaY: number): void {
   // Could show a pull-to-refresh indicator
   const progress = Math.min(1, deltaY / PULL_DOWN_THRESHOLD);
   document.body.style.setProperty('--pull-progress', String(progress));
+}
+
+// ============================================================================
+// EDGE SWIPE FEEDBACK (for menu dismiss)
+// ============================================================================
+
+function showEdgeSwipeFeedback(side: 'left' | 'right'): void {
+  if (!edgeSwipeFeedback) {
+    edgeSwipeFeedback = document.createElement('div');
+    edgeSwipeFeedback.className = 'edge-swipe-feedback';
+    document.body.appendChild(edgeSwipeFeedback);
+  }
+  
+  edgeSwipeFeedback.classList.remove('left', 'right');
+  edgeSwipeFeedback.classList.add(side, 'active');
+}
+
+function hideEdgeSwipeFeedback(): void {
+  if (edgeSwipeFeedback) {
+    edgeSwipeFeedback.classList.remove('active');
+  }
+}
+
+function updateEdgeSwipeFeedback(deltaX: number): void {
+  if (!edgeSwipeFeedback || !isEdgeSwipe) return;
+  
+  const progress = Math.min(1, deltaX / MENU_DISMISS_THRESHOLD);
+  edgeSwipeFeedback.style.setProperty('--swipe-progress', String(progress));
+  edgeSwipeFeedback.style.opacity = String(Math.min(1, progress * 2));
 }
 
 // ============================================================================
@@ -304,6 +403,13 @@ export function dispose(): void {
     swipeIndicator = null;
   }
   
+  if (edgeSwipeFeedback) {
+    edgeSwipeFeedback.remove();
+    edgeSwipeFeedback = null;
+  }
+  
+  isEdgeSwipe = false;
+  activeMenu = null;
   callbacks = null;
 }
 

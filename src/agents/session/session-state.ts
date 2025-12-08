@@ -48,6 +48,12 @@ export interface ConversationTrackingState {
   keyMoments: string[];
   storiesShared: string[];
   lastStoryTurn?: number;
+  /** Memory references already made this session (prevents repetition) */
+  referencedMemories: Set<string>;
+  /** Whether we've already referenced the last conversation topic */
+  hasReferencedLastConversation: boolean;
+  /** Personal themes already mentioned this session (wyoming, japan, book, etc.) */
+  mentionedPersonalThemes: Set<string>;
 }
 
 /**
@@ -139,6 +145,9 @@ export function createInitialSessionState(
       recentTopics: [],
       keyMoments: [],
       storiesShared: [],
+      referencedMemories: new Set<string>(),
+      hasReferencedLastConversation: false,
+      mentionedPersonalThemes: new Set<string>(),
     },
     emotional: {},
     responseTracking: {
@@ -299,6 +308,125 @@ export function recordStoryShared(
   };
 }
 
+/**
+ * Record that a memory was referenced (to prevent repetition)
+ */
+export function recordMemoryReferenced(
+  state: SessionState,
+  memoryKey: string
+): SessionState {
+  const newReferencedMemories = new Set(state.conversation.referencedMemories);
+  newReferencedMemories.add(memoryKey);
+  return {
+    ...state,
+    conversation: {
+      ...state.conversation,
+      referencedMemories: newReferencedMemories,
+    },
+  };
+}
+
+/**
+ * Check if a memory has already been referenced this session
+ */
+export function hasReferencedMemory(state: SessionState, memoryKey: string): boolean {
+  return state.conversation.referencedMemories.has(memoryKey);
+}
+
+/**
+ * Mark that we've referenced the last conversation
+ */
+export function markLastConversationReferenced(state: SessionState): SessionState {
+  return {
+    ...state,
+    conversation: {
+      ...state.conversation,
+      hasReferencedLastConversation: true,
+    },
+  };
+}
+
+// ============================================================================
+// PERSONAL THEME TRACKING (prevents "always talks about Wyoming/book/Japan")
+// ============================================================================
+
+/**
+ * Personal themes that should only be mentioned once per session unless user asks
+ * These are major backstory elements that feel repetitive when mentioned multiple times
+ */
+export const PERSONAL_THEMES = {
+  // Ferni's major themes
+  wyoming: ['wyoming', 'third of seven', 'farm kid', 'commodore 64', 'sage after rain'],
+  japan: ['japan', 'tsunami', '2011', 'tokyo', 'decade abroad', 'bow when i thank'],
+  book: ['writing a book', 'started it four times', 'attempt five', 'the book'],
+  childhood: ['growing up', 'as a kid', 'when i was young', 'my father', 'my mother'],
+  family: ['my wife', 'my kids', 'eight kids', 'married'],
+  notebook: ['paper notebook', 'write everything down', 'old-fashioned'],
+  // Generic themes that apply to any persona
+  mortality: ['death', 'dying', 'funeral', 'what keeps me up'],
+  regret: ['regret', 'wish i had', 'should have'],
+  fear: ['afraid', 'fear', 'scared', 'terrified'],
+} as const;
+
+export type PersonalTheme = keyof typeof PERSONAL_THEMES;
+
+/**
+ * Extract personal themes from content
+ */
+export function extractPersonalThemes(content: string): PersonalTheme[] {
+  const lowerContent = content.toLowerCase();
+  const foundThemes: PersonalTheme[] = [];
+
+  for (const [theme, keywords] of Object.entries(PERSONAL_THEMES)) {
+    if (keywords.some((keyword) => lowerContent.includes(keyword))) {
+      foundThemes.push(theme as PersonalTheme);
+    }
+  }
+
+  return foundThemes;
+}
+
+/**
+ * Check if any personal theme from content was already mentioned this session
+ */
+export function hasThemeBeenMentioned(state: SessionState, content: string): boolean {
+  const themes = extractPersonalThemes(content);
+  return themes.some((theme) => state.conversation.mentionedPersonalThemes.has(theme));
+}
+
+/**
+ * Record that personal themes from content were mentioned
+ */
+export function recordThemesMentioned(state: SessionState, content: string): SessionState {
+  const themes = extractPersonalThemes(content);
+  if (themes.length === 0) return state;
+
+  const newMentionedThemes = new Set(state.conversation.mentionedPersonalThemes);
+  themes.forEach((theme) => newMentionedThemes.add(theme));
+
+  return {
+    ...state,
+    conversation: {
+      ...state.conversation,
+      mentionedPersonalThemes: newMentionedThemes,
+    },
+  };
+}
+
+/**
+ * Get all mentioned themes this session
+ */
+export function getMentionedThemes(state: SessionState): PersonalTheme[] {
+  return Array.from(state.conversation.mentionedPersonalThemes) as PersonalTheme[];
+}
+
+/**
+ * Check if a specific theme was mentioned
+ */
+export function wasThemeMentioned(state: SessionState, theme: PersonalTheme): boolean {
+  return state.conversation.mentionedPersonalThemes.has(theme);
+}
+
 // ============================================================================
 // SESSION STATE MANAGER CLASS
 // ============================================================================
@@ -455,6 +583,68 @@ export class SessionStateManager {
    */
   recordStory(storyId: string): void {
     this.state = recordStoryShared(this.state, storyId);
+  }
+
+  /**
+   * Record that a memory was referenced (prevents repetition)
+   */
+  recordMemoryReferenced(memoryKey: string): void {
+    this.state = recordMemoryReferenced(this.state, memoryKey);
+  }
+
+  /**
+   * Check if a memory has already been referenced this session
+   */
+  hasReferencedMemory(memoryKey: string): boolean {
+    return hasReferencedMemory(this.state, memoryKey);
+  }
+
+  /**
+   * Mark that we've referenced the last conversation topic
+   */
+  markLastConversationReferenced(): void {
+    this.state = markLastConversationReferenced(this.state);
+  }
+
+  /**
+   * Check if last conversation has been referenced
+   */
+  hasReferencedLastConversation(): boolean {
+    return this.state.conversation.hasReferencedLastConversation;
+  }
+
+  // ============================================================================
+  // PERSONAL THEME TRACKING
+  // ============================================================================
+
+  /**
+   * Check if any personal themes from content were already mentioned
+   * Use this BEFORE injecting personal content to prevent repetition
+   */
+  hasThemeBeenMentioned(content: string): boolean {
+    return hasThemeBeenMentioned(this.state, content);
+  }
+
+  /**
+   * Record that personal themes from content were mentioned
+   * Call this AFTER agent shares personal content
+   */
+  recordThemesMentioned(content: string): void {
+    this.state = recordThemesMentioned(this.state, content);
+  }
+
+  /**
+   * Check if a specific theme was mentioned this session
+   */
+  wasThemeMentioned(theme: PersonalTheme): boolean {
+    return wasThemeMentioned(this.state, theme);
+  }
+
+  /**
+   * Get all mentioned themes this session
+   */
+  getMentionedThemes(): PersonalTheme[] {
+    return getMentionedThemes(this.state);
   }
 
   // ============================================================================
@@ -630,6 +820,11 @@ export class SessionStateManager {
       keyMoments: s.conversation.keyMoments,
       storiesShared: s.conversation.storiesShared,
       lastStoryTurn: s.conversation.lastStoryTurn,
+      // Memory tracking for repetition prevention
+      referencedMemories: Array.from(s.conversation.referencedMemories),
+      hasReferencedLastConversation: s.conversation.hasReferencedLastConversation,
+      // Personal theme tracking (prevents "always talks about Wyoming/book/Japan")
+      mentionedPersonalThemes: Array.from(s.conversation.mentionedPersonalThemes),
       lastEmotionAnalysis: s.emotional.lastEmotionAnalysis,
       voiceEmotion: s.emotional.voiceEmotion,
       emotionModulation: s.emotional.emotionModulation,
@@ -676,6 +871,11 @@ export class SessionStateManager {
       keyMoments: (userData.keyMoments as string[]) || [],
       storiesShared: (userData.storiesShared as string[]) || [],
       lastStoryTurn: userData.lastStoryTurn as number | undefined,
+      // Restore memory tracking for repetition prevention
+      referencedMemories: new Set((userData.referencedMemories as string[]) || []),
+      hasReferencedLastConversation: (userData.hasReferencedLastConversation as boolean) || false,
+      // Restore personal theme tracking
+      mentionedPersonalThemes: new Set((userData.mentionedPersonalThemes as string[]) || []),
     });
 
     // Restore emotional state

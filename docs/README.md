@@ -24,9 +24,11 @@ System design and technical decisions.
 | [COGNITIVE-INTELLIGENCE-ARCHITECTURE.md](./architecture/COGNITIVE-INTELLIGENCE-ARCHITECTURE.md) | How personas think |
 | [HANDOFF_ARCHITECTURE.md](./architecture/HANDOFF_ARCHITECTURE.md) | Agent handoff system |
 | [PERSISTENCE-ARCHITECTURE.md](./architecture/PERSISTENCE-ARCHITECTURE.md) | Memory and storage |
+| [REALTIME-MEMORY-PLAN.md](./architecture/REALTIME-MEMORY-PLAN.md) | Memory optimization |
 | [MONETIZATION-SYSTEM.md](./architecture/MONETIZATION-SYSTEM.md) | Subscriptions and unlocks |
 | [FERNI-EMOTION-SYSTEM.md](./architecture/FERNI-EMOTION-SYSTEM.md) | Emotional intelligence |
 | [CINEMATIC-DESIGN-SYSTEM.md](./architecture/CINEMATIC-DESIGN-SYSTEM.md) | Design system architecture |
+| [LARGE-FILE-REFACTORING.md](./architecture/LARGE-FILE-REFACTORING.md) | Code organization |
 
 ### `/docs/guides/`
 How-to guides and reference material.
@@ -35,30 +37,49 @@ How-to guides and reference material.
 |-----|-------------|
 | [FERNI-COMPLETE-GUIDE.md](./guides/FERNI-COMPLETE-GUIDE.md) | Full Ferni implementation |
 | [creating-personas.md](./guides/creating-personas.md) | Building custom personas |
-| [AGENT-MANAGEMENT.md](./guides/AGENT-MANAGEMENT.md) | Managing agents |
 | [environment-variables.md](./guides/environment-variables.md) | Configuration reference |
 | [api-reference.md](./guides/api-reference.md) | REST API documentation |
 | [RUNBOOK.md](./guides/RUNBOOK.md) | Operations runbook |
+| [HUMANIZATION-GUIDELINES.md](./guides/HUMANIZATION-GUIDELINES.md) | Voice & tone guide |
 
 ### `/docs/features/`
 Feature-specific documentation.
 
 | Doc | Description |
 |-----|-------------|
-| [MUSIC-GAMES.md](./features/MUSIC-GAMES.md) | 🎮 Music games system |
+| [MUSIC-GAMES.md](./features/MUSIC-GAMES.md) | Music games system |
 | [SPOTIFY-INTEGRATION.md](./features/SPOTIFY-INTEGRATION.md) | Music integration |
 | [AB-TESTING.md](./features/AB-TESTING.md) | Experiment framework |
 | [HUMANIZATION.md](./features/HUMANIZATION.md) | Making AI human |
 | [VOICE-PRESENCE-ROADMAP.md](./features/VOICE-PRESENCE-ROADMAP.md) | Voice features roadmap |
+| [PROACTIVE-OUTREACH-VISION.md](./features/PROACTIVE-OUTREACH-VISION.md) | Proactive engagement |
+| [TOOL_COST_ANALYSIS.md](./features/TOOL_COST_ANALYSIS.md) | Tool performance data |
 
 ### `/docs/deployment/`
 Deployment and infrastructure.
 
+| Doc | Description |
+|-----|-------------|
+| [PRODUCTION-DEPLOYMENT.md](./deployment/PRODUCTION-DEPLOYMENT.md) | Full deployment guide |
+| [QUICK-DEPLOY.md](./deployment/QUICK-DEPLOY.md) | Fast deploy reference |
+| [SUBSCRIPTION-SETUP.md](./deployment/SUBSCRIPTION-SETUP.md) | Stripe setup |
+| [SENTRY-SETUP.md](./deployment/SENTRY-SETUP.md) | Error tracking |
+
 ### `/docs/security/`
 Security guidelines and checklists.
 
-### `/docs/_archive/`
-Historical planning documents (kept for reference).
+| Doc | Description |
+|-----|-------------|
+| [SECURITY-CHECKLIST.md](./security/SECURITY-CHECKLIST.md) | Security audit |
+| [security-review.md](./security/security-review.md) | Review process |
+
+### Business & Launch
+
+| Doc | Description |
+|-----|-------------|
+| [VC-ARCHITECTURE-OVERVIEW.md](./VC-ARCHITECTURE-OVERVIEW.md) | Investor-ready architecture |
+| [SERVICE-DOMAINS-DEEP-DIVE.md](./SERVICE-DOMAINS-DEEP-DIVE.md) | E2E service breakdown |
+| [LAUNCH-KIT.md](./LAUNCH-KIT.md) | Go-to-market materials |
 
 ## Coding Standards
 

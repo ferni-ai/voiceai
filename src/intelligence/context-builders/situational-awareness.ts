@@ -171,17 +171,10 @@ async function buildSituationalAwareness(input: ContextBuilderInput): Promise<Co
     momentsInfo = `\n- HIGHLIGHTS: ${keyMoments.join('; ')}`;
   }
 
-  // Build team awareness for Ferni
-  let teamInfo = '';
-  if (persona?.id === 'ferni' || persona?.id === 'jack-b') {
-    teamInfo = `
-- YOUR TEAM: You coordinate specialists who can help:
-  • Jack Bogle - Long-term investing wisdom, index funds, market perspective
-  • Peter John - Stock research, company analysis, investment opportunities  
-  • Alex - Communication, scheduling, organization
-  • Maya - Spending, saving, budgeting, financial habits
-  • Jordan - Life events, milestones, celebrations, travel`;
-  }
+  // Team awareness is now handled by team-availability context builder
+  // which properly respects unlock status. Removed hardcoded list here
+  // to prevent Ferni from mentioning locked team members.
+  const teamInfo = '';
 
   // Available capabilities
   let capabilitiesInfo = '';

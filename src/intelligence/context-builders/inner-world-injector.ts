@@ -8,8 +8,16 @@
  * This is what makes a persona feel REAL - not just knowledgeable, but HUMAN.
  *
  * "The smell of sage after rain in Wyoming... that takes me right back."
+ *
+ * IMPORTANT: Uses thematic tracking to prevent repetition of major backstory
+ * elements (Wyoming, Japan, book, etc.) - each theme should only be mentioned
+ * ONCE per session unless the user specifically asks about it.
  */
 
+import {
+  extractPersonalThemes,
+  type PersonalTheme,
+} from '../../agents/session/session-state.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
 
 // ============================================================================
@@ -55,6 +63,10 @@ export interface InnerWorldContext {
   relationshipStage: string;
   turnCount: number;
   isVulnerableMoment: boolean;
+  /** Themes already mentioned this session (prevents Wyoming/Japan/book repetition) */
+  mentionedThemes?: Set<string>;
+  /** Whether user explicitly asked about a topic (allows override of theme blocking) */
+  userAskedAbout?: string;
 }
 
 // ============================================================================
@@ -304,7 +316,31 @@ const TRANSITION_PHRASES: Record<InnerWorldInjection['depth'], string[]> = {
 // ============================================================================
 
 /**
+ * Check if user explicitly asked about a theme
+ * This allows overriding the theme-blocking for direct questions
+ */
+function userAskedAboutTheme(userMessage: string, theme: PersonalTheme): boolean {
+  const askPatterns: Record<PersonalTheme, RegExp[]> = {
+    wyoming: [/tell me about wyoming/i, /where.*from/i, /your childhood/i],
+    japan: [/tell me about japan/i, /the tsunami/i, /what happened in japan/i],
+    book: [/your book/i, /writing/i, /how's the book/i, /attempt five/i],
+    childhood: [/growing up/i, /when you were.*kid/i, /your childhood/i],
+    family: [/your wife/i, /your kids/i, /your family/i],
+    notebook: [/your notebook/i, /write everything down/i],
+    mortality: [/death/i, /dying/i, /what keeps you up/i],
+    regret: [/any regrets/i, /what do you regret/i],
+    fear: [/what scares you/i, /what are you afraid of/i],
+  };
+
+  const patterns = askPatterns[theme] || [];
+  return patterns.some((p) => p.test(userMessage));
+}
+
+/**
  * Analyze context and find relevant inner world content to inject
+ *
+ * IMPORTANT: Filters out content containing themes that have already been
+ * mentioned this session to prevent the "always talks about Wyoming" problem.
  */
 export function findInnerWorldInjections(
   context: InnerWorldContext,
@@ -316,6 +352,7 @@ export function findInnerWorldInjections(
 
   const injections: InnerWorldInjection[] = [];
   const combinedText = `${context.userMessage} ${context.recentTopics.join(' ')}`;
+  const mentionedThemes = context.mentionedThemes || new Set<string>();
 
   // Check each trigger pattern
   for (const trigger of TOPIC_TRIGGERS) {
@@ -327,6 +364,24 @@ export function findInnerWorldInjections(
         const content = getInnerWorldContent(bundleRuntime, path, context);
 
         if (content) {
+          // ============================================================
+          // THEME DEDUPLICATION: Skip if content contains already-mentioned themes
+          // ============================================================
+          const contentThemes = extractPersonalThemes(content);
+          const alreadyMentionedThemes = contentThemes.filter((t) => mentionedThemes.has(t));
+
+          // Skip if any theme was already mentioned (unless user explicitly asked)
+          if (alreadyMentionedThemes.length > 0) {
+            const userAsked = alreadyMentionedThemes.some((theme) =>
+              userAskedAboutTheme(context.userMessage, theme)
+            );
+
+            if (!userAsked) {
+              // Skip this content - theme already mentioned
+              continue;
+            }
+          }
+
           // Determine if relationship stage permits this depth
           const requiredRelationship = getRequiredRelationship(trigger.depth);
 

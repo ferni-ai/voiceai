@@ -109,6 +109,9 @@ export interface HumanizingContext {
   usedShareTags?: string[];
   spontaneousShareCount?: number;
   lastMood?: MoodState;
+
+  // Personal theme tracking (prevents "always talks about Wyoming")
+  mentionedPersonalThemes?: Set<string>;
 }
 
 export interface HumanizingResult {
@@ -280,6 +283,8 @@ This should feel organic, not announced.`,
       relationshipStage,
       turnCount: ctx.turnCount,
       isVulnerableMoment: ctx.isVulnerableMoment,
+      // Pass mentioned themes to prevent repetition of Wyoming/Japan/book/etc.
+      mentionedThemes: ctx.mentionedPersonalThemes,
     };
 
     const injectionCandidates = findInnerWorldInjections(innerWorldContext, ctx.bundleRuntime);

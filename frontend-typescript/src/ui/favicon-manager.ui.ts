@@ -57,7 +57,7 @@ let originalFavicon: string | null = null;
 
 // Animation state
 let breathePhase = 0;
-let pupilOffset = { x: 0, y: 0 };
+const pupilOffset = { x: 0, y: 0 };
 let glowIntensity = 0.3;
 
 const CONFIG: FaviconConfig = {

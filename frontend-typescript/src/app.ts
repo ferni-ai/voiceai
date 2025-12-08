@@ -988,6 +988,29 @@ class VoiceAIApp {
       onLongPress: (_element) => {
         // Could show context menu in the future
       },
+      onPullDown: () => {
+        // Pull-to-refresh: Show feedback and reload data from backend
+        log.debug('Pull-to-refresh triggered');
+        // Show subtle feedback
+        messageUI.show('Refreshing...', 'info');
+        // Try to sync with backend
+        void relationshipStageService.loadFromBackend().then((synced) => {
+          if (synced) {
+            messageUI.show('Synced with cloud', 'success');
+          } else {
+            messageUI.show('You\'re up to date', 'success');
+          }
+        }).catch(() => {
+          messageUI.show('Couldn\'t sync', 'info');
+        });
+      },
+      onMenuClose: () => {
+        // Swipe-to-close settings menu
+        const settingsMenu = getSettingsMenuUI();
+        if (settingsMenu) {
+          settingsMenu.hide();
+        }
+      },
     });
 
     // Marketplace button - opens agent marketplace modal

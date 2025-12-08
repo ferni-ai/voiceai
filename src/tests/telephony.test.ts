@@ -160,10 +160,21 @@ describe('Telephony Configuration', () => {
 
   it('should work in simulation mode when SIP not configured', async () => {
     // Clear SIP config to force simulation
+    // Note: Environment vars are captured at module load time
     const originalSipTrunk = process.env.SIP_TRUNK_ID;
+    const originalLivekitUrl = process.env.LIVEKIT_URL;
     process.env.SIP_TRUNK_ID = '';
+    process.env.LIVEKIT_URL = '';
 
-    const tools = createTelephonyTools();
+    // Reset module cache to pick up new env vars
+    vi.resetModules();
+
+    // Dynamically import to get fresh module with cleared env
+    const { createTelephonyTools: freshCreateTelephonyTools } = await import(
+      '../tools/telephony.js'
+    );
+
+    const tools = freshCreateTelephonyTools();
     const result = await tools.callUser.execute(
       { phoneNumber: '5551234567', reason: 'checkIn' as const },
       mockToolOptions
@@ -174,6 +185,7 @@ describe('Telephony Configuration', () => {
 
     // Restore
     process.env.SIP_TRUNK_ID = originalSipTrunk;
+    process.env.LIVEKIT_URL = originalLivekitUrl;
   });
 });
 

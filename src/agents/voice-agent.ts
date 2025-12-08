@@ -39,39 +39,39 @@ earlyLog.info('=== VOICE-AGENT MODULE LOADING ===', {
   personaId: process.env['PERSONA_ID'] || '(default)',
 });
 
-import 'dotenv/config';
+import { Modality } from '@google/genai';
 import {
-  type JobContext,
-  type JobProcess,
-  type llm,
   WorkerOptions,
   cli,
   defineAgent,
   log,
   voice,
+  type JobContext,
+  type JobProcess,
+  type llm,
 } from '@livekit/agents';
 import * as google from '@livekit/agents-plugin-google';
 import * as silero from '@livekit/agents-plugin-silero';
 import { TelephonyBackgroundVoiceCancellation } from '@livekit/noise-cancellation-node';
-import { Modality } from '@google/genai';
-import { fileURLToPath } from 'node:url';
+import 'dotenv/config';
 import { ReadableStream } from 'node:stream/web';
-import { TextEncoder, TextDecoder } from 'node:util';
+import { fileURLToPath } from 'node:url';
+import { TextDecoder, TextEncoder } from 'node:util';
 import { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
-import type { ContextUserData } from '../intelligence/context-builders/index.js';
 
 // Shared Agent Utilities (used by ALL agents)
-import { type UserData, startHealthCheckServer } from './shared/index.js';
 import { SILENCE_THRESHOLDS } from './shared/constants.js';
+import { startHealthCheckServer, type UserData } from './shared/index.js';
 
 // Persona System
+import { generateGreeting, type PersonaMemoryForGreeting } from '../personas/greetings.js';
 import {
   getDefaultPersona,
   getPersonaAsync,
   initializeFromBundles,
   type PersonaConfig,
 } from '../personas/index.js';
-import { generateGreeting, type PersonaMemoryForGreeting } from '../personas/greetings.js';
+import { convertFromUserProfileEvents } from '../personas/shared/life-events.js';
 
 // Persona Memory System - for memory-enhanced greetings
 import {
@@ -81,21 +81,18 @@ import {
 
 // Greeting repetition prevention
 import {
+  applyHumanizingStateToProfile,
   getHumanizingState,
   recordGreetingUsage,
-  applyHumanizingStateToProfile,
 } from '../services/humanizing-state.js';
 
 // Response naturalness - acknowledgments, thinking fillers, catchphrases
-import {
-  getResponseEnhancements,
-  resetCatchphraseTracking,
-} from '../speech/response-naturalness.js';
+import { resetCatchphraseTracking } from '../speech/response-naturalness.js';
 
 // Meaningful Silence System - transforms quiet moments into connection
 import {
-  getMeaningfulSilenceResponse,
   extractMemorableMoments,
+  getMeaningfulSilenceResponse,
   mergeMemorableMoments,
   playAmbientMusicDuringSilence,
   stopAmbientMusic,
@@ -104,36 +101,30 @@ import {
 
 // Services Bootstrap
 import {
-  initializeServices,
   createSessionServices,
+  initializeServices,
   type SessionServices,
 } from '../services/index.js';
 
 // Adaptive SSML
-import { tagGreeting, applyPhasePersonality } from '../speech/adaptive-ssml.js';
+import { applyPhasePersonality, tagGreeting } from '../speech/adaptive-ssml.js';
 
 // Conversation Manager
 import { getConversationManager } from '../services/conversation-manager.js';
 
 // Trust Systems - "Better than human" trust profile loading and recording
 import {
-  onSessionStart as loadTrustProfiles,
-  onSessionEnd as saveTrustProfiles,
   // Phase 14: Life Events
   detectLifeEvents,
-  saveEvent,
-  // Phase 16: Celebration Momentum
-  recordWin,
+  onSessionStart as loadTrustProfiles,
+  recordEmotionData,
   // Phase 17: Sentiment Timeline
   recordEmotionalSnapshot,
-  // Phase 24: Voice Prosody
-  recordVoiceSample,
   // Phase 27: Learning Style
   recordLearningSignals,
-  // Phase 28: Insights Reports
-  recordSessionData,
-  recordEmotionData,
   recordTopicData,
+  saveEvent,
+  onSessionEnd as saveTrustProfiles,
 } from '../services/trust-systems/index.js';
 
 // Simple Utilities - "Better than human" everyday helpers (timers, tips, timezone, etc.)
@@ -144,30 +135,30 @@ import {
 
 // Cognitive Intelligence - Session lifecycle hooks for persistent learning
 import {
-  onCognitiveSessionStart,
   onCognitiveSessionEnd,
+  onCognitiveSessionStart,
 } from '../services/cognitive-session-hooks.js';
 
 // Conversation State - Shared context for human-level tool orchestration
 import {
-  getConversationState,
   endConversation as endConversationState,
+  getConversationState,
 } from '../services/conversation-state.js';
 
 // Tools - Registry-based system
 import {
-  initializeTools,
   buildAgentTools,
   buildEssentialTools,
+  initializeTools,
   isToolRegistryInitialized,
   type Tool,
 } from '../tools/index.js';
 
 // Advanced Tool Systems - Dynamic loading, deprecation, analytics, optimization
-import { dynamicToolLoader } from '../tools/dynamic-loader.js';
-import { deprecationService } from '../tools/deprecation.js';
 import { abTestingService } from '../tools/ab-testing.js';
 import { autoOptimizer } from '../tools/auto-optimizer.js';
+import { deprecationService } from '../tools/deprecation.js';
+import { dynamicToolLoader } from '../tools/dynamic-loader.js';
 import {
   feedbackCollector,
   type ConversationContext as FeedbackContext,
@@ -175,7 +166,7 @@ import {
 import { patternAnalyzer } from '../tools/pattern-analyzer.js';
 
 // Voice Manager
-import { getVoiceManager, createPersonaAwareTTS } from '../speech/voice-manager.js';
+import { createPersonaAwareTTS, getVoiceManager } from '../speech/voice-manager.js';
 
 // Diagnostic logger
 import { diag } from '../services/diagnostic-logger.js';
@@ -184,44 +175,33 @@ import { diag } from '../services/diagnostic-logger.js';
 import { getAudioProsodyAnalyzer } from '../speech/audio-prosody.js';
 
 // Emotion matching - connect prosody to voice response
-import {
-  getEmotionModulation,
-  wrapWithEmotionProsody,
-  getEmotionGuidance,
-} from '../speech/emotion-matching.js';
+import { getEmotionModulation, wrapWithEmotionProsody } from '../speech/emotion-matching.js';
 
 // Conversation dynamics - emotional arc, response length, story timing
 import {
+  getActiveListeningEngine,
+  getConversationHumanizer,
   getEmotionalArcTracker,
   getResponseDynamicsEngine,
-  getStoryTimingEngine,
   resetAllConversationState,
-  getConversationHumanizer,
-  getActiveListeningEngine,
 } from '../conversation/index.js';
 
 // Conversation humanizing context builder (speech naturalization, active listening, memory callbacks)
-import {
-  buildConversationHumanizingContext,
-  formatConversationHumanizingForPrompt,
-} from '../intelligence/context-builders/conversation-humanizing.js';
 
 // Engagement System - Real-time engagement data and conversation triggers
-import { getEngagementDataSender } from '../services/engagement-data-sender.js';
 import { buildEngagementContextPrompt } from '../services/engagement-conversation-triggers.js';
+import { getEngagementDataSender } from '../services/engagement-data-sender.js';
 import { getRitualOnboardingService } from '../services/ritual-onboarding.js';
 
 // Handoff system (for multi-persona support)
 import {
-  handoffEvents,
-  getCurrentAgent,
-  getAgentContext,
-  resetHandoffState,
-  resetMetPersonas,
   createHandoffTools,
   executeHandoff,
-  updateUserContextForHandoff,
+  getCurrentAgent,
+  handoffEvents,
   initializeHandoffContext,
+  resetHandoffState,
+  resetMetPersonas,
 } from '../tools/handoff/index.js';
 import { createHandoffHandler, type VoiceAgentRef } from './shared/handoff-handler.js';
 
@@ -230,20 +210,8 @@ import { createBundleRuntime, type BundleRuntimeEngine } from '../personas/bundl
 import { loadBundleById } from '../personas/bundles/loader.js';
 
 // Humanizing Context - the deep soul of the AI
-import {
-  buildHumanizingContext,
-  formatHumanizingForPrompt,
-  getHumanizingSummary,
-  shouldMoodShift,
-  getMoodShift,
-  type HumanizingResult,
-} from '../intelligence/context-builders/humanizing.js';
 
 // Humanizing Debug - enable with DEBUG_HUMANIZING=true
-import {
-  logHumanizingResult,
-  logValidation,
-} from '../intelligence/context-builders/humanizing-debug.js';
 
 // Types
 import type { AudioFrame } from '@livekit/rtc-node';
@@ -525,7 +493,10 @@ class VoiceAgent extends voice.Agent<UserData> {
 
               // Apply humanization (async) - includes deep humanization features
               // like mood drift, spontaneous thoughts, excitement interruptions
-              const humanized = await humanizer.humanizeResponseAsync(accumulatedText, humanizationContext);
+              const humanized = await humanizer.humanizeResponseAsync(
+                accumulatedText,
+                humanizationContext
+              );
 
               // Use the humanized text
               taggedText = humanized.text;
@@ -1070,13 +1041,26 @@ class VoiceAgent extends voice.Agent<UserData> {
   private async recordTrustSystemsData(
     userId: string,
     userText: string,
-    result: { emotional: { primary?: string; intensity?: number }; context: { humanizingResult?: { mood?: { state?: string } } } }
+    result: {
+      emotional: { primary?: string; intensity?: number };
+      context: { humanizingResult?: { mood?: { state?: string } } };
+    }
   ): Promise<void> {
     try {
       // Phase 17: Record emotional snapshot to sentiment timeline
       if (result.emotional?.primary) {
         recordEmotionalSnapshot(userId, {
-          primaryEmotion: result.emotional.primary as 'joy' | 'sadness' | 'anxiety' | 'anger' | 'fear' | 'surprise' | 'disgust' | 'trust' | 'anticipation' | 'neutral',
+          primaryEmotion: result.emotional.primary as
+            | 'joy'
+            | 'sadness'
+            | 'anxiety'
+            | 'anger'
+            | 'fear'
+            | 'surprise'
+            | 'disgust'
+            | 'trust'
+            | 'anticipation'
+            | 'neutral',
           secondaryEmotions: [],
           intensity: result.emotional.intensity || 0.5,
           source: 'detected',
@@ -1111,11 +1095,14 @@ class VoiceAgent extends voice.Agent<UserData> {
       // Phase 28: Record topic data for insights
       const topic = result.context?.humanizingResult?.mood?.state;
       if (topic) {
-        const sentiment = result.emotional?.primary === 'joy' || result.emotional?.primary === 'trust'
-          ? 'positive'
-          : result.emotional?.primary === 'sadness' || result.emotional?.primary === 'anger' || result.emotional?.primary === 'fear'
-          ? 'negative'
-          : 'neutral';
+        const sentiment =
+          result.emotional?.primary === 'joy' || result.emotional?.primary === 'trust'
+            ? 'positive'
+            : result.emotional?.primary === 'sadness' ||
+                result.emotional?.primary === 'anger' ||
+                result.emotional?.primary === 'fear'
+              ? 'negative'
+              : 'neutral';
         recordTopicData(userId, topic, sentiment);
       }
 
@@ -1749,7 +1736,7 @@ export default defineAgent({
           // They're making a guess - let them be heard clearly!
           void (async () => {
             try {
-              const { isGameCurrentlyActive, duckForUserGuess, updateGameActivity } = 
+              const { isGameCurrentlyActive, duckForUserGuess, updateGameActivity } =
                 await import('../services/games/index.js');
               if (isGameCurrentlyActive()) {
                 duckForUserGuess();
@@ -1783,7 +1770,7 @@ export default defineAgent({
           // 🎮 GAME UNDUCK: Restore music volume after user finishes speaking
           void (async () => {
             try {
-              const { isGameCurrentlyActive, unduckAfterGuess } = 
+              const { isGameCurrentlyActive, unduckAfterGuess } =
                 await import('../services/games/index.js');
               if (isGameCurrentlyActive()) {
                 unduckAfterGuess();
@@ -1962,28 +1949,30 @@ export default defineAgent({
           // If a game is active and user seems to have moved on, end it gracefully
           void (async () => {
             try {
-              const { isGameCurrentlyActive, getCurrentGameType, detectTopicChange } = 
+              const { isGameCurrentlyActive, getCurrentGameType, detectTopicChange } =
                 await import('../services/games/index.js');
-              
+
               if (isGameCurrentlyActive()) {
-                const gameType = getCurrentGameType() as import('../services/games/types.js').GameType | null;
+                const gameType = getCurrentGameType() as
+                  | import('../services/games/types.js').GameType
+                  | null;
                 const hasChangedTopic = detectTopicChange(event.transcript, gameType);
-                
+
                 if (hasChangedTopic) {
                   // User seems to have moved on from the game
-                  const { getGameEngine, resetGameActivity } = 
+                  const { getGameEngine, resetGameActivity } =
                     await import('../services/games/index.js');
                   const engine = getGameEngine();
                   const session = engine.endGame();
                   resetGameActivity();
-                  
+
                   diag.state('🎮 Game auto-ended due to topic change', {
                     gameType,
                     score: session.score,
                     rounds: session.roundsPlayed,
                   });
                 }
-                
+
                 // Update silence context to reflect game state
                 silenceContext.isGameActive = isGameCurrentlyActive();
                 silenceContext.activeGameType = getCurrentGameType() || undefined;
@@ -2191,6 +2180,21 @@ export default defineAgent({
           // Track previous state to detect unexpected stops
           let lastMusicState = 'idle';
           let lastTrackName: string | undefined;
+          
+          // 🎧 DJ ENGAGEMENT TRACKING - for "more than human" music experience
+          let musicPlaybackStartTime: number | null = null;
+          let lastAppreciationTime: number | null = null;
+          let lastReadTheRoomTime: number | null = null;
+          let appreciationTimer: NodeJS.Timeout | null = null;
+          let readTheRoomTimer: NodeJS.Timeout | null = null;
+          
+          // Cleanup function for timers
+          const clearMusicTimers = () => {
+            if (appreciationTimer) clearInterval(appreciationTimer);
+            if (readTheRoomTimer) clearInterval(readTheRoomTimer);
+            appreciationTimer = null;
+            readTheRoomTimer = null;
+          };
 
           player.setOnMusicStateChangeCallback((state, track, isAmbient) => {
             void (async () => {
@@ -2206,7 +2210,9 @@ export default defineAgent({
               if (state === 'changing' && !isAmbient) {
                 try {
                   const { getDJTrackChangePhrase } = await import('../audio/ambient-music.js');
-                  const currentTrack = track ? { name: track.name, artist: track.artist } : undefined;
+                  const currentTrack = track
+                    ? { name: track.name, artist: track.artist }
+                    : undefined;
                   const transitionPhrase = getDJTrackChangePhrase(
                     currentTrack,
                     undefined, // New track name not known yet
@@ -2255,7 +2261,7 @@ export default defineAgent({
                 (state === 'stopped' || state === 'paused') &&
                 !isAmbient &&
                 lastMusicState === 'playing'; // Only if it was actively playing (not fading, changing, etc.)
-              
+
               if (isUnexpectedStop) {
                 // Only speak if music was actually playing (not if we just connected)
                 // And don't speak if we already did a DJ outro (lastMusicState would be 'fading')
@@ -2282,6 +2288,93 @@ export default defineAgent({
               // Update tracking state
               lastMusicState = state;
               lastTrackName = track?.name;
+
+              // =====================================================
+              // 🎧 DJ ENGAGEMENT FEATURES - Make Ferni feel human!
+              // =====================================================
+              
+              // When music STARTS playing, set up appreciation & engagement timers
+              if (state === 'playing' && !isAmbient && track) {
+                musicPlaybackStartTime = Date.now();
+                lastAppreciationTime = null;
+                lastReadTheRoomTime = null;
+                
+                // Clear any existing timers
+                clearMusicTimers();
+                
+                // 🎵 MUSIC APPRECIATION: Random comments during playback
+                // Like a real DJ who's vibing with the music
+                appreciationTimer = setInterval(async () => {
+                  try {
+                    const { getMusicAppreciationComment, getMusicElementAppreciation } = 
+                      await import('../services/dj-service.js');
+                    
+                    // 30% chance of appreciation comment every 15-25 seconds
+                    const now = Date.now();
+                    const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
+                    const timeSinceLastAppreciation = lastAppreciationTime 
+                      ? (now - lastAppreciationTime) / 1000 
+                      : timeSinceStart;
+                    
+                    // Only appreciate if enough time has passed and we're still playing
+                    if (timeSinceLastAppreciation > 15 && Math.random() < 0.3) {
+                      // Randomly choose between general appreciation or element-specific
+                      const comment = Math.random() < 0.7 
+                        ? getMusicAppreciationComment(sessionPersona.id, track)
+                        : getMusicElementAppreciation(sessionPersona.id);
+                      
+                      if (comment) {
+                        diag.state('🎧 DJ appreciation comment', { 
+                          comment: comment.slice(0, 50),
+                          timeSinceStart: Math.round(timeSinceStart),
+                        });
+                        session.say(comment, { allowInterruptions: true });
+                        lastAppreciationTime = now;
+                      }
+                    }
+                  } catch (e) {
+                    diag.warn('Failed to generate appreciation', { error: String(e) });
+                  }
+                }, 10000); // Check every 10 seconds
+                
+                // 🎯 READ THE ROOM: Check if user is engaged with the music
+                readTheRoomTimer = setInterval(async () => {
+                  try {
+                    const { getReadTheRoomAction } = await import('../services/dj-service.js');
+                    
+                    const now = Date.now();
+                    const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
+                    const timeSinceLastCheck = lastReadTheRoomTime 
+                      ? (now - lastReadTheRoomTime) / 1000 
+                      : timeSinceStart;
+                    
+                    // Only check every 60+ seconds
+                    if (timeSinceLastCheck > 60) {
+                      const action = getReadTheRoomAction({
+                        musicHasBeenPlayingFor: timeSinceStart,
+                        userIsSilentDuringMusic: true, // We don't have VAD data here, assume silent
+                      }, sessionPersona.id);
+                      
+                      if (action?.phrase && action.action !== 'continue') {
+                        diag.state('🎧 Read the room check', { 
+                          action: action.action,
+                          timePlaying: Math.round(timeSinceStart),
+                        });
+                        session.say(action.phrase, { allowInterruptions: true });
+                        lastReadTheRoomTime = now;
+                      }
+                    }
+                  } catch (e) {
+                    diag.warn('Failed read-the-room check', { error: String(e) });
+                  }
+                }, 30000); // Check every 30 seconds
+              }
+              
+              // Clear timers when music stops
+              if (state === 'stopped' || state === 'paused' || state === 'idle') {
+                clearMusicTimers();
+                musicPlaybackStartTime = null;
+              }
 
               // Notify frontend for avatar dancing
               // All states are now supported: playing, ducking, fading, changing, paused, stopped, idle
@@ -2526,14 +2619,22 @@ export default defineAgent({
             goals: services.userProfile?.goals,
             primaryConcerns: services.userProfile?.primaryConcerns,
             openQuestions, // Questions from cross-session threads
-            // Note: lifeEvents not passed here due to type mismatch between user-profile and shared/life-events
-            // TODO: Implement type conversion for life events integration
+            // Convert UserProfile.lifeEvents to shared/life-events format for greeting integration
+            lifeEvents: services.userProfile?.lifeEvents
+              ? convertFromUserProfileEvents(services.userProfile.lifeEvents)
+              : undefined,
             conversationCount: services.userProfile?.totalConversations,
           });
 
+          // Track if greeting referenced last conversation (for repetition prevention)
+          if (greeting.toLowerCase().includes('last time')) {
+            userData.hasReferencedLastConversation = true;
+          }
+
           // If we have a thread starter and didn't use it in greeting, append it
-          if (threadStarter && !greeting.toLowerCase().includes('last time')) {
+          if (threadStarter && !userData.hasReferencedLastConversation) {
             greeting = `${greeting} <break time="400ms"/> ${threadStarter}`;
+            userData.hasReferencedLastConversation = true;
           }
         }
 
@@ -2612,19 +2713,28 @@ export default defineAgent({
           goals: services.userProfile?.goals,
           primaryConcerns: services.userProfile?.primaryConcerns,
           openQuestions, // Questions from cross-session threads
-          // Note: lifeEvents not passed here due to type mismatch between user-profile and shared/life-events
-          // TODO: Implement type conversion for life events integration
+          // Convert UserProfile.lifeEvents to shared/life-events format for greeting integration
+          lifeEvents: services.userProfile?.lifeEvents
+            ? convertFromUserProfileEvents(services.userProfile.lifeEvents)
+            : undefined,
           conversationCount: services.userProfile?.totalConversations,
         });
 
+        // Track if greeting referenced last conversation (for repetition prevention)
+        if (greeting.toLowerCase().includes('last time')) {
+          userData.hasReferencedLastConversation = true;
+        }
+
         // If we have a thread starter and didn't use it in greeting, append it
-        if (threadStarter && !greeting.toLowerCase().includes('last time')) {
+        if (threadStarter && !userData.hasReferencedLastConversation) {
           greeting = `${greeting} <break time="400ms"/> ${threadStarter}`;
+          userData.hasReferencedLastConversation = true;
         }
 
         // If we have an emotional memory check-in, append it
-        if (emotionalCheckIn && !greeting.toLowerCase().includes('last time')) {
+        if (emotionalCheckIn && !userData.hasReferencedLastConversation) {
           greeting = `${greeting} <break time="400ms"/> ${emotionalCheckIn}`;
+          userData.hasReferencedLastConversation = true;
         }
 
         // Or append proactive insight if we have one
@@ -2648,6 +2758,30 @@ export default defineAgent({
         diag.session('Wove in utilities proactive opener', {
           opener: utilitiesProactiveOpener.slice(0, 50),
         });
+      }
+
+      // ===============================================
+      // STEP 8c: CROSS-SESSION MUSIC MEMORY CALLBACK
+      // ===============================================
+      // Reference their favorite music from past sessions (DJ memory!)
+      if (isReturningUser && services.userProfile?.musicMemory && isMusicEnabled()) {
+        try {
+          const { getCrossSessionMusicCallback } = await import('../services/dj-service.js');
+          const musicCallback = getCrossSessionMusicCallback(
+            sessionPersona.id,
+            services.userProfile.musicMemory
+          );
+          
+          // 20% chance to mention music preferences in greeting (not too pushy)
+          if (musicCallback && Math.random() < 0.2) {
+            greeting = `${greeting} <break time="500ms"/> ${musicCallback}`;
+            diag.session('Added cross-session music callback', {
+              callback: musicCallback.slice(0, 50),
+            });
+          }
+        } catch (e) {
+          diag.warn('Cross-session music callback failed', { error: String(e) });
+        }
       }
 
       diag.tts('Generated greeting', {
@@ -2902,7 +3036,7 @@ export default defineAgent({
           }
 
           // =====================================================
-          // 🎮 GAME START REQUEST (from dev panel)
+          // 🎮 GAME START REQUEST (from UI game picker)
           // =====================================================
           if (message.type === 'game_start_request') {
             const gameType = message.gameType;
@@ -2911,28 +3045,53 @@ export default defineAgent({
             try {
               const { getGameEngine } = await import('../services/games/index.js');
               const engine = getGameEngine(sessionPersona.id);
-              
-              // Start the game
-              const result = await engine.startGame(gameType);
-              const resultMessage = typeof result === 'object' && result !== null 
-                ? (result as { message?: string }).message || 'Game started'
-                : String(result);
-              
-              // Send ack
+
+              // Start the game - returns welcome message
+              const welcomeMessage = await engine.startGame(gameType);
+              logger.info({ gameType, welcomeMessage }, '🎮 Game engine returned welcome message');
+
+              // 🔊 CRITICAL: Make the agent actually SPEAK the welcome message!
+              // This is what starts the game from the user's perspective
+              if (welcomeMessage && session) {
+                logger.info({ welcomeMessage }, '🎮 Agent speaking game welcome...');
+
+                // Use generateReply to make the agent speak
+                await session.generateReply({
+                  instructions: `You are starting a music game called "${gameType}". 
+                  Say the following welcome message naturally, with enthusiasm:
+                  
+                  "${welcomeMessage}"
+                  
+                  After speaking, wait for the user's response.`,
+                });
+
+                logger.info('🎮 Agent spoke welcome message');
+              }
+
+              // Send ack to frontend
               const ackMessage = JSON.stringify({
                 type: 'game_start_ack',
                 gameType,
                 success: true,
-                message: resultMessage,
+                message: welcomeMessage,
                 timestamp: Date.now(),
               });
               await ctx.room.localParticipant?.publishData(new TextEncoder().encode(ackMessage), {
                 reliable: true,
               });
 
-              logger.info({ gameType, message: resultMessage }, '🎮 Game started successfully');
+              logger.info({ gameType }, '🎮 Game started successfully');
             } catch (gameErr) {
               logger.error({ error: String(gameErr), gameType }, '❌ Game start failed');
+
+              // Make agent acknowledge the error gracefully
+              if (session) {
+                await session.generateReply({
+                  instructions: `Apologize briefly - there was a technical issue starting the game. 
+                  Suggest the user try saying "let's play ${gameType}" instead.`,
+                });
+              }
+
               const errorMsg = JSON.stringify({
                 type: 'game_start_ack',
                 gameType,

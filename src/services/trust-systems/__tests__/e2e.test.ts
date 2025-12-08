@@ -59,7 +59,6 @@ describe('Trust Systems E2E', () => {
       // 4. Generate appropriate starter (new user, has upcoming event)
       const starters = generateStarters({
         userId: newUserId,
-        isNewUser: true,
       });
 
       expect(starters.length).toBeGreaterThan(0);
@@ -84,7 +83,7 @@ describe('Trust Systems E2E', () => {
 
       // Record past wins
       recordWin(returningUserId, {
-        type: 'follow_through',
+        type: 'followed_through',
         description: 'Previous commitment kept',
         tags: ['consistency'],
       });
@@ -99,15 +98,14 @@ describe('Trust Systems E2E', () => {
       // 3. Generate personalized starter
       const starters = generateStarters({
         userId: returningUserId,
-        isNewUser: false,
         recentTopics: ['work', 'health'],
       });
 
       expect(starters.length).toBeGreaterThan(0);
 
-      // 4. User reports a win
+      // 4. User reports a win (using valid WinType 'courage_moment')
       recordWin(returningUserId, {
-        type: 'courage',
+        type: 'courage_moment',  // Valid WinType
         description: 'Spoke up in meeting',
         tags: ['work', 'growth'],
       });
@@ -179,7 +177,7 @@ describe('Trust Systems E2E', () => {
       saveEvent({
         userId: eventUserId,
         id: 'job-interview-event',
-        type: 'interview',
+        type: 'appointment',  // Valid EventType (not 'interview')
         description: 'Job interview at TechCorp',
         date: nextWeek,
         importance: 'high',
@@ -199,7 +197,7 @@ describe('Trust Systems E2E', () => {
       const starters = generateStarters({
         userId: eventUserId,
         upcomingEvents: [
-          { description: 'Job interview', date: nextWeek, type: 'interview' }
+          { id: 'job-interview-event', description: 'Job interview', date: nextWeek, type: 'appointment' as const }
         ],
       });
 
@@ -219,7 +217,7 @@ describe('Trust Systems E2E', () => {
 
         // Record a win each session
         recordWin(growthUserId, {
-          type: 'follow_through',
+          type: 'followed_through',  // Valid WinType
           description: `Kept commitment #${session + 1}`,
           tags: ['consistency'],
         });

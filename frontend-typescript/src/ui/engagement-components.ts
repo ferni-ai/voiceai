@@ -434,11 +434,17 @@ export const SHARED_STYLES = `
      ======================================== */
   @media (max-width: 480px) {
     .ferni-modal {
-      padding: var(--space-4, 16px);
+      /* Respect safe areas on notched devices */
+      padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
+               max(var(--space-4, 16px), env(safe-area-inset-right, 0))
+               max(var(--space-4, 16px), env(safe-area-inset-bottom, 0))
+               max(var(--space-4, 16px), env(safe-area-inset-left, 0));
     }
 
     .ferni-modal__card {
-      max-height: 90vh;
+      /* Account for safe areas in max height */
+      max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
+      max-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
       border-radius: var(--radius-xl, 1.25rem);
     }
 
@@ -446,6 +452,21 @@ export const SHARED_STYLES = `
       width: 100%;
       max-width: none;
       border-left: none;
+      /* Safe area padding for full-width menus */
+      padding-top: env(safe-area-inset-top, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+  }
+  
+  /* Landscape mode - narrower modals */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .ferni-modal__card {
+      max-width: min(90vw, 500px);
+      max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 16px);
+    }
+    
+    .ferni-menu__panel {
+      max-width: 50vw;
     }
   }
 

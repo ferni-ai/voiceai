@@ -48,7 +48,7 @@ let currentState: LogoState = 'idle';
 
 // Eye tracking state
 let eyeTrackingEnabled = true;
-let currentEyeOffset = { x: 0, y: 0 };
+const currentEyeOffset = { x: 0, y: 0 };
 let targetEyeOffset = { x: 0, y: 0 };
 let eyeTrackingFrame: number | null = null;
 let lastMousePosition = { x: 0, y: 0 };

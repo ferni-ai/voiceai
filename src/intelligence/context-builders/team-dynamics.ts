@@ -19,6 +19,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+import { isTeamMemberUnlocked } from './team-availability.js';
 
 // ============================================================================
 // TEAM MEMBER PATTERNS
@@ -195,9 +196,13 @@ function normalizeTeamMemberId(id: string): string {
 // ============================================================================
 
 async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
-  const { userText, bundleRuntime, persona, userData, analysis } = input;
+  const { userText, bundleRuntime, persona, userData, analysis, userProfile } = input;
   const injections: ContextInjection[] = [];
   const turnCount = userData.turnCount || 0;
+
+  // Get subscription tier for unlock checking
+  const tier: 'free' | 'friend' | 'partner' =
+    (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
   // Skip on early turns to let conversation establish
   if (turnCount < 2) {
@@ -215,19 +220,28 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
   const mentionedMember = detectTeamMemberMention(userText);
 
   if (mentionedMember && mentionedMember.id !== currentPersonaId) {
+    // Check if the mentioned member is unlocked
+    const memberUnlocked = isTeamMemberUnlocked(mentionedMember.id, userProfile, tier);
+    
     // User mentioned a different team member - inject how we feel about them
     if (bundleRuntime) {
       const dynamic = bundleRuntime.getTeamDynamic(mentionedMember.id);
 
       if (dynamic) {
-        const content = dynamic.whatIAdmire
-          ? `[TEAM MENTION: User mentioned ${mentionedMember.description}. Your perspective: "${dynamic.whatIAdmire}" How you work together: "${dynamic.howWeInteract}"]`
-          : `[TEAM MENTION: User mentioned ${mentionedMember.description}. How you work together: "${dynamic.howWeInteract}"]`;
+        // If member is locked, don't give details - just acknowledge vaguely
+        if (!memberUnlocked) {
+          const content = `[TEAM MENTION: User mentioned someone on your team, but they haven't unlocked access to ${mentionedMember.description} yet. Acknowledge you have a friend who helps with that, but say you need to get to know them better first before making introductions.]`;
+          injections.push(createHintInjection('team_mention', content));
+        } else {
+          const content = dynamic.whatIAdmire
+            ? `[TEAM MENTION: User mentioned ${mentionedMember.description}. Your perspective: "${dynamic.whatIAdmire}" How you work together: "${dynamic.howWeInteract}"]`
+            : `[TEAM MENTION: User mentioned ${mentionedMember.description}. How you work together: "${dynamic.howWeInteract}"]`;
 
-        injections.push(createHintInjection('team_mention', content));
+          injections.push(createHintInjection('team_mention', content));
+        }
 
         getLogger().debug(
-          { personaId: persona.id, mentioned: mentionedMember.id },
+          { personaId: persona.id, mentioned: mentionedMember.id, unlocked: memberUnlocked },
           'Team member mentioned - injecting dynamics'
         );
       }
@@ -240,6 +254,15 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
   const expertMatch = detectExpertiseMatch(userText, analysis.topics?.detected || []);
 
   if (expertMatch && expertMatch.id !== currentPersonaId) {
+    // Only suggest handoff if the member is unlocked
+    const expertUnlocked = isTeamMemberUnlocked(expertMatch.id, userProfile, tier);
+    
+    if (!expertUnlocked) {
+      // Member is locked - don't suggest handoff, skip this entirely
+      // team-availability.ts handles locked member teasers properly
+      return injections;
+    }
+    
     // Only suggest handoff occasionally (25% chance)
     if (Math.random() < 0.25 && bundleRuntime) {
       const dynamic = bundleRuntime.getTeamDynamic(expertMatch.id);
@@ -260,12 +283,17 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
   }
 
   // Occasional organic team reference (10% chance after turn 5)
+  // Only reference UNLOCKED team members
   if (turnCount > 5 && Math.random() < 0.1 && bundleRuntime) {
     const teamMembers = bundleRuntime.getTeamMemberIds();
 
     if (teamMembers.length > 0) {
-      // Pick a random team member (not self)
-      const otherMembers = teamMembers.filter((id) => id !== currentPersonaId && id !== persona.id);
+      // Pick a random team member (not self, and must be unlocked)
+      const otherMembers = teamMembers.filter((id) => {
+        if (id === currentPersonaId || id === persona.id) return false;
+        // Only include unlocked members
+        return isTeamMemberUnlocked(id, userProfile, tier);
+      });
 
       if (otherMembers.length > 0) {
         const randomMember = otherMembers[Math.floor(Math.random() * otherMembers.length)];

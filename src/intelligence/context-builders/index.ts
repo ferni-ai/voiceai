@@ -7,8 +7,8 @@
  * context building functionality.
  */
 
-import type { UserProfile } from '../../types/user-profile.js';
 import type { PersonaConfig } from '../../personas/types.js';
+import type { UserProfile } from '../../types/user-profile.js';
 
 // Safe logger that returns a no-op if not initialized yet (module load time)
 const getLogger = () => {
@@ -150,6 +150,10 @@ export interface ContextUserData {
   lastPhysicalNote?: string;
   extractedDetails?: ExtractedDetail[];
   lastNameUsed?: number;
+  /** Memory references already made this session (prevents repetition) */
+  referencedMemories?: string[];
+  /** Whether we've already referenced the last conversation topic */
+  hasReferencedLastConversation?: boolean;
 }
 
 export interface ContextBuilderInput {
@@ -192,7 +196,7 @@ export interface ContextBuilderMetrics {
 }
 
 // Re-export imported types
-export type { UserProfile, PersonaConfig };
+export type { PersonaConfig, UserProfile };
 
 // ============================================================================
 // REGISTRY
@@ -362,17 +366,10 @@ export async function buildConversationContext(
     );
   }
 
-  // Returning user context
-  if (input.userData.isReturningUser && input.userProfile) {
-    const lastTopic = input.userProfile.lastConversationSummary;
-    if (lastTopic) {
-      injections.push(
-        createHintInjection('memory', `Returning user. Last time you talked about: ${lastTopic}`, {
-          category: 'memory',
-        })
-      );
-    }
-  }
+  // NOTE: Removed duplicate lastConversationSummary injection here.
+  // This is now handled ONLY in memory.ts context builder to prevent
+  // the LLM from seeing the same information multiple times and
+  // repeatedly referencing it. See memory.ts getCrossSessionMemory().
 
   // Run any registered builders
   const registeredBuilders = getRegisteredBuilders();
@@ -461,6 +458,12 @@ async function ensureBuildersLoaded(): Promise<void> {
       import('./engagement-context.js'), // Daily rituals, games, team engagement
       import('./voice-emotion.js'), // Voice emotion → cognitive state integration
       import('./cognitive-insights.js'), // Shareable cognitive insights for transparency
+      import('./game-context.js'), // 🎮 Active game state for music games
+      // 🧠 Humanizing behaviors - make Ferni feel more human
+      import('./natural-uncertainty.js'), // "I'm not sure", "let me think" - genuine uncertainty
+      import('./response-length.js'), // Sometimes brief, sometimes elaborate
+      import('./energy-mirroring.js'), // Match user's energy level
+      import('./ferni-personality.js'), // Genuine preferences, opinions, quirks
     ]);
 
     getLogger().info(`Context builders loaded: ${builders.size} registered`);

@@ -15,6 +15,8 @@ export default defineConfig({
       'design-system/**',
       'apps/**',
       'e2e/**',
+      // E2E integration tests require real API credentials - run manually
+      'src/tests/integrations/**',
     ],
     coverage: {
       provider: 'v8',

@@ -24,7 +24,6 @@ import { handleObservabilityRoutes } from './dist/api/observability-routes.js';
 
 // Proactive Outreach API routes
 import { handleOutreachRoutes } from './dist/api/outreach-handler.js';
-console.log('✅ Outreach handler imported successfully');
 
 // GDPR compliance routes (data export, deletion, consent)
 import { handleGDPRRoutes } from './dist/api/gdpr-routes.js';
@@ -417,14 +416,8 @@ const server = http.createServer(async (req, res) => {
     
     // Proactive Outreach routes
     if (pathname.startsWith('/api/outreach')) {
-      console.log('📤 Outreach route matched:', pathname);
-      try {
-        const handled = await handleOutreachRoutes(req, res, pathname, parsedUrl);
-        console.log('📤 Outreach handler result:', handled);
-        if (handled) return;
-      } catch (outreachErr) {
-        console.error('❌ Outreach handler error:', outreachErr);
-      }
+      const handled = await handleOutreachRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
     }
     
     // Feature Flags routes (P7)

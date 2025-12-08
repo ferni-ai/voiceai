@@ -215,12 +215,28 @@ describe('env-validator', () => {
 
   describe('isFeatureAvailable', () => {
     it('should check individual feature availability', async () => {
+      // Store original values
+      const originalSendgrid = process.env.SENDGRID_API_KEY;
+      const originalTwilioSid = process.env.TWILIO_ACCOUNT_SID;
+      const originalTwilioToken = process.env.TWILIO_AUTH_TOKEN;
+      const originalTwilioPhone = process.env.TWILIO_PHONE_NUMBER;
+
+      // Set up test environment
       process.env.SENDGRID_API_KEY = 'test-key';
+      delete process.env.TWILIO_ACCOUNT_SID;
+      delete process.env.TWILIO_AUTH_TOKEN;
+      delete process.env.TWILIO_PHONE_NUMBER;
 
       const { isFeatureAvailable } = await import('../services/env-validator.js');
 
       expect(isFeatureAvailable('emailNotifications')).toBe(true);
       expect(isFeatureAvailable('smsNotifications')).toBe(false);
+
+      // Restore original values
+      process.env.SENDGRID_API_KEY = originalSendgrid;
+      if (originalTwilioSid) process.env.TWILIO_ACCOUNT_SID = originalTwilioSid;
+      if (originalTwilioToken) process.env.TWILIO_AUTH_TOKEN = originalTwilioToken;
+      if (originalTwilioPhone) process.env.TWILIO_PHONE_NUMBER = originalTwilioPhone;
     });
 
     it('should return false for unavailable features', async () => {

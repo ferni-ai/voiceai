@@ -15,19 +15,19 @@
  *
  * Extracted from jack-bogle.ts lines 561-612, 959-1005, 1066-1100, 1241-1259
  */
+import type { EmotionResult } from '../../intelligence/emotion-detector.js';
+import { getKeyMomentRetrieval } from '../../memory/key-moment-retrieval.js';
+import { getConversationManager } from '../../services/conversation-manager.js';
+import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
-  registerContextBuilder,
-  createStandardInjection,
   createHintInjection,
+  createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
   type SessionServices,
 } from './index.js';
-import { getKeyMomentRetrieval } from '../../memory/key-moment-retrieval.js';
-import type { EmotionResult } from '../../intelligence/emotion-detector.js';
-import { getConversationManager } from '../../services/conversation-manager.js';
-import type { UserProfile } from '../../types/user-profile.js';
 
 // ============================================================================
 // EXTENDED TYPES
@@ -65,6 +65,15 @@ function getMemoryCallback(topics: string[], userName?: string): string | null {
 }
 /**
  * Generate cross-session memory reference
+ *
+ * NOTE: lastConversationSummary is intentionally EXCLUDED here because:
+ * 1. It's already handled by the greeting (40% chance in greetings.ts)
+ * 2. It's included in priming memories (advanced-memory.ts)
+ * Including it here caused the LLM to see the same info 2-3 times,
+ * making it repeatedly reference "what we talked about last time".
+ *
+ * Instead, we reference MORE SPECIFIC things: goals, concerns, key moments.
+ * These feel more personal and avoid the repetition problem.
  */
 function getCrossSessionMemory(
   services: ExtendedSessionServices,
@@ -73,13 +82,11 @@ function getCrossSessionMemory(
   const profile = services.userProfile;
   if (!profile) return null;
   const references = [];
-  // Reference previous summary
-  if (profile.lastConversationSummary) {
-    references.push(
-      `Last time we talked about ${profile.lastConversationSummary.split('.')[0].toLowerCase()}...`
-    );
-  }
-  // Reference goals
+
+  // NOTE: lastConversationSummary intentionally excluded - handled elsewhere
+  // This prevents "what we talked about last time" from being mentioned 3 times
+
+  // Reference goals (more specific than general summary)
   if (profile.goals && profile.goals.length > 0) {
     const goal = profile.goals[0];
     references.push(`I remember you're working on ${goal.name || goal.type}...`);
@@ -89,7 +96,7 @@ function getCrossSessionMemory(
     const concern = profile.primaryConcerns[0];
     references.push(`Last time you mentioned being concerned about ${concern}...`);
   }
-  // Reference key moments
+  // Reference key moments (emotional, meaningful)
   if (profile.keyMoments && profile.keyMoments.length > 0) {
     const moment = profile.keyMoments[0];
     references.push(
@@ -188,15 +195,16 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
   }
   // -----------------------------------------------
   // CROSS-SESSION MEMORY (reference previous conversations)
-  // Early in conversation (turns 2-4)
+  // Only at turn 3, once per session, and only if not already referenced
   // -----------------------------------------------
-  if (turnCount >= 2 && turnCount <= 4 && Math.random() < 0.5) {
+  const alreadyReferencedLastConversation = userData.hasReferencedLastConversation === true;
+  if (turnCount === 3 && !alreadyReferencedLastConversation && Math.random() < 0.4) {
     const crossSessionMemory = getCrossSessionMemory(extServices, userData.name);
     if (crossSessionMemory) {
       injections.push(
-        createStandardInjection(
+        createHintInjection(
           'cross_session_memory',
-          `[CROSS-SESSION MEMORY: Consider mentioning "${crossSessionMemory}" to show you remember previous conversations.]`
+          `[CROSS-SESSION MEMORY: IF you haven't already referenced past conversations, consider: "${crossSessionMemory}". Only mention once, don't repeat.]`
         )
       );
     }
@@ -326,9 +334,9 @@ async function buildMemoryContext(input: ContextBuilderInput): Promise<ContextIn
 registerContextBuilder('memory', buildMemoryContext);
 export {
   buildMemoryContext,
-  getMemoryCallback,
   getCrossSessionMemory,
-  getTimeSinceContext,
   getEmotionalContinuity,
   getIntelligentFollowUp,
+  getMemoryCallback,
+  getTimeSinceContext,
 };

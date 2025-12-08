@@ -23,7 +23,8 @@ import {
   stopAmbientMusic as stopAmbient,
 } from '../audio/ambient-music.js';
 import { getCanonicalPersonaId } from './voice-registry.js';
-import { getSpontaneousMusicOffer } from '../services/dj-service.js';
+import { getSpontaneousMusicOffer, getMusicConversationStarter } from '../services/dj-service.js';
+import { getMusicPlayer } from '../audio/index.js';
 
 // ============================================================================
 // TYPES
@@ -69,6 +70,7 @@ export type SilenceResponseType =
   | 'micro_story' // Share a tiny, human moment (1-2 sentences)
   | 'thoughtful_question' // Ask something meaningful
   | 'music_offering' // Offer to play some music
+  | 'music_conversation' // Start a conversation about music taste
   | 'game_suggestion' // Suggest a fun music game
   | 'gentle_observation' // Share an observation about life
   | 'gentle_humor' // Light humor (persona-appropriate)
@@ -614,6 +616,36 @@ export function getMeaningfulSilenceResponse(
           text: gameSuggestion,
           invitesReply: true,
         };
+      }
+    }
+
+    // 🎵 Music conversation starter (10% chance) - if we recently played music
+    // This engages them about their taste and builds musical rapport
+    if (Math.random() < 0.1 && musicMasterEnabled) {
+      try {
+        const musicPlayer = getMusicPlayer();
+        const sessionHistory = musicPlayer.getSessionHistory();
+        
+        // Only if we've played music this session
+        if (sessionHistory && sessionHistory.length > 0) {
+          const conversationStarter = getMusicConversationStarter(
+            getCanonicalPersonaId(persona.id),
+            {
+              track: sessionHistory[sessionHistory.length - 1]?.track,
+              sessionHistory,
+            }
+          );
+          
+          if (conversationStarter) {
+            return {
+              type: 'music_conversation',
+              text: conversationStarter,
+              invitesReply: true,
+            };
+          }
+        }
+      } catch {
+        // Music player not available - that's fine
       }
     }
 

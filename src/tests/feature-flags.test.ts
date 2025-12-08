@@ -1,455 +1,175 @@
 /**
  * Feature Flag Service Tests
  *
- * Tests for:
- * - Boolean flag evaluation
- * - Percentage-based rollouts
- * - User list targeting
- * - Flag CRUD operations
- * - Persistence and loading
+ * Tests for the feature flag system that controls trust systems rollout.
+ * Tests use mocked Firestore to avoid external dependencies.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createHash } from 'crypto';
 
-// Mock file system and logger
-const mockFlags = new Map<string, unknown>();
-const mockFileContent: { data: string | null } = { data: null };
-
-vi.mock('fs', () => ({
-  readFileSync: vi.fn(() => {
-    if (mockFileContent.data === null) {
-      throw new Error('ENOENT');
-    }
-    return mockFileContent.data;
-  }),
-  writeFileSync: vi.fn((path: string, data: string) => {
-    mockFileContent.data = data;
-  }),
-  existsSync: vi.fn((path: string) => {
-    if (path.includes('feature-flags.json')) {
-      return mockFileContent.data !== null;
-    }
-    return true;
-  }),
-  mkdirSync: vi.fn(),
+// Mock Firebase Admin
+vi.mock('firebase-admin/firestore', () => ({
+  getFirestore: vi.fn(() => ({
+    collection: vi.fn(() => ({
+      doc: vi.fn(() => ({
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn().mockResolvedValue(undefined),
+        update: vi.fn().mockResolvedValue(undefined),
+      })),
+    })),
+  })),
+  FieldValue: {
+    serverTimestamp: vi.fn(() => new Date()),
+    delete: vi.fn(),
+  },
 }));
 
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: vi.fn(() => ({
-    child: vi.fn(() => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    })),
+// Mock logger
+vi.mock('../utils/safe-logger.js', () => {
+  const mockLogger = {
+    child: vi.fn(() => mockLogger),
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-  })),
-}));
+  };
+  return {
+    createLogger: vi.fn(() => mockLogger),
+    getLogger: vi.fn(() => mockLogger),
+  };
+});
 
 // Import after mocks are set up
 import {
-  FeatureFlagService,
-  getFeatureFlags,
-  type FeatureFlag,
-  type FlagCheckContext,
+  isEnabled,
+  getFlag,
+  getAllFlags,
+  TRUST_FLAGS,
+  type TrustFlagId,
 } from '../services/feature-flags.js';
 
-describe('Feature Flag Service', () => {
-  let service: FeatureFlagService;
-
+describe('Feature Flags Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFileContent.data = null; // Reset to no file state
   });
 
   afterEach(() => {
     vi.resetModules();
   });
 
-  describe('Initialization', () => {
-    it('should initialize with default flags when no file exists', () => {
-      service = new FeatureFlagService();
-      // Should have created default flags
-      expect(service.getAllFlags().length).toBeGreaterThan(0);
+  describe('TRUST_FLAGS constant', () => {
+    it('should define all core trust flags', () => {
+      expect(TRUST_FLAGS['trust.reading-between-lines']).toBeDefined();
+      expect(TRUST_FLAGS['trust.boundary-memory']).toBeDefined();
+      expect(TRUST_FLAGS['trust.growth-reflection']).toBeDefined();
+      expect(TRUST_FLAGS['trust.inside-jokes']).toBeDefined();
+      expect(TRUST_FLAGS['trust.small-wins']).toBeDefined();
+      expect(TRUST_FLAGS['trust.thinking-of-you']).toBeDefined();
     });
 
-    it('should load flags from file when it exists', () => {
-      const testFlags: FeatureFlag[] = [
-        {
-          id: 'test-flag',
-          name: 'Test Flag',
-          description: 'A test flag',
-          type: 'boolean',
-          enabled: true,
-          category: 'test',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      mockFileContent.data = JSON.stringify(testFlags);
-
-      service = new FeatureFlagService();
-      const flag = service.getFlag('test-flag');
-      expect(flag).toBeDefined();
-      expect(flag?.enabled).toBe(true);
-    });
-
-    it('should fall back to defaults on corrupt file', () => {
-      mockFileContent.data = 'not valid json';
-
-      service = new FeatureFlagService();
-      // Should have default flags despite corrupt file
-      expect(service.getAllFlags().length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Boolean Flag Evaluation', () => {
-    beforeEach(() => {
-      const flags: FeatureFlag[] = [
-        {
-          id: 'enabled-flag',
-          name: 'Enabled Flag',
-          description: 'Always enabled',
-          type: 'boolean',
-          enabled: true,
-          category: 'test',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'disabled-flag',
-          name: 'Disabled Flag',
-          description: 'Always disabled',
-          type: 'boolean',
-          enabled: false,
-          category: 'test',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      mockFileContent.data = JSON.stringify(flags);
-      service = new FeatureFlagService();
-    });
-
-    it('should return true for enabled flags', () => {
-      expect(service.isEnabled('enabled-flag')).toBe(true);
-    });
-
-    it('should return false for disabled flags', () => {
-      expect(service.isEnabled('disabled-flag')).toBe(false);
-    });
-
-    it('should return false for non-existent flags', () => {
-      expect(service.isEnabled('non-existent-flag')).toBe(false);
-    });
-  });
-
-  describe('Percentage Rollout Evaluation', () => {
-    beforeEach(() => {
-      const flags: FeatureFlag[] = [
-        {
-          id: 'fifty-percent',
-          name: '50% Rollout',
-          description: 'Enabled for 50% of users',
-          type: 'percentage',
-          enabled: true,
-          percentage: 50,
-          category: 'test',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'zero-percent',
-          name: '0% Rollout',
-          description: 'Enabled for 0% of users',
-          type: 'percentage',
-          enabled: true,
-          percentage: 0,
-          category: 'test',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'hundred-percent',
-          name: '100% Rollout',
-          description: 'Enabled for all users',
-          type: 'percentage',
-          enabled: true,
-          percentage: 100,
-          category: 'test',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      mockFileContent.data = JSON.stringify(flags);
-      service = new FeatureFlagService();
-    });
-
-    it('should return consistent results for same user', () => {
-      const userId = 'consistent-user-123';
-      const context: FlagCheckContext = { userId };
-
-      const firstResult = service.isEnabledForUser('fifty-percent', context);
-      const secondResult = service.isEnabledForUser('fifty-percent', context);
-      const thirdResult = service.isEnabledForUser('fifty-percent', context);
-
-      // Same user should always get the same result
-      expect(firstResult).toBe(secondResult);
-      expect(secondResult).toBe(thirdResult);
-    });
-
-    it('should return false for 0% rollout', () => {
-      expect(service.isEnabledForUser('zero-percent', { userId: 'any-user' })).toBe(false);
-    });
-
-    it('should return true for 100% rollout', () => {
-      expect(service.isEnabledForUser('hundred-percent', { userId: 'any-user' })).toBe(true);
-    });
-
-    it('should distribute users roughly according to percentage', () => {
-      let enabledCount = 0;
-      const totalUsers = 100;
-
-      for (let i = 0; i < totalUsers; i++) {
-        if (service.isEnabledForUser('fifty-percent', { userId: `user-${i}` })) {
-          enabledCount++;
-        }
+    it('should have descriptions for each flag', () => {
+      for (const [_key, value] of Object.entries(TRUST_FLAGS)) {
+        expect(typeof value).toBe('string');
+        expect(value.length).toBeGreaterThan(0);
       }
-
-      // With 50% rollout, expect roughly 40-60 users enabled (allowing variance)
-      expect(enabledCount).toBeGreaterThan(20);
-      expect(enabledCount).toBeLessThan(80);
     });
   });
 
-  describe('User List Targeting', () => {
-    beforeEach(() => {
-      const flags: FeatureFlag[] = [
-        {
-          id: 'user-targeted',
-          name: 'User Targeted',
-          description: 'Enabled for specific users',
-          type: 'user_list',
-          enabled: true,
-          userIds: ['user-a', 'user-b', 'user-c'],
-          category: 'test',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      mockFileContent.data = JSON.stringify(flags);
-      service = new FeatureFlagService();
+  describe('isEnabled', () => {
+    it('should return boolean for valid flag', () => {
+      const result = isEnabled('trust.reading-between-lines');
+      expect(typeof result).toBe('boolean');
     });
 
-    it('should return true for users in the list', () => {
-      expect(service.isEnabledForUser('user-targeted', { userId: 'user-a' })).toBe(true);
-      expect(service.isEnabledForUser('user-targeted', { userId: 'user-b' })).toBe(true);
-      expect(service.isEnabledForUser('user-targeted', { userId: 'user-c' })).toBe(true);
+    it('should handle user-specific checks', () => {
+      const result = isEnabled('trust.boundary-memory', 'user-123');
+      expect(typeof result).toBe('boolean');
     });
 
-    it('should return false for users not in the list', () => {
-      expect(service.isEnabledForUser('user-targeted', { userId: 'user-x' })).toBe(false);
-      expect(service.isEnabledForUser('user-targeted', { userId: 'random-user' })).toBe(false);
-    });
-
-    it('should return false when no userId provided', () => {
-      expect(service.isEnabledForUser('user-targeted', {})).toBe(false);
+    it('should return false for unknown flags', () => {
+      // @ts-expect-error Testing invalid flag
+      const result = isEnabled('unknown-flag');
+      expect(result).toBe(false);
     });
   });
 
-  describe('Value Flags', () => {
-    beforeEach(() => {
-      const flags: FeatureFlag[] = [
-        {
-          id: 'max-turns',
-          name: 'Max Turns',
-          description: 'Maximum conversation turns',
-          type: 'value',
-          enabled: true,
-          value: 50,
-          category: 'limits',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'feature-config',
-          name: 'Feature Config',
-          description: 'Complex config object',
-          type: 'value',
-          enabled: true,
-          value: { theme: 'dark', maxItems: 10 },
-          category: 'config',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      mockFileContent.data = JSON.stringify(flags);
-      service = new FeatureFlagService();
+  describe('getFlag', () => {
+    it('should return flag config for valid flag', () => {
+      const config = getFlag('trust.reading-between-lines');
+      expect(config).toBeDefined();
+      expect(typeof config.enabled).toBe('boolean');
+      expect(typeof config.percentage).toBe('number');
     });
 
-    it('should return numeric values', () => {
-      const value = service.getValue('max-turns', 25);
-      expect(value).toBe(50);
-    });
-
-    it('should return object values', () => {
-      const value = service.getValue('feature-config', {});
-      expect(value).toEqual({ theme: 'dark', maxItems: 10 });
-    });
-
-    it('should return default for non-existent flags', () => {
-      const value = service.getValue('non-existent', 'default-value');
-      expect(value).toBe('default-value');
+    it('should return default disabled config for unknown flag', () => {
+      // @ts-expect-error Testing invalid flag
+      const config = getFlag('unknown-flag');
+      expect(config.enabled).toBe(false);
     });
   });
 
-  describe('Flag Retrieval', () => {
-    beforeEach(() => {
-      const flags: FeatureFlag[] = [
-        {
-          id: 'retrieval-test',
-          name: 'Retrieval Test',
-          description: 'Test retrieval',
-          type: 'boolean',
-          enabled: true,
-          category: 'debug',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'other-category',
-          name: 'Other Category',
-          description: 'Different category',
-          type: 'boolean',
-          enabled: true,
-          category: 'feature',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      mockFileContent.data = JSON.stringify(flags);
-      service = new FeatureFlagService();
+  describe('getAllFlags', () => {
+    it('should return all configured flags', () => {
+      const flags = getAllFlags();
+      expect(Object.keys(flags).length).toBeGreaterThan(0);
     });
 
-    it('should get a specific flag by ID', () => {
-      const flag = service.getFlag('retrieval-test');
-      expect(flag).toBeDefined();
-      expect(flag?.name).toBe('Retrieval Test');
+    it('should include descriptions for each flag', () => {
+      const flags = getAllFlags();
+      for (const [_key, value] of Object.entries(flags)) {
+        expect(value.description).toBeDefined();
+        expect(typeof value.description).toBe('string');
+      }
     });
 
-    it('should return undefined for non-existent flag', () => {
-      const flag = service.getFlag('non-existent');
-      expect(flag).toBeUndefined();
-    });
-
-    it('should get all flags', () => {
-      const flags = service.getAllFlags();
-      expect(Array.isArray(flags)).toBe(true);
-      expect(flags.length).toBeGreaterThanOrEqual(2);
-      // Verify our test flags are included
-      const testFlag = flags.find((f) => f.id === 'retrieval-test');
-      expect(testFlag).toBeDefined();
-    });
-
-    it('should get flags by category', () => {
-      const debugFlags = service.getFlagsByCategory('debug');
-      expect(Array.isArray(debugFlags)).toBe(true);
-      expect(debugFlags.length).toBeGreaterThanOrEqual(1);
-      debugFlags.forEach((flag) => {
-        expect(flag.category).toBe('debug');
-      });
-      // Verify our test flag is included
-      const testFlag = debugFlags.find((f) => f.id === 'retrieval-test');
-      expect(testFlag).toBeDefined();
-    });
-
-    it('should return empty array for non-existent category', () => {
-      const flags = service.getFlagsByCategory('non-existent');
-      expect(flags).toEqual([]);
+    it('should have default values for all trust flags', () => {
+      const flags = getAllFlags();
+      for (const flagId of Object.keys(TRUST_FLAGS) as TrustFlagId[]) {
+        expect(flags[flagId]).toBeDefined();
+        expect(typeof flags[flagId].enabled).toBe('boolean');
+        expect(typeof flags[flagId].percentage).toBe('number');
+      }
     });
   });
 
-  describe('Evaluation with Full Context', () => {
-    beforeEach(() => {
-      const flags: FeatureFlag[] = [
-        {
-          id: 'context-aware',
-          name: 'Context Aware',
-          description: 'Uses full context',
-          type: 'boolean',
-          enabled: true,
-          category: 'test',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      mockFileContent.data = JSON.stringify(flags);
-      service = new FeatureFlagService();
+  describe('Percentage rollout', () => {
+    it('should respect percentage-based rollout', () => {
+      // With 100% rollout, should always be enabled
+      const flag = getFlag('trust.reading-between-lines');
+      if (flag.percentage === 100) {
+        expect(isEnabled('trust.reading-between-lines')).toBe(true);
+      }
     });
 
-    it('should evaluate with full context object', () => {
-      const context: FlagCheckContext = {
-        userId: 'user-123',
-        sessionId: 'session-456',
-        personaId: 'jack-b',
-        tier: 'premium',
-      };
-
-      const result = service.evaluate('context-aware', context);
-      expect(result.enabled).toBe(true);
-      expect(result.reason).toBe('flag_enabled');
-    });
-
-    it('should return flag_not_found for missing flags', () => {
-      const result = service.evaluate('missing-flag', {});
-      expect(result.enabled).toBe(false);
-      expect(result.reason).toBe('flag_not_found');
-    });
-  });
-
-  describe('Hot Reload', () => {
-    it('should reload flags on demand', () => {
-      const initialFlags: FeatureFlag[] = [
-        {
-          id: 'reload-test',
-          name: 'Reload Test',
-          description: 'Test reload',
-          type: 'boolean',
-          enabled: false,
-          category: 'test',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      mockFileContent.data = JSON.stringify(initialFlags);
-      service = new FeatureFlagService();
-
-      expect(service.isEnabled('reload-test')).toBe(false);
-
-      // Simulate file change
-      const updatedFlags: FeatureFlag[] = [
-        {
-          ...initialFlags[0],
-          enabled: true,
-        },
-      ];
-      mockFileContent.data = JSON.stringify(updatedFlags);
-
-      // Reload and check
-      service.reload();
-      expect(service.isEnabled('reload-test')).toBe(true);
+    it('should be consistent for same userId', () => {
+      // Same user should get same result
+      const result1 = isEnabled('trust.relationship-health', 'user-abc');
+      const result2 = isEnabled('trust.relationship-health', 'user-abc');
+      expect(result1).toBe(result2);
     });
   });
 });
 
-describe('getFeatureFlags Singleton', () => {
-  it('should return the same instance', () => {
-    const instance1 = getFeatureFlags();
-    const instance2 = getFeatureFlags();
-    expect(instance1).toBe(instance2);
+describe('Trust System Flag Categories', () => {
+  it('should have core trust flags at 100% rollout', () => {
+    const coreFlags: TrustFlagId[] = [
+      'trust.reading-between-lines',
+      'trust.boundary-memory',
+      'trust.growth-reflection',
+      'trust.inside-jokes',
+      'trust.small-wins',
+      'trust.thinking-of-you',
+    ];
+
+    for (const flagId of coreFlags) {
+      const config = getFlag(flagId);
+      expect(config.percentage).toBe(100);
+    }
+  });
+
+  it('should have persistence flag defined', () => {
+    const config = getFlag('trust.persistence');
+    expect(config).toBeDefined();
+    expect(typeof config.enabled).toBe('boolean');
   });
 });

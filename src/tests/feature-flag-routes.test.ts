@@ -278,7 +278,7 @@ describe('Feature Flag Routes', () => {
       const handled = await handleFeatureFlagRoutes(req, res, '/api/flags/dark-mode');
 
       expect(handled).toBe(true);
-      expect(mockFlagsService.updateFlag).toHaveBeenCalledWith('dark-mode', { enabled: false }, 'api');
+      expect(mockFlagsService.updateFlag).toHaveBeenCalledWith('dark-mode', { enabled: false });
       expect(getWrittenData().status).toBe(200);
     });
 

@@ -19,3 +19,9 @@ export {
   triggerSummarization,
   summarizeUserConversations,
 } from './summarization-scheduler.js';
+
+// Export outreach scheduler functions (proactive "thinking of you" notifications)
+export {
+  outreachScheduler,
+  outreachSchedulerHttp,
+} from './outreach-scheduler.js';

@@ -986,6 +986,13 @@
       opacity: 0;
     }
 
+    /* Roster stays hidden until JS populates it and app is loaded
+       This prevents flash of hardcoded team members on mobile */
+    .roster-initializing {
+      visibility: hidden !important;
+      opacity: 0 !important;
+    }
+
     /* Avatar entrance - spring bounce in */
     @keyframes entranceAvatar {
         0% {
@@ -2261,34 +2268,10 @@
       }
     }
     
-    /* Staggered entrance for page elements */
-    .entrance-avatar {
-      animation: revealFromCenter 0.8s var(--ease-out-expo) 0.1s both;
-    }
-    
-    .entrance-name {
-      animation: fadeSlideUp 0.6s var(--ease-out-expo) 0.3s both;
-    }
-    
-    .entrance-subtitle {
-      animation: fadeSlideUp 0.6s var(--ease-out-expo) 0.4s both;
-    }
-    
-    .entrance-roster {
-      animation: fadeSlideUp 0.6s var(--ease-out-expo) 0.5s both;
-    }
-    
-    .entrance-waveform {
-      animation: scaleIn 0.6s var(--ease-out-expo) 0.6s both;
-    }
-    
-    .entrance-controls {
-      animation: fadeSlideUp 0.7s var(--ease-out-expo) 0.7s both;
-    }
-    
-    .entrance-helper {
-      animation: fadeSlideUp 0.5s var(--ease-out-expo) 0.9s both;
-    }
+    /* Staggered entrance for page elements
+       NOTE: These are triggered via .app-loaded class in JS (see app.ts)
+       Do NOT add unguarded animations here - they cause flash of content on mobile
+       The correct animations are defined above with .app-loaded prefix */
 
     .header {
       position: relative;
@@ -5263,7 +5246,11 @@
         gap: var(--space-sm);
         padding: 0;
         flex: 1;
-        justify-content: center;
+        /* Shift focal point slightly upward on mobile 
+           - reduces empty space below avatar/controls
+           - creates more intimate, focused experience */
+        justify-content: flex-start;
+        padding-top: var(--space-sm);
       }
 
       /* Larger touch targets - Apple minimum 44px */
@@ -5367,11 +5354,121 @@
       }
     }
     
+    /* iPhone Pro / Modern large phones (390px - 430px) 
+       iPhone 15 Pro: 393px, iPhone 15 Pro Max: 430px
+       These deserve a larger avatar as focal point */
+    @media (min-width: 390px) and (max-width: 430px) {
+      .avatar-container {
+        /* φ^0.5 from 80px ≈ 102px - round to 104px
+           Significantly larger for Pro phones */
+        width: 104px;
+        height: 104px;
+      }
+      
+      /* Shift focal point upward - reduce bottom whitespace */
+      .main {
+        justify-content: flex-start;
+        padding-top: var(--space-md);
+      }
+      
+      /* Scale status indicator with larger avatar */
+      #statusIndicator {
+        width: 18px;
+        height: 18px;
+        bottom: 4px;
+        right: 4px;
+        border-width: 2.5px;
+      }
+      
+      /* Scale thinking float with avatar */
+      .thinking-float {
+        bottom: -26px;
+        padding: 5px 11px;
+        font-size: 11px;
+      }
+      
+      .thinking-float .thinking-dot {
+        width: 4px;
+        height: 4px;
+      }
+      
+      /* Scale status whisper with avatar */
+      .status-whisper {
+        bottom: -30px !important;
+        font-size: 10px !important;
+      }
+      
+      #avatarRing {
+        inset: -10px;
+        border-width: 2.5px;
+      }
+      
+      #avatarText {
+        font-size: var(--text-2xl);
+        font-weight: 700;
+      }
+      
+      #personaName {
+        font-size: var(--text-xl);
+      }
+      
+      #personaSubtitle {
+        font-size: var(--text-sm);
+      }
+      
+      /* Waveform - slightly larger for better visual balance */
+      #waveformContainer {
+        height: 56px;
+      }
+      
+      .waveform-bars {
+        height: 44px;
+      }
+    }
+    
+    /* iPhone Pro Max / Extra large phones (431px - 480px) */
+    @media (min-width: 431px) and (max-width: 480px) {
+      .avatar-container {
+        /* φ^0.6 from 80px ≈ 96px - round to 96px */
+        width: 96px;
+        height: 96px;
+      }
+      
+      /* Shift focal point upward */
+      .main {
+        justify-content: flex-start;
+        padding-top: var(--space-lg);
+      }
+      
+      /* Scale status indicator */
+      #statusIndicator {
+        width: 17px;
+        height: 17px;
+        bottom: 3px;
+        right: 3px;
+        border-width: 2.5px;
+      }
+      
+      #avatarRing {
+        inset: -9px;
+        border-width: 2.5px;
+      }
+      
+      #avatarText {
+        font-size: var(--text-2xl);
+      }
+    }
+    
     /* Small mobile (max 375px) - iPhone SE, etc */
     @media (max-width: 375px) {
       :root {
         --text-4xl: 1.5rem;
         --text-3xl: 1.25rem;
+      }
+      
+      /* On smallest screens, use more of the vertical space */
+      .main {
+        padding-top: var(--space-xs);
       }
       
       .avatar-container {
@@ -7578,145 +7675,9 @@
         <h1 id="personaName" class="entrance-name">Ferni</h1>
         <p id="personaSubtitle" class="entrance-subtitle">Life Coach</p>
         
-        <!-- Team Roster - All specialists -->
-        <div id="teamRoster" class="entrance-roster">
-          <!-- Ferni - Main Coach (always first) -->
-            <div
-              class="team-member team-member--coach"
-              data-persona-id="ferni"
-              role="button"
-              tabindex="0"
-              aria-label="Talk to Ferni"
-            >
-            <div class="team-avatar-container">
-              <div class="team-avatar-ring"></div>
-                <div
-                  class="team-avatar"
-                  style="--persona-gradient: linear-gradient(135deg, #3d5a35, #4a6741)"
-                >
-                  FN
-                </div>
-            </div>
-            <span class="team-name">Ferni</span>
-          </div>
-          
-          <span class="team-divider"></span>
-          
-          <!-- Peter John - Research & Insights -->
-            <div
-              class="team-member"
-              data-persona-id="peter-john"
-              role="button"
-              tabindex="0"
-              aria-label="Talk to Peter"
-            >
-            <div class="team-avatar-container">
-            <div class="team-avatar-ring"></div>
-                <div
-                  class="team-avatar"
-                  style="--persona-gradient: linear-gradient(135deg, #2d5359, #3a6b73)"
-                >
-                  PJ
-                </div>
-            </div>
-            <span class="team-name">Peter</span>
-          </div>
-          
-          <!-- Maya - Life Habits Coach -->
-            <div
-              class="team-member"
-              data-persona-id="maya-santos"
-              role="button"
-              tabindex="0"
-              aria-label="Talk to Maya"
-            >
-            <div class="team-avatar-container">
-            <div class="team-avatar-ring"></div>
-                <div
-                  class="team-avatar"
-                  style="--persona-gradient: linear-gradient(135deg, #8a635a, #a67a6a)"
-                >
-                  MY
-                </div>
-            </div>
-            <span class="team-name">Maya</span>
-          </div>
-          
-          <!-- Jordan - Life Planner -->
-            <div
-              class="team-member"
-              data-persona-id="jordan-taylor"
-              role="button"
-              tabindex="0"
-              aria-label="Talk to Jordan"
-            >
-            <div class="team-avatar-container">
-            <div class="team-avatar-ring"></div>
-                <div
-                  class="team-avatar"
-                  style="--persona-gradient: linear-gradient(135deg, #a86d55, #c4856a)"
-                >
-                  JD
-                </div>
-            </div>
-            <span class="team-name">Jordan</span>
-          </div>
-          
-          <!-- Alex - Communications -->
-            <div
-              class="team-member"
-              data-persona-id="alex-chen"
-              role="button"
-              tabindex="0"
-              aria-label="Talk to Alex"
-            >
-            <div class="team-avatar-container">
-            <div class="team-avatar-ring"></div>
-                <div
-                  class="team-avatar"
-                  style="--persona-gradient: linear-gradient(135deg, #4a5a73, #5a6b8a)"
-                >
-                  AX
-                </div>
-            </div>
-            <span class="team-name">Alex</span>
-          </div>
-          
-          <!-- Nayan - Lifetime Advisor -->
-            <div
-              class="team-member"
-              data-persona-id="nayan-patel"
-              role="button"
-              tabindex="0"
-              aria-label="Talk to Nayan"
-            >
-            <div class="team-avatar-container">
-            <div class="team-avatar-ring"></div>
-                <div
-                  class="team-avatar"
-                  style="--persona-gradient: linear-gradient(135deg, #9a7a52, #b8956a)"
-                >
-                  NP
-                </div>
-            </div>
-            <span class="team-name">Nayan</span>
-          </div>
-          
-          <!-- Marketplace Button -->
-            <button
-              id="marketplaceBtn"
-              class="team-member team-member--marketplace"
-              role="button"
-              tabindex="0"
-              aria-label="Open Agent Marketplace"
-            >
-            <div class="team-avatar-container">
-              <div class="team-avatar-ring marketplace-ring"></div>
-              <div class="team-avatar marketplace-avatar">+</div>
-            </div>
-            <span class="team-name">More</span>
-          </button>
-        </div>
+        <!-- Team Roster - Dynamically populated by JS -->
+        <!-- Empty initially to prevent flash of all team members on mobile -->
+        <div id="teamRoster" class="entrance-roster roster-initializing"></div>
       </div>
     </header>
 

@@ -350,3 +350,75 @@ export function createLifeEvent(
     context: options?.context,
   };
 }
+
+// ============================================================================
+// TYPE CONVERSION - Bridge between UserProfile.LifeEvent and shared LifeEvent
+// ============================================================================
+
+/**
+ * Type from UserProfile (user-profile.ts)
+ */
+interface UserProfileLifeEvent {
+  id: string;
+  type:
+    | 'wedding'
+    | 'baby'
+    | 'first_home'
+    | 'graduation'
+    | 'retirement_start'
+    | 'milestone_birthday'
+    | 'career_change'
+    | 'relocation'
+    | 'loss'
+    | 'celebration'
+    | 'other';
+  title: string;
+  description?: string;
+  date?: Date;
+  status: 'planning' | 'upcoming' | 'in_progress' | 'completed' | 'ongoing';
+  emotionalSignificance: 'routine' | 'meaningful' | 'major' | 'life_changing';
+  userSentiment?: 'excited' | 'anxious' | 'neutral' | 'mixed' | 'stressed';
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+  // Other fields omitted as not needed for conversion
+}
+
+/**
+ * Map UserProfile event types to shared LifeEventType
+ */
+const typeMap: Record<UserProfileLifeEvent['type'], LifeEventType> = {
+  wedding: 'wedding',
+  baby: 'baby',
+  first_home: 'home_purchase',
+  graduation: 'graduation',
+  retirement_start: 'retirement',
+  milestone_birthday: 'birthday',
+  career_change: 'new_job',
+  relocation: 'move',
+  loss: 'memorial',
+  celebration: 'custom',
+  other: 'custom',
+};
+
+/**
+ * Convert a UserProfile LifeEvent to shared LifeEvent format
+ * Used to bridge types between user profile storage and greeting generation
+ */
+export function convertFromUserProfileEvent(event: UserProfileLifeEvent): LifeEvent {
+  return {
+    id: event.id,
+    type: typeMap[event.type] || 'custom',
+    date: event.date || new Date(),
+    description: event.title || event.description,
+    recurring: ['birthday', 'anniversary', 'work_anniversary', 'memorial'].includes(typeMap[event.type]),
+    context: event.description,
+  };
+}
+
+/**
+ * Convert multiple UserProfile LifeEvents to shared LifeEvent format
+ */
+export function convertFromUserProfileEvents(events: UserProfileLifeEvent[]): LifeEvent[] {
+  return events.map(convertFromUserProfileEvent);
+}

@@ -69,6 +69,9 @@ import { getResponseEnhancements, resetCatchphraseTracking } from '../../speech/
 // Emotion matching
 import { getEmotionModulation, getEmotionGuidance } from '../../speech/emotion-matching.js';
 
+// Personal theme tracking (prevents "always talks about Wyoming")
+import { extractPersonalThemes } from '../session/session-state.js';
+
 // ============================================================================
 // CACHED IMPORTS - Lazy loaded once for performance
 // ============================================================================
@@ -522,6 +525,8 @@ function buildHumanizingContextForTurn(
       usedShareTags: userData.usedShareTags || [],
       spontaneousShareCount: userData.spontaneousShareCount || 0,
       lastMood: userData.lastMood,
+      // Personal theme tracking (prevents "always talks about Wyoming/Japan/book")
+      mentionedPersonalThemes: userData.mentionedPersonalThemes || new Set<string>(),
     };
 
     const result = buildHumanizingContext(humanizingContext);
@@ -534,6 +539,22 @@ function buildHumanizingContextForTurn(
       }
       userData.lastMood = result.mood.state;
       userData.previousRelationshipStage = result.relationship.stage;
+
+      // Track personal themes from inner world content (prevents "always talks about Wyoming")
+      if (result.innerWorldContent && result.innerWorldContent.length > 0) {
+        const mentionedThemes = userData.mentionedPersonalThemes || new Set<string>();
+        for (const content of result.innerWorldContent) {
+          const themes = extractPersonalThemes(content.content);
+          themes.forEach((theme) => mentionedThemes.add(theme));
+        }
+        userData.mentionedPersonalThemes = mentionedThemes;
+        if (mentionedThemes.size > 0) {
+          ctx.logger.debug(
+            { themes: Array.from(mentionedThemes) },
+            '🏔️ Personal themes tracked (prevents repetition)'
+          );
+        }
+      }
     }
 
     // Check for mood shift

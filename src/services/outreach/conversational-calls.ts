@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Conversational Outbound Calls
  *
@@ -732,12 +731,7 @@ export {
   ConversationalCallService,
 };
 
-export type {
-  CallStatus,
-  OutboundCallContext,
-  OutboundCall,
-  ConversationalCallConfig,
-};
+// Types are already exported inline at definition (export type/export interface)
 
 export default {
   getConversationalCallService,

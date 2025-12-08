@@ -39,7 +39,6 @@ describe('Trust Systems Integration', () => {
       // 3. Generate starters (should consider emotional context)
       const starters = generateStarters({
         userId: testUserId,
-        currentMood: 'down',
       });
 
       // Starters should exist
@@ -54,7 +53,7 @@ describe('Trust Systems Integration', () => {
       saveEvent({
         userId: testUserId,
         id: 'test-event-integration',
-        type: 'interview',
+        type: 'appointment',
         description: 'Job interview at TechCorp',
         date: tomorrow,
         importance: 'high',
@@ -71,7 +70,7 @@ describe('Trust Systems Integration', () => {
       const starters = generateStarters({
         userId: testUserId,
         upcomingEvents: [
-          { description: 'Job interview', date: tomorrow, type: 'interview' }
+          { id: 'test-event', description: 'Job interview', date: tomorrow, type: 'appointment' as const }
         ],
       });
 
@@ -84,13 +83,13 @@ describe('Trust Systems Integration', () => {
     it('should track wins and generate celebrations', () => {
       // 1. Record multiple wins
       recordWin(testUserId, {
-        type: 'follow_through',
+        type: 'followed_through',
         description: 'Completed morning routine',
         tags: ['habits'],
       });
 
       recordWin(testUserId, {
-        type: 'courage',
+        type: 'courage_moment',
         description: 'Had difficult conversation',
         tags: ['relationships'],
       });

@@ -431,52 +431,52 @@ describe('Crisis Hotline Verification', () => {
   const VERIFIED_HOTLINES = {
     '988': {
       name: '988 Suicide & Crisis Lifeline',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: 'Nationwide, 24/7',
     },
     '741741': {
       name: 'Crisis Text Line',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: 'Text HOME to this number',
     },
     '1-800-799-7233': {
       name: 'National Domestic Violence Hotline',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: '24/7',
     },
     '1-800-656-4673': {
       name: 'RAINN',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: '24/7',
     },
     '1-800-662-4357': {
       name: 'SAMHSA National Helpline',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: '24/7, 365 days',
     },
     '1-800-422-4453': {
       name: 'Childhelp National Child Abuse Hotline',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: '24/7',
     },
     '211': {
       name: '211 (Financial Crisis/Local Services)',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: '24/7',
     },
     '1-866-488-7386': {
       name: 'Trevor Project',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: '24/7 LGBTQ+ youth',
     },
     '1-800-273-8255': {
       name: 'Veterans Crisis Line (old number)',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: 'Now also 988, press 1',
     },
     '1-800-950-6264': {
       name: 'NAMI Helpline',
-      verified: '2024-12-07',
+      verified: '2025-12-08',
       notes: 'Mon-Fri, 10am-10pm ET',
     },
   };

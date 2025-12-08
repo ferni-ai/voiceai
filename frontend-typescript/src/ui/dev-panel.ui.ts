@@ -168,6 +168,16 @@ const ICONS = {
   target:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
   send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+  gamepad:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><rect x="2" y="6" width="20" height="12" rx="2"/></svg>',
+  messageCircle:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>',
+  palmtree:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4"/><path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3"/><path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35z"/><path d="M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14"/></svg>',
+  headphones:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>',
+  barChart:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>',
 };
 
 // ============================================================================
@@ -447,26 +457,26 @@ function createPanel(): HTMLElement {
       
       <!-- 🎮 Music Games -->
       <section class="dev-section">
-        <h3 class="dev-section__title">🎮 Music Games</h3>
+        <h3 class="dev-section__title">${ICONS.gamepad} Music Games</h3>
         <p class="dev-section__desc">Test music games and dashboard</p>
         <div class="dev-actions">
           <button class="dev-action-btn dev-action-btn--primary" data-game="dashboard">
-            📊 Musical You Dashboard
+            ${ICONS.barChart} Musical You Dashboard
           </button>
           <button class="dev-action-btn" data-game="name-that-tune">
-            🎵 Name That Tune
+            ${ICONS.music} Name That Tune
           </button>
           <button class="dev-action-btn" data-game="one-word-song">
-            💬 One Word Song
+            ${ICONS.messageCircle} One Word Song
           </button>
           <button class="dev-action-btn" data-game="desert-island">
-            🏝️ Desert Island Discs
+            ${ICONS.palmtree} Desert Island Discs
           </button>
           <button class="dev-action-btn" data-game="this-or-that">
-            ⚡ This or That
+            ${ICONS.zap} This or That
           </button>
           <button class="dev-action-btn" data-game="mood-dj">
-            🎧 Mood DJ Challenge
+            ${ICONS.headphones} Mood DJ Challenge
           </button>
         </div>
       </section>
@@ -2099,7 +2109,7 @@ async function handleGameAction(action: string): Promise<void> {
         log.error('Failed to open music dashboard:', e);
       }
       break;
-      
+
     case 'name-that-tune':
     case 'one-word-song':
     case 'desert-island':
@@ -2125,11 +2135,11 @@ async function requestGameStart(gameType: string): Promise<void> {
   };
 
   const mappedType = gameTypeMap[gameType] || gameType;
-  
+
   try {
     const { connectionService } = await import('../services/connection.service.js');
     const room = connectionService.getRoom();
-    
+
     if (!room?.localParticipant) {
       showToast('Not connected to voice session', 'error');
       return;
@@ -2142,11 +2152,8 @@ async function requestGameStart(gameType: string): Promise<void> {
       timestamp: Date.now(),
     });
 
-    await room.localParticipant.publishData(
-      new TextEncoder().encode(message),
-      { reliable: true }
-    );
-    
+    await room.localParticipant.publishData(new TextEncoder().encode(message), { reliable: true });
+
     log.info({ gameType: mappedType }, '🎮 Sent game start request');
     showToast(`Starting ${gameType.replace(/-/g, ' ')}...`, 'info');
   } catch (error) {
@@ -2176,7 +2183,7 @@ function showToast(message: string, type: 'info' | 'success' | 'error' = 'info')
     animation: toast-in 0.3s ease-out;
   `;
   document.body.appendChild(toast);
-  
+
   setTimeout(() => {
     toast.style.animation = 'toast-out 0.3s ease-in forwards';
     setTimeout(() => toast.remove(), 300);
@@ -2280,7 +2287,8 @@ async function handleOutreachAction(action: string): Promise<void> {
             userId,
             channel: 'email',
             subject: 'Test from Ferni 🌱',
-            message: 'Hey! This is a test email from the Ferni dev panel. Just making sure everything is connected!',
+            message:
+              'Hey! This is a test email from the Ferni dev panel. Just making sure everything is connected!',
           }),
         });
         setStatus(emailRes.ok ? '✓ Email sent!' : '✕ Email failed', !emailRes.ok);
@@ -2294,7 +2302,8 @@ async function handleOutreachAction(action: string): Promise<void> {
           body: JSON.stringify({
             userId,
             channel: 'call',
-            message: 'Hey! This is Ferni calling from the dev panel. Just a quick test to make sure calls are working!',
+            message:
+              'Hey! This is Ferni calling from the dev panel. Just a quick test to make sure calls are working!',
           }),
         });
         setStatus(callRes.ok ? '✓ Call initiated!' : '✕ Call failed', !callRes.ok);
@@ -3073,7 +3082,7 @@ const EMOTION_MAP: Record<string, VoiceEmotion> = {
   encouraging: 'encouraging',
 };
 
-function triggerEmotion(emotion: VoiceEmotion | string): void {
+function triggerEmotion(emotion: string): void {
   const mappedEmotion = EMOTION_MAP[emotion] || 'neutral';
   presenceUI.setVoiceEmotion(mappedEmotion);
   log.info({ emotion, mapped: mappedEmotion }, 'Set Ferni emotion');
@@ -3136,7 +3145,7 @@ function triggerReaction(reaction: string): void {
   }
 }
 
-function triggerFlashEmotion(emotion: VoiceEmotion | string): void {
+function triggerFlashEmotion(emotion: string): void {
   const mappedEmotion = EMOTION_MAP[emotion] || 'neutral';
   presenceUI.flashEmotion(mappedEmotion, 2000);
   log.info({ emotion, mapped: mappedEmotion }, 'Flashed Ferni emotion (2s)');

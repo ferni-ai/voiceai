@@ -338,10 +338,9 @@ async function loadDynamicAgents(): Promise<void> {
     // Re-add entrance animation class
     rosterContainer.classList.add('entrance-roster');
     
-    // Mark entrance complete after animation
-    setTimeout(() => {
-      rosterContainer?.classList.add('entrance-complete');
-    }, 800);
+    // FIX: Only reveal roster when app is loaded and entrance animations are ready
+    // This prevents flash of all team members on mobile startup
+    revealRosterWhenReady(rosterContainer);
 
   } catch (err) {
     log.warn('Dynamic agent loading failed:', err);
@@ -604,6 +603,55 @@ function hideRosterLoading(): void {
 }
 
 /**
+ * Reveal roster only when app is loaded and entrance animations are ready.
+ * This prevents flash of all team members on mobile startup.
+ */
+function revealRosterWhenReady(container: HTMLElement): void {
+  // Remove any legacy inline styles (from old HTML)
+  container.style.removeProperty('visibility');
+  container.style.removeProperty('opacity');
+  
+  // Check if app is already loaded
+  if (document.body.classList.contains('app-loaded')) {
+    // App is loaded - remove initializing class to trigger entrance animation
+    container.classList.remove('roster-initializing');
+    
+    // Mark entrance complete after animation
+    setTimeout(() => {
+      container.classList.add('entrance-complete');
+    }, 800);
+  } else {
+    // App not loaded yet - wait for it
+    // Use MutationObserver to watch for app-loaded class
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          if (document.body.classList.contains('app-loaded')) {
+            observer.disconnect();
+            container.classList.remove('roster-initializing');
+            
+            // Mark entrance complete after animation
+            setTimeout(() => {
+              container.classList.add('entrance-complete');
+            }, 800);
+            break;
+          }
+        }
+      }
+    });
+    
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    
+    // Safety timeout - don't wait forever
+    setTimeout(() => {
+      observer.disconnect();
+      container.classList.remove('roster-initializing');
+      container.classList.add('entrance-complete');
+    }, 5000);
+  }
+}
+
+/**
  * 🏪 Add marketplace button to the roster.
  * Opens the agent marketplace modal for browsing/installing external agents.
  */
@@ -674,6 +722,9 @@ function attachEventListenersToExistingElements(): void {
     
     attachEventListenersToElement(htmlElement, personaId, persona.name);
   }
+  
+  // FIX: Only reveal roster when app is loaded and entrance animations are ready
+  revealRosterWhenReady(rosterContainer);
   
   usingDynamicAgents = false;
   log.debug('Attached listeners to existing elements:', existingElements.length);
