@@ -46,6 +46,7 @@ export interface SessionServices {
   userId?: string;
   personaId?: string; // Current persona ID for persona-specific memory retrieval
   sessionStartTime: number; // Timestamp when session started
+  realtimeConversationId?: string; // Firestore conversation ID for real-time turn persistence
 
   // Handoff State (per-session, not global)
   // Fixes BUG #1-4: Global state cross-session contamination

@@ -569,12 +569,12 @@ export function getActiveGoals(userId: string): Array<{
   status: string;
 }> {
   const userGoals = Array.from(goals.values()).filter(
-    (g) => g.userId === userId && g.status === 'active'
+    (g) => g.userId === userId && (g.status === 'in-progress' || g.status === 'on-track' || g.status === 'not-started')
   );
   
   return userGoals.map((g) => ({
     id: g.id,
-    name: g.name,
+    name: g.title,
     category: g.category,
     targetDate: g.targetDate,
     status: g.status,
@@ -602,19 +602,19 @@ export function getUpcomingMilestones(userId: string, withinDays = 90): Array<{
   }> = [];
   
   const userGoals = Array.from(goals.values()).filter(
-    (g) => g.userId === userId && g.status === 'active'
+    (g) => g.userId === userId && (g.status === 'in-progress' || g.status === 'on-track' || g.status === 'not-started')
   );
   
   for (const goal of userGoals) {
     for (const milestone of goal.milestones) {
-      if (milestone.targetDate && milestone.status !== 'completed') {
+      if (milestone.targetDate && !milestone.completed) {
         const date = new Date(milestone.targetDate);
         if (date >= now && date <= cutoff) {
           milestones.push({
-            name: milestone.name,
+            name: milestone.title,
             targetDate: date,
             goalId: goal.id,
-            goalName: goal.name,
+            goalName: goal.title,
             category: goal.category,
           });
         }
