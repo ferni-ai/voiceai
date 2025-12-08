@@ -245,6 +245,20 @@ export {
 } from './voice-manager.js';
 
 // ============================================================================
+// PROSODY-TURN PREDICTION BRIDGE
+// ============================================================================
+
+export {
+  mapPitchContourToIntonation,
+  getIntonationFromVoiceEmotion,
+  createTurnPredictionContext,
+  predictTurnWithVoice,
+  voiceSuggestsTurnComplete,
+  type Intonation,
+  type EnhancedTurnPrediction,
+} from './prosody-turn-bridge.js';
+
+// ============================================================================
 // MUSIC REACTIONS
 // ============================================================================
 
