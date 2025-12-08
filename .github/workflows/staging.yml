@@ -136,13 +136,24 @@ jobs:
       - name: Configure Docker
         run: gcloud auth configure-docker gcr.io
 
+      - name: Setup Node.js for design-system
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Build design-system (required for Docker)
+        run: |
+          npm ci --ignore-scripts
+          node design-system/build.js
+
       - name: Build staging image
         run: |
           docker build \
             --build-arg BUILD_SHA=${{ github.sha }} \
             --build-arg NODE_ENV=staging \
             -t gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:staging-${{ needs.context.outputs.short_sha }} \
-            -f Dockerfile.ui .
+            -f docker/Dockerfile.ui .
 
       - name: Push staging image
         run: |
