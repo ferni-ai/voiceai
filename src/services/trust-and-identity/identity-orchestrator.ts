@@ -31,7 +31,7 @@ import {
   type IdentificationResult as VoiceIdResult,
   ContinuousAuthenticator,
 } from '../voice-enrollment.js';
-import { getVoiceProfile, saveVoiceProfile } from '../voice-profile-store.js';
+import { loadVoiceProfile, saveVoiceProfile } from '../voice-profile-store.js';
 
 // Trust and Contact imports
 import {
@@ -165,7 +165,7 @@ export async function startIdentitySession(
   // Step 4: Get voice profile for continuous auth
   let continuousAuth: ContinuousAuthenticator | undefined;
   if (authContext.voiceEnrolled) {
-    const voiceProfile = await getVoiceProfile(identification.userId);
+    const voiceProfile = await loadVoiceProfile(identification.userId);
     if (voiceProfile) {
       continuousAuth = new ContinuousAuthenticator(voiceProfile);
     }
@@ -284,7 +284,7 @@ export async function processMessage(
     session,
     trustState,
     session.initialAuth,
-    { userId: session.userId, isNew: false, isReturning: true, profile: null, source: { type: 'session', identifier: sessionId }, linkedIdentifiers: [] }
+    { userId: session.userId, isNew: false, isReturning: true, profile: null, source: { type: 'device', identifier: sessionId }, linkedIdentifiers: [] }
   );
 
   // Update with current state

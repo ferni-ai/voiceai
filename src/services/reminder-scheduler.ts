@@ -49,7 +49,9 @@ export interface ScheduledReminder {
 
   // Metadata
   createdAt: Date;
-  createdBy: string; // Which persona created it (alex, jackie, etc.)
+  createdBy: string; // Which persona created it (alex-chen, maya-santos, ferni, etc.)
+  /** Persona ID for voice/formatting - defaults to createdBy if not set */
+  personaId?: string;
 }
 
 export interface VoiceMessage {
@@ -107,6 +109,7 @@ export async function createReminder(params: {
   deliveryMethod: ReminderDeliveryMethod;
   deliveryAddress: string;
   createdBy?: string;
+  personaId?: string;
 }): Promise<ScheduledReminder> {
   const reminder: ScheduledReminder = {
     id: `reminder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -122,6 +125,7 @@ export async function createReminder(params: {
     attempts: 0,
     createdAt: new Date(),
     createdBy: params.createdBy || 'alex',
+    personaId: params.personaId,
   };
 
   // Store in memory map (also try Firestore)
@@ -246,10 +250,16 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
       }
 
       case 'email': {
+        // Use persona-specific email formatting
+        const { getPersonaDisplayName } = await import('../personas/voice-registry.js');
+        const personaId = reminder.personaId || reminder.createdBy || 'ferni';
+        const displayName = getPersonaDisplayName(personaId);
+        const firstName = displayName.split(' ')[0];
+
         const emailResult = await sendEmail(
           reminder.deliveryAddress,
-          reminder.subject || `⏰ Reminder from Alex`,
-          `${reminder.message}\n\n${reminder.context ? `Context: ${reminder.context}\n\n` : ''}— Alex\nYour Communication Specialist`
+          reminder.subject || `⏰ Reminder from ${firstName}`,
+          `${reminder.message}\n\n${reminder.context ? `Context: ${reminder.context}\n\n` : ''}— ${firstName}`
         );
         if (emailResult.includes('trouble') || emailResult.includes('error')) {
           throw new Error(emailResult);
@@ -257,23 +267,56 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
         break;
       }
 
-      case 'call':
-        // Outbound call would use telephony.ts
-        // For now, fall back to SMS with indication a call was requested
-        await sendSMS(
-          reminder.deliveryAddress,
-          `📞 Reminder call requested: ${reminder.message} (Call feature coming soon - here's a text instead!)`
-        );
-        break;
+      case 'call': {
+        // Outbound call using persona's Cartesia voice
+        const { callWithPersonaVoice } = await import('./voice-call.js');
+        const personaId = reminder.personaId || reminder.createdBy || 'ferni';
 
-      case 'voice_message':
-        // Voice message would use TTS + MMS
-        // For now, send as SMS
-        await sendSMS(
+        const callResult = await callWithPersonaVoice(
           reminder.deliveryAddress,
-          `🎤 Voice reminder: ${reminder.message} (Voice message feature coming soon - here's a text instead!)`
+          reminder.message,
+          personaId,
+          { fallbackToTwilioVoice: true }
         );
+        if (!callResult.success) {
+          throw new Error(callResult.message);
+        }
+        logger.info({ callSid: callResult.callSid, personaId }, '📞 Reminder call initiated');
         break;
+      }
+
+      case 'voice_message': {
+        // Generate voice message with persona's Cartesia voice and send via MMS
+        const { generatePersonaVoice } = await import('./voice-call.js');
+        const { getPersonaDisplayName } = await import('../personas/voice-registry.js');
+        const personaId = reminder.personaId || reminder.createdBy || 'ferni';
+        const displayName = getPersonaDisplayName(personaId);
+        const firstName = displayName.split(' ')[0];
+
+        const audioBuffer = await generatePersonaVoice(reminder.message, personaId);
+
+        if (audioBuffer) {
+          // Try to send via MMS with audio
+          const audioBase64 = audioBuffer.toString('base64');
+          const audioDataUrl = `data:audio/mpeg;base64,${audioBase64}`;
+
+          // For MMS, we need a publicly accessible URL
+          // For now, send SMS with the message content
+          // In production, upload to GCS and send MMS with mediaUrl
+          await sendSMS(
+            reminder.deliveryAddress,
+            `🎤 Voice message from ${firstName}: "${reminder.message}"`
+          );
+          logger.info({ personaId }, '🎤 Voice message sent (TTS generated, sent as text)');
+        } else {
+          // Fallback if TTS fails
+          await sendSMS(
+            reminder.deliveryAddress,
+            `🎤 Voice message from ${firstName}: "${reminder.message}"`
+          );
+        }
+        break;
+      }
 
       default:
         throw new Error(`Unknown delivery method: ${reminder.deliveryMethod}`);
@@ -296,6 +339,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
 
 /**
  * Create a voice message using TTS
+ * Actually generates audio using Cartesia TTS and uploads to GCS
  */
 export async function createVoiceMessage(params: {
   userId: string;
@@ -312,22 +356,58 @@ export async function createVoiceMessage(params: {
 
   voiceMessageStore.set(voiceMessage.id, voiceMessage);
 
-  // In production, this would:
-  // 1. Call Cartesia TTS API to generate audio
-  // 2. Upload to cloud storage
-  // 3. Send via Twilio MMS
+  getLogger().info({ voiceMessageId: voiceMessage.id }, '🎤 Voice message generating with Cartesia TTS');
 
-  getLogger().info({ voiceMessageId: voiceMessage.id }, '🎤 Voice message queued for generation');
-
-  // For now, mark as ready but note it's not actually generated
-  voiceMessage.status = 'ready';
+  try {
+    // Generate audio with Cartesia TTS
+    const { generateAlexVoice } = await import('./voice-call.js');
+    const audioBuffer = await generateAlexVoice(params.message);
+    
+    if (audioBuffer) {
+      // Try to upload to GCS for public URL
+      const GCS_BUCKET = process.env.GCS_VOICE_BUCKET || 
+        (process.env.GOOGLE_CLOUD_PROJECT ? `${process.env.GOOGLE_CLOUD_PROJECT}-voice-audio` : '');
+      
+      if (GCS_BUCKET) {
+        try {
+          const gcs = await import('@google-cloud/storage');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const Storage = (gcs as any).Storage || (gcs as any).default?.Storage;
+          if (Storage) {
+            const storage = new Storage();
+            const bucket = storage.bucket(GCS_BUCKET);
+            const filename = `voice-messages/${voiceMessage.id}.mp3`;
+            const file = bucket.file(filename);
+            
+            await file.save(audioBuffer, {
+              metadata: { contentType: 'audio/mpeg' },
+              public: true,
+            });
+            
+            voiceMessage.audioUrl = `https://storage.googleapis.com/${GCS_BUCKET}/${filename}`;
+            getLogger().info({ voiceMessageId: voiceMessage.id, audioUrl: voiceMessage.audioUrl }, '🎤 Voice message uploaded to GCS');
+          }
+        } catch (gcsError) {
+          getLogger().warn({ error: String(gcsError) }, 'GCS upload failed, voice message will be text-only');
+        }
+      }
+      
+      voiceMessage.status = 'ready';
+    } else {
+      getLogger().warn({ voiceMessageId: voiceMessage.id }, 'Cartesia TTS failed, marking as ready for text fallback');
+      voiceMessage.status = 'ready';
+    }
+  } catch (error) {
+    getLogger().error({ error: String(error), voiceMessageId: voiceMessage.id }, 'Voice message generation failed');
+    voiceMessage.status = 'failed';
+  }
+  
   voiceMessageStore.set(voiceMessage.id, voiceMessage);
-
   return voiceMessage;
 }
 
 /**
- * Send a voice message via MMS
+ * Send a voice message via MMS (with audio) or SMS (text fallback)
  */
 export async function sendVoiceMessage(voiceMessageId: string, toPhone: string): Promise<string> {
   const voiceMessage = voiceMessageStore.get(voiceMessageId);
@@ -336,18 +416,64 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
     return "I couldn't find that voice message. Let me create a new one.";
   }
 
-  if (voiceMessage.status !== 'ready') {
+  if (voiceMessage.status === 'generating') {
     return 'The voice message is still being prepared. Give me a moment.';
   }
 
-  // In production, this would send the audio via Twilio MMS
-  // For now, send the text with a note
+  if (voiceMessage.status === 'failed') {
+    return "I had trouble generating that voice message. Let me try again.";
+  }
+
+  // If we have an audio URL, send via MMS
+  if (voiceMessage.audioUrl) {
+    try {
+      // Send MMS with audio attachment via Twilio
+      const accountSid = process.env.TWILIO_ACCOUNT_SID;
+      const authToken = process.env.TWILIO_AUTH_TOKEN;
+      const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+      
+      if (accountSid && authToken && fromNumber) {
+        const cleanPhone = toPhone.replace(/\D/g, '');
+        const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+        
+        const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+        const response = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Basic ${auth}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              To: e164Phone,
+              From: fromNumber,
+              Body: `🎤 Voice message from Alex`,
+              MediaUrl: voiceMessage.audioUrl,
+            }),
+          }
+        );
+        
+        if (response.ok) {
+          voiceMessage.status = 'sent';
+          voiceMessage.deliveredAt = new Date();
+          voiceMessageStore.set(voiceMessageId, voiceMessage);
+          getLogger().info({ voiceMessageId, audioUrl: voiceMessage.audioUrl }, '🎤 Voice message sent via MMS');
+          return "Voice message sent! They'll receive an audio message.";
+        }
+      }
+    } catch (mmsError) {
+      getLogger().warn({ error: String(mmsError) }, 'MMS send failed, falling back to SMS');
+    }
+  }
+  
+  // Fallback to SMS with text
   const result = await sendSMS(
     toPhone,
-    `🎤 Voice message from Alex: "${voiceMessage.message}" (Audio generation coming soon!)`
+    `🎤 Voice message from Alex: "${voiceMessage.message}"`
   );
 
-  if (!result.includes('trouble')) {
+  if (!result.includes('trouble') && !result.includes('error')) {
     voiceMessage.status = 'sent';
     voiceMessage.deliveredAt = new Date();
     voiceMessageStore.set(voiceMessageId, voiceMessage);

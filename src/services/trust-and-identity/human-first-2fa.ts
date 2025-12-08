@@ -621,8 +621,8 @@ export async function calculateTrustLevel(
   }
   
   // Check contact info
-  const hasPhone = !!(profile?.phone || profile?.linkedIdentifiers?.some((id) => id.startsWith('phone:')));
-  const hasEmail = !!profile?.email;
+  const hasPhone = !!(profile?.contactInfo?.phone || profile?.linkedIdentifiers?.some((id) => id.startsWith('phone:')));
+  const hasEmail = !!profile?.contactInfo?.email;
   
   return {
     userId,

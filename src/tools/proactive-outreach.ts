@@ -23,8 +23,9 @@ import {
   type ReminderDeliveryMethod,
 } from '../services/reminder-scheduler.js';
 import { sendEmail, sendSMS } from '../services/communication-service.js';
-import { callWithAlexVoice } from '../services/voice-call.js';
+import { callWithPersonaVoice } from '../services/voice-call.js';
 import { getDefaultStore } from '../memory/index.js';
+import { getPersonaDisplayName, getCanonicalPersonaId } from '../personas/voice-registry.js';
 
 /**
  * Make a phone call using Twilio with persona voice (via Cartesia TTS)
@@ -32,16 +33,17 @@ import { getDefaultStore } from '../memory/index.js';
  */
 async function makePhoneCall(
   phone: string,
-  message: string
+  message: string,
+  personaId: string = 'ferni'
 ): Promise<{ success: boolean; callSid?: string; error?: string }> {
   try {
-    const result = await callWithAlexVoice(phone, message, { fallbackToTwilioVoice: true });
+    const result = await callWithPersonaVoice(phone, message, personaId, { fallbackToTwilioVoice: true });
     if (result.success) {
       return { success: true, callSid: result.callSid };
     }
     return { success: false, error: result.message };
   } catch (error) {
-    getLogger().error({ error }, 'makePhoneCall failed');
+    getLogger().error({ error, personaId }, 'makePhoneCall failed');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -188,7 +190,7 @@ export async function canReachUser(
 export async function textUser(
   userId: string,
   message: string,
-  agentName = 'Ferni'
+  personaId = 'ferni'
 ): Promise<{ success: boolean; error?: string }> {
   const contact = await getUserContactInfo(userId);
 
@@ -197,17 +199,22 @@ export async function textUser(
   }
 
   try {
-    const fullMessage = `${message}\n\n— ${agentName}`;
+    // Get the persona's display name for the signature
+    const canonicalId = getCanonicalPersonaId(personaId);
+    const displayName = getPersonaDisplayName(canonicalId);
+    const firstName = displayName.split(' ')[0];
+
+    const fullMessage = `${message}\n\n— ${firstName}`;
     const result = await sendSMS(contact.phone, fullMessage);
 
     if (result.includes('trouble') || result.includes('error')) {
       return { success: false, error: result };
     }
 
-    getLogger().info({ userId, agentName }, '📱 Text sent to user');
+    getLogger().info({ userId, personaId: canonicalId }, '📱 Text sent to user');
     return { success: true };
   } catch (error) {
-    getLogger().error({ error, userId }, 'Failed to text user');
+    getLogger().error({ error, userId, personaId }, 'Failed to text user');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -219,7 +226,7 @@ export async function emailUser(
   userId: string,
   subject: string,
   message: string,
-  agentName = 'Ferni'
+  personaId = 'ferni'
 ): Promise<{ success: boolean; error?: string }> {
   const contact = await getUserContactInfo(userId);
 
@@ -228,28 +235,33 @@ export async function emailUser(
   }
 
   try {
-    const fullMessage = `${message}\n\n— ${agentName}\nYour AI Life Coach`;
+    // Get the persona's display name for the signature
+    const canonicalId = getCanonicalPersonaId(personaId);
+    const displayName = getPersonaDisplayName(canonicalId);
+    const firstName = displayName.split(' ')[0];
+
+    const fullMessage = `${message}\n\n— ${firstName}`;
     const result = await sendEmail(contact.email, subject, fullMessage);
 
     if (result.includes('trouble') || result.includes('error')) {
       return { success: false, error: result };
     }
 
-    getLogger().info({ userId, agentName, subject }, '📧 Email sent to user');
+    getLogger().info({ userId, personaId: canonicalId, subject }, '📧 Email sent to user');
     return { success: true };
   } catch (error) {
-    getLogger().error({ error, userId }, 'Failed to email user');
+    getLogger().error({ error, userId, personaId }, 'Failed to email user');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
 /**
- * Call the user immediately
+ * Call the user immediately using the specified persona's voice
  */
 export async function callUser(
   userId: string,
   message: string,
-  agentName = 'Ferni'
+  personaId = 'ferni'
 ): Promise<{ success: boolean; callSid?: string; error?: string }> {
   const contact = await getUserContactInfo(userId);
 
@@ -258,16 +270,18 @@ export async function callUser(
   }
 
   try {
-    const result = await makePhoneCall(contact.phone, message);
+    // Normalize persona ID and use for voice
+    const canonicalPersonaId = getCanonicalPersonaId(personaId);
+    const result = await makePhoneCall(contact.phone, message, canonicalPersonaId);
 
     if ('error' in result) {
       return { success: false, error: result.error };
     }
 
-    getLogger().info({ userId, agentName, callSid: result.callSid }, '📞 Call initiated to user');
+    getLogger().info({ userId, personaId: canonicalPersonaId, callSid: result.callSid }, '📞 Call initiated to user');
     return { success: true, callSid: result.callSid };
   } catch (error) {
-    getLogger().error({ error, userId }, 'Failed to call user');
+    getLogger().error({ error, userId, personaId }, 'Failed to call user');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -283,7 +297,7 @@ export async function scheduleText(
   userId: string,
   message: string,
   scheduledFor: Date,
-  agentName = 'Ferni'
+  personaId = 'ferni'
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
   const contact = await getUserContactInfo(userId);
 
@@ -292,24 +306,29 @@ export async function scheduleText(
   }
 
   try {
+    const canonicalId = getCanonicalPersonaId(personaId);
+    const displayName = getPersonaDisplayName(canonicalId);
+    const firstName = displayName.split(' ')[0];
+
     const reminder = await createReminder({
       userId,
-      message: `${message}\n\n— ${agentName}`,
+      message: `${message}\n\n— ${firstName}`,
       scheduledFor,
       timezone: contact.timezone || 'America/New_York',
       deliveryMethod: 'sms',
       deliveryAddress: contact.phone,
-      createdBy: agentName.toLowerCase(),
+      createdBy: canonicalId,
+      personaId: canonicalId,
     });
 
     getLogger().info(
-      { userId, reminderId: reminder.id, scheduledFor: scheduledFor.toISOString() },
+      { userId, reminderId: reminder.id, personaId: canonicalId, scheduledFor: scheduledFor.toISOString() },
       '📅 Text scheduled'
     );
 
     return { success: true, reminderId: reminder.id };
   } catch (error) {
-    getLogger().error({ error, userId }, 'Failed to schedule text');
+    getLogger().error({ error, userId, personaId }, 'Failed to schedule text');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -322,7 +341,7 @@ export async function scheduleEmail(
   subject: string,
   message: string,
   scheduledFor: Date,
-  agentName = 'Ferni'
+  personaId = 'ferni'
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
   const contact = await getUserContactInfo(userId);
 
@@ -331,25 +350,30 @@ export async function scheduleEmail(
   }
 
   try {
+    const canonicalId = getCanonicalPersonaId(personaId);
+    const displayName = getPersonaDisplayName(canonicalId);
+    const firstName = displayName.split(' ')[0];
+
     const reminder = await createReminder({
       userId,
-      message: `${message}\n\n— ${agentName}\nYour AI Life Coach`,
+      message: `${message}\n\n— ${firstName}`,
       subject,
       scheduledFor,
       timezone: contact.timezone || 'America/New_York',
       deliveryMethod: 'email',
       deliveryAddress: contact.email,
-      createdBy: agentName.toLowerCase(),
+      createdBy: canonicalId,
+      personaId: canonicalId,
     });
 
     getLogger().info(
-      { userId, reminderId: reminder.id, scheduledFor: scheduledFor.toISOString() },
+      { userId, reminderId: reminder.id, personaId: canonicalId, scheduledFor: scheduledFor.toISOString() },
       '📅 Email scheduled'
     );
 
     return { success: true, reminderId: reminder.id };
   } catch (error) {
-    getLogger().error({ error, userId }, 'Failed to schedule email');
+    getLogger().error({ error, userId, personaId }, 'Failed to schedule email');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -361,7 +385,7 @@ export async function scheduleCall(
   userId: string,
   message: string,
   scheduledFor: Date,
-  agentName = 'Ferni'
+  personaId = 'ferni'
 ): Promise<{ success: boolean; reminderId?: string; error?: string }> {
   const contact = await getUserContactInfo(userId);
 
@@ -370,6 +394,10 @@ export async function scheduleCall(
   }
 
   try {
+    const canonicalId = getCanonicalPersonaId(personaId);
+    const displayName = getPersonaDisplayName(canonicalId);
+    const firstName = displayName.split(' ')[0];
+
     const reminder = await createReminder({
       userId,
       message,
@@ -377,18 +405,19 @@ export async function scheduleCall(
       timezone: contact.timezone || 'America/New_York',
       deliveryMethod: 'call',
       deliveryAddress: contact.phone,
-      createdBy: agentName.toLowerCase(),
-      context: `Scheduled call from ${agentName}`,
+      createdBy: canonicalId,
+      personaId: canonicalId,
+      context: `Scheduled call from ${firstName}`,
     });
 
     getLogger().info(
-      { userId, reminderId: reminder.id, scheduledFor: scheduledFor.toISOString() },
+      { userId, reminderId: reminder.id, personaId: canonicalId, scheduledFor: scheduledFor.toISOString() },
       '📅 Call scheduled'
     );
 
     return { success: true, reminderId: reminder.id };
   } catch (error) {
-    getLogger().error({ error, userId }, 'Failed to schedule call');
+    getLogger().error({ error, userId, personaId }, 'Failed to schedule call');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

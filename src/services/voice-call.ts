@@ -1,14 +1,14 @@
 /**
  * Voice Call Service
  *
- * Makes outbound calls using Alex's Cartesia voice (not Twilio's default voice).
+ * Makes outbound calls using Cartesia TTS voices for any persona.
  * Also handles incoming call routing to LiveKit agents.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 
 // Voice registry for consistent voice ID resolution
-import { getVoiceId } from '../personas/voice-registry.js';
+import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
 
 // Environment
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
@@ -16,8 +16,16 @@ const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
 const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || '';
 
-// Get Alex's voice ID from the registry (single source of truth)
-const getAlexVoiceId = () => getVoiceId('alex-chen');
+// Twilio Polly voice mapping for fallback (when Cartesia unavailable)
+const TWILIO_FALLBACK_VOICES: Record<string, string> = {
+  ferni: 'Polly.Matthew',
+  'alex-chen': 'Polly.Matthew',
+  'maya-santos': 'Polly.Joanna',
+  'peter-john': 'Polly.Matthew',
+  'jordan-taylor': 'Polly.Joanna',
+  'nayan-patel': 'Polly.Matthew',
+  'jack-b': 'Polly.Matthew',
+};
 
 // LiveKit SIP configuration for incoming calls
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
@@ -31,7 +39,7 @@ const GCS_BUCKET =
 const GCS_BASE_URL = GCS_BUCKET ? `https://storage.googleapis.com/${GCS_BUCKET}` : '';
 
 // ============================================================================
-// CARTESIA TTS - Generate Alex's Voice
+// CARTESIA TTS - Generate Persona Voice
 // ============================================================================
 
 interface CartesiaAudioResponse {
@@ -40,13 +48,18 @@ interface CartesiaAudioResponse {
 }
 
 /**
- * Generate speech audio using Cartesia TTS with Alex's voice
+ * Generate speech audio using Cartesia TTS with any persona's voice
  */
-export async function generateAlexVoice(text: string): Promise<Buffer | null> {
+export async function generatePersonaVoice(
+  text: string,
+  personaId: string = 'ferni'
+): Promise<Buffer | null> {
   if (!CARTESIA_API_KEY) {
     getLogger().warn({}, 'Cartesia API key not configured');
     return null;
   }
+
+  const voiceId = getVoiceId(personaId);
 
   try {
     const response = await fetch('https://api.cartesia.ai/tts/bytes', {
@@ -61,7 +74,7 @@ export async function generateAlexVoice(text: string): Promise<Buffer | null> {
         transcript: text,
         voice: {
           mode: 'id',
-          id: getAlexVoiceId(),
+          id: voiceId,
         },
         output_format: {
           container: 'mp3',
@@ -74,16 +87,24 @@ export async function generateAlexVoice(text: string): Promise<Buffer | null> {
 
     if (!response.ok) {
       const error = await response.text();
-      getLogger().error({ status: response.status, error }, 'Cartesia TTS failed');
+      getLogger().error({ status: response.status, error, personaId }, 'Cartesia TTS failed');
       return null;
     }
 
     const arrayBuffer = await response.arrayBuffer();
     return Buffer.from(arrayBuffer);
   } catch (error) {
-    getLogger().error({ error }, 'Failed to generate voice');
+    getLogger().error({ error, personaId }, 'Failed to generate voice');
     return null;
   }
+}
+
+/**
+ * Generate speech audio using Cartesia TTS with Alex's voice
+ * @deprecated Use generatePersonaVoice(text, 'alex-chen') instead
+ */
+export async function generateAlexVoice(text: string): Promise<Buffer | null> {
+  return generatePersonaVoice(text, 'alex-chen');
 }
 
 // ============================================================================
@@ -168,25 +189,32 @@ async function getHostedAudioUrl(message: string, audioBuffer: Buffer): Promise<
 }
 
 // ============================================================================
-// OUTBOUND CALLS WITH ALEX'S VOICE
+// OUTBOUND CALLS WITH PERSONA VOICE
 // ============================================================================
 
+export interface PersonaCallOptions {
+  /** Fall back to Twilio's built-in voice if Cartesia/GCS unavailable. Default: true */
+  fallbackToTwilioVoice?: boolean;
+  /** Custom greeting to use instead of default "Hey, this is {name} calling" */
+  customGreeting?: string;
+}
+
 /**
- * Make an outbound call using Alex's Cartesia voice
+ * Make an outbound call using any persona's Cartesia voice
  *
  * This works by:
- * 1. Generating audio with Cartesia TTS
- * 2. Uploading to GCS for public access (if configured)
- * 3. Making Twilio call that plays the hosted audio
- * 4. Falls back to Twilio's built-in voice if hosting unavailable
+ * 1. Looking up the persona's voice ID from the registry
+ * 2. Generating audio with Cartesia TTS
+ * 3. Uploading to GCS for public access (if configured)
+ * 4. Making Twilio call that plays the hosted audio
+ * 5. Falls back to Twilio's built-in voice if hosting unavailable
  */
-export async function callWithAlexVoice(
+export async function callWithPersonaVoice(
   toPhone: string,
   message: string,
-  options?: {
-    fallbackToTwilioVoice?: boolean;
-  }
-): Promise<{ success: boolean; message: string; callSid?: string }> {
+  personaId: string = 'ferni',
+  options?: PersonaCallOptions
+): Promise<{ success: boolean; message: string; callSid?: string; usedCartesiaVoice?: boolean }> {
   const logger = getLogger();
 
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
@@ -197,43 +225,51 @@ export async function callWithAlexVoice(
   const cleanPhone = toPhone.replace(/\D/g, '');
   const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
 
-  logger.info({ to: e164Phone }, '📞 Initiating call with Alex voice...');
+  // Get persona display name for fallback greeting
+  const displayName = getPersonaDisplayName(personaId);
+  const firstName = displayName.split(' ')[0]; // "Maya Santos" -> "Maya"
 
-  // Try to generate Alex's voice
+  logger.info({ to: e164Phone, personaId }, `📞 Initiating call with ${firstName}'s voice...`);
+
+  // Try to generate persona's voice
   let twiml: string;
-  let usedAlexVoice = false;
+  let usedCartesiaVoice = false;
+
+  // Get fallback Twilio voice for this persona
+  const twilioVoice = TWILIO_FALLBACK_VOICES[personaId] || 'Polly.Matthew';
+  const greeting = options?.customGreeting || `Hey, this is ${firstName} calling.`;
 
   if (CARTESIA_API_KEY) {
-    const audioBuffer = await generateAlexVoice(message);
+    const audioBuffer = await generatePersonaVoice(message, personaId);
 
     if (audioBuffer) {
       // Try to host the audio
       const audioUrl = await getHostedAudioUrl(message, audioBuffer);
 
       if (audioUrl) {
-        // Use the hosted Alex voice audio
-        logger.info({ audioUrl }, '🎙️ Using hosted Alex voice audio');
+        // Use the hosted persona voice audio
+        logger.info({ audioUrl, personaId }, `🎙️ Using hosted ${firstName} voice audio`);
         twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Play>${audioUrl}</Play>
 </Response>`;
-        usedAlexVoice = true;
+        usedCartesiaVoice = true;
       } else {
         // GCS not available - fallback
-        logger.info({}, 'Generated Alex voice audio, but GCS hosting not available');
+        logger.info({ personaId }, `Generated ${firstName} voice audio, but GCS hosting not available`);
 
         if (options?.fallbackToTwilioVoice !== false) {
           twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Matthew">Hey, this is Alex calling.</Say>
+  <Say voice="${twilioVoice}">${escapeXml(greeting)}</Say>
   <Pause length="0.5"/>
-  <Say voice="Polly.Matthew">${escapeXml(message)}</Say>
+  <Say voice="${twilioVoice}">${escapeXml(message)}</Say>
 </Response>`;
         } else {
           return {
             success: false,
             message:
-              'Audio hosting (GCS) not configured for Alex voice calls. Set GCS_VOICE_BUCKET env var.',
+              'Audio hosting (GCS) not configured for voice calls. Set GCS_VOICE_BUCKET env var.',
           };
         }
       }
@@ -241,18 +277,18 @@ export async function callWithAlexVoice(
       // Cartesia failed, use Twilio voice
       twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Matthew">Hey, this is Alex calling.</Say>
+  <Say voice="${twilioVoice}">${escapeXml(greeting)}</Say>
   <Pause length="0.5"/>
-  <Say voice="Polly.Matthew">${escapeXml(message)}</Say>
+  <Say voice="${twilioVoice}">${escapeXml(message)}</Say>
 </Response>`;
     }
   } else {
     // No Cartesia, use Twilio voice
     twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Matthew">Hey, this is Alex calling.</Say>
+  <Say voice="${twilioVoice}">${escapeXml(greeting)}</Say>
   <Pause length="0.5"/>
-  <Say voice="Polly.Matthew">${escapeXml(message)}</Say>
+  <Say voice="${twilioVoice}">${escapeXml(message)}</Say>
 </Response>`;
   }
 
@@ -276,22 +312,37 @@ export async function callWithAlexVoice(
 
     if (response.ok) {
       const data = (await response.json()) as { sid: string };
-      const voiceInfo = usedAlexVoice ? '(using Alex voice)' : '(using Twilio voice)';
-      logger.info({ callSid: data.sid, usedAlexVoice }, `✅ Call initiated ${voiceInfo}`);
+      const voiceInfo = usedCartesiaVoice ? `(using ${firstName}'s Cartesia voice)` : '(using Twilio fallback voice)';
+      logger.info({ callSid: data.sid, usedCartesiaVoice, personaId }, `✅ Call initiated ${voiceInfo}`);
       return {
         success: true,
         message: `Calling ${e164Phone} now! ${voiceInfo}`,
         callSid: data.sid,
+        usedCartesiaVoice,
       };
     } else {
       const error = await response.text();
-      logger.error({ error }, 'Call failed');
+      logger.error({ error, personaId }, 'Call failed');
       return { success: false, message: `Call failed: ${error}` };
     }
   } catch (error) {
-    logger.error({ error }, 'Call error');
+    logger.error({ error, personaId }, 'Call error');
     return { success: false, message: 'Failed to initiate call' };
   }
+}
+
+/**
+ * Make an outbound call using Alex's Cartesia voice
+ * @deprecated Use callWithPersonaVoice(phone, message, 'alex-chen', options) instead
+ */
+export async function callWithAlexVoice(
+  toPhone: string,
+  message: string,
+  options?: {
+    fallbackToTwilioVoice?: boolean;
+  }
+): Promise<{ success: boolean; message: string; callSid?: string }> {
+  return callWithPersonaVoice(toPhone, message, 'alex-chen', options);
 }
 
 // ============================================================================
@@ -417,8 +468,10 @@ function escapeXml(text: string): string {
 // ============================================================================
 
 export default {
-  generateAlexVoice,
-  callWithAlexVoice,
+  generatePersonaVoice,
+  generateAlexVoice, // deprecated
+  callWithPersonaVoice,
+  callWithAlexVoice, // deprecated
   generateIncomingCallTwiml,
   configureIncomingCallWebhook,
 };

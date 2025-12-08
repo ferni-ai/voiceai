@@ -14,6 +14,15 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { OutreachItem } from './outreach-integration.js';
+import {
+  routeToPersona,
+  formatEmailMessage,
+  formatPushNotification,
+  getPersonaGreeting,
+  getOutreachVoiceConfig,
+  type FormatContext,
+} from '../outreach/persona-outreach-formatter.js';
+import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 
 const log = createLogger({ module: 'NotificationDelivery' });
 
@@ -68,7 +77,7 @@ export interface UserChannelConfig {
 // TEMPLATES - Warm, human language
 // ============================================================================
 
-const PUSH_TEMPLATES = {
+const PUSH_TEMPLATES: Record<string, { icon: string; badge: number }> = {
   thinking_of_you: {
     icon: '/icons/ferni-heart-192.png',
     badge: 1,
@@ -79,6 +88,14 @@ const PUSH_TEMPLATES = {
   },
   growth_reflection: {
     icon: '/icons/ferni-growth-192.png',
+    badge: 1,
+  },
+  habit_check: {
+    icon: '/icons/ferni-check-192.png',
+    badge: 1,
+  },
+  appointment_reminder: {
+    icon: '/icons/ferni-calendar-192.png',
     badge: 1,
   },
 };
@@ -174,30 +191,47 @@ export async function deliverPush(
 
 /**
  * Deliver via email
+ * @param personaId - Which persona should send this email (default: auto-routed)
  */
 export async function deliverEmail(
   item: OutreachItem,
   email: string,
-  userName?: string
+  userName?: string,
+  personaId?: string
 ): Promise<DeliveryResult> {
+  // Determine persona for this outreach
+  const persona = personaId || item.personaId || routeToPersona(item.type, { topic: item.type });
+  const displayName = getPersonaDisplayName(persona);
+  const firstName = displayName.split(' ')[0];
+
   const name = userName || 'friend';
-  const subject =
-    EMAIL_SUBJECTS[item.type]?.(name) || EMAIL_SUBJECTS.thinking_of_you(name);
+
+  // Generate persona-specific subject
+  const subjectTemplates: Record<string, (n: string, p: string) => string> = {
+    thinking_of_you: (n, p) => `Hey ${n}, ${p} here - just thinking of you`,
+    celebration: (n, p) => `${n}, ${p} noticed something ✨`,
+    growth_reflection: (n, p) => `${n}, ${p} noticed something`,
+    habit_check: (n, p) => `${p} checking in on your progress`,
+    appointment_reminder: (n, p) => `${p} here - quick reminder`,
+  };
+
+  const subject = subjectTemplates[item.type]?.(name, firstName)
+    || `Hey ${name}, ${firstName} here`;
 
   const payload: EmailPayload = {
     to: email,
     subject,
     text: item.message,
-    html: generateEmailHtml(item, name),
+    html: generateEmailHtml(item, name, persona),
     replyTo: 'hello@ferni.ai',
   };
 
   try {
     // Use Sendgrid or Postmark
     const sent = await sendEmailViaSendgrid(payload);
-    
+
     if (sent) {
-      log.info({ userId: item.userId, email: maskEmail(email) }, '📧 Email sent');
+      log.info({ userId: item.userId, email: maskEmail(email), personaId: persona }, '📧 Email sent');
       return {
         success: true,
         channel: 'email',
@@ -261,6 +295,53 @@ export async function deliverSms(
     return {
       success: false,
       channel: 'sms',
+      error: String(error),
+      retryable: isRetryableError(error),
+    };
+  }
+}
+
+/**
+ * Deliver via voice call using Cartesia TTS
+ * @param personaId - Which persona's voice to use (default: 'ferni')
+ */
+export async function deliverVoice(
+  item: OutreachItem,
+  phone: string,
+  personaId: string = 'ferni'
+): Promise<DeliveryResult> {
+  try {
+    // Use the voice call service with Cartesia TTS
+    const { callWithPersonaVoice } = await import('../voice-call.js');
+
+    const result = await callWithPersonaVoice(phone, item.message, personaId, {
+      fallbackToTwilioVoice: true
+    });
+
+    if (result.success) {
+      log.info(
+        { userId: item.userId, phone: maskPhone(phone), callSid: result.callSid, personaId },
+        '📞 Voice call initiated'
+      );
+      return {
+        success: true,
+        channel: 'voice',
+        messageId: result.callSid,
+        sentAt: new Date(),
+      };
+    }
+
+    return {
+      success: false,
+      channel: 'voice',
+      error: result.message,
+      retryable: result.message.includes('not configured') ? false : true,
+    };
+  } catch (error) {
+    log.error({ error, userId: item.userId }, 'Voice delivery failed');
+    return {
+      success: false,
+      channel: 'voice',
       error: String(error),
       retryable: isRetryableError(error),
     };
@@ -342,13 +423,15 @@ async function tryChannel(
       return deliverSms(item, config.phone);
 
     case 'voice':
-      // Voice calls handled separately (requires LiveKit)
-      return {
-        success: false,
-        channel: 'voice',
-        error: 'Voice not implemented in notification delivery',
-        retryable: false,
-      };
+      if (!config.phone) {
+        return {
+          success: false,
+          channel: 'voice',
+          error: 'No phone number',
+          retryable: false,
+        };
+      }
+      return deliverVoice(item, config.phone);
 
     default:
       return {
@@ -377,8 +460,25 @@ function getPushTitle(item: OutreachItem): string {
   }
 }
 
-function generateEmailHtml(item: OutreachItem, name: string): string {
-  const accentColor = '#4a6741'; // Ferni sage green
+// Persona brand colors for emails
+const PERSONA_COLORS: Record<string, string> = {
+  ferni: '#4a6741',      // Sage green
+  'maya-santos': '#a67a6a', // Warm terracotta
+  'alex-chen': '#5a6b8a',   // Professional blue
+  'peter-john': '#3a6b73',  // Teal
+  'jordan-taylor': '#c4856a', // Warm coral
+  'nayan-patel': '#7a6b8a',  // Calm purple
+  'jack-b': '#9a7b5a',      // Warm brown
+};
+
+function generateEmailHtml(item: OutreachItem, name: string, personaId: string = 'ferni'): string {
+  const accentColor = PERSONA_COLORS[personaId] || PERSONA_COLORS.ferni;
+  const displayName = getPersonaDisplayName(personaId);
+  const firstName = displayName.split(' ')[0];
+
+  // Get persona's email signature from config
+  const config = getOutreachVoiceConfig(personaId);
+  const signature = config.channel_styles.email?.signature || `Best,\n${firstName}`;
 
   return `
 <!DOCTYPE html>
@@ -433,6 +533,12 @@ function generateEmailHtml(item: OutreachItem, name: string): string {
       border-radius: 12px;
       border-left: 3px solid ${accentColor};
     }
+    .signature {
+      font-size: 14px;
+      color: #5a5a5a;
+      margin-top: 16px;
+      white-space: pre-line;
+    }
     .cta {
       text-align: center;
       margin-top: 32px;
@@ -461,23 +567,24 @@ function generateEmailHtml(item: OutreachItem, name: string): string {
   <div class="container">
     <div class="header">
       <img src="https://app.ferni.ai/icons/ferni-logo-96.png" alt="Ferni" class="logo">
-      <p class="greeting">A note from Ferni</p>
+      <p class="greeting">A note from ${firstName}</p>
       <h1>Hey ${name}</h1>
     </div>
-    
+
     <div class="message">
       ${item.message}
+      <div class="signature">${signature}</div>
     </div>
-    
+
     <div class="cta">
-      <a href="https://app.ferni.ai/?from=email&notification=${item.id}" class="button">
-        Chat with Ferni
+      <a href="https://app.ferni.ai/?from=email&notification=${item.id}&persona=${personaId}" class="button">
+        Chat with ${firstName}
       </a>
     </div>
-    
+
     <div class="footer">
       <p>
-        You're receiving this because you signed up for Ferni check-ins.
+        You're receiving this because you signed up for check-ins.
         <br>
         <a href="https://app.ferni.ai/settings/notifications">Update preferences</a>
       </p>

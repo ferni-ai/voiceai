@@ -12,25 +12,31 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import {
-  getDueMoments,
-  markMomentSent,
-  generateThinkingOfYouMoments,
   generateRandomWarmth,
+  generateThinkingOfYouMoments,
+  markMomentSent,
   type ThinkingOfYouMoment,
 } from './thinking-of-you.js';
 
 import {
-  getUncelebratedWins,
   generateCelebration,
-  recordCelebrationResponse,
+  getUncelebratedWins,
   type CelebrationOpportunity,
 } from './small-wins.js';
 
 import {
-  getUnreflectedGrowth,
   generateGrowthReflection,
+  getUnreflectedGrowth,
   type GrowthReflection,
 } from './growth-reflection.js';
+
+import {
+  routeToPersona,
+  formatSmsMessage,
+  formatPushNotification,
+  formatVoiceMessage,
+  type FormatContext,
+} from '../outreach/persona-outreach-formatter.js';
 
 const log = createLogger({ module: 'OutreachIntegration' });
 
@@ -41,11 +47,13 @@ const log = createLogger({ module: 'OutreachIntegration' });
 export interface OutreachItem {
   id: string;
   userId: string;
-  type: 'thinking_of_you' | 'celebration' | 'growth_reflection';
+  type: 'thinking_of_you' | 'celebration' | 'growth_reflection' | 'habit_check' | 'appointment_reminder';
   priority: 'high' | 'medium' | 'low';
   message: string;
   ssml: string;
   scheduledFor: Date;
+  /** Which persona should deliver this outreach (default: auto-routed based on type) */
+  personaId?: string;
   metadata: Record<string, unknown>;
 }
 
@@ -110,10 +118,12 @@ const userPreferences = new Map<string, OutreachPreferences>();
 /**
  * Queue a "thinking of you" moment for delivery
  */
-export function queueThinkingOfYou(
-  userId: string,
-  moment: ThinkingOfYouMoment
-): OutreachItem {
+export function queueThinkingOfYou(userId: string, moment: ThinkingOfYouMoment): OutreachItem {
+  // Route to the best persona for this type of outreach
+  const personaId = routeToPersona('thinking_of_you', {
+    topic: moment.trigger.context,
+  });
+
   const item: OutreachItem = {
     id: moment.id,
     userId,
@@ -122,6 +132,7 @@ export function queueThinkingOfYou(
     message: moment.message,
     ssml: moment.ssml,
     scheduledFor: moment.suggestedTiming,
+    personaId,
     metadata: {
       triggerType: moment.trigger.type,
       triggerContext: moment.trigger.context,
@@ -132,7 +143,7 @@ export function queueThinkingOfYou(
   userQueue.push(item);
   outreachQueue.set(userId, userQueue);
 
-  log.debug({ userId, itemId: item.id, type: moment.type }, '📬 Queued outreach');
+  log.debug({ userId, itemId: item.id, type: moment.type, personaId }, '📬 Queued outreach');
 
   return item;
 }
@@ -144,6 +155,11 @@ export function queueCelebration(
   userId: string,
   celebration: CelebrationOpportunity
 ): OutreachItem {
+  // Route based on win type (habits go to Maya, general to Ferni)
+  const personaId = routeToPersona('celebration', {
+    topic: celebration.win.type,
+  });
+
   const item: OutreachItem = {
     id: celebration.win.id,
     userId,
@@ -152,6 +168,7 @@ export function queueCelebration(
     message: celebration.celebration,
     ssml: celebration.ssml,
     scheduledFor: new Date(), // Celebrations happen ASAP
+    personaId,
     metadata: {
       winType: celebration.win.type,
       winDescription: celebration.win.description,
@@ -162,16 +179,20 @@ export function queueCelebration(
   userQueue.push(item);
   outreachQueue.set(userId, userQueue);
 
+  log.debug({ userId, itemId: item.id, type: 'celebration', personaId }, '📬 Queued celebration');
+
   return item;
 }
 
 /**
  * Queue a growth reflection for delivery
  */
-export function queueGrowthReflection(
-  userId: string,
-  reflection: GrowthReflection
-): OutreachItem {
+export function queueGrowthReflection(userId: string, reflection: GrowthReflection): OutreachItem {
+  // Growth reflections are typically Ferni's domain
+  const personaId = routeToPersona('growth_reflection', {
+    topic: reflection.pattern.type,
+  });
+
   const item: OutreachItem = {
     id: reflection.pattern.id,
     userId,
@@ -180,9 +201,8 @@ export function queueGrowthReflection(
     message: reflection.reflection,
     ssml: reflection.ssml,
     scheduledFor:
-      reflection.timing === 'now'
-        ? new Date()
-        : new Date(Date.now() + 24 * 60 * 60 * 1000),
+      reflection.timing === 'now' ? new Date() : new Date(Date.now() + 24 * 60 * 60 * 1000),
+    personaId,
     metadata: {
       patternType: reflection.pattern.type,
       significance: reflection.pattern.significance,
@@ -192,6 +212,8 @@ export function queueGrowthReflection(
   const userQueue = outreachQueue.get(userId) || [];
   userQueue.push(item);
   outreachQueue.set(userId, userQueue);
+
+  log.debug({ userId, itemId: item.id, type: 'growth_reflection', personaId }, '📬 Queued growth reflection');
 
   return item;
 }
@@ -249,9 +271,7 @@ export function canSendOutreach(userId: string): {
   }
 
   // Check quiet days
-  const today = new Date()
-    .toLocaleDateString('en-US', { weekday: 'long' })
-    .toLowerCase();
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
   if (prefs.quietDays.includes(today)) {
     return { allowed: false, reason: 'Quiet day' };
   }
@@ -353,33 +373,135 @@ export async function executeOutreach(
 
 /**
  * Send message via appropriate channel
+ *
+ * Uses the real delivery infrastructure:
+ * - SMS via Twilio (outreach delivery system)
+ * - Push via Firebase (push-notifications)
+ * - Voice via Twilio + Cartesia TTS (voice-call service)
+ *
+ * All channels now use persona-specific formatting from outreach-voice.json
  */
-async function sendMessage(
-  item: OutreachItem,
-  method: 'voice' | 'sms' | 'push'
-): Promise<boolean> {
-  // This is a placeholder - integrate with your actual outreach system
-  // Options:
-  // 1. SMS via Twilio
-  // 2. Push notification via Firebase
-  // 3. Voice call via LiveKit
+async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push'): Promise<boolean> {
+  try {
+    // Get user profile via Firestore directly (avoid circular dependency)
+    const { getFirestore } = await import('firebase-admin/firestore');
+    const db = getFirestore();
+    const userDoc = await db.collection('bogle_users').doc(item.userId).get();
+    const profile = userDoc.exists ? userDoc.data() : null;
 
-  log.debug(
-    {
-      userId: item.userId,
-      method,
-      message: item.message.slice(0, 50),
-    },
-    '📤 Would send message (placeholder)'
-  );
+    if (!profile) {
+      log.warn({ userId: item.userId }, 'No profile found for outreach delivery');
+      return false;
+    }
 
-  // For now, return true to simulate success
-  // In production, this would call:
-  // - twilioClient.messages.create() for SMS
-  // - admin.messaging().send() for push
-  // - livekit outbound call for voice
+    // Determine which persona should deliver this outreach
+    const personaId = item.personaId || routeToPersona(item.type, {
+      topic: item.metadata?.triggerContext as string | undefined,
+    });
 
-  return true;
+    // Build format context from profile and item metadata
+    const formatContext: FormatContext = {
+      userName: profile.firstName as string | undefined || profile.name as string | undefined,
+      topic: item.metadata?.triggerContext as string | undefined,
+      habit: item.metadata?.habit as string | undefined,
+      appointment: item.metadata?.appointment as string | undefined,
+    };
+
+    switch (method) {
+      case 'sms': {
+        const phone = profile.phone as string | undefined;
+        if (!phone) {
+          log.warn({ userId: item.userId }, 'No phone number for SMS delivery');
+          return false;
+        }
+
+        // Format the message using persona's style
+        const formatted = formatSmsMessage(personaId, item.message, formatContext);
+
+        // Use the communication service for SMS
+        const { sendSMS } = await import('../communication-service.js');
+        const result = await sendSMS(phone, formatted.message);
+        const success = !result.includes('trouble') && !result.includes('error');
+        if (success) {
+          log.info({ userId: item.userId, method: 'sms', personaId }, '📱 SMS sent');
+        }
+        return success;
+      }
+
+      case 'push': {
+        // Use the outreach delivery push notification service
+        const { sendPushNotification, hasPushEnabled } =
+          await import('../outreach/delivery/push-notifications.js');
+
+        if (!hasPushEnabled(item.userId)) {
+          log.debug({ userId: item.userId }, 'Push not enabled for user');
+          return false;
+        }
+
+        // Format push notification using persona's style
+        const formatted = formatPushNotification(personaId, item.message, {
+          ...formatContext,
+          topic: item.type, // Use outreach type for title selection
+        });
+
+        const results = await sendPushNotification({
+          userId: item.userId,
+          outreachId: item.id,
+          personaId,
+          title: formatted.title,
+          body: formatted.body,
+          data: {
+            type: item.type,
+            itemId: item.id,
+            personaId,
+          },
+        });
+
+        // Results is an array of delivery results (one per token)
+        const success = results.some((r) => r.success);
+        if (success) {
+          log.info({ userId: item.userId, method: 'push', personaId }, '🔔 Push notification sent');
+        }
+        return success;
+      }
+
+      case 'voice': {
+        const phone = profile.phone as string | undefined;
+        if (!phone) {
+          log.warn({ userId: item.userId }, 'No phone number for voice call');
+          return false;
+        }
+
+        // Format voice message using persona's style
+        const formatted = formatVoiceMessage(personaId, item.message, formatContext);
+
+        // Use the voice call service with persona's Cartesia voice
+        const { callWithPersonaVoice } = await import('../voice-call.js');
+        const result = await callWithPersonaVoice(phone, formatted.message, personaId, {
+          fallbackToTwilioVoice: true,
+          customGreeting: formatted.opening,
+        });
+
+        if (result.success) {
+          log.info(
+            { userId: item.userId, method: 'voice', personaId, callSid: result.callSid, usedCartesiaVoice: result.usedCartesiaVoice },
+            '📞 Voice call initiated'
+          );
+          return true;
+        }
+
+        log.warn({ userId: item.userId, personaId, error: result.message }, 'Voice call failed');
+        return false;
+      }
+
+      default:
+        log.warn({ method }, 'Unknown delivery method');
+        return false;
+    }
+  } catch (error) {
+    log.error({ error: String(error), userId: item.userId, method }, 'Outreach delivery error');
+    return false;
+  }
 }
 
 // ============================================================================
@@ -449,8 +571,7 @@ export async function processUserOutreach(userId: string): Promise<{
     }
 
     const prefs = userPreferences.get(userId) || DEFAULT_PREFERENCES;
-    const method =
-      prefs.preferredMethod === 'any' ? 'sms' : prefs.preferredMethod;
+    const method = prefs.preferredMethod === 'any' ? 'sms' : prefs.preferredMethod;
 
     const result = await executeOutreach(item, method as 'voice' | 'sms' | 'push');
     if (result.success) {
@@ -470,10 +591,7 @@ export async function processUserOutreach(userId: string): Promise<{
 /**
  * Update user outreach preferences
  */
-export function setUserPreferences(
-  userId: string,
-  prefs: Partial<OutreachPreferences>
-): void {
+export function setUserPreferences(userId: string, prefs: Partial<OutreachPreferences>): void {
   const current = userPreferences.get(userId) || DEFAULT_PREFERENCES;
   userPreferences.set(userId, { ...current, ...prefs });
 }
@@ -521,4 +639,3 @@ export default {
   disableOutreach,
   enableOutreach,
 };
-
