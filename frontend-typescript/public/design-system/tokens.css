@@ -203,6 +203,38 @@
 }
 
 /* ========================================
+   EXTERNAL AI CO-FOUNDERS
+   Claude (Anthropic), Gemini (Google), GPT (OpenAI)
+   ======================================== */
+
+/* Persona: claude (Anthropic) - Warm terracotta/coral */
+[data-persona="claude"] {
+  --persona-primary: #cc785c;
+  --persona-secondary: #b86346;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(204, 120, 92, 0.35);
+  --persona-tint: rgba(204, 120, 92, 0.08);
+}
+
+/* Persona: gemini (Google) - Sapphire blue */
+[data-persona="gemini"] {
+  --persona-primary: #4285F4;
+  --persona-secondary: #3367d6;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(66, 133, 244, 0.35);
+  --persona-tint: rgba(66, 133, 244, 0.08);
+}
+
+/* Persona: gpt (OpenAI) - Teal green */
+[data-persona="gpt"] {
+  --persona-primary: #10A37F;
+  --persona-secondary: #0d8a6a;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(16, 163, 127, 0.35);
+  --persona-tint: rgba(16, 163, 127, 0.08);
+}
+
+/* ========================================
    TYPOGRAPHY
    ======================================== */
 /* Font Families */
@@ -897,6 +929,11 @@
 }
 :root {
   --gradient-persona-glow: radial-gradient(circle at 50% 50%, var(--persona-glow) 0%, transparent 60%);
+  
+  /* External AI Co-Founder Gradients */
+  --gradient-claude: linear-gradient(135deg, #b86346 0%, #cc785c 100%);
+  --gradient-gemini: linear-gradient(135deg, #3367d6 0%, #4285F4 100%);
+  --gradient-gpt: linear-gradient(135deg, #0d8a6a 0%, #10A37F 100%);
 }
 
 /* Glow Effects */
