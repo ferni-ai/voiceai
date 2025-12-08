@@ -81,7 +81,7 @@ export async function handleFeatureFlagRoutes(
 
     // POST /api/flags/reload - Force reload
     if (pathname === '/api/flags/reload' && method === 'POST') {
-      flags.reload();
+      void flags.reload();
       sendJSON(res, { success: true, message: 'Flags reloaded' });
       return true;
     }
@@ -163,7 +163,7 @@ export async function handleFeatureFlagRoutes(
     // DELETE /api/flags/:id - Delete flag
     if (flagIdMatch && method === 'DELETE') {
       const flagId = decodeURIComponent(flagIdMatch[1]);
-      const deleted = flags.deleteFlag(flagId);
+      const deleted = await flags.deleteFlag(flagId);
 
       if (!deleted) {
         sendError(res, `Flag "${flagId}" not found`, 404);

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ description or site.tagline }}">
+  
+  {# Fonts #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  {# Favicon #}
+  <link rel="icon" href="/images/logo.svg" type="image/svg+xml">
+  
+  {# Styles #}
+  <link rel="stylesheet" href="/css/story-brand.css">
+  
+  {# OG Tags #}
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ description }}">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#4a6741">
+</head>
+<body>
+  {{ content | safe }}
+  
+  <script>
+    // Scroll reveal animation
+    document.addEventListener('DOMContentLoaded', () => {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        });
+      }, { 
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      });
+
+      // Observe all reveal elements
+      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+      
+      // Observe children of reveal-stagger containers
+      document.querySelectorAll('.reveal-stagger').forEach(container => {
+        container.querySelectorAll(':scope > *').forEach((child, index) => {
+          child.style.transitionDelay = `${index * 100}ms`;
+          observer.observe(child);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
+

@@ -51,6 +51,7 @@ export interface SettingsMenuUICallbacks {
   onPlayGamesClick?: () => void;
   onOutreachScheduleClick?: () => void;
   onContactSettingsClick?: () => void;
+  onCalendarSettingsClick?: () => void;
   onClose?: () => void;
 }
 
@@ -328,6 +329,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('ritual', ICONS.ritual, 'Create a Practice')}
             ${this.renderMenuItem('theme', ICONS.theme, 'Toggle Theme')}
             ${this.renderMenuItem('notifications', ICONS.bell, 'Notifications')}
+            ${this.renderMenuItem('calendar-settings', ICONS.calendar, 'Link Calendar')}
             ${this.renderMenuItem('outreach-schedule', ICONS.calendar, 'Upcoming Check-ins')}
             ${this.renderMenuItem('contact-settings', ICONS.heart, 'Contact Info')}
           </section>
@@ -417,6 +419,9 @@ class SettingsMenuUI {
         break;
       case 'contact-settings':
         this.callbacks.onContactSettingsClick?.();
+        break;
+      case 'calendar-settings':
+        this.callbacks.onCalendarSettingsClick?.();
         break;
     }
   }

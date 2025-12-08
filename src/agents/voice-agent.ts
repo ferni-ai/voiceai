@@ -752,6 +752,35 @@ class VoiceAgent extends voice.Agent<UserData> {
               .catch(() => {
                 // Music player not available - that's fine
               });
+
+            // 🎧 DJ ENHANCEMENTS: Track emotion for session flow (Phase 5 & 7)
+            // This enables emotion-reactive music offers
+            const booth = getDJBooth();
+            if (booth) {
+              booth.trackEmotion(voiceEmotion.primary);
+
+              // Occasionally offer music for strong emotions (10% chance)
+              // Strong emotions: sad, anxious, frustrated, excited
+              const strongEmotions = ['sad', 'anxious', 'frustrated', 'excited', 'stressed'];
+              if (
+                strongEmotions.includes(voiceEmotion.primary) &&
+                voiceEmotion.confidence > 0.6 &&
+                Math.random() < 0.1 &&
+                !booth.isPlayingMusic()
+              ) {
+                const musicOffer = booth.getEmotionMusicOffer(voiceEmotion.primary);
+                if (musicOffer) {
+                  // Don't speak immediately - let the conversation flow
+                  // Schedule for after current turn if appropriate
+                  setTimeout(() => {
+                    const currentBooth = getDJBooth();
+                    if (currentBooth && !currentBooth.isPlayingMusic()) {
+                      currentBooth.speakOverMusic(musicOffer.offer);
+                    }
+                  }, 3000);
+                }
+              }
+            }
           }
         }
 
@@ -2097,11 +2126,12 @@ export default defineAgent({
         getVoiceAgentRef: () => voiceAgentRef as VoiceAgentRef | null,
       });
 
-      handoffEvents.on('voiceSwitch', (data) => {
+      const wrappedHandoffHandler = (data: Parameters<typeof handoffHandler>[0]) => {
         void handoffHandler(data).catch((err) => {
           diag.error('Handoff handler error', { error: String(err) });
         });
-      });
+      };
+      handoffEvents.on('voiceSwitch', wrappedHandoffHandler);
 
       // NOTE: The inline handler has been extracted to src/agents/shared/handoff-handler.ts
       // This reduces voice-agent.ts by ~350 lines while maintaining identical functionality
@@ -2190,24 +2220,47 @@ export default defineAgent({
 
           // 🎧 INITIALIZE DJ BOOTH - Audio-level orchestration
           // This gives us smooth volume fading, smart ducking, and timed DJ moments
-          djBooth = initializeDJBooth({
-            personaId: sessionPersona.id,
-            speakCallback: (phrase, options) => {
-              try {
-                session.say(phrase, options);
-              } catch (e) {
-                diag.warn('DJ Booth speak callback failed', { error: String(e) });
+          // Pass existing music preferences from user profile for cross-session memory (Phase 8)
+          const existingMusicPrefs = services.userProfile?.musicMemory
+            ? {
+                likedArtists: services.userProfile.musicMemory.favoriteArtists || [],
+                dislikedArtists: services.userProfile.musicMemory.dislikedArtists || [],
+                favoriteGenres: services.userProfile.musicMemory.favoriteGenres || [],
+                totalTracksPlayed: services.userProfile.musicMemory.totalTracksPlayed || 0,
+                lastPlayed: services.userProfile.musicMemory.lastPlayedTrack
+                  ? {
+                      artist: services.userProfile.musicMemory.lastPlayedArtist || 'Unknown',
+                      track: services.userProfile.musicMemory.lastPlayedTrack,
+                      timestamp: services.userProfile.musicMemory.updatedAt?.getTime() || Date.now(),
+                    }
+                  : undefined,
               }
-            },
-            onAgentSpeakStart: () => {
-              diag.state('🎧 DJ Booth: Agent speaking (music will duck)');
-            },
-            onAgentSpeakEnd: () => {
-              diag.state('🎧 DJ Booth: Agent stopped (music will restore)');
-            },
-          });
+            : undefined;
 
-          diag.state('🎧 DJ Booth initialized', { persona: sessionPersona.id });
+          djBooth = initializeDJBooth(
+            {
+              personaId: sessionPersona.id,
+              speakCallback: (phrase, options) => {
+                try {
+                  session.say(phrase, options);
+                } catch (e) {
+                  diag.warn('DJ Booth speak callback failed', { error: String(e) });
+                }
+              },
+              onAgentSpeakStart: () => {
+                diag.state('🎧 DJ Booth: Agent speaking (music will duck)');
+              },
+              onAgentSpeakEnd: () => {
+                diag.state('🎧 DJ Booth: Agent stopped (music will restore)');
+              },
+            },
+            existingMusicPrefs
+          );
+
+          diag.state('🎧 DJ Booth initialized with enhancements', {
+            persona: sessionPersona.id,
+            hasExistingPrefs: !!existingMusicPrefs,
+          });
           player.setOnTrackEndedCallback((track, wasAmbient) => {
             if (wasAmbient) {
               // Ambient music ended - agent acknowledges and comes back
@@ -3247,7 +3300,7 @@ export default defineAgent({
           ctx.room.off('dataReceived', dataReceivedHandlerWrapper);
 
           // FIX BUG #42: Remove handoffEvents listener to prevent memory leaks
-          handoffEvents.off('voiceSwitch', handoffHandler);
+          handoffEvents.off('voiceSwitch', wrappedHandoffHandler);
 
           try {
             // End conversation state and get final state for logging

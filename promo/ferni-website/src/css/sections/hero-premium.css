@@ -219,6 +219,29 @@
   color: var(--color-ferni);
 }
 
+/* Trust row - inline social proof */
+.hero-premium__trust-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: #6E6E73;
+  opacity: 0;
+  animation: fadeInUp 1s cubic-bezier(0, 0, 0.2, 1) 0.5s forwards;
+}
+
+.hero-premium__trust-item strong {
+  font-weight: 600;
+  color: #1D1D1F;
+}
+
+.hero-premium__trust-divider {
+  color: #D1D1D6;
+}
+
 /* ============================================
    DEMO SECTION - Premium product preview
    Not a chat bubble - a sophisticated preview
@@ -331,12 +354,20 @@
   border: 1px solid #E5E5EA;
   border-radius: 16px;
   text-align: left;
+  /* Start hidden, JS will show */
   opacity: 0;
   transform: translateY(16px);
-  transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: opacity 0.5s ease, transform 0.5s ease;
   box-shadow: 
     0 1px 3px rgba(0, 0, 0, 0.04),
     0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* Debug: Force visible when has content */
+.hero-premium__response:has(.hero-premium__typing),
+.hero-premium__response.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .hero-premium__response.is-visible {

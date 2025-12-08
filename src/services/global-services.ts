@@ -146,6 +146,15 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       getLogger().warn({ error }, 'Unified trust persistence init skipped (non-critical)');
     }
 
+    // Initialize proactive outreach system (SMS, calls, emails)
+    try {
+      const { initializeOutreachSystem } = await import('./outreach/index.js');
+      await initializeOutreachSystem();
+      getLogger().info('📬 Proactive outreach system initialized');
+    } catch (error) {
+      getLogger().warn({ error }, 'Outreach system init skipped (requires Twilio/SendGrid config)');
+    }
+
     getLogger().info('Voice AI services initialized successfully');
     return globalServices;
   } catch (error) {
@@ -234,6 +243,14 @@ export async function resetGlobalServices(): Promise<void> {
   // Flush and shutdown unified trust persistence
   try {
     await shutdownUnifiedPersistence();
+  } catch {
+    // Non-critical
+  }
+
+  // Shutdown proactive outreach system
+  try {
+    const { shutdownOutreachSystem } = await import('./outreach/index.js');
+    await shutdownOutreachSystem();
   } catch {
     // Non-critical
   }

@@ -145,7 +145,7 @@ describe('ConversationHistoryTracker', () => {
       const firstActivity = history1.lastActivityAt;
 
       // Wait a bit
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
 
       tracker.addUserTurn('Another message');
       const history2 = tracker.getSessionHistory();
@@ -351,7 +351,7 @@ describe('ConversationHistoryTracker', () => {
 
   describe('Session Analytics', () => {
     it('should calculate session duration', async () => {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 100); });
       tracker.addUserTurn('Test');
 
       const duration = tracker.getDurationSeconds();

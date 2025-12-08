@@ -105,7 +105,9 @@ describe('ActiveListeningEngine', () => {
       });
 
       // Wait for cooldown (use minimal wait for test)
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 100);
+      });
 
       // Try multiple times - should eventually get a non-null value
       let gotBackchannel = false;

@@ -32,6 +32,9 @@ import { handleGDPRRoutes } from './dist/api/gdpr-routes.js';
 import { handleTrustJourneyRoutes } from './dist/api/trust-journey-routes.js';
 import { handleTrustExportRoutes } from './dist/api/trust-export-routes.js';
 
+// Calendar routes (for smart timing)
+import { handleCalendarRoutes } from './dist/api/calendar-routes.js';
+
 // Trust Systems consolidated routes (Phases 12-29)
 import { handleTrustSystemsRoutes } from './dist/api/trust-systems-routes.js';
 
@@ -408,6 +411,12 @@ const server = http.createServer(async (req, res) => {
     // Trust data export (Phase 2)
     if (pathname.startsWith('/api/trust-export')) {
       const handled = await handleTrustExportRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // Calendar routes (for smart outreach timing)
+    if (pathname.startsWith('/api/calendar')) {
+      const handled = await handleCalendarRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
     

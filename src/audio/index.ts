@@ -59,3 +59,36 @@ export {
   type DJBoothConfig,
   type DJBoothState,
 } from './dj-booth.js';
+
+// DJ Enhancements - Pixar-level magic (thinking music, emotion-reactive, session flow)
+export {
+  // Controllers
+  DJEnhancementController,
+  ThinkingMusicController,
+  SessionFlowManager,
+  MusicMemoryManager,
+  // Singleton management
+  initializeDJEnhancements,
+  getDJEnhancements,
+  resetDJEnhancements,
+  // Phase 2: Predictive timing
+  scheduleTrackTimingCallbacks,
+  getCountdownPhrase,
+  // Phase 3: Persona DJ styles
+  getPersonaDJStyle,
+  getPersonaMusicIntro,
+  PERSONA_DJ_STYLES,
+  // Phase 5: Emotion-reactive
+  getEmotionMusicSuggestion,
+  getEmotionMusicOffer,
+  // Phase 6: Game music
+  getGameMusicConfig,
+  getGameMusicPhrase,
+  // Types
+  type PersonaDJStyle,
+  type MusicPreferences,
+  type TrackTimingCallbacks,
+  type EmotionMusicMapping,
+  type GameMusicConfig,
+  type SessionFlowState,
+} from './dj-enhancements.js';

@@ -220,7 +220,7 @@ describe('Team Handler Registry', () => {
           capability: 'scheduling',
           execute: async () => {
             // Simulate async operation
-            await new Promise((resolve) => setTimeout(resolve, 10));
+            await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
             return {
               success: true,
               result: { scheduled: true },

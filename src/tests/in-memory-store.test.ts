@@ -145,7 +145,7 @@ describe('InMemoryStore', () => {
       const originalUpdatedAt = profile.updatedAt;
 
       // Small delay to ensure time difference
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
       await store.saveProfile(profile);
 
       const retrieved = await store.getProfile('user-1');

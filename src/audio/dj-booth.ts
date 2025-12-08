@@ -19,6 +19,13 @@ import {
   getMidSongMomentPhrase,
   getMusicStoppedPhrase,
 } from './ambient-music.js';
+import {
+  initializeDJEnhancements,
+  getDJEnhancements,
+  resetDJEnhancements,
+  type MusicPreferences,
+  type DJEnhancementController,
+} from './dj-enhancements.js';
 
 const log = getLogger();
 
@@ -107,10 +114,11 @@ export class DJBooth {
   private state: DJBoothState;
   private volumeFadeInterval: ReturnType<typeof setInterval> | null = null;
   private scheduledTimers: ReturnType<typeof setTimeout>[] = [];
-  private lastAppreciationTime: number = 0;
-  private lastCheckInTime: number = 0;
+  private lastAppreciationTime = 0;
+  private lastCheckInTime = 0;
+  private djEnhancements: DJEnhancementController | null = null;
 
-  constructor(config: DJBoothConfig) {
+  constructor(config: DJBoothConfig, existingMusicPreferences?: Partial<MusicPreferences>) {
     this.config = config;
     this.state = {
       isActive: false,
@@ -124,7 +132,23 @@ export class DJBooth {
       scheduledMoments: [],
     };
 
-    log.info('🎧 DJ Booth initialized', { persona: config.personaId });
+    // Initialize DJ Enhancements (Phases 2-8)
+    this.djEnhancements = initializeDJEnhancements(existingMusicPreferences);
+    this.djEnhancements.setPersona(config.personaId);
+    this.djEnhancements.setSpeakCallback((text) => {
+      if (this.state.isActive) {
+        this.speakOverMusic(text);
+      }
+    });
+
+    log.info('🎧 DJ Booth initialized with enhancements', { persona: config.personaId });
+  }
+
+  /**
+   * Get DJ Enhancements controller for external access
+   */
+  getEnhancements(): DJEnhancementController | null {
+    return this.djEnhancements;
   }
 
   // ==========================================================================
@@ -147,6 +171,14 @@ export class DJBooth {
     this.state.isActive = false;
     this.clearAllTimers();
     this.stopVolumeFade();
+
+    // Cleanup DJ Enhancements
+    if (this.djEnhancements) {
+      this.djEnhancements.cleanup();
+      resetDJEnhancements();
+      this.djEnhancements = null;
+    }
+
     log.info('🎧 DJ Booth deactivated');
   }
 
@@ -155,7 +187,91 @@ export class DJBooth {
    */
   setPersona(personaId: string): void {
     this.config.personaId = personaId;
+    this.djEnhancements?.setPersona(personaId);
     log.debug('🎧 DJ Booth persona updated', { persona: personaId });
+  }
+
+  // ==========================================================================
+  // THINKING MUSIC (Phase 4)
+  // ==========================================================================
+
+  /**
+   * Start thinking music - call when agent is processing
+   * (tool execution, LLM thinking, etc.)
+   */
+  onProcessingStart(): void {
+    this.djEnhancements?.thinkingMusic.onProcessingStart();
+  }
+
+  /**
+   * Stop thinking music - call when agent is about to speak
+   */
+  onProcessingEnd(): void {
+    this.djEnhancements?.thinkingMusic.onProcessingEnd();
+  }
+
+  /**
+   * Check if thinking music is playing
+   */
+  isThinkingMusicPlaying(): boolean {
+    return this.djEnhancements?.thinkingMusic.isThinkingMusicPlaying() ?? false;
+  }
+
+  // ==========================================================================
+  // EMOTION-REACTIVE MUSIC (Phase 5)
+  // ==========================================================================
+
+  /**
+   * Get a music offer based on detected emotion
+   */
+  getEmotionMusicOffer(emotion: string): { offer: string; searchQuery: string } | null {
+    return this.djEnhancements?.getEmotionOffer(emotion) ?? null;
+  }
+
+  // ==========================================================================
+  // SESSION FLOW (Phase 7)
+  // ==========================================================================
+
+  /**
+   * Track a topic discussed in the session
+   */
+  trackTopic(topic: string): void {
+    this.djEnhancements?.sessionFlow.trackTopic(topic);
+  }
+
+  /**
+   * Track an emotional moment
+   */
+  trackEmotion(emotion: string): void {
+    this.djEnhancements?.sessionFlow.trackEmotion(emotion);
+  }
+
+  /**
+   * Track a game played
+   */
+  trackGame(gameType: string): void {
+    this.djEnhancements?.sessionFlow.trackGame(gameType);
+  }
+
+  /**
+   * Get music memory callback for greeting
+   */
+  getMusicMemoryCallback(): string | null {
+    return this.djEnhancements?.getMusicCallback() ?? null;
+  }
+
+  /**
+   * Get session outro phrase
+   */
+  getSessionOutro(): string {
+    return this.djEnhancements?.getSessionOutro() ?? 'Take care!';
+  }
+
+  /**
+   * Get music preferences for saving
+   */
+  getMusicPreferences(): MusicPreferences | null {
+    return this.djEnhancements?.getMusicPreferences() ?? null;
   }
 
   /**
@@ -164,6 +280,9 @@ export class DJBooth {
    */
   onHandoff(toPersonaId: string): void {
     log.info('🎧 DJ Booth handling handoff', { to: toPersonaId });
+
+    // Track handoff in session flow
+    this.djEnhancements?.sessionFlow.trackHandoff(this.config.personaId, toPersonaId);
 
     // Stop any current music for a clean transition
     const player = getMusicPlayer();
@@ -267,6 +386,9 @@ export class DJBooth {
       track: track.name,
       duration: Math.round(duration / 1000),
     });
+
+    // Notify DJ Enhancements (Phase 2 predictive timing)
+    this.djEnhancements?.onTrackStart(track);
 
     // Schedule moments based on track duration
     this.scheduleMoments(track, duration);
@@ -667,11 +789,14 @@ export class DJBooth {
 
 let djBoothInstance: DJBooth | null = null;
 
-export function initializeDJBooth(config: DJBoothConfig): DJBooth {
+export function initializeDJBooth(
+  config: DJBoothConfig,
+  existingMusicPreferences?: Partial<MusicPreferences>
+): DJBooth {
   if (djBoothInstance) {
     djBoothInstance.deactivate();
   }
-  djBoothInstance = new DJBooth(config);
+  djBoothInstance = new DJBooth(config, existingMusicPreferences);
   djBoothInstance.activate();
   return djBoothInstance;
 }

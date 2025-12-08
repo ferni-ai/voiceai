@@ -1,0 +1,416 @@
+---
+layout: layouts/story-brand.njk
+title: Ferni - Your AI Life Coach
+description: Six AI specialists who actually listen, remember everything, and help you grow.
+---
+
+{# NAVIGATION #}
+<nav class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="/" class="nav__logo">
+      <svg class="nav__logo-mark" viewBox="0 0 100 100" width="36" height="36">
+        <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+        <circle cx="50" cy="50" r="18" fill="white"/>
+        <circle cx="50" cy="50" r="12" fill="#5a8060"/>
+        <circle cx="50" cy="50" r="6" fill="#2c2520"/>
+        <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
+      </svg>
+      <span class="nav__logo-text">Ferni</span>
+    </a>
+    
+    <ul class="nav__links">
+      <li><a href="#team" class="nav__link">Team</a></li>
+      <li><a href="#features" class="nav__link">Features</a></li>
+      <li><a href="#pricing" class="nav__link">Pricing</a></li>
+    </ul>
+    
+    <a href="{{ site.appUrl }}" class="nav__cta">
+      Get Started
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</nav>
+
+{# HERO #}
+<section class="section hero">
+  <div class="container">
+    <div class="hero__content">
+      
+      <p class="hero__eyebrow">Your AI Life Coach</p>
+      
+      <h1 class="hero__headline">
+        Better than <span class="hero__headline-accent">human.</span>
+      </h1>
+      
+      <p class="hero__subhead">
+        Six AI specialists who actually listen, remember everything, and help you grow. Available 24/7.
+      </p>
+      
+      <div class="hero__cta">
+        <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
+          Start Free
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary btn--lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Call Now
+        </a>
+      </div>
+      
+      <div class="hero__trust">
+        <div class="hero__trust-item"><strong>10,000+</strong> conversations</div>
+        <div class="hero__trust-divider"></div>
+        <div class="hero__trust-item"><strong>&lt;500ms</strong> response</div>
+        <div class="hero__trust-divider"></div>
+        <div class="hero__trust-item"><strong>∞</strong> memory</div>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+{# STATS BAR #}
+<section class="stats-bar">
+  <div class="stats-bar__inner reveal-stagger">
+    <div class="stat">
+      <div class="stat__value">10K+</div>
+      <div class="stat__label">Conversations</div>
+    </div>
+    <div class="stat">
+      <div class="stat__value">&lt;500ms</div>
+      <div class="stat__label">Response Time</div>
+    </div>
+    <div class="stat">
+      <div class="stat__value">∞</div>
+      <div class="stat__label">Memory</div>
+    </div>
+    <div class="stat">
+      <div class="stat__value">24/7</div>
+      <div class="stat__label">Availability</div>
+    </div>
+  </div>
+</section>
+
+{# PRODUCT SHOWCASE #}
+<section class="showcase" id="product">
+  <div class="showcase__inner">
+    <div class="showcase__content reveal">
+      <p class="showcase__eyebrow">The App</p>
+      <h2 class="showcase__title">A conversation that feels human</h2>
+      <p class="showcase__description">
+        Talk naturally by voice or text. Ferni remembers your story, understands your context, and responds with genuine insight—not generic advice.
+      </p>
+      <ul class="showcase__features">
+        <li class="showcase__feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Voice-first—just call and talk
+        </li>
+        <li class="showcase__feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Remembers every conversation
+        </li>
+        <li class="showcase__feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Connects you to the right specialist
+        </li>
+      </ul>
+    </div>
+    
+    <div class="showcase__phone reveal">
+      <div class="showcase__phone-notch"></div>
+      <div class="showcase__phone-screen">
+        <div class="showcase__app">
+          <div class="showcase__app-header">
+            <div class="showcase__app-avatar">
+              <svg viewBox="0 0 100 100" width="100%" height="100%">
+                <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+                <circle cx="50" cy="50" r="18" fill="white"/>
+                <circle cx="50" cy="50" r="12" fill="#5a8060"/>
+                <circle cx="50" cy="50" r="6" fill="#2c2520"/>
+                <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
+              </svg>
+            </div>
+            <div class="showcase__app-name">Ferni</div>
+            <div class="showcase__app-status">● Online</div>
+          </div>
+          <div class="showcase__app-chat">
+            <div class="showcase__app-bubble showcase__app-bubble--user">
+              I'm feeling overwhelmed at work lately
+            </div>
+            <div class="showcase__app-bubble showcase__app-bubble--ai">
+              I hear you. Feeling overwhelmed is tough—but you're not alone in this. What feels most urgent right now?
+            </div>
+            <div class="showcase__app-bubble showcase__app-bubble--user">
+              I have too many projects and don't know where to start
+            </div>
+            <div class="showcase__app-bubble showcase__app-bubble--ai">
+              Let's work through this together. Sometimes the path forward becomes clearer when we name what we're facing...
+            </div>
+          </div>
+          <div class="showcase__app-input">
+            <span>Type a message...</span>
+            <div class="showcase__app-input-mic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# PROMISE #}
+<section class="section promise">
+  <div class="container container--narrow">
+    <div class="promise__content reveal">
+      <p class="promise__quote">
+        "We exist in the space between—the <span class="promise__highlight">2am worry</span>, the commute contemplation, the moment before a big decision. We're <span class="promise__highlight">filling the gaps</span> when your people aren't available."
+      </p>
+      <p class="promise__author">— The Ferni Philosophy</p>
+    </div>
+  </div>
+</section>
+
+{# TEAM #}
+<section class="section" id="team">
+  <div class="container">
+    <div class="section__header reveal">
+      <p class="section__eyebrow">Meet Your Team</p>
+      <h2 class="section__title">Six specialists. One conversation.</h2>
+      <p class="section__subtitle">Each brings unique expertise. Ferni coordinates them seamlessly based on what you need.</p>
+    </div>
+    
+    <div class="team-grid reveal-stagger">
+      {% for member in site.team %}
+      <div class="team-card">
+        <div class="team-card__avatar" style="background: {{ member.color }};">{{ member.initials }}</div>
+        <h3 class="team-card__name">{{ member.name }}</h3>
+        <p class="team-card__role">{{ member.role }}</p>
+        <p class="team-card__bio">{{ member.bio }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# FEATURES #}
+<section class="section features" id="features">
+  <div class="container">
+    <div class="section__header reveal">
+      <p class="section__eyebrow">How It Works</p>
+      <h2 class="section__title">As easy as calling a friend</h2>
+      <p class="section__subtitle">No app required. Just call, text, or use the web.</p>
+    </div>
+    
+    <div class="features-grid reveal-stagger">
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        </div>
+        <h3 class="feature__title">Voice-First</h3>
+        <p class="feature__description">Call {{ site.phone }} anytime. No app, no login—just natural conversation.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3 class="feature__title">Infinite Memory</h3>
+        <p class="feature__description">Ferni remembers every conversation—your context, your goals, your story.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3 class="feature__title">Always Available</h3>
+        <p class="feature__description">24/7, 365 days. Whether it's 2am anxiety or a lunch break check-in.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# TESTIMONIALS #}
+<section class="section" id="testimonials">
+  <div class="container">
+    <div class="section__header reveal">
+      <p class="section__eyebrow">Testimonials</p>
+      <h2 class="section__title">Loved by people like you</h2>
+    </div>
+    
+    <div class="testimonials-grid reveal-stagger">
+      {% for testimonial in site.testimonials %}
+      <div class="testimonial{% if testimonial.featured %} testimonial--featured{% endif %}">
+        <div class="testimonial__stars">
+          {% for i in range(0, 5) %}<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>{% endfor %}
+        </div>
+        <p class="testimonial__quote">"{{ testimonial.quote }}"</p>
+        <div class="testimonial__author">
+          <div class="testimonial__avatar">{{ testimonial.initials }}</div>
+          <div>
+            <p class="testimonial__name">{{ testimonial.author }}</p>
+            <p class="testimonial__role">{{ testimonial.role }}</p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# PRICING #}
+<section class="section pricing" id="pricing">
+  <div class="container">
+    <div class="section__header reveal">
+      <p class="section__eyebrow">Pricing</p>
+      <h2 class="section__title">Start free. Upgrade when ready.</h2>
+      <p class="section__subtitle">Everyone deserves a life coach. That's why Ferni is free to start.</p>
+    </div>
+    
+    <div class="pricing-grid reveal-stagger">
+      <div class="pricing-card">
+        <h3 class="pricing-card__name">Free</h3>
+        <p class="pricing-card__price">$0<span>/mo</span></p>
+        <p class="pricing-card__description">Get started with Ferni</p>
+        <ul class="pricing-card__features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>5 conversations/month</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Talk to Ferni (Life Coach)</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Voice & text</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Conversation memory</li>
+        </ul>
+        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Get Started</a>
+      </div>
+      
+      <div class="pricing-card pricing-card--featured">
+        <span class="pricing-card__badge">Most Popular</span>
+        <h3 class="pricing-card__name">Friend</h3>
+        <p class="pricing-card__price">$9.99<span>/mo</span></p>
+        <p class="pricing-card__description">Unlimited access to the team</p>
+        <ul class="pricing-card__features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited conversations</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All 6 AI specialists</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority response time</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Progress tracking</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Weekly insights</li>
+        </ul>
+        <a href="{{ site.appUrl }}" class="btn btn--primary pricing-card__cta">Start Free Trial</a>
+      </div>
+      
+      <div class="pricing-card">
+        <h3 class="pricing-card__name">Partner</h3>
+        <p class="pricing-card__price">$19.99<span>/mo</span></p>
+        <p class="pricing-card__description">Premium + exclusive features</p>
+        <ul class="pricing-card__features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Friend</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Nayan (Sage) exclusive</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Advanced analytics</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Calendar integration</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Early access</li>
+        </ul>
+        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Start Free Trial</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# FINAL CTA #}
+<section class="section final-cta">
+  <div class="container reveal">
+    <h2 class="final-cta__headline">Ready to feel heard?</h2>
+    <p class="final-cta__subhead">Start a conversation with Ferni today. No credit card required.</p>
+    <div class="final-cta__buttons">
+      <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
+        Get started free
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary btn--lg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Call {{ site.phone }}
+      </a>
+    </div>
+  </div>
+</section>
+
+{# FOOTER #}
+<footer class="footer">
+  <div class="footer__inner">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="/" class="footer__logo">
+          <svg class="nav__logo-mark" viewBox="0 0 100 100" width="36" height="36">
+            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+            <circle cx="50" cy="50" r="18" fill="white"/>
+            <circle cx="50" cy="50" r="12" fill="#5a8060"/>
+            <circle cx="50" cy="50" r="6" fill="#2c2520"/>
+            <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
+          </svg>
+          <span class="nav__logo-text">Ferni</span>
+        </a>
+        <p class="footer__tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p>
+      </div>
+      
+      <div>
+        <h4 class="footer__column-title">Product</h4>
+        <ul class="footer__links">
+          <li><a href="#team">Meet the Team</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+      </div>
+      
+      <div>
+        <h4 class="footer__column-title">Company</h4>
+        <ul class="footer__links">
+          <li><a href="/about/">About</a></li>
+          <li><a href="/blog/">Blog</a></li>
+          <li><a href="/contact/">Contact</a></li>
+        </ul>
+      </div>
+      
+      <div>
+        <h4 class="footer__column-title">Connect</h4>
+        <ul class="footer__links">
+          <li><a href="{{ site.appUrl }}">Web App</a></li>
+          <li><a href="tel:{{ site.phoneRaw }}">Call Ferni</a></li>
+          <li><a href="{{ site.social.twitter }}">Twitter</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer__bottom">
+      <p class="footer__copyright">&copy; 2024 Ferni. All rights reserved.</p>
+      <div class="footer__legal">
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function() {
+  // Nav scroll
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('is-scrolled', window.scrollY > 50);
+  });
+  
+  // Reveal
+  const reveals = document.querySelectorAll('.reveal, .reveal-stagger');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('is-visible');
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+  reveals.forEach(el => observer.observe(el));
+  
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+})();
+</script>
+

@@ -261,53 +261,74 @@ export function handleMood(event: MoodEvent): void {
  * Handle music events from the agent.
  * The avatar is the speaker - warm and human, not flashy.
  * The waveform responds gently and reflectively.
+ * Now Playing card shows track info with visualization.
  */
 export function handleMusic(event: MusicEvent): void {
   log.debug('Music event:', event.state, event.trackName);
 
-  if (event.state === 'playing') {
-    // Avatar: Bass speaker pulse - music is playing
-    avatarFeedback.dancing();
+  // Import Now Playing UI dynamically to avoid circular deps
+  import('../ui/now-playing.ui.js').then(({ nowPlayingUI }) => {
+    if (event.state === 'playing') {
+      // Avatar: Bass speaker pulse - music is playing
+      avatarFeedback.dancing();
 
-    // Waveform: Gentle, reflective visualization (NOT aggressive)
-    waveformUI.setMusicPlaying(true);
+      // Waveform: Gentle, reflective visualization (NOT aggressive)
+      waveformUI.setMusicPlaying(true);
 
-    // Subtle haptic for music start
-    delightService.haptic('light');
+      // Subtle haptic for music start
+      delightService.haptic('light');
 
-    // Show track info briefly
-    if (event.trackName && event.artistName) {
-      messageUI.show(`${event.trackName} by ${event.artistName}`, 'info', 3000);
+      // Show Now Playing card with track info
+      if (event.trackName) {
+        nowPlayingUI.show({
+          name: event.trackName,
+          artist: event.artistName || 'Unknown Artist',
+          duration: event.duration,
+          isAmbient: event.isAmbient,
+        });
+      }
+
+      log.debug('Music playing:', event.trackName);
+    } else if (event.state === 'changing') {
+      // DJ Crossfade - switching tracks smoothly
+      avatarFeedback.fading();
+      nowPlayingUI.updateState('changing');
+      
+      // Subtle haptic for track change
+      delightService.haptic('light');
+      
+      log.debug('Music changing - DJ crossfade in progress');
+    } else if (event.state === 'ducking') {
+      // Agent speaking over music - subtle the pulse
+      avatarFeedback.ducking();
+      nowPlayingUI.updateState('ducking');
+      // Waveform stays in music mode but is naturally calmer during speech
+      log.debug('Music ducking (agent speaking)');
+    } else if (event.state === 'fading') {
+      // DJ-style fade out - track ending soon
+      avatarFeedback.fading();
+      nowPlayingUI.updateState('fading');
+      log.debug('Music fading out...');
+    } else if (event.state === 'paused') {
+      avatarFeedback.stopDancing();
+      nowPlayingUI.updateState('paused');
+      log.debug('Music paused');
+    } else if (event.state === 'stopped' || event.state === 'idle') {
+      // Gracefully return to rest
+      avatarFeedback.stopDancing();
+
+      // Waveform: Return to normal behavior
+      waveformUI.setMusicPlaying(false);
+
+      // Hide Now Playing card
+      nowPlayingUI.hide();
+
+      log.debug('Music stopped');
     }
-
-    log.debug('Music playing:', event.trackName);
-  } else if (event.state === 'changing') {
-    // 🎧 DJ Crossfade - switching tracks smoothly!
-    // Brief fading effect during the transition
-    avatarFeedback.fading();
-    
-    // Subtle haptic for track change
-    delightService.haptic('light');
-    
-    log.debug('Music changing - DJ crossfade in progress');
-  } else if (event.state === 'ducking') {
-    // Agent speaking over music - subtle the pulse
-    avatarFeedback.ducking();
-    // Waveform stays in music mode but is naturally calmer during speech
-    log.debug('Music ducking (agent speaking)');
-  } else if (event.state === 'fading') {
-    // DJ-style fade out - track ending soon
-    avatarFeedback.fading();
-    log.debug('Music fading out...');
-  } else if (event.state === 'paused' || event.state === 'stopped' || event.state === 'idle') {
-    // Gracefully return to rest
-    avatarFeedback.stopDancing();
-
-    // Waveform: Return to normal behavior
-    waveformUI.setMusicPlaying(false);
-
-    log.debug('Music stopped');
-  }
+  }).catch(() => {
+    // Now Playing UI not available - continue without it
+    log.debug('Now Playing UI not available');
+  });
 }
 
 /**

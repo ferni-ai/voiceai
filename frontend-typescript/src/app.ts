@@ -135,6 +135,8 @@ import {
 import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
 // Contact Settings UI
 import { openContactSettings } from './ui/contact-settings.ui.js';
+// Calendar Settings UI
+import { openCalendarSettings } from './ui/calendar-settings.ui.js';
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
@@ -869,6 +871,7 @@ class VoiceAIApp {
         onPlayGamesClick: () => showGamePicker(),
         onOutreachScheduleClick: () => void openOutreachSchedule(),
         onContactSettingsClick: () => void openContactSettings(),
+        onCalendarSettingsClick: () => void openCalendarSettings(),
       });
 
       // Wire up Spotify state changes to menu

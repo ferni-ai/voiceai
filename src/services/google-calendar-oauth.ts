@@ -579,6 +579,27 @@ export function isOAuthConfigured(): boolean {
   return !!(GOOGLE_OAUTH_CLIENT_ID && GOOGLE_OAUTH_CLIENT_SECRET);
 }
 
+/**
+ * Delete user tokens (for disconnect)
+ */
+export async function deleteUserTokens(userId: string): Promise<void> {
+  // Remove from cache
+  userTokens.delete(userId);
+  loadedTokenUsers.delete(userId);
+
+  // Remove from Firestore
+  const firestore = await getFirestore();
+  if (firestore) {
+    try {
+      const docRef = firestore.collection('calendar_tokens').doc(userId);
+      await docRef.delete();
+      getLogger().info({ userId }, 'Calendar tokens deleted');
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to delete calendar tokens from Firestore');
+    }
+  }
+}
+
 // ============================================================================
 // SERVICE ACCOUNT SUPPORT
 // ============================================================================
@@ -646,6 +667,7 @@ export default {
   getValidAccessToken,
   storeUserTokens,
   getUserTokens,
+  deleteUserTokens,
   listCalendars,
   createEvent,
   updateEvent,
