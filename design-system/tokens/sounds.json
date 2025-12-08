@@ -1,0 +1,357 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Sound Tokens",
+    "description": "Audio asset definitions and specifications",
+    "version": "1.0.0"
+  },
+  
+  "sounds": {
+    "system": {
+      "startup": {
+        "file": "ferni-system-startup.mp3",
+        "duration": 2000,
+        "volume": -6,
+        "preload": true,
+        "category": "system"
+      },
+      "connectionSuccess": {
+        "file": "ferni-system-connection-success.mp3",
+        "duration": 1200,
+        "volume": -6,
+        "preload": true,
+        "category": "system"
+      },
+      "connectionLost": {
+        "file": "ferni-system-connection-lost.mp3",
+        "duration": 1500,
+        "volume": -9,
+        "preload": true,
+        "category": "system"
+      },
+      "sessionEnd": {
+        "file": "ferni-system-session-end.mp3",
+        "duration": 2000,
+        "volume": -6,
+        "preload": false,
+        "category": "system"
+      },
+      "thinking": {
+        "file": "ferni-system-thinking.mp3",
+        "duration": 3000,
+        "volume": -18,
+        "preload": true,
+        "loop": true,
+        "category": "system"
+      }
+    },
+    
+    "celebration": {
+      "small": {
+        "file": "ferni-celebration-small.mp3",
+        "duration": 1800,
+        "volume": -3,
+        "preload": false,
+        "category": "celebration"
+      },
+      "big": {
+        "file": "ferni-celebration-big.mp3",
+        "duration": 2500,
+        "volume": 0,
+        "preload": false,
+        "category": "celebration"
+      },
+      "milestone": {
+        "file": "ferni-celebration-milestone.mp3",
+        "duration": 3000,
+        "volume": -3,
+        "preload": false,
+        "category": "celebration"
+      },
+      "streak": {
+        "file": "ferni-celebration-streak.mp3",
+        "duration": 2000,
+        "volume": -6,
+        "preload": false,
+        "category": "celebration"
+      },
+      "teamUnlock": {
+        "file": "ferni-celebration-team-unlock.mp3",
+        "duration": 2500,
+        "volume": -3,
+        "preload": false,
+        "category": "celebration"
+      }
+    },
+    
+    "notification": {
+      "gentle": {
+        "file": "ferni-notification-gentle.mp3",
+        "duration": 800,
+        "volume": -9,
+        "preload": true,
+        "category": "notification"
+      },
+      "thinkingOfYou": {
+        "file": "ferni-notification-thinking-of-you.mp3",
+        "duration": 1000,
+        "volume": -9,
+        "preload": false,
+        "category": "notification"
+      }
+    },
+    
+    "error": {
+      "graceful": {
+        "file": "ferni-error-graceful.mp3",
+        "duration": 600,
+        "volume": -9,
+        "preload": true,
+        "category": "error"
+      }
+    },
+    
+    "ui": {
+      "buttonPress": {
+        "file": "ferni-ui-button-press.mp3",
+        "duration": 150,
+        "volume": -12,
+        "preload": true,
+        "category": "ui"
+      },
+      "toggleOn": {
+        "file": "ferni-ui-toggle-on.mp3",
+        "duration": 200,
+        "volume": -10,
+        "preload": true,
+        "category": "ui"
+      },
+      "toggleOff": {
+        "file": "ferni-ui-toggle-off.mp3",
+        "duration": 200,
+        "volume": -10,
+        "preload": true,
+        "category": "ui"
+      },
+      "messageSent": {
+        "file": "ferni-ui-message-sent.mp3",
+        "duration": 400,
+        "volume": -9,
+        "preload": false,
+        "category": "ui"
+      }
+    },
+    
+    "handoff": {
+      "toFerni": {
+        "file": "ferni-handoff-to-ferni.mp3",
+        "duration": 1500,
+        "volume": -6,
+        "preload": false,
+        "category": "handoff"
+      },
+      "toJack": {
+        "file": "ferni-handoff-to-jack.mp3",
+        "duration": 1800,
+        "volume": -6,
+        "preload": false,
+        "category": "handoff"
+      },
+      "toPeter": {
+        "file": "ferni-handoff-to-peter.mp3",
+        "duration": 1200,
+        "volume": -6,
+        "preload": false,
+        "category": "handoff"
+      },
+      "toAlex": {
+        "file": "ferni-handoff-to-alex.mp3",
+        "duration": 1400,
+        "volume": -6,
+        "preload": false,
+        "category": "handoff"
+      },
+      "toMaya": {
+        "file": "ferni-handoff-to-maya.mp3",
+        "duration": 1300,
+        "volume": -6,
+        "preload": false,
+        "category": "handoff"
+      },
+      "toJordan": {
+        "file": "ferni-handoff-to-jordan.mp3",
+        "duration": 1500,
+        "volume": -6,
+        "preload": false,
+        "category": "handoff"
+      },
+      "toNayan": {
+        "file": "ferni-handoff-to-nayan.mp3",
+        "duration": 2000,
+        "volume": -6,
+        "preload": false,
+        "category": "handoff"
+      }
+    },
+    
+    "personaEntrance": {
+      "ferni": {
+        "file": "ferni-entrance-ferni.mp3",
+        "duration": 800,
+        "volume": -9,
+        "preload": false,
+        "category": "persona"
+      },
+      "jack": {
+        "file": "ferni-entrance-jack.mp3",
+        "duration": 1000,
+        "volume": -9,
+        "preload": false,
+        "category": "persona"
+      },
+      "peter": {
+        "file": "ferni-entrance-peter.mp3",
+        "duration": 600,
+        "volume": -9,
+        "preload": false,
+        "category": "persona"
+      },
+      "alex": {
+        "file": "ferni-entrance-alex.mp3",
+        "duration": 700,
+        "volume": -9,
+        "preload": false,
+        "category": "persona"
+      },
+      "maya": {
+        "file": "ferni-entrance-maya.mp3",
+        "duration": 600,
+        "volume": -9,
+        "preload": false,
+        "category": "persona"
+      },
+      "jordan": {
+        "file": "ferni-entrance-jordan.mp3",
+        "duration": 800,
+        "volume": -9,
+        "preload": false,
+        "category": "persona"
+      },
+      "nayan": {
+        "file": "ferni-entrance-nayan.mp3",
+        "duration": 1000,
+        "volume": -9,
+        "preload": false,
+        "category": "persona"
+      }
+    },
+    
+    "ambient": {
+      "zenGarden": {
+        "file": "ferni-ambient-zen-garden.mp3",
+        "duration": 180000,
+        "volume": -24,
+        "preload": false,
+        "loop": true,
+        "category": "ambient"
+      },
+      "cozyInterior": {
+        "file": "ferni-ambient-cozy-interior.mp3",
+        "duration": 180000,
+        "volume": -24,
+        "preload": false,
+        "loop": true,
+        "category": "ambient"
+      },
+      "focusedCalm": {
+        "file": "ferni-ambient-focused-calm.mp3",
+        "duration": 120000,
+        "volume": -30,
+        "preload": false,
+        "loop": true,
+        "category": "ambient"
+      },
+      "nightMode": {
+        "file": "ferni-ambient-night-mode.mp3",
+        "duration": 300000,
+        "volume": -36,
+        "preload": false,
+        "loop": true,
+        "category": "ambient"
+      }
+    }
+  },
+  
+  "categories": {
+    "system": {
+      "defaultVolume": -6,
+      "ducking": false,
+      "userControlled": false
+    },
+    "celebration": {
+      "defaultVolume": -3,
+      "ducking": true,
+      "userControlled": true
+    },
+    "notification": {
+      "defaultVolume": -9,
+      "ducking": false,
+      "userControlled": true
+    },
+    "error": {
+      "defaultVolume": -9,
+      "ducking": false,
+      "userControlled": false
+    },
+    "ui": {
+      "defaultVolume": -12,
+      "ducking": false,
+      "userControlled": true
+    },
+    "handoff": {
+      "defaultVolume": -6,
+      "ducking": true,
+      "userControlled": false
+    },
+    "persona": {
+      "defaultVolume": -9,
+      "ducking": false,
+      "userControlled": false
+    },
+    "ambient": {
+      "defaultVolume": -24,
+      "ducking": true,
+      "userControlled": true
+    }
+  },
+  
+  "preloadGroups": {
+    "critical": [
+      "system.startup",
+      "system.connectionSuccess",
+      "system.connectionLost",
+      "system.thinking",
+      "notification.gentle",
+      "error.graceful"
+    ],
+    "ui": [
+      "ui.buttonPress",
+      "ui.toggleOn",
+      "ui.toggleOff"
+    ],
+    "onConnect": [
+      "celebration.small",
+      "ui.messageSent"
+    ],
+    "onHandoff": [
+      "handoff.toFerni",
+      "handoff.toJack",
+      "handoff.toPeter",
+      "handoff.toAlex",
+      "handoff.toMaya",
+      "handoff.toJordan",
+      "handoff.toNayan"
+    ]
+  }
+}
+

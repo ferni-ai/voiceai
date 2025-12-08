@@ -193,6 +193,13 @@ import {
   resetAllConversationState,
 } from '../conversation/index.js';
 
+// Voice Humanization - prosody-aware turn prediction, micro-interruptions, emotional arc TTS
+import {
+  quickSetupVoiceHumanization,
+  type IntegrationResult as VoiceHumanizationIntegration,
+} from './integrations/voice-humanization-integration.js';
+import { getVoiceHumanizationService } from '../speech/voice-humanization.js';
+
 // Conversation humanizing context builder (speech naturalization, active listening, memory callbacks)
 
 // Engagement System - Real-time engagement data and conversation triggers
@@ -679,6 +686,38 @@ class VoiceAgent extends voice.Agent<UserData> {
           // Note: textEmotion from getSpeechContext is a string, not EmotionResult
           // For now, we only track voice emotion in the arc tracker
           emotionalArc.recordEmotion(null, voiceEmotion);
+
+          // ===============================================
+          // VOICE HUMANIZATION: Wire prosody to turn prediction
+          // This enables intonation-aware end-of-turn detection
+          // (falling pitch = statement complete, rising = question/continue)
+          // ===============================================
+          const sessionId = userData?.services?.sessionId;
+          if (sessionId && voiceEmotion.prosody) {
+            try {
+              const voiceHumanService = getVoiceHumanizationService(sessionId);
+              
+              // Detect laughter from prosody features
+              const laughterResult = voiceHumanService.detectLaughter(
+                voiceEmotion.prosody,
+                voiceEmotion.prosody.utteranceDuration || 0
+              );
+              
+              if (laughterResult.isLaughing) {
+                log().debug({
+                  laughType: laughterResult.laughType,
+                  confidence: laughterResult.confidence,
+                }, '😄 Laughter detected from prosody');
+                
+                // Store for response enhancement
+                if (userData) {
+                  userData.detectedLaughter = laughterResult;
+                }
+              }
+            } catch (e) {
+              log().debug({ error: String(e) }, 'Voice humanization prosody hook failed (non-blocking)');
+            }
+          }
 
           // Get emotion-based voice modulation for response
           const modulation = getEmotionModulation(voiceEmotion);
@@ -1544,6 +1583,47 @@ export default defineAgent({
         services.captureInsight(type, key, value, confidence);
       });
 
+      // ===============================================
+      // VOICE HUMANIZATION INTEGRATION
+      // Makes agent feel more human through:
+      // - Prosody-aware turn prediction (uses voice intonation)
+      // - Micro-interruption detection ("wait", "hold on" stops agent)
+      // - Emotional arc → TTS adjustments (pauses, warmth based on arc)
+      // - Laughter detection (respond naturally to user laughter)
+      // ===============================================
+      const emotionalArcTracker = getEmotionalArcTracker();
+      let voiceHumanization: VoiceHumanizationIntegration | null = null;
+      
+      try {
+        voiceHumanization = quickSetupVoiceHumanization(
+          sessionId,
+          sessionPersona.id,
+          emotionalArcTracker,
+          {
+            onInterrupt: () => {
+              // When micro-interruption detected, interrupt the agent
+              diag.state('🛑 Micro-interruption detected - stopping agent speech');
+              try {
+                // Try to interrupt via session - this will stop TTS
+                session.interrupt();
+              } catch (e) {
+                diag.warn('Failed to interrupt session', { error: String(e) });
+              }
+            },
+            onLaughter: (laughType) => {
+              diag.state('😄 User laughter detected', { type: laughType });
+              // Laughter response is handled by TTS enhancement
+            },
+          }
+        );
+        diag.entry('🎤 Voice humanization initialized', {
+          sessionId,
+          personaId: sessionPersona.id,
+        });
+      } catch (e) {
+        diag.warn('Voice humanization initialization failed (non-fatal)', { error: String(e) });
+      }
+
       // ============================================================
       // TOOL EXECUTION TRACKING - Orchestration Integration
       // ============================================================
@@ -1988,8 +2068,34 @@ export default defineAgent({
       });
 
       session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (event) => {
+        // ===============================================
+        // MICRO-INTERRUPTION DETECTION (Phase 1)
+        // Check EVERY transcript (partial or final) for stop words
+        // "wait", "hold on", "actually" should stop agent immediately
+        // ===============================================
+        if (event.transcript && voiceHumanization) {
+          const isAgentSpeaking = conversationManager.isAgentSpeaking();
+          const microInterrupt = voiceHumanization.processStreamingWord(
+            event.transcript,
+            isAgentSpeaking
+          );
+          
+          if (microInterrupt.shouldStopAgent) {
+            diag.state('🛑 Micro-interrupt triggered', {
+              trigger: microInterrupt.trigger,
+              transcript: event.transcript.slice(0, 30),
+            });
+            // The onInterrupt callback handles the actual interruption
+          }
+        }
+
         if (event.isFinal && event.transcript) {
           userData.turnCount = (userData.turnCount || 0) + 1;
+          
+          // Record turn in voice humanization for rhythm learning
+          if (voiceHumanization) {
+            voiceHumanization.recordTurn();
+          }
 
           // Extract memorable moments from what the user shared
           // This powers the meaningful silence system - so we can reference
@@ -3373,6 +3479,16 @@ export default defineAgent({
               diag.session('🎧 DJ Booth cleaned up');
             } catch (boothErr) {
               diag.warn('🎧 DJ Booth cleanup failed (non-fatal)', { error: String(boothErr) });
+            }
+
+            // 🎤 Voice Humanization: Clean up session-specific state
+            if (voiceHumanization) {
+              try {
+                voiceHumanization.cleanup();
+                diag.session('🎤 Voice humanization cleaned up');
+              } catch (vhErr) {
+                diag.warn('🎤 Voice humanization cleanup failed (non-fatal)', { error: String(vhErr) });
+              }
             }
 
             // Save trust profiles (boundaries, growth, callbacks, etc.)

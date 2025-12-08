@@ -56,10 +56,10 @@ class NowPlayingUI {
   private styleElement: HTMLStyleElement | null = null;
   private isVisible = false;
   private currentTrack: NowPlayingTrack | null = null;
-  private currentState: MusicPlaybackState = 'idle';
+  private _currentState: MusicPlaybackState = 'idle';
   private progressInterval: ReturnType<typeof setInterval> | null = null;
   private startTime: number | null = null;
-  private callbacks: NowPlayingCallbacks = {};
+  private _callbacks: NowPlayingCallbacks = {};
   private waveformBars: HTMLElement[] = [];
 
   initialize(): void {
@@ -76,7 +76,11 @@ class NowPlayingUI {
   }
 
   setCallbacks(callbacks: NowPlayingCallbacks): void {
-    this.callbacks = callbacks;
+    this._callbacks = callbacks;
+  }
+
+  getCallbacks(): NowPlayingCallbacks {
+    return this._callbacks;
   }
 
   /**
@@ -150,10 +154,17 @@ class NowPlayingUI {
   }
 
   /**
+   * Get current music state
+   */
+  getState(): MusicPlaybackState {
+    return this._currentState;
+  }
+
+  /**
    * Update music state (playing, ducking, fading, etc.)
    */
   updateState(state: MusicPlaybackState): void {
-    this.currentState = state;
+    this._currentState = state;
 
     if (!this.container) return;
 

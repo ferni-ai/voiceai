@@ -90,10 +90,10 @@ export class RitualEngine {
    * Inject external services for ritual execution
    */
   injectServices(services: {
-    speech?: typeof this.speechService;
-    visual?: typeof this.visualService;
-    audio?: typeof this.audioService;
-    haptics?: typeof this.hapticsService;
+    speech?: RitualEngine['speechService'];
+    visual?: RitualEngine['visualService'];
+    audio?: RitualEngine['audioService'];
+    haptics?: RitualEngine['hapticsService'];
   }): void {
     if (services.speech) this.speechService = services.speech;
     if (services.visual) this.visualService = services.visual;
@@ -265,6 +265,7 @@ export class RitualEngine {
     try {
       for (let i = 0; i < ritual.sequence.length; i++) {
         const step = ritual.sequence[i];
+        if (!step) continue; // Skip undefined steps
         
         // Check if interrupted
         if (this.activeRituals.get(ritual.id) === 'interrupted') {
@@ -351,11 +352,11 @@ export class RitualEngine {
     const template = SPEECH_TEMPLATES[step.template];
     let text: string;
     
-    if (template) {
+    if (template && template.variants.length > 0) {
       // Pick random variant
-      const variant = template.variants[Math.floor(Math.random() * template.variants.length)];
+      const variant = template.variants[Math.floor(Math.random() * template.variants.length)] ?? template.variants[0];
       // Replace variables
-      text = this.interpolateVariables(variant, { ...step.variables, ...(context as Record<string, unknown>) });
+      text = this.interpolateVariables(variant ?? step.template, { ...step.variables, ...(context as Record<string, unknown>) });
     } else {
       text = step.template;
     }

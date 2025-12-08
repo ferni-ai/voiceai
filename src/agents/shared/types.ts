@@ -9,6 +9,7 @@ import type { ConversationStateManager } from '../../services/conversation-state
 import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
+import type { LaughterDetectionResult } from '../../speech/voice-humanization.js';
 
 export type { MoodState, PersonaMood };
 
@@ -74,6 +75,9 @@ export interface UserData {
   // Voice emotion tracking
   voiceEmotion?: VoiceEmotionResult;
   emotionModulation?: VoiceEmotionModulation;
+
+  // Voice humanization - laughter detection
+  detectedLaughter?: LaughterDetectionResult;
 
   // Conversation context for humanization
   lastUserMessage?: string;

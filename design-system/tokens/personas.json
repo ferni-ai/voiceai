@@ -1,0 +1,332 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Persona Tokens",
+    "description": "Design tokens for each Ferni persona",
+    "version": "1.0.0"
+  },
+  
+  "personas": {
+    "ferni": {
+      "name": "Ferni",
+      "role": "Life Coach",
+      "archetype": "The Warm Friend Who Really Listens",
+      
+      "colors": {
+        "primary": {
+          "value": "#4a6741",
+          "description": "Deep sage green"
+        },
+        "secondary": {
+          "value": "#3d5a35",
+          "description": "Darker sage"
+        },
+        "glow": {
+          "value": "rgba(74, 103, 65, 0.3)",
+          "description": "Soft glow for avatar"
+        },
+        "tint": {
+          "value": "rgba(74, 103, 65, 0.1)",
+          "description": "Background tint"
+        }
+      },
+      
+      "animation": {
+        "timingMultiplier": 1.0,
+        "easingPreference": "gentle",
+        "breathingBase": 5000,
+        "reactionIntensity": 1.0
+      },
+      
+      "audio": {
+        "signature": "felt-piano",
+        "pitchRange": "medium",
+        "paceBase": "moderate"
+      },
+      
+      "haptics": {
+        "intensityMultiplier": 1.0,
+        "signaturePattern": "ferniBreath"
+      }
+    },
+    
+    "jack": {
+      "name": "Jack",
+      "role": "Wisdom Mentor",
+      "archetype": "The Grandfather Who's Seen Everything",
+      
+      "colors": {
+        "primary": {
+          "value": "#9a7b5a",
+          "description": "Warm cedar brown"
+        },
+        "secondary": {
+          "value": "#7d6348",
+          "description": "Darker cedar"
+        },
+        "glow": {
+          "value": "rgba(154, 123, 90, 0.3)",
+          "description": "Warm glow"
+        },
+        "tint": {
+          "value": "rgba(154, 123, 90, 0.1)",
+          "description": "Background tint"
+        }
+      },
+      
+      "animation": {
+        "timingMultiplier": 1.2,
+        "easingPreference": "gentle",
+        "breathingBase": 6000,
+        "reactionIntensity": 0.8
+      },
+      
+      "audio": {
+        "signature": "wood-resonance",
+        "pitchRange": "low",
+        "paceBase": "slow"
+      },
+      
+      "haptics": {
+        "intensityMultiplier": 0.85,
+        "signaturePattern": "presence"
+      }
+    },
+    
+    "peter": {
+      "name": "Peter",
+      "role": "Researcher",
+      "archetype": "The Brilliant Friend Who Loves Going Deep",
+      
+      "colors": {
+        "primary": {
+          "value": "#3a6b73",
+          "description": "Ocean teal"
+        },
+        "secondary": {
+          "value": "#2d5359",
+          "description": "Deeper teal"
+        },
+        "glow": {
+          "value": "rgba(58, 107, 115, 0.3)",
+          "description": "Cool glow"
+        },
+        "tint": {
+          "value": "rgba(58, 107, 115, 0.1)",
+          "description": "Background tint"
+        }
+      },
+      
+      "animation": {
+        "timingMultiplier": 0.85,
+        "easingPreference": "spring",
+        "breathingBase": 4000,
+        "reactionIntensity": 1.2
+      },
+      
+      "audio": {
+        "signature": "bright-clear",
+        "pitchRange": "medium-high",
+        "paceBase": "quick"
+      },
+      
+      "haptics": {
+        "intensityMultiplier": 1.1,
+        "signaturePattern": "sparkle"
+      }
+    },
+    
+    "alex": {
+      "name": "Alex",
+      "role": "Communicator",
+      "archetype": "The Friend Who Helps You Say the Hard Thing",
+      
+      "colors": {
+        "primary": {
+          "value": "#5a6b8a",
+          "description": "Soft indigo"
+        },
+        "secondary": {
+          "value": "#4a5a73",
+          "description": "Deeper indigo"
+        },
+        "glow": {
+          "value": "rgba(90, 107, 138, 0.3)",
+          "description": "Calm glow"
+        },
+        "tint": {
+          "value": "rgba(90, 107, 138, 0.1)",
+          "description": "Background tint"
+        }
+      },
+      
+      "animation": {
+        "timingMultiplier": 1.0,
+        "easingPreference": "smooth",
+        "breathingBase": 5000,
+        "reactionIntensity": 0.9
+      },
+      
+      "audio": {
+        "signature": "bell-like",
+        "pitchRange": "medium",
+        "paceBase": "measured"
+      },
+      
+      "haptics": {
+        "intensityMultiplier": 0.9,
+        "signaturePattern": "empathy"
+      }
+    },
+    
+    "maya": {
+      "name": "Maya",
+      "role": "Architect",
+      "archetype": "The Friend Who Made Chaos Work",
+      
+      "colors": {
+        "primary": {
+          "value": "#a67a6a",
+          "description": "Dusty terracotta"
+        },
+        "secondary": {
+          "value": "#8a635a",
+          "description": "Deeper terracotta"
+        },
+        "glow": {
+          "value": "rgba(166, 122, 106, 0.3)",
+          "description": "Warm glow"
+        },
+        "tint": {
+          "value": "rgba(166, 122, 106, 0.1)",
+          "description": "Background tint"
+        }
+      },
+      
+      "animation": {
+        "timingMultiplier": 0.95,
+        "easingPreference": "standard",
+        "breathingBase": 4500,
+        "reactionIntensity": 1.0
+      },
+      
+      "audio": {
+        "signature": "rhythmic",
+        "pitchRange": "medium",
+        "paceBase": "efficient"
+      },
+      
+      "haptics": {
+        "intensityMultiplier": 1.0,
+        "signaturePattern": "tap"
+      }
+    },
+    
+    "jordan": {
+      "name": "Jordan",
+      "role": "Celebrator",
+      "archetype": "The Friend Who Makes Everything Special",
+      
+      "colors": {
+        "primary": {
+          "value": "#c4856a",
+          "description": "Warm sunset coral"
+        },
+        "secondary": {
+          "value": "#a86d55",
+          "description": "Deeper coral"
+        },
+        "glow": {
+          "value": "rgba(196, 133, 106, 0.3)",
+          "description": "Bright glow"
+        },
+        "tint": {
+          "value": "rgba(196, 133, 106, 0.1)",
+          "description": "Background tint"
+        }
+      },
+      
+      "animation": {
+        "timingMultiplier": 0.8,
+        "easingPreference": "spring",
+        "breathingBase": 3500,
+        "reactionIntensity": 1.3
+      },
+      
+      "audio": {
+        "signature": "sparkle",
+        "pitchRange": "high",
+        "paceBase": "energetic"
+      },
+      
+      "haptics": {
+        "intensityMultiplier": 1.15,
+        "signaturePattern": "celebration"
+      }
+    },
+    
+    "nayan": {
+      "name": "Nayan",
+      "role": "Synthesizer",
+      "archetype": "The Advisor Who Sees the Whole Picture",
+      
+      "colors": {
+        "primary": {
+          "value": "#8a7a6a",
+          "description": "Warm stone gray"
+        },
+        "secondary": {
+          "value": "#736559",
+          "description": "Deeper stone"
+        },
+        "glow": {
+          "value": "rgba(138, 122, 106, 0.3)",
+          "description": "Neutral glow"
+        },
+        "tint": {
+          "value": "rgba(138, 122, 106, 0.1)",
+          "description": "Background tint"
+        }
+      },
+      
+      "animation": {
+        "timingMultiplier": 1.1,
+        "easingPreference": "gentle",
+        "breathingBase": 5500,
+        "reactionIntensity": 0.95
+      },
+      
+      "audio": {
+        "signature": "full-resonant",
+        "pitchRange": "full",
+        "paceBase": "spacious"
+      },
+      
+      "haptics": {
+        "intensityMultiplier": 0.95,
+        "signaturePattern": "milestone"
+      }
+    }
+  },
+  
+  "relationships": {
+    "handoffPairs": [
+      { "from": "ferni", "to": "jack", "context": "wisdom needed" },
+      { "from": "ferni", "to": "peter", "context": "research needed" },
+      { "from": "ferni", "to": "alex", "context": "communication help" },
+      { "from": "ferni", "to": "maya", "context": "organization help" },
+      { "from": "ferni", "to": "jordan", "context": "celebration or planning" },
+      { "from": "any", "to": "ferni", "context": "emotional support" },
+      { "from": "any", "to": "nayan", "context": "deep integration (premium)" }
+    ],
+    
+    "unlockOrder": [
+      { "stage": "first_meeting", "personas": ["ferni"] },
+      { "stage": "getting_started", "personas": ["ferni", "maya"] },
+      { "stage": "building_trust", "personas": ["ferni", "maya", "peter"] },
+      { "stage": "established", "personas": ["ferni", "maya", "peter", "alex", "jordan"] },
+      { "stage": "deep_partnership", "personas": ["ferni", "maya", "peter", "alex", "jordan", "jack", "nayan"] }
+    ]
+  }
+}
+

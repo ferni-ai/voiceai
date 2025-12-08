@@ -464,6 +464,10 @@ async function ensureBuildersLoaded(): Promise<void> {
       import('./response-length.js'), // Sometimes brief, sometimes elaborate
       import('./energy-mirroring.js'), // Match user's energy level
       import('./ferni-personality.js'), // Genuine preferences, opinions, quirks
+      // 🎓 Better-than-PhD capabilities
+      import('./cognitive-distortions.js'), // Detect cognitive distortions, Socratic intervention
+      import('./somatic-context.js'), // Grounding & breathing when distressed
+      import('./wellbeing-context.js'), // Continuous wellbeing tracking & alerts
     ]);
 
     getLogger().info(`Context builders loaded: ${builders.size} registered`);
