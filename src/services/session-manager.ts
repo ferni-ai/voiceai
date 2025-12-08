@@ -974,16 +974,22 @@ export async function createSessionServices(
     /**
      * Save user profile with error handling
      * FIX BUG #session-7: Don't fail silently on save errors
+     * FIX BUG #memory-audit-2: Use services.userProfile NOT the closure variable!
+     * The closure variable userProfile was stale - any updates made to services.userProfile
+     * (like totalConversations increment, lastConversationSummary, etc.) were being ignored.
      */
     saveProfile: async () => {
-      if (userProfile && validatedUserId) {
+      // CRITICAL FIX: Use services.userProfile, not the closure variable!
+      // The closure variable is stale and doesn't include updates from endSession()
+      const profileToSave = services.userProfile;
+      if (profileToSave && validatedUserId) {
         try {
           const history = historyTracker.getSessionHistory();
           const state = stateMachine.getState();
 
           const { updateProfileFromSession } = await import('../types/user-profile.js');
-          const updated = updateProfileFromSession(userProfile, {
-            name: userProfile.name,
+          const updated = updateProfileFromSession(profileToSave, {
+            name: profileToSave.name,
             mood: state.currentMood,
             energyLevel:
               state.distressLevel < 0.3 ? 'high' : state.distressLevel < 0.6 ? 'medium' : 'low',
@@ -1335,6 +1341,12 @@ export async function createSessionServices(
               'Failed to apply intelligence state (non-fatal)'
             );
           }
+
+          // ================================================================
+          // NOTE: totalConversations, totalMinutesTalked, lastContact, updatedAt
+          // are all handled by updateProfileFromSession() inside saveProfile().
+          // We MUST NOT increment here or we'll double-count!
+          // ================================================================
 
           services.userProfile = updatedProfile;
           await services.saveProfile();
