@@ -199,7 +199,7 @@ export async function shutdownServices(): Promise<void> {
   }
 
   // Reset global state
-  resetGlobalServices();
+  void resetGlobalServices();
 
   getLogger().info('Services shut down complete');
 }

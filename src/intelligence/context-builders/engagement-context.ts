@@ -16,8 +16,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getDailyRitualsService, PERSONA_RITUALS } from '../../services/daily-rituals.js';
 import { getMemoryEngagementEngine, buildMemoryEngagementContext } from '../memory-engagement.js';
 import { getTeamEngagementService } from '../../services/team-engagement.js';
-import { registerContextBuilder, createStandardInjection, createHintInjection } from './index.js';
-import type { ContextBuilderInput, ContextInjection } from './index.js';
+import { registerContextBuilder, createStandardInjection, createHintInjection, type ContextBuilderInput, type ContextInjection } from './index.js';
 
 // ============================================================================
 // TYPES

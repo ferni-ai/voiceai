@@ -15,8 +15,7 @@ import {
   type HabitCoachProfileData,
   type WeeklyReflectionData,
 } from '../../services/productivity-store.js';
-import type { LifeDomain, LifeStage } from './types.js';
-import type { HabitLoop, HabitStack, EnhancedHabit } from './types.js';
+import type { LifeDomain, LifeStage, HabitLoop, HabitStack, EnhancedHabit } from './types.js';
 
 // ============================================================================
 // USER DATA INTERFACE

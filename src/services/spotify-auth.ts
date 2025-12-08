@@ -459,7 +459,7 @@ export function logSpotifyDiagnostics(): void {
   if (status.circuitBreakerOpen) {
     const stats = spotifyCircuitBreaker.getStats();
     getLogger().warn(
-      `🎵 Circuit breaker OPEN after ${stats.totalFailures} failures. ` + 'Will retry in 1 minute.'
+      `🎵 Circuit breaker OPEN after ${stats.totalFailures} failures. Will retry in 1 minute.`
     );
   }
 }

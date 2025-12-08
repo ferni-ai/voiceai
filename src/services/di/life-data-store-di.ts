@@ -15,10 +15,8 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-import type { Container } from './container.js';
-import { Tokens, type Factory } from './container.js';
-import type { AsyncResult } from '../../types/result.js';
-import { Result, success, failure, NotFoundError } from '../../types/result.js';
+import { Tokens, type Factory, type Container } from './container.js';
+import { Result, success, failure, NotFoundError, type AsyncResult } from '../../types/result.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
 // ============================================================================

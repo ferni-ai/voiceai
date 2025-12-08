@@ -14,8 +14,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { ContextBuilderInput, ContextInjection } from './index.js';
-import { createInjection } from './index.js';
+import { createInjection, type ContextBuilderInput, type ContextInjection } from './index.js';
 import {
   getConversationHumanizer,
   getEmotionalArcTracker,

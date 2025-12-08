@@ -332,7 +332,7 @@ describe('Handoff Flow', () => {
           } catch {
             if (i < MAX_RETRIES) {
               // Wait before retry (using minimal delay for test speed)
-              await new Promise((r) => setTimeout(r, 1));
+              await new Promise<void>((r) => { setTimeout(r, 1); });
             }
           }
         }

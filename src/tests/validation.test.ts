@@ -22,6 +22,14 @@ import {
   validateStockSymbol,
   sanitizeEmailForLog,
   sanitizePhoneForLog,
+  validateDateField,
+  validateEventDate,
+  validateDeadline,
+  validateStringField,
+  validateEventTitle,
+  validateGoalName,
+  validateReminderDays,
+  validateMonetaryAmount,
 } from '../tools/validation.js';
 
 describe('Input Validation', () => {
@@ -230,17 +238,6 @@ describe('Input Validation', () => {
 // ============================================================================
 // ADDITIONAL VALIDATORS (Team Handler Support)
 // ============================================================================
-
-import {
-  validateDateField,
-  validateEventDate,
-  validateDeadline,
-  validateStringField,
-  validateEventTitle,
-  validateGoalName,
-  validateReminderDays,
-  validateMonetaryAmount,
-} from '../tools/validation.js';
 
 describe('Date Field Validators', () => {
   describe('validateDateField', () => {

@@ -829,13 +829,15 @@ export async function createSessionServices(
       );
     },
 
+    /* eslint-disable @typescript-eslint/no-misused-promises */
     recordResponseSignal: async (params: {
       agentResponse: string;
       userResponse: string;
       topic: string;
       conversationPhase: string;
       emotion?: { primary: string; intensity: number };
-    }) => {
+    }): Promise<void> => {
+      /* eslint-enable @typescript-eslint/no-misused-promises */
       const { agentResponse, userResponse, topic, conversationPhase, emotion } = params;
 
       // Record the full quality signal

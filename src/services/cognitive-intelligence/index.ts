@@ -129,14 +129,13 @@ export {
 
 import { detectDistortions, getDistortionResponse } from './distortion-detector.js';
 import { recordANT, analyzePatterns } from './ant-tracker.js';
-import { generateSocraticDialogue } from './socratic-engine.js';
+import { generateSocraticDialogue, type SocraticDialogue } from './socratic-engine.js';
 import type {
   DistortionDetection,
   DistortionResponse,
   SocraticContext,
   CognitiveContextInjection,
 } from './types.js';
-import type { SocraticDialogue } from './socratic-engine.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CognitiveIntelligence' });

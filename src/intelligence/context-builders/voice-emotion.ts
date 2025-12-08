@@ -14,8 +14,9 @@ import {
   createStandardInjection,
   createHintInjection,
   createCriticalInjection,
+  type ContextBuilderInput,
+  type ContextInjection,
 } from './index.js';
-import type { ContextBuilderInput, ContextInjection } from './index.js';
 import {
   processVoiceEmotion,
   generateVoiceAwareGuidance,

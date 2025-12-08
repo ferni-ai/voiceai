@@ -287,7 +287,7 @@ describe('fromPromise', () => {
   });
 
   it('should use error mapper when provided', async () => {
-    const promise = Promise.reject('string error');
+    const promise = Promise.reject(new Error('string error'));
     const result = await fromPromise(promise, (e) => new Error(`Mapped: ${e}`));
 
     expect(isFailure(result)).toBe(true);
@@ -321,9 +321,9 @@ describe('fromThrowable', () => {
   it('should use error mapper when provided', () => {
     const result = fromThrowable(
       () => {
-        throw 'string thrown';
+        throw new Error('string thrown');
       },
-      (e) => new Error(`Mapped: ${e}`)
+      (e) => new Error(`Mapped: ${e instanceof Error ? e.message : e}`)
     );
 
     expect(isFailure(result)).toBe(true);

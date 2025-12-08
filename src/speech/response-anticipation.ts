@@ -386,11 +386,12 @@ export class ResponseAnticipationService {
 
     for (const variable of variables) {
       switch (variable) {
-        case 'timeOfDay':
+        case 'timeOfDay': {
           const hour = new Date().getHours();
           const tod = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
           result = result.replace(`{{${variable}}}`, tod);
           break;
+        }
 
         case 'userName':
           result = result.replace(`{{${variable}}}`, 'there'); // Fallback

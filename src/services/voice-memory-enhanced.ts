@@ -326,8 +326,8 @@ function extractDSPFeatures(audio: Float32Array): Float32Array {
 
   // Basic energy
   let energy = 0;
-  for (let i = 0; i < audio.length; i++) {
-    energy += audio[i] * audio[i];
+  for (const sample of audio) {
+    energy += sample * sample;
   }
   energy = Math.sqrt(energy / audio.length);
   features[0] = energy;
@@ -363,8 +363,8 @@ function extractDSPFeatures(audio: Float32Array): Float32Array {
     // Store frame energy
     if (frame < 50) {
       let frameEnergy = 0;
-      for (let i = 0; i < frameData.length; i++) {
-        frameEnergy += frameData[i] * frameData[i];
+      for (const sample of frameData) {
+        frameEnergy += sample * sample;
       }
       features[2 + frame] = Math.sqrt(frameEnergy / frameData.length);
     }
@@ -386,8 +386,8 @@ function extractDSPFeatures(audio: Float32Array): Float32Array {
 
   // Normalize to unit length
   let norm = 0;
-  for (let i = 0; i < features.length; i++) {
-    norm += features[i] * features[i];
+  for (const f of features) {
+    norm += f * f;
   }
   norm = Math.sqrt(norm);
   if (norm > 0) {

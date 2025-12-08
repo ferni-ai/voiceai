@@ -9,8 +9,7 @@
  * that make each persona's thinking feel unique.
  */
 
-import { registerContextBuilder, createHintInjection, createStandardInjection } from './index.js';
-import type { ContextBuilderInput, ContextInjection } from './index.js';
+import { registerContextBuilder, createHintInjection, createStandardInjection, type ContextBuilderInput, type ContextInjection } from './index.js';
 import {
   getCognitiveQuirks,
   getActiveQuirk,

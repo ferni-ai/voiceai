@@ -25,25 +25,23 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-import type {
-  ToolDefinition,
-  ToolDomain,
-  ToolCategory,
-  ToolContext,
-  ToolSetSpec,
-  ToolSetResult,
-  ToolMetadata,
-  RegistryQueryOptions,
-  RegistryEvent,
-  RegistryEventHandler,
-  Tool,
-} from './types.js';
 import {
   ALL_TOOL_DOMAINS,
   DOMAIN_TO_CATEGORY,
   validateToolDefinition,
   validateToolSetSpec,
   EmptyServiceRegistry,
+  type ToolDefinition,
+  type ToolDomain,
+  type ToolCategory,
+  type ToolContext,
+  type ToolSetSpec,
+  type ToolSetResult,
+  type ToolMetadata,
+  type RegistryQueryOptions,
+  type RegistryEvent,
+  type RegistryEventHandler,
+  type Tool,
 } from './types.js';
 
 // ============================================================================

@@ -26,8 +26,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 
 import { EventEmitter } from 'events';
-import type { AgentId, ToolExecutionRequest, ToolExecutionResult } from '../agent-bus.js';
-import { getAgentBus } from '../agent-bus.js';
+import { getAgentBus, type AgentId, type ToolExecutionRequest, type ToolExecutionResult } from '../agent-bus.js';
 import type {
   TeamHandlerDefinition,
   TeamHandlerFunction,

@@ -46,14 +46,14 @@ describe('voice-memory-enhanced', () => {
 
     beforeAll(async () => {
       try {
-        speaker = require('ferni-speaker');
-        const path = require('path');
+        speaker = await import('ferni-speaker');
+        const path = await import('path');
         const modelPath = path.join(
           process.cwd(),
           'node_modules/ferni-speaker/models/ecapa_tdnn.onnx'
         );
         speaker.initialize(modelPath);
-      } catch (e) {
+      } catch {
         console.warn('ferni-speaker not available, skipping native tests');
         speaker = null;
       }
@@ -227,8 +227,8 @@ describe('voice-memory-enhanced', () => {
 
       // Basic energy
       let energy = 0;
-      for (let i = 0; i < audio.length; i++) {
-        energy += audio[i] * audio[i];
+      for (const sample of audio) {
+        energy += sample * sample;
       }
       energy = Math.sqrt(energy / audio.length);
       features[0] = energy;
@@ -255,8 +255,8 @@ describe('voice-memory-enhanced', () => {
 
       // Normalize
       let norm = 0;
-      for (let i = 0; i < features.length; i++) {
-        norm += features[i] * features[i];
+      for (const f of features) {
+        norm += f * f;
       }
       norm = Math.sqrt(norm);
       if (norm > 0) {
@@ -323,8 +323,8 @@ describe('voice-memory-enhanced', () => {
 
     beforeAll(async () => {
       try {
-        speaker = require('ferni-speaker');
-        const path = require('path');
+        speaker = await import('ferni-speaker');
+        const path = await import('path');
         const modelPath = path.join(
           process.cwd(),
           'node_modules/ferni-speaker/models/ecapa_tdnn.onnx'

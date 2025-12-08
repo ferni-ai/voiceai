@@ -13,10 +13,8 @@
 import { getLogger } from '../../utils/safe-logger.js';
 
 import { EventEmitter } from 'events';
-import type { Container } from './container.js';
-import { Tokens, type Factory } from './container.js';
-import type { Result, AsyncResult } from '../../types/result.js';
-import { success, failure, RateLimitError } from '../../types/result.js';
+import { Tokens, type Factory, type Container } from './container.js';
+import { success, failure, RateLimitError, type Result, type AsyncResult } from '../../types/result.js';
 
 // ============================================================================
 // TYPES

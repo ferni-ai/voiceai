@@ -12,8 +12,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import type { ToolExecutionRequest, ToolExecutionResult, AgentId } from '../../agent-bus.js';
-import { getAgentBus } from '../../agent-bus.js';
+import { getAgentBus, type ToolExecutionRequest, type ToolExecutionResult, type AgentId } from '../../agent-bus.js';
 import { registerTeamHandler, teamHandlerRegistry } from '../index.js';
 import type { TeamHandlerDefinition } from '../types.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';

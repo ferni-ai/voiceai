@@ -12,8 +12,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 // Import trust system modules
 import { trackEvent } from './analytics.js';
 import { detectNewBoundary } from './boundary-memory.js';
-import type { WinType } from './celebration-momentum.js';
-import { recordWin } from './celebration-momentum.js';
+import { recordWin, type WinType } from './celebration-momentum.js';
 import { recordResponse } from './growth-reflection.js';
 import { detectCallbackMoment } from './inside-jokes.js';
 import { recordPersonaInteraction, type PersonaId } from './persona-specific-learning.js';

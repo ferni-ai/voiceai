@@ -108,7 +108,7 @@ describe('Tool Analytics', () => {
       const tracker = trackToolUsage('testTool', 'testDomain');
 
       // Wait a bit to ensure measurable duration
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
 
       tracker.success();
 

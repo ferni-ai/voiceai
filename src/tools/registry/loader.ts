@@ -16,8 +16,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 
 import { toolRegistry } from './index.js';
-import type { ToolDomain, ToolDefinition } from './types.js';
-import { ALL_TOOL_DOMAINS } from './types.js';
+import { ALL_TOOL_DOMAINS, type ToolDomain, type ToolDefinition } from './types.js';
 
 // ============================================================================
 // DOMAIN LOADERS

@@ -10,8 +10,7 @@ import type { AudioFrame } from '@livekit/rtc-node';
 import { getInterruptionHandler } from '../../conversation/interruption-handler.js';
 import { getTurnTakingMonitor } from '../../conversation/turn-taking.js';
 import { getTopicTracker } from '../../intelligence/topic-tracker.js';
-import type { BackchannelingSystem } from '../../speech/backchanneling.js';
-import { getSessionBackchannelingSystem } from '../../speech/backchanneling.js';
+import { getSessionBackchannelingSystem, type BackchannelingSystem } from '../../speech/backchanneling.js';
 import type { EmotionResult } from '../../intelligence/emotion-detector.js';
 import type { TopicWeight } from '../../speech/speech-context.js';
 

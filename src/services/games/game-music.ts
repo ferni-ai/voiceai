@@ -6,10 +6,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getMusicPlayer } from '../../audio/music-player.js';
-import { findTrack, searchItunes } from '../itunes.js';
-import type { MusicTrack } from '../../audio/music-player.js';
-import type { iTunesTrack } from '../itunes.js';
+import { getMusicPlayer, type MusicTrack } from '../../audio/music-player.js';
+import { findTrack, searchItunes, type iTunesTrack } from '../itunes.js';
 
 const log = getLogger();
 
