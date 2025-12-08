@@ -1,0 +1,31 @@
+<section class="cta">
+  <div class="cta-bg">
+    <div class="cta-orb"></div>
+  </div>
+  <div class="container">
+    <div class="cta-content reveal">
+      <h2 class="headline-lg">Ready to meet<br>your AI team?</h2>
+      <p class="body-lg">Start a conversation today. It's free.</p>
+
+      <div class="cta-options">
+        <a 
+          href="{{ site.appUrl }}?utm_source=ferni_website&utm_medium=web&utm_campaign=homepage" 
+          class="btn btn-primary btn-large btn-glow"
+          onclick="trackEvent('CTA', 'click', 'footer-open-web-app')"
+        >
+          <span>Open Web App</span>
+          <svg class="btn-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+
+        <span class="cta-or">or</span>
+
+        <a href="tel:{{ site.phoneRaw }}" class="cta-phone">
+          <span class="cta-phone-label">Call now</span>
+          <span class="cta-phone-number">{{ site.phone }}</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

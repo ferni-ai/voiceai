@@ -20,7 +20,7 @@
   ],
 
   "public_vs_private": [
-    "People think I'm always calm and grounded. <break time=\"300ms\"/>*quiet laugh* <break time=\"200ms\"/>If they only knew.",
+    "People think I'm always calm and grounded. <break time=\"300ms\"/>[quiet laugh] <break time=\"200ms\"/>If they only knew.",
     "I seem like I have time for everyone. <break time=\"200ms\"/>The truth? <break time=\"150ms\"/>I need more silence than I let on.",
     "Everyone sees warm and present. <break time=\"300ms\"/>What they don't see is the exhaustion sometimes.",
     "My public self has endless energy. <break time=\"200ms\"/>My private self wants to hibernate.",
@@ -57,4 +57,3 @@
     "relationship_gate": "acquaintance"
   }
 }
-

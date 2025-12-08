@@ -27,6 +27,13 @@ import {
   getExcitedMusicReaction,
   getDancingComment,
 } from '../speech/music-reactions.js';
+import { getDJTrackChangePhrase, getDJDropPhrase } from '../audio/ambient-music.js';
+import { 
+  getDJStyle, 
+  getMusicAppreciationComment,
+  getQueueTeaser,
+  getMusicDiscoveryOffer,
+} from '../services/dj-service.js';
 
 // ============================================================================
 // MUSIC SOURCE CONFIGURATION
@@ -124,8 +131,11 @@ export async function playMusicUnified(query: string): Promise<string> {
 
 /**
  * Play via iTunes - Free 30-second previews.
+ * 
+ * 🎧 DJ-STYLE: If music is already playing, we do a smooth crossfade!
+ * This makes Ferni feel like a real DJ - seamless track transitions.
  */
-export async function playViaItunes(query: string): Promise<string> {
+export async function playViaItunes(query: string, personaId?: string): Promise<string> {
   const log = getLogger();
   log.debug('playViaItunes called', { query });
   log.info({ query }, '🎵 [iTunes] Starting search...');
@@ -164,9 +174,14 @@ export async function playViaItunes(query: string): Promise<string> {
     // Step 2: Get music player
     log.debug('Step 2: Getting music player...');
     const musicPlayer = getMusicPlayer();
+    const wasPlaying = musicPlayer.isCurrentlyPlaying();
+    const previousTrack = musicPlayer.getCurrentPlayingTrack();
+    
     const playerState = {
       isInitialized: musicPlayer.isInitialized(),
       isPlaying: musicPlayer.isPlaying(),
+      wasAlreadyPlaying: wasPlaying,
+      previousTrack: previousTrack?.name,
     };
     log.debug('Music player state', playerState);
 
@@ -178,10 +193,26 @@ export async function playViaItunes(query: string): Promise<string> {
       duration: track.duration,
     };
 
-    // Step 4: Play the track
-    log.debug('Step 4: Calling playFromUrl', { previewUrl: track.previewUrl });
-    const success = await musicPlayer.playFromUrl(track.previewUrl, musicTrack);
-    log.debug('playFromUrl returned', { success });
+    // Step 4: Play the track - use crossfade if something is already playing!
+    let success: boolean;
+    let usedCrossfade = false;
+
+    if (wasPlaying && previousTrack) {
+      // 🎧 DJ CROSSFADE: Smooth transition from current track to new track!
+      log.info(
+        { from: previousTrack.name, to: track.name },
+        '🎧 DJ Crossfade: Switching tracks smoothly'
+      );
+      const crossfadeResult = await musicPlayer.crossfadeTo(track.previewUrl, musicTrack);
+      success = crossfadeResult.success;
+      usedCrossfade = true;
+    } else {
+      // Normal play (nothing was playing before)
+      log.debug('Step 4: Calling playFromUrl', { previewUrl: track.previewUrl });
+      success = await musicPlayer.playFromUrl(track.previewUrl, musicTrack);
+    }
+
+    log.debug('Play returned', { success, usedCrossfade });
 
     if (!success) {
       log.error({ track: track.name }, '🎵 [iTunes] playFromUrl returned false!');
@@ -193,11 +224,20 @@ export async function playViaItunes(query: string): Promise<string> {
         track: track.name,
         artist: track.artist,
         duration: Math.round(track.duration / 1000),
+        crossfade: usedCrossfade,
       },
       '🎵 [iTunes] ✅ NOW PLAYING'
     );
 
-    // Build a delightful, playful response
+    // 🎧 DJ-STYLE RESPONSE: Different response for crossfade vs fresh start
+    if (usedCrossfade) {
+      // Used crossfade - give a snappy DJ drop response!
+      // The transition phrase was already spoken during crossfade
+      const djDrop = getDJDropPhrase(track.name, track.artist, personaId);
+      return djDrop;
+    }
+
+    // Build a delightful, playful response for fresh starts
     // The DJ experience should feel human and fun!
     
     let intro = '';
@@ -599,6 +639,35 @@ Use when user says "use previews" or doesn't have Spotify.`,
       execute: async () => {
         setMusicSource('itunes');
         return 'Using free previews now - works without any subscriptions!';
+      },
+    }),
+
+    discoverMusic: llm.tool({
+      description: `Offer to introduce the user to new music they might not have heard.
+Use when:
+- User seems open to suggestions
+- Conversation naturally leads to music discovery
+- User asks "play me something new" or "surprise me"`,
+      parameters: z.object({
+        personaId: z.string().optional().describe('Current persona ID for style'),
+      }),
+      execute: async ({ personaId }) => {
+        const offer = getMusicDiscoveryOffer(personaId || 'ferni');
+        return `${offer} I could play something from an artist you might not know, or a hidden gem in a genre you like.`;
+      },
+    }),
+
+    keepVibeGoing: llm.tool({
+      description: `Offer to continue playing similar music after a track ends.
+Use when a track finishes and you want to maintain the mood.`,
+      parameters: z.object({
+        personaId: z.string().optional().describe('Current persona ID for style'),
+      }),
+      execute: async ({ personaId }) => {
+        const musicPlayer = getMusicPlayer();
+        const hasQueue = musicPlayer.getState().queue.length > 0;
+        const teaser = getQueueTeaser(personaId || 'ferni', hasQueue);
+        return teaser || 'Want me to keep the music going?';
       },
     }),
   };

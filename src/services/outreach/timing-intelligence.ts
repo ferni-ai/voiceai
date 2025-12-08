@@ -1,0 +1,826 @@
+// @ts-nocheck
+/**
+ * Timing Intelligence Service
+ *
+ * Learns when users are most receptive to outreach and ensures we reach out
+ * at optimal times - not just "preferred hours" but understanding life patterns.
+ *
+ * Key Intelligence:
+ * 1. Engagement Patterns - When do they typically respond?
+ * 2. Response Rates - Which times get the best response?
+ * 3. Life Events - Don't reach out during known busy times
+ * 4. Contextual Timing - Morning person vs night owl
+ * 5. Channel Timing - Best time for calls vs texts vs email
+ *
+ * Philosophy: Reach out when they're receptive, not when it's convenient for us.
+ */
+
+import { getLogger } from '../../utils/safe-logger.js';
+import type { OutreachChannel } from './persona-voice-generator.js';
+import type { OutreachPriority } from './decision-engine.js';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface TimingProfile {
+  userId: string;
+
+  // Learned patterns from engagement
+  engagementPatterns: {
+    preferredHours: number[]; // Hours that get best response (0-23)
+    preferredDays: number[]; // Days that get best response (0=Sun, 6=Sat)
+    responseRateByHour: Map<number, number>; // Hour -> response rate (0-1)
+    responseRateByDay: Map<number, number>; // Day -> response rate (0-1)
+    avgResponseTimeMs: number; // How quickly they respond
+    lastSuccessfulContactTime?: Date;
+    totalInteractions: number;
+    totalResponses: number;
+  };
+
+  // Explicit user preferences
+  preferences: {
+    quietHoursStart: string; // "22:00"
+    quietHoursEnd: string; // "07:00"
+    timezone: string;
+    neverDuring: NeverDuringRule[];
+    bestTimeFor: Partial<Record<OutreachChannel, TimePeriod>>;
+    preferMornings?: boolean;
+    preferEvenings?: boolean;
+  };
+
+  // Life context that affects timing
+  lifeContext: {
+    busyPeriods: BusyPeriod[];
+    recurringEvents: RecurringEvent[];
+    workSchedule?: WorkSchedule;
+    sleepPattern?: SleepPattern;
+  };
+
+  // Channel-specific timing
+  channelTiming: {
+    call: ChannelTimingData;
+    sms: ChannelTimingData;
+    email: ChannelTimingData;
+  };
+}
+
+export interface NeverDuringRule {
+  description: string; // "morning meditation"
+  startTime?: string; // "07:00"
+  endTime?: string; // "08:00"
+  days?: number[]; // [1,2,3,4,5] for weekdays
+  isRecurring: boolean;
+}
+
+export type TimePeriod = 'morning' | 'afternoon' | 'evening' | 'night' | 'anytime';
+
+export interface BusyPeriod {
+  id: string;
+  description: string;
+  startDate: Date;
+  endDate: Date;
+  urgentOnly: boolean; // Only urgent outreach during this period
+}
+
+export interface RecurringEvent {
+  id: string;
+  description: string;
+  dayOfWeek: number; // 0-6
+  startTime: string; // "09:00"
+  endTime: string; // "10:00"
+  noOutreach: boolean;
+}
+
+export interface WorkSchedule {
+  type: 'regular' | 'shift' | 'flexible' | 'unknown';
+  workDays: number[];
+  workStart?: string;
+  workEnd?: string;
+}
+
+export interface SleepPattern {
+  typicalBedtime: string;
+  typicalWakeTime: string;
+  isNightOwl: boolean;
+  isEarlyBird: boolean;
+}
+
+export interface ChannelTimingData {
+  bestHours: number[];
+  responseRateByHour: Map<number, number>;
+  avgResponseTimeMs: number;
+  lastSuccessfulTime?: Date;
+}
+
+export interface TimingDecision {
+  shouldSendNow: boolean;
+  optimalTime: Date;
+  confidence: number; // 0-1
+  reasoning: string;
+  alternativeTimes: Date[];
+}
+
+export interface TimingContext {
+  trigger: {
+    type: string;
+    priority: OutreachPriority;
+  };
+  channel: OutreachChannel;
+  isFollowUp?: boolean;
+}
+
+// ============================================================================
+// DEFAULT VALUES
+// ============================================================================
+
+const DEFAULT_TIMING_PROFILE: Omit<TimingProfile, 'userId'> = {
+  engagementPatterns: {
+    preferredHours: [9, 10, 11, 14, 15, 16, 19, 20],
+    preferredDays: [1, 2, 3, 4, 5], // Weekdays by default
+    responseRateByHour: new Map(),
+    responseRateByDay: new Map(),
+    avgResponseTimeMs: 60 * 60 * 1000, // 1 hour default
+    totalInteractions: 0,
+    totalResponses: 0,
+  },
+
+  preferences: {
+    quietHoursStart: '22:00',
+    quietHoursEnd: '07:00',
+    timezone: 'America/New_York',
+    neverDuring: [],
+    bestTimeFor: {},
+  },
+
+  lifeContext: {
+    busyPeriods: [],
+    recurringEvents: [],
+  },
+
+  channelTiming: {
+    call: {
+      bestHours: [10, 11, 14, 15, 19],
+      responseRateByHour: new Map(),
+      avgResponseTimeMs: 0,
+    },
+    sms: {
+      bestHours: [9, 10, 11, 12, 14, 15, 16, 17, 19, 20],
+      responseRateByHour: new Map(),
+      avgResponseTimeMs: 30 * 60 * 1000,
+    },
+    email: {
+      bestHours: [8, 9, 10, 11, 14, 15, 16],
+      responseRateByHour: new Map(),
+      avgResponseTimeMs: 4 * 60 * 60 * 1000,
+    },
+  },
+};
+
+// ============================================================================
+// STORAGE
+// ============================================================================
+
+const timingProfileStore = new Map<string, TimingProfile>();
+const interactionLog = new Map<string, InteractionRecord[]>();
+
+interface InteractionRecord {
+  timestamp: Date;
+  channel: OutreachChannel;
+  wasOutreach: boolean;
+  gotResponse: boolean;
+  responseTimeMs?: number;
+  hourOfDay: number;
+  dayOfWeek: number;
+}
+
+// ============================================================================
+// TIMING INTELLIGENCE SERVICE
+// ============================================================================
+
+const log = getLogger().child({ service: 'timing-intelligence' });
+
+/**
+ * Get or create timing profile for a user
+ */
+export function getTimingProfile(userId: string): TimingProfile {
+  let profile = timingProfileStore.get(userId);
+  if (!profile) {
+    profile = {
+      ...DEFAULT_TIMING_PROFILE,
+      userId,
+      engagementPatterns: {
+        ...DEFAULT_TIMING_PROFILE.engagementPatterns,
+        responseRateByHour: new Map(),
+        responseRateByDay: new Map(),
+      },
+      channelTiming: {
+        call: {
+          ...DEFAULT_TIMING_PROFILE.channelTiming.call,
+          responseRateByHour: new Map(),
+        },
+        sms: {
+          ...DEFAULT_TIMING_PROFILE.channelTiming.sms,
+          responseRateByHour: new Map(),
+        },
+        email: {
+          ...DEFAULT_TIMING_PROFILE.channelTiming.email,
+          responseRateByHour: new Map(),
+        },
+      },
+    };
+    timingProfileStore.set(userId, profile);
+  }
+  return profile;
+}
+
+/**
+ * Update timing preferences for a user
+ */
+export function updateTimingPreferences(
+  userId: string,
+  preferences: Partial<TimingProfile['preferences']>
+): void {
+  const profile = getTimingProfile(userId);
+  profile.preferences = { ...profile.preferences, ...preferences };
+  timingProfileStore.set(userId, profile);
+  log.debug({ userId, preferences }, 'Timing preferences updated');
+}
+
+/**
+ * Add a "never during" rule
+ */
+export function addNeverDuringRule(userId: string, rule: NeverDuringRule): void {
+  const profile = getTimingProfile(userId);
+  profile.preferences.neverDuring.push(rule);
+  timingProfileStore.set(userId, profile);
+  log.info({ userId, rule: rule.description }, 'Added never-during rule');
+}
+
+/**
+ * Add a busy period
+ */
+export function addBusyPeriod(userId: string, period: BusyPeriod): void {
+  const profile = getTimingProfile(userId);
+  profile.lifeContext.busyPeriods.push(period);
+  timingProfileStore.set(userId, profile);
+  log.info({ userId, period: period.description }, 'Added busy period');
+}
+
+/**
+ * Add a recurring event
+ */
+export function addRecurringEvent(userId: string, event: RecurringEvent): void {
+  const profile = getTimingProfile(userId);
+  profile.lifeContext.recurringEvents.push(event);
+  timingProfileStore.set(userId, profile);
+  log.info({ userId, event: event.description }, 'Added recurring event');
+}
+
+/**
+ * Set work schedule
+ */
+export function setWorkSchedule(userId: string, schedule: WorkSchedule): void {
+  const profile = getTimingProfile(userId);
+  profile.lifeContext.workSchedule = schedule;
+  timingProfileStore.set(userId, profile);
+  log.info({ userId, schedule }, 'Work schedule updated');
+}
+
+/**
+ * Set sleep pattern
+ */
+export function setSleepPattern(userId: string, pattern: SleepPattern): void {
+  const profile = getTimingProfile(userId);
+  profile.lifeContext.sleepPattern = pattern;
+  timingProfileStore.set(userId, profile);
+  log.info({ userId, pattern }, 'Sleep pattern updated');
+}
+
+// ============================================================================
+// LEARNING FROM INTERACTIONS
+// ============================================================================
+
+/**
+ * Record an interaction for learning
+ */
+export function recordInteraction(
+  userId: string,
+  data: {
+    channel: OutreachChannel;
+    wasOutreach: boolean;
+    gotResponse: boolean;
+    responseTimeMs?: number;
+    timestamp?: Date;
+  }
+): void {
+  const timestamp = data.timestamp || new Date();
+  const record: InteractionRecord = {
+    timestamp,
+    channel: data.channel,
+    wasOutreach: data.wasOutreach,
+    gotResponse: data.gotResponse,
+    responseTimeMs: data.responseTimeMs,
+    hourOfDay: timestamp.getHours(),
+    dayOfWeek: timestamp.getDay(),
+  };
+
+  // Store in log
+  const userLog = interactionLog.get(userId) || [];
+  userLog.push(record);
+
+  // Keep last 500 interactions
+  if (userLog.length > 500) {
+    userLog.shift();
+  }
+  interactionLog.set(userId, userLog);
+
+  // Update profile with learning
+  updateProfileFromInteraction(userId, record);
+
+  log.debug(
+    { userId, channel: data.channel, gotResponse: data.gotResponse },
+    'Recorded interaction'
+  );
+}
+
+/**
+ * Update timing profile based on new interaction
+ */
+function updateProfileFromInteraction(
+  userId: string,
+  record: InteractionRecord
+): void {
+  const profile = getTimingProfile(userId);
+
+  // Update totals
+  profile.engagementPatterns.totalInteractions++;
+  if (record.gotResponse) {
+    profile.engagementPatterns.totalResponses++;
+    profile.engagementPatterns.lastSuccessfulContactTime = record.timestamp;
+  }
+
+  // Update hour-based response rate (exponential smoothing)
+  const hourRate = profile.engagementPatterns.responseRateByHour.get(record.hourOfDay) || 0.5;
+  const newHourRate = record.gotResponse
+    ? hourRate * 0.8 + 0.2 // Boost if responded
+    : hourRate * 0.95; // Slight decay if no response
+  profile.engagementPatterns.responseRateByHour.set(record.hourOfDay, newHourRate);
+
+  // Update day-based response rate
+  const dayRate = profile.engagementPatterns.responseRateByDay.get(record.dayOfWeek) || 0.5;
+  const newDayRate = record.gotResponse ? dayRate * 0.8 + 0.2 : dayRate * 0.95;
+  profile.engagementPatterns.responseRateByDay.set(record.dayOfWeek, newDayRate);
+
+  // Update average response time
+  if (record.responseTimeMs !== undefined) {
+    const currentAvg = profile.engagementPatterns.avgResponseTimeMs;
+    profile.engagementPatterns.avgResponseTimeMs =
+      currentAvg * 0.9 + record.responseTimeMs * 0.1;
+  }
+
+  // Update preferred hours (top hours by response rate)
+  profile.engagementPatterns.preferredHours = getTopHours(
+    profile.engagementPatterns.responseRateByHour
+  );
+
+  // Update preferred days
+  profile.engagementPatterns.preferredDays = getTopDays(
+    profile.engagementPatterns.responseRateByDay
+  );
+
+  // Update channel-specific timing
+  const channelData = profile.channelTiming[record.channel];
+  if (channelData) {
+    const channelHourRate = channelData.responseRateByHour.get(record.hourOfDay) || 0.5;
+    const newChannelRate = record.gotResponse
+      ? channelHourRate * 0.8 + 0.2
+      : channelHourRate * 0.95;
+    channelData.responseRateByHour.set(record.hourOfDay, newChannelRate);
+
+    if (record.gotResponse) {
+      channelData.lastSuccessfulTime = record.timestamp;
+    }
+
+    if (record.responseTimeMs !== undefined) {
+      channelData.avgResponseTimeMs =
+        channelData.avgResponseTimeMs * 0.9 + record.responseTimeMs * 0.1;
+    }
+
+    channelData.bestHours = getTopHours(channelData.responseRateByHour);
+  }
+
+  timingProfileStore.set(userId, profile);
+}
+
+function getTopHours(rateMap: Map<number, number>, count = 8): number[] {
+  if (rateMap.size === 0) {
+    return [9, 10, 11, 14, 15, 16, 19, 20]; // Defaults
+  }
+
+  return Array.from(rateMap.entries())
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, count)
+    .map(([hour]) => hour)
+    .sort((a, b) => a - b);
+}
+
+function getTopDays(rateMap: Map<number, number>, count = 5): number[] {
+  if (rateMap.size === 0) {
+    return [1, 2, 3, 4, 5]; // Weekdays default
+  }
+
+  return Array.from(rateMap.entries())
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, count)
+    .map(([day]) => day)
+    .sort((a, b) => a - b);
+}
+
+// ============================================================================
+// TIMING DECISIONS
+// ============================================================================
+
+/**
+ * Calculate the optimal time to reach out
+ */
+export function calculateOptimalTime(
+  userId: string,
+  context: TimingContext
+): TimingDecision {
+  const profile = getTimingProfile(userId);
+  const now = new Date();
+
+  // Convert to user's timezone (simplified - in production use proper tz lib)
+  const userNow = now; // TODO: Timezone conversion
+
+  // Step 1: Check if now is a valid time
+  const nowScore = scoreTime(userNow, profile, context);
+  const nowBlocked = isTimeBlocked(userNow, profile, context);
+
+  if (!nowBlocked && nowScore > 0.7 && context.trigger.priority !== 'low') {
+    return {
+      shouldSendNow: true,
+      optimalTime: userNow,
+      confidence: nowScore,
+      reasoning: 'Current time scores well based on patterns',
+      alternativeTimes: [],
+    };
+  }
+
+  // Step 2: Find optimal time within the priority window
+  const windowMs = getPriorityWindow(context.trigger.priority);
+  const candidates = generateCandidateTimes(userNow, windowMs, profile);
+
+  // Step 3: Score each candidate
+  const scored = candidates
+    .filter((time) => !isTimeBlocked(time, profile, context))
+    .map((time) => ({
+      time,
+      score: scoreTime(time, profile, context),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  if (scored.length === 0) {
+    // No good times found - use first available after quiet hours
+    const fallbackTime = getFirstAvailableTime(userNow, profile);
+    return {
+      shouldSendNow: false,
+      optimalTime: fallbackTime,
+      confidence: 0.3,
+      reasoning: 'No optimal times found, using first available',
+      alternativeTimes: [],
+    };
+  }
+
+  const best = scored[0];
+  const alternatives = scored.slice(1, 4).map((s) => s.time);
+
+  // Check if best time is now
+  const isNow = Math.abs(best.time.getTime() - userNow.getTime()) < 5 * 60 * 1000;
+
+  return {
+    shouldSendNow: isNow && best.score > 0.5,
+    optimalTime: best.time,
+    confidence: best.score,
+    reasoning: generateReasoning(best.time, best.score, profile),
+    alternativeTimes: alternatives,
+  };
+}
+
+/**
+ * Check if a specific time is good for outreach
+ */
+export function isGoodTimeForOutreach(
+  userId: string,
+  time: Date,
+  context: TimingContext
+): { isGood: boolean; score: number; reason: string } {
+  const profile = getTimingProfile(userId);
+
+  if (isTimeBlocked(time, profile, context)) {
+    return {
+      isGood: false,
+      score: 0,
+      reason: 'Time is blocked by user preferences',
+    };
+  }
+
+  const score = scoreTime(time, profile, context);
+  const isGood = score > 0.5;
+
+  return {
+    isGood,
+    score,
+    reason: isGood
+      ? `Good time based on patterns (score: ${(score * 100).toFixed(0)}%)`
+      : `Below threshold (score: ${(score * 100).toFixed(0)}%)`,
+  };
+}
+
+// ============================================================================
+// SCORING LOGIC
+// ============================================================================
+
+function scoreTime(
+  time: Date,
+  profile: TimingProfile,
+  context: TimingContext
+): number {
+  let score = 0.5; // Base score
+  const hour = time.getHours();
+  const day = time.getDay();
+
+  // Factor 1: Preferred hours (+0.2)
+  if (profile.engagementPatterns.preferredHours.includes(hour)) {
+    score += 0.2;
+  }
+
+  // Factor 2: Preferred days (+0.1)
+  if (profile.engagementPatterns.preferredDays.includes(day)) {
+    score += 0.1;
+  }
+
+  // Factor 3: Historical response rate for this hour (+0.15)
+  const hourRate = profile.engagementPatterns.responseRateByHour.get(hour);
+  if (hourRate !== undefined) {
+    score += hourRate * 0.15;
+  }
+
+  // Factor 4: Historical response rate for this day (+0.1)
+  const dayRate = profile.engagementPatterns.responseRateByDay.get(day);
+  if (dayRate !== undefined) {
+    score += dayRate * 0.1;
+  }
+
+  // Factor 5: Channel-specific timing (+0.1)
+  const channelData = profile.channelTiming[context.channel];
+  if (channelData?.bestHours.includes(hour)) {
+    score += 0.1;
+  }
+
+  // Factor 6: User's preferred time for this channel (+0.1)
+  const preferredPeriod = profile.preferences.bestTimeFor[context.channel];
+  if (preferredPeriod && isInTimePeriod(time, preferredPeriod)) {
+    score += 0.1;
+  }
+
+  // Factor 7: Sleep pattern awareness (+0.05)
+  if (profile.lifeContext.sleepPattern) {
+    const pattern = profile.lifeContext.sleepPattern;
+    if (pattern.isEarlyBird && hour >= 6 && hour <= 9) {
+      score += 0.05;
+    }
+    if (pattern.isNightOwl && hour >= 20 && hour <= 23) {
+      score += 0.05;
+    }
+  }
+
+  // Factor 8: Work schedule awareness
+  if (profile.lifeContext.workSchedule) {
+    const schedule = profile.lifeContext.workSchedule;
+    const isWorkDay = schedule.workDays.includes(day);
+
+    if (isWorkDay && schedule.workStart && schedule.workEnd) {
+      const workStartHour = parseInt(schedule.workStart.split(':')[0]);
+      const workEndHour = parseInt(schedule.workEnd.split(':')[0]);
+
+      // Lunch hour is usually good
+      if (hour >= 11 && hour <= 13) {
+        score += 0.05;
+      }
+
+      // Right after work can be good
+      if (hour === workEndHour || hour === workEndHour + 1) {
+        score += 0.05;
+      }
+    }
+  }
+
+  // Normalize to 0-1
+  return Math.min(1, Math.max(0, score));
+}
+
+function isTimeBlocked(
+  time: Date,
+  profile: TimingProfile,
+  context: TimingContext
+): boolean {
+  const hour = time.getHours();
+  const day = time.getDay();
+  const timeStr = `${hour.toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
+
+  // Check quiet hours (skip for urgent)
+  if (context.trigger.priority !== 'urgent') {
+    if (isInQuietHours(time, profile.preferences.quietHoursStart, profile.preferences.quietHoursEnd)) {
+      return true;
+    }
+  }
+
+  // Check "never during" rules
+  for (const rule of profile.preferences.neverDuring) {
+    if (rule.days && !rule.days.includes(day)) {
+      continue; // Doesn't apply to this day
+    }
+
+    if (rule.startTime && rule.endTime) {
+      if (timeStr >= rule.startTime && timeStr <= rule.endTime) {
+        return true;
+      }
+    }
+  }
+
+  // Check busy periods (unless urgent)
+  if (context.trigger.priority !== 'urgent') {
+    for (const period of profile.lifeContext.busyPeriods) {
+      if (time >= period.startDate && time <= period.endDate) {
+        if (!period.urgentOnly || context.trigger.priority !== 'high') {
+          return true;
+        }
+      }
+    }
+  }
+
+  // Check recurring events
+  for (const event of profile.lifeContext.recurringEvents) {
+    if (event.dayOfWeek === day && event.noOutreach) {
+      if (timeStr >= event.startTime && timeStr <= event.endTime) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function isInQuietHours(time: Date, startStr: string, endStr: string): boolean {
+  const hour = time.getHours();
+  const minute = time.getMinutes();
+  const timeMinutes = hour * 60 + minute;
+
+  const [startHour, startMin] = startStr.split(':').map(Number);
+  const [endHour, endMin] = endStr.split(':').map(Number);
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+
+  // Handle overnight quiet hours (e.g., 22:00 - 07:00)
+  if (startMinutes > endMinutes) {
+    return timeMinutes >= startMinutes || timeMinutes < endMinutes;
+  }
+
+  return timeMinutes >= startMinutes && timeMinutes < endMinutes;
+}
+
+function isInTimePeriod(time: Date, period: TimePeriod): boolean {
+  const hour = time.getHours();
+
+  switch (period) {
+    case 'morning':
+      return hour >= 6 && hour < 12;
+    case 'afternoon':
+      return hour >= 12 && hour < 17;
+    case 'evening':
+      return hour >= 17 && hour < 21;
+    case 'night':
+      return hour >= 21 || hour < 6;
+    case 'anytime':
+      return true;
+    default:
+      return false;
+  }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function getPriorityWindow(priority: OutreachPriority): number {
+  switch (priority) {
+    case 'urgent':
+      return 1 * 60 * 60 * 1000; // 1 hour
+    case 'high':
+      return 4 * 60 * 60 * 1000; // 4 hours
+    case 'medium':
+      return 24 * 60 * 60 * 1000; // 24 hours
+    case 'low':
+      return 72 * 60 * 60 * 1000; // 72 hours
+    default:
+      return 24 * 60 * 60 * 1000;
+  }
+}
+
+function generateCandidateTimes(
+  from: Date,
+  windowMs: number,
+  profile: TimingProfile
+): Date[] {
+  const candidates: Date[] = [];
+  const end = new Date(from.getTime() + windowMs);
+
+  // Start from next hour
+  const current = new Date(from);
+  current.setMinutes(0, 0, 0);
+  current.setHours(current.getHours() + 1);
+
+  while (current <= end) {
+    // Only add times during reasonable hours
+    const hour = current.getHours();
+    if (hour >= 7 && hour <= 21) {
+      candidates.push(new Date(current));
+    }
+    current.setHours(current.getHours() + 1);
+  }
+
+  return candidates;
+}
+
+function getFirstAvailableTime(from: Date, profile: TimingProfile): Date {
+  const result = new Date(from);
+
+  // Move past quiet hours
+  const quietEnd = parseInt(profile.preferences.quietHoursEnd.split(':')[0]);
+  if (result.getHours() < quietEnd) {
+    result.setHours(quietEnd, 0, 0, 0);
+  } else if (result.getHours() >= parseInt(profile.preferences.quietHoursStart.split(':')[0])) {
+    result.setDate(result.getDate() + 1);
+    result.setHours(quietEnd, 0, 0, 0);
+  }
+
+  return result;
+}
+
+function generateReasoning(time: Date, score: number, profile: TimingProfile): string {
+  const hour = time.getHours();
+  const day = time.getDay();
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  const reasons: string[] = [];
+
+  if (profile.engagementPatterns.preferredHours.includes(hour)) {
+    reasons.push(`${hour}:00 is a preferred hour`);
+  }
+
+  if (profile.engagementPatterns.preferredDays.includes(day)) {
+    reasons.push(`${dayNames[day]} is a good day`);
+  }
+
+  const hourRate = profile.engagementPatterns.responseRateByHour.get(hour);
+  if (hourRate && hourRate > 0.6) {
+    reasons.push(`high response rate at this hour`);
+  }
+
+  if (reasons.length === 0) {
+    reasons.push('best available time within window');
+  }
+
+  return reasons.join(', ') + ` (confidence: ${(score * 100).toFixed(0)}%)`;
+}
+
+// ============================================================================
+// CLEANUP
+// ============================================================================
+
+export function clearUserTimingData(userId: string): void {
+  timingProfileStore.delete(userId);
+  interactionLog.delete(userId);
+  log.debug({ userId }, 'Cleared timing data');
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export default {
+  getTimingProfile,
+  updateTimingPreferences,
+  addNeverDuringRule,
+  addBusyPeriod,
+  addRecurringEvent,
+  setWorkSchedule,
+  setSleepPattern,
+  recordInteraction,
+  calculateOptimalTime,
+  isGoodTimeForOutreach,
+  clearUserTimingData,
+};
+

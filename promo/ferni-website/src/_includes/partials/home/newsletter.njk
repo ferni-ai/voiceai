@@ -1,0 +1,35 @@
+<section class="newsletter">
+  <div class="container">
+    <div class="newsletter-card reveal">
+      <div class="newsletter-content">
+        <h3 class="newsletter-headline">Stay in the loop</h3>
+        <p class="newsletter-description">
+          Get updates on new features, AI improvements, and exclusive tips for getting the most out of Ferni.
+        </p>
+      </div>
+      <form class="newsletter-form" id="newsletterForm" action="https://ferni.us11.list-manage.com/subscribe/post?u=52ffacbad9b81de1f66ebac7c&amp;id=dd755645d6&amp;f_id=00b2c7e3f0" method="POST" target="_blank">
+        <div class="form-group">
+          <input type="email" id="emailInput" name="EMAIL" placeholder="Enter your email" required>
+          {# Mailchimp bot protection #}
+          <div aria-hidden="true" style="position: absolute; left: -5000px">
+            <input type="text" name="b_52ffacbad9b81de1f66ebac7c_dd755645d6" tabindex="-1" value="">
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <span>Subscribe</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+        <p class="form-note">No spam, ever. Unsubscribe anytime.</p>
+      </form>
+      <div class="newsletter-success" id="newsletterSuccess">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+          <path d="M22 4L12 14.01l-3-3"/>
+        </svg>
+        <span>You're on the list! We'll be in touch.</span>
+      </div>
+    </div>
+  </div>
+</section>

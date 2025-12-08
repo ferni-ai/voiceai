@@ -213,7 +213,7 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--min-instances 0',
     '--max-instances 10',
     '--set-env-vars "NODE_ENV=production"',
-    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest"',
+    '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest"',
     '--quiet',
   ].join(' \\\n  ');
 

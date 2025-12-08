@@ -12,42 +12,42 @@
         {
           "source": "/api/**",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/token",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/spotify/**",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/subscription/**",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/plaid/**",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/health",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
@@ -107,42 +107,42 @@
         {
           "source": "/api/**",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/token",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/spotify/**",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/subscription/**",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/plaid/**",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },
         {
           "source": "/health",
           "run": {
-            "serviceId": "bogle-ui",
+            "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
         },

@@ -34,22 +34,102 @@ import {
 const log = createLogger({ module: 'StripeSubscription' });
 
 // ============================================================================
+// STRIPE TYPES (Minimal types for optional dependency)
+// ============================================================================
+
+/**
+ * Minimal Stripe types for when the stripe package isn't installed.
+ * These mirror the shapes we actually use from the Stripe SDK.
+ */
+interface StripeCustomer {
+  id: string;
+  email?: string | null;
+  name?: string | null;
+  metadata: Record<string, string>;
+}
+
+interface StripeSubscription {
+  id: string;
+  status: string;
+  customer: string;
+  created: number;
+  current_period_end: number;
+  trial_end: number | null;
+  metadata: Record<string, string>;
+}
+
+interface StripeCheckoutSession {
+  id: string;
+  url: string | null;
+  subscription?: string;
+  metadata?: Record<string, string>;
+}
+
+interface StripeBillingPortalSession {
+  url: string;
+}
+
+interface StripeInvoice {
+  id: string;
+  customer: string;
+}
+
+interface StripeEvent {
+  id: string;
+  type: string;
+  data: {
+    object: StripeSubscription | StripeCheckoutSession | StripeInvoice;
+  };
+}
+
+interface StripeClient {
+  customers: {
+    create(params: {
+      email?: string;
+      name?: string;
+      metadata?: Record<string, string>;
+    }): Promise<StripeCustomer>;
+  };
+  checkout: {
+    sessions: {
+      create(params: Record<string, unknown>): Promise<StripeCheckoutSession>;
+    };
+  };
+  billingPortal: {
+    sessions: {
+      create(params: { customer: string; return_url: string }): Promise<StripeBillingPortalSession>;
+    };
+  };
+  subscriptions: {
+    retrieve(id: string): Promise<StripeSubscription>;
+  };
+  webhooks: {
+    constructEvent(payload: string | Buffer, signature: string, secret: string): StripeEvent;
+  };
+}
+
+// Factory function type for dynamic loading
+type StripeFactory = (secretKey: string, options: Record<string, unknown>) => StripeClient;
+
+// ============================================================================
 // STRIPE CLIENT (Optional Dependency)
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let stripeClient: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let StripeConstructor: any = null;
+let stripeClient: StripeClient | null = null;
+let createStripeClient: StripeFactory | null = null;
 
 /**
  * Lazily load Stripe module
  */
 async function loadStripe(): Promise<void> {
-  if (StripeConstructor) return;
+  if (createStripeClient) return;
   try {
     const stripeModule = await import('stripe');
-    StripeConstructor = stripeModule.default;
+    const StripeClass = stripeModule.default;
+    // Create a factory function that wraps the constructor
+    createStripeClient = (secretKey: string, options: Record<string, unknown>): StripeClient => {
+      return new StripeClass(secretKey, options) as unknown as StripeClient;
+    };
   } catch {
     throw new Error('Stripe is not installed. Run: npm install stripe');
   }
@@ -58,15 +138,17 @@ async function loadStripe(): Promise<void> {
 /**
  * Get or create Stripe client
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getStripe(): Promise<any> {
+async function getStripe(): Promise<StripeClient> {
   if (!stripeClient) {
     await loadStripe();
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
       throw new Error('STRIPE_SECRET_KEY not configured');
     }
-    stripeClient = new StripeConstructor(secretKey, {
+    if (!createStripeClient) {
+      throw new Error('Stripe module failed to load');
+    }
+    stripeClient = createStripeClient(secretKey, {
       // Use a stable API version - check Stripe docs for latest
       apiVersion: '2023-10-16',
       typescript: true,
@@ -223,8 +305,7 @@ export async function createPortalSession(
 /**
  * Map Stripe subscription status to our status type
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapStripeStatus(stripeStatus: any): SubscriptionStatus {
+function mapStripeStatus(stripeStatus: string): SubscriptionStatus {
   const statusMap: Record<string, SubscriptionStatus> = {
     active: 'active',
     trialing: 'trialing',
@@ -241,10 +322,9 @@ function mapStripeStatus(stripeStatus: any): SubscriptionStatus {
 /**
  * Sync subscription data from Stripe to user profile
  */
-
 export async function syncSubscriptionFromStripe(
   userId: string,
-  subscription: any // Stripe.Subscription
+  subscription: StripeSubscription
 ): Promise<SubscriptionData> {
   const store = await getStore();
   const profile = await store.getProfile(userId);
@@ -484,8 +564,7 @@ export async function canStartConversation(userId: string): Promise<{
 /**
  * Verify and parse a Stripe webhook event
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function verifyWebhook(payload: string | Buffer, signature: string): Promise<any> {
+export async function verifyWebhook(payload: string | Buffer, signature: string): Promise<StripeEvent> {
   const stripe = await getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -499,18 +578,16 @@ export async function verifyWebhook(payload: string | Buffer, signature: string)
 /**
  * Handle Stripe webhook events
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function handleWebhookEvent(event: any): Promise<void> {
+export async function handleWebhookEvent(event: StripeEvent): Promise<void> {
   log.info({ type: event.type, id: event.id }, 'Processing Stripe webhook');
 
   switch (event.type) {
     case 'checkout.session.completed': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const session = event.data.object as any;
+      const session = event.data.object as StripeCheckoutSession;
       const userId = session.metadata?.ferni_user_id;
       if (userId && session.subscription) {
         const stripe = await getStripe();
-        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        const subscription = await stripe.subscriptions.retrieve(session.subscription);
         await syncSubscriptionFromStripe(userId, subscription);
         log.info({ userId }, 'Subscription activated from checkout');
       }
@@ -518,8 +595,7 @@ export async function handleWebhookEvent(event: any): Promise<void> {
     }
 
     case 'customer.subscription.updated': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const subscription = event.data.object as any;
+      const subscription = event.data.object as StripeSubscription;
       const userId = subscription.metadata?.ferni_user_id;
       if (userId) {
         await syncSubscriptionFromStripe(userId, subscription);
@@ -528,8 +604,7 @@ export async function handleWebhookEvent(event: any): Promise<void> {
     }
 
     case 'customer.subscription.deleted': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const subscription = event.data.object as any;
+      const subscription = event.data.object as StripeSubscription;
       const userId = subscription.metadata?.ferni_user_id;
       if (userId) {
         await downgradeToFree(userId);
@@ -539,17 +614,15 @@ export async function handleWebhookEvent(event: any): Promise<void> {
     }
 
     case 'invoice.payment_failed': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const invoice = event.data.object as any;
-      const customerId = invoice.customer as string;
+      const invoice = event.data.object as StripeInvoice;
+      const customerId = invoice.customer;
       // Log for monitoring, but Stripe handles retry logic
       log.warn({ customerId, invoiceId: invoice.id }, 'Payment failed');
       break;
     }
 
     case 'invoice.paid': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const invoice = event.data.object as any;
+      const invoice = event.data.object as StripeInvoice;
       log.info({ invoiceId: invoice.id }, 'Invoice paid successfully');
       break;
     }

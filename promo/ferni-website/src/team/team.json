@@ -1,0 +1,9 @@
+{
+  "layout": "layouts/team-member.njk",
+  "tags": "teamMember",
+  "permalink": "/team/{{ id }}/",
+  "eleventyComputed": {
+    "title": "{{ name }} - {{ role }}"
+  }
+}
+

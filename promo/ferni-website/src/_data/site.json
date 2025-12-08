@@ -3,28 +3,192 @@
   "tagline": "Your personal AI life coach",
   "url": "https://ferni.ai",
   "appUrl": "https://app.ferni.ai",
-  "phone": "+1 (484) 481-3081",
+  "phone": "1 (484) 481-3081",
+  "phoneRaw": "+14844813081",
   "email": "hello@ferni.ai",
+  
+  "hero": {
+    "eyebrow": "Meet Your AI Coach",
+    "headline": "Better than",
+    "headlineAccent": "human.",
+    "subhead": "Finally, someone who actually listens.",
+    "subheadLine2": "And remembers everything.",
+    "cta": {
+      "primary": { "text": "Start Free", "url": "https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=homepage" },
+      "secondary": { "text": "Call Ferni", "url": "tel:+14844813081" }
+    }
+  },
+  
+  "stats": [
+    { "value": "10,000+", "label": "Conversations" },
+    { "value": "<500ms", "label": "Response Time" },
+    { "value": "∞", "label": "Memory" },
+    { "value": "24/7", "label": "Always There" }
+  ],
+  
+  "team": [
+    {
+      "id": "ferni",
+      "name": "Ferni",
+      "initials": "FN",
+      "role": "Life Coach (Coordinator)",
+      "bio": "Your main point of contact. Asks the questions that unlock insight, celebrates every win, and connects you to the right specialist when you need them.",
+      "color": "#4a6741"
+    },
+    {
+      "id": "nayan",
+      "name": "Nayan",
+      "initials": "NP",
+      "role": "Sage & Mentor",
+      "bio": "Your lifetime advisor. Combines patience, simplicity, and wit to help you see that small, consistent actions over decades create extraordinary results.",
+      "color": "#9a7b5a"
+    },
+    {
+      "id": "peter",
+      "name": "Peter",
+      "initials": "PL",
+      "role": "Research & Discovery",
+      "bio": "The Quant. Spots patterns nobody else sees across your spending, habits, and calendar. Turns data into insights that actually change behavior.",
+      "color": "#3a6b73"
+    },
+    {
+      "id": "alex",
+      "name": "Alex",
+      "initials": "AX",
+      "role": "Communication & Coordination",
+      "bio": "Your Chief of Staff and communication coach. Manages your calendar and email, and helps you navigate difficult conversations with confidence.",
+      "color": "#5a6b8a"
+    },
+    {
+      "id": "maya",
+      "name": "Maya",
+      "initials": "MY",
+      "role": "Habits & Routines",
+      "bio": "Start embarrassingly small. Maya helps you build habits that stick through systems, not willpower. One habit at a time, one day at a time.",
+      "color": "#a67a6a"
+    },
+    {
+      "id": "jordan",
+      "name": "Jordan",
+      "initials": "JD",
+      "role": "Planning & Events",
+      "bio": "Your lifetime planner. Turns vague dreams into lived experiences. From vacations to life transitions, Jordan helps you design every chapter intentionally.",
+      "color": "#c4856a"
+    }
+  ],
+  
+  "testimonials": [
+    {
+      "quote": "I called Ferni at 2am when I couldn't sleep because of work stress. Having someone to talk through my thoughts with—no judgment, just guidance—was exactly what I needed.",
+      "author": "Sarah K.",
+      "role": "Product Manager",
+      "initials": "SK"
+    },
+    {
+      "quote": "The fact that Ferni remembers our previous conversations makes it feel like talking to a friend who actually knows my situation. Game changer.",
+      "author": "Michael R.",
+      "role": "Entrepreneur",
+      "initials": "MR"
+    },
+    {
+      "quote": "I was skeptical about talking to an AI, but Ferni helped me work through a career decision I'd been stuck on for months. The team approach is brilliant.",
+      "author": "Jessica L.",
+      "role": "Designer",
+      "initials": "JL"
+    },
+    {
+      "quote": "Being able to call a number and just talk—no app download, no login—is so refreshing. I use Ferni during my commute and it's become my favorite part of the day.",
+      "author": "David W.",
+      "role": "Sales Director",
+      "initials": "DW",
+      "featured": true
+    }
+  ],
+  
+  "faq": [
+    {
+      "question": "Is Ferni really free?",
+      "answer": "Yes! Ferni is completely free to use. We believe everyone deserves access to quality life coaching. Our premium features are coming soon, but the core experience will always be free."
+    },
+    {
+      "question": "How does the phone calling work?",
+      "answer": "Simply call 1 (484) 481-3081 from any phone. No app needed, no sign-up required. Ferni will recognize your number and remember your previous conversations automatically."
+    },
+    {
+      "question": "Is my conversation private?",
+      "answer": "Absolutely. Your conversations are encrypted and private. We never sell your data or share it with third parties. You can also request to delete all your data at any time."
+    },
+    {
+      "question": "Who are the AI specialists?",
+      "answer": "Our team includes Ferni (your main life coach), Nayan (wisdom & mentorship), Peter (research & discovery), Alex (communications), Maya (habits & routines), and Jordan (event planning). Each brings unique expertise to help you."
+    },
+    {
+      "question": "What can I talk to Ferni about?",
+      "answer": "Anything! Career decisions, stress management, building habits, planning events, working through tough situations, or just needing someone to talk to. Ferni is here for all of it."
+    },
+    {
+      "question": "How is this different from ChatGPT?",
+      "answer": "Ferni is voice-first and remembers your entire history. It's designed specifically for life coaching with specialized AI personas. Plus, you can just call a phone number—no typing required."
+    }
+  ],
+  
   "social": {
     "twitter": "https://twitter.com/ferniAI",
     "linkedin": "https://linkedin.com/company/ferni",
     "instagram": "https://instagram.com/ferni.ai",
     "tiktok": "https://tiktok.com/@ferni.ai",
-    "youtube": "https://youtube.com/@ferniAI",
-    "github": "https://github.com/ferni-ai/ferni-agents"
+    "youtube": "https://youtube.com/@ferniAI"
   },
+  
   "navigation": {
     "main": [
       { "title": "Features", "url": "/#features" },
       { "title": "Team", "url": "/team/" },
       { "title": "Pricing", "url": "/pricing/" },
-      { "title": "Platform", "url": "/platform/" }
+      { "title": "FAQ", "url": "/#faq" }
     ],
-    "developers": [
-      { "title": "Getting Started", "url": "/developers/getting-started/" },
-      { "title": "API", "url": "/developers/api/" },
-      { "title": "Testing", "url": "/developers/testing/" }
-    ]
+    "mobile": [
+      { "title": "Features", "url": "/#features" },
+      { "title": "Team", "url": "/team/" },
+      { "title": "Developers", "url": "/#developers" },
+      { "title": "FAQ", "url": "/#faq" }
+    ],
+    "footer": {
+      "product": [
+        { "title": "Features", "url": "/#features" },
+        { "title": "Meet the Team", "url": "/team/" },
+        { "title": "Use Cases", "url": "/use-cases/" },
+        { "title": "Pricing", "url": "/pricing/" },
+        { "title": "Blog", "url": "/blog/" }
+      ],
+      "company": [
+        { "title": "About", "url": "/about/" },
+        { "title": "Enterprise", "url": "/enterprise/" },
+        { "title": "Marketplace", "url": "/marketplace/" },
+        { "title": "Press", "url": "/press/" },
+        { "title": "Contact Us", "url": "/contact/" }
+      ],
+      "developers": [
+        { "title": "Documentation", "url": "/developers/" },
+        { "title": "API Reference", "url": "/developers/api/" },
+        { "title": "Examples", "url": "/developers/examples/" },
+        { "title": "Bundle System", "url": "/developers/bundles/" }
+      ],
+      "connect": [
+        { "title": "Web App", "url": "https://app.ferni.ai" },
+        { "title": "Call Ferni", "url": "tel:+14844813081" },
+        { "title": "FAQ", "url": "/#faq" }
+      ],
+      "legal": [
+        { "title": "Privacy Policy", "url": "/privacy/" },
+        { "title": "Terms of Service", "url": "/terms/" },
+        { "title": "Cookie Policy", "url": "/cookies/" },
+        { "title": "Accessibility", "url": "/accessibility/" }
+      ]
+    }
+  },
+  
+  "analytics": {
+    "gaId": "G-2JXL8SQPF2"
   }
 }
-

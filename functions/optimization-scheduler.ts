@@ -300,7 +300,7 @@ export const weeklyRecommendationsReport = onSchedule({
     await db.collection('optimization_weekly_reports').add(report);
 
     // Send to Slack if configured
-    const webhook = slackWebhook.value() || process.env.SLACK_WEBHOOK_URL;
+    const webhook = process.env.SLACK_WEBHOOK_URL || SLACK_REPORTS_URL;
     if (webhook) {
       await sendSlackReport(webhook, report);
     }

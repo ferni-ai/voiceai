@@ -24,6 +24,9 @@ import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
 import { AgentRegistry, type Agent } from '../../personas/registry/unified-registry.js';
 import { executeHandoff, getCurrentAgent, isSameAgent } from './executor.js';
+import type { UserProfile } from '../../types/user-profile.js';
+import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team-availability.js';
+import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 
 // Safe logger that doesn't throw if not initialized
 const getLogger = () => {
@@ -334,22 +337,50 @@ export function getAgentNameFromToolName(toolName: string): string | null {
 // ============================================================================
 
 /**
+ * Options for building handoff tools
+ */
+export interface BuildHandoffToolsOptions {
+  /** Current agent to exclude from available handoffs */
+  currentAgentId?: string;
+  /** User profile for unlock validation (fallback if runtime context unavailable) */
+  userProfile?: UserProfile | null;
+  /** User's subscription tier (fallback if runtime context unavailable) */
+  subscriptionTier?: 'free' | 'friend' | 'partner';
+}
+
+/**
  * Build actual LLM tools for handoffs.
  * Returns tools ready to be used with the voice agent.
  *
- * @param currentAgentId - Current agent to exclude from available handoffs
+ * @param currentAgentIdOrOptions - Current agent ID or options object
  * @returns Record of tool name -> tool
  */
-export async function buildHandoffTools(currentAgentId?: string): Promise<{
+export async function buildHandoffTools(
+  currentAgentIdOrOptions?: string | BuildHandoffToolsOptions
+): Promise<{
   tools: Record<string, unknown>;
   toolCount: number;
   agentIds: string[];
 }> {
+  // Handle both old (string) and new (options) signatures
+  const options: BuildHandoffToolsOptions =
+    typeof currentAgentIdOrOptions === 'string'
+      ? { currentAgentId: currentAgentIdOrOptions }
+      : currentAgentIdOrOptions || {};
+
+  // Extract options - userProfile and subscriptionTier are used as FALLBACKS
+  // when runtime context isn't available (e.g., during testing)
+  const { currentAgentId, userProfile, subscriptionTier = 'free' } = options;
+
   const toolSet = await createHandoffTools(currentAgentId);
   const tools: Record<string, unknown> = {};
   const agentIds: string[] = [];
 
   for (const def of toolSet.tools) {
+    // NOTE: We don't filter tools at build time because user context may not be available yet.
+    // Instead, we validate at RUNTIME in the execute function using ctx.userData.services.userProfile.
+    // The context injection tells the LLM which tools to use, and executor validates as safety net.
+
     // Create the actual LLM tool
     const tool = llm.tool({
       description: def.description,
@@ -357,10 +388,18 @@ export async function buildHandoffTools(currentAgentId?: string): Promise<{
         reason: z.string().describe(`Brief reason for handoff to ${def.agentName}`),
         context_summary: z.string().optional().describe('Summary of relevant conversation context'),
       }),
-      execute: async ({ reason, context_summary }) => {
-        // Use the generic executor
+      execute: async ({ reason, context_summary }, runContext) => {
+        // Get user profile from RUNTIME context (available when tool is executed)
+        // This is the key change - we get fresh user data at execution time, not build time
+        const runtimeUserProfile = (runContext as { ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } } })
+          ?.ctx?.userData?.services?.userProfile || userProfile || null;
+        const runtimeTier = (runtimeUserProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || subscriptionTier;
+
+        // Use the generic executor with runtime user context for unlock validation
         const result = await executeHandoff(def.agentId, reason, {
           context: context_summary ? { summary: context_summary } : undefined,
+          userProfile: runtimeUserProfile,
+          subscriptionTier: runtimeTier,
         });
 
         if (!result.success) {
@@ -381,12 +420,17 @@ export async function buildHandoffTools(currentAgentId?: string): Promise<{
     agentIds.push(def.agentId);
   }
 
-  // Add meetTheTeam tool
+  // Add meetTheTeam tool with unlock awareness
   tools.meetTheTeam = llm.tool({
     description: `Introduce the user to your team of specialists.
 Use when user asks: "Who's on your team?", "What specialists do you have?", "Who can help me?"`,
     parameters: z.object({}),
-    execute: async () => {
+    execute: async (_params, runContext) => {
+      // Get user profile from RUNTIME context
+      const runtimeUserProfile = (runContext as { ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } } })
+        ?.ctx?.userData?.services?.userProfile || userProfile || null;
+      const runtimeTier = (runtimeUserProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || subscriptionTier;
+
       const allAgents = await AgentRegistry.getAllAgents();
       const coordinator = await AgentRegistry.getCoordinator();
 
@@ -395,20 +439,47 @@ Use when user asks: "Who's on your team?", "What specialists do you have?", "Who
 
       for (const agent of allAgents) {
         if (agent.isCoordinator || !agent.enabled) continue;
+
+        const isUnlocked = isTeamMemberUnlocked(agent.id, runtimeUserProfile, runtimeTier);
         const emoji = await getAgentEmoji(agent.id);
-        teamIntro += `${emoji} **${agent.name}** - ${agent.roleDescription}\n\n`;
+
+        if (isUnlocked) {
+          teamIntro += `${emoji} **${agent.name}** - ${agent.roleDescription}\n\n`;
+        } else {
+          // Show locked members with teaser
+          const memberInfo = TEAM_MEMBERS.find(
+            (m) => m.memberId.replace(/-/g, '_') === agent.id.replace(/-/g, '_') ||
+                   m.memberId === agent.id ||
+                   m.displayName.toLowerCase() === agent.name.toLowerCase()
+          );
+          if (memberInfo) {
+            teamIntro += `🔒 **???** - ${memberInfo.teaserMessage || 'Someone special you\'ll meet as we get to know each other better.'}\n\n`;
+          }
+        }
       }
 
-      teamIntro += `Who would you like to talk to? Or just tell me what you need!`;
+      // Add hint about unlocking more members
+      const lockedCount = allAgents.filter(
+        (a) => !a.isCoordinator && a.enabled && !isTeamMemberUnlocked(a.id, runtimeUserProfile, runtimeTier)
+      ).length;
+
+      if (lockedCount > 0) {
+        teamIntro += `\n*Keep talking to me and you'll unlock ${lockedCount} more amazing team member${lockedCount > 1 ? 's' : ''}!*`;
+      }
+
+      teamIntro += `\n\nWho would you like to talk to? Or just tell me what you need!`;
 
       return {
         teamIntro,
-        instructions: `Present this team introduction naturally, with energy and warmth. Then ask who they'd like to meet.`,
+        instructions: `Present this team introduction naturally, with energy and warmth. Only offer to connect them with UNLOCKED members. For locked members, you can mention you have other friends they'll meet as your relationship grows.`,
       };
     },
   });
 
-  getLogger().info({ toolCount: Object.keys(tools).length, agentIds }, 'Built handoff tools');
+  getLogger().info(
+    { toolCount: Object.keys(tools).length, agentIds },
+    'Built handoff tools (unlock validation happens at runtime)'
+  );
 
   return {
     tools,
@@ -430,15 +501,24 @@ async function getAgentEmoji(agentId: string): Promise<string> {
 
 /**
  * Get handoff tools for a specific agent.
- * Convenience wrapper that filters tools based on the current agent.
+ * Convenience wrapper that filters tools based on the current agent and user unlock status.
  *
  * @param currentAgentId - The current agent's ID
+ * @param options - Optional user context for unlock filtering
  * @returns Tools available for this agent to use
  */
 export async function getHandoffToolsForAgent(
-  currentAgentId: string
+  currentAgentId: string,
+  options?: {
+    userProfile?: UserProfile | null;
+    subscriptionTier?: 'free' | 'friend' | 'partner';
+  }
 ): Promise<Record<string, unknown>> {
-  const { tools } = await buildHandoffTools(currentAgentId);
+  const { tools } = await buildHandoffTools({
+    currentAgentId,
+    userProfile: options?.userProfile,
+    subscriptionTier: options?.subscriptionTier,
+  });
   return tools;
 }
 

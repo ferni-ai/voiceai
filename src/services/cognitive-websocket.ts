@@ -23,6 +23,9 @@ const clients = new Set<WebSocket>();
 // Heartbeat interval (30 seconds)
 const HEARTBEAT_INTERVAL = 30000;
 
+// Store interval handle for cleanup
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+
 /**
  * Initialize WebSocket server for cognitive streaming
  */
@@ -103,7 +106,7 @@ export function initCognitiveWebSocket(httpServer: Server): WebSocketServer {
   });
 
   // Heartbeat to keep connections alive
-  setInterval(() => {
+  heartbeatInterval = setInterval(() => {
     const heartbeat = JSON.stringify({
       type: 'heartbeat',
       timestamp: new Date().toISOString(),
@@ -122,6 +125,29 @@ export function initCognitiveWebSocket(httpServer: Server): WebSocketServer {
   }, HEARTBEAT_INTERVAL);
 
   return wss;
+}
+
+/**
+ * Shutdown cognitive WebSocket service
+ * Clears heartbeat interval and disconnects all clients
+ */
+export function shutdownCognitiveWebSocket(): void {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+  
+  // Close all client connections
+  for (const client of clients) {
+    try {
+      client.close(1000, 'Server shutting down');
+    } catch {
+      // Ignore errors during shutdown
+    }
+  }
+  clients.clear();
+  
+  logger.info('Cognitive WebSocket service shutdown');
 }
 
 /**

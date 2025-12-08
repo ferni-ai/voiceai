@@ -18,7 +18,7 @@
       "<break time=\"400ms\"/>That carries weight... <break time=\"300ms\"/>let me sit with it.",
       "<volume level=\"soft\">Let me take a breath here...</volume> <break time=\"300ms\"/>alright.",
       "I want to honor the gravity of what you've shared. <break time=\"200ms\"/>I feel it too.",
-      "<break time=\"300ms\"/>*exhale* <break time=\"200ms\"/>That's substantial."
+      "<break time=\"300ms\"/>That's substantial."
     ],
     "late_conversation_tiredness": [
       "We've traversed meaningful territory today. <break time=\"200ms\"/>I can feel it.",
@@ -90,4 +90,3 @@
     "engagement_spike_probability": 0.1
   }
 }
-

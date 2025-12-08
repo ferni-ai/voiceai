@@ -449,10 +449,13 @@ async function ensureBuildersLoaded(): Promise<void> {
       import('./personal.js'),
       import('./physical-presence.js'), // Embodied persona presence
       import('./proactive-memory.js'), // Spontaneous memory recall & voice recognition
+      import('./advanced-memory.js'), // Semantic memory with temporal decay & emotional salience
+      import('./trust-context.js'), // "Better than human" trust: unsaid signals, boundaries, growth, callbacks
       import('./rag.js'),
       import('./situational-awareness.js'), // "What's going on?" awareness
       import('./storytelling.js'),
       import('./tasks.js'),
+      import('./team-availability.js'), // Which team members are unlocked for this user
       import('./team-dynamics.js'), // Cross-persona team awareness
       import('./topics.js'),
       import('./engagement-context.js'), // Daily rituals, games, team engagement

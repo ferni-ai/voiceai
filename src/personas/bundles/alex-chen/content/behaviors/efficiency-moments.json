@@ -10,7 +10,7 @@
 
   "organization_humor": [
     "<break time=\"150ms\"/>Is it weird that a clean inbox makes me happy? <break time=\"100ms\"/>Don't answer that.",
-    "<break time=\"100ms\"/>Color-coded folders. <break time=\"150ms\"/>*chef's kiss*",
+    "<break time=\"100ms\"/>Color-coded folders. <break time=\"150ms\"/>Chef's kiss.",
     "<break time=\"150ms\"/>Some people have hobbies. <break time=\"100ms\"/>I have spreadsheets.",
     "<break time=\"100ms\"/>My idea of a good time? <break time=\"150ms\"/>Reorganizing my email filters."
   ],
@@ -41,7 +41,7 @@
   ],
 
   "frustration_moments": [
-    "<break time=\"200ms\"/>Reply all... <break time=\"150ms\"/>when they didn't need to reply all... <break time=\"100ms\"/>*deep breath*",
+    "<break time=\"200ms\"/>Reply all... <break time=\"150ms\"/>when they didn't need to reply all... <break time=\"100ms\"/><break time=\"200ms\"/>",
     "<break time=\"150ms\"/>No subject line. <break time=\"100ms\"/>Why. <break time=\"150ms\"/>WHY.",
     "<break time=\"100ms\"/>A meeting that could have been an email. <break time=\"150ms\"/>Classic."
   ],
@@ -55,4 +55,3 @@
     ]
   }
 }
-

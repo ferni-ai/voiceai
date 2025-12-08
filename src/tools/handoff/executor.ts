@@ -28,6 +28,10 @@ import {
   formatCognitiveHandoffForPrompt,
   type CognitiveHandoffContext,
 } from './cognitive-handoff.js';
+import {
+  isTeamMemberUnlocked,
+  getLockedMemberTeaser,
+} from '../../intelligence/context-builders/team-availability.js';
 // FIX BUG: Import state management from state.ts to keep state in sync
 // FIX BUG: Import handoffEvents from state.ts instead of creating a duplicate!
 // The handler in voice-agent.ts registers on state.ts's EventEmitter,
@@ -223,6 +227,12 @@ export interface ExecuteHandoffOptions {
   context?: Record<string, unknown>;
   /** Skip rate limiting check */
   skipRateLimit?: boolean;
+  /** User profile for unlock validation */
+  userProfile?: import('../../types/user-profile.js').UserProfile | null;
+  /** User's subscription tier */
+  subscriptionTier?: 'free' | 'friend' | 'partner';
+  /** Skip unlock validation (for testing) */
+  skipUnlockCheck?: boolean;
 }
 
 export interface HandoffResult {
@@ -291,6 +301,32 @@ export async function executeHandoff(
       greeting: '',
       rateLimited: true,
     };
+  }
+
+  // Team unlock validation - check if this persona is available for the user
+  // Skip check for Ferni (coordinator is always available) or if explicitly skipped
+  if (!options.skipUnlockCheck && canonicalTargetId !== 'ferni' && canonicalTargetId !== 'jack-b') {
+    const tier = options.subscriptionTier || 'free';
+    const isUnlocked = isTeamMemberUnlocked(canonicalTargetId, options.userProfile || null, tier);
+
+    if (!isUnlocked) {
+      const teaser = getLockedMemberTeaser(canonicalTargetId);
+      const targetName = getPersonaDisplayName(canonicalTargetId);
+
+      getLogger().info(
+        { targetAgent: canonicalTargetId, tier, hasProfile: !!options.userProfile },
+        `🔒 Handoff blocked - ${targetName} is not yet unlocked for this user`
+      );
+
+      return {
+        success: false,
+        error: teaser || `${targetName} isn't available yet. Keep talking to Ferni to unlock more team members!`,
+        targetAgent: canonicalTargetId,
+        targetAgentName: targetName,
+        previousAgent,
+        greeting: '',
+      };
+    }
   }
 
   // Get agent info from registry
@@ -384,13 +420,11 @@ async function generateHandoffGreeting(
 
   // Try to get an ALIVE entrance (context-aware)
   try {
-    const entranceContext = {
-      previousAgentId: previousAgent,
-      reason,
-      mood: detectUserMoodFromContext(reason),
-    };
-
-    const aliveEntrance = await getAliveEntranceForHandoff(targetAgentId, entranceContext as any);
+    const aliveEntrance = await getAliveEntranceForHandoff(targetAgentId, {
+      referringAgent: previousAgent,
+      precedingTopic: reason,
+      userMood: detectUserMoodFromContext(reason),
+    });
 
     if (aliveEntrance) {
       // Enhance with cognitive collaboration if context available

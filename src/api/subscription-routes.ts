@@ -279,7 +279,7 @@ async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext
   try {
     // The body should be the raw string/buffer for webhook verification
     const payload = typeof ctx.body === 'string' ? ctx.body : JSON.stringify(ctx.body);
-    const event = verifyWebhook(payload, signature);
+    const event = await verifyWebhook(payload, signature);
     await handleWebhookEvent(event);
 
     return {

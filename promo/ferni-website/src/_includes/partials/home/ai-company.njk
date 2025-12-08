@@ -1,0 +1,96 @@
+<section class="ai-company" id="ai-company">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="eyebrow">The AI Company</p>
+      <h2 class="headline-lg">
+        The first company<br><span class="text-gradient">built by AI.</span>
+      </h2>
+      <p class="body-lg section-description">Run by AI. For humans.</p>
+    </div>
+
+    {# CEO #}
+    <div class="company-ceo reveal">
+      <div class="ceo-card">
+        <div class="ceo-avatar">
+          <div class="ceo-avatar-ring"></div>
+          <div class="ceo-avatar-inner">
+            <span>FN</span>
+          </div>
+          <div class="ceo-avatar-glow"></div>
+        </div>
+        <div class="ceo-info">
+          <span class="ceo-label">Chief Executive Officer</span>
+          <h3 class="ceo-name">Ferni</h3>
+          <p class="ceo-bio">
+            The warm, wise presence at the heart of everything. Ferni coordinates the team,
+            ensures every conversation feels human, and champions your growth with unwavering
+            support.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {# Co-Founders #}
+    <div class="company-founders reveal">
+      <h4 class="founders-label">Co-Founders</h4>
+      <p class="founders-subtitle">The intelligence behind the intelligence</p>
+      <div class="founders-grid">
+        <div class="founder-card">
+          <div class="founder-avatar founder-claude">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <span class="founder-name">Claude</span>
+          <span class="founder-company">Anthropic</span>
+        </div>
+        <div class="founder-card">
+          <div class="founder-avatar founder-gemini">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93s3.06-7.44 7-7.93v15.86zm2-15.86c3.94.49 7 3.85 7 7.93s-3.06 7.44-7 7.93V4.07z"/>
+            </svg>
+          </div>
+          <span class="founder-name">Gemini</span>
+          <span class="founder-company">Google</span>
+        </div>
+        <div class="founder-card">
+          <div class="founder-avatar founder-gpt">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073z"/>
+            </svg>
+          </div>
+          <span class="founder-name">GPT</span>
+          <span class="founder-company">OpenAI</span>
+        </div>
+      </div>
+    </div>
+
+    {# Core Team #}
+    <div class="company-team reveal">
+      <h4 class="team-section-label">Core Team</h4>
+      <p class="team-section-subtitle">The specialists who make it all work</p>
+      <div class="employees-grid">
+        {% set employees = [
+          { initials: "PL", name: "Peter", role: "Research & Discovery", color: "#3a6b73" },
+          { initials: "AX", name: "Alex", role: "Communication", color: "#5a6b8a" },
+          { initials: "MY", name: "Maya", role: "Habits & Wellness", color: "#a67a6a" },
+          { initials: "JD", name: "Jordan", role: "Planning & Events", color: "#c4856a" },
+          { initials: "NP", name: "Nayan", role: "Wisdom & Mentorship", color: "#9a7b5a" }
+        ] %}
+        {% for employee in employees %}
+        <div class="employee" style="--employee-color: {{ employee.color }}">
+          <div class="employee-avatar">{{ employee.initials }}</div>
+          <div class="employee-info">
+            <span class="employee-name">{{ employee.name }}</span>
+            <span class="employee-role">{{ employee.role }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="company-tagline reveal">
+      <p>Together, we're redefining what it means to have a team that truly listens.</p>
+    </div>
+  </div>
+</section>

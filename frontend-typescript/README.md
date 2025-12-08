@@ -104,16 +104,21 @@ location.reload();
 
 Once authenticated, use `Cmd/Ctrl+Shift+D` to toggle the panel anytime.
 
-### Custom Admin Key
-
-Set a custom key via environment variable:
+### Environment Variables
 
 ```bash
 # In .env or deployment config
+
+# Option 1: Custom key (still requires ?dev=key or localStorage once)
 VITE_DEV_PANEL_KEY=your-super-secret-key
+
+# Option 2: Auto-enable (no authentication needed - great for admin deployments)
+VITE_DEV_PANEL_AUTO=true
 ```
 
-Then access with: `?dev=your-super-secret-key`
+**With `VITE_DEV_PANEL_AUTO=true`**: Dev panel is always available, just hit `Cmd/Ctrl+Shift+D`!
+
+**With custom key**: Access with `?dev=your-super-secret-key` (only needed once per browser)
 
 ### Dev Panel Features
 

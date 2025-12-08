@@ -18,7 +18,11 @@
 <meta name="twitter:description" content="{{ description or site.tagline }}">
 
 <!-- Favicon -->
-<link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+<link 
+  rel="icon" 
+  type="image/svg+xml" 
+  href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234a6741' rx='20' width='100' height='100'/><text x='50' y='68' font-family='system-ui' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>FN</text></svg>"
+>
 <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
 
 <!-- Fonts -->
@@ -26,15 +30,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<!-- Styles -->
-<link rel="stylesheet" href="/css/tokens.css">
-<link rel="stylesheet" href="/css/components.css">
-<link rel="stylesheet" href="/css/layout.css">
-<link rel="stylesheet" href="/css/feature-videos.css">
-{% if extraCss %}
-<link rel="stylesheet" href="{{ extraCss }}">
-{% endif %}
+<!-- Design Tokens -->
+<link rel="stylesheet" href="/css/design-tokens.css">
 
-<!-- Feature Video Script -->
-<script src="/js/feature-videos.js" defer></script>
-
+<!-- Google Analytics (graceful failure) -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){try{dataLayer.push(arguments)}catch(e){}}
+  gtag('js', new Date());
+  gtag('config', '{{ site.analytics.gaId }}', { 'send_page_view': true });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}" 
+        onerror="console.log('Analytics blocked')"></script>

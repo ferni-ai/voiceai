@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-07T16:07:00.187Z
+ * Build: 2025-12-08T03:31:44.240Z
  */
 
 /* ========================================
@@ -109,10 +109,11 @@
   --color-background-elevated: #fffdfb;
   --color-background-glass: rgba(139, 119, 91, 0.03);
   --color-background-overlay: rgba(250, 248, 245, 0.95);
+  --color-text-_wcag: All colors tested against #faf8f5 primary background for WCAG AA;
   --color-text-primary: #2c2520;
   --color-text-secondary: #5c544a;
   --color-text-muted: #756a5e;
-  --color-text-dimmed: #a89d90;
+  --color-text-dimmed: #857a6e;
   --color-text-inverse: #faf8f5;
   --color-border-subtle: rgba(44, 37, 32, 0.05);
   --color-border-medium: rgba(44, 37, 32, 0.10);
@@ -163,15 +164,6 @@
   --persona-text: #ffffff;
   --persona-glow: rgba(74, 103, 65, 0.28);
   --persona-tint: rgba(74, 103, 65, 0.06);
-}
-
-/* Persona: jack-bogle */
-[data-persona="jack-bogle"] {
-  --persona-primary: #9a7b5a;
-  --persona-secondary: #7d6348;
-  --persona-text: #ffffff;
-  --persona-glow: rgba(154, 123, 90, 0.28);
-  --persona-tint: rgba(154, 123, 90, 0.06);
 }
 
 /* Persona: peter-lynch */
@@ -1442,12 +1434,9 @@
   100% { box-shadow: 0 0 var(--glow-spread) var(--glow-color); }
 }
 
-/* Speaking state - 🆕 subtle steady glow instead of constant pulsing
-   More like a warm presence than a beacon */
+/* Speaking state - pulsing glow */
 .voice-glow.speaking {
-  box-shadow: 0 0 calc(var(--glow-spread) * 1.2) var(--glow-color);
-  transition: box-shadow 0.4s ease;
-  animation: none; /* No more constant pulsing! */
+  animation: voiceGlowPulse var(--glow-pulse-speed) ease-in-out infinite;
 }
 
 /* Listening state - gentle breathing */

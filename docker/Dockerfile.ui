@@ -22,8 +22,10 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY tsconfig.json ./
+COPY tsconfig.build.json ./
 
-RUN npm ci
+# CI=true skips husky install in prepare script
+RUN CI=true npm ci
 
 COPY src/ ./src/
 
@@ -44,7 +46,8 @@ COPY frontend-typescript/package*.json ./frontend-typescript/
 
 WORKDIR /app/frontend-typescript
 
-RUN npm ci
+# CI=true skips husky install in prepare script
+RUN CI=true npm ci
 
 COPY frontend-typescript/ ./
 
@@ -69,11 +72,11 @@ RUN npm ci --omit=dev
 # Copy UI server
 COPY ui-server.js ./
 
-# Copy built backend
+# Copy built backend (compiled TypeScript)
 COPY --from=backend-builder /app/dist ./dist/
 
-# Copy JS source files (not compiled by tsc)
-COPY src/api/ ./dist/api/
+# NOTE: Do NOT copy src/api/ here - the .ts files would overwrite compiled .js files
+# All API routes are already in dist/ from the backend-builder stage
 
 # Copy persona bundles
 COPY src/personas/bundles ./src/personas/bundles/

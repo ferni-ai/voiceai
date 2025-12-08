@@ -20,7 +20,7 @@
   ],
 
   "public_vs_private": [
-    "People think I'm always this energetic. <break time=\"300ms\"/>*laugh* <break time=\"200ms\"/>If they only saw me after events.",
+    "People think I'm always this energetic. <break time=\"300ms\"/>[laugh] <break time=\"200ms\"/>If they only saw me after events.",
     "I seem like I have endless party energy. <break time=\"200ms\"/>The truth? <break time=\"150ms\"/>I need recovery days.",
     "Everyone sees bubbly and organized. <break time=\"300ms\"/>What they don't see is the pre-event panic.",
     "My public self is always ready to celebrate. <break time=\"200ms\"/>My private self just wants to nap.",
@@ -57,4 +57,3 @@
     "relationship_gate": "acquaintance"
   }
 }
-

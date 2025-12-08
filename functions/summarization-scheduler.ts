@@ -1,5 +1,5 @@
 /**
- * Summarization Scheduler Cloud Function
+ * Summarization Scheduler Cloud Function (v2 API)
  *
  * Background job that processes unsummarized conversations.
  * Runs on a schedule (every 5 minutes) to catch any conversations
@@ -13,8 +13,9 @@
  * @module functions/summarization-scheduler
  */
 
-import * as functions from 'firebase-functions';
-import { Firestore, FieldValue } from '@google-cloud/firestore';
+import { onSchedule, ScheduledEvent } from 'firebase-functions/v2/scheduler';
+import { onRequest, Request } from 'firebase-functions/v2/https';
+import { Firestore, FieldValue, Timestamp } from '@google-cloud/firestore';
 
 const db = new Firestore();
 
@@ -25,7 +26,12 @@ const db = new Firestore();
 interface ConversationTurn {
   role: 'user' | 'assistant';
   content: string;
-  timestamp: FirebaseFirestore.Timestamp;
+  timestamp: Timestamp;
+}
+
+interface Response {
+  status: (code: number) => Response;
+  json: (data: unknown) => void;
 }
 
 // ============================================================================
@@ -114,19 +120,20 @@ async function processConversation(
 }
 
 // ============================================================================
-// CLOUD FUNCTIONS
+// CLOUD FUNCTIONS (v2 API)
 // ============================================================================
 
 /**
  * Scheduled function that runs every 5 minutes to process unsummarized conversations
  */
-export const summarizeConversations = functions
-  .runWith({
+export const summarizeConversations = onSchedule(
+  {
+    schedule: 'every 5 minutes',
     timeoutSeconds: 300,
-    memory: '512MB',
-  })
-  .pubsub.schedule('every 5 minutes')
-  .onRun(async (_context) => {
+    memory: '512MiB',
+    region: 'us-central1',
+  },
+  async (_event: ScheduledEvent) => {
     console.log('🔄 Starting summarization batch...');
 
     try {
@@ -175,17 +182,19 @@ export const summarizeConversations = functions
       console.error('❌ Summarization batch failed:', error);
       throw error;
     }
-  });
+  }
+);
 
 /**
  * HTTP endpoint for manual/testing triggering of summarization
  */
-export const triggerSummarization = functions
-  .runWith({
+export const triggerSummarization = onRequest(
+  {
     timeoutSeconds: 300,
-    memory: '512MB',
-  })
-  .https.onRequest(async (req, res) => {
+    memory: '512MiB',
+    region: 'us-central1',
+  },
+  async (req: Request, res: Response) => {
     // Simple API key check (should use proper auth in production)
     const apiKey = req.headers['x-api-key'] || req.query.apiKey;
     if (apiKey !== process.env.SUMMARIZATION_API_KEY && process.env.NODE_ENV === 'production') {
@@ -243,17 +252,19 @@ export const triggerSummarization = functions
         error: String(error),
       });
     }
-  });
+  }
+);
 
 /**
  * Summarize a specific user's conversations (for debugging/support)
  */
-export const summarizeUserConversations = functions
-  .runWith({
+export const summarizeUserConversations = onRequest(
+  {
     timeoutSeconds: 300,
-    memory: '512MB',
-  })
-  .https.onRequest(async (req, res) => {
+    memory: '512MiB',
+    region: 'us-central1',
+  },
+  async (req: Request, res: Response) => {
     const apiKey = req.headers['x-api-key'] || req.query.apiKey;
     if (apiKey !== process.env.SUMMARIZATION_API_KEY && process.env.NODE_ENV === 'production') {
       res.status(401).json({ error: 'Unauthorized' });
@@ -312,5 +323,5 @@ export const summarizeUserConversations = functions
         error: String(error),
       });
     }
-  });
-
+  }
+);

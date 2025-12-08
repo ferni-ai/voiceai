@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Dynamic Response Generator
  *

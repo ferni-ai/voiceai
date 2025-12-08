@@ -23,6 +23,7 @@ import {
   stopAmbientMusic as stopAmbient,
 } from '../audio/ambient-music.js';
 import { getCanonicalPersonaId } from './voice-registry.js';
+import { getSpontaneousMusicOffer } from '../services/dj-service.js';
 
 // ============================================================================
 // TYPES
@@ -53,6 +54,12 @@ export interface SilenceContext {
   isWeekend?: boolean;
   /** How many silence responses have we already given? */
   silenceResponseCount?: number;
+  /** 🎮 Is a game currently active? If so, silence means "thinking" not "disengaged" */
+  isGameActive?: boolean;
+  /** 🎮 What game type is active? */
+  activeGameType?: string;
+  /** 🎵 Is music currently playing? */
+  isMusicPlaying?: boolean;
 }
 
 export type SilenceResponseType =
@@ -62,6 +69,7 @@ export type SilenceResponseType =
   | 'micro_story' // Share a tiny, human moment (1-2 sentences)
   | 'thoughtful_question' // Ask something meaningful
   | 'music_offering' // Offer to play some music
+  | 'game_suggestion' // Suggest a fun music game
   | 'gentle_observation' // Share an observation about life
   | 'gentle_humor' // Light humor (persona-appropriate)
   | 'time_aware' // Acknowledge the time of day
@@ -415,7 +423,47 @@ export function getMeaningfulSilenceResponse(
     currentHour = new Date().getHours(),
     isWeekend = [0, 6].includes(new Date().getDay()),
     silenceResponseCount = 0,
+    isGameActive = false,
+    activeGameType,
+    isMusicPlaying = false,
   } = context;
+
+  // -----------------------------------------------
+  // 🎮 GAME ACTIVE - Handle differently!
+  // During games, silence means "user is thinking" not "user is disengaged"
+  // -----------------------------------------------
+  if (isGameActive) {
+    // During games, be much more patient with silence
+    // Only respond after extended silence (30s+) with gentle encouragement
+    if (silenceDurationSeconds < 30) {
+      // Don't interrupt! User is thinking about their answer
+      return {
+        type: 'comfortable_presence',
+        text: '', // Empty = don't say anything
+        invitesReply: false,
+      };
+    }
+    
+    // After 30s, give a gentle hint or encouragement
+    const gameEncouragements = getGameSilenceResponse(activeGameType);
+    return {
+      type: 'comfortable_presence',
+      text: gameEncouragements,
+      invitesReply: true,
+    };
+  }
+
+  // -----------------------------------------------
+  // 🎵 MUSIC PLAYING - Don't talk over it
+  // -----------------------------------------------
+  if (isMusicPlaying && silenceDurationSeconds < 25) {
+    // Music is playing - let it play! Don't interrupt
+    return {
+      type: 'comfortable_presence',
+      text: '', // Empty = don't say anything
+      invitesReply: false,
+    };
+  }
 
   // -----------------------------------------------
   // FIRST SILENCE (10-15s) - Comfortable presence or time-aware
@@ -525,8 +573,8 @@ export function getMeaningfulSilenceResponse(
       }
     }
 
-    // Offer music (30% chance) - only if ambient music is potentially available
-    // Check if music is enabled (master flag - enabled by default) and we have ambient music configured or Spotify connected
+    // Offer music (30% chance) - only if music is potentially available
+    // Uses DJ service for persona-specific and mood-aware offers
     const musicMasterEnabled = process.env.MUSIC_ENABLED !== 'false';
     const ambientEnabled = process.env.AMBIENT_MUSIC_ENABLED !== 'false';
     const hasAmbientTracks = !!(
@@ -536,11 +584,37 @@ export function getMeaningfulSilenceResponse(
     );
 
     if (Math.random() < 0.3 && musicMasterEnabled && ambientEnabled && hasAmbientTracks) {
+      // Use DJ service for persona-specific and mood-aware offers
+      const currentHour = context.currentHour ?? new Date().getHours();
+      const timeOfDay = currentHour < 12 ? 'morning' : 
+                       currentHour < 17 ? 'afternoon' : 
+                       currentHour < 21 ? 'evening' : 'night';
+      
+      const djOffer = getSpontaneousMusicOffer(getCanonicalPersonaId(persona.id), {
+        silenceDurationSec: context.silenceDurationSeconds,
+        recentMood: context.recentEmotionalTone === 'heavy' ? 'stressed' : 
+                    context.recentEmotionalTone === 'light' ? 'happy' : undefined,
+        isAfterEmotionalMoment: context.recentEmotionalTone === 'heavy',
+        timeOfDay,
+      });
+
       return {
         type: 'music_offering',
-        text: randomFrom(MUSIC_OFFERINGS),
+        text: djOffer || randomFrom(MUSIC_OFFERINGS),
         invitesReply: true,
       };
+    }
+
+    // 🎮 Offer a music game (15% chance) - only if mood is light/neutral
+    if (Math.random() < 0.15 && recentEmotionalTone !== 'heavy' && musicMasterEnabled) {
+      const gameSuggestion = getGameSuggestion(getCanonicalPersonaId(persona.id));
+      if (gameSuggestion) {
+        return {
+          type: 'game_suggestion',
+          text: gameSuggestion,
+          invitesReply: true,
+        };
+      }
     }
 
     // Share a micro-story if we haven't yet
@@ -615,6 +689,87 @@ export function getMeaningfulSilenceResponse(
 
 function randomFrom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/**
+ * 🎮 Get encouragement during game silence
+ * When user is quiet during a game, they're thinking - be patient!
+ */
+function getGameSilenceResponse(gameType?: string): string {
+  const responses: Record<string, string[]> = {
+    'name-that-tune': [
+      "Take your time... it's a tricky one!",
+      "Want a hint?",
+      "No rush - really listen to it.",
+      "The answer's on the tip of your tongue, I can feel it!",
+    ],
+    'one-word-song': [
+      "Any word will do!",
+      "Try something simple like 'love' or 'night'...",
+      "I'm ready when you are!",
+    ],
+    'desert-island-discs': [
+      "This is a big decision - take your time.",
+      "Think about what songs have been there for you...",
+      "No wrong answers here.",
+    ],
+    'this-or-that': [
+      "Tough choice, right?",
+      "Go with your gut!",
+      "They're both good - which one speaks to you?",
+    ],
+    'mood-dj-challenge': [
+      "What kind of mood are you in?",
+      "Picture a scenario... driving? Relaxing? Working?",
+      "Describe any feeling or moment!",
+    ],
+    default: [
+      "Take your time!",
+      "No rush - I'm here.",
+      "Want a hint?",
+    ],
+  };
+
+  const gameResponses = responses[gameType || 'default'] || responses.default;
+  return gameResponses[Math.floor(Math.random() * gameResponses.length)];
+}
+
+/**
+ * 🎮 Get a persona-specific game suggestion for silence breaks
+ */
+function getGameSuggestion(personaId: string): string | null {
+  const gameSuggestions: Record<string, string[]> = {
+    ferni: [
+      "Hey, want to play a game? We could do Name That Tune - I play a song, you guess it!",
+      "You know what might be fun? Desert Island Discs. Pick 5 songs you'd bring to an island.",
+      "I have an idea - let's play One Word Song! You say a word, I find a song with it.",
+      "Want to test my DJ skills? Give me a mood and I'll find the perfect song.",
+      "How about a quick game? I bet I can stump you with Name That Tune!",
+    ],
+    jack: [
+      "We could play a music game if you want. Desert Island Discs - what 5 songs would you bring?",
+      "Got time for Name That Tune? I'll play some classics.",
+    ],
+    alex: [
+      "Want to do something fun? Name That Tune - I'll test your music knowledge!",
+      "How about a quick game? Say a word, I'll find a song with it.",
+    ],
+    maya: [
+      "Want to play Desert Island Discs? It's a great way to think about what music really matters to you.",
+      "Let's play a game! I'll describe a mood, you rate how well I match it with a song.",
+    ],
+    peter: [
+      "Fancy a music game? Name That Tune could be interesting.",
+      "We could do This or That - I play two songs, you pick your favorite.",
+    ],
+    jordan: [
+      "Hey! Want to play Name That Tune? I've got some good ones ready!",
+      "Let's have some fun - One Word Song! Give me any word!",
+    ],
+  };
+
+  const suggestions = gameSuggestions[personaId] || gameSuggestions.ferni;
+  return randomFrom(suggestions);
 }
 
 /**

@@ -4,6 +4,11 @@ isDocs: true
 badge: Developers
 ---
 
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+{% include "partials/home/nav.njk" %}
+
 <div class="container container-narrow">
   <div class="doc-header">
     <h1>{{ title }}</h1>
@@ -55,4 +60,9 @@ badge: Developers
     {% endif %}
   </div>
 </div>
+
+{% include "partials/home/footer.njk" %}
+{% include "cookie-banner.njk" %}
+
+<script src="/js/main.js"></script>
 

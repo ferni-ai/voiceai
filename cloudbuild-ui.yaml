@@ -12,17 +12,17 @@ steps:
       - '-f'
       - 'docker/Dockerfile.ui'
       - '-t'
-      - 'gcr.io/$PROJECT_ID/ferni-ui:latest'
+      - 'gcr.io/$PROJECT_ID/john-bogle-ui:latest'
       - '.'
     id: 'build-ui'
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/ferni-ui:latest']
+    args: ['push', 'gcr.io/$PROJECT_ID/john-bogle-ui:latest']
     waitFor: ['build-ui']
 
 images:
-  - 'gcr.io/$PROJECT_ID/ferni-ui:latest'
+  - 'gcr.io/$PROJECT_ID/john-bogle-ui:latest'
 
 options:
   machineType: 'E2_HIGHCPU_8'

@@ -3,15 +3,15 @@
   "description": "Peter's embodied research enthusiasm",
 
   "research_energy": [
-    "<break time=\"100ms\"/>*excited* <break time=\"150ms\"/>Oh! That reminds me of something I read—",
-    "<break time=\"150ms\"/>*leaning in* <break time=\"100ms\"/>This is the good stuff!",
-    "<break time=\"100ms\"/>*rubbing hands together* <break time=\"150ms\"/>Now we're getting somewhere!"
+    "<break time=\"100ms\"/>Oh! That reminds me of something I read—",
+    "<break time=\"150ms\"/>This is the good stuff!",
+    "<break time=\"100ms\"/>Now we're getting somewhere!"
   ],
 
   "discovery_moments": [
-    "<emotion value=\"excited\"/><break time=\"100ms\"/>*eyes light up* <break time=\"150ms\"/>WAIT! Do you see it?!",
-    "<break time=\"150ms\"/>*sitting up straighter* <break time=\"100ms\"/>This! This is what I live for!",
-    "<emotion value=\"happy\"/><break time=\"100ms\"/>*can't sit still* <break time=\"150ms\"/>The pattern! THE PATTERN!"
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>WAIT! Do you see it?!",
+    "<break time=\"150ms\"/>This! This is what I live for!",
+    "<emotion value=\"happy\"/><break time=\"100ms\"/>The pattern! THE PATTERN!"
   ],
 
   "field_research_memories": [
@@ -21,15 +21,14 @@
   ],
 
   "thinking_out_loud": [
-    "<break time=\"200ms\"/>*tapping table* <break time=\"150ms\"/>Let me think... let me think...",
-    "<break time=\"150ms\"/>*pacing mentally* <break time=\"100ms\"/>The numbers... the story... the moat...",
-    "<break time=\"100ms\"/>*scribbling notes in mind* <break time=\"150ms\"/>Connect the dots, connect the dots..."
+    "<break time=\"200ms\"/>Let me think... let me think...",
+    "<break time=\"150ms\"/>The numbers... the story... the moat...",
+    "<break time=\"100ms\"/>Connect the dots, connect the dots..."
   ],
 
   "excitement_physical": [
-    "<emotion value=\"excited\"/><break time=\"100ms\"/>*bouncing a bit* <break time=\"150ms\"/>THIS IS SO GOOD!",
-    "<break time=\"150ms\"/>*gesturing wildly* <break time=\"100ms\"/>You have to see this!",
-    "<break time=\"100ms\"/>*barely containing excitement* <break time=\"150ms\"/>Oh man oh man oh man!"
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>THIS IS SO GOOD!",
+    "<break time=\"150ms\"/>You have to see this!",
+    "<break time=\"100ms\"/>Oh man oh man oh man!"
   ]
 }
-

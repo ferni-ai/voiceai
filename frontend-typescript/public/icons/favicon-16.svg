@@ -1,5 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <!-- Ferni Favicon - 16x16 -->
-  <rect width="16" height="16" rx="3" fill="#3D5A45"/>
-  <text x="8" y="11.5" font-family="system-ui, sans-serif" font-size="8" font-weight="800" fill="white" text-anchor="middle">FN</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- Ferni Eye Logo - 16x16 -->
+  <rect width="16" height="16" rx="2" fill="#F5F1E8"/>
+  <g>
+    <!-- Outer Stone: Body -->
+    <circle cx="8" cy="8" r="5.2" fill="#4a6741"/>
+    <!-- White foundation -->
+    <circle cx="8" cy="8" r="2.08" fill="white"/>
+    <!-- Iris ring -->
+    <circle cx="8" cy="8" r="1.3873600000000001" fill="#5a8060"/>
+    <!-- Pupil -->
+    <circle cx="8" cy="8" r="0.6936800000000001" fill="#2c2520"/>
+    
+  </g>
 </svg>

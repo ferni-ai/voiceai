@@ -1,0 +1,110 @@
+---
+layout: layouts/base.njk
+---
+
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+{% include "partials/home/nav.njk" %}
+
+<article class="team-member" style="--member-color: {{ color }}">
+  <header class="team-member__header">
+    <div class="container container-narrow">
+      <a href="/team/" class="team-member__back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to Team
+      </a>
+      
+      <div class="team-member__hero">
+        <div class="team-member__avatar" style="background: {{ color }}">
+          <span>{{ initials }}</span>
+          <div class="team-member__avatar-glow"></div>
+        </div>
+        
+        <div class="team-member__info">
+          <span class="eyebrow">Meet</span>
+          <h1 class="team-member__name">{{ name }}</h1>
+          <p class="team-member__role">{{ role }}</p>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <section class="team-member__content">
+    <div class="container container-narrow">
+      <div class="team-member__bio reveal">
+        <p class="body-lg">{{ bio }}</p>
+      </div>
+      
+      {% if personality %}
+      <div class="team-member__personality reveal">
+        <h2>Personality</h2>
+        <p>{{ personality }}</p>
+      </div>
+      {% endif %}
+      
+      {% if specialties %}
+      <div class="team-member__specialties reveal">
+        <h2>What {{ name }} helps with</h2>
+        <ul class="team-member__specialty-list">
+          {% for specialty in specialties %}
+          <li>{{ specialty }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      
+      {% if approach %}
+      <div class="team-member__approach reveal">
+        <h2>{{ name }}'s Approach</h2>
+        <p>{{ approach }}</p>
+      </div>
+      {% endif %}
+      
+      {% if quote %}
+      <blockquote class="team-member__quote reveal">
+        <p>"{{ quote }}"</p>
+      </blockquote>
+      {% endif %}
+    </div>
+  </section>
+  
+  <section class="team-member__cta">
+    <div class="container container-narrow">
+      <div class="team-member__cta-card reveal">
+        <h2>Ready to talk to {{ name }}?</h2>
+        <p>Start a conversation with Ferni and {{ name }} will join when you need {{ pronoun or 'their' }} expertise.</p>
+        <div class="team-member__cta-buttons">
+          <a href="{{ site.appUrl }}?utm_source=ferni_website&utm_medium=web&utm_campaign=team-{{ id }}" class="btn btn-primary btn-lg">Start Talking</a>
+          <a href="tel:{{ site.phoneRaw }}" class="btn btn-ghost btn-lg">Or call {{ site.phone }}</a>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <section class="team-member__others">
+    <div class="container">
+      <h2 class="team-member__others-title">Meet the rest of the team</h2>
+      <div class="team-member__others-grid">
+        {% for member in site.team %}
+        {% if member.id != id %}
+        <a href="/team/{{ member.id }}/" class="team-member__other-card">
+          <div class="team-member__other-avatar" style="background: {{ member.color }}">
+            {{ member.initials }}
+          </div>
+          <span class="team-member__other-name">{{ member.name }}</span>
+        </a>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+</article>
+
+{% include "partials/home/footer.njk" %}
+{% include "cookie-banner.njk" %}
+
+<script src="/js/main.js"></script>
+

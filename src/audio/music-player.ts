@@ -43,6 +43,19 @@ export interface MusicTrack {
   uri?: string; // Spotify URI
   previewUrl?: string; // 30-second preview URL
   duration?: number; // Duration in ms
+  genre?: string; // For mood matching
+}
+
+/**
+ * 🎧 Session Music History Entry
+ * Tracks what was played for DJ-style callbacks and continuity
+ */
+export interface SessionMusicEntry {
+  track: MusicTrack;
+  playedAt: number; // timestamp
+  userMood?: string; // mood when this was played (for mood matching)
+  wasRequested: boolean; // user asked for it vs ambient
+  wasFullyPlayed: boolean; // completed vs skipped
 }
 
 export interface MusicPlayerState {
@@ -54,6 +67,7 @@ export interface MusicPlayerState {
   queue: MusicTrack[];
   isInitialized: boolean;
   isAmbientMode: boolean; // Playing ambient/thinking music
+  isChangingTrack: boolean; // DJ crossfade in progress
 }
 
 /**
@@ -62,16 +76,23 @@ export interface MusicPlayerState {
 export type OnTrackEndedCallback = (track: MusicTrack, wasAmbient: boolean) => void;
 
 /**
+ * 🎤 Callback for "Wait for it..." moments
+ * Fired mid-song at exciting moments for live DJ commentary
+ */
+export type OnMidSongMomentCallback = (track: MusicTrack, momentType: 'buildup' | 'drop' | 'highlight') => void;
+
+/**
  * Music playback states for frontend notifications.
  *
  * - 'playing' = Music actively playing
  * - 'ducking' = Agent speaking over music (DJ fade-down)
  * - 'fading'  = Track ending soon (~5 seconds left)
+ * - 'changing' = DJ crossfade - switching to a new track
  * - 'paused'  = Playback paused
  * - 'stopped' = Playback stopped
  * - 'idle'    = No music loaded
  */
-export type MusicState = 'playing' | 'ducking' | 'fading' | 'paused' | 'stopped' | 'idle';
+export type MusicState = 'playing' | 'ducking' | 'fading' | 'changing' | 'paused' | 'stopped' | 'idle';
 export type OnMusicStateChangeCallback = (
   state: MusicState,
   track: MusicTrack | null,
@@ -92,6 +113,7 @@ export class CallMusicPlayer {
     queue: [],
     isInitialized: false,
     isAmbientMode: false,
+    isChangingTrack: false, // DJ crossfade in progress
   };
 
   // LiveKit BackgroundAudioPlayer
@@ -113,8 +135,20 @@ export class CallMusicPlayer {
   // Callback for music state changes (for frontend avatar dancing)
   private onMusicStateChangeCallback: OnMusicStateChangeCallback | null = null;
 
+  // 🎤 Callback for "Wait for it..." mid-song moments
+  private onMidSongMomentCallback: OnMidSongMomentCallback | null = null;
+
   // Track the current audio file path for ducking restart
   private currentAudioPath: string | null = null;
+
+  // 🎧 Session music history for DJ callbacks ("We played some jazz earlier...")
+  private sessionHistory: SessionMusicEntry[] = [];
+
+  // Timer for mid-song moments
+  private midSongMomentTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Track current mood for mood-aware offers
+  private currentUserMood: string | undefined;
 
   constructor() {
     this.tempDir = path.join(os.tmpdir(), 'jack-music-player');
@@ -174,6 +208,170 @@ export class CallMusicPlayer {
    */
   setOnMusicStateChangeCallback(callback: OnMusicStateChangeCallback): void {
     this.onMusicStateChangeCallback = callback;
+  }
+
+  /**
+   * 🎤 Set callback for "Wait for it..." mid-song moments
+   * These are the magic DJ interjections that make music feel alive!
+   */
+  setOnMidSongMomentCallback(callback: OnMidSongMomentCallback): void {
+    this.onMidSongMomentCallback = callback;
+  }
+
+  /**
+   * 🎭 Set current user mood for mood-aware music features
+   * Called by voice agent when emotion detection updates
+   */
+  setCurrentUserMood(mood: string | undefined): void {
+    this.currentUserMood = mood;
+  }
+
+  /**
+   * 🎭 Get current user mood
+   */
+  getCurrentUserMood(): string | undefined {
+    return this.currentUserMood;
+  }
+
+  // ============================================================================
+  // 🎧 SESSION MUSIC HISTORY
+  // ============================================================================
+
+  /**
+   * Add a track to session history
+   */
+  private addToSessionHistory(track: MusicTrack, wasRequested: boolean): void {
+    this.sessionHistory.push({
+      track,
+      playedAt: Date.now(),
+      userMood: this.currentUserMood,
+      wasRequested,
+      wasFullyPlayed: false, // Updated when track ends
+    });
+
+    getLogger().debug(
+      { track: track.name, historySize: this.sessionHistory.length },
+      '🎧 Added to session music history'
+    );
+  }
+
+  /**
+   * Mark the most recent track as fully played
+   */
+  private markCurrentTrackCompleted(): void {
+    if (this.sessionHistory.length > 0) {
+      this.sessionHistory[this.sessionHistory.length - 1].wasFullyPlayed = true;
+    }
+  }
+
+  /**
+   * Get session music history for DJ callbacks
+   * "We played some jazz earlier..."
+   */
+  getSessionHistory(): SessionMusicEntry[] {
+    return [...this.sessionHistory];
+  }
+
+  /**
+   * Get recent tracks (last N) for context
+   */
+  getRecentTracks(count = 5): SessionMusicEntry[] {
+    return this.sessionHistory.slice(-count);
+  }
+
+  /**
+   * Check if we've played music from this artist before in this session
+   */
+  hasPlayedArtist(artist: string): boolean {
+    return this.sessionHistory.some(
+      (entry) => entry.track.artist.toLowerCase() === artist.toLowerCase()
+    );
+  }
+
+  /**
+   * Get the vibe/genre of music played this session
+   * Used for "Keep this vibe going?" offers
+   */
+  getSessionVibe(): { genres: string[]; moods: string[]; artists: string[] } {
+    const genres: string[] = [];
+    const moods: string[] = [];
+    const artists: string[] = [];
+
+    for (const entry of this.sessionHistory) {
+      if (entry.track.genre && !genres.includes(entry.track.genre)) {
+        genres.push(entry.track.genre);
+      }
+      if (entry.userMood && !moods.includes(entry.userMood)) {
+        moods.push(entry.userMood);
+      }
+      if (!artists.includes(entry.track.artist)) {
+        artists.push(entry.track.artist);
+      }
+    }
+
+    return { genres, moods, artists };
+  }
+
+  /**
+   * Clear session history (on disconnect)
+   */
+  clearSessionHistory(): void {
+    this.sessionHistory = [];
+  }
+
+  // ============================================================================
+  // 🎤 MID-SONG MOMENTS ("Wait for it...")
+  // ============================================================================
+
+  /**
+   * Schedule a "Wait for it..." moment during playback
+   * Only triggers 30% of the time to keep it special
+   */
+  private scheduleMidSongMoment(track: MusicTrack): void {
+    // Clear any existing timer
+    if (this.midSongMomentTimer) {
+      clearTimeout(this.midSongMomentTimer);
+      this.midSongMomentTimer = null;
+    }
+
+    // Only do this for non-ambient music and 30% of the time
+    if (this.state.isAmbientMode || Math.random() > 0.3) {
+      return;
+    }
+
+    // Don't do mid-song moments for very short tracks
+    const duration = track.duration || 30000;
+    if (duration < 20000) {
+      return;
+    }
+
+    // Schedule at 55-70% through the track (the exciting part!)
+    const momentPercent = 0.55 + Math.random() * 0.15;
+    const momentTime = duration * momentPercent;
+
+    this.midSongMomentTimer = setTimeout(() => {
+      // Only fire if still playing the same track
+      if (
+        this.state.isPlaying &&
+        this.state.currentTrack?.name === track.name &&
+        this.onMidSongMomentCallback
+      ) {
+        // Pick moment type - mostly "buildup" with occasional "highlight"
+        const momentType = Math.random() < 0.7 ? 'buildup' : 'highlight';
+
+        getLogger().info(
+          { track: track.name, momentType },
+          '🎤 Mid-song moment triggered!'
+        );
+
+        this.onMidSongMomentCallback(track, momentType);
+      }
+    }, momentTime);
+
+    getLogger().debug(
+      { track: track.name, momentTime: Math.round(momentTime / 1000) },
+      '🎤 Mid-song moment scheduled'
+    );
   }
 
   /**
@@ -262,6 +460,14 @@ export class CallMusicPlayer {
       // ✨ Notify frontend - music is playing!
       this.notifyStateChange('playing');
 
+      // 🎧 Add to session history (for DJ callbacks like "We played jazz earlier...")
+      if (!isAmbient) {
+        this.addToSessionHistory(track, true); // wasRequested = true for explicit plays
+      }
+
+      // 🎤 Schedule a "Wait for it..." moment (30% chance, makes DJ feel alive!)
+      this.scheduleMidSongMoment(track);
+
       // 🎧 DJ-STYLE FADE OUT: Notify frontend to fade 5 seconds before track ends
       // This makes the ending feel human and intentional, not abrupt
       const trackDuration = track.duration || 30000; // Default 30s for previews
@@ -283,6 +489,11 @@ export class CallMusicPlayer {
           const endedTrack = this.state.currentTrack;
           const wasAmbient = this.state.isAmbientMode;
 
+          // 🎧 Mark track as fully played in history
+          if (!wasAmbient) {
+            this.markCurrentTrackCompleted();
+          }
+
           this.onTrackEnded();
 
           // Call the callback so agent can respond
@@ -300,6 +511,149 @@ export class CallMusicPlayer {
       getLogger().error({ error }, 'Music playback failed');
       return false;
     }
+  }
+
+  /**
+   * 🎧 DJ-STYLE CROSSFADE: Switch to a new track with style
+   * 
+   * This is the magic that makes track changes feel professional:
+   * 1. Notifies 'changing' state so agent can speak a DJ transition
+   * 2. Waits for the transition moment (agent speaks over fading track)
+   * 3. Smoothly starts the new track
+   * 
+   * The key timing: Agent gets ~1.5s to say something like "Coming up next..."
+   * then the new track starts as they're finishing their phrase.
+   * 
+   * @param url - URL of the new track to play
+   * @param track - Track metadata
+   * @param isAmbient - Whether this is ambient music
+   * @returns Object with success status and the previous track info
+   */
+  async crossfadeTo(
+    url: string,
+    track: MusicTrack,
+    isAmbient = false
+  ): Promise<{ success: boolean; previousTrack: MusicTrack | null }> {
+    const previousTrack = this.state.currentTrack;
+    const wasPlaying = this.state.isPlaying;
+
+    if (DEBUG_MUSIC)
+      log.debug('🎧 DJ Crossfade initiated', {
+        from: previousTrack?.name,
+        to: track.name,
+        wasPlaying,
+      });
+
+    if (!wasPlaying || !previousTrack) {
+      // Nothing playing - just play normally
+      const success = await this.playFromUrl(url, track, isAmbient);
+      return { success, previousTrack: null };
+    }
+
+    // 🎧 CROSSFADE MAGIC: Set state to 'changing' so agent knows to do DJ transition
+    this.state.isChangingTrack = true;
+    this.notifyStateChange('changing');
+
+    getLogger().info(
+      {
+        fromTrack: previousTrack.name,
+        toTrack: track.name,
+      },
+      '🎧 DJ crossfade starting - agent should speak transition phrase'
+    );
+
+    // Pre-download the new track while the DJ transition happens
+    // This reduces latency - the new track is ready to go!
+    const downloadPromise = this.downloadAudio(url, track.name);
+
+    // Wait for DJ transition moment (agent speaks during this)
+    // 1.5 seconds is enough for a quick DJ callout
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // Stop the current track (quick fade handled by the short wait above)
+    if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
+      this.currentPlayHandle.stop();
+    }
+
+    // Wait for download to complete
+    const audioPath = await downloadPromise;
+
+    if (!audioPath) {
+      log.error('Failed to download new track for crossfade');
+      this.state.isChangingTrack = false;
+      this.notifyStateChange('stopped');
+      return { success: false, previousTrack };
+    }
+
+    // Start the new track
+    this.state.currentTrack = track;
+    this.state.isPlaying = true;
+    this.state.isAmbientMode = isAmbient;
+    this.state.isChangingTrack = false;
+    this.currentAudioPath = audioPath;
+
+    const volume = this.state.isDucked ? this.state.duckingVolume : this.state.volume;
+
+    if (!this.backgroundPlayer) {
+      log.error('Background player not initialized');
+      return { success: false, previousTrack };
+    }
+
+    this.currentPlayHandle = this.backgroundPlayer.play(
+      { source: audioPath, volume },
+      false
+    );
+
+    getLogger().info(
+      { track: track.name, artist: track.artist, volume, isAmbient },
+      '🎧 Crossfade complete - new track playing!'
+    );
+
+    // Notify we're now playing the new track
+    this.notifyStateChange('playing');
+
+    // Set up the fade-out timer for this new track
+    const trackDuration = track.duration || 30000;
+    const fadeOutTime = Math.max(trackDuration - 5000, 10000);
+
+    const fadeTimer = setTimeout(() => {
+      if (this.state.isPlaying && this.state.currentTrack?.name === track.name) {
+        getLogger().info({ track: track.name }, '🎧 DJ fade-out starting...');
+        this.notifyStateChange('fading');
+      }
+    }, fadeOutTime);
+
+    // Handle track end
+    if (this.currentPlayHandle) {
+      void this.currentPlayHandle.waitForPlayout().then(() => {
+        clearTimeout(fadeTimer);
+        const endedTrack = this.state.currentTrack;
+        const wasAmbient = this.state.isAmbientMode;
+        this.onTrackEnded();
+
+        if (endedTrack && this.onTrackEndedCallback) {
+          this.onTrackEndedCallback(endedTrack, wasAmbient);
+        }
+
+        this.cleanupTempFile(audioPath);
+      });
+    }
+
+    return { success: true, previousTrack };
+  }
+
+  /**
+   * Check if music is currently playing (for determining whether to crossfade)
+   */
+  isCurrentlyPlaying(): boolean {
+    return this.state.isPlaying && this.state.currentTrack !== null;
+  }
+
+  /**
+   * Get current track for DJ transition callouts
+   */
+  getCurrentPlayingTrack(): MusicTrack | null {
+    return this.state.isPlaying ? this.state.currentTrack : null;
   }
 
   /**
@@ -380,6 +734,12 @@ export class CallMusicPlayer {
   private onTrackEnded(): void {
     getLogger().debug('Track ended');
 
+    // 🎤 Clear mid-song moment timer
+    if (this.midSongMomentTimer) {
+      clearTimeout(this.midSongMomentTimer);
+      this.midSongMomentTimer = null;
+    }
+
     if (this.state.queue.length > 0) {
       // Play next in queue
       const nextTrack = this.state.queue.shift()!;
@@ -399,6 +759,12 @@ export class CallMusicPlayer {
    * Pause playback
    */
   pause(): void {
+    // 🎤 Clear mid-song moment timer
+    if (this.midSongMomentTimer) {
+      clearTimeout(this.midSongMomentTimer);
+      this.midSongMomentTimer = null;
+    }
+
     if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
       this.currentPlayHandle.stop();
     }
@@ -430,6 +796,12 @@ export class CallMusicPlayer {
    * Stop playback completely
    */
   stop(): void {
+    // 🎤 Clear mid-song moment timer
+    if (this.midSongMomentTimer) {
+      clearTimeout(this.midSongMomentTimer);
+      this.midSongMomentTimer = null;
+    }
+
     if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
       this.currentPlayHandle.stop();
     }

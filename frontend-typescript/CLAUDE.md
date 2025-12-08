@@ -250,7 +250,8 @@ The dev panel provides testing tools for personas, celebrations, tiers, and more
 | Environment | Access Method |
 |-------------|---------------|
 | **Development** | `?dev` URL param or `Cmd/Ctrl+Shift+D` |
-| **Production** | `?dev=ferni2024` (or custom key via `VITE_DEV_PANEL_KEY` env var) |
+| **Production** | `?dev=ferni2024` (or custom key via `VITE_DEV_PANEL_KEY`) |
+| **Admin Deploy** | Set `VITE_DEV_PANEL_AUTO=true` in .env → always enabled! |
 
 Once authenticated, toggle with `Cmd/Ctrl+Shift+D`. See `README.md` for full details.
 

@@ -53,6 +53,7 @@ export {
   getAgentNameFromToolName,
   type HandoffToolDefinition,
   type HandoffToolSet,
+  type BuildHandoffToolsOptions,
 } from './handoff-factory.js';
 
 // =============================================================================

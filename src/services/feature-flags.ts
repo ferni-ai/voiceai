@@ -1,743 +1,471 @@
 /**
- * Feature Flag Service
+ * Feature Flags Service
  *
- * Centralized feature flag management with:
- * - Persistent storage (JSON file, easy to migrate to Redis/DB)
- * - Multiple flag types: boolean, percentage, user-targeted
- * - Real-time updates without restart
- * - API for dashboard management
- * - SDK for checking flags in code
+ * Enables gradual rollout of trust systems with kill switches.
+ * Supports:
+ * - Global enable/disable
+ * - Percentage-based rollout
+ * - User-level overrides
+ * - Real-time updates (no deploy required)
  *
- * Usage:
- *   import { getFeatureFlags } from './services/feature-flags.js';
- *   const flags = getFeatureFlags();
- *
- *   // Check a boolean flag
- *   if (flags.isEnabled('voice_presence')) { ... }
- *
- *   // Check with user context (for percentage/targeting)
- *   if (flags.isEnabledForUser('new_ui', userId)) { ... }
- *
- *   // Get flag value (for non-boolean flags)
- *   const limit = flags.getValue('max_turns', 50);
+ * @module FeatureFlags
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { getLogger } from '../utils/safe-logger.js';
-import { createHash } from 'crypto';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { createLogger } from '../utils/safe-logger.js';
 
-const log = getLogger().child({ module: 'FeatureFlags' });
+const log = createLogger({ module: 'FeatureFlags' });
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export type FlagType = 'boolean' | 'percentage' | 'user_list' | 'value';
-
 export interface FeatureFlag {
-  /** Unique flag identifier (kebab-case) */
   id: string;
-
-  /** Human-readable name */
   name: string;
-
-  /** Description of what this flag controls */
   description: string;
-
-  /** Flag type */
-  type: FlagType;
-
-  /** Is the flag enabled? (for boolean type) */
   enabled: boolean;
-
-  /** Percentage of users (0-100) for percentage type */
-  percentage?: number;
-
-  /** List of user IDs for user_list type */
-  userIds?: string[];
-
-  /** Arbitrary value for value type */
-  value?: unknown;
-
-  /** Category for grouping in dashboard */
-  category: string;
-
-  /** When the flag was created */
-  createdAt: string;
-
-  /** When the flag was last updated */
-  updatedAt: string;
-
-  /** Who last updated it */
-  updatedBy?: string;
-
-  /** Optional metadata */
-  metadata?: Record<string, unknown>;
+  rolloutPercentage: number; // 0-100
+  percentage?: number; // Alias for rolloutPercentage
+  type?: string; // Category type
+  userOverrides: Map<string, boolean>;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface FlagCheckContext {
-  userId?: string;
-  sessionId?: string;
-  personaId?: string;
-  tier?: string;
-  [key: string]: unknown;
-}
-
-export interface FlagEvaluationResult {
+export interface FlagConfig {
   enabled: boolean;
-  reason:
-    | 'flag_enabled'
-    | 'flag_disabled'
-    | 'percentage_match'
-    | 'percentage_miss'
-    | 'user_match'
-    | 'user_miss'
-    | 'flag_not_found';
-  value?: unknown;
+  percentage: number;
+  overrides?: Record<string, boolean>;
 }
 
 // ============================================================================
-// DEFAULT FLAGS
+// TRUST SYSTEM FLAGS
 // ============================================================================
 
-const DEFAULT_FLAGS: FeatureFlag[] = [
-  // Voice Presence Features
-  {
-    id: 'voice-presence',
-    name: 'Voice Presence (Master)',
-    description: 'Master toggle for all voice presence features',
-    type: 'boolean',
-    enabled: false,
-    category: 'voice-presence',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'voice-presence-breath-pause',
-    name: 'Breath Pause Detection',
-    description: 'Audio-based breath pause detection for backchanneling',
-    type: 'boolean',
-    enabled: true,
-    category: 'voice-presence',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'voice-presence-live-backchannel',
-    name: 'Live Backchanneling',
-    description: 'Soft backchannels during user speech at breath pauses',
-    type: 'boolean',
-    enabled: true,
-    category: 'voice-presence',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'voice-presence-turn-prediction',
-    name: 'Turn Prediction',
-    description: 'Predict when user will finish speaking for preemptive generation',
-    type: 'boolean',
-    enabled: true,
-    category: 'voice-presence',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'voice-presence-cartesia-context',
-    name: 'Cartesia Context Patch',
-    description: 'Prosody continuity across TTS streams via context_id',
-    type: 'boolean',
-    enabled: true,
-    category: 'voice-presence',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'voice-presence-analytics',
-    name: 'Voice Presence Analytics',
-    description: 'Record metrics for voice presence features',
-    type: 'boolean',
-    enabled: true,
-    category: 'voice-presence',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
+export const TRUST_FLAGS = {
+  // Core Systems (Original)
+  'trust.reading-between-lines': 'Detect unspoken emotional cues',
+  'trust.boundary-memory': 'Remember topics to avoid',
+  'trust.growth-reflection': 'Notice user evolution over time',
+  'trust.inside-jokes': 'Track shared moments for callbacks',
+  'trust.small-wins': 'Celebrate effort and progress',
+  'trust.thinking-of-you': 'Proactive check-ins',
 
-  // Conversation Features
-  {
-    id: 'meaningful-silence',
-    name: 'Meaningful Silence',
-    description: 'Transform silent moments into connection opportunities',
-    type: 'boolean',
-    enabled: true,
-    category: 'conversation',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'spontaneous-shares',
-    name: 'Spontaneous Shares',
-    description: 'Persona shares personal stories unprompted',
-    type: 'boolean',
-    enabled: true,
-    category: 'conversation',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'thinking-fillers',
-    name: 'Thinking Fillers',
-    description: 'Natural "hmm", "let me think" during processing',
-    type: 'boolean',
-    enabled: true,
-    category: 'conversation',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
+  // Phase 12-17: Advanced Systems
+  'trust.relationship-health': 'Relationship health scoring',
+  'trust.conversation-starters': 'Context-aware greetings',
+  'trust.life-events': 'Detect and track life events',
+  'trust.response-tuning': 'Dynamic response style adjustment',
+  'trust.celebration-momentum': 'Win streaks and momentum',
+  'trust.sentiment-timeline': 'Emotional journey tracking',
 
-  // Debug/Dev Features
-  {
-    id: 'debug-logging',
-    name: 'Debug Logging',
-    description: 'Enable verbose debug logging',
-    type: 'boolean',
-    enabled: false,
-    category: 'debug',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'dev-panel',
-    name: 'Dev Panel Access',
-    description: 'Enable dev panel for all users (not just dev mode)',
-    type: 'boolean',
-    enabled: false,
-    category: 'debug',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
+  // Phase 24-29: Personalization
+  'trust.voice-prosody': 'Voice pattern learning',
+  'trust.journaling-prompts': 'Contextual journaling',
+  'trust.seasonal-awareness': 'Seasonal pattern adaptation',
+  'trust.learning-style': 'Learning style adaptation',
+  'trust.insights-reports': 'Relationship insights reports',
+  'trust.media-suggestions': 'Contextual media suggestions',
 
-  // Experimental Features (percentage rollout)
-  {
-    id: 'experimental-greeting-v2',
-    name: 'New Greeting System',
-    description: 'Alive intros with personality bleed-through',
-    type: 'percentage',
-    enabled: true,
-    percentage: 100,
-    category: 'experimental',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
+  // Infrastructure
+  'trust.persistence': 'Save/load trust profiles',
+  'trust.cross-device-sync': 'Real-time cross-device sync',
+  'trust.notifications': 'Proactive notifications',
+} as const;
 
-  // ============================================================================
-  // SIMPLE UTILITIES - "Better Than Human" Everyday Helpers
-  // ============================================================================
-  {
-    id: 'simple-utilities',
-    name: 'Simple Utilities (Master)',
-    description: 'Master toggle for all simple utility tools (timers, tips, timezone, etc.)',
-    type: 'boolean',
-    enabled: true,
-    category: 'simple-utilities',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'simple-utilities-voice-callbacks',
-    name: 'Voice Callbacks',
-    description: 'Speak when timer completes (vs silent completion)',
-    type: 'boolean',
-    enabled: true,
-    category: 'simple-utilities',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'simple-utilities-pattern-learning',
-    name: 'Pattern Learning',
-    description: 'Learn user patterns (tip %, timer duration, timezones)',
-    type: 'boolean',
-    enabled: true,
-    category: 'simple-utilities',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'simple-utilities-proactive',
-    name: 'Proactive Suggestions',
-    description: 'Offer help before asked ("Want your usual tea timer?")',
-    type: 'percentage',
-    enabled: true,
-    percentage: 30, // Start with 30% rollout
-    category: 'simple-utilities',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'simple-utilities-persistence',
-    name: 'Cross-Session Memory',
-    description: 'Remember preferences across conversations (Firestore)',
-    type: 'boolean',
-    enabled: true,
-    category: 'simple-utilities',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'simple-utilities-context-enrichment',
-    name: 'Context Enrichment',
-    description: 'Connect utilities to life context (travel, goals, habits)',
-    type: 'boolean',
-    enabled: true, // Now stable - connects utilities to goals, memories, habits
-    category: 'simple-utilities',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'simple-utilities-insights',
-    name: 'Contextual Insights',
-    description: 'Add wisdom to responses ("That\'s 12% - fine if service was rough")',
-    type: 'boolean',
-    enabled: true,
-    category: 'simple-utilities',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+export type TrustFlagId = keyof typeof TRUST_FLAGS;
 
 // ============================================================================
-// STORAGE
+// IN-MEMORY CACHE
 // ============================================================================
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const DATA_DIR = join(__dirname, '../../data');
-const FLAGS_FILE = join(DATA_DIR, 'feature-flags.json');
+const flagCache = new Map<string, FlagConfig>();
+let cacheInitialized = false;
+let cacheLastUpdated = 0;
+const CACHE_TTL_MS = 60000; // 1 minute
 
-function ensureDataDir(): void {
-  if (!existsSync(DATA_DIR)) {
-    mkdirSync(DATA_DIR, { recursive: true });
+// Default configurations
+const DEFAULT_FLAGS: Record<TrustFlagId, FlagConfig> = {
+  // Core Systems - 100% rollout (stable)
+  'trust.reading-between-lines': { enabled: true, percentage: 100 },
+  'trust.boundary-memory': { enabled: true, percentage: 100 },
+  'trust.growth-reflection': { enabled: true, percentage: 100 },
+  'trust.inside-jokes': { enabled: true, percentage: 100 },
+  'trust.small-wins': { enabled: true, percentage: 100 },
+  'trust.thinking-of-you': { enabled: true, percentage: 100 },
+
+  // Phase 12-17 - Gradual rollout
+  'trust.relationship-health': { enabled: true, percentage: 50 },
+  'trust.conversation-starters': { enabled: true, percentage: 50 },
+  'trust.life-events': { enabled: true, percentage: 50 },
+  'trust.response-tuning': { enabled: true, percentage: 25 },
+  'trust.celebration-momentum': { enabled: true, percentage: 50 },
+  'trust.sentiment-timeline': { enabled: true, percentage: 50 },
+
+  // Phase 24-29 - Limited rollout
+  'trust.voice-prosody': { enabled: true, percentage: 10 },
+  'trust.journaling-prompts': { enabled: true, percentage: 25 },
+  'trust.seasonal-awareness': { enabled: true, percentage: 25 },
+  'trust.learning-style': { enabled: true, percentage: 10 },
+  'trust.insights-reports': { enabled: true, percentage: 25 },
+  'trust.media-suggestions': { enabled: true, percentage: 10 },
+
+  // Infrastructure - 100% rollout
+  'trust.persistence': { enabled: true, percentage: 100 },
+  'trust.cross-device-sync': { enabled: true, percentage: 50 },
+  'trust.notifications': { enabled: true, percentage: 25 },
+};
+
+// ============================================================================
+// CORE FUNCTIONS
+// ============================================================================
+
+/**
+ * Check if a feature flag is enabled for a specific user
+ */
+export function isEnabled(flagId: TrustFlagId, userId?: string): boolean {
+  const config = getFlag(flagId);
+
+  if (!config.enabled) {
+    return false;
+  }
+
+  // Check user override first
+  if (userId && config.overrides?.[userId] !== undefined) {
+    return config.overrides[userId];
+  }
+
+  // Percentage-based rollout
+  if (config.percentage < 100) {
+    if (!userId) {
+      // No userId - use percentage as probability
+      return Math.random() * 100 < config.percentage;
+    }
+
+    // Deterministic based on userId hash
+    const hash = hashUserId(userId, flagId);
+    return hash < config.percentage;
+  }
+
+  return true;
+}
+
+/**
+ * Get flag configuration
+ */
+export function getFlag(flagId: TrustFlagId): FlagConfig {
+  // Check cache
+  if (flagCache.has(flagId) && Date.now() - cacheLastUpdated < CACHE_TTL_MS) {
+    return flagCache.get(flagId)!;
+  }
+
+  // Return default
+  return DEFAULT_FLAGS[flagId] || { enabled: false, percentage: 0 };
+}
+
+/**
+ * Get all flags with their current status
+ */
+export function getAllFlags(): Record<TrustFlagId, FlagConfig & { description: string }> {
+  const result: Record<string, FlagConfig & { description: string }> = {};
+
+  for (const [flagId, description] of Object.entries(TRUST_FLAGS)) {
+    const config = getFlag(flagId as TrustFlagId);
+    result[flagId] = {
+      ...config,
+      description,
+    };
+  }
+
+  return result as Record<TrustFlagId, FlagConfig & { description: string }>;
+}
+
+/**
+ * Update a flag configuration
+ */
+export async function setFlag(flagId: TrustFlagId, config: Partial<FlagConfig>): Promise<void> {
+  const current = getFlag(flagId);
+  const updated = { ...current, ...config };
+
+  flagCache.set(flagId, updated);
+  cacheLastUpdated = Date.now();
+
+  // Persist to Firestore
+  try {
+    const db = getFirestore();
+    await db
+      .collection('feature_flags')
+      .doc(flagId)
+      .set(
+        {
+          ...updated,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+    log.info({ flagId, config: updated }, '🚩 Feature flag updated');
+  } catch (error) {
+    log.warn({ error, flagId }, 'Failed to persist flag to Firestore');
   }
 }
 
-function loadFlags(): Map<string, FeatureFlag> {
-  ensureDataDir();
+/**
+ * Set user override for a flag
+ */
+export async function setUserOverride(
+  flagId: TrustFlagId,
+  userId: string,
+  enabled: boolean
+): Promise<void> {
+  const config = getFlag(flagId);
+  const overrides = { ...config.overrides, [userId]: enabled };
 
-  if (!existsSync(FLAGS_FILE)) {
-    // Initialize with defaults
-    const flagsMap = new Map<string, FeatureFlag>();
-    DEFAULT_FLAGS.forEach((flag) => flagsMap.set(flag.id, flag));
-    saveFlags(flagsMap);
-    return flagsMap;
+  await setFlag(flagId, { overrides });
+
+  log.info({ flagId, userId, enabled }, '🚩 User override set');
+}
+
+/**
+ * Remove user override
+ */
+export async function removeUserOverride(flagId: TrustFlagId, userId: string): Promise<void> {
+  const config = getFlag(flagId);
+  const overrides = { ...config.overrides };
+  delete overrides[userId];
+
+  await setFlag(flagId, { overrides });
+
+  log.info({ flagId, userId }, '🚩 User override removed');
+}
+
+/**
+ * Enable a flag for all users
+ */
+export async function enableFlag(flagId: TrustFlagId): Promise<void> {
+  await setFlag(flagId, { enabled: true, percentage: 100 });
+}
+
+/**
+ * Disable a flag for all users (kill switch)
+ */
+export async function disableFlag(flagId: TrustFlagId): Promise<void> {
+  await setFlag(flagId, { enabled: false, percentage: 0 });
+  log.warn({ flagId }, '⚠️ Feature flag KILLED');
+}
+
+/**
+ * Set rollout percentage
+ */
+export async function setRolloutPercentage(flagId: TrustFlagId, percentage: number): Promise<void> {
+  if (percentage < 0 || percentage > 100) {
+    throw new Error('Percentage must be between 0 and 100');
   }
+
+  await setFlag(flagId, { percentage });
+}
+
+// ============================================================================
+// BATCH OPERATIONS
+// ============================================================================
+
+/**
+ * Enable all trust system flags
+ */
+export async function enableAllTrustFlags(): Promise<void> {
+  for (const flagId of Object.keys(TRUST_FLAGS) as TrustFlagId[]) {
+    await setFlag(flagId, { enabled: true, percentage: 100 });
+  }
+
+  log.info('🚩 All trust flags enabled');
+}
+
+/**
+ * Disable all trust system flags (emergency kill switch)
+ */
+export async function disableAllTrustFlags(): Promise<void> {
+  for (const flagId of Object.keys(TRUST_FLAGS) as TrustFlagId[]) {
+    await setFlag(flagId, { enabled: false, percentage: 0 });
+  }
+
+  log.warn('⚠️ ALL TRUST FLAGS KILLED');
+}
+
+/**
+ * Reset all flags to defaults
+ */
+export async function resetToDefaults(): Promise<void> {
+  for (const [flagId, config] of Object.entries(DEFAULT_FLAGS)) {
+    flagCache.set(flagId, config);
+  }
+
+  cacheLastUpdated = Date.now();
+  log.info('🚩 All flags reset to defaults');
+}
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+/**
+ * Initialize feature flags from Firestore
+ */
+export async function initializeFeatureFlags(): Promise<void> {
+  if (cacheInitialized) return;
 
   try {
-    const data = readFileSync(FLAGS_FILE, 'utf-8');
-    const flags = JSON.parse(data) as FeatureFlag[];
-    const flagsMap = new Map<string, FeatureFlag>();
+    const db = getFirestore();
+    const snapshot = await db.collection('feature_flags').get();
 
-    // Load saved flags
-    flags.forEach((flag) => flagsMap.set(flag.id, flag));
+    for (const doc of snapshot.docs) {
+      const data = doc.data() as FlagConfig;
+      flagCache.set(doc.id, data);
+    }
 
-    // Add any new default flags that don't exist
-    DEFAULT_FLAGS.forEach((defaultFlag) => {
-      if (!flagsMap.has(defaultFlag.id)) {
-        flagsMap.set(defaultFlag.id, defaultFlag);
-      }
-    });
+    cacheInitialized = true;
+    cacheLastUpdated = Date.now();
 
-    return flagsMap;
+    log.info({ flagCount: snapshot.size }, '🚩 Feature flags initialized');
   } catch (error) {
-    log.error({ error }, 'Failed to load feature flags, using defaults');
-    const flagsMap = new Map<string, FeatureFlag>();
-    DEFAULT_FLAGS.forEach((flag) => flagsMap.set(flag.id, flag));
-    return flagsMap;
+    log.warn({ error }, 'Failed to load flags from Firestore, using defaults');
+    // Use defaults - already in DEFAULT_FLAGS
   }
-}
-
-function saveFlags(flags: Map<string, FeatureFlag>): void {
-  ensureDataDir();
-  const flagsArray = Array.from(flags.values());
-  writeFileSync(FLAGS_FILE, JSON.stringify(flagsArray, null, 2));
-}
-
-// ============================================================================
-// FEATURE FLAG SERVICE
-// ============================================================================
-
-export class FeatureFlagService {
-  private flags: Map<string, FeatureFlag>;
-  private lastReload = 0;
-  private reloadIntervalMs = 30000; // Reload every 30s
-
-  constructor() {
-    this.flags = loadFlags();
-    log.info({ flagCount: this.flags.size }, 'Feature flag service initialized');
-  }
-
-  /**
-   * Reload flags from storage (for hot reloading)
-   */
-  reload(): void {
-    this.flags = loadFlags();
-    this.lastReload = Date.now();
-    log.debug({ flagCount: this.flags.size }, 'Feature flags reloaded');
-  }
-
-  /**
-   * Maybe reload if enough time has passed (for auto-refresh)
-   */
-  private maybeReload(): void {
-    if (Date.now() - this.lastReload > this.reloadIntervalMs) {
-      this.reload();
-    }
-  }
-
-  /**
-   * Check if a flag is enabled (simple boolean check)
-   */
-  isEnabled(flagId: string): boolean {
-    this.maybeReload();
-    const flag = this.flags.get(flagId);
-    if (!flag) {
-      log.debug({ flagId }, 'Flag not found, defaulting to disabled');
-      return false;
-    }
-    return flag.enabled;
-  }
-
-  /**
-   * Check if a flag is enabled for a specific user/context
-   * Handles percentage rollouts and user targeting
-   */
-  isEnabledForUser(flagId: string, context: FlagCheckContext = {}): boolean {
-    this.maybeReload();
-    const result = this.evaluate(flagId, context);
-    return result.enabled;
-  }
-
-  /**
-   * Full evaluation with reason
-   */
-  evaluate(flagId: string, context: FlagCheckContext = {}): FlagEvaluationResult {
-    const flag = this.flags.get(flagId);
-
-    if (!flag) {
-      return { enabled: false, reason: 'flag_not_found' };
-    }
-
-    // If flag is globally disabled, return immediately
-    if (!flag.enabled) {
-      return { enabled: false, reason: 'flag_disabled', value: flag.value };
-    }
-
-    // Handle different flag types
-    switch (flag.type) {
-      case 'boolean':
-        return { enabled: true, reason: 'flag_enabled', value: flag.value };
-
-      case 'percentage': {
-        if (!flag.percentage || flag.percentage <= 0) {
-          return { enabled: false, reason: 'percentage_miss' };
-        }
-        if (flag.percentage >= 100) {
-          return { enabled: true, reason: 'percentage_match' };
-        }
-
-        // Use userId or sessionId for consistent bucketing
-        const bucketKey = context.userId || context.sessionId || 'anonymous';
-        const bucket = this.hashToBucket(flagId, bucketKey);
-        const enabled = bucket < flag.percentage;
-
-        return {
-          enabled,
-          reason: enabled ? 'percentage_match' : 'percentage_miss',
-        };
-      }
-
-      case 'user_list': {
-        if (!flag.userIds || flag.userIds.length === 0) {
-          return { enabled: false, reason: 'user_miss' };
-        }
-
-        const userId = context.userId || '';
-        const enabled = flag.userIds.includes(userId);
-
-        return {
-          enabled,
-          reason: enabled ? 'user_match' : 'user_miss',
-        };
-      }
-
-      case 'value':
-        return { enabled: true, reason: 'flag_enabled', value: flag.value };
-
-      default:
-        return { enabled: flag.enabled, reason: 'flag_enabled' };
-    }
-  }
-
-  /**
-   * Get the value of a flag (for non-boolean flags)
-   */
-  getValue<T>(flagId: string, defaultValue: T): T {
-    this.maybeReload();
-    const flag = this.flags.get(flagId);
-    if (!flag || flag.value === undefined) {
-      return defaultValue;
-    }
-    return flag.value as T;
-  }
-
-  /**
-   * Get all flags (for dashboard)
-   */
-  getAllFlags(): FeatureFlag[] {
-    this.maybeReload();
-    return Array.from(this.flags.values());
-  }
-
-  /**
-   * Get flags by category
-   */
-  getFlagsByCategory(category: string): FeatureFlag[] {
-    this.maybeReload();
-    return Array.from(this.flags.values()).filter((f) => f.category === category);
-  }
-
-  /**
-   * Get a single flag
-   */
-  getFlag(flagId: string): FeatureFlag | undefined {
-    this.maybeReload();
-    return this.flags.get(flagId);
-  }
-
-  /**
-   * Update a flag
-   */
-  updateFlag(
-    flagId: string,
-    updates: Partial<FeatureFlag>,
-    updatedBy?: string
-  ): FeatureFlag | null {
-    const flag = this.flags.get(flagId);
-    if (!flag) {
-      log.warn({ flagId }, 'Cannot update non-existent flag');
-      return null;
-    }
-
-    const updatedFlag: FeatureFlag = {
-      ...flag,
-      ...updates,
-      id: flag.id, // Don't allow changing ID
-      updatedAt: new Date().toISOString(),
-      updatedBy,
-    };
-
-    this.flags.set(flagId, updatedFlag);
-    saveFlags(this.flags);
-
-    log.info({ flagId, enabled: updatedFlag.enabled, updatedBy }, 'Feature flag updated');
-
-    return updatedFlag;
-  }
-
-  /**
-   * Create a new flag
-   */
-  createFlag(flag: Omit<FeatureFlag, 'createdAt' | 'updatedAt'>): FeatureFlag {
-    if (this.flags.has(flag.id)) {
-      throw new Error(`Flag with id "${flag.id}" already exists`);
-    }
-
-    const newFlag: FeatureFlag = {
-      ...flag,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    this.flags.set(flag.id, newFlag);
-    saveFlags(this.flags);
-
-    log.info({ flagId: flag.id, category: flag.category }, 'Feature flag created');
-
-    return newFlag;
-  }
-
-  /**
-   * Delete a flag
-   */
-  deleteFlag(flagId: string): boolean {
-    if (!this.flags.has(flagId)) {
-      return false;
-    }
-
-    this.flags.delete(flagId);
-    saveFlags(this.flags);
-
-    log.info({ flagId }, 'Feature flag deleted');
-
-    return true;
-  }
-
-  /**
-   * Hash a key to a bucket (0-100) for percentage rollouts
-   * Uses consistent hashing so the same user always gets the same bucket
-   */
-  private hashToBucket(flagId: string, key: string): number {
-    const hash = createHash('md5').update(`${flagId}:${key}`).digest('hex');
-    const num = parseInt(hash.substring(0, 8), 16);
-    return num % 100;
-  }
-
-  /**
-   * Get categories for dashboard grouping
-   */
-  getCategories(): string[] {
-    const categories = new Set<string>();
-    this.flags.forEach((flag) => categories.add(flag.category));
-    return Array.from(categories).sort();
-  }
-}
-
-// ============================================================================
-// SINGLETON
-// ============================================================================
-
-let instance: FeatureFlagService | null = null;
-
-export function getFeatureFlags(): FeatureFlagService {
-  if (!instance) {
-    instance = new FeatureFlagService();
-  }
-  return instance;
-}
-
-export function resetFeatureFlags(): void {
-  instance = null;
-}
-
-// ============================================================================
-// CONVENIENCE FUNCTIONS (for migration from static flags)
-// ============================================================================
-
-/**
- * Check if voice presence master toggle is enabled
- */
-export function isVoicePresenceEnabled(): boolean {
-  return getFeatureFlags().isEnabled('voice-presence');
 }
 
 /**
- * Check if a specific voice presence feature is enabled
- * Returns false if master toggle is off
+ * Refresh flags from Firestore
  */
-export function isVoicePresenceFeatureEnabled(
-  feature:
-    | 'breathPauseDetection'
-    | 'liveBackchanneling'
-    | 'turnPrediction'
-    | 'cartesiaContextPatch'
-    | 'analyticsRecording'
-): boolean {
-  const flags = getFeatureFlags();
-
-  // Check master toggle first
-  if (!flags.isEnabled('voice-presence')) {
-    return false;
-  }
-
-  // Map feature names to flag IDs
-  const flagMap: Record<string, string> = {
-    breathPauseDetection: 'voice-presence-breath-pause',
-    liveBackchanneling: 'voice-presence-live-backchannel',
-    turnPrediction: 'voice-presence-turn-prediction',
-    cartesiaContextPatch: 'voice-presence-cartesia-context',
-    analyticsRecording: 'voice-presence-analytics',
-  };
-
-  const flagId = flagMap[feature];
-  return flagId ? flags.isEnabled(flagId) : false;
+export async function refreshFlags(): Promise<void> {
+  cacheInitialized = false;
+  await initializeFeatureFlags();
 }
 
 // ============================================================================
-// SIMPLE UTILITIES FLAGS
+// HELPERS
 // ============================================================================
 
 /**
- * Check if simple utilities master toggle is enabled
+ * Generate deterministic hash for percentage-based rollout
+ * Same user + flag always gets same result
  */
-export function isSimpleUtilitiesEnabled(): boolean {
-  return getFeatureFlags().isEnabled('simple-utilities');
+function hashUserId(userId: string, flagId: string): number {
+  const str = `${userId}:${flagId}`;
+  let hash = 0;
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+
+  // Convert to 0-100 range
+  return Math.abs(hash % 100);
+}
+
+// ============================================================================
+// GUARD FUNCTIONS
+// ============================================================================
+
+/**
+ * Execute callback only if flag is enabled
+ */
+export function withFlag<T>(
+  flagId: TrustFlagId,
+  userId: string | undefined,
+  callback: () => T,
+  fallback?: T
+): T | undefined {
+  if (isEnabled(flagId, userId)) {
+    return callback();
+  }
+  return fallback;
 }
 
 /**
- * Check if a specific simple utilities feature is enabled
- * Returns false if master toggle is off
+ * Async version of withFlag
  */
-export function isSimpleUtilitiesFeatureEnabled(
-  feature:
-    | 'voiceCallbacks'
-    | 'patternLearning'
-    | 'proactive'
-    | 'persistence'
-    | 'contextEnrichment'
-    | 'insights',
-  context?: FlagCheckContext
-): boolean {
-  const flags = getFeatureFlags();
-
-  // Check master toggle first
-  if (!flags.isEnabled('simple-utilities')) {
-    return false;
+export async function withFlagAsync<T>(
+  flagId: TrustFlagId,
+  userId: string | undefined,
+  callback: () => Promise<T>,
+  fallback?: T
+): Promise<T | undefined> {
+  if (isEnabled(flagId, userId)) {
+    return callback();
   }
-
-  // Map feature names to flag IDs
-  const flagMap: Record<string, string> = {
-    voiceCallbacks: 'simple-utilities-voice-callbacks',
-    patternLearning: 'simple-utilities-pattern-learning',
-    proactive: 'simple-utilities-proactive',
-    persistence: 'simple-utilities-persistence',
-    contextEnrichment: 'simple-utilities-context-enrichment',
-    insights: 'simple-utilities-insights',
-  };
-
-  const flagId = flagMap[feature];
-  if (!flagId) return false;
-
-  // For proactive, use percentage-based rollout
-  if (feature === 'proactive' && context) {
-    return flags.isEnabledForUser(flagId, context);
-  }
-
-  return flags.isEnabled(flagId);
+  return fallback;
 }
 
+// ============================================================================
+// SIMPLE UTILITIES CONFIG (stub for compatibility)
+// ============================================================================
+
 /**
- * Get simple utilities feature config for initialization
+ * Get simple utilities configuration
+ * Stub: Returns default config
  */
-export function getSimpleUtilitiesConfig(context?: FlagCheckContext): {
-  enabled: boolean;
-  voiceCallbacks: boolean;
-  patternLearning: boolean;
-  proactive: boolean;
-  persistence: boolean;
-  contextEnrichment: boolean;
-  insights: boolean;
-} {
-  const enabled = isSimpleUtilitiesEnabled();
-  
+export function getSimpleUtilitiesConfig(): Record<string, boolean> {
   return {
-    enabled,
-    voiceCallbacks: enabled && isSimpleUtilitiesFeatureEnabled('voiceCallbacks'),
-    patternLearning: enabled && isSimpleUtilitiesFeatureEnabled('patternLearning'),
-    proactive: enabled && isSimpleUtilitiesFeatureEnabled('proactive', context),
-    persistence: enabled && isSimpleUtilitiesFeatureEnabled('persistence'),
-    contextEnrichment: enabled && isSimpleUtilitiesFeatureEnabled('contextEnrichment'),
-    insights: enabled && isSimpleUtilitiesFeatureEnabled('insights'),
+    timers: true,
+    tips: true,
+    timezone: true,
+    reminders: true,
   };
 }
+
+/**
+ * Get feature flags service object
+ * Returns an object with all flag management methods
+ */
+export function getFeatureFlags() {
+  return {
+    getAllFlags: () => Object.values(getAllFlags()),
+    getCategories: () => ['trust', 'features', 'experimental'],
+    getFlag: (flagId: string) => getFlag(flagId as TrustFlagId),
+    createFlag: async (flag: Partial<FeatureFlag>) =>
+      setFlag((flag.id || '') as TrustFlagId, {
+        enabled: flag.enabled || false,
+        percentage: flag.rolloutPercentage || 0,
+      }),
+    updateFlag: async (id: string, updates: Partial<FeatureFlag>) => {
+      setFlag(id as TrustFlagId, {
+        enabled: updates.enabled || false,
+        percentage: updates.rolloutPercentage || updates.percentage || 0,
+      });
+      return getFlag(id as TrustFlagId);
+    },
+    deleteFlag: async (_id: string) => {
+      // Flags cannot be deleted, only disabled
+      return true;
+    },
+    reload: () => refreshFlags(),
+    isEnabled,
+  };
+}
+
+// ============================================================================
+// NOTE: Functions are exported directly at declaration (export function ...)
+// ============================================================================
+
+export default {
+  isEnabled,
+  getFlag,
+  getAllFlags,
+  setFlag,
+  setUserOverride,
+  removeUserOverride,
+  enableFlag,
+  disableFlag,
+  setRolloutPercentage,
+  enableAllTrustFlags,
+  disableAllTrustFlags,
+  resetToDefaults,
+  initializeFeatureFlags,
+  refreshFlags,
+  withFlag,
+  withFlagAsync,
+  TRUST_FLAGS,
+  getFeatureFlags,
+  getSimpleUtilitiesConfig,
+};

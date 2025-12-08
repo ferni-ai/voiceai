@@ -37,6 +37,10 @@ export interface EngagementProfile {
     teamHuddlesAttended: number;
     memoryCallbacksTriggered: number;
   };
+  /** 🎮 Game memory - music games, insights, milestones */
+  gameMemory?: import('../../types/user-profile.js').GameMemory;
+  /** 🎵 Music preferences across sessions */
+  musicMemory?: import('../../types/user-profile.js').MusicMemory;
   createdAt: string;
   updatedAt: string;
 }

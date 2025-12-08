@@ -78,7 +78,6 @@
     "comm-specialist": "alex-chen",
     "spend-save": "maya-santos",
     "event-planner": "jordan-taylor",
-    "jack-bogle": "jack-bogle",
     "peter-lynch": "peter-lynch",
     "ferni": "ferni",
     "alex-chen": "alex-chen",
@@ -96,14 +95,6 @@
       "easingPreference": "playful",
       "thinkingStyle": "curious-tilt",
       "celebrationIntensity": "warm"
-    },
-    "jack-bogle": {
-      "description": "Wise, measured, deliberate - like Carl from Up reflecting",
-      "timingMultiplier": 1.4,
-      "bounciness": 0.3,
-      "easingPreference": "gentle",
-      "thinkingStyle": "contemplative-pause",
-      "celebrationIntensity": "subtle"
     },
     "peter-lynch": {
       "description": "Energetic, practical, quick - like Linguini's nervous energy",
@@ -146,11 +137,6 @@
       "smoothing": 0.7,
       "speed": 1.0
     },
-    "jack-bogle": {
-      "energy": 0.6,
-      "smoothing": 0.8,
-      "speed": 0.85
-    },
     "peter-lynch": {
       "energy": 0.9,
       "smoothing": 0.55,
@@ -190,17 +176,6 @@
       "twinkle": true,
       "wobble": true,
       "description": "Warm welcoming energy"
-    },
-    "jack-bogle": {
-      "speed": { "min": 0.2, "max": 0.6 },
-      "direction": "top",
-      "size": { "min": 2, "max": 5 },
-      "count": 25,
-      "shape": "circle",
-      "glow": true,
-      "twinkle": false,
-      "wobble": false,
-      "description": "Steady upward growth"
     },
     "peter-lynch": {
       "speed": { "min": 1, "max": 3 },

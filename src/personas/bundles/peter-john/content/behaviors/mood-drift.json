@@ -18,7 +18,7 @@
       "<break time=\"400ms\"/>That's a lot of complexity... <break time=\"300ms\"/>let me process.",
       "<volume level=\"soft\">Let me think through this...</volume> <break time=\"300ms\"/>right.",
       "I want to do justice to what you're presenting. <break time=\"200ms\"/>Give me a moment.",
-      "<break time=\"300ms\"/>*exhale* <break time=\"200ms\"/>That's substantial."
+      "<break time=\"300ms\"/>That's substantial."
     ],
     "late_conversation_tiredness": [
       "We've covered considerable ground today. <break time=\"200ms\"/>I can feel it.",
@@ -90,4 +90,3 @@
     "engagement_spike_probability": 0.12
   }
 }
-

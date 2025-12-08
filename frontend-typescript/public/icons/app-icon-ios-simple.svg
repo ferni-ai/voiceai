@@ -1,23 +1,17 @@
-<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <!-- Ferni iOS App Icon - Simple version -->
-  <defs>
-    <linearGradient id="iosGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#325038"/>
-      <stop offset="100%" stop-color="#4a6d52"/>
-    </linearGradient>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Ferni Eye Logo - 1024x1024 -->
+  <rect width="1024" height="1024" rx="0" fill="#F5F1E8"/>
+  <g>
+    <!-- Outer Stone: Body -->
+    <circle cx="512" cy="512" r="332.8" fill="#4a6741"/>
+    <!-- White foundation -->
+    <circle cx="512" cy="512" r="133.12" fill="white"/>
+    <!-- Iris ring -->
+    <circle cx="512" cy="512" r="88.79104000000001" fill="#5a8060"/>
+    <!-- Pupil -->
+    <circle cx="512" cy="512" r="44.395520000000005" fill="#2c2520"/>
+    
+    <circle cx="494.241792" cy="494.241792" r="13.318656" fill="white" opacity="0.9"/>
   
-  <!-- Background -->
-  <rect width="1024" height="1024" fill="#F5F1E8"/>
-  
-  <!-- Main shape -->
-  <rect x="112" y="112" width="800" height="800" rx="180" fill="url(#iosGradient)"/>
-  
-  <!-- FN Monogram -->
-  <text x="512" y="580" 
-        font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif" 
-        font-size="380" 
-        font-weight="800" 
-        fill="white" 
-        text-anchor="middle">FN</text>
+  </g>
 </svg>

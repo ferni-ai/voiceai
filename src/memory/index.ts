@@ -99,6 +99,22 @@ export {
   type KeyMomentMatch,
 } from './key-moment-retrieval.js';
 
+// Advanced Memory Retrieval (semantic, temporal, emotional scoring)
+export {
+  buildMemoryIndex,
+  retrieveMemories,
+  getConversationPrimingMemories,
+  getPersonRelatedMemories,
+  searchMemoriesByTopic,
+  computeMemoryEmbeddings,
+  clearMemoryIndex,
+  getIndexStats,
+  type MemoryItem,
+  type RetrievedMemory,
+  type RetrievalContext,
+  type RetrievalConfig,
+} from './advanced-retrieval.js';
+
 // ============================================================================
 // STORE TYPE DETECTION
 // ============================================================================

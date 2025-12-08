@@ -1,16 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <!-- Ferni Favicon 192x192 (PWA) -->
-  <defs>
-    <linearGradient id="pwaGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#325038"/>
-      <stop offset="100%" stop-color="#4a6d52"/>
-    </linearGradient>
-  </defs>
-  <rect width="192" height="192" rx="38" fill="url(#pwaGrad)"/>
-  <text x="96" y="125" 
-        font-family="'Plus Jakarta Sans', system-ui, sans-serif" 
-        font-size="90" 
-        font-weight="800" 
-        fill="white" 
-        text-anchor="middle">FN</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- Ferni Eye Logo - 192x192 -->
+  <rect width="192" height="192" rx="36" fill="#F5F1E8"/>
+  <g>
+    <!-- Outer Stone: Body -->
+    <circle cx="96" cy="96" r="62.400000000000006" fill="#4a6741"/>
+    <!-- White foundation -->
+    <circle cx="96" cy="96" r="24.960000000000004" fill="white"/>
+    <!-- Iris ring -->
+    <circle cx="96" cy="96" r="16.648320000000005" fill="#5a8060"/>
+    <!-- Pupil -->
+    <circle cx="96" cy="96" r="8.324160000000003" fill="#2c2520"/>
+    
+    <circle cx="92.67033599999999" cy="92.67033599999999" r="2.497248000000001" fill="white" opacity="0.9"/>
+  
+  </g>
 </svg>

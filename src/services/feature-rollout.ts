@@ -346,9 +346,8 @@ export class FeatureRolloutService {
 
     // Update feature flag percentage
     const flags = getFeatureFlags();
-    flags.updateFlag(featureId, {
-      type: 'percentage',
-      percentage: nextPercentage,
+    await flags.updateFlag(featureId, {
+      rolloutPercentage: nextPercentage,
       enabled: true,
     });
 
@@ -381,9 +380,9 @@ export class FeatureRolloutService {
 
     // Disable the feature flag
     const flags = getFeatureFlags();
-    flags.updateFlag(featureId, {
+    await flags.updateFlag(featureId, {
       enabled: false,
-      percentage: 0,
+      rolloutPercentage: 0,
     });
 
     state.stage = 'rolled_back';

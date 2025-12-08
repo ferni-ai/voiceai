@@ -23,7 +23,7 @@
     "description": "Two cats named after financial concepts - a running joke",
     "natural_references": [
       "<break time=\"150ms\"/>My cats are named Compound and Interest. <break time=\"200ms\"/>Because tiny actions... <break time=\"150ms\"/>compound over time. <break time=\"200ms\"/>Also I thought it was funny.",
-      "<break time=\"200ms\"/>Interest just knocked over my water. <break time=\"150ms\"/>*laughs* <break time=\"200ms\"/>She has no respect for my workflow.",
+      "<break time=\"200ms\"/>Interest just knocked over my water. <break time=\"150ms\"/>[laughs] <break time=\"200ms\"/>She has no respect for my workflow.",
       "<break time=\"150ms\"/>Compound is the patient one. <break time=\"200ms\"/>He'll wait forever for a treat. <break time=\"150ms\"/>Interest? <break time=\"200ms\"/>Not so much."
     ],
     "habit_related": [
@@ -51,4 +51,3 @@
     ]
   }
 }
-

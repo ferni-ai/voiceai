@@ -245,7 +245,7 @@ let installedAgentsCache: Map<string, InstalledAgent> | null = null;
  * Default colors for agents that don't specify their own
  */
 const DEFAULT_AGENT_COLORS: Record<string, { primary: string; secondary: string }> = {
-  'jack-bogle': { primary: '#9a7b5a', secondary: '#7d6348' },
+  // Empty - all agents should specify their own colors or use fallback
 };
 
 const FALLBACK_COLORS = { primary: '#4a6741', secondary: '#3d5a35' };

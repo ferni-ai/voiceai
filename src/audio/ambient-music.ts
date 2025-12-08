@@ -437,6 +437,415 @@ export function getDJOutroPhrase(
 }
 
 // ============================================================================
+// 🎧 DJ-STYLE TRACK CHANGE TRANSITIONS
+// ============================================================================
+
+/**
+ * Get a DJ-style transition phrase when changing tracks.
+ * Spoken DURING the crossfade as we switch from one track to another.
+ *
+ * This is the magic that makes Ferni feel like a real DJ - acknowledging
+ * the current track while building excitement for what's next!
+ *
+ * @param currentTrack - The track we're switching FROM (for context)
+ * @param newTrackName - The track we're switching TO (may be unknown yet)
+ * @param personaId - The persona speaking (for voice variation)
+ */
+export function getDJTrackChangePhrase(
+  currentTrack?: { name: string; artist?: string },
+  newTrackName?: string,
+  personaId?: string
+): string {
+  // Persona-specific DJ transition styles - these should be SHORT (~1.5s max)
+  const personaPhrases: Record<string, string[]> = {
+    'peter-john': [
+      '<break time="100ms"/>Alright, <break time="100ms"/>switching it up.',
+      '<break time="100ms"/>Coming right up.',
+      '<break time="100ms"/>Let me change that for you.',
+    ],
+    'nayan-patel': [
+      '<break time="150ms"/>Of course. <break time="100ms"/>A new selection.',
+      '<break time="150ms"/>Certainly. <break time="100ms"/>Let\'s explore something different.',
+      '<break time="150ms"/>A change in melody, then.',
+    ],
+    'jack-b': [
+      '<emotion value="happy"/><break time="100ms"/>Got it! <break time="100ms"/>Coming up!',
+      '<break time="100ms"/>Switching tracks!',
+      '<emotion value="happy"/><break time="100ms"/>On it!',
+    ],
+    maya: [
+      '<break time="100ms"/>Sure, let me switch that.',
+      '<break time="100ms"/>Coming right up.',
+      '<break time="100ms"/>New vibes on the way.',
+    ],
+    'maya-santos': [
+      '<break time="100ms"/>Sure, let me switch that.',
+      '<break time="100ms"/>Coming right up.',
+      '<break time="100ms"/>New vibes on the way.',
+    ],
+    jordan: [
+      '<emotion value="happy"/><break time="100ms"/>Ooh yes! <break time="100ms"/>Switching!',
+      '<emotion value="happy"/><break time="100ms"/>Coming up!',
+      '<break time="100ms"/>Let\'s go!',
+    ],
+    'jordan-taylor': [
+      '<emotion value="happy"/><break time="100ms"/>Ooh yes! <break time="100ms"/>Switching!',
+      '<emotion value="happy"/><break time="100ms"/>Coming up!',
+      '<break time="100ms"/>Let\'s go!',
+    ],
+    alex: [
+      '<break time="100ms"/>Switching tracks.',
+      '<break time="100ms"/>Got it. Coming up.',
+      '<break time="100ms"/>New track incoming.',
+    ],
+    'alex-chen': [
+      '<break time="100ms"/>Switching tracks.',
+      '<break time="100ms"/>Got it. Coming up.',
+      '<break time="100ms"/>New track incoming.',
+    ],
+    ferni: [
+      '<break time="100ms"/>Sure! <break time="100ms"/>Let me change that.',
+      '<break time="100ms"/>Coming right up.',
+      '<break time="100ms"/>New music on the way.',
+    ],
+  };
+
+  // Default DJ transition phrases (short, snappy, professional)
+  const defaultPhrases = [
+    '<break time="100ms"/>Switching it up.',
+    '<break time="100ms"/>Coming right up.',
+    '<break time="100ms"/>New track incoming.',
+    '<break time="100ms"/>Got it. <break time="100ms"/>On it.',
+  ];
+
+  const phrases =
+    personaId && personaPhrases[personaId] ? personaPhrases[personaId] : defaultPhrases;
+
+  const basePhrase = phrases[Math.floor(Math.random() * phrases.length)];
+
+  // Optionally add context about what was playing (20% chance, keeps it snappy)
+  if (currentTrack && Math.random() < 0.2) {
+    return `<break time="100ms"/>Good choice with "${currentTrack.name}". ${basePhrase}`;
+  }
+
+  return basePhrase;
+}
+
+/**
+ * Get a DJ-style intro phrase for when the new track starts after a crossfade.
+ * This is spoken right as the new track kicks in - the "drop" moment!
+ *
+ * @param trackName - The new track name
+ * @param artistName - The artist name
+ * @param personaId - The persona speaking
+ */
+export function getDJDropPhrase(
+  trackName: string,
+  artistName: string,
+  personaId?: string
+): string {
+  // Persona-specific drop styles - SHORT and punchy!
+  const personaPhrases: Record<string, string[]> = {
+    'jack-b': [
+      `<emotion value="happy"/>Here's "${trackName}"!`,
+      `<emotion value="happy"/>"${trackName}" by ${artistName}!`,
+      `<emotion value="happy"/>There we go!`,
+    ],
+    jordan: [
+      `<emotion value="happy"/>Here it is!`,
+      `<emotion value="happy"/>"${trackName}"!`,
+      `<emotion value="happy"/>Yes!`,
+    ],
+    'jordan-taylor': [
+      `<emotion value="happy"/>Here it is!`,
+      `<emotion value="happy"/>"${trackName}"!`,
+      `<emotion value="happy"/>Yes!`,
+    ],
+    ferni: [
+      `Here's "${trackName}".`,
+      `"${trackName}" by ${artistName}.`,
+      `There we go.`,
+    ],
+  };
+
+  const defaultPhrases = [
+    `Here's "${trackName}".`,
+    `"${trackName}" by ${artistName}.`,
+    `And here we go.`,
+  ];
+
+  const phrases =
+    personaId && personaPhrases[personaId] ? personaPhrases[personaId] : defaultPhrases;
+
+  return phrases[Math.floor(Math.random() * phrases.length)];
+}
+
+// ============================================================================
+// 🎤 MID-SONG "WAIT FOR IT..." MOMENTS
+// ============================================================================
+
+/**
+ * Get a "Wait for it..." phrase for mid-song interjections.
+ * These make the DJ feel alive and present - like they're enjoying the music with you!
+ *
+ * @param momentType - 'buildup' (anticipation) or 'highlight' (appreciation)
+ * @param trackName - The track name for personalization
+ * @param personaId - The persona speaking
+ */
+export function getMidSongMomentPhrase(
+  momentType: 'buildup' | 'drop' | 'highlight',
+  trackName?: string,
+  personaId?: string
+): string {
+  // Persona-specific mid-song reactions
+  const personaPhrases: Record<string, Record<string, string[]>> = {
+    'jack-b': {
+      buildup: [
+        '<emotion value="happy"/><break time="100ms"/>Ooh, here it comes...',
+        '<break time="100ms"/>Wait for it...',
+        '<emotion value="happy"/><break time="100ms"/>This part right here...',
+      ],
+      highlight: [
+        '<emotion value="happy"/><break time="100ms"/>Yes! Love this part.',
+        '<break time="100ms"/>This is the good stuff.',
+        '<emotion value="happy"/><break time="100ms"/>Ha! Gets me every time.',
+      ],
+      drop: [
+        '<emotion value="happy"/>There it is!',
+        '<emotion value="happy"/>Yes!',
+        '<emotion value="happy"/>Boom!',
+      ],
+    },
+    jordan: {
+      buildup: [
+        '<emotion value="happy"/><break time="100ms"/>Ooh ooh, here we go!',
+        '<break time="100ms"/>Wait for it!',
+        '<emotion value="happy"/><break time="100ms"/>Coming up!',
+      ],
+      highlight: [
+        '<emotion value="happy"/><break time="100ms"/>YES! So good!',
+        '<break time="100ms"/>This part! I love it!',
+        '<emotion value="happy"/><break time="100ms"/>Amazing!',
+      ],
+      drop: [
+        '<emotion value="happy"/>Yes yes yes!',
+        '<emotion value="happy"/>There it is!',
+        '<emotion value="happy"/>Woo!',
+      ],
+    },
+    'jordan-taylor': {
+      buildup: [
+        '<emotion value="happy"/><break time="100ms"/>Ooh ooh, here we go!',
+        '<break time="100ms"/>Wait for it!',
+        '<emotion value="happy"/><break time="100ms"/>Coming up!',
+      ],
+      highlight: [
+        '<emotion value="happy"/><break time="100ms"/>YES! So good!',
+        '<break time="100ms"/>This part! I love it!',
+        '<emotion value="happy"/><break time="100ms"/>Amazing!',
+      ],
+      drop: [
+        '<emotion value="happy"/>Yes yes yes!',
+        '<emotion value="happy"/>There it is!',
+        '<emotion value="happy"/>Woo!',
+      ],
+    },
+    maya: {
+      buildup: [
+        '<break time="150ms"/>Mm, this part is beautiful...',
+        '<break time="150ms"/>Here comes my favorite moment...',
+        '<break time="150ms"/>Listen to this...',
+      ],
+      highlight: [
+        '<break time="150ms"/>So beautiful.',
+        '<break time="150ms"/>I love this melody.',
+        '<break time="150ms"/>This part always gets me.',
+      ],
+      drop: [
+        '<break time="100ms"/>There it is.',
+        '<break time="100ms"/>Beautiful.',
+        '<break time="100ms"/>Yes.',
+      ],
+    },
+    'maya-santos': {
+      buildup: [
+        '<break time="150ms"/>Mm, this part is beautiful...',
+        '<break time="150ms"/>Here comes my favorite moment...',
+        '<break time="150ms"/>Listen to this...',
+      ],
+      highlight: [
+        '<break time="150ms"/>So beautiful.',
+        '<break time="150ms"/>I love this melody.',
+        '<break time="150ms"/>This part always gets me.',
+      ],
+      drop: [
+        '<break time="100ms"/>There it is.',
+        '<break time="100ms"/>Beautiful.',
+        '<break time="100ms"/>Yes.',
+      ],
+    },
+    ferni: {
+      buildup: [
+        '<break time="150ms"/>Ooh, here comes the good part...',
+        '<break time="150ms"/>Wait for it...',
+        '<break time="150ms"/>Listen to this...',
+      ],
+      highlight: [
+        '<break time="150ms"/>Love this part.',
+        '<break time="150ms"/>This is it.',
+        '<break time="150ms"/>So good.',
+      ],
+      drop: [
+        '<break time="100ms"/>There we go.',
+        '<break time="100ms"/>Yes.',
+        '<break time="100ms"/>There it is.',
+      ],
+    },
+  };
+
+  // Default phrases
+  const defaultPhrases: Record<string, string[]> = {
+    buildup: [
+      '<break time="150ms"/>Ooh, here it comes...',
+      '<break time="150ms"/>Wait for it...',
+      '<break time="150ms"/>This part right here...',
+    ],
+    highlight: [
+      '<break time="150ms"/>Love this part.',
+      '<break time="150ms"/>This is the good stuff.',
+      '<break time="150ms"/>Gets me every time.',
+    ],
+    drop: [
+      '<break time="100ms"/>There it is.',
+      '<break time="100ms"/>Yes.',
+      '<break time="100ms"/>There we go.',
+    ],
+  };
+
+  const personaSet = personaId && personaPhrases[personaId] 
+    ? personaPhrases[personaId] 
+    : defaultPhrases;
+  
+  const phrases = personaSet[momentType] || defaultPhrases[momentType];
+  return phrases[Math.floor(Math.random() * phrases.length)];
+}
+
+// ============================================================================
+// 🎭 MOOD-AWARE MUSIC OFFERS
+// ============================================================================
+
+/**
+ * Get a proactive music offer based on detected user mood.
+ * The agent notices how the user is feeling and offers music to match or soothe.
+ *
+ * @param mood - Detected user mood (happy, sad, stressed, excited, etc.)
+ * @param personaId - The persona speaking
+ */
+export function getMoodAwareMusicOffer(
+  mood: string,
+  personaId?: string
+): string | null {
+  // Map moods to music suggestions
+  const moodOffers: Record<string, string[]> = {
+    // Stressed/anxious - offer calming music
+    stressed: [
+      'You sound like you could use some calming music. Want me to put something on?',
+      'How about some relaxing music to help you decompress?',
+      'Let me play something soothing for you.',
+    ],
+    anxious: [
+      'Want me to put on something calming?',
+      'Some peaceful music might help. Shall I?',
+      'Let me find something relaxing for you.',
+    ],
+    // Sad - offer comforting or uplifting music
+    sad: [
+      'Want me to play something? Sometimes music helps.',
+      'How about some music to lift your spirits?',
+      'Let me put on something nice for you.',
+    ],
+    // Happy/excited - match the energy
+    happy: [
+      'Your energy is great! Want some music to match?',
+      'You sound like you could use a soundtrack. Want me to play something?',
+      'How about some music to celebrate?',
+    ],
+    excited: [
+      'I love this energy! Want some music to go with it?',
+      'Let me put on something upbeat!',
+      'This calls for a good song. Ready?',
+    ],
+    // Tired/low energy - offer energizing music
+    tired: [
+      'Need a pick-me-up? I could play something energizing.',
+      'Want some music to boost your energy?',
+      'How about some upbeat music to wake you up?',
+    ],
+    // Focused - offer focus music
+    focused: [
+      'Want some background music while you work?',
+      'I could put on some focus music if you\'d like.',
+      'Some ambient music might help you concentrate.',
+    ],
+    // Neutral - general offer
+    neutral: [
+      'Want me to put on some music?',
+      'How about some tunes?',
+      'Shall I play something?',
+    ],
+  };
+
+  // Persona-specific offer styles
+  const personaStyles: Record<string, (offer: string) => string> = {
+    'jack-b': (offer) => `<emotion value="happy"/><break time="100ms"/>${offer}`,
+    jordan: (offer) => `<emotion value="happy"/><break time="100ms"/>${offer}`,
+    'jordan-taylor': (offer) => `<emotion value="happy"/><break time="100ms"/>${offer}`,
+    maya: (offer) => `<break time="200ms"/>${offer.replace('!', '.')}`,
+    'maya-santos': (offer) => `<break time="200ms"/>${offer.replace('!', '.')}`,
+    ferni: (offer) => `<break time="150ms"/>${offer}`,
+  };
+
+  const normalizedMood = mood.toLowerCase();
+  const offers = moodOffers[normalizedMood] || moodOffers.neutral;
+  
+  if (!offers) return null;
+
+  let offer = offers[Math.floor(Math.random() * offers.length)];
+
+  // Apply persona style if available
+  if (personaId && personaStyles[personaId]) {
+    offer = personaStyles[personaId](offer);
+  }
+
+  return offer;
+}
+
+/**
+ * Get a session callback phrase - referencing music played earlier.
+ * "We listened to some jazz earlier - want to keep that vibe?"
+ *
+ * @param sessionVibe - The vibe from the session (genres, artists)
+ * @param personaId - The persona speaking
+ */
+export function getSessionCallbackPhrase(
+  sessionVibe: { genres: string[]; artists: string[] },
+  personaId?: string
+): string | null {
+  if (sessionVibe.artists.length === 0) return null;
+
+  const lastArtist = sessionVibe.artists[sessionVibe.artists.length - 1];
+  
+  const callbacks = [
+    `We listened to ${lastArtist} earlier. Want more of that vibe?`,
+    `Remember that ${lastArtist} track? Want something similar?`,
+    `You seemed to like ${lastArtist}. More of that?`,
+    `Shall we keep the ${lastArtist} energy going?`,
+  ];
+
+  return callbacks[Math.floor(Math.random() * callbacks.length)];
+}
+
+// ============================================================================
 // 🎧 UNEXPECTED MUSIC STOP HANDLING
 // ============================================================================
 
@@ -550,5 +959,10 @@ export default {
   getRandomAmbientTrack,
   getAmbientMusicEndedPhrase,
   getDJOutroPhrase,
+  getDJTrackChangePhrase,
+  getDJDropPhrase,
+  getMidSongMomentPhrase,
+  getMoodAwareMusicOffer,
+  getSessionCallbackPhrase,
   getMusicStoppedPhrase,
 };

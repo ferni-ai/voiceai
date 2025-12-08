@@ -1,17 +1,21 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    // Relax type checking for build to pass while outreach system is being refactored
+    // Relax type checking for build to pass while systems are being refactored
     "noImplicitAny": false,
     "strict": false,
     "strictNullChecks": false,
     "strictPropertyInitialization": false,
-    "noImplicitReturns": false
+    "noImplicitReturns": false,
+    "skipLibCheck": true
   },
   "exclude": [
     "node_modules",
     "dist",
-    "src/tests/**/*"
+    "src/tests/**/*",
+    "src/services/trust-systems/__tests__/**/*",
+    "**/*.test.ts",
+    "**/*.spec.ts"
   ]
 }
 

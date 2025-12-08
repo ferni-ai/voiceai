@@ -135,6 +135,69 @@ export async function shutdownServices(): Promise<void> {
     getLogger().warn({ error }, 'Error stopping proactive scheduler');
   }
 
+  // Stop Spotify auto-refresh
+  try {
+    const { stopAutoRefresh } = await import('./spotify-auth.js');
+    stopAutoRefresh();
+    getLogger().info('🎵 Stopped Spotify token refresh');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error stopping Spotify auto-refresh');
+  }
+
+  // Shutdown Maya notification service
+  try {
+    const { shutdownMayaNotificationService } = await import('./maya-notification-service.js');
+    shutdownMayaNotificationService();
+    getLogger().info('🔔 Maya notification service shutdown');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error shutting down Maya notifications');
+  }
+
+  // Stop reminder scheduler
+  try {
+    const { stopReminderScheduler } = await import('./reminder-scheduler.js');
+    stopReminderScheduler();
+    getLogger().info('⏰ Reminder scheduler stopped');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error stopping reminder scheduler');
+  }
+
+  // Shutdown feature rollout service
+  try {
+    const { getFeatureRollout } = await import('./feature-rollout.js');
+    getFeatureRollout().shutdown();
+    getLogger().info('🚀 Feature rollout service shutdown');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error shutting down feature rollout');
+  }
+
+  // Shutdown proactive insights service
+  try {
+    const { getProactiveInsightsService } = await import('./proactive-insights-service.js');
+    getProactiveInsightsService().stop();
+    getLogger().info('🔬 Proactive insights service stopped');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error stopping proactive insights');
+  }
+
+  // Shutdown tool usage analytics
+  try {
+    const { toolUsageAnalytics } = await import('./tool-usage-analytics.js');
+    await toolUsageAnalytics.shutdown();
+    getLogger().info('📈 Tool usage analytics shutdown');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error shutting down tool analytics');
+  }
+
+  // Shutdown cognitive WebSocket service
+  try {
+    const { shutdownCognitiveWebSocket } = await import('./cognitive-websocket.js');
+    shutdownCognitiveWebSocket();
+    getLogger().info('🧠 Cognitive WebSocket service shutdown');
+  } catch (error) {
+    getLogger().warn({ error }, 'Error shutting down cognitive WebSocket');
+  }
+
   // Reset global state
   resetGlobalServices();
 

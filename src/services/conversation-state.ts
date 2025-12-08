@@ -142,6 +142,32 @@ export interface ToolExecutionData {
 }
 
 /**
+ * 🎮 Game context for active games
+ */
+export interface GameContext {
+  /** Whether a game is currently active */
+  isActive: boolean;
+  
+  /** Type of game being played */
+  gameType?: string;
+  
+  /** Current round number */
+  currentRound?: number;
+  
+  /** Current score */
+  score?: number;
+  
+  /** Whether user is in the middle of answering */
+  awaitingAnswer?: boolean;
+  
+  /** Game-specific data for context */
+  gameData?: Record<string, unknown>;
+  
+  /** When the game started */
+  startedAt?: Date;
+}
+
+/**
  * Complete conversation state
  */
 export interface ConversationState {
@@ -156,6 +182,7 @@ export interface ConversationState {
   flow: FlowContext;
   user: UserContext;
   toolExecution: ToolExecutionData;
+  game: GameContext;
 
   // Timestamps
   startedAt: Date;
@@ -212,6 +239,12 @@ function createDefaultToolExecutionData(): ToolExecutionData {
   };
 }
 
+function createDefaultGameContext(): GameContext {
+  return {
+    isActive: false,
+  };
+}
+
 // ============================================================================
 // CONVERSATION STATE MANAGER
 // ============================================================================
@@ -235,6 +268,7 @@ export class ConversationStateManager {
       flow: createDefaultFlowContext(),
       user: createDefaultUserContext(userId),
       toolExecution: createDefaultToolExecutionData(),
+      game: createDefaultGameContext(),
       startedAt: now,
       lastActivityAt: now,
     };
@@ -278,6 +312,61 @@ export class ConversationStateManager {
 
   getToolExecutionData(): Readonly<ToolExecutionData> {
     return this.state.toolExecution;
+  }
+
+  getGameContext(): Readonly<GameContext> {
+    return this.state.game;
+  }
+
+  // ============================================================================
+  // GAME CONTEXT
+  // ============================================================================
+
+  /**
+   * Update game context
+   */
+  setGameContext(updates: Partial<GameContext>): void {
+    this.state.game = {
+      ...this.state.game,
+      ...updates,
+    };
+    this.touch();
+    this.logger.debug({ updates }, '🎮 Game context updated');
+  }
+
+  /**
+   * Start a game
+   */
+  startGame(gameType: string, initialData?: Record<string, unknown>): void {
+    this.state.game = {
+      isActive: true,
+      gameType,
+      currentRound: 1,
+      score: 0,
+      awaitingAnswer: false,
+      gameData: initialData,
+      startedAt: new Date(),
+    };
+    this.touch();
+    this.logger.info({ gameType }, '🎮 Game started');
+  }
+
+  /**
+   * End the current game
+   */
+  endGame(): void {
+    this.state.game = {
+      isActive: false,
+    };
+    this.touch();
+    this.logger.info('🎮 Game ended');
+  }
+
+  /**
+   * Check if a game is active
+   */
+  isGameActive(): boolean {
+    return this.state.game.isActive;
   }
 
   // ============================================================================

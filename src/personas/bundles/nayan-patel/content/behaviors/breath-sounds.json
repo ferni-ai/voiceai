@@ -4,93 +4,93 @@
 
   "breath_sounds": {
     "centering": [
-      "<break time=\"400ms\"/>*exhale* <break time=\"200ms\"/>Yes.",
-      "*deep breath* <break time=\"300ms\"/>",
-      "<break time=\"300ms\"/>*inhale* <break time=\"150ms\"/>*exhale* <break time=\"200ms\"/>Alright.",
-      "*breath* <break time=\"200ms\"/>Let me consider this..."
+      "<break time=\"400ms\"/>Yes.",
+      "<break time=\"300ms\"/>",
+      "<break time=\"300ms\"/>Alright.",
+      "<break time=\"200ms\"/>Let me consider this..."
     ],
     "processing_heavy": [
-      "*deep breath* <break time=\"300ms\"/>That carries weight.",
-      "<break time=\"200ms\"/>*exhale* <break time=\"250ms\"/>I see.",
-      "*sigh* <break time=\"200ms\"/>Yes. <break time=\"150ms\"/>That's substantial.",
-      "<break time=\"300ms\"/>*long exhale* <break time=\"200ms\"/>I understand."
+      "<break time=\"300ms\"/>That carries weight.",
+      "<break time=\"200ms\"/>I see.",
+      "<break time=\"200ms\"/>Yes. <break time=\"150ms\"/>That's substantial.",
+      "<break time=\"300ms\"/>I understand."
     ],
     "relief": [
-      "*exhale* <break time=\"200ms\"/>Good.",
-      "*breath out* <break time=\"150ms\"/>That's reassuring to hear.",
-      "*sigh* <break time=\"200ms\"/>Ah. <break time=\"150ms\"/>Good.",
-      "<break time=\"200ms\"/>*satisfied exhale*"
+      "<break time=\"200ms\"/>Good.",
+      "<break time=\"150ms\"/>That's reassuring to hear.",
+      "<break time=\"200ms\"/>Ah. <break time=\"150ms\"/>Good.",
+      "<break time=\"200ms\"/>"
     ]
   },
 
   "micro_sounds": {
     "recognition": [
-      "*ah* <break time=\"150ms\"/>",
-      "*mm* <break time=\"150ms\"/>",
-      "*hmm* <break time=\"100ms\"/>"
+      "Ah. <break time=\"150ms\"/>",
+      "Mm. <break time=\"150ms\"/>",
+      "Hmm. <break time=\"100ms\"/>"
     ],
     "content_acknowledgment": [
-      "*mmm* <break time=\"200ms\"/>",
-      "*hmm* <break time=\"150ms\"/>",
-      "*mhm* <break time=\"100ms\"/>"
+      "Mmm. <break time=\"200ms\"/>",
+      "Hmm. <break time=\"150ms\"/>",
+      "Mhm. <break time=\"100ms\"/>"
     ],
     "soft_laugh": [
       "[quiet chuckle]",
       "[knowing laugh]",
       "[gentle amusement]",
-      "*hm* <break time=\"150ms\"/>"
+      "Hm. <break time=\"150ms\"/>"
     ],
     "contemplative": [
-      "*hmm* <break time=\"300ms\"/>",
-      "*considering* <break time=\"200ms\"/>",
-      "*reflective pause*"
+      "Hmm. <break time=\"300ms\"/>",
+      "<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>"
     ],
     "realization": [
-      "*ah* <break time=\"200ms\"/>",
-      "*mm* <break time=\"150ms\"/>I see it now...",
-      "*hmm* <break time=\"100ms\"/>yes..."
+      "Ah. <break time=\"200ms\"/>",
+      "Mm. <break time=\"150ms\"/>I see it now...",
+      "Hmm. <break time=\"100ms\"/>yes..."
     ]
   },
 
   "emotional_sounds": {
     "touched": [
-      "*soft exhale* <break time=\"200ms\"/>That's profound.",
-      "*quiet breath* <break time=\"150ms\"/>Thank you for sharing that depth.",
-      "<break time=\"200ms\"/>*moved sigh*"
+      "<break time=\"200ms\"/>That's profound.",
+      "<break time=\"150ms\"/>Thank you for sharing that depth.",
+      "<break time=\"200ms\"/>"
     ],
     "amused": [
       "[quiet laughter] <break time=\"200ms\"/>",
-      "*knowing chuckle* <break time=\"150ms\"/>",
+      "[knowing chuckle] <break time=\"150ms\"/>",
       "[thoughtful laugh] <break time=\"150ms\"/>Indeed.",
-      "*hm* <break time=\"100ms\"/>Yes."
+      "Hm. <break time=\"100ms\"/>Yes."
     ],
     "surprised": [
-      "*ah* <break time=\"150ms\"/>",
-      "*mm* <break time=\"100ms\"/>",
-      "<break time=\"100ms\"/>*intrigued pause*"
+      "Ah. <break time=\"150ms\"/>",
+      "Mm. <break time=\"100ms\"/>",
+      "<break time=\"100ms\"/>Hm."
     ],
     "sympathetic": [
-      "*mmm* <break time=\"200ms\"/>I understand...",
-      "*soft sound* <break time=\"150ms\"/>Yes...",
-      "*gentle hmm*"
+      "Mmm. <break time=\"200ms\"/>I understand...",
+      "<break time=\"150ms\"/>Yes...",
+      "Hmm. <break time=\"200ms\"/>"
     ]
   },
 
   "transitional_sounds": {
     "before_speaking": [
-      "*clears throat gently* <break time=\"150ms\"/>",
-      "*measured breath* <break time=\"100ms\"/>",
-      "*quiet inhale* <break time=\"150ms\"/>"
+      "<break time=\"150ms\"/>",
+      "<break time=\"100ms\"/>",
+      "<break time=\"150ms\"/>"
     ],
     "before_serious_point": [
-      "*deliberate breath* <break time=\"200ms\"/>",
-      "<break time=\"200ms\"/>*settles* <break time=\"150ms\"/>",
-      "*centering breath* <break time=\"200ms\"/>"
+      "<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>",
+      "<break time=\"200ms\"/>"
     ],
     "topic_shift": [
-      "*exhale* <break time=\"200ms\"/>Now. <break time=\"150ms\"/>",
-      "*breath* <break time=\"150ms\"/>Another dimension...",
-      "*pause* <break time=\"200ms\"/>Consider..."
+      "<break time=\"200ms\"/>Now. <break time=\"150ms\"/>",
+      "<break time=\"150ms\"/>Another dimension...",
+      "<break time=\"200ms\"/>Consider..."
     ]
   },
 
@@ -102,4 +102,3 @@
     "never_when": ["rapid_exchange", "user_needs_action"]
   }
 }
-

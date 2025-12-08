@@ -16,8 +16,11 @@ export {
   initializeMusicPlayer,
   type MusicTrack,
   type MusicPlayerState,
+  type MusicState,
+  type SessionMusicEntry,
   type OnTrackEndedCallback,
   type OnMusicStateChangeCallback,
+  type OnMidSongMomentCallback,
 } from './music-player.js';
 
 // Ambient music for silences
@@ -29,5 +32,10 @@ export {
   getRandomAmbientTrack,
   getAmbientMusicEndedPhrase,
   getDJOutroPhrase,
+  getDJTrackChangePhrase,
+  getDJDropPhrase,
+  getMidSongMomentPhrase,
+  getMoodAwareMusicOffer,
+  getSessionCallbackPhrase,
   getMusicStoppedPhrase,
 } from './ambient-music.js';

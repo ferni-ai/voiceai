@@ -95,12 +95,6 @@ export type AgentId = PersonaId;
 export interface PersonaMetadata {
   id: PersonaId;
   agentRole: AgentRole;
-  /** @deprecated Use id instead */
-  bundleId: PersonaId;
-  /** @deprecated Use id instead */
-  frontendId: PersonaId;
-  /** @deprecated Use id instead */
-  agentId: PersonaId;
   displayName: string;
   shortName: string;
   role: 'coach' | 'team';
@@ -162,9 +156,6 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   ferni: {
     id: 'ferni',
     agentRole: AgentRole.COACH,
-    bundleId: 'ferni',
-    frontendId: 'ferni',
-    agentId: 'ferni',
     displayName: 'Ferni',
     shortName: 'Ferni',
     role: 'coach',
@@ -175,9 +166,6 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   'peter-john': {
     id: 'peter-john',
     agentRole: AgentRole.RESEARCHER,
-    bundleId: 'peter-john',
-    frontendId: 'peter-john',
-    agentId: 'peter-john',
     displayName: 'Peter John',
     shortName: 'Peter',
     role: 'team',
@@ -188,9 +176,6 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   'alex-chen': {
     id: 'alex-chen',
     agentRole: AgentRole.COMMUNICATOR,
-    bundleId: 'alex-chen',
-    frontendId: 'alex-chen',
-    agentId: 'alex-chen',
     displayName: 'Alex Chen',
     shortName: 'Alex',
     role: 'team',
@@ -201,9 +186,6 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   'maya-santos': {
     id: 'maya-santos',
     agentRole: AgentRole.HABITS,
-    bundleId: 'maya-santos',
-    frontendId: 'maya-santos',
-    agentId: 'maya-santos',
     displayName: 'Maya Santos',
     shortName: 'Maya',
     role: 'team',
@@ -228,9 +210,6 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   'jordan-taylor': {
     id: 'jordan-taylor',
     agentRole: AgentRole.PLANNER,
-    bundleId: 'jordan-taylor',
-    frontendId: 'jordan-taylor',
-    agentId: 'jordan-taylor',
     displayName: 'Jordan Taylor',
     shortName: 'Jordan',
     role: 'team',
@@ -249,9 +228,6 @@ export const PERSONA_REGISTRY: Record<PersonaId, PersonaMetadata> = {
   'nayan-patel': {
     id: 'nayan-patel',
     agentRole: AgentRole.SAGE,
-    bundleId: 'nayan-patel',
-    frontendId: 'nayan-patel',
-    agentId: 'nayan-patel',
     displayName: 'Nayan Patel',
     shortName: 'Nayan',
     role: 'team',

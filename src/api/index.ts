@@ -13,6 +13,7 @@ export { handleDORARoutes } from './dora-routes.js';
 export { handleFeatureFlagRoutes } from './feature-flag-routes.js';
 export { handleVoicePresenceRoutes } from './voice-presence-routes.js';
 export { handleObservabilityRoutes } from './observability-routes.js';
+export { handleGDPRRoutes } from './gdpr-routes.js';
 export {
   handleSubscriptionRequest,
   isSubscriptionRoute,

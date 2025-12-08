@@ -131,14 +131,6 @@
       "tint": "rgba(74, 103, 65, 0.06)",
       "_note": "Deep sage green - grounding, wise, natural leader"
     },
-    "jack-bogle": {
-      "primary": "#9a7b5a",
-      "secondary": "#7d6348",
-      "text": "#ffffff",
-      "glow": "rgba(154, 123, 90, 0.28)",
-      "tint": "rgba(154, 123, 90, 0.06)",
-      "_note": "Warm cedar - wisdom, warmth, trusted mentor"
-    },
     "peter-lynch": {
       "primary": "#3a6b73",
       "secondary": "#2d5359",

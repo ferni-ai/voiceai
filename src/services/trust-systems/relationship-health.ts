@@ -1,0 +1,721 @@
+/**
+ * Relationship Health Score
+ *
+ * Aggregates trust metrics into a single "relationship health" score.
+ * Tracks trends over time and alerts when health is declining.
+ *
+ * Philosophy: Like a friendship that deepens over time, we measure
+ * the quality of connection, not just activity.
+ *
+ * Health Factors:
+ * - Boundary respect rate (are we honoring their limits?)
+ * - Emotional attunement (do we notice what's unsaid?)
+ * - Growth acknowledgment (do we celebrate their evolution?)
+ * - Callback success (do our references land?)
+ * - Outreach reception (do they engage with check-ins?)
+ * - Session depth (are conversations meaningful?)
+ *
+ * @module RelationshipHealth
+ */
+
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'RelationshipHealth' });
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface HealthFactor {
+  name: string;
+  weight: number;
+  score: number; // 0-100
+  trend: 'improving' | 'stable' | 'declining';
+  lastUpdated: Date;
+  details?: string;
+}
+
+export interface RelationshipHealthScore {
+  userId: string;
+  overallScore: number; // 0-100
+  overallTrend: 'improving' | 'stable' | 'declining';
+  factors: HealthFactor[];
+  stage: 'new' | 'building' | 'established' | 'deep' | 'flourishing';
+  alerts: HealthAlert[];
+  lastCalculated: Date;
+  history: HealthSnapshot[];
+}
+
+export interface HealthAlert {
+  id: string;
+  severity: 'info' | 'warning' | 'concern';
+  message: string;
+  factor: string;
+  suggestion: string;
+  createdAt: Date;
+  acknowledged: boolean;
+}
+
+export interface HealthSnapshot {
+  date: Date;
+  score: number;
+  factors: Record<string, number>;
+}
+
+export interface HealthTrend {
+  period: 'week' | 'month' | 'quarter';
+  startScore: number;
+  endScore: number;
+  change: number;
+  changePercent: number;
+  direction: 'improving' | 'stable' | 'declining';
+}
+
+export interface RelationshipMilestone {
+  id: string;
+  type: 'first_callback' | 'boundary_respected' | 'growth_noticed' | 'deep_share' | 'trust_level_up';
+  description: string;
+  achievedAt: Date;
+  score: number;
+}
+
+// ============================================================================
+// WEIGHTS - How much each factor contributes to overall health
+// ============================================================================
+
+const FACTOR_WEIGHTS: Record<string, number> = {
+  boundaryRespect: 0.20, // 20% - Critical for trust
+  emotionalAttunement: 0.18, // 18% - Core to connection
+  growthAcknowledgment: 0.15, // 15% - Shows we notice
+  callbackSuccess: 0.12, // 12% - Shared history matters
+  outreachReception: 0.12, // 12% - Proactive care
+  sessionDepth: 0.13, // 13% - Meaningful conversations
+  consistency: 0.10, // 10% - Regular engagement
+};
+
+// ============================================================================
+// THRESHOLDS
+// ============================================================================
+
+const STAGE_THRESHOLDS = {
+  new: { min: 0, max: 20 },
+  building: { min: 21, max: 45 },
+  established: { min: 46, max: 65 },
+  deep: { min: 66, max: 85 },
+  flourishing: { min: 86, max: 100 },
+};
+
+const TREND_THRESHOLDS = {
+  improving: 5, // +5 points or more
+  declining: -5, // -5 points or less
+};
+
+// ============================================================================
+// IN-MEMORY STORAGE
+// ============================================================================
+
+const healthScores = new Map<string, RelationshipHealthScore>();
+const factorInputs = new Map<string, Map<string, number[]>>();
+
+// ============================================================================
+// FACTOR CALCULATION
+// ============================================================================
+
+/**
+ * Calculate boundary respect factor
+ */
+export function calculateBoundaryRespect(
+  userId: string,
+  metrics: {
+    boundariesSet: number;
+    boundariesRespected: number;
+    boundariesCrossed: number;
+  }
+): number {
+  if (metrics.boundariesSet === 0) return 100; // No boundaries = perfect respect
+
+  const respectRate =
+    metrics.boundariesRespected / (metrics.boundariesRespected + metrics.boundariesCrossed);
+
+  // Perfect respect = 100, each crossing drops score significantly
+  return Math.max(0, Math.round(respectRate * 100));
+}
+
+/**
+ * Calculate emotional attunement factor
+ */
+export function calculateEmotionalAttunement(
+  userId: string,
+  metrics: {
+    unsaidSignalsDetected: number;
+    unsaidSignalsActedOn: number;
+    emotionalMismatchesCaught: number;
+    supportOffered: number;
+    supportAccepted: number;
+  }
+): number {
+  let score = 50; // Start neutral
+
+  // Detection bonus
+  if (metrics.unsaidSignalsDetected > 0) {
+    const actedOnRate = metrics.unsaidSignalsActedOn / metrics.unsaidSignalsDetected;
+    score += actedOnRate * 25;
+  }
+
+  // Emotional mismatch detection is valuable
+  score += Math.min(metrics.emotionalMismatchesCaught * 5, 15);
+
+  // Support acceptance rate
+  if (metrics.supportOffered > 0) {
+    const acceptanceRate = metrics.supportAccepted / metrics.supportOffered;
+    score += acceptanceRate * 10;
+  }
+
+  return Math.min(100, Math.round(score));
+}
+
+/**
+ * Calculate growth acknowledgment factor
+ */
+export function calculateGrowthAcknowledgment(
+  userId: string,
+  metrics: {
+    growthPatternsDetected: number;
+    growthReflectionsShared: number;
+    reflectionsReceivedWell: number;
+  }
+): number {
+  if (metrics.growthPatternsDetected === 0) return 50; // Neutral if no data
+
+  let score = 40; // Base score
+
+  // Bonus for detecting growth
+  score += Math.min(metrics.growthPatternsDetected * 5, 20);
+
+  // Big bonus for sharing and it landing well
+  if (metrics.growthReflectionsShared > 0) {
+    const wellReceivedRate =
+      metrics.reflectionsReceivedWell / metrics.growthReflectionsShared;
+    score += wellReceivedRate * 40;
+  }
+
+  return Math.min(100, Math.round(score));
+}
+
+/**
+ * Calculate callback success factor
+ */
+export function calculateCallbackSuccess(
+  userId: string,
+  metrics: {
+    callbacksAttempted: number;
+    callbacksLanded: number;
+    callbacksAwkward: number;
+  }
+): number {
+  if (metrics.callbacksAttempted === 0) return 50; // Neutral if no callbacks yet
+
+  const landedRate = metrics.callbacksLanded / metrics.callbacksAttempted;
+  const awkwardRate = metrics.callbacksAwkward / metrics.callbacksAttempted;
+
+  // High landing rate = good, awkward callbacks hurt
+  return Math.max(0, Math.round(landedRate * 100 - awkwardRate * 30));
+}
+
+/**
+ * Calculate outreach reception factor
+ */
+export function calculateOutreachReception(
+  userId: string,
+  metrics: {
+    outreachSent: number;
+    outreachOpened: number;
+    outreachEngaged: number;
+    outreachIgnored: number;
+  }
+): number {
+  if (metrics.outreachSent === 0) return 50; // Neutral if no outreach
+
+  const engagementRate = metrics.outreachEngaged / metrics.outreachSent;
+  const ignoreRate = metrics.outreachIgnored / metrics.outreachSent;
+
+  // Good engagement = high score, ignoring = lower
+  let score = 50 + engagementRate * 50 - ignoreRate * 20;
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+/**
+ * Calculate session depth factor
+ */
+export function calculateSessionDepth(
+  userId: string,
+  metrics: {
+    avgSessionDurationMinutes: number;
+    deepConversations: number;
+    totalSessions: number;
+    emotionalShares: number;
+  }
+): number {
+  let score = 30; // Base
+
+  // Duration bonus (up to 10 min = more engaged)
+  score += Math.min(metrics.avgSessionDurationMinutes * 3, 25);
+
+  // Deep conversation ratio
+  if (metrics.totalSessions > 0) {
+    const deepRatio = metrics.deepConversations / metrics.totalSessions;
+    score += deepRatio * 30;
+  }
+
+  // Emotional shares indicate trust
+  score += Math.min(metrics.emotionalShares * 2, 15);
+
+  return Math.min(100, Math.round(score));
+}
+
+/**
+ * Calculate consistency factor
+ */
+export function calculateConsistency(
+  userId: string,
+  metrics: {
+    sessionDates: Date[];
+    expectedCadenceDays: number;
+  }
+): number {
+  if (metrics.sessionDates.length < 2) return 50; // Not enough data
+
+  // Calculate gaps between sessions
+  const gaps: number[] = [];
+  const sorted = [...metrics.sessionDates].sort((a, b) => a.getTime() - b.getTime());
+
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = (sorted[i].getTime() - sorted[i - 1].getTime()) / (1000 * 60 * 60 * 24);
+    gaps.push(gap);
+  }
+
+  const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+  const gapVariance =
+    gaps.reduce((sum, g) => sum + Math.pow(g - avgGap, 2), 0) / gaps.length;
+
+  // Consistent, regular engagement = higher score
+  // Too long gaps or irregular = lower
+  let score = 100;
+
+  // Penalty for long average gaps
+  if (avgGap > metrics.expectedCadenceDays * 2) {
+    score -= 30;
+  } else if (avgGap > metrics.expectedCadenceDays) {
+    score -= 15;
+  }
+
+  // Penalty for inconsistency (high variance)
+  score -= Math.min(Math.sqrt(gapVariance) * 5, 30);
+
+  return Math.max(0, Math.round(score));
+}
+
+// ============================================================================
+// MAIN SCORE CALCULATION
+// ============================================================================
+
+/**
+ * Calculate overall relationship health score
+ */
+export function calculateHealthScore(
+  userId: string,
+  allFactorScores: Record<string, number>
+): RelationshipHealthScore {
+  const existing = healthScores.get(userId);
+
+  // Calculate weighted score
+  let totalWeight = 0;
+  let weightedSum = 0;
+
+  const factors: HealthFactor[] = [];
+
+  for (const [factorName, weight] of Object.entries(FACTOR_WEIGHTS)) {
+    const score = allFactorScores[factorName] ?? 50;
+    weightedSum += score * weight;
+    totalWeight += weight;
+
+    // Determine trend for this factor
+    const trend = calculateFactorTrend(userId, factorName, score);
+
+    factors.push({
+      name: factorName,
+      weight,
+      score,
+      trend,
+      lastUpdated: new Date(),
+    });
+
+    // Store for trend calculation
+    recordFactorInput(userId, factorName, score);
+  }
+
+  const overallScore = Math.round(weightedSum / totalWeight);
+
+  // Determine stage
+  const stage = determineStage(overallScore);
+
+  // Calculate overall trend
+  const overallTrend = calculateOverallTrend(userId, overallScore);
+
+  // Generate alerts
+  const alerts = generateAlerts(factors, overallScore, existing);
+
+  // Create snapshot for history
+  const snapshot: HealthSnapshot = {
+    date: new Date(),
+    score: overallScore,
+    factors: allFactorScores,
+  };
+
+  const history = existing?.history || [];
+  history.push(snapshot);
+  // Keep last 90 days of history
+  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const trimmedHistory = history.filter((h) => h.date > cutoff);
+
+  const healthScore: RelationshipHealthScore = {
+    userId,
+    overallScore,
+    overallTrend,
+    factors,
+    stage,
+    alerts,
+    lastCalculated: new Date(),
+    history: trimmedHistory,
+  };
+
+  healthScores.set(userId, healthScore);
+
+  log.info(
+    {
+      userId,
+      score: overallScore,
+      stage,
+      trend: overallTrend,
+      alertCount: alerts.filter((a) => !a.acknowledged).length,
+    },
+    '💚 Relationship health calculated'
+  );
+
+  return healthScore;
+}
+
+/**
+ * Record factor input for trend tracking
+ */
+function recordFactorInput(userId: string, factor: string, score: number): void {
+  let userInputs = factorInputs.get(userId);
+  if (!userInputs) {
+    userInputs = new Map();
+    factorInputs.set(userId, userInputs);
+  }
+
+  let factorHistory = userInputs.get(factor) || [];
+  factorHistory.push(score);
+
+  // Keep last 30 values
+  if (factorHistory.length > 30) {
+    factorHistory = factorHistory.slice(-30);
+  }
+
+  userInputs.set(factor, factorHistory);
+}
+
+/**
+ * Calculate trend for a specific factor
+ */
+function calculateFactorTrend(
+  userId: string,
+  factor: string,
+  currentScore: number
+): 'improving' | 'stable' | 'declining' {
+  const userInputs = factorInputs.get(userId);
+  if (!userInputs) return 'stable';
+
+  const history = userInputs.get(factor);
+  if (!history || history.length < 3) return 'stable';
+
+  // Compare current to average of last 5
+  const recentAvg =
+    history.slice(-5).reduce((a, b) => a + b, 0) / Math.min(history.length, 5);
+
+  const diff = currentScore - recentAvg;
+
+  if (diff >= TREND_THRESHOLDS.improving) return 'improving';
+  if (diff <= TREND_THRESHOLDS.declining) return 'declining';
+  return 'stable';
+}
+
+/**
+ * Calculate overall trend
+ */
+function calculateOverallTrend(
+  userId: string,
+  currentScore: number
+): 'improving' | 'stable' | 'declining' {
+  const existing = healthScores.get(userId);
+  if (!existing || existing.history.length < 3) return 'stable';
+
+  // Compare to 7-day ago score
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const weekAgoSnapshot = existing.history.find((h) => h.date >= weekAgo);
+
+  if (!weekAgoSnapshot) return 'stable';
+
+  const diff = currentScore - weekAgoSnapshot.score;
+
+  if (diff >= TREND_THRESHOLDS.improving) return 'improving';
+  if (diff <= TREND_THRESHOLDS.declining) return 'declining';
+  return 'stable';
+}
+
+/**
+ * Determine relationship stage from score
+ */
+function determineStage(
+  score: number
+): 'new' | 'building' | 'established' | 'deep' | 'flourishing' {
+  for (const [stage, { min, max }] of Object.entries(STAGE_THRESHOLDS)) {
+    if (score >= min && score <= max) {
+      return stage as 'new' | 'building' | 'established' | 'deep' | 'flourishing';
+    }
+  }
+  return 'new';
+}
+
+/**
+ * Generate health alerts
+ */
+function generateAlerts(
+  factors: HealthFactor[],
+  overallScore: number,
+  existing?: RelationshipHealthScore
+): HealthAlert[] {
+  const alerts: HealthAlert[] = [];
+  const existingAlerts = existing?.alerts || [];
+
+  // Check for declining factors
+  for (const factor of factors) {
+    if (factor.trend === 'declining' && factor.score < 40) {
+      const existingAlert = existingAlerts.find(
+        (a) => a.factor === factor.name && !a.acknowledged
+      );
+
+      if (!existingAlert) {
+        alerts.push({
+          id: `${factor.name}-${Date.now()}`,
+          severity: factor.score < 20 ? 'concern' : 'warning',
+          message: getAlertMessage(factor.name, factor.score),
+          factor: factor.name,
+          suggestion: getAlertSuggestion(factor.name),
+          createdAt: new Date(),
+          acknowledged: false,
+        });
+      } else {
+        alerts.push(existingAlert);
+      }
+    }
+  }
+
+  // Overall health alerts
+  if (overallScore < 30) {
+    alerts.push({
+      id: `overall-${Date.now()}`,
+      severity: 'concern',
+      message: 'Relationship health needs attention',
+      factor: 'overall',
+      suggestion: 'Focus on consistent, quality conversations',
+      createdAt: new Date(),
+      acknowledged: false,
+    });
+  }
+
+  return alerts;
+}
+
+/**
+ * Get alert message for a factor
+ */
+function getAlertMessage(factor: string, score: number): string {
+  const messages: Record<string, string> = {
+    boundaryRespect: 'Some boundaries may have been crossed',
+    emotionalAttunement: "Missing emotional cues more often",
+    growthAcknowledgment: "Haven't noticed growth patterns recently",
+    callbackSuccess: 'Callbacks not landing well lately',
+    outreachReception: 'Check-ins being ignored more often',
+    sessionDepth: 'Conversations feel more surface-level',
+    consistency: 'Engagement has become irregular',
+  };
+  return messages[factor] || `${factor} score is low (${score})`;
+}
+
+/**
+ * Get suggestion for alert
+ */
+function getAlertSuggestion(factor: string): string {
+  const suggestions: Record<string, string> = {
+    boundaryRespect: 'Review boundary list before next conversation',
+    emotionalAttunement: 'Listen more carefully for unsaid signals',
+    growthAcknowledgment: 'Look for small changes to acknowledge',
+    callbackSuccess: 'Be more selective with callbacks',
+    outreachReception: 'Reduce outreach frequency or change timing',
+    sessionDepth: 'Ask more open-ended questions',
+    consistency: 'Gentle re-engagement outreach might help',
+  };
+  return suggestions[factor] || 'Review recent interactions';
+}
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
+/**
+ * Get current health score
+ */
+export function getHealthScore(userId: string): RelationshipHealthScore | null {
+  return healthScores.get(userId) || null;
+}
+
+/**
+ * Get health trend over a period
+ */
+export function getHealthTrend(
+  userId: string,
+  period: 'week' | 'month' | 'quarter'
+): HealthTrend | null {
+  const health = healthScores.get(userId);
+  if (!health || health.history.length < 2) return null;
+
+  const periodDays = { week: 7, month: 30, quarter: 90 };
+  const cutoff = new Date(Date.now() - periodDays[period] * 24 * 60 * 60 * 1000);
+
+  const relevantHistory = health.history.filter((h) => h.date >= cutoff);
+  if (relevantHistory.length < 2) return null;
+
+  const startScore = relevantHistory[0].score;
+  const endScore = relevantHistory[relevantHistory.length - 1].score;
+  const change = endScore - startScore;
+  const changePercent = (change / startScore) * 100;
+
+  let direction: 'improving' | 'stable' | 'declining' = 'stable';
+  if (change >= 5) direction = 'improving';
+  else if (change <= -5) direction = 'declining';
+
+  return {
+    period,
+    startScore,
+    endScore,
+    change,
+    changePercent,
+    direction,
+  };
+}
+
+/**
+ * Acknowledge an alert
+ */
+export function acknowledgeAlert(userId: string, alertId: string): boolean {
+  const health = healthScores.get(userId);
+  if (!health) return false;
+
+  const alert = health.alerts.find((a) => a.id === alertId);
+  if (!alert) return false;
+
+  alert.acknowledged = true;
+  return true;
+}
+
+/**
+ * Record a milestone
+ */
+export function recordMilestone(
+  userId: string,
+  type: RelationshipMilestone['type'],
+  description: string
+): RelationshipMilestone {
+  const milestone: RelationshipMilestone = {
+    id: `${type}-${Date.now()}`,
+    type,
+    description,
+    achievedAt: new Date(),
+    score: healthScores.get(userId)?.overallScore || 0,
+  };
+
+  log.info({ userId, milestone }, '🏆 Relationship milestone recorded');
+
+  return milestone;
+}
+
+/**
+ * Get stage name for display
+ */
+export function getStageName(stage: RelationshipHealthScore['stage']): string {
+  const names: Record<RelationshipHealthScore['stage'], string> = {
+    new: 'Just Getting Started',
+    building: 'Building Trust',
+    established: 'Established Connection',
+    deep: 'Deep Understanding',
+    flourishing: 'Flourishing Relationship',
+  };
+  return names[stage];
+}
+
+/**
+ * Get stage description
+ */
+export function getStageDescription(stage: RelationshipHealthScore['stage']): string {
+  const descriptions: Record<RelationshipHealthScore['stage'], string> = {
+    new: "We're just beginning to get to know each other",
+    building: "We're learning what matters to you",
+    established: 'We have a solid foundation of understanding',
+    deep: 'I really understand what you need',
+    flourishing: "We've built something special together",
+  };
+  return descriptions[stage];
+}
+
+/**
+ * Export health data for user
+ */
+export function exportHealthData(userId: string): {
+  score: RelationshipHealthScore | null;
+  trends: Record<string, HealthTrend | null>;
+} {
+  return {
+    score: getHealthScore(userId),
+    trends: {
+      week: getHealthTrend(userId, 'week'),
+      month: getHealthTrend(userId, 'month'),
+      quarter: getHealthTrend(userId, 'quarter'),
+    },
+  };
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export default {
+  calculateHealthScore,
+  getHealthScore,
+  getHealthTrend,
+  acknowledgeAlert,
+  recordMilestone,
+  getStageName,
+  getStageDescription,
+  exportHealthData,
+  calculateBoundaryRespect,
+  calculateEmotionalAttunement,
+  calculateGrowthAcknowledgment,
+  calculateCallbackSuccess,
+  calculateOutreachReception,
+  calculateSessionDepth,
+  calculateConsistency,
+};
+

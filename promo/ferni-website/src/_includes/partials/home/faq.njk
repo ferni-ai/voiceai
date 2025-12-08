@@ -1,0 +1,24 @@
+<section class="faq" id="faq">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="eyebrow">Questions & Answers</p>
+      <h2 class="headline-lg">Frequently asked<br>questions.</h2>
+    </div>
+
+    <div class="faq-grid">
+      {% for item in site.faq %}
+      <div class="faq-item reveal">
+        <button class="faq-question" aria-expanded="false">
+          <span>{{ item.question }}</span>
+          <svg class="faq-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
+        <div class="faq-answer">
+          <p>{{ item.answer }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>

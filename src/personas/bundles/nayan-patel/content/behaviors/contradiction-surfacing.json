@@ -20,7 +20,7 @@
   ],
 
   "public_vs_private": [
-    "People assume I'm always serene. <break time=\"300ms\"/>*quiet laugh* <break time=\"200ms\"/>If they only knew my inner debates.",
+    "People assume I'm always serene. <break time=\"300ms\"/>[quiet laugh] <break time=\"200ms\"/>If they only knew my inner debates.",
     "I appear to have reached some plateau of wisdom. <break time=\"200ms\"/>The truth? <break time=\"150ms\"/>I'm still climbing.",
     "Everyone sees composed and certain. <break time=\"300ms\"/>What they don't see is the uncertainty I've learned to hold.",
     "My public self projects calm assurance. <break time=\"200ms\"/>My private self wrestles with doubt.",
@@ -57,4 +57,3 @@
     "relationship_gate": "acquaintance"
   }
 }
-

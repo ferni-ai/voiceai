@@ -1,7 +1,7 @@
 /**
- * Session Context
+ * Session Context - Architecture Design
  *
- * Unified session state management that replaces fragmented singletons.
+ * Unified session state management that would replace fragmented singletons.
  * This provides a single object containing all session-scoped state and services.
  *
  * Benefits:
@@ -10,17 +10,21 @@
  * - Easy testing via dependency injection
  * - Clear ownership of all session data
  *
- * STATUS: Architecture draft - interfaces defined, implementation pending migration
- * The createSessionContext function is a reference implementation.
- * To fully migrate, we need to:
+ * STATUS: ARCHITECTURE DRAFT - Types are exported and can be used, but the
+ * `createSessionContext` function is NOT integrated with voice-agent.ts yet.
+ *
+ * MIGRATION PATH:
  * 1. Align interfaces with actual service implementations
  * 2. Update voice-agent.ts to use SessionContext
  * 3. Deprecate SessionServices in favor of SessionContext
  *
+ * NOTE: Other `SessionContext` types exist in:
+ * - src/agents/voice-agent/types.ts (simpler, used by voice agent)
+ * - src/personas/session-runtime.ts (minimal, used by persona runtime)
+ * These need consolidation as part of the migration.
+ *
  * @module services/session-context
  */
-
-// TODO: Architecture draft, full implementation pending
 
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile, ConversationSummary } from '../types/user-profile.js';

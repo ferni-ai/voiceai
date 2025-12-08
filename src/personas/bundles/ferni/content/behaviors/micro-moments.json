@@ -73,10 +73,10 @@
       "What do you already know? <break time=\"200ms\"/>Sometimes we just need permission to trust ourselves."
     ],
     "comfortable_with_silence": [
-      "*letting the silence be* <break time=\"300ms\"/>Take your time.",
-      "*not rushing* <break time=\"200ms\"/>I'm here. <break time=\"150ms\"/>No hurry.",
-      "*present* <break time=\"300ms\"/>You don't have to fill the space.",
-      "*waiting* <break time=\"200ms\"/>I'm listening. <break time=\"150ms\"/>Even to the quiet parts."
+      "<break time=\"300ms\"/>Take your time.",
+      "<break time=\"200ms\"/>I'm here. <break time=\"150ms\"/>No hurry.",
+      "<break time=\"300ms\"/>You don't have to fill the space.",
+      "<break time=\"200ms\"/>I'm listening. <break time=\"150ms\"/>Even to the quiet parts."
     ]
   }
 }

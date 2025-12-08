@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/agent.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "dev": "tsx src/agent.ts dev",
     "dev:jack": "PERSONA_ID=jack-bogle tsx src/agent.ts dev",
     "dev:jack-b": "PERSONA_ID=jack-b tsx src/agent.ts dev",
@@ -158,13 +158,16 @@
     "@livekit/agents-plugin-openai": "^1.0.22",
     "@livekit/agents-plugin-silero": "^1.0.0",
     "@livekit/noise-cancellation-node": "^0.1.9",
+    "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "^10.29.0",
     "dotenv": "^16.4.0",
     "ioredis": "^5.8.2",
     "livekit-client": "^2.16.0",
     "livekit-server-sdk": "^2.14.2",
     "pg": "^8.16.3",
-    "stripe": "^20.0.0"
+    "stripe": "^20.0.0",
+    "twilio": "^5.10.7",
+    "firebase-admin": "^13.6.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",
@@ -180,7 +183,6 @@
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
-    "firebase-admin": "^13.6.0",
     "prettier": "^3.7.2",
     "tsx": "^4.7.0",
     "typescript": "^5.3.0",

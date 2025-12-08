@@ -85,10 +85,20 @@ interface BundleInfo {
       name: string;
       display_name: string;
       description: string;
+      aliases?: string[];
     };
     voice: {
       provider: string;
       voice_id: string;
+    };
+    role?: {
+      id?: string;
+      domains?: string[];
+      can_handoff?: boolean;
+      handoff_targets?: string[];
+    };
+    capabilities?: {
+      handoff_targets?: string[];
     };
     team?: {
       coordinator?: boolean;
@@ -335,14 +345,13 @@ async function validateAgents(agentId?: string): Promise<void> {
       }
 
       // Check for missing handoff targets
-      const handoffTargets =
-        (m as any).role?.handoff_targets || (m as any).capabilities?.handoff_targets || [];
+      const handoffTargets = m.role?.handoff_targets || m.capabilities?.handoff_targets || [];
       const allAgentIds = toValidate.map((b) => b.manifest.identity.id);
       const allAliases = new Set<string>();
 
       for (const b of toValidate) {
         allAliases.add(b.manifest.identity.id);
-        const aliases = (b.manifest.identity as any).aliases || [];
+        const aliases = b.manifest.identity.aliases || [];
         aliases.forEach((a: string) => allAliases.add(a.toLowerCase()));
       }
 

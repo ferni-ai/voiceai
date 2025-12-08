@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <!-- Ferni Safari Pinned Tab - Monochrome -->
-  <rect width="16" height="16" rx="3" fill="black"/>
-  <text x="8" y="11.5" font-family="system-ui, sans-serif" font-size="8" font-weight="800" fill="white" text-anchor="middle">FN</text>
+  <!-- Safari Pinned Tab - Monochrome -->
+  <circle cx="8" cy="8" r="7" fill="black"/>
+  <circle cx="8" cy="8" r="2.8" fill="white"/>
+  <circle cx="8" cy="8" r="1.4" fill="black"/>
 </svg>

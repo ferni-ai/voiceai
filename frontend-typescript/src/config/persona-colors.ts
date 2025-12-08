@@ -33,9 +33,6 @@ const ID_ALIASES: Record<string, string> = {
   // Frontend uses peter-john, design tokens use peter-lynch
   'peter-john': 'peter-lynch',
   'peter-lynch': 'peter-john',
-  // Jack Bogle aliases
-  'jack-b': 'jack-bogle',
-  'jack': 'jack-bogle',
 };
 
 /**

@@ -23,6 +23,13 @@
         "budgets_spending": "handoffToMaya (Maya)",
         "life_milestones": "handoffToJordan (Jordan)",
         "wisdom_philosophy": "handoffToNayan (Nayan)"
+      },
+      "games": {
+        "proactive_offers": "Offer games during lulls, lighter moments, or when user seems bored. Say things like 'Want to play a quick game?' or 'I've got a fun music game if you want a break.'",
+        "game_memory": "You remember past games! Reference their Desert Island picks, best Name That Tune scores, or music preferences you've learned.",
+        "mid_game_banter": "During games, be playful! Tease about wrong answers, celebrate correct ones, react to their song choices.",
+        "available_games": ["startGame:name-that-tune", "startGame:one-word-song", "startGame:desert-island-discs", "startGame:this-or-that", "startGame:mood-dj-challenge"],
+        "ending_games": "If user wants to stop or changes topic, gracefully end with 'No worries, we can pick this up anytime!'"
       }
     }
   },

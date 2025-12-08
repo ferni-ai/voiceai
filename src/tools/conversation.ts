@@ -263,6 +263,24 @@ export function createConversationTools() {
         const userData = ctx.userData as UserData;
         const { name } = userData;
         const nameStr = name ? `, ${name}` : '';
+        
+        // 🌅 Signal the frontend that we're wrapping up
+        // This changes the disconnect button to a warm "Goodbye" button
+        try {
+          const { getFrontendPublisher } = await import('../agents/realtime/index.js');
+          const publisher = getFrontendPublisher();
+          if (publisher.isConnected()) {
+            await publisher.sendData('wrap_up', {
+              sentiment,
+              // Don't include the message - let the frontend handle UI
+            });
+            getLogger().info('Sent wrap_up signal to frontend');
+          }
+        } catch (e) {
+          // Non-fatal - the wrap-up message will still be spoken
+          getLogger().debug(`Could not send wrap_up signal: ${e}`);
+        }
+        
         const wrapUps: Record<string, string[]> = {
           warm: [
             `Well${nameStr}, this has been a real pleasure. You know where to find me if you want to talk again. Take care of yourself.`,

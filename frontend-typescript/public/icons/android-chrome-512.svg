@@ -1,11 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Ferni Android Chrome Icon - 512x512 -->
-  <defs>
-    <linearGradient id="ac512" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#325038"/>
-      <stop offset="100%" stop-color="#4a6d52"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="100" fill="url(#ac512)"/>
-  <text x="256" y="330" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="240" font-weight="800" fill="white" text-anchor="middle">FN</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Ferni Eye Logo - 512x512 -->
+  <rect width="512" height="512" rx="96" fill="#F5F1E8"/>
+  <g>
+    <!-- Outer Stone: Body -->
+    <circle cx="256" cy="256" r="166.4" fill="#4a6741"/>
+    <!-- White foundation -->
+    <circle cx="256" cy="256" r="66.56" fill="white"/>
+    <!-- Iris ring -->
+    <circle cx="256" cy="256" r="44.395520000000005" fill="#5a8060"/>
+    <!-- Pupil -->
+    <circle cx="256" cy="256" r="22.197760000000002" fill="#2c2520"/>
+    
+    <circle cx="247.120896" cy="247.120896" r="6.659328" fill="white" opacity="0.9"/>
+  
+  </g>
 </svg>

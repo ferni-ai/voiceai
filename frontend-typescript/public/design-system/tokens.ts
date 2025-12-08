@@ -6,7 +6,7 @@
  */
 
 export type ThemeName = 'midnight' | 'zen';
-export type PersonaId = '_description' | 'ferni' | 'jack-bogle' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
+export type PersonaId = '_description' | 'ferni' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
 
 export interface ThemeMeta {
   name: string;
@@ -27,7 +27,7 @@ export const THEMES: Record<ThemeName, ThemeMeta> = {
   }
 };
 
-export const PERSONA_IDS: PersonaId[] = ["_description","ferni","jack-bogle","peter-lynch","alex-chen","maya-santos","jordan-taylor"];
+export const PERSONA_IDS: PersonaId[] = ["_description","ferni","peter-lynch","alex-chen","maya-santos","jordan-taylor"];
 
 // ============================================================================
 // PIXAR ANIMATION CONSTANTS
@@ -135,7 +135,7 @@ export interface PersonaAnimationProfile {
   celebrationIntensity: string;
 }
 
-export type PersonaAnimationId = 'ferni' | 'jack-bogle' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
+export type PersonaAnimationId = 'ferni' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
 
 /**
  * Persona ID mapping - maps legacy frontend IDs to canonical design system IDs.
@@ -146,7 +146,6 @@ export const PERSONA_ID_MAPPING: Record<string, PersonaAnimationId> = {
   "comm-specialist": "alex-chen",
   "spend-save": "maya-santos",
   "event-planner": "jordan-taylor",
-  "jack-bogle": "jack-bogle",
   "peter-lynch": "peter-lynch",
   "ferni": "ferni",
   "alex-chen": "alex-chen",
@@ -174,14 +173,6 @@ export const PERSONA_ANIMATION_PROFILES: Record<PersonaAnimationId, PersonaAnima
     "easingPreference": "playful",
     "thinkingStyle": "curious-tilt",
     "celebrationIntensity": "warm"
-  },
-  "jack-bogle": {
-    "description": "Wise, measured, deliberate - like Carl from Up reflecting",
-    "timingMultiplier": 1.4,
-    "bounciness": 0.3,
-    "easingPreference": "gentle",
-    "thinkingStyle": "contemplative-pause",
-    "celebrationIntensity": "subtle"
   },
   "peter-lynch": {
     "description": "Energetic, practical, quick - like Linguini's nervous energy",
@@ -283,11 +274,6 @@ export const WAVEFORM_PROFILES: Record<string, WaveformProfile> = {
     "smoothing": 0.7,
     "speed": 1
   },
-  "jack-bogle": {
-    "energy": 0.6,
-    "smoothing": 0.8,
-    "speed": 0.85
-  },
   "peter-lynch": {
     "energy": 0.9,
     "smoothing": 0.55,
@@ -365,23 +351,6 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
     "twinkle": true,
     "wobble": true,
     "description": "Warm welcoming energy"
-  },
-  "jack-bogle": {
-    "speed": {
-      "min": 0.2,
-      "max": 0.6
-    },
-    "direction": "top",
-    "size": {
-      "min": 2,
-      "max": 5
-    },
-    "count": 25,
-    "shape": "circle",
-    "glow": true,
-    "twinkle": false,
-    "wobble": false,
-    "description": "Steady upward growth"
   },
   "peter-lynch": {
     "speed": {
@@ -1103,7 +1072,7 @@ export function animateLandingReveal(
   shojiRight: HTMLElement,
   contentCard: HTMLElement
 ): void {
-  // @ts-expect-error GSAP is loaded via CDN
+  // @ts-ignore GSAP is loaded via CDN
   const gsap = window.gsap;
   if (!gsap) {
     console.warn('GSAP not loaded - landing animation disabled');

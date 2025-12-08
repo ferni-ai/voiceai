@@ -1,18 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-  <!-- Ferni Avatar - Used in chat/conversation UI -->
-  <defs>
-    <linearGradient id="avatarGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3a5233"/>
-      <stop offset="100%" stop-color="#4a6741"/>
-    </linearGradient>
-    <filter id="avatarGlow">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#4a6741" flood-opacity="0.25"/>
-    </filter>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Ferni Eye Logo - 200x200 -->
+  <rect width="200" height="200" fill="transparent"/>
+  <g>
+    <!-- Outer Stone: Body -->
+    <circle cx="100" cy="100" r="65" fill="#4a6741"/>
+    <!-- White foundation -->
+    <circle cx="100" cy="100" r="26" fill="white"/>
+    <!-- Iris ring -->
+    <circle cx="100" cy="100" r="17.342000000000002" fill="#5a8060"/>
+    <!-- Pupil -->
+    <circle cx="100" cy="100" r="8.671000000000001" fill="#2c2520"/>
+    
+    <circle cx="96.5316" cy="96.5316" r="2.6013" fill="white" opacity="0.9"/>
   
-  <!-- Circle background -->
-  <circle cx="60" cy="60" r="56" fill="url(#avatarGrad)" filter="url(#avatarGlow)"/>
-  
-  <!-- FN Monogram -->
-  <text x="60" y="76" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="44" font-weight="800" fill="white" text-anchor="middle">FN</text>
+  </g>
 </svg>

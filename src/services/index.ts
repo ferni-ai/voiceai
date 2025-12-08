@@ -119,11 +119,12 @@ export {
 } from './session-manager.js';
 
 // ============================================================================
-// SESSION CONTEXT (Unified session state management)
+// SESSION CONTEXT TYPES (Unified session state management)
+// NOTE: The createSessionContext function exists but is not yet integrated.
+// See src/services/session-context.ts for the planned architecture.
 // ============================================================================
 
 export {
-  createSessionContext,
   type SessionContext,
   type SessionContextConfig,
   type EnhancedAnalysis,

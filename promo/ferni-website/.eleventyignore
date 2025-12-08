@@ -7,13 +7,10 @@ node_modules/
 # Archive and documentation
 _archive/
 
-# The src/ directory is legacy Eleventy structure - we use root HTML files now
-src/
-
 # Scripts
 scripts/
 
-# Templates that shouldn't be processed
+# Templates directory (content templates, not Eleventy templates)
 templates/
 
 # Prompts and marketing docs
@@ -21,10 +18,6 @@ prompts/
 
 # Generated files
 _site/
-
-# Config files
-*.json
-!src/_data/*.json
 
 # Git
 .git/
@@ -37,11 +30,5 @@ _site/
 # OS
 .DS_Store
 
-# Markdown files (except specific ones we want)
-*.md
-images/**/*.md
-videos/**/*.md
-
 # Large sequence images (we use video versions instead)
 images/sequence/
-

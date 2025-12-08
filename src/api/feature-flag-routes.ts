@@ -92,17 +92,12 @@ export async function handleFeatureFlagRoutes(
       if (!body) return true; // Validation failed
 
       try {
-        const newFlag = flags.createFlag({
+        const newFlag = await flags.createFlag({
           id: body.id,
           name: body.name,
           description: body.description || '',
-          type: body.type,
           enabled: body.enabled,
-          percentage: body.percentage,
-          userIds: body.userIds,
-          value: body.value,
-          category: body.category,
-          metadata: body.metadata as Record<string, unknown>,
+          rolloutPercentage: body.percentage,
         });
 
         sendJSON(res, { success: true, flag: newFlag }, 201);
@@ -151,12 +146,15 @@ export async function handleFeatureFlagRoutes(
       const body = await validateBody(req, res, UpdateFeatureFlagSchema);
       if (!body) return true; // Validation failed
 
-      const updatedFlag = flags.updateFlag(flagId, body, 'api');
-
-      if (!updatedFlag) {
+      // Check flag exists first
+      const existingFlag = flags.getFlag(flagId);
+      if (!existingFlag) {
         sendError(res, `Flag "${flagId}" not found`, 404);
         return true;
       }
+
+      await flags.updateFlag(flagId, body);
+      const updatedFlag = flags.getFlag(flagId);
 
       sendJSON(res, { success: true, flag: updatedFlag });
       return true;

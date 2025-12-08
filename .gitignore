@@ -64,3 +64,12 @@ test-results/
 coverage/
 src/agents/processors/turn-processor/
 Receipt-*.pdf
+
+# Promo website build output (Eleventy)
+promo/ferni-website/_site/
+promo/ferni-website/.cache/
+
+# Mobile app build outputs
+apps/android/android/app/build/
+apps/ios/ios/App/Pods/
+apps/electron/dist/

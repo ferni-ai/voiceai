@@ -45,6 +45,7 @@ Feature-specific documentation.
 
 | Doc | Description |
 |-----|-------------|
+| [MUSIC-GAMES.md](./features/MUSIC-GAMES.md) | 🎮 Music games system |
 | [SPOTIFY-INTEGRATION.md](./features/SPOTIFY-INTEGRATION.md) | Music integration |
 | [AB-TESTING.md](./features/AB-TESTING.md) | Experiment framework |
 | [HUMANIZATION.md](./features/HUMANIZATION.md) | Making AI human |

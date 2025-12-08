@@ -32,3 +32,6 @@ export { handleGetExportCategories, handleExportData, handleDeleteAllData, handl
 
 // Relationship routes
 export { handleGetRelationshipProgress, handleRelationshipRoutes } from './relationship.js';
+
+// Sky Check routes (daily check-in / emotional weather)
+export { handleRecordSkyCheck, handleGetSkyCheckHistory, handleSkyCheckRoutes } from './sky-check.js';

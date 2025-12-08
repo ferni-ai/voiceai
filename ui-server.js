@@ -22,6 +22,26 @@ import { handleDORARoutes } from './dist/api/dora-routes.js';
 import { handleVoicePresenceRoutes } from './dist/api/voice-presence-routes.js';
 import { handleObservabilityRoutes } from './dist/api/observability-routes.js';
 
+// Proactive Outreach API routes
+import { handleOutreachRoutes } from './dist/api/outreach-handler.js';
+console.log('✅ Outreach handler imported successfully');
+
+// GDPR compliance routes (data export, deletion, consent)
+import { handleGDPRRoutes } from './dist/api/gdpr-routes.js';
+
+// Trust Journey & Export routes (Phase 1 & 2)
+import { handleTrustJourneyRoutes } from './dist/api/trust-journey-routes.js';
+import { handleTrustExportRoutes } from './dist/api/trust-export-routes.js';
+
+// Trust Systems consolidated routes (Phases 12-29)
+import { handleTrustSystemsRoutes } from './dist/api/trust-systems-routes.js';
+
+// Feature Flags routes (P7)
+import { handleFeatureFlagsRoutes } from './dist/api/feature-flags-routes.js';
+
+// Monitoring routes (P11)
+import { handleMonitoringRoutes } from './dist/api/monitoring-routes.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -368,6 +388,54 @@ const server = http.createServer(async (req, res) => {
     // Observability
     if (pathname.startsWith('/api/observability')) {
       const handled = await handleObservabilityRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // GDPR compliance (data export, deletion, consent)
+    if (pathname.startsWith('/api/gdpr')) {
+      const handled = await handleGDPRRoutes(req, res, pathname);
+      if (handled) return;
+    }
+    
+    // Trust Journey visualization (Phase 1)
+    if (pathname.startsWith('/api/trust-journey')) {
+      const handled = await handleTrustJourneyRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // Trust data export (Phase 2)
+    if (pathname.startsWith('/api/trust-export')) {
+      const handled = await handleTrustExportRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // Trust Systems consolidated routes (Phases 12-29)
+    if (pathname.startsWith('/api/trust/')) {
+      const handled = await handleTrustSystemsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // Proactive Outreach routes
+    if (pathname.startsWith('/api/outreach')) {
+      console.log('📤 Outreach route matched:', pathname);
+      try {
+        const handled = await handleOutreachRoutes(req, res, pathname, parsedUrl);
+        console.log('📤 Outreach handler result:', handled);
+        if (handled) return;
+      } catch (outreachErr) {
+        console.error('❌ Outreach handler error:', outreachErr);
+      }
+    }
+    
+    // Feature Flags routes (P7)
+    if (pathname.startsWith('/api/flags')) {
+      const handled = await handleFeatureFlagsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // Monitoring routes (P11)
+    if (pathname.startsWith('/api/monitoring')) {
+      const handled = await handleMonitoringRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
   } catch (err) {

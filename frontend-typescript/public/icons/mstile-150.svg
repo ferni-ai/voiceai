@@ -1,11 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
-  <!-- Ferni Microsoft Tile - 150x150 -->
-  <defs>
-    <linearGradient id="msGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#325038"/>
-      <stop offset="100%" stop-color="#4a6d52"/>
-    </linearGradient>
-  </defs>
-  <rect width="150" height="150" fill="url(#msGrad)"/>
-  <text x="75" y="98" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="70" font-weight="800" fill="white" text-anchor="middle">FN</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="150" height="150">
+  <!-- Ferni Eye Logo - 150x150 -->
+  <rect width="150" height="150" rx="28" fill="#F5F1E8"/>
+  <g>
+    <!-- Outer Stone: Body -->
+    <circle cx="75" cy="75" r="48.75" fill="#4a6741"/>
+    <!-- White foundation -->
+    <circle cx="75" cy="75" r="19.5" fill="white"/>
+    <!-- Iris ring -->
+    <circle cx="75" cy="75" r="13.0065" fill="#5a8060"/>
+    <!-- Pupil -->
+    <circle cx="75" cy="75" r="6.50325" fill="#2c2520"/>
+    
+    <circle cx="72.3987" cy="72.3987" r="1.9509750000000001" fill="white" opacity="0.9"/>
+  
+  </g>
 </svg>

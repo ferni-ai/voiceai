@@ -1,0 +1,104 @@
+---
+layout: layouts/page.njk
+title: About Ferni
+description: The story behind the AI life coach that actually listens
+permalink: /about/
+---
+
+<section class="about-hero">
+  <div class="container container-narrow">
+    <span class="eyebrow">Our Story</span>
+    <h1 class="headline-xl">Built by humans.<br><span class="text-gradient">For humans.</span></h1>
+    <p class="body-lg">We believe the future of AI isn't about replacing human connection—it's about making it more accessible.</p>
+  </div>
+</section>
+
+<section class="about-story">
+  <div class="container container-narrow">
+    <div class="about-content reveal">
+      <h2>Why We Built Ferni</h2>
+      <p>It started with a simple observation: some of the most important conversations in life happen at inconvenient times.</p>
+      <p>3am when you can't sleep because of work stress. During your commute when you need to process a big decision. Late at night when you just need someone to listen.</p>
+      <p>Traditional support systems aren't designed for these moments. Therapy has waitlists and schedules. Friends have their own lives. And honestly? Sometimes you just want to think out loud without worrying about being a burden.</p>
+      <p>We asked ourselves: what if everyone had access to thoughtful, judgment-free guidance—any time they needed it?</p>
+      <p>That question became Ferni.</p>
+    </div>
+    
+    <div class="about-content reveal">
+      <h2>Our Approach</h2>
+      <p>We didn't build another chatbot. We built a team.</p>
+      <p>Six AI specialists, each with unique expertise, working together to support your growth. They hand off to each other naturally, bringing the right perspective at the right moment.</p>
+      <p>And unlike other AI tools, Ferni is <strong>voice-first</strong>. Because the most meaningful conversations happen when you speak, not when you type. When you talk to Ferni, you're processing your thoughts in real-time—the same way you would with a trusted friend or coach.</p>
+      <p>Most importantly: Ferni remembers. Your goals. Your context. Your journey. Every conversation builds on the last.</p>
+    </div>
+    
+    <div class="about-content reveal">
+      <h2>What We Believe</h2>
+      <ul class="about-beliefs">
+        <li>
+          <strong>AI should feel human.</strong> Not robotic, not transactional. Warm, present, and genuinely helpful.
+        </li>
+        <li>
+          <strong>Growth happens gently.</strong> Small consistent actions beat heroic effort every time.
+        </li>
+        <li>
+          <strong>Privacy is non-negotiable.</strong> Your conversations are yours. We don't sell data. We don't train on your words. Period.
+        </li>
+        <li>
+          <strong>Access matters.</strong> Life coaching shouldn't be a luxury. Everyone deserves support.
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="about-location">
+  <div class="container">
+    <div class="about-location__card reveal">
+      <div class="about-location__content">
+        <span class="eyebrow">Where We're From</span>
+        <h2>Made in Park City, Utah</h2>
+        <p>There's something about mountain air that clears your thinking. Ferni was born in the shadow of the Wasatch Range—where the pace is slower, the perspective is longer, and the focus is on what actually matters.</p>
+      </div>
+      <div class="about-location__image">
+        <img src="/images/park-city.jpg" alt="Park City, Utah mountains" loading="lazy" onerror="this.style.display='none'">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="about-team">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="eyebrow">The AI Team</span>
+      <h2 class="headline-lg">Six minds. One purpose.</h2>
+      <p>Meet the specialists who make Ferni work.</p>
+    </div>
+    
+    <div class="about-team__grid">
+      {% for member in site.team %}
+      <a href="/team/{{ member.id }}/" class="about-team__card reveal reveal-delay-{{ loop.index0 % 3 }}">
+        <div class="about-team__avatar" style="background: {{ member.color }}">
+          {{ member.initials }}
+        </div>
+        <h3 class="about-team__name">{{ member.name }}</h3>
+        <p class="about-team__role">{{ member.role }}</p>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="about-cta">
+  <div class="container container-narrow">
+    <div class="about-cta__card reveal">
+      <h2>Ready to meet your team?</h2>
+      <p>Start a conversation with Ferni. It's free, and it might just change your day.</p>
+      <div class="about-cta__buttons">
+        <a href="{{ site.appUrl }}?utm_source=ferni_website&utm_medium=web&utm_campaign=about" class="btn btn-primary">Start Free</a>
+        <a href="tel:{{ site.phoneRaw }}" class="btn btn-ghost">Call {{ site.phone }}</a>
+      </div>
+    </div>
+  </div>
+</section>
+

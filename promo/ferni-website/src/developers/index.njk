@@ -6,6 +6,11 @@ isDocs: true
 badge: Developers
 ---
 
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/pages.css">
+
+{% include "partials/home/nav.njk" %}
+
 <!-- Hero -->
 <section class="hero">
   <div class="container">
@@ -152,4 +157,9 @@ PERSONA_ID=my-advisor npm run dev</pre>
     </div>
   </div>
 </section>
+
+{% include "partials/home/footer.njk" %}
+{% include "cookie-banner.njk" %}
+
+<script src="/js/main.js"></script>
 

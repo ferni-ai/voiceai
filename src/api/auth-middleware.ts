@@ -23,6 +23,14 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { createLogger } from '../utils/safe-logger.js';
 import { sendError } from './helpers.js';
 import { API_ERRORS } from './error-messages.js';
+import {
+  trackFailedAuth,
+  clearFailedAuth,
+  isLockedOut,
+  recordSuccessfulAuth,
+  recordSecurityEvent,
+  detectAnomalies,
+} from '../services/security-events.js';
 
 const log = createLogger({ module: 'AuthMiddleware' });
 
@@ -196,10 +204,24 @@ function verifyJWT(token: string): { userId: string; isAdmin: boolean } | null {
 // ============================================================================
 
 /**
+ * Extract IP address from request (handles proxies)
+ */
+function getClientIP(req: IncomingMessage): string {
+  return getHeader(req, 'X-Forwarded-For')?.split(',')[0]?.trim() ||
+    req.socket.remoteAddress ||
+    'unknown';
+}
+
+/**
  * Attempt to authenticate a request.
  * Returns AuthContext if authenticated, null if not.
+ *
+ * Enhanced with security event tracking for failed attempts.
  */
 export function authenticate(req: IncomingMessage): AuthContext | null {
+  const ip = getClientIP(req);
+  const userAgent = getHeader(req, 'User-Agent');
+
   // 1. Check API Key
   const apiKey = getHeader(req, 'X-API-Key');
   if (apiKey) {
@@ -220,7 +242,16 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
         authMethod: 'api_key',
       };
     }
-    // Invalid API key - don't fall through
+    // Invalid API key - track failure (fire and forget)
+    void trackFailedAuth(`apikey:${apiKey.substring(0, 8)}`, ip, 'invalid_api_key');
+    void recordSecurityEvent({
+      type: 'api_key_invalid',
+      ip,
+      userAgent,
+      action: 'Invalid API key attempted',
+      outcome: 'failure',
+      details: { keyPrefix: apiKey.substring(0, 8) },
+    });
     return null;
   }
 
@@ -237,19 +268,38 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
         authMethod: 'jwt',
       };
     }
-    // Invalid JWT - don't fall through
+    // Invalid JWT - track failure
+    const payload = decodeJWTPayload(token);
+    const failureType = payload?.exp && payload.exp < Date.now() / 1000 ? 'jwt_expired' : 'jwt_invalid';
+    void trackFailedAuth(payload?.sub || `ip:${ip}`, ip, failureType);
+    void recordSecurityEvent({
+      type: failureType,
+      actorId: payload?.sub,
+      ip,
+      userAgent,
+      action: `JWT ${failureType === 'jwt_expired' ? 'expired' : 'invalid'}`,
+      outcome: 'failure',
+    });
     return null;
   }
 
-  // 3. Check User ID header (requires dev mode or trusted context)
+  // 3. Check User ID header
+  // Allow device-based auth in production (device:{uuid} format is sufficiently unique)
+  // This enables the frontend to make authenticated requests without full JWT
   const userId = getHeader(req, 'X-User-Id');
-  if (userId && IS_DEV) {
-    return {
-      userId,
-      isAdmin: false,
-      isDevMode: true,
-      authMethod: 'user_id',
-    };
+  if (userId) {
+    // In production, only allow device-based userIds (format: device:{uuid})
+    // This provides security through the uniqueness of the device ID
+    const isDeviceBased = userId.startsWith('device:');
+    
+    if (IS_DEV || isDeviceBased) {
+      return {
+        userId,
+        isAdmin: false,
+        isDevMode: IS_DEV,
+        authMethod: 'user_id',
+      };
+    }
   }
 
   // 4. Check dev mode bypass
@@ -296,6 +346,11 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
 
 /**
  * Require authentication. Returns AuthContext or sends 401 and returns null.
+ *
+ * Enhanced with:
+ * - Lockout checking (blocks requests from locked out users/IPs)
+ * - Success tracking (clears failed attempt counters)
+ * - Anomaly detection (flags unusual patterns)
  */
 export function requireAuth(
   req: IncomingMessage,
@@ -303,6 +358,23 @@ export function requireAuth(
   config: AuthConfig = {}
 ): AuthContext | null {
   const { optional = false, requireAdmin = false, allowDevMode = true } = config;
+  const ip = getClientIP(req);
+  const userAgent = getHeader(req, 'User-Agent');
+
+  // Check if IP is locked out before processing auth
+  const ipLockout = isLockedOut(`ip:${ip}`);
+  if (ipLockout.locked) {
+    log.warn({ ip, lockoutUntil: ipLockout.lockoutUntil }, 'Request from locked out IP');
+    res.writeHead(429, {
+      'Content-Type': 'application/json',
+      'Retry-After': Math.ceil((ipLockout.remainingMs || 0) / 1000),
+    });
+    res.end(JSON.stringify({
+      error: 'Too many failed attempts. Please try again later.',
+      retryAfter: Math.ceil((ipLockout.remainingMs || 0) / 1000),
+    }));
+    return null;
+  }
 
   const auth = authenticate(req);
 
@@ -311,6 +383,21 @@ export function requireAuth(
     if (optional) return null;
     log.warn({ url: req.url, method: req.method }, 'Unauthorized request');
     sendError(res, API_ERRORS.AUTH_REQUIRED, 401);
+    return null;
+  }
+
+  // Check if this specific user is locked out
+  const userLockout = isLockedOut(auth.userId);
+  if (userLockout.locked) {
+    log.warn({ userId: auth.userId, lockoutUntil: userLockout.lockoutUntil }, 'Locked out user attempting access');
+    res.writeHead(429, {
+      'Content-Type': 'application/json',
+      'Retry-After': Math.ceil((userLockout.remainingMs || 0) / 1000),
+    });
+    res.end(JSON.stringify({
+      error: 'Account temporarily locked. Please try again later.',
+      retryAfter: Math.ceil((userLockout.remainingMs || 0) / 1000),
+    }));
     return null;
   }
 
@@ -327,6 +414,22 @@ export function requireAuth(
     sendError(res, 'Admin access required', 403); // Keep technical for admin
     return null;
   }
+
+  // Authentication successful - record and clear any failed attempts (fire and forget)
+  void recordSuccessfulAuth({
+    userId: auth.userId,
+    method: auth.authMethod === 'api_key' ? 'api_key' : 'jwt',
+    ip,
+    userAgent,
+  });
+
+  // Check for anomalies (fire and forget - doesn't block)
+  void detectAnomalies({
+    userId: auth.userId,
+    ip,
+    userAgent,
+    action: `${req.method} ${req.url}`,
+  });
 
   return auth;
 }

@@ -84,7 +84,7 @@ export async function initializeUtilitiesIntegration(
   const log = getLogger();
   
   // Check feature flags for controlled rollout
-  const featureConfig = getSimpleUtilitiesConfig({ userId });
+  const featureConfig = getSimpleUtilitiesConfig();
   
   // If master toggle is off, skip initialization entirely
   if (!featureConfig.enabled) {

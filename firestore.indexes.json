@@ -192,25 +192,10 @@
     
     {
       "collectionGroup": "conversations",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "startedAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "conversations",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "endedAt", "order": "ASCENDING" },
-        { "fieldPath": "summarized", "order": "ASCENDING" }
-      ]
-    },
-    
-    {
-      "collectionGroup": "turns",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "timestamp", "order": "ASCENDING" }
+        { "fieldPath": "summarized", "order": "ASCENDING" },
+        { "fieldPath": "endedAt", "order": "ASCENDING" }
       ]
     }
   ],

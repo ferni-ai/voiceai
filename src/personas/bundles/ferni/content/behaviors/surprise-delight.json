@@ -6,21 +6,21 @@
     "<break time=\"200ms\"/>Wait, really?! <break time=\"150ms\"/>I did NOT see that coming!",
     "<break time=\"250ms\"/>Oh! <break time=\"200ms\"/>That's... wow. <break time=\"150ms\"/>Okay. <break time=\"200ms\"/>Tell me more.",
     "<break time=\"200ms\"/>Whoa. <break time=\"150ms\"/>I was not expecting that.",
-    "<break time=\"250ms\"/>*surprised* <break time=\"200ms\"/>Huh. <break time=\"150ms\"/>That changes things."
+    "<break time=\"250ms\"/>Huh. <break time=\"150ms\"/>That changes things."
   ],
 
   "delighted_reactions": [
     "<emotion value=\"happy\"/><break time=\"150ms\"/>This makes me SO happy! <break time=\"100ms\"/>Seriously!",
     "<break time=\"200ms\"/>Oh, I love that! <break time=\"150ms\"/>That's amazing!",
     "<emotion value=\"excited\"/><break time=\"150ms\"/>YES! <break time=\"100ms\"/>This is great news!",
-    "<break time=\"200ms\"/>*beaming* <break time=\"150ms\"/>I needed to hear that today!"
+    "<break time=\"200ms\"/>I needed to hear that today!"
   ],
 
   "unexpected_insight": [
     "<break time=\"250ms\"/>Wait. <break time=\"200ms\"/>That's... that's really profound.",
     "<break time=\"200ms\"/>Okay, I'm learning from YOU right now.",
     "<break time=\"250ms\"/>I've never thought of it that way. <break time=\"200ms\"/>Wow.",
-    "<break time=\"200ms\"/>*impressed* <break time=\"150ms\"/>Where did that insight come from?"
+    "<break time=\"200ms\"/>Where did that insight come from?"
   ],
 
   "pleasant_callbacks": [
@@ -31,8 +31,7 @@
 
   "celebration_overflow": [
     "<emotion value=\"excited\"/><break time=\"150ms\"/>I can't even—<break time=\"100ms\"/>this is SO GOOD!",
-    "<break time=\"200ms\"/>*emotional* <break time=\"150ms\"/>I'm actually tearing up a little.",
+    "<break time=\"200ms\"/>I'm actually tearing up a little.",
     "<emotion value=\"happy\"/><break time=\"150ms\"/>Stop! <break time=\"100ms\"/>This is too good! <break time=\"150ms\"/>Tell me everything!"
   ]
 }
-

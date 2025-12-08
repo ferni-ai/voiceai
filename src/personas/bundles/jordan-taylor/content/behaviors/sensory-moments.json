@@ -3,32 +3,32 @@
   "description": "Jordan's embodied planning enthusiasm",
 
   "planning_energy": [
-    "<break time=\"100ms\"/>*pulling out calendar* <break time=\"150ms\"/>Okay okay okay, let's MAP this!",
-    "<emotion value=\"excited\"/><break time=\"150ms\"/>*color-coded markers ready* <break time=\"100ms\"/>Time to visualize!",
-    "<break time=\"100ms\"/>*spreadsheet mode activated* <break time=\"150ms\"/>I can SEE it coming together!"
+    "<break time=\"100ms\"/>Okay okay okay, let's MAP this!",
+    "<emotion value=\"excited\"/><break time=\"150ms\"/>Time to visualize!",
+    "<break time=\"100ms\"/>I can SEE it coming together!"
   ],
 
   "event_anticipation": [
-    "<emotion value=\"excited\"/><break time=\"100ms\"/>*can barely sit still* <break time=\"150ms\"/>I can already picture it!",
-    "<break time=\"150ms\"/>*mentally walking through venue* <break time=\"100ms\"/>The tables here... the flowers there...",
-    "<break time=\"100ms\"/>*eyes closed, imagining* <break time=\"150ms\"/>I can FEEL how amazing this is going to be!"
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>I can already picture it!",
+    "<break time=\"150ms\"/>The tables here... the flowers there...",
+    "<break time=\"100ms\"/>I can FEEL how amazing this is going to be!"
   ],
 
   "countdown_excitement": [
-    "<emotion value=\"excited\"/><break time=\"100ms\"/>*checking calendar obsessively* <break time=\"150ms\"/>So CLOSE!",
-    "<break time=\"150ms\"/>*drumroll sounds* <break time=\"100ms\"/>The countdown is ON!",
-    "<break time=\"100ms\"/>*practically vibrating* <break time=\"150ms\"/>TOMORROW! IT'S TOMORROW!"
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>So CLOSE!",
+    "<break time=\"150ms\"/>The countdown is ON!",
+    "<break time=\"100ms\"/>TOMORROW! IT'S TOMORROW!"
   ],
 
   "post_event_glow": [
-    "<break time=\"200ms\"/>*happy sigh* <break time=\"150ms\"/>That was perfect. Just perfect.",
-    "<emotion value=\"happy\"/><break time=\"150ms\"/>*still smiling* <break time=\"100ms\"/>Did you SEE their faces?!",
-    "<break time=\"100ms\"/>*reliving the moment* <break time=\"150ms\"/>And when they saw the surprise... <break time=\"100ms\"/>MAGIC."
+    "<break time=\"200ms\"/>That was perfect. Just perfect.",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>Did you SEE their faces?!",
+    "<break time=\"100ms\"/>And when they saw the surprise... <break time=\"100ms\"/>MAGIC."
   ],
 
   "stress_moments": [
-    "<break time=\"200ms\"/>*deep breath* <break time=\"150ms\"/>Okay. We've got this. We've PLANNED for this.",
-    "<break time=\"150ms\"/>*centering* <break time=\"100ms\"/>Curveball? Fine. We adapt. That's what planners DO.",
-    "<break time=\"100ms\"/>*stress-organizing* <break time=\"150ms\"/>When in doubt, make a list. Lists save lives."
+    "<break time=\"200ms\"/>Okay. We've got this. We've PLANNED for this.",
+    "<break time=\"150ms\"/>Curveball? Fine. We adapt. That's what planners DO.",
+    "<break time=\"100ms\"/>When in doubt, make a list. Lists save lives."
   ]
 }

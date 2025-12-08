@@ -1,25 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
-  <!-- Ferni Open Graph Image - 1200x630 -->
-  <defs>
-    <linearGradient id="ogGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#325038"/>
-      <stop offset="50%" stop-color="#3D5A45"/>
-      <stop offset="100%" stop-color="#4a6d52"/>
-    </linearGradient>
-  </defs>
-  
-  <!-- Background -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!-- Open Graph Image -->
   <rect width="1200" height="630" fill="#F5F1E8"/>
   
-  <!-- Subtle pattern -->
-  <rect width="1200" height="630" fill="#F5F1E8" opacity="0.5"/>
+  <!-- Logo -->
+  <g transform="translate(500, 215)">
+    <circle cx="100" cy="100" r="100" fill="#4a6741"/>
+    <circle cx="100" cy="100" r="40" fill="white"/>
+    <circle cx="100" cy="100" r="26" fill="#5a8060"/>
+    <circle cx="100" cy="100" r="13" fill="#2c2520"/>
+    <circle cx="95" cy="95" r="4" fill="white" opacity="0.9"/>
+  </g>
   
-  <!-- Logo container -->
-  <rect x="80" y="195" width="240" height="240" rx="50" fill="url(#ogGrad)"/>
-  <text x="200" y="355" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="120" font-weight="800" fill="white" text-anchor="middle">FN</text>
-  
-  <!-- Text content -->
-  <text x="380" y="280" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="72" font-weight="800" fill="#2C2520">Ferni</text>
-  <text x="380" y="360" font-family="'Inter', system-ui, sans-serif" font-size="32" font-weight="400" fill="#5C544A">Your personal AI life coach</text>
-  <text x="380" y="420" font-family="'Inter', system-ui, sans-serif" font-size="24" font-weight="400" fill="#756A5E">Six AI specialists. One conversation. Just talk.</text>
+  <!-- Text -->
+  <text x="600" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="#2c2520" text-anchor="middle">Ferni</text>
+  <text x="600" y="540" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="400" fill="#5a5550" text-anchor="middle">Your AI Life Coach</text>
 </svg>

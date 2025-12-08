@@ -9,7 +9,7 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
 
-import type { LoadedPersonaBundle, BundleBehaviors, BundleStory } from './types.js';
+import type { LoadedPersonaBundle, BundleBehaviors, BundleStory, PersonaBundleManifest } from './types.js';
 import type {
   PersonaConfig,
   VoiceConfig,
@@ -297,7 +297,7 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
  */
 async function buildCommunicationConfig(
   behaviors: BundleBehaviors,
-  manifest: any
+  manifest: PersonaBundleManifest
 ): Promise<CommunicationConfig> {
   // Determine greeting style from personality
   let greetingStyle: GreetingStyle = 'warm-friend';
@@ -385,7 +385,7 @@ async function buildCommunicationConfig(
 /**
  * Generate a basic system prompt from manifest data
  */
-function generateSystemPrompt(manifest: any, behaviors: BundleBehaviors): string {
+function generateSystemPrompt(manifest: PersonaBundleManifest, behaviors: BundleBehaviors): string {
   const traits = manifest.personality.traits.join(', ');
   const domains = manifest.role.domains.join(', ');
 

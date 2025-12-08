@@ -37,6 +37,8 @@ import { handleMemoriesRoutes } from './routes/memories.js';
 import { handleTeamRoutes } from './routes/team.js';
 import { handleDataRoutes } from './routes/data.js';
 import { handleRelationshipRoutes } from './routes/relationship.js';
+import { handleGamesRoutes } from './routes/games.js';
+import { handleSkyCheckRoutes } from './routes/sky-check.js';
 
 // Route prefixes handled by this module (for early bailout)
 const ENGAGEMENT_ROUTE_PREFIXES = [
@@ -48,6 +50,8 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/huddles',
   '/api/export',
   '/api/relationship',
+  '/api/games',
+  '/api/sky-check',
 ];
 
 /**
@@ -129,6 +133,16 @@ export async function handleEngagementRoutes(
 
   // Relationship Progress
   if (await handleRelationshipRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Games (Music insights, dashboard data)
+  if (await handleGamesRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Sky Check (Daily check-in / emotional weather)
+  if (await handleSkyCheckRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 

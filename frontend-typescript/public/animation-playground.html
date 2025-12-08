@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Animation Playground - Pixar Quality Testing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #F5F1E8;
+      --sage: #4a6741;
+      --sage-dark: #3d5a35;
+      --iris: #5a8060;
+      --ink: #2c2520;
+      --white: #ffffff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .controls {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(44, 37, 32, 0.15);
+      max-width: 280px;
+    }
+
+    .controls h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--sage);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .btn-primary {
+      background: var(--sage);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--sage-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(74, 103, 65, 0.1);
+      color: var(--sage);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(74, 103, 65, 0.2);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Stage - where animations happen */
+    .stage {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    .stage-content {
+      text-align: center;
+    }
+
+    /* ================================================
+       APPROACH 1: LUXO LAMP BOUNCE
+       Avatar hops down and squishes the letters
+    ================================================ */
+    .luxo-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .luxo-avatar {
+      width: 100px;
+      height: 100px;
+      opacity: 0;
+      transform: translateY(-200px);
+    }
+
+    .luxo-letters {
+      display: flex;
+      gap: 4px;
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--ink);
+      transform-origin: bottom center;
+    }
+
+    .luxo-letter {
+      display: inline-block;
+      transform-origin: bottom center;
+    }
+
+    /* ================================================
+       APPROACH 2: LETTER SPIN TO LOGO
+       Each letter spins and becomes part of the logo
+    ================================================ */
+    .spin-stage {
+      position: relative;
+      width: 200px;
+      height: 200px;
+    }
+
+    .spin-letter {
+      position: absolute;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--sage);
+      opacity: 1;
+    }
+
+    .spin-logo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 120px;
+      height: 120px;
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+    }
+
+    /* ================================================
+       APPROACH 3: PIXAR BLINK - WALL-E STYLE
+       Eye starts closed, blinks open
+    ================================================ */
+    .blink-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .blink-avatar {
+      width: 120px;
+      height: 120px;
+    }
+
+    /* Eyelid overlay for blink effect */
+    .eyelid-top, .eyelid-bottom {
+      transform-origin: center;
+    }
+
+    /* ================================================
+       APPROACH 4: THE "I" SQUISH (Most Pixar-like)
+       Avatar bounces onto the "I" in FERNI
+    ================================================ */
+    .squish-stage {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      font-size: 64px;
+      font-weight: 700;
+      color: var(--ink);
+      height: 200px;
+    }
+
+    .squish-letter {
+      display: inline-block;
+      transform-origin: bottom center;
+      line-height: 1;
+    }
+
+    .squish-letter.letter-i {
+      position: relative;
+    }
+
+    .squish-avatar {
+      width: 70px;
+      height: 70px;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+    }
+
+    /* Avatar SVG */
+    .avatar-svg circle {
+      fill: var(--sage);
+    }
+
+    .avatar-svg .eye-white {
+      fill: var(--white);
+    }
+
+    .avatar-svg .eye-iris {
+      fill: var(--iris);
+    }
+
+    .avatar-svg .eye-pupil {
+      fill: var(--ink);
+    }
+
+    .avatar-svg .eye-catchlight {
+      fill: var(--white);
+    }
+
+    /* Info panel */
+    .info {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(44, 37, 32, 0.1);
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .info strong {
+      color: var(--sage);
+    }
+
+    /* Tab buttons for approach selection */
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .tab {
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      background: rgba(74, 103, 65, 0.08);
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .tab:hover {
+      background: rgba(74, 103, 65, 0.15);
+    }
+
+    .tab.active {
+      background: var(--sage);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="controls">
+    <h3>🎬 Pixar Animation Lab</h3>
+    
+    <div class="tabs">
+      <button class="tab active" data-approach="luxo">Luxo Bounce</button>
+      <button class="tab" data-approach="blink">Wall-E Blink</button>
+      <button class="tab" data-approach="spin">Letter Spin</button>
+      <button class="tab" data-approach="squish">"I" Squish</button>
+    </div>
+    
+    <button class="btn btn-primary" id="playBtn">▶ Play Animation</button>
+    <button class="btn btn-secondary" id="resetBtn">↺ Reset</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <!-- Content injected by JS based on selected approach -->
+  </div>
+
+  <div class="info" id="info">
+    <strong>Luxo Bounce:</strong> The avatar hops down from above and squishes into place with the classic Pixar lamp bounce. No creepy text - the avatar IS the focus.
+  </div>
+
+  <script>
+    // ================================================
+    // EASING FUNCTIONS (Pixar-quality curves)
+    // ================================================
+    const EASING = {
+      // Pixar lamp bounce
+      SPRING: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+      // Gentle organic
+      GENTLE: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      // Dramatic exit
+      EXPO_OUT: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      // Anticipation
+      ANTICIPATE: 'cubic-bezier(0.68, -0.55, 0.27, 1.55)',
+      // Linear for keyframe control
+      LINEAR: 'linear',
+    };
+
+    // ================================================
+    // SVG TEMPLATES
+    // ================================================
+    function getAvatarSVG(id = 'avatar') {
+      return `
+        <svg id="${id}" class="avatar-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+          <g class="eye-group">
+            <ellipse class="eye-white" cx="50" cy="46" rx="16" ry="14" fill="white"/>
+            <circle class="eye-iris" cx="50" cy="46" r="10" fill="#5a8060"/>
+            <circle class="eye-pupil" cx="50" cy="46" r="5" fill="#2c2520"/>
+            <circle class="eye-catchlight" cx="47" cy="43" r="2.5" fill="white" opacity="0.9"/>
+          </g>
+        </svg>
+      `;
+    }
+
+    function getAvatarWithLidsSVG() {
+      return `
+        <svg class="blink-avatar avatar-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+          
+          <!-- Eye contents (will be revealed) -->
+          <g class="eye-contents">
+            <ellipse class="eye-white" cx="50" cy="46" rx="16" ry="14" fill="white"/>
+            <circle class="eye-iris" cx="50" cy="46" r="10" fill="#5a8060"/>
+            <circle class="eye-pupil" cx="50" cy="46" r="5" fill="#2c2520"/>
+            <circle class="eye-catchlight" cx="47" cy="43" r="2.5" fill="white" opacity="0"/>
+          </g>
+          
+          <!-- Eyelids that close over the eye -->
+          <ellipse class="eyelid-top" cx="50" cy="46" rx="17" ry="15" fill="#4a6741"/>
+        </svg>
+      `;
+    }
+
+    // ================================================
+    // STAGE CONTENT FOR EACH APPROACH
+    // ================================================
+    const approaches = {
+      luxo: {
+        html: `
+          <div class="luxo-stage">
+            <div class="luxo-avatar">
+              ${getAvatarSVG('luxo-avatar')}
+            </div>
+            <div class="luxo-letters">
+              <span class="luxo-letter">f</span>
+              <span class="luxo-letter">e</span>
+              <span class="luxo-letter">r</span>
+              <span class="luxo-letter">n</span>
+              <span class="luxo-letter">i</span>
+            </div>
+          </div>
+        `,
+        info: `<strong>Luxo Bounce:</strong> The avatar hops down from above and squishes into place with the classic Pixar lamp bounce. The letters get squished under the weight, then spring back. Pure joy, zero creepiness.`,
+        animate: animateLuxo
+      },
+      
+      blink: {
+        html: `
+          <div class="blink-stage">
+            ${getAvatarWithLidsSVG()}
+            <p style="font-size: 18px; color: var(--ink); opacity: 0.7; margin-top: 20px;">
+              Watching you...
+            </p>
+          </div>
+        `,
+        info: `<strong>Wall-E Blink:</strong> The eye starts CLOSED (like sleeping), then blinks open - exactly like Wall-E waking up. The catchlight (spark of life) appears last. Much warmer than showing text + eye together.`,
+        animate: animateBlink
+      },
+      
+      spin: {
+        html: `
+          <div class="spin-stage">
+            <span class="spin-letter" style="top: 50%; left: 10%; transform: translateY(-50%);">F</span>
+            <span class="spin-letter" style="top: 50%; left: 28%; transform: translateY(-50%);">E</span>
+            <span class="spin-letter" style="top: 50%; left: 46%; transform: translateY(-50%);">R</span>
+            <span class="spin-letter" style="top: 50%; left: 64%; transform: translateY(-50%);">N</span>
+            <span class="spin-letter" style="top: 50%; left: 82%; transform: translateY(-50%);">I</span>
+            <div class="spin-logo">
+              ${getAvatarSVG('spin-logo')}
+            </div>
+          </div>
+        `,
+        info: `<strong>Letter Spin:</strong> Each letter spins and spirals inward toward the center, then the logo emerges from their energy. More abstract/magical, could work for a more "tech" feel.`,
+        animate: animateSpin
+      },
+      
+      squish: {
+        html: `
+          <div class="squish-stage">
+            <span class="squish-letter">F</span>
+            <span class="squish-letter">E</span>
+            <span class="squish-letter">R</span>
+            <span class="squish-letter">N</span>
+            <span class="squish-letter letter-i">
+              <span style="opacity: 0;">I</span>
+              <div class="squish-avatar" style="bottom: 0;">
+                ${getAvatarSVG('squish-avatar')}
+              </div>
+            </span>
+          </div>
+        `,
+        info: `<strong>"I" Squish:</strong> The most Pixar approach - the avatar replaces the "I" in FERNI by bouncing down and squishing it flat, just like the Pixar lamp squishes the letter "I" in the logo. Playful and iconic!`,
+        animate: animateSquish
+      }
+    };
+
+    // ================================================
+    // ANIMATION IMPLEMENTATIONS
+    // ================================================
+
+    async function animateLuxo() {
+      const avatar = document.querySelector('.luxo-avatar');
+      const letters = document.querySelectorAll('.luxo-letter');
+      
+      // Reset
+      avatar.style.opacity = '0';
+      avatar.style.transform = 'translateY(-200px)';
+      letters.forEach(l => l.style.transform = 'scaleY(1) scaleX(1)');
+      
+      await sleep(300);
+      
+      // Phase 1: Avatar falls from sky with anticipation
+      avatar.style.opacity = '1';
+      avatar.animate([
+        { transform: 'translateY(-200px) scaleY(1) scaleX(1)', offset: 0 },
+        { transform: 'translateY(-180px) scaleY(0.9) scaleX(1.1)', offset: 0.1 }, // Anticipation squash
+        { transform: 'translateY(-50px) scaleY(1.2) scaleX(0.85)', offset: 0.4 }, // Stretch during fall
+        { transform: 'translateY(0px) scaleY(0.7) scaleX(1.3)', offset: 0.55 }, // Land squash
+        { transform: 'translateY(-30px) scaleY(1.1) scaleX(0.95)', offset: 0.7 }, // Bounce up
+        { transform: 'translateY(5px) scaleY(0.9) scaleX(1.05)', offset: 0.85 }, // Small settle
+        { transform: 'translateY(0px) scaleY(1) scaleX(1)', offset: 1 }, // Rest
+      ], {
+        duration: 800,
+        easing: EASING.LINEAR,
+        fill: 'forwards'
+      });
+      
+      // Phase 2: Letters squash when avatar lands (at offset 0.55)
+      await sleep(800 * 0.5);
+      
+      letters.forEach((letter, i) => {
+        const delay = i * 30;
+        setTimeout(() => {
+          letter.animate([
+            { transform: 'scaleY(1) scaleX(1)', offset: 0 },
+            { transform: 'scaleY(0.6) scaleX(1.2)', offset: 0.2 }, // Squash
+            { transform: 'scaleY(1.1) scaleX(0.95)', offset: 0.5 }, // Stretch recovery
+            { transform: 'scaleY(0.95) scaleX(1.02)', offset: 0.75 },
+            { transform: 'scaleY(1) scaleX(1)', offset: 1 },
+          ], {
+            duration: 400,
+            easing: EASING.SPRING,
+            fill: 'forwards'
+          });
+        }, delay);
+      });
+      
+      // Phase 3: Eye "wakes up" with blink
+      await sleep(600);
+      const pupil = avatar.querySelector('.eye-pupil');
+      const catchlight = avatar.querySelector('.eye-catchlight');
+      
+      if (pupil) {
+        pupil.animate([
+          { transform: 'scale(0.5)' },
+          { transform: 'scale(1.15)', offset: 0.4 },
+          { transform: 'scale(1)' }
+        ], { duration: 400, easing: EASING.GENTLE, fill: 'forwards' });
+      }
+      
+      if (catchlight) {
+        catchlight.animate([
+          { opacity: 0 },
+          { opacity: 0, offset: 0.5 },
+          { opacity: 0.9 }
+        ], { duration: 400, easing: EASING.GENTLE, fill: 'forwards' });
+      }
+    }
+
+    async function animateBlink() {
+      const svg = document.querySelector('.blink-avatar');
+      const eyelid = svg.querySelector('.eyelid-top');
+      const catchlight = svg.querySelector('.eye-catchlight');
+      const pupil = svg.querySelector('.eye-pupil');
+      
+      // Reset - eye fully closed
+      eyelid.style.transform = 'scaleY(1)';
+      if (catchlight) catchlight.style.opacity = '0';
+      
+      await sleep(500);
+      
+      // Phase 1: Avatar entrance with subtle bounce
+      svg.animate([
+        { transform: 'scale(0.9)', opacity: 0 },
+        { transform: 'scale(1.02)', opacity: 1, offset: 0.6 },
+        { transform: 'scale(1)', opacity: 1 }
+      ], {
+        duration: 500,
+        easing: EASING.EXPO_OUT,
+        fill: 'forwards'
+      });
+      
+      await sleep(700);
+      
+      // Phase 2: Eye opens (eyelid recedes)
+      eyelid.animate([
+        { transform: 'scaleY(1)', transformOrigin: '50% 46px' },
+        { transform: 'scaleY(1.02)', transformOrigin: '50% 46px', offset: 0.1 }, // Tiny anticipation
+        { transform: 'scaleY(0)', transformOrigin: '50% 32px' } // Open upward
+      ], {
+        duration: 350,
+        easing: EASING.EXPO_OUT,
+        fill: 'forwards'
+      });
+      
+      // Phase 3: Pupil dilates (adjusting to light)
+      await sleep(200);
+      pupil.animate([
+        { transform: 'scale(0.7)' },
+        { transform: 'scale(1.2)', offset: 0.4 },
+        { transform: 'scale(1)' }
+      ], {
+        duration: 400,
+        easing: EASING.GENTLE,
+        fill: 'forwards'
+      });
+      
+      // Phase 4: Catchlight appears (spark of life!)
+      await sleep(300);
+      catchlight.animate([
+        { opacity: 0, transform: 'scale(0.5)' },
+        { opacity: 1, transform: 'scale(1.1)', offset: 0.6 },
+        { opacity: 0.9, transform: 'scale(1)' }
+      ], {
+        duration: 300,
+        easing: EASING.SPRING,
+        fill: 'forwards'
+      });
+      
+      // Phase 5: Quick blink (confirmation of life)
+      await sleep(800);
+      
+      // Quick close
+      eyelid.animate([
+        { transform: 'scaleY(0)', transformOrigin: '50% 32px' },
+        { transform: 'scaleY(1)', transformOrigin: '50% 46px' }
+      ], {
+        duration: 80,
+        easing: 'ease-in',
+        fill: 'forwards'
+      });
+      
+      // Quick open
+      await sleep(100);
+      eyelid.animate([
+        { transform: 'scaleY(1)', transformOrigin: '50% 46px' },
+        { transform: 'scaleY(0)', transformOrigin: '50% 32px' }
+      ], {
+        duration: 120,
+        easing: EASING.EXPO_OUT,
+        fill: 'forwards'
+      });
+    }
+
+    async function animateSpin() {
+      const letters = document.querySelectorAll('.spin-letter');
+      const logo = document.querySelector('.spin-logo');
+      
+      // Reset
+      letters.forEach((l, i) => {
+        l.style.opacity = '1';
+        l.style.transform = 'translateY(-50%)';
+      });
+      logo.style.transform = 'translate(-50%, -50%) scale(0)';
+      logo.style.opacity = '0';
+      
+      await sleep(300);
+      
+      // Phase 1: Letters spiral inward
+      letters.forEach((letter, i) => {
+        const angle = (i / letters.length) * 360;
+        const delay = i * 80;
+        
+        setTimeout(() => {
+          letter.animate([
+            { 
+              transform: 'translateY(-50%) rotate(0deg) scale(1)', 
+              opacity: 1,
+              offset: 0 
+            },
+            { 
+              transform: `translateY(-50%) rotate(${180 + angle}deg) scale(1.2)`, 
+              opacity: 1,
+              offset: 0.3 
+            },
+            { 
+              transform: `translate(${50 - parseFloat(letter.style.left)}%, -50%) rotate(${360 + angle}deg) scale(0.5)`, 
+              opacity: 0.8,
+              offset: 0.7 
+            },
+            { 
+              transform: `translate(${50 - parseFloat(letter.style.left)}%, -50%) rotate(${720 + angle}deg) scale(0)`, 
+              opacity: 0,
+              offset: 1 
+            }
+          ], {
+            duration: 800,
+            easing: EASING.ANTICIPATE,
+            fill: 'forwards'
+          });
+        }, delay);
+      });
+      
+      // Phase 2: Logo emerges
+      await sleep(600);
+      
+      logo.animate([
+        { transform: 'translate(-50%, -50%) scale(0) rotate(-180deg)', opacity: 0, offset: 0 },
+        { transform: 'translate(-50%, -50%) scale(1.15) rotate(10deg)', opacity: 1, offset: 0.6 },
+        { transform: 'translate(-50%, -50%) scale(0.95) rotate(-5deg)', opacity: 1, offset: 0.8 },
+        { transform: 'translate(-50%, -50%) scale(1) rotate(0deg)', opacity: 1, offset: 1 }
+      ], {
+        duration: 600,
+        easing: EASING.SPRING,
+        fill: 'forwards'
+      });
+      
+      // Phase 3: Eye comes alive
+      await sleep(400);
+      const catchlight = logo.querySelector('.eye-catchlight');
+      if (catchlight) {
+        catchlight.animate([
+          { opacity: 0 },
+          { opacity: 0.9 }
+        ], { duration: 300, fill: 'forwards' });
+      }
+    }
+
+    async function animateSquish() {
+      const letters = document.querySelectorAll('.squish-letter:not(.letter-i)');
+      const letterI = document.querySelector('.letter-i');
+      const avatar = document.querySelector('.squish-avatar');
+      const iText = letterI.querySelector('span');
+      
+      // Reset
+      letters.forEach(l => l.style.transform = 'scaleY(1) translateY(0)');
+      iText.style.opacity = '1';
+      iText.style.transform = 'scaleY(1)';
+      avatar.style.opacity = '0';
+      avatar.style.transform = 'translateX(-50%) translateY(-300px)';
+      
+      await sleep(300);
+      
+      // Phase 1: Letters entrance (staggered)
+      letters.forEach((letter, i) => {
+        setTimeout(() => {
+          letter.animate([
+            { transform: 'translateY(20px)', opacity: 0 },
+            { transform: 'translateY(-5px)', opacity: 1, offset: 0.7 },
+            { transform: 'translateY(0)', opacity: 1 }
+          ], {
+            duration: 400,
+            easing: EASING.SPRING,
+            fill: 'forwards'
+          });
+        }, i * 60);
+      });
+      
+      // The "I" also enters
+      await sleep(240);
+      iText.animate([
+        { transform: 'translateY(20px)', opacity: 0 },
+        { transform: 'translateY(0)', opacity: 1 }
+      ], {
+        duration: 400,
+        easing: EASING.SPRING,
+        fill: 'forwards'
+      });
+      
+      await sleep(600);
+      
+      // Phase 2: Avatar falls and squishes the "I"
+      avatar.style.opacity = '1';
+      
+      // Avatar falls with stretch
+      avatar.animate([
+        { transform: 'translateX(-50%) translateY(-300px) scaleY(1) scaleX(1)', offset: 0 },
+        { transform: 'translateX(-50%) translateY(-280px) scaleY(0.85) scaleX(1.15)', offset: 0.08 }, // Anticipation
+        { transform: 'translateX(-50%) translateY(-100px) scaleY(1.3) scaleX(0.8)', offset: 0.35 }, // Stretch
+        { transform: 'translateX(-50%) translateY(5px) scaleY(0.65) scaleX(1.35)', offset: 0.5 }, // IMPACT
+        { transform: 'translateX(-50%) translateY(-20px) scaleY(1.1) scaleX(0.92)', offset: 0.65 }, // Bounce
+        { transform: 'translateX(-50%) translateY(2px) scaleY(0.95) scaleX(1.03)', offset: 0.8 },
+        { transform: 'translateX(-50%) translateY(0px) scaleY(1) scaleX(1)', offset: 1 }
+      ], {
+        duration: 700,
+        easing: EASING.LINEAR,
+        fill: 'forwards'
+      });
+      
+      // At impact (offset 0.5), the "I" gets squished and fades
+      await sleep(700 * 0.45);
+      
+      iText.animate([
+        { transform: 'scaleY(1) scaleX(1)', opacity: 1, offset: 0 },
+        { transform: 'scaleY(0.2) scaleX(1.8)', opacity: 0.5, offset: 0.3 },
+        { transform: 'scaleY(0) scaleX(2)', opacity: 0, offset: 1 }
+      ], {
+        duration: 200,
+        easing: 'ease-in',
+        fill: 'forwards'
+      });
+      
+      // Phase 3: Eye wakes up
+      await sleep(500);
+      const pupil = avatar.querySelector('.eye-pupil');
+      const catchlight = avatar.querySelector('.eye-catchlight');
+      
+      pupil.animate([
+        { transform: 'scale(0.6)' },
+        { transform: 'scale(1.15)', offset: 0.5 },
+        { transform: 'scale(1)' }
+      ], { duration: 350, easing: EASING.GENTLE, fill: 'forwards' });
+      
+      catchlight.animate([
+        { opacity: 0 },
+        { opacity: 0.9 }
+      ], { duration: 250, delay: 200, fill: 'forwards' });
+    }
+
+    // ================================================
+    // UI LOGIC
+    // ================================================
+    
+    let currentApproach = 'luxo';
+    
+    function setApproach(approach) {
+      currentApproach = approach;
+      
+      // Update tabs
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-approach="${approach}"]`).classList.add('active');
+      
+      // Update stage
+      document.getElementById('stage').innerHTML = approaches[approach].html;
+      document.getElementById('info').innerHTML = approaches[approach].info;
+    }
+    
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    // Event listeners
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => setApproach(tab.dataset.approach));
+    });
+    
+    document.getElementById('playBtn').addEventListener('click', () => {
+      // Reset first
+      setApproach(currentApproach);
+      // Small delay then play
+      setTimeout(() => approaches[currentApproach].animate(), 100);
+    });
+    
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      setApproach(currentApproach);
+    });
+    
+    // Initialize
+    setApproach('luxo');
+  </script>
+</body>
+</html>
+

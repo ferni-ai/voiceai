@@ -1,15 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <!-- Ferni Icon - 1024x1024 -->
-  <defs>
-    <linearGradient id="grad1024" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#325038"/>
-      <stop offset="100%" stop-color="#4a6d52"/>
-    </linearGradient>
-    <filter id="shadow1024">
-      <feDropShadow dx="0" dy="8" stdDeviation="20" flood-color="#2C2520" flood-opacity="0.15"/>
-    </filter>
-  </defs>
-  <rect width="1024" height="1024" fill="#F5F1E8"/>
-  <rect x="112" y="112" width="800" height="800" rx="180" fill="url(#grad1024)" filter="url(#shadow1024)"/>
-  <text x="512" y="580" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="380" font-weight="800" fill="white" text-anchor="middle">FN</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Ferni Eye Logo - 1024x1024 -->
+  <rect width="1024" height="1024" rx="192" fill="#F5F1E8"/>
+  <g>
+    <!-- Outer Stone: Body -->
+    <circle cx="512" cy="512" r="332.8" fill="#4a6741"/>
+    <!-- White foundation -->
+    <circle cx="512" cy="512" r="133.12" fill="white"/>
+    <!-- Iris ring -->
+    <circle cx="512" cy="512" r="88.79104000000001" fill="#5a8060"/>
+    <!-- Pupil -->
+    <circle cx="512" cy="512" r="44.395520000000005" fill="#2c2520"/>
+    
+    <circle cx="494.241792" cy="494.241792" r="13.318656" fill="white" opacity="0.9"/>
+  
+  </g>
 </svg>

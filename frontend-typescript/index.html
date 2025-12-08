@@ -420,10 +420,6 @@
     /* Zen avatar styling */
       [data-theme='zen'] #coachAvatar {
       background: linear-gradient(145deg, #ffffff 0%, #f5f5f4 100%);
-      box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.08),
-        0 0 0 1px rgba(0, 0, 0, 0.04),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
     }
 
       [data-theme='zen'] #avatarRing {
@@ -431,7 +427,6 @@
       background: transparent;
       border: 2px solid var(--persona-primary);
       opacity: 0.5;
-      box-shadow: 0 0 12px -4px var(--persona-glow);
     }
 
     /* Zen button styling - elegant, tactile */
@@ -960,14 +955,14 @@
       animation: shimmerSlide 1.5s ease-in-out infinite;
     }
 
-    /* Pulse glow for active/speaking states */
+    /* Pulse glow for active/speaking states - now uses scale instead of box-shadow */
     @keyframes pulseGlow {
         0%,
         100% {
-          box-shadow: 0 0 20px -5px var(--persona-glow);
+          transform: scale(1);
         }
         50% {
-          box-shadow: 0 0 35px -5px var(--persona-glow);
+          transform: scale(1.02);
         }
     }
 
@@ -2577,15 +2572,9 @@
         0%,
         100% {
         transform: scale(1);
-          box-shadow:
-            var(--shadow-xl),
-            0 0 20px -10px var(--persona-glow);
       }
       50% {
         transform: scale(1.015);
-          box-shadow:
-            var(--shadow-xl),
-            0 0 25px -8px var(--persona-glow);
       }
     }
     
@@ -2612,20 +2601,12 @@
     /* Speaking state - handled by coach.ui.ts Web Animations API
        CSS provides fallback glow only, no competing transform animations */
     #coach.is-speaking #coachAvatar {
-      /* Subtle glow enhancement during speech */
-      box-shadow: 
-        var(--shadow-xl),
-        0 0 50px -10px var(--persona-glow),
-        0 0 0 1px rgba(255, 255, 255, 0.1) inset,
-        0 -20px 40px -20px rgba(255, 255, 255, 0.1) inset;
+      /* Speaking state - no box shadow */
     }
     
     /* Listening state - receptive glow */
     #coach.is-listening #coachAvatar {
-      box-shadow: 
-        var(--shadow-xl),
-        0 0 30px -8px var(--color-accent-glow),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+      /* Listening state - no box shadow */
     }
 
     /* Emotion states - earthy warm color shifts from design tokens */
@@ -2686,22 +2667,18 @@
     @keyframes thinkingContemplate {
       0%, 100% {
         transform: translateY(0) rotate(0deg);
-        box-shadow: var(--shadow-xl), 0 0 20px -8px var(--persona-glow);
       }
       /* Slight upward look - "hmm, let me think" */
       25% {
         transform: translateY(-1px) rotate(-0.5deg);
-        box-shadow: var(--shadow-xl), 0 0 25px -6px var(--persona-glow);
       }
       /* Settle into thought */
       50% {
         transform: translateY(0.5px) rotate(0.3deg);
-        box-shadow: var(--shadow-xl), 0 0 30px -5px var(--persona-glow);
       }
       /* Processing... */
       75% {
         transform: translateY(-0.5px) rotate(-0.2deg);
-        box-shadow: var(--shadow-xl), 0 0 25px -6px var(--persona-glow);
       }
     }
     
@@ -2952,14 +2929,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 
-        var(--shadow-xl),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-        0 -20px 40px -20px rgba(255, 255, 255, 0.1) inset;
-      /* Smooth transitions for box-shadow only - transforms handled by JS */
-        transition:
-          box-shadow var(--transition-base),
-          filter var(--transition-base);
+      box-shadow: none;
+      /* Smooth transitions - transforms handled by JS */
+        transition: filter var(--transition-base);
       transform-origin: center center;
       /* Safari fix: transparent outline forces correct repainting during animations */
       outline: 1px solid transparent;
@@ -3194,10 +3166,6 @@
 
     #coachAvatar:hover {
       transform: scale(1.02);
-      box-shadow: 
-        var(--shadow-xl),
-        0 0 60px -10px var(--persona-glow),
-        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     }
 
     #coachAvatar.flash {
@@ -3218,10 +3186,7 @@
     
     /* Connected state - elegant green accent */
     #coach.is-connected #coachAvatar {
-      box-shadow: 
-        var(--shadow-xl),
-        0 0 40px -10px rgba(16, 185, 129, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+      /* Connected state - no box shadow */
     }
 
     #avatarText {
@@ -4254,6 +4219,85 @@
     .btn-secondary:active:not(:disabled) {
       transform: translateY(0);
       background: rgba(255, 255, 255, 0.04);
+    }
+
+    /* ========================================================================
+       WRAP-UP STATE - Warm goodbye styling
+       When the agent is wrapping up, the disconnect becomes a warm farewell
+       ======================================================================== */
+    
+    /* Wrap-up state - transforms disconnect into warm "Goodbye" button */
+    .btn-wrap-up {
+      /* Warm golden amber gradient - inviting, not urgent */
+      background: linear-gradient(
+        145deg,
+        var(--color-nayan-secondary, #9a7a52) 0%,
+        var(--color-nayan, #b8956a) 50%,
+        #d4a57a 100%
+      ) !important;
+      /* Scale up slightly for prominence */
+      transform: scale(1.05);
+      /* Warm glow around the button */
+      box-shadow: 
+        0 4px 12px rgba(184, 149, 106, 0.3),
+        0 8px 24px rgba(184, 149, 106, 0.2),
+        0 0 40px rgba(184, 149, 106, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+        0 1px 0 rgba(255, 255, 255, 0.25) inset !important;
+      /* Ensure text is prominent */
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    
+    .btn-wrap-up:hover:not(:disabled) {
+      transform: scale(1.08) translateY(-2px);
+      box-shadow: 
+        0 6px 16px rgba(184, 149, 106, 0.4),
+        0 12px 32px rgba(184, 149, 106, 0.25),
+        0 0 50px rgba(184, 149, 106, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+        0 1px 0 rgba(255, 255, 255, 0.3) inset !important;
+    }
+    
+    /* Zen theme wrap-up styling */
+    [data-theme='zen'] .btn-wrap-up {
+      background: linear-gradient(
+        145deg,
+        #c4a265 0%,
+        #d4b275 50%,
+        #e4c285 100%
+      ) !important;
+      box-shadow: 
+        0 4px 12px rgba(196, 162, 101, 0.25),
+        0 8px 20px rgba(196, 162, 101, 0.15),
+        0 0 30px rgba(196, 162, 101, 0.1);
+    }
+    
+    /* Attention pulse animation for wrap-up button */
+    .btn-attention {
+      animation: wrapUpPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes wrapUpPulse {
+      0%, 100% {
+        box-shadow: 
+          0 4px 12px rgba(184, 149, 106, 0.3),
+          0 8px 24px rgba(184, 149, 106, 0.2),
+          0 0 40px rgba(184, 149, 106, 0.15);
+      }
+      50% {
+        box-shadow: 
+          0 6px 16px rgba(184, 149, 106, 0.4),
+          0 12px 32px rgba(184, 149, 106, 0.3),
+          0 0 60px rgba(184, 149, 106, 0.25);
+      }
+    }
+    
+    /* Reduced motion - no animation */
+    @media (prefers-reduced-motion: reduce) {
+      .btn-attention {
+        animation: none;
+      }
     }
 
     /* Loading state */
@@ -5688,42 +5732,36 @@
     
     @keyframes warmthGlowSubtle {
         0% {
-          box-shadow: 0 0 0 0 var(--persona-glow);
+          transform: scale(1);
         }
         50% {
-          box-shadow: 0 0 20px 5px var(--persona-glow);
+          transform: scale(1.01);
         }
         100% {
-          box-shadow: 0 0 0 0 var(--persona-glow);
+          transform: scale(1);
         }
     }
     
     @keyframes warmthGlowGentle {
         0% {
-          box-shadow: 0 0 0 0 var(--persona-glow);
           transform: scale(1);
         }
         50% {
-          box-shadow: 0 0 30px 10px var(--persona-glow);
-          transform: scale(1.01);
+          transform: scale(1.015);
         }
         100% {
-          box-shadow: 0 0 0 0 var(--persona-glow);
           transform: scale(1);
         }
     }
     
     @keyframes warmthGlowWarm {
         0% {
-          box-shadow: 0 0 0 0 var(--persona-glow);
           transform: scale(1);
         }
         40% {
-          box-shadow: 0 0 40px 15px var(--persona-glow);
           transform: scale(1.02);
         }
         100% {
-          box-shadow: 0 0 0 0 var(--persona-glow);
           transform: scale(1);
         }
     }
@@ -6547,11 +6585,7 @@
     
     /* Konami mode - temporary golden glow */
     .konami-mode #coachAvatar {
-      /* Celebration glow using earthy warm tones */
-      box-shadow: 
-        0 0 30px rgba(184, 149, 106, 0.6),
-        0 0 60px rgba(196, 133, 106, 0.4),
-        0 0 90px rgba(166, 122, 106, 0.2);
+      /* Konami mode - no box shadow */
     }
     
     .konami-mode .btn-primary {
@@ -6617,7 +6651,7 @@
     }
     
     .holiday-halloween #coachAvatar {
-      box-shadow: 0 0 40px rgba(255, 102, 0, 0.3);
+      /* Halloween mode - no box shadow */
     }
     
     /* Valentine's theme */

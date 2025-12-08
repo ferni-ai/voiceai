@@ -111,10 +111,19 @@ export interface CelebrationMessage extends BaseMessage {
 
 /**
  * Music state message
+ * 
+ * States:
+ * - 'playing' = Music actively playing
+ * - 'ducking' = Agent speaking over music (DJ fade-down)
+ * - 'fading' = Track ending soon (~5 seconds left)
+ * - 'changing' = DJ crossfade - switching to a new track
+ * - 'paused' = Playback paused
+ * - 'stopped' = Playback stopped
+ * - 'idle' = No music loaded
  */
 export interface MusicStateMessage extends BaseMessage {
   type: 'music_state';
-  state: 'playing' | 'paused' | 'stopped' | 'fading' | 'idle';
+  state: 'playing' | 'ducking' | 'fading' | 'changing' | 'paused' | 'stopped' | 'idle';
   track?: {
     name: string;
     artist?: string;
@@ -424,9 +433,18 @@ export class FrontendPublisher {
 
   /**
    * Send music state update to frontend
+   * 
+   * States:
+   * - 'playing' = Music actively playing
+   * - 'ducking' = Agent speaking over music (DJ fade-down)
+   * - 'fading' = Track ending soon (~5 seconds left)
+   * - 'changing' = DJ crossfade - switching to a new track
+   * - 'paused' = Playback paused
+   * - 'stopped' = Playback stopped
+   * - 'idle' = No music loaded
    */
   async sendMusicState(
-    state: 'playing' | 'paused' | 'stopped' | 'fading' | 'idle',
+    state: 'playing' | 'ducking' | 'fading' | 'changing' | 'paused' | 'stopped' | 'idle',
     track?: { name: string; artist?: string },
     isAmbient: boolean = false
   ): Promise<boolean> {
