@@ -205,7 +205,7 @@ const EMOTION_PATTERNS: { state: DetectedEmotionalState; patterns: RegExp[] }[] 
   },
 ];
 
-function detectEmotionalState(text: string): EmotionalState | null {
+function detectEmotionalState(text: string): DetectedEmotionalState | null {
   for (const { state, patterns } of EMOTION_PATTERNS) {
     for (const pattern of patterns) {
       if (pattern.test(text)) {
@@ -429,7 +429,9 @@ export function analyzeMessageForContext(
   const emotionalState = detectEmotionalState(message);
   if (emotionalState) {
     try {
-      updateContextEmotionalState(userId, emotionalState);
+      // Map detected state to context-aggregator EmotionalState
+      const contextState = mapToContextEmotionalState(emotionalState);
+      updateContextEmotionalState(userId, contextState);
     } catch {
       // Non-critical, ignore errors
     }
@@ -445,6 +447,6 @@ export {
   detectEmotionalState,
   extractWinsAndStruggles,
   type ExtractedCommitment,
-  type EmotionalState,
+  type DetectedEmotionalState as EmotionalState, // Export as EmotionalState for backward compatibility
 };
 
