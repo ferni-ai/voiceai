@@ -554,6 +554,141 @@ export function updatePortfolioSatisfaction(
 }
 
 // ============================================================================
+// CONTEXT ENRICHMENT HELPERS
+// Used by simple-utilities to connect dates/timers to life events
+// ============================================================================
+
+/**
+ * Get all active goals for a user (for context enrichment)
+ */
+export function getActiveGoals(userId: string): Array<{
+  id: string;
+  name: string;
+  category: GoalCategory;
+  targetDate?: Date;
+  status: string;
+}> {
+  const userGoals = Array.from(goals.values()).filter(
+    (g) => g.userId === userId && g.status === 'active'
+  );
+  
+  return userGoals.map((g) => ({
+    id: g.id,
+    name: g.name,
+    category: g.category,
+    targetDate: g.targetDate,
+    status: g.status,
+  }));
+}
+
+/**
+ * Get upcoming milestones across all goals (for context enrichment)
+ */
+export function getUpcomingMilestones(userId: string, withinDays = 90): Array<{
+  name: string;
+  targetDate: Date;
+  goalId: string;
+  goalName: string;
+  category: GoalCategory;
+}> {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
+  const milestones: Array<{
+    name: string;
+    targetDate: Date;
+    goalId: string;
+    goalName: string;
+    category: GoalCategory;
+  }> = [];
+  
+  const userGoals = Array.from(goals.values()).filter(
+    (g) => g.userId === userId && g.status === 'active'
+  );
+  
+  for (const goal of userGoals) {
+    for (const milestone of goal.milestones) {
+      if (milestone.targetDate && milestone.status !== 'completed') {
+        const date = new Date(milestone.targetDate);
+        if (date >= now && date <= cutoff) {
+          milestones.push({
+            name: milestone.name,
+            targetDate: date,
+            goalId: goal.id,
+            goalName: goal.name,
+            category: goal.category,
+          });
+        }
+      }
+    }
+  }
+  
+  // Sort by date
+  return milestones.sort((a, b) => a.targetDate.getTime() - b.targetDate.getTime());
+}
+
+/**
+ * Find events near a specific date (for "X days from now" enrichment)
+ */
+export function findEventsNearDate(
+  userId: string,
+  targetDate: Date,
+  windowDays = 7
+): Array<{
+  name: string;
+  date: Date;
+  type: 'goal_deadline' | 'milestone';
+  daysFromTarget: number;
+}> {
+  const events: Array<{
+    name: string;
+    date: Date;
+    type: 'goal_deadline' | 'milestone';
+    daysFromTarget: number;
+  }> = [];
+  
+  const userGoals = Array.from(goals.values()).filter(
+    (g) => g.userId === userId && (g.status === 'in-progress' || g.status === 'on-track' || g.status === 'not-started')
+  );
+  
+  for (const goal of userGoals) {
+    // Check goal deadline
+    if (goal.targetDate) {
+      const daysDiff = Math.round(
+        (goal.targetDate.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (Math.abs(daysDiff) <= windowDays) {
+        events.push({
+          name: goal.title,
+          date: goal.targetDate,
+          type: 'goal_deadline',
+          daysFromTarget: daysDiff,
+        });
+      }
+    }
+    
+    // Check milestones
+    for (const milestone of goal.milestones) {
+      if (milestone.targetDate && !milestone.completed) {
+        const milestoneDate = new Date(milestone.targetDate);
+        const daysDiff = Math.round(
+          (milestoneDate.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (Math.abs(daysDiff) <= windowDays) {
+          events.push({
+            name: `${milestone.title} (${goal.title})`,
+            date: milestoneDate,
+            type: 'milestone',
+            daysFromTarget: daysDiff,
+          });
+        }
+      }
+    }
+  }
+  
+  return events.sort((a, b) => Math.abs(a.daysFromTarget) - Math.abs(b.daysFromTarget));
+}
+
+// ============================================================================
 // TOOL DEFINITIONS
 // ============================================================================
 

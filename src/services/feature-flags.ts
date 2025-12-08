@@ -291,7 +291,7 @@ const DEFAULT_FLAGS: FeatureFlag[] = [
     name: 'Context Enrichment',
     description: 'Connect utilities to life context (travel, goals, habits)',
     type: 'boolean',
-    enabled: false, // Disabled until context APIs are stable
+    enabled: true, // Now stable - connects utilities to goals, memories, habits
     category: 'simple-utilities',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

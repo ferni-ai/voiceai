@@ -97,21 +97,107 @@ export async function loadLifeContext(userId: string): Promise<LifeContext> {
   return context;
 }
 
-async function loadLifePlanningContext(_userId: string, _context: LifeContext): Promise<void> {
-  // TODO: Integrate with goal-management service when API is stabilized
-  // The goal-management module uses a different data structure (LifePortfolio)
-  // that doesn't directly expose goals in the way we need here.
-  // For now, context enrichment will be minimal.
-  // 
-  // Future enhancement: Add getActiveGoals() and getUpcomingMilestones() to goal-management.ts
+async function loadLifePlanningContext(userId: string, context: LifeContext): Promise<void> {
+  try {
+    const { getActiveGoals, getUpcomingMilestones } = await import('../../goal-management.js');
+    
+    // Load active goals
+    const activeGoals = getActiveGoals(userId);
+    for (const goal of activeGoals) {
+      context.activeGoals.push({
+        name: goal.name,
+        targetDate: goal.targetDate,
+        category: goal.category,
+      });
+    }
+    
+    // Load upcoming milestones
+    const milestones = getUpcomingMilestones(userId, 90);
+    for (const milestone of milestones) {
+      context.upcomingEvents.push({
+        name: milestone.name,
+        date: milestone.targetDate,
+        type: 'milestone',
+        linkedGoal: milestone.goalId,
+      });
+    }
+  } catch {
+    // Goal management not available
+  }
 }
 
-async function loadMemoryContext(_userId: string, _context: LifeContext): Promise<void> {
-  // TODO: Integrate with memory service when semantic search API is ready
-  // The current MemoryStore interface uses query() not search().
-  // For now, context enrichment from memories is disabled.
-  //
-  // Future enhancement: Add semantic search for people, travel, important dates
+async function loadMemoryContext(userId: string, context: LifeContext): Promise<void> {
+  try {
+    const { semanticSearch } = await import('../../../memory/semantic-rag.js');
+    
+    // Search for important people/relationships
+    const peopleResults = await semanticSearch('important people family friends relationships birthday anniversary', {
+      userId,
+      topK: 20,
+      minScore: 0.4,
+    });
+    
+    for (const result of peopleResults) {
+      // Extract person names from content
+      const personMatch = result.content.match(
+        /(?:my\s+)?(?:friend|partner|spouse|husband|wife|brother|sister|mom|dad|mother|father|parent|child|son|daughter|colleague|boss)\s+(\w+)/i
+      );
+      if (personMatch) {
+        const name = personMatch[1];
+        if (!context.importantPeople.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+          context.importantPeople.push({
+            name,
+            relationship: 'contact',
+            // Check for birthday/anniversary in content
+            birthday: extractDate(result.content, 'birthday'),
+            anniversary: extractDate(result.content, 'anniversary'),
+            timezone: result.metadata?.timezone as string | undefined,
+          });
+        }
+      }
+    }
+    
+    // Search for travel plans
+    const travelResults = await semanticSearch('trip travel vacation flight going to visiting', {
+      userId,
+      topK: 10,
+      minScore: 0.4,
+    });
+    
+    for (const result of travelResults) {
+      const destMatch = result.content.match(
+        /(?:trip|travel|going|flying|visiting)\s+(?:to\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/
+      );
+      if (destMatch) {
+        const startDate = extractDate(result.content, 'start|depart|leave');
+        const endDate = extractDate(result.content, 'return|end|back');
+        if (startDate) {
+          context.travelPlans.push({
+            destination: destMatch[1],
+            startDate,
+            endDate: endDate || new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000), // Default 1 week
+          });
+        }
+      }
+    }
+  } catch {
+    // Semantic search not available - this is fine
+  }
+}
+
+/**
+ * Extract a date from text near a keyword
+ */
+function extractDate(text: string, keyword: string): Date | undefined {
+  const regex = new RegExp(`${keyword}[^.]*?(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}|\\w+\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s+\\d{4})?)`, 'i');
+  const match = text.match(regex);
+  if (match?.[1]) {
+    const parsed = new Date(match[1]);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  return undefined;
 }
 
 async function loadHabitsContext(userId: string, context: LifeContext): Promise<void> {
