@@ -25,8 +25,9 @@ import {
   createStandardInjection,
   createHintInjection,
   createInjection,
+  type ContextBuilderInput,
+  type ContextInjection,
 } from './index.js';
-import type { ContextBuilderInput, ContextInjection } from './index.js';
 import {
   getCognitiveProfile,
   getCognitiveEngine,
@@ -50,6 +51,7 @@ import {
 
 import { generateCognitiveQuestion } from '../../conversation/cognitive-questions.js';
 import { generateTeamCommentary } from '../../personas/collaborative-cognition.js';
+import { getUnlockedTeamMemberIds } from './team-availability.js';
 
 // Broadcast service for real-time dashboard updates
 import {
@@ -402,13 +404,19 @@ async function buildCognitiveContext(input: ContextBuilderInput): Promise<Contex
   }
 
   // ============================================================================
-  // 11. TEAM COGNITIVE PERSPECTIVE (occasional)
+  // 11. TEAM COGNITIVE PERSPECTIVE (occasional) - Only unlocked members
   // ============================================================================
   if (turnCount > 5 && Math.random() < 0.15) {
+    // Get subscription tier for unlock checking
+    const tier: 'free' | 'friend' | 'partner' =
+      (input.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+    const unlockedMemberIds = getUnlockedTeamMemberIds(input.userProfile, tier);
+    
     const teamCommentary = generateTeamCommentary(
       personaId,
       cognitiveContext.currentTopic,
-      'reflection'
+      'reflection',
+      unlockedMemberIds // Only generate commentary about unlocked members
     );
     if (teamCommentary.length > 0) {
       injections.push(

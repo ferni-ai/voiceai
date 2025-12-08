@@ -22,6 +22,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+import { isTeamMemberUnlocked } from './team-availability.js';
 
 const log = getLogger();
 
@@ -208,10 +209,14 @@ const roleBoundaryBuilder: ContextBuilder = {
   priority: 10, // Very early, right after identity
 
   build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
-    const { userText, persona } = input;
+    const { userText, persona, userProfile } = input;
     const injections: ContextInjection[] = [];
 
     const currentPersonaId = persona?.identity?.id || 'ferni';
+
+    // Get subscription tier for unlock checking
+    const tier: 'free' | 'friend' | 'partner' =
+      (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
     // Detect boundary violation
     const violation = detectBoundaryViolation(userText, currentPersonaId);
@@ -225,13 +230,20 @@ const roleBoundaryBuilder: ContextBuilder = {
       return injections;
     }
 
+    // Check if the correct owner is unlocked
+    const ownerUnlocked = isTeamMemberUnlocked(violation.correctOwner, userProfile, tier);
+
     const correctPersonaName = getPersonaDisplayName(violation.correctOwner);
     const currentPersonaName = getPersonaDisplayName(violation.currentPersona);
 
     // =========================================================================
-    // CRITICAL: Strong guidance to hand off
+    // CRITICAL: Strong guidance to hand off (or defer if locked)
     // =========================================================================
-    const boundaryGuidance = `[DOMAIN BOUNDARY VIOLATION DETECTED]
+    let boundaryGuidance: string;
+    
+    if (ownerUnlocked) {
+      // The correct persona is unlocked - suggest handoff
+      boundaryGuidance = `[DOMAIN BOUNDARY VIOLATION DETECTED]
 The user is asking about ${violation.domain.replace('_', ' ')} - this is ${correctPersonaName}'s specialty, NOT yours.
 
 DO NOT try to answer this yourself. Instead:
@@ -240,6 +252,18 @@ DO NOT try to answer this yourself. Instead:
 3. Use tool: ${violation.handoffTool}
 
 YOU ARE ${currentPersonaName}. Stay in your lane. ${correctPersonaName} handles this.`;
+    } else {
+      // The correct persona is NOT unlocked - don't mention them by name
+      boundaryGuidance = `[DOMAIN OUTSIDE YOUR EXPERTISE]
+The user is asking about ${violation.domain.replace('_', ' ')} - this isn't your specialty.
+
+DO NOT try to be an expert on this. Instead:
+1. Acknowledge: "That's actually an area where I have a friend who specializes..."
+2. Be honest: "We'll need to get to know each other better before I can introduce you to them."
+3. Offer what you CAN do: general support, listening, helping them think through the bigger picture
+
+YOU ARE ${currentPersonaName}. You have teammates who could help with this, but the user hasn't met them yet. Don't name specific people they haven't been introduced to.`;
+    }
 
     injections.push(
       createCriticalInjection('role_boundary_violation', boundaryGuidance, {
@@ -254,6 +278,7 @@ YOU ARE ${currentPersonaName}. Stay in your lane. ${correctPersonaName} handles 
         current: currentPersonaName,
         correct: correctPersonaName,
         confidence: violation.confidence,
+        ownerUnlocked,
       },
       'Domain boundary violation detected'
     );

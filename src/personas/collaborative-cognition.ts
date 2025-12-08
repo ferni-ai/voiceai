@@ -316,18 +316,17 @@ function fillTemplate(template: string, values: Record<string, string>): string 
 
 /**
  * Generate perspectives from multiple personas on a situation
+ * 
+ * @param situation - The situation being analyzed
+ * @param topic - The topic under discussion
+ * @param personaIds - Optional list of persona IDs to include. Defaults to just Ferni
+ *                     to avoid mentioning locked team members. Callers should pass
+ *                     only unlocked member IDs.
  */
 export function generateCollaborativePerspectives(
   situation: string,
   topic: string,
-  personaIds: string[] = [
-    'ferni',
-    'peter-john',
-    'alex-chen',
-    'maya-santos',
-    'jordan-taylor',
-    'nayan-patel',
-  ]
+  personaIds: string[] = ['ferni'] // Default to Ferni only - callers must pass unlocked IDs
 ): CollaborativeCognition {
   const perspectives = new Map<string, CognitivePerspective>();
 
@@ -521,11 +520,18 @@ function recommendCognitiveHandoff(
 
 /**
  * Generate natural language commentary about what team members might say
+ * 
+ * @param personaId - The current persona generating commentary
+ * @param topic - The topic being discussed
+ * @param context - The context type (handoff, reflection, collaboration)
+ * @param unlockedMemberIds - Optional list of unlocked member IDs. If provided,
+ *                            commentary will only reference these members.
  */
 export function generateTeamCommentary(
   personaId: string,
   topic: string,
-  context: 'handoff' | 'reflection' | 'collaboration'
+  context: 'handoff' | 'reflection' | 'collaboration',
+  unlockedMemberIds?: string[]
 ): string[] {
   const commentary: string[] = [];
 
@@ -534,7 +540,21 @@ export function generateTeamCommentary(
   if (!currentProfile) return commentary;
 
   // Generate commentary about other team members' perspectives
-  const otherPersonas = Object.keys(cognitiveProfiles).filter((id) => id !== personaId);
+  let otherPersonas = Object.keys(cognitiveProfiles).filter((id) => id !== personaId);
+  
+  // Filter to only unlocked members if provided
+  if (unlockedMemberIds && unlockedMemberIds.length > 0) {
+    otherPersonas = otherPersonas.filter((id) => {
+      // Normalize IDs for comparison (handle both peter-john and peter_john formats)
+      const normalizedId = id.toLowerCase().replace(/_/g, '-');
+      return unlockedMemberIds.some((unlocked) => {
+        const normalizedUnlocked = unlocked.toLowerCase().replace(/_/g, '-');
+        return normalizedUnlocked === normalizedId ||
+               normalizedUnlocked.includes(normalizedId) ||
+               normalizedId.includes(normalizedUnlocked);
+      });
+    });
+  }
 
   for (const otherId of otherPersonas.slice(0, 2)) {
     const otherProfile = getCognitiveProfile(otherId);

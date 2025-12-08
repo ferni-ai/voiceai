@@ -70,7 +70,10 @@ When the user needs help in one of their areas, feel free to offer to connect th
 }
 
 /**
- * Build the locked team section (so Ferni can tease but not handoff)
+ * Build the locked team section - WITHOUT listing names
+ * 
+ * IMPORTANT: We don't list locked member names because the LLM will mention them.
+ * Instead, we give vague hints about unlockable teammates.
  */
 function buildLockedTeamSection(state: TeamUnlockState): string {
   const lockedMembers = TEAM_MEMBERS.filter(
@@ -81,14 +84,17 @@ function buildLockedTeamSection(state: TeamUnlockState): string {
     return ''; // All unlocked!
   }
 
-  const locked = lockedMembers
-    .map((m) => `- ${m.displayName}: ${m.teaserMessage || 'Not yet available'}`)
-    .join('\n');
+  // Collect expertise areas of locked members WITHOUT naming them
+  const lockedExpertise = lockedMembers
+    .map((m) => m.role)
+    .filter(Boolean)
+    .slice(0, 3);
 
-  return `[LOCKED TEAM MEMBERS - Do NOT offer to hand off to these people. You can mention them exist but say you need to get to know the user better first:]
-${locked}
+  const expertiseHint = lockedExpertise.length > 0
+    ? ` (like ${lockedExpertise.join(', ')})`
+    : '';
 
-IMPORTANT: Do NOT use handoff tools for these people. The tools will fail if you try.`;
+  return `[LOCKED TEAMMATES: You have ${lockedMembers.length} more teammate(s) the user hasn't met yet${expertiseHint}. When topics come up that they could help with, say something like "I know someone who's great at that - we'll meet them as we get to know each other better." Do NOT name specific people they haven't met. Do NOT try to hand off to them - the tools won't work.]`;
 }
 
 /**

@@ -23,8 +23,19 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
+import { isTeamMemberUnlocked } from './team-availability.js';
 
 const log = getLogger();
+
+// Mapping from display names to member IDs for unlock checking
+const DISPLAY_NAME_TO_ID: Record<string, string> = {
+  'Peter': 'peter-john',
+  'Nayan': 'nayan-patel',
+  'Maya': 'maya-santos',
+  'Alex': 'alex-chen',
+  'Jordan': 'jordan-taylor',
+  'Ferni': 'ferni',
+};
 
 // ============================================================================
 // PERSONA IDENTITY DATA
@@ -298,9 +309,13 @@ const personaIdentityBuilder: ContextBuilder = {
   priority: 5, // Very early - identity comes first
 
   build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
-    const { persona, userData } = input;
+    const { persona, userData, userProfile } = input;
     const injections: ContextInjection[] = [];
     const turnCount = userData.turnCount || 0;
+
+    // Get subscription tier for unlock checking
+    const tier: 'free' | 'friend' | 'partner' =
+      (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
     // Get persona identity
     const personaId = persona?.identity?.id || 'ferni';
@@ -323,7 +338,7 @@ const personaIdentityBuilder: ContextBuilder = {
     // Boundary reminder (every 3 turns)
     // =========================================================================
     if (turnCount > 0 && turnCount % 3 === 0) {
-      const boundaryReminder = buildBoundaryReminder(identity);
+      const boundaryReminder = buildBoundaryReminder(identity, userProfile, tier);
       injections.push(
         createStandardInjection('persona_boundary', boundaryReminder, { category: 'identity' })
       );
@@ -350,15 +365,43 @@ What makes you YOU: ${identity.distinctiveTraits[0]}`;
 }
 
 /**
- * Build the boundary reminder text
+ * Build the boundary reminder text - filtering handoff suggestions by unlock status
  */
-function buildBoundaryReminder(identity: PersonaIdentity): string {
-  const handoffs = Object.entries(identity.handoffTriggers)
-    .slice(0, 3)
-    .map(([topic, persona]) => `${topic} → ${persona}`)
+function buildBoundaryReminder(
+  identity: PersonaIdentity,
+  userProfile: import('../../types/user-profile.js').UserProfile | null,
+  tier: 'free' | 'friend' | 'partner'
+): string {
+  // Filter handoff triggers to only include unlocked personas
+  const filteredHandoffs = Object.entries(identity.handoffTriggers)
+    .map(([topic, personaNames]) => {
+      // Handle "Peter or Nayan" style values
+      const names = personaNames.split(' or ').map(n => n.trim());
+      const unlockedNames = names.filter(name => {
+        const memberId = DISPLAY_NAME_TO_ID[name];
+        if (!memberId) return true; // Unknown names pass through (shouldn't happen)
+        return isTeamMemberUnlocked(memberId, userProfile, tier);
+      });
+      
+      if (unlockedNames.length === 0) {
+        return null; // No unlocked personas for this topic
+      }
+      
+      return { topic, personas: unlockedNames.join(' or ') };
+    })
+    .filter((entry): entry is { topic: string; personas: string } => entry !== null)
+    .slice(0, 3);
+
+  if (filteredHandoffs.length === 0) {
+    // No unlocked team members to hand off to
+    return `[BOUNDARIES: NOT your domain: ${identity.notYourDomains.slice(0, 2).join(', ')}. You have teammates who can help with other topics, but the user hasn't met them yet.]`;
+  }
+
+  const handoffStr = filteredHandoffs
+    .map(({ topic, personas }) => `${topic} → ${personas}`)
     .join(', ');
 
-  return `[BOUNDARIES: NOT your domain: ${identity.notYourDomains.slice(0, 2).join(', ')}. Hand off: ${handoffs}]`;
+  return `[BOUNDARIES: NOT your domain: ${identity.notYourDomains.slice(0, 2).join(', ')}. Hand off: ${handoffStr}]`;
 }
 
 // ============================================================================

@@ -1,14 +1,30 @@
 /**
  * API Helpers - Utilities for making authenticated API calls
  * 
- * In development mode, adds admin_key to bypass authentication.
- * In production, uses actual user authentication.
+ * Authentication strategy:
+ * - Development: Uses X-Admin-Key: dev-mode to bypass auth
+ * - Production: Uses X-User-Id header with device-based ID
+ * 
+ * The device ID is stored in localStorage as 'ferni_user_id' and should
+ * follow the format 'device:{uuid}' for production auth.
  */
 
 import { isDevelopment } from './environment.js';
 
 /**
- * Get headers for API calls, including dev auth bypass when appropriate
+ * Get the current user ID for API authentication
+ * Returns device-based ID (device:{uuid}) for production auth
+ */
+function getUserId(): string | null {
+  try {
+    return localStorage.getItem('ferni_user_id');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get headers for API calls, including auth headers
  */
 export function getApiHeaders(additionalHeaders?: Record<string, string>): Record<string, string> {
   const headers: Record<string, string> = {
@@ -19,6 +35,13 @@ export function getApiHeaders(additionalHeaders?: Record<string, string>): Recor
   // In development mode, add admin key to bypass auth
   if (isDevelopment()) {
     headers['X-Admin-Key'] = 'dev-mode';
+  }
+
+  // Always include user ID header if available
+  // In production, this is required for authentication (device:{uuid} format)
+  const userId = getUserId();
+  if (userId) {
+    headers['X-User-Id'] = userId;
   }
 
   return headers;

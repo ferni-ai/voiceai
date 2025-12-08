@@ -17,6 +17,7 @@ import {
   type ContextInjection,
 } from './index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isTeamMemberUnlocked } from './team-availability.js';
 
 const log = createLogger({ module: 'HandoffContext' });
 const DEBUG_HANDOFF = process.env.DEBUG_HANDOFF === 'true';
@@ -305,9 +306,13 @@ function legacyToCanonical(agentId: string): string {
  * Build handoff-related context injections
  */
 function buildHandoffContext(input: ContextBuilderInput): ContextInjection[] {
-  const { userText, analysis } = input;
+  const { userText, analysis, userProfile } = input;
   const injections: ContextInjection[] = [];
   const currentAgent = getCurrentAgent();
+
+  // Get subscription tier for unlock checking
+  const tier: 'free' | 'friend' | 'partner' =
+    (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
   // -----------------------------------------------
   // CURRENT AGENT CONTEXT
@@ -318,7 +323,7 @@ function buildHandoffContext(input: ContextBuilderInput): ContextInjection[] {
   }
 
   // -----------------------------------------------
-  // WAKE WORD DETECTION - IMMEDIATE MANDATORY HANDOFF
+  // WAKE WORD DETECTION - IMMEDIATE MANDATORY HANDOFF (if unlocked)
   // -----------------------------------------------
   const wakeWord = detectWakeWord(userText);
   if (DEBUG_HANDOFF)
@@ -330,16 +335,20 @@ function buildHandoffContext(input: ContextBuilderInput): ContextInjection[] {
     });
 
   if (wakeWord.isWakeWord && wakeWord.targetAgent !== currentAgent) {
-    if (DEBUG_HANDOFF)
-      log.debug('Wake word detected', {
-        target: wakeWord.targetName,
-        tool: wakeWord.tool,
-      });
-    // This is a CRITICAL injection - the LLM MUST call the handoff tool immediately
-    injections.push(
-      createCriticalInjection(
-        'wake_word_handoff',
-        `[CRITICAL - IMMEDIATE HANDOFF REQUIRED]
+    // Check if target is unlocked
+    const targetUnlocked = isTeamMemberUnlocked(wakeWord.targetAgent || '', userProfile, tier);
+    
+    if (targetUnlocked) {
+      if (DEBUG_HANDOFF)
+        log.debug('Wake word detected', {
+          target: wakeWord.targetName,
+          tool: wakeWord.tool,
+        });
+      // This is a CRITICAL injection - the LLM MUST call the handoff tool immediately
+      injections.push(
+        createCriticalInjection(
+          'wake_word_handoff',
+          `[CRITICAL - IMMEDIATE HANDOFF REQUIRED]
 The user said "${userText}" which is a WAKE WORD for ${wakeWord.targetName}.
 You MUST call the ${wakeWord.tool} tool RIGHT NOW with reason: "User requested ${wakeWord.targetName} by name"
 
@@ -347,14 +356,26 @@ DO NOT respond with text first. DO NOT ask clarifying questions.
 IMMEDIATELY call: ${wakeWord.tool}({ reason: "User requested ${wakeWord.targetName} by name" })
 
 This is NON-NEGOTIABLE. The user explicitly asked for ${wakeWord.targetName}.`
-      )
-    );
-    // Return early - wake word takes priority over everything else
-    return injections;
+        )
+      );
+      // Return early - wake word takes priority over everything else
+      return injections;
+    } else {
+      // User asked for someone they haven't met yet - handle gracefully without naming them
+      injections.push(
+        createHintInjection(
+          'locked_wake_word',
+          `[TEAM MEMBER NOT YET AVAILABLE]
+The user asked for a team member they haven't met yet. Don't name this person.
+Respond warmly: "I have a friend who'd be perfect for that, but we need to get to know each other a bit better first. In the meantime, I'm here - how can I help?"`
+        )
+      );
+      return injections;
+    }
   }
 
   // -----------------------------------------------
-  // HANDOFF SUGGESTIONS (for topic-based handoffs)
+  // HANDOFF SUGGESTIONS (for topic-based handoffs, only if unlocked)
   // -----------------------------------------------
   // Only suggest handoffs if not already the target agent
   const handoffSuggestion = suggestHandoff(userText);
@@ -363,7 +384,10 @@ This is NON-NEGOTIABLE. The user explicitly asked for ${wakeWord.targetName}.`
     const canonicalId = legacyToCanonical(handoffSuggestion.to || '');
     const targetAgentInfo = getAgentInfo(canonicalId);
 
-    if (targetAgentInfo) {
+    // Only suggest handoff if target is unlocked
+    const targetUnlocked = isTeamMemberUnlocked(canonicalId, userProfile, tier);
+
+    if (targetAgentInfo && targetUnlocked) {
       injections.push(
         createHintInjection(
           'handoff_suggestion',
@@ -373,6 +397,7 @@ Example: "That sounds like something ${targetAgentInfo.name} could help with bet
         )
       );
     }
+    // If not unlocked, don't inject anything - let role-boundaries.ts handle it with vague language
   }
 
   // -----------------------------------------------
