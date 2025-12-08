@@ -49,3 +49,13 @@ export {
   VERBAL_SOUNDS,
   type SessionSoundType,
 } from './session-sounds.js';
+
+// DJ Booth - Full audio orchestration (ducking, timing, talk-over)
+export {
+  DJBooth,
+  initializeDJBooth,
+  getDJBooth,
+  resetDJBooth,
+  type DJBoothConfig,
+  type DJBoothState,
+} from './dj-booth.js';

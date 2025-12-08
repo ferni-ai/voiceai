@@ -108,10 +108,7 @@ export const VERBAL_SOUNDS: Record<SessionSoundType, string[]> = {
     '<break time="200ms"/>',
     '<break time="300ms"/><prosody pitch="+5%">Hey!</prosody><break time="100ms"/>',
   ],
-  'session-end': [
-    '<break time="200ms"/>',
-    '<break time="300ms"/>',
-  ],
+  'session-end': ['<break time="200ms"/>', '<break time="300ms"/>'],
   'thinking-start': [
     '<break time="150ms"/><prosody rate="slow">Hmm</prosody><break time="200ms"/>',
     '<break time="100ms"/>Let me think<break time="200ms"/>',
@@ -223,9 +220,11 @@ class SessionSoundsService {
 
       if (success) {
         log.debug('🎵 Played session sound', { type });
-        
+
         // Wait for short sound to complete
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 1000);
+        });
         player.stop();
 
         return { played: true };
@@ -328,4 +327,3 @@ export function getVerbalSound(type: SessionSoundType): string {
 }
 
 export default getSessionSounds;
-
