@@ -27,21 +27,21 @@
  * and emotional distress. Detecting them enables gentle intervention.
  */
 export type CognitiveDistortion =
-  | 'catastrophizing'        // Expecting the worst possible outcome
-  | 'mind_reading'           // Assuming you know what others think
-  | 'all_or_nothing'         // Black and white thinking, no middle ground
-  | 'fortune_telling'        // Predicting negative futures with certainty
-  | 'personalization'        // Taking responsibility for things outside your control
-  | 'overgeneralization'     // "Always" and "never" from single instances
-  | 'mental_filtering'       // Focusing only on negatives, ignoring positives
+  | 'catastrophizing' // Expecting the worst possible outcome
+  | 'mind_reading' // Assuming you know what others think
+  | 'all_or_nothing' // Black and white thinking, no middle ground
+  | 'fortune_telling' // Predicting negative futures with certainty
+  | 'personalization' // Taking responsibility for things outside your control
+  | 'overgeneralization' // "Always" and "never" from single instances
+  | 'mental_filtering' // Focusing only on negatives, ignoring positives
   | 'disqualifying_positive' // Dismissing positive experiences as not counting
-  | 'should_statements'      // Rigid rules about how things "should" be
-  | 'emotional_reasoning'    // Believing feelings are facts
-  | 'labeling'               // Attaching global negative labels to self/others
-  | 'magnification'          // Blowing things out of proportion
-  | 'minimization'           // Downplaying achievements or positive traits
+  | 'should_statements' // Rigid rules about how things "should" be
+  | 'emotional_reasoning' // Believing feelings are facts
+  | 'labeling' // Attaching global negative labels to self/others
+  | 'magnification' // Blowing things out of proportion
+  | 'minimization' // Downplaying achievements or positive traits
   | 'jumping_to_conclusions' // Reaching conclusions without evidence
-  | 'blame';                 // Holding others entirely responsible
+  | 'blame'; // Holding others entirely responsible
 
 /**
  * Metadata about each cognitive distortion for detection and response.
@@ -134,11 +134,11 @@ export interface DistortionDetection {
  * Approach recommendation for responding to detected distortions.
  */
 export type ResponseApproach =
-  | 'socratic'     // Ask questions to guide discovery
-  | 'validate'     // Just acknowledge the feeling
-  | 'gentle_name'  // Gently name the pattern
-  | 'reframe'      // Offer alternative perspective
-  | 'wait';        // Not the right time to address
+  | 'socratic' // Ask questions to guide discovery
+  | 'validate' // Just acknowledge the feeling
+  | 'gentle_name' // Gently name the pattern
+  | 'reframe' // Offer alternative perspective
+  | 'wait'; // Not the right time to address
 
 /**
  * Recommendation for how to respond to a detected distortion.
@@ -322,10 +322,10 @@ export interface ThoughtRecord {
   // -------------------------
 
   situation: {
-    what: string;           // What happened?
-    when: Date;             // When did it happen?
-    where?: string;         // Where were you?
-    who?: string[];         // Who was involved?
+    what: string; // What happened?
+    when: Date; // When did it happen?
+    where?: string; // Where were you?
+    who?: string[]; // Who was involved?
   };
 
   // -------------------------
@@ -334,7 +334,7 @@ export interface ThoughtRecord {
 
   automaticThoughts: Array<{
     thought: string;
-    beliefStrength: number;    // 0-100: How much do you believe this?
+    beliefStrength: number; // 0-100: How much do you believe this?
     distortions: CognitiveDistortion[];
   }>;
 
@@ -344,7 +344,7 @@ export interface ThoughtRecord {
 
   emotions: Array<{
     emotion: string;
-    intensity: number;         // 0-100
+    intensity: number; // 0-100
   }>;
 
   // -------------------------
@@ -365,7 +365,7 @@ export interface ThoughtRecord {
   // -------------------------
 
   balancedThought?: string;
-  newBeliefStrength?: number;  // 0-100
+  newBeliefStrength?: number; // 0-100
 
   // -------------------------
   // OUTCOME
@@ -417,32 +417,35 @@ export interface RestructuringProgress {
   // PER-DISTORTION PROGRESS
   // -------------------------
 
-  byDistortion: Map<CognitiveDistortion, {
-    /** How often detected */
-    frequency: number;
+  byDistortion: Map<
+    CognitiveDistortion,
+    {
+      /** How often detected */
+      frequency: number;
 
-    /** Trend for this specific distortion */
-    trend: 'improving' | 'stable' | 'declining';
+      /** Trend for this specific distortion */
+      trend: 'improving' | 'stable' | 'declining';
 
-    /** Times we successfully reframed */
-    successfulReframes: number;
+      /** Times we successfully reframed */
+      successfulReframes: number;
 
-    /** Total reframe attempts */
-    totalAttempts: number;
+      /** Total reframe attempts */
+      totalAttempts: number;
 
-    /** Success rate */
-    reframeSuccessRate: number;
+      /** Success rate */
+      reframeSuccessRate: number;
 
-    /** Last detected */
-    lastDetected?: Date;
-  }>;
+      /** Last detected */
+      lastDetected?: Date;
+    }
+  >;
 
   // -------------------------
   // THOUGHT RECORDS
   // -------------------------
 
   thoughtRecordsCompleted: number;
-  avgEmotionReduction: number;  // Average pre-to-post reduction
+  avgEmotionReduction: number; // Average pre-to-post reduction
 
   // -------------------------
   // SELF-AWARENESS
@@ -534,4 +537,3 @@ export const DEFAULT_CONFIG: CognitiveIntelligenceConfig = {
   enableThoughtRecords: true,
   enableProgressTracking: true,
 };
-

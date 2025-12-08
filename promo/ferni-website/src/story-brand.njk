@@ -183,7 +183,19 @@ description: Six AI specialists who actually listen, remember everything, and he
     <div class="team-grid reveal-stagger">
       {% for member in site.team %}
       <div class="team-card">
+        {% if member.name == "Ferni" %}
+        <div class="team-card__avatar team-card__avatar--logo">
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
+            <circle cx="50" cy="50" r="18" fill="white"/>
+            <circle cx="50" cy="50" r="12" fill="#5a8060"/>
+            <circle cx="50" cy="50" r="6" fill="#2c2520"/>
+            <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
+          </svg>
+        </div>
+        {% else %}
         <div class="team-card__avatar" style="background: {{ member.color }};">{{ member.initials }}</div>
+        {% endif %}
         <h3 class="team-card__name">{{ member.name }}</h3>
         <p class="team-card__role">{{ member.role }}</p>
         <p class="team-card__bio">{{ member.bio }}</p>
