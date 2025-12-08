@@ -1146,6 +1146,46 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // 5. Build response guidance
   const responseGuidance = buildResponseGuidance(ctx, analysisResult, emotionalState);
 
+  // 5b. HUMAN-FIRST 2FA: Process message for magic moments and contact detection
+  // This detects:
+  // - Phone numbers/emails in user message (auto-saves them)
+  // - Magic moments (emotional highs perfect for phone ask)
+  // - Verification codes (if user is verifying)
+  let identityMessageResult: {
+    shouldAskForPhone?: boolean;
+    contactDetected?: boolean;
+    verificationResult?: { verified: boolean; message: string };
+    llmContextUpdate?: string;
+  } | undefined;
+  
+  try {
+    const { onUserMessage } = await import('../../services/trust-and-identity/voice-agent-integration.js');
+    const emotionalIntensity = emotionalState.intensity ?? 0.5;
+    
+    identityMessageResult = await onUserMessage(
+      services.sessionId,
+      userText,
+      emotionalIntensity
+    );
+    
+    if (identityMessageResult.contactDetected) {
+      diag.user('📱 Contact info detected and saved');
+    }
+    
+    if (identityMessageResult.shouldAskForPhone) {
+      diag.user('✨ Magic moment detected - phone ask pending');
+    }
+    
+    if (identityMessageResult.verificationResult) {
+      diag.user('🔐 Verification code processed', {
+        verified: identityMessageResult.verificationResult.verified,
+      });
+    }
+  } catch (identityErr) {
+    // Non-fatal - don't block turn processing
+    diag.warn('Identity message processing failed (non-fatal)', { error: String(identityErr) });
+  }
+
   // 6. Build identity context
   const identityContext = buildIdentityContext(ctx);
 
@@ -1165,6 +1205,32 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     humanizingResult,
     bundleRuntimeContext
   );
+
+  // 9b. Add identity-related context injections (verification results, contact detection)
+  if (identityMessageResult) {
+    // If verification code was detected and processed
+    if (identityMessageResult.verificationResult) {
+      injections.push({
+        category: 'identity_verification',
+        content: identityMessageResult.verificationResult.verified
+          ? `[VERIFICATION SUCCESS] User verified their phone! Thank them warmly: "${identityMessageResult.verificationResult.message}"`
+          : `[VERIFICATION NEEDED] ${identityMessageResult.verificationResult.message}`,
+        priority: 100, // High priority
+      });
+    }
+    
+    // If contact info was detected in their message
+    if (identityMessageResult.contactDetected) {
+      injections.push({
+        category: 'contact_detected',
+        content: `[CONTACT SAVED] User provided their contact info! Thank them warmly and naturally - you can now follow up with them between sessions.`,
+        priority: 50, // Medium priority
+      });
+    }
+    
+    // Note: Phone ask injection happens in voice-agent.ts via getResponseModification()
+    // because it needs to be injected AFTER turn processing, right before the response
+  }
 
   // 10. Update userData for handoff system
   const { currentTopic, analysis } = analysisResult;

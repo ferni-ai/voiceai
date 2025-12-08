@@ -35,8 +35,11 @@ const log = getLogger().child({ module: 'outreach-handler' });
 // Route prefix for early bailout
 const OUTREACH_PREFIX = '/api/outreach';
 
-// In-memory verification codes (in production, use Redis/Firestore with TTL)
-const verificationCodes = new Map<string, { code: string; expires: number }>();
+// Import persistent verification store
+import {
+  createVerificationCode,
+  verifyCode,
+} from '../services/trust-and-identity/verification-store.js';
 
 // Helper to get persona display name
 function getPersonaName(personaId: string): string {
@@ -615,27 +618,28 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/verify-phone - Send verification code
     if (route === '/verify-phone' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { phone } = body as { phone: string };
+      const { phone, userId } = body as { phone: string; userId?: string };
 
       if (!phone) {
         sendJsonResponse(res, 400, { success: false, error: 'phone is required' });
         return true;
       }
 
-      // Generate 6-digit code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // Use userId or phone as identifier
+      const identifier = userId || `phone:${phone}`;
 
-      // Store code temporarily (in production, use Redis/Firestore with TTL)
-      verificationCodes.set(phone, { code, expires: Date.now() + 10 * 60 * 1000 });
-
-      // Send via Twilio
       try {
+        // Create verification code in persistent store
+        const { code, expiresAt } = await createVerificationCode(identifier, phone);
+
+        // Send via Twilio
         const { textUser } = await import('../tools/proactive-outreach.js');
-        await textUser(phone, `Your Ferni verification code is: ${code}`, 'ferni');
-        log.info({ phone }, 'Sent verification code');
+        await textUser(phone, `Your Ferni code is ${code}. Just making sure it's really you! 💚`, 'ferni');
+        
+        log.info({ phone: phone.slice(-4), expiresAt }, 'Sent verification code');
         sendJsonResponse(res, 200, { success: true, message: 'Verification code sent' });
       } catch (error) {
-        log.error({ error, phone }, 'Failed to send verification code');
+        log.error({ error, phone: phone.slice(-4) }, 'Failed to send verification code');
         sendJsonResponse(res, 500, { success: false, error: 'Failed to send code' });
       }
       return true;
@@ -644,40 +648,38 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/verify-phone/confirm - Verify the code
     if (route === '/verify-phone/confirm' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { phone, code } = body as { phone: string; code: string };
+      const { phone, code, userId } = body as { phone: string; code: string; userId?: string };
 
       if (!phone || !code) {
         sendJsonResponse(res, 400, { success: false, error: 'phone and code are required' });
         return true;
       }
 
-      const stored = verificationCodes.get(phone);
-      if (!stored) {
-        sendJsonResponse(res, 400, {
-          success: false,
-          error: 'No verification pending for this number',
-        });
-        return true;
-      }
+      // Use userId or phone as identifier (same as when creating)
+      const identifier = userId || `phone:${phone}`;
 
-      if (Date.now() > stored.expires) {
-        verificationCodes.delete(phone);
-        sendJsonResponse(res, 400, {
-          success: false,
-          error: 'Code expired. Please request a new one.',
-        });
-        return true;
-      }
+      try {
+        // Verify using persistent store
+        const result = await verifyCode(identifier, code);
 
-      if (stored.code !== code) {
-        sendJsonResponse(res, 400, { success: false, error: 'Invalid code' });
-        return true;
+        if (result.valid) {
+          log.info({ phone: phone.slice(-4) }, 'Phone verified');
+          sendJsonResponse(res, 200, { success: true, message: 'Phone verified' });
+        } else {
+          // Map reason to user-friendly message
+          const errorMessages: Record<string, string> = {
+            expired: 'Code expired. Please request a new one.',
+            invalid: 'Invalid code. Please check and try again.',
+            max_attempts: 'Too many attempts. Please request a new code.',
+            not_found: 'No verification pending for this number.',
+          };
+          const errorMessage = errorMessages[result.reason] || 'Verification failed';
+          sendJsonResponse(res, 400, { success: false, error: errorMessage });
+        }
+      } catch (error) {
+        log.error({ error, phone: phone.slice(-4) }, 'Verification error');
+        sendJsonResponse(res, 500, { success: false, error: 'Verification failed' });
       }
-
-      // Code verified!
-      verificationCodes.delete(phone);
-      log.info({ phone }, 'Phone verified');
-      sendJsonResponse(res, 200, { success: true, message: 'Phone verified' });
       return true;
     }
 

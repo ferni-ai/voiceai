@@ -28,13 +28,16 @@ import {
 } from './identity-orchestrator.js';
 
 import {
-  initiatePhoneVerification,
-  verifyPhoneCode,
   detectMagicMoment,
   type MagicMomentAnalysis,
 } from './human-first-2fa.js';
 
 import { sendSMS } from '../communication-service.js';
+import {
+  createVerificationCode,
+  verifyCode,
+  getVerificationStatus,
+} from './verification-store.js';
 
 const log = getLogger().child({ module: 'VoiceAgentIntegration' });
 
@@ -44,17 +47,12 @@ const log = getLogger().child({ module: 'VoiceAgentIntegration' });
 
 interface IntegrationSession {
   sessionId: string;
+  userId: string;
   identityContext: IdentityContext;
   pendingPhoneAsk?: {
     script: string;
     momentType: string;
     injected: boolean;
-  };
-  verificationState?: {
-    code: string;
-    phone: string;
-    expires: Date;
-    attempts: number;
   };
   lastMagicMoment?: MagicMomentAnalysis;
 }
@@ -96,6 +94,7 @@ export async function onSessionStart(
     // Create integration session
     const session: IntegrationSession = {
       sessionId,
+      userId: identityContext.userId,
       identityContext,
     };
     integrationSessions.set(sessionId, session);
@@ -423,7 +422,7 @@ export async function canPerformSensitiveOperation(
 ): Promise<{
   allowed: boolean;
   reason?: string;
-  verificationNeeded: boolean;
+  requiresVerification: boolean;
   verificationMethod?: 'voice' | 'phone' | 'knowledge';
 }> {
   return checkOperationPermission(sessionId, sensitivity);
@@ -462,23 +461,15 @@ export async function startPhoneVerification(
   }
 
   try {
-    // Generate verification code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Store verification state
-    session.verificationState = {
-      code,
-      phone: phoneNumber,
-      expires: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
-      attempts: 0,
-    };
+    // Create verification code in persistent store
+    const { code, expiresAt } = await createVerificationCode(session.userId, phoneNumber);
 
     // Send SMS (using existing communication service)
     const smsMessage = `Your Ferni code is ${code}. Just making sure it's really you! 💚`;
 
     try {
       await sendSMS(phoneNumber, smsMessage);
-      log.info({ sessionId, phone: phoneNumber.slice(-4) }, '📲 Verification SMS sent');
+      log.info({ sessionId, phone: phoneNumber.slice(-4), expiresAt }, '📲 Verification SMS sent');
     } catch (smsError) {
       log.warn({ error: smsError, sessionId }, 'Failed to send SMS - continuing in dev mode');
       // In dev mode, log the code
@@ -507,13 +498,10 @@ async function checkForVerificationCode(
   session: IntegrationSession,
   userText: string
 ): Promise<{ verified: boolean; message: string } | null> {
-  if (!session.verificationState) {
-    return null;
-  }
-
-  // Check if expired
-  if (session.verificationState.expires < new Date()) {
-    session.verificationState = undefined;
+  // Check if user has a pending verification code
+  const status = await getVerificationStatus(session.userId);
+  
+  if (!status?.hasPendingCode) {
     return null;
   }
 
@@ -524,13 +512,14 @@ async function checkForVerificationCode(
   }
 
   const providedCode = codeMatch[1];
-  session.verificationState.attempts++;
+  
+  // Verify using persistent store
+  const result = await verifyCode(session.userId, providedCode);
 
-  if (providedCode === session.verificationState.code) {
+  if (result.valid) {
     // Success!
     session.identityContext.hasPhone = true;
     session.identityContext.trustLevel = 'verified';
-    session.verificationState = undefined;
 
     log.info({ sessionId: session.sessionId }, '✅ Phone verified successfully');
 
@@ -540,19 +529,29 @@ async function checkForVerificationCode(
     };
   }
 
-  // Wrong code
-  if (session.verificationState.attempts >= 3) {
-    session.verificationState = undefined;
-    return {
-      verified: false,
-      message: "That code didn't work, and we've tried a few times. Let's try again later.",
-    };
+  // Handle different failure reasons
+  switch (result.reason) {
+    case 'expired':
+      return {
+        verified: false,
+        message: "That code expired. Want me to send you a new one?",
+      };
+    case 'max_attempts':
+      return {
+        verified: false,
+        message: "That code didn't work, and we've tried a few times. Let's try again later.",
+      };
+    case 'invalid':
+      return {
+        verified: false,
+        message: "Hmm, that doesn't match. Can you check the code I texted you?",
+      };
+    default:
+      return {
+        verified: false,
+        message: "Something went wrong. Let's try again later.",
+      };
   }
-
-  return {
-    verified: false,
-    message: "Hmm, that doesn't match. Can you check the code I texted you?",
-  };
 }
 
 function buildPhoneAskContext(result: {
@@ -602,18 +601,8 @@ function getToneForMoment(momentType: string): string {
 }
 
 // ============================================================================
-// EXPORTS
+// EXPORTS (default export for convenience)
 // ============================================================================
-
-export {
-  onSessionStart,
-  onUserMessage,
-  getResponseModification,
-  onSessionEnd,
-  processVoiceAuth,
-  canPerformSensitiveOperation,
-  startPhoneVerification,
-};
 
 export default {
   onSessionStart,

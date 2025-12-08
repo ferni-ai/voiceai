@@ -744,6 +744,31 @@ class VoiceAgent extends voice.Agent<UserData> {
                   const breakMs = Math.min(500, Math.max(100, rhythmAdjustments.phraseBreakMs));
                   taggedText = taggedText.replace(/([.!?])\s+/g, `$1<break time="${breakMs}ms"/> `);
                 }
+
+                // 4. Advanced word-timing rhythm (Phase 7+)
+                const advRhythmFlags = getSessionFlags(sessionId);
+                if (advRhythmFlags.enableWordTimingRhythm) {
+                  try {
+                    const wordTimingService = getWordTimingRhythmService(sessionId);
+                    const ssmlAdjustments = wordTimingService.getCurrentAdjustments();
+                    
+                    // Apply rate adjustment if learned rhythm differs significantly
+                    if (ssmlAdjustments.rate !== 1.0 && !taggedText.includes('<prosody')) {
+                      const ratePercent = Math.round(ssmlAdjustments.rate * 100);
+                      if (ratePercent !== 100) {
+                        taggedText = `<prosody rate="${ratePercent}%">${taggedText}</prosody>`;
+                      }
+                    }
+                    
+                    // Apply micro-pause pattern if user has staccato style
+                    if (ssmlAdjustments.addMicroPauses && ssmlAdjustments.microPauseDuration > 0) {
+                      const microMs = ssmlAdjustments.microPauseDuration;
+                      taggedText = taggedText.replace(/([,;])\s+/g, `$1<break time="${microMs}ms"/> `);
+                    }
+                  } catch (wtErr) {
+                    // Word timing is non-critical
+                  }
+                }
               } catch (humanErr) {
                 // Voice humanization is non-blocking
                 agent.logger.debug({ error: String(humanErr) }, 'Voice humanization TTS adjustment failed');
@@ -907,11 +932,17 @@ class VoiceAgent extends voice.Agent<UserData> {
                     }
                     
                     // Store for response adjustment
+                    // Map multi-signal laugh types to basic laugh types
+                    const basicLaughType = (laughterResult.laughType === 'nervous' || 
+                                           laughterResult.laughType === 'polite')
+                      ? 'unknown' as const
+                      : laughterResult.laughType;
+                    
                     if (userData) {
                       userData.detectedLaughter = {
                         isLaughing: true,
                         confidence: laughterResult.confidence,
-                        laughType: laughterResult.laughType,
+                        laughType: basicLaughType,
                         suggestedResponse: laughterResult.suggestedResponse.type === 'join' 
                           ? 'join_in' 
                           : laughterResult.suggestedResponse.type === 'acknowledge' 
@@ -1287,6 +1318,42 @@ class VoiceAgent extends voice.Agent<UserData> {
       // Inject context into LLM
       injectTurnContext(turnCtx, result);
 
+      // ================================================================
+      // HUMAN-FIRST 2FA: Check for phone ask opportunity
+      // If a magic moment was detected, inject the phone ask guidance
+      // ================================================================
+      try {
+        const { getResponseModification } = await import('../services/trust-and-identity/voice-agent-integration.js');
+        const phoneAskMod = getResponseModification(services.sessionId);
+        
+        if (phoneAskMod.injectPhoneAsk && phoneAskMod.script) {
+          // Add phone ask guidance to the LLM context
+          turnCtx.addMessage({
+            role: 'system',
+            content: `[MAGIC MOMENT - PHONE COLLECTION]
+This is a perfect emotional moment to naturally ask for their phone number.
+Moment type: ${phoneAskMod.momentType}
+Emotional tone: ${phoneAskMod.tone}
+
+SUGGESTED ASK (incorporate naturally): "${phoneAskMod.script}"
+
+IMPORTANT:
+- Frame this as wanting to follow up/check in, NOT data collection
+- Make it feel like YOU want to stay connected, not that you NEED their info
+- If they decline, accept gracefully and move on
+- Don't repeat if already asked this session`,
+          });
+          
+          diag.session('📱 Phone ask injected', {
+            momentType: phoneAskMod.momentType,
+            tone: phoneAskMod.tone,
+          });
+        }
+      } catch (phoneAskErr) {
+        // Non-fatal - don't block on phone ask injection
+        this.logger.debug({ error: String(phoneAskErr) }, 'Phone ask injection skipped');
+      }
+
       // Send celebration events to frontend
       const celebrations = getCelebrationEvents(result);
       if (celebrations.length > 0) {
@@ -1563,6 +1630,28 @@ export default defineAgent({
             source: identificationSource,
             metadataNameFiltered: metadataName && !isRealName(metadataName),
           });
+
+          // ===============================================
+          // HUMAN-FIRST 2FA: Start identity session
+          // This enables magic moment detection, trust levels,
+          // and natural phone collection throughout the session
+          // ===============================================
+          try {
+            const { onSessionStart } = await import('../services/trust-and-identity/voice-agent-integration.js');
+            const identityResult = await onSessionStart(sessionId, metadata, null);
+            
+            diag.session('🔐 Identity session started', {
+              trustLevel: identityResult.identityContext.trustLevel,
+              hasPhone: identityResult.identityContext.hasPhone,
+              voiceConfidence: identityResult.identityContext.voiceConfidence,
+              relationshipStage: identityResult.identityContext.relationshipStage,
+            });
+            
+            // Store identity context in metadata for later use
+            (metadata as Record<string, unknown>).__identityContext = identityResult.identityContext;
+          } catch (identityErr) {
+            diag.warn('Identity session start failed (non-fatal)', { error: String(identityErr) });
+          }
         }
       } catch (e) {
         diag.warn('User identification failed', { error: String(e) });
@@ -2310,6 +2399,62 @@ export default defineAgent({
               transcript: event.transcript.slice(0, 30),
             });
             // The onInterrupt callback handles the actual interruption
+          }
+        }
+
+        // ===============================================
+        // RESPONSE ANTICIPATION (Phase 7+ - Monitoring Mode)
+        // Analyze partial transcripts for pattern caching
+        // ===============================================
+        const antFlags = getSessionFlags(sessionId);
+        if (antFlags.enableResponseAnticipation && event.transcript) {
+          try {
+            const anticipator = getResponseAnticipationService(sessionId);
+            const startTime = Date.now();
+            
+            const anticipation = anticipator.anticipate(event.transcript);
+            
+            const latencyMs = Date.now() - startTime;
+            
+            if (anticipation && anticipation.confidence > 0.5) {
+              // Record metrics
+              if (antFlags.enableMetrics) {
+                recordCacheAttempt(
+                  sessionId,
+                  anticipation.isComplete,
+                  anticipation.intent,
+                  latencyMs
+                );
+                recordLatency(sessionId, 'anticipation', latencyMs);
+              }
+              
+              // Log the anticipation (monitoring mode)
+              diag.state('⚡ Response anticipation', {
+                intent: anticipation.intent,
+                confidence: anticipation.confidence.toFixed(2),
+                isComplete: anticipation.isComplete,
+                isFinal: event.isFinal,
+                latencyMs,
+              });
+
+              // If using cached responses (not just monitoring) and high confidence
+              if (antFlags.useCachedResponses && 
+                  anticipation.isComplete && 
+                  anticipation.confidence >= antFlags.cacheConfidenceThreshold &&
+                  event.isFinal) {
+                const cached = anticipator.getCompleteResponse();
+                if (cached) {
+                  diag.state('⚡ CACHE HIT - Would use cached response', {
+                    intent: anticipation.intent,
+                    response: cached.response.slice(0, 50),
+                  });
+                  // Note: We could call session.say(cached.ssml) here
+                  // but for now we're in monitoring mode
+                }
+              }
+            }
+          } catch (antErr) {
+            // Response anticipation is non-critical
           }
         }
 
@@ -3856,6 +4001,18 @@ export default defineAgent({
               diag.session('Optimization data flushed');
             } catch (e) {
               log().debug({ error: String(e) }, 'Optimization flush failed (non-fatal)');
+            }
+
+            // ================================================================
+            // HUMAN-FIRST 2FA: End identity session
+            // Cleanup identity tracking and save any pending state
+            // ================================================================
+            try {
+              const { onSessionEnd } = await import('../services/trust-and-identity/voice-agent-integration.js');
+              await onSessionEnd(sessionId);
+              diag.session('🔐 Identity session ended');
+            } catch (identityEndErr) {
+              diag.warn('Identity session end failed (non-fatal)', { error: String(identityEndErr) });
             }
 
             diag.session('Session cleanup complete');
