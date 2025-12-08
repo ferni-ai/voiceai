@@ -10,26 +10,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Use vi.hoisted to define mocks available when vi.mock is hoisted
-const {
-  mockCreateStandardInjection,
-  mockRegisterContextBuilder,
-  mockGetMusicPlayer,
-  mockLogger,
-} = vi.hoisted(() => ({
-  mockCreateStandardInjection: vi.fn((type: string, content: string) => ({
-    type,
-    content,
-    priority: 'standard',
-  })),
-  mockRegisterContextBuilder: vi.fn(),
-  mockGetMusicPlayer: vi.fn(),
-  mockLogger: {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+const { mockCreateStandardInjection, mockRegisterContextBuilder, mockGetMusicPlayer, mockLogger } =
+  vi.hoisted(() => ({
+    mockCreateStandardInjection: vi.fn((type: string, content: string) => ({
+      type,
+      content,
+      priority: 'standard',
+    })),
+    mockRegisterContextBuilder: vi.fn(),
+    mockGetMusicPlayer: vi.fn(),
+    mockLogger: {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    },
+  }));
 
 // Mock dependencies
 vi.mock('../utils/safe-logger.js', () => ({

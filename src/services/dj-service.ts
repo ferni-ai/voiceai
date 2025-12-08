@@ -118,7 +118,7 @@ export function getSpontaneousMusicOffer(
   }
 ): string | null {
   const style = getDJStyle(personaId);
-  
+
   // Don't offer if we've already played music this session (too pushy)
   if (context.hasPlayedMusicThisSession && Math.random() > 0.3) {
     return null;
@@ -221,16 +221,18 @@ function getMoodBasedOffer(personaId: string, mood: string, style: DJPersonaStyl
         '<break time="150ms"/>Music time? Music time.',
         '<break time="150ms"/>Let me find something to cheer you up!',
       ],
-      emotional: [
-        '<break time="200ms"/>Want some music? I\'ll pick something good.',
-      ],
+      emotional: ['<break time="200ms"/>Want some music? I\'ll pick something good.'],
     },
   };
 
   const styleOffers = moodOffers[style.style] || moodOffers.warm;
-  const moodKey = mood === 'sad' || mood === 'anxious' || mood === 'stressed' ? 'stressed' :
-                  mood === 'happy' || mood === 'excited' ? 'happy' : 'emotional';
-  
+  const moodKey =
+    mood === 'sad' || mood === 'anxious' || mood === 'stressed'
+      ? 'stressed'
+      : mood === 'happy' || mood === 'excited'
+        ? 'happy'
+        : 'emotional';
+
   const offers = styleOffers[moodKey] || styleOffers.emotional;
   return offers[Math.floor(Math.random() * offers.length)];
 }
@@ -238,7 +240,9 @@ function getMoodBasedOffer(personaId: string, mood: string, style: DJPersonaStyl
 function getTimeBasedOffer(personaId: string, timeOfDay: string, style: DJPersonaStyle): string {
   const timeOffers: Record<string, Record<string, string[]>> = {
     morning: {
-      hype: ['<emotion value="happy"/><break time="100ms"/>Morning energy! Want some upbeat tunes?'],
+      hype: [
+        '<emotion value="happy"/><break time="100ms"/>Morning energy! Want some upbeat tunes?',
+      ],
       chill: ['<break time="200ms"/>Morning. <break time="150ms"/>Coffee and music?'],
       mindful: ['<break time="200ms"/>Some gentle morning music perhaps?'],
       warm: ['<break time="200ms"/>Good morning music always helps. Want some?'],
@@ -286,10 +290,7 @@ function getGenericMusicOffer(personaId: string, style: DJPersonaStyle): string 
       '<break time="200ms"/>Want me to put on some music?',
       '<break time="200ms"/>How about some music?',
     ],
-    sophisticated: [
-      '<break time="150ms"/>Shall I play something?',
-      '<break time="200ms"/>Music?',
-    ],
+    sophisticated: ['<break time="150ms"/>Shall I play something?', '<break time="200ms"/>Music?'],
     playful: [
       '<break time="100ms"/>Music? Pretty please?',
       '<emotion value="happy"/><break time="100ms"/>Can I DJ for you?',
@@ -310,7 +311,7 @@ function getGenericMusicOffer(personaId: string, style: DJPersonaStyle): string 
  */
 export function getQueueTeaser(personaId: string, hasQueue: boolean): string | null {
   const style = getDJStyle(personaId);
-  
+
   if (!hasQueue) {
     return getContinuityOffer(personaId, style);
   }
@@ -325,19 +326,13 @@ export function getQueueTeaser(personaId: string, hasQueue: boolean): string | n
       '<break time="150ms"/>Got another good one lined up.',
       '<break time="200ms"/>Next one\'s good too.',
     ],
-    mindful: [
-      '<break time="200ms"/>I have something beautiful queued up.',
-    ],
+    mindful: ['<break time="200ms"/>I have something beautiful queued up.'],
     warm: [
       '<break time="150ms"/>I\'ve got something nice coming next.',
       '<break time="200ms"/>Wait for the next one.',
     ],
-    sophisticated: [
-      '<break time="150ms"/>The next selection is excellent.',
-    ],
-    playful: [
-      '<emotion value="happy"/><break time="100ms"/>Ooh the next one though!',
-    ],
+    sophisticated: ['<break time="150ms"/>The next selection is excellent.'],
+    playful: ['<emotion value="happy"/><break time="100ms"/>Ooh the next one though!'],
   };
 
   const personaTeasers = teasers[style.style] || teasers.warm;
@@ -362,9 +357,7 @@ function getContinuityOffer(personaId: string, style: DJPersonaStyle): string {
       '<break time="200ms"/>Want me to play something else?',
       '<break time="200ms"/>More music?',
     ],
-    sophisticated: [
-      '<break time="150ms"/>Another selection?',
-    ],
+    sophisticated: ['<break time="150ms"/>Another selection?'],
     playful: [
       '<emotion value="happy"/><break time="100ms"/>Again! Again!',
       '<break time="100ms"/>Encore?',
@@ -383,12 +376,9 @@ function getContinuityOffer(personaId: string, style: DJPersonaStyle): string {
  * Get an appreciation comment about the music
  * These are brief comments that show the DJ is enjoying the music too
  */
-export function getMusicAppreciationComment(
-  personaId: string,
-  track: MusicTrack
-): string | null {
+export function getMusicAppreciationComment(personaId: string, track: MusicTrack): string | null {
   const style = getDJStyle(personaId);
-  
+
   // Only comment based on persona's interjection frequency
   if (Math.random() > style.interjectionFrequency) {
     return null;
@@ -439,7 +429,7 @@ export function getMusicAppreciationComment(
  */
 export function getMusicElementAppreciation(personaId: string): string | null {
   const style = getDJStyle(personaId);
-  
+
   // Less frequent than general appreciation
   if (Math.random() > style.interjectionFrequency * 0.5) {
     return null;
@@ -497,7 +487,7 @@ export function getMusicConversationStarter(
   }
 ): string {
   const style = getDJStyle(personaId);
-  
+
   // About the current track
   if (context.track) {
     return getTrackConversation(personaId, context.track, style);
@@ -530,9 +520,7 @@ function getTrackConversation(personaId: string, track: MusicTrack, style: DJPer
       `<break time="200ms"/>Do you have a history with this song?`,
       `<break time="200ms"/>What made you think of this?`,
     ],
-    sophisticated: [
-      `<break time="150ms"/>What appeals to you about ${track.artist}\'s work?`,
-    ],
+    sophisticated: [`<break time="150ms"/>What appeals to you about ${track.artist}\'s work?`],
     playful: [
       `<emotion value="happy"/><break time="100ms"/>Okay but what\'s your ALL time favorite song?`,
     ],
@@ -542,28 +530,22 @@ function getTrackConversation(personaId: string, track: MusicTrack, style: DJPer
   return personaQuestions[Math.floor(Math.random() * personaQuestions.length)];
 }
 
-function getTasteConversation(personaId: string, history: SessionMusicEntry[], style: DJPersonaStyle): string {
+function getTasteConversation(
+  personaId: string,
+  history: SessionMusicEntry[],
+  style: DJPersonaStyle
+): string {
   const artist = history[history.length - 1]?.track.artist || 'music';
-  
+
   const questions: Record<string, string[]> = {
-    hype: [
-      `<break time="100ms"/>You\'ve got good taste! Who else do you like?`,
-    ],
-    chill: [
-      `<break time="200ms"/>So you\'re into ${artist}... what else?`,
-    ],
+    hype: [`<break time="100ms"/>You\'ve got good taste! Who else do you like?`],
+    chill: [`<break time="200ms"/>So you\'re into ${artist}... what else?`],
     mindful: [
       `<break time="200ms"/>Music seems important to you. <break time="150ms"/>What role does it play in your life?`,
     ],
-    warm: [
-      `<break time="200ms"/>What kind of music speaks to you?`,
-    ],
-    sophisticated: [
-      `<break time="150ms"/>Tell me about your musical preferences.`,
-    ],
-    playful: [
-      `<emotion value="happy"/><break time="100ms"/>What\'s your guilty pleasure song?`,
-    ],
+    warm: [`<break time="200ms"/>What kind of music speaks to you?`],
+    sophisticated: [`<break time="150ms"/>Tell me about your musical preferences.`],
+    playful: [`<emotion value="happy"/><break time="100ms"/>What\'s your guilty pleasure song?`],
   };
 
   const personaQuestions = questions[style.style] || questions.warm;
@@ -612,7 +594,9 @@ export function getReadTheRoomAction(
     const checkIns: Record<string, string[]> = {
       hype: ['<break time="150ms"/>You vibing? Or should I switch it up?'],
       chill: ['<break time="200ms"/>Just enjoying the music? Cool.'],
-      mindful: ['<break time="200ms"/>I\'ll let the music play. <break time="150ms"/>Just enjoying it with you.'],
+      mindful: [
+        '<break time="200ms"/>I\'ll let the music play. <break time="150ms"/>Just enjoying it with you.',
+      ],
       warm: ['<break time="200ms"/>I\'ll let it play. <break time="150ms"/>Enjoying this?'],
       sophisticated: ['<break time="150ms"/>Shall I continue with this selection?'],
       playful: ['<break time="150ms"/>You still with me? [laughter]'],
@@ -830,9 +814,7 @@ export function getCrossSessionMusicCallback(
     sophisticated: [
       `<break time="150ms"/>Based on your preference for ${artist}, I have a suggestion.`,
     ],
-    playful: [
-      `<emotion value="happy"/><break time="100ms"/>I know you love ${artist}!`,
-    ],
+    playful: [`<emotion value="happy"/><break time="100ms"/>I know you love ${artist}!`],
   };
 
   const personaCallbacks = callbacks[style.style] || callbacks.warm;
@@ -857,4 +839,3 @@ export const DJService = {
 };
 
 export default DJService;
-

@@ -1009,7 +1009,7 @@ class VoiceAgent extends voice.Agent<UserData> {
       // TRUST SYSTEMS DATA RECORDING
       // Record data to new trust systems for "better than human" features
       // ================================================================
-      const userId = services.userId;
+      const { userId } = services;
       if (userId) {
         await this.recordTrustSystemsData(userId, userText, result);
       }
@@ -2180,14 +2180,14 @@ export default defineAgent({
           // Track previous state to detect unexpected stops
           let lastMusicState = 'idle';
           let lastTrackName: string | undefined;
-          
+
           // 🎧 DJ ENGAGEMENT TRACKING - for "more than human" music experience
           let musicPlaybackStartTime: number | null = null;
           let lastAppreciationTime: number | null = null;
           let lastReadTheRoomTime: number | null = null;
           let appreciationTimer: NodeJS.Timeout | null = null;
           let readTheRoomTimer: NodeJS.Timeout | null = null;
-          
+
           // Cleanup function for timers
           const clearMusicTimers = () => {
             if (appreciationTimer) clearInterval(appreciationTimer);
@@ -2292,39 +2292,40 @@ export default defineAgent({
               // =====================================================
               // 🎧 DJ ENGAGEMENT FEATURES - Make Ferni feel human!
               // =====================================================
-              
+
               // When music STARTS playing, set up appreciation & engagement timers
               if (state === 'playing' && !isAmbient && track) {
                 musicPlaybackStartTime = Date.now();
                 lastAppreciationTime = null;
                 lastReadTheRoomTime = null;
-                
+
                 // Clear any existing timers
                 clearMusicTimers();
-                
+
                 // 🎵 MUSIC APPRECIATION: Random comments during playback
                 // Like a real DJ who's vibing with the music
                 appreciationTimer = setInterval(async () => {
                   try {
-                    const { getMusicAppreciationComment, getMusicElementAppreciation } = 
+                    const { getMusicAppreciationComment, getMusicElementAppreciation } =
                       await import('../services/dj-service.js');
-                    
+
                     // 30% chance of appreciation comment every 15-25 seconds
                     const now = Date.now();
                     const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
-                    const timeSinceLastAppreciation = lastAppreciationTime 
-                      ? (now - lastAppreciationTime) / 1000 
+                    const timeSinceLastAppreciation = lastAppreciationTime
+                      ? (now - lastAppreciationTime) / 1000
                       : timeSinceStart;
-                    
+
                     // Only appreciate if enough time has passed and we're still playing
                     if (timeSinceLastAppreciation > 15 && Math.random() < 0.3) {
                       // Randomly choose between general appreciation or element-specific
-                      const comment = Math.random() < 0.7 
-                        ? getMusicAppreciationComment(sessionPersona.id, track)
-                        : getMusicElementAppreciation(sessionPersona.id);
-                      
+                      const comment =
+                        Math.random() < 0.7
+                          ? getMusicAppreciationComment(sessionPersona.id, track)
+                          : getMusicElementAppreciation(sessionPersona.id);
+
                       if (comment) {
-                        diag.state('🎧 DJ appreciation comment', { 
+                        diag.state('🎧 DJ appreciation comment', {
                           comment: comment.slice(0, 50),
                           timeSinceStart: Math.round(timeSinceStart),
                         });
@@ -2336,27 +2337,30 @@ export default defineAgent({
                     diag.warn('Failed to generate appreciation', { error: String(e) });
                   }
                 }, 10000); // Check every 10 seconds
-                
+
                 // 🎯 READ THE ROOM: Check if user is engaged with the music
                 readTheRoomTimer = setInterval(async () => {
                   try {
                     const { getReadTheRoomAction } = await import('../services/dj-service.js');
-                    
+
                     const now = Date.now();
                     const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
-                    const timeSinceLastCheck = lastReadTheRoomTime 
-                      ? (now - lastReadTheRoomTime) / 1000 
+                    const timeSinceLastCheck = lastReadTheRoomTime
+                      ? (now - lastReadTheRoomTime) / 1000
                       : timeSinceStart;
-                    
+
                     // Only check every 60+ seconds
                     if (timeSinceLastCheck > 60) {
-                      const action = getReadTheRoomAction({
-                        musicHasBeenPlayingFor: timeSinceStart,
-                        userIsSilentDuringMusic: true, // We don't have VAD data here, assume silent
-                      }, sessionPersona.id);
-                      
+                      const action = getReadTheRoomAction(
+                        {
+                          musicHasBeenPlayingFor: timeSinceStart,
+                          userIsSilentDuringMusic: true, // We don't have VAD data here, assume silent
+                        },
+                        sessionPersona.id
+                      );
+
                       if (action?.phrase && action.action !== 'continue') {
-                        diag.state('🎧 Read the room check', { 
+                        diag.state('🎧 Read the room check', {
                           action: action.action,
                           timePlaying: Math.round(timeSinceStart),
                         });
@@ -2369,7 +2373,7 @@ export default defineAgent({
                   }
                 }, 30000); // Check every 30 seconds
               }
-              
+
               // Clear timers when music stops
               if (state === 'stopped' || state === 'paused' || state === 'idle') {
                 clearMusicTimers();
@@ -2771,7 +2775,7 @@ export default defineAgent({
             sessionPersona.id,
             services.userProfile.musicMemory
           );
-          
+
           // 20% chance to mention music preferences in greeting (not too pushy)
           if (musicCallback && Math.random() < 0.2) {
             greeting = `${greeting} <break time="500ms"/> ${musicCallback}`;
@@ -3039,7 +3043,7 @@ export default defineAgent({
           // 🎮 GAME START REQUEST (from UI game picker)
           // =====================================================
           if (message.type === 'game_start_request') {
-            const gameType = message.gameType;
+            const { gameType } = message;
             logger.info({ gameType }, '🎮 User requested game start via UI');
 
             try {

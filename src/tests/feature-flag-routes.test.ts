@@ -102,7 +102,14 @@ function createMockResponse(): {
 describe('Feature Flag Routes', () => {
   const sampleFlags = [
     { id: 'dark-mode', name: 'Dark Mode', type: 'boolean', enabled: true, category: 'ui' },
-    { id: 'new-feature', name: 'New Feature', type: 'percentage', enabled: false, percentage: 25, category: 'features' },
+    {
+      id: 'new-feature',
+      name: 'New Feature',
+      type: 'percentage',
+      enabled: false,
+      percentage: 25,
+      category: 'features',
+    },
   ];
 
   beforeEach(() => {

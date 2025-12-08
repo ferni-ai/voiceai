@@ -327,7 +327,7 @@ export async function handleOutreachRoutes(
 
       // Cancel the old trigger and create a new one with the updated time
       cancelOutreach(triggerId);
-      
+
       const newTriggerId = triggerOutreach({
         ...trigger,
         suggestedTime: new Date(newTime),
@@ -517,8 +517,16 @@ export async function handleOutreachRoutes(
         await callService.handleStatusCallback(callId, CallStatus, body as Record<string, unknown>);
 
         // Validate machine detection result
-        const validMachineResults = ['human', 'machine_start', 'machine_end_beep', 'machine_end_silence', 'machine_end_other', 'fax', 'unknown'] as const;
-        type MachineResult = typeof validMachineResults[number];
+        const validMachineResults = [
+          'human',
+          'machine_start',
+          'machine_end_beep',
+          'machine_end_silence',
+          'machine_end_other',
+          'fax',
+          'unknown',
+        ] as const;
+        type MachineResult = (typeof validMachineResults)[number];
 
         if (AnsweredBy && AnsweredBy !== 'human') {
           const machineResult = validMachineResults.includes(AnsweredBy as MachineResult)
@@ -556,8 +564,16 @@ export async function handleOutreachRoutes(
         const callService = getConversationalCallService();
 
         // Validate machine detection result
-        const validMachineResults = ['human', 'machine_start', 'machine_end_beep', 'machine_end_silence', 'machine_end_other', 'fax', 'unknown'] as const;
-        type MachineResult = typeof validMachineResults[number];
+        const validMachineResults = [
+          'human',
+          'machine_start',
+          'machine_end_beep',
+          'machine_end_silence',
+          'machine_end_other',
+          'fax',
+          'unknown',
+        ] as const;
+        type MachineResult = (typeof validMachineResults)[number];
         const machineResult = validMachineResults.includes(AnsweredBy as MachineResult)
           ? (AnsweredBy as MachineResult)
           : 'unknown';
@@ -626,13 +642,19 @@ export async function handleOutreachRoutes(
 
       const stored = verificationCodes.get(phone);
       if (!stored) {
-        sendJsonResponse(res, 400, { success: false, error: 'No verification pending for this number' });
+        sendJsonResponse(res, 400, {
+          success: false,
+          error: 'No verification pending for this number',
+        });
         return true;
       }
 
       if (Date.now() > stored.expires) {
         verificationCodes.delete(phone);
-        sendJsonResponse(res, 400, { success: false, error: 'Code expired. Please request a new one.' });
+        sendJsonResponse(res, 400, {
+          success: false,
+          error: 'Code expired. Please request a new one.',
+        });
         return true;
       }
 
@@ -665,7 +687,10 @@ export async function handleOutreachRoutes(
       }
 
       if (!phone && !email) {
-        sendJsonResponse(res, 400, { success: false, error: 'At least phone or email is required' });
+        sendJsonResponse(res, 400, {
+          success: false,
+          error: 'At least phone or email is required',
+        });
         return true;
       }
 
@@ -728,4 +753,3 @@ export async function handleOutreachRoutes(
     return true;
   }
 }
-

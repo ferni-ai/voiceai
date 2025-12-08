@@ -351,11 +351,7 @@ describe('Result Utilities', () => {
 
   describe('executeAll', () => {
     it('should collect all successes', async () => {
-      const operations = [
-        async () => success(1),
-        async () => success(2),
-        async () => success(3),
-      ];
+      const operations = [async () => success(1), async () => success(2), async () => success(3)];
 
       const result = await executeAll(operations);
 
@@ -366,10 +362,7 @@ describe('Result Utilities', () => {
     it('should collect all failures', async () => {
       const error1 = new Error('error1');
       const error2 = new Error('error2');
-      const operations = [
-        async () => failure(error1),
-        async () => failure(error2),
-      ];
+      const operations = [async () => failure(error1), async () => failure(error2)];
 
       const result = await executeAll(operations);
 
@@ -429,11 +422,11 @@ describe('Result Utilities', () => {
       });
 
       const resultPromise = retryResult(operation, { maxAttempts: 3, delayMs: 100 });
-      
+
       // Advance through retries
       await vi.advanceTimersByTimeAsync(100);
       await vi.advanceTimersByTimeAsync(200);
-      
+
       const result = await resultPromise;
 
       expect(isSuccess(result)).toBe(true);
@@ -445,9 +438,9 @@ describe('Result Utilities', () => {
       const operation = vi.fn(async () => failure(error));
 
       const resultPromise = retryResult(operation, { maxAttempts: 2, delayMs: 100 });
-      
+
       await vi.advanceTimersByTimeAsync(100);
-      
+
       const result = await resultPromise;
 
       expect(isFailure(result)).toBe(true);

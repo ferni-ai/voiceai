@@ -445,7 +445,7 @@ export function getMeaningfulSilenceResponse(
         invitesReply: false,
       };
     }
-    
+
     // After 30s, give a gentle hint or encouragement
     const gameEncouragements = getGameSilenceResponse(activeGameType);
     return {
@@ -588,14 +588,23 @@ export function getMeaningfulSilenceResponse(
     if (Math.random() < 0.3 && musicMasterEnabled && ambientEnabled && hasAmbientTracks) {
       // Use DJ service for persona-specific and mood-aware offers
       const currentHour = context.currentHour ?? new Date().getHours();
-      const timeOfDay = currentHour < 12 ? 'morning' : 
-                       currentHour < 17 ? 'afternoon' : 
-                       currentHour < 21 ? 'evening' : 'night';
-      
+      const timeOfDay =
+        currentHour < 12
+          ? 'morning'
+          : currentHour < 17
+            ? 'afternoon'
+            : currentHour < 21
+              ? 'evening'
+              : 'night';
+
       const djOffer = getSpontaneousMusicOffer(getCanonicalPersonaId(persona.id), {
         silenceDurationSec: context.silenceDurationSeconds,
-        recentMood: context.recentEmotionalTone === 'heavy' ? 'stressed' : 
-                    context.recentEmotionalTone === 'light' ? 'happy' : undefined,
+        recentMood:
+          context.recentEmotionalTone === 'heavy'
+            ? 'stressed'
+            : context.recentEmotionalTone === 'light'
+              ? 'happy'
+              : undefined,
         isAfterEmotionalMoment: context.recentEmotionalTone === 'heavy',
         timeOfDay,
       });
@@ -625,7 +634,7 @@ export function getMeaningfulSilenceResponse(
       try {
         const musicPlayer = getMusicPlayer();
         const sessionHistory = musicPlayer.getSessionHistory();
-        
+
         // Only if we've played music this session
         if (sessionHistory && sessionHistory.length > 0) {
           const conversationStarter = getMusicConversationStarter(
@@ -635,7 +644,7 @@ export function getMeaningfulSilenceResponse(
               sessionHistory,
             }
           );
-          
+
           if (conversationStarter) {
             return {
               type: 'music_conversation',
@@ -731,35 +740,31 @@ function getGameSilenceResponse(gameType?: string): string {
   const responses: Record<string, string[]> = {
     'name-that-tune': [
       "Take your time... it's a tricky one!",
-      "Want a hint?",
-      "No rush - really listen to it.",
+      'Want a hint?',
+      'No rush - really listen to it.',
       "The answer's on the tip of your tongue, I can feel it!",
     ],
     'one-word-song': [
-      "Any word will do!",
+      'Any word will do!',
       "Try something simple like 'love' or 'night'...",
       "I'm ready when you are!",
     ],
     'desert-island-discs': [
-      "This is a big decision - take your time.",
-      "Think about what songs have been there for you...",
-      "No wrong answers here.",
+      'This is a big decision - take your time.',
+      'Think about what songs have been there for you...',
+      'No wrong answers here.',
     ],
     'this-or-that': [
-      "Tough choice, right?",
-      "Go with your gut!",
+      'Tough choice, right?',
+      'Go with your gut!',
       "They're both good - which one speaks to you?",
     ],
     'mood-dj-challenge': [
-      "What kind of mood are you in?",
-      "Picture a scenario... driving? Relaxing? Working?",
-      "Describe any feeling or moment!",
+      'What kind of mood are you in?',
+      'Picture a scenario... driving? Relaxing? Working?',
+      'Describe any feeling or moment!',
     ],
-    default: [
-      "Take your time!",
-      "No rush - I'm here.",
-      "Want a hint?",
-    ],
+    default: ['Take your time!', "No rush - I'm here.", 'Want a hint?'],
   };
 
   const gameResponses = responses[gameType || 'default'] || responses.default;
@@ -772,14 +777,14 @@ function getGameSilenceResponse(gameType?: string): string {
 function getGameSuggestion(personaId: string): string | null {
   const gameSuggestions: Record<string, string[]> = {
     ferni: [
-      "Hey, want to play a game? We could do Name That Tune - I play a song, you guess it!",
+      'Hey, want to play a game? We could do Name That Tune - I play a song, you guess it!',
       "You know what might be fun? Desert Island Discs. Pick 5 songs you'd bring to an island.",
       "I have an idea - let's play One Word Song! You say a word, I find a song with it.",
       "Want to test my DJ skills? Give me a mood and I'll find the perfect song.",
-      "How about a quick game? I bet I can stump you with Name That Tune!",
+      'How about a quick game? I bet I can stump you with Name That Tune!',
     ],
     jack: [
-      "We could play a music game if you want. Desert Island Discs - what 5 songs would you bring?",
+      'We could play a music game if you want. Desert Island Discs - what 5 songs would you bring?',
       "Got time for Name That Tune? I'll play some classics.",
     ],
     alex: [
@@ -791,8 +796,8 @@ function getGameSuggestion(personaId: string): string | null {
       "Let's play a game! I'll describe a mood, you rate how well I match it with a song.",
     ],
     peter: [
-      "Fancy a music game? Name That Tune could be interesting.",
-      "We could do This or That - I play two songs, you pick your favorite.",
+      'Fancy a music game? Name That Tune could be interesting.',
+      'We could do This or That - I play two songs, you pick your favorite.',
     ],
     jordan: [
       "Hey! Want to play Name That Tune? I've got some good ones ready!",

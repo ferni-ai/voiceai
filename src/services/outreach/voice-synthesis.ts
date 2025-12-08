@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Voice Synthesis for Outreach
  *

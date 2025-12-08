@@ -136,7 +136,7 @@ export function shutdownCognitiveWebSocket(): void {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
   }
-  
+
   // Close all client connections
   for (const client of clients) {
     try {
@@ -146,7 +146,7 @@ export function shutdownCognitiveWebSocket(): void {
     }
   }
   clients.clear();
-  
+
   logger.info('Cognitive WebSocket service shutdown');
 }
 

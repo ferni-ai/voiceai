@@ -6,8 +6,8 @@
  * @module MonitoringRoutes
  */
 
-import { IncomingMessage, ServerResponse } from 'http';
-import { URL } from 'url';
+import type { IncomingMessage, ServerResponse } from 'http';
+import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
 
 import {
@@ -152,4 +152,3 @@ export async function handleMonitoringRoutes(
 export default {
   handleMonitoringRoutes,
 };
-

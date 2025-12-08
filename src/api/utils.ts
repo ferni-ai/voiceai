@@ -11,11 +11,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 /**
  * Send a JSON response
  */
-export function sendJsonResponse(
-  res: ServerResponse,
-  status: number,
-  data: unknown
-): void {
+export function sendJsonResponse(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
@@ -23,7 +19,7 @@ export function sendJsonResponse(
 /**
  * Parse JSON request body
  */
-export function parseRequestBody(req: IncomingMessage): Promise<unknown> {
+export async function parseRequestBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
 
@@ -52,10 +48,7 @@ export function parseRequestBody(req: IncomingMessage): Promise<unknown> {
 /**
  * Get query parameter from URL
  */
-export function getQueryParam(
-  req: IncomingMessage,
-  param: string
-): string | null {
+export function getQueryParam(req: IncomingMessage, param: string): string | null {
   try {
     const url = new URL(req.url || '', `http://${req.headers.host}`);
     return url.searchParams.get(param);
@@ -81,9 +74,7 @@ export function getUserId(req: IncomingMessage): string | null {
 /**
  * Verify authentication (basic version)
  */
-export function verifyAuth(
-  req: IncomingMessage
-): { authorized: boolean; userId?: string } {
+export function verifyAuth(req: IncomingMessage): { authorized: boolean; userId?: string } {
   const authHeader = req.headers.authorization;
 
   // Dev mode bypass
@@ -138,13 +129,9 @@ export function sendError(
 /**
  * Send success response with consistent format
  */
-export function sendSuccess(
-  res: ServerResponse,
-  data: Record<string, unknown> = {}
-): void {
+export function sendSuccess(res: ServerResponse, data: Record<string, unknown> = {}): void {
   sendJsonResponse(res, 200, {
     success: true,
     ...data,
   });
 }
-

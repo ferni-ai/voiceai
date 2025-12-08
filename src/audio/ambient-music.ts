@@ -539,11 +539,7 @@ export function getDJTrackChangePhrase(
  * @param artistName - The artist name
  * @param personaId - The persona speaking
  */
-export function getDJDropPhrase(
-  trackName: string,
-  artistName: string,
-  personaId?: string
-): string {
+export function getDJDropPhrase(trackName: string, artistName: string, personaId?: string): string {
   // Persona-specific drop styles - SHORT and punchy!
   const personaPhrases: Record<string, string[]> = {
     'jack-b': [
@@ -561,11 +557,7 @@ export function getDJDropPhrase(
       `<emotion value="happy"/>"${trackName}"!`,
       `<emotion value="happy"/>Yes!`,
     ],
-    ferni: [
-      `Here's "${trackName}".`,
-      `"${trackName}" by ${artistName}.`,
-      `There we go.`,
-    ],
+    ferni: [`Here's "${trackName}".`, `"${trackName}" by ${artistName}.`, `There we go.`],
   };
 
   const defaultPhrases = [
@@ -722,10 +714,9 @@ export function getMidSongMomentPhrase(
     ],
   };
 
-  const personaSet = personaId && personaPhrases[personaId] 
-    ? personaPhrases[personaId] 
-    : defaultPhrases;
-  
+  const personaSet =
+    personaId && personaPhrases[personaId] ? personaPhrases[personaId] : defaultPhrases;
+
   const phrases = personaSet[momentType] || defaultPhrases[momentType];
   return phrases[Math.floor(Math.random() * phrases.length)];
 }
@@ -741,10 +732,7 @@ export function getMidSongMomentPhrase(
  * @param mood - Detected user mood (happy, sad, stressed, excited, etc.)
  * @param personaId - The persona speaking
  */
-export function getMoodAwareMusicOffer(
-  mood: string,
-  personaId?: string
-): string | null {
+export function getMoodAwareMusicOffer(mood: string, personaId?: string): string | null {
   // Map moods to music suggestions
   const moodOffers: Record<string, string[]> = {
     // Stressed/anxious - offer calming music
@@ -784,15 +772,11 @@ export function getMoodAwareMusicOffer(
     // Focused - offer focus music
     focused: [
       'Want some background music while you work?',
-      'I could put on some focus music if you\'d like.',
+      "I could put on some focus music if you'd like.",
       'Some ambient music might help you concentrate.',
     ],
     // Neutral - general offer
-    neutral: [
-      'Want me to put on some music?',
-      'How about some tunes?',
-      'Shall I play something?',
-    ],
+    neutral: ['Want me to put on some music?', 'How about some tunes?', 'Shall I play something?'],
   };
 
   // Persona-specific offer styles
@@ -807,7 +791,7 @@ export function getMoodAwareMusicOffer(
 
   const normalizedMood = mood.toLowerCase();
   const offers = moodOffers[normalizedMood] || moodOffers.neutral;
-  
+
   if (!offers) return null;
 
   let offer = offers[Math.floor(Math.random() * offers.length)];
@@ -834,7 +818,7 @@ export function getSessionCallbackPhrase(
   if (sessionVibe.artists.length === 0) return null;
 
   const lastArtist = sessionVibe.artists[sessionVibe.artists.length - 1];
-  
+
   const callbacks = [
     `We listened to ${lastArtist} earlier. Want more of that vibe?`,
     `Remember that ${lastArtist} track? Want something similar?`,

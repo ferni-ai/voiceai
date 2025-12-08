@@ -1077,7 +1077,7 @@ export const cognitiveProfiles: Record<string, CognitiveProfile> = {
  * Cache for cognitive profiles loaded from bundles.
  * Populated when bundles are loaded at startup.
  */
-const bundleCognitiveProfiles: Map<string, CognitiveProfile> = new Map();
+const bundleCognitiveProfiles = new Map<string, CognitiveProfile>();
 
 /**
  * Register a cognitive profile loaded from a bundle.
@@ -1104,65 +1104,99 @@ export function convertBundleCognitive(bundleCognitive: Record<string, unknown>)
   const theoryOfMind = bundleCognitive.theory_of_mind as Record<string, unknown> | undefined;
   const biases = bundleCognitive.biases as Record<string, unknown> | undefined;
   const metacognition = bundleCognitive.metacognition as Record<string, unknown> | undefined;
-  const informationProcessing = bundleCognitive.information_processing as Record<string, unknown> | undefined;
+  const informationProcessing = bundleCognitive.information_processing as
+    | Record<string, unknown>
+    | undefined;
 
   return {
     reasoningStyle: bundleCognitive.reasoning_style as CognitiveProfile['reasoningStyle'],
-    secondaryReasoning: bundleCognitive.secondary_reasoning as CognitiveProfile['secondaryReasoning'],
-    uncertaintyResponse: bundleCognitive.uncertainty_response as CognitiveProfile['uncertaintyResponse'],
+    secondaryReasoning:
+      bundleCognitive.secondary_reasoning as CognitiveProfile['secondaryReasoning'],
+    uncertaintyResponse:
+      bundleCognitive.uncertainty_response as CognitiveProfile['uncertaintyResponse'],
 
-    attention: attention ? {
-      primaryFocus: attention.primary_focus as AttentionFocus[],
-      blindSpots: attention.blind_spots as AttentionFocus[],
-      curiosityTriggers: attention.curiosity_triggers as string[],
-      attentionMagnets: attention.attention_magnets as string[],
-      focusPersistence: attention.focus_persistence as number,
-    } : cognitiveProfiles.ferni.attention, // Fallback
+    attention: attention
+      ? {
+          primaryFocus: attention.primary_focus as AttentionFocus[],
+          blindSpots: attention.blind_spots as AttentionFocus[],
+          curiosityTriggers: attention.curiosity_triggers as string[],
+          attentionMagnets: attention.attention_magnets as string[],
+          focusPersistence: attention.focus_persistence as number,
+        }
+      : cognitiveProfiles.ferni.attention, // Fallback
 
-    theoryOfMind: theoryOfMind ? {
-      adaptiveness: theoryOfMind.adaptiveness as number,
-      defaultExpertiseAssumption: theoryOfMind.default_expertise as 'novice' | 'intermediate' | 'expert',
-      comprehensionChecks: theoryOfMind.comprehension_checks as string[],
-      expertiseRecognition: theoryOfMind.expertise_recognition as string[],
-      simplificationPhrases: theoryOfMind.simplification_phrases as string[],
-      misunderstandingRecovery: theoryOfMind.misunderstanding_recovery as string[],
-    } : cognitiveProfiles.ferni.theoryOfMind, // Fallback
+    theoryOfMind: theoryOfMind
+      ? {
+          adaptiveness: theoryOfMind.adaptiveness as number,
+          defaultExpertiseAssumption: theoryOfMind.default_expertise as
+            | 'novice'
+            | 'intermediate'
+            | 'expert',
+          comprehensionChecks: theoryOfMind.comprehension_checks as string[],
+          expertiseRecognition: theoryOfMind.expertise_recognition as string[],
+          simplificationPhrases: theoryOfMind.simplification_phrases as string[],
+          misunderstandingRecovery: theoryOfMind.misunderstanding_recovery as string[],
+        }
+      : cognitiveProfiles.ferni.theoryOfMind, // Fallback
 
-    biases: biases ? {
-      primaryBiases: (biases.primary_biases as Array<Record<string, unknown>>).map(b => ({
-        type: b.type as string,
-        manifestation: b.manifestation as string,
-        triggers: b.triggers as string[],
-      })) as CognitiveProfile['biases']['primaryBiases'],
-      biasIntensity: biases.bias_intensity as number,
-      selfAwareness: biases.self_awareness as boolean,
-      biasRecognitionPhrases: biases.bias_recognition_phrases as string[],
-    } : cognitiveProfiles.ferni.biases, // Fallback
+    biases: biases
+      ? {
+          primaryBiases: (biases.primary_biases as Array<Record<string, unknown>>).map((b) => ({
+            type: b.type as string,
+            manifestation: b.manifestation as string,
+            triggers: b.triggers as string[],
+          })) as CognitiveProfile['biases']['primaryBiases'],
+          biasIntensity: biases.bias_intensity as number,
+          selfAwareness: biases.self_awareness as boolean,
+          biasRecognitionPhrases: biases.bias_recognition_phrases as string[],
+        }
+      : cognitiveProfiles.ferni.biases, // Fallback
 
-    metacognition: metacognition ? {
-      reflectionFrequency: metacognition.reflection_frequency as number,
-      knownStrengths: metacognition.known_strengths as string[],
-      knownLimitations: metacognition.known_limitations as string[],
-      uncertaintyExpressions: (metacognition.uncertainty_expressions as Array<Record<string, unknown>>).map(u => ({
-        confidenceRange: u.confidence_range as [number, number],
-        phrases: u.phrases as string[],
-      })),
-      confidenceSignaling: (metacognition.confidence_signaling as Array<Record<string, unknown>> | undefined)?.map(c => ({
-        name: c.name as 'very_confident' | 'confident' | 'uncertain' | 'speculating' | 'guessing',
-        markers: c.markers as string[],
-      })) || cognitiveProfiles.ferni.metacognition.confidenceSignaling,
-      mindChangeExpressions: metacognition.mind_change_expressions as string[],
-    } : cognitiveProfiles.ferni.metacognition, // Fallback
+    metacognition: metacognition
+      ? {
+          reflectionFrequency: metacognition.reflection_frequency as number,
+          knownStrengths: metacognition.known_strengths as string[],
+          knownLimitations: metacognition.known_limitations as string[],
+          uncertaintyExpressions: (
+            metacognition.uncertainty_expressions as Array<Record<string, unknown>>
+          ).map((u) => ({
+            confidenceRange: u.confidence_range as [number, number],
+            phrases: u.phrases as string[],
+          })),
+          confidenceSignaling:
+            (metacognition.confidence_signaling as Array<Record<string, unknown>> | undefined)?.map(
+              (c) => ({
+                name: c.name as
+                  | 'very_confident'
+                  | 'confident'
+                  | 'uncertain'
+                  | 'speculating'
+                  | 'guessing',
+                markers: c.markers as string[],
+              })
+            ) || cognitiveProfiles.ferni.metacognition.confidenceSignaling,
+          mindChangeExpressions: metacognition.mind_change_expressions as string[],
+        }
+      : cognitiveProfiles.ferni.metacognition, // Fallback
 
-    informationProcessing: informationProcessing ? {
-      deliberationLevel: informationProcessing.deliberation_level as number,
-      contextRequirement: informationProcessing.context_requirement as number,
-      preferredFormat: informationProcessing.preferred_format as 'stories' | 'data' | 'examples' | 'principles',
-      conflictResolution: informationProcessing.conflict_resolution as 'integrate' | 'prioritize' | 'acknowledge',
-      thinkingAloudPhrases: informationProcessing.thinking_aloud_phrases as string[],
-    } : cognitiveProfiles.ferni.informationProcessing, // Fallback
+    informationProcessing: informationProcessing
+      ? {
+          deliberationLevel: informationProcessing.deliberation_level as number,
+          contextRequirement: informationProcessing.context_requirement as number,
+          preferredFormat: informationProcessing.preferred_format as
+            | 'stories'
+            | 'data'
+            | 'examples'
+            | 'principles',
+          conflictResolution: informationProcessing.conflict_resolution as
+            | 'integrate'
+            | 'prioritize'
+            | 'acknowledge',
+          thinkingAloudPhrases: informationProcessing.thinking_aloud_phrases as string[],
+        }
+      : cognitiveProfiles.ferni.informationProcessing, // Fallback
 
-    signatureThinkingPhrases: bundleCognitive.signature_thinking_phrases as string[] || [],
+    signatureThinkingPhrases: (bundleCognitive.signature_thinking_phrases as string[]) || [],
   };
 }
 
@@ -1173,7 +1207,7 @@ export function convertBundleCognitive(bundleCognitive: Record<string, unknown>)
 /**
  * Get cognitive profile for a persona.
  * Checks bundle-loaded profiles first, falls back to hardcoded profiles.
- * 
+ *
  * @param personaId - Canonical persona ID
  * @returns CognitiveProfile or undefined if not found
  */

@@ -16,12 +16,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth, rateLimit } from './auth-middleware.js';
-import {
-  sendJSON,
-  sendError,
-  parseBody,
-  handleCorsPreflightIfNeeded,
-} from './helpers.js';
+import { sendJSON, sendError, parseBody, handleCorsPreflightIfNeeded } from './helpers.js';
 import { recordSecurityEvent, recordDataAccess } from '../services/security-events.js';
 import { maskPhoneNumber, maskEmail, stripPII } from '../services/privacy-crypto.js';
 
@@ -153,7 +148,7 @@ export async function handleGDPRRoutes(
   const auth = requireAuth(req, res);
   if (!auth) return true;
 
-  const userId = auth.userId;
+  const { userId } = auth;
   const method = req.method || 'GET';
   const url = new URL(pathname, 'http://localhost');
 
@@ -273,7 +268,7 @@ async function handleExportRequest(
 
     // Add profile data (with masked PII)
     if (exportData.profile) {
-      const profile = exportData.profile;
+      const { profile } = exportData;
       result.profile = {
         id: profile.id,
         name: profile.name,
@@ -290,9 +285,7 @@ async function handleExportRequest(
               phone: profile.contactInfo.phone
                 ? maskPhoneNumber(profile.contactInfo.phone)
                 : undefined,
-              email: profile.contactInfo.email
-                ? maskEmail(profile.contactInfo.email)
-                : undefined,
+              email: profile.contactInfo.email ? maskEmail(profile.contactInfo.email) : undefined,
               timezone: profile.contactInfo.timezone,
             }
           : undefined,
@@ -419,7 +412,7 @@ async function handleExportDownload(
       type: 'suspicious_activity',
       actorId: userId,
       targetId: stored.userId,
-      action: 'Attempted to download another user\'s export',
+      action: "Attempted to download another user's export",
       outcome: 'blocked',
     });
     sendError(res, 'Access denied', 403);
@@ -443,10 +436,7 @@ async function handleExportDownload(
 
   // Set download headers
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader(
-    'Content-Disposition',
-    `attachment; filename="ferni-data-export-${exportId}.json"`
-  );
+  res.setHeader('Content-Disposition', `attachment; filename="ferni-data-export-${exportId}.json"`);
 
   sendJSON(res, stored.data);
   return true;
@@ -615,7 +605,11 @@ async function handleDataRectification(
   }>(req);
 
   if (!body || !body.corrections || !Array.isArray(body.corrections)) {
-    sendError(res, 'Invalid request. Send { "corrections": [{ "field": "...", "newValue": "..." }] }', 400);
+    sendError(
+      res,
+      'Invalid request. Send { "corrections": [{ "field": "...", "newValue": "..." }] }',
+      400
+    );
     return true;
   }
 
@@ -796,18 +790,20 @@ const exportStorage = new Map<
 >();
 
 // Cleanup expired exports periodically
-setInterval(() => {
-  const now = new Date();
-  for (const [exportId, stored] of exportStorage) {
-    if (stored.expiresAt < now) {
-      exportStorage.delete(exportId);
+setInterval(
+  () => {
+    const now = new Date();
+    for (const [exportId, stored] of exportStorage) {
+      if (stored.expiresAt < now) {
+        exportStorage.delete(exportId);
+      }
     }
-  }
-}, 60 * 60 * 1000); // Every hour
+  },
+  60 * 60 * 1000
+); // Every hour
 
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
 export default handleGDPRRoutes;
-

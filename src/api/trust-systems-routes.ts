@@ -15,8 +15,8 @@
  * @module TrustSystemsRoutes
  */
 
-import { IncomingMessage, ServerResponse } from 'http';
-import { URL } from 'url';
+import type { IncomingMessage, ServerResponse } from 'http';
+import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
 
 // Trust Systems imports
@@ -163,7 +163,7 @@ export async function handleTrustSystemsRoutes(
     if (pathname === '/api/trust/life-events' && method === 'POST') {
       const body = await parseBody(req);
       const detections = detectLifeEvents(userId, body.text as string);
-      
+
       for (const detection of detections) {
         if (detection.detected && detection.event && detection.confidence > 0.5) {
           saveEvent({
@@ -179,7 +179,7 @@ export async function handleTrustSystemsRoutes(
           } as Parameters<typeof saveEvent>[0]);
         }
       }
-      
+
       sendJson(res, 200, { detected: detections.length, events: detections });
       return true;
     }
@@ -203,7 +203,7 @@ export async function handleTrustSystemsRoutes(
       const streaks = getActiveStreaks(userId);
       const celebrations = generateCelebrations(userId);
       const summary = getMomentumSummary(userId);
-      
+
       sendJson(res, 200, {
         profile,
         activeStreaks: streaks,
@@ -224,7 +224,7 @@ export async function handleTrustSystemsRoutes(
       const currentMood = getCurrentMoodContext(userId);
       const peaks = getRecentPeaksValleys(userId);
       const patterns = getInsightfulPatterns(userId);
-      
+
       sendJson(res, 200, {
         currentMood,
         peaks,
@@ -239,16 +239,24 @@ export async function handleTrustSystemsRoutes(
     // ========================================================================
 
     if (pathname === '/api/trust/journaling/prompts' && method === 'GET') {
-      const situation = query.get('situation') as 'morning_routine' | 'evening_wind_down' | 'processing_emotion' | 'after_session' | null;
-      
+      const situation = query.get('situation') as
+        | 'morning_routine'
+        | 'evening_wind_down'
+        | 'processing_emotion'
+        | 'after_session'
+        | null;
+
       if (situation) {
         const prompt = generateSituationalPrompt(userId, situation);
         sendJson(res, 200, { prompts: [prompt] });
       } else {
-        const prompts = generatePrompts({
-          userId,
-          timeOfDay: getTimeOfDay(),
-        }, 3);
+        const prompts = generatePrompts(
+          {
+            userId,
+            timeOfDay: getTimeOfDay(),
+          },
+          3
+        );
         sendJson(res, 200, { prompts });
       }
       return true;
@@ -277,7 +285,8 @@ export async function handleTrustSystemsRoutes(
         date: { month: body.month as number, day: body.day as number },
         name: body.name as string,
         type: (body.type as 'joyful' | 'difficult' | 'mixed' | 'milestone') || 'milestone',
-        approach: (body.approach as 'celebrate' | 'acknowledge' | 'gentle' | 'avoid') || 'acknowledge',
+        approach:
+          (body.approach as 'celebrate' | 'acknowledge' | 'gentle' | 'avoid') || 'acknowledge',
       });
       sendJson(res, 201, date);
       return true;
@@ -314,7 +323,7 @@ export async function handleTrustSystemsRoutes(
       const latest = getLatestReport(userId, period);
       const history = getReportHistory(userId);
       const isDue = isReportDue(userId, period);
-      
+
       sendJson(res, 200, {
         latest,
         history: history.slice(-5),
@@ -414,4 +423,3 @@ function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
 export default {
   handleTrustSystemsRoutes,
 };
-

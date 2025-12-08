@@ -13,41 +13,37 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // MOCK SETUP - Use vi.hoisted for proper hoisting
 // ============================================================================
 
-const {
-  mockConversationHistory,
-  mockCognitiveMemory,
-  mockEngagementStore,
-  mockLogger,
-} = vi.hoisted(() => {
-  const mockConversationHistory = {
-    getHistory: vi.fn(),
-    deleteUserHistory: vi.fn(),
-  };
+const { mockConversationHistory, mockCognitiveMemory, mockEngagementStore, mockLogger } =
+  vi.hoisted(() => {
+    const mockConversationHistory = {
+      getHistory: vi.fn(),
+      deleteUserHistory: vi.fn(),
+    };
 
-  const mockCognitiveMemory = {
-    getMemories: vi.fn(),
-    getProfile: vi.fn(),
-    deleteUserMemories: vi.fn(),
-  };
+    const mockCognitiveMemory = {
+      getMemories: vi.fn(),
+      getProfile: vi.fn(),
+      deleteUserMemories: vi.fn(),
+    };
 
-  const mockEngagementStore = {
-    getProfile: vi.fn(),
-    getPredictions: vi.fn(),
-    getWeatherHistory: vi.fn(),
-    getRitualStreaks: vi.fn(),
-    deleteAllUserData: vi.fn(),
-    deleteUserData: vi.fn(),
-  };
+    const mockEngagementStore = {
+      getProfile: vi.fn(),
+      getPredictions: vi.fn(),
+      getWeatherHistory: vi.fn(),
+      getRitualStreaks: vi.fn(),
+      deleteAllUserData: vi.fn(),
+      deleteUserData: vi.fn(),
+    };
 
-  const mockLogger = {
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  };
+    const mockLogger = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
 
-  return { mockConversationHistory, mockCognitiveMemory, mockEngagementStore, mockLogger };
-});
+    return { mockConversationHistory, mockCognitiveMemory, mockEngagementStore, mockLogger };
+  });
 
 vi.mock('../services/conversation-history.js', () => ({
   getConversationHistoryService: vi.fn(() => mockConversationHistory),

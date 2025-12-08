@@ -58,7 +58,7 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
  * Check if a pathname matches an engagement route prefix
  */
 function isEngagementRoute(pathname: string): boolean {
-  return ENGAGEMENT_ROUTE_PREFIXES.some(prefix => pathname.startsWith(prefix));
+  return ENGAGEMENT_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 /**

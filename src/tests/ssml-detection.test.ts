@@ -132,9 +132,7 @@ describe('SSML Detection', () => {
       expect(verySlowResult.speed).toBeGreaterThanOrEqual(0.6);
 
       // Very fast: multiple fast keywords
-      const veryFastResult = detectPacing(
-        'Quickly hurry this is urgent and exciting and amazing!'
-      );
+      const veryFastResult = detectPacing('Quickly hurry this is urgent and exciting and amazing!');
       expect(veryFastResult.speed).toBeLessThanOrEqual(1.5);
     });
 
@@ -159,7 +157,7 @@ describe('SSML Detection', () => {
     });
 
     it('should decrease volume for whisper keywords', () => {
-      const result = detectVolume("This is a secret, keep it between us.");
+      const result = detectVolume('This is a secret, keep it between us.');
       expect(result.volume).toBeLessThan(1.0);
       expect(result.hasWhisper).toBe(true);
     });
@@ -178,9 +176,7 @@ describe('SSML Detection', () => {
 
     it('should clamp volume to valid range (0.5-2.0)', () => {
       // Very quiet: multiple whisper keywords
-      const veryQuietResult = detectVolume(
-        'This is a secret, confidential, quietly between us.'
-      );
+      const veryQuietResult = detectVolume('This is a secret, confidential, quietly between us.');
       expect(veryQuietResult.volume).toBeGreaterThanOrEqual(0.5);
 
       // Very loud: multiple emphasis keywords + caps + exclamations

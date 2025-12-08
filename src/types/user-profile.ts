@@ -319,7 +319,7 @@ export interface MusicMemory {
   /** Last track played */
   lastPlayedTrack?: string;
   /** Time of day they usually listen */
-  preferredMusicTimes?: ('morning' | 'afternoon' | 'evening' | 'night')[];
+  preferredMusicTimes?: Array<'morning' | 'afternoon' | 'evening' | 'night'>;
   /** Moods when they tend to want music */
   musicMoods?: string[];
   /** Last updated */
@@ -387,7 +387,7 @@ export interface AffinityScore {
 /** Milestone achievement */
 export interface GameMilestone {
   /** Milestone type */
-  type: 
+  type:
     | 'first_game'
     | 'first_perfect_round'
     | 'ten_games'
@@ -412,18 +412,18 @@ export interface GameMilestone {
 /** Musical personality trait */
 export interface MusicalPersonalityTrait {
   /** The trait */
-  trait: 
-    | 'nostalgic'        // Picks emotional/meaningful songs
-    | 'eclectic'         // Wide variety of tastes
-    | 'genre_loyal'      // Sticks to favorite genres
-    | 'decade_specialist'// Knows one era really well
-    | 'quick_ear'        // Fast guesser
-    | 'thoughtful'       // Takes time, high accuracy
-    | 'adventurous'      // Open to new music
-    | 'classic_lover'    // Loves timeless hits
-    | 'deep_cuts_fan'    // Knows obscure tracks
-    | 'lyric_focused'    // Remembers lyrics
-    | 'vibe_chaser';     // Picks by mood
+  trait:
+    | 'nostalgic' // Picks emotional/meaningful songs
+    | 'eclectic' // Wide variety of tastes
+    | 'genre_loyal' // Sticks to favorite genres
+    | 'decade_specialist' // Knows one era really well
+    | 'quick_ear' // Fast guesser
+    | 'thoughtful' // Takes time, high accuracy
+    | 'adventurous' // Open to new music
+    | 'classic_lover' // Loves timeless hits
+    | 'deep_cuts_fan' // Knows obscure tracks
+    | 'lyric_focused' // Remembers lyrics
+    | 'vibe_chaser'; // Picks by mood
   /** Confidence in this trait (0-1) */
   confidence: number;
   /** Evidence for this trait */
@@ -468,11 +468,11 @@ export interface GameMemory {
   songsGuessedCorrectly?: string[];
   /** Their Desert Island picks (memorable!) */
   desertIslandPicks?: string[];
-  
+
   // ============================================================================
   // 🎵 MUSICAL DNA - "More than human" tracking
   // ============================================================================
-  
+
   /** Genre affinity scores */
   genreAffinities?: Record<string, AffinityScore>;
   /** Decade affinity scores */
@@ -502,7 +502,7 @@ export interface GameMemory {
     relatedGenres?: string[];
     mentionedAt: Date;
   }>;
-  
+
   /** Last updated */
   updatedAt: Date;
 }

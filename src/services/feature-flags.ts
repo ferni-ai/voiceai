@@ -439,7 +439,7 @@ export function getFeatureFlags() {
       // Flags cannot be deleted, only disabled
       return true;
     },
-    reload: () => refreshFlags(),
+    reload: async () => refreshFlags(),
     isEnabled,
   };
 }

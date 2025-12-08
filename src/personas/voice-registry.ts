@@ -86,7 +86,7 @@ let initialized = false;
 /**
  * Initialize the voice registry from bundle manifests.
  * Call this once at application startup.
- * 
+ *
  * NOTE: Alias resolution is handled by persona-ids.ts (SINGLE SOURCE OF TRUTH).
  * This function only maps canonical persona IDs to their voice IDs.
  */
@@ -132,7 +132,7 @@ export async function initializeVoiceRegistry(): Promise<void> {
 
 /**
  * Initialize with fallback values (used if bundle loading fails)
- * 
+ *
  * NOTE: Alias resolution is now handled by persona-ids.ts (SINGLE SOURCE OF TRUTH).
  * This function only sets up voice ID mappings for canonical IDs.
  */
@@ -141,7 +141,7 @@ function initializeFallbacks(): void {
   for (const canonicalId of ALL_CANONICAL_IDS) {
     const voiceId = FALLBACK_VOICE_IDS[canonicalId] || VOICE_IDS.FERNI;
     const displayName = DISPLAY_NAMES[canonicalId] || canonicalId;
-    
+
     voiceRegistry.set(canonicalId, {
       voiceId,
       personaName: displayName,
@@ -162,7 +162,7 @@ function initializeFallbacks(): void {
 
 /**
  * Get voice ID for a persona by any ID or alias.
- * 
+ *
  * NOTE: Alias resolution is delegated to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  *
  * @param personaId - Canonical ID, alias, or short name
@@ -200,7 +200,7 @@ export function getVoiceId(personaId: string): string {
 
 /**
  * Get voice entry with full details for a persona.
- * 
+ *
  * NOTE: Alias resolution is delegated to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getVoiceEntry(personaId: string): VoiceEntry | undefined {
@@ -215,7 +215,7 @@ export function getVoiceEntry(personaId: string): VoiceEntry | undefined {
 
 /**
  * Get canonical persona ID from any alias.
- * 
+ *
  * NOTE: Delegates to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getCanonicalPersonaId(personaId: string): string {
@@ -225,7 +225,7 @@ export function getCanonicalPersonaId(personaId: string): string {
 
 /**
  * Check if a persona ID or alias is known.
- * 
+ *
  * NOTE: Delegates to persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function isKnownPersona(personaId: string): boolean {
@@ -246,7 +246,7 @@ export function getAllPersonaIds(): string[] {
 
 /**
  * Get all aliases for a persona.
- * 
+ *
  * NOTE: Uses ALIAS_TO_CANONICAL from persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getAliasesForPersona(canonicalId: string): string[] {
@@ -270,7 +270,7 @@ export function getFrontendPersonaId(personaId: string): string {
 
 /**
  * Get display name for a persona.
- * 
+ *
  * NOTE: Uses DISPLAY_NAMES from persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getPersonaDisplayName(personaId: string): string {

@@ -250,7 +250,11 @@ describe('Voice Presence Routes', () => {
       const req = createMockRequest({ url: '/api/voice-presence/recommendations' });
       const { res, getWrittenData } = createMockResponse();
 
-      const handled = await handleVoicePresenceRoutes(req, res, '/api/voice-presence/recommendations');
+      const handled = await handleVoicePresenceRoutes(
+        req,
+        res,
+        '/api/voice-presence/recommendations'
+      );
 
       expect(handled).toBe(true);
       expect(mockAnalytics.generateRecommendations).toHaveBeenCalled();
@@ -276,7 +280,11 @@ describe('Voice Presence Routes', () => {
       });
       const { res, getWrittenData } = createMockResponse();
 
-      const handled = await handleVoicePresenceRoutes(req, res, '/api/voice-presence/apply-recommendation');
+      const handled = await handleVoicePresenceRoutes(
+        req,
+        res,
+        '/api/voice-presence/apply-recommendation'
+      );
 
       expect(handled).toBe(true);
       expect(mockAnalytics.applyRecommendation).toHaveBeenCalled();

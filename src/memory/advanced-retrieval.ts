@@ -150,10 +150,7 @@ const memoryIndex = new Map<string, MemoryItem[]>(); // userId -> memories
  * Build memory index from user profile
  * Call this when profile is loaded or updated
  */
-export async function buildMemoryIndex(
-  userId: string,
-  profile: UserProfile
-): Promise<number> {
+export async function buildMemoryIndex(userId: string, profile: UserProfile): Promise<number> {
   const memories: MemoryItem[] = [];
 
   // Index conversation summaries
@@ -237,9 +234,14 @@ export async function buildMemoryIndex(
       type: 'event',
       content: `Life event: ${event.title}${event.description ? `. ${event.description}` : ''}. Status: ${event.status}`,
       timestamp: event.date || event.createdAt,
-      emotionalWeight: event.emotionalSignificance === 'life_changing' ? 1.0 :
-        event.emotionalSignificance === 'major' ? 0.8 :
-        event.emotionalSignificance === 'meaningful' ? 0.6 : 0.3,
+      emotionalWeight:
+        event.emotionalSignificance === 'life_changing'
+          ? 1.0
+          : event.emotionalSignificance === 'major'
+            ? 0.8
+            : event.emotionalSignificance === 'meaningful'
+              ? 0.6
+              : 0.3,
       relevanceDecay: 0,
       baseImportance: 0.85,
       source: { collection: 'profile', documentId: `${userId}/events` },
@@ -299,8 +301,8 @@ export async function retrieveMemories(
 
     // 2. Temporal relevance (exponential decay)
     const daysSince = (now - memory.timestamp.getTime()) / (1000 * 60 * 60 * 24);
-    const halfLife = cfg.temporalDecayHalfLifeDays *
-      (1 + memory.emotionalWeight * cfg.emotionalDecayResistance);
+    const halfLife =
+      cfg.temporalDecayHalfLifeDays * (1 + memory.emotionalWeight * cfg.emotionalDecayResistance);
     breakdown.temporal = Math.pow(0.5, daysSince / halfLife);
 
     // 3. Emotional salience
@@ -311,19 +313,24 @@ export async function retrieveMemories(
 
     // Topic overlap with recent conversation
     if (context.recentTopics && memory.topics) {
-      const overlap = memory.topics.filter(t =>
-        context.recentTopics!.some(rt => rt.toLowerCase().includes(t.toLowerCase()) ||
-          t.toLowerCase().includes(rt.toLowerCase()))
+      const overlap = memory.topics.filter((t) =>
+        context.recentTopics!.some(
+          (rt) =>
+            rt.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(rt.toLowerCase())
+        )
       ).length;
       contextScore += overlap * 0.3;
     }
 
     // Current topic match
     if (context.currentTopic && memory.topics) {
-      if (memory.topics.some(t =>
-        t.toLowerCase().includes(context.currentTopic!.toLowerCase()) ||
-        context.currentTopic!.toLowerCase().includes(t.toLowerCase())
-      )) {
+      if (
+        memory.topics.some(
+          (t) =>
+            t.toLowerCase().includes(context.currentTopic!.toLowerCase()) ||
+            context.currentTopic!.toLowerCase().includes(t.toLowerCase())
+        )
+      ) {
         contextScore += 0.4;
       }
     }
@@ -364,7 +371,7 @@ export async function retrieveMemories(
 
   // Sort by score, filter by minimum, limit results
   return scored
-    .filter(m => m.score >= cfg.minScore)
+    .filter((m) => m.score >= cfg.minScore)
     .sort((a, b) => b.score - a.score)
     .slice(0, cfg.maxResults);
 }
@@ -397,20 +404,20 @@ export async function getConversationPrimingMemories(
 
   // 1. Always include unfulfilled commitments
   if (includeCommitments) {
-    const commitments = memories.filter(m => m.commitment && m.type === 'commitment');
+    const commitments = memories.filter((m) => m.commitment && m.type === 'commitment');
     result.push(...commitments.slice(0, 2));
   }
 
   // 2. Include emotionally significant recent memories
   const emotionalMemories = memories
-    .filter(m => m.emotionalWeight > 0.6)
+    .filter((m) => m.emotionalWeight > 0.6)
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     .slice(0, 2);
   result.push(...emotionalMemories);
 
   // 3. For returning users, include a random "connection point"
   if (sessionCount > 2 && includeRecentTopics) {
-    const topics = memories.filter(m => m.type === 'topic' || m.type === 'person');
+    const topics = memories.filter((m) => m.type === 'topic' || m.type === 'person');
     if (topics.length > 0) {
       const randomTopic = topics[Math.floor(Math.random() * topics.length)];
       result.push(randomTopic);
@@ -420,7 +427,7 @@ export async function getConversationPrimingMemories(
   // Dedupe and limit
   const seen = new Set<string>();
   return result
-    .filter(m => {
+    .filter((m) => {
       if (seen.has(m.id)) return false;
       seen.add(m.id);
       return true;
@@ -441,11 +448,12 @@ export async function getPersonRelatedMemories(
   const personLower = personName.toLowerCase();
 
   return memories
-    .filter(m =>
-      m.personMentioned?.toLowerCase() === personLower ||
-      m.content.toLowerCase().includes(personLower)
+    .filter(
+      (m) =>
+        m.personMentioned?.toLowerCase() === personLower ||
+        m.content.toLowerCase().includes(personLower)
     )
-    .map(m => ({
+    .map((m) => ({
       item: m,
       score: m.personMentioned?.toLowerCase() === personLower ? 1.0 : 0.7,
       scoreBreakdown: { semantic: 0.8, temporal: 0.5, emotional: 0.5, contextual: 0.8 },
@@ -514,7 +522,7 @@ export function getIndexStats(): {
 
   for (const memories of memoryIndex.values()) {
     totalMemories += memories.length;
-    memoriesWithEmbeddings += memories.filter(m => m.embedding).length;
+    memoriesWithEmbeddings += memories.filter((m) => m.embedding).length;
   }
 
   return {
@@ -539,12 +547,18 @@ function summaryToMemoryItem(summary: ConversationSummary): MemoryItem {
     summary.emotionalArc ? `Emotional arc: ${summary.emotionalArc}` : '',
     summary.decisionsReached?.length ? `Decisions: ${summary.decisionsReached.join(', ')}` : '',
     summary.followUpItems?.length ? `Follow-up: ${summary.followUpItems.join(', ')}` : '',
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   // Emotional weight based on arc
-  const emotionalWeight = summary.emotionalArc?.includes('heavy') ? 0.8 :
-    summary.emotionalArc?.includes('emotional') ? 0.6 :
-    summary.emotionalArc?.includes('vulnerable') ? 0.7 : 0.4;
+  const emotionalWeight = summary.emotionalArc?.includes('heavy')
+    ? 0.8
+    : summary.emotionalArc?.includes('emotional')
+      ? 0.6
+      : summary.emotionalArc?.includes('vulnerable')
+        ? 0.7
+        : 0.4;
 
   return {
     id: summary.id,
@@ -555,7 +569,7 @@ function summaryToMemoryItem(summary: ConversationSummary): MemoryItem {
     relevanceDecay: 0,
     baseImportance: 0.6,
     topics: summary.mainTopics,
-    commitment: !!(summary.followUpItems?.length),
+    commitment: !!summary.followUpItems?.length,
     embedding: summary.embedding,
     source: { collection: 'summaries', documentId: summary.id },
   };
@@ -666,4 +680,3 @@ export default {
   clearMemoryIndex,
   getIndexStats,
 };
-

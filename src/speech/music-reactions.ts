@@ -138,7 +138,7 @@ const DJ_MOMENTS = {
   excitement: [
     'Oh! <break time="100ms"/>This is a GOOD one!',
     '<break time="100ms"/>*chef\'s kiss* <break time="100ms"/>Perfection.',
-    'Now THIS is what I\'m talking about!',
+    "Now THIS is what I'm talking about!",
     'Oh man, <break time="100ms"/>I love this song!',
   ],
   dancing: [
@@ -167,8 +167,8 @@ const DJ_MOMENTS = {
 export function getFunDJMoment(): string | null {
   // Only 15% chance - keep it special
   if (Math.random() > 0.15) return null;
-  
-  const categories = Object.keys(DJ_MOMENTS) as (keyof typeof DJ_MOMENTS)[];
+
+  const categories = Object.keys(DJ_MOMENTS) as Array<keyof typeof DJ_MOMENTS>;
   const category = categories[Math.floor(Math.random() * categories.length)];
   const moments = DJ_MOMENTS[category];
   return moments[Math.floor(Math.random() * moments.length)];

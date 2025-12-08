@@ -155,10 +155,7 @@ describe('Auth Middleware', () => {
 
     it('should reject JWT with invalid signature', async () => {
       const { authenticate } = await import('../api/auth-middleware.js');
-      const token = createJWT(
-        { sub: 'user-123' },
-        'wrong-secret-key-that-is-long!!'
-      );
+      const token = createJWT({ sub: 'user-123' }, 'wrong-secret-key-that-is-long!!');
       const req = createMockRequest({
         headers: { authorization: `Bearer ${token}` },
       });
@@ -309,7 +306,7 @@ describe('Auth Middleware', () => {
 
     it('should track request count', async () => {
       const { checkRateLimit } = await import('../api/auth-middleware.js');
-      const key = 'test-key-count-' + Date.now();
+      const key = `test-key-count-${Date.now()}`;
 
       checkRateLimit(key, 10, 60000);
       checkRateLimit(key, 10, 60000);
@@ -320,7 +317,7 @@ describe('Auth Middleware', () => {
 
     it('should block when limit exceeded', async () => {
       const { checkRateLimit } = await import('../api/auth-middleware.js');
-      const key = 'test-key-block-' + Date.now();
+      const key = `test-key-block-${Date.now()}`;
 
       // Exhaust the limit
       for (let i = 0; i < 5; i++) {
@@ -335,7 +332,7 @@ describe('Auth Middleware', () => {
 
     it('should set rate limit headers on response', async () => {
       const { rateLimit } = await import('../api/auth-middleware.js');
-      const req = createMockRequest({ remoteAddress: '192.168.1.' + Date.now() });
+      const req = createMockRequest({ remoteAddress: `192.168.1.${Date.now()}` });
       const res = createMockResponse();
 
       rateLimit(req, res, { maxRequests: 100, windowMs: 60000 });
@@ -347,7 +344,7 @@ describe('Auth Middleware', () => {
 
     it('should return 429 when rate limited', async () => {
       const { rateLimit } = await import('../api/auth-middleware.js');
-      const ip = '10.0.0.' + Date.now();
+      const ip = `10.0.0.${Date.now()}`;
 
       // Exhaust limit
       for (let i = 0; i < 3; i++) {
@@ -388,12 +385,20 @@ describe('Auth Middleware', () => {
       const { getRateLimitTier, RATE_LIMIT_TIERS } = await import('../api/auth-middleware.js');
 
       expect(getRateLimitTier(null)).toBe(RATE_LIMIT_TIERS.anonymous);
-      expect(getRateLimitTier({ userId: 'user', isAdmin: false, isDevMode: false, authMethod: 'jwt' }))
-        .toBe(RATE_LIMIT_TIERS.free);
-      expect(getRateLimitTier({ userId: 'admin', isAdmin: true, isDevMode: false, authMethod: 'api_key' }))
-        .toBe(RATE_LIMIT_TIERS.admin);
-      expect(getRateLimitTier({ userId: 'dev', isAdmin: false, isDevMode: true, authMethod: 'dev_mode' }))
-        .toBe(RATE_LIMIT_TIERS.admin);
+      expect(
+        getRateLimitTier({ userId: 'user', isAdmin: false, isDevMode: false, authMethod: 'jwt' })
+      ).toBe(RATE_LIMIT_TIERS.free);
+      expect(
+        getRateLimitTier({
+          userId: 'admin',
+          isAdmin: true,
+          isDevMode: false,
+          authMethod: 'api_key',
+        })
+      ).toBe(RATE_LIMIT_TIERS.admin);
+      expect(
+        getRateLimitTier({ userId: 'dev', isAdmin: false, isDevMode: true, authMethod: 'dev_mode' })
+      ).toBe(RATE_LIMIT_TIERS.admin);
     });
   });
 
@@ -422,7 +427,9 @@ describe('Auth Middleware', () => {
     it('should reject JWT with unsupported algorithm', async () => {
       const { authenticate } = await import('../api/auth-middleware.js');
       // Create JWT with RS256 header
-      const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+      const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString(
+        'base64url'
+      );
       const payload = Buffer.from(JSON.stringify({ sub: 'user' })).toString('base64url');
       const token = `${header}.${payload}.fake-signature`;
       const req = createMockRequest({
@@ -436,7 +443,9 @@ describe('Auth Middleware', () => {
 
     it('should reject JWT without sub claim', async () => {
       const { authenticate } = await import('../api/auth-middleware.js');
-      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+      const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString(
+        'base64url'
+      );
       const payload = Buffer.from(JSON.stringify({ name: 'test' })).toString('base64url'); // No sub
       const signature = createHmac('sha256', 'test-secret-for-jwt-verification!')
         .update(`${header}.${payload}`)

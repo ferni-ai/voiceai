@@ -214,11 +214,9 @@ describe('Data Routes', () => {
 
       await handleExportData(req, res, parsedUrl);
 
-      expect(mockExportService.exportData).toHaveBeenCalledWith(
-        'test-user',
-        'json',
-        ['conversations']
-      );
+      expect(mockExportService.exportData).toHaveBeenCalledWith('test-user', 'json', [
+        'conversations',
+      ]);
       expect(getWrittenData().status).toBe(200);
       expect(getWrittenData().headers?.['Content-Type']).toBe('application/json');
     });

@@ -38,11 +38,7 @@ import {
   getStageClosing,
   shouldSharePersonalStory,
 } from './shared/relationship-building.js';
-import {
-  getOpinionAbout,
-  getHandoffWarmth,
-  getCasualMention,
-} from './shared/team-dynamics.js';
+import { getOpinionAbout, getHandoffWarmth, getCasualMention } from './shared/team-dynamics.js';
 
 const log = getLogger();
 
@@ -132,7 +128,10 @@ export class SessionBundleRuntimeManager {
         return false;
       }
     } catch (error) {
-      log.warn({ personaId: this.personaId, error: String(error) }, 'Failed to initialize session runtime');
+      log.warn(
+        { personaId: this.personaId, error: String(error) },
+        'Failed to initialize session runtime'
+      );
       this.initialized = true; // Mark as initialized to prevent retry loops
       return false;
     }
@@ -184,7 +183,7 @@ export class SessionBundleRuntimeManager {
     // Check for milestones
     const hasMilestone = isMilestoneConversation(conversationCount || 0);
     const milestoneMessage = hasMilestone
-      ? getMilestoneMessage(conversationCount || 0) ?? undefined
+      ? (getMilestoneMessage(conversationCount || 0) ?? undefined)
       : undefined;
 
     // Check for life events to acknowledge
@@ -192,7 +191,8 @@ export class SessionBundleRuntimeManager {
     const eventsToAcknowledge = findEventsToAcknowledge(this.lifeEvents);
     if (eventsToAcknowledge.length > 0) {
       const event = eventsToAcknowledge[0]; // Acknowledge most important event
-      const ack = generateEventAcknowledgment(event, context.userName, event.personName) ?? undefined;
+      const ack =
+        generateEventAcknowledgment(event, context.userName, event.personName) ?? undefined;
       if (ack) lifeEventAcknowledgment = ack;
     }
 
@@ -209,8 +209,7 @@ export class SessionBundleRuntimeManager {
    * Get all session enhancements for the current context.
    */
   getSessionEnhancements(context: SessionContext): SessionEnhancements {
-    const { relationshipStage, conversationCount, lastConversationDate, detectedEmotion } =
-      context;
+    const { relationshipStage, conversationCount, lastConversationDate, detectedEmotion } = context;
 
     const enhancements: SessionEnhancements = {
       storyRecommended: false,
@@ -263,13 +262,25 @@ export class SessionBundleRuntimeManager {
    */
   private mapEmotionToAckType(emotion: string): 'personal' | 'emotional' | 'progress' | 'struggle' {
     const emotionLower = emotion.toLowerCase();
-    if (emotionLower.includes('happy') || emotionLower.includes('excited') || emotionLower.includes('proud')) {
+    if (
+      emotionLower.includes('happy') ||
+      emotionLower.includes('excited') ||
+      emotionLower.includes('proud')
+    ) {
       return 'progress';
     }
-    if (emotionLower.includes('sad') || emotionLower.includes('frustrated') || emotionLower.includes('anxious')) {
+    if (
+      emotionLower.includes('sad') ||
+      emotionLower.includes('frustrated') ||
+      emotionLower.includes('anxious')
+    ) {
       return 'struggle';
     }
-    if (emotionLower.includes('vulnerable') || emotionLower.includes('open') || emotionLower.includes('trust')) {
+    if (
+      emotionLower.includes('vulnerable') ||
+      emotionLower.includes('open') ||
+      emotionLower.includes('trust')
+    ) {
       return 'personal';
     }
     return 'emotional';

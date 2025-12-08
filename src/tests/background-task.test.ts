@@ -184,11 +184,7 @@ describe('Background Task Utilities', () => {
 
   describe('runBackgroundBatch', () => {
     it('should not log if all tasks succeed', async () => {
-      const promises = [
-        Promise.resolve('a'),
-        Promise.resolve('b'),
-        Promise.resolve('c'),
-      ];
+      const promises = [Promise.resolve('a'), Promise.resolve('b'), Promise.resolve('c')];
 
       runBackgroundBatch(promises, { task: 'batchTask' });
 
@@ -224,10 +220,7 @@ describe('Background Task Utilities', () => {
     });
 
     it('should log if all tasks fail', async () => {
-      const promises = [
-        Promise.reject(new Error('fail1')),
-        Promise.reject(new Error('fail2')),
-      ];
+      const promises = [Promise.reject(new Error('fail1')), Promise.reject(new Error('fail2'))];
 
       runBackgroundBatch(promises, { task: 'allFailTask' });
 

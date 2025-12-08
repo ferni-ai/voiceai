@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Push Notifications Service
  *

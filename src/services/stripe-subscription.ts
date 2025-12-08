@@ -84,27 +84,30 @@ interface StripeEvent {
 
 interface StripeClient {
   customers: {
-    create(params: {
+    create: (params: {
       email?: string;
       name?: string;
       metadata?: Record<string, string>;
-    }): Promise<StripeCustomer>;
+    }) => Promise<StripeCustomer>;
   };
   checkout: {
     sessions: {
-      create(params: Record<string, unknown>): Promise<StripeCheckoutSession>;
+      create: (params: Record<string, unknown>) => Promise<StripeCheckoutSession>;
     };
   };
   billingPortal: {
     sessions: {
-      create(params: { customer: string; return_url: string }): Promise<StripeBillingPortalSession>;
+      create: (params: {
+        customer: string;
+        return_url: string;
+      }) => Promise<StripeBillingPortalSession>;
     };
   };
   subscriptions: {
-    retrieve(id: string): Promise<StripeSubscription>;
+    retrieve: (id: string) => Promise<StripeSubscription>;
   };
   webhooks: {
-    constructEvent(payload: string | Buffer, signature: string, secret: string): StripeEvent;
+    constructEvent: (payload: string | Buffer, signature: string, secret: string) => StripeEvent;
   };
 }
 
@@ -564,7 +567,10 @@ export async function canStartConversation(userId: string): Promise<{
 /**
  * Verify and parse a Stripe webhook event
  */
-export async function verifyWebhook(payload: string | Buffer, signature: string): Promise<StripeEvent> {
+export async function verifyWebhook(
+  payload: string | Buffer,
+  signature: string
+): Promise<StripeEvent> {
   const stripe = await getStripe();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 

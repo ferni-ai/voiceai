@@ -132,9 +132,7 @@ describe('Ritual Schemas', () => {
     });
 
     it('should enforce note max length', () => {
-      expect(() =>
-        WeatherSchema.parse({ primary: 'sunny', note: 'x'.repeat(501) })
-      ).toThrow();
+      expect(() => WeatherSchema.parse({ primary: 'sunny', note: 'x'.repeat(501) })).toThrow();
     });
   });
 

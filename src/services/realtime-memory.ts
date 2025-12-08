@@ -93,7 +93,7 @@ async function getFirestore(): Promise<FirestoreDB | null> {
 
   try {
     const firestore = await import('@google-cloud/firestore');
-    const Firestore = firestore.Firestore;
+    const { Firestore } = firestore;
     FieldValue = firestore.FieldValue as typeof FieldValue;
 
     db = new Firestore({
@@ -116,10 +116,7 @@ async function getFirestore(): Promise<FirestoreDB | null> {
 /**
  * Start a new conversation - creates the conversation document
  */
-export async function startConversation(
-  userId: string,
-  personaId: string
-): Promise<string> {
+export async function startConversation(userId: string, personaId: string): Promise<string> {
   const conversationId = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const firestore = await getFirestore();
 
@@ -179,11 +176,13 @@ export async function persistTurn(
 
     // Increment turn count (fire and forget - don't await)
     if (FieldValue) {
-      conversationRef.update({
-        turnCount: FieldValue.increment(1),
-      }).catch(() => {
-        // Ignore - non-critical
-      });
+      conversationRef
+        .update({
+          turnCount: FieldValue.increment(1),
+        })
+        .catch(() => {
+          // Ignore - non-critical
+        });
     }
 
     log.debug(
@@ -199,10 +198,7 @@ export async function persistTurn(
 /**
  * End a conversation - marks it for summarization
  */
-export async function endConversation(
-  userId: string,
-  conversationId: string
-): Promise<void> {
+export async function endConversation(userId: string, conversationId: string): Promise<void> {
   const firestore = await getFirestore();
 
   if (!firestore) return;
@@ -252,9 +248,12 @@ export async function getRecentConversations(
         id: doc.id,
         userId,
         personaId: data.personaId as string,
-        startedAt: (data.startedAt as { toDate?: () => Date })?.toDate?.() || new Date(data.startedAt as string),
+        startedAt:
+          (data.startedAt as { toDate?: () => Date })?.toDate?.() ||
+          new Date(data.startedAt as string),
         endedAt: data.endedAt
-          ? (data.endedAt as { toDate?: () => Date })?.toDate?.() || new Date(data.endedAt as string)
+          ? (data.endedAt as { toDate?: () => Date })?.toDate?.() ||
+            new Date(data.endedAt as string)
           : undefined,
         turnCount: (data.turnCount as number) || 0,
         summarized: (data.summarized as boolean) || false,
@@ -294,7 +293,9 @@ export async function getConversationTurns(
       return {
         role: data.role as 'user' | 'assistant',
         content: data.content as string,
-        timestamp: (data.timestamp as { toDate?: () => Date })?.toDate?.() || new Date(data.timestamp as string),
+        timestamp:
+          (data.timestamp as { toDate?: () => Date })?.toDate?.() ||
+          new Date(data.timestamp as string),
         metadata: data.metadata as ConversationTurn['metadata'],
       };
     });
@@ -338,7 +339,10 @@ export function buildQuickSummary(turns: ConversationTurn[]): string {
 
   // Get the last 3 user messages, truncated
   const topics = userTurns.slice(-3).map((t) =>
-    t.content.slice(0, 60).replace(/[.!?]+$/, '').trim()
+    t.content
+      .slice(0, 60)
+      .replace(/[.!?]+$/, '')
+      .trim()
   );
 
   return `Discussed: ${topics.join('; ')}`;
@@ -366,10 +370,12 @@ export async function getUnsummarizedConversations(
       .limit(limit)
       .get();
 
-    return snapshot.docs.map((doc) => ({
-      userId: (doc.ref.parent.parent as { id?: string } | null)?.id || 'unknown',
-      conversationId: doc.id,
-    })).filter(item => item.userId !== 'unknown');
+    return snapshot.docs
+      .map((doc) => ({
+        userId: (doc.ref.parent.parent as { id?: string } | null)?.id || 'unknown',
+        conversationId: doc.id,
+      }))
+      .filter((item) => item.userId !== 'unknown');
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get unsummarized conversations');
     return [];
@@ -401,15 +407,15 @@ export async function markSummarized(
       });
 
     // Also update the user's lastConversationSummary
-    await firestore
-      .collection('bogle_users')
-      .doc(userId)
-      .update({
-        lastConversationSummary: summary,
-        lastContact: new Date(),
-      });
+    await firestore.collection('bogle_users').doc(userId).update({
+      lastConversationSummary: summary,
+      lastContact: new Date(),
+    });
 
-    log.info({ userId, conversationId, summaryPreview: summary.slice(0, 50) }, '✅ Conversation summarized');
+    log.info(
+      { userId, conversationId, summaryPreview: summary.slice(0, 50) },
+      '✅ Conversation summarized'
+    );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to mark conversation as summarized');
   }
@@ -425,7 +431,7 @@ export async function summarizeConversationAsync(
 ): Promise<void> {
   try {
     const turns = await getConversationTurns(userId, conversationId);
-    
+
     if (turns.length < 2) {
       // Too short to summarize meaningfully
       await markSummarized(userId, conversationId, 'Brief conversation');
@@ -437,14 +443,14 @@ export async function summarizeConversationAsync(
     try {
       const { summarizeWithLLM } = await import('../memory/index.js');
       const { createSummarizationLLMCaller } = await import('./llm-utils.js');
-      
+
       const llmCaller = createSummarizationLLMCaller();
       const result = await summarizeWithLLM(
         conversationId,
-        turns.map(t => ({ role: t.role, content: t.content, timestamp: t.timestamp })),
+        turns.map((t) => ({ role: t.role, content: t.content, timestamp: t.timestamp })),
         llmCaller
       );
-      
+
       summary = result.keyPoints?.slice(0, 2).join('; ') || buildQuickSummary(turns);
     } catch {
       // Fallback to quick summary
@@ -473,4 +479,3 @@ export default {
   markSummarized,
   summarizeConversationAsync,
 };
-

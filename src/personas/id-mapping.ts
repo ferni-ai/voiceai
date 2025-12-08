@@ -260,7 +260,7 @@ function initializeRoleCache(): void {
 
 /**
  * Get the canonical persona ID from any ID format or alias.
- * 
+ *
  * NOTE: Delegates to persona-ids.ts for alias resolution (SINGLE SOURCE OF TRUTH),
  * but also handles AgentRole enum values.
  */
@@ -278,13 +278,15 @@ export function getPersonaId(id: string): PersonaId {
 
 /**
  * Get the display name from any ID format.
- * 
+ *
  * NOTE: Uses DISPLAY_NAMES from persona-ids.ts (SINGLE SOURCE OF TRUTH).
  */
 export function getDisplayName(id: string): string {
   const personaId = getPersonaId(id);
   // Try PERSONA_REGISTRY first (has full names), then fall back to DISPLAY_NAMES
-  return PERSONA_REGISTRY[personaId]?.displayName || DISPLAY_NAMES[personaId as CanonicalPersonaId] || id;
+  return (
+    PERSONA_REGISTRY[personaId]?.displayName || DISPLAY_NAMES[personaId as CanonicalPersonaId] || id
+  );
 }
 
 /**
@@ -338,7 +340,7 @@ export function getTeamMemberIds(): PersonaId[] {
 
 /**
  * Check if an ID is recognized as a valid persona.
- * 
+ *
  * NOTE: Delegates to persona-ids.ts for alias checking,
  * but also handles AgentRole enum values.
  */

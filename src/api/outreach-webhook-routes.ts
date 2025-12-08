@@ -78,10 +78,7 @@ function sendTwiML(res: ServerResponse, twiml: string): void {
 
 function sendPixel(res: ServerResponse): void {
   // 1x1 transparent GIF
-  const pixel = Buffer.from(
-    'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-    'base64'
-  );
+  const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
   res.writeHead(200, {
     'Content-Type': 'image/gif',
     'Content-Length': pixel.length,
@@ -236,7 +233,7 @@ export async function handleOutreachWebhookRoutes(
 
       if (messageId) {
         const userAgent = req.headers['user-agent'];
-        const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress;
+        const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
         await handleOpenTracking(messageId, userAgent, ip);
       }
 
@@ -252,7 +249,7 @@ export async function handleOutreachWebhookRoutes(
 
       if (messageId && encodedUrl) {
         const userAgent = req.headers['user-agent'];
-        const ip = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress;
+        const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
         const originalUrl = await handleClickTracking(messageId, encodedUrl, userAgent, ip);
         sendRedirect(res, originalUrl);
       } else {
@@ -293,4 +290,3 @@ export async function handleOutreachWebhookRoutes(
 }
 
 export default handleOutreachWebhookRoutes;
-

@@ -54,11 +54,7 @@ describe('Context Builder Pipeline Integration', () => {
       ];
 
       // Execute all builders
-      const allInjections = [
-        ...discoveryBuilder(),
-        ...topicsBuilder(),
-        ...musicBuilder(),
-      ];
+      const allInjections = [...discoveryBuilder(), ...topicsBuilder(), ...musicBuilder()];
 
       expect(allInjections).toHaveLength(3);
       expect(allInjections.map((i) => i.type)).toEqual([
@@ -74,11 +70,7 @@ describe('Context Builder Pipeline Integration', () => {
         { type: 'test_injection', content: 'Test', priority: 'standard' },
       ];
 
-      const allInjections = [
-        ...emptyBuilder(),
-        ...hasInjections(),
-        ...emptyBuilder(),
-      ];
+      const allInjections = [...emptyBuilder(), ...hasInjections(), ...emptyBuilder()];
 
       expect(allInjections).toHaveLength(1);
     });
@@ -169,9 +161,7 @@ describe('Context Builder Pipeline Integration', () => {
 
   describe('Builder Error Isolation', () => {
     it('should isolate errors from individual builders', () => {
-      const workingBuilder = () => [
-        { type: 'working', content: 'Works', priority: 'standard' },
-      ];
+      const workingBuilder = () => [{ type: 'working', content: 'Works', priority: 'standard' }];
 
       const failingBuilder = () => {
         throw new Error('Builder failed');
@@ -204,9 +194,7 @@ describe('Context Builder Pipeline Integration', () => {
         return [{ type: 'async_injection', content: 'Async', priority: 'standard' }];
       };
 
-      const syncBuilder = () => [
-        { type: 'sync_injection', content: 'Sync', priority: 'standard' },
-      ];
+      const syncBuilder = () => [{ type: 'sync_injection', content: 'Sync', priority: 'standard' }];
 
       const results = await Promise.all([asyncBuilder(), Promise.resolve(syncBuilder())]);
       const allInjections = results.flat();
@@ -323,7 +311,9 @@ describe('Context Builder Registry Pattern', () => {
     it('should support registering builders by name', () => {
       const registry = new Map<string, () => unknown[]>();
 
-      registry.set('discovery', () => [{ type: 'discovery', content: 'Discover', priority: 'standard' }]);
+      registry.set('discovery', () => [
+        { type: 'discovery', content: 'Discover', priority: 'standard' },
+      ]);
       registry.set('topics', () => [{ type: 'topics', content: 'Topics', priority: 'standard' }]);
       registry.set('music', () => [{ type: 'music', content: 'Music', priority: 'standard' }]);
 

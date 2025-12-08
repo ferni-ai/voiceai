@@ -197,7 +197,8 @@ export async function createSessionServices(
       try {
         const lastContext = await realtimeMemory.getLastConversationContext(validatedUserId);
         if (lastContext) {
-          const summary = lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
+          const summary =
+            lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
           if (summary) {
             userProfile.lastConversationSummary = summary;
             getLogger().info(
@@ -599,7 +600,7 @@ export async function createSessionServices(
       }
 
       contextManager.addTurn(turn);
-      
+
       // Log turn count for debugging memory issues
       const turnCount = historyTracker.getTurnCount();
       if (turnCount <= 5 || turnCount % 10 === 0) {
@@ -613,18 +614,20 @@ export async function createSessionServices(
       // This happens in the background (fire-and-forget) to avoid blocking
       if (validatedUserId && realtimeConversationId) {
         const now = turn.timestamp || new Date();
-        realtimeMemory.persistTurn(validatedUserId, realtimeConversationId, {
-          role,
-          content,
-          timestamp: now,
-          metadata: durationMs ? { durationMs } : undefined,
-        }).catch((err) => {
-          // Non-blocking - log but don't throw
-          getLogger().warn(
-            { error: String(err), sessionId },
-            'Failed to persist turn in realtime (data in RAM, will save at session end)'
-          );
-        });
+        realtimeMemory
+          .persistTurn(validatedUserId, realtimeConversationId, {
+            role,
+            content,
+            timestamp: now,
+            metadata: durationMs ? { durationMs } : undefined,
+          })
+          .catch((err) => {
+            // Non-blocking - log but don't throw
+            getLogger().warn(
+              { error: String(err), sessionId },
+              'Failed to persist turn in realtime (data in RAM, will save at session end)'
+            );
+          });
       }
     },
 
@@ -1019,7 +1022,7 @@ export async function createSessionServices(
             const turnCount = history.turns.length;
             const durationMin = Math.floor(historyTracker.getDurationSeconds() / 60);
             const topics = history.metadata.topicsDiscussed.slice(0, 3);
-            
+
             if (topics.length > 0) {
               updated.lastConversationSummary = `Chatted about ${topics.join(', ')}`;
             } else if (turnCount > 0) {
@@ -1027,7 +1030,7 @@ export async function createSessionServices(
             } else {
               updated.lastConversationSummary = `Connected on ${new Date().toLocaleDateString()}`;
             }
-            
+
             getLogger().info(
               { userId: validatedUserId, summary: updated.lastConversationSummary },
               '🔒 SAFEGUARD: Set minimum lastConversationSummary in saveProfile()'
@@ -1081,15 +1084,15 @@ export async function createSessionServices(
       if (validatedUserId && userProfile) {
         try {
           const turns = historyTracker.getSimpleTurns();
-          
+
           // CRITICAL LOGGING: Understand why summaries aren't being saved
           getLogger().info(
             {
               sessionId,
               userId: validatedUserId,
               turnCount: turns.length,
-              userTurnCount: turns.filter(t => t.role === 'user').length,
-              assistantTurnCount: turns.filter(t => t.role === 'assistant').length,
+              userTurnCount: turns.filter((t) => t.role === 'user').length,
+              assistantTurnCount: turns.filter((t) => t.role === 'assistant').length,
               historyTrackerTurnCount: historyTracker.getTurnCount(),
               sessionDurationSec: historyTracker.getDurationSeconds(),
             },
@@ -1111,7 +1114,7 @@ export async function createSessionServices(
               { sessionId, turnCount: turns.length, userId: validatedUserId },
               '📝 Starting conversation summarization'
             );
-            
+
             // FIX BUG #session-6: Generate conversation summary with timeout
             // Try LLM summarization first for richer understanding, fall back to extraction
             try {
@@ -1241,14 +1244,17 @@ export async function createSessionServices(
           } else if (turns.length > 0) {
             // FIX: Always save at least a basic summary from turns
             // This ensures returning users are recognized even if LLM summarization fails
-            const userTurns = turns.filter(t => t.role === 'user');
+            const userTurns = turns.filter((t) => t.role === 'user');
             if (userTurns.length > 0) {
-              const topics = userTurns.slice(-3).map(t => 
-                t.content.slice(0, 50).replace(/[.!?]+$/, '')
-              );
+              const topics = userTurns
+                .slice(-3)
+                .map((t) => t.content.slice(0, 50).replace(/[.!?]+$/, ''));
               updatedProfile.lastConversationSummary = `Discussed: ${topics.join('; ')}`;
               getLogger().info(
-                { userId: validatedUserId, fallbackSummary: updatedProfile.lastConversationSummary.slice(0, 60) },
+                {
+                  userId: validatedUserId,
+                  fallbackSummary: updatedProfile.lastConversationSummary.slice(0, 60),
+                },
                 '📝 Used fallback summary (LLM summarization unavailable)'
               );
             }
@@ -1350,7 +1356,7 @@ export async function createSessionServices(
 
           services.userProfile = updatedProfile;
           await services.saveProfile();
-          
+
           getLogger().info(
             {
               userId: validatedUserId,
@@ -1369,7 +1375,10 @@ export async function createSessionServices(
               userId: validatedUserId,
               sessionId,
               personaId: services.personaId || 'ferni',
-              turns: turns.map((t) => ({ role: t.role as 'user' | 'assistant', content: t.content })),
+              turns: turns.map((t) => ({
+                role: t.role as 'user' | 'assistant',
+                content: t.content,
+              })),
               summary: summary
                 ? {
                     mainTopics: summary.mainTopics,
@@ -1473,16 +1482,17 @@ export async function createSessionServices(
       if (validatedUserId && realtimeConversationId) {
         try {
           await realtimeMemory.endConversation(validatedUserId, realtimeConversationId);
-          
+
           // Fire-and-forget async summarization (won't block session end)
-          realtimeMemory.summarizeConversationAsync(validatedUserId, realtimeConversationId)
+          realtimeMemory
+            .summarizeConversationAsync(validatedUserId, realtimeConversationId)
             .catch((err) => {
               getLogger().warn(
                 { error: String(err), conversationId: realtimeConversationId },
                 'Async summarization failed (turns are still persisted)'
               );
             });
-          
+
           getLogger().info(
             { userId: validatedUserId, conversationId: realtimeConversationId },
             '🔴 REALTIME: Conversation ended, async summarization triggered'

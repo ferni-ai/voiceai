@@ -139,10 +139,7 @@ const MAX_RECENT_EVENTS = 1000;
 // Persistent store reference (set by initialize)
 let persistentStore: {
   saveEvent: (event: SecurityEvent) => Promise<void>;
-  getEvents: (
-    filter: Partial<SecurityEvent>,
-    limit?: number
-  ) => Promise<SecurityEvent[]>;
+  getEvents: (filter: Partial<SecurityEvent>, limit?: number) => Promise<SecurityEvent[]>;
 } | null = null;
 
 // ============================================================================
@@ -690,10 +687,7 @@ export function getRecentEvents(
  */
 export function initializeSecurityEvents(store?: {
   saveEvent: (event: SecurityEvent) => Promise<void>;
-  getEvents: (
-    filter: Partial<SecurityEvent>,
-    limit?: number
-  ) => Promise<SecurityEvent[]>;
+  getEvents: (filter: Partial<SecurityEvent>, limit?: number) => Promise<SecurityEvent[]>;
 }): void {
   if (store) {
     persistentStore = store;
@@ -743,4 +737,3 @@ export default {
   initializeSecurityEvents,
   cleanupSecurityData,
 };
-

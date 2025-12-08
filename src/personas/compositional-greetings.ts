@@ -39,7 +39,7 @@ interface WeightedOption {
   weight: number;
   // Conditions from JSON (simplified format)
   minRelationship?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
-  timeOfDay?: ('early_morning' | 'morning' | 'afternoon' | 'evening' | 'late_night')[];
+  timeOfDay?: Array<'early_morning' | 'morning' | 'afternoon' | 'evening' | 'late_night'>;
   requiresName?: boolean;
   requiresCaughtDoing?: boolean;
   returningOnly?: boolean;

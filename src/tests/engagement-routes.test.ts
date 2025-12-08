@@ -281,10 +281,17 @@ describe('Predictions Routes', () => {
       const { res, getWrittenData } = createMockResponse();
       const url = new URL('http://localhost/api/predictions/pred-123/actuals');
 
-      const handled = await handlePredictionsRoutes(req, res, '/api/predictions/pred-123/actuals', url);
+      const handled = await handlePredictionsRoutes(
+        req,
+        res,
+        '/api/predictions/pred-123/actuals',
+        url
+      );
 
       expect(handled).toBe(true);
-      expect(mockStore.updatePredictionActuals).toHaveBeenCalledWith('test-user', 'pred-123', { sleep: 7.5 });
+      expect(mockStore.updatePredictionActuals).toHaveBeenCalledWith('test-user', 'pred-123', {
+        sleep: 7.5,
+      });
       expect(getWrittenData().status).toBe(200);
     });
 
@@ -351,7 +358,10 @@ describe('Rituals Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
-        body: JSON.stringify({ userId: 'test-user', ritual: { personaId: 'ferni', name: 'Morning' } }),
+        body: JSON.stringify({
+          userId: 'test-user',
+          ritual: { personaId: 'ferni', name: 'Morning' },
+        }),
       });
       const { res, getWrittenData } = createMockResponse();
       const url = new URL('http://localhost/api/rituals');

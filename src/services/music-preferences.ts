@@ -81,7 +81,9 @@ export async function getMusicPreferences(personaId: string): Promise<MusicPrefe
     }
 
     const behaviors = await bundle.getBehaviors();
-    const musicPrefs = behaviors.music_preferences as { music_preferences?: MusicPreferences } | undefined;
+    const musicPrefs = behaviors.music_preferences as
+      | { music_preferences?: MusicPreferences }
+      | undefined;
 
     if (!musicPrefs?.music_preferences) {
       log.debug({ personaId }, 'No music preferences in bundle');
@@ -186,4 +188,3 @@ export default {
   getFavoriteGenres,
   clearMusicPreferencesCache,
 };
-

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Outreach Analytics & Learning
  *

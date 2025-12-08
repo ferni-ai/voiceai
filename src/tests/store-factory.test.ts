@@ -52,12 +52,7 @@ vi.mock('../memory/postgres-store.js', () => ({
   })),
 }));
 
-import {
-  getStore,
-  getStoreSync,
-  resetStore,
-  setStore,
-} from '../memory/store-factory.js';
+import { getStore, getStoreSync, resetStore, setStore } from '../memory/store-factory.js';
 import { getDefaultStore } from '../memory/in-memory-store.js';
 
 describe('Store Factory', () => {

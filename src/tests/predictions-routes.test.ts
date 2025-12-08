@@ -166,7 +166,10 @@ describe('Predictions Routes', () => {
     it('should accept custom limit parameter', async () => {
       const req = createMockRequest({ url: '/api/predictions?limit=50' });
       const { res } = createMockResponse();
-      const parsedUrl = new URL('/api/predictions?userId=test-user&limit=50', 'http://localhost:3002');
+      const parsedUrl = new URL(
+        '/api/predictions?userId=test-user&limit=50',
+        'http://localhost:3002'
+      );
 
       await handleGetPredictions(req, res, parsedUrl);
 
@@ -176,7 +179,10 @@ describe('Predictions Routes', () => {
     it('should cap limit at 100', async () => {
       const req = createMockRequest({ url: '/api/predictions?limit=200' });
       const { res } = createMockResponse();
-      const parsedUrl = new URL('/api/predictions?userId=test-user&limit=200', 'http://localhost:3002');
+      const parsedUrl = new URL(
+        '/api/predictions?userId=test-user&limit=200',
+        'http://localhost:3002'
+      );
 
       await handleGetPredictions(req, res, parsedUrl);
 
@@ -263,11 +269,9 @@ describe('Predictions Routes', () => {
 
       await handleUpdatePredictionActuals(req, res, parsedUrl, 'pred-1');
 
-      expect(mockStore.updatePredictionActuals).toHaveBeenCalledWith(
-        'test-user',
-        'pred-1',
-        { value: 100 }
-      );
+      expect(mockStore.updatePredictionActuals).toHaveBeenCalledWith('test-user', 'pred-1', {
+        value: 100,
+      });
       expect(getWrittenData().status).toBe(200);
     });
 
@@ -348,7 +352,12 @@ describe('Predictions Routes', () => {
       const { res, getWrittenData } = createMockResponse();
       const parsedUrl = new URL('/api/predictions/pred-1/actuals', 'http://localhost:3002');
 
-      const handled = await handlePredictionsRoutes(req, res, '/api/predictions/pred-1/actuals', parsedUrl);
+      const handled = await handlePredictionsRoutes(
+        req,
+        res,
+        '/api/predictions/pred-1/actuals',
+        parsedUrl
+      );
 
       expect(handled).toBe(true);
       expect(getWrittenData().status).toBe(200);

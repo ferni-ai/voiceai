@@ -79,7 +79,10 @@ export type OnTrackEndedCallback = (track: MusicTrack, wasAmbient: boolean) => v
  * 🎤 Callback for "Wait for it..." moments
  * Fired mid-song at exciting moments for live DJ commentary
  */
-export type OnMidSongMomentCallback = (track: MusicTrack, momentType: 'buildup' | 'drop' | 'highlight') => void;
+export type OnMidSongMomentCallback = (
+  track: MusicTrack,
+  momentType: 'buildup' | 'drop' | 'highlight'
+) => void;
 
 /**
  * Music playback states for frontend notifications.
@@ -92,7 +95,14 @@ export type OnMidSongMomentCallback = (track: MusicTrack, momentType: 'buildup' 
  * - 'stopped' = Playback stopped
  * - 'idle'    = No music loaded
  */
-export type MusicState = 'playing' | 'ducking' | 'fading' | 'changing' | 'paused' | 'stopped' | 'idle';
+export type MusicState =
+  | 'playing'
+  | 'ducking'
+  | 'fading'
+  | 'changing'
+  | 'paused'
+  | 'stopped'
+  | 'idle';
 export type OnMusicStateChangeCallback = (
   state: MusicState,
   track: MusicTrack | null,
@@ -359,10 +369,7 @@ export class CallMusicPlayer {
         // Pick moment type - mostly "buildup" with occasional "highlight"
         const momentType = Math.random() < 0.7 ? 'buildup' : 'highlight';
 
-        getLogger().info(
-          { track: track.name, momentType },
-          '🎤 Mid-song moment triggered!'
-        );
+        getLogger().info({ track: track.name, momentType }, '🎤 Mid-song moment triggered!');
 
         this.onMidSongMomentCallback(track, momentType);
       }
@@ -515,15 +522,15 @@ export class CallMusicPlayer {
 
   /**
    * 🎧 DJ-STYLE CROSSFADE: Switch to a new track with style
-   * 
+   *
    * This is the magic that makes track changes feel professional:
    * 1. Notifies 'changing' state so agent can speak a DJ transition
    * 2. Waits for the transition moment (agent speaks over fading track)
    * 3. Smoothly starts the new track
-   * 
+   *
    * The key timing: Agent gets ~1.5s to say something like "Coming up next..."
    * then the new track starts as they're finishing their phrase.
-   * 
+   *
    * @param url - URL of the new track to play
    * @param track - Track metadata
    * @param isAmbient - Whether this is ambient music
@@ -599,10 +606,7 @@ export class CallMusicPlayer {
       return { success: false, previousTrack };
     }
 
-    this.currentPlayHandle = this.backgroundPlayer.play(
-      { source: audioPath, volume },
-      false
-    );
+    this.currentPlayHandle = this.backgroundPlayer.play({ source: audioPath, volume }, false);
 
     getLogger().info(
       { track: track.name, artist: track.artist, volume, isAmbient },

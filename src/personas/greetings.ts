@@ -375,17 +375,17 @@ export function generateVoiceRecognitionGreeting(
  * Pick a random template that hasn't been used recently
  * Falls back to any template if all have been used
  */
-function pickUnusedTemplate(
-  templateList: string[],
-  usedGreetings?: string[]
-): string {
+function pickUnusedTemplate(templateList: string[], usedGreetings?: string[]): string {
   if (!usedGreetings || usedGreetings.length === 0 || templateList.length === 0) {
     return templateList[Math.floor(Math.random() * templateList.length)];
   }
 
   // Simple hash function for template comparison
   const hashTemplate = (t: string): string => {
-    const clean = t.replace(/<[^>]+>/g, '').toLowerCase().trim();
+    const clean = t
+      .replace(/<[^>]+>/g, '')
+      .toLowerCase()
+      .trim();
     return `${clean.substring(0, 50)}_${clean.length}`;
   };
 
@@ -704,10 +704,7 @@ import {
   findEventsToAcknowledge,
   generateEventAcknowledgment,
 } from './shared/life-events.js';
-import {
-  isMilestoneConversation,
-  getMilestoneMessage,
-} from './shared/welcome-back.js';
+import { isMilestoneConversation, getMilestoneMessage } from './shared/welcome-back.js';
 
 /**
  * Generate a greeting for the persona
@@ -833,7 +830,7 @@ async function generateGreetingWithoutLifeEvents(
   // 2. TRY PROACTIVE OPENER for returning users with context (60% chance)
   // This uses the conversation module's proactive starters for thread continuity,
   // memory callbacks, calendar awareness, etc.
-  if (options?.isReturningUser && Math.random() < 0.60) {
+  if (options?.isReturningUser && Math.random() < 0.6) {
     try {
       const openerContext: OpenerContext = {
         isReturningUser: true,
@@ -870,7 +867,7 @@ async function generateGreetingWithoutLifeEvents(
 
   // 3. TRY MEMORY-BASED greeting for returning users (60% chance)
   if (options?.isReturningUser && options?.personaMemories && options.personaMemories.length > 0) {
-    if (Math.random() < 0.60) {
+    if (Math.random() < 0.6) {
       const memoryGreeting = generateMemoryBasedGreeting(
         persona,
         options.userName,

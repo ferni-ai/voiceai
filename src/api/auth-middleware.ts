@@ -207,9 +207,11 @@ function verifyJWT(token: string): { userId: string; isAdmin: boolean } | null {
  * Extract IP address from request (handles proxies)
  */
 function getClientIP(req: IncomingMessage): string {
-  return getHeader(req, 'X-Forwarded-For')?.split(',')[0]?.trim() ||
+  return (
+    getHeader(req, 'X-Forwarded-For')?.split(',')[0]?.trim() ||
     req.socket.remoteAddress ||
-    'unknown';
+    'unknown'
+  );
 }
 
 /**
@@ -270,7 +272,8 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     }
     // Invalid JWT - track failure
     const payload = decodeJWTPayload(token);
-    const failureType = payload?.exp && payload.exp < Date.now() / 1000 ? 'jwt_expired' : 'jwt_invalid';
+    const failureType =
+      payload?.exp && payload.exp < Date.now() / 1000 ? 'jwt_expired' : 'jwt_invalid';
     void trackFailedAuth(payload?.sub || `ip:${ip}`, ip, failureType);
     void recordSecurityEvent({
       type: failureType,
@@ -291,7 +294,7 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     // In production, only allow device-based userIds (format: device:{uuid})
     // This provides security through the uniqueness of the device ID
     const isDeviceBased = userId.startsWith('device:');
-    
+
     if (IS_DEV || isDeviceBased) {
       return {
         userId,
@@ -369,10 +372,12 @@ export function requireAuth(
       'Content-Type': 'application/json',
       'Retry-After': Math.ceil((ipLockout.remainingMs || 0) / 1000),
     });
-    res.end(JSON.stringify({
-      error: 'Too many failed attempts. Please try again later.',
-      retryAfter: Math.ceil((ipLockout.remainingMs || 0) / 1000),
-    }));
+    res.end(
+      JSON.stringify({
+        error: 'Too many failed attempts. Please try again later.',
+        retryAfter: Math.ceil((ipLockout.remainingMs || 0) / 1000),
+      })
+    );
     return null;
   }
 
@@ -389,15 +394,20 @@ export function requireAuth(
   // Check if this specific user is locked out
   const userLockout = isLockedOut(auth.userId);
   if (userLockout.locked) {
-    log.warn({ userId: auth.userId, lockoutUntil: userLockout.lockoutUntil }, 'Locked out user attempting access');
+    log.warn(
+      { userId: auth.userId, lockoutUntil: userLockout.lockoutUntil },
+      'Locked out user attempting access'
+    );
     res.writeHead(429, {
       'Content-Type': 'application/json',
       'Retry-After': Math.ceil((userLockout.remainingMs || 0) / 1000),
     });
-    res.end(JSON.stringify({
-      error: 'Account temporarily locked. Please try again later.',
-      retryAfter: Math.ceil((userLockout.remainingMs || 0) / 1000),
-    }));
+    res.end(
+      JSON.stringify({
+        error: 'Account temporarily locked. Please try again later.',
+        retryAfter: Math.ceil((userLockout.remainingMs || 0) / 1000),
+      })
+    );
     return null;
   }
 

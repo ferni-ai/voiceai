@@ -28,8 +28,8 @@ import {
   getDancingComment,
 } from '../speech/music-reactions.js';
 import { getDJTrackChangePhrase, getDJDropPhrase } from '../audio/ambient-music.js';
-import { 
-  getDJStyle, 
+import {
+  getDJStyle,
   getMusicAppreciationComment,
   getQueueTeaser,
   getMusicDiscoveryOffer,
@@ -131,7 +131,7 @@ export async function playMusicUnified(query: string): Promise<string> {
 
 /**
  * Play via iTunes - Free 30-second previews.
- * 
+ *
  * 🎧 DJ-STYLE: If music is already playing, we do a smooth crossfade!
  * This makes Ferni feel like a real DJ - seamless track transitions.
  */
@@ -176,7 +176,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     const musicPlayer = getMusicPlayer();
     const wasPlaying = musicPlayer.isCurrentlyPlaying();
     const previousTrack = musicPlayer.getCurrentPlayingTrack();
-    
+
     const playerState = {
       isInitialized: musicPlayer.isInitialized(),
       isPlaying: musicPlayer.isPlaying(),
@@ -239,10 +239,10 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
 
     // Build a delightful, playful response for fresh starts
     // The DJ experience should feel human and fun!
-    
+
     let intro = '';
     let outro = '';
-    
+
     // 🎧 SPECIAL DJ MOMENTS - rare but delightful (10% chance)
     const funMoment = getFunDJMoment();
     if (funMoment) {
@@ -251,7 +251,7 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     } else {
       // Regular intro selection (60% chance of playful intro)
       const usePlayfulIntro = Math.random() < 0.6;
-      
+
       if (usePlayfulIntro) {
         // 8% chance of air DJ moment (rare and fun!)
         if (Math.random() < 0.08) {
@@ -274,11 +274,9 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
     const addComment = Math.random() < 0.3; // 30% chance
     if (addComment) {
       // 20% of comments are dancing-related, 80% are regular playful
-      outro = Math.random() < 0.2 
-        ? ` ${getDancingComment()}`
-        : ` ${getPlayfulMusicComment()}`;
+      outro = Math.random() < 0.2 ? ` ${getDancingComment()}` : ` ${getPlayfulMusicComment()}`;
     }
-    
+
     // Occasionally add excited reaction for variety (5% chance)
     if (!outro && Math.random() < 0.05) {
       outro = ` ${getExcitedMusicReaction()}`;

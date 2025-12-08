@@ -147,22 +147,22 @@ export interface ToolExecutionData {
 export interface GameContext {
   /** Whether a game is currently active */
   isActive: boolean;
-  
+
   /** Type of game being played */
   gameType?: string;
-  
+
   /** Current round number */
   currentRound?: number;
-  
+
   /** Current score */
   score?: number;
-  
+
   /** Whether user is in the middle of answering */
   awaitingAnswer?: boolean;
-  
+
   /** Game-specific data for context */
   gameData?: Record<string, unknown>;
-  
+
   /** When the game started */
   startedAt?: Date;
 }

@@ -78,9 +78,7 @@ export function hashPhoneNumber(phoneNumber: string): string {
   const normalized = normalizePhoneNumber(phoneNumber);
 
   // Create HMAC-SHA256 hash
-  const hash = createHmac('sha256', getHashSecret())
-    .update(`phone:${normalized}`)
-    .digest('hex');
+  const hash = createHmac('sha256', getHashSecret()).update(`phone:${normalized}`).digest('hex');
 
   // Prefix with 'ph_' to identify as phone hash
   return `ph_${hash}`;
@@ -92,7 +90,7 @@ export function hashPhoneNumber(phoneNumber: string): string {
  */
 function normalizePhoneNumber(phone: string): string {
   // Remove all non-digit characters except leading +
-  let normalized = phone.replace(/[^\d+]/g, '');
+  const normalized = phone.replace(/[^\d+]/g, '');
 
   // If starts with +, it's already international
   if (normalized.startsWith('+')) {
@@ -147,9 +145,7 @@ export function hashEmail(email: string): string {
   // Normalize email (lowercase, trim)
   const normalized = email.toLowerCase().trim();
 
-  const hash = createHmac('sha256', getHashSecret())
-    .update(`email:${normalized}`)
-    .digest('hex');
+  const hash = createHmac('sha256', getHashSecret()).update(`email:${normalized}`).digest('hex');
 
   return `em_${hash}`;
 }
@@ -208,10 +204,7 @@ export async function encryptSensitive(
     authTagLength: AUTH_TAG_LENGTH,
   });
 
-  const encrypted = Buffer.concat([
-    cipher.update(data, 'utf8'),
-    cipher.final(),
-  ]);
+  const encrypted = Buffer.concat([cipher.update(data, 'utf8'), cipher.final()]);
 
   const authTag = cipher.getAuthTag();
 
@@ -227,9 +220,7 @@ export async function encryptSensitive(
  * @param encryptedData - Data encrypted with encryptSensitive()
  * @returns Decrypted string (or parsed JSON if it was an object)
  */
-export async function decryptSensitive<T = string>(
-  encryptedData: string
-): Promise<T> {
+export async function decryptSensitive<T = string>(encryptedData: string): Promise<T> {
   // Remove prefix
   if (!encryptedData.startsWith('enc_')) {
     throw new Error('Invalid encrypted data format');
@@ -255,10 +246,7 @@ export async function decryptSensitive<T = string>(
   });
   decipher.setAuthTag(authTag);
 
-  const decrypted = Buffer.concat([
-    decipher.update(ciphertext),
-    decipher.final(),
-  ]).toString('utf8');
+  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
 
   // Try to parse as JSON
   try {
@@ -432,8 +420,7 @@ export function maskEmail(email: string): string {
   const [localPart, domain] = email.split('@');
   if (!domain) return '***@***';
 
-  const maskedLocal =
-    localPart.length > 1 ? `${localPart[0]}***` : '***';
+  const maskedLocal = localPart.length > 1 ? `${localPart[0]}***` : '***';
 
   const domainParts = domain.split('.');
   const maskedDomain =
@@ -504,4 +491,3 @@ export default {
   generateUrlSafeToken,
   generateVerificationCode,
 };
-

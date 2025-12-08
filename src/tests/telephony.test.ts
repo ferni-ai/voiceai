@@ -170,9 +170,8 @@ describe('Telephony Configuration', () => {
     vi.resetModules();
 
     // Dynamically import to get fresh module with cleared env
-    const { createTelephonyTools: freshCreateTelephonyTools } = await import(
-      '../tools/telephony.js'
-    );
+    const { createTelephonyTools: freshCreateTelephonyTools } =
+      await import('../tools/telephony.js');
 
     const tools = freshCreateTelephonyTools();
     const result = await tools.callUser.execute(

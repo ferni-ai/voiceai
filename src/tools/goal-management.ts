@@ -569,9 +569,11 @@ export function getActiveGoals(userId: string): Array<{
   status: string;
 }> {
   const userGoals = Array.from(goals.values()).filter(
-    (g) => g.userId === userId && (g.status === 'in-progress' || g.status === 'on-track' || g.status === 'not-started')
+    (g) =>
+      g.userId === userId &&
+      (g.status === 'in-progress' || g.status === 'on-track' || g.status === 'not-started')
   );
-  
+
   return userGoals.map((g) => ({
     id: g.id,
     name: g.title,
@@ -584,7 +586,10 @@ export function getActiveGoals(userId: string): Array<{
 /**
  * Get upcoming milestones across all goals (for context enrichment)
  */
-export function getUpcomingMilestones(userId: string, withinDays = 90): Array<{
+export function getUpcomingMilestones(
+  userId: string,
+  withinDays = 90
+): Array<{
   name: string;
   targetDate: Date;
   goalId: string;
@@ -600,11 +605,13 @@ export function getUpcomingMilestones(userId: string, withinDays = 90): Array<{
     goalName: string;
     category: GoalCategory;
   }> = [];
-  
+
   const userGoals = Array.from(goals.values()).filter(
-    (g) => g.userId === userId && (g.status === 'in-progress' || g.status === 'on-track' || g.status === 'not-started')
+    (g) =>
+      g.userId === userId &&
+      (g.status === 'in-progress' || g.status === 'on-track' || g.status === 'not-started')
   );
-  
+
   for (const goal of userGoals) {
     for (const milestone of goal.milestones) {
       if (milestone.targetDate && !milestone.completed) {
@@ -621,7 +628,7 @@ export function getUpcomingMilestones(userId: string, withinDays = 90): Array<{
       }
     }
   }
-  
+
   // Sort by date
   return milestones.sort((a, b) => a.targetDate.getTime() - b.targetDate.getTime());
 }
@@ -645,11 +652,13 @@ export function findEventsNearDate(
     type: 'goal_deadline' | 'milestone';
     daysFromTarget: number;
   }> = [];
-  
+
   const userGoals = Array.from(goals.values()).filter(
-    (g) => g.userId === userId && (g.status === 'in-progress' || g.status === 'on-track' || g.status === 'not-started')
+    (g) =>
+      g.userId === userId &&
+      (g.status === 'in-progress' || g.status === 'on-track' || g.status === 'not-started')
   );
-  
+
   for (const goal of userGoals) {
     // Check goal deadline
     if (goal.targetDate) {
@@ -665,7 +674,7 @@ export function findEventsNearDate(
         });
       }
     }
-    
+
     // Check milestones
     for (const milestone of goal.milestones) {
       if (milestone.targetDate && !milestone.completed) {
@@ -684,7 +693,7 @@ export function findEventsNearDate(
       }
     }
   }
-  
+
   return events.sort((a, b) => Math.abs(a.daysFromTarget) - Math.abs(b.daysFromTarget));
 }
 

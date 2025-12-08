@@ -399,20 +399,23 @@ describe('Relationship Stage Thresholds', () => {
     { score: 99, expectedStage: 'confidant', stageNumber: 5 },
     { score: 100, expectedStage: 'family', stageNumber: 6 },
     { score: 200, expectedStage: 'family', stageNumber: 6 },
-  ])('should map score $score to stage $expectedStage', async ({ score, expectedStage, stageNumber }) => {
-    mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: score });
-    mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 0 });
+  ])(
+    'should map score $score to stage $expectedStage',
+    async ({ score, expectedStage, stageNumber }) => {
+      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: score });
+      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 0 });
 
-    const req = createMockRequest();
-    const res = createMockResponse();
-    const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
+      const req = createMockRequest();
+      const res = createMockResponse();
+      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
 
-    await handleGetRelationshipProgress(req, res, parsedUrl);
+      await handleGetRelationshipProgress(req, res, parsedUrl);
 
-    expect(res._data).toMatchObject({
-      stage: expectedStage,
-      stageNumber: stageNumber,
-      engagementScore: score,
-    });
-  });
+      expect(res._data).toMatchObject({
+        stage: expectedStage,
+        stageNumber: stageNumber,
+        engagementScore: score,
+      });
+    }
+  );
 });
