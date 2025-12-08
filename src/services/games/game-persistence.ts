@@ -10,7 +10,12 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import type { GameSession, GameType } from './types.js';
-import type { GameMemory, GameSessionRecord, GameTypeStats, UserProfile } from '../../types/user-profile.js';
+import type {
+  GameMemory,
+  GameSessionRecord,
+  GameTypeStats,
+  UserProfile,
+} from '../../types/user-profile.js';
 
 const log = getLogger();
 
@@ -64,9 +69,9 @@ export function saveGameSession(
   };
 
   // Update game-specific stats
-  const gameType = session.gameType;
+  const { gameType } = session;
   const existing = gameMemory.gameStats[gameType];
-  
+
   if (existing) {
     existing.gamesPlayed++;
     existing.totalScore += session.score;
@@ -108,11 +113,14 @@ export function saveGameSession(
 
   gameMemory.updatedAt = new Date();
 
-  log.info({ 
-    gameType, 
-    score: session.score,
-    totalGames: gameMemory.totalGamesPlayed,
-  }, '🎮 Game session saved to profile');
+  log.info(
+    {
+      gameType,
+      score: session.score,
+      totalGames: gameMemory.totalGamesPlayed,
+    },
+    '🎮 Game session saved to profile'
+  );
 
   return gameMemory;
 }
@@ -124,7 +132,7 @@ export function saveSongGuessed(gameMemory: GameMemory, songName: string): void 
   if (!gameMemory.songsGuessedCorrectly) {
     gameMemory.songsGuessedCorrectly = [];
   }
-  
+
   if (!gameMemory.songsGuessedCorrectly.includes(songName)) {
     gameMemory.songsGuessedCorrectly.push(songName);
     // Keep last 50
@@ -140,7 +148,7 @@ export function saveSongGuessed(gameMemory: GameMemory, songName: string): void 
 export function saveDesertIslandPicks(gameMemory: GameMemory, picks: string[]): void {
   gameMemory.desertIslandPicks = picks;
   gameMemory.updatedAt = new Date();
-  
+
   log.info({ picks }, '🎮 Desert Island picks saved');
 }
 
@@ -157,7 +165,7 @@ export function getGameHistoryIntro(
   personaId: string
 ): string | null {
   const stats = gameMemory.gameStats[gameType];
-  
+
   if (!stats || stats.gamesPlayed === 0) {
     return null; // Never played before
   }
@@ -178,7 +186,7 @@ export function getGameHistoryIntro(
       `Back for more word association? Let's find some new songs!`,
     ],
     'desert-island-discs': [
-      gameMemory.desertIslandPicks 
+      gameMemory.desertIslandPicks
         ? `Last time your picks were: ${gameMemory.desertIslandPicks.slice(0, 2).join(', ')}... Want to reconsider?`
         : `Let's see if your island playlist has changed!`,
     ],
@@ -192,15 +200,16 @@ export function getGameHistoryIntro(
   };
 
   const gameIntros = intros[gameType] || [];
-  
+
   if (gameIntros.length === 0) {
     return `We've played this ${stats.gamesPlayed} times! Your best: ${stats.highScore}`;
   }
 
   // Add time-based flavor
   if (daysSinceLast > 7) {
-    return `It's been ${daysSinceLast} days since we played this! ` + 
-      gameIntros[Math.floor(Math.random() * gameIntros.length)];
+    return `It's been ${daysSinceLast} days since we played this! ${
+      gameIntros[Math.floor(Math.random() * gameIntros.length)]
+    }`;
   }
 
   return gameIntros[Math.floor(Math.random() * gameIntros.length)];
@@ -217,12 +226,12 @@ export function getSuggestedGame(gameMemory: GameMemory): {
   if (gameMemory.favoriteGames.length > 0) {
     const favorite = gameMemory.favoriteGames[0] as GameType;
     const stats = gameMemory.gameStats[favorite];
-    
+
     if (stats) {
       const daysSince = Math.floor(
         (Date.now() - new Date(stats.lastPlayed).getTime()) / (1000 * 60 * 60 * 24)
       );
-      
+
       if (daysSince > 3) {
         return {
           gameType: favorite,
@@ -240,8 +249,8 @@ export function getSuggestedGame(gameMemory: GameMemory): {
     'this-or-that',
     'mood-dj-challenge',
   ];
-  
-  const unplayed = allGames.filter(g => !gameMemory.gameStats[g]);
+
+  const unplayed = allGames.filter((g) => !gameMemory.gameStats[g]);
   if (unplayed.length > 0) {
     const suggestion = unplayed[Math.floor(Math.random() * unplayed.length)];
     return {
@@ -279,7 +288,7 @@ function formatGameName(gameType: GameType): string {
 const GAME_INACTIVITY_TIMEOUT = 2 * 60 * 1000;
 
 /** Track last activity time */
-let lastGameActivity: number = 0;
+let lastGameActivity = 0;
 
 /**
  * Update last activity timestamp
@@ -307,49 +316,79 @@ export function resetGameActivity(): void {
  * Detect topic change that suggests user has moved on from game
  * Returns true if the message seems unrelated to the game
  */
-export function detectTopicChange(
-  userMessage: string,
-  activeGameType: GameType | null
-): boolean {
+export function detectTopicChange(userMessage: string, activeGameType: GameType | null): boolean {
   if (!activeGameType) return false;
-  
+
   const message = userMessage.toLowerCase();
-  
+
   // Game-related keywords that suggest they're still playing
   const gameKeywords = [
-    'guess', 'answer', 'hint', 'skip', 'next', 'score', 'points',
-    'song', 'music', 'play', 'tune', 'artist', 'band',
-    'a', 'b', 'first', 'second', // for This or That
-    'word', 'love', 'night', 'happy', // common One Word Song words
+    'guess',
+    'answer',
+    'hint',
+    'skip',
+    'next',
+    'score',
+    'points',
+    'song',
+    'music',
+    'play',
+    'tune',
+    'artist',
+    'band',
+    'a',
+    'b',
+    'first',
+    'second', // for This or That
+    'word',
+    'love',
+    'night',
+    'happy', // common One Word Song words
   ];
-  
+
   // Check if message contains game keywords
-  const hasGameKeyword = gameKeywords.some(kw => message.includes(kw));
-  
+  const hasGameKeyword = gameKeywords.some((kw) => message.includes(kw));
+
   // Non-game topics that suggest they've moved on
   const offTopicKeywords = [
-    'weather', 'news', 'tell me about', 'what do you think',
-    'how are you', 'help me', 'can you', 'i need',
-    'calendar', 'remind', 'schedule', 'email',
-    'actually', 'nevermind', 'forget it', 'stop',
+    'weather',
+    'news',
+    'tell me about',
+    'what do you think',
+    'how are you',
+    'help me',
+    'can you',
+    'i need',
+    'calendar',
+    'remind',
+    'schedule',
+    'email',
+    'actually',
+    'nevermind',
+    'forget it',
+    'stop',
   ];
-  
-  const hasOffTopic = offTopicKeywords.some(kw => message.includes(kw));
-  
+
+  const hasOffTopic = offTopicKeywords.some((kw) => message.includes(kw));
+
   // If they explicitly want to stop or move on
   const wantsToStop = [
-    'stop the game', 'end game', 'quit', 'done playing',
-    "i'm done", 'enough', 'let\'s do something else',
-  ].some(phrase => message.includes(phrase));
-  
+    'stop the game',
+    'end game',
+    'quit',
+    'done playing',
+    "i'm done",
+    'enough',
+    "let's do something else",
+  ].some((phrase) => message.includes(phrase));
+
   if (wantsToStop) return true;
-  
+
   // If message has off-topic keywords but no game keywords, they might have moved on
   if (hasOffTopic && !hasGameKeyword) return true;
-  
+
   // Very long messages that don't seem like game answers
   if (message.length > 100 && !hasGameKeyword) return true;
-  
+
   return false;
 }
-

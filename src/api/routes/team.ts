@@ -27,11 +27,15 @@ export async function handleGetHuddles(
     const store = await getEngagementStore();
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
 
-    sendJSONCached(res, {
-      totalHuddles: ((profile.stats as AnyRecord)?.teamHuddlesAttended as number) || 0,
-      lastHuddleAt: profile.lastEngagementAt,
-      recentHuddles: [],
-    }, 60);
+    sendJSONCached(
+      res,
+      {
+        totalHuddles: ((profile.stats as AnyRecord)?.teamHuddlesAttended as number) || 0,
+        lastHuddleAt: profile.lastEngagementAt,
+        recentHuddles: [],
+      },
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get huddles');
     sendJSON(res, { error: 'Failed to get huddles', totalHuddles: 0, recentHuddles: [] }, 500);

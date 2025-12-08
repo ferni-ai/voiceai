@@ -88,7 +88,7 @@ const FACTOR_DISPLAY: Record<string, { displayName: string; description: string 
   },
   emotionalAttunement: {
     displayName: 'Emotional Awareness',
-    description: 'How well we pick up on how you\'re really feeling',
+    description: "How well we pick up on how you're really feeling",
   },
   growthAcknowledgment: {
     displayName: 'Growth Recognition',
@@ -118,7 +118,7 @@ const FACTOR_DISPLAY: Record<string, { displayName: string; description: string 
 
 /**
  * GET /api/relationship/health
- * 
+ *
  * Get the full relationship health dashboard
  */
 export async function handleGetHealthDashboard(
@@ -131,7 +131,7 @@ export async function handleGetHealthDashboard(
   try {
     // Get current health score
     let healthScore = getHealthScore(userId);
-    
+
     // If no score exists, calculate a fresh one with default metrics
     if (!healthScore) {
       healthScore = calculateHealthScore(userId, {
@@ -159,7 +159,7 @@ export async function handleGetHealthDashboard(
       minConfidence: 0.5,
     });
 
-    const insights = insightResults.slice(0, 5).map(ir => ({
+    const insights = insightResults.slice(0, 5).map((ir) => ({
       category: ir.insight.category,
       summary: ir.insight.summary,
       fromPersona: ir.insight.sourcePersona,
@@ -172,7 +172,7 @@ export async function handleGetHealthDashboard(
       stageName: getStageName(healthScore.stage),
       stageDescription: getStageDescription(healthScore.stage),
       trend: healthScore.overallTrend,
-      factors: healthScore.factors.map(f => ({
+      factors: healthScore.factors.map((f) => ({
         name: f.name,
         displayName: FACTOR_DISPLAY[f.name]?.displayName || f.name,
         score: f.score,
@@ -180,8 +180,8 @@ export async function handleGetHealthDashboard(
         description: FACTOR_DISPLAY[f.name]?.description || '',
       })),
       alerts: healthScore.alerts
-        .filter(a => !a.acknowledged)
-        .map(a => ({
+        .filter((a) => !a.acknowledged)
+        .map((a) => ({
           id: a.id,
           severity: a.severity,
           message: a.message,
@@ -206,7 +206,7 @@ export async function handleGetHealthDashboard(
 
 /**
  * GET /api/relationship/health/summary
- * 
+ *
  * Get a brief health summary (for quick display)
  */
 export async function handleGetHealthSummary(
@@ -218,7 +218,7 @@ export async function handleGetHealthSummary(
 
   try {
     const healthScore = getHealthScore(userId);
-    
+
     if (!healthScore) {
       sendSuccess(res, {
         score: 50,
@@ -235,7 +235,7 @@ export async function handleGetHealthSummary(
       stage: healthScore.stage,
       stageName: getStageName(healthScore.stage),
       trend: healthScore.overallTrend,
-      hasAlerts: healthScore.alerts.some(a => !a.acknowledged),
+      hasAlerts: healthScore.alerts.some((a) => !a.acknowledged),
     });
   } catch (error) {
     log.error({ error, userId }, 'Failed to get health summary');
@@ -245,7 +245,7 @@ export async function handleGetHealthSummary(
 
 /**
  * POST /api/relationship/health/acknowledge
- * 
+ *
  * Acknowledge a health alert
  */
 export async function handleAcknowledgeAlert(
@@ -257,14 +257,14 @@ export async function handleAcknowledgeAlert(
 
   try {
     const body = await parseRequestBody<{ alertId: string }>(req);
-    
+
     if (!body?.alertId) {
       sendError(res, 'alertId is required', 400);
       return;
     }
 
     const success = acknowledgeAlert(userId, body.alertId);
-    
+
     if (success) {
       sendSuccess(res, { acknowledged: true });
       log.info({ userId, alertId: body.alertId }, 'Alert acknowledged');
@@ -279,7 +279,7 @@ export async function handleAcknowledgeAlert(
 
 /**
  * POST /api/relationship/health/recalculate
- * 
+ *
  * Force recalculation of health score with provided metrics
  * (Admin/internal use)
  */
@@ -293,12 +293,40 @@ export async function handleRecalculateHealth(
   try {
     const body = await parseRequestBody<{
       metrics?: {
-        boundaryRespect?: { boundariesSet: number; boundariesRespected: number; boundariesCrossed: number };
-        emotionalAttunement?: { unsaidSignalsDetected: number; unsaidSignalsActedOn: number; emotionalMismatchesCaught: number; supportOffered: number; supportAccepted: number };
-        growthAcknowledgment?: { growthPatternsDetected: number; growthReflectionsShared: number; reflectionsReceivedWell: number };
-        callbackSuccess?: { callbacksAttempted: number; callbacksLanded: number; callbacksAwkward: number };
-        outreachReception?: { outreachSent: number; outreachOpened: number; outreachEngaged: number; outreachIgnored: number };
-        sessionDepth?: { avgSessionDurationMinutes: number; deepConversations: number; totalSessions: number; emotionalShares: number };
+        boundaryRespect?: {
+          boundariesSet: number;
+          boundariesRespected: number;
+          boundariesCrossed: number;
+        };
+        emotionalAttunement?: {
+          unsaidSignalsDetected: number;
+          unsaidSignalsActedOn: number;
+          emotionalMismatchesCaught: number;
+          supportOffered: number;
+          supportAccepted: number;
+        };
+        growthAcknowledgment?: {
+          growthPatternsDetected: number;
+          growthReflectionsShared: number;
+          reflectionsReceivedWell: number;
+        };
+        callbackSuccess?: {
+          callbacksAttempted: number;
+          callbacksLanded: number;
+          callbacksAwkward: number;
+        };
+        outreachReception?: {
+          outreachSent: number;
+          outreachOpened: number;
+          outreachEngaged: number;
+          outreachIgnored: number;
+        };
+        sessionDepth?: {
+          avgSessionDurationMinutes: number;
+          deepConversations: number;
+          totalSessions: number;
+          emotionalShares: number;
+        };
         consistency?: { sessionDates: string[]; expectedCadenceDays: number };
       };
     }>(req);
@@ -310,33 +338,49 @@ export async function handleRecalculateHealth(
       factorScores.boundaryRespect = calculateBoundaryRespect(userId, body.metrics.boundaryRespect);
     }
     if (body?.metrics?.emotionalAttunement) {
-      factorScores.emotionalAttunement = calculateEmotionalAttunement(userId, body.metrics.emotionalAttunement);
+      factorScores.emotionalAttunement = calculateEmotionalAttunement(
+        userId,
+        body.metrics.emotionalAttunement
+      );
     }
     if (body?.metrics?.growthAcknowledgment) {
-      factorScores.growthAcknowledgment = calculateGrowthAcknowledgment(userId, body.metrics.growthAcknowledgment);
+      factorScores.growthAcknowledgment = calculateGrowthAcknowledgment(
+        userId,
+        body.metrics.growthAcknowledgment
+      );
     }
     if (body?.metrics?.callbackSuccess) {
       factorScores.callbackSuccess = calculateCallbackSuccess(userId, body.metrics.callbackSuccess);
     }
     if (body?.metrics?.outreachReception) {
-      factorScores.outreachReception = calculateOutreachReception(userId, body.metrics.outreachReception);
+      factorScores.outreachReception = calculateOutreachReception(
+        userId,
+        body.metrics.outreachReception
+      );
     }
     if (body?.metrics?.sessionDepth) {
       factorScores.sessionDepth = calculateSessionDepth(userId, body.metrics.sessionDepth);
     }
     if (body?.metrics?.consistency) {
       const sessionDates = body.metrics.consistency.sessionDates.map((d: string) => new Date(d));
-      factorScores.consistency = calculateConsistency(userId, { 
-        sessionDates, 
-        expectedCadenceDays: body.metrics.consistency.expectedCadenceDays 
+      factorScores.consistency = calculateConsistency(userId, {
+        sessionDates,
+        expectedCadenceDays: body.metrics.consistency.expectedCadenceDays,
       });
     }
 
     // Fill in defaults for any missing factors
     const defaultScore = 50;
-    const allFactors = ['boundaryRespect', 'emotionalAttunement', 'growthAcknowledgment', 
-                       'callbackSuccess', 'outreachReception', 'sessionDepth', 'consistency'];
-    
+    const allFactors = [
+      'boundaryRespect',
+      'emotionalAttunement',
+      'growthAcknowledgment',
+      'callbackSuccess',
+      'outreachReception',
+      'sessionDepth',
+      'consistency',
+    ];
+
     for (const factor of allFactors) {
       if (factorScores[factor] === undefined) {
         factorScores[factor] = defaultScore;
@@ -350,7 +394,7 @@ export async function handleRecalculateHealth(
       score: healthScore.overallScore,
       stage: healthScore.stage,
       stageName: getStageName(healthScore.stage),
-      factors: healthScore.factors.map(f => ({
+      factors: healthScore.factors.map((f) => ({
         name: f.name,
         score: f.score,
       })),
@@ -365,7 +409,7 @@ export async function handleRecalculateHealth(
 
 /**
  * POST /api/relationship/milestone
- * 
+ *
  * Record a relationship milestone
  */
 export async function handleRecordMilestone(
@@ -377,7 +421,12 @@ export async function handleRecordMilestone(
 
   try {
     const body = await parseRequestBody<{
-      type: 'first_callback' | 'boundary_respected' | 'growth_noticed' | 'deep_share' | 'trust_level_up';
+      type:
+        | 'first_callback'
+        | 'boundary_respected'
+        | 'growth_noticed'
+        | 'deep_share'
+        | 'trust_level_up';
       description: string;
     }>(req);
 
@@ -398,7 +447,7 @@ export async function handleRecordMilestone(
 
 /**
  * GET /api/relationship/export
- * 
+ *
  * Export all relationship health data
  */
 export async function handleExportHealthData(
@@ -463,4 +512,3 @@ export async function relationshipHealthRoutes(
 }
 
 export default relationshipHealthRoutes;
-

@@ -99,17 +99,20 @@ async function updateSmsOptStatus(phone: string, optedIn: boolean): Promise<bool
       }
     } else {
       // Remove SMS
-      allowedChannels = allowedChannels.filter(c => c !== 'sms');
+      allowedChannels = allowedChannels.filter((c) => c !== 'sms');
     }
 
     engine.updateUserState(profile.id, { allowedChannels });
 
-    log.info({
-      userId: profile.id,
-      phone,
-      optedIn,
-      allowedChannels
-    }, `📱 SMS opt-${optedIn ? 'in' : 'out'} status updated`);
+    log.info(
+      {
+        userId: profile.id,
+        phone,
+        optedIn,
+        allowedChannels,
+      },
+      `📱 SMS opt-${optedIn ? 'in' : 'out'} status updated`
+    );
 
     return true;
   } catch (error) {
@@ -327,7 +330,9 @@ export async function handleInboundSMSWebhook(
     await updateSmsOptStatus(From, false);
     return {
       success: true,
-      twiml: generateTwiML("You've been unsubscribed from Ferni messages. Reply START to resubscribe."),
+      twiml: generateTwiML(
+        "You've been unsubscribed from Ferni messages. Reply START to resubscribe."
+      ),
     };
   }
 
@@ -384,7 +389,8 @@ export async function handleInboundSMSWebhook(
     responseType: 'reply',
     responseTime: 0, // Would calculate from original outreach
     sentiment: detectSentiment(Body),
-    engagementScore: calculateEngagement(Body) === 'high' ? 9 : calculateEngagement(Body) === 'medium' ? 6 : 3,
+    engagementScore:
+      calculateEngagement(Body) === 'high' ? 9 : calculateEngagement(Body) === 'medium' ? 6 : 3,
   });
 
   // Auto-reply (optional)
@@ -418,7 +424,8 @@ function escapeXml(text: string): string {
  * Simple sentiment detection
  */
 function detectSentiment(text: string): 'positive' | 'negative' | 'neutral' {
-  const positive = /\b(thanks|thank|great|awesome|love|yes|sure|ok|okay|perfect|wonderful|amazing|good)\b/i;
+  const positive =
+    /\b(thanks|thank|great|awesome|love|yes|sure|ok|okay|perfect|wonderful|amazing|good)\b/i;
   const negative = /\b(no|stop|don't|hate|bad|terrible|awful|annoyed|angry|frustrated)\b/i;
 
   if (positive.test(text)) return 'positive';
@@ -570,4 +577,3 @@ export const twilioWebhooks = {
   getRecentInbound,
   clearOldInbound,
 };
-

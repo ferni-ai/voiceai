@@ -1,12 +1,12 @@
 /**
  * Session Initialization for Simple Utilities
- * 
+ *
  * Call this when a user session starts to:
  * 1. Load their preferences from Firestore
  * 2. Hydrate the in-memory pattern store
  * 3. Check for proactive suggestions
  * 4. Register voice callback handlers
- * 
+ *
  * This is what makes Ferni remember you across sessions.
  */
 
@@ -52,7 +52,7 @@ export async function initializeUtilitiesForSession(
 }> {
   const log = getLogger();
   log.info({ userId }, 'Initializing utilities for session');
-  
+
   // Create or get session state
   let state = sessionStates.get(userId);
   if (!state) {
@@ -65,12 +65,12 @@ export async function initializeUtilitiesForSession(
     };
     sessionStates.set(userId, state);
   }
-  
+
   // 1. Load preferences from Firestore and hydrate in-memory patterns
   try {
     const persistedPatterns = await loadPatternsFromFirestore(userId);
     const inMemoryPatterns = getUserPatterns(userId);
-    
+
     // Merge persisted patterns into in-memory
     if (persistedPatterns.commonTimerDurations) {
       inMemoryPatterns.patterns.commonTimerDurations = persistedPatterns.commonTimerDurations;
@@ -90,19 +90,19 @@ export async function initializeUtilitiesForSession(
     if (persistedPatterns.preferences) {
       Object.assign(inMemoryPatterns.preferences, persistedPatterns.preferences);
     }
-    
+
     state.preferencesLoaded = true;
     log.debug({ userId }, 'Loaded persisted utility preferences');
   } catch (err) {
     log.warn({ err, userId }, 'Could not load persisted preferences');
   }
-  
+
   // 2. Register voice callback handler if provided
   if (options?.voiceHandler) {
     registerVoiceCallbackHandler(options.voiceHandler);
     log.debug({ userId }, 'Voice callback handler registered');
   }
-  
+
   // 3. Load life context for enrichment
   let lifeContext;
   try {
@@ -112,13 +112,13 @@ export async function initializeUtilitiesForSession(
   } catch (err) {
     log.debug({ err, userId }, 'Could not load life context');
   }
-  
+
   // 4. Get proactive opener
   let proactiveOpener: string | null = null;
   if (!options?.skipProactive) {
     try {
       proactiveOpener = await getProactiveOpener(userId, {
-        lifeEvents: lifeContext?.upcomingEvents.map(e => ({
+        lifeEvents: lifeContext?.upcomingEvents.map((e) => ({
           event: e.name,
           date: e.date,
           type: e.type,
@@ -130,38 +130,41 @@ export async function initializeUtilitiesForSession(
       log.debug({ err, userId }, 'Could not get proactive opener');
     }
   }
-  
+
   // 5. Get upcoming milestones for countdowns
   let upcomingMilestones: Array<{ event: string; daysRemaining: number }> = [];
   try {
     const milestones = await getUpcomingMilestones(userId);
-    upcomingMilestones = milestones.map(m => ({
+    upcomingMilestones = milestones.map((m) => ({
       event: m.event,
       daysRemaining: m.daysRemaining,
     }));
   } catch (err) {
     log.debug({ err, userId }, 'Could not get upcoming milestones');
   }
-  
+
   // 6. Get suggested timers based on patterns
   const patterns = getUserPatterns(userId);
   const suggestedTimers = patterns.patterns.commonTimerDurations
-    .filter(t => t.count >= 2)
+    .filter((t) => t.count >= 2)
     .sort((a, b) => b.count - a.count)
     .slice(0, 3)
-    .map(t => ({
+    .map((t) => ({
       minutes: t.minutes,
       label: t.label || 'Timer',
     }));
-  
+
   state.initialized = true;
-  log.info({ 
-    userId, 
-    hasProactive: !!proactiveOpener,
-    milestoneCount: upcomingMilestones.length,
-    suggestedTimerCount: suggestedTimers.length,
-  }, 'Utilities session initialized');
-  
+  log.info(
+    {
+      userId,
+      hasProactive: !!proactiveOpener,
+      milestoneCount: upcomingMilestones.length,
+      suggestedTimerCount: suggestedTimers.length,
+    },
+    'Utilities session initialized'
+  );
+
   return {
     proactiveOpener,
     upcomingMilestones,
@@ -174,18 +177,18 @@ export async function initializeUtilitiesForSession(
  */
 export async function endUtilitiesSession(userId: string): Promise<void> {
   const log = getLogger();
-  
+
   try {
     // Sync patterns to Firestore
     const { syncPatternsToFirestore } = await import('./persistence.js');
     const patterns = getUserPatterns(userId);
     await syncPatternsToFirestore(userId, patterns);
-    
+
     log.debug({ userId }, 'Synced utility patterns on session end');
   } catch (err) {
     log.warn({ err, userId }, 'Could not sync patterns on session end');
   }
-  
+
   // Clean up session state
   sessionStates.delete(userId);
 }
@@ -218,25 +221,25 @@ export async function onConversationStart(
   voiceHandler?: (callback: VoiceCallback) => Promise<void>
 ): Promise<string | null> {
   const result = await initializeUtilitiesForSession(userId, { voiceHandler });
-  
+
   // Build a natural opener if we have something
   const parts: string[] = [];
-  
+
   // Proactive suggestion
   if (result.proactiveOpener) {
     parts.push(result.proactiveOpener);
   }
-  
+
   // Milestone mention
-  const todayMilestone = result.upcomingMilestones.find(m => m.daysRemaining === 0);
-  const tomorrowMilestone = result.upcomingMilestones.find(m => m.daysRemaining === 1);
-  
+  const todayMilestone = result.upcomingMilestones.find((m) => m.daysRemaining === 0);
+  const tomorrowMilestone = result.upcomingMilestones.find((m) => m.daysRemaining === 1);
+
   if (todayMilestone) {
     parts.push(`🎉 Today's the day - it's ${todayMilestone.event}!`);
   } else if (tomorrowMilestone) {
     parts.push(`${tomorrowMilestone.event} is tomorrow!`);
   }
-  
+
   return parts.length > 0 ? parts.join(' ') : null;
 }
 
@@ -258,7 +261,7 @@ export async function onConversationTick(
   // Only check periodically
   if (turnCount < 5) return null;
   if (lastActivityMinutes < 2) return null;
-  
+
   try {
     const { shouldInjectProactiveSuggestion } = await import('./proactive-hooks.js');
     return await shouldInjectProactiveSuggestion(userId, turnCount, lastActivityMinutes);
@@ -284,4 +287,3 @@ export default {
 // Re-export key types
 export type { VoiceCallback } from './voice-callbacks.js';
 export type { ProactiveOffer, ProactiveContext } from './proactive-hooks.js';
-

@@ -237,10 +237,7 @@ function buildContextInjection(
   response: DistortionResponse,
   dialogue: SocraticDialogue | null
 ): CognitiveContextInjection {
-  const lines: string[] = [
-    '[🧠 COGNITIVE PATTERN DETECTED]',
-    '',
-  ];
+  const lines: string[] = ['[🧠 COGNITIVE PATTERN DETECTED]', ''];
 
   // Name the distortion
   const distortionLabels: Record<string, string> = {
@@ -377,4 +374,3 @@ export interface CognitiveSummary {
     trend: string;
   } | null;
 }
-

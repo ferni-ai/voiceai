@@ -119,9 +119,7 @@ const variantResults = new Map<string, Map<string, VariantResult>>(); // testId 
 /**
  * Create a new A/B test
  */
-export function createTest(
-  config: Omit<ABTest, 'id' | 'createdAt' | 'status'>
-): ABTest {
+export function createTest(config: Omit<ABTest, 'id' | 'createdAt' | 'status'>): ABTest {
   const id = `test-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
   // Validate variants have valid weights
@@ -267,10 +265,7 @@ export function getAllTests(status?: TestStatus): ABTest[] {
  * Get variant assignment for a user
  * Uses consistent hashing so same user always gets same variant
  */
-export function getVariantForUser(
-  testId: string,
-  userId: string
-): ABTestVariant | null {
+export function getVariantForUser(testId: string, userId: string): ABTestVariant | null {
   const test = tests.get(testId);
   if (!test || test.status !== 'running') {
     return null;
@@ -318,10 +313,7 @@ export function getVariantForUser(
     }
   }
 
-  log.debug(
-    { testId, userId, variantId: variant.id },
-    'Assigned user to variant'
-  );
+  log.debug({ testId, userId, variantId: variant.id }, 'Assigned user to variant');
 
   return variant;
 }
@@ -395,17 +387,12 @@ export function recordConversion(
     if (variantResult) {
       variantResult.conversions++;
       variantResult.conversionRate =
-        variantResult.participants > 0
-          ? variantResult.conversions / variantResult.participants
-          : 0;
+        variantResult.participants > 0 ? variantResult.conversions / variantResult.participants : 0;
       results.set(assignment.variantId, variantResult);
     }
   }
 
-  log.debug(
-    { testId, userId, variantId: assignment.variantId },
-    'Recorded conversion'
-  );
+  log.debug({ testId, userId, variantId: assignment.variantId }, 'Recorded conversion');
 
   // Check if test should auto-complete
   checkAutoComplete(testId);
@@ -574,9 +561,7 @@ function normalCDF(x: number): number {
   x = Math.abs(x) / Math.sqrt(2);
 
   const t = 1.0 / (1.0 + p * x);
-  const y =
-    1.0 -
-    ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
 
   return 0.5 * (1.0 + sign * y);
 }
@@ -617,9 +602,7 @@ export function getUserAssignments(userId: string): TestAssignment[] {
  */
 export function getActiveTestsForTrigger(triggerType: string): ABTest[] {
   return Array.from(tests.values()).filter(
-    (t) =>
-      t.status === 'running' &&
-      (!t.triggerTypes || t.triggerTypes.includes(triggerType))
+    (t) => t.status === 'running' && (!t.triggerTypes || t.triggerTypes.includes(triggerType))
   );
 }
 
@@ -682,4 +665,3 @@ export const abTesting = {
   isUserInTest,
   clearOldTests,
 };
-

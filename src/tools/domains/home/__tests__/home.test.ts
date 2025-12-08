@@ -49,7 +49,9 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Jordan',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
@@ -81,19 +83,19 @@ describe('Home & Living Domain Tools', () => {
     });
 
     it('should have coachDecluttering tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'coachDecluttering');
+      const tool = toolDefinitions.find((t) => t.id === 'coachDecluttering');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('home');
     });
 
     it('should have planMove tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'planMove');
+      const tool = toolDefinitions.find((t) => t.id === 'planMove');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('home');
     });
 
     it('should have remindHomeMaintenance tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'remindHomeMaintenance');
+      const tool = toolDefinitions.find((t) => t.id === 'remindHomeMaintenance');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('home');
     });
@@ -101,7 +103,7 @@ describe('Home & Living Domain Tools', () => {
 
   describe('coachDecluttering', () => {
     it('should coach on decluttering a room', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coachDecluttering');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coachDecluttering');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -115,7 +117,7 @@ describe('Home & Living Domain Tools', () => {
     });
 
     it('should handle high overwhelm gracefully', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coachDecluttering');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coachDecluttering');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -131,7 +133,7 @@ describe('Home & Living Domain Tools', () => {
 
   describe('planMove', () => {
     it('should help plan a move', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'planMove');
+      const toolDef = toolDefinitions.find((t) => t.id === 'planMove');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -140,11 +142,13 @@ describe('Home & Living Domain Tools', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.toLowerCase().includes('move') || result.toLowerCase().includes('pack')).toBe(true);
+      expect(result.toLowerCase().includes('move') || result.toLowerCase().includes('pack')).toBe(
+        true
+      );
     });
 
     it('should plan a long-distance move', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'planMove');
+      const toolDef = toolDefinitions.find((t) => t.id === 'planMove');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -158,7 +162,7 @@ describe('Home & Living Domain Tools', () => {
 
   describe('remindHomeMaintenance', () => {
     it('should remind about home maintenance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'remindHomeMaintenance');
+      const toolDef = toolDefinitions.find((t) => t.id === 'remindHomeMaintenance');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -171,7 +175,7 @@ describe('Home & Living Domain Tools', () => {
 
   describe('organizeSpace', () => {
     it('should help organize a space', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'organizeSpace');
+      const toolDef = toolDefinitions.find((t) => t.id === 'organizeSpace');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -185,7 +189,7 @@ describe('Home & Living Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coachDecluttering');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coachDecluttering');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -198,7 +202,7 @@ describe('Home & Living Domain Tools', () => {
     });
 
     it('should provide actionable advice', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'planMove');
+      const toolDef = toolDefinitions.find((t) => t.id === 'planMove');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -211,4 +215,3 @@ describe('Home & Living Domain Tools', () => {
     });
   });
 });
-

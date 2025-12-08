@@ -13,7 +13,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireUserId, sendJSON } from '../helpers.js';
-import { generateMusicInsights, getConversationalInsight, getGameSuggestion } from '../../services/games/game-insights.js';
+import {
+  generateMusicInsights,
+  getConversationalInsight,
+  getGameSuggestion,
+} from '../../services/games/game-insights.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'GamesAPI' });
@@ -37,7 +41,7 @@ const RATE_LIMIT_MAX_REQUESTS = 30; // 30 requests per minute
 function isRateLimited(userId: string): boolean {
   const now = Date.now();
   const entry = rateLimits.get(userId);
-  
+
   if (!entry || now > entry.resetAt) {
     // Reset or create entry
     rateLimits.set(userId, {
@@ -46,12 +50,12 @@ function isRateLimited(userId: string): boolean {
     });
     return false;
   }
-  
+
   if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
     log.warn({ userId, count: entry.count }, 'Rate limit exceeded for games API');
     return true;
   }
-  
+
   entry.count++;
   return false;
 }
@@ -63,17 +67,21 @@ function sendRateLimitResponse(res: ServerResponse): void {
   res.statusCode = 429;
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Retry-After', '60');
-  res.end(JSON.stringify({
-    success: false,
-    error: 'Too many requests. Please try again later.',
-    retryAfter: 60,
-  }));
+  res.end(
+    JSON.stringify({
+      success: false,
+      error: 'Too many requests. Please try again later.',
+      retryAfter: 60,
+    })
+  );
 }
 
 /**
  * Get user profile from engagement store
  */
-async function getUserProfileFromStore(userId: string): Promise<{ gameMemory?: GameMemory } | null> {
+async function getUserProfileFromStore(
+  userId: string
+): Promise<{ gameMemory?: GameMemory } | null> {
   try {
     const { getEngagementStore } = await import('../../services/engagement-store.js');
     const store = await getEngagementStore();
@@ -123,10 +131,14 @@ export async function handleGamesRoutes(
       return true;
     } catch (error) {
       log.error({ error, userId }, 'Failed to get game insights');
-      sendJSON(res, {
-        success: false,
-        error: 'Failed to generate insights',
-      }, 500);
+      sendJSON(
+        res,
+        {
+          success: false,
+          error: 'Failed to generate insights',
+        },
+        500
+      );
       return true;
     }
   }
@@ -147,10 +159,14 @@ export async function handleGamesRoutes(
       return true;
     } catch (error) {
       log.error({ error, userId }, 'Failed to get game suggestion');
-      sendJSON(res, {
-        success: false,
-        error: 'Failed to generate suggestion',
-      }, 500);
+      sendJSON(
+        res,
+        {
+          success: false,
+          error: 'Failed to generate suggestion',
+        },
+        500
+      );
       return true;
     }
   }
@@ -171,14 +187,17 @@ export async function handleGamesRoutes(
       return true;
     } catch (error) {
       log.error({ error, userId }, 'Failed to get conversational insight');
-      sendJSON(res, {
-        success: false,
-        error: 'Failed to generate insight',
-      }, 500);
+      sendJSON(
+        res,
+        {
+          success: false,
+          error: 'Failed to generate insight',
+        },
+        500
+      );
       return true;
     }
   }
 
   return false;
 }
-

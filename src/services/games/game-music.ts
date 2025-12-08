@@ -20,12 +20,24 @@ const log = getLogger();
 const FALLBACK_SONGS: GameTrack[] = [
   { name: 'Bohemian Rhapsody', artist: 'Queen', previewUrl: '', decade: '1970s', genre: 'rock' },
   { name: 'Billie Jean', artist: 'Michael Jackson', previewUrl: '', decade: '1980s', genre: 'pop' },
-  { name: 'Smells Like Teen Spirit', artist: 'Nirvana', previewUrl: '', decade: '1990s', genre: 'rock' },
+  {
+    name: 'Smells Like Teen Spirit',
+    artist: 'Nirvana',
+    previewUrl: '',
+    decade: '1990s',
+    genre: 'rock',
+  },
   { name: 'Hey Ya!', artist: 'OutKast', previewUrl: '', decade: '2000s', genre: 'pop' },
   { name: 'Happy', artist: 'Pharrell Williams', previewUrl: '', decade: '2010s', genre: 'pop' },
   { name: 'Blinding Lights', artist: 'The Weeknd', previewUrl: '', decade: '2020s', genre: 'pop' },
   { name: 'Hotel California', artist: 'Eagles', previewUrl: '', decade: '1970s', genre: 'rock' },
-  { name: 'Sweet Child O\' Mine', artist: 'Guns N\' Roses', previewUrl: '', decade: '1980s', genre: 'rock' },
+  {
+    name: "Sweet Child O' Mine",
+    artist: "Guns N' Roses",
+    previewUrl: '',
+    decade: '1980s',
+    genre: 'rock',
+  },
   { name: 'Wonderwall', artist: 'Oasis', previewUrl: '', decade: '1990s', genre: 'rock' },
   { name: 'Mr. Brightside', artist: 'The Killers', previewUrl: '', decade: '2000s', genre: 'rock' },
 ];
@@ -53,16 +65,18 @@ async function rateLimitedSearch(query: string): Promise<SearchResult> {
   const now = Date.now();
   const timeSinceLastRequest = now - lastRequestTime;
   if (timeSinceLastRequest < MIN_REQUEST_INTERVAL_MS) {
-    await new Promise(resolve => setTimeout(resolve, MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest);
+    });
   }
   lastRequestTime = Date.now();
 
   // Perform search
   const result = await searchSongDirect(query);
-  
+
   // Cache result
   searchCache.set(query, { result, timestamp: Date.now() });
-  
+
   return result;
 }
 
@@ -72,7 +86,7 @@ async function rateLimitedSearch(query: string): Promise<SearchResult> {
 async function searchSongDirect(query: string): Promise<SearchResult> {
   try {
     const result = await findTrack(query);
-    
+
     if (!result.found || !result.track) {
       return { found: false, error: result.error || 'Track not found' };
     }
@@ -97,17 +111,17 @@ async function searchSongDirect(query: string): Promise<SearchResult> {
  */
 function getFallbackSong(hint?: { decade?: string; genre?: string }): GameTrack {
   let candidates = [...FALLBACK_SONGS];
-  
+
   if (hint?.decade) {
-    const decadeMatches = candidates.filter(s => s.decade === hint.decade);
+    const decadeMatches = candidates.filter((s) => s.decade === hint.decade);
     if (decadeMatches.length > 0) candidates = decadeMatches;
   }
-  
+
   if (hint?.genre) {
-    const genreMatches = candidates.filter(s => s.genre === hint.genre);
+    const genreMatches = candidates.filter((s) => s.genre === hint.genre);
     if (genreMatches.length > 0) candidates = genreMatches;
   }
-  
+
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
@@ -141,7 +155,7 @@ export interface SearchResult {
 export async function searchSong(query: string, useFallback = true): Promise<SearchResult> {
   try {
     const result = await rateLimitedSearch(query);
-    
+
     if (!result.found && useFallback) {
       log.warn({ query }, '🎮 iTunes search failed, using fallback');
       const fallback = getFallbackSong();
@@ -150,11 +164,11 @@ export async function searchSong(query: string, useFallback = true): Promise<Sea
         track: fallback,
       };
     }
-    
+
     return result;
   } catch (error) {
     log.error({ error, query }, '🎮 Search failed completely');
-    
+
     if (useFallback) {
       const fallback = getFallbackSong();
       return {
@@ -162,7 +176,7 @@ export async function searchSong(query: string, useFallback = true): Promise<Sea
         track: fallback,
       };
     }
-    
+
     return { found: false, error: 'Search failed' };
   }
 }
@@ -174,7 +188,7 @@ export async function searchSongWithWord(word: string): Promise<SearchResult> {
   try {
     // Search iTunes for songs with this word in title
     const results = await searchItunes(word, 10);
-    
+
     if (results.resultCount === 0) {
       return { found: false, error: `No songs found with "${word}"` };
     }
@@ -190,7 +204,7 @@ export async function searchSongWithWord(word: string): Promise<SearchResult> {
       if (!firstWithPreview) {
         return { found: false, error: `No playable songs found with "${word}"` };
       }
-      
+
       return {
         found: true,
         track: {
@@ -221,7 +235,7 @@ export async function searchSongWithWord(word: string): Promise<SearchResult> {
  * Search for random songs from a decade or genre (for Name That Tune variety)
  */
 export async function getRandomGameSongs(
-  count: number = 10,
+  count = 10,
   options?: { decade?: string; genre?: string }
 ): Promise<GameTrack[]> {
   // Mix of classic and popular songs that most people would recognize
@@ -274,10 +288,10 @@ export async function getRandomGameSongs(
   const selectedQueries = shuffled.slice(0, count * 2); // Request more in case some fail
 
   const tracks: GameTrack[] = [];
-  
+
   for (const query of selectedQueries) {
     if (tracks.length >= count) break;
-    
+
     try {
       const result = await findTrack(query);
       if (result.found && result.track?.previewUrl) {
@@ -292,9 +306,11 @@ export async function getRandomGameSongs(
       // Skip failed searches
       continue;
     }
-    
+
     // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 100);
+    });
   }
 
   log.info({ count: tracks.length, requested: count }, '🎮 Loaded game songs');
@@ -341,7 +357,7 @@ export async function searchSongForMood(mood: string): Promise<SearchResult> {
 
   // Pick random search term
   const searchQuery = searchTerms[Math.floor(Math.random() * searchTerms.length)];
-  
+
   return searchSong(searchQuery);
 }
 
@@ -352,13 +368,13 @@ export async function searchSongForMood(mood: string): Promise<SearchResult> {
 /**
  * Play a game track
  * Returns true if playback started successfully
- * 
+ *
  * @param waitForStart - If true, waits for music to actually start before resolving
  *                       This prevents the agent from speaking over the music intro
  */
-export async function playGameTrack(track: GameTrack, waitForStart: boolean = true): Promise<boolean> {
+export async function playGameTrack(track: GameTrack, waitForStart = true): Promise<boolean> {
   const player = getMusicPlayer();
-  
+
   if (!player.isInitialized()) {
     log.warn('🎮 Music player not initialized, cannot play game track');
     return false;
@@ -375,14 +391,16 @@ export async function playGameTrack(track: GameTrack, waitForStart: boolean = tr
   player.setVolume(0.4);
 
   const success = await player.playFromUrl(track.previewUrl, musicTrack);
-  
+
   if (success) {
     log.info({ track: track.name }, '🎮 Playing game track');
-    
+
     // 🎵 Wait for music to actually start playing
     // This prevents the agent from talking over the music intro
     if (waitForStart) {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 800);
+      });
     }
   } else {
     log.error({ track: track.name }, '🎮 Failed to play game track');
@@ -403,9 +421,9 @@ export function stopGameTrack(): void {
 /**
  * Fade out current track (for dramatic reveals)
  */
-export async function fadeOutGameTrack(durationMs: number = 2000): Promise<void> {
+export async function fadeOutGameTrack(durationMs = 2000): Promise<void> {
   const player = getMusicPlayer();
-  
+
   // Gradually reduce volume
   const startVolume = 0.4;
   const steps = 10;
@@ -413,8 +431,10 @@ export async function fadeOutGameTrack(durationMs: number = 2000): Promise<void>
   const volumeStep = startVolume / steps;
 
   for (let i = 0; i < steps; i++) {
-    player.setVolume(startVolume - (volumeStep * (i + 1)));
-    await new Promise(resolve => setTimeout(resolve, stepDelay));
+    player.setVolume(startVolume - volumeStep * (i + 1));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, stepDelay);
+    });
   }
 
   player.stop();
@@ -475,7 +495,7 @@ let isPreloading = false;
  * Preload songs for upcoming rounds
  * Call this at game start or after each round
  */
-export async function preloadNextRoundSongs(count: number = 3): Promise<void> {
+export async function preloadNextRoundSongs(count = 3): Promise<void> {
   if (isPreloading || preloadQueue.length >= MAX_PRELOAD_SIZE) {
     return;
   }
@@ -484,13 +504,13 @@ export async function preloadNextRoundSongs(count: number = 3): Promise<void> {
 
   try {
     const tracks = await getRandomGameSongs(count);
-    
+
     for (const track of tracks) {
       if (preloadQueue.length < MAX_PRELOAD_SIZE) {
         preloadQueue.push(track);
       }
     }
-    
+
     log.debug({ queueSize: preloadQueue.length }, '🎮 Preloaded game songs');
   } catch (error) {
     log.warn({ error }, '🎮 Failed to preload songs');
@@ -506,17 +526,17 @@ export async function getPreloadedOrSearch(query?: string): Promise<GameTrack | 
   // If we have preloaded tracks and no specific query, use one
   if (!query && preloadQueue.length > 0) {
     const track = preloadQueue.shift();
-    
+
     // Start preloading more in background
     void preloadNextRoundSongs(1);
-    
+
     return track || null;
   }
 
   // Otherwise search
   if (query) {
     const result = await searchSong(query);
-    return result.found ? (result.track || null) : null;
+    return result.found ? result.track || null : null;
   }
 
   // Fallback: load and return first track

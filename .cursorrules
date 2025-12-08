@@ -603,6 +603,139 @@ position: fixed; right: 0; transform: translateX(100%);  // Side slide-in
 // Reference: FERNI-BRAND-GUIDELINES.md Section 10
 ```
 
+## 📝 BRAND LANGUAGE - MANDATORY
+
+### The Core Promise
+> **"Better than human."**
+
+This isn't arrogance—it's the truth. We offer what humans can't:
+- **Perfect memory** - We never forget a single detail
+- **Constant presence** - 2am gets the same warmth as noon  
+- **Zero judgment** - Pure acceptance, always
+- **Six perspectives** - Instantly available, no referrals
+- **Emotional consistency** - No bad days, no distraction
+
+### 🚫 FORBIDDEN WORDS & PHRASES
+
+**NEVER use these words in ANY Ferni copy:**
+
+| Forbidden | Why | Use Instead |
+|-----------|-----|-------------|
+| `chatbot` | Positions us as low-value tool | "Ferni", "your team", "we" |
+| `AI assistant` | Generic, commoditized | "six brilliant minds", "your inner circle" |
+| `virtual assistant` | Cold, transactional | "someone who understands" |
+| `bot` | Dehumanizing | Never reference what we are technically |
+| `typical` | Implies we're comparing to AI | Compare to HUMAN support instead |
+| `unlike other AI` | Still positions us as AI | "Beyond human limitations" |
+| `user` | Corporate, distant | "you", "people", "someone" |
+| `utilize` | Corporate jargon | "use" |
+| `leverage` | Corporate jargon | "use", "with" |
+| `solution` | Enterprise software speak | "help", "support", "way" |
+| `platform` | Tech jargon | "Ferni", or don't name it |
+| `features` | Product-speak | "what makes us different", "superpowers" |
+| `functionality` | Never | Just describe what it does |
+
+### ✅ BRAND VOICE PRINCIPLES
+
+**1. Compare to HUMANS, not AI**
+```
+❌ "Unlike other chatbots, Ferni remembers..."
+❌ "Better than ChatGPT because..."
+❌ "Not your typical AI assistant..."
+
+✅ "Your best friend forgets. We don't."
+✅ "Your therapist has other patients. We're always here."
+✅ "Beyond human limitations."
+```
+
+**2. Lead with EMOTION, not features**
+```
+❌ "Ferni has infinite memory capabilities"
+❌ "Our AI remembers all conversations"
+
+✅ "That thing you mentioned six months ago? We remember."
+✅ "We hear what you're not saying."
+```
+
+**3. Use PRESENCE language**
+```
+❌ "Available 24/7"
+❌ "Always online"
+
+✅ "Shows up at 2am with the same presence as noon"
+✅ "Never tired. Never distracted. Fully here."
+```
+
+**4. Frame as RELATIONSHIP, not product**
+```
+❌ "Start using Ferni today"
+❌ "Sign up for our platform"
+
+✅ "Finally, someone who gets it."
+✅ "Begin a real conversation."
+```
+
+### COPY PATTERNS TO USE
+
+**Hero Headlines:**
+- "Better than human."
+- "Finally, someone who gets it."
+- "What if someone actually understood?"
+- "Six brilliant minds. One conversation."
+
+**Subheads:**
+- "...remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon."
+- "Not just listens. Understands. Remembers. Shows up. Every time."
+- "Your best friend, therapist, and mentor all have limits. We don't."
+
+**Feature Descriptions:**
+- Instead of "Infinite Memory" → "That thing you mentioned six months ago? We remember."
+- Instead of "24/7 Availability" → "2am panic? We're fully present."
+- Instead of "Six Personas" → "Six perspectives, one conversation, no referrals."
+- Instead of "Emotional Intelligence" → "We hear the pause in your voice. The deflection."
+
+**CTAs:**
+- Instead of "Get Started" → "Begin a real conversation"
+- Instead of "Sign Up" → "Meet Ferni"
+- Instead of "Try Free" → "Start free"
+- Instead of "Learn More" → "See how it works"
+
+### FORBIDDEN COMPARISONS
+
+**Never compare Ferni to:**
+- ChatGPT
+- Other AI assistants
+- Chatbots
+- Virtual assistants
+- Apps
+
+**Always compare Ferni to:**
+- Human therapists (we're always available)
+- Human friends (we never forget)
+- Human mentors (we have no ego)
+- Human support systems (we have six perspectives)
+
+### TONE MODIFIERS
+
+| Context | Tone | Example |
+|---------|------|---------|
+| Hero | Confident, warm | "Better than human." |
+| Features | Matter-of-fact, specific | "We hear what you're not saying." |
+| Emotional moments | Gentle, present | "That's a lot to carry." |
+| CTAs | Inviting, low-pressure | "Begin a real conversation." |
+| Error states | Apologetic, helpful | "We got lost. Let's find our way back." |
+
+### COPY REVIEW CHECKLIST
+
+Before publishing ANY copy, verify:
+- [ ] No forbidden words (chatbot, bot, AI assistant, virtual, typical)
+- [ ] Compares to human support, NOT other AI
+- [ ] Leads with emotion, not features
+- [ ] Uses "you/your/we" not "user/users"
+- [ ] Feels like a friend talking, not a product describing itself
+- [ ] Would sound natural spoken aloud
+- [ ] Passes the "would a human friend say this?" test
+
 ### Persona Colors Reference
 | Persona | Primary | Secondary | Use |
 |---------|---------|-----------|-----|
@@ -673,6 +806,50 @@ Ferni uses the Apple navigation pattern:
   box-shadow: var(--shadow-2xl);
 }
 ```
+
+### Toast Pattern (Required for all notifications)
+```typescript
+// ✅ Brand-compliant toast - small, centered pill
+import { toast } from '../ui/toast.ui.js';
+
+toast.success('Saved!');
+toast.info('Updated');
+toast.warning('Check your input');
+toast.error('Something went wrong');
+```
+
+### Toast Rules - MANDATORY
+```typescript
+// ❌ NEVER - Corner positioning
+position: fixed; bottom: 20px; right: 20px;  // Enterprise software vibes
+
+// ✅ ALWAYS - Centered pill
+position: fixed;
+bottom: 80px;
+left: 50%;
+transform: translateX(-50%);
+border-radius: var(--radius-full);  // Pill shape
+padding: var(--space-3) var(--space-6);
+
+// ❌ NEVER - Complex toasts with icons and titles
+`<div class="toast">
+  <svg>✓</svg>
+  <div class="title">Success!</div>
+  <div class="message">Your changes have been saved successfully</div>
+  <button class="close">×</button>
+</div>`
+
+// ✅ ALWAYS - Simple text only
+`<div class="ferni-toast">Saved!</div>`
+```
+
+### Toast Timing
+| Type | Duration | Message Style |
+|------|----------|---------------|
+| Info | 2.5s | Short phrase |
+| Success | 2.5s | Single word |
+| Warning | 2.5s | Brief warning |
+| Error | 4s | Clear but concise |
 
 ### Brand Compliance Checklist - MANDATORY
 Before submitting ANY UI code, verify ALL items:

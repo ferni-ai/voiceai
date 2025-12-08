@@ -407,11 +407,7 @@ export async function initializeOutreachSystem(): Promise<void> {
   }
 
   // Initialize SIP bridge (optional)
-  if (
-    process.env.TWILIO_ACCOUNT_SID &&
-    process.env.LIVEKIT_API_KEY &&
-    process.env.SIP_DOMAIN
-  ) {
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.LIVEKIT_API_KEY && process.env.SIP_DOMAIN) {
     try {
       initializeSIPBridge({
         twilioAccountSid: process.env.TWILIO_ACCOUNT_SID,
@@ -653,7 +649,12 @@ async function handleOutreachDelivery(decision: OutreachDecision): Promise<void>
           delivered = true;
           break;
         case 'email':
-          await proactiveOutreach.emailUser(userId, subject || 'A message from Ferni', finalMessage, personaId);
+          await proactiveOutreach.emailUser(
+            userId,
+            subject || 'A message from Ferni',
+            finalMessage,
+            personaId
+          );
           delivered = true;
           break;
         case 'call':
@@ -669,20 +670,18 @@ async function handleOutreachDelivery(decision: OutreachDecision): Promise<void>
     }
 
     // Record for analytics - cast channel to the supported analytics types
-    const analyticsChannel = (finalChannel === 'push' || finalChannel === 'voice_message')
-      ? 'sms'
-      : finalChannel as 'sms' | 'email' | 'call';
+    const analyticsChannel =
+      finalChannel === 'push' || finalChannel === 'voice_message'
+        ? 'sms'
+        : (finalChannel as 'sms' | 'email' | 'call');
     const eventId = recordOutreachEvent(decision, analyticsChannel);
-    
+
     // Persist to Firestore
     if (isFirestoreAvailable()) {
       await saveToHistory(userId, decision);
     }
 
-    log.info(
-      { userId, channel, triggerId: decision.trigger.id, eventId },
-      '✅ Outreach delivered'
-    );
+    log.info({ userId, channel, triggerId: decision.trigger.id, eventId }, '✅ Outreach delivered');
   } catch (error) {
     log.error({ error, userId, channel }, '❌ Failed to deliver outreach');
   }
@@ -706,9 +705,7 @@ async function handleOutreachDelivery(decision: OutreachDecision): Promise<void>
  * });
  * ```
  */
-export function triggerOutreach(
-  trigger: Omit<OutreachTrigger, 'id' | 'createdAt'>
-): string {
+export function triggerOutreach(trigger: Omit<OutreachTrigger, 'id' | 'createdAt'>): string {
   const engine = getOutreachDecisionEngine();
   return engine.addTrigger(trigger);
 }
@@ -749,10 +746,7 @@ export function updateUserContext(
 /**
  * Register a user for proactive outreach
  */
-export function registerUserForOutreach(
-  userId: string,
-  relationshipStartDate?: Date
-): void {
+export function registerUserForOutreach(userId: string, relationshipStartDate?: Date): void {
   // Register with thinking-of-you engine
   const toyEngine = getThinkingOfYouEngine();
   toyEngine.registerUser(userId, relationshipStartDate);
@@ -855,11 +849,7 @@ export {
   ConversationalCallService,
 };
 
-export type {
-  OutboundCallContext,
-  OutboundCall,
-  CallStatus,
-};
+export type { OutboundCallContext, OutboundCall, CallStatus };
 
 // Timing Intelligence
 export {
@@ -937,13 +927,7 @@ export {
   clearUserChannelData,
 };
 
-export type {
-  ChannelProfile,
-  ChannelContext,
-  ChannelDecision,
-  ContentType,
-  ChannelSequence,
-};
+export type { ChannelProfile, ChannelContext, ChannelDecision, ContentType, ChannelSequence };
 
 // Relationship Adapter
 export {
@@ -965,12 +949,7 @@ export {
   clearRelationshipData,
 };
 
-export type {
-  RelationshipProfile,
-  ToneAdjustment,
-  MessageAdjustment,
-  RelationshipMoment,
-};
+export type { RelationshipProfile, ToneAdjustment, MessageAdjustment, RelationshipMoment };
 
 // Session Integration
 export {
@@ -981,11 +960,7 @@ export {
   extractWinsAndStruggles,
 };
 
-export type {
-  SessionEndData,
-  ExtractedCommitment,
-  ExtractedEmotionalState,
-};
+export type { SessionEndData, ExtractedCommitment, ExtractedEmotionalState };
 
 // Maintenance
 export {
@@ -1105,18 +1080,9 @@ export type {
 };
 
 // Webhook Handlers
-export {
-  initializeWebhooks,
-  twilioWebhooks,
-  emailWebhooks,
-  onInboundMessage,
-};
+export { initializeWebhooks, twilioWebhooks, emailWebhooks, onInboundMessage };
 
-export type {
-  WebhooksConfig,
-  InboundMessage,
-  EmailTrackingEvent,
-};
+export type { WebhooksConfig, InboundMessage, EmailTrackingEvent };
 
 // A/B Testing
 export {
@@ -1136,13 +1102,7 @@ export {
   createPersonaTest,
 };
 
-export type {
-  ABTest,
-  ABTestVariant,
-  ABTestResults,
-  TestType,
-  TestStatus,
-};
+export type { ABTest, ABTestVariant, ABTestResults, TestType, TestStatus };
 
 // ============================================================================
 // DEFAULT EXPORT
@@ -1253,4 +1213,3 @@ export default {
   getOutreachStats,
   deleteAllUserOutreachData,
 };
-

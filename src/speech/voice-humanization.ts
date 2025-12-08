@@ -233,15 +233,10 @@ export class VoiceHumanizationService {
     }
 
     // Use the prosody-turn bridge
-    const prediction = predictTurnWithVoice(
-      this.state.sessionId,
-      transcript,
-      voiceEmotion,
-      {
-        ...options,
-        turnCount: this.state.turnCount,
-      }
-    );
+    const prediction = predictTurnWithVoice(this.state.sessionId, transcript, voiceEmotion, {
+      ...options,
+      turnCount: this.state.turnCount,
+    });
 
     // Also check if voice strongly suggests completion
     const voiceSuggestion = voiceSuggestsTurnComplete(voiceEmotion);
@@ -282,10 +277,7 @@ export class VoiceHumanizationService {
    * Check if transcribed text contains a micro-interruption signal
    * Should be called on EACH word as it's transcribed (streaming STT)
    */
-  detectMicroInterruption(
-    text: string,
-    isAgentSpeaking: boolean
-  ): MicroInterruptionResult {
+  detectMicroInterruption(text: string, isAgentSpeaking: boolean): MicroInterruptionResult {
     if (!isAgentSpeaking) {
       return {
         detected: false,
@@ -300,9 +292,12 @@ export class VoiceHumanizationService {
 
     // Check immediate stop words
     for (const word of IMMEDIATE_STOP_WORDS) {
-      if (normalized === word || normalized.startsWith(word + ' ')) {
-        log.info({ trigger: word, text: normalized.slice(0, 30) }, '🛑 Micro-interruption detected');
-        
+      if (normalized === word || normalized.startsWith(`${word} `)) {
+        log.info(
+          { trigger: word, text: normalized.slice(0, 30) },
+          '🛑 Micro-interruption detected'
+        );
+
         this.state.interruptionPatterns.push({
           timestamp: Date.now(),
           trigger: word,
@@ -334,7 +329,7 @@ export class VoiceHumanizationService {
 
     // Check soft interruption words (less urgent)
     for (const word of SOFT_INTERRUPTION_WORDS) {
-      if (normalized === word || normalized.startsWith(word + ' ')) {
+      if (normalized === word || normalized.startsWith(`${word} `)) {
         return {
           detected: true,
           trigger: word,
@@ -615,18 +610,19 @@ export class VoiceHumanizationService {
     durationMs: number,
     pausePatterns?: number[]
   ): SpeechRhythmProfile {
-    const words = text.split(/\s+/).filter(w => w.length > 0);
+    const words = text.split(/\s+/).filter((w) => w.length > 0);
     const wordCount = words.length;
 
     // Calculate metrics
     const avgPhraseLength = this.estimateAvgPhraseLength(text);
-    const pauseBetweenPhrases = pausePatterns && pausePatterns.length > 0
-      ? pausePatterns.reduce((a, b) => a + b, 0) / pausePatterns.length
-      : durationMs / Math.max(1, avgPhraseLength); // Estimate from duration
+    const pauseBetweenPhrases =
+      pausePatterns && pausePatterns.length > 0
+        ? pausePatterns.reduce((a, b) => a + b, 0) / pausePatterns.length
+        : durationMs / Math.max(1, avgPhraseLength); // Estimate from duration
 
     // Determine pattern type
     let pattern: SpeechRhythmProfile['pattern'] = 'varied';
-    
+
     if (avgPhraseLength < 4 && pauseBetweenPhrases > 300) {
       pattern = 'staccato'; // Short bursts with pauses
     } else if (avgPhraseLength > 10 && pauseBetweenPhrases < 200) {
@@ -646,12 +642,12 @@ export class VoiceHumanizationService {
 
     // Update state (blend with existing)
     if (this.state.userRhythmProfile) {
-      profile.avgPhraseLength = 
+      profile.avgPhraseLength =
         0.7 * profile.avgPhraseLength + 0.3 * this.state.userRhythmProfile.avgPhraseLength;
-      profile.pauseBetweenPhrases = 
+      profile.pauseBetweenPhrases =
         0.7 * profile.pauseBetweenPhrases + 0.3 * this.state.userRhythmProfile.pauseBetweenPhrases;
     }
-    
+
     this.state.userRhythmProfile = profile;
     return profile;
   }
@@ -661,13 +657,10 @@ export class VoiceHumanizationService {
    */
   private estimateAvgPhraseLength(text: string): number {
     // Split by natural phrase boundaries
-    const phrases = text.split(/[,;.!?\-—]/).filter(p => p.trim().length > 0);
+    const phrases = text.split(/[,;.!?\-—]/).filter((p) => p.trim().length > 0);
     if (phrases.length === 0) return text.split(/\s+/).length;
-    
-    const totalWords = phrases.reduce(
-      (sum, p) => sum + p.trim().split(/\s+/).length,
-      0
-    );
+
+    const totalWords = phrases.reduce((sum, p) => sum + p.trim().split(/\s+/).length, 0);
     return totalWords / phrases.length;
   }
 
@@ -676,7 +669,7 @@ export class VoiceHumanizationService {
    */
   getRhythmMirroringAdjustments(): { pauseMultiplier: number; phraseBreakMs: number } {
     const profile = this.state.userRhythmProfile;
-    
+
     if (!profile || profile.confidence < 0.5) {
       return { pauseMultiplier: 1.0, phraseBreakMs: 200 };
     }
@@ -703,7 +696,7 @@ export class VoiceHumanizationService {
         phraseBreakMs = 400;
         break;
       default:
-        // Keep defaults
+      // Keep defaults
     }
 
     return { pauseMultiplier, phraseBreakMs };
@@ -782,8 +775,4 @@ export function resetAllVoiceHumanization(): void {
 // CONVENIENCE EXPORTS
 // ============================================================================
 
-export {
-  type Intonation,
-  type EnhancedTurnPrediction,
-} from './prosody-turn-bridge.js';
-
+export { type Intonation, type EnhancedTurnPrediction } from './prosody-turn-bridge.js';

@@ -43,10 +43,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
     log.info('Unified trust persistence Firestore initialized');
     return db;
   } catch (error) {
-    log.warn(
-      { error },
-      'Firestore not available for unified persistence'
-    );
+    log.warn({ error }, 'Firestore not available for unified persistence');
     return null;
   }
 }
@@ -57,13 +54,13 @@ async function getFirestore(): Promise<FirestoreType | null> {
 
 export interface UnifiedTrustProfile {
   userId: string;
-  
+
   /** Version for conflict resolution */
   version: number;
-  
+
   /** Last modification timestamps for each system */
   systemVersions: Record<string, number>;
-  
+
   /** Core trust system data */
   systems: {
     boundaries?: unknown;
@@ -83,7 +80,7 @@ export interface UnifiedTrustProfile {
     insights?: unknown;
     crossPersonaInsights?: unknown;
   };
-  
+
   /** Metadata */
   createdAt: Date;
   updatedAt: Date;
@@ -93,13 +90,13 @@ export interface UnifiedTrustProfile {
 export interface PersistenceConfig {
   /** How often to batch sync (ms) */
   batchSyncIntervalMs: number;
-  
+
   /** Max changes before forcing a sync */
   maxPendingChanges: number;
-  
+
   /** Whether to use real-time write-through for critical systems */
   realtimeWriteThrough: boolean;
-  
+
   /** Systems that should be written through immediately */
   criticalSystems: string[];
 }
@@ -139,7 +136,7 @@ export function initializeUnifiedPersistence(customConfig?: Partial<PersistenceC
   }
 
   config = { ...DEFAULT_CONFIG, ...customConfig };
-  
+
   // Start batch sync interval
   syncInterval = setInterval(async () => {
     await flushPendingChanges();
@@ -157,14 +154,14 @@ export async function shutdownUnifiedPersistence(): Promise<void> {
     clearInterval(syncInterval);
     syncInterval = null;
   }
-  
+
   // Flush any remaining changes
   await flushPendingChanges();
-  
+
   profileCache.clear();
   pendingChanges.clear();
   isInitialized = false;
-  
+
   log.info('🛑 Unified trust persistence shut down');
 }
 
@@ -212,7 +209,7 @@ export async function loadUnifiedProfile(userId: string): Promise<UnifiedTrustPr
     };
 
     profileCache.set(userId, profile);
-    
+
     log.debug({ userId, version: profile.version }, 'Loaded unified trust profile');
     return profile;
   } catch (error) {
@@ -230,14 +227,14 @@ export async function saveSystemData(
   data: unknown,
   options: { immediate?: boolean } = {}
 ): Promise<void> {
-  const shouldWriteThrough = 
-    options.immediate || 
+  const shouldWriteThrough =
+    options.immediate ||
     (config.realtimeWriteThrough && config.criticalSystems.includes(systemName));
 
   // Get or create profile
   let profile = profileCache.get(userId);
   if (!profile) {
-    profile = await loadUnifiedProfile(userId) || createEmptyProfile(userId);
+    profile = (await loadUnifiedProfile(userId)) || createEmptyProfile(userId);
   }
 
   // Update the system data
@@ -270,13 +267,10 @@ export async function saveSystemData(
 /**
  * Get a specific system's data
  */
-export async function getSystemData<T>(
-  userId: string,
-  systemName: string
-): Promise<T | null> {
+export async function getSystemData<T>(userId: string, systemName: string): Promise<T | null> {
   const profile = await loadUnifiedProfile(userId);
   if (!profile) return null;
-  
+
   return (profile.systems[systemName as keyof typeof profile.systems] as T) || null;
 }
 
@@ -293,7 +287,7 @@ export async function getUnifiedProfile(userId: string): Promise<UnifiedTrustPro
 export function hasSystemChanged(userId: string, systemName: string, since: number): boolean {
   const profile = profileCache.get(userId);
   if (!profile) return false;
-  
+
   const systemVersion = profile.systemVersions[systemName];
   return systemVersion !== undefined && systemVersion > since;
 }
@@ -307,7 +301,7 @@ export function hasSystemChanged(userId: string, systemName: string, since: numb
  */
 export async function flushPendingChanges(): Promise<number> {
   let flushedCount = 0;
-  
+
   for (const userId of pendingChanges.keys()) {
     try {
       await flushUserChanges(userId);
@@ -316,11 +310,11 @@ export async function flushPendingChanges(): Promise<number> {
       log.error({ error, userId }, 'Failed to flush changes for user');
     }
   }
-  
+
   if (flushedCount > 0) {
     log.debug({ flushedCount }, 'Batch sync completed');
   }
-  
+
   return flushedCount;
 }
 
@@ -336,7 +330,7 @@ async function flushUserChanges(userId: string): Promise<void> {
 
   await persistProfile(userId, profile);
   pendingChanges.delete(userId);
-  
+
   log.debug({ userId, systemCount: userPending.size }, 'Flushed user changes');
 }
 
@@ -353,11 +347,14 @@ async function persistProfile(userId: string, profile: UnifiedTrustProfile): Pro
       .doc(userId)
       .collection('trust')
       .doc('unified_profile')
-      .set({
-        ...profile,
-        createdAt: profile.createdAt.toISOString(),
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+      .set(
+        {
+          ...profile,
+          createdAt: profile.createdAt.toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
   } catch (error) {
     log.error({ error, userId }, 'Failed to persist profile');
     throw error;
@@ -459,12 +456,12 @@ function createEmptyProfile(userId: string): UnifiedTrustProfile {
  */
 export async function onSessionStartUnified(userId: string, sessionId: string): Promise<void> {
   const profile = await loadUnifiedProfile(userId);
-  
+
   if (profile) {
     profile.lastSessionId = sessionId;
     profileCache.set(userId, profile);
   }
-  
+
   log.debug({ userId, sessionId }, 'Session started with unified trust profile');
 }
 
@@ -493,4 +490,3 @@ export default {
   onSessionStartUnified,
   onSessionEndUnified,
 };
-

@@ -9,7 +9,12 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
 
-import type { LoadedPersonaBundle, BundleBehaviors, BundleStory, PersonaBundleManifest } from './types.js';
+import type {
+  LoadedPersonaBundle,
+  BundleBehaviors,
+  BundleStory,
+  PersonaBundleManifest,
+} from './types.js';
 import type {
   PersonaConfig,
   VoiceConfig,
@@ -159,10 +164,11 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
   if (behaviors.cognitive) {
     getLogger().debug(`Registering bundle cognitive profile for ${manifest.identity.id}`);
     try {
-      const { registerBundleCognitiveProfile, convertBundleCognitive } = await import(
-        '../cognitive-profiles.js'
+      const { registerBundleCognitiveProfile, convertBundleCognitive } =
+        await import('../cognitive-profiles.js');
+      const cognitiveProfile = convertBundleCognitive(
+        behaviors.cognitive as unknown as Record<string, unknown>
       );
-      const cognitiveProfile = convertBundleCognitive(behaviors.cognitive as unknown as Record<string, unknown>);
       registerBundleCognitiveProfile(manifest.identity.id, cognitiveProfile);
     } catch (error) {
       getLogger().warn(

@@ -10,7 +10,8 @@ import type { AudioFrame } from '@livekit/rtc-node';
 import { getInterruptionHandler } from '../../conversation/interruption-handler.js';
 import { getTurnTakingMonitor } from '../../conversation/turn-taking.js';
 import { getTopicTracker } from '../../intelligence/topic-tracker.js';
-import { getSessionBackchannelingSystem, BackchannelingSystem } from '../../speech/backchanneling.js';
+import type { BackchannelingSystem } from '../../speech/backchanneling.js';
+import { getSessionBackchannelingSystem } from '../../speech/backchanneling.js';
 import type { EmotionResult } from '../../intelligence/emotion-detector.js';
 import type { TopicWeight } from '../../speech/speech-context.js';
 
@@ -102,7 +103,7 @@ export class ConversationManager {
 
   /** Callback for when user interrupts - allows voice agent to speak recovery */
   private interruptionCallback: ((recoveryPhrase: string, personaId: string) => void) | null = null;
-  private currentPersonaId: string = 'ferni';
+  private currentPersonaId = 'ferni';
 
   /**
    * Set callback for interruption recovery
@@ -156,9 +157,14 @@ export class ConversationManager {
         // 🎯 NEW: Trigger recovery phrase callback!
         // This makes the agent acknowledge being interrupted naturally
         if (this.interruptionCallback) {
-          const recoveryPhrase = this.interruptionHandler.getPersonaRecoveryPhrase(this.currentPersonaId);
+          const recoveryPhrase = this.interruptionHandler.getPersonaRecoveryPhrase(
+            this.currentPersonaId
+          );
           this.interruptionCallback(recoveryPhrase, this.currentPersonaId);
-          getLogger().debug({ phrase: recoveryPhrase.slice(0, 50) }, '🗣️ Triggering interruption recovery');
+          getLogger().debug(
+            { phrase: recoveryPhrase.slice(0, 50) },
+            '🗣️ Triggering interruption recovery'
+          );
         }
       }
     }
@@ -360,12 +366,12 @@ const conversationManagers = new Map<string, ConversationManager>();
 /**
  * Get conversation manager for a specific session/user
  * Creates a new manager if one doesn't exist for this key
- * 
+ *
  * @param key - Session ID or user ID to scope the manager
  */
 export function getConversationManager(key?: string): ConversationManager {
   const managerKey = key || 'default';
-  
+
   let manager = conversationManagers.get(managerKey);
   if (!manager) {
     manager = new ConversationManager();
@@ -378,7 +384,7 @@ export function getConversationManager(key?: string): ConversationManager {
 
 /**
  * Reset conversation manager for a specific session/user
- * 
+ *
  * @param key - Session ID or user ID to reset
  */
 export function resetConversationManager(key?: string): void {
@@ -393,7 +399,7 @@ export function resetConversationManager(key?: string): void {
 
 /**
  * Remove a conversation manager (for cleanup on session end)
- * 
+ *
  * @param key - Session ID or user ID to remove
  */
 export function removeConversationManager(key: string): void {

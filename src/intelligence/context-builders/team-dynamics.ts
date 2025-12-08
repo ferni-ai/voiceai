@@ -222,7 +222,7 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
   if (mentionedMember && mentionedMember.id !== currentPersonaId) {
     // Check if the mentioned member is unlocked
     const memberUnlocked = isTeamMemberUnlocked(mentionedMember.id, userProfile, tier);
-    
+
     // User mentioned a different team member - inject how we feel about them
     if (bundleRuntime) {
       const dynamic = bundleRuntime.getTeamDynamic(mentionedMember.id);
@@ -256,13 +256,13 @@ async function buildTeamDynamicsContext(input: ContextBuilderInput): Promise<Con
   if (expertMatch && expertMatch.id !== currentPersonaId) {
     // Only suggest handoff if the member is unlocked
     const expertUnlocked = isTeamMemberUnlocked(expertMatch.id, userProfile, tier);
-    
+
     if (!expertUnlocked) {
       // Member is locked - don't suggest handoff, skip this entirely
       // team-availability.ts handles locked member teasers properly
       return injections;
     }
-    
+
     // Only suggest handoff occasionally (25% chance)
     if (Math.random() < 0.25 && bundleRuntime) {
       const dynamic = bundleRuntime.getTeamDynamic(expertMatch.id);

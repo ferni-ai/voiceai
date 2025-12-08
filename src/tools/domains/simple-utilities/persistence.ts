@@ -1,10 +1,10 @@
 /**
  * Firestore Persistence for Simple Utilities
- * 
+ *
  * Cross-session memory for utility patterns and preferences.
  * Ferni remembers your usual timer, tip percentage, and tracked countdowns
  * even after you close the app.
- * 
+ *
  * STORAGE STRUCTURE:
  * bogle_users/{userId}/utility_preferences/patterns
  * bogle_users/{userId}/utility_preferences/countdowns
@@ -28,14 +28,14 @@ export interface PersistedUtilityPreferences {
     }>;
     defaultDuration?: number;
   };
-  
+
   // Tip preferences
   tips: {
     defaultPercent: number;
     averagePercent: number;
     totalCalculations: number;
   };
-  
+
   // Timezone preferences
   timezones: {
     frequentCities: Array<{
@@ -45,13 +45,13 @@ export interface PersistedUtilityPreferences {
     }>;
     homeTimezone?: string;
   };
-  
+
   // Decision patterns
   decisions: {
     coinFlipsTotal: number;
     commonDecisionTopics: string[];
   };
-  
+
   // Conversion preferences
   conversions: {
     frequentPairs: Array<{
@@ -61,7 +61,7 @@ export interface PersistedUtilityPreferences {
     }>;
     preferMetric: boolean;
   };
-  
+
   // Tracked countdowns
   countdowns: Array<{
     event: string;
@@ -70,7 +70,7 @@ export interface PersistedUtilityPreferences {
     notifyMilestones: boolean;
     created: string; // ISO date
   }>;
-  
+
   // Metadata
   lastUpdated: string; // ISO date
   version: number;
@@ -97,7 +97,7 @@ let firestoreDb: FirebaseFirestore.Firestore | null = null;
 
 async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
   if (firestoreDb) return firestoreDb;
-  
+
   try {
     const { getFirestore: getFs } = await import('firebase-admin/firestore');
     firestoreDb = getFs();
@@ -121,7 +121,7 @@ export async function loadUtilityPreferences(userId: string): Promise<PersistedU
     getLogger().debug('Firestore not available, using defaults');
     return { ...DEFAULT_PREFERENCES };
   }
-  
+
   try {
     const doc = await db
       .collection('bogle_users')
@@ -129,15 +129,15 @@ export async function loadUtilityPreferences(userId: string): Promise<PersistedU
       .collection('utility_preferences')
       .doc('patterns')
       .get();
-    
+
     if (!doc.exists) {
       getLogger().debug({ userId }, 'No utility preferences found, using defaults');
       return { ...DEFAULT_PREFERENCES };
     }
-    
+
     const data = doc.data() as PersistedUtilityPreferences;
     getLogger().debug({ userId, version: data.version }, 'Loaded utility preferences');
-    
+
     return {
       ...DEFAULT_PREFERENCES,
       ...data,
@@ -160,14 +160,14 @@ export async function saveUtilityPreferences(
     getLogger().debug('Firestore not available, skipping save');
     return;
   }
-  
+
   try {
     const docRef = db
       .collection('bogle_users')
       .doc(userId)
       .collection('utility_preferences')
       .doc('patterns');
-    
+
     await docRef.set(
       {
         ...preferences,
@@ -176,7 +176,7 @@ export async function saveUtilityPreferences(
       },
       { merge: true }
     );
-    
+
     getLogger().debug({ userId }, 'Saved utility preferences');
   } catch (err) {
     getLogger().error({ err, userId }, 'Failed to save utility preferences');
@@ -195,13 +195,12 @@ export async function updateTimerPreferences(
   }
 ): Promise<void> {
   const prefs = await loadUtilityPreferences(userId);
-  
+
   // Find or create timer entry
   const existing = prefs.timers.usual.find(
-    t => Math.abs(t.minutes - timerData.minutes) < 0.5 &&
-         t.timeOfDay === timerData.timeOfDay
+    (t) => Math.abs(t.minutes - timerData.minutes) < 0.5 && t.timeOfDay === timerData.timeOfDay
   );
-  
+
   if (existing) {
     existing.count++;
     if (timerData.label) existing.label = timerData.label;
@@ -213,57 +212,49 @@ export async function updateTimerPreferences(
       count: 1,
     });
   }
-  
+
   // Keep top 5 most used timers
   prefs.timers.usual.sort((a, b) => b.count - a.count);
   prefs.timers.usual = prefs.timers.usual.slice(0, 5);
-  
+
   // Update default if one is clearly preferred
   const mostUsed = prefs.timers.usual[0];
   if (mostUsed && mostUsed.count >= 5) {
     prefs.timers.defaultDuration = mostUsed.minutes;
   }
-  
+
   await saveUtilityPreferences(userId, { timers: prefs.timers });
 }
 
 /**
  * Update tip preferences
  */
-export async function updateTipPreferences(
-  userId: string,
-  tipPercent: number
-): Promise<void> {
+export async function updateTipPreferences(userId: string, tipPercent: number): Promise<void> {
   const prefs = await loadUtilityPreferences(userId);
-  
+
   // Update running average
   const oldAvg = prefs.tips.averagePercent;
   const count = prefs.tips.totalCalculations;
   prefs.tips.averagePercent = (oldAvg * count + tipPercent) / (count + 1);
   prefs.tips.totalCalculations++;
-  
+
   // Update default to nearest 5% if consistent
   if (count >= 5) {
     prefs.tips.defaultPercent = Math.round(prefs.tips.averagePercent / 5) * 5;
   }
-  
+
   await saveUtilityPreferences(userId, { tips: prefs.tips });
 }
 
 /**
  * Update timezone preferences
  */
-export async function updateTimezonePreferences(
-  userId: string,
-  city: string
-): Promise<void> {
+export async function updateTimezonePreferences(userId: string, city: string): Promise<void> {
   const prefs = await loadUtilityPreferences(userId);
   const cityLower = city.toLowerCase();
-  
-  const existing = prefs.timezones.frequentCities.find(
-    c => c.city.toLowerCase() === cityLower
-  );
-  
+
+  const existing = prefs.timezones.frequentCities.find((c) => c.city.toLowerCase() === cityLower);
+
   if (existing) {
     existing.count++;
     existing.lastChecked = new Date().toISOString();
@@ -274,11 +265,11 @@ export async function updateTimezonePreferences(
       lastChecked: new Date().toISOString(),
     });
   }
-  
+
   // Keep top 10 cities
   prefs.timezones.frequentCities.sort((a, b) => b.count - a.count);
   prefs.timezones.frequentCities = prefs.timezones.frequentCities.slice(0, 10);
-  
+
   await saveUtilityPreferences(userId, { timezones: prefs.timezones });
 }
 
@@ -289,14 +280,12 @@ export async function trackCountdown(
   userId: string,
   event: string,
   targetDate: Date,
-  notifyMilestones: boolean = true
+  notifyMilestones = true
 ): Promise<void> {
   const prefs = await loadUtilityPreferences(userId);
-  
-  const existing = prefs.countdowns.find(
-    c => c.event.toLowerCase() === event.toLowerCase()
-  );
-  
+
+  const existing = prefs.countdowns.find((c) => c.event.toLowerCase() === event.toLowerCase());
+
   if (existing) {
     existing.checksCount++;
     existing.targetDate = targetDate.toISOString();
@@ -310,14 +299,14 @@ export async function trackCountdown(
       created: new Date().toISOString(),
     });
   }
-  
+
   // Keep top 20 countdowns, remove past events
   const now = new Date();
   prefs.countdowns = prefs.countdowns
-    .filter(c => new Date(c.targetDate) > now)
+    .filter((c) => new Date(c.targetDate) > now)
     .sort((a, b) => b.checksCount - a.checksCount)
     .slice(0, 20);
-  
+
   await saveUtilityPreferences(userId, { countdowns: prefs.countdowns });
 }
 
@@ -330,16 +319,16 @@ export async function getUpcomingMilestones(
   const prefs = await loadUtilityPreferences(userId);
   const now = new Date();
   const milestones: Array<{ event: string; daysRemaining: number; targetDate: Date }> = [];
-  
+
   const milestoneDays = [0, 1, 7, 30, 100]; // TODAY, tomorrow, 1 week, 1 month, 100 days
-  
+
   for (const countdown of prefs.countdowns) {
     if (!countdown.notifyMilestones) continue;
-    
+
     const target = new Date(countdown.targetDate);
     const diffMs = target.getTime() - now.getTime();
     const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (milestoneDays.includes(daysRemaining)) {
       milestones.push({
         event: countdown.event,
@@ -348,7 +337,7 @@ export async function getUpcomingMilestones(
       });
     }
   }
-  
+
   return milestones;
 }
 
@@ -361,11 +350,11 @@ export async function incrementDecisionCount(
   topics?: string[]
 ): Promise<number> {
   const prefs = await loadUtilityPreferences(userId);
-  
+
   if (type === 'coinFlip') {
     prefs.decisions.coinFlipsTotal++;
   }
-  
+
   if (topics) {
     for (const topic of topics) {
       if (!prefs.decisions.commonDecisionTopics.includes(topic)) {
@@ -375,9 +364,9 @@ export async function incrementDecisionCount(
     // Keep last 20 topics
     prefs.decisions.commonDecisionTopics = prefs.decisions.commonDecisionTopics.slice(-20);
   }
-  
+
   await saveUtilityPreferences(userId, { decisions: prefs.decisions });
-  
+
   return prefs.decisions.coinFlipsTotal;
 }
 
@@ -395,14 +384,18 @@ export async function syncPatternsToFirestore(
   patterns: UserUtilityPatterns
 ): Promise<void> {
   const hour = new Date().getHours();
-  const timeOfDay = hour >= 5 && hour < 12 ? 'morning' 
-    : hour >= 12 && hour < 17 ? 'afternoon'
-    : hour >= 17 && hour < 21 ? 'evening' 
-    : 'night';
-  
+  const timeOfDay =
+    hour >= 5 && hour < 12
+      ? 'morning'
+      : hour >= 12 && hour < 17
+        ? 'afternoon'
+        : hour >= 17 && hour < 21
+          ? 'evening'
+          : 'night';
+
   const updates: Partial<PersistedUtilityPreferences> = {
     timers: {
-      usual: patterns.patterns.commonTimerDurations.map(t => ({
+      usual: patterns.patterns.commonTimerDurations.map((t) => ({
         minutes: t.minutes,
         label: t.label || 'Timer',
         timeOfDay: (t.usualTime || timeOfDay) as 'morning' | 'afternoon' | 'evening' | 'night',
@@ -416,7 +409,7 @@ export async function syncPatternsToFirestore(
       totalCalculations: patterns.patterns.tipCount,
     },
     timezones: {
-      frequentCities: patterns.patterns.frequentCities.map(c => ({
+      frequentCities: patterns.patterns.frequentCities.map((c) => ({
         city: c.city,
         count: c.count,
         lastChecked: c.lastChecked.toISOString(),
@@ -431,20 +424,22 @@ export async function syncPatternsToFirestore(
       preferMetric: false, // Could be learned
     },
   };
-  
+
   await saveUtilityPreferences(userId, updates);
 }
 
 /**
  * Load Firestore preferences into in-memory patterns
  */
-export async function loadPatternsFromFirestore(
-  userId: string
-): Promise<Partial<UserUtilityPatterns['patterns']> & { preferences: Partial<UserUtilityPatterns['preferences']> }> {
+export async function loadPatternsFromFirestore(userId: string): Promise<
+  Partial<UserUtilityPatterns['patterns']> & {
+    preferences: Partial<UserUtilityPatterns['preferences']>;
+  }
+> {
   const prefs = await loadUtilityPreferences(userId);
-  
+
   return {
-    commonTimerDurations: prefs.timers.usual.map(t => ({
+    commonTimerDurations: prefs.timers.usual.map((t) => ({
       minutes: t.minutes,
       label: t.label,
       usualTime: t.timeOfDay,
@@ -452,7 +447,7 @@ export async function loadPatternsFromFirestore(
     })),
     averageTipPercent: prefs.tips.averagePercent,
     tipCount: prefs.tips.totalCalculations,
-    frequentCities: prefs.timezones.frequentCities.map(c => ({
+    frequentCities: prefs.timezones.frequentCities.map((c) => ({
       city: c.city,
       count: c.count,
       lastChecked: new Date(c.lastChecked),
@@ -461,7 +456,7 @@ export async function loadPatternsFromFirestore(
     coinFlipsToday: 0, // Reset daily
     recentDecisionTopics: prefs.decisions.commonDecisionTopics,
     frequentConversions: prefs.conversions.frequentPairs,
-    countdownsTracked: prefs.countdowns.map(c => ({
+    countdownsTracked: prefs.countdowns.map((c) => ({
       event: c.event,
       targetDate: new Date(c.targetDate),
       checksCount: c.checksCount,
@@ -489,4 +484,3 @@ export default {
   syncPatternsToFirestore,
   loadPatternsFromFirestore,
 };
-

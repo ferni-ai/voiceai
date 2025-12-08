@@ -213,18 +213,14 @@ export function detectSignificantShare(
   }
 
   // Check for significant emotional intensity
-  const isEmotionallySignificant =
-    context.emotionIntensity && context.emotionIntensity > 0.7;
+  const isEmotionallySignificant = context.emotionIntensity && context.emotionIntensity > 0.7;
 
   // Extract people mentioned
   const peopleMentioned = extractPeopleMentioned(userMessage);
 
   // Determine if this is worth tracking
   const shouldTrack =
-    isHeavy ||
-    upcomingEvent ||
-    isEmotionallySignificant ||
-    peopleMentioned.length > 0;
+    isHeavy || upcomingEvent || isEmotionallySignificant || peopleMentioned.length > 0;
 
   if (!shouldTrack) return null;
 
@@ -270,16 +266,7 @@ export function detectSignificantShare(
  */
 function extractTopic(message: string): string {
   // Simple extraction - could be enhanced
-  const topics = [
-    'work',
-    'family',
-    'health',
-    'relationship',
-    'money',
-    'friends',
-    'career',
-    'home',
-  ];
+  const topics = ['work', 'family', 'health', 'relationship', 'money', 'friends', 'career', 'home'];
 
   for (const topic of topics) {
     if (message.includes(topic)) return topic;
@@ -363,8 +350,8 @@ export function generateThinkingOfYouMoments(userId: string): ThinkingOfYouMomen
     }
 
     // Skip if we've already generated a moment for this share
-    const existingMoment = profile.pendingMoments.find(
-      (m) => m.trigger.context?.includes(share.id)
+    const existingMoment = profile.pendingMoments.find((m) =>
+      m.trigger.context?.includes(share.id)
     );
     if (existingMoment) continue;
 
@@ -531,10 +518,10 @@ export function generateRandomWarmth(userId: string): ThinkingOfYouMoment | null
   }
 
   const messages = [
-    "Hey, you crossed my mind. Just wanted to say hi. How are you?",
+    'Hey, you crossed my mind. Just wanted to say hi. How are you?',
     "No reason, just thinking about you. Hope you're doing well.",
     "Haven't chatted in a bit. How's everything going?",
-    "Just wanted to check in. How are things?",
+    'Just wanted to check in. How are things?',
     "Thinking about you. What's new in your world?",
   ];
 
@@ -570,9 +557,7 @@ export function getDueMoments(userId: string): ThinkingOfYouMoment[] {
   if (!profile) return [];
 
   const now = new Date();
-  return profile.pendingMoments.filter(
-    (m) => !m.sent && m.suggestedTiming <= now
-  );
+  return profile.pendingMoments.filter((m) => !m.sent && m.suggestedTiming <= now);
 }
 
 /**
@@ -589,9 +574,7 @@ export function markMomentSent(userId: string, momentId: string): void {
     profile.sentMoments.push(moment);
 
     // Remove from pending
-    profile.pendingMoments = profile.pendingMoments.filter(
-      (m) => m.id !== momentId
-    );
+    profile.pendingMoments = profile.pendingMoments.filter((m) => m.id !== momentId);
 
     log.info({ userId, momentId, type: moment.type }, '💌 Thinking of you moment sent');
   }
@@ -600,11 +583,7 @@ export function markMomentSent(userId: string, momentId: string): void {
 /**
  * Record response to outreach
  */
-export function recordOutreachResponse(
-  userId: string,
-  momentId: string,
-  responded: boolean
-): void {
+export function recordOutreachResponse(userId: string, momentId: string, responded: boolean): void {
   const profile = profiles.get(userId);
   if (!profile) return;
 
@@ -614,10 +593,7 @@ export function recordOutreachResponse(
 
     // If they didn't respond, maybe reduce frequency
     if (!responded) {
-      profile.preferences.maxPerWeek = Math.max(
-        1,
-        profile.preferences.maxPerWeek - 1
-      );
+      profile.preferences.maxPerWeek = Math.max(1, profile.preferences.maxPerWeek - 1);
     }
   }
 }
@@ -640,9 +616,7 @@ export function updatePreferences(
 /**
  * Export profile for persistence
  */
-export function exportThinkingOfYouProfile(
-  userId: string
-): ThinkingOfYouProfile | null {
+export function exportThinkingOfYouProfile(userId: string): ThinkingOfYouProfile | null {
   return profiles.get(userId) || null;
 }
 
@@ -672,4 +646,3 @@ export default {
   exportThinkingOfYouProfile,
   importThinkingOfYouProfile,
 };
-

@@ -37,7 +37,13 @@ export type EventType =
   | 'personal'
   | 'interview';
 
-export type EventSentiment = 'excited' | 'nervous' | 'dreading' | 'neutral' | 'hopeful' | 'uncertain';
+export type EventSentiment =
+  | 'excited'
+  | 'nervous'
+  | 'dreading'
+  | 'neutral'
+  | 'hopeful'
+  | 'uncertain';
 
 export interface LifeEvent {
   id: string;
@@ -88,7 +94,8 @@ export interface UpcomingEventSummary {
 
 const DATE_PATTERNS = {
   // Explicit dates
-  explicit: /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?(?:\s*,?\s*\d{4})?\b/gi,
+  explicit:
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?(?:\s*,?\s*\d{4})?\b/gi,
   numeric: /\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/g,
 
   // Relative dates
@@ -136,18 +143,8 @@ const EVENT_INDICATORS = {
     /\bpitch(ing)?\s+(to|meeting)\b/i,
     /\bdemo(ing)?\b/i,
   ],
-  milestone: [
-    /\bbirthday\b/i,
-    /\banniversary\b/i,
-    /\bgraduation\b/i,
-    /\bwedding\b/i,
-  ],
-  health: [
-    /\bsurgery\b/i,
-    /\bprocedure\b/i,
-    /\btest\s+results?\b/i,
-    /\bcheck[-\s]?up\b/i,
-  ],
+  milestone: [/\bbirthday\b/i, /\banniversary\b/i, /\bgraduation\b/i, /\bwedding\b/i],
+  health: [/\bsurgery\b/i, /\bprocedure\b/i, /\btest\s+results?\b/i, /\bcheck[-\s]?up\b/i],
 };
 
 const SENTIMENT_INDICATORS: Record<EventSentiment, RegExp[]> = {
@@ -366,7 +363,7 @@ function extractEventDescription(text: string, eventType: EventType | null): str
 
   // Limit length
   if (description.length > 100) {
-    description = description.slice(0, 100) + '...';
+    description = `${description.slice(0, 100)}...`;
   }
 
   return description || `${eventType || 'event'} coming up`;
@@ -617,18 +614,9 @@ export function generateFollowUpMessage(event: LifeEvent): string {
       `How was ${event.description}?`,
       `I've been wondering how ${event.description} went.`,
     ],
-    milestone: [
-      `Hope ${event.description} was wonderful!`,
-      `Tell me about ${event.description}!`,
-    ],
-    event: [
-      `How was ${event.description}?`,
-      `${event.description} was recently - how'd it go?`,
-    ],
-    travel: [
-      `How was your trip?`,
-      `Welcome back! How was ${event.description}?`,
-    ],
+    milestone: [`Hope ${event.description} was wonderful!`, `Tell me about ${event.description}!`],
+    event: [`How was ${event.description}?`, `${event.description} was recently - how'd it go?`],
+    travel: [`How was your trip?`, `Welcome back! How was ${event.description}?`],
     health: [
       `How did ${event.description} go? Everything okay?`,
       `Thinking of you after ${event.description}.`,
@@ -637,10 +625,7 @@ export function generateFollowUpMessage(event: LifeEvent): string {
       `How did ${event.description} go?`,
       `${event.description} was recently - how'd it turn out?`,
     ],
-    personal: [
-      `How did ${event.description} go?`,
-      `Tell me about ${event.description}!`,
-    ],
+    personal: [`How did ${event.description} go?`, `Tell me about ${event.description}!`],
     recurring: [
       `How was ${event.description} this time?`,
       `Another ${event.description} done - how was it?`,
@@ -671,4 +656,3 @@ export default {
   generateReminderMessage,
   generateFollowUpMessage,
 };
-

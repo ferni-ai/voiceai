@@ -23,11 +23,11 @@
  * ACT's six core processes for psychological flexibility.
  */
 export type ACTProcess =
-  | 'acceptance'        // Willingness to have difficult experiences
-  | 'defusion'          // Seeing thoughts as thoughts, not facts
-  | 'present_moment'    // Being here, now
-  | 'self_as_context'   // Observer self vs. story self
-  | 'values'            // What truly matters to you
+  | 'acceptance' // Willingness to have difficult experiences
+  | 'defusion' // Seeing thoughts as thoughts, not facts
+  | 'present_moment' // Being here, now
+  | 'self_as_context' // Observer self vs. story self
+  | 'values' // What truly matters to you
   | 'committed_action'; // Taking values-aligned steps
 
 /**
@@ -57,14 +57,14 @@ export interface ACTValue {
 }
 
 export type ValueDomain =
-  | 'relationships'   // Family, friends, intimacy
-  | 'work'            // Career, contribution
-  | 'health'          // Physical, mental wellbeing
-  | 'growth'          // Learning, personal development
-  | 'leisure'         // Fun, creativity, play
-  | 'spirituality'    // Meaning, purpose, connection
-  | 'community'       // Giving back, citizenship
-  | 'environment';    // Nature, sustainability
+  | 'relationships' // Family, friends, intimacy
+  | 'work' // Career, contribution
+  | 'health' // Physical, mental wellbeing
+  | 'growth' // Learning, personal development
+  | 'leisure' // Fun, creativity, play
+  | 'spirituality' // Meaning, purpose, connection
+  | 'community' // Giving back, citizenship
+  | 'environment'; // Nature, sustainability
 
 /**
  * An action committed to in service of a value.
@@ -112,10 +112,10 @@ export interface DefusionTechnique {
  * DBT's four skill modules.
  */
 export type DBTModule =
-  | 'mindfulness'           // Present awareness
-  | 'distress_tolerance'    // Surviving crisis without making worse
-  | 'emotion_regulation'    // Understanding and managing emotions
-  | 'interpersonal';        // Effective relationships
+  | 'mindfulness' // Present awareness
+  | 'distress_tolerance' // Surviving crisis without making worse
+  | 'emotion_regulation' // Understanding and managing emotions
+  | 'interpersonal'; // Effective relationships
 
 /**
  * A specific DBT skill.
@@ -181,17 +181,17 @@ export const STOP_SKILL: DBTSkill = {
   description: 'Pause before acting on impulse',
   acronym: 'STOP',
   acronymMeaning: {
-    S: 'Stop - freeze, don\'t act',
+    S: "Stop - freeze, don't act",
     T: 'Take a step back',
-    O: 'Observe what\'s happening',
+    O: "Observe what's happening",
     P: 'Proceed mindfully',
   },
   whenToUse: ['about to say something regrettable', 'impulsive', 'reactive', 'angry'],
   steps: [
     'Stop - freeze where you are',
-    'Take a step back - breathe, don\'t react',
-    'Observe - what am I feeling? What\'s happening?',
-    'Proceed mindfully - what\'s effective here?',
+    "Take a step back - breathe, don't react",
+    "Observe - what am I feeling? What's happening?",
+    "Proceed mindfully - what's effective here?",
   ],
   voiceGuidance: `Before you do anything, let's STOP together.
 Stop. Just freeze for a second. You don't have to respond right now.
@@ -208,10 +208,10 @@ Now we can proceed mindfully. What do you actually want to happen here?`,
  * Core spirit of Motivational Interviewing.
  */
 export type MISpirit =
-  | 'partnership'     // Collaboration, not confrontation
-  | 'acceptance'      // Respect autonomy, affirm strengths
-  | 'compassion'      // Prioritize their wellbeing
-  | 'evocation';      // Draw out their own motivation
+  | 'partnership' // Collaboration, not confrontation
+  | 'acceptance' // Respect autonomy, affirm strengths
+  | 'compassion' // Prioritize their wellbeing
+  | 'evocation'; // Draw out their own motivation
 
 /**
  * OARS: Core skills of MI.
@@ -227,10 +227,10 @@ export interface OARSSkills {
  * Change talk types to listen for.
  */
 export type ChangeTalk =
-  | 'desire'      // "I want to..."
-  | 'ability'    // "I could..."
-  | 'reasons'    // "Because..."
-  | 'need'       // "I need to..."
+  | 'desire' // "I want to..."
+  | 'ability' // "I could..."
+  | 'reasons' // "Because..."
+  | 'need' // "I need to..."
   | 'commitment' // "I will..."
   | 'taking_steps'; // "I already started..."
 
@@ -299,7 +299,7 @@ export interface ActivityLogEntry {
   timestamp: Date;
   moodBefore: number;
   moodAfter: number;
-  masteryRating?: number;  // 0-10: how accomplished
+  masteryRating?: number; // 0-10: how accomplished
   pleasureRating?: number; // 0-10: how enjoyable
   notes?: string;
 }
@@ -376,4 +376,3 @@ export const DEFAULT_CONFIG: TherapeuticFrameworksConfig = {
   enableBehavioralActivation: true,
   minRelationshipStage: 'building',
 };
-

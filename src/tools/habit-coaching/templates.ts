@@ -324,7 +324,12 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
       routine: { behavior: 'Wind-down activities', duration: 15, difficulty: 'easy' },
       reward: { intrinsic: 'Peaceful, sleepy feeling', celebration: 'Deep breath, ready for rest' },
     },
-    benefits: ['Better sleep', 'Reduced anxiety', 'Clear work/rest boundary', 'More present evenings'],
+    benefits: [
+      'Better sleep',
+      'Reduced anxiety',
+      'Clear work/rest boundary',
+      'More present evenings',
+    ],
     cascadeEffects: ['Better next-day energy', 'Improved mood', 'Better relationships'],
     isKeystone: true,
     keystonePotential: 80,
@@ -377,4 +382,3 @@ export function getTemplateById(id: string): HabitTemplate | undefined {
 export function getTemplatesForStage(stage: LifeStage): HabitTemplate[] {
   return HABIT_TEMPLATES.filter((t) => t.goodFor.includes(stage));
 }
-

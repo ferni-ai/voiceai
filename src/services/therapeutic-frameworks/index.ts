@@ -142,7 +142,6 @@ export {
 
   // Context
   buildMIContext,
-
   type OARSResponse,
   type Reflection,
 } from './motivational-interviewing.js';
@@ -151,14 +150,14 @@ export {
 // UNIFIED API
 // ============================================================================
 
-import {
-  detectValuesInSpeech,
-  buildValuesContext,
-  getUserValues,
-} from './act-values.js';
+import { detectValuesInSpeech, buildValuesContext, getUserValues } from './act-values.js';
 import { buildDefusionContext, selectDefusionTechnique } from './act-defusion.js';
 import { buildDBTContext, selectDBTSkill } from './dbt-skills.js';
-import { buildMIContext, detectChangeTalk, detectSustainTalk } from './motivational-interviewing.js';
+import {
+  buildMIContext,
+  detectChangeTalk,
+  detectSustainTalk,
+} from './motivational-interviewing.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'TherapeuticFrameworks' });
@@ -292,4 +291,3 @@ export interface TherapeuticSummary {
   valuesIdentified: number;
   topValues: string[];
 }
-

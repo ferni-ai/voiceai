@@ -110,13 +110,15 @@ function updateCounters(event: GameEvent): void {
     case 'game_started':
       counters.gamesStarted++;
       if (event.gameType) {
-        counters.gameTypeCounts[event.gameType] = (counters.gameTypeCounts[event.gameType] || 0) + 1;
+        counters.gameTypeCounts[event.gameType] =
+          (counters.gameTypeCounts[event.gameType] || 0) + 1;
       }
       break;
     case 'game_completed':
       counters.gamesCompleted++;
       if (event.gameType && event.data?.score !== undefined) {
-        counters.scoreSums[event.gameType] = (counters.scoreSums[event.gameType] || 0) + (event.data.score as number);
+        counters.scoreSums[event.gameType] =
+          (counters.scoreSums[event.gameType] || 0) + (event.data.score as number);
       }
       break;
     case 'game_abandoned':
@@ -156,7 +158,12 @@ function updateCounters(event: GameEvent): void {
 /**
  * Track game start
  */
-export function trackGameStart(userId: string, gameType: string, personaId?: string, sessionId?: string): void {
+export function trackGameStart(
+  userId: string,
+  gameType: string,
+  personaId?: string,
+  sessionId?: string
+): void {
   trackGameEvent({
     type: 'game_started',
     userId,
@@ -199,7 +206,12 @@ export function trackGameAbandoned(userId: string, gameType: string, roundReache
 /**
  * Track correct/incorrect answer
  */
-export function trackAnswer(userId: string, gameType: string, correct: boolean, guessTimeMs?: number): void {
+export function trackAnswer(
+  userId: string,
+  gameType: string,
+  correct: boolean,
+  guessTimeMs?: number
+): void {
   trackGameEvent({
     type: correct ? 'correct_answer' : 'incorrect_answer',
     userId,
@@ -237,13 +249,13 @@ export function trackProactiveOffer(userId: string, accepted: boolean, gameType?
  * Get analytics summary
  */
 export function getAnalyticsSummary(): GameAnalyticsSummary {
-  const completionRate = counters.gamesStarted > 0
-    ? (counters.gamesCompleted / counters.gamesStarted) * 100
-    : 0;
+  const completionRate =
+    counters.gamesStarted > 0 ? (counters.gamesCompleted / counters.gamesStarted) * 100 : 0;
 
-  const proactiveAcceptanceRate = counters.proactiveOffersShown > 0
-    ? (counters.proactiveOffersAccepted / counters.proactiveOffersShown) * 100
-    : 0;
+  const proactiveAcceptanceRate =
+    counters.proactiveOffersShown > 0
+      ? (counters.proactiveOffersAccepted / counters.proactiveOffersShown) * 100
+      : 0;
 
   // Find most played game
   let mostPlayedGame: string | null = null;
@@ -257,9 +269,7 @@ export function getAnalyticsSummary(): GameAnalyticsSummary {
 
   // Calculate average score across all games
   const totalScore = Object.values(counters.scoreSums).reduce((a, b) => a + b, 0);
-  const averageScore = counters.gamesCompleted > 0
-    ? totalScore / counters.gamesCompleted
-    : 0;
+  const averageScore = counters.gamesCompleted > 0 ? totalScore / counters.gamesCompleted : 0;
 
   return {
     totalGamesStarted: counters.gamesStarted,
@@ -278,10 +288,8 @@ export function getAnalyticsSummary(): GameAnalyticsSummary {
 /**
  * Get recent events for a user
  */
-export function getUserEvents(userId: string, limit: number = 50): GameEvent[] {
-  return events
-    .filter(e => e.userId === userId)
-    .slice(-limit);
+export function getUserEvents(userId: string, limit = 50): GameEvent[] {
+  return events.filter((e) => e.userId === userId).slice(-limit);
 }
 
 /**
@@ -312,4 +320,3 @@ export function resetAnalytics(): void {
   counters.scoreSums = {};
   log.info('🎮 Analytics reset');
 }
-

@@ -386,10 +386,7 @@ class OutreachDecisionEngine extends EventEmitter {
   /**
    * Update user context (from conversation analysis)
    */
-  updateUserContext(
-    userId: string,
-    context: Partial<UserOutreachState['context']>
-  ): void {
+  updateUserContext(userId: string, context: Partial<UserOutreachState['context']>): void {
     const state = this.getUserState(userId);
     state.context = { ...state.context, ...context };
     userStateStore.set(userId, state);
@@ -523,16 +520,22 @@ class OutreachDecisionEngine extends EventEmitter {
     // Decision 3: Is this a good time?
     const timingDecision = this.evaluateTiming(state, trigger, now);
     if (timingDecision.defer) {
-      return this.createDecision(trigger, 'defer', timingDecision.reason || 'Timing not optimal', timingDecision.deferUntil);
+      return this.createDecision(
+        trigger,
+        'defer',
+        timingDecision.reason || 'Timing not optimal',
+        timingDecision.deferUntil
+      );
     }
 
     // Decision 4: Select persona
-    const persona = trigger.suggestedPersona ||
-      selectPersonaForOutreach(
+    const persona =
+      trigger.suggestedPersona ||
+      (selectPersonaForOutreach(
         trigger.type,
         trigger.lastPersona || state.lastPersona,
         trigger.wasRecentConversation
-      ) as AgentId;
+      ) as AgentId);
 
     // Decision 5: Select channel
     const channel = this.selectChannel(trigger, state);
@@ -715,21 +718,21 @@ class OutreachDecisionEngine extends EventEmitter {
     state: UserOutreachState
   ): OutreachChannel | null {
     // Get allowed channels based on relationship
-    const relationshipPermissions =
-      this.config.relationshipPermissions[state.relationshipStage];
+    const relationshipPermissions = this.config.relationshipPermissions[state.relationshipStage];
     const allowedByRelationship = relationshipPermissions.allowedChannels;
 
     // Intersect with user's allowed channels
-    const allowedChannels = state.allowedChannels.filter((c) =>
-      allowedByRelationship.includes(c)
-    );
+    const allowedChannels = state.allowedChannels.filter((c) => allowedByRelationship.includes(c));
 
     if (allowedChannels.length === 0) {
       return null;
     }
 
     // Check user preference
-    if (state.preferences.preferredChannel && allowedChannels.includes(state.preferences.preferredChannel)) {
+    if (
+      state.preferences.preferredChannel &&
+      allowedChannels.includes(state.preferences.preferredChannel)
+    ) {
       return state.preferences.preferredChannel;
     }
 
@@ -921,9 +924,7 @@ class OutreachDecisionEngine extends EventEmitter {
   pruneHistory(userId: string, cutoffDate: Date): number {
     const history = outreachHistory.get(userId) || [];
     const cutoffTime = cutoffDate.getTime();
-    const filtered = history.filter(
-      (d) => new Date(d.decidedAt).getTime() > cutoffTime
-    );
+    const filtered = history.filter((d) => new Date(d.decidedAt).getTime() > cutoffTime);
     const pruned = history.length - filtered.length;
     outreachHistory.set(userId, filtered);
     return pruned;
@@ -977,4 +978,3 @@ export default {
   startOutreachDecisionEngine,
   stopOutreachDecisionEngine,
 };
-

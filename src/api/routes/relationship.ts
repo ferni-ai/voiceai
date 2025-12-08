@@ -24,7 +24,8 @@ export async function handleGetRelationshipProgress(
 
   try {
     const { getEngagementStore } = await import('../../services/engagement-store.js');
-    const { getConversationHistoryService } = await import('../../services/conversation-history.js');
+    const { getConversationHistoryService } =
+      await import('../../services/conversation-history.js');
 
     const store = await getEngagementStore();
     const historyService = getConversationHistoryService();
@@ -62,26 +63,36 @@ export async function handleGetRelationshipProgress(
       nextStageAt = 10;
     }
 
-    sendJSONCached(res, {
-      stage,
-      stageNumber,
-      engagementScore,
-      nextStageAt,
-      progress: nextStageAt ? Math.min(100, Math.round((engagementScore / nextStageAt) * 100)) : 100,
-      stats: {
-        totalConversations,
-        totalRitualDays,
-        lastEngagement: profile.lastEngagementAt,
+    sendJSONCached(
+      res,
+      {
+        stage,
+        stageNumber,
+        engagementScore,
+        nextStageAt,
+        progress: nextStageAt
+          ? Math.min(100, Math.round((engagementScore / nextStageAt) * 100))
+          : 100,
+        stats: {
+          totalConversations,
+          totalRitualDays,
+          lastEngagement: profile.lastEngagementAt,
+        },
       },
-    }, 60);
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get relationship progress');
-    sendJSON(res, {
-      error: 'Failed to get progress',
-      stage: 'stranger',
-      stageNumber: 1,
-      engagementScore: 0,
-    }, 500);
+    sendJSON(
+      res,
+      {
+        error: 'Failed to get progress',
+        stage: 'stranger',
+        stageNumber: 1,
+        engagementScore: 0,
+      },
+      500
+    );
   }
 }
 

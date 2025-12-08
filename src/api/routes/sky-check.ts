@@ -2,7 +2,7 @@
  * Sky Check Routes
  *
  * Record emotional weather/mood for daily check-ins.
- * 
+ *
  * POST /api/sky-check - Record a sky check
  * GET /api/sky-check/history - Get weather history
  */
@@ -42,21 +42,29 @@ export async function handleRecordSkyCheck(
     }
 
     const { weather } = body as { weather?: WeatherInput };
-    
+
     if (!weather || !weather.primary || !weather.energy) {
       sendError(res, 'Weather object with primary and energy required', 400);
       return;
     }
 
     // Validate weather values
-    const validPrimary = ['sunny', 'partly-cloudy', 'cloudy', 'rainy', 'stormy', 'foggy', 'rainbow'];
+    const validPrimary = [
+      'sunny',
+      'partly-cloudy',
+      'cloudy',
+      'rainy',
+      'stormy',
+      'foggy',
+      'rainbow',
+    ];
     const validEnergy = ['high', 'medium', 'low'];
-    
+
     if (!validPrimary.includes(weather.primary)) {
       sendError(res, `Invalid weather primary: ${weather.primary}`, 400);
       return;
     }
-    
+
     if (!validEnergy.includes(weather.energy)) {
       sendError(res, `Invalid energy level: ${weather.energy}`, 400);
       return;
@@ -64,7 +72,7 @@ export async function handleRecordSkyCheck(
 
     const { getEngagementStore } = await import('../../services/engagement-store.js');
     const store = await getEngagementStore();
-    
+
     const now = new Date().toISOString();
     await store.recordWeather(userId, {
       date: now,
@@ -77,12 +85,16 @@ export async function handleRecordSkyCheck(
     });
 
     log.info({ userId, weather: weather.primary, energy: weather.energy }, 'Sky check recorded');
-    
-    sendJSON(res, {
-      success: true,
-      recordedAt: now,
-      weather,
-    }, 201);
+
+    sendJSON(
+      res,
+      {
+        success: true,
+        recordedAt: now,
+        weather,
+      },
+      201
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to record sky check');
     sendError(res, API_ERRORS.INTERNAL_ERROR, 500);
@@ -103,7 +115,7 @@ export async function handleGetSkyCheckHistory(
   try {
     const daysParam = parsedUrl.searchParams.get('days');
     const days = daysParam ? parseInt(daysParam, 10) : 30;
-    
+
     if (isNaN(days) || days < 1 || days > 365) {
       sendError(res, 'Days must be between 1 and 365', 400);
       return;
@@ -115,14 +127,18 @@ export async function handleGetSkyCheckHistory(
 
     // Get profile for stats
     const profile = await store.getProfile(userId);
-    
-    sendJSONCached(res, {
-      history,
-      stats: {
-        totalSkyChecks: profile.stats?.totalSkyChecks || 0,
-        lastCheckAt: history[0]?.date || null,
+
+    sendJSONCached(
+      res,
+      {
+        history,
+        stats: {
+          totalSkyChecks: profile.stats?.totalSkyChecks || 0,
+          lastCheckAt: history[0]?.date || null,
+        },
       },
-    }, 60);
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get sky check history');
     sendError(res, API_ERRORS.INTERNAL_ERROR, 500);
@@ -152,4 +168,3 @@ export async function handleSkyCheckRoutes(
 
   return false;
 }
-

@@ -247,9 +247,8 @@ export async function processMessage(
   const magicMoment = detectMagicMoment(message, {
     turnCount: session.turnCount,
     emotionalIntensity: session.lastEmotionalIntensity,
-    daysSinceLastContact:
-      session.initialAuth.lastConversation ?
-        Math.floor(
+    daysSinceLastContact: session.initialAuth.lastConversation
+      ? Math.floor(
           (Date.now() - session.initialAuth.lastConversation.getTime()) / (1000 * 60 * 60 * 24)
         )
       : undefined,
@@ -280,12 +279,14 @@ export async function processMessage(
     callerIdMatch: false,
   });
 
-  const identityContext = buildIdentityContext(
-    session,
-    trustState,
-    session.initialAuth,
-    { userId: session.userId, isNew: false, isReturning: true, profile: null, source: { type: 'device', identifier: sessionId }, linkedIdentifiers: [] }
-  );
+  const identityContext = buildIdentityContext(session, trustState, session.initialAuth, {
+    userId: session.userId,
+    isNew: false,
+    isReturning: true,
+    profile: null,
+    source: { type: 'device', identifier: sessionId },
+    linkedIdentifiers: [],
+  });
 
   // Update with current state
   identityContext.shouldAskForContact = shouldAskForContact;
@@ -324,10 +325,7 @@ export async function processAudioForAuth(
 
   // Check for speaker change
   if (status.status === 'speaker_changed') {
-    log.warn(
-      { sessionId, userId: session.userId },
-      '⚠️ Speaker change detected!'
-    );
+    log.warn({ sessionId, userId: session.userId }, '⚠️ Speaker change detected!');
 
     // Could trigger re-verification here
     return {
@@ -566,4 +564,3 @@ export default {
   generateIdentityContextForLLM,
   getIdentitySummary,
 };
-

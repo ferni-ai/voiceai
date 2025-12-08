@@ -49,7 +49,9 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Ferni',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
@@ -81,25 +83,25 @@ describe('Decision Support Domain Tools', () => {
     });
 
     it('should have frameMajorDecision tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'frameMajorDecision');
+      const tool = toolDefinitions.find((t) => t.id === 'frameMajorDecision');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('decisions');
     });
 
     it('should have walkThroughDecisionFramework tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'walkThroughDecisionFramework');
+      const tool = toolDefinitions.find((t) => t.id === 'walkThroughDecisionFramework');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('decisions');
     });
 
     it('should have analyzeProsAndCons tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'analyzeProsAndCons');
+      const tool = toolDefinitions.find((t) => t.id === 'analyzeProsAndCons');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('decisions');
     });
 
     it('should have checkValuesAlignment tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'checkValuesAlignment');
+      const tool = toolDefinitions.find((t) => t.id === 'checkValuesAlignment');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('decisions');
     });
@@ -107,7 +109,7 @@ describe('Decision Support Domain Tools', () => {
 
   describe('frameMajorDecision', () => {
     it('should frame a career decision', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'frameMajorDecision');
+      const toolDef = toolDefinitions.find((t) => t.id === 'frameMajorDecision');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -122,7 +124,7 @@ describe('Decision Support Domain Tools', () => {
     });
 
     it('should frame a relationship decision', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'frameMajorDecision');
+      const toolDef = toolDefinitions.find((t) => t.id === 'frameMajorDecision');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -136,7 +138,7 @@ describe('Decision Support Domain Tools', () => {
 
   describe('walkThroughDecisionFramework', () => {
     it('should walk through 10-10-10 framework', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'walkThroughDecisionFramework');
+      const toolDef = toolDefinitions.find((t) => t.id === 'walkThroughDecisionFramework');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -149,7 +151,7 @@ describe('Decision Support Domain Tools', () => {
     });
 
     it('should walk through regret minimization framework', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'walkThroughDecisionFramework');
+      const toolDef = toolDefinitions.find((t) => t.id === 'walkThroughDecisionFramework');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -162,7 +164,7 @@ describe('Decision Support Domain Tools', () => {
     });
 
     it('should walk through pre-mortem analysis', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'walkThroughDecisionFramework');
+      const toolDef = toolDefinitions.find((t) => t.id === 'walkThroughDecisionFramework');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -176,7 +178,7 @@ describe('Decision Support Domain Tools', () => {
 
   describe('analyzeProsAndCons', () => {
     it('should analyze pros and cons', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'analyzeProsAndCons');
+      const toolDef = toolDefinitions.find((t) => t.id === 'analyzeProsAndCons');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -186,13 +188,15 @@ describe('Decision Support Domain Tools', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.toLowerCase().includes('pro') || result.toLowerCase().includes('con')).toBe(true);
+      expect(result.toLowerCase().includes('pro') || result.toLowerCase().includes('con')).toBe(
+        true
+      );
     });
   });
 
   describe('checkValuesAlignment', () => {
     it('should check values alignment', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'checkValuesAlignment');
+      const toolDef = toolDefinitions.find((t) => t.id === 'checkValuesAlignment');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -208,7 +212,7 @@ describe('Decision Support Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'frameMajorDecision');
+      const toolDef = toolDefinitions.find((t) => t.id === 'frameMajorDecision');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -221,7 +225,7 @@ describe('Decision Support Domain Tools', () => {
     });
 
     it('should provide thoughtful guidance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'walkThroughDecisionFramework');
+      const toolDef = toolDefinitions.find((t) => t.id === 'walkThroughDecisionFramework');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -234,4 +238,3 @@ describe('Decision Support Domain Tools', () => {
     });
   });
 });
-

@@ -1,0 +1,221 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Feedback Tokens",
+    "description": "Toast notifications, whispers, and status feedback patterns",
+    "version": "1.0.0"
+  },
+
+  "toast": {
+    "philosophy": {
+      "description": "Small, cute, centered pills that feel like gentle whispers—not interruptions",
+      "principles": [
+        "Bottom-center (never corners)",
+        "Pill-shaped (fully rounded)",
+        "Text only (no icons in standard toasts)",
+        "Quick timing (in and out fast)",
+        "Unobtrusive but noticeable"
+      ]
+    },
+
+    "position": {
+      "placement": "bottom-center",
+      "bottom": {
+        "value": 80,
+        "unit": "px",
+        "description": "Clear of bottom navigation"
+      },
+      "transform": "translateX(-50%)",
+      "maxWidth": "calc(100vw - 48px)"
+    },
+
+    "shape": {
+      "borderRadius": "var(--radius-full)",
+      "padding": {
+        "vertical": "var(--space-2)",
+        "horizontal": "var(--space-4)"
+      }
+    },
+
+    "typography": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": {
+        "value": 13,
+        "unit": "px"
+      },
+      "fontWeight": 500,
+      "whiteSpace": "nowrap",
+      "textOverflow": "ellipsis"
+    },
+
+    "elevation": {
+      "boxShadow": "0 2px 12px rgba(0, 0, 0, 0.12)",
+      "zIndex": 10001
+    },
+
+    "colors": {
+      "info": {
+        "background": "var(--persona-primary)",
+        "text": "white",
+        "description": "Default, neutral feedback"
+      },
+      "success": {
+        "background": "var(--persona-primary)",
+        "text": "white",
+        "description": "Positive confirmation"
+      },
+      "warning": {
+        "background": "var(--color-warning)",
+        "text": "white",
+        "description": "Caution, needs attention"
+      },
+      "error": {
+        "background": "var(--color-destructive)",
+        "text": "white",
+        "description": "Something went wrong"
+      }
+    },
+
+    "timing": {
+      "default": {
+        "value": 2500,
+        "unit": "ms",
+        "description": "Standard message duration"
+      },
+      "short": {
+        "value": 2000,
+        "unit": "ms",
+        "description": "Quick confirmations"
+      },
+      "long": {
+        "value": 4000,
+        "unit": "ms",
+        "description": "Important messages"
+      },
+      "error": {
+        "value": 4000,
+        "unit": "ms",
+        "description": "Errors need time to read"
+      },
+      "persistent": {
+        "value": 0,
+        "unit": "ms",
+        "description": "Manual dismiss required"
+      }
+    },
+
+    "animation": {
+      "enter": {
+        "duration": "duration.slow",
+        "easing": "easing.spring",
+        "keyframes": {
+          "from": {
+            "opacity": 0,
+            "translateY": 20,
+            "scale": 0.9
+          },
+          "to": {
+            "opacity": 1,
+            "translateY": 0,
+            "scale": 1
+          }
+        },
+        "description": "Pop up with slight spring bounce"
+      },
+      "exit": {
+        "duration": "duration.normal",
+        "easing": "easing.standard",
+        "keyframes": {
+          "from": {
+            "opacity": 1,
+            "translateY": 0,
+            "scale": 1
+          },
+          "to": {
+            "opacity": 0,
+            "translateY": -10,
+            "scale": 0.95
+          }
+        },
+        "description": "Fade up and out quickly"
+      }
+    },
+
+    "haptics": {
+      "info": "softTap",
+      "success": "success",
+      "warning": "notification",
+      "error": "error"
+    },
+
+    "accessibility": {
+      "role": "alert",
+      "ariaLive": "polite",
+      "reducedMotion": {
+        "animation": "fade-only",
+        "duration": 150
+      }
+    }
+  },
+
+  "whisper": {
+    "description": "Even subtler than toasts—status updates near the avatar",
+    "position": {
+      "placement": "below-avatar",
+      "offset": {
+        "value": 8,
+        "unit": "px"
+      }
+    },
+    "typography": {
+      "fontSize": {
+        "value": 12,
+        "unit": "px"
+      },
+      "fontWeight": 400
+    },
+    "timing": {
+      "default": {
+        "value": 2500,
+        "unit": "ms"
+      }
+    },
+    "opacity": 0.7,
+    "animation": {
+      "enter": {
+        "duration": "duration.normal",
+        "easing": "easing.decelerate"
+      },
+      "exit": {
+        "duration": "duration.fast",
+        "easing": "easing.accelerate"
+      }
+    }
+  },
+
+  "connectionStatus": {
+    "description": "Connection state indicators",
+    "states": {
+      "connecting": {
+        "message": null,
+        "avatar": "pulse",
+        "sound": null
+      },
+      "connected": {
+        "message": null,
+        "avatar": "settle",
+        "sound": "connection-success"
+      },
+      "disconnected": {
+        "message": null,
+        "avatar": "fade",
+        "sound": null
+      },
+      "error": {
+        "message": "Connection lost",
+        "avatar": "shake",
+        "sound": "error-graceful"
+      }
+    }
+  }
+}

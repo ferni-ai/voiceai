@@ -221,7 +221,10 @@ export function updateRelationshipStage(
   profile.relationshipStage = stage;
   profile.allowedChannels = RELATIONSHIP_PERMISSIONS[stage];
   channelProfileStore.set(userId, profile);
-  log.debug({ userId, stage, allowedChannels: profile.allowedChannels }, 'Relationship stage updated');
+  log.debug(
+    { userId, stage, allowedChannels: profile.allowedChannels },
+    'Relationship stage updated'
+  );
 }
 
 // ============================================================================
@@ -256,8 +259,7 @@ export function recordOutreachOutcome(
   // Update response time
   if (data.responseTimeMs !== undefined) {
     const currentTime = profile.learning.avgResponseTimes[data.channel];
-    profile.learning.avgResponseTimes[data.channel] =
-      currentTime * 0.8 + data.responseTimeMs * 0.2;
+    profile.learning.avgResponseTimes[data.channel] = currentTime * 0.8 + data.responseTimeMs * 0.2;
   }
 
   // Update satisfaction
@@ -291,10 +293,7 @@ export function recordOutreachOutcome(
 /**
  * Select the optimal channel for an outreach
  */
-export function selectChannel(
-  userId: string,
-  context: ChannelContext
-): ChannelDecision {
+export function selectChannel(userId: string, context: ChannelContext): ChannelDecision {
   const profile = getChannelProfile(userId);
   const timingProfile = getTimingProfile(userId);
 
@@ -461,7 +460,10 @@ function generateChannelReason(channel: OutreachChannel, context: ChannelContext
   }
 
   // Time reason
-  if (channel === 'call' && (context.timeOfDay === 'morning' || context.timeOfDay === 'afternoon')) {
+  if (
+    channel === 'call' &&
+    (context.timeOfDay === 'morning' || context.timeOfDay === 'afternoon')
+  ) {
     reasons.push('good time for calls');
   }
 
@@ -567,7 +569,12 @@ export const CHANNEL_SEQUENCES: Record<string, ChannelSequence> = {
     steps: [
       { channel: 'call', delayMs: 0, condition: 'always' },
       { channel: 'sms', delayMs: 0, condition: 'voicemail' },
-      { channel: 'email', delayMs: 24 * 60 * 60 * 1000, condition: 'always', messageVariant: 'followup' },
+      {
+        channel: 'email',
+        delayMs: 24 * 60 * 60 * 1000,
+        condition: 'always',
+        messageVariant: 'followup',
+      },
     ],
   },
 
@@ -650,4 +657,3 @@ export default {
   CHANNEL_SEQUENCES,
   clearUserChannelData,
 };
-

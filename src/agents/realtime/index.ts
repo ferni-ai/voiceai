@@ -5,4 +5,3 @@
  */
 
 export * from './frontend-publisher.js';
-

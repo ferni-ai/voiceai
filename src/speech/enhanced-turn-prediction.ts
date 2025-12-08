@@ -85,28 +85,28 @@ interface TurnHistoryEntry {
 
 const CONFIG = {
   // Pitch thresholds for boundary detection
-  PITCH_FALL_THRESHOLD: -30,      // Hz drop for falling contour
-  PITCH_RISE_THRESHOLD: 20,       // Hz rise for rising contour
-  PITCH_LEVEL_TOLERANCE: 10,      // Hz variance for level contour
-  
+  PITCH_FALL_THRESHOLD: -30, // Hz drop for falling contour
+  PITCH_RISE_THRESHOLD: 20, // Hz rise for rising contour
+  PITCH_LEVEL_TOLERANCE: 10, // Hz variance for level contour
+
   // Pre-boundary lengthening
-  LENGTHENING_RATIO: 1.3,         // 30% longer = pre-boundary
-  
+  LENGTHENING_RATIO: 1.3, // 30% longer = pre-boundary
+
   // Turn duration thresholds
-  MIN_TURN_DURATION: 500,         // ms - too short to be complete turn
-  DEFAULT_TURN_DURATION: 4000,    // ms - typical turn length
-  MAX_TURN_DURATION: 15000,       // ms - very long turn
-  
+  MIN_TURN_DURATION: 500, // ms - too short to be complete turn
+  DEFAULT_TURN_DURATION: 4000, // ms - typical turn length
+  MAX_TURN_DURATION: 15000, // ms - very long turn
+
   // Silence thresholds
-  SHORT_PAUSE: 200,               // ms - within-turn pause
-  MEDIUM_PAUSE: 500,              // ms - phrase boundary pause
-  LONG_PAUSE: 800,                // ms - potential turn boundary
-  
+  SHORT_PAUSE: 200, // ms - within-turn pause
+  MEDIUM_PAUSE: 500, // ms - phrase boundary pause
+  LONG_PAUSE: 800, // ms - potential turn boundary
+
   // Confidence thresholds
   HIGH_CONFIDENCE: 0.8,
   MEDIUM_CONFIDENCE: 0.5,
   LOW_CONFIDENCE: 0.3,
-  
+
   // History settings
   MAX_HISTORY: 20,
 };
@@ -124,7 +124,7 @@ export function detectPhraseBoundary(
 ): PhraseBoundaryResult {
   // Analyze pitch contour at potential boundary
   const pitchChange = prosody.pitchMean - (previousProsody?.pitchMean || prosody.pitchMean);
-  
+
   let boundaryContour: PhraseBoundaryResult['boundaryContour'] = 'level';
   if (pitchChange < CONFIG.PITCH_FALL_THRESHOLD) {
     boundaryContour = 'falling';
@@ -135,18 +135,17 @@ export function detectPhraseBoundary(
   } else {
     boundaryContour = 'complex';
   }
-  
+
   // Detect pre-boundary lengthening
   // Longer syllables before boundaries are common in natural speech
   const currentDuration = prosody.utteranceDuration || 0;
   const previousDuration = previousProsody?.utteranceDuration || currentDuration;
-  const hasPreBoundaryLengthening = 
-    currentDuration > previousDuration * CONFIG.LENGTHENING_RATIO;
-  
+  const hasPreBoundaryLengthening = currentDuration > previousDuration * CONFIG.LENGTHENING_RATIO;
+
   // Determine boundary type
   let boundaryType: PhraseBoundaryResult['boundaryType'] = 'none';
   let confidence = 0;
-  
+
   if (boundaryContour === 'falling') {
     // Falling pitch = statement end (most reliable cue)
     boundaryType = 'statement';
@@ -175,10 +174,10 @@ export function detectPhraseBoundary(
     boundaryType = 'none';
     confidence = 0.3;
   }
-  
+
   // Is this a phrase boundary?
   const isPhraseBoundary = boundaryType !== 'none' && confidence > 0.4;
-  
+
   return {
     isPhraseBoundary,
     boundaryType,
@@ -202,69 +201,72 @@ export function estimateSyntacticCompleteness(text: string): {
   reason: string;
 } {
   const trimmed = text.trim().toLowerCase();
-  
+
   // Empty or very short
   if (trimmed.length < 3) {
     return { isComplete: false, confidence: 0.3, reason: 'Too short' };
   }
-  
+
   // Check for incomplete patterns
   const incompletePatterns = [
-    /\b(and|or|but|so|because|if|when|while|although|unless|since)\s*$/,  // Conjunctions at end
-    /\b(the|a|an|my|your|this|that|these|those)\s*$/,                      // Determiners at end
-    /\b(is|are|was|were|will|would|could|should|have|has|had)\s*$/,        // Auxiliary at end
-    /\b(to|for|from|with|at|by|in|on)\s*$/,                                // Prepositions at end
-    /\b(very|really|quite|pretty|so)\s*$/,                                 // Adverbs expecting more
-    /,\s*$/,                                                                // Trailing comma
-    /\b(like|um|uh|well)\s*$/,                                             // Hesitation markers
+    /\b(and|or|but|so|because|if|when|while|although|unless|since)\s*$/, // Conjunctions at end
+    /\b(the|a|an|my|your|this|that|these|those)\s*$/, // Determiners at end
+    /\b(is|are|was|were|will|would|could|should|have|has|had)\s*$/, // Auxiliary at end
+    /\b(to|for|from|with|at|by|in|on)\s*$/, // Prepositions at end
+    /\b(very|really|quite|pretty|so)\s*$/, // Adverbs expecting more
+    /,\s*$/, // Trailing comma
+    /\b(like|um|uh|well)\s*$/, // Hesitation markers
   ];
-  
+
   for (const pattern of incompletePatterns) {
     if (pattern.test(trimmed)) {
-      return { 
-        isComplete: false, 
-        confidence: 0.7, 
-        reason: `Ends with incomplete word: ${trimmed.slice(-15)}` 
+      return {
+        isComplete: false,
+        confidence: 0.7,
+        reason: `Ends with incomplete word: ${trimmed.slice(-15)}`,
       };
     }
   }
-  
+
   // Check for complete patterns
   const completePatterns = [
-    /[.!?]$/,                                           // Sentence-final punctuation
-    /\b(yes|no|okay|sure|right|thanks|bye|goodbye)$/,   // Complete single-word responses
-    /\b(that's all|that's it|I'm done|nothing else)$/,  // Explicit completion
+    /[.!?]$/, // Sentence-final punctuation
+    /\b(yes|no|okay|sure|right|thanks|bye|goodbye)$/, // Complete single-word responses
+    /\b(that's all|that's it|I'm done|nothing else)$/, // Explicit completion
   ];
-  
+
   for (const pattern of completePatterns) {
     if (pattern.test(trimmed)) {
-      return { 
-        isComplete: true, 
-        confidence: 0.8, 
-        reason: 'Ends with complete pattern' 
+      return {
+        isComplete: true,
+        confidence: 0.8,
+        reason: 'Ends with complete pattern',
       };
     }
   }
-  
+
   // Heuristic: longer utterances are more likely complete
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount >= 5) {
     // Check for verb presence (crude)
-    const hasVerb = /\b(is|are|was|were|do|does|did|have|has|had|will|would|can|could|should|may|might|go|come|want|need|think|feel|know|see|make|get|take|give)\b/.test(trimmed);
+    const hasVerb =
+      /\b(is|are|was|were|do|does|did|have|has|had|will|would|can|could|should|may|might|go|come|want|need|think|feel|know|see|make|get|take|give)\b/.test(
+        trimmed
+      );
     if (hasVerb) {
-      return { 
-        isComplete: true, 
-        confidence: 0.5, 
-        reason: 'Has verb and reasonable length' 
+      return {
+        isComplete: true,
+        confidence: 0.5,
+        reason: 'Has verb and reasonable length',
       };
     }
   }
-  
+
   // Default: uncertain
-  return { 
-    isComplete: false, 
-    confidence: 0.3, 
-    reason: 'Uncertain syntactic status' 
+  return {
+    isComplete: false,
+    confidence: 0.3,
+    reason: 'Uncertain syntactic status',
   };
 }
 
@@ -277,11 +279,11 @@ export class EnhancedTurnPredictionService {
   private currentTurnStart: number | null = null;
   private lastProsody: ProsodyFeatures | null = null;
   private userTypicalTurnDuration: number = CONFIG.DEFAULT_TURN_DURATION;
-  
+
   constructor(private sessionId: string) {
     log.debug({ sessionId }, '🎯 Enhanced turn prediction service initialized');
   }
-  
+
   /**
    * Predict if user has completed their turn
    */
@@ -294,33 +296,33 @@ export class EnhancedTurnPredictionService {
     if (!this.currentTurnStart) {
       this.currentTurnStart = Date.now();
     }
-    
+
     const currentTurnDuration = Date.now() - this.currentTurnStart;
     const turnDurationRatio = currentTurnDuration / this.userTypicalTurnDuration;
-    
+
     // Analyze phrase boundary
     const phraseBoundary = detectPhraseBoundary(prosody, this.lastProsody || undefined);
     this.lastProsody = prosody;
-    
+
     // Estimate syntactic completeness
     const syntactic = estimateSyntacticCompleteness(transcriptSoFar);
-    
+
     // Calculate completion probability using multiple cues
     let completionProbability = 0;
     const reasons: string[] = [];
-    
+
     // 1. Phrase boundary evidence (strongest cue)
     if (phraseBoundary.boundaryType === 'statement') {
       completionProbability += 0.35 * phraseBoundary.confidence;
       reasons.push('Falling pitch (statement)');
     } else if (phraseBoundary.boundaryType === 'question') {
-      completionProbability += 0.30 * phraseBoundary.confidence;
+      completionProbability += 0.3 * phraseBoundary.confidence;
       reasons.push('Rising pitch (question)');
     } else if (phraseBoundary.boundaryType === 'continuation') {
       completionProbability -= 0.15; // User wants to continue
       reasons.push('Continuation contour (wait)');
     }
-    
+
     // 2. Syntactic evidence
     if (syntactic.isComplete) {
       completionProbability += 0.25 * syntactic.confidence;
@@ -329,7 +331,7 @@ export class EnhancedTurnPredictionService {
       completionProbability -= 0.1;
       reasons.push(syntactic.reason);
     }
-    
+
     // 3. Silence duration evidence
     if (silenceDuration > CONFIG.LONG_PAUSE) {
       completionProbability += 0.25;
@@ -341,7 +343,7 @@ export class EnhancedTurnPredictionService {
       completionProbability -= 0.1;
       reasons.push('Short pause (likely mid-utterance)');
     }
-    
+
     // 4. Turn duration evidence
     if (turnDurationRatio > 1.5) {
       completionProbability += 0.1; // Longer than usual
@@ -350,10 +352,10 @@ export class EnhancedTurnPredictionService {
       completionProbability -= 0.15; // Very short
       reasons.push('Very short turn');
     }
-    
+
     // Clamp to 0-1
     completionProbability = Math.max(0, Math.min(1, completionProbability));
-    
+
     // Determine recommendation
     let recommendation: TurnPredictionResult['recommendation'];
     if (completionProbability > CONFIG.HIGH_CONFIDENCE) {
@@ -366,7 +368,7 @@ export class EnhancedTurnPredictionService {
     } else {
       recommendation = 'wait';
     }
-    
+
     return {
       completionProbability,
       recommendation,
@@ -381,7 +383,7 @@ export class EnhancedTurnPredictionService {
       reason: reasons.join('; '),
     };
   }
-  
+
   /**
    * Record completed turn for learning
    */
@@ -398,27 +400,29 @@ export class EnhancedTurnPredictionService {
       silenceBeforeNext,
       timestamp: Date.now(),
     });
-    
+
     if (this.turnHistory.length > CONFIG.MAX_HISTORY) {
       this.turnHistory.shift();
     }
-    
+
     // Update typical turn duration (exponential moving average)
     const alpha = 0.3;
-    this.userTypicalTurnDuration = 
-      alpha * duration + (1 - alpha) * this.userTypicalTurnDuration;
-    
+    this.userTypicalTurnDuration = alpha * duration + (1 - alpha) * this.userTypicalTurnDuration;
+
     // Reset current turn
     this.currentTurnStart = null;
     this.lastProsody = null;
-    
-    log.debug({
-      duration,
-      typicalDuration: Math.round(this.userTypicalTurnDuration),
-      historySize: this.turnHistory.length,
-    }, '🎯 Turn recorded, pattern updated');
+
+    log.debug(
+      {
+        duration,
+        typicalDuration: Math.round(this.userTypicalTurnDuration),
+        historySize: this.turnHistory.length,
+      },
+      '🎯 Turn recorded, pattern updated'
+    );
   }
-  
+
   /**
    * Get user's turn-taking patterns
    */
@@ -436,18 +440,18 @@ export class EnhancedTurnPredictionService {
         fallingEndRatio: 0.7,
       };
     }
-    
+
     const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
     const ratio = (arr: boolean[]) => arr.filter(Boolean).length / arr.length;
-    
+
     return {
-      typicalTurnDuration: avg(this.turnHistory.map(t => t.duration)),
-      typicalSilence: avg(this.turnHistory.map(t => t.silenceBeforeNext)),
-      questionRatio: ratio(this.turnHistory.map(t => t.wasQuestion)),
-      fallingEndRatio: ratio(this.turnHistory.map(t => t.hadFinalFall)),
+      typicalTurnDuration: avg(this.turnHistory.map((t) => t.duration)),
+      typicalSilence: avg(this.turnHistory.map((t) => t.silenceBeforeNext)),
+      questionRatio: ratio(this.turnHistory.map((t) => t.wasQuestion)),
+      fallingEndRatio: ratio(this.turnHistory.map((t) => t.hadFinalFall)),
     };
   }
-  
+
   /**
    * Reset service state
    */
@@ -482,4 +486,3 @@ export function resetEnhancedTurnPredictor(sessionId: string): void {
     log.debug({ sessionId }, '🎯 Enhanced turn predictor reset');
   }
 }
-

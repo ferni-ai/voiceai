@@ -72,7 +72,7 @@ export interface ProsodyContinuityHints {
     /** Should build energy? */
     buildEnergy: boolean;
   };
-  
+
   /** Overall prosody adjustments */
   prosody: {
     /** Speed adjustment (-0.3 to 0.3) */
@@ -82,7 +82,7 @@ export interface ProsodyContinuityHints {
     /** Pitch tendency ('higher' | 'lower' | 'neutral') */
     pitchTendency: 'higher' | 'lower' | 'neutral';
   };
-  
+
   /** Emotional coloring for TTS */
   emotion: {
     /** Suggested emotion tag */
@@ -90,10 +90,10 @@ export interface ProsodyContinuityHints {
     /** Intensity (0-1) */
     intensity: number;
   };
-  
+
   /** Whether to add closing warmth */
   closingWarmth: boolean;
-  
+
   /** Reason for these hints (for debugging) */
   reason: string;
 }
@@ -191,7 +191,7 @@ export class EmotionalContagionService {
     // Apply momentum-based adjustments
     if (this.momentum.turnsAtState >= CONTAGION_CONFIG.STABLE_TURNS) {
       // Stable emotional state - maintain it
-      
+
       // High warmth should continue
       if (this.momentum.warmth === 'high') {
         hints.emotion.tag = 'warm';
@@ -292,10 +292,7 @@ export class EmotionalContagionService {
   /**
    * Apply continuity hints to SSML
    */
-  applyContinuityToSsml(
-    text: string,
-    hints: ProsodyContinuityHints
-  ): string {
+  applyContinuityToSsml(text: string, hints: ProsodyContinuityHints): string {
     let result = text;
 
     // Opening pause
@@ -430,4 +427,3 @@ export function resetEmotionalContagion(sessionId: string): void {
 export function resetAllEmotionalContagion(): void {
   sessionInstances.clear();
 }
-

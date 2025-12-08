@@ -20,6 +20,8 @@ import {
 } from './narrative-director.js';
 import { getSuggestedArc, STORY_ARCS } from './story-arcs.js';
 import { getEmotionAnalyzer, type DetectedEmotion } from './emotion-analyzer.js';
+// 🎬 Pixar Emotions - Avatar expressions respond to user emotions
+import { pixarEmotions } from '../ui/pixar-emotions.ui.js';
 
 const log = createLogger('NarrativeBridge');
 
@@ -299,11 +301,16 @@ function setupEmotionListeners(): void {
   // Deep moment (from trust system)
   document.addEventListener('ferni:deep-moment', ((e: CustomEvent) => {
     void playBeat('deep_moment', { metadata: e.detail });
+    // 🎬 Pixar: Deep moment deserves a meaningful expression
+    // Held pose shows "this matters" (like Pixar's emotional beats)
+    pixarEmotions.heldPose('empathetic', 800);
   }) as EventListener);
   
   // Empathy moment
   document.addEventListener('ferni:empathy-moment', () => {
     void playBeat('empathy_moment');
+    // 🎬 Pixar: Soft, caring expression
+    pixarEmotions.empathy();
   });
   
   log.debug('Emotion listeners set up');
@@ -321,20 +328,32 @@ function handleDetectedEmotion(emotion: DetectedEmotion): void {
   switch (emotion.primary) {
     case 'sad':
       void playBeat('user_sad');
+      // 🎬 Pixar: Show empathetic expression - "I'm here for you"
+      pixarEmotions.empathy();
       break;
     case 'frustrated':
       void playBeat('user_frustrated');
+      // 🎬 Pixar: Show understanding/listening expression
+      pixarEmotions.setExpression('empathetic', 300, 2000);
       break;
     case 'excited':
       void playBeat('user_excited');
+      // 🎬 Pixar: Mirror their excitement!
+      pixarEmotions.excited();
       break;
     case 'anxious':
       // Treat anxiety with calm
       void playBeat('user_vulnerable');
+      // 🎬 Pixar: Calm, grounding presence (not nervous energy!)
+      pixarEmotions.setExpression('empathetic', 400, 3000);
       break;
     case 'happy':
       // Don't need to react to every positive emotion
       // Let the conversation flow naturally
+      // 🎬 Pixar: Subtle happy expression (brief, not overwhelming)
+      if (emotion.confidence > 0.75) {
+        pixarEmotions.happy(600);
+      }
       break;
   }
 }

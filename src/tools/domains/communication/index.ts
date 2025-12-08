@@ -154,6 +154,10 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
   communicationTools
 );
 
-export { getCommunicationToolDefinitions, getCoachingToolDefinitions, getProactiveOutreachToolDefinitions };
+export {
+  getCommunicationToolDefinitions,
+  getCoachingToolDefinitions,
+  getProactiveOutreachToolDefinitions,
+};
 
 export default getToolDefinitions;

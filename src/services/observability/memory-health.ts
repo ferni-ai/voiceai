@@ -116,7 +116,11 @@ export function recordEmbedding(event: Omit<EmbeddingEvent, 'id' | 'timestamp'>)
   }
 }
 
-export function updateStorageStats(storeType: string, count: number, bySource?: Record<string, number>): void {
+export function updateStorageStats(
+  storeType: string,
+  count: number,
+  bySource?: Record<string, number>
+): void {
   currentStoreType = storeType;
   documentCount = count;
   if (bySource) {
@@ -135,7 +139,9 @@ export function getSnapshot(): MemoryHealthSnapshot {
   // Search metrics
   const searchLatencies = recentSearches.map((e) => e.latencyMs);
   const avgSearchLatencyMs =
-    searchLatencies.length > 0 ? searchLatencies.reduce((a, b) => a + b, 0) / searchLatencies.length : 0;
+    searchLatencies.length > 0
+      ? searchLatencies.reduce((a, b) => a + b, 0) / searchLatencies.length
+      : 0;
   const sortedLatencies = [...searchLatencies].sort((a, b) => a - b);
   const p95SearchLatencyMs = sortedLatencies[Math.floor(sortedLatencies.length * 0.95)] || 0;
 
@@ -165,7 +171,8 @@ export function getSnapshot(): MemoryHealthSnapshot {
       ? embeddingLatencies.reduce((a, b) => a + b, 0) / embeddingLatencies.length
       : 0;
   const embeddingErrors = recentEmbeddings.filter((e) => !e.success).length;
-  const embeddingErrorRate = recentEmbeddings.length > 0 ? embeddingErrors / recentEmbeddings.length : 0;
+  const embeddingErrorRate =
+    recentEmbeddings.length > 0 ? embeddingErrors / recentEmbeddings.length : 0;
 
   // Quality metrics
   const lowRelevanceSearches = recentSearches.filter((e) => e.avgScore < 0.5).length;

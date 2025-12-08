@@ -46,7 +46,11 @@ export const LIFE_TRANSITION_SUPPORT: Record<string, LifeTransitionSupport> = {
       'Self-worth may feel shaky',
       'This is temporary, even when it feels permanent',
     ],
-    habitsToProtect: ['Daily structure (wake time, meals)', 'Social connection', 'Physical movement'],
+    habitsToProtect: [
+      'Daily structure (wake time, meals)',
+      'Social connection',
+      'Physical movement',
+    ],
     habitsToPause: ['Expensive habits', 'Energy-draining commitments'],
     habitsToAdd: [
       'Daily job search routine (2-3 hours max)',
@@ -62,7 +66,7 @@ export const LIFE_TRANSITION_SUPPORT: Record<string, LifeTransitionSupport> = {
   new_baby: {
     name: 'New Baby',
     validation:
-      "Having a baby changes everything. Literally everything. Your old life is gone - a new one is beginning.",
+      'Having a baby changes everything. Literally everything. Your old life is gone - a new one is beginning.',
     expectations: [
       'Sleep deprivation is real and affects everything',
       'Your old routines are not possible right now',
@@ -89,12 +93,20 @@ export const LIFE_TRANSITION_SUPPORT: Record<string, LifeTransitionSupport> = {
     expectations: [
       'Honeymoon phase affects priorities',
       "Your solo routines may slip - that's okay",
-      "Finding balance takes time",
+      'Finding balance takes time',
       'Your identity and habits matter too',
     ],
-    habitsToProtect: ['Non-negotiable health habits', 'Friend connections', 'Personal identity habits'],
+    habitsToProtect: [
+      'Non-negotiable health habits',
+      'Friend connections',
+      'Personal identity habits',
+    ],
     habitsToPause: ['Rigid solo routines'],
-    habitsToAdd: ['Shared habits with partner', 'Communication rituals', 'Maintaining individual time'],
+    habitsToAdd: [
+      'Shared habits with partner',
+      'Communication rituals',
+      'Maintaining individual time',
+    ],
     priorityOrder: ['Relationship investment', 'Core identity habits', 'Health', 'Social balance'],
     adjustmentPeriod: '3-6 months to find balance',
     selfCareNote:
@@ -113,8 +125,17 @@ export const LIFE_TRANSITION_SUPPORT: Record<string, LifeTransitionSupport> = {
     ],
     habitsToProtect: ['Social connection (reach out)', 'Physical health basics', 'Daily structure'],
     habitsToPause: ['Major decisions', 'New relationships (rebound alert)'],
-    habitsToAdd: ['Processing rituals (journal, therapy)', 'Self-discovery activities', 'Friend time'],
-    priorityOrder: ['Emotional processing', 'Basic self-care', 'Social support', 'Future planning later'],
+    habitsToAdd: [
+      'Processing rituals (journal, therapy)',
+      'Self-discovery activities',
+      'Friend time',
+    ],
+    priorityOrder: [
+      'Emotional processing',
+      'Basic self-care',
+      'Social support',
+      'Future planning later',
+    ],
     adjustmentPeriod: '6-12 months for healing (varies widely)',
     selfCareNote:
       "There's no timeline for healing. Some days will feel like progress, others like setbacks. Both are part of it.",
@@ -125,17 +146,27 @@ export const LIFE_TRANSITION_SUPPORT: Record<string, LifeTransitionSupport> = {
     validation:
       "Moving disrupts everything - your physical space, your routines, your sense of place. It's a bigger deal than people acknowledge.",
     expectations: [
-      "Chaos before, during, and after the move",
+      'Chaos before, during, and after the move',
       'Old habits have no cues in new environment',
       "It takes months to feel 'home'",
       'Rebuilding routines takes intentional effort',
     ],
     habitsToProtect: ['Sleep schedule', 'One health habit', 'Connection to support system'],
     habitsToPause: ['Perfection in any area', 'Non-essential commitments'],
-    habitsToAdd: ['Exploring new environment', 'Creating new cues for habits', 'Building new community'],
-    priorityOrder: ['Basic functioning', 'Making space livable', 'Rebuilding routines', 'Community'],
+    habitsToAdd: [
+      'Exploring new environment',
+      'Creating new cues for habits',
+      'Building new community',
+    ],
+    priorityOrder: [
+      'Basic functioning',
+      'Making space livable',
+      'Rebuilding routines',
+      'Community',
+    ],
     adjustmentPeriod: '3-6 months to feel settled',
-    selfCareNote: 'Living in chaos is temporary. Lower expectations radically during the transition.',
+    selfCareNote:
+      'Living in chaos is temporary. Lower expectations radically during the transition.',
   },
 
   empty_nest: {
@@ -148,7 +179,11 @@ export const LIFE_TRANSITION_SUPPORT: Record<string, LifeTransitionSupport> = {
       'Suddenly, you have time (and may not know what to do with it)',
       'Relationship with partner needs reinvention',
     ],
-    habitsToProtect: ['Health (you have time now!)', 'Relationship with partner', 'Connection with kids (new form)'],
+    habitsToProtect: [
+      'Health (you have time now!)',
+      'Relationship with partner',
+      'Connection with kids (new form)',
+    ],
     habitsToPause: ['Parent-identity habits'],
     habitsToAdd: ['New hobbies', 'Couple rituals', 'Personal rediscovery', 'Health focus'],
     priorityOrder: [
@@ -296,4 +331,3 @@ export function getTransitionSupport(transition: string): LifeTransitionSupport 
 export function getTransitionTypes(): string[] {
   return Object.keys(LIFE_TRANSITION_SUPPORT);
 }
-

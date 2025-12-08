@@ -117,7 +117,10 @@ export async function pruneOldData(): Promise<void> {
     stats.lastDataPrune = new Date();
     stats.dataEntriesPruned = totalPruned;
 
-    log.info({ entriesPruned: totalPruned, maxAgeDays: config.maxDataAgeDays }, '✅ Old data pruned');
+    log.info(
+      { entriesPruned: totalPruned, maxAgeDays: config.maxDataAgeDays },
+      '✅ Old data pruned'
+    );
   } catch (error) {
     log.error({ error }, 'Failed to prune old data');
   }
@@ -252,10 +255,7 @@ async function runMaintenance(): Promise<void> {
   // Weekly reset (only on the right day/hour)
   if (isWeeklyResetTime()) {
     // Only reset once per day (check last reset)
-    if (
-      !stats.lastWeeklyReset ||
-      stats.lastWeeklyReset.getDate() !== new Date().getDate()
-    ) {
+    if (!stats.lastWeeklyReset || stats.lastWeeklyReset.getDate() !== new Date().getDate()) {
       resetWeeklyCounters();
     }
   }
@@ -266,10 +266,7 @@ async function runMaintenance(): Promise<void> {
 
   // Less frequent pruning (once per day max)
   const now = new Date();
-  if (
-    !stats.lastDataPrune ||
-    now.getTime() - stats.lastDataPrune.getTime() > 24 * 60 * 60 * 1000
-  ) {
+  if (!stats.lastDataPrune || now.getTime() - stats.lastDataPrune.getTime() > 24 * 60 * 60 * 1000) {
     await pruneOldData();
   }
 }
@@ -308,9 +305,7 @@ export function stopMaintenanceScheduler(): void {
 /**
  * Update maintenance configuration
  */
-export function updateMaintenanceConfig(
-  updates: Partial<MaintenanceConfig>
-): void {
+export function updateMaintenanceConfig(updates: Partial<MaintenanceConfig>): void {
   config = { ...config, ...updates };
   log.info({ config }, 'Maintenance config updated');
 }
@@ -337,4 +332,3 @@ export default {
   updateMaintenanceConfig,
   getMaintenanceStats,
 };
-

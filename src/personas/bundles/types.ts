@@ -217,12 +217,24 @@ export interface BundleCognitive {
    * - 'narrative': Thinks in stories, metaphors, journeys
    * - 'pragmatic': What works? Outcome-focused
    */
-  reasoning_style: 'analytical' | 'intuitive' | 'empathetic' | 'systematic' | 'narrative' | 'pragmatic';
+  reasoning_style:
+    | 'analytical'
+    | 'intuitive'
+    | 'empathetic'
+    | 'systematic'
+    | 'narrative'
+    | 'pragmatic';
 
   /**
    * Secondary reasoning style (used situationally)
    */
-  secondary_reasoning?: 'analytical' | 'intuitive' | 'empathetic' | 'systematic' | 'narrative' | 'pragmatic';
+  secondary_reasoning?:
+    | 'analytical'
+    | 'intuitive'
+    | 'empathetic'
+    | 'systematic'
+    | 'narrative'
+    | 'pragmatic';
 
   /**
    * Decision-making approach when uncertain
@@ -662,8 +674,20 @@ export interface BundleCognitiveProfile {
   schema_version?: string;
   persona_id?: string;
 
-  reasoning_style: 'analytical' | 'intuitive' | 'empathetic' | 'systematic' | 'narrative' | 'pragmatic';
-  secondary_reasoning?: 'analytical' | 'intuitive' | 'empathetic' | 'systematic' | 'narrative' | 'pragmatic';
+  reasoning_style:
+    | 'analytical'
+    | 'intuitive'
+    | 'empathetic'
+    | 'systematic'
+    | 'narrative'
+    | 'pragmatic';
+  secondary_reasoning?:
+    | 'analytical'
+    | 'intuitive'
+    | 'empathetic'
+    | 'systematic'
+    | 'narrative'
+    | 'pragmatic';
   uncertainty_response?: 'explore' | 'converge' | 'synthesize' | 'defer';
 
   attention?: {

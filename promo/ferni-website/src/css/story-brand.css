@@ -108,6 +108,32 @@
 }
 
 /* ============================================
+   SKIP LINK (Accessibility)
+   ============================================ */
+
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-ferni-green);
+  color: white;
+  font-family: var(--font-display);
+  font-size: var(--text-body-md);
+  font-weight: 600;
+  border-radius: 0 0 var(--space-2) var(--space-2);
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: none;
+}
+
+/* ============================================
    RESET
    ============================================ */
 
@@ -189,173 +215,18 @@ button {
   gap: var(--space-3);
 }
 
-.nav__logo-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  flex-shrink: 0;
+/* Wordmark-only variant (no avatar orb) */
+.nav__logo--wordmark-only {
+  gap: 0;
 }
 
-/* ============================================
-   FERNI AVATAR - From App with Pixar Animations
-   ============================================ */
-
-/* Container - holds orb and ring */
-.ferni-avatar {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Size variants */
-.ferni-avatar--sm {
-  width: 36px;
-  height: 36px;
-}
-
-.ferni-avatar--md {
-  width: 48px;
-  height: 48px;
-}
-
-.ferni-avatar--lg {
-  width: 64px;
-  height: 64px;
-}
-
-/* The main orb/circle */
-.ferni-avatar__orb {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #5a8060 0%, #4a6741 50%, #3d5a35 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: ferniIdle 4s ease-in-out infinite;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-/* Highlight shine on orb */
-.ferni-avatar__orb::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.2) 0%, transparent 40%);
-  pointer-events: none;
-}
-
-/* Initials text */
-.ferni-avatar__text {
-  font-family: var(--font-display);
+.nav__logo--wordmark-only .nav__logo-text {
+  font-size: var(--text-h3);
   font-weight: 800;
-  color: white;
-  user-select: none;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.ferni-avatar--sm .ferni-avatar__text {
-  font-size: 12px;
-}
-
-.ferni-avatar--md .ferni-avatar__text {
-  font-size: 16px;
-}
-
-.ferni-avatar--lg .ferni-avatar__text {
-  font-size: 22px;
-}
-
-/* Animated ring around avatar */
-.ferni-avatar__ring {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 2px solid var(--color-ferni-green);
-  opacity: 0.4;
-  animation: ferniRingIdle 4s ease-in-out infinite;
-}
-
-.ferni-avatar--lg .ferni-avatar__ring {
-  inset: -8px;
-  border-width: 2.5px;
-}
-
-/* ===== IDLE BREATHING ANIMATION ===== */
-@keyframes ferniIdle {
-  0%, 100% { 
-    transform: scale(1); 
-  }
-  50% { 
-    transform: scale(1.03); 
-  }
-}
-
-@keyframes ferniRingIdle {
-  0%, 100% { 
-    transform: scale(1);
-    opacity: 0.4;
-  }
-  50% { 
-    transform: scale(1.06);
-    opacity: 0.3;
-  }
-}
-
-/* ===== HOVER INTERACTIONS ===== */
-.ferni-avatar:hover .ferni-avatar__orb {
-  animation: ferniHoverBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform: scale(1.05);
-}
-
-.ferni-avatar:hover .ferni-avatar__ring {
-  animation: ferniRingPulse 0.6s ease-out;
-  opacity: 0.6;
-}
-
-@keyframes ferniHoverBounce {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.12); }
-  60% { transform: scale(0.95); }
-  80% { transform: scale(1.05); }
-  100% { transform: scale(1.05); }
-}
-
-@keyframes ferniRingPulse {
-  0% { transform: scale(1); opacity: 0.4; }
-  50% { transform: scale(1.15); opacity: 0.7; }
-  100% { transform: scale(1.08); opacity: 0.6; }
-}
-
-/* ===== TEAM CARD AVATAR - Special larger treatment ===== */
-.team-card .ferni-avatar {
-  width: 56px;
-  height: 56px;
-}
-
-.team-card .ferni-avatar__text {
-  font-size: 18px;
-}
-
-.team-card .ferni-avatar__ring {
-  inset: -8px;
-}
-
-/* Reduced motion preference */
-@media (prefers-reduced-motion: reduce) {
-  .ferni-avatar__orb,
-  .ferni-avatar__ring {
-    animation: none;
-  }
-  
-  .ferni-avatar:hover .ferni-avatar__orb {
-    animation: none;
-    transform: scale(1.02);
-  }
+  background: linear-gradient(135deg, var(--color-ferni-green) 0%, var(--color-forest-green) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .nav__logo-text {
@@ -490,6 +361,104 @@ button {
   padding-bottom: var(--space-20);
   background: var(--color-paper-cream);
   overflow: hidden;
+}
+
+/* ============================================
+   HERO ANIMATED BACKGROUND
+   Living, breathing orbs that convey warmth (Pixar: everything alive breathes)
+   ============================================ */
+
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero__bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 40%,
+    rgba(74, 103, 65, 0.06) 0%,
+    rgba(74, 103, 65, 0.02) 40%,
+    transparent 70%
+  );
+}
+
+.hero__bg-orbs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Breathing orb animation - everything alive breathes */
+@keyframes orb-breathe {
+  0%, 100% {
+    transform: scale(1) translate(var(--orb-x, 0), var(--orb-y, 0));
+    opacity: var(--orb-opacity, 0.3);
+  }
+  50% {
+    transform: scale(1.1) translate(calc(var(--orb-x, 0) + 10px), calc(var(--orb-y, 0) - 10px));
+    opacity: calc(var(--orb-opacity, 0.3) + 0.1);
+  }
+}
+
+@keyframes orb-float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(20px, -15px) rotate(1deg); }
+  50% { transform: translate(10px, 10px) rotate(-1deg); }
+  75% { transform: translate(-15px, -5px) rotate(0.5deg); }
+}
+
+.hero__bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  animation: orb-breathe 8s ease-in-out infinite, orb-float 25s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Ferni Green Orb */
+.hero__bg-orb--1 {
+  --orb-opacity: 0.25;
+  width: 600px;
+  height: 600px;
+  top: -15%;
+  right: -10%;
+  background: radial-gradient(circle, rgba(74, 103, 65, 0.4) 0%, rgba(74, 103, 65, 0.1) 50%, transparent 70%);
+}
+
+/* Warm Amber Orb */
+.hero__bg-orb--2 {
+  --orb-opacity: 0.15;
+  width: 400px;
+  height: 400px;
+  bottom: 10%;
+  left: -5%;
+  background: radial-gradient(circle, rgba(196, 162, 101, 0.3) 0%, rgba(196, 162, 101, 0.05) 50%, transparent 70%);
+  animation-delay: -3s;
+  animation-duration: 10s, 30s;
+}
+
+/* Subtle Teal Orb */
+.hero__bg-orb--3 {
+  --orb-opacity: 0.12;
+  width: 300px;
+  height: 300px;
+  top: 40%;
+  left: 20%;
+  background: radial-gradient(circle, rgba(58, 107, 115, 0.2) 0%, transparent 60%);
+  animation-delay: -5s;
+  animation-duration: 12s, 35s;
+}
+
+/* Reduced motion: disable floating animations */
+@media (prefers-reduced-motion: reduce) {
+  .hero__bg-orb {
+    animation: none;
+    opacity: var(--orb-opacity);
+  }
 }
 
 .hero__content {
@@ -733,24 +702,181 @@ button {
   border-color: transparent;
 }
 
+/* All team avatars use the unified circular avatar system */
 .team-card__avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  /* Remove old styling - use .persona-avatar instead */
+  display: none;
+}
+
+/* ============================================
+   UNIFIED PERSONA AVATAR SYSTEM
+   All avatars are circles with consistent styling
+   ============================================ */
+
+.persona-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-bottom: var(--space-4);
+}
+
+/* Size variants */
+.persona-avatar--sm {
+  width: 36px;
+  height: 36px;
+}
+
+.persona-avatar--md {
+  width: 48px;
+  height: 48px;
+}
+
+.persona-avatar--lg {
+  width: 64px;
+  height: 64px;
+}
+
+/* The main circular orb */
+.persona-avatar__orb {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
-  font-size: 18px;
+  animation: avatarIdle 4s ease-in-out infinite;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  /* Default Ferni green - persona-specific rules override this */
+  background: linear-gradient(145deg, #5a8060 0%, #4a6741 50%, #3d5a35 100%);
 }
 
-.team-card__avatar--logo {
-  background: transparent !important;
-  border-radius: 50%;
-  overflow: hidden;
+/* Highlight shine on orb */
+.persona-avatar__orb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.2) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+/* Initials text */
+.persona-avatar__text {
+  font-family: var(--font-display);
   font-weight: 700;
   color: white;
-  margin-bottom: var(--space-4);
+  user-select: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.persona-avatar--sm .persona-avatar__text {
+  font-size: 12px;
+}
+
+.persona-avatar--md .persona-avatar__text {
+  font-size: 16px;
+}
+
+.persona-avatar--lg .persona-avatar__text {
+  font-size: 20px;
+}
+
+/* Animated ring around avatar */
+.persona-avatar__ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0.35;
+  animation: avatarRingIdle 4s ease-in-out infinite;
+}
+
+.persona-avatar--lg .persona-avatar__ring {
+  inset: -6px;
+  border-width: 2.5px;
+}
+
+/* ===== PERSONA COLORS ===== */
+.persona-avatar--ferni .persona-avatar__orb {
+  background: linear-gradient(145deg, #5a8060 0%, #4a6741 50%, #3d5a35 100%);
+}
+.persona-avatar--ferni { color: #4a6741; }
+
+.persona-avatar--nayan .persona-avatar__orb {
+  background: linear-gradient(145deg, #b08a6a 0%, #9a7b5a 50%, #7d6348 100%);
+}
+.persona-avatar--nayan { color: #9a7b5a; }
+
+.persona-avatar--peter .persona-avatar__orb {
+  background: linear-gradient(145deg, #4a7b83 0%, #3a6b73 50%, #2d5359 100%);
+}
+.persona-avatar--peter { color: #3a6b73; }
+
+.persona-avatar--alex .persona-avatar__orb {
+  background: linear-gradient(145deg, #6a7b9a 0%, #5a6b8a 50%, #4a5a73 100%);
+}
+.persona-avatar--alex { color: #5a6b8a; }
+
+.persona-avatar--maya .persona-avatar__orb {
+  background: linear-gradient(145deg, #b68a7a 0%, #a67a6a 50%, #8a635a 100%);
+}
+.persona-avatar--maya { color: #a67a6a; }
+
+.persona-avatar--jordan .persona-avatar__orb {
+  background: linear-gradient(145deg, #d4957a 0%, #c4856a 50%, #a86d55 100%);
+}
+.persona-avatar--jordan { color: #c4856a; }
+
+/* ===== IDLE ANIMATIONS ===== */
+@keyframes avatarIdle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes avatarRingIdle {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(1.05); opacity: 0.25; }
+}
+
+/* ===== HOVER INTERACTIONS ===== */
+.persona-avatar:hover .persona-avatar__orb {
+  animation: avatarHoverBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: scale(1.08);
+}
+
+.persona-avatar:hover .persona-avatar__ring {
+  animation: avatarRingPulse 0.5s ease-out;
+  opacity: 0.5;
+}
+
+@keyframes avatarHoverBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.15); }
+  60% { transform: scale(0.98); }
+  80% { transform: scale(1.08); }
+  100% { transform: scale(1.08); }
+}
+
+@keyframes avatarRingPulse {
+  0% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(1.12); opacity: 0.6; }
+  100% { transform: scale(1.08); opacity: 0.5; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .persona-avatar__orb,
+  .persona-avatar__ring {
+    animation: none;
+  }
+  .persona-avatar:hover .persona-avatar__orb {
+    animation: none;
+    transform: scale(1.02);
+  }
 }
 
 .team-card__name {
@@ -2235,6 +2361,410 @@ html {
 .reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 0.3s; opacity: 1; transform: translateY(0); }
 
 /* ============================================
+   HERO ANIMATED BACKGROUND
+   ============================================ */
+
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero__bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 100% 60% at 50% -10%, rgba(74, 103, 65, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 50% at 90% 90%, rgba(74, 103, 65, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 10% 80%, rgba(154, 123, 90, 0.06) 0%, transparent 40%);
+  animation: heroGradientShift 12s ease-in-out infinite alternate;
+}
+
+@keyframes heroGradientShift {
+  0% { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.05); }
+}
+
+.hero__bg-orbs {
+  position: absolute;
+  inset: 0;
+}
+
+.hero__bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+}
+
+.hero__bg-orb--1 {
+  width: 400px;
+  height: 400px;
+  top: -100px;
+  right: 10%;
+  background: rgba(74, 103, 65, 0.3);
+  animation: orbFloat1 20s ease-in-out infinite;
+}
+
+.hero__bg-orb--2 {
+  width: 300px;
+  height: 300px;
+  bottom: 10%;
+  left: 5%;
+  background: rgba(154, 123, 90, 0.2);
+  animation: orbFloat2 25s ease-in-out infinite;
+}
+
+.hero__bg-orb--3 {
+  width: 200px;
+  height: 200px;
+  top: 40%;
+  right: 20%;
+  background: rgba(58, 107, 115, 0.15);
+  animation: orbFloat3 18s ease-in-out infinite;
+}
+
+@keyframes orbFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-30px, 20px) scale(1.1); }
+  66% { transform: translate(20px, -30px) scale(0.95); }
+}
+
+@keyframes orbFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, -20px) scale(1.15); }
+}
+
+@keyframes orbFloat3 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-25px, 25px); }
+}
+
+/* ============================================
+   HERO TRUST BADGES
+   ============================================ */
+
+.hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+
+.hero__badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: rgba(74, 103, 65, 0.08);
+  border: 1px solid rgba(74, 103, 65, 0.15);
+  border-radius: 100px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ferni-green);
+  transition: all 0.3s ease;
+}
+
+.hero__badge:hover {
+  background: rgba(74, 103, 65, 0.12);
+  border-color: rgba(74, 103, 65, 0.25);
+  transform: translateY(-2px);
+}
+
+.hero__badge svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .hero__badges {
+    gap: var(--space-2);
+  }
+  
+  .hero__badge {
+    font-size: 12px;
+    padding: var(--space-1) var(--space-3);
+  }
+  
+  .hero__badge svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* ============================================
+   MOBILE HAMBURGER MENU
+   ============================================ */
+
+.nav__hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.nav__hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-natural-ink);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.nav__cta--desktop {
+  display: inline-flex;
+}
+
+@media (max-width: 767px) {
+  .nav__links {
+    display: none;
+  }
+  
+  .nav__cta--desktop {
+    display: none;
+  }
+  
+  .nav__hamburger {
+    display: flex;
+  }
+}
+
+/* Mobile Menu Overlay */
+.mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--color-paper-cream);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-menu.is-open {
+  transform: translateX(0);
+}
+
+.mobile-menu__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border-medium);
+  margin-bottom: var(--space-6);
+}
+
+.mobile-menu__header .nav__logo-text {
+  flex: 1;
+}
+
+.mobile-menu__close {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-sand);
+  border: none;
+  border-radius: 50%;
+  color: var(--color-natural-ink);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.mobile-menu__close:hover {
+  background: var(--color-border-strong);
+}
+
+.mobile-menu__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.mobile-menu__nav a {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  color: var(--color-natural-ink);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: color 0.2s ease;
+}
+
+.mobile-menu__nav a:hover {
+  color: var(--color-ferni-green);
+}
+
+.mobile-menu__cta {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-medium);
+}
+
+.mobile-menu__cta .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ============================================
+   SECURITY SECTION
+   ============================================ */
+
+.security {
+  background: var(--color-elevated);
+}
+
+.security-grid {
+  display: grid;
+  gap: var(--space-6);
+}
+
+@media (min-width: 640px) {
+  .security-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .security-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-8);
+  }
+}
+
+.security-card {
+  text-align: center;
+  padding: var(--space-6);
+  background: var(--color-paper-cream);
+  border-radius: 16px;
+  border: 1px solid var(--color-border-subtle);
+  transition: all 0.3s ease;
+}
+
+.security-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: transparent;
+}
+
+.security-card__icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--space-4);
+  background: rgba(74, 103, 65, 0.1);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.security-card__icon svg {
+  width: 28px;
+  height: 28px;
+  color: var(--color-ferni-green);
+}
+
+.security-card__title {
+  font-family: var(--font-display);
+  font-size: var(--text-body-md);
+  font-weight: 700;
+  color: var(--color-natural-ink);
+  margin-bottom: var(--space-2);
+}
+
+.security-card__description {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+/* ============================================
+   COOKIE CONSENT BANNER
+   ============================================ */
+
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1500;
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-natural-ink);
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cookie-banner.is-visible {
+  transform: translateY(0);
+}
+
+.cookie-banner.is-hidden {
+  transform: translateY(100%);
+}
+
+.cookie-banner__content {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .cookie-banner__content {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+.cookie-banner p {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.cookie-banner a {
+  color: white;
+  text-decoration: underline;
+}
+
+.cookie-banner__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.btn--sm {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+/* ============================================
    REDUCED MOTION
    ============================================ */
 
@@ -2252,6 +2782,399 @@ html {
   .reveal, .reveal-stagger > * {
     opacity: 1;
     transform: none;
+  }
+  
+  .hero__bg-orb,
+  .hero__bg-gradient {
+    animation: none;
+  }
+}
+
+/* ============================================
+   PRESS / SOCIAL PROOF BAR
+   ============================================ */
+
+.press-bar {
+  background: var(--color-sand);
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.press-bar__label {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin-bottom: var(--space-4);
+}
+
+.press-bar__logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-10);
+  flex-wrap: wrap;
+}
+
+.press-bar__logo {
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.press-bar__logo:hover {
+  opacity: 0.7;
+}
+
+.press-bar__logo svg {
+  height: 24px;
+  width: auto;
+  color: var(--color-natural-ink);
+}
+
+@media (max-width: 768px) {
+  .press-bar__logos {
+    gap: var(--space-6);
+  }
+  
+  .press-bar__logo svg {
+    height: 18px;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY - FOCUS STATES
+   ============================================ */
+
+/* Global focus-visible outline */
+*:focus-visible {
+  outline: 3px solid var(--color-ferni-green);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Remove default outline for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Button focus states */
+.btn:focus-visible {
+  outline: 3px solid var(--color-ferni-green);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(74, 103, 65, 0.15);
+}
+
+/* Link focus states */
+a:focus-visible {
+  outline: 2px solid var(--color-ferni-green);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Nav link focus */
+.nav__link:focus-visible {
+  background: rgba(74, 103, 65, 0.08);
+  border-radius: 8px;
+  padding: var(--space-2) var(--space-3);
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-3));
+}
+
+/* Card focus for keyboard nav */
+.team-card:focus-within,
+.pricing-card:focus-within,
+.use-case:focus-within {
+  outline: 2px solid var(--color-ferni-green);
+  outline-offset: 4px;
+}
+
+/* FAQ item focus */
+.faq-item summary:focus-visible {
+  outline: 2px solid var(--color-ferni-green);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip link (accessibility) */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-ferni-green);
+  color: white;
+  padding: var(--space-3) var(--space-6);
+  border-radius: 0 0 8px 8px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-decoration: none;
+  z-index: 9999;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: none;
+}
+
+/* ============================================
+   ENHANCED TEAM CARD HOVER (Luxo Jr. style)
+   ============================================ */
+
+.team-card {
+  position: relative;
+  cursor: pointer;
+}
+
+/* Persona glow on hover */
+.team-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--persona-glow, rgba(74, 103, 65, 0.2)) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.team-card:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) scale(1.3);
+}
+
+/* Avatar bounce on card hover */
+.team-card:hover .persona-avatar {
+  animation: avatar-excited-bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes avatar-excited-bounce {
+  0% { transform: scale(1) translateY(0); }
+  30% { transform: scale(1.08, 0.92) translateY(2px); }
+  50% { transform: scale(0.95, 1.08) translateY(-8px); }
+  70% { transform: scale(1.02, 0.98) translateY(-2px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+/* Persona-specific glow colors */
+.team-card:has(.persona-avatar--ferni)::before { --persona-glow: rgba(74, 103, 65, 0.25); }
+.team-card:has(.persona-avatar--nayan)::before { --persona-glow: rgba(154, 123, 90, 0.25); }
+.team-card:has(.persona-avatar--peter)::before { --persona-glow: rgba(58, 107, 115, 0.25); }
+.team-card:has(.persona-avatar--alex)::before { --persona-glow: rgba(90, 107, 138, 0.25); }
+.team-card:has(.persona-avatar--maya)::before { --persona-glow: rgba(166, 122, 106, 0.25); }
+.team-card:has(.persona-avatar--jordan)::before { --persona-glow: rgba(196, 133, 106, 0.25); }
+
+/* ============================================
+   ENHANCED MICRO-INTERACTIONS
+   ============================================ */
+
+/* Button ripple effect */
+.btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.btn:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* Link underline animation */
+.nav__link,
+.footer__links a,
+.step__link {
+  position: relative;
+}
+
+.nav__link::after,
+.footer__links a::after,
+.step__link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav__link:hover::after,
+.footer__links a:hover::after,
+.step__link:hover::after {
+  width: 100%;
+}
+
+/* Pricing card hover lift */
+.pricing-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(44, 37, 32, 0.12);
+}
+
+.pricing-card--featured:hover {
+  transform: translateY(-12px) scale(1.02);
+}
+
+/* Feature icon hover */
+.feature__icon {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background 0.3s ease;
+}
+
+.feature:hover .feature__icon {
+  transform: scale(1.1) rotate(-5deg);
+  background: rgba(74, 103, 65, 0.15);
+}
+
+/* Security card icon pulse */
+.security-card:hover .security-card__icon {
+  animation: icon-pulse 0.5s ease;
+}
+
+@keyframes icon-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* Use case hover glow */
+.use-case {
+  position: relative;
+}
+
+.use-case::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80%;
+  height: 80%;
+  background: radial-gradient(circle, rgba(74, 103, 65, 0.08) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.4s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.use-case:hover::before {
+  transform: translate(-50%, -50%) scale(1.5);
+}
+
+/* Testimonial card hover */
+.testimonial {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.testimonial:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(44, 37, 32, 0.1);
+}
+
+/* FAQ chevron rotation */
+.faq-item summary {
+  position: relative;
+  padding-right: var(--space-10);
+}
+
+.faq-item summary::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.faq-item[open] summary::after {
+  transform: translateY(-30%) rotate(-135deg);
+}
+
+/* Scroll indicator animation */
+.scroll-indicator {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+
+@keyframes scroll-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+
+/* ============================================
+   LAZY LOADING IMAGES
+   ============================================ */
+
+img[loading="lazy"] {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+img[loading="lazy"].loaded,
+img[loading="lazy"]:not([data-src]) {
+  opacity: 1;
+}
+
+/* Placeholder shimmer for lazy images */
+.img-placeholder {
+  background: linear-gradient(
+    90deg,
+    var(--color-sand) 0%,
+    var(--color-paper-cream) 50%,
+    var(--color-sand) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ============================================
+   HIGH CONTRAST MODE
+   ============================================ */
+
+@media (prefers-contrast: high) {
+  :root {
+    --color-border-subtle: rgba(44, 37, 32, 0.2);
+    --color-border-medium: rgba(44, 37, 32, 0.4);
+  }
+  
+  .btn {
+    border-width: 2px;
+  }
+  
+  .nav.is-scrolled {
+    border-bottom-width: 2px;
   }
 }
 

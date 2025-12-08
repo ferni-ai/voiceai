@@ -150,11 +150,19 @@ export async function getUserCognitiveProfile(
       const doc = await firestore.collection(COGNITIVE_COLLECTION).doc(userId).get();
       if (doc.exists) {
         const data = doc.data() as UserCognitiveProfile;
-        // Convert timestamps
+        // Convert Firestore timestamps to Date objects
+        interface FirestoreTimestamp {
+          toDate?: () => Date;
+        }
         data.styleUpdatedAt =
-          (data.styleUpdatedAt as any).toDate?.() || new Date(data.styleUpdatedAt);
-        data.createdAt = (data.createdAt as any).toDate?.() || new Date(data.createdAt);
-        data.updatedAt = (data.updatedAt as any).toDate?.() || new Date(data.updatedAt);
+          (data.styleUpdatedAt as FirestoreTimestamp).toDate?.() ||
+          new Date(data.styleUpdatedAt as unknown as string);
+        data.createdAt =
+          (data.createdAt as FirestoreTimestamp).toDate?.() ||
+          new Date(data.createdAt as unknown as string);
+        data.updatedAt =
+          (data.updatedAt as FirestoreTimestamp).toDate?.() ||
+          new Date(data.updatedAt as unknown as string);
         cognitiveProfileCache.set(userId, data);
         return data;
       }

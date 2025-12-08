@@ -56,7 +56,9 @@ describe('Background Task Utilities', () => {
       runBackground(promise, { task: 'failingTask', userId: 'user-123' });
 
       // Wait for the catch handler to execute
-      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -77,7 +79,9 @@ describe('Background Task Utilities', () => {
         attempt: 3,
       });
 
-      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -103,7 +107,9 @@ describe('Background Task Utilities', () => {
     it('should not warn if task completes before timeout', async () => {
       vi.useFakeTimers();
 
-      const promise = new Promise<string>((resolve) => { setTimeout(() => resolve('done'), 100); });
+      const promise = new Promise<string>((resolve) => {
+        setTimeout(() => resolve('done'), 100);
+      });
 
       runBackgroundWithTimeout(promise, 5000, { task: 'fastTask' });
 
@@ -118,7 +124,9 @@ describe('Background Task Utilities', () => {
       vi.useFakeTimers();
 
       // Promise that takes 10 seconds
-      const promise = new Promise<string>((resolve) => { setTimeout(() => resolve('done'), 10000); });
+      const promise = new Promise<string>((resolve) => {
+        setTimeout(() => resolve('done'), 10000);
+      });
 
       runBackgroundWithTimeout(promise, 1000, { task: 'slowTask' });
 
@@ -189,7 +197,9 @@ describe('Background Task Utilities', () => {
       runBackgroundBatch(promises, { task: 'batchTask' });
 
       await Promise.allSettled(promises);
-      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
 
       expect(mockLogger.warn).not.toHaveBeenCalled();
     });
@@ -205,7 +215,9 @@ describe('Background Task Utilities', () => {
       runBackgroundBatch(promises, { task: 'batchTask', batchId: 'batch-1' });
 
       await Promise.allSettled(promises);
-      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -225,7 +237,9 @@ describe('Background Task Utilities', () => {
       runBackgroundBatch(promises, { task: 'allFailTask' });
 
       await Promise.allSettled(promises);
-      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -239,7 +253,9 @@ describe('Background Task Utilities', () => {
     it('should handle empty batch', async () => {
       runBackgroundBatch([], { task: 'emptyBatch' });
 
-      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
 
       expect(mockLogger.warn).not.toHaveBeenCalled();
     });

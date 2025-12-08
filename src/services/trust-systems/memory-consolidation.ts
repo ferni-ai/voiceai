@@ -174,7 +174,10 @@ async function consolidateTrustProfilesImpl(
     insideJokes?: { sharedMoments?: SimplifiedSharedMoment[] };
     smallWins?: { wins?: SimplifiedSmallWin[] };
     thinkingOfYou?: unknown;
-    unsaid?: { avoidedTopics?: Array<{ topic: string; timesAvoided?: number }>; patterns?: unknown[] };
+    unsaid?: {
+      avoidedTopics?: Array<{ topic: string; timesAvoided?: number }>;
+      patterns?: unknown[];
+    };
   },
   config: Partial<ConsolidationConfig> = {}
 ): Promise<ConsolidationResult> {
@@ -311,9 +314,7 @@ function consolidateBoundaries(
   // Process each group
   for (const [topic, groupBoundaries] of topicGroups) {
     // Archive old boundaries
-    const oldBoundaries = groupBoundaries.filter(
-      (b) => now - b.establishedAt.getTime() > maxAge
-    );
+    const oldBoundaries = groupBoundaries.filter((b) => now - b.establishedAt.getTime() > maxAge);
 
     for (const old of oldBoundaries) {
       consolidated.archive.push({
@@ -379,9 +380,7 @@ function consolidateGrowth(
 
     // Create milestone for transformative growth
     if (pattern.significance === 'transformative') {
-      milestones.push(
-        `${pattern.type.replace(/_/g, ' ')}: ${pattern.after.pattern}`
-      );
+      milestones.push(`${pattern.type.replace(/_/g, ' ')}: ${pattern.after.pattern}`);
       consolidated.milestones.push({
         date: pattern.after.firstSeen,
         type: 'growth',
@@ -460,7 +459,7 @@ function consolidateSmallWins(
   // Group wins by type
   const winsByType = new Map<string, SimplifiedSmallWin[]>();
   for (const win of wins) {
-    const type = win.type;
+    const { type } = win;
     const group = winsByType.get(type) || [];
     group.push(win);
     winsByType.set(type, group);
@@ -578,7 +577,11 @@ export async function consolidateTrustProfiles(
   profiles: Record<string, unknown>,
   config?: Partial<ConsolidationConfig>
 ): Promise<ConsolidationResult> {
-  return consolidateTrustProfilesImpl(userId, profiles as Parameters<typeof consolidateTrustProfilesImpl>[1], config);
+  return consolidateTrustProfilesImpl(
+    userId,
+    profiles as Parameters<typeof consolidateTrustProfilesImpl>[1],
+    config
+  );
 }
 
 /**
@@ -611,7 +614,7 @@ export function getMilestones(
   const profile = consolidatedProfiles.get(userId);
   if (!profile) return [];
 
-  const milestones = profile.milestones;
+  const { milestones } = profile;
   if (since) {
     return milestones.filter((m) => m.date >= since);
   }
@@ -621,10 +624,7 @@ export function getMilestones(
 /**
  * Search archive (public API)
  */
-export function searchArchive(
-  userId: string,
-  query: string
-): ArchivedMemory[] {
+export function searchArchive(userId: string, query: string): ArchivedMemory[] {
   const profile = consolidatedProfiles.get(userId);
   if (!profile) return [];
 
@@ -678,10 +678,7 @@ export async function runScheduledConsolidation(
     }
   }
 
-  log.info(
-    { processed, succeeded, failed, totalArchived },
-    '📦 Scheduled consolidation complete'
-  );
+  log.info({ processed, succeeded, failed, totalArchived }, '📦 Scheduled consolidation complete');
 
   return { processed, succeeded, failed, totalArchived };
 }
@@ -698,4 +695,3 @@ export default {
   searchArchive,
   runScheduledConsolidation,
 };
-

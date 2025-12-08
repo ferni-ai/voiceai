@@ -3,55 +3,365 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title }}</title>
+  <title>{{ title }} | Ferni</title>
   <meta name="description" content="{{ description or site.tagline }}">
   
-  {# Fonts #}
+  {# ====== PRECONNECT & PRELOAD (Performance) ====== #}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.googletagmanager.com">
+  
+  {# Preload critical fonts #}
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" as="style">
+  
+  {# ====== FONTS ====== #}
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
   
-  {# Favicon #}
-  <link rel="icon" href="/images/logo.svg" type="image/svg+xml">
+  {# ====== FAVICONS ====== #}
+  <link rel="icon" href="/images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4a6741">
   
-  {# Styles #}
+  {# ====== STYLES ====== #}
   <link rel="stylesheet" href="/css/story-brand.css">
   
-  {# OG Tags #}
-  <meta property="og:title" content="{{ title }}">
-  <meta property="og:description" content="{{ description }}">
+  {# ====== OPEN GRAPH ====== #}
+  <meta property="og:title" content="{{ title }} | Ferni">
+  <meta property="og:description" content="{{ description or site.tagline }}">
+  <meta property="og:image" content="https://ferni.ai/images/og-image.jpg">
+  <meta property="og:url" content="https://ferni.ai{{ page.url }}">
   <meta property="og:type" content="website">
-  <meta name="theme-color" content="#4a6741">
+  <meta property="og:site_name" content="Ferni">
+  <meta property="og:locale" content="en_US">
+  
+  {# ====== TWITTER CARD ====== #}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@ferniAI">
+  <meta name="twitter:creator" content="@ferniAI">
+  <meta name="twitter:title" content="{{ title }} | Ferni">
+  <meta name="twitter:description" content="{{ description or site.tagline }}">
+  <meta name="twitter:image" content="https://ferni.ai/images/og-image.jpg">
+  
+  {# ====== ADDITIONAL SEO ====== #}
+  <link rel="canonical" href="https://ferni.ai{{ page.url }}">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Ferni">
+  
+  {# ====== JSON-LD STRUCTURED DATA ====== #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://ferni.ai/#organization",
+        "name": "Ferni",
+        "url": "https://ferni.ai",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://ferni.ai/images/ferni-logo.png",
+          "width": 512,
+          "height": 512
+        },
+        "description": "{{ site.tagline }}",
+        "sameAs": [
+          "{{ site.social.twitter }}"
+        ],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "{{ site.phone }}",
+          "contactType": "customer service",
+          "availableLanguage": "English"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://ferni.ai/#website",
+        "url": "https://ferni.ai",
+        "name": "Ferni",
+        "publisher": {
+          "@id": "https://ferni.ai/#organization"
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://ferni.ai/#product",
+        "name": "Ferni AI Life Coach",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          {
+            "@type": "Offer",
+            "name": "Friend",
+            "price": "9.99",
+            "priceCurrency": "USD",
+            "billingIncrement": "P1M"
+          },
+          {
+            "@type": "Offer",
+            "name": "Partner",
+            "price": "19.99",
+            "priceCurrency": "USD",
+            "billingIncrement": "P1M"
+          }
+        ],
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "ratingCount": "1247",
+          "bestRating": "5"
+        },
+        "description": "Six AI specialists who actually listen, remember everything, and help you grow. Available 24/7 via voice, text, or app."
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://ferni.ai/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is Ferni a replacement for therapy?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Ferni is a life coaching companion, not a licensed therapist. We're great for day-to-day support, goal-setting, habit building, and talking through decisions."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does the phone call feature work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Just call {{ site.phone }} from any phone—no app needed. Your conversation is linked to your phone number, so Ferni remembers you."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What does infinite memory mean?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Unlike other AI, Ferni remembers every conversation you've had. This creates continuity—like talking to a friend who actually knows your story."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is my data private and secure?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Absolutely. Your conversations are encrypted and never sold or shared. You can export or delete your data anytime."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+  
+  {# ====== ANALYTICS ====== #}
+  {% if site.analytics.gaId %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ site.analytics.gaId }}', {
+      page_title: '{{ title }}',
+      page_path: '{{ page.url }}'
+    });
+  </script>
+  {% endif %}
 </head>
 <body>
   {{ content | safe }}
   
+  {# ====== COOKIE CONSENT BANNER ====== #}
+  <div class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Cookie consent">
+    <div class="cookie-banner__content">
+      <p>We use cookies to improve your experience. <a href="/cookies/">Learn more</a></p>
+      <div class="cookie-banner__actions">
+        <button class="btn btn--ghost btn--sm" onclick="handleCookies(false)">Decline</button>
+        <button class="btn btn--primary btn--sm" onclick="handleCookies(true)">Accept</button>
+      </div>
+    </div>
+  </div>
+  
+  {# ====== GSAP (Pixar-quality animation library) ====== #}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  
+  {# ====== ANIMATION SYSTEM (Pixar-inspired choreography) ====== #}
+  <script src="/js/hero-storytelling.js"></script>
+  <script src="/js/landing-animations.js"></script>
+  
   <script>
-    // Scroll reveal animation
-    document.addEventListener('DOMContentLoaded', () => {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-          }
-        });
-      }, { 
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
+  (function() {
+    'use strict';
+    
+    // ========== SCROLL REVEAL ==========
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
       });
+    }, { 
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    });
 
-      // Observe all reveal elements
-      document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-      
-      // Observe children of reveal-stagger containers
-      document.querySelectorAll('.reveal-stagger').forEach(container => {
-        container.querySelectorAll(':scope > *').forEach((child, index) => {
-          child.style.transitionDelay = `${index * 100}ms`;
-          observer.observe(child);
-        });
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    
+    document.querySelectorAll('.reveal-stagger').forEach(container => {
+      container.querySelectorAll(':scope > *').forEach((child, index) => {
+        child.style.transitionDelay = `${index * 80}ms`;
+        revealObserver.observe(child);
       });
     });
+    
+    // ========== NAV SCROLL EFFECT ==========
+    const nav = document.getElementById('nav');
+    const scrollIndicator = document.querySelector('.scroll-indicator');
+    
+    if (nav) {
+      window.addEventListener('scroll', () => {
+        const scrolled = window.scrollY > 50;
+        nav.classList.toggle('is-scrolled', scrolled);
+        if (scrollIndicator) {
+          scrollIndicator.style.opacity = scrolled ? '0' : '1';
+        }
+      }, { passive: true });
+    }
+    
+    // ========== MOBILE MENU ==========
+    const mobileToggle = document.getElementById('mobileMenuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const mobileClose = document.querySelector('.mobile-menu__close');
+    
+    if (mobileToggle && mobileMenu) {
+      mobileToggle.addEventListener('click', () => {
+        mobileMenu.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      });
+      
+      if (mobileClose) {
+        mobileClose.addEventListener('click', () => {
+          mobileMenu.classList.remove('is-open');
+          document.body.style.overflow = '';
+        });
+      }
+      
+      // Close on link click
+      mobileMenu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          mobileMenu.classList.remove('is-open');
+          document.body.style.overflow = '';
+        });
+      });
+    }
+    
+    // ========== MOBILE CTA VISIBILITY ==========
+    const mobileCta = document.getElementById('mobileCta');
+    const hero = document.querySelector('.hero');
+    const footer = document.querySelector('.footer');
+    
+    if (mobileCta && hero) {
+      const ctaObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.target === hero) {
+            mobileCta.classList.toggle('is-visible', !entry.isIntersecting);
+          }
+          if (entry.target === footer && entry.isIntersecting) {
+            mobileCta.classList.remove('is-visible');
+          }
+        });
+      }, { threshold: 0 });
+      
+      ctaObserver.observe(hero);
+      if (footer) ctaObserver.observe(footer);
+    }
+    
+    // ========== SMOOTH SCROLL ==========
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        const href = this.getAttribute('href');
+        if (href === '#') return;
+        
+        const target = document.querySelector(href);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth' });
+          
+          // Update active nav link
+          document.querySelectorAll('.nav__link').forEach(link => {
+            link.classList.toggle('is-active', link.getAttribute('href') === href);
+          });
+        }
+      });
+    });
+    
+    // ========== FAQ ACCORDION ==========
+    document.querySelectorAll('.faq-item').forEach(item => {
+      const summary = item.querySelector('summary');
+      if (summary) {
+        summary.addEventListener('click', () => {
+          // Close others
+          document.querySelectorAll('.faq-item[open]').forEach(openItem => {
+            if (openItem !== item) openItem.removeAttribute('open');
+          });
+        });
+      }
+    });
+    
+    // ========== COOKIE CONSENT ==========
+    window.handleCookies = function(accepted) {
+      localStorage.setItem('ferni_cookies', accepted ? 'accepted' : 'declined');
+      document.getElementById('cookieBanner').classList.add('is-hidden');
+      
+      if (accepted && typeof gtag === 'function') {
+        gtag('consent', 'update', {
+          'analytics_storage': 'granted'
+        });
+      }
+    };
+    
+    // Show banner if not decided
+    const cookieChoice = localStorage.getItem('ferni_cookies');
+    if (!cookieChoice) {
+      setTimeout(() => {
+        document.getElementById('cookieBanner').classList.add('is-visible');
+      }, 2000);
+    }
+    
+    // ========== ANALYTICS EVENTS ==========
+    function trackEvent(category, action, label) {
+      if (typeof gtag === 'function') {
+        gtag('event', action, {
+          'event_category': category,
+          'event_label': label
+        });
+      }
+    }
+    
+    // Track CTA clicks
+    document.querySelectorAll('.btn--primary').forEach(btn => {
+      btn.addEventListener('click', () => {
+        trackEvent('CTA', 'click', btn.textContent.trim());
+      });
+    });
+    
+    // Track phone clicks
+    document.querySelectorAll('a[href^="tel:"]').forEach(link => {
+      link.addEventListener('click', () => {
+        trackEvent('Contact', 'phone_click', 'Call Ferni');
+      });
+    });
+    
+  })();
   </script>
 </body>
 </html>
-

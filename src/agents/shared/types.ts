@@ -81,7 +81,15 @@ export interface UserData {
 
   // Voice humanization - ambient awareness
   // Maps to EnvironmentType from ambient-awareness.ts
-  ambientEnvironment?: 'quiet_room' | 'office' | 'coffee_shop' | 'outdoors' | 'car' | 'public_transit' | 'noisy' | 'unknown';
+  ambientEnvironment?:
+    | 'quiet_room'
+    | 'office'
+    | 'coffee_shop'
+    | 'outdoors'
+    | 'car'
+    | 'public_transit'
+    | 'noisy'
+    | 'unknown';
   ambientNoiseLevel?: number; // 0-1 scale
 
   // Conversation context for humanization
@@ -130,8 +138,8 @@ export interface UserData {
   /** Session memory data for deep humanization (running jokes, patterns, etc.) */
   sessionData?: {
     previousTopics?: string[];
-    pendingItems?: { type: string; content: string; timestamp: Date }[];
-    patterns?: { trait: string; count: number }[];
+    pendingItems?: Array<{ type: string; content: string; timestamp: Date }>;
+    patterns?: Array<{ trait: string; count: number }>;
     memorableQuotes?: string[];
     goals?: string[];
     peopleMentioned?: string[];

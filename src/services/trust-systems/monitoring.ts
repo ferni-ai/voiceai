@@ -130,10 +130,7 @@ export function recordSystemCall(
 /**
  * Timing wrapper for system calls
  */
-export async function withMonitoring<T>(
-  systemId: string,
-  fn: () => Promise<T>
-): Promise<T> {
+export async function withMonitoring<T>(systemId: string, fn: () => Promise<T>): Promise<T> {
   const start = Date.now();
   let success = true;
   let error: Error | undefined;
@@ -224,7 +221,7 @@ export function getAverageLatency(systemId: string): number {
  * Get recent metrics for a time window
  */
 export function getRecentMetrics(
-  windowMs: number = 60000,
+  windowMs = 60000,
   filter?: { metric?: string; system?: string }
 ): MetricPoint[] {
   const cutoff = Date.now() - windowMs;
@@ -509,4 +506,3 @@ export default {
   getDashboardData,
   resetMetrics,
 };
-

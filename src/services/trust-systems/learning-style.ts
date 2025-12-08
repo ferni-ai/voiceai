@@ -34,20 +34,20 @@ export type ValidationStyle = 'direct' | 'exploratory' | 'supportive';
 
 export interface LearningProfile {
   userId: string;
-  
+
   // Core dimensions
   processing: ProcessingDimension;
   pacing: PacingDimension;
   structure: StructureDimension;
   examples: ExampleDimension;
   validation: ValidationDimension;
-  
+
   // Detected patterns
   patterns: LearningPattern[];
-  
+
   // Adaptations made
   adaptations: AdaptationRecord[];
-  
+
   confidence: number;
   lastUpdated: Date;
 }
@@ -81,7 +81,7 @@ export interface StructureDimension {
 
 export interface ExampleDimension {
   style: ExampleStyle;
-  respondsBestTo: ('stories' | 'data' | 'metaphors' | 'analogies' | 'real_examples')[];
+  respondsBestTo: Array<'stories' | 'data' | 'metaphors' | 'analogies' | 'real_examples'>;
   confidence: number;
 }
 
@@ -345,10 +345,7 @@ export function recordLearningSignals(
     profile.processing.style = 'balanced';
   }
 
-  profile.processing.confidence = Math.min(
-    1,
-    (analyticalScore + intuitiveScore) / 20
-  );
+  profile.processing.confidence = Math.min(1, (analyticalScore + intuitiveScore) / 20);
 
   // Update structure dimension
   for (const signal of signals.filter((s) => s.type === 'structure')) {
@@ -414,11 +411,14 @@ export function recordLearningSignals(
 
   profile.lastUpdated = new Date();
 
-  log.debug({
-    userId,
-    signalCount: signals.length,
-    confidence: profile.confidence,
-  }, '🧠 Learning signals recorded');
+  log.debug(
+    {
+      userId,
+      signalCount: signals.length,
+      confidence: profile.confidence,
+    },
+    '🧠 Learning signals recorded'
+  );
 }
 
 /**
@@ -487,17 +487,22 @@ export function generateDeliveryGuidance(userId: string): DeliveryGuidance {
   const format: DeliveryFormat = {
     useSteps: profile.structure.prefersSteps || profile.structure.style === 'detailed',
     useBullets: profile.processing.style === 'analytical',
-    useMetaphors: profile.examples.style === 'metaphorical' ||
+    useMetaphors:
+      profile.examples.style === 'metaphorical' ||
       profile.examples.respondsBestTo.includes('metaphors'),
     useData: profile.processing.style === 'analytical',
-    lengthPreference: profile.structure.style === 'detailed' ? 'detailed' :
-      profile.structure.style === 'big_picture' ? 'brief' : 'moderate',
+    lengthPreference:
+      profile.structure.style === 'detailed'
+        ? 'detailed'
+        : profile.structure.style === 'big_picture'
+          ? 'brief'
+          : 'moderate',
   };
 
   // Pacing guidance
   let pacing = 'Standard pacing';
   if (profile.pacing.style === 'slow') {
-    pacing = 'Allow pauses, give space to process, don\'t rush';
+    pacing = "Allow pauses, give space to process, don't rush";
   } else if (profile.pacing.style === 'fast') {
     pacing = 'Can be more direct and efficient';
   }
@@ -714,4 +719,3 @@ export default {
   getLearningProfile,
   getStyleSummary,
 };
-

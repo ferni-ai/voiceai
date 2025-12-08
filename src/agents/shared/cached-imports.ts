@@ -20,8 +20,12 @@
  */
 interface CachedModuleRefs {
   // Context builders
-  buildConversationContext: typeof import('../../intelligence/context-builders/index.js').buildConversationContext | null;
-  formatContextForPrompt: typeof import('../../intelligence/context-builders/index.js').formatContextForPrompt | null;
+  buildConversationContext:
+    | typeof import('../../intelligence/context-builders/index.js').buildConversationContext
+    | null;
+  formatContextForPrompt:
+    | typeof import('../../intelligence/context-builders/index.js').formatContextForPrompt
+    | null;
 
   // Easter eggs
   checkForEasterEgg: typeof import('../../personas/easter-eggs.js').checkForEasterEgg | null;
@@ -34,7 +38,9 @@ interface CachedModuleRefs {
 
   // Bundle system
   loadBundleById: typeof import('../../personas/bundles/index.js').loadBundleById | null;
-  createBundleRuntime: typeof import('../../personas/bundles/runtime.js').createBundleRuntime | null;
+  createBundleRuntime:
+    | typeof import('../../personas/bundles/runtime.js').createBundleRuntime
+    | null;
 
   // Voice manager
   getVoiceManager: typeof import('../../speech/voice-manager.js').getVoiceManager | null;
@@ -43,7 +49,9 @@ interface CachedModuleRefs {
   getMusicPlayer: typeof import('../../audio/index.js').getMusicPlayer | null;
 
   // User identification
-  identifyFromMetadata: typeof import('../../services/user-identification.js').identifyFromMetadata | null;
+  identifyFromMetadata:
+    | typeof import('../../services/user-identification.js').identifyFromMetadata
+    | null;
 
   // Startup
   startup: typeof import('../../startup.js').startup | null;
@@ -102,7 +110,9 @@ export async function getContextBuilders(): Promise<{
 /**
  * Get cached easter egg checker
  */
-export async function getEasterEggChecker(): Promise<NonNullable<CachedModuleRefs['checkForEasterEgg']>> {
+export async function getEasterEggChecker(): Promise<
+  NonNullable<CachedModuleRefs['checkForEasterEgg']>
+> {
   if (!cachedModules.checkForEasterEgg) {
     const mod = await import('../../personas/easter-eggs.js');
     cachedModules.checkForEasterEgg = mod.checkForEasterEgg;
@@ -117,7 +127,9 @@ export async function getEasterEggChecker(): Promise<NonNullable<CachedModuleRef
 /**
  * Get cached task manager instance
  */
-export async function getTaskManagerCached(): Promise<ReturnType<NonNullable<CachedModuleRefs['getTaskManager']>>> {
+export async function getTaskManagerCached(): Promise<
+  ReturnType<NonNullable<CachedModuleRefs['getTaskManager']>>
+> {
   if (!cachedModules.getTaskManager) {
     const mod = await import('../../tasks/task-manager.js');
     cachedModules.getTaskManager = mod.getTaskManager;
@@ -132,7 +144,9 @@ export async function getTaskManagerCached(): Promise<ReturnType<NonNullable<Cac
 /**
  * Get cached persona lookup function
  */
-export async function getPersonaAsyncCached(personaId: string): Promise<ReturnType<NonNullable<CachedModuleRefs['getPersonaAsync']>>> {
+export async function getPersonaAsyncCached(
+  personaId: string
+): Promise<ReturnType<NonNullable<CachedModuleRefs['getPersonaAsync']>>> {
   if (!cachedModules.getPersonaAsync) {
     const mod = await import('../../personas/index.js');
     cachedModules.getPersonaAsync = mod.getPersonaAsync;
@@ -172,7 +186,9 @@ export async function getBundleFunctionsCached(): Promise<{
 /**
  * Get cached voice manager
  */
-export async function getVoiceManagerCached(): Promise<ReturnType<NonNullable<CachedModuleRefs['getVoiceManager']>>> {
+export async function getVoiceManagerCached(): Promise<
+  ReturnType<NonNullable<CachedModuleRefs['getVoiceManager']>>
+> {
   if (!cachedModules.getVoiceManager) {
     const mod = await import('../../speech/voice-manager.js');
     cachedModules.getVoiceManager = mod.getVoiceManager;
@@ -187,7 +203,9 @@ export async function getVoiceManagerCached(): Promise<ReturnType<NonNullable<Ca
 /**
  * Get cached music player (returns null if music is disabled)
  */
-export async function getMusicPlayerCached(): Promise<ReturnType<NonNullable<CachedModuleRefs['getMusicPlayer']>> | null> {
+export async function getMusicPlayerCached(): Promise<ReturnType<
+  NonNullable<CachedModuleRefs['getMusicPlayer']>
+> | null> {
   // Check if music is enabled first
   if (!cachedModules.isMusicEnabled) {
     const envMod = await import('../../config/environment.js');
@@ -212,7 +230,9 @@ export async function getMusicPlayerCached(): Promise<ReturnType<NonNullable<Cac
 /**
  * Get cached user identification function
  */
-export async function getIdentifyFromMetadataCached(): Promise<NonNullable<CachedModuleRefs['identifyFromMetadata']>> {
+export async function getIdentifyFromMetadataCached(): Promise<
+  NonNullable<CachedModuleRefs['identifyFromMetadata']>
+> {
   if (!cachedModules.identifyFromMetadata) {
     const mod = await import('../../services/user-identification.js');
     cachedModules.identifyFromMetadata = mod.identifyFromMetadata;
@@ -288,4 +308,3 @@ export function resetCachedModules(): void {
     cachedModules[key] = null;
   });
 }
-

@@ -88,80 +88,80 @@ export interface JournalingPattern {
 const TEMPLATES: Record<PromptCategory, string[]> = {
   reflection: [
     "What's been taking up the most space in your mind this week?",
-    "If today had a color, what would it be? Why?",
-    "What moment from today do you want to remember?",
-    "What are you avoiding thinking about?",
-    "How did you show up for yourself today?",
+    'If today had a color, what would it be? Why?',
+    'What moment from today do you want to remember?',
+    'What are you avoiding thinking about?',
+    'How did you show up for yourself today?',
     "What would you tell yesterday's version of you?",
     "What's one thing that surprised you about yourself recently?",
   ],
 
   exploration: [
-    "When do you feel most like yourself?",
-    "What patterns do you notice in your relationships?",
+    'When do you feel most like yourself?',
+    'What patterns do you notice in your relationships?',
     "If you weren't afraid, what would you do differently?",
-    "What story do you tell yourself most often? Is it true?",
+    'What story do you tell yourself most often? Is it true?',
     "What does your ideal day look like? What's stopping you?",
-    "Who do you become when no one is watching?",
-    "What beliefs have you outgrown?",
+    'Who do you become when no one is watching?',
+    'What beliefs have you outgrown?',
   ],
 
   gratitude: [
-    "What small thing brought you unexpected joy recently?",
-    "Who made a difference in your life this week, even unknowingly?",
-    "What challenge are you grateful you went through?",
-    "What about your life would past-you be proud of?",
+    'What small thing brought you unexpected joy recently?',
+    'Who made a difference in your life this week, even unknowingly?',
+    'What challenge are you grateful you went through?',
+    'What about your life would past-you be proud of?',
     "What's working in your life right now?",
     "What's a mundane thing you'd miss if it were gone?",
   ],
 
   challenge: [
-    "What uncomfortable truth are you ready to face?",
-    "Where are you settling for less than you deserve?",
-    "What conversation have you been putting off?",
-    "What would happen if you stopped trying to be perfect?",
+    'What uncomfortable truth are you ready to face?',
+    'Where are you settling for less than you deserve?',
+    'What conversation have you been putting off?',
+    'What would happen if you stopped trying to be perfect?',
     "What's one thing you could do that scares you a little?",
-    "Where are you playing small?",
+    'Where are you playing small?',
   ],
 
   integration: [
-    "What have your recent struggles been trying to teach you?",
-    "How does this current chapter connect to your larger story?",
-    "What wisdom are you gaining from this season of life?",
-    "How are your past experiences serving you now?",
+    'What have your recent struggles been trying to teach you?',
+    'How does this current chapter connect to your larger story?',
+    'What wisdom are you gaining from this season of life?',
+    'How are your past experiences serving you now?',
     "What's becoming clearer to you lately?",
   ],
 
   growth: [
-    "How have you changed in the last year?",
-    "What are you becoming?",
+    'How have you changed in the last year?',
+    'What are you becoming?',
     "What's one way you've surprised yourself recently?",
-    "What growth are you proud of that no one else knows about?",
-    "What would embracing your growth look like?",
+    'What growth are you proud of that no one else knows about?',
+    'What would embracing your growth look like?',
   ],
 
   relationship: [
-    "What do you need from your relationships right now?",
-    "Who do you need to forgive (including yourself)?",
-    "What boundaries are you learning to set?",
-    "How do you want to show up for the people you love?",
-    "What relationship truth have you been avoiding?",
+    'What do you need from your relationships right now?',
+    'Who do you need to forgive (including yourself)?',
+    'What boundaries are you learning to set?',
+    'How do you want to show up for the people you love?',
+    'What relationship truth have you been avoiding?',
   ],
 
   future: [
-    "What are you looking forward to?",
-    "What would your future self thank you for starting today?",
-    "What seeds are you planting?",
-    "Where do you want to be a year from now?",
-    "What legacy are you building?",
+    'What are you looking forward to?',
+    'What would your future self thank you for starting today?',
+    'What seeds are you planting?',
+    'Where do you want to be a year from now?',
+    'What legacy are you building?',
   ],
 
   healing: [
-    "What part of you needs the most compassion right now?",
-    "What would letting go look like?",
-    "What old wound is asking for attention?",
-    "What do you need to hear right now?",
-    "If you treated yourself like someone you loved, what would change?",
+    'What part of you needs the most compassion right now?',
+    'What would letting go look like?',
+    'What old wound is asking for attention?',
+    'What do you need to hear right now?',
+    'If you treated yourself like someone you loved, what would change?',
   ],
 };
 
@@ -194,7 +194,7 @@ const CONTEXTUAL_TEMPLATES: Record<string, (ctx: PromptContext) => JournalingPro
       difficulty: 'deep',
       estimatedMinutes: 15,
       tags: ['healing', 'self-compassion'],
-      personalizedFor: 'what you\'re working through',
+      personalizedFor: "what you're working through",
     };
   },
 
@@ -216,12 +216,12 @@ const CONTEXTUAL_TEMPLATES: Record<string, (ctx: PromptContext) => JournalingPro
   emotionalState: (ctx) => {
     if (!ctx.currentEmotion) return null;
     const emotionPrompts: Record<string, string> = {
-      anxious: "What would it feel like to trust that things will work out?",
-      sad: "What does this sadness want you to know?",
+      anxious: 'What would it feel like to trust that things will work out?',
+      sad: 'What does this sadness want you to know?',
       angry: "Under the anger, what need isn't being met?",
-      overwhelmed: "If you could only do one thing today, what matters most?",
+      overwhelmed: 'If you could only do one thing today, what matters most?',
       happy: "What's contributing to this good feeling? How can you create more of it?",
-      confused: "What would clarity look like right now?",
+      confused: 'What would clarity look like right now?',
     };
 
     const prompt = emotionPrompts[ctx.currentEmotion];
@@ -286,10 +286,7 @@ const deliveredPrompts = new Map<string, Set<string>>(); // userId -> promptIds
 /**
  * Generate personalized prompts for user
  */
-export function generatePrompts(
-  context: PromptContext,
-  count: number = 3
-): JournalingPrompt[] {
+export function generatePrompts(context: PromptContext, count = 3): JournalingPrompt[] {
   const prompts: JournalingPrompt[] = [];
 
   // First, try contextual prompts (most personalized)
@@ -317,11 +314,14 @@ export function generatePrompts(
   // Mark as delivered
   prompts.forEach((p) => markDelivered(context.userId, p.id));
 
-  log.debug({
-    userId: context.userId,
-    promptCount: prompts.length,
-    categories: prompts.map((p) => p.category),
-  }, '📝 Journaling prompts generated');
+  log.debug(
+    {
+      userId: context.userId,
+      promptCount: prompts.length,
+      categories: prompts.map((p) => p.category),
+    },
+    '📝 Journaling prompts generated'
+  );
 
   return prompts;
 }
@@ -361,7 +361,14 @@ function selectCategories(context: PromptContext): PromptCategory[] {
   }
 
   // Add variety
-  const all: PromptCategory[] = ['reflection', 'exploration', 'gratitude', 'growth', 'relationship', 'future'];
+  const all: PromptCategory[] = [
+    'reflection',
+    'exploration',
+    'gratitude',
+    'growth',
+    'relationship',
+    'future',
+  ];
   for (const cat of all) {
     if (!categories.includes(cat)) {
       categories.push(cat);
@@ -386,9 +393,10 @@ function generateFromCategory(
 
   // Find unused template
   const unused = templates.filter((t) => !delivered.has(`${category}-${t.slice(0, 20)}`));
-  const template = unused.length > 0
-    ? unused[Math.floor(Math.random() * unused.length)]
-    : templates[Math.floor(Math.random() * templates.length)];
+  const template =
+    unused.length > 0
+      ? unused[Math.floor(Math.random() * unused.length)]
+      : templates[Math.floor(Math.random() * templates.length)];
 
   const difficulty = determineDifficulty(category, context);
 
@@ -482,11 +490,14 @@ export function recordResponse(response: PromptResponse): void {
   // Update patterns
   updatePatterns(response.userId);
 
-  log.debug({
-    userId: response.userId,
-    promptId: response.promptId,
-    rating: response.rating,
-  }, '✍️ Journaling response recorded');
+  log.debug(
+    {
+      userId: response.userId,
+      promptId: response.promptId,
+      rating: response.rating,
+    },
+    '✍️ Journaling response recorded'
+  );
 }
 
 /**
@@ -534,15 +545,17 @@ function updatePatterns(userId: string): void {
  */
 export function getBestPrompt(context: PromptContext): JournalingPrompt {
   const prompts = generatePrompts(context, 1);
-  return prompts[0] || {
-    id: `fallback-${Date.now()}`,
-    category: 'reflection',
-    prompt: "What's on your mind right now?",
-    context: 'Fallback prompt',
-    difficulty: 'gentle',
-    estimatedMinutes: 5,
-    tags: ['general'],
-  };
+  return (
+    prompts[0] || {
+      id: `fallback-${Date.now()}`,
+      category: 'reflection',
+      prompt: "What's on your mind right now?",
+      context: 'Fallback prompt',
+      difficulty: 'gentle',
+      estimatedMinutes: 5,
+      tags: ['general'],
+    }
+  );
 }
 
 /**
@@ -551,7 +564,7 @@ export function getBestPrompt(context: PromptContext): JournalingPrompt {
 export function getPromptsForCategory(
   userId: string,
   category: PromptCategory,
-  count: number = 3
+  count = 3
 ): JournalingPrompt[] {
   const templates = TEMPLATES[category];
   if (!templates) return [];
@@ -585,7 +598,7 @@ export function generateSituationalPrompt(
     morning_routine: {
       id: `sit-morning-${Date.now()}`,
       category: 'future',
-      prompt: "What intention do you want to set for today? What would make today feel successful?",
+      prompt: 'What intention do you want to set for today? What would make today feel successful?',
       context: 'Morning routine',
       difficulty: 'gentle',
       estimatedMinutes: 5,
@@ -603,8 +616,9 @@ export function generateSituationalPrompt(
     processing_emotion: {
       id: `sit-emotion-${Date.now()}`,
       category: 'healing',
-      prompt: "What are you feeling right now? Where do you feel it in your body? What does it need?",
-      followUp: "What would it look like to give yourself what you need?",
+      prompt:
+        'What are you feeling right now? Where do you feel it in your body? What does it need?',
+      followUp: 'What would it look like to give yourself what you need?',
       context: 'Processing emotion',
       difficulty: 'moderate',
       estimatedMinutes: 10,
@@ -613,7 +627,7 @@ export function generateSituationalPrompt(
     after_session: {
       id: `sit-session-${Date.now()}`,
       category: 'integration',
-      prompt: "What stood out to you from our conversation? What do you want to remember?",
+      prompt: 'What stood out to you from our conversation? What do you want to remember?',
       followUp: "What's one small action you could take based on what we discussed?",
       context: 'After Ferni session',
       difficulty: 'moderate',
@@ -637,8 +651,8 @@ export function formatPromptForVoice(prompt: JournalingPrompt): {
   const intros = [
     "Here's something to think about:",
     "Here's a journaling prompt for you:",
-    "Something to reflect on:",
-    "A question for you:",
+    'Something to reflect on:',
+    'A question for you:',
   ];
 
   const intro = intros[Math.floor(Math.random() * intros.length)];
@@ -671,4 +685,3 @@ export default {
   generateSituationalPrompt,
   formatPromptForVoice,
 };
-

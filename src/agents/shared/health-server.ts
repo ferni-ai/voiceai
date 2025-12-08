@@ -196,7 +196,8 @@ async function handleMetricsAPI(url: string, res: ServerResponse): Promise<void>
 export function startHealthCheckServer(serviceName = 'voice-agent'): void {
   const port = process.env['PORT'] ? parseInt(process.env['PORT'], 10) : 8080;
 
-  const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+  const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+    void (async () => {
     const url = req.url || '/';
 
     // Health check endpoint for Cloud Run
@@ -227,6 +228,7 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
     // 404 for other routes (LiveKit agent will handle /worker)
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
+    })();
   });
 
   server.listen(port, '0.0.0.0', () => {
@@ -235,7 +237,7 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
       console.log(`[${serviceName}] Health check server listening on port ${port}`);
 
     // Initialize WebSocket server for real-time cognitive updates
-    initWebSocketServer(server);
+    void initWebSocketServer(server);
   });
 
   server.on('error', (err: Error) => {

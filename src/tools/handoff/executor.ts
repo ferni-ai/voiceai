@@ -320,7 +320,9 @@ export async function executeHandoff(
 
       return {
         success: false,
-        error: teaser || `${targetName} isn't available yet. Keep talking to Ferni to unlock more team members!`,
+        error:
+          teaser ||
+          `${targetName} isn't available yet. Keep talking to Ferni to unlock more team members!`,
         targetAgent: canonicalTargetId,
         targetAgentName: targetName,
         previousAgent,

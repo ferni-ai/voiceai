@@ -124,7 +124,7 @@ const REGULATION_GROWTH = {
   before: [
     'i always freak out',
     'i spiral',
-    'i can\'t handle',
+    "i can't handle",
     'it destroys me',
     'i shut down',
     'i lash out',
@@ -133,7 +133,7 @@ const REGULATION_GROWTH = {
     'i noticed i was getting',
     'i took a breath',
     'i sat with it',
-    'i didn\'t react',
+    "i didn't react",
     'i gave myself space',
     'i let it pass',
   ],
@@ -142,17 +142,17 @@ const REGULATION_GROWTH = {
 /** Phrases indicating perspective shifts */
 const PERSPECTIVE_GROWTH = {
   before: [
-    'it\'s always my fault',
+    "it's always my fault",
     'everyone thinks',
-    'i\'ll never',
-    'it\'s impossible',
-    'i can\'t',
-    'they\'re all',
+    "i'll never",
+    "it's impossible",
+    "i can't",
+    "they're all",
   ],
   after: [
     'i realize now',
-    'i\'ve started to see',
-    'maybe it\'s not',
+    "i've started to see",
+    "maybe it's not",
     'i wonder if',
     'what if',
     'looking back',
@@ -162,9 +162,9 @@ const PERSPECTIVE_GROWTH = {
 /** Phrases indicating boundary growth */
 const BOUNDARY_GROWTH = {
   before: [
-    'i couldn\'t say no',
+    "i couldn't say no",
     'i let them',
-    'i didn\'t want to upset',
+    "i didn't want to upset",
     'i just went along',
     'i felt guilty saying',
   ],
@@ -172,7 +172,7 @@ const BOUNDARY_GROWTH = {
     'i told them no',
     'i set a boundary',
     'i said what i needed',
-    'i didn\'t apologize for',
+    "i didn't apologize for",
     'i stood my ground',
   ],
 };
@@ -261,22 +261,16 @@ function checkEmotionalRegulationGrowth(
 ): void {
   // Look for old patterns of dysregulation
   const oldDysregulation = older.filter((r) =>
-    REGULATION_GROWTH.before.some((phrase) =>
-      r.response.toLowerCase().includes(phrase)
-    )
+    REGULATION_GROWTH.before.some((phrase) => r.response.toLowerCase().includes(phrase))
   );
 
   // Look for new patterns of regulation
   const newRegulation = recent.filter((r) =>
-    REGULATION_GROWTH.after.some((phrase) =>
-      r.response.toLowerCase().includes(phrase)
-    )
+    REGULATION_GROWTH.after.some((phrase) => r.response.toLowerCase().includes(phrase))
   );
 
   if (oldDysregulation.length >= 2 && newRegulation.length >= 2) {
-    const existingPattern = profile.patterns.find(
-      (p) => p.type === 'emotional_regulation'
-    );
+    const existingPattern = profile.patterns.find((p) => p.type === 'emotional_regulation');
 
     if (existingPattern) {
       existingPattern.timesObserved++;
@@ -319,21 +313,15 @@ function checkPerspectiveGrowth(
   older: GrowthProfile['historicalResponses']
 ): void {
   const oldRigid = older.filter((r) =>
-    PERSPECTIVE_GROWTH.before.some((phrase) =>
-      r.response.toLowerCase().includes(phrase)
-    )
+    PERSPECTIVE_GROWTH.before.some((phrase) => r.response.toLowerCase().includes(phrase))
   );
 
   const newFlexible = recent.filter((r) =>
-    PERSPECTIVE_GROWTH.after.some((phrase) =>
-      r.response.toLowerCase().includes(phrase)
-    )
+    PERSPECTIVE_GROWTH.after.some((phrase) => r.response.toLowerCase().includes(phrase))
   );
 
   if (oldRigid.length >= 2 && newFlexible.length >= 1) {
-    const existingPattern = profile.patterns.find(
-      (p) => p.type === 'perspective_shift'
-    );
+    const existingPattern = profile.patterns.find((p) => p.type === 'perspective_shift');
 
     if (!existingPattern) {
       const pattern: GrowthPattern = {
@@ -356,10 +344,7 @@ function checkPerspectiveGrowth(
       };
 
       profile.patterns.push(pattern);
-      log.info(
-        { userId: profile.userId, type: 'perspective_shift' },
-        '🌱 Growth pattern detected'
-      );
+      log.info({ userId: profile.userId, type: 'perspective_shift' }, '🌱 Growth pattern detected');
     }
   }
 }
@@ -373,21 +358,15 @@ function checkBoundaryGrowth(
   older: GrowthProfile['historicalResponses']
 ): void {
   const oldPoorBoundaries = older.filter((r) =>
-    BOUNDARY_GROWTH.before.some((phrase) =>
-      r.response.toLowerCase().includes(phrase)
-    )
+    BOUNDARY_GROWTH.before.some((phrase) => r.response.toLowerCase().includes(phrase))
   );
 
   const newGoodBoundaries = recent.filter((r) =>
-    BOUNDARY_GROWTH.after.some((phrase) =>
-      r.response.toLowerCase().includes(phrase)
-    )
+    BOUNDARY_GROWTH.after.some((phrase) => r.response.toLowerCase().includes(phrase))
   );
 
   if (oldPoorBoundaries.length >= 1 && newGoodBoundaries.length >= 1) {
-    const existingPattern = profile.patterns.find(
-      (p) => p.type === 'boundary_setting'
-    );
+    const existingPattern = profile.patterns.find((p) => p.type === 'boundary_setting');
 
     if (!existingPattern) {
       const pattern: GrowthPattern = {
@@ -410,10 +389,7 @@ function checkBoundaryGrowth(
       };
 
       profile.patterns.push(pattern);
-      log.info(
-        { userId: profile.userId, type: 'boundary_setting' },
-        '🌱 Growth pattern detected'
-      );
+      log.info({ userId: profile.userId, type: 'boundary_setting' }, '🌱 Growth pattern detected');
     }
   }
 }
@@ -454,9 +430,7 @@ export function generateGrowthReflection(
         p.before.examples.some((e) =>
           e.toLowerCase().includes(context.currentTopic!.toLowerCase())
         ) ||
-        p.after.examples.some((e) =>
-          e.toLowerCase().includes(context.currentTopic!.toLowerCase())
-        )
+        p.after.examples.some((e) => e.toLowerCase().includes(context.currentTopic!.toLowerCase()))
     );
     if (relevant) pattern = relevant;
   }
@@ -602,4 +576,3 @@ export default {
   exportGrowthProfile,
   importGrowthProfile,
 };
-

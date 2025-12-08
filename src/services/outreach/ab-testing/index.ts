@@ -186,11 +186,8 @@ export function createPersonaTest(config: {
 /**
  * Quick start a test after creation
  */
-export function createAndStartTest(
-  testFn: () => ABTest
-): ABTest {
+export function createAndStartTest(testFn: () => ABTest): ABTest {
   const test = testFn();
   startTest(test.id);
   return test;
 }
-

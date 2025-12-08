@@ -1,6 +1,6 @@
 /**
  * User Experience Quality Metrics
- * 
+ *
  * Tracks conversation quality and user experience:
  * - Conversation turns and length
  * - Interruption frequency
@@ -50,38 +50,38 @@ export interface UXQualitySnapshot {
   avgTurnLength: number; // words
   avgTurnsPerSession: number;
   avgSessionDurationMs: number;
-  
+
   // Interruptions
   avgInterruptionsPerSession: number;
   interruptionRate: number; // % of turns interrupted
-  
+
   // Completion
   completionRate: number; // % user-ended
   timeoutRate: number;
   errorEndRate: number;
-  
+
   // Silence
   avgSilenceGapMs: number;
   longSilenceCount: number; // gaps > 3s
   silenceGapRate: number; // % of turns with long silence
-  
+
   // Quality
   avgQualityScore: number;
   lowQualitySessions: number;
-  
+
   // Echo detection
   echoEventsTotal: number;
   sessionsWithEcho: number;
-  
+
   // Engagement
   avgUserWordsPerSession: number;
   avgAgentWordsPerSession: number;
   userToAgentRatio: number;
-  
+
   // Sessions
   totalSessions: number;
   activeSessions: number;
-  
+
   // Time window
   windowStartTime: number;
   windowEndTime: number;
@@ -137,17 +137,17 @@ class UXQualityService {
     if (session) {
       session.turnCount++;
       session.totalDurationMs = Date.now() - session.startTime;
-      
+
       if (turn.speaker === 'user') {
         session.userWordCount += turn.wordCount;
       } else {
         session.agentWordCount += turn.wordCount;
       }
-      
+
       if (turn.wasInterrupted) {
         session.interruptionCount++;
       }
-      
+
       if (turn.silenceBeforeMs > 3000) {
         session.silenceGaps++;
       }
@@ -195,13 +195,16 @@ class UXQualityService {
       // Remove from active
       this.sessions.delete(sessionId);
 
-      log.debug({ 
-        sessionId, 
-        reason, 
-        turnCount: session.turnCount,
-        durationMs: session.totalDurationMs,
-        qualityScore 
-      }, '📊 Session ended');
+      log.debug(
+        {
+          sessionId,
+          reason,
+          turnCount: session.turnCount,
+          durationMs: session.totalDurationMs,
+          qualityScore,
+        },
+        '📊 Session ended'
+      );
     }
   }
 
@@ -218,69 +221,80 @@ class UXQualityService {
   /**
    * Get snapshot
    */
-  getSnapshot(windowMinutes: number = 60): UXQualitySnapshot {
+  getSnapshot(windowMinutes = 60): UXQualitySnapshot {
     const now = Date.now();
     const windowStart = now - windowMinutes * 60 * 1000;
 
     // Window turns
-    const windowTurns = this.turns.filter(t => t.timestamp >= windowStart);
-    
+    const windowTurns = this.turns.filter((t) => t.timestamp >= windowStart);
+
     // Window sessions (active + recently completed)
     const activeSessions = Array.from(this.sessions.values());
-    const recentCompleted = this.completedSessions.filter(s => (s.endTime ?? 0) >= windowStart);
+    const recentCompleted = this.completedSessions.filter((s) => (s.endTime ?? 0) >= windowStart);
     const allWindowSessions = [...activeSessions, ...recentCompleted];
 
     // Turn metrics
-    const avgTurnLength = windowTurns.length > 0
-      ? windowTurns.reduce((sum, t) => sum + t.wordCount, 0) / windowTurns.length
-      : 0;
+    const avgTurnLength =
+      windowTurns.length > 0
+        ? windowTurns.reduce((sum, t) => sum + t.wordCount, 0) / windowTurns.length
+        : 0;
 
     // Session metrics
-    const avgTurns = allWindowSessions.length > 0
-      ? allWindowSessions.reduce((sum, s) => sum + s.turnCount, 0) / allWindowSessions.length
-      : 0;
-    const avgDuration = allWindowSessions.length > 0
-      ? allWindowSessions.reduce((sum, s) => sum + s.totalDurationMs, 0) / allWindowSessions.length
-      : 0;
+    const avgTurns =
+      allWindowSessions.length > 0
+        ? allWindowSessions.reduce((sum, s) => sum + s.turnCount, 0) / allWindowSessions.length
+        : 0;
+    const avgDuration =
+      allWindowSessions.length > 0
+        ? allWindowSessions.reduce((sum, s) => sum + s.totalDurationMs, 0) /
+          allWindowSessions.length
+        : 0;
 
     // Interruptions
     const totalInterruptions = allWindowSessions.reduce((sum, s) => sum + s.interruptionCount, 0);
-    const avgInterruptions = allWindowSessions.length > 0 ? totalInterruptions / allWindowSessions.length : 0;
-    const interruptedTurns = windowTurns.filter(t => t.wasInterrupted).length;
-    const interruptionRate = windowTurns.length > 0 ? (interruptedTurns / windowTurns.length) * 100 : 0;
+    const avgInterruptions =
+      allWindowSessions.length > 0 ? totalInterruptions / allWindowSessions.length : 0;
+    const interruptedTurns = windowTurns.filter((t) => t.wasInterrupted).length;
+    const interruptionRate =
+      windowTurns.length > 0 ? (interruptedTurns / windowTurns.length) * 100 : 0;
 
     // Completion rates
-    const userEnded = recentCompleted.filter(s => s.endReason === 'user_ended').length;
-    const timeouts = recentCompleted.filter(s => s.endReason === 'timeout').length;
-    const errors = recentCompleted.filter(s => s.endReason === 'error').length;
-    const completionRate = recentCompleted.length > 0 ? (userEnded / recentCompleted.length) * 100 : 100;
+    const userEnded = recentCompleted.filter((s) => s.endReason === 'user_ended').length;
+    const timeouts = recentCompleted.filter((s) => s.endReason === 'timeout').length;
+    const errors = recentCompleted.filter((s) => s.endReason === 'error').length;
+    const completionRate =
+      recentCompleted.length > 0 ? (userEnded / recentCompleted.length) * 100 : 100;
     const timeoutRate = recentCompleted.length > 0 ? (timeouts / recentCompleted.length) * 100 : 0;
     const errorEndRate = recentCompleted.length > 0 ? (errors / recentCompleted.length) * 100 : 0;
 
     // Silence
-    const silences = windowTurns.map(t => t.silenceBeforeMs).filter(s => s > 0);
-    const avgSilence = silences.length > 0 ? silences.reduce((a, b) => a + b, 0) / silences.length : 0;
-    const longSilences = silences.filter(s => s > 3000).length;
+    const silences = windowTurns.map((t) => t.silenceBeforeMs).filter((s) => s > 0);
+    const avgSilence =
+      silences.length > 0 ? silences.reduce((a, b) => a + b, 0) / silences.length : 0;
+    const longSilences = silences.filter((s) => s > 3000).length;
     const silenceGapRate = windowTurns.length > 0 ? (longSilences / windowTurns.length) * 100 : 0;
 
     // Quality
-    const scoredSessions = allWindowSessions.filter(s => s.qualityScore !== undefined);
-    const avgQuality = scoredSessions.length > 0
-      ? scoredSessions.reduce((sum, s) => sum + (s.qualityScore ?? 0), 0) / scoredSessions.length
-      : 100;
-    const lowQuality = scoredSessions.filter(s => (s.qualityScore ?? 100) < 70).length;
+    const scoredSessions = allWindowSessions.filter((s) => s.qualityScore !== undefined);
+    const avgQuality =
+      scoredSessions.length > 0
+        ? scoredSessions.reduce((sum, s) => sum + (s.qualityScore ?? 0), 0) / scoredSessions.length
+        : 100;
+    const lowQuality = scoredSessions.filter((s) => (s.qualityScore ?? 100) < 70).length;
 
     // Echo
     const echoTotal = allWindowSessions.reduce((sum, s) => sum + s.echoEvents, 0);
-    const sessionsWithEcho = allWindowSessions.filter(s => s.echoEvents > 0).length;
+    const sessionsWithEcho = allWindowSessions.filter((s) => s.echoEvents > 0).length;
 
     // Engagement
-    const avgUserWords = allWindowSessions.length > 0
-      ? allWindowSessions.reduce((sum, s) => sum + s.userWordCount, 0) / allWindowSessions.length
-      : 0;
-    const avgAgentWords = allWindowSessions.length > 0
-      ? allWindowSessions.reduce((sum, s) => sum + s.agentWordCount, 0) / allWindowSessions.length
-      : 0;
+    const avgUserWords =
+      allWindowSessions.length > 0
+        ? allWindowSessions.reduce((sum, s) => sum + s.userWordCount, 0) / allWindowSessions.length
+        : 0;
+    const avgAgentWords =
+      allWindowSessions.length > 0
+        ? allWindowSessions.reduce((sum, s) => sum + s.agentWordCount, 0) / allWindowSessions.length
+        : 0;
     const ratio = avgAgentWords > 0 ? avgUserWords / avgAgentWords : 1;
 
     return {
@@ -325,4 +339,3 @@ class UXQualityService {
 // ============================================================================
 
 export const uxQualityMetrics = new UXQualityService();
-

@@ -2,7 +2,7 @@
  * 🎮 Game Store
  *
  * Persistence layer for game data. Saves to EngagementProfile in Firestore.
- * 
+ *
  * Responsibilities:
  * - Load game memory when session starts
  * - Save game memory after each game
@@ -47,7 +47,10 @@ export async function loadGameMemory(userId: string): Promise<GameMemory> {
 
     if (profile.gameMemory) {
       gameMemoryCache.set(userId, profile.gameMemory);
-      log.info({ userId, totalGames: profile.gameMemory.totalGamesPlayed }, '🎮 Loaded game memory from Firestore');
+      log.info(
+        { userId, totalGames: profile.gameMemory.totalGamesPlayed },
+        '🎮 Loaded game memory from Firestore'
+      );
       return profile.gameMemory;
     }
   } catch (error) {
@@ -97,10 +100,10 @@ export async function loadMusicMemory(userId: string): Promise<MusicMemory | nul
 export async function saveGameMemory(userId: string, gameMemory: GameMemory): Promise<void> {
   // Update cache immediately
   gameMemoryCache.set(userId, gameMemory);
-  
+
   // Mark as dirty for debounced save
   dirtyUsers.add(userId);
-  
+
   // Schedule debounced save (3 seconds)
   if (!saveTimer) {
     saveTimer = setTimeout(() => {
@@ -117,10 +120,10 @@ export async function saveGameMemory(userId: string, gameMemory: GameMemory): Pr
 export async function saveMusicMemory(userId: string, musicMemory: MusicMemory): Promise<void> {
   // Update cache
   musicMemoryCache.set(userId, musicMemory);
-  
+
   // Mark dirty
   dirtyUsers.add(userId);
-  
+
   // Schedule debounced save
   if (!saveTimer) {
     saveTimer = setTimeout(() => {
@@ -134,7 +137,7 @@ export async function saveMusicMemory(userId: string, musicMemory: MusicMemory):
  */
 async function flushDirtyUsers(): Promise<void> {
   saveTimer = null;
-  
+
   if (dirtyUsers.size === 0) return;
 
   const usersToSave = Array.from(dirtyUsers);
@@ -149,10 +152,10 @@ async function flushDirtyUsers(): Promise<void> {
     for (const userId of usersToSave) {
       try {
         const profile = await store.getProfile(userId);
-        
+
         const gameMemory = gameMemoryCache.get(userId);
         const musicMemory = musicMemoryCache.get(userId);
-        
+
         if (gameMemory) {
           profile.gameMemory = gameMemory;
         }
@@ -171,7 +174,7 @@ async function flushDirtyUsers(): Promise<void> {
   } catch (error) {
     log.error({ error }, '🎮 Failed to get engagement store');
     // Re-add all users for retry
-    usersToSave.forEach(u => dirtyUsers.add(u));
+    usersToSave.forEach((u) => dirtyUsers.add(u));
   }
 }
 
@@ -184,7 +187,7 @@ export async function forceSaveGameMemory(userId: string): Promise<void> {
 
   const gameMemory = gameMemoryCache.get(userId);
   const musicMemory = musicMemoryCache.get(userId);
-  
+
   if (!gameMemory && !musicMemory) {
     return;
   }
@@ -255,10 +258,10 @@ export async function recordGameCompletion(
   highlights?: string[]
 ): Promise<void> {
   const gameMemory = await loadGameMemory(userId);
-  
+
   // Import the persistence helper
   const { saveGameSession } = await import('./game-persistence.js');
-  
+
   // Update memory
   const updatedMemory = saveGameSession(
     gameMemory,
@@ -276,12 +279,15 @@ export async function recordGameCompletion(
   // Save
   await saveGameMemory(userId, updatedMemory);
 
-  log.info({
-    userId,
-    gameType,
-    score,
-    totalGames: updatedMemory.totalGamesPlayed,
-  }, '🎮 Recorded game completion');
+  log.info(
+    {
+      userId,
+      gameType,
+      score,
+      totalGames: updatedMemory.totalGamesPlayed,
+    },
+    '🎮 Recorded game completion'
+  );
 }
 
 /**
@@ -297,10 +303,10 @@ export async function updateMusicalDNA(
   decade?: string
 ): Promise<void> {
   const gameMemory = await loadGameMemory(userId);
-  
+
   const { recordGuess } = await import('./game-intelligence.js');
   const updatedMemory = recordGuess(gameMemory, item, guessTimeMs, correct, genre, decade);
-  
+
   await saveGameMemory(userId, updatedMemory);
 }
 
@@ -316,8 +322,7 @@ export async function shutdown(): Promise<void> {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
-  
+
   await flushDirtyUsers();
   log.info('🎮 Game store shut down');
 }
-

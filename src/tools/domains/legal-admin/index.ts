@@ -29,13 +29,25 @@ import { z } from 'zod';
 const ESTATE_PLANNING_CHECKLIST = {
   essential: [
     { item: 'Will', description: 'Legally specifies how your assets should be distributed' },
-    { item: 'Healthcare Power of Attorney', description: 'Names someone to make medical decisions if you cannot' },
-    { item: 'Financial Power of Attorney', description: 'Names someone to handle financial matters if you cannot' },
+    {
+      item: 'Healthcare Power of Attorney',
+      description: 'Names someone to make medical decisions if you cannot',
+    },
+    {
+      item: 'Financial Power of Attorney',
+      description: 'Names someone to handle financial matters if you cannot',
+    },
     { item: 'Advance Directive/Living Will', description: 'Specifies your healthcare wishes' },
   ],
   additional: [
-    { item: 'Trust', description: 'May help avoid probate and provide control over asset distribution' },
-    { item: 'Beneficiary Designations', description: 'On retirement accounts, life insurance, etc.' },
+    {
+      item: 'Trust',
+      description: 'May help avoid probate and provide control over asset distribution',
+    },
+    {
+      item: 'Beneficiary Designations',
+      description: 'On retirement accounts, life insurance, etc.',
+    },
     { item: 'Digital Asset Plan', description: 'Passwords, accounts, digital property' },
     { item: 'Letter of Intent', description: 'Non-legal guidance for your wishes' },
     { item: 'Guardianship Designation', description: 'For minor children' },
@@ -119,12 +131,9 @@ const organizeDocumentsDef: ToolDefinition = {
     return llm.tool({
       description: 'Help organize important documents and create a system.',
       parameters: z.object({
-        focus: z.enum([
-          'getting-started',
-          'what-to-keep',
-          'storage-system',
-          'digital-backup',
-        ]).describe('What to focus on'),
+        focus: z
+          .enum(['getting-started', 'what-to-keep', 'storage-system', 'digital-backup'])
+          .describe('What to focus on'),
         currentState: z.enum(['chaos', 'somewhat-organized', 'need-system']).optional(),
       }),
       execute: async ({ focus, currentState }) => {
@@ -230,15 +239,17 @@ const locateDocumentDef: ToolDefinition = {
     return llm.tool({
       description: 'Help locate or replace important documents.',
       parameters: z.object({
-        documentType: z.enum([
-          'birth-certificate',
-          'social-security',
-          'passport',
-          'marriage-certificate',
-          'tax-return',
-          'deed',
-          'other',
-        ]).describe('Type of document needed'),
+        documentType: z
+          .enum([
+            'birth-certificate',
+            'social-security',
+            'passport',
+            'marriage-certificate',
+            'tax-return',
+            'deed',
+            'other',
+          ])
+          .describe('Type of document needed'),
         situation: z.enum(['lost', 'never-had', 'need-copy']).describe('Current situation'),
       }),
       execute: async ({ documentType, situation }) => {
@@ -297,7 +308,8 @@ const locateDocumentDef: ToolDefinition = {
             `• Small fee for certified copy\n`,
         };
 
-        response += docInfo[documentType] || `For this document, contact the issuing agency directly. `;
+        response +=
+          docInfo[documentType] || `For this document, contact the issuing agency directly. `;
         response += `If you're not sure who issued it, start with your state's vital records office or the relevant government agency.\n`;
 
         response += `\n---\n\n`;
@@ -324,13 +336,10 @@ const promptEstatePlanningDef: ToolDefinition = {
     return llm.tool({
       description: 'Encourage and guide estate planning basics. Not legal advice.',
       parameters: z.object({
-        lifeSituation: z.enum([
-          'single',
-          'married',
-          'has-kids',
-          'owns-property',
-          'general',
-        ]).optional().describe('Life situation'),
+        lifeSituation: z
+          .enum(['single', 'married', 'has-kids', 'owns-property', 'general'])
+          .optional()
+          .describe('Life situation'),
         currentDocuments: z.array(z.string()).optional().describe('Documents they already have'),
       }),
       execute: async ({ lifeSituation, currentDocuments }) => {
@@ -450,9 +459,9 @@ const reviewInsuranceCoverageDef: ToolDefinition = {
     return llm.tool({
       description: 'Help review insurance coverage for adequacy.',
       parameters: z.object({
-        insuranceType: z.enum([
-          'health', 'life', 'disability', 'auto', 'home', 'umbrella', 'all',
-        ]).describe('Type to review'),
+        insuranceType: z
+          .enum(['health', 'life', 'disability', 'auto', 'home', 'umbrella', 'all'])
+          .describe('Type to review'),
         lifeChange: z.string().optional().describe('Recent life change'),
       }),
       execute: async ({ insuranceType, lifeChange }) => {
@@ -525,7 +534,9 @@ const prepareForTaxSeasonDef: ToolDefinition = {
     return llm.tool({
       description: 'Help prepare for tax season.',
       parameters: z.object({
-        timing: z.enum(['year-end', 'jan-feb', 'march-april', 'extension']).describe('Where in tax season'),
+        timing: z
+          .enum(['year-end', 'jan-feb', 'march-april', 'extension'])
+          .describe('Where in tax season'),
         situation: z.enum(['simple', 'complex', 'changed']).optional(),
       }),
       execute: async ({ timing, situation }) => {
@@ -600,7 +611,9 @@ const reminderAnnualTasksDef: ToolDefinition = {
     return llm.tool({
       description: 'Provide reminders for annual administrative tasks.',
       parameters: z.object({
-        currentPeriod: z.enum(['january', 'spring', 'summer', 'fall', 'december']).describe('Time of year'),
+        currentPeriod: z
+          .enum(['january', 'spring', 'summer', 'fall', 'december'])
+          .describe('Time of year'),
       }),
       execute: async ({ currentPeriod }) => {
         getLogger().info({ agentId: ctx.agentId, currentPeriod }, 'Annual task reminders');
@@ -611,7 +624,7 @@ const reminderAnnualTasksDef: ToolDefinition = {
         response += `---\n\n`;
 
         response += `**This Period:**\n`;
-        tasks.forEach(task => {
+        tasks.forEach((task) => {
           response += `☐ ${task}\n`;
         });
 
@@ -620,7 +633,7 @@ const reminderAnnualTasksDef: ToolDefinition = {
         response += `**Annual Admin Calendar:**\n\n`;
         Object.entries(ANNUAL_ADMIN_TASKS).forEach(([period, periodTasks]) => {
           response += `**${period.charAt(0).toUpperCase() + period.slice(1)}:**\n`;
-          periodTasks.slice(0, 2).forEach(task => {
+          periodTasks.slice(0, 2).forEach((task) => {
             response += `• ${task}\n`;
           });
           response += `\n`;
@@ -665,4 +678,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

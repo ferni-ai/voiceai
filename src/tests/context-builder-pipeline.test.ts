@@ -190,7 +190,9 @@ describe('Context Builder Pipeline Integration', () => {
   describe('Async Builder Support', () => {
     it('should handle async builders', async () => {
       const asyncBuilder = async () => {
-        await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 10);
+        });
         return [{ type: 'async_injection', content: 'Async', priority: 'standard' }];
       };
 

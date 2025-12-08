@@ -1,14 +1,14 @@
 /**
  * Cross-Device Sync for Trust Systems
- * 
+ *
  * Phase 3: Ensures trust data travels with the user across devices
- * 
+ *
  * Features:
  * - Real-time Firestore sync via change listeners
  * - Conflict resolution (last-write-wins with merge)
  * - Session continuity detection
  * - Device-aware sync
- * 
+ *
  * Note: This module works on the server side using firebase-admin.
  * Frontend real-time sync happens via API polling or websockets.
  */
@@ -159,12 +159,12 @@ export async function syncWrite(
   options: { immediate?: boolean } = {}
 ): Promise<void> {
   const pendingKey = `${userId}:${systemId}`;
-  
+
   pendingUpdates.set(pendingKey, {
     data,
     timestamp: Date.now(),
   });
-  
+
   if (options.immediate) {
     await performWrite(userId, systemId, data);
     pendingUpdates.delete(pendingKey);
@@ -172,39 +172,37 @@ export async function syncWrite(
     if (syncDebounceTimer) {
       clearTimeout(syncDebounceTimer);
     }
-    
+
     syncDebounceTimer = setTimeout(async () => {
       await flushPendingWrites(userId);
     }, SYNC_DEBOUNCE_MS);
   }
 }
 
-async function performWrite(
-  userId: string,
-  systemId: string,
-  data: unknown
-): Promise<void> {
+async function performWrite(userId: string, systemId: string, data: unknown): Promise<void> {
   try {
     const db = getFirestore();
-    const docRef = db.collection(TRUST_COLLECTION).doc(userId)
-      .collection(TRUST_SUBCOLLECTION).doc(systemId);
-    
+    const docRef = db
+      .collection(TRUST_COLLECTION)
+      .doc(userId)
+      .collection(TRUST_SUBCOLLECTION)
+      .doc(systemId);
+
     const existing = await docRef.get();
-    const currentVersion = existing.exists 
-      ? (existing.data() as TrustDocument)?.version || 0
-      : 0;
-    
-    const trustDoc: Omit<TrustDocument, 'updatedAt'> & { updatedAt: FirebaseFirestore.FieldValue } = {
-      userId,
-      systemId,
-      data,
-      updatedAt: FieldValue.serverTimestamp(),
-      deviceId: getDeviceId(userId),
-      version: currentVersion + 1,
-    };
-    
+    const currentVersion = existing.exists ? (existing.data() as TrustDocument)?.version || 0 : 0;
+
+    const trustDoc: Omit<TrustDocument, 'updatedAt'> & { updatedAt: FirebaseFirestore.FieldValue } =
+      {
+        userId,
+        systemId,
+        data,
+        updatedAt: FieldValue.serverTimestamp(),
+        deviceId: getDeviceId(userId),
+        version: currentVersion + 1,
+      };
+
     await docRef.set(trustDoc);
-    
+
     emitSyncEvent({
       type: 'sync_complete',
       timestamp: new Date(),
@@ -218,18 +216,21 @@ async function performWrite(
 
 async function flushPendingWrites(userId: string): Promise<void> {
   if (pendingUpdates.size === 0) return;
-  
+
   try {
     const db = getFirestore();
     const batch = db.batch();
-    
+
     for (const [key, pending] of pendingUpdates) {
       const [uid, systemId] = key.split(':');
       if (uid !== userId) continue;
-      
-      const docRef = db.collection(TRUST_COLLECTION).doc(userId)
-        .collection(TRUST_SUBCOLLECTION).doc(systemId);
-      
+
+      const docRef = db
+        .collection(TRUST_COLLECTION)
+        .doc(userId)
+        .collection(TRUST_SUBCOLLECTION)
+        .doc(systemId);
+
       batch.set(docRef, {
         userId,
         systemId,
@@ -239,16 +240,16 @@ async function flushPendingWrites(userId: string): Promise<void> {
         version: Date.now(),
       });
     }
-    
+
     await batch.commit();
-    
+
     // Clear pending for this user
     for (const key of pendingUpdates.keys()) {
       if (key.startsWith(`${userId}:`)) {
         pendingUpdates.delete(key);
       }
     }
-    
+
     emitSyncEvent({
       type: 'sync_complete',
       timestamp: new Date(),
@@ -277,11 +278,14 @@ export function setNetworkStatus(_online: boolean): void {
 export async function detectSessionContinuity(userId: string): Promise<SessionContinuity> {
   try {
     const db = getFirestore();
-    const sessionDocRef = db.collection(TRUST_COLLECTION).doc(userId)
-      .collection('session_state').doc('current');
-    
+    const sessionDocRef = db
+      .collection(TRUST_COLLECTION)
+      .doc(userId)
+      .collection('session_state')
+      .doc('current');
+
     const sessionDoc = await sessionDocRef.get();
-    
+
     if (!sessionDoc.exists) {
       return {
         previousDevice: null,
@@ -290,7 +294,7 @@ export async function detectSessionContinuity(userId: string): Promise<SessionCo
         wasInterrupted: false,
       };
     }
-    
+
     const data = sessionDoc.data();
     if (!data) {
       return {
@@ -300,17 +304,16 @@ export async function detectSessionContinuity(userId: string): Promise<SessionCo
         wasInterrupted: false,
       };
     }
-    
+
     const currentDevice = getDeviceId(userId);
     const previousDevice = data.deviceId as string | undefined;
-    
+
     const isContinuing = previousDevice && previousDevice !== currentDevice;
-    
+
     const lastActivity = data.lastActivity?.toDate() || null;
-    const wasInterrupted = lastActivity && 
-      !data.gracefulEnd &&
-      (Date.now() - lastActivity.getTime()) < 60 * 60 * 1000;
-    
+    const wasInterrupted =
+      lastActivity && !data.gracefulEnd && Date.now() - lastActivity.getTime() < 60 * 60 * 1000;
+
     return {
       previousDevice: isContinuing ? previousDevice : null,
       previousSessionEnd: lastActivity,
@@ -338,9 +341,12 @@ export async function updateSessionState(
 ): Promise<void> {
   try {
     const db = getFirestore();
-    const sessionDocRef = db.collection(TRUST_COLLECTION).doc(userId)
-      .collection('session_state').doc('current');
-    
+    const sessionDocRef = db
+      .collection(TRUST_COLLECTION)
+      .doc(userId)
+      .collection('session_state')
+      .doc('current');
+
     await sessionDocRef.set({
       deviceId: getDeviceId(userId),
       lastActivity: FieldValue.serverTimestamp(),
@@ -360,7 +366,7 @@ export function cleanup(): void {
   pendingUpdates.clear();
   syncListeners.clear();
   deviceIds.clear();
-  
+
   if (syncDebounceTimer) {
     clearTimeout(syncDebounceTimer);
     syncDebounceTimer = null;

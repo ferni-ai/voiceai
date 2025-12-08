@@ -441,7 +441,7 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
       {
         theme: 'Simple Start Week',
         days: [
-          'Name 1 thing you\'re grateful for.',
+          "Name 1 thing you're grateful for.",
           'Name 1 different thing.',
           'Write it down this time.',
           'Share gratitude with someone.',
@@ -454,8 +454,8 @@ export const THIRTY_DAY_CHALLENGES: Record<string, ChallengeDefinition> = {
       {
         theme: 'Deepening Week',
         days: [
-          'Name 3 things you\'re grateful for.',
-          'Add WHY you\'re grateful for each.',
+          "Name 3 things you're grateful for.",
+          "Add WHY you're grateful for each.",
           'Include a person and tell them.',
           'Notice gratitude in difficult moments.',
           'Write a short gratitude letter.',
@@ -534,4 +534,3 @@ export function getChallengeDay(
     intensityNote: week.intensityNote,
   };
 }
-

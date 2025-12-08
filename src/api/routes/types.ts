@@ -62,13 +62,31 @@ export function getPersonaName(personaId?: string): string {
 
 export function mapMemoryTypeToUIType(memType: string): string {
   const typeMap: Record<string, string> = {
-    fund: 'fact', stock: 'fact', company: 'fact', merchant: 'fact',
-    bill: 'fact', date: 'fact', venue: 'fact', contact_note: 'fact',
-    preference: 'preference', philosophy: 'preference', style: 'preference',
-    music: 'preference', communication_preference: 'preference', destination: 'preference',
-    savings_goal: 'goal', watchlist: 'goal', win: 'goal',
-    trigger: 'pattern', category: 'pattern', allocation: 'pattern', scheduling_note: 'pattern',
-    milestone: 'relationship', inside_joke: 'relationship', story: 'relationship', vendor: 'relationship',
+    fund: 'fact',
+    stock: 'fact',
+    company: 'fact',
+    merchant: 'fact',
+    bill: 'fact',
+    date: 'fact',
+    venue: 'fact',
+    contact_note: 'fact',
+    preference: 'preference',
+    philosophy: 'preference',
+    style: 'preference',
+    music: 'preference',
+    communication_preference: 'preference',
+    destination: 'preference',
+    savings_goal: 'goal',
+    watchlist: 'goal',
+    win: 'goal',
+    trigger: 'pattern',
+    category: 'pattern',
+    allocation: 'pattern',
+    scheduling_note: 'pattern',
+    milestone: 'relationship',
+    inside_joke: 'relationship',
+    story: 'relationship',
+    vendor: 'relationship',
   };
   return typeMap[memType] || 'fact';
 }

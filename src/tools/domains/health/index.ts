@@ -20,7 +20,11 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { persistTrackedItem, persistKeyMoment, type ToolCtxWithUserData } from '../shared/persistence.js';
+import {
+  persistTrackedItem,
+  persistKeyMoment,
+  type ToolCtxWithUserData,
+} from '../shared/persistence.js';
 import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
 
@@ -29,74 +33,157 @@ import { z } from 'zod';
 // ============================================================================
 
 const EXERCISE_ENCOURAGEMENT = [
-  "Any movement is good movement. You showed up for yourself today.",
+  'Any movement is good movement. You showed up for yourself today.',
   "You're building something that lasts. Every session matters.",
-  "This is self-care in action. Your future self thanks you.",
-  "Moving your body is one of the best gifts you can give yourself.",
+  'This is self-care in action. Your future self thanks you.',
+  'Moving your body is one of the best gifts you can give yourself.',
   "Consistency beats intensity. You're doing great.",
 ];
 
 const SLEEP_HYGIENE_TIPS = {
   environment: [
-    { tip: 'Keep your room cool (65-68°F/18-20°C is optimal)', why: 'Body temperature drops during sleep' },
+    {
+      tip: 'Keep your room cool (65-68°F/18-20°C is optimal)',
+      why: 'Body temperature drops during sleep',
+    },
     { tip: 'Make your room as dark as possible', why: 'Light disrupts melatonin production' },
     { tip: 'Use white noise if helpful', why: 'Masks disruptive sounds' },
-    { tip: 'Reserve your bed for sleep and intimacy only', why: 'Trains your brain that bed means sleep' },
+    {
+      tip: 'Reserve your bed for sleep and intimacy only',
+      why: 'Trains your brain that bed means sleep',
+    },
   ],
   routine: [
     { tip: 'Same wake time every day, including weekends', why: 'Regulates your circadian rhythm' },
-    { tip: 'Wind down routine 30-60 minutes before bed', why: 'Signals to your body that sleep is coming' },
-    { tip: 'No screens 1 hour before bed (or use night mode)', why: 'Blue light suppresses melatonin' },
+    {
+      tip: 'Wind down routine 30-60 minutes before bed',
+      why: 'Signals to your body that sleep is coming',
+    },
+    {
+      tip: 'No screens 1 hour before bed (or use night mode)',
+      why: 'Blue light suppresses melatonin',
+    },
     { tip: 'Avoid large meals close to bedtime', why: 'Digestion can disrupt sleep' },
   ],
   daytime: [
     { tip: 'Get morning sunlight within 30 minutes of waking', why: 'Sets your circadian clock' },
     { tip: 'Limit caffeine after noon', why: 'Caffeine has a 6-hour half-life' },
-    { tip: 'Exercise regularly, but not too close to bedtime', why: 'Exercise improves sleep but needs time to wind down' },
+    {
+      tip: 'Exercise regularly, but not too close to bedtime',
+      why: 'Exercise improves sleep but needs time to wind down',
+    },
     { tip: 'Limit naps to 20 minutes before 3pm', why: 'Long/late naps reduce sleep pressure' },
   ],
 };
 
 const WORKOUT_SUGGESTIONS = {
   low_energy: [
-    { name: 'Gentle Walk', duration: '15-20 min', description: 'Just get outside and move at a comfortable pace' },
-    { name: 'Stretching Routine', duration: '10-15 min', description: 'Full body stretches to release tension' },
-    { name: 'Restorative Yoga', duration: '20-30 min', description: 'Slow, supported poses for recovery' },
+    {
+      name: 'Gentle Walk',
+      duration: '15-20 min',
+      description: 'Just get outside and move at a comfortable pace',
+    },
+    {
+      name: 'Stretching Routine',
+      duration: '10-15 min',
+      description: 'Full body stretches to release tension',
+    },
+    {
+      name: 'Restorative Yoga',
+      duration: '20-30 min',
+      description: 'Slow, supported poses for recovery',
+    },
   ],
   moderate_energy: [
-    { name: 'Brisk Walk', duration: '30 min', description: 'Walking fast enough to raise your heart rate' },
-    { name: 'Beginner Strength', duration: '20-30 min', description: 'Bodyweight exercises: squats, pushups, lunges' },
-    { name: 'Yoga Flow', duration: '30 min', description: 'Dynamic yoga connecting breath and movement' },
+    {
+      name: 'Brisk Walk',
+      duration: '30 min',
+      description: 'Walking fast enough to raise your heart rate',
+    },
+    {
+      name: 'Beginner Strength',
+      duration: '20-30 min',
+      description: 'Bodyweight exercises: squats, pushups, lunges',
+    },
+    {
+      name: 'Yoga Flow',
+      duration: '30 min',
+      description: 'Dynamic yoga connecting breath and movement',
+    },
     { name: 'Swimming', duration: '20-30 min', description: 'Low impact, full body workout' },
   ],
   high_energy: [
-    { name: 'HIIT Workout', duration: '20-30 min', description: 'Intervals of high effort and rest' },
+    {
+      name: 'HIIT Workout',
+      duration: '20-30 min',
+      description: 'Intervals of high effort and rest',
+    },
     { name: 'Running', duration: '30-45 min', description: 'Steady state or intervals' },
-    { name: 'Weight Training', duration: '45-60 min', description: 'Progressive overload for strength' },
-    { name: 'Cycling', duration: '30-45 min', description: 'Indoor or outdoor, hills for challenge' },
+    {
+      name: 'Weight Training',
+      duration: '45-60 min',
+      description: 'Progressive overload for strength',
+    },
+    {
+      name: 'Cycling',
+      duration: '30-45 min',
+      description: 'Indoor or outdoor, hills for challenge',
+    },
   ],
 };
 
 const PREVENTIVE_CARE_REMINDERS = {
   general: [
-    { screening: 'Annual Physical', frequency: 'Yearly', notes: 'Basic bloodwork, vital signs, general health' },
-    { screening: 'Dental Checkup', frequency: 'Every 6 months', notes: 'Cleaning and oral health exam' },
-    { screening: 'Eye Exam', frequency: 'Every 1-2 years', notes: 'Vision check, glaucoma screening' },
+    {
+      screening: 'Annual Physical',
+      frequency: 'Yearly',
+      notes: 'Basic bloodwork, vital signs, general health',
+    },
+    {
+      screening: 'Dental Checkup',
+      frequency: 'Every 6 months',
+      notes: 'Cleaning and oral health exam',
+    },
+    {
+      screening: 'Eye Exam',
+      frequency: 'Every 1-2 years',
+      notes: 'Vision check, glaucoma screening',
+    },
     { screening: 'Flu Shot', frequency: 'Yearly (fall)', notes: 'Annual influenza vaccine' },
   ],
   age_30_plus: [
-    { screening: 'Blood Pressure Check', frequency: 'Every 1-2 years', notes: 'More often if elevated' },
-    { screening: 'Cholesterol Check', frequency: 'Every 4-6 years', notes: 'More often if risk factors' },
-    { screening: 'Diabetes Screening', frequency: 'Every 3 years', notes: 'Fasting glucose or A1C' },
+    {
+      screening: 'Blood Pressure Check',
+      frequency: 'Every 1-2 years',
+      notes: 'More often if elevated',
+    },
+    {
+      screening: 'Cholesterol Check',
+      frequency: 'Every 4-6 years',
+      notes: 'More often if risk factors',
+    },
+    {
+      screening: 'Diabetes Screening',
+      frequency: 'Every 3 years',
+      notes: 'Fasting glucose or A1C',
+    },
   ],
   age_40_plus: [
     { screening: 'Skin Cancer Check', frequency: 'Yearly', notes: 'Full body skin exam' },
   ],
   age_45_plus: [
-    { screening: 'Colorectal Cancer Screening', frequency: 'Per doctor recommendation', notes: 'Colonoscopy or alternatives' },
+    {
+      screening: 'Colorectal Cancer Screening',
+      frequency: 'Per doctor recommendation',
+      notes: 'Colonoscopy or alternatives',
+    },
   ],
   age_50_plus: [
-    { screening: 'Bone Density Test', frequency: 'Per doctor recommendation', notes: 'Especially for women' },
+    {
+      screening: 'Bone Density Test',
+      frequency: 'Per doctor recommendation',
+      notes: 'Especially for women',
+    },
   ],
 };
 
@@ -113,34 +200,43 @@ const logExerciseDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user log physical activity. Celebrate their effort and track progress toward goals.',
+      description:
+        'Help user log physical activity. Celebrate their effort and track progress toward goals.',
       parameters: z.object({
-        activityType: z.enum([
-          'cardio',
-          'strength',
-          'flexibility',
-          'sports',
-          'walking',
-          'dance',
-          'swimming',
-          'cycling',
-          'yoga',
-          'other',
-        ]).describe('Type of physical activity'),
+        activityType: z
+          .enum([
+            'cardio',
+            'strength',
+            'flexibility',
+            'sports',
+            'walking',
+            'dance',
+            'swimming',
+            'cycling',
+            'yoga',
+            'other',
+          ])
+          .describe('Type of physical activity'),
         activityName: z.string().optional().describe('Specific activity name'),
         durationMinutes: z.number().optional().describe('Duration in minutes'),
         intensity: z.enum(['light', 'moderate', 'vigorous']).optional(),
         howTheyFeel: z.string().optional().describe('How they feel after'),
         notes: z.string().optional(),
       }),
-      execute: async ({ activityType, activityName, durationMinutes, intensity, howTheyFeel, notes }, { ctx: toolCtx }) => {
+      execute: async (
+        { activityType, activityName, durationMinutes, intensity, howTheyFeel, notes },
+        { ctx: toolCtx }
+      ) => {
         // Track analytics if enabled
         const tracker = isLifeCoachAnalyticsEnabled()
           ? trackToolUsage('logExercise', 'health', { agentId: ctx.agentId })
           : null;
 
         try {
-          getLogger().info({ agentId: ctx.agentId, activityType, durationMinutes }, 'Logging exercise');
+          getLogger().info(
+            { agentId: ctx.agentId, activityType, durationMinutes },
+            'Logging exercise'
+          );
 
           // Persist exercise log for tracking
           persistTrackedItem(toolCtx as ToolCtxWithUserData, {
@@ -157,26 +253,27 @@ const logExerciseDef: ToolDefinition = {
             importance: durationMinutes && durationMinutes > 30 ? 'medium' : 'low',
           });
 
-          const encouragement = EXERCISE_ENCOURAGEMENT[Math.floor(Math.random() * EXERCISE_ENCOURAGEMENT.length)];
+          const encouragement =
+            EXERCISE_ENCOURAGEMENT[Math.floor(Math.random() * EXERCISE_ENCOURAGEMENT.length)];
 
-        let response = `**Exercise Logged!** ✅\n\n`;
-        response += `**Activity:** ${activityName || activityType}\n`;
-        if (durationMinutes) response += `**Duration:** ${durationMinutes} minutes\n`;
-        if (intensity) response += `**Intensity:** ${intensity}\n`;
-        if (howTheyFeel) response += `**How you feel:** ${howTheyFeel}\n`;
-        if (notes) response += `**Notes:** ${notes}\n`;
+          let response = `**Exercise Logged!** ✅\n\n`;
+          response += `**Activity:** ${activityName || activityType}\n`;
+          if (durationMinutes) response += `**Duration:** ${durationMinutes} minutes\n`;
+          if (intensity) response += `**Intensity:** ${intensity}\n`;
+          if (howTheyFeel) response += `**How you feel:** ${howTheyFeel}\n`;
+          if (notes) response += `**Notes:** ${notes}\n`;
 
-        response += `\n---\n\n`;
-        response += `${encouragement}\n\n`;
+          response += `\n---\n\n`;
+          response += `${encouragement}\n\n`;
 
-        // Calculate rough calorie estimate for fun (not medical)
-        if (durationMinutes && intensity) {
-          const calMultiplier = intensity === 'light' ? 4 : intensity === 'moderate' ? 7 : 10;
-          const roughCals = Math.round(durationMinutes * calMultiplier);
-          response += `_Approximate energy expenditure: ~${roughCals} calories_\n\n`;
-        }
+          // Calculate rough calorie estimate for fun (not medical)
+          if (durationMinutes && intensity) {
+            const calMultiplier = intensity === 'light' ? 4 : intensity === 'moderate' ? 7 : 10;
+            const roughCals = Math.round(durationMinutes * calMultiplier);
+            response += `_Approximate energy expenditure: ~${roughCals} calories_\n\n`;
+          }
 
-        response += `Would you like to set a fitness goal or see your recent activity?`;
+          response += `Would you like to set a fitness goal or see your recent activity?`;
 
           tracker?.success({ activityType, durationMinutes });
           return response;
@@ -198,31 +295,38 @@ const suggestWorkoutDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Suggest a workout based on user\'s current energy level, available time, and goals.',
+      description:
+        "Suggest a workout based on user's current energy level, available time, and goals.",
       parameters: z.object({
         energyLevel: z.enum(['low', 'moderate', 'high']).describe('Current energy level'),
         availableMinutes: z.number().optional().describe('Time available for workout'),
         preference: z.enum(['cardio', 'strength', 'flexibility', 'mix', 'any']).optional(),
-        goal: z.enum([
-          'general-fitness',
-          'weight-loss',
-          'strength-building',
-          'stress-relief',
-          'energy-boost',
-          'flexibility',
-        ]).optional(),
+        goal: z
+          .enum([
+            'general-fitness',
+            'weight-loss',
+            'strength-building',
+            'stress-relief',
+            'energy-boost',
+            'flexibility',
+          ])
+          .optional(),
         equipment: z.enum(['none', 'minimal', 'gym']).optional(),
       }),
       execute: async ({ energyLevel, availableMinutes, preference, goal, equipment }) => {
         getLogger().info({ agentId: ctx.agentId, energyLevel, goal }, 'Suggesting workout');
 
-        const energyKey = energyLevel === 'low' ? 'low_energy' : 
-                         energyLevel === 'high' ? 'high_energy' : 'moderate_energy';
-        
+        const energyKey =
+          energyLevel === 'low'
+            ? 'low_energy'
+            : energyLevel === 'high'
+              ? 'high_energy'
+              : 'moderate_energy';
+
         const suggestions = WORKOUT_SUGGESTIONS[energyKey];
 
         let response = `**Workout Suggestions for Your Energy Level**\n\n`;
-        
+
         if (energyLevel === 'low') {
           response += `Your energy is low, and that's okay. Movement doesn't have to be intense to be beneficial. Here are some gentle options:\n\n`;
         } else if (energyLevel === 'high') {
@@ -269,15 +373,17 @@ const trackFitnessGoalDef: ToolDefinition = {
       description: 'Help user set and track fitness goals.',
       parameters: z.object({
         action: z.enum(['set', 'check', 'update', 'celebrate']).describe('What action to take'),
-        goalType: z.enum([
-          'exercise-frequency',
-          'specific-activity',
-          'strength',
-          'endurance',
-          'flexibility',
-          'weight',
-          'custom',
-        ]).optional(),
+        goalType: z
+          .enum([
+            'exercise-frequency',
+            'specific-activity',
+            'strength',
+            'endurance',
+            'flexibility',
+            'weight',
+            'custom',
+          ])
+          .optional(),
         goalDescription: z.string().optional().describe('Description of the goal'),
         currentProgress: z.string().optional().describe('Current progress'),
       }),
@@ -312,7 +418,7 @@ const trackFitnessGoalDef: ToolDefinition = {
           response += `- **Strength:** "Do 10 pushups without stopping by end of month"\n`;
           response += `- **Endurance:** "Run a 5K in 8 weeks"\n`;
           response += `- **Flexibility:** "Touch my toes within 6 weeks"\n\n`;
-          
+
           if (goalDescription) {
             response += `Your goal: "${goalDescription}"\n\n`;
             response += `This is a great goal! Let's make it specific:\n`;
@@ -363,17 +469,20 @@ const coachOnNutritionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide general nutrition guidance. Not medical or dietary advice - encourage consulting professionals for specific needs.',
+      description:
+        'Provide general nutrition guidance. Not medical or dietary advice - encourage consulting professionals for specific needs.',
       parameters: z.object({
-        topic: z.enum([
-          'general-eating',
-          'mindful-eating',
-          'meal-timing',
-          'hydration',
-          'energy-foods',
-          'sleep-foods',
-          'emotional-eating',
-        ]).describe('Nutrition topic to discuss'),
+        topic: z
+          .enum([
+            'general-eating',
+            'mindful-eating',
+            'meal-timing',
+            'hydration',
+            'energy-foods',
+            'sleep-foods',
+            'emotional-eating',
+          ])
+          .describe('Nutrition topic to discuss'),
         specificQuestion: z.string().optional(),
       }),
       execute: async ({ topic, specificQuestion }) => {
@@ -564,19 +673,24 @@ const analyzeSleepPatternDef: ToolDefinition = {
       parameters: z.object({
         averageHours: z.number().optional().describe('Average hours of sleep'),
         sleepQuality: z.enum(['poor', 'fair', 'good', 'excellent']).optional(),
-        mainConcern: z.enum([
-          'falling-asleep',
-          'staying-asleep',
-          'waking-early',
-          'not-rested',
-          'schedule',
-          'general',
-        ]).optional(),
+        mainConcern: z
+          .enum([
+            'falling-asleep',
+            'staying-asleep',
+            'waking-early',
+            'not-rested',
+            'schedule',
+            'general',
+          ])
+          .optional(),
         bedtime: z.string().optional().describe('Typical bedtime'),
         wakeTime: z.string().optional().describe('Typical wake time'),
       }),
       execute: async ({ averageHours, sleepQuality, mainConcern, bedtime, wakeTime }) => {
-        getLogger().info({ agentId: ctx.agentId, mainConcern, averageHours }, 'Analyzing sleep pattern');
+        getLogger().info(
+          { agentId: ctx.agentId, mainConcern, averageHours },
+          'Analyzing sleep pattern'
+        );
 
         let response = `**Sleep Pattern Analysis**\n\n`;
 
@@ -597,7 +711,7 @@ const analyzeSleepPatternDef: ToolDefinition = {
 
         if (mainConcern) {
           response += `**Main concern:** `;
-          
+
           switch (mainConcern) {
             case 'falling-asleep':
               response += `Difficulty falling asleep\n\n`;
@@ -731,7 +845,8 @@ const logSymptomDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user log symptoms to track patterns. This is for personal tracking, not medical diagnosis.',
+      description:
+        'Help user log symptoms to track patterns. This is for personal tracking, not medical diagnosis.',
       parameters: z.object({
         symptom: z.string().describe('The symptom being logged'),
         severity: z.enum(['mild', 'moderate', 'severe']).optional(),
@@ -775,15 +890,12 @@ const prepareForDoctorVisitDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user prepare for a doctor appointment with questions and information to bring.',
+      description:
+        'Help user prepare for a doctor appointment with questions and information to bring.',
       parameters: z.object({
-        visitType: z.enum([
-          'annual-physical',
-          'specific-concern',
-          'follow-up',
-          'specialist',
-          'mental-health',
-        ]).describe('Type of appointment'),
+        visitType: z
+          .enum(['annual-physical', 'specific-concern', 'follow-up', 'specialist', 'mental-health'])
+          .describe('Type of appointment'),
         mainConcern: z.string().optional().describe('Main reason for visit'),
         symptomsToDiscuss: z.array(z.string()).optional(),
       }),
@@ -866,7 +978,8 @@ const remindPreventiveCareDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide reminders about preventive health screenings and checkups based on age.',
+      description:
+        'Provide reminders about preventive health screenings and checkups based on age.',
       parameters: z.object({
         ageRange: z.enum(['under-30', '30-39', '40-49', '50-plus']).describe('Age range'),
         lastPhysical: z.string().optional().describe('When was last annual physical'),
@@ -935,12 +1048,17 @@ const assessEnergyLevelDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user assess their current energy and understand patterns.',
       parameters: z.object({
-        currentLevel: z.enum(['depleted', 'low', 'moderate', 'good', 'high']).describe('Current energy level'),
+        currentLevel: z
+          .enum(['depleted', 'low', 'moderate', 'good', 'high'])
+          .describe('Current energy level'),
         timeOfDay: z.enum(['morning', 'midday', 'afternoon', 'evening']).optional(),
         possibleFactors: z.array(z.string()).optional().describe('What might be affecting energy'),
       }),
       execute: async ({ currentLevel, timeOfDay, possibleFactors }) => {
-        getLogger().info({ agentId: ctx.agentId, currentLevel, timeOfDay }, 'Assessing energy level');
+        getLogger().info(
+          { agentId: ctx.agentId, currentLevel, timeOfDay },
+          'Assessing energy level'
+        );
 
         let response = `**Energy Check-In**\n\n`;
         response += `Current level: **${currentLevel}**`;
@@ -1002,11 +1120,16 @@ const suggestEnergyBoostDef: ToolDefinition = {
     return llm.tool({
       description: 'Suggest healthy ways to boost energy levels.',
       parameters: z.object({
-        availableTime: z.enum(['1-minute', '5-minutes', '15-minutes', '30-plus']).describe('Time available'),
+        availableTime: z
+          .enum(['1-minute', '5-minutes', '15-minutes', '30-plus'])
+          .describe('Time available'),
         setting: z.enum(['home', 'work', 'outside', 'anywhere']).optional(),
       }),
       execute: async ({ availableTime, setting }) => {
-        getLogger().info({ agentId: ctx.agentId, availableTime, setting }, 'Suggesting energy boost');
+        getLogger().info(
+          { agentId: ctx.agentId, availableTime, setting },
+          'Suggesting energy boost'
+        );
 
         let response = `**Energy Boosters** (${availableTime} available)\n\n`;
 
@@ -1096,4 +1219,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

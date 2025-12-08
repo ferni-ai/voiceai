@@ -1,28 +1,22 @@
 /**
  * Message UI Component
  *
- * Now delegates to the new world-class toast.ui.ts system.
- * This file provides backward compatibility with the old API.
+ * Uses the cute white "whisper" toast near the avatar.
+ * This is the small, elegant pill that appears just below the avatar.
  */
 
+import { TIMING } from '../config/index.js';
+import { appState, setMessage } from '../state/app.state.js';
 import type { MessageType } from '../types/events.js';
 import type { PersonaConfig } from '../types/persona.js';
-import { appState, setMessage } from '../state/app.state.js';
-import { TIMING } from '../config/index.js';
 import { getElementById, setText } from '../utils/dom.js';
-import {
-  initToastUI,
-  toastSuccess,
-  toastError,
-  toastInfo,
-  dismiss,
-} from './toast.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { hideStatusWhisper, whisperStatus } from './avatar-feedback.ui.js';
 
 const log = createLogger('MessageUI');
 
 // ============================================================================
-// ELEMENT REFERENCES (Helper text only - toasts handled by toast.ui.ts)
+// ELEMENT REFERENCES
 // ============================================================================
 
 interface MessageElements {
@@ -30,7 +24,6 @@ interface MessageElements {
 }
 
 let elements: MessageElements | null = null;
-let currentToastId: string | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -42,9 +35,6 @@ let currentToastId: string | null = null;
  */
 export function initMessageUI(): void {
   try {
-    // Initialize the new toast system
-    initToastUI();
-
     elements = {
       helper: getElementById('helperText'),
     };
@@ -52,6 +42,7 @@ export function initMessageUI(): void {
     // Set up state subscriptions
     setupSubscriptions();
 
+    log.debug('Message UI initialized (using whisper toast)');
   } catch (error) {
     log.error('Failed to initialize Message UI:', error);
   }
@@ -66,54 +57,38 @@ function setupSubscriptions(): void {
   appState.subscribe('activePersona', (persona) => {
     updateHelperText(persona);
   });
-
-  // Connection state changes - avatar feedback (no text)
-  // The toast functions now route through avatarFeedback
-  appState.subscribe('connection', (state) => {
-    // Dismiss any previous toast
-    if (currentToastId) {
-      dismiss(currentToastId);
-      currentToastId = null;
-    }
-
-    // Avatar communicates state through behavior, not text
-    if (state === 'connected') {
-      currentToastId = toastSuccess('', { duration: 2000 });
-    } else if (state === 'connecting') {
-      currentToastId = toastInfo('', { duration: 0 });
-    } else if (state === 'error') {
-      currentToastId = toastError('', { duration: 5000 });
-    }
-    // No feedback for disconnected - avatar handles it
-  });
 }
 
 // ============================================================================
-// MESSAGE DISPLAY - Delegates to toast.ui.ts
+// MESSAGE DISPLAY - Uses the cute white whisper toast near avatar
 // ============================================================================
 
 /**
- * Show a brief status message.
- * Now uses the new world-class toast system.
+ * Show a brief status message using the cute white whisper near the avatar.
+ * This is the small, elegant pill that appears just below the avatar.
  */
 export function showMessage(
   text: string,
   type: MessageType = 'info',
   duration: number = TIMING.MESSAGE_DURATION
 ): void {
-  // Dismiss previous message toast
-  if (currentToastId) {
-    dismiss(currentToastId);
+  // Skip empty messages
+  if (!text || text.trim() === '') {
+    return;
   }
 
-  // Map to new toast API
-  if (type === 'success') {
-    currentToastId = toastSuccess(text, { duration });
-  } else if (type === 'error') {
-    currentToastId = toastError(text, { duration: duration || 5000 });
-  } else {
-    currentToastId = toastInfo(text, { duration });
-  }
+  // Map MessageType to whisper type
+  const whisperType =
+    type === 'success'
+      ? 'success'
+      : type === 'error'
+        ? 'error'
+        : type === 'warning'
+          ? 'warning'
+          : 'info';
+
+  // Use the cute white whisper toast near the avatar
+  whisperStatus(text, whisperType, duration);
 
   // Update state for backward compatibility
   setMessage(text);
@@ -123,10 +98,7 @@ export function showMessage(
  * Clear the current message.
  */
 export function clearMessage(): void {
-  if (currentToastId) {
-    dismiss(currentToastId);
-    currentToastId = null;
-  }
+  hideStatusWhisper();
   setMessage(null);
 }
 
@@ -158,10 +130,7 @@ export function setHelperText(text: string): void {
  * Clean up resources.
  */
 export function dispose(): void {
-  if (currentToastId) {
-    dismiss(currentToastId);
-    currentToastId = null;
-  }
+  hideStatusWhisper();
 }
 
 // ============================================================================
@@ -175,4 +144,3 @@ export const messageUI = {
   setHelper: setHelperText,
   dispose,
 };
-

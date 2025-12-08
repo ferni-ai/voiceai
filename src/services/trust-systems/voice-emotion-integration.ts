@@ -11,10 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  detectUnsaidSignals,
-  type UnsaidSignal,
-} from './reading-between-lines.js';
+import { detectUnsaidSignals, type UnsaidSignal } from './reading-between-lines.js';
 
 const log = createLogger({ module: 'VoiceEmotionIntegration' });
 
@@ -131,9 +128,7 @@ export function detectEmotionMismatch(
   if (!claimsOkay) return null;
 
   // Check if voice contradicts
-  const voiceContradicts = CONTRADICTING_VOICE_EMOTIONS.includes(
-    voiceSignal.emotion.toLowerCase()
-  );
+  const voiceContradicts = CONTRADICTING_VOICE_EMOTIONS.includes(voiceSignal.emotion.toLowerCase());
 
   if (!voiceContradicts) return null;
 
@@ -142,10 +137,7 @@ export function detectEmotionMismatch(
   const mismatchStrength = baseWeight * voiceSignal.confidence;
 
   // Generate interpretation
-  const interpretation = generateInterpretation(
-    voiceSignal.emotion,
-    voiceSignal.characteristics
-  );
+  const interpretation = generateInterpretation(voiceSignal.emotion, voiceSignal.characteristics);
 
   log.debug(
     {
@@ -241,10 +233,7 @@ export function enhanceWithVoiceEmotion(
 
     // Boost confidence for emotional_mismatch if voice confirms
     if (signal.type === 'emotional_mismatch' && mismatch) {
-      combinedConfidence = Math.min(
-        signal.confidence + mismatch.mismatchStrength * 0.3,
-        0.98
-      );
+      combinedConfidence = Math.min(signal.confidence + mismatch.mismatchStrength * 0.3, 0.98);
 
       return {
         ...signal,
@@ -310,10 +299,7 @@ export function enhanceWithVoiceEmotion(
 /**
  * Get a phrase that acknowledges voice evidence
  */
-function getVoiceAwarePhrase(
-  signal: UnsaidSignal,
-  mismatch: EmotionMismatch
-): string {
+function getVoiceAwarePhrase(signal: UnsaidSignal, mismatch: EmotionMismatch): string {
   const phrases = [
     `I hear you saying you're fine, but... I can hear something else in your voice. You don't have to talk about it, but I'm here.`,
     `You said okay, but your voice is telling me a different story. I'm listening, if you want to share more.`,
@@ -340,10 +326,7 @@ const voicePatterns = new Map<string, VoicePattern>();
 /**
  * Update baseline voice patterns for a user
  */
-export function updateVoiceBaseline(
-  userId: string,
-  signal: VoiceEmotionSignal
-): void {
+export function updateVoiceBaseline(userId: string, signal: VoiceEmotionSignal): void {
   const existing = voicePatterns.get(userId);
 
   if (!existing) {
@@ -360,11 +343,7 @@ export function updateVoiceBaseline(
   existing.observationCount++;
 
   // Only update baseline if we have enough observations and this seems normal
-  if (
-    existing.observationCount > 5 &&
-    signal.emotion === 'neutral' &&
-    signal.confidence > 0.7
-  ) {
+  if (existing.observationCount > 5 && signal.emotion === 'neutral' && signal.confidence > 0.7) {
     if (signal.characteristics?.energy) {
       existing.baselineEnergy = signal.characteristics.energy;
     }
@@ -396,16 +375,10 @@ export function detectVoiceDeviation(
 
   // Check energy deviation
   if (signal.characteristics?.energy) {
-    if (
-      baseline.baselineEnergy === 'normal' &&
-      signal.characteristics.energy === 'low'
-    ) {
+    if (baseline.baselineEnergy === 'normal' && signal.characteristics.energy === 'low') {
       deviations.push('lower energy than usual');
       significance += 0.3;
-    } else if (
-      baseline.baselineEnergy === 'normal' &&
-      signal.characteristics.energy === 'high'
-    ) {
+    } else if (baseline.baselineEnergy === 'normal' && signal.characteristics.energy === 'high') {
       deviations.push('higher energy than usual');
       significance += 0.2;
     }
@@ -413,16 +386,10 @@ export function detectVoiceDeviation(
 
   // Check pace deviation
   if (signal.characteristics?.pace) {
-    if (
-      baseline.baselinePace === 'normal' &&
-      signal.characteristics.pace === 'slow'
-    ) {
+    if (baseline.baselinePace === 'normal' && signal.characteristics.pace === 'slow') {
       deviations.push('speaking slower than usual');
       significance += 0.25;
-    } else if (
-      baseline.baselinePace === 'normal' &&
-      signal.characteristics.pace === 'rushed'
-    ) {
+    } else if (baseline.baselinePace === 'normal' && signal.characteristics.pace === 'rushed') {
       deviations.push('speaking faster than usual');
       significance += 0.2;
     }
@@ -449,4 +416,3 @@ export default {
   updateVoiceBaseline,
   detectVoiceDeviation,
 };
-

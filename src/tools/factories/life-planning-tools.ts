@@ -289,34 +289,39 @@ async function getMilestoneProgressData(
   if (!userId) {
     return { milestones: [] };
   }
-  
+
   try {
     const lifeDataStore = await import('../../services/life-data-store.js');
     const store = lifeDataStore.getLifeDataStore();
-    
+
     // Get user's milestones from the data store
     const milestones = await store.getMilestones(userId);
-    
+
     // If milestoneId specified, filter to just that one
-    type MilestoneType = typeof milestones[0];
-    const filtered = milestoneId 
+    type MilestoneType = (typeof milestones)[0];
+    const filtered = milestoneId
       ? milestones.filter((m: MilestoneType) => m.id === milestoneId)
-      : showAll 
-        ? milestones 
-        : milestones.filter((m: MilestoneType) => m.status === 'planning' || m.status === 'in-progress');
-    
+      : showAll
+        ? milestones
+        : milestones.filter(
+            (m: MilestoneType) => m.status === 'planning' || m.status === 'in-progress'
+          );
+
     return {
       milestones: filtered.map((m: MilestoneType) => {
         // Calculate progress based on completed checklist items
         const completed = m.checklist.filter((c: { completed: boolean }) => c.completed).length;
         const total = m.checklist.length;
         const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-        
+
         // Calculate days remaining if target date exists
-        const daysRemaining = m.targetDate 
-          ? Math.max(0, Math.ceil((new Date(m.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+        const daysRemaining = m.targetDate
+          ? Math.max(
+              0,
+              Math.ceil((new Date(m.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+            )
           : undefined;
-        
+
         return {
           title: m.name,
           progress,
@@ -409,31 +414,31 @@ async function updateGoalRecord(
   userId?: string
 ): Promise<void> {
   if (!userId) return;
-  
+
   try {
     const lifeDataStore = await import('../../services/life-data-store.js');
     const store = lifeDataStore.getLifeDataStore();
-    
+
     const goal = await store.getGoal(userId, goalId);
     if (goal) {
       // Update progress
       goal.progressPercent = progress;
-      
+
       // Add notes to the goal notes field (concatenate)
       if (notes) {
-        goal.notes = goal.notes 
+        goal.notes = goal.notes
           ? `${goal.notes}\n\n[${new Date().toLocaleDateString()}] ${notes}`
           : `[${new Date().toLocaleDateString()}] ${notes}`;
       }
-      
+
       // Note: milestones are tracked via linkedMilestoneId, not directly on goal
       // If user mentions completing a milestone, log it in notes
       if (completedMilestone) {
-        goal.notes = goal.notes 
+        goal.notes = goal.notes
           ? `${goal.notes}\n\n✅ Milestone completed: ${completedMilestone}`
           : `✅ Milestone completed: ${completedMilestone}`;
       }
-      
+
       goal.updatedAt = new Date();
       await store.saveGoal(userId, goal);
     }

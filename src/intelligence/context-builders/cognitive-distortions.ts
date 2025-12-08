@@ -49,11 +49,14 @@ const CONTEXT_INJECTION_THRESHOLD = 0.65;
 const MAX_INJECTIONS_PER_TURN = 2;
 
 // Track recent cognitive work per user to avoid over-challenging
-const recentCognitiveWork = new Map<string, {
-  lastTurn: number;
-  reframeCount: number;
-  questionsAsked: string[];
-}>();
+const recentCognitiveWork = new Map<
+  string,
+  {
+    lastTurn: number;
+    reframeCount: number;
+    questionsAsked: string[];
+  }
+>();
 
 // ============================================================================
 // CONTEXT BUILDER
@@ -98,18 +101,14 @@ async function buildCognitiveDistortionsContext(
   }
 
   // Build cognitive intelligence context
-  const cognitiveResult = buildCognitiveIntelligenceContext(
-    userId,
-    userText,
-    {
-      topic: analysis?.topics?.primary || undefined,
-      emotion: analysis?.emotion?.primary,
-      emotionIntensity: analysis?.emotion?.intensity,
-      relationshipStage,
-      recentReframes: trackingState.reframeCount,
-      questionsAsked: trackingState.questionsAsked,
-    }
-  );
+  const cognitiveResult = buildCognitiveIntelligenceContext(userId, userText, {
+    topic: analysis?.topics?.primary || undefined,
+    emotion: analysis?.emotion?.primary,
+    emotionIntensity: analysis?.emotion?.intensity,
+    relationshipStage,
+    recentReframes: trackingState.reframeCount,
+    questionsAsked: trackingState.questionsAsked,
+  });
 
   // If no distortion detected, return empty
   if (!cognitiveResult.hasDistortion || !cognitiveResult.contextInjection) {
@@ -117,7 +116,7 @@ async function buildCognitiveDistortionsContext(
   }
 
   // Check if confidence is high enough
-  const primary = cognitiveResult.primary;
+  const { primary } = cognitiveResult;
   if (!primary || primary.confidence < CONTEXT_INJECTION_THRESHOLD) {
     return [];
   }
@@ -129,8 +128,10 @@ async function buildCognitiveDistortionsContext(
 
     // Update tracking state
     trackingState.lastTurn = turnCount;
-    if (cognitiveResult.response?.approach === 'socratic' || 
-        cognitiveResult.response?.approach === 'gentle_name') {
+    if (
+      cognitiveResult.response?.approach === 'socratic' ||
+      cognitiveResult.response?.approach === 'gentle_name'
+    ) {
       trackingState.reframeCount++;
       if (cognitiveResult.dialogue?.question) {
         trackingState.questionsAsked.push(cognitiveResult.dialogue.question);
@@ -174,16 +175,11 @@ function formatCognitiveInjection(
   // Use standard injection for high-confidence detections
   // Use hint injection for lower confidence
   if (primary.confidence >= 0.8) {
-    return createStandardInjection(
-      'cognitive_distortion',
-      contextInjection.llmContext
-    );
+    return createStandardInjection('cognitive_distortion', contextInjection.llmContext);
   } else {
-    return createHintInjection(
-      'cognitive_distortion',
-      contextInjection.llmContext,
-      { category: 'cognitive' }
-    );
+    return createHintInjection('cognitive_distortion', contextInjection.llmContext, {
+      category: 'cognitive',
+    });
   }
 }
 
@@ -207,4 +203,3 @@ export { buildCognitiveDistortionsContext };
 export default {
   buildCognitiveDistortionsContext,
 };
-

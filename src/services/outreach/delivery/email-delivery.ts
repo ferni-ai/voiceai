@@ -363,11 +363,15 @@ export function generatePersonaEmailHTML(
         ${formatEmailBody(options.body)}
       </div>
       
-      ${options.ctaText && options.ctaUrl ? `
+      ${
+        options.ctaText && options.ctaUrl
+          ? `
       <div class="cta-container">
         <a href="${options.ctaUrl}" class="cta-button">${options.ctaText}</a>
       </div>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Signature -->
       <div class="signature">
@@ -422,11 +426,7 @@ function getPersonaDisplayName(personaId: string): string {
 /**
  * Generate plain text version
  */
-export function generatePlainText(
-  personaId: string,
-  body: string,
-  userName?: string
-): string {
+export function generatePlainText(personaId: string, body: string, userName?: string): string {
   const personaName = getPersonaDisplayName(personaId);
   const style = PERSONA_STYLES[personaId] || PERSONA_STYLES.ferni;
 
@@ -522,7 +522,7 @@ async function sendViaSendGrid(
   const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${config!.apiKey}`,
+      Authorization: `Bearer ${config!.apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -536,9 +536,7 @@ async function sendViaSendGrid(
         email: config!.fromEmail,
         name: `${personaName} from ${config!.fromName}`,
       },
-      reply_to: config!.replyToEmail
-        ? { email: config!.replyToEmail }
-        : undefined,
+      reply_to: config!.replyToEmail ? { email: config!.replyToEmail } : undefined,
       content: [
         { type: 'text/plain', value: text },
         { type: 'text/html', value: html },
@@ -580,7 +578,7 @@ async function sendViaResend(
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${config!.apiKey}`,
+      Authorization: `Bearer ${config!.apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -792,4 +790,3 @@ export const emailDelivery = {
   generateHTML: generatePersonaEmailHTML,
   generatePlainText,
 };
-

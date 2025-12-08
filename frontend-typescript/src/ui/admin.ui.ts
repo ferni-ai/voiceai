@@ -15,6 +15,7 @@
 import { fetchAgents, type ApiAgent } from '../services/agents.service.js';
 import { getColorsFromApiOrGenerate } from '../config/persona-colors.js';
 import { createLogger } from '../utils/logger.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('AdminUI');
 
@@ -640,20 +641,7 @@ function useTemplate(templateId: string): void {
 }
 
 function showToast(message: string): void {
-  // Simple toast notification
-  const existing = document.querySelector('.admin-toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.className = 'admin-toast';
-  toast.textContent = message;
-  document.body.appendChild(toast);
-
-  setTimeout(() => toast.classList.add('show'), 10);
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 2500);
+  toast.info(message);
 }
 
 // ============================================================================
@@ -1066,26 +1054,6 @@ export function injectAdminStyles(): void {
 
     .admin-detail-actions .admin-btn {
       flex: 1;
-    }
-
-    /* Toast */
-    .admin-toast {
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      padding: 0.75rem 1.5rem;
-      background: var(--color-background-tertiary, #2d3748);
-      color: var(--color-text-primary, #fff);
-      border-radius: var(--radius-lg, 8px);
-      opacity: 0;
-      transition: all 0.3s var(--ease-standard, ease);
-      z-index: var(--z-notification);
-    }
-
-    .admin-toast.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
     }
 
     /* Loading */

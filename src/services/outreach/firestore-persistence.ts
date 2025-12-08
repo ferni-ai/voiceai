@@ -153,9 +153,7 @@ export async function saveOutreachProfile(
 /**
  * Load user outreach profile from Firestore
  */
-export async function loadOutreachProfile(
-  userId: string
-): Promise<OutreachProfileDocument | null> {
+export async function loadOutreachProfile(userId: string): Promise<OutreachProfileDocument | null> {
   if (!isFirestoreAvailable()) {
     return null;
   }
@@ -234,10 +232,13 @@ export async function updateTriggerStatus(
   }
 
   try {
-    await firestoreClient!.collection(TRIGGERS_COLLECTION).doc(triggerId).update({
-      status,
-      processedAt: status === 'sent' || status === 'failed' ? new Date() : null,
-    });
+    await firestoreClient!
+      .collection(TRIGGERS_COLLECTION)
+      .doc(triggerId)
+      .update({
+        status,
+        processedAt: status === 'sent' || status === 'failed' ? new Date() : null,
+      });
   } catch (error) {
     log.error({ error, triggerId }, 'Failed to update trigger status');
   }
@@ -761,9 +762,7 @@ export async function loadActiveABTests(): Promise<ABTestDocument[]> {
 /**
  * Save test assignment
  */
-export async function saveTestAssignment(
-  assignment: ABTestAssignmentDocument
-): Promise<void> {
+export async function saveTestAssignment(assignment: ABTestAssignmentDocument): Promise<void> {
   if (!isFirestoreAvailable()) return;
 
   try {
@@ -775,7 +774,10 @@ export async function saveTestAssignment(
 
     await ref.set(assignment);
   } catch (error) {
-    log.error({ error, testId: assignment.testId, userId: assignment.userId }, 'Failed to save test assignment');
+    log.error(
+      { error, testId: assignment.testId, userId: assignment.userId },
+      'Failed to save test assignment'
+    );
   }
 }
 
@@ -806,10 +808,7 @@ export async function loadTestAssignment(
 /**
  * Record conversion for A/B test
  */
-export async function recordTestConversion(
-  testId: string,
-  userId: string
-): Promise<void> {
+export async function recordTestConversion(testId: string, userId: string): Promise<void> {
   if (!isFirestoreAvailable()) return;
 
   try {
@@ -870,4 +869,3 @@ export default {
   // Analytics
   getOutreachStats,
 };
-

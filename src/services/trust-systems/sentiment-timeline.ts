@@ -88,15 +88,15 @@ export interface SentimentTimeline {
   dailySummaries: DailyMoodSummary[];
   trends: TimelineTrend[];
   peaks: EmotionalPeak[];
-  
+
   // Current state
   currentMood: EmotionalSnapshot | null;
   baselineValence: number;
   baselineArousal: number;
-  
+
   // Insights
   patterns: EmotionalPattern[];
-  
+
   lastUpdated: Date;
 }
 
@@ -157,11 +157,11 @@ export function recordEmotionalSnapshot(
   snapshot: Omit<EmotionalSnapshot, 'id' | 'timestamp' | 'valence' | 'arousal'>
 ): EmotionalSnapshot {
   const timeline = getOrCreateTimeline(userId);
-  
+
   // Calculate valence and arousal
   const valence = calculateValence(snapshot.primaryEmotion, snapshot.intensity);
   const arousal = calculateArousal(snapshot.primaryEmotion, snapshot.intensity);
-  
+
   const fullSnapshot: EmotionalSnapshot = {
     ...snapshot,
     id: `snap-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -169,34 +169,37 @@ export function recordEmotionalSnapshot(
     valence,
     arousal,
   };
-  
+
   timeline.snapshots.push(fullSnapshot);
   timeline.currentMood = fullSnapshot;
-  
+
   // Update daily summary
   updateDailySummary(timeline, fullSnapshot);
-  
+
   // Update baseline if stable
   updateBaseline(timeline);
-  
+
   // Detect peaks/valleys
   detectPeaksValleys(timeline);
-  
+
   // Update trends
   updateTrends(timeline);
-  
+
   // Detect patterns
   detectPatterns(timeline);
-  
+
   timeline.lastUpdated = new Date();
-  
-  log.debug({
-    userId,
-    emotion: snapshot.primaryEmotion,
-    valence,
-    arousal,
-  }, '💭 Emotional snapshot recorded');
-  
+
+  log.debug(
+    {
+      userId,
+      emotion: snapshot.primaryEmotion,
+      valence,
+      arousal,
+    },
+    '💭 Emotional snapshot recorded'
+  );
+
   return fullSnapshot;
 }
 
@@ -219,17 +222,12 @@ function calculateArousal(emotion: EmotionCategory, intensity: number): number {
 /**
  * Update daily summary
  */
-function updateDailySummary(
-  timeline: SentimentTimeline,
-  snapshot: EmotionalSnapshot
-): void {
+function updateDailySummary(timeline: SentimentTimeline, snapshot: EmotionalSnapshot): void {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
-  let summary = timeline.dailySummaries.find(
-    s => s.date.getTime() === today.getTime()
-  );
-  
+
+  let summary = timeline.dailySummaries.find((s) => s.date.getTime() === today.getTime());
+
   if (!summary) {
     summary = {
       date: today,
@@ -241,17 +239,17 @@ function updateDailySummary(
     };
     timeline.dailySummaries.push(summary);
   }
-  
+
   // Update averages
   const prevCount = summary.snapshotCount;
   summary.snapshotCount++;
   summary.avgValence = (summary.avgValence * prevCount + snapshot.valence) / summary.snapshotCount;
   summary.avgArousal = (summary.avgArousal * prevCount + snapshot.arousal) / summary.snapshotCount;
-  
+
   // Update distribution
   summary.emotionDistribution[snapshot.primaryEmotion] =
     (summary.emotionDistribution[snapshot.primaryEmotion] || 0) + 1;
-  
+
   // Find dominant emotion
   let maxCount = 0;
   for (const [emotion, count] of Object.entries(summary.emotionDistribution)) {
@@ -268,16 +266,18 @@ function updateDailySummary(
 function updateBaseline(timeline: SentimentTimeline): void {
   const recentSnapshots = timeline.snapshots.slice(-50);
   if (recentSnapshots.length < 10) return;
-  
+
   // Calculate variance to check for stability
-  const valences = recentSnapshots.map(s => s.valence);
+  const valences = recentSnapshots.map((s) => s.valence);
   const avgValence = valences.reduce((a, b) => a + b, 0) / valences.length;
-  const variance = valences.reduce((sum, v) => sum + Math.pow(v - avgValence, 2), 0) / valences.length;
-  
+  const variance =
+    valences.reduce((sum, v) => sum + Math.pow(v - avgValence, 2), 0) / valences.length;
+
   // Only update baseline if relatively stable
   if (variance < 0.2) {
     timeline.baselineValence = avgValence;
-    timeline.baselineArousal = recentSnapshots.map(s => s.arousal).reduce((a, b) => a + b, 0) / recentSnapshots.length;
+    timeline.baselineArousal =
+      recentSnapshots.map((s) => s.arousal).reduce((a, b) => a + b, 0) / recentSnapshots.length;
   }
 }
 
@@ -287,22 +287,22 @@ function updateBaseline(timeline: SentimentTimeline): void {
 function detectPeaksValleys(timeline: SentimentTimeline): void {
   const summaries = timeline.dailySummaries.slice(-30);
   if (summaries.length < 7) return;
-  
+
   const baseline = timeline.baselineValence;
   const threshold = 0.3; // Deviation from baseline
-  
+
   // Look for significant deviations
   for (let i = 1; i < summaries.length - 1; i++) {
     const prev = summaries[i - 1].avgValence;
     const curr = summaries[i].avgValence;
     const next = summaries[i + 1].avgValence;
-    
+
     // Local maximum (peak)
     if (curr > prev && curr > next && curr > baseline + threshold) {
       const existingPeak = timeline.peaks.find(
-        p => p.date.getTime() === summaries[i].date.getTime()
+        (p) => p.date.getTime() === summaries[i].date.getTime()
       );
-      
+
       if (!existingPeak) {
         timeline.peaks.push({
           type: 'peak',
@@ -314,13 +314,13 @@ function detectPeaksValleys(timeline: SentimentTimeline): void {
         });
       }
     }
-    
+
     // Local minimum (valley)
     if (curr < prev && curr < next && curr < baseline - threshold) {
       const existingValley = timeline.peaks.find(
-        p => p.date.getTime() === summaries[i].date.getTime()
+        (p) => p.date.getTime() === summaries[i].date.getTime()
       );
-      
+
       if (!existingValley) {
         timeline.peaks.push({
           type: 'valley',
@@ -333,7 +333,7 @@ function detectPeaksValleys(timeline: SentimentTimeline): void {
       }
     }
   }
-  
+
   // Keep only last 20 peaks/valleys
   timeline.peaks = timeline.peaks.slice(-20);
 }
@@ -347,32 +347,35 @@ function updateTrends(timeline: SentimentTimeline): void {
     { name: 'month', days: 30 },
     { name: 'quarter', days: 90 },
   ];
-  
+
   timeline.trends = [];
-  
+
   for (const period of periods) {
     const cutoff = new Date(Date.now() - period.days * 24 * 60 * 60 * 1000);
-    const periodSummaries = timeline.dailySummaries.filter(s => s.date >= cutoff);
-    
+    const periodSummaries = timeline.dailySummaries.filter((s) => s.date >= cutoff);
+
     if (periodSummaries.length < 3) continue;
-    
-    const valences = periodSummaries.map(s => s.avgValence);
-    const startValence = valences.slice(0, Math.ceil(valences.length / 3))
-      .reduce((a, b) => a + b, 0) / Math.ceil(valences.length / 3);
-    const endValence = valences.slice(-Math.ceil(valences.length / 3))
-      .reduce((a, b) => a + b, 0) / Math.ceil(valences.length / 3);
-    
+
+    const valences = periodSummaries.map((s) => s.avgValence);
+    const startValence =
+      valences.slice(0, Math.ceil(valences.length / 3)).reduce((a, b) => a + b, 0) /
+      Math.ceil(valences.length / 3);
+    const endValence =
+      valences.slice(-Math.ceil(valences.length / 3)).reduce((a, b) => a + b, 0) /
+      Math.ceil(valences.length / 3);
+
     const change = endValence - startValence;
-    
+
     // Calculate volatility
     const avgValence = valences.reduce((a, b) => a + b, 0) / valences.length;
-    const variance = valences.reduce((sum, v) => sum + Math.pow(v - avgValence, 2), 0) / valences.length;
+    const variance =
+      valences.reduce((sum, v) => sum + Math.pow(v - avgValence, 2), 0) / valences.length;
     const volatility = Math.min(1, Math.sqrt(variance) * 2);
-    
+
     let direction: 'improving' | 'stable' | 'declining' = 'stable';
     if (change > 0.15) direction = 'improving';
     else if (change < -0.15) direction = 'declining';
-    
+
     timeline.trends.push({
       period: period.name,
       startValence,
@@ -389,19 +392,19 @@ function updateTrends(timeline: SentimentTimeline): void {
  */
 function detectPatterns(timeline: SentimentTimeline): void {
   const patterns: EmotionalPattern[] = [];
-  
+
   // Day of week pattern
   const dayPatterns = detectDayOfWeekPattern(timeline);
   if (dayPatterns) patterns.push(dayPatterns);
-  
+
   // Recurring emotional triggers
   const triggerPatterns = detectTriggerPatterns(timeline);
   patterns.push(...triggerPatterns);
-  
+
   // Growth pattern (improving baseline over time)
   const growthPattern = detectGrowthPattern(timeline);
   if (growthPattern) patterns.push(growthPattern);
-  
+
   timeline.patterns = patterns;
 }
 
@@ -410,29 +413,29 @@ function detectPatterns(timeline: SentimentTimeline): void {
  */
 function detectDayOfWeekPattern(timeline: SentimentTimeline): EmotionalPattern | null {
   const dayValences: number[][] = [[], [], [], [], [], [], []];
-  
+
   for (const summary of timeline.dailySummaries) {
     const day = summary.date.getDay();
     dayValences[day].push(summary.avgValence);
   }
-  
-  const dayAvgs = dayValences.map(vals => 
+
+  const dayAvgs = dayValences.map((vals) =>
     vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null
   );
-  
+
   // Find significant differences
-  const nonNullAvgs = dayAvgs.filter(v => v !== null) as number[];
+  const nonNullAvgs = dayAvgs.filter((v) => v !== null) as number[];
   if (nonNullAvgs.length < 5) return null;
-  
+
   const overall = nonNullAvgs.reduce((a, b) => a + b, 0) / nonNullAvgs.length;
-  
+
   let worstDay = -1;
   let worstDiff = 0;
   let bestDay = -1;
   let bestDiff = 0;
-  
+
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  
+
   dayAvgs.forEach((avg, i) => {
     if (avg === null) return;
     const diff = avg - overall;
@@ -445,12 +448,13 @@ function detectDayOfWeekPattern(timeline: SentimentTimeline): EmotionalPattern |
       bestDay = i;
     }
   });
-  
+
   if (worstDiff < -0.2 || bestDiff > 0.2) {
-    const description = worstDiff < -0.2
-      ? `${dayNames[worstDay]}s tend to be harder days`
-      : `${dayNames[bestDay]}s tend to be your best days`;
-    
+    const description =
+      worstDiff < -0.2
+        ? `${dayNames[worstDay]}s tend to be harder days`
+        : `${dayNames[bestDay]}s tend to be your best days`;
+
     return {
       id: `pattern-dow-${Date.now()}`,
       type: 'cyclical',
@@ -459,7 +463,7 @@ function detectDayOfWeekPattern(timeline: SentimentTimeline): EmotionalPattern |
       confidence: Math.min(1, Math.abs(worstDiff < -0.2 ? worstDiff : bestDiff) * 2),
     };
   }
-  
+
   return null;
 }
 
@@ -469,21 +473,21 @@ function detectDayOfWeekPattern(timeline: SentimentTimeline): EmotionalPattern |
 function detectTriggerPatterns(timeline: SentimentTimeline): EmotionalPattern[] {
   const patterns: EmotionalPattern[] = [];
   const triggerCounts = new Map<string, { positive: number; negative: number }>();
-  
+
   for (const snapshot of timeline.snapshots) {
     const trigger = snapshot.context?.trigger || snapshot.context?.topic;
     if (!trigger) continue;
-    
+
     const entry = triggerCounts.get(trigger) || { positive: 0, negative: 0 };
     if (snapshot.valence > 0.3) entry.positive++;
     else if (snapshot.valence < -0.3) entry.negative++;
     triggerCounts.set(trigger, entry);
   }
-  
+
   for (const [trigger, counts] of triggerCounts) {
     const total = counts.positive + counts.negative;
     if (total < 3) continue;
-    
+
     if (counts.negative > counts.positive * 2 && counts.negative >= 3) {
       patterns.push({
         id: `pattern-trigger-${trigger}-${Date.now()}`,
@@ -494,7 +498,7 @@ function detectTriggerPatterns(timeline: SentimentTimeline): EmotionalPattern[] 
       });
     }
   }
-  
+
   return patterns;
 }
 
@@ -503,10 +507,10 @@ function detectTriggerPatterns(timeline: SentimentTimeline): EmotionalPattern[] 
  */
 function detectGrowthPattern(timeline: SentimentTimeline): EmotionalPattern | null {
   if (timeline.dailySummaries.length < 30) return null;
-  
-  const monthTrend = timeline.trends.find(t => t.period === 'month');
-  const quarterTrend = timeline.trends.find(t => t.period === 'quarter');
-  
+
+  const monthTrend = timeline.trends.find((t) => t.period === 'month');
+  const quarterTrend = timeline.trends.find((t) => t.period === 'quarter');
+
   if (monthTrend?.direction === 'improving' && quarterTrend?.direction === 'improving') {
     return {
       id: `pattern-growth-${Date.now()}`,
@@ -515,7 +519,7 @@ function detectGrowthPattern(timeline: SentimentTimeline): EmotionalPattern | nu
       confidence: Math.min(1, (monthTrend.change + (quarterTrend?.change || 0)) * 2),
     };
   }
-  
+
   return null;
 }
 
@@ -524,7 +528,7 @@ function detectGrowthPattern(timeline: SentimentTimeline): EmotionalPattern | nu
  */
 function getOrCreateTimeline(userId: string): SentimentTimeline {
   let timeline = timelines.get(userId);
-  
+
   if (!timeline) {
     timeline = {
       userId,
@@ -540,7 +544,7 @@ function getOrCreateTimeline(userId: string): SentimentTimeline {
     };
     timelines.set(userId, timeline);
   }
-  
+
   return timeline;
 }
 
@@ -561,39 +565,36 @@ export function getTimeline(userId: string): SentimentTimeline | null {
 export function getCurrentMoodContext(userId: string): string | null {
   const timeline = timelines.get(userId);
   if (!timeline?.currentMood) return null;
-  
+
   const mood = timeline.currentMood;
   const deviation = mood.valence - timeline.baselineValence;
-  
+
   const parts: string[] = [];
-  
+
   // Current state
   parts.push(`Current: ${mood.primaryEmotion}`);
-  
+
   // Deviation from baseline
   if (Math.abs(deviation) > 0.2) {
     parts.push(deviation > 0 ? 'above baseline' : 'below baseline');
   }
-  
+
   // Recent trend
-  const weekTrend = timeline.trends.find(t => t.period === 'week');
+  const weekTrend = timeline.trends.find((t) => t.period === 'week');
   if (weekTrend) {
     parts.push(`week: ${weekTrend.direction}`);
   }
-  
+
   return parts.join(' • ');
 }
 
 /**
  * Get recent peaks and valleys
  */
-export function getRecentPeaksValleys(
-  userId: string,
-  limit = 5
-): EmotionalPeak[] {
+export function getRecentPeaksValleys(userId: string, limit = 5): EmotionalPeak[] {
   const timeline = timelines.get(userId);
   if (!timeline) return [];
-  
+
   return timeline.peaks.slice(-limit);
 }
 
@@ -603,8 +604,8 @@ export function getRecentPeaksValleys(
 export function getInsightfulPatterns(userId: string): EmotionalPattern[] {
   const timeline = timelines.get(userId);
   if (!timeline) return [];
-  
-  return timeline.patterns.filter(p => p.confidence > 0.5);
+
+  return timeline.patterns.filter((p) => p.confidence > 0.5);
 }
 
 /**
@@ -621,20 +622,20 @@ export function exportTimelineData(
 } | null {
   const timeline = timelines.get(userId);
   if (!timeline) return null;
-  
+
   const periodDays = {
     week: 7,
     month: 30,
     quarter: 90,
     all: 365 * 10,
   };
-  
+
   const cutoff = new Date(Date.now() - periodDays[period] * 24 * 60 * 60 * 1000);
-  
+
   return {
-    summaries: timeline.dailySummaries.filter(s => s.date >= cutoff),
+    summaries: timeline.dailySummaries.filter((s) => s.date >= cutoff),
     trends: timeline.trends,
-    peaks: timeline.peaks.filter(p => p.date >= cutoff),
+    peaks: timeline.peaks.filter((p) => p.date >= cutoff),
     patterns: timeline.patterns,
   };
 }
@@ -645,26 +646,28 @@ export function exportTimelineData(
 export function generateTimelineSummary(userId: string): string | null {
   const timeline = timelines.get(userId);
   if (!timeline || timeline.dailySummaries.length < 7) return null;
-  
+
   const sections: string[] = [];
-  
+
   sections.push('[EMOTIONAL CONTEXT]');
-  
+
   // Current state
   if (timeline.currentMood) {
     sections.push(`Current mood: ${timeline.currentMood.primaryEmotion}`);
   }
-  
+
   // Trends
   for (const trend of timeline.trends) {
-    sections.push(`${trend.period}: ${trend.direction}${trend.volatility > 0.5 ? ' (volatile)' : ''}`);
+    sections.push(
+      `${trend.period}: ${trend.direction}${trend.volatility > 0.5 ? ' (volatile)' : ''}`
+    );
   }
-  
+
   // Patterns
-  for (const pattern of timeline.patterns.filter(p => p.confidence > 0.6)) {
+  for (const pattern of timeline.patterns.filter((p) => p.confidence > 0.6)) {
     sections.push(`Pattern: ${pattern.description}`);
   }
-  
+
   return sections.join('\n');
 }
 
@@ -681,4 +684,3 @@ export default {
   exportTimelineData,
   generateTimelineSummary,
 };
-

@@ -13,11 +13,7 @@
  */
 
 // Export types
-export type {
-  AppointmentType,
-  AppointmentStatus,
-  ScheduledAppointment,
-} from './types.js';
+export type { AppointmentType, AppointmentStatus, ScheduledAppointment } from './types.js';
 
 // Export core appointment functions
 export {

@@ -49,7 +49,9 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Peter',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
@@ -81,19 +83,19 @@ describe('Creativity & Hobbies Domain Tools', () => {
     });
 
     it('should have trackCreativeProject tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'trackCreativeProject');
+      const tool = toolDefinitions.find((t) => t.id === 'trackCreativeProject');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('creativity');
     });
 
     it('should have navigateCreativeBlock tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'navigateCreativeBlock');
+      const tool = toolDefinitions.find((t) => t.id === 'navigateCreativeBlock');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('creativity');
     });
 
     it('should have exploreNewHobby tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'exploreNewHobby');
+      const tool = toolDefinitions.find((t) => t.id === 'exploreNewHobby');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('creativity');
     });
@@ -101,7 +103,7 @@ describe('Creativity & Hobbies Domain Tools', () => {
 
   describe('trackCreativeProject', () => {
     it('should track a creative project', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackCreativeProject');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackCreativeProject');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -117,7 +119,7 @@ describe('Creativity & Hobbies Domain Tools', () => {
     });
 
     it('should celebrate completed projects', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackCreativeProject');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackCreativeProject');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -132,7 +134,7 @@ describe('Creativity & Hobbies Domain Tools', () => {
 
   describe('navigateCreativeBlock', () => {
     it('should help navigate creative block', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'navigateCreativeBlock');
+      const toolDef = toolDefinitions.find((t) => t.id === 'navigateCreativeBlock');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -145,7 +147,7 @@ describe('Creativity & Hobbies Domain Tools', () => {
     });
 
     it('should address perfectionism block', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'navigateCreativeBlock');
+      const toolDef = toolDefinitions.find((t) => t.id === 'navigateCreativeBlock');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -159,7 +161,7 @@ describe('Creativity & Hobbies Domain Tools', () => {
 
   describe('exploreNewHobby', () => {
     it('should suggest hobbies based on interests', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'exploreNewHobby');
+      const toolDef = toolDefinitions.find((t) => t.id === 'exploreNewHobby');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -174,7 +176,7 @@ describe('Creativity & Hobbies Domain Tools', () => {
 
   describe('findInspiration', () => {
     it('should find creative inspiration', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'findInspiration');
+      const toolDef = toolDefinitions.find((t) => t.id === 'findInspiration');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -188,7 +190,7 @@ describe('Creativity & Hobbies Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackCreativeProject');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackCreativeProject');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -202,7 +204,7 @@ describe('Creativity & Hobbies Domain Tools', () => {
     });
 
     it('should provide inspiring creative guidance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'navigateCreativeBlock');
+      const toolDef = toolDefinitions.find((t) => t.id === 'navigateCreativeBlock');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -215,4 +217,3 @@ describe('Creativity & Hobbies Domain Tools', () => {
     });
   });
 });
-

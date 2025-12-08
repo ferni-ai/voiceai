@@ -12,11 +12,7 @@ import { detectLifeEvents, saveEvent } from '../life-events.js';
 import { calculateHealthScore, getHealthScore } from '../relationship-health.js';
 import { generateStarters } from '../conversation-starters.js';
 import { recordWin, generateCelebrations } from '../celebration-momentum.js';
-import {
-  onSessionStart,
-  onSessionEnd,
-  saveTrustProfiles,
-} from '../persistence.js';
+import { onSessionStart, onSessionEnd, saveTrustProfiles } from '../persistence.js';
 
 describe('Trust Systems E2E', () => {
   describe('New User Journey', () => {
@@ -35,10 +31,7 @@ describe('Trust Systems E2E', () => {
       });
 
       // 3. User mentions future event
-      const detections = detectLifeEvents(
-        newUserId,
-        "I have a big presentation next week"
-      );
+      const detections = detectLifeEvents(newUserId, 'I have a big presentation next week');
 
       for (const detection of detections) {
         if (detection.detected && detection.event) {
@@ -105,7 +98,7 @@ describe('Trust Systems E2E', () => {
 
       // 4. User reports a win (using valid WinType 'courage_moment')
       recordWin(returningUserId, {
-        type: 'courage_moment',  // Valid WinType
+        type: 'courage_moment', // Valid WinType
         description: 'Spoke up in meeting',
         tags: ['work', 'growth'],
       });
@@ -177,7 +170,7 @@ describe('Trust Systems E2E', () => {
       saveEvent({
         userId: eventUserId,
         id: 'job-interview-event',
-        type: 'appointment',  // Valid EventType (not 'interview')
+        type: 'appointment', // Valid EventType (not 'interview')
         description: 'Job interview at TechCorp',
         date: nextWeek,
         importance: 'high',
@@ -197,7 +190,12 @@ describe('Trust Systems E2E', () => {
       const starters = generateStarters({
         userId: eventUserId,
         upcomingEvents: [
-          { id: 'job-interview-event', description: 'Job interview', date: nextWeek, type: 'appointment' as const }
+          {
+            id: 'job-interview-event',
+            description: 'Job interview',
+            date: nextWeek,
+            type: 'appointment' as const,
+          },
         ],
       });
 
@@ -217,7 +215,7 @@ describe('Trust Systems E2E', () => {
 
         // Record a win each session
         recordWin(growthUserId, {
-          type: 'followed_through',  // Valid WinType
+          type: 'followed_through', // Valid WinType
           description: `Kept commitment #${session + 1}`,
           tags: ['consistency'],
         });
@@ -269,4 +267,3 @@ describe('Trust Systems E2E', () => {
     });
   });
 });
-

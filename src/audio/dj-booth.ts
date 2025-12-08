@@ -27,10 +27,7 @@ import {
   type MusicPreferences,
   type DJEnhancementController,
 } from './dj-enhancements.js';
-import {
-  getMusicAppreciationComment,
-  getReadTheRoomAction,
-} from '../services/dj-service.js';
+import { getMusicAppreciationComment, getReadTheRoomAction } from '../services/dj-service.js';
 
 const log = getLogger();
 
@@ -118,7 +115,7 @@ export class DJBooth {
   private config: DJBoothConfig;
   private state: DJBoothState;
   private volumeFadeInterval: ReturnType<typeof setInterval> | null = null;
-  private scheduledTimers: ReturnType<typeof setTimeout>[] = [];
+  private scheduledTimers: Array<ReturnType<typeof setTimeout>> = [];
   private lastAppreciationTime = 0;
   private lastCheckInTime = 0;
   private djEnhancements: DJEnhancementController | null = null;
@@ -840,4 +837,3 @@ export default {
   resetDJBooth,
   DJBooth,
 };
-

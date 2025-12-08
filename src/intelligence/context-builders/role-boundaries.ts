@@ -242,11 +242,10 @@ DO NOT try to answer this yourself. Instead:
 YOU ARE ${currentPersonaName}. Stay in your lane. ${correctPersonaName} handles this.`;
 
     injections.push(
-      createCriticalInjection(
-        'role_boundary_violation',
-        boundaryGuidance,
-        { category: 'boundary', confidence: violation.confidence }
-      )
+      createCriticalInjection('role_boundary_violation', boundaryGuidance, {
+        category: 'boundary',
+        confidence: violation.confidence,
+      })
     );
 
     log.info(
@@ -269,9 +268,4 @@ YOU ARE ${currentPersonaName}. Stay in your lane. ${correctPersonaName} handles 
 
 registerContextBuilder(roleBoundaryBuilder);
 
-export {
-  roleBoundaryBuilder,
-  detectBoundaryViolation,
-  DOMAIN_OWNERSHIP,
-  type BoundaryViolation,
-};
+export { roleBoundaryBuilder, detectBoundaryViolation, DOMAIN_OWNERSHIP, type BoundaryViolation };

@@ -33,17 +33,17 @@ const LEARNING_PRINCIPLES = {
     explanation: 'Spacing out practice over time beats cramming',
     application: 'Review at increasing intervals: 1 day, 3 days, 1 week, 2 weeks, 1 month',
   },
-  'interleaving': {
+  interleaving: {
     principle: 'Interleaving',
     explanation: 'Mixing different topics/skills improves learning more than blocking',
-    application: "Instead of AAA BBB CCC, practice ABC ABC ABC",
+    application: 'Instead of AAA BBB CCC, practice ABC ABC ABC',
   },
-  'elaboration': {
+  elaboration: {
     principle: 'Elaboration',
     explanation: 'Connecting new information to what you know makes it stick',
     application: 'Ask "why?" and "how does this connect to X?"',
   },
-  'generation': {
+  generation: {
     principle: 'Generation Effect',
     explanation: 'Creating your own examples and explanations beats receiving them',
     application: 'Explain concepts in your own words. Create your own examples.',
@@ -245,7 +245,10 @@ const planStudySessionDef: ToolDefinition = {
         energy: z.enum(['low', 'medium', 'high']).optional(),
       }),
       execute: async ({ subject, timeAvailable, goal, energy }) => {
-        getLogger().info({ agentId: ctx.agentId, subject, timeAvailable }, 'Planning study session');
+        getLogger().info(
+          { agentId: ctx.agentId, subject, timeAvailable },
+          'Planning study session'
+        );
 
         let response = `**Study Session Plan**\n\n`;
         response += `**Subject:** ${subject}\n`;
@@ -442,7 +445,9 @@ const recommendResourceDef: ToolDefinition = {
       description: 'Help find learning resources based on topic and preferences.',
       parameters: z.object({
         topic: z.string().describe('What to learn'),
-        format: z.enum(['books', 'courses', 'videos', 'podcasts', 'all']).describe('Preferred format'),
+        format: z
+          .enum(['books', 'courses', 'videos', 'podcasts', 'all'])
+          .describe('Preferred format'),
         level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
         style: z.enum(['structured', 'self-paced', 'interactive', 'any']).optional(),
       }),
@@ -536,7 +541,7 @@ const trackBooksReadDef: ToolDefinition = {
           if (rating) response += `**Rating:** ${'⭐'.repeat(rating)}\n`;
           if (keyTakeaways?.length) {
             response += `\n**Key Takeaways:**\n`;
-            keyTakeaways.forEach((t, i) => response += `${i + 1}. ${t}\n`);
+            keyTakeaways.forEach((t, i) => (response += `${i + 1}. ${t}\n`));
           }
           response += `\n---\n\n`;
           response += `Great! Capturing key takeaways is how books become lasting knowledge.\n\n`;
@@ -584,15 +589,17 @@ const overcomeLearningBlockDef: ToolDefinition = {
     return llm.tool({
       description: 'Help overcome obstacles to learning.',
       parameters: z.object({
-        block: z.enum([
-          'procrastination',
-          'overwhelm',
-          'confusion',
-          'boredom',
-          'lack-of-time',
-          'imposter-syndrome',
-          'plateau',
-        ]).describe('Type of block'),
+        block: z
+          .enum([
+            'procrastination',
+            'overwhelm',
+            'confusion',
+            'boredom',
+            'lack-of-time',
+            'imposter-syndrome',
+            'plateau',
+          ])
+          .describe('Type of block'),
         subject: z.string().optional().describe('What they are trying to learn'),
       }),
       execute: async ({ block, subject }) => {
@@ -712,4 +719,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

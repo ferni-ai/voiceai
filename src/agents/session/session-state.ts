@@ -268,10 +268,7 @@ export function updateResponseTracking(
 /**
  * Update bundle state
  */
-export function updateBundle(
-  state: SessionState,
-  updates: Partial<BundleState>
-): SessionState {
+export function updateBundle(state: SessionState, updates: Partial<BundleState>): SessionState {
   return {
     ...state,
     bundle: { ...state.bundle, ...updates },
@@ -281,10 +278,7 @@ export function updateBundle(
 /**
  * Update timing state
  */
-export function updateTiming(
-  state: SessionState,
-  updates: Partial<TimingState>
-): SessionState {
+export function updateTiming(state: SessionState, updates: Partial<TimingState>): SessionState {
   return {
     ...state,
     timing: { ...state.timing, ...updates },
@@ -294,10 +288,7 @@ export function updateTiming(
 /**
  * Record a story being shared
  */
-export function recordStoryShared(
-  state: SessionState,
-  storyId: string
-): SessionState {
+export function recordStoryShared(state: SessionState, storyId: string): SessionState {
   return {
     ...state,
     conversation: {
@@ -311,10 +302,7 @@ export function recordStoryShared(
 /**
  * Record that a memory was referenced (to prevent repetition)
  */
-export function recordMemoryReferenced(
-  state: SessionState,
-  memoryKey: string
-): SessionState {
+export function recordMemoryReferenced(state: SessionState, memoryKey: string): SessionState {
   const newReferencedMemories = new Set(state.conversation.referencedMemories);
   newReferencedMemories.add(memoryKey);
   return {
@@ -880,11 +868,13 @@ export class SessionStateManager {
 
     // Restore emotional state
     manager.state = updateEmotional(manager.state, {
-      lastEmotionAnalysis: userData.lastEmotionAnalysis as EmotionalSessionState['lastEmotionAnalysis'],
+      lastEmotionAnalysis:
+        userData.lastEmotionAnalysis as EmotionalSessionState['lastEmotionAnalysis'],
       voiceEmotion: userData.voiceEmotion as VoiceEmotionResult | undefined,
       emotionModulation: userData.emotionModulation as VoiceEmotionModulation | undefined,
       lastMood: userData.lastMood as MoodState | undefined,
-      previousRelationshipStage: userData.previousRelationshipStage as EmotionalSessionState['previousRelationshipStage'],
+      previousRelationshipStage:
+        userData.previousRelationshipStage as EmotionalSessionState['previousRelationshipStage'],
     });
 
     // Restore response tracking
@@ -951,4 +941,3 @@ export function createSessionStateManager(
 ): SessionStateManager {
   return new SessionStateManager(sessionId, personaId, options);
 }
-

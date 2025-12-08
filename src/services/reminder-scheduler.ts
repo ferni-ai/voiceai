@@ -356,52 +356,72 @@ export async function createVoiceMessage(params: {
 
   voiceMessageStore.set(voiceMessage.id, voiceMessage);
 
-  getLogger().info({ voiceMessageId: voiceMessage.id }, '🎤 Voice message generating with Cartesia TTS');
+  getLogger().info(
+    { voiceMessageId: voiceMessage.id },
+    '🎤 Voice message generating with Cartesia TTS'
+  );
 
   try {
     // Generate audio with Cartesia TTS
     const { generateAlexVoice } = await import('./voice-call.js');
     const audioBuffer = await generateAlexVoice(params.message);
-    
+
     if (audioBuffer) {
       // Try to upload to GCS for public URL
-      const GCS_BUCKET = process.env.GCS_VOICE_BUCKET || 
+      const GCS_BUCKET =
+        process.env.GCS_VOICE_BUCKET ||
         (process.env.GOOGLE_CLOUD_PROJECT ? `${process.env.GOOGLE_CLOUD_PROJECT}-voice-audio` : '');
-      
+
       if (GCS_BUCKET) {
         try {
           const gcs = await import('@google-cloud/storage');
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const Storage = (gcs as any).Storage || (gcs as any).default?.Storage;
+
+          interface GcsModule {
+            Storage?: new () => any;
+            default?: { Storage?: new () => any };
+          }
+          const Storage = (gcs as GcsModule).Storage || (gcs as GcsModule).default?.Storage;
           if (Storage) {
             const storage = new Storage();
             const bucket = storage.bucket(GCS_BUCKET);
             const filename = `voice-messages/${voiceMessage.id}.mp3`;
             const file = bucket.file(filename);
-            
+
             await file.save(audioBuffer, {
               metadata: { contentType: 'audio/mpeg' },
               public: true,
             });
-            
+
             voiceMessage.audioUrl = `https://storage.googleapis.com/${GCS_BUCKET}/${filename}`;
-            getLogger().info({ voiceMessageId: voiceMessage.id, audioUrl: voiceMessage.audioUrl }, '🎤 Voice message uploaded to GCS');
+            getLogger().info(
+              { voiceMessageId: voiceMessage.id, audioUrl: voiceMessage.audioUrl },
+              '🎤 Voice message uploaded to GCS'
+            );
           }
         } catch (gcsError) {
-          getLogger().warn({ error: String(gcsError) }, 'GCS upload failed, voice message will be text-only');
+          getLogger().warn(
+            { error: String(gcsError) },
+            'GCS upload failed, voice message will be text-only'
+          );
         }
       }
-      
+
       voiceMessage.status = 'ready';
     } else {
-      getLogger().warn({ voiceMessageId: voiceMessage.id }, 'Cartesia TTS failed, marking as ready for text fallback');
+      getLogger().warn(
+        { voiceMessageId: voiceMessage.id },
+        'Cartesia TTS failed, marking as ready for text fallback'
+      );
       voiceMessage.status = 'ready';
     }
   } catch (error) {
-    getLogger().error({ error: String(error), voiceMessageId: voiceMessage.id }, 'Voice message generation failed');
+    getLogger().error(
+      { error: String(error), voiceMessageId: voiceMessage.id },
+      'Voice message generation failed'
+    );
     voiceMessage.status = 'failed';
   }
-  
+
   voiceMessageStore.set(voiceMessage.id, voiceMessage);
   return voiceMessage;
 }
@@ -421,7 +441,7 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
   }
 
   if (voiceMessage.status === 'failed') {
-    return "I had trouble generating that voice message. Let me try again.";
+    return 'I had trouble generating that voice message. Let me try again.';
   }
 
   // If we have an audio URL, send via MMS
@@ -431,11 +451,11 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
       const accountSid = process.env.TWILIO_ACCOUNT_SID;
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
-      
+
       if (accountSid && authToken && fromNumber) {
         const cleanPhone = toPhone.replace(/\D/g, '');
         const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
-        
+
         const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
         const response = await fetch(
           `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
@@ -453,12 +473,15 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
             }),
           }
         );
-        
+
         if (response.ok) {
           voiceMessage.status = 'sent';
           voiceMessage.deliveredAt = new Date();
           voiceMessageStore.set(voiceMessageId, voiceMessage);
-          getLogger().info({ voiceMessageId, audioUrl: voiceMessage.audioUrl }, '🎤 Voice message sent via MMS');
+          getLogger().info(
+            { voiceMessageId, audioUrl: voiceMessage.audioUrl },
+            '🎤 Voice message sent via MMS'
+          );
           return "Voice message sent! They'll receive an audio message.";
         }
       }
@@ -466,12 +489,9 @@ export async function sendVoiceMessage(voiceMessageId: string, toPhone: string):
       getLogger().warn({ error: String(mmsError) }, 'MMS send failed, falling back to SMS');
     }
   }
-  
+
   // Fallback to SMS with text
-  const result = await sendSMS(
-    toPhone,
-    `🎤 Voice message from Alex: "${voiceMessage.message}"`
-  );
+  const result = await sendSMS(toPhone, `🎤 Voice message from Alex: "${voiceMessage.message}"`);
 
   if (!result.includes('trouble') && !result.includes('error')) {
     voiceMessage.status = 'sent';

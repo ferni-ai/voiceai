@@ -73,14 +73,17 @@ function getFirestoreInstance(): Firestore | null {
 const inMemoryStore = new Map<string, VerificationCode>();
 
 // Cleanup expired codes periodically (every 5 minutes)
-setInterval(() => {
-  const now = new Date();
-  for (const [key, code] of inMemoryStore.entries()) {
-    if (code.expiresAt < now) {
-      inMemoryStore.delete(key);
+setInterval(
+  () => {
+    const now = new Date();
+    for (const [key, code] of inMemoryStore.entries()) {
+      if (code.expiresAt < now) {
+        inMemoryStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000
+);
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -119,7 +122,10 @@ export async function createVerificationCode(
         expiresAt,
       });
 
-      log.info({ userId, phone: phone.slice(-4), expiresAt }, 'Verification code created in Firestore');
+      log.info(
+        { userId, phone: phone.slice(-4), expiresAt },
+        'Verification code created in Firestore'
+      );
     } catch (error) {
       log.warn({ error, userId }, 'Failed to save to Firestore - using in-memory');
       inMemoryStore.set(userId, verificationCode);
@@ -323,9 +329,7 @@ export async function cleanupExpiredCodes(): Promise<number> {
   if (db) {
     try {
       const now = new Date();
-      const expiredQuery = db
-        .collection(COLLECTION_NAME)
-        .where('expiresAt', '<', now);
+      const expiredQuery = db.collection(COLLECTION_NAME).where('expiresAt', '<', now);
 
       const snapshot = await expiredQuery.get();
 
@@ -367,4 +371,3 @@ export default {
   deleteVerificationCode,
   cleanupExpiredCodes,
 };
-

@@ -40,9 +40,7 @@ const log = createLogger({ module: 'WellbeingContextBuilder' });
 /**
  * Build wellbeing awareness context for the current turn.
  */
-async function buildWellbeingContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildWellbeingContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, services, analysis, userData } = input;
   const userId = services?.userId;
 
@@ -118,4 +116,3 @@ export { buildWellbeingContext };
 export default {
   buildWellbeingContext,
 };
-

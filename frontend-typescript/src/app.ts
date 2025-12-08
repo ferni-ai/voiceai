@@ -36,6 +36,7 @@ import {
   relationshipStageService,
   spotifyService,
 } from './services/index.js';
+import { detectAndSyncTimezone } from './services/timezone.service.js';
 
 // Core UI Components
 import { coachUI, initCoachUI } from './ui/coach.ui.js';
@@ -85,6 +86,8 @@ import { celebrateStreak, isStreakMilestone } from './ui/streak-celebrations.ui.
 import { initWeatherEffects } from './ui/weather-effects.ui.js';
 // Ferni Moments - Pixar-style character expressions
 import { initFerniMoments } from './ui/ferni-moments.ui.js';
+// Pixar Emotions - Advanced eye lid expressions
+import { initPixarEmotions, pixarEmotions } from './ui/pixar-emotions.ui.js';
 // Demo data for testing without backend
 import {
   disableDemoData,
@@ -641,6 +644,17 @@ class VoiceAIApp {
     // Initialize mood service (connects humanizing system to UI)
     moodService.init();
 
+    // Detect and sync user timezone (non-blocking)
+    // Ensures outreach calls & notifications respect quiet hours
+    void detectAndSyncTimezone()
+      .then((tz) => {
+        log.debug('Timezone detected:', tz);
+      })
+      .catch((err) => {
+        log.warn('Timezone detection failed:', err);
+        // Continue anyway - default timezone will be used
+      });
+
     // Initialize Spotify silently in the background
     // iTunes is the default for everyone, so no need to show Spotify status
     void spotifyService
@@ -721,6 +735,11 @@ class VoiceAIApp {
     this.safeInit('FerniMoments', () => {
       initFerniMoments();
       // Auto-aware of time-of-day, moments triggered contextually
+    });
+    // 🎬 Pixar Emotions - Advanced eye lid expressions & reactions
+    this.safeInit('PixarEmotions', () => {
+      initPixarEmotions();
+      // Creates lid overlay for eye expressions, sparkles, dramatic morphs
     });
     // 🎬 Animation Orchestrator - Pixar-quality coordinated animations
     this.safeInit('AnimationOrchestrator', () => initAnimationOrchestrator());
@@ -1260,11 +1279,17 @@ class VoiceAIApp {
         // Avatar reaction
         presenceUI.bounce();
         soundUI.play('success');
+        
+        // 🎬 Pixar: Excited greeting expression
+        pixarEmotions.heldPose('happy', 400);
       },
 
       onAgentDisconnected: () => {
         messageUI.show('See you next time!', 'info', 2000);
         presenceUI.setSpeaking(false);
+        
+        // 🎬 Pixar: Warm farewell expression (soft, lingering)
+        pixarEmotions.setExpression('empathetic', 400, 2000);
       },
 
       onDataMessage: (message) => {
@@ -1322,6 +1347,9 @@ class VoiceAIApp {
       log.debug('onHandoffStart:', { toPersona });
       // Show shimmer effect on waveform
       waveformUI.setTransitioning(true);
+      
+      // 🎬 Pixar: Curious "thinking" expression during handoff
+      pixarEmotions.lookAwayThinking(1500);
 
       // Show handoff progress indicator
       const handoffProgress = document.getElementById('handoffProgress');
@@ -1357,6 +1385,9 @@ class VoiceAIApp {
 
       // End shimmer, return to normal
       waveformUI.setTransitioning(false);
+      
+      // 🎬 Pixar: New persona arrives with excited greeting
+      pixarEmotions.heldPose('happy', 500);
 
       // Hide handoff progress indicator
       const handoffProgress = document.getElementById('handoffProgress');

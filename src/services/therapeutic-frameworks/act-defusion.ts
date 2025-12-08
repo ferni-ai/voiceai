@@ -50,8 +50,9 @@ export const DEFUSION_TECHNIQUES: Record<string, DefusionTechnique> = {
     description: 'Thank your mind for trying to protect you, even when its methods are unhelpful',
     guidance: `Your mind is trying to protect you—it's just not very good at it sometimes. Try saying "Thanks, mind. I know you're trying to help. But I've got this." It sounds silly, but it works.`,
     bestFor: ['anxiety', 'catastrophizing', 'protective thoughts'],
-    exampleThought: "Something terrible is going to happen.",
-    exampleDefusion: 'Thanks for the warning, mind. I appreciate you trying to keep me safe. I\'ve got this.',
+    exampleThought: 'Something terrible is going to happen.',
+    exampleDefusion:
+      "Thanks for the warning, mind. I appreciate you trying to keep me safe. I've got this.",
   },
 
   singing: {
@@ -70,7 +71,7 @@ export const DEFUSION_TECHNIQUES: Record<string, DefusionTechnique> = {
     description: 'Repeat the thought in a silly voice (cartoon character, movie villain, etc.)',
     guidance: `Say that thought in a really silly voice. Like a cartoon character. Or a movie villain. It's hard to be consumed by a thought when a cartoon duck is saying it.`,
     bestFor: ['dark thoughts', 'self-criticism', 'rumination'],
-    exampleThought: "Nobody likes me.",
+    exampleThought: 'Nobody likes me.',
     exampleDefusion: '[In Donald Duck voice] "Nobody likes me." See? Different vibe.',
   },
 
@@ -81,17 +82,18 @@ export const DEFUSION_TECHNIQUES: Record<string, DefusionTechnique> = {
     guidance: `Close your eyes for a moment. Imagine you're sitting by a gentle stream. As each thought comes, place it on a leaf and watch it float away. You don't have to push the thoughts away—just notice them, put them on leaves, and let the stream carry them.`,
     bestFor: ['overwhelm', 'racing thoughts', 'meditation-friendly'],
     exampleThought: '[Any thought]',
-    exampleDefusion: 'There\'s that thought. Let me put it on a leaf. And there it goes...',
+    exampleDefusion: "There's that thought. Let me put it on a leaf. And there it goes...",
   },
 
   observing_self: {
     id: 'observing_self',
     name: 'The Observing Self',
-    description: 'Notice that there\'s a part of you that can observe the thought',
+    description: "Notice that there's a part of you that can observe the thought",
     guidance: `Here's something interesting: There's you having the thought, and there's a part of you that can observe you having the thought. That observing part—that's the real you. The thought is just something passing through.`,
     bestFor: ['identity-based thoughts', 'deep suffering', 'philosophical users'],
-    exampleThought: "I am broken.",
-    exampleDefusion: 'I notice a thought that says "I am broken." The part of me noticing this thought is not broken.',
+    exampleThought: 'I am broken.',
+    exampleDefusion:
+      'I notice a thought that says "I am broken." The part of me noticing this thought is not broken.',
   },
 
   radio_metaphor: {
@@ -101,17 +103,18 @@ export const DEFUSION_TECHNIQUES: Record<string, DefusionTechnique> = {
     guidance: `Think of your negative thoughts as a radio station—let's call it Radio Doom. It's always broadcasting. You can't turn it off, but you don't have to turn up the volume and listen intently. You can let it play in the background while you do what matters.`,
     bestFor: ['chronic negativity', 'background anxiety', 'acceptance-focused'],
     exampleThought: 'Constant low-level worry',
-    exampleDefusion: 'Oh, Radio Doom is on again. That\'s fine. I don\'t have to turn it up.',
+    exampleDefusion: "Oh, Radio Doom is on again. That's fine. I don't have to turn it up.",
   },
 
   passengers_on_bus: {
     id: 'passengers_on_bus',
     name: 'Passengers on the Bus',
-    description: 'You\'re driving the bus of your life—thoughts are just passengers',
+    description: "You're driving the bus of your life—thoughts are just passengers",
     guidance: `Imagine you're driving a bus—the bus of your life. Your thoughts are passengers. Some are loud, some are mean, some try to tell you where to drive. But you're the driver. You can acknowledge them without letting them steer.`,
     bestFor: ['life direction', 'overwhelming thoughts', 'choice-focused'],
     exampleThought: '"You should give up" thoughts',
-    exampleDefusion: 'Okay, I hear you back there. You can stay on the bus. But I\'m still driving where I want to go.',
+    exampleDefusion:
+      "Okay, I hear you back there. You can stay on the bus. But I'm still driving where I want to go.",
   },
 
   cloud_watching: {
@@ -121,7 +124,8 @@ export const DEFUSION_TECHNIQUES: Record<string, DefusionTechnique> = {
     guidance: `Your mind is like the sky. Thoughts are like clouds—some light and fluffy, some dark and stormy. But they all pass. The sky is always there. You can watch them without becoming them.`,
     bestFor: ['meditation-friendly', 'visual thinkers', 'general mindfulness'],
     exampleThought: '[Any thought]',
-    exampleDefusion: 'There\'s a thought-cloud. It\'s a dark one. But it\'s moving. The sky is still the sky.',
+    exampleDefusion:
+      "There's a thought-cloud. It's a dark one. But it's moving. The sky is still the sky.",
   },
 };
 
@@ -173,9 +177,7 @@ export function selectDefusionTechnique(context: {
 
   // For lower distress, can use more playful techniques
   if (emotionIntensity < 0.4) {
-    const playful = available.filter((t) =>
-      ['singing', 'silly_voice'].includes(t.id)
-    );
+    const playful = available.filter((t) => ['singing', 'silly_voice'].includes(t.id));
     if (playful.length > 0) {
       return playful[Math.floor(Math.random() * playful.length)];
     }
@@ -278,10 +280,7 @@ export function getRecentDefusionTechniques(userId: string, limit = 5): string[]
 /**
  * Build defusion context for the LLM.
  */
-export function buildDefusionContext(
-  userId: string,
-  detectedThought?: string
-): string | null {
+export function buildDefusionContext(userId: string, detectedThought?: string): string | null {
   if (!detectedThought) {
     return null;
   }
@@ -321,4 +320,3 @@ export function buildDefusionContext(
 }
 
 // All constants are exported at their definitions above
-

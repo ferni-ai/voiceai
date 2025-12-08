@@ -158,7 +158,7 @@ export function createImplementationIntention(
  */
 function assessSpecificity(when: string, then: string): 'vague' | 'moderate' | 'specific' {
   const specificTriggers = ['after', 'before', 'when I', 'at', 'as soon as', 'once'];
-  const specificActions = ['I will', 'I\'ll', 'put', 'take', 'open', 'call', 'send'];
+  const specificActions = ['I will', "I'll", 'put', 'take', 'open', 'call', 'send'];
 
   const hasSpecificTrigger = specificTriggers.some((t) => when.toLowerCase().includes(t));
   const hasSpecificAction = specificActions.some((a) => then.toLowerCase().includes(a));
@@ -194,7 +194,9 @@ export function strengthenIntention(intention: ImplementationIntention): string[
   if (intention.specificity === 'vague' || intention.specificity === 'moderate') {
     // Make trigger more specific
     if (!/at\s+\d/i.test(intention.when)) {
-      prompts.push(`What time specifically will this happen? "After I ${intention.when}" becomes more powerful with a specific time.`);
+      prompts.push(
+        `What time specifically will this happen? "After I ${intention.when}" becomes more powerful with a specific time.`
+      );
     }
 
     if (!/at\s+(the|my|home|work)/i.test(intention.when)) {
@@ -202,11 +204,15 @@ export function strengthenIntention(intention: ImplementationIntention): string[
     }
 
     // Make action more concrete
-    prompts.push(`What's the very first physical action? Instead of "${intention.then}", what's the first thing your body does?`);
+    prompts.push(
+      `What's the very first physical action? Instead of "${intention.then}", what's the first thing your body does?`
+    );
   }
 
   if (!intention.rehearsed) {
-    prompts.push(`Let's mentally rehearse this. Close your eyes for a second and imagine: it's [time], you're [place], and you [trigger]. What do you see yourself doing?`);
+    prompts.push(
+      `Let's mentally rehearse this. Close your eyes for a second and imagine: it's [time], you're [place], and you [trigger]. What do you see yourself doing?`
+    );
   }
 
   return prompts;
@@ -301,7 +307,7 @@ export function suggestCommitmentDevice(
     type: 'calendar',
     suggestion: `Put it in your calendar right now. Not "tomorrow" - the exact day and time. When is the first time you'll do this?`,
     strength: 'medium',
-    why: 'Things without specific times don\'t happen.',
+    why: "Things without specific times don't happen.",
   });
 
   // Identity commitment
@@ -350,19 +356,16 @@ export interface CommitmentSuggestion {
  * Reframe a goal in terms of loss rather than gain.
  * Loss aversion: losing $100 feels worse than gaining $100 feels good.
  */
-export function applyLossFraming(
-  goal: string,
-  currentBenefit?: string
-): string {
+export function applyLossFraming(goal: string, currentBenefit?: string): string {
   // Generic loss frames
   const lossFrames = [
     {
       gain: 'get more energy',
-      loss: 'Every day you don\'t exercise, you\'re losing energy you could have. That compounds.',
+      loss: "Every day you don't exercise, you're losing energy you could have. That compounds.",
     },
     {
       gain: 'save money',
-      loss: 'Every unnecessary purchase is money you\'ll never see again. What else could it have become?',
+      loss: "Every unnecessary purchase is money you'll never see again. What else could it have become?",
     },
     {
       gain: 'be healthier',
@@ -370,7 +373,7 @@ export function applyLossFraming(
     },
     {
       gain: 'have better relationships',
-      loss: 'Every conversation you avoid is a chance to connect that you\'ll never get back.',
+      loss: "Every conversation you avoid is a chance to connect that you'll never get back.",
     },
     {
       gain: 'learn something',
@@ -513,20 +516,70 @@ export function auditFriction(goal: string, currentBarriers?: string[]): Frictio
   // Common barriers for common goals
   const commonBarriers: Record<string, FrictionBarrier[]> = {
     exercise: [
-      { barrier: 'Finding workout clothes', type: 'effort', severity: 'low', solution: 'Sleep in workout clothes or lay them out the night before' },
-      { barrier: 'Getting to the gym', type: 'time', severity: 'medium', solution: 'Home workout instead, or gym on commute route' },
-      { barrier: 'Deciding what workout to do', type: 'decision', severity: 'medium', solution: 'Follow a preset program or app' },
-      { barrier: 'Low energy', type: 'emotional', severity: 'medium', solution: 'Commit to just 5 minutes - start tiny' },
+      {
+        barrier: 'Finding workout clothes',
+        type: 'effort',
+        severity: 'low',
+        solution: 'Sleep in workout clothes or lay them out the night before',
+      },
+      {
+        barrier: 'Getting to the gym',
+        type: 'time',
+        severity: 'medium',
+        solution: 'Home workout instead, or gym on commute route',
+      },
+      {
+        barrier: 'Deciding what workout to do',
+        type: 'decision',
+        severity: 'medium',
+        solution: 'Follow a preset program or app',
+      },
+      {
+        barrier: 'Low energy',
+        type: 'emotional',
+        severity: 'medium',
+        solution: 'Commit to just 5 minutes - start tiny',
+      },
     ],
     meditation: [
-      { barrier: 'Remembering to do it', type: 'decision', severity: 'low', solution: 'Habit stack with existing habit (coffee, waking up)' },
-      { barrier: 'Finding a quiet space', type: 'access', severity: 'low', solution: 'Use headphones, meditate in car, or accept imperfection' },
-      { barrier: 'Not knowing how', type: 'decision', severity: 'low', solution: 'Use a guided app like Headspace or Calm' },
+      {
+        barrier: 'Remembering to do it',
+        type: 'decision',
+        severity: 'low',
+        solution: 'Habit stack with existing habit (coffee, waking up)',
+      },
+      {
+        barrier: 'Finding a quiet space',
+        type: 'access',
+        severity: 'low',
+        solution: 'Use headphones, meditate in car, or accept imperfection',
+      },
+      {
+        barrier: 'Not knowing how',
+        type: 'decision',
+        severity: 'low',
+        solution: 'Use a guided app like Headspace or Calm',
+      },
     ],
     reading: [
-      { barrier: 'Phone distraction', type: 'effort', severity: 'high', solution: 'Put phone in another room, or use physical books' },
-      { barrier: 'Not having the book', type: 'access', severity: 'low', solution: 'Keep book visible and accessible' },
-      { barrier: 'Choosing what to read', type: 'decision', severity: 'low', solution: 'Always have next book ready' },
+      {
+        barrier: 'Phone distraction',
+        type: 'effort',
+        severity: 'high',
+        solution: 'Put phone in another room, or use physical books',
+      },
+      {
+        barrier: 'Not having the book',
+        type: 'access',
+        severity: 'low',
+        solution: 'Keep book visible and accessible',
+      },
+      {
+        barrier: 'Choosing what to read',
+        type: 'decision',
+        severity: 'low',
+        solution: 'Always have next book ready',
+      },
     ],
   };
 
@@ -550,9 +603,7 @@ export function auditFriction(goal: string, currentBarriers?: string[]): Frictio
   }
 
   // Generate solutions
-  const solutions = barriers
-    .filter((b) => b.solution)
-    .map((b) => b.solution as string);
+  const solutions = barriers.filter((b) => b.solution).map((b) => b.solution as string);
 
   return {
     goal,
@@ -582,15 +633,15 @@ export function getFrictionQuestions(goal: string): string[] {
 /**
  * Generate social proof statements.
  */
-export function generateSocialProof(
-  context: { demographic?: string; goal?: string; behavior?: string }
-): string[] {
+export function generateSocialProof(context: {
+  demographic?: string;
+  goal?: string;
+  behavior?: string;
+}): string[] {
   const proofs: string[] = [];
 
   // General social proof
-  proofs.push(
-    `Most people who are successful at this started exactly where you are.`
-  );
+  proofs.push(`Most people who are successful at this started exactly where you are.`);
 
   // Demographic-specific (be careful with this)
   if (context.demographic) {
@@ -605,9 +656,7 @@ export function generateSocialProof(
   );
 
   // Struggle-based
-  proofs.push(
-    `Almost everyone struggles with this at first. You're not behind—you're normal.`
-  );
+  proofs.push(`Almost everyone struggles with this at first. You're not behind—you're normal.`);
 
   return proofs;
 }
@@ -634,12 +683,7 @@ export function buildBehavioralEconomicsContext(
     return null;
   }
 
-  const lines: string[] = [
-    '[🧠 BEHAVIORAL ECONOMICS TOOLKIT]',
-    '',
-    `Goal: ${goal}`,
-    '',
-  ];
+  const lines: string[] = ['[🧠 BEHAVIORAL ECONOMICS TOOLKIT]', '', `Goal: ${goal}`, ''];
 
   // If no intention yet, suggest creating one
   if (!hasIntention) {
@@ -685,4 +729,3 @@ export function buildBehavioralEconomicsContext(
 }
 
 // All functions are exported at their definitions above
-

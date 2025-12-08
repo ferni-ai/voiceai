@@ -236,10 +236,15 @@ export interface WellbeingTrend {
   confidence: number;
 
   /** Per-dimension trends */
-  byDimension: Partial<Record<WellbeingDimension, {
-    direction: 'improving' | 'stable' | 'declining';
-    change: number;
-  }>>;
+  byDimension: Partial<
+    Record<
+      WellbeingDimension,
+      {
+        direction: 'improving' | 'stable' | 'declining';
+        change: number;
+      }
+    >
+  >;
 
   /** Notable observations */
   observations: string[];
@@ -576,4 +581,3 @@ export const DEFAULT_CONFIG: WellbeingTrackingConfig = {
   enableProactiveCheckins: true,
   enableTherapyReports: true,
 };
-

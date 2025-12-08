@@ -186,12 +186,12 @@ export function trackToolError(
  * Get metrics for a specific tool
  */
 export function getToolMetrics(toolId: string): ToolMetrics | null {
-  const events = usageStore.filter(e => e.toolId === toolId);
-  
+  const events = usageStore.filter((e) => e.toolId === toolId);
+
   if (events.length === 0) return null;
 
-  const successEvents = events.filter(e => e.success);
-  const errorEvents = events.filter(e => !e.success);
+  const successEvents = events.filter((e) => e.success);
+  const errorEvents = events.filter((e) => !e.success);
   const totalDuration = events.reduce((sum, e) => sum + e.durationMs, 0);
 
   return {
@@ -210,17 +210,17 @@ export function getToolMetrics(toolId: string): ToolMetrics | null {
  * Get metrics for a domain
  */
 export function getDomainMetrics(domain: string): DomainMetrics | null {
-  const events = usageStore.filter(e => e.domain === domain);
-  
+  const events = usageStore.filter((e) => e.domain === domain);
+
   if (events.length === 0) return null;
 
   const toolBreakdown: Record<string, number> = {};
-  events.forEach(e => {
+  events.forEach((e) => {
     toolBreakdown[e.toolId] = (toolBreakdown[e.toolId] || 0) + 1;
   });
 
   const totalDuration = events.reduce((sum, e) => sum + e.durationMs, 0);
-  const errorCount = events.filter(e => !e.success).length;
+  const errorCount = events.filter((e) => !e.success).length;
 
   return {
     domain,
@@ -235,19 +235,17 @@ export function getDomainMetrics(domain: string): DomainMetrics | null {
  * Get all domain metrics
  */
 export function getAllDomainMetrics(): DomainMetrics[] {
-  const domains = [...new Set(usageStore.map(e => e.domain))];
-  return domains
-    .map(d => getDomainMetrics(d))
-    .filter((m): m is DomainMetrics => m !== null);
+  const domains = [...new Set(usageStore.map((e) => e.domain))];
+  return domains.map((d) => getDomainMetrics(d)).filter((m): m is DomainMetrics => m !== null);
 }
 
 /**
  * Get most used tools
  */
 export function getMostUsedTools(limit = 10): ToolMetrics[] {
-  const toolIds = [...new Set(usageStore.map(e => e.toolId))];
+  const toolIds = [...new Set(usageStore.map((e) => e.toolId))];
   return toolIds
-    .map(id => getToolMetrics(id))
+    .map((id) => getToolMetrics(id))
     .filter((m): m is ToolMetrics => m !== null)
     .sort((a, b) => b.totalCalls - a.totalCalls)
     .slice(0, limit);
@@ -257,12 +255,12 @@ export function getMostUsedTools(limit = 10): ToolMetrics[] {
  * Get tools with highest error rates
  */
 export function getProblematicTools(minCalls = 5): ToolMetrics[] {
-  const toolIds = [...new Set(usageStore.map(e => e.toolId))];
+  const toolIds = [...new Set(usageStore.map((e) => e.toolId))];
   return toolIds
-    .map(id => getToolMetrics(id))
+    .map((id) => getToolMetrics(id))
     .filter((m): m is ToolMetrics => m !== null && m.totalCalls >= minCalls)
     .sort((a, b) => b.errorRate - a.errorRate)
-    .filter(m => m.errorRate > 0);
+    .filter((m) => m.errorRate > 0);
 }
 
 /**
@@ -270,7 +268,7 @@ export function getProblematicTools(minCalls = 5): ToolMetrics[] {
  */
 export function getRecentErrors(limit = 20): ToolUsageEvent[] {
   return usageStore
-    .filter(e => !e.success)
+    .filter((e) => !e.success)
     .slice(-limit)
     .reverse();
 }
@@ -292,9 +290,7 @@ export function hasHighErrorRate(toolId: string, threshold = 0.1): boolean {
  * Check if any crisis tools have errors (critical alert)
  */
 export function hasCrisisToolErrors(): boolean {
-  const crisisEvents = usageStore.filter(
-    e => e.domain === 'crisis' && !e.success
-  );
+  const crisisEvents = usageStore.filter((e) => e.domain === 'crisis' && !e.success);
   return crisisEvents.length > 0;
 }
 
@@ -306,9 +302,7 @@ export function getCrisisToolHealth(): {
   errorCount: number;
   lastError: ToolUsageEvent | null;
 } {
-  const crisisErrors = usageStore.filter(
-    e => e.domain === 'crisis' && !e.success
-  );
+  const crisisErrors = usageStore.filter((e) => e.domain === 'crisis' && !e.success);
   return {
     healthy: crisisErrors.length === 0,
     errorCount: crisisErrors.length,
@@ -339,7 +333,7 @@ export function getEventCount(): number {
  */
 export function exportEvents(since?: Date): ToolUsageEvent[] {
   if (!since) return [...usageStore];
-  return usageStore.filter(e => e.timestamp >= since);
+  return usageStore.filter((e) => e.timestamp >= since);
 }
 
 // ============================================================================
@@ -363,4 +357,3 @@ export default {
   getEventCount,
   exportEvents,
 };
-

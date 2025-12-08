@@ -78,14 +78,13 @@ export const CHANGE_TALK_PATTERNS: Record<ChangeTalk, RegExp[]> = {
 /**
  * Detect change talk in user speech.
  */
-export function detectChangeTalk(
-  text: string,
-  topic?: string
-): ChangeTalkInstance[] {
+export function detectChangeTalk(text: string, topic?: string): ChangeTalkInstance[] {
   const instances: ChangeTalkInstance[] = [];
   const lowerText = text.toLowerCase();
 
-  for (const [type, patterns] of Object.entries(CHANGE_TALK_PATTERNS) as [ChangeTalk, RegExp[]][]) {
+  for (const [type, patterns] of Object.entries(CHANGE_TALK_PATTERNS) as Array<
+    [ChangeTalk, RegExp[]]
+  >) {
     for (const pattern of patterns) {
       pattern.lastIndex = 0; // Reset regex state
       const match = pattern.exec(text);
@@ -188,7 +187,7 @@ export const OPEN_QUESTIONS: Record<ChangeTalk | 'general', string[]> = {
   ],
   ability: [
     'What makes you think you could do this if you decided to?',
-    "What strengths do you have that could help here?",
+    'What strengths do you have that could help here?',
     "What's worked for you in the past?",
   ],
   reasons: [
@@ -204,18 +203,18 @@ export const OPEN_QUESTIONS: Record<ChangeTalk | 'general', string[]> = {
   commitment: [
     'What do you think you might do?',
     "What's your next step?",
-    "What are you willing to try?",
+    'What are you willing to try?',
   ],
   taking_steps: [
-    "What have you already tried?",
+    'What have you already tried?',
     "What's already working, even a little?",
-    "What steps have you taken so far?",
+    'What steps have you taken so far?',
   ],
   general: [
     'Tell me more about that.',
     'What else?',
     "What's most important to you about this?",
-    "What would you like to focus on?",
+    'What would you like to focus on?',
   ],
 };
 
@@ -223,16 +222,16 @@ export const OPEN_QUESTIONS: Record<ChangeTalk | 'general', string[]> = {
  * Affirmations - statements that recognize strengths.
  */
 export const AFFIRMATIONS = [
-  "That took courage to share.",
+  'That took courage to share.',
   "You've clearly been thinking about this seriously.",
   "You're showing a lot of self-awareness.",
-  "It takes strength to be this honest with yourself.",
+  'It takes strength to be this honest with yourself.',
   "You're not giving up, and that matters.",
   "You're really committed to figuring this out.",
-  "That shows how much you care about this.",
+  'That shows how much you care about this.',
   "You've made progress, even if it doesn't feel like it.",
   "You're doing the hard work of real change.",
-  "Your values really shine through when you talk about this.",
+  'Your values really shine through when you talk about this.',
 ];
 
 /**
@@ -248,7 +247,7 @@ export const REFLECTION_TEMPLATES: Reflection[] = [
   // Simple reflections
   {
     type: 'simple',
-    template: 'So you\'re feeling [EMOTION] about [TOPIC].',
+    template: "So you're feeling [EMOTION] about [TOPIC].",
     whenToUse: 'Basic acknowledgment',
   },
   {
@@ -258,7 +257,7 @@ export const REFLECTION_TEMPLATES: Reflection[] = [
   },
   {
     type: 'simple',
-    template: 'You\'re saying [CONTENT], and that matters to you.',
+    template: "You're saying [CONTENT], and that matters to you.",
     whenToUse: 'Emphasizing importance',
   },
 
@@ -328,7 +327,8 @@ export function generateOARSResponse(context: {
   }
 
   // Default: open question to evoke
-  const question = OPEN_QUESTIONS.general[Math.floor(Math.random() * OPEN_QUESTIONS.general.length)];
+  const question =
+    OPEN_QUESTIONS.general[Math.floor(Math.random() * OPEN_QUESTIONS.general.length)];
   return {
     type: 'open_question',
     response: question,
@@ -337,7 +337,12 @@ export function generateOARSResponse(context: {
 }
 
 export interface OARSResponse {
-  type: 'reflect_then_question' | 'affirmation' | 'open_question' | 'double_sided_reflection' | 'summary';
+  type:
+    | 'reflect_then_question'
+    | 'affirmation'
+    | 'open_question'
+    | 'double_sided_reflection'
+    | 'summary';
   response: string;
   followUp?: string;
   strategy: string;
@@ -430,11 +435,7 @@ export function analyzeAmbivalence(userId: string): string[] {
 /**
  * Build MI context for LLM.
  */
-export function buildMIContext(
-  userId: string,
-  userText: string,
-  topic?: string
-): string | null {
+export function buildMIContext(userId: string, userText: string, topic?: string): string | null {
   // Detect change talk in current message
   const currentChangeTalk = detectChangeTalk(userText, topic);
   const currentSustainTalk = detectSustainTalk(userText);
@@ -471,7 +472,9 @@ export function buildMIContext(
         commitment: 'Commitment',
         taking_steps: 'Taking Steps',
       };
-      lines.push(`• ${typeLabels[ct.type]}: "${ct.statement}" (strength: ${Math.round(ct.strength * 100)}%)`);
+      lines.push(
+        `• ${typeLabels[ct.type]}: "${ct.statement}" (strength: ${Math.round(ct.strength * 100)}%)`
+      );
     }
     lines.push('');
     lines.push('MI GUIDANCE:');
@@ -518,4 +521,3 @@ export function buildMIContext(
 
 // ============================================================================
 // All constants are exported at their definitions above
-

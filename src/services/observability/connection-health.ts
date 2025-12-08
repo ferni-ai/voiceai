@@ -1,6 +1,6 @@
 /**
  * Connection Health Metrics
- * 
+ *
  * Tracks connection stability and reliability:
  * - WebSocket reconnection events
  * - LiveKit ICE connection state
@@ -17,14 +17,32 @@ const log = getLogger();
 // TYPES
 // ============================================================================
 
-export type ConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'failed';
-export type ICEState = 'new' | 'checking' | 'connected' | 'completed' | 'failed' | 'disconnected' | 'closed';
+export type ConnectionState =
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'disconnected'
+  | 'failed';
+export type ICEState =
+  | 'new'
+  | 'checking'
+  | 'connected'
+  | 'completed'
+  | 'failed'
+  | 'disconnected'
+  | 'closed';
 
 export interface ConnectionEvent {
   id: string;
   timestamp: number;
   sessionId: string;
-  eventType: 'connect' | 'disconnect' | 'reconnect' | 'ice_change' | 'track_change' | 'data_message';
+  eventType:
+    | 'connect'
+    | 'disconnect'
+    | 'reconnect'
+    | 'ice_change'
+    | 'track_change'
+    | 'data_message';
   previousState?: string;
   newState?: string;
   durationMs?: number;
@@ -38,37 +56,37 @@ export interface ConnectionHealthSnapshot {
   activeConnections: number;
   connectionState: ConnectionState;
   iceState: ICEState;
-  
+
   // Reconnections
   reconnectionCount: number;
   avgReconnectTimeMs: number;
   reconnectSuccessRate: number;
-  
+
   // Data channel
   dataChannelState: 'open' | 'closed' | 'connecting';
   messagesDelivered: number;
   messagesFailed: number;
   deliveryRate: number;
-  
+
   // Audio/Video tracks
   audioTrackActive: boolean;
   videoTrackActive: boolean;
   trackStateChanges: number;
-  
+
   // Quality metrics
   packetLossPercent: number;
   jitterMs: number;
   roundTripTimeMs: number;
-  
+
   // Uptime
   connectionUptimeMs: number;
   totalDisconnectTimeMs: number;
   availabilityPercent: number;
-  
+
   // Errors
   connectionErrors: number;
   errorsByType: Record<string, number>;
-  
+
   // Time window
   windowStartTime: number;
   windowEndTime: number;
@@ -81,18 +99,21 @@ export interface ConnectionHealthSnapshot {
 class ConnectionHealthService {
   private events: ConnectionEvent[] = [];
   private readonly MAX_EVENTS = 5000;
-  
+
   // Current state tracking
-  private activeSessionConnections = new Map<string, {
-    state: ConnectionState;
-    iceState: ICEState;
-    connectedAt: number;
-    disconnectedAt?: number;
-    audioActive: boolean;
-    videoActive: boolean;
-    dataChannelOpen: boolean;
-  }>();
-  
+  private activeSessionConnections = new Map<
+    string,
+    {
+      state: ConnectionState;
+      iceState: ICEState;
+      connectedAt: number;
+      disconnectedAt?: number;
+      audioActive: boolean;
+      videoActive: boolean;
+      dataChannelOpen: boolean;
+    }
+  >();
+
   // Aggregate metrics
   private messagesDelivered = 0;
   private messagesFailed = 0;
@@ -122,11 +143,14 @@ class ConnectionHealthService {
 
     // Log significant events
     if (event.eventType === 'disconnect' || event.eventType === 'reconnect') {
-      log.info({ 
-        sessionId: event.sessionId, 
-        eventType: event.eventType,
-        durationMs: event.durationMs 
-      }, `🔌 Connection event: ${event.eventType}`);
+      log.info(
+        {
+          sessionId: event.sessionId,
+          eventType: event.eventType,
+          durationMs: event.durationMs,
+        },
+        `🔌 Connection event: ${event.eventType}`
+      );
     }
   }
 
@@ -135,7 +159,7 @@ class ConnectionHealthService {
    */
   private updateSessionState(event: ConnectionEvent): void {
     let session = this.activeSessionConnections.get(event.sessionId);
-    
+
     if (!session) {
       session = {
         state: 'connecting',
@@ -170,10 +194,10 @@ class ConnectionHealthService {
         break;
       case 'track_change':
         if (event.metadata?.trackType === 'audio') {
-          session.audioActive = event.metadata?.active as boolean ?? false;
+          session.audioActive = (event.metadata?.active as boolean) ?? false;
         }
         if (event.metadata?.trackType === 'video') {
-          session.videoActive = event.metadata?.active as boolean ?? false;
+          session.videoActive = (event.metadata?.active as boolean) ?? false;
         }
         break;
       case 'data_message':
@@ -243,7 +267,7 @@ class ConnectionHealthService {
     } else {
       this.messagesFailed++;
     }
-    
+
     this.recordEvent({
       sessionId,
       eventType: 'data_message',
@@ -258,7 +282,7 @@ class ConnectionHealthService {
     this.packetLossSamples.push(packetLoss);
     this.jitterSamples.push(jitterMs);
     this.rttSamples.push(rttMs);
-    
+
     // Keep last 1000 samples
     if (this.packetLossSamples.length > 1000) {
       this.packetLossSamples = this.packetLossSamples.slice(-1000);
@@ -289,70 +313,87 @@ class ConnectionHealthService {
   /**
    * Get health snapshot
    */
-  getSnapshot(windowMinutes: number = 60): ConnectionHealthSnapshot {
+  getSnapshot(windowMinutes = 60): ConnectionHealthSnapshot {
     const now = Date.now();
     const windowStart = now - windowMinutes * 60 * 1000;
-    
-    const windowEvents = this.events.filter(e => e.timestamp >= windowStart);
-    
+
+    const windowEvents = this.events.filter((e) => e.timestamp >= windowStart);
+
     // Current state from active sessions
     const sessions = Array.from(this.activeSessionConnections.values());
-    const activeConnections = sessions.filter(s => s.state === 'connected').length;
-    
+    const activeConnections = sessions.filter((s) => s.state === 'connected').length;
+
     // Aggregate connection state
-    const connectionState: ConnectionState = activeConnections > 0 ? 'connected' : 
-      sessions.some(s => s.state === 'reconnecting') ? 'reconnecting' : 'disconnected';
-    
-    // Aggregate ICE state  
-    const iceStates = sessions.map(s => s.iceState);
-    const iceState: ICEState = iceStates.includes('connected') || iceStates.includes('completed') 
-      ? 'connected' 
-      : iceStates.includes('checking') ? 'checking' : 'disconnected';
-    
+    const connectionState: ConnectionState =
+      activeConnections > 0
+        ? 'connected'
+        : sessions.some((s) => s.state === 'reconnecting')
+          ? 'reconnecting'
+          : 'disconnected';
+
+    // Aggregate ICE state
+    const iceStates = sessions.map((s) => s.iceState);
+    const iceState: ICEState =
+      iceStates.includes('connected') || iceStates.includes('completed')
+        ? 'connected'
+        : iceStates.includes('checking')
+          ? 'checking'
+          : 'disconnected';
+
     // Reconnection metrics
-    const reconnectEvents = windowEvents.filter(e => e.eventType === 'reconnect');
-    const successfulReconnects = reconnectEvents.filter(e => e.success);
-    const reconnectTimes = successfulReconnects.filter(e => e.durationMs).map(e => e.durationMs!);
-    const avgReconnectTime = reconnectTimes.length > 0 
-      ? reconnectTimes.reduce((a, b) => a + b, 0) / reconnectTimes.length 
-      : 0;
-    const reconnectSuccessRate = reconnectEvents.length > 0 
-      ? (successfulReconnects.length / reconnectEvents.length) * 100 
-      : 100;
-    
+    const reconnectEvents = windowEvents.filter((e) => e.eventType === 'reconnect');
+    const successfulReconnects = reconnectEvents.filter((e) => e.success);
+    const reconnectTimes = successfulReconnects
+      .filter((e) => e.durationMs)
+      .map((e) => e.durationMs!);
+    const avgReconnectTime =
+      reconnectTimes.length > 0
+        ? reconnectTimes.reduce((a, b) => a + b, 0) / reconnectTimes.length
+        : 0;
+    const reconnectSuccessRate =
+      reconnectEvents.length > 0
+        ? (successfulReconnects.length / reconnectEvents.length) * 100
+        : 100;
+
     // Data channel
-    const dataChannelOpen = sessions.some(s => s.dataChannelOpen);
-    const deliveryRate = (this.messagesDelivered + this.messagesFailed) > 0
-      ? (this.messagesDelivered / (this.messagesDelivered + this.messagesFailed)) * 100
-      : 100;
-    
+    const dataChannelOpen = sessions.some((s) => s.dataChannelOpen);
+    const deliveryRate =
+      this.messagesDelivered + this.messagesFailed > 0
+        ? (this.messagesDelivered / (this.messagesDelivered + this.messagesFailed)) * 100
+        : 100;
+
     // Audio/Video
-    const audioActive = sessions.some(s => s.audioActive);
-    const videoActive = sessions.some(s => s.videoActive);
-    const trackChanges = windowEvents.filter(e => e.eventType === 'track_change').length;
-    
+    const audioActive = sessions.some((s) => s.audioActive);
+    const videoActive = sessions.some((s) => s.videoActive);
+    const trackChanges = windowEvents.filter((e) => e.eventType === 'track_change').length;
+
     // Quality metrics (averages)
-    const avgPacketLoss = this.packetLossSamples.length > 0
-      ? this.packetLossSamples.reduce((a, b) => a + b, 0) / this.packetLossSamples.length
-      : 0;
-    const avgJitter = this.jitterSamples.length > 0
-      ? this.jitterSamples.reduce((a, b) => a + b, 0) / this.jitterSamples.length
-      : 0;
-    const avgRtt = this.rttSamples.length > 0
-      ? this.rttSamples.reduce((a, b) => a + b, 0) / this.rttSamples.length
-      : 0;
-    
+    const avgPacketLoss =
+      this.packetLossSamples.length > 0
+        ? this.packetLossSamples.reduce((a, b) => a + b, 0) / this.packetLossSamples.length
+        : 0;
+    const avgJitter =
+      this.jitterSamples.length > 0
+        ? this.jitterSamples.reduce((a, b) => a + b, 0) / this.jitterSamples.length
+        : 0;
+    const avgRtt =
+      this.rttSamples.length > 0
+        ? this.rttSamples.reduce((a, b) => a + b, 0) / this.rttSamples.length
+        : 0;
+
     // Uptime calculation
-    const connectEvents = windowEvents.filter(e => e.eventType === 'connect');
-    const disconnectEvents = windowEvents.filter(e => e.eventType === 'disconnect');
+    const connectEvents = windowEvents.filter((e) => e.eventType === 'connect');
+    const disconnectEvents = windowEvents.filter((e) => e.eventType === 'disconnect');
     let totalConnectedTime = 0;
     let totalDisconnectedTime = 0;
-    
+
     // Simple heuristic: count time between connects and disconnects
-    const allStateEvents = [...connectEvents, ...disconnectEvents].sort((a, b) => a.timestamp - b.timestamp);
+    const allStateEvents = [...connectEvents, ...disconnectEvents].sort(
+      (a, b) => a.timestamp - b.timestamp
+    );
     let lastConnectTime = windowStart;
-    let isConnected = sessions.some(s => s.state === 'connected');
-    
+    let isConnected = sessions.some((s) => s.state === 'connected');
+
     for (const event of allStateEvents) {
       if (event.eventType === 'connect') {
         if (!isConnected) {
@@ -368,25 +409,25 @@ class ConnectionHealthService {
         isConnected = false;
       }
     }
-    
+
     // Add time from last event to now
     if (isConnected) {
       totalConnectedTime += now - lastConnectTime;
     } else {
       totalDisconnectedTime += now - lastConnectTime;
     }
-    
+
     const totalTime = totalConnectedTime + totalDisconnectedTime;
     const availability = totalTime > 0 ? (totalConnectedTime / totalTime) * 100 : 100;
-    
+
     // Errors
-    const errorEvents = windowEvents.filter(e => !e.success && e.errorMessage);
+    const errorEvents = windowEvents.filter((e) => !e.success && e.errorMessage);
     const errorsByType: Record<string, number> = {};
-    errorEvents.forEach(e => {
+    errorEvents.forEach((e) => {
       const type = e.errorMessage || 'unknown';
       errorsByType[type] = (errorsByType[type] || 0) + 1;
     });
-    
+
     return {
       activeConnections,
       connectionState,
@@ -434,4 +475,3 @@ class ConnectionHealthService {
 // ============================================================================
 
 export const connectionHealthMetrics = new ConnectionHealthService();
-

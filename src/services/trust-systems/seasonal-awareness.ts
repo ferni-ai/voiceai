@@ -31,22 +31,22 @@ export type AnniversaryType = 'joyful' | 'difficult' | 'mixed' | 'milestone';
 
 export interface SeasonalProfile {
   userId: string;
-  
+
   // Season patterns
   seasonPatterns: SeasonPattern[];
-  
+
   // Holiday preferences
   holidayPreferences: HolidayPreference[];
-  
+
   // Personal dates
   personalDates: PersonalDate[];
-  
+
   // SAD indicators
   sadIndicators: SADIndicator[];
-  
+
   // Overall insights
   insights: SeasonalInsight[];
-  
+
   timezone: string;
   hemisphere: 'northern' | 'southern';
   lastUpdated: Date;
@@ -135,11 +135,11 @@ const UNIVERSAL_HOLIDAYS: Array<{
   { name: "Valentine's Day", month: 2, day: 14, type: 'cultural' },
   { name: "Mother's Day", month: 5, weekday: { week: 2, day: 0 }, type: 'cultural' },
   { name: "Father's Day", month: 6, weekday: { week: 3, day: 0 }, type: 'cultural' },
-  { name: "Independence Day (US)", month: 7, day: 4, type: 'cultural' },
-  { name: "Halloween", month: 10, day: 31, type: 'cultural' },
-  { name: "Thanksgiving (US)", month: 11, weekday: { week: 4, day: 4 }, type: 'cultural' },
-  { name: "Christmas Eve", month: 12, day: 24, type: 'cultural' },
-  { name: "Christmas Day", month: 12, day: 25, type: 'cultural' },
+  { name: 'Independence Day (US)', month: 7, day: 4, type: 'cultural' },
+  { name: 'Halloween', month: 10, day: 31, type: 'cultural' },
+  { name: 'Thanksgiving (US)', month: 11, weekday: { week: 4, day: 4 }, type: 'cultural' },
+  { name: 'Christmas Eve', month: 12, day: 24, type: 'cultural' },
+  { name: 'Christmas Day', month: 12, day: 25, type: 'cultural' },
   { name: "New Year's Eve", month: 12, day: 31, type: 'universal' },
 ];
 
@@ -164,10 +164,17 @@ export function getCurrentSeason(
 
   // Northern hemisphere
   const northernSeasons: Record<number, Season> = {
-    1: 'winter', 2: 'winter',
-    3: 'spring', 4: 'spring', 5: 'spring',
-    6: 'summer', 7: 'summer', 8: 'summer',
-    9: 'fall', 10: 'fall', 11: 'fall',
+    1: 'winter',
+    2: 'winter',
+    3: 'spring',
+    4: 'spring',
+    5: 'spring',
+    6: 'summer',
+    7: 'summer',
+    8: 'summer',
+    9: 'fall',
+    10: 'fall',
+    11: 'fall',
     12: 'winter',
   };
 
@@ -290,10 +297,7 @@ export function recordSeasonalData(
 /**
  * Add personal date
  */
-export function addPersonalDate(
-  userId: string,
-  date: Omit<PersonalDate, 'id'>
-): PersonalDate {
+export function addPersonalDate(userId: string, date: Omit<PersonalDate, 'id'>): PersonalDate {
   const profile = getOrCreateProfile(userId);
 
   const personalDate: PersonalDate = {
@@ -318,7 +322,7 @@ export function updateHolidayPreference(
 ): void {
   const profile = getOrCreateProfile(userId);
 
-  let existing = profile.holidayPreferences.find((p) => p.holiday === holiday);
+  const existing = profile.holidayPreferences.find((p) => p.holiday === holiday);
 
   if (existing) {
     Object.assign(existing, preference);
@@ -416,7 +420,8 @@ export function detectSADPatterns(userId: string): {
     return {
       likely: true,
       correlation: Math.min(1, difference),
-      recommendation: 'Daylight seems to significantly affect your mood. Consider light therapy or prioritizing outdoor time in winter.',
+      recommendation:
+        'Daylight seems to significantly affect your mood. Consider light therapy or prioritizing outdoor time in winter.',
     };
   }
 
@@ -472,7 +477,9 @@ export function buildSeasonalContext(userId: string): SeasonalContext {
   // Holiday suggestions
   for (const holiday of upcomingHolidays) {
     if (holiday.daysUntil <= 7 && holiday.userSentiment === 'negative') {
-      proactiveSuggestions.push(`${holiday.name} is approaching - we can talk about how to navigate it`);
+      proactiveSuggestions.push(
+        `${holiday.name} is approaching - we can talk about how to navigate it`
+      );
     }
     if (holiday.daysUntil <= 3 && holiday.userSentiment === 'positive') {
       proactiveSuggestions.push(`${holiday.name} is almost here! How are you feeling about it?`);
@@ -498,9 +505,7 @@ function getUpcomingHolidays(profile: SeasonalProfile, from: Date): UpcomingHoli
 
   for (const holiday of UNIVERSAL_HOLIDAYS) {
     const holidayDate = getNextOccurrence(holiday, from);
-    const daysUntil = Math.floor(
-      (holidayDate.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)
-    );
+    const daysUntil = Math.floor((holidayDate.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
 
     if (daysUntil >= 0 && daysUntil <= lookAhead) {
       const pref = profile.holidayPreferences.find((p) => p.holiday === holiday.name);
@@ -710,4 +715,3 @@ export default {
   getSeasonalProfile,
   generateSeasonalContextForLLM,
 };
-

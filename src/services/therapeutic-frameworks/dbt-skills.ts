@@ -68,7 +68,7 @@ The long exhale is what calms your nervous system. You're doing great.`,
     steps: [
       "Stop - freeze. Don't move, don't speak, don't hit send.",
       'Take a step back - one deep breath. Step away if you can.',
-      "Observe - What am I feeling? What just happened? What do I want here?",
+      'Observe - What am I feeling? What just happened? What do I want here?',
       'Proceed mindfully - What action would I respect myself for later?',
     ],
     voiceGuidance: `Wait. Before you do anything, let's STOP.
@@ -223,7 +223,7 @@ It feels weird. And it works.`,
     steps: [
       'What event triggered this emotion? Just the facts.',
       'What am I assuming or interpreting beyond the facts?',
-      'Am I catastrophizing? What\'s the most likely outcome?',
+      "Am I catastrophizing? What's the most likely outcome?",
       'Does my emotion and its intensity fit the actual facts?',
       'What would a trusted friend say about this situation?',
     ],
@@ -258,7 +258,7 @@ export const INTERPERSONAL_SKILLS: Record<string, DBTSkill> = {
       A: 'Assert what you want clearly',
       R: 'Reinforce - explain why it benefits them too',
       M: 'stay Mindful - stay focused on your goal',
-      A2: 'Appear confident - even if you don\'t feel it',
+      A2: "Appear confident - even if you don't feel it",
       N: 'Negotiate - be willing to give to get',
     },
     whenToUse: ['asking for something', 'setting boundary', 'saying no'],
@@ -267,8 +267,8 @@ export const INTERPERSONAL_SKILLS: Record<string, DBTSkill> = {
       'Express: "I felt..." (use I statements)',
       'Assert: "I would like..." (be specific)',
       'Reinforce: "This would help because..." (what\'s in it for them)',
-      'Mindful: Stay on topic, don\'t get sidetracked',
-      'Appear confident: Even if you don\'t feel it, act confident',
+      "Mindful: Stay on topic, don't get sidetracked",
+      "Appear confident: Even if you don't feel it, act confident",
       'Negotiate: "Is there a way we can make this work?"',
     ],
     voiceGuidance: `Let's think through this conversation before you have it.
@@ -294,16 +294,16 @@ You can do this. You have a right to ask for what you need.`,
     acronym: 'GIVE',
     acronymMeaning: {
       G: 'be Gentle - no attacks, threats, or judgments',
-      I: 'act Interested - listen, don\'t interrupt',
+      I: "act Interested - listen, don't interrupt",
       V: 'Validate - acknowledge their perspective',
       E: 'use an Easy manner - some humor, light touch',
     },
-    whenToUse: ['preserving relationship', 'difficult conversation', 'they\'re upset'],
+    whenToUse: ['preserving relationship', 'difficult conversation', "they're upset"],
     steps: [
       'Gentle: No attacking, threatening, or judging. Drop the weapons.',
-      'Interested: Actually listen. Ask questions. Don\'t interrupt.',
+      "Interested: Actually listen. Ask questions. Don't interrupt.",
       'Validate: Acknowledge their feelings and perspective, even if you disagree.',
-      'Easy manner: Light touch, some humor if appropriate. This isn\'t war.',
+      "Easy manner: Light touch, some humor if appropriate. This isn't war.",
     ],
     voiceGuidance: `You want to get through this AND keep the relationship. So let's GIVE.
 
@@ -333,9 +333,9 @@ You can be effective and kind at the same time.`,
     whenToUse: ['pressure to compromise values', 'tendency to over-apologize', 'losing yourself'],
     steps: [
       'Fair: Be fair to yourself, not just others. Your needs matter.',
-      'Apologies: Don\'t over-apologize. Don\'t apologize for existing.',
-      'Stick to values: Don\'t give up what matters to you to please someone else.',
-      'Truthful: Don\'t exaggerate, don\'t lie, don\'t act helpless when you\'re not.',
+      "Apologies: Don't over-apologize. Don't apologize for existing.",
+      "Stick to values: Don't give up what matters to you to please someone else.",
+      "Truthful: Don't exaggerate, don't lie, don't act helpless when you're not.",
     ],
     voiceGuidance: `Let's make sure you come out of this feeling okay about yourself.
 
@@ -617,4 +617,3 @@ export function buildDBTContext(
 }
 
 // All constants are exported at their definitions above
-

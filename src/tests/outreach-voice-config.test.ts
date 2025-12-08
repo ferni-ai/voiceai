@@ -70,13 +70,7 @@ interface OutreachVoiceConfig {
 }
 
 function loadConfig(personaId: string): OutreachVoiceConfig | null {
-  const configPath = join(
-    BUNDLES_PATH,
-    personaId,
-    'content',
-    'behaviors',
-    'outreach-voice.json'
-  );
+  const configPath = join(BUNDLES_PATH, personaId, 'content', 'behaviors', 'outreach-voice.json');
 
   if (!existsSync(configPath)) {
     return null;
@@ -96,13 +90,7 @@ function loadConfig(personaId: string): OutreachVoiceConfig | null {
 
 describe('Outreach Voice Config Files', () => {
   it.each(EXPECTED_PERSONAS)('should have config file for %s', (personaId) => {
-    const configPath = join(
-      BUNDLES_PATH,
-      personaId,
-      'content',
-      'behaviors',
-      'outreach-voice.json'
-    );
+    const configPath = join(BUNDLES_PATH, personaId, 'content', 'behaviors', 'outreach-voice.json');
     expect(existsSync(configPath)).toBe(true);
   });
 
@@ -219,9 +207,23 @@ describe('Channel Styles', () => {
 // ============================================================================
 
 describe('Voice Profile Consistency', () => {
-  const VALID_TONES = ['warm', 'supportive', 'friendly', 'professional', 'calm', 'energetic', 'grounded'];
+  const VALID_TONES = [
+    'warm',
+    'supportive',
+    'friendly',
+    'professional',
+    'calm',
+    'energetic',
+    'grounded',
+  ];
   const VALID_ENERGIES = ['grounded', 'steady', 'high', 'calm', 'dynamic', 'focused'];
-  const VALID_FORMALITIES = ['casual', 'friendly', 'professional', 'casual-professional', 'friendly-professional'];
+  const VALID_FORMALITIES = [
+    'casual',
+    'friendly',
+    'professional',
+    'casual-professional',
+    'friendly-professional',
+  ];
 
   describe.each(EXPECTED_PERSONAS)('%s voice profile', (personaId) => {
     let config: OutreachVoiceConfig | null;
@@ -452,9 +454,9 @@ describe('Specialty Triggers', () => {
 
     expect(
       templateString.includes('meeting') ||
-      templateString.includes('appointment') ||
-      templateString.includes('schedule') ||
-      templateString.includes('reminder')
+        templateString.includes('appointment') ||
+        templateString.includes('schedule') ||
+        templateString.includes('reminder')
     ).toBe(true);
   });
 

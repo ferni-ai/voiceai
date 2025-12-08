@@ -11,20 +11,29 @@ import type { PersonaConfig } from '../../personas/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
 // Safe logger that returns a no-op if not initialized yet (module load time)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let cachedLog: any = null;
 const getLogger = () => {
-  try {
-    const { log } = require('@livekit/agents');
-    return log();
-  } catch {
-    // Logger not initialized yet, return no-op logger
-    return {
-      debug: () => {},
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-    };
-  }
+  if (cachedLog) return cachedLog;
+  // Return no-op logger for synchronous access
+  // The actual logger will be set asynchronously if available
+  return {
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+  };
 };
+
+// Try to initialize the logger asynchronously
+void (async () => {
+  try {
+    const agents = await import('@livekit/agents');
+    cachedLog = agents.log();
+  } catch {
+    // Logger not available
+  }
+})();
 
 // ============================================================================
 // TYPES

@@ -1,9 +1,9 @@
 /**
  * Voice Callbacks for Simple Utilities
- * 
+ *
  * Makes utilities voice-first, not text-first.
  * When a timer completes, Ferni actually SPEAKS to you.
- * 
+ *
  * VOICE-FIRST PRINCIPLES:
  * 1. Audio feedback for actions (timer set, timer done)
  * 2. Natural speech patterns, not text dumps
@@ -17,7 +17,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 // CALLBACK REGISTRY
 // ============================================================================
 
-export type VoiceCallbackType = 
+export type VoiceCallbackType =
   | 'timer_complete'
   | 'countdown_milestone'
   | 'proactive_suggestion'
@@ -52,11 +52,11 @@ export function registerVoiceCallbackHandler(
 ): void {
   voiceCallbackHandler = handler;
   getLogger().info('Voice callback handler registered');
-  
+
   // Process any pending callbacks
   while (pendingCallbacks.length > 0) {
     const callback = pendingCallbacks.shift()!;
-    handler(callback).catch(err => {
+    handler(callback).catch((err) => {
       getLogger().error({ err, callback }, 'Failed to process pending callback');
     });
   }
@@ -78,7 +78,7 @@ export function unregisterVoiceCallbackHandler(): void {
  */
 export async function triggerVoiceCallback(callback: VoiceCallback): Promise<void> {
   getLogger().info({ type: callback.type, userId: callback.userId }, 'Voice callback triggered');
-  
+
   if (voiceCallbackHandler) {
     await voiceCallbackHandler(callback);
   } else {
@@ -100,9 +100,9 @@ export async function onTimerComplete(
   let message: string;
   let followUpQuestion: string | undefined;
   let sound: VoiceCallback['sound'] = 'timer-ding';
-  
+
   const labelLower = label.toLowerCase();
-  
+
   if (labelLower.includes('tea') || labelLower.includes('coffee') || labelLower.includes('steep')) {
     message = `Your ${label} is ready!`;
     followUpQuestion = 'Hope it turned out perfect.';
@@ -111,18 +111,29 @@ export async function onTimerComplete(
     message = `Break time's over!`;
     followUpQuestion = 'Feel refreshed? Ready to dive back in?';
     sound = 'soft-ping';
-  } else if (labelLower.includes('cook') || labelLower.includes('bake') || 
-             labelLower.includes('oven') || labelLower.includes('food')) {
+  } else if (
+    labelLower.includes('cook') ||
+    labelLower.includes('bake') ||
+    labelLower.includes('oven') ||
+    labelLower.includes('food')
+  ) {
     message = `Timer's up for ${label}!`;
     followUpQuestion = 'How did it turn out?';
     sound = 'timer-ding';
-  } else if (labelLower.includes('focus') || labelLower.includes('work') || 
-             labelLower.includes('pomodoro')) {
+  } else if (
+    labelLower.includes('focus') ||
+    labelLower.includes('work') ||
+    labelLower.includes('pomodoro')
+  ) {
     message = `Focus session complete!`;
     followUpQuestion = 'Nice work! Ready for a break, or keep the momentum going?';
     sound = 'celebration';
-  } else if (labelLower.includes('exercise') || labelLower.includes('workout') ||
-             labelLower.includes('plank') || labelLower.includes('stretch')) {
+  } else if (
+    labelLower.includes('exercise') ||
+    labelLower.includes('workout') ||
+    labelLower.includes('plank') ||
+    labelLower.includes('stretch')
+  ) {
     message = `${label} time is done!`;
     followUpQuestion = 'Great effort! How do you feel?';
     sound = 'celebration';
@@ -139,7 +150,7 @@ export async function onTimerComplete(
     followUpQuestion = durationMinutes >= 5 ? 'Everything go okay?' : undefined;
     sound = 'timer-ding';
   }
-  
+
   await triggerVoiceCallback({
     type: 'timer_complete',
     userId,
@@ -163,7 +174,7 @@ export async function onCountdownMilestone(
   let message: string;
   let sound: VoiceCallback['sound'] = 'soft-ping';
   let priority: VoiceCallback['priority'] = 'normal';
-  
+
   if (daysRemaining === 0) {
     message = `Today's the day! It's ${event}!`;
     sound = 'celebration';
@@ -185,7 +196,7 @@ export async function onCountdownMilestone(
     // Not a milestone, don't trigger
     return;
   }
-  
+
   await triggerVoiceCallback({
     type: 'countdown_milestone',
     userId,
@@ -238,15 +249,18 @@ export async function onPatternInsight(
 /**
  * Convert a text response to SSML for more natural speech
  */
-export function toVoiceResponse(text: string, options?: {
-  emphasis?: 'strong' | 'moderate' | 'reduced';
-  rate?: 'slow' | 'medium' | 'fast';
-  pitch?: 'low' | 'medium' | 'high';
-  breakBefore?: boolean;
-  breakAfter?: boolean;
-}): string {
+export function toVoiceResponse(
+  text: string,
+  options?: {
+    emphasis?: 'strong' | 'moderate' | 'reduced';
+    rate?: 'slow' | 'medium' | 'fast';
+    pitch?: 'low' | 'medium' | 'high';
+    breakBefore?: boolean;
+    breakAfter?: boolean;
+  }
+): string {
   let ssml = text;
-  
+
   // Add natural pauses
   if (options?.breakBefore) {
     ssml = `<break time="300ms"/>${ssml}`;
@@ -254,7 +268,7 @@ export function toVoiceResponse(text: string, options?: {
   if (options?.breakAfter) {
     ssml = `${ssml}<break time="300ms"/>`;
   }
-  
+
   // Apply prosody
   const prosodyAttrs: string[] = [];
   if (options?.rate) {
@@ -265,23 +279,26 @@ export function toVoiceResponse(text: string, options?: {
     const pitchMap = { low: '-5%', medium: '+0%', high: '+5%' };
     prosodyAttrs.push(`pitch="${pitchMap[options.pitch]}"`);
   }
-  
+
   if (prosodyAttrs.length > 0) {
     ssml = `<prosody ${prosodyAttrs.join(' ')}>${ssml}</prosody>`;
   }
-  
+
   // Apply emphasis
   if (options?.emphasis) {
     ssml = `<emphasis level="${options.emphasis}">${ssml}</emphasis>`;
   }
-  
+
   return ssml;
 }
 
 /**
  * Format a number for natural speech
  */
-export function speakNumber(num: number, type: 'currency' | 'ordinal' | 'cardinal' = 'cardinal'): string {
+export function speakNumber(
+  num: number,
+  type: 'currency' | 'ordinal' | 'cardinal' = 'cardinal'
+): string {
   switch (type) {
     case 'currency':
       return `<say-as interpret-as="currency">$${num.toFixed(2)}</say-as>`;
@@ -298,7 +315,7 @@ export function speakNumber(num: number, type: 'currency' | 'ordinal' | 'cardina
 export function speakTime(hours: number, minutes: number): string {
   const period = hours >= 12 ? 'PM' : 'AM';
   const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
-  
+
   if (minutes === 0) {
     return `${displayHours} ${period}`;
   } else if (minutes < 10) {
@@ -311,16 +328,16 @@ export function speakTime(hours: number, minutes: number): string {
 /**
  * Format duration for natural speech
  */
-export function speakDuration(minutes: number, seconds: number = 0): string {
+export function speakDuration(minutes: number, seconds = 0): string {
   const parts: string[] = [];
-  
+
   if (minutes > 0) {
     parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
   }
   if (seconds > 0) {
     parts.push(`${seconds} second${seconds !== 1 ? 's' : ''}`);
   }
-  
+
   if (parts.length === 2) {
     return `${parts[0]} and ${parts[1]}`;
   }
@@ -344,4 +361,3 @@ export default {
   speakTime,
   speakDuration,
 };
-

@@ -16,7 +16,11 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { persistTrackedItem, persistKeyMoment, type ToolCtxWithUserData } from '../shared/persistence.js';
+import {
+  persistTrackedItem,
+  persistKeyMoment,
+  type ToolCtxWithUserData,
+} from '../shared/persistence.js';
 import { z } from 'zod';
 
 // ============================================================================
@@ -46,7 +50,12 @@ const VOLUNTEER_CATEGORIES = {
   },
   advocacy: {
     name: 'Advocacy',
-    examples: ['Voter registration', 'Policy campaigns', 'Awareness raising', 'Community organizing'],
+    examples: [
+      'Voter registration',
+      'Policy campaigns',
+      'Awareness raising',
+      'Community organizing',
+    ],
     impact: 'Creating systemic change',
   },
   virtual: {
@@ -215,7 +224,9 @@ const planCharitableGivingDef: ToolDefinition = {
         currentGiving: z.string().optional().describe('Current giving approach'),
         budget: z.string().optional().describe('Annual giving budget'),
         interests: z.array(z.string()).optional().describe('Cause areas'),
-        approach: z.enum(['effective-altruism', 'local-first', 'cause-focused', 'exploring']).optional(),
+        approach: z
+          .enum(['effective-altruism', 'local-first', 'cause-focused', 'exploring'])
+          .optional(),
       }),
       execute: async ({ currentGiving, budget, interests, approach }) => {
         getLogger().info({ agentId: ctx.agentId, approach }, 'Planning charitable giving');
@@ -298,7 +309,7 @@ const alignGivingWithValuesDef: ToolDefinition = {
         response += `**Reflection Questions:**\n\n`;
         response += `For each value you hold, ask:\n\n`;
 
-        values.forEach(value => {
+        values.forEach((value) => {
           response += `**${value}:**\n`;
           response += `• Which organizations advance this value?\n`;
           response += `• How might your giving express this value?\n`;
@@ -404,13 +415,9 @@ const engageCivicallyDef: ToolDefinition = {
     return llm.tool({
       description: 'Help with civic engagement and participation.',
       parameters: z.object({
-        interest: z.enum([
-          'voting',
-          'local-government',
-          'advocacy',
-          'community-organizing',
-          'general',
-        ]).describe('Area of civic interest'),
+        interest: z
+          .enum(['voting', 'local-government', 'advocacy', 'community-organizing', 'general'])
+          .describe('Area of civic interest'),
         currentEngagement: z.string().optional().describe('Current level of engagement'),
       }),
       execute: async ({ interest, currentEngagement }) => {
@@ -639,4 +646,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

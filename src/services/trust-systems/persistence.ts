@@ -16,11 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 // Trust system imports
-import {
-  exportBoundaries,
-  importBoundaries,
-  type BoundaryProfile,
-} from './boundary-memory.js';
+import { exportBoundaries, importBoundaries, type BoundaryProfile } from './boundary-memory.js';
 
 import {
   exportGrowthProfile,
@@ -46,56 +42,26 @@ import {
   type ThinkingOfYouProfile,
 } from './thinking-of-you.js';
 
-import {
-  getUnsaidProfile,
-  type UserUnsaidProfile,
-} from './reading-between-lines.js';
+import { getUnsaidProfile, type UserUnsaidProfile } from './reading-between-lines.js';
 
 // Phase 12-17, 24-29: New trust system imports for persistence
-import {
-  getHealthScore,
-  type RelationshipHealthScore,
-} from './relationship-health.js';
+import { getHealthScore, type RelationshipHealthScore } from './relationship-health.js';
 
-import {
-  getMomentumProfile,
-  type MomentumProfile,
-} from './celebration-momentum.js';
+import { getMomentumProfile, type MomentumProfile } from './celebration-momentum.js';
 
-import {
-  getTimeline,
-  type SentimentTimeline,
-} from './sentiment-timeline.js';
+import { getTimeline, type SentimentTimeline } from './sentiment-timeline.js';
 
-import {
-  getBaseline,
-  type PersonalBaseline,
-} from './voice-prosody-learning.js';
+import { getBaseline, type PersonalBaseline } from './voice-prosody-learning.js';
 
-import {
-  getJournalingPatterns,
-  type JournalingPattern,
-} from './journaling-prompts.js';
+import { getJournalingPatterns, type JournalingPattern } from './journaling-prompts.js';
 
-import {
-  getSeasonalProfile,
-  type SeasonalProfile,
-} from './seasonal-awareness.js';
+import { getSeasonalProfile, type SeasonalProfile } from './seasonal-awareness.js';
 
-import {
-  getLearningProfile,
-  type LearningProfile,
-} from './learning-style.js';
+import { getLearningProfile, type LearningProfile } from './learning-style.js';
 
-import {
-  getMediaPreferences,
-  type MediaPreferences,
-} from './media-suggestions.js';
+import { getMediaPreferences, type MediaPreferences } from './media-suggestions.js';
 
-import {
-  getReportHistory,
-  type InsightsReport,
-} from './relationship-insights.js';
+import { getReportHistory, type InsightsReport } from './relationship-insights.js';
 
 const log = createLogger({ module: 'TrustPersistence' });
 
@@ -185,11 +151,7 @@ function getDb(): FirebaseFirestore.Firestore {
  * Get trust profile document reference
  */
 function getTrustDoc(userId: string, systemName: string) {
-  return getDb()
-    .collection('bogle_users')
-    .doc(userId)
-    .collection(TRUST_COLLECTION)
-    .doc(systemName);
+  return getDb().collection('bogle_users').doc(userId).collection(TRUST_COLLECTION).doc(systemName);
 }
 
 // ============================================================================
@@ -358,10 +320,7 @@ export async function saveTrustProfiles(userId: string): Promise<{
     }
   }
 
-  log.info(
-    { userId, saved: saved.length, failed: failed.length },
-    '💾 Trust profiles saved'
-  );
+  log.info({ userId, saved: saved.length, failed: failed.length }, '💾 Trust profiles saved');
 
   return { saved, failed };
 }
@@ -373,10 +332,7 @@ export async function saveTrustProfiles(userId: string): Promise<{
 /**
  * Load a single trust system profile
  */
-async function loadSystemProfile<T>(
-  userId: string,
-  systemName: string
-): Promise<T | null> {
+async function loadSystemProfile<T>(userId: string, systemName: string): Promise<T | null> {
   try {
     const doc = await getTrustDoc(userId, systemName).get();
 
@@ -403,10 +359,7 @@ export async function loadTrustProfiles(userId: string): Promise<{
   const notFound: string[] = [];
 
   // Boundaries
-  const boundaries = await loadSystemProfile<BoundaryProfile>(
-    userId,
-    SYSTEM_NAMES.boundaries
-  );
+  const boundaries = await loadSystemProfile<BoundaryProfile>(userId, SYSTEM_NAMES.boundaries);
   if (boundaries) {
     importBoundaries(boundaries);
     loaded.push('boundaries');
@@ -415,10 +368,7 @@ export async function loadTrustProfiles(userId: string): Promise<{
   }
 
   // Growth
-  const growth = await loadSystemProfile<GrowthProfile>(
-    userId,
-    SYSTEM_NAMES.growth
-  );
+  const growth = await loadSystemProfile<GrowthProfile>(userId, SYSTEM_NAMES.growth);
   if (growth) {
     importGrowthProfile(growth);
     loaded.push('growth');
@@ -427,10 +377,7 @@ export async function loadTrustProfiles(userId: string): Promise<{
   }
 
   // Inside Jokes
-  const insideJokes = await loadSystemProfile<InsideJokesProfile>(
-    userId,
-    SYSTEM_NAMES.insideJokes
-  );
+  const insideJokes = await loadSystemProfile<InsideJokesProfile>(userId, SYSTEM_NAMES.insideJokes);
   if (insideJokes) {
     importInsideJokesProfile(insideJokes);
     loaded.push('insideJokes');
@@ -439,10 +386,7 @@ export async function loadTrustProfiles(userId: string): Promise<{
   }
 
   // Small Wins
-  const smallWins = await loadSystemProfile<SmallWinsProfile>(
-    userId,
-    SYSTEM_NAMES.smallWins
-  );
+  const smallWins = await loadSystemProfile<SmallWinsProfile>(userId, SYSTEM_NAMES.smallWins);
   if (smallWins) {
     importSmallWinsProfile(smallWins);
     loaded.push('smallWins');
@@ -609,4 +553,3 @@ export default {
   importTrustBundle,
   deleteTrustProfiles,
 };
-

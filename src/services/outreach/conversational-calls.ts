@@ -257,10 +257,7 @@ class ConversationalCallService extends EventEmitter {
   /**
    * Create a LiveKit room for the call
    */
-  private async createLiveKitRoom(
-    callId: string,
-    context: OutboundCallContext
-  ): Promise<string> {
+  private async createLiveKitRoom(callId: string, context: OutboundCallContext): Promise<string> {
     const roomName = `outbound-${callId}`;
 
     // Store context in room metadata for the agent to access
@@ -307,17 +304,11 @@ class ConversationalCallService extends EventEmitter {
   /**
    * Join the persona agent to the call
    */
-  private async joinAgentToRoom(
-    roomName: string,
-    context: OutboundCallContext
-  ): Promise<void> {
+  private async joinAgentToRoom(roomName: string, context: OutboundCallContext): Promise<void> {
     // This would dispatch to your agent service to join
     // The agent joins with full context about the call
 
-    log.info(
-      { roomName, persona: context.persona },
-      '🤖 Agent joining call'
-    );
+    log.info({ roomName, persona: context.persona }, '🤖 Agent joining call');
 
     // Emit event for agent dispatcher to handle
     this.emit('agent-join-requested', {
@@ -408,10 +399,7 @@ class ConversationalCallService extends EventEmitter {
   /**
    * Generate TwiML for voicemail
    */
-  private generateVoicemailTwiml(
-    context: OutboundCallContext,
-    voicemailMessage: string
-  ): string {
+  private generateVoicemailTwiml(context: OutboundCallContext, voicemailMessage: string): string {
     // Use persona's voice via Cartesia TTS if available
     // Otherwise fall back to Twilio's built-in voice
     const voiceId = this.getVoiceForPersona(context.persona);
@@ -511,7 +499,14 @@ class ConversationalCallService extends EventEmitter {
    */
   async handleMachineDetection(
     callId: string,
-    machineResult: 'human' | 'machine_start' | 'machine_end_beep' | 'machine_end_silence' | 'machine_end_other' | 'fax' | 'unknown'
+    machineResult:
+      | 'human'
+      | 'machine_start'
+      | 'machine_end_beep'
+      | 'machine_end_silence'
+      | 'machine_end_other'
+      | 'fax'
+      | 'unknown'
   ): Promise<string | null> {
     const call = activeCallsStore.get(callId);
     if (!call) {
@@ -542,7 +537,13 @@ class ConversationalCallService extends EventEmitter {
           trigger: call.context.trigger,
           context: call.context.context,
         },
-        call.context.approach.tone as 'celebratory' | 'supportive' | 'encouraging' | 'casual' | 'informative' | 'urgent'
+        call.context.approach.tone as
+          | 'celebratory'
+          | 'supportive'
+          | 'encouraging'
+          | 'casual'
+          | 'informative'
+          | 'urgent'
       );
 
       call.voicemailMessage = voicemailMessage;
@@ -708,9 +709,7 @@ export function getConversationalCallService(
  * });
  * ```
  */
-export async function makeConversationalCall(
-  context: OutboundCallContext
-): Promise<OutboundCall> {
+export async function makeConversationalCall(context: OutboundCallContext): Promise<OutboundCall> {
   const service = getConversationalCallService();
   return service.initiateCall(context);
 }
@@ -727,9 +726,7 @@ export function isConversationalCallsConfigured(): boolean {
 // EXPORTS
 // ============================================================================
 
-export {
-  ConversationalCallService,
-};
+export { ConversationalCallService };
 
 // Types are already exported inline at definition (export type/export interface)
 
@@ -738,4 +735,3 @@ export default {
   makeConversationalCall,
   isConversationalCallsConfigured,
 };
-

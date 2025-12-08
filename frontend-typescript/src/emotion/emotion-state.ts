@@ -406,6 +406,9 @@ export function setEmotion(emotionId: EmotionId, options?: TransitionOptions): v
   emotionState.setEmotion(emotionId, options);
 }
 
+// Alias for backward compatibility
+export const transitionEmotion = setEmotion;
+
 export function flashEmotion(emotionId: EmotionId, durationMs?: number): void {
   emotionState.flashEmotion(emotionId, durationMs);
 }

@@ -316,12 +316,102 @@ const BEAT_ORCHESTRATIONS = {
 };
 ```
 
+## Integration Components
+
+### Narrative Bridge
+
+Connects the Narrative Director to app events:
+
+```typescript
+import { initNarrativeBridge } from './narrative/index.js';
+
+// In your app initialization
+initNarrativeBridge();
+
+// Events automatically handled:
+// - ferni:connecting, ferni:connected, ferni:disconnected
+// - ferni:user-speech-start, ferni:user-speech-end
+// - ferni:agent-speech-start, ferni:agent-speech-end
+// - ferni:small-win, ferni:big-win, ferni:breakthrough
+// - ferni:emotion-detected
+// - ferni:switch-persona, ferni:handoff
+// - ferni:team-unlock
+```
+
+### Emotion Analyzer
+
+Detects user emotions from voice and text:
+
+```typescript
+import { getEmotionAnalyzer, analyzeText } from './narrative/index.js';
+
+// Analyze text sentiment
+const result = analyzeText("I'm so frustrated with this");
+// { primary: 'frustrated', confidence: 0.75, ... }
+
+// Get combined emotion (voice + text)
+const emotion = getCurrentEmotion();
+
+// Start continuous analysis
+const analyzer = getEmotionAnalyzer();
+analyzer.start();
+```
+
+### Story Tracker
+
+Persists the user's journey across sessions:
+
+```typescript
+import { getStoryTracker, getJourney, isFirstLaunch } from './narrative/index.js';
+
+const tracker = getStoryTracker();
+
+// Check if first launch
+if (isFirstLaunch()) {
+  // Show onboarding
+}
+
+// Get full journey
+const journey = getJourney();
+// { totalSessions: 25, currentStreak: 7, milestones: [...], ... }
+
+// Record milestones
+tracker.recordMilestone({
+  type: 'streak',
+  name: '7-day streak',
+});
+
+// Track memorable moments
+tracker.recordMemorableMoment({
+  beat: 'breakthrough',
+  description: 'User realized their pattern',
+  emotion: 'excited',
+  timestamp: Date.now(),
+  sessionId: 'session_123',
+  personaId: 'ferni',
+});
+```
+
+## Dev Panel Testing
+
+Access narrative testing via `Cmd/Ctrl+Shift+D`:
+
+**Narrative System Section:**
+- Journey Beats: First Launch, Welcome Back, Streak, Connected
+- Conversation Flow: User Speaks, Thinking, Ferni Speaks, Long Pause
+- Emotional Moments: Empathy, Vulnerable, Frustrated, Sad
+- Achievements: Small Win, Big Win, Breakthrough, Milestone
+- Team & Special: Persona Intro, Team Unlock, Birthday, Morning
+- Story Arcs: Breakthrough Arc, Deep Convo Arc, Goal Complete Arc, Support Arc
+
 ## Performance Considerations
 
 - Beats are **non-blocking by default** (parallel execution)
 - Use `blocking: true` for sequences that must complete
 - Animation budget is managed by `animation-orchestrator.ui.ts`
 - Reduced motion is respected throughout
+- Cross-session persistence uses localStorage (Firestore sync optional)
+- Emotion analysis is throttled to prevent over-detection
 
 ---
 

@@ -127,9 +127,8 @@ const restaurantTests: TestSuite = {
     {
       name: 'Format restaurant for speech',
       run: async () => {
-        const { formatRestaurantForSpeech } = await import(
-          '../../services/restaurant-reservations.js'
-        );
+        const { formatRestaurantForSpeech } =
+          await import('../../services/restaurant-reservations.js');
         const speech = formatRestaurantForSpeech({
           id: 'test',
           name: 'Test Restaurant',
@@ -325,7 +324,7 @@ const experimentTests: TestSuite = {
       name: 'Bayesian analysis',
       run: async () => {
         const { performBayesianAnalysis } = await import('../../services/experiment-advanced.js');
-        
+
         // Create a mock experiment with metrics
         const mockExperiment = {
           id: 'test',
@@ -339,25 +338,25 @@ const experimentTests: TestSuite = {
           metrics: {
             engagement: {
               control: 0.25,
-              treatment: 0.30,
+              treatment: 0.3,
               controlN: 100,
               treatmentN: 100,
             },
             satisfaction: {
-              control: 0.70,
+              control: 0.7,
               treatment: 0.75,
               controlN: 100,
               treatmentN: 100,
             },
           },
         };
-        
+
         const result = performBayesianAnalysis(mockExperiment);
-        
+
         if (typeof result.probabilityTreatmentWins !== 'number') {
           throw new Error('Bayesian analysis returned invalid result');
         }
-        
+
         log.info(result, 'Bayesian analysis result');
       },
     },
@@ -365,7 +364,7 @@ const experimentTests: TestSuite = {
       name: 'MAB variant selection',
       run: async () => {
         const { getBanditVariant } = await import('../../services/experiment-advanced.js');
-        
+
         // Mock experiment with metrics
         const mockExperiment = {
           id: 'test',
@@ -379,46 +378,47 @@ const experimentTests: TestSuite = {
           metrics: {
             engagement: {
               control: 0.25,
-              treatment: 0.30,
+              treatment: 0.3,
               controlN: 100,
               treatmentN: 100,
             },
             satisfaction: {
-              control: 0.70,
+              control: 0.7,
               treatment: 0.75,
               controlN: 100,
               treatmentN: 100,
             },
           },
         };
-        
+
         const variant = getBanditVariant(mockExperiment, 'thompson');
         if (variant !== 'control' && variant !== 'treatment') {
           throw new Error('Invalid variant selected');
         }
-        
+
         log.info({ variant }, 'MAB variant selection');
       },
     },
     {
       name: 'Segment registration',
       run: async () => {
-        const { registerSegment, getAllSegments } = await import('../../services/experiment-advanced.js');
-        
+        const { registerSegment, getAllSegments } =
+          await import('../../services/experiment-advanced.js');
+
         registerSegment({
           id: 'e2e-test-segment',
           name: 'E2E Test Segment',
           description: 'Test segment for E2E',
           evaluate: () => true,
         });
-        
+
         const segments = getAllSegments();
-        const testSegment = segments.find(s => s.id === 'e2e-test-segment');
-        
+        const testSegment = segments.find((s) => s.id === 'e2e-test-segment');
+
         if (!testSegment) {
           throw new Error('Segment registration failed');
         }
-        
+
         log.info({ segmentCount: segments.length }, 'Segment registered');
       },
     },
@@ -463,7 +463,9 @@ async function main(): Promise<void> {
   console.log(`  Twilio: ${process.env.TWILIO_ACCOUNT_SID ? '✅' : '❌'}`);
   console.log(`  SendGrid: ${process.env.SENDGRID_API_KEY ? '✅' : '❌'}`);
   console.log(`  Cartesia: ${process.env.CARTESIA_API_KEY ? '✅' : '❌'}`);
-  console.log(`  Database: ${process.env.DATABASE_URL || process.env.GOOGLE_CLOUD_PROJECT ? '✅' : '❌'}`);
+  console.log(
+    `  Database: ${process.env.DATABASE_URL || process.env.GOOGLE_CLOUD_PROJECT ? '✅' : '❌'}`
+  );
   console.log(`  Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅' : '❌'}`);
 
   // Parse CLI args for specific suite
@@ -516,4 +518,3 @@ main().catch((error) => {
   console.error('E2E runner failed:', error);
   process.exit(1);
 });
-

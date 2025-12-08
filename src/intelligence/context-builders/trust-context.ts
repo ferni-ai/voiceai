@@ -73,9 +73,7 @@ const log = createLogger({ module: 'TrustContextBuilder' });
 /**
  * Build trust-aware context for the current turn
  */
-async function buildTrustAwareContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildTrustAwareContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, services, userData, analysis, userProfile } = input;
   const userId = services?.userId;
 
@@ -127,9 +125,7 @@ async function buildTrustAwareContext(
 
   // 4. Callback Opportunity - Inside jokes and shared history
   if (trustContext.callbackOpportunity) {
-    const callbackInjection = formatCallbackOpportunity(
-      trustContext.callbackOpportunity
-    );
+    const callbackInjection = formatCallbackOpportunity(trustContext.callbackOpportunity);
     if (callbackInjection) {
       injections.push(callbackInjection);
     }
@@ -137,9 +133,7 @@ async function buildTrustAwareContext(
 
   // 5. Celebration Opportunity - Small wins
   if (trustContext.celebrationOpportunity) {
-    const celebrationInjection = formatCelebrationOpportunity(
-      trustContext.celebrationOpportunity
-    );
+    const celebrationInjection = formatCelebrationOpportunity(trustContext.celebrationOpportunity);
     if (celebrationInjection) {
       injections.push(celebrationInjection);
     }
@@ -154,9 +148,7 @@ async function buildTrustAwareContext(
     const tuningGuidance = generateTuningGuidance(responseTuningContext);
     const tuningText = formatGuidanceForLLM(tuningGuidance);
     if (tuningText) {
-      injections.push(
-        createHintInjection('response_tuning', tuningText, { category: 'trust' })
-      );
+      injections.push(createHintInjection('response_tuning', tuningText, { category: 'trust' }));
     }
   }
 
@@ -181,9 +173,7 @@ async function buildTrustAwareContext(
   const upcomingEvents = getUpcomingEvents(userId);
   const eventsContext = formatLifeEventsContext(upcomingEvents);
   if (eventsContext) {
-    injections.push(
-      createHintInjection('life_events', eventsContext, { category: 'trust' })
-    );
+    injections.push(createHintInjection('life_events', eventsContext, { category: 'trust' }));
   }
 
   // ============================================================================
@@ -193,11 +183,9 @@ async function buildTrustAwareContext(
   const momentumSummary = getMomentumSummary(userId);
   if (momentumSummary) {
     injections.push(
-      createHintInjection(
-        'celebration_momentum',
-        `[🔥 MOMENTUM]\n${momentumSummary}`,
-        { category: 'trust' }
-      )
+      createHintInjection('celebration_momentum', `[🔥 MOMENTUM]\n${momentumSummary}`, {
+        category: 'trust',
+      })
     );
   }
 
@@ -223,9 +211,7 @@ async function buildTrustAwareContext(
 
   const voiceContext = generateVoiceContext(userId);
   if (voiceContext) {
-    injections.push(
-      createHintInjection('voice_prosody', voiceContext, { category: 'trust' })
-    );
+    injections.push(createHintInjection('voice_prosody', voiceContext, { category: 'trust' }));
   }
 
   // ============================================================================
@@ -245,9 +231,7 @@ async function buildTrustAwareContext(
 
   const learningContext = formatLearningGuidanceForLLM(userId);
   if (learningContext) {
-    injections.push(
-      createHintInjection('learning_style', learningContext, { category: 'trust' })
-    );
+    injections.push(createHintInjection('learning_style', learningContext, { category: 'trust' }));
   }
 
   // Log for debugging
@@ -289,7 +273,7 @@ function buildResponseTuningContext(
   userData: ContextBuilderInput['userData']
 ): TuningContext | null {
   const healthScore = getHealthScore(userId);
-  
+
   // Determine relationship stage from health score
   let relationshipStage: TuningContext['relationshipStage'] = 'building';
   if (healthScore) {
@@ -298,22 +282,21 @@ function buildResponseTuningContext(
 
   // Detect vulnerable share from emotion signals
   const isVulnerableShare = Boolean(
-    analysis?.emotion?.needsSupport || 
-    analysis?.emotion?.isProcessing || 
+    analysis?.emotion?.needsSupport ||
+    analysis?.emotion?.isProcessing ||
     (analysis?.emotion?.intensity && analysis.emotion.intensity > 0.7)
   );
 
   // Detect crisis from emotion signals
   const isCrisis = Boolean(
-    analysis?.emotion?.needsSupport && 
-    analysis?.emotion?.intensity && 
+    analysis?.emotion?.needsSupport &&
+    analysis?.emotion?.intensity &&
     analysis.emotion.intensity > 0.9
   );
 
   // Detect advice-seeking from intent
   const isAskingForAdvice = Boolean(
-    analysis?.intent?.primary === 'advice' ||
-    analysis?.intent?.requiresAction
+    analysis?.intent?.primary === 'advice' || analysis?.intent?.requiresAction
   );
 
   return {
@@ -332,7 +315,9 @@ function buildResponseTuningContext(
 /**
  * Format relationship health for context
  */
-function formatRelationshipHealth(health: NonNullable<ReturnType<typeof getHealthScore>>): string | null {
+function formatRelationshipHealth(
+  health: NonNullable<ReturnType<typeof getHealthScore>>
+): string | null {
   if (health.overallScore < 30) {
     return null; // Don't inject if relationship is too new
   }
@@ -361,7 +346,7 @@ function formatRelationshipHealth(health: NonNullable<ReturnType<typeof getHealt
  */
 function formatLifeEventsContext(events: ReturnType<typeof getUpcomingEvents>): string | null {
   const { today, thisWeek } = events;
-  
+
   if (today.length === 0 && thisWeek.length === 0) {
     return null;
   }
@@ -381,9 +366,7 @@ function formatLifeEventsContext(events: ReturnType<typeof getUpcomingEvents>): 
   if (thisWeek.length > 0) {
     lines.push('THIS WEEK:');
     for (const event of thisWeek.slice(0, 3)) {
-      const daysUntil = Math.ceil(
-        (event.date.getTime() - Date.now()) / (24 * 60 * 60 * 1000)
-      );
+      const daysUntil = Math.ceil((event.date.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
       lines.push(`• ${event.description} (in ${daysUntil} days)`);
     }
   }
@@ -413,9 +396,7 @@ function formatUnsaidSignals(signals: UnsaidSignal[]): ContextInjection | null {
   for (const signal of signals) {
     switch (signal.type) {
       case 'emotional_mismatch':
-        lines.push(
-          `⚠️ They said they're fine, but the context suggests otherwise.`
-        );
+        lines.push(`⚠️ They said they're fine, but the context suggests otherwise.`);
         break;
       case 'topic_avoidance':
         lines.push(`⚠️ They've avoided "${signal.underlying}" multiple times.`);
@@ -440,13 +421,9 @@ function formatUnsaidSignals(signals: UnsaidSignal[]): ContextInjection | null {
   }
 
   lines.push('');
-  lines.push('💡 Create space, don\'t push. Let them come to you.');
+  lines.push("💡 Create space, don't push. Let them come to you.");
 
-  return createHintInjection(
-    'unsaid_signals',
-    lines.join('\n'),
-    { category: 'trust' }
-  );
+  return createHintInjection('unsaid_signals', lines.join('\n'), { category: 'trust' });
 }
 
 /**
@@ -472,9 +449,7 @@ function formatBoundaryWarnings(topics: string[]): string {
 /**
  * Format growth reflection opportunity
  */
-function formatGrowthReflection(
-  reflection: GrowthReflection
-): ContextInjection | null {
+function formatGrowthReflection(reflection: GrowthReflection): ContextInjection | null {
   const lines: string[] = [
     '[🌱 GROWTH REFLECTION OPPORTUNITY]',
     `I've noticed growth: ${reflection.pattern.type}`,
@@ -489,19 +464,13 @@ function formatGrowthReflection(
     'Note: Only share if it flows naturally with the conversation.',
   ];
 
-  return createHintInjection(
-    'growth_reflection',
-    lines.join('\n'),
-    { category: 'trust' }
-  );
+  return createHintInjection('growth_reflection', lines.join('\n'), { category: 'trust' });
 }
 
 /**
  * Format callback opportunity
  */
-function formatCallbackOpportunity(
-  opportunity: CallbackOpportunity
-): ContextInjection | null {
+function formatCallbackOpportunity(opportunity: CallbackOpportunity): ContextInjection | null {
   const { moment, suggestedCallback, relevance } = opportunity;
 
   // Only include high-relevance callbacks
@@ -517,14 +486,10 @@ function formatCallbackOpportunity(
     '💡 Natural callback:',
     `"${suggestedCallback}"`,
     '',
-    'Note: Only use if it flows naturally. Don\'t force it.',
+    "Note: Only use if it flows naturally. Don't force it.",
   ];
 
-  return createHintInjection(
-    'callback_opportunity',
-    lines.join('\n'),
-    { category: 'trust' }
-  );
+  return createHintInjection('callback_opportunity', lines.join('\n'), { category: 'trust' });
 }
 
 /**
@@ -551,13 +516,9 @@ function formatCelebrationOpportunity(
   lines.push(`💡 Celebration (${intensity} intensity):`);
   lines.push(`"${celebration}"`);
   lines.push('');
-  lines.push('Note: Match their energy. Don\'t over-celebrate if they\'re understated.');
+  lines.push("Note: Match their energy. Don't over-celebrate if they're understated.");
 
-  return createHintInjection(
-    'celebration_opportunity',
-    lines.join('\n'),
-    { category: 'trust' }
-  );
+  return createHintInjection('celebration_opportunity', lines.join('\n'), { category: 'trust' });
 }
 
 // ============================================================================
@@ -580,4 +541,3 @@ export { buildTrustAwareContext };
 export default {
   buildTrustAwareContext,
 };
-

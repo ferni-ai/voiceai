@@ -11,11 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  getActiveBoundaries,
-  getProbingDepth,
-  type Boundary,
-} from './boundary-memory.js';
+import { getActiveBoundaries, getProbingDepth, type Boundary } from './boundary-memory.js';
 
 import { getAvoidedTopics } from './reading-between-lines.js';
 
@@ -25,11 +21,7 @@ import {
   type GrowthPattern,
 } from './growth-reflection.js';
 
-import {
-  getSharedMoments,
-  getCallbackTraits,
-  type SharedMoment,
-} from './inside-jokes.js';
+import { getSharedMoments, getCallbackTraits, type SharedMoment } from './inside-jokes.js';
 
 import {
   getPendingIntentions,
@@ -153,11 +145,7 @@ const PERSONA_INSTRUCTIONS: Record<string, string[]> = {
     'High energy, organized',
     'Good for logistics and coordination',
   ],
-  nayan: [
-    'Premium tier only',
-    'Deep strategic thinking',
-    'For complex, long-term challenges',
-  ],
+  nayan: ['Premium tier only', 'Deep strategic thinking', 'For complex, long-term challenges'],
 };
 
 // ============================================================================
@@ -209,9 +197,7 @@ export function buildHandoffContext(
   const targetDomains = PERSONA_DOMAINS[targetPersonaId] || PERSONA_DOMAINS.ferni;
   const moments = getSharedMoments(userId);
   const relevantMoments = moments.filter((m) =>
-    m.triggers.some((t) =>
-      targetDomains.some((d) => t.includes(d) || d.includes(t))
-    )
+    m.triggers.some((t) => targetDomains.some((d) => t.includes(d) || d.includes(t)))
   );
 
   for (const moment of relevantMoments.slice(0, 3)) {
@@ -421,9 +407,7 @@ export function formatHandoffForLLM(context: HandoffTrustContext): string {
 /**
  * Create a brief handoff note for the receiving persona
  */
-export function createHandoffNote(
-  context: HandoffTrustContext
-): string {
+export function createHandoffNote(context: HandoffTrustContext): string {
   const parts: string[] = [];
 
   parts.push(`Taking over from ${context.sourcePersonaId}.`);
@@ -451,4 +435,3 @@ export default {
   formatHandoffForLLM,
   createHandoffNote,
 };
-

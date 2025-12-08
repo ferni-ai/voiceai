@@ -1,6 +1,6 @@
 /**
  * Observability Hub
- * 
+ *
  * Aggregates all observability metrics into a unified view.
  * Provides a single entry point for dashboards and monitoring.
  */
@@ -23,7 +23,7 @@ const log = getLogger();
 export interface ObservabilitySnapshot {
   timestamp: number;
   windowMinutes: number;
-  
+
   // Health scores (0-100, higher is better)
   overallHealth: number;
   llmHealth: number;
@@ -33,12 +33,12 @@ export interface ObservabilitySnapshot {
   costHealth: number;
   errorHealth: number;
   personaHealth: number;
-  
+
   // Alerts
   alerts: Alert[];
   criticalAlerts: number;
   warningAlerts: number;
-  
+
   // Detailed snapshots
   llm: LLMHealthSnapshot;
   connection: ConnectionHealthSnapshot;
@@ -74,98 +74,98 @@ const MAX_ALERTS = 1000;
 
 function calculateLLMHealth(snapshot: LLMHealthSnapshot): number {
   let score = 100;
-  
+
   // Error rate impact
   if (snapshot.errorRate >= 10) score -= 40;
   else if (snapshot.errorRate >= 5) score -= 20;
-  
-  // Latency impact  
+
+  // Latency impact
   if (snapshot.p95LatencyMs >= 5000) score -= 30;
   else if (snapshot.p95LatencyMs >= 2000) score -= 15;
-  
+
   // Context utilization
   if (snapshot.maxContextUtilization >= 85) score -= 10;
-  
+
   // Fallback rate
   if (snapshot.fallbackRate > 10) score -= 10;
-  
+
   return Math.max(0, score);
 }
 
 function calculateConnectionHealth(snapshot: ConnectionHealthSnapshot): number {
   let score = 100;
-  
+
   // Availability
   if (snapshot.availabilityPercent < 95) score -= 30;
-  
+
   // Reconnections
   if (snapshot.reconnectionCount >= 5) score -= 20;
-  
+
   // Packet loss
   if (snapshot.packetLossPercent >= 2) score -= 20;
-  
+
   // Data channel
   if (snapshot.deliveryRate < 95) score -= 15;
-  
+
   // Connection state
   if (snapshot.connectionState === 'disconnected') score -= 30;
   else if (snapshot.connectionState === 'reconnecting') score -= 15;
-  
+
   return Math.max(0, score);
 }
 
 function calculateUXHealth(snapshot: UXQualitySnapshot): number {
   let score = 100;
-  
+
   // Completion rate
   if (snapshot.completionRate < 70) score -= 25;
-  
+
   // Interruption rate
   if (snapshot.interruptionRate > 30) score -= 15;
-  
+
   // Timeout rate
   if (snapshot.timeoutRate > 10) score -= 20;
-  
+
   // Error end rate
   if (snapshot.errorEndRate > 5) score -= 20;
-  
+
   // Quality score
   if (snapshot.avgQualityScore < 70) score -= 15;
-  
+
   return Math.max(0, score);
 }
 
 function calculateMemoryHealth(snapshot: MemoryHealthSnapshot): number {
   let score = 100;
-  
+
   // Latency
   if (snapshot.avgSearchLatencyMs > 200) score -= 20;
-  
+
   // Relevance
   if (snapshot.avgRelevanceScore < 0.6) score -= 25;
-  
+
   // Error rate
   if (snapshot.embeddingErrorRate > 0.05) score -= 20;
-  
+
   // Cache hit rate
   if (snapshot.cacheHitRate < 0.5) score -= 10;
-  
+
   // Empty results
   if (snapshot.emptyResultSearches > 5) score -= 15;
-  
+
   return Math.max(0, score);
 }
 
 function calculateCostHealth(snapshot: CostSnapshot): number {
   let score = 100;
-  
+
   // High projected costs
   if (snapshot.projectedMonthlyCost > 1000) score -= 30;
   else if (snapshot.projectedMonthlyCost > 500) score -= 15;
-  
+
   // High hourly costs
   if (snapshot.costLastHour > 10) score -= 25;
-  
+
   return Math.max(0, score);
 }
 
@@ -176,22 +176,22 @@ function calculateErrorHealth(snapshot: ErrorSnapshot): number {
 
 function calculatePersonaHealth(snapshot: PersonaHealthSnapshot): number {
   let score = 100;
-  
+
   // Bundle load time
   if (snapshot.avgLoadTimeMs > 500) score -= 15;
-  
+
   // Load failures
   if (snapshot.loadSuccessRate < 0.95) score -= 20;
-  
+
   // Voice quality
   if (snapshot.voiceQualityRate < 0.8) score -= 20;
-  
+
   // Knowledge query success
   if (snapshot.knowledgeQuerySuccessRate < 0.9) score -= 15;
-  
+
   // Unhealthy personas
   if (snapshot.unhealthyPersonas.length > 0) score -= 15;
-  
+
   return Math.max(0, score);
 }
 
@@ -340,7 +340,7 @@ function generateAlerts(
       value: persona.loadSuccessRate,
     });
   }
-  
+
   if (persona.unhealthyPersonas.length > 0) {
     newAlerts.push({
       id: `alert_${now}_persona_unhealthy`,
@@ -367,7 +367,7 @@ function generateAlerts(
 // MAIN FUNCTIONS
 // ============================================================================
 
-function getSnapshot(windowMinutes: number = 60): ObservabilitySnapshot {
+function getSnapshot(windowMinutes = 60): ObservabilitySnapshot {
   const now = Date.now();
 
   // Get all snapshots
@@ -390,19 +390,19 @@ function getSnapshot(windowMinutes: number = 60): ObservabilitySnapshot {
 
   // Overall health (weighted average)
   const overallHealth = Math.round(
-    llmHealth * 0.20 +
-    connectionHealth * 0.15 +
-    uxHealth * 0.15 +
-    memoryHealth * 0.10 +
-    costHealth * 0.10 +
-    errorHealth * 0.20 +
-    personaHealth * 0.10
+    llmHealth * 0.2 +
+      connectionHealth * 0.15 +
+      uxHealth * 0.15 +
+      memoryHealth * 0.1 +
+      costHealth * 0.1 +
+      errorHealth * 0.2 +
+      personaHealth * 0.1
   );
 
   // Generate alerts
   const newAlerts = generateAlerts(llm, connection, ux, memory, cost, errors, persona);
-  const criticalAlerts = newAlerts.filter(a => a.severity === 'critical').length;
-  const warningAlerts = newAlerts.filter(a => a.severity === 'warning').length;
+  const criticalAlerts = newAlerts.filter((a) => a.severity === 'critical').length;
+  const warningAlerts = newAlerts.filter((a) => a.severity === 'warning').length;
 
   return {
     timestamp: now,
@@ -428,7 +428,7 @@ function getSnapshot(windowMinutes: number = 60): ObservabilitySnapshot {
   };
 }
 
-function getRecentAlerts(limit: number = 50): Alert[] {
+function getRecentAlerts(limit = 50): Alert[] {
   return alerts.slice(-limit).reverse();
 }
 

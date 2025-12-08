@@ -14,10 +14,7 @@
  * ONCE per session unless the user specifically asks about it.
  */
 
-import {
-  extractPersonalThemes,
-  type PersonalTheme,
-} from '../../agents/session/session-state.js';
+import { extractPersonalThemes, type PersonalTheme } from '../../agents/session/session-state.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/runtime.js';
 
 // ============================================================================

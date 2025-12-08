@@ -46,24 +46,24 @@ export interface MediaSuggestion {
 
 export interface MediaPreferences {
   userId: string;
-  
+
   // Music preferences
   favoriteGenres: string[];
   dislikedGenres: string[];
   favoriteArtists: string[];
-  
+
   // Podcast preferences
   podcastTopics: string[];
-  podcastStyles: ('interview' | 'narrative' | 'educational' | 'conversational')[];
-  
+  podcastStyles: Array<'interview' | 'narrative' | 'educational' | 'conversational'>;
+
   // Meditation preferences
   guidedVsUnguided: 'guided' | 'unguided' | 'both';
-  preferredVoices: ('male' | 'female' | 'neutral')[];
+  preferredVoices: Array<'male' | 'female' | 'neutral'>;
   meditationLength: 'short' | 'medium' | 'long';
-  
+
   // What's worked
   effectiveSuggestions: EffectiveSuggestion[];
-  
+
   // What hasn't
   dismissedSuggestions: string[];
 }
@@ -138,7 +138,7 @@ const MUSIC_SUGGESTIONS: Record<string, MediaSuggestion[]> = {
       targetMood: 'melancholy',
       duration: 4,
       energy: 'low',
-      reason: "Sometimes we need music that meets us where we are",
+      reason: 'Sometimes we need music that meets us where we are',
       spotifyUri: 'spotify:track:0QZ5yyl6B6utIWkxeBDxQN',
       tags: ['indie', 'emotional', 'melancholy'],
     },
@@ -155,7 +155,7 @@ const MUSIC_SUGGESTIONS: Record<string, MediaSuggestion[]> = {
       targetMood: 'hopeful',
       duration: 3,
       energy: 'medium',
-      reason: 'A gentle lift when you\'re ready for a change',
+      reason: "A gentle lift when you're ready for a change",
       spotifyUri: 'spotify:track:6dGnYIeXmHdcikdzNNDMm2',
       tags: ['classic', 'uplifting', 'gentle'],
     },
@@ -309,7 +309,7 @@ const PODCAST_SUGGESTIONS: Record<string, MediaSuggestion[]> = {
       intent: 'energize',
       duration: 60,
       energy: 'medium',
-      reason: 'Learn from people who\'ve mastered what you\'re working on',
+      reason: "Learn from people who've mastered what you're working on",
       tags: ['interview', 'performance', 'growth'],
     },
     {
@@ -348,7 +348,7 @@ const PODCAST_SUGGESTIONS: Record<string, MediaSuggestion[]> = {
       intent: 'energize',
       duration: 45,
       energy: 'high',
-      reason: 'Sometimes we need to hear others\' stories of triumph',
+      reason: "Sometimes we need to hear others' stories of triumph",
       tags: ['interview', 'motivation', 'success'],
     },
   ],
@@ -422,11 +422,14 @@ export function recordSuggestionFeedback(
     });
   }
 
-  log.debug({
-    userId,
-    suggestionId,
-    rating: feedback.rating,
-  }, '🎵 Media feedback recorded');
+  log.debug(
+    {
+      userId,
+      suggestionId,
+      rating: feedback.rating,
+    },
+    '🎵 Media feedback recorded'
+  );
 }
 
 /**
@@ -434,7 +437,9 @@ export function recordSuggestionFeedback(
  */
 export function updateMusicPreferences(
   userId: string,
-  preferences: Partial<Pick<MediaPreferences, 'favoriteGenres' | 'dislikedGenres' | 'favoriteArtists'>>
+  preferences: Partial<
+    Pick<MediaPreferences, 'favoriteGenres' | 'dislikedGenres' | 'favoriteArtists'>
+  >
 ): void {
   const prefs = getOrCreatePreferences(userId);
 
@@ -456,10 +461,7 @@ export function updateMusicPreferences(
 /**
  * Generate media suggestions based on context
  */
-export function generateSuggestions(
-  userId: string,
-  context: SuggestionContext
-): MediaSuggestion[] {
+export function generateSuggestions(userId: string, context: SuggestionContext): MediaSuggestion[] {
   const prefs = getOrCreatePreferences(userId);
   const suggestions: MediaSuggestion[] = [];
 
@@ -472,18 +474,19 @@ export function generateSuggestions(
   }
 
   // Filter out dismissed suggestions
-  const filtered = suggestions.filter(
-    (s) => !prefs.dismissedSuggestions.includes(s.id)
-  );
+  const filtered = suggestions.filter((s) => !prefs.dismissedSuggestions.includes(s.id));
 
   // Prioritize based on past effectiveness
   const prioritized = prioritizeSuggestions(filtered, prefs, context);
 
-  log.debug({
-    userId,
-    mood: context.currentMood,
-    suggestionCount: prioritized.length,
-  }, '🎶 Media suggestions generated');
+  log.debug(
+    {
+      userId,
+      mood: context.currentMood,
+      suggestionCount: prioritized.length,
+    },
+    '🎶 Media suggestions generated'
+  );
 
   return prioritized.slice(0, 5);
 }
@@ -572,8 +575,10 @@ function getSuggestionsForType(
  */
 function determineIntent(context: SuggestionContext): MoodIntent {
   // High intensity negative mood -> match first, then shift
-  if (context.moodIntensity > 0.7 && 
-      ['sad', 'anxious', 'overwhelmed'].includes(context.currentMood)) {
+  if (
+    context.moodIntensity > 0.7 &&
+    ['sad', 'anxious', 'overwhelmed'].includes(context.currentMood)
+  ) {
     return 'match'; // Meet them where they are
   }
 
@@ -664,8 +669,8 @@ export function formatSuggestionForVoice(suggestion: MediaSuggestion): {
 } {
   const typeIntros: Record<MediaType, string> = {
     music: 'I have a song that might help',
-    podcast: 'There\'s a podcast episode you might enjoy',
-    meditation: 'Here\'s a meditation that could help',
+    podcast: "There's a podcast episode you might enjoy",
+    meditation: "Here's a meditation that could help",
     breathwork: 'Let me guide you through a breathing exercise',
     ambient: 'Some calming sounds might help right now',
     audiobook: 'I have an audiobook suggestion',
@@ -708,4 +713,3 @@ export default {
   formatSuggestionForVoice,
   getMediaPreferences,
 };
-

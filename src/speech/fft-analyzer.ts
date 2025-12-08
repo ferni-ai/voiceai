@@ -48,13 +48,13 @@ export interface SpectralAnalysis {
   spectralFlux: number;
   /** Band energies for classification */
   bandEnergies: {
-    subBass: number;     // 20-60 Hz
-    bass: number;        // 60-250 Hz
-    lowMid: number;      // 250-500 Hz
-    mid: number;         // 500-2000 Hz (speech fundamental)
-    highMid: number;     // 2000-4000 Hz (speech harmonics)
-    presence: number;    // 4000-6000 Hz (clarity)
-    brilliance: number;  // 6000-20000 Hz
+    subBass: number; // 20-60 Hz
+    bass: number; // 60-250 Hz
+    lowMid: number; // 250-500 Hz
+    mid: number; // 500-2000 Hz (speech fundamental)
+    highMid: number; // 2000-4000 Hz (speech harmonics)
+    presence: number; // 4000-6000 Hz (clarity)
+    brilliance: number; // 6000-20000 Hz
   };
 }
 
@@ -103,12 +103,12 @@ export interface LaughterSpectralFeatures {
  */
 function fft(signal: Float32Array): Complex[] {
   const n = signal.length;
-  
+
   // Base case
   if (n === 1) {
     return [{ re: signal[0], im: 0 }];
   }
-  
+
   // Ensure power of 2
   if (n & (n - 1)) {
     // Pad to next power of 2
@@ -117,7 +117,7 @@ function fft(signal: Float32Array): Complex[] {
     padded.set(signal);
     return fft(padded);
   }
-  
+
   // Split into even and odd
   const even = new Float32Array(n / 2);
   const odd = new Float32Array(n / 2);
@@ -125,26 +125,26 @@ function fft(signal: Float32Array): Complex[] {
     even[i] = signal[2 * i];
     odd[i] = signal[2 * i + 1];
   }
-  
+
   // Recursive FFT
   const evenFFT = fft(even);
   const oddFFT = fft(odd);
-  
+
   // Combine
   const result: Complex[] = new Array(n);
   for (let k = 0; k < n / 2; k++) {
-    const angle = -2 * Math.PI * k / n;
+    const angle = (-2 * Math.PI * k) / n;
     const twiddle: Complex = {
       re: Math.cos(angle),
       im: Math.sin(angle),
     };
-    
+
     // Complex multiplication: twiddle * oddFFT[k]
     const t: Complex = {
       re: twiddle.re * oddFFT[k].re - twiddle.im * oddFFT[k].im,
       im: twiddle.re * oddFFT[k].im + twiddle.im * oddFFT[k].re,
     };
-    
+
     result[k] = {
       re: evenFFT[k].re + t.re,
       im: evenFFT[k].im + t.im,
@@ -154,7 +154,7 @@ function fft(signal: Float32Array): Complex[] {
       im: evenFFT[k].im - t.im,
     };
   }
-  
+
   return result;
 }
 
@@ -177,14 +177,13 @@ function applyHanningWindow(signal: Float32Array): Float32Array {
 function getMagnitudeSpectrum(fftResult: Complex[]): Float32Array {
   const n = fftResult.length / 2; // Only first half (Nyquist)
   const magnitudes = new Float32Array(n);
-  
+
   for (let i = 0; i < n; i++) {
     magnitudes[i] = Math.sqrt(
-      fftResult[i].re * fftResult[i].re + 
-      fftResult[i].im * fftResult[i].im
+      fftResult[i].re * fftResult[i].re + fftResult[i].im * fftResult[i].im
     );
   }
-  
+
   return magnitudes;
 }
 
@@ -197,25 +196,22 @@ function getMagnitudeSpectrum(fftResult: Complex[]): Float32Array {
  * @param samples - Audio samples (Int16Array from LiveKit)
  * @param sampleRate - Sample rate (typically 16000 or 48000)
  */
-export function analyzeSpectrum(
-  samples: Int16Array,
-  sampleRate: number = 16000
-): SpectralAnalysis {
+export function analyzeSpectrum(samples: Int16Array, sampleRate = 16000): SpectralAnalysis {
   // Convert Int16 to Float32 normalized
   const floatSamples = new Float32Array(samples.length);
   for (let i = 0; i < samples.length; i++) {
     floatSamples[i] = samples[i] / 32768;
   }
-  
+
   // Apply window
   const windowed = applyHanningWindow(floatSamples);
-  
+
   // Perform FFT
   const fftResult = fft(windowed);
-  
+
   // Get magnitude spectrum
   const magnitudes = getMagnitudeSpectrum(fftResult);
-  
+
   // Normalize magnitudes
   const maxMag = Math.max(...magnitudes);
   if (maxMag > 0) {
@@ -223,14 +219,14 @@ export function analyzeSpectrum(
       magnitudes[i] /= maxMag;
     }
   }
-  
+
   // Calculate frequency bins
   const frequencies = new Float32Array(magnitudes.length);
   const binWidth = sampleRate / fftResult.length;
   for (let i = 0; i < magnitudes.length; i++) {
     frequencies[i] = i * binWidth;
   }
-  
+
   // Find dominant frequency
   let maxIdx = 0;
   let maxVal = 0;
@@ -241,7 +237,7 @@ export function analyzeSpectrum(
     }
   }
   const dominantFrequency = maxIdx * binWidth;
-  
+
   // Calculate spectral centroid (weighted average frequency)
   let weightedSum = 0;
   let totalMag = 0;
@@ -250,7 +246,7 @@ export function analyzeSpectrum(
     totalMag += magnitudes[i];
   }
   const spectralCentroid = totalMag > 0 ? weightedSum / totalMag : 0;
-  
+
   // Calculate spectral rolloff (85% energy threshold)
   const targetEnergy = totalMag * 0.85;
   let cumEnergy = 0;
@@ -263,10 +259,10 @@ export function analyzeSpectrum(
     }
   }
   const spectralRolloff = rolloffIdx * binWidth;
-  
+
   // Calculate band energies
   const bandEnergies = calculateBandEnergies(magnitudes, frequencies, sampleRate);
-  
+
   return {
     magnitudes,
     frequencies,
@@ -295,18 +291,18 @@ function calculateBandEnergies(
     presence: { low: 4000, high: 6000, energy: 0 },
     brilliance: { low: 6000, high: Math.min(20000, sampleRate / 2), energy: 0 },
   };
-  
+
   for (let i = 0; i < magnitudes.length; i++) {
     const freq = frequencies[i];
     const mag = magnitudes[i] * magnitudes[i]; // Energy is magnitude squared
-    
+
     for (const band of Object.values(bands)) {
       if (freq >= band.low && freq < band.high) {
         band.energy += mag;
       }
     }
   }
-  
+
   // Normalize to 0-1 range
   const maxEnergy = Math.max(
     bands.subBass.energy,
@@ -317,13 +313,13 @@ function calculateBandEnergies(
     bands.presence.energy,
     bands.brilliance.energy
   );
-  
+
   if (maxEnergy > 0) {
     for (const band of Object.values(bands)) {
       band.energy /= maxEnergy;
     }
   }
-  
+
   return {
     subBass: bands.subBass.energy,
     bass: bands.bass.energy,
@@ -344,25 +340,25 @@ function calculateBandEnergies(
  */
 export function classifyEnvironment(spectrum: SpectralAnalysis): SpectralEnvironment {
   const { bandEnergies, spectralCentroid, spectralRolloff, dominantFrequency } = spectrum;
-  
+
   // Feature extraction for classification
   const features = {
     // Speech indicators: energy concentrated in 300-3400 Hz (telephone band)
     speechLikelihood: (bandEnergies.lowMid + bandEnergies.mid + bandEnergies.highMid) / 3,
-    
+
     // Music indicators: broad spectrum with strong bass and brilliance
     musicLikelihood: (bandEnergies.bass + bandEnergies.brilliance) / 2,
-    
+
     // Traffic indicators: low frequency rumble
     trafficLikelihood: bandEnergies.subBass + bandEnergies.bass * 0.5,
-    
+
     // Wind indicators: broadband noise with high spectral centroid
     windLikelihood: spectralCentroid > 2000 && bandEnergies.presence > 0.3 ? 0.7 : 0.2,
-    
+
     // Crowd indicators: diffuse mid-frequency energy
     crowdLikelihood: bandEnergies.mid > 0.4 && bandEnergies.highMid > 0.3 ? 0.6 : 0.2,
   };
-  
+
   // Determine primary environment
   const scores: Array<{ env: SpectralEnvironment['environment']; score: number }> = [
     { env: 'quiet', score: 1 - Math.max(...Object.values(features)) },
@@ -372,19 +368,19 @@ export function classifyEnvironment(spectrum: SpectralAnalysis): SpectralEnviron
     { env: 'wind', score: features.windLikelihood },
     { env: 'crowd', score: features.crowdLikelihood },
   ];
-  
+
   scores.sort((a, b) => b.score - a.score);
   const best = scores[0];
-  
+
   // Calculate overall noise floor (inverse of quiet score)
-  const noiseFloor = 1 - scores.find(s => s.env === 'quiet')!.score;
-  
+  const noiseFloor = 1 - scores.find((s) => s.env === 'quiet')!.score;
+
   // Estimate SNR based on speech band vs rest
   const speechEnergy = bandEnergies.mid + bandEnergies.highMid;
   const noiseEnergy = bandEnergies.subBass + bandEnergies.bass + bandEnergies.brilliance;
   const snrLinear = speechEnergy / Math.max(noiseEnergy, 0.001);
   const snrEstimate = 10 * Math.log10(snrLinear);
-  
+
   return {
     environment: best.env,
     confidence: best.score,
@@ -411,14 +407,14 @@ export function analyzeLaughterSpectral(
   previousSpectrum?: SpectralAnalysis
 ): LaughterSpectralFeatures {
   const { magnitudes, bandEnergies, spectralCentroid } = spectrum;
-  
+
   // Calculate harmonic-to-noise ratio approximation
   // Higher harmonicity = more speech-like, lower = more laughter-like
   const peaks = findSpectralPeaks(magnitudes);
   const harmonicEnergy = peaks.reduce((sum, p) => sum + magnitudes[p], 0);
   const totalEnergy = magnitudes.reduce((sum, m) => sum + m, 0);
   const hnr = totalEnergy > 0 ? harmonicEnergy / totalEnergy : 0;
-  
+
   // Calculate spectral irregularity
   // Laughter has more irregular spectral envelope than speech
   let irregularity = 0;
@@ -427,25 +423,23 @@ export function analyzeLaughterSpectral(
     irregularity += Math.abs(magnitudes[i] - expected);
   }
   irregularity /= magnitudes.length;
-  
+
   // Detect burst pattern (energy spikes)
-  const hasBurstPattern = previousSpectrum
-    ? detectEnergyBurst(spectrum, previousSpectrum)
-    : false;
-  
+  const hasBurstPattern = previousSpectrum ? detectEnergyBurst(spectrum, previousSpectrum) : false;
+
   // Laughter indicators:
   // - Lower HNR (more noisy)
   // - Higher irregularity
   // - Burst patterns
   // - Spectral centroid typically higher than speech
-  const laughterScore = 
-    (1 - hnr) * 0.3 +                          // Less harmonic
-    Math.min(irregularity * 2, 1) * 0.3 +      // More irregular
-    (hasBurstPattern ? 0.2 : 0) +              // Has bursts
-    (spectralCentroid > 1500 ? 0.2 : 0);       // Higher centroid
-  
+  const laughterScore =
+    (1 - hnr) * 0.3 + // Less harmonic
+    Math.min(irregularity * 2, 1) * 0.3 + // More irregular
+    (hasBurstPattern ? 0.2 : 0) + // Has bursts
+    (spectralCentroid > 1500 ? 0.2 : 0); // Higher centroid
+
   const isLaughterLike = laughterScore > 0.5;
-  
+
   return {
     isLaughterLike,
     confidence: laughterScore,
@@ -461,7 +455,7 @@ export function analyzeLaughterSpectral(
 function findSpectralPeaks(magnitudes: Float32Array): number[] {
   const peaks: number[] = [];
   const threshold = 0.2; // Minimum magnitude to consider
-  
+
   for (let i = 2; i < magnitudes.length - 2; i++) {
     if (
       magnitudes[i] > threshold &&
@@ -473,20 +467,17 @@ function findSpectralPeaks(magnitudes: Float32Array): number[] {
       peaks.push(i);
     }
   }
-  
+
   return peaks;
 }
 
 /**
  * Detect sudden energy bursts between frames
  */
-function detectEnergyBurst(
-  current: SpectralAnalysis,
-  previous: SpectralAnalysis
-): boolean {
+function detectEnergyBurst(current: SpectralAnalysis, previous: SpectralAnalysis): boolean {
   const currentEnergy = current.bandEnergies.mid + current.bandEnergies.highMid;
   const previousEnergy = previous.bandEnergies.mid + previous.bandEnergies.highMid;
-  
+
   // Energy increase > 50% indicates burst
   return currentEnergy > previousEnergy * 1.5;
 }
@@ -499,75 +490,74 @@ export class FFTAnalyzerService {
   private previousSpectrum: SpectralAnalysis | null = null;
   private spectralFluxHistory: number[] = [];
   private readonly maxFluxHistory = 10;
-  
+
   constructor(private sessionId: string) {
     log.debug({ sessionId }, '📊 FFT analyzer service initialized');
   }
-  
+
   /**
    * Analyze audio frame with full spectral analysis
    */
-  analyze(samples: Int16Array, sampleRate: number = 16000): {
+  analyze(
+    samples: Int16Array,
+    sampleRate = 16000
+  ): {
     spectrum: SpectralAnalysis;
     environment: SpectralEnvironment;
     laughter: LaughterSpectralFeatures;
   } {
     // Perform FFT analysis
     const spectrum = analyzeSpectrum(samples, sampleRate);
-    
+
     // Calculate spectral flux if we have previous frame
     if (this.previousSpectrum) {
       spectrum.spectralFlux = this.calculateSpectralFlux(
         spectrum.magnitudes,
         this.previousSpectrum.magnitudes
       );
-      
+
       // Track flux history for burst detection
       this.spectralFluxHistory.push(spectrum.spectralFlux);
       if (this.spectralFluxHistory.length > this.maxFluxHistory) {
         this.spectralFluxHistory.shift();
       }
     }
-    
+
     // Classify environment
     const environment = classifyEnvironment(spectrum);
-    
+
     // Analyze for laughter
     const laughter = analyzeLaughterSpectral(spectrum, this.previousSpectrum || undefined);
-    
+
     // Store for next frame
     this.previousSpectrum = spectrum;
-    
+
     return { spectrum, environment, laughter };
   }
-  
+
   /**
    * Calculate spectral flux (measure of spectral change)
    */
-  private calculateSpectralFlux(
-    current: Float32Array,
-    previous: Float32Array
-  ): number {
+  private calculateSpectralFlux(current: Float32Array, previous: Float32Array): number {
     let flux = 0;
     const len = Math.min(current.length, previous.length);
-    
+
     for (let i = 0; i < len; i++) {
       const diff = current[i] - previous[i];
       flux += diff > 0 ? diff : 0; // Only count increases (onset detection)
     }
-    
+
     return flux / len;
   }
-  
+
   /**
    * Get average spectral flux (for activity detection)
    */
   getAverageFlux(): number {
     if (this.spectralFluxHistory.length === 0) return 0;
-    return this.spectralFluxHistory.reduce((a, b) => a + b, 0) / 
-           this.spectralFluxHistory.length;
+    return this.spectralFluxHistory.reduce((a, b) => a + b, 0) / this.spectralFluxHistory.length;
   }
-  
+
   /**
    * Reset analyzer state
    */
@@ -600,4 +590,3 @@ export function resetFFTAnalyzer(sessionId: string): void {
     log.debug({ sessionId }, '📊 FFT analyzer service reset');
   }
 }
-

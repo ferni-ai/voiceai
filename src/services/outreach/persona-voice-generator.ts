@@ -137,29 +137,19 @@ export const personaOutreachVoices: Record<string, PersonaOutreachVoice> = {
     signaturePhrases: {
       greeting: ['Hey there', 'Hey!', 'Hi friend'],
       thinkingOfYou: [
-        "Just checking in",
+        'Just checking in',
         "I've been thinking about you",
         'Wanted to see how you are',
         'You crossed my mind',
       ],
-      celebration: [
-        "I'm so proud of you!",
-        'This is huge!',
-        'Look at you go!',
-        'You did it!',
-      ],
+      celebration: ["I'm so proud of you!", 'This is huge!', 'Look at you go!', 'You did it!'],
       encouragement: [
         "You've got this",
-        "I believe in you",
+        'I believe in you',
         'One step at a time',
         "Remember how far you've come",
       ],
-      closing: [
-        'Rooting for you',
-        "I'm here if you need me",
-        'Take care of yourself',
-        'Talk soon',
-      ],
+      closing: ['Rooting for you', "I'm here if you need me", 'Take care of yourself', 'Talk soon'],
     },
 
     textStyle: {
@@ -218,7 +208,7 @@ export const personaOutreachVoices: Record<string, PersonaOutreachVoice> = {
       ],
       encouragement: [
         'Even 2 minutes counts',
-        "Progress, not perfection",
+        'Progress, not perfection',
         "Let's keep that momentum",
         'Every day is a fresh start',
       ],
@@ -308,7 +298,7 @@ export const personaOutreachVoices: Record<string, PersonaOutreachVoice> = {
     },
 
     callStyle: {
-      opening: "Peter here! I found something I had to share",
+      opening: 'Peter here! I found something I had to share',
       pacing: 'can get excited, catches self, thoughtful pauses',
       allowsSilence: true,
       voicemailStyle: 'enthusiastic about what they found, brief teaser',
@@ -341,11 +331,7 @@ export const personaOutreachVoices: Record<string, PersonaOutreachVoice> = {
         "Here's what you need to know",
         'Checking in before your...',
       ],
-      celebration: [
-        'That went well!',
-        'Mission accomplished',
-        'Nicely done',
-      ],
+      celebration: ['That went well!', 'Mission accomplished', 'Nicely done'],
       encouragement: [
         "You've got everything you need",
         "I'll handle the details",
@@ -400,22 +386,9 @@ export const personaOutreachVoices: Record<string, PersonaOutreachVoice> = {
         'The countdown is on!',
         "Everything's coming together",
       ],
-      celebration: [
-        'That was AMAZING!',
-        "Let's celebrate!",
-        'You made it so special!',
-        '🎉🎉🎉',
-      ],
-      encouragement: [
-        "It's going to be great",
-        "We've got this planned out",
-        'Trust the process',
-      ],
-      closing: [
-        "Let's make it memorable!",
-        "Can't wait!",
-        'So excited for you!',
-      ],
+      celebration: ['That was AMAZING!', "Let's celebrate!", 'You made it so special!', '🎉🎉🎉'],
+      encouragement: ["It's going to be great", "We've got this planned out", 'Trust the process'],
+      closing: ["Let's make it memorable!", "Can't wait!", 'So excited for you!'],
     },
 
     textStyle: {
@@ -431,7 +404,7 @@ export const personaOutreachVoices: Record<string, PersonaOutreachVoice> = {
     },
 
     callStyle: {
-      opening: "Jordan here! Getting excited about [event]!",
+      opening: 'Jordan here! Getting excited about [event]!',
       pacing: 'upbeat, infectious enthusiasm',
       allowsSilence: false,
       voicemailStyle: 'enthusiastic, builds excitement, specific about event',
@@ -464,21 +437,13 @@ export const personaOutreachVoices: Record<string, PersonaOutreachVoice> = {
         'Something came to mind',
         'Wanted to share a perspective',
       ],
-      celebration: [
-        'Your growth is remarkable',
-        "This is the result of your work",
-        'Well earned',
-      ],
+      celebration: ['Your growth is remarkable', 'This is the result of your work', 'Well earned'],
       encouragement: [
         'Trust your instincts',
-        "You have more wisdom than you know",
-        "The path reveals itself",
+        'You have more wisdom than you know',
+        'The path reveals itself',
       ],
-      closing: [
-        'In your corner',
-        'Here when you need perspective',
-        'Onwards',
-      ],
+      closing: ['In your corner', 'Here when you need perspective', 'Onwards'],
     },
 
     textStyle: {
@@ -616,7 +581,7 @@ export function generateTextMessage(
     case 'commitment_check':
       message =
         `${selectPhrase(voice.signaturePhrases.greeting)} ` +
-        `${emoji ? emoji + ' ' : ''}` +
+        `${emoji ? `${emoji} ` : ''}` +
         `How did it go with ${context.commitment || 'what you planned'}? ` +
         `${selectPhrase(voice.signaturePhrases.encouragement)}`;
       break;
@@ -631,7 +596,7 @@ export function generateTextMessage(
     case 'celebration':
       message =
         `${selectPhrase(voice.signaturePhrases.greeting)}! ` +
-        `${emoji ? emoji + ' ' : ''}` +
+        `${emoji ? `${emoji} ` : ''}` +
         `${selectPhrase(voice.signaturePhrases.celebration)} ` +
         `${context.milestone || context.goal || 'This achievement'} is huge!`;
       break;
@@ -647,7 +612,7 @@ export function generateTextMessage(
       message =
         `${selectPhrase(voice.signaturePhrases.greeting)} ` +
         `${selectPhrase(voice.signaturePhrases.thinkingOfYou)}. ` +
-        `${emoji ? emoji + ' ' : ''}` +
+        `${emoji ? `${emoji} ` : ''}` +
         `No agenda - just wanted you to know I'm here.`;
       break;
 
@@ -655,14 +620,14 @@ export function generateTextMessage(
       message =
         `${selectPhrase(voice.signaturePhrases.greeting)} ` +
         `${selectPhrase(voice.signaturePhrases.thinkingOfYou)}. ` +
-        `${emoji ? emoji + ' ' : ''}` +
+        `${emoji ? `${emoji} ` : ''}` +
         `Hope your day is going well!`;
       break;
 
     case 'habit_check':
       message =
         `${selectPhrase(voice.signaturePhrases.greeting)} ` +
-        `${emoji ? emoji + ' ' : ''}` +
+        `${emoji ? `${emoji} ` : ''}` +
         `${selectPhrase(voice.signaturePhrases.thinkingOfYou)} ` +
         `${selectPhrase(voice.signaturePhrases.encouragement)}`;
       break;
@@ -708,12 +673,11 @@ export function generateEmailMessage(
         `Hey ${name},\n\n` +
         `${selectPhrase(voice.signaturePhrases.celebration)}\n\n` +
         `${context.milestone || 'This achievement'} is something to be proud of. ` +
-        `I wanted to take a moment to acknowledge how far you've come.\n\n` +
-        (context.context.lastConversationSummary
-          ? `Remember when ${context.context.lastConversationSummary}? Look at you now!\n\n`
-          : '') +
-        `${selectPhrase(voice.signaturePhrases.closing)},\n\n` +
-        voice.emailStyle.signature;
+        `I wanted to take a moment to acknowledge how far you've come.\n\n${
+          context.context.lastConversationSummary
+            ? `Remember when ${context.context.lastConversationSummary}? Look at you now!\n\n`
+            : ''
+        }${selectPhrase(voice.signaturePhrases.closing)},\n\n${voice.emailStyle.signature}`;
       break;
 
     case 'emotional_support':
@@ -724,8 +688,7 @@ export function generateEmailMessage(
         `I know things have been ${context.context.emotionalState || 'a lot lately'}. ` +
         `I just wanted you to know that I'm here whenever you need to talk.\n\n` +
         `No pressure to respond - just wanted you to know you're not alone.\n\n` +
-        `${selectPhrase(voice.signaturePhrases.closing)},\n\n` +
-        voice.emailStyle.signature;
+        `${selectPhrase(voice.signaturePhrases.closing)},\n\n${voice.emailStyle.signature}`;
       break;
 
     case 'reengagement':
@@ -735,20 +698,18 @@ export function generateEmailMessage(
         `It's been a little while! ${selectPhrase(voice.signaturePhrases.thinkingOfYou)}.\n\n` +
         `How are things going? I'd love to hear what's been happening in your world.\n\n` +
         `No pressure - just wanted you to know the door is always open.\n\n` +
-        `${selectPhrase(voice.signaturePhrases.closing)},\n\n` +
-        voice.emailStyle.signature;
+        `${selectPhrase(voice.signaturePhrases.closing)},\n\n${voice.emailStyle.signature}`;
       break;
 
     case 'thinking_of_you':
       subject = `A quick note`;
       body =
         `Hey ${name},\n\n` +
-        `No agenda with this email - ${selectPhrase(voice.signaturePhrases.thinkingOfYou).toLowerCase()}.\n\n` +
-        (context.context.recentTopics && context.context.recentTopics.length > 0
-          ? `How's ${context.context.recentTopics[0]} going? I'd love to hear an update when you have time.\n\n`
-          : `Hope life is treating you well. Would love to catch up sometime.\n\n`) +
-        `${selectPhrase(voice.signaturePhrases.closing)},\n\n` +
-        voice.emailStyle.signature;
+        `No agenda with this email - ${selectPhrase(voice.signaturePhrases.thinkingOfYou).toLowerCase()}.\n\n${
+          context.context.recentTopics && context.context.recentTopics.length > 0
+            ? `How's ${context.context.recentTopics[0]} going? I'd love to hear an update when you have time.\n\n`
+            : `Hope life is treating you well. Would love to catch up sometime.\n\n`
+        }${selectPhrase(voice.signaturePhrases.closing)},\n\n${voice.emailStyle.signature}`;
       break;
 
     default:
@@ -757,8 +718,7 @@ export function generateEmailMessage(
         `Hey ${name},\n\n` +
         `${selectPhrase(voice.signaturePhrases.thinkingOfYou)}.\n\n` +
         `${context.trigger.reason}\n\n` +
-        `${selectPhrase(voice.signaturePhrases.closing)},\n\n` +
-        voice.emailStyle.signature;
+        `${selectPhrase(voice.signaturePhrases.closing)},\n\n${voice.emailStyle.signature}`;
   }
 
   return { subject, body };
@@ -824,10 +784,7 @@ export function generateVoicemailMessage(
 /**
  * Generate a call opening in persona voice
  */
-export function generateCallOpening(
-  personaId: string,
-  context: OutreachContext
-): string {
+export function generateCallOpening(personaId: string, context: OutreachContext): string {
   const voice = getPersonaOutreachVoice(personaId);
   const name = context.preferredName || context.userName;
 
@@ -987,4 +944,3 @@ export default {
   selectPersonaForOutreach,
   personaOutreachVoices,
 };
-

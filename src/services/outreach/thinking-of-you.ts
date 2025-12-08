@@ -185,8 +185,7 @@ const kindnessTemplates: KindnessTemplate[] = [
         (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30)
       );
       // Check if it's a milestone month (1, 3, 6, 12, etc.)
-      return [1, 3, 6, 12, 18, 24].includes(monthsSince) &&
-        now.getDate() === start.getDate();
+      return [1, 3, 6, 12, 18, 24].includes(monthsSince) && now.getDate() === start.getDate();
     },
     generateReason: (state) => {
       const start = new Date(state.relationshipStartDate!);
@@ -207,7 +206,8 @@ const kindnessTemplates: KindnessTemplate[] = [
       const season = getCurrentSeason();
       const messages: Record<string, string> = {
         winter: 'Checking in as the days get shorter. How are you handling the seasonal shift?',
-        spring: 'Spring is in the air! Wanted to see how you are feeling with the change of season.',
+        spring:
+          'Spring is in the air! Wanted to see how you are feeling with the change of season.',
         summer: 'Summer is here! Hope you are finding some time to enjoy it.',
         fall: 'Fall is arriving. How are you feeling about the change of pace?',
       };
@@ -226,7 +226,8 @@ const kindnessTemplates: KindnessTemplate[] = [
         (new Date().getTime() - state.lastKindnessDate.getTime()) / (1000 * 60 * 60 * 24);
       return daysSince > 14; // More than 2 weeks
     },
-    generateReason: () => 'It has been a while since we talked. Just wanted to say hi and see how you are.',
+    generateReason: () =>
+      'It has been a while since we talked. Just wanted to say hi and see how you are.',
     persona: 'ferni',
     priority: 'low',
   },
@@ -376,10 +377,7 @@ class ThinkingOfYouEngine extends EventEmitter {
   /**
    * Update user context (call this after conversations)
    */
-  updateUserContext(
-    userId: string,
-    context: Partial<UserKindnessState['context']>
-  ): void {
+  updateUserContext(userId: string, context: Partial<UserKindnessState['context']>): void {
     const state = userKindnessStore.get(userId);
     if (state) {
       state.context = { ...state.context, ...context };
@@ -456,10 +454,7 @@ class ThinkingOfYouEngine extends EventEmitter {
       const monthsSince = Math.floor(
         (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30)
       );
-      if (
-        [1, 3, 6, 12, 18, 24].includes(monthsSince) &&
-        now.getDate() === start.getDate()
-      ) {
+      if ([1, 3, 6, 12, 18, 24].includes(monthsSince) && now.getDate() === start.getDate()) {
         probability += this.config.probabilityBoosts.relationshipAnniversary;
       }
     }
@@ -524,7 +519,8 @@ class ThinkingOfYouEngine extends EventEmitter {
       if (
         t.trigger === 'life_event_followup' &&
         state.context.upcomingEvents?.some((e) => {
-          const daysSince = (new Date().getTime() - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24);
+          const daysSince =
+            (new Date().getTime() - new Date(e.date).getTime()) / (1000 * 60 * 60 * 24);
           return daysSince > 0 && daysSince < 7;
         })
       ) {
@@ -640,9 +636,7 @@ class ThinkingOfYouEngine extends EventEmitter {
 
 let engineInstance: ThinkingOfYouEngine | null = null;
 
-export function getThinkingOfYouEngine(
-  config?: Partial<ThinkingOfYouConfig>
-): ThinkingOfYouEngine {
+export function getThinkingOfYouEngine(config?: Partial<ThinkingOfYouConfig>): ThinkingOfYouEngine {
   if (!engineInstance) {
     engineInstance = new ThinkingOfYouEngine(config);
   }
@@ -674,4 +668,3 @@ export default {
   startThinkingOfYouEngine,
   stopThinkingOfYouEngine,
 };
-

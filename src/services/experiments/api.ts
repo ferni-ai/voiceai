@@ -22,11 +22,7 @@ import {
   type PersonaExperiment,
   type PersonaEvolutionState,
 } from '../../intelligence/agent-evolution.js';
-import {
-  startExperiment,
-  getRunningExperiments,
-  getExperimentResults,
-} from './integration.js';
+import { startExperiment, getRunningExperiments, getExperimentResults } from './integration.js';
 import {
   performBayesianAnalysis,
   getSegmentAnalysis,
@@ -329,10 +325,7 @@ export function stopExperiment(experimentId: string): boolean {
         exp.winner = 'inconclusive';
       }
 
-      logger.info(
-        { experimentId, winner: exp.winner },
-        'Stopped experiment via API'
-      );
+      logger.info({ experimentId, winner: exp.winner }, 'Stopped experiment via API');
 
       // Save to Firestore asynchronously
       void saveAgentEvolutionToFirestore();
@@ -540,4 +533,3 @@ export type {
   BanditConfig,
   ExperimentSchedule,
 } from './advanced.js';
-

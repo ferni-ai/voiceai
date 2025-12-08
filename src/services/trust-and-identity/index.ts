@@ -8,6 +8,5 @@
 
 export * from './human-first-2fa.js';
 export * from './identity-orchestrator.js';
-export * from './voice-agent-integration.js';
 export * from './verification-store.js';
-
+export * from './voice-agent-integration.js';

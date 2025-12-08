@@ -31,7 +31,18 @@ describe('Sentiment Timeline', () => {
     });
 
     it('should accept all emotion types', () => {
-      const emotions = ['joy', 'sadness', 'anxiety', 'anger', 'fear', 'surprise', 'disgust', 'trust', 'anticipation', 'neutral'] as const;
+      const emotions = [
+        'joy',
+        'sadness',
+        'anxiety',
+        'anger',
+        'fear',
+        'surprise',
+        'disgust',
+        'trust',
+        'anticipation',
+        'neutral',
+      ] as const;
 
       for (const emotion of emotions) {
         expect(() =>
@@ -152,4 +163,3 @@ describe('Sentiment Timeline', () => {
     });
   });
 });
-

@@ -2,7 +2,7 @@
  * Simple Utilities Domain Tools
  *
  * The everyday helper tools that make Ferni feel like a real friend.
- * 
+ *
  * BETTER THAN SIRI: Siri is transactional - answer and forget.
  * BETTER THAN HUMAN: We catch patterns humans miss, follow up, anticipate.
  *
@@ -40,10 +40,7 @@ import {
 } from './pattern-intelligence.js';
 
 // Voice Callbacks - speak to user, don't just log
-import {
-  onTimerComplete,
-  speakDuration,
-} from './voice-callbacks.js';
+import { onTimerComplete, speakDuration } from './voice-callbacks.js';
 
 // Context Integration - connect to what we know about them
 import {
@@ -63,9 +60,7 @@ import {
 } from './persistence.js';
 
 // Proactive Hooks - anticipate needs
-import {
-  getProactiveOpener,
-} from './proactive-hooks.js';
+import { getProactiveOpener } from './proactive-hooks.js';
 
 // ============================================================================
 // IN-MEMORY STORES (per-session)
@@ -102,10 +97,10 @@ const calculateTipDef: ToolDefinition = {
       execute: async ({ billAmount, tipPercent, splitWays }, { ctx: toolCtx }) => {
         const userData = toolCtx.userData as { userId?: string };
         const userId = userData?.userId || 'session';
-        
+
         // Record usage for pattern learning
         recordUsage(userId, 'calculateTip', { billAmount, tipPercent, splitWays });
-        
+
         const tip = billAmount * (tipPercent / 100);
         const total = billAmount + tip;
 
@@ -126,15 +121,21 @@ const calculateTipDef: ToolDefinition = {
         }
 
         // Apply pattern intelligence - notice patterns, add wisdom
-        const insight = generateInsight(userId, 'calculateTip', { billAmount, tipPercent }, response);
+        const insight = generateInsight(
+          userId,
+          'calculateTip',
+          { billAmount, tipPercent },
+          response
+        );
         let finalResponse = insight.response;
         if (insight.followUp) {
           finalResponse += `\n\n${insight.followUp}`;
         }
-        
+
         // Persist tip preference for cross-session learning
-        updateTipPreferences(userId, tipPercent)
-          .catch(err => getLogger().debug({ err }, 'Failed to persist tip preference'));
+        updateTipPreferences(userId, tipPercent).catch((err) =>
+          getLogger().debug({ err }, 'Failed to persist tip preference')
+        );
 
         return finalResponse;
       },
@@ -276,9 +277,7 @@ const quickMathDef: ToolDefinition = {
           }
 
           // Format nicely
-          const formatted = Number.isInteger(result)
-            ? result.toString()
-            : result.toFixed(2);
+          const formatted = Number.isInteger(result) ? result.toString() : result.toFixed(2);
 
           return `${expression} = **${formatted}**`;
         } catch {
@@ -377,9 +376,10 @@ const convertUnitsDef: ToolDefinition = {
             const result = baseValue / units[to];
 
             // Format result nicely
-            const formatted = result < 0.01 || result > 10000
-              ? result.toExponential(2)
-              : result.toFixed(result < 1 ? 3 : 2).replace(/\.?0+$/, '');
+            const formatted =
+              result < 0.01 || result > 10000
+                ? result.toExponential(2)
+                : result.toFixed(result < 1 ? 3 : 2).replace(/\.?0+$/, '');
 
             return `${value} ${fromUnit} = **${formatted} ${toUnit}**`;
           }
@@ -406,7 +406,9 @@ const convertTemperatureDef: ToolDefinition = {
 - "Is 38C a fever?"`,
       parameters: z.object({
         temperature: z.number().describe('The temperature value'),
-        fromScale: z.enum(['F', 'C', 'fahrenheit', 'celsius']).describe('The scale to convert from'),
+        fromScale: z
+          .enum(['F', 'C', 'fahrenheit', 'celsius'])
+          .describe('The scale to convert from'),
       }),
       execute: async ({ temperature, fromScale }) => {
         const isFahrenheit = fromScale.toLowerCase().startsWith('f');
@@ -521,7 +523,7 @@ const daysUntilDef: ToolDefinition = {
             thanksgiving: () => {
               // 4th Thursday of November
               const nov = new Date(year, 10, 1);
-              let thursday = 1;
+              const thursday = 1;
               while (nov.getDay() !== 4) {
                 nov.setDate(nov.getDate() + 1);
               }
@@ -836,10 +838,10 @@ const timeInCityDef: ToolDefinition = {
         if (!timezone) {
           return `I don't have the timezone for "${city}" in my quick lookup. Try a major city like Tokyo, London, or New York.`;
         }
-        
+
         const userData = toolCtx.userData as { userId?: string };
         const userId = userData?.userId || 'session';
-        
+
         // Record usage for pattern learning
         recordUsage(userId, 'timeInCity', { city: cityLower });
 
@@ -862,9 +864,7 @@ const timeInCityDef: ToolDefinition = {
 
         // Calculate offset from user's local time
         const localHour = now.getHours();
-        const remoteTime = new Date(
-          now.toLocaleString('en-US', { timeZone: timezone })
-        );
+        const remoteTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
         const remoteHour = remoteTime.getHours();
         let hourDiff = remoteHour - localHour;
         if (hourDiff > 12) hourDiff -= 24;
@@ -878,13 +878,13 @@ const timeInCityDef: ToolDefinition = {
               : `${Math.abs(hourDiff)} hours behind`;
 
         let response = `🌍 **${city}**: ${time}, ${date}\n(${diffStr})`;
-        
+
         // Apply pattern intelligence - notice travel planning patterns
         const insight = generateInsight(userId, 'timeInCity', { city: cityLower }, response);
         if (insight.followUp) {
           response += `\n\n${insight.followUp}`;
         }
-        
+
         // Try to enrich with life context (travel plans, people we know there)
         try {
           const lifeContext = await loadLifeContext(userId);
@@ -895,11 +895,12 @@ const timeInCityDef: ToolDefinition = {
         } catch {
           // Context not available, that's fine
         }
-        
+
         // Persist timezone preference for cross-session learning
-        updateTimezonePreferences(userId, cityLower)
-          .catch(err => getLogger().debug({ err }, 'Failed to persist timezone preference'));
-        
+        updateTimezonePreferences(userId, cityLower).catch((err) =>
+          getLogger().debug({ err }, 'Failed to persist timezone preference')
+        );
+
         return response;
       },
     });
@@ -991,21 +992,19 @@ const bestTimeToCallDef: ToolDefinition = {
 
         // Quick calculation of current offset
         const now = new Date();
-        const theirNow = new Date(
-          now.toLocaleString('en-US', { timeZone: timezone })
-        );
+        const theirNow = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
         const hourDiff = theirNow.getHours() - now.getHours();
 
         // Find good overlap times
         for (let yourHour = 8; yourHour <= 20; yourHour++) {
           const theirHour = (yourHour + hourDiff + 24) % 24;
           if (theirHour >= 9 && theirHour <= 21) {
-            const yourTimeStr = yourHour <= 12
-              ? `${yourHour}${yourHour < 12 ? 'am' : 'pm'}`
-              : `${yourHour - 12}pm`;
-            const theirTimeStr = theirHour <= 12
-              ? `${theirHour}${theirHour < 12 ? 'am' : 'pm'}`
-              : `${theirHour - 12}pm`;
+            const yourTimeStr =
+              yourHour <= 12 ? `${yourHour}${yourHour < 12 ? 'am' : 'pm'}` : `${yourHour - 12}pm`;
+            const theirTimeStr =
+              theirHour <= 12
+                ? `${theirHour}${theirHour < 12 ? 'am' : 'pm'}`
+                : `${theirHour - 12}pm`;
             suggestions.push(`${yourTimeStr} (${theirTimeStr} their time)`);
           }
         }
@@ -1014,7 +1013,10 @@ const bestTimeToCallDef: ToolDefinition = {
           return `Tough timezone difference! There's minimal overlap during reasonable hours with ${theirCity}. You might need to schedule early morning or late evening.`;
         }
 
-        return `Best times to call ${theirCity}:\n${suggestions.slice(0, 5).map((s) => `• ${s}`).join('\n')}`;
+        return `Best times to call ${theirCity}:\n${suggestions
+          .slice(0, 5)
+          .map((s) => `• ${s}`)
+          .join('\n')}`;
       },
     });
   },
@@ -1044,10 +1046,10 @@ const flipCoinDef: ToolDefinition = {
       execute: async ({ headsOption, tailsOption }, { ctx: toolCtx }) => {
         const userData = toolCtx.userData as { userId?: string };
         const userId = userData?.userId || 'session';
-        
+
         // Record usage for pattern learning
         recordUsage(userId, 'flipCoin', { headsOption, tailsOption });
-        
+
         const result = Math.random() < 0.5 ? 'heads' : 'tails';
         const emoji = '🪙';
 
@@ -1058,7 +1060,7 @@ const flipCoinDef: ToolDefinition = {
         } else {
           response = `${emoji} **${result.toUpperCase()}!**`;
         }
-        
+
         // Apply pattern intelligence - notice decision-making patterns
         const insight = generateInsight(userId, 'flipCoin', { headsOption, tailsOption }, response);
         if (insight.followUp) {
@@ -1169,8 +1171,9 @@ const helpMeDecideDef: ToolDefinition = {
             const pick = options[Math.floor(Math.random() * 2)];
             return (
               `My gut says: **${pick}**\n\n` +
-              `But here's a thought: which one made you feel something when I said it? That reaction tells you something.` +
-              (context ? `\n\nConsidering ${context}, lean into that feeling.` : '')
+              `But here's a thought: which one made you feel something when I said it? That reaction tells you something.${
+                context ? `\n\nConsidering ${context}, lean into that feeling.` : ''
+              }`
             );
           } else {
             return (
@@ -1228,7 +1231,7 @@ const setTimerDef: ToolDefinition = {
 
         const userData = toolCtx.userData as { userId?: string };
         const userId = userData?.userId || 'session';
-        
+
         // Record usage for pattern learning
         recordUsage(userId, 'setTimer', { minutes, seconds, label });
 
@@ -1244,34 +1247,42 @@ const setTimerDef: ToolDefinition = {
         // Set the timer with voice callback when complete
         const timeout = setTimeout(async () => {
           activeTimers.delete(userId);
-          
+
           // Trigger voice callback - actually speaks to user!
           await onTimerComplete(userId, timerLabel, minutes + seconds / 60);
-          
+
           // Get personalized follow-up message for logging
           const followUpMsg = getTimerFollowUp(userId);
-          getLogger().info({ userId, label: timerLabel, followUp: followUpMsg }, '⏰ Timer finished!');
+          getLogger().info(
+            { userId, label: timerLabel, followUp: followUpMsg },
+            '⏰ Timer finished!'
+          );
         }, totalMs);
-        
+
         // Persist timer preference for cross-session learning
         const hour = new Date().getHours();
-        const timeOfDay = hour >= 5 && hour < 12 ? 'morning'
-          : hour >= 12 && hour < 17 ? 'afternoon'
-          : hour >= 17 && hour < 21 ? 'evening'
-          : 'night';
-        
+        const timeOfDay =
+          hour >= 5 && hour < 12
+            ? 'morning'
+            : hour >= 12 && hour < 17
+              ? 'afternoon'
+              : hour >= 17 && hour < 21
+                ? 'evening'
+                : 'night';
+
         updateTimerPreferences(userId, {
           minutes: minutes + seconds / 60,
           label: label,
           timeOfDay,
-        }).catch(err => getLogger().debug({ err }, 'Failed to persist timer preference'));
+        }).catch((err) => getLogger().debug({ err }, 'Failed to persist timer preference'));
 
         activeTimers.set(userId, { timeout, label: timerLabel, endTime });
 
         // Check if this is their usual timer
         const patterns = getUserPatterns(userId);
-        const usualTimer = patterns.patterns.commonTimerDurations
-          .find(d => Math.abs(d.minutes - (minutes + seconds / 60)) < 0.5 && d.count >= 3);
+        const usualTimer = patterns.patterns.commonTimerDurations.find(
+          (d) => Math.abs(d.minutes - (minutes + seconds / 60)) < 0.5 && d.count >= 3
+        );
 
         const timeStr =
           minutes > 0
@@ -1281,10 +1292,11 @@ const setTimerDef: ToolDefinition = {
             : `${seconds} second${seconds !== 1 ? 's' : ''}`;
 
         // Personalize response based on patterns
-        let response = usualTimer && usualTimer.label
-          ? `⏱️ **Your ${usualTimer.label} timer set for ${timeStr}!**`
-          : `⏱️ **Timer set for ${timeStr}!**${label ? `\n(${label})` : ''}`;
-        
+        let response =
+          usualTimer && usualTimer.label
+            ? `⏱️ **Your ${usualTimer.label} timer set for ${timeStr}!**`
+            : `⏱️ **Timer set for ${timeStr}!**${label ? `\n(${label})` : ''}`;
+
         response += `\n\nI'll check in when it's done!`;
 
         return response;
@@ -1460,7 +1472,7 @@ Returns suggestions like "Want me to set your usual tea timer?"`,
 
         // Get in-memory pattern suggestions
         const patternSuggestions = getProactiveSuggestions(userId);
-        
+
         // Get proactive opener from hooks (considers time of day, life context)
         const proactiveOpener = await getProactiveOpener(userId);
 
@@ -1519,9 +1531,10 @@ const checkTimerStatusDef: ToolDefinition = {
 
         let timeStr: string;
         if (minutes > 0) {
-          timeStr = seconds > 0
-            ? `${minutes} minute${minutes !== 1 ? 's' : ''} and ${seconds} second${seconds !== 1 ? 's' : ''}`
-            : `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+          timeStr =
+            seconds > 0
+              ? `${minutes} minute${minutes !== 1 ? 's' : ''} and ${seconds} second${seconds !== 1 ? 's' : ''}`
+              : `${minutes} minute${minutes !== 1 ? 's' : ''}`;
         } else {
           timeStr = `${seconds} second${seconds !== 1 ? 's' : ''}`;
         }
@@ -1637,4 +1650,3 @@ export {
   getUpcomingBirthdays,
   getUpcomingAnniversaries,
 } from './context-integration.js';
-

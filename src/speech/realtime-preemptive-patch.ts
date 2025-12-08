@@ -70,16 +70,16 @@ export type PreemptiveCallback = (action: PreemptiveAction) => void;
 const CONFIG = {
   // Minimum transcript length to start anticipation
   MIN_ANTICIPATION_LENGTH: 3,
-  
+
   // Update interval for partial processing (ms)
   UPDATE_INTERVAL_MS: 100,
-  
+
   // Minimum confidence for cache hit
   MIN_CACHE_CONFIDENCE: 0.6,
-  
+
   // Minimum turn prediction confidence to prepare context
   MIN_TURN_PREDICTION_CONFIDENCE: 0.7,
-  
+
   // Latency estimates
   CACHE_HIT_SAVINGS_MS: 150,
   CONTEXT_PREP_SAVINGS_MS: 50,
@@ -91,26 +91,26 @@ const CONFIG = {
 
 export class RealtimePreemptiveProcessor {
   private sessionId: string;
-  private lastProcessedTranscript: string = '';
-  private lastProcessedTime: number = 0;
+  private lastProcessedTranscript = '';
+  private lastProcessedTime = 0;
   private recentUserMessages: string[] = [];
   private emotionalState: string | null = null;
   private currentTopic: string | null = null;
   private callback: PreemptiveCallback | null = null;
-  private enabled: boolean = true;
-  
+  private enabled = true;
+
   constructor(sessionId: string) {
     this.sessionId = sessionId;
     log.debug({ sessionId }, '⚡ Realtime preemptive processor initialized');
   }
-  
+
   /**
    * Set callback for preemptive actions
    */
   onPreemptiveAction(callback: PreemptiveCallback): void {
     this.callback = callback;
   }
-  
+
   /**
    * Enable/disable processing
    */
@@ -118,40 +118,60 @@ export class RealtimePreemptiveProcessor {
     this.enabled = enabled;
     log.debug({ enabled }, '⚡ Preemptive processing state changed');
   }
-  
+
   /**
    * Process partial transcript event
    * Call this when RealtimeModel emits `input_audio_transcription_completed`
    */
   processPartialTranscript(event: PartialTranscriptEvent): PreemptiveAction {
     if (!this.enabled) {
-      return { type: 'none', anticipation: null, contextHint: null, estimatedSavingsMs: 0, reason: 'Disabled' };
+      return {
+        type: 'none',
+        anticipation: null,
+        contextHint: null,
+        estimatedSavingsMs: 0,
+        reason: 'Disabled',
+      };
     }
-    
+
     const { transcript, isFinal } = event;
-    
+
     // Skip if too short
     if (transcript.length < CONFIG.MIN_ANTICIPATION_LENGTH) {
-      return { type: 'none', anticipation: null, contextHint: null, estimatedSavingsMs: 0, reason: 'Too short' };
+      return {
+        type: 'none',
+        anticipation: null,
+        contextHint: null,
+        estimatedSavingsMs: 0,
+        reason: 'Too short',
+      };
     }
-    
+
     // Throttle updates
     const now = Date.now();
-    if (!isFinal && 
-        transcript === this.lastProcessedTranscript && 
-        now - this.lastProcessedTime < CONFIG.UPDATE_INTERVAL_MS) {
-      return { type: 'none', anticipation: null, contextHint: null, estimatedSavingsMs: 0, reason: 'Throttled' };
+    if (
+      !isFinal &&
+      transcript === this.lastProcessedTranscript &&
+      now - this.lastProcessedTime < CONFIG.UPDATE_INTERVAL_MS
+    ) {
+      return {
+        type: 'none',
+        anticipation: null,
+        contextHint: null,
+        estimatedSavingsMs: 0,
+        reason: 'Throttled',
+      };
     }
-    
+
     this.lastProcessedTranscript = transcript;
     this.lastProcessedTime = now;
-    
+
     // Run anticipation
     const anticipator = getResponseAnticipationService(this.sessionId);
     const anticipation = anticipator.anticipate(transcript);
-    
+
     let action: PreemptiveAction;
-    
+
     // Check for cache hit
     if (anticipation?.isComplete && anticipation.confidence >= CONFIG.MIN_CACHE_CONFIDENCE) {
       action = {
@@ -161,12 +181,15 @@ export class RealtimePreemptiveProcessor {
         estimatedSavingsMs: CONFIG.CACHE_HIT_SAVINGS_MS,
         reason: `Cache hit: ${anticipation.intent} (${(anticipation.confidence * 100).toFixed(0)}%)`,
       };
-      
-      log.info({
-        intent: anticipation.intent,
-        confidence: anticipation.confidence,
-        savings: CONFIG.CACHE_HIT_SAVINGS_MS,
-      }, '⚡ CACHE HIT - Preemptive response ready');
+
+      log.info(
+        {
+          intent: anticipation.intent,
+          confidence: anticipation.confidence,
+          savings: CONFIG.CACHE_HIT_SAVINGS_MS,
+        },
+        '⚡ CACHE HIT - Preemptive response ready'
+      );
     }
     // Check for partial anticipation (context preparation)
     else if (anticipation && anticipation.confidence >= 0.4) {
@@ -176,7 +199,7 @@ export class RealtimePreemptiveProcessor {
         this.emotionalState,
         this.currentTopic
       );
-      
+
       action = {
         type: 'context_prepared',
         anticipation,
@@ -184,15 +207,20 @@ export class RealtimePreemptiveProcessor {
           anticipation.contextHint,
           prefetchContext.userHistoryHint,
           prefetchContext.emotionalHint,
-        ].filter(Boolean).join(' '),
+        ]
+          .filter(Boolean)
+          .join(' '),
         estimatedSavingsMs: CONFIG.CONTEXT_PREP_SAVINGS_MS,
         reason: `Context prepared: ${anticipation.intent} (${(anticipation.confidence * 100).toFixed(0)}%)`,
       };
-      
-      log.debug({
-        intent: anticipation.intent,
-        confidence: anticipation.confidence,
-      }, '⚡ Context prepared for faster generation');
+
+      log.debug(
+        {
+          intent: anticipation.intent,
+          confidence: anticipation.confidence,
+        },
+        '⚡ Context prepared for faster generation'
+      );
     }
     // No actionable anticipation
     else {
@@ -204,12 +232,12 @@ export class RealtimePreemptiveProcessor {
         reason: 'No confident anticipation',
       };
     }
-    
+
     // Invoke callback if set
     if (this.callback && action.type !== 'none') {
       this.callback(action);
     }
-    
+
     // If final, record for context
     if (isFinal && transcript.length > 10) {
       this.recentUserMessages.push(transcript);
@@ -217,10 +245,10 @@ export class RealtimePreemptiveProcessor {
         this.recentUserMessages.shift();
       }
     }
-    
+
     return action;
   }
-  
+
   /**
    * Process with prosody for enhanced turn prediction
    */
@@ -231,11 +259,11 @@ export class RealtimePreemptiveProcessor {
   ): PreemptiveAction {
     // First run standard anticipation
     const baseAction = this.processPartialTranscript(event);
-    
+
     // If we have prosody, also run turn prediction
     const turnPredictor = getEnhancedTurnPredictor(this.sessionId);
     const turnPrediction = turnPredictor.predict(prosody, event.transcript, silenceDuration);
-    
+
     // If turn prediction is highly confident, upgrade our action
     if (turnPrediction.completionProbability >= CONFIG.MIN_TURN_PREDICTION_CONFIDENCE) {
       if (baseAction.type === 'none') {
@@ -255,10 +283,10 @@ export class RealtimePreemptiveProcessor {
         };
       }
     }
-    
+
     return baseAction;
   }
-  
+
   /**
    * Update context for better anticipation
    */
@@ -273,14 +301,14 @@ export class RealtimePreemptiveProcessor {
     if (context.currentTopic) {
       this.currentTopic = context.currentTopic;
     }
-    
+
     // Also update anticipation service context
     const anticipator = getResponseAnticipationService(this.sessionId);
     if (context.recentAgentText) {
       // The anticipator will use this for context-aware anticipation
     }
   }
-  
+
   /**
    * Get the complete response for a cache hit
    */
@@ -288,7 +316,7 @@ export class RealtimePreemptiveProcessor {
     const anticipator = getResponseAnticipationService(this.sessionId);
     return anticipator.getCompleteResponse();
   }
-  
+
   /**
    * Report accuracy for learning
    */
@@ -296,7 +324,7 @@ export class RealtimePreemptiveProcessor {
     const anticipator = getResponseAnticipationService(this.sessionId);
     anticipator.reportAccuracy(wasCorrect);
   }
-  
+
   /**
    * Get statistics
    */
@@ -309,7 +337,7 @@ export class RealtimePreemptiveProcessor {
       totalMisses: stats.misses,
     };
   }
-  
+
   /**
    * Reset processor state
    */
@@ -360,15 +388,15 @@ export function hookRealtimePreemptive(
   callback?: PreemptiveCallback
 ): RealtimePreemptiveProcessor {
   const processor = new RealtimePreemptiveProcessor(sessionId);
-  
+
   if (callback) {
     processor.onPreemptiveAction(callback);
   }
-  
+
   // Hook into session events
   // The session emits UserInputTranscribed events with isFinal flag
   const sessionAny = session as { on: (event: string, cb: (e: unknown) => void) => void };
-  
+
   sessionAny.on('user_input_transcribed', (event: unknown) => {
     const ev = event as { transcript: string; isFinal: boolean };
     processor.processPartialTranscript({
@@ -377,9 +405,9 @@ export function hookRealtimePreemptive(
       isFinal: ev.isFinal,
     });
   });
-  
+
   log.info({ sessionId }, '⚡ Hooked into session for preemptive processing');
-  
+
   return processor;
 }
 
@@ -406,4 +434,3 @@ export function resetRealtimePreemptiveProcessor(sessionId: string): void {
     log.debug({ sessionId }, '⚡ Realtime preemptive processor reset');
   }
 }
-

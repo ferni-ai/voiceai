@@ -31,8 +31,8 @@ const DEVELOPMENTAL_STAGES = {
   infant: {
     ages: '0-12 months',
     normalBehaviors: [
-      'Crying is their only way to communicate - it\'s not manipulation',
-      'Sleep patterns are erratic and that\'s normal',
+      "Crying is their only way to communicate - it's not manipulation",
+      "Sleep patterns are erratic and that's normal",
       'They need constant connection and responsiveness',
     ],
     commonChallenges: ['sleep deprivation', 'feeding issues', 'adjustment to parenthood'],
@@ -41,9 +41,9 @@ const DEVELOPMENTAL_STAGES = {
   toddler: {
     ages: '1-3 years',
     normalBehaviors: [
-      'Tantrums are developmentally normal - they can\'t regulate emotions yet',
+      "Tantrums are developmentally normal - they can't regulate emotions yet",
       'Saying "no" is them developing autonomy - it\'s healthy',
-      'They can\'t truly share yet - their brains aren\'t ready',
+      "They can't truly share yet - their brains aren't ready",
       'Testing limits is how they learn where boundaries are',
     ],
     commonChallenges: ['tantrums', 'sleep regression', 'picky eating', 'potty training'],
@@ -53,7 +53,7 @@ const DEVELOPMENTAL_STAGES = {
     ages: '3-5 years',
     normalBehaviors: [
       'Imaginary friends and magical thinking are healthy',
-      'They\'re starting to understand others have feelings',
+      "They're starting to understand others have feelings",
       'Big fears (dark, monsters) are normal',
       'They may lie to avoid punishment - testing cause/effect',
     ],
@@ -65,7 +65,7 @@ const DEVELOPMENTAL_STAGES = {
     normalBehaviors: [
       'Friends become increasingly important',
       'Rules and fairness become big concerns',
-      'They\'re developing their own interests and identity',
+      "They're developing their own interests and identity",
       'Comparison to peers increases',
     ],
     commonChallenges: ['homework', 'friendships', 'activities balance', 'screen time'],
@@ -85,12 +85,17 @@ const DEVELOPMENTAL_STAGES = {
   teen: {
     ages: '13-18 years',
     normalBehaviors: [
-      'Pulling away is developmentally appropriate - they\'re individuating',
+      "Pulling away is developmentally appropriate - they're individuating",
       'Emotional volatility is partly biological (prefrontal cortex still developing)',
       'Risk-taking is normal (brain prioritizes reward over risk)',
       'They need privacy and space',
     ],
-    commonChallenges: ['independence battles', 'risky behavior', 'academic pressure', 'mental health'],
+    commonChallenges: [
+      'independence battles',
+      'risky behavior',
+      'academic pressure',
+      'mental health',
+    ],
     keyNeeds: ['Trust', 'Independence', 'Continued connection', 'Safety'],
   },
   'young-adult': {
@@ -108,31 +113,31 @@ const DEVELOPMENTAL_STAGES = {
 const DISCIPLINE_APPROACHES = {
   'natural-consequences': {
     description: 'Let natural outcomes teach the lesson',
-    example: 'Didn\'t bring a jacket? They\'ll be cold.',
+    example: "Didn't bring a jacket? They'll be cold.",
     when: 'Safe situations where consequences teach',
     limit: 'Not when dangerous or consequences affect others',
   },
   'logical-consequences': {
     description: 'Create reasonable consequences connected to behavior',
     example: 'Misused toy? Toy goes away temporarily.',
-    when: 'When natural consequences aren\'t appropriate',
+    when: "When natural consequences aren't appropriate",
     limit: 'Must be related, reasonable, and respectful',
   },
   'positive-reinforcement': {
     description: 'Catch them being good, praise effort',
     example: 'I noticed you shared with your brother. That was kind.',
     when: 'Always - build on positives',
-    limit: 'Don\'t overpraise or make everything conditional',
+    limit: "Don't overpraise or make everything conditional",
   },
   'time-in': {
     description: 'Stay with them through big emotions',
-    example: 'I can see you\'re upset. I\'m here with you.',
-    when: 'When they\'re overwhelmed and need co-regulation',
-    limit: 'Not effective when you\'re also dysregulated',
+    example: "I can see you're upset. I'm here with you.",
+    when: "When they're overwhelmed and need co-regulation",
+    limit: "Not effective when you're also dysregulated",
   },
   'problem-solving': {
     description: 'Work together to find solutions',
-    example: 'This isn\'t working. What could we try instead?',
+    example: "This isn't working. What could we try instead?",
     when: 'When child is calm and can participate',
     limit: 'Requires developmental readiness',
   },
@@ -151,17 +156,21 @@ const coachParentingChallengeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help parent navigate specific parenting challenges with age-appropriate guidance.',
+      description:
+        'Help parent navigate specific parenting challenges with age-appropriate guidance.',
       parameters: z.object({
         challenge: z.string().describe('The parenting challenge'),
-        childAgeGroup: z.enum([
-          'infant', 'toddler', 'preschool', 'elementary', 'tween', 'teen', 'young-adult',
-        ]).describe('Age group of child'),
+        childAgeGroup: z
+          .enum(['infant', 'toddler', 'preschool', 'elementary', 'tween', 'teen', 'young-adult'])
+          .describe('Age group of child'),
         attempts: z.string().optional().describe('What they have tried'),
         urgency: z.enum(['ongoing', 'recent', 'immediate']).optional(),
       }),
       execute: async ({ challenge, childAgeGroup, attempts, urgency }) => {
-        getLogger().info({ agentId: ctx.agentId, childAgeGroup, challenge }, 'Coaching parenting challenge');
+        getLogger().info(
+          { agentId: ctx.agentId, childAgeGroup, challenge },
+          'Coaching parenting challenge'
+        );
 
         const stage = DEVELOPMENTAL_STAGES[childAgeGroup];
 
@@ -173,7 +182,7 @@ const coachParentingChallengeDef: ToolDefinition = {
 
         response += `**Developmental Context:**\n\n`;
         response += `At this stage, it's normal for children to:\n`;
-        stage.normalBehaviors.forEach((b: string) => response += `• ${b}\n`);
+        stage.normalBehaviors.forEach((b: string) => (response += `• ${b}\n`));
         response += `\nKey needs at this stage: ${stage.keyNeeds.join(', ')}\n\n`;
 
         response += `---\n\n`;
@@ -283,12 +292,12 @@ const suggestAgeAppropriateActivityDef: ToolDefinition = {
     return llm.tool({
       description: 'Suggest age-appropriate activities for family bonding and child development.',
       parameters: z.object({
-        childAgeGroup: z.enum([
-          'infant', 'toddler', 'preschool', 'elementary', 'tween', 'teen',
-        ]).describe('Age group'),
-        goal: z.enum([
-          'bonding', 'learning', 'physical', 'creative', 'calm', 'fun',
-        ]).describe('Goal of activity'),
+        childAgeGroup: z
+          .enum(['infant', 'toddler', 'preschool', 'elementary', 'tween', 'teen'])
+          .describe('Age group'),
+        goal: z
+          .enum(['bonding', 'learning', 'physical', 'creative', 'calm', 'fun'])
+          .describe('Goal of activity'),
         timeAvailable: z.enum(['15-min', '30-min', '1-hour', 'half-day']).optional(),
         setting: z.enum(['indoor', 'outdoor', 'either']).optional(),
       }),
@@ -303,20 +312,39 @@ const suggestAgeAppropriateActivityDef: ToolDefinition = {
 
         const activities: Record<string, Record<string, string[]>> = {
           infant: {
-            bonding: ['Tummy time together', 'Baby massage', 'Reading board books', 'Singing songs'],
+            bonding: [
+              'Tummy time together',
+              'Baby massage',
+              'Reading board books',
+              'Singing songs',
+            ],
             learning: ['High contrast visual play', 'Different textures to touch', 'Peek-a-boo'],
             calm: ['Gentle rocking', 'Soft music', 'Skin-to-skin time'],
           },
           toddler: {
-            bonding: ['Building blocks together', 'Simple cooking (stirring, pouring)', 'Reading together'],
+            bonding: [
+              'Building blocks together',
+              'Simple cooking (stirring, pouring)',
+              'Reading together',
+            ],
             learning: ['Shape sorters', 'Simple puzzles', 'Naming objects', 'Counting games'],
-            physical: ['Dance party', 'Ball play', 'Playground time', 'Obstacle course with cushions'],
+            physical: [
+              'Dance party',
+              'Ball play',
+              'Playground time',
+              'Obstacle course with cushions',
+            ],
             creative: ['Finger painting', 'Play-dough', 'Coloring', 'Stickers'],
             calm: ['Water play', 'Sensory bins', 'Quiet books'],
           },
           preschool: {
             bonding: ['Playing pretend', 'Board games (simple)', 'Baking together', 'Gardening'],
-            learning: ['Letter games', 'Counting activities', 'Nature exploration', 'Simple science'],
+            learning: [
+              'Letter games',
+              'Counting activities',
+              'Nature exploration',
+              'Simple science',
+            ],
             physical: ['Tricycle/bike riding', 'Sports', 'Swimming', 'Hiking'],
             creative: ['Arts and crafts', 'Building', 'Dress-up', 'Music and dancing'],
             fun: ['Treasure hunts', 'Pillow forts', 'Water play', 'Playground'],
@@ -329,17 +357,26 @@ const suggestAgeAppropriateActivityDef: ToolDefinition = {
             fun: ['Movie night', 'Camping (backyard counts)', 'Video games together', 'Mini-golf'],
           },
           tween: {
-            bonding: ['Share a hobby', 'One-on-one outings', 'Cooking complex recipes', 'Volunteering'],
+            bonding: [
+              'Share a hobby',
+              'One-on-one outings',
+              'Cooking complex recipes',
+              'Volunteering',
+            ],
             learning: ['Teach them a skill', 'Documentary watching', 'Passion project support'],
             physical: ['Exercise together', 'Adventure sports', 'Team activities'],
             creative: ['Support their interests', 'Collaborative projects', 'Music/art'],
             fun: ['Their choice of activity', 'Movies they want to see', 'Gaming together'],
           },
           teen: {
-            bonding: ['Let them teach you something', 'Car rides (side-by-side talks)', 'Shared interest'],
+            bonding: [
+              'Let them teach you something',
+              'Car rides (side-by-side talks)',
+              'Shared interest',
+            ],
             learning: ['Career exploration', 'Life skills', 'College/future planning'],
             physical: ['Gym together', 'Hiking', 'Sports', 'Active adventures'],
-            fun: ['Whatever they\'re into', 'Concerts/events', 'Friend-inclusive activities'],
+            fun: ["Whatever they're into", 'Concerts/events', 'Friend-inclusive activities'],
           },
         };
 
@@ -347,7 +384,7 @@ const suggestAgeAppropriateActivityDef: ToolDefinition = {
         const relevant = ageActivities[goal] || ageActivities['bonding'] || [];
 
         response += `**Suggestions:**\n\n`;
-        relevant.forEach(activity => {
+        relevant.forEach((activity) => {
           response += `• ${activity}\n`;
         });
 
@@ -382,7 +419,7 @@ const trackChildMilestoneDef: ToolDefinition = {
     return llm.tool({
       description: 'Help parent record and celebrate child milestones.',
       parameters: z.object({
-        childName: z.string().describe('Child\'s name'),
+        childName: z.string().describe("Child's name"),
         milestone: z.string().describe('The milestone'),
         date: z.string().optional().describe('When it happened'),
         reaction: z.string().optional().describe('Their reaction'),
@@ -474,10 +511,18 @@ const supportFamilyTransitionDef: ToolDefinition = {
     return llm.tool({
       description: 'Help family navigate major transitions like divorce, new siblings, or moving.',
       parameters: z.object({
-        transition: z.enum([
-          'divorce', 'new-sibling', 'moving', 'blended-family',
-          'parent-returning-to-work', 'school-change', 'loss', 'other',
-        ]).describe('Type of transition'),
+        transition: z
+          .enum([
+            'divorce',
+            'new-sibling',
+            'moving',
+            'blended-family',
+            'parent-returning-to-work',
+            'school-change',
+            'loss',
+            'other',
+          ])
+          .describe('Type of transition'),
         childrenAges: z.array(z.string()).optional().describe('Ages of children affected'),
         stage: z.enum(['preparing', 'during', 'after']).optional(),
         customTransition: z.string().optional(),
@@ -499,7 +544,8 @@ const supportFamilyTransitionDef: ToolDefinition = {
         response += `• Adjustment takes time - usually longer than we hope\n\n`;
 
         const advice: Record<string, string> = {
-          divorce: `**Helping Children Through Divorce:**\n\n` +
+          divorce:
+            `**Helping Children Through Divorce:**\n\n` +
             `• Reassure them it's not their fault (repeatedly)\n` +
             `• Don't speak negatively about the other parent to them\n` +
             `• Maintain routines as much as possible\n` +
@@ -507,21 +553,24 @@ const supportFamilyTransitionDef: ToolDefinition = {
             `• Consider family therapy\n` +
             `• Watch for behavioral changes that might signal distress`,
 
-          'new-sibling': `**Preparing for a New Sibling:**\n\n` +
+          'new-sibling':
+            `**Preparing for a New Sibling:**\n\n` +
             `• Involve them in preparation age-appropriately\n` +
             `• Expect some regression (it's normal)\n` +
             `• Special one-on-one time with older child matters a lot\n` +
             `• Let them have negative feelings about the change\n` +
             `• Don't force them to "love" the baby right away`,
 
-          moving: `**Helping Children With a Move:**\n\n` +
+          moving:
+            `**Helping Children With a Move:**\n\n` +
             `• Let them grieve what they're leaving\n` +
             `• Involve them in the new space when possible\n` +
             `• Maintain connections with old friends\n` +
             `• Create familiarity in the new place quickly\n` +
             `• Validate that it's hard even if it's also exciting`,
 
-          'blended-family': `**Blending Families:**\n\n` +
+          'blended-family':
+            `**Blending Families:**\n\n` +
             `• Go slow - attachment takes years, not months\n` +
             `• Don't force relationships\n` +
             `• Biological parent should do most discipline early on\n` +
@@ -529,12 +578,14 @@ const supportFamilyTransitionDef: ToolDefinition = {
             `• Family therapy can be invaluable`,
         };
 
-        response += advice[transition] || `**General transition support:**\n` +
-          `• Talk about it openly at their level\n` +
-          `• Let them ask questions\n` +
-          `• Maintain routines\n` +
-          `• Watch for signs of distress\n` +
-          `• Give extra connection\n`;
+        response +=
+          advice[transition] ||
+          `**General transition support:**\n` +
+            `• Talk about it openly at their level\n` +
+            `• Let them ask questions\n` +
+            `• Maintain routines\n` +
+            `• Watch for signs of distress\n` +
+            `• Give extra connection\n`;
 
         response += `\n---\n\n`;
         response += `What aspect of this transition would you like to discuss?`;
@@ -556,9 +607,9 @@ const navigateFamilyConflictDef: ToolDefinition = {
     return llm.tool({
       description: 'Help navigate conflicts within the family.',
       parameters: z.object({
-        conflictType: z.enum([
-          'sibling', 'parent-child', 'parenting-disagreement', 'extended-family', 'other',
-        ]).describe('Type of conflict'),
+        conflictType: z
+          .enum(['sibling', 'parent-child', 'parenting-disagreement', 'extended-family', 'other'])
+          .describe('Type of conflict'),
         parties: z.array(z.string()).optional().describe('Who is involved'),
         coreIssue: z.string().optional().describe('The core issue'),
       }),
@@ -708,10 +759,16 @@ const coordinateElderCareDef: ToolDefinition = {
     return llm.tool({
       description: 'Help coordinate care for aging parents or family members.',
       parameters: z.object({
-        situation: z.enum([
-          'starting-conversation', 'increasing-needs', 'crisis',
-          'long-distance', 'sibling-coordination', 'general',
-        ]).describe('Current situation'),
+        situation: z
+          .enum([
+            'starting-conversation',
+            'increasing-needs',
+            'crisis',
+            'long-distance',
+            'sibling-coordination',
+            'general',
+          ])
+          .describe('Current situation'),
         concerns: z.array(z.string()).optional().describe('Specific concerns'),
       }),
       execute: async ({ situation, concerns }) => {
@@ -794,9 +851,9 @@ const createTraditionDef: ToolDefinition = {
     return llm.tool({
       description: 'Help create meaningful family traditions.',
       parameters: z.object({
-        occasion: z.enum([
-          'daily', 'weekly', 'holiday', 'birthday', 'seasonal', 'milestone', 'custom',
-        ]).describe('Type of occasion'),
+        occasion: z
+          .enum(['daily', 'weekly', 'holiday', 'birthday', 'seasonal', 'milestone', 'custom'])
+          .describe('Type of occasion'),
         values: z.array(z.string()).optional().describe('Values to incorporate'),
         existingTraditions: z.array(z.string()).optional().describe('Current traditions'),
       }),
@@ -843,7 +900,7 @@ const createTraditionDef: ToolDefinition = {
         };
 
         response += `**Ideas for ${occasion} traditions:**\n\n`;
-        (ideas[occasion] || ideas['weekly']).forEach(idea => {
+        (ideas[occasion] || ideas['weekly']).forEach((idea) => {
           response += `• ${idea}\n`;
         });
 
@@ -955,4 +1012,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

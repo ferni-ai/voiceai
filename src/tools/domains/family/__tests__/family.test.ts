@@ -53,13 +53,19 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Jordan',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
 }
 
-function executeWithContext(tool: { execute: Function }, params: Record<string, unknown>, ctx: ToolContext) {
+function executeWithContext(
+  tool: { execute: Function },
+  params: Record<string, unknown>,
+  ctx: ToolContext
+) {
   return tool.execute(params, { ctx });
 }
 
@@ -89,25 +95,25 @@ describe('Family & Parenting Domain Tools', () => {
     });
 
     it('should have coachParentingChallenge tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'coachParentingChallenge');
+      const tool = toolDefinitions.find((t) => t.id === 'coachParentingChallenge');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('family');
     });
 
     it('should have trackChildMilestone tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'trackChildMilestone');
+      const tool = toolDefinitions.find((t) => t.id === 'trackChildMilestone');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('family');
     });
 
     it('should have supportFamilyTransition tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'supportFamilyTransition');
+      const tool = toolDefinitions.find((t) => t.id === 'supportFamilyTransition');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('family');
     });
 
     it('should have coordinateElderCare tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'coordinateElderCare');
+      const tool = toolDefinitions.find((t) => t.id === 'coordinateElderCare');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('family');
     });
@@ -115,7 +121,7 @@ describe('Family & Parenting Domain Tools', () => {
 
   describe('coachParentingChallenge', () => {
     it('should coach on toddler tantrums', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coachParentingChallenge');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coachParentingChallenge');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -129,7 +135,7 @@ describe('Family & Parenting Domain Tools', () => {
     });
 
     it('should coach on teen behavior', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coachParentingChallenge');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coachParentingChallenge');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -143,15 +149,19 @@ describe('Family & Parenting Domain Tools', () => {
 
   describe('trackChildMilestone', () => {
     it('should track a milestone', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackChildMilestone');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackChildMilestone');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        childName: 'Emma',
-        milestone: 'First steps!',
-        date: 'Today',
-        reaction: 'So excited!',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          childName: 'Emma',
+          milestone: 'First steps!',
+          date: 'Today',
+          reaction: 'So excited!',
+        },
+        mockContext
+      );
 
       expect(result).toBeDefined();
       expect(result).toContain('Emma');
@@ -161,7 +171,7 @@ describe('Family & Parenting Domain Tools', () => {
 
   describe('suggestAgeAppropriateActivity', () => {
     it('should suggest activities for toddlers', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'suggestAgeAppropriateActivity');
+      const toolDef = toolDefinitions.find((t) => t.id === 'suggestAgeAppropriateActivity');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -176,7 +186,7 @@ describe('Family & Parenting Domain Tools', () => {
 
   describe('supportFamilyTransition', () => {
     it('should support new baby transition', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'supportFamilyTransition');
+      const toolDef = toolDefinitions.find((t) => t.id === 'supportFamilyTransition');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -185,11 +195,13 @@ describe('Family & Parenting Domain Tools', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.toLowerCase().includes('baby') || result.toLowerCase().includes('transition')).toBe(true);
+      expect(
+        result.toLowerCase().includes('baby') || result.toLowerCase().includes('transition')
+      ).toBe(true);
     });
 
     it('should support divorce transition', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'supportFamilyTransition');
+      const toolDef = toolDefinitions.find((t) => t.id === 'supportFamilyTransition');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -203,7 +215,7 @@ describe('Family & Parenting Domain Tools', () => {
 
   describe('navigateFamilyConflict', () => {
     it('should help navigate sibling conflicts', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'navigateFamilyConflict');
+      const toolDef = toolDefinitions.find((t) => t.id === 'navigateFamilyConflict');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -217,7 +229,7 @@ describe('Family & Parenting Domain Tools', () => {
 
   describe('coordinateElderCare', () => {
     it('should help coordinate elder care', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coordinateElderCare');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coordinateElderCare');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -232,7 +244,7 @@ describe('Family & Parenting Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coachParentingChallenge');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coachParentingChallenge');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -245,7 +257,7 @@ describe('Family & Parenting Domain Tools', () => {
     });
 
     it('should provide supportive, non-judgmental guidance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coachParentingChallenge');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coachParentingChallenge');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -258,4 +270,3 @@ describe('Family & Parenting Domain Tools', () => {
     });
   });
 });
-

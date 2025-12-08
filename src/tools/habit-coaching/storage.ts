@@ -292,4 +292,3 @@ export function clearAllCache(): void {
 export function updateCachedData(userId: string, data: UserHabitCoachData): void {
   userCoachDataCache.set(userId, data);
 }
-

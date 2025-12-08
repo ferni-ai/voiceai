@@ -50,7 +50,8 @@ const CRISIS_RESOURCES: Record<string, CrisisResource> = {
       name: '988 Suicide & Crisis Lifeline',
       contact: 'Call or text 988',
       available: '24/7',
-      description: 'Free, confidential support for people in distress, prevention and crisis resources',
+      description:
+        'Free, confidential support for people in distress, prevention and crisis resources',
     },
     secondary: {
       name: 'Crisis Text Line',
@@ -59,7 +60,10 @@ const CRISIS_RESOURCES: Record<string, CrisisResource> = {
       description: 'Free, confidential crisis counseling via text',
     },
     additional: [
-      { name: 'International Association for Suicide Prevention', url: 'https://www.iasp.info/resources/Crisis_Centres/' },
+      {
+        name: 'International Association for Suicide Prevention',
+        url: 'https://www.iasp.info/resources/Crisis_Centres/',
+      },
     ],
   },
   'mental-health': {
@@ -81,7 +85,8 @@ const CRISIS_RESOURCES: Record<string, CrisisResource> = {
       name: 'National Domestic Violence Hotline',
       contact: '1-800-799-7233 (SAFE)',
       available: '24/7',
-      description: 'Confidential support, safety planning, and resources for domestic violence survivors',
+      description:
+        'Confidential support, safety planning, and resources for domestic violence survivors',
     },
     secondary: {
       name: 'Text Support',
@@ -145,7 +150,8 @@ const CRISIS_RESOURCES: Record<string, CrisisResource> = {
       name: '988 Suicide & Crisis Lifeline',
       contact: 'Call or text 988',
       available: '24/7',
-      description: 'Support for any emotional distress - you don\'t need to be suicidal to reach out',
+      description:
+        "Support for any emotional distress - you don't need to be suicidal to reach out",
     },
     secondary: {
       name: 'Crisis Text Line',
@@ -179,7 +185,11 @@ const CRISIS_RESOURCES: Record<string, CrisisResource> = {
       available: '24/7',
     },
     additional: [
-      { name: 'Trans Lifeline', contact: '1-877-565-8860', description: 'Peer support for trans people' },
+      {
+        name: 'Trans Lifeline',
+        contact: '1-877-565-8860',
+        description: 'Peer support for trans people',
+      },
     ],
   },
 };
@@ -196,7 +206,7 @@ const GROUNDING_EXERCISES = {
       'Notice 5 things you can SEE. Look around slowly. Name them.',
       'Notice 4 things you can TOUCH. Feel the texture of your clothes, the surface beneath you.',
       'Notice 3 things you can HEAR. Even subtle sounds - the hum of a light, distant traffic.',
-      'Notice 2 things you can SMELL. It\'s okay if you need to search for scents.',
+      "Notice 2 things you can SMELL. It's okay if you need to search for scents.",
       'Notice 1 thing you can TASTE. Even the taste in your mouth right now.',
     ],
     closing: 'You are here. You are safe in this moment. How do you feel?',
@@ -208,9 +218,9 @@ const GROUNDING_EXERCISES = {
       'Breathe in quietly through your nose for 4 counts.',
       'Hold your breath for 7 counts.',
       'Exhale completely through your mouth for 8 counts.',
-      'This is one breath cycle. Let\'s do 3-4 cycles together.',
+      "This is one breath cycle. Let's do 3-4 cycles together.",
     ],
-    closing: 'This technique activates your body\'s relaxation response. How are you feeling?',
+    closing: "This technique activates your body's relaxation response. How are you feeling?",
   },
   'box-breathing': {
     name: 'Box Breathing',
@@ -231,7 +241,7 @@ const GROUNDING_EXERCISES = {
       'Start at the top of your head. Notice any tension.',
       'Move down to your face - forehead, jaw, eyes. Let them soften.',
       'Notice your shoulders - let them drop away from your ears.',
-      'Feel your hands. Unclench them if they\'re tight.',
+      "Feel your hands. Unclench them if they're tight.",
       'Notice your stomach. Let it release.',
       'Feel your feet on the ground. You are supported.',
     ],
@@ -264,25 +274,29 @@ const provideCrisisResourcesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Surface appropriate crisis resources. Use when user expresses distress, mentions self-harm, abuse, or severe mental health struggles. ALWAYS provide these when safety is a concern.',
+      description:
+        'Surface appropriate crisis resources. Use when user expresses distress, mentions self-harm, abuse, or severe mental health struggles. ALWAYS provide these when safety is a concern.',
       parameters: z.object({
-        crisisType: z.enum([
-          'suicide-self-harm',
-          'mental-health',
-          'domestic-violence',
-          'sexual-assault',
-          'substance-abuse',
-          'child-abuse',
-          'financial-crisis',
-          'general-distress',
-          'veteran-crisis',
-          'lgbtq-crisis',
-        ]).describe('Type of crisis to provide resources for'),
+        crisisType: z
+          .enum([
+            'suicide-self-harm',
+            'mental-health',
+            'domestic-violence',
+            'sexual-assault',
+            'substance-abuse',
+            'child-abuse',
+            'financial-crisis',
+            'general-distress',
+            'veteran-crisis',
+            'lgbtq-crisis',
+          ])
+          .describe('Type of crisis to provide resources for'),
         urgency: z.enum(['immediate', 'soon', 'ongoing']).describe('Urgency level'),
       }),
       execute: async ({ crisisType, urgency }) => {
         // SAFETY-CRITICAL: Always return resources even on error
-        const FALLBACK_RESPONSE = `If you're in crisis or need support right now:\n\n` +
+        const FALLBACK_RESPONSE =
+          `If you're in crisis or need support right now:\n\n` +
           `📞 **988 Suicide & Crisis Lifeline** - Call or text 988 (24/7)\n` +
           `📱 **Crisis Text Line** - Text HOME to 741741 (24/7)\n\n` +
           `You don't have to face this alone. These trained professionals are ready to help.`;
@@ -293,7 +307,10 @@ const provideCrisisResourcesDef: ToolDefinition = {
           : null;
 
         try {
-          getLogger().info({ agentId: ctx.agentId, crisisType, urgency }, 'Providing crisis resources');
+          getLogger().info(
+            { agentId: ctx.agentId, crisisType, urgency },
+            'Providing crisis resources'
+          );
 
           const resources = CRISIS_RESOURCES[crisisType] || CRISIS_RESOURCES['general-distress'];
 
@@ -317,8 +334,10 @@ const provideCrisisResourcesDef: ToolDefinition = {
             if (resources.secondary) {
               response += `📱 **${resources.secondary.name}**\n`;
               response += `   ${resources.secondary.contact}\n`;
-              if (resources.secondary.available) response += `   ${resources.secondary.available}\n`;
-              if (resources.secondary.description) response += `   ${resources.secondary.description}\n`;
+              if (resources.secondary.available)
+                response += `   ${resources.secondary.available}\n`;
+              if (resources.secondary.description)
+                response += `   ${resources.secondary.description}\n`;
               response += `\n`;
             }
           }
@@ -330,7 +349,10 @@ const provideCrisisResourcesDef: ToolDefinition = {
           return response;
         } catch (error) {
           // CRITICAL: Never fail silently on crisis tools
-          getLogger().error({ error, crisisType, urgency }, 'Crisis tool error - returning fallback resources');
+          getLogger().error(
+            { error, crisisType, urgency },
+            'Crisis tool error - returning fallback resources'
+          );
           tracker?.error(error instanceof Error ? error : String(error));
           return FALLBACK_RESPONSE;
         }
@@ -352,20 +374,22 @@ const guideGroundingExerciseDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide user through a grounding exercise when they are feeling overwhelmed, dissociated, or experiencing anxiety or panic.',
+      description:
+        'Guide user through a grounding exercise when they are feeling overwhelmed, dissociated, or experiencing anxiety or panic.',
       parameters: z.object({
-        technique: z.enum([
-          '5-4-3-2-1',
-          'breathing-4-7-8',
-          'box-breathing',
-          'body-scan',
-          'safe-place',
-        ]).default('5-4-3-2-1').describe('Grounding technique to use'),
-        intensity: z.enum(['mild', 'moderate', 'severe']).default('moderate').describe('Intensity of distress'),
+        technique: z
+          .enum(['5-4-3-2-1', 'breathing-4-7-8', 'box-breathing', 'body-scan', 'safe-place'])
+          .default('5-4-3-2-1')
+          .describe('Grounding technique to use'),
+        intensity: z
+          .enum(['mild', 'moderate', 'severe'])
+          .default('moderate')
+          .describe('Intensity of distress'),
       }),
       execute: async ({ technique, intensity }) => {
         // SAFETY-CRITICAL: Grounding exercises must always work
-        const FALLBACK_GROUNDING = `Let's slow down together.\n\n` +
+        const FALLBACK_GROUNDING =
+          `Let's slow down together.\n\n` +
           `**Quick grounding: 5-4-3-2-1**\n\n` +
           `1. Name 5 things you can see\n` +
           `2. Name 4 things you can touch\n` +
@@ -375,7 +399,10 @@ const guideGroundingExerciseDef: ToolDefinition = {
           `Take your time. I'm here with you.`;
 
         try {
-          getLogger().info({ agentId: ctx.agentId, technique, intensity }, 'Guiding grounding exercise');
+          getLogger().info(
+            { agentId: ctx.agentId, technique, intensity },
+            'Guiding grounding exercise'
+          );
 
           const exercise = GROUNDING_EXERCISES[technique];
 
@@ -404,7 +431,10 @@ const guideGroundingExerciseDef: ToolDefinition = {
 
           return response;
         } catch (error) {
-          getLogger().error({ error, technique, intensity }, 'Grounding exercise error - returning fallback');
+          getLogger().error(
+            { error, technique, intensity },
+            'Grounding exercise error - returning fallback'
+          );
           return FALLBACK_GROUNDING;
         }
       },
@@ -421,18 +451,24 @@ const deEscalateAnxietyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help de-escalate acute anxiety or panic. Use when user is experiencing intense anxiety symptoms.',
+      description:
+        'Help de-escalate acute anxiety or panic. Use when user is experiencing intense anxiety symptoms.',
       parameters: z.object({
-        symptoms: z.array(z.enum([
-          'racing-heart',
-          'difficulty-breathing',
-          'feeling-unreal',
-          'fear-of-dying',
-          'cant-think',
-          'shaking',
-          'chest-tightness',
-          'feeling-trapped',
-        ])).optional().describe('Symptoms they are experiencing'),
+        symptoms: z
+          .array(
+            z.enum([
+              'racing-heart',
+              'difficulty-breathing',
+              'feeling-unreal',
+              'fear-of-dying',
+              'cant-think',
+              'shaking',
+              'chest-tightness',
+              'feeling-trapped',
+            ])
+          )
+          .optional()
+          .describe('Symptoms they are experiencing'),
         duration: z.enum(['just-started', 'ongoing', 'recurring']).optional(),
       }),
       execute: async ({ symptoms, duration }) => {
@@ -495,22 +531,23 @@ const createSafetyPlanDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user create a personal safety plan. Important: This is a supportive tool, not a replacement for professional safety planning.',
+      description:
+        'Help user create a personal safety plan. Important: This is a supportive tool, not a replacement for professional safety planning.',
       parameters: z.object({
-        context: z.enum([
-          'mental-health',
-          'domestic-safety',
-          'self-harm-prevention',
-          'general',
-        ]).describe('Context for the safety plan'),
-        step: z.enum([
-          'overview',
-          'warning-signs',
-          'coping-strategies',
-          'support-people',
-          'professional-contacts',
-          'safe-environment',
-        ]).default('overview').describe('Which part of safety planning to focus on'),
+        context: z
+          .enum(['mental-health', 'domestic-safety', 'self-harm-prevention', 'general'])
+          .describe('Context for the safety plan'),
+        step: z
+          .enum([
+            'overview',
+            'warning-signs',
+            'coping-strategies',
+            'support-people',
+            'professional-contacts',
+            'safe-environment',
+          ])
+          .default('overview')
+          .describe('Which part of safety planning to focus on'),
       }),
       execute: async ({ context, step }) => {
         getLogger().info({ agentId: ctx.agentId, context, step }, 'Creating safety plan');
@@ -607,16 +644,19 @@ const findSafeResourcesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user find local safety resources. Always recommend calling 211 for localized services.',
+      description:
+        'Help user find local safety resources. Always recommend calling 211 for localized services.',
       parameters: z.object({
-        needType: z.enum([
-          'shelter',
-          'food',
-          'domestic-violence-shelter',
-          'mental-health-services',
-          'addiction-treatment',
-          'general',
-        ]).describe('Type of resource needed'),
+        needType: z
+          .enum([
+            'shelter',
+            'food',
+            'domestic-violence-shelter',
+            'mental-health-services',
+            'addiction-treatment',
+            'general',
+          ])
+          .describe('Type of resource needed'),
         urgency: z.enum(['immediate', 'soon', 'planning']).describe('How urgent the need is'),
       }),
       execute: async ({ needType, urgency }) => {
@@ -709,25 +749,22 @@ const supportRecoveryJourneyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide supportive check-ins for someone in addiction recovery. Not a replacement for sponsor/professional support.',
+      description:
+        'Provide supportive check-ins for someone in addiction recovery. Not a replacement for sponsor/professional support.',
       parameters: z.object({
-        recoveryType: z.enum([
-          'alcohol',
-          'substances',
-          'behavioral',
-          'general',
-        ]).describe('Type of recovery'),
-        currentState: z.enum([
-          'doing-well',
-          'struggling',
-          'craving',
-          'slip-concern',
-          'celebrating',
-        ]).describe('Current state'),
+        recoveryType: z
+          .enum(['alcohol', 'substances', 'behavioral', 'general'])
+          .describe('Type of recovery'),
+        currentState: z
+          .enum(['doing-well', 'struggling', 'craving', 'slip-concern', 'celebrating'])
+          .describe('Current state'),
         daysSober: z.number().optional().describe('Days in recovery if known'),
       }),
       execute: async ({ recoveryType, currentState, daysSober }) => {
-        getLogger().info({ agentId: ctx.agentId, recoveryType, currentState }, 'Supporting recovery');
+        getLogger().info(
+          { agentId: ctx.agentId, recoveryType, currentState },
+          'Supporting recovery'
+        );
 
         let response = '';
 
@@ -797,17 +834,19 @@ const trackSobrietyMilestoneDef: ToolDefinition = {
     return llm.tool({
       description: 'Celebrate and acknowledge recovery milestones.',
       parameters: z.object({
-        milestone: z.enum([
-          '1-day',
-          '1-week',
-          '30-days',
-          '60-days',
-          '90-days',
-          '6-months',
-          '1-year',
-          'anniversary',
-          'custom',
-        ]).describe('Type of milestone'),
+        milestone: z
+          .enum([
+            '1-day',
+            '1-week',
+            '30-days',
+            '60-days',
+            '90-days',
+            '6-months',
+            '1-year',
+            'anniversary',
+            'custom',
+          ])
+          .describe('Type of milestone'),
         customDays: z.number().optional().describe('Custom number of days'),
       }),
       execute: async ({ milestone, customDays }) => {
@@ -836,7 +875,9 @@ const trackSobrietyMilestoneDef: ToolDefinition = {
         } else if (milestone === 'anniversary') {
           response = `**Another year.**\n\nAnother year of life you've given yourself. Another year of proof that recovery is possible, sustainable, and worth it.\n\nYou're not just maintaining sobriety. You're living. And that's beautiful.`;
         } else {
-          response = celebrations[milestone] || `Your milestone matters. Every day in recovery is a victory.`;
+          response =
+            celebrations[milestone] ||
+            `Your milestone matters. Every day in recovery is a victory.`;
         }
 
         response += `\n\n---\n\nHow would you like to honor this milestone?`;
@@ -860,20 +901,19 @@ const findFinancialAssistanceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help find emergency financial assistance resources for rent, utilities, food, etc.',
+      description:
+        'Help find emergency financial assistance resources for rent, utilities, food, etc.',
       parameters: z.object({
-        needType: z.enum([
-          'rent',
-          'utilities',
-          'food',
-          'medical',
-          'transportation',
-          'general',
-        ]).describe('Type of financial need'),
+        needType: z
+          .enum(['rent', 'utilities', 'food', 'medical', 'transportation', 'general'])
+          .describe('Type of financial need'),
         urgency: z.enum(['immediate', 'this-week', 'this-month']).describe('How urgent'),
       }),
       execute: async ({ needType, urgency }) => {
-        getLogger().info({ agentId: ctx.agentId, needType, urgency }, 'Finding financial assistance');
+        getLogger().info(
+          { agentId: ctx.agentId, needType, urgency },
+          'Finding financial assistance'
+        );
 
         let response = `**Emergency Financial Assistance**\n\n`;
 
@@ -970,4 +1010,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

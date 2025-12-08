@@ -13,8 +13,55 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { getUserTimezone, getFriendlyTimezoneName } from '../services/timezone.service.js';
 
 const log = createLogger('ContactSettingsUI');
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Generate time options for the quiet hours selects
+ */
+function generateTimeOptions(selectedValue: string): string {
+  const options: string[] = [];
+  for (let hour = 0; hour < 24; hour++) {
+    const value = `${hour.toString().padStart(2, '0')}:00`;
+    const label = formatHour(hour);
+    const selected = value === selectedValue ? 'selected' : '';
+    options.push(`<option value="${value}" ${selected}>${label}</option>`);
+  }
+  return options.join('');
+}
+
+/**
+ * Format hour for display (12-hour with AM/PM)
+ */
+function formatHour(hour: number): string {
+  if (hour === 0) return '12:00 AM';
+  if (hour === 12) return '12:00 PM';
+  if (hour < 12) return `${hour}:00 AM`;
+  return `${hour - 12}:00 PM`;
+}
+
+/**
+ * Format timezone for display
+ */
+function formatTimezone(timezone: string): string {
+  try {
+    // Get abbreviated timezone name
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'short',
+    });
+    const parts = formatter.formatToParts(new Date());
+    const tzPart = parts.find((p) => p.type === 'timeZoneName');
+    return tzPart?.value || timezone.replace(/_/g, ' ');
+  } catch {
+    return timezone.replace(/_/g, ' ');
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -27,6 +74,9 @@ interface ContactInfo {
   emailVerified?: boolean;
   preferredName?: string;
   timezone?: string;
+  quietHoursStart?: string; // "22:00"
+  quietHoursEnd?: string; // "08:00"
+  quietHoursEnabled?: boolean;
 }
 
 interface ContactSettingsState {
@@ -68,6 +118,8 @@ const ICONS = {
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
   shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
 };
 
 // ============================================================================
@@ -404,6 +456,128 @@ function injectStyles(): void {
       width: 16px;
       height: 16px;
     }
+
+    /* Quiet Hours Section */
+    .contact-settings-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+    }
+
+    .contact-settings-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .contact-settings-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-primary, #2C2520);
+    }
+
+    .contact-settings-section-title svg {
+      width: 18px;
+      height: 18px;
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .contact-settings-toggle {
+      position: relative;
+      width: 48px;
+      height: 26px;
+      background: var(--color-border, rgba(0, 0, 0, 0.15));
+      border-radius: 13px;
+      cursor: pointer;
+      transition: background ${DURATION.FAST}ms;
+    }
+
+    .contact-settings-toggle.active {
+      background: var(--persona-primary, #4a6741);
+    }
+
+    .contact-settings-toggle-knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
+    }
+
+    .contact-settings-toggle.active .contact-settings-toggle-knob {
+      transform: translateX(22px);
+    }
+
+    .contact-settings-time-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      opacity: 0.5;
+      pointer-events: none;
+      transition: opacity ${DURATION.FAST}ms;
+    }
+
+    .contact-settings-time-row.enabled {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .contact-settings-time-label {
+      font-size: 13px;
+      color: var(--color-text-secondary, #6B5B4F);
+      min-width: 60px;
+    }
+
+    .contact-settings-time-select {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 2px solid var(--color-border, rgba(0, 0, 0, 0.1));
+      border-radius: var(--radius-md, 8px);
+      background: var(--color-background, #F5F1E8);
+      color: var(--color-text-primary, #2C2520);
+      cursor: pointer;
+      transition: border-color ${DURATION.FAST}ms;
+    }
+
+    .contact-settings-time-select:focus {
+      outline: none;
+      border-color: var(--persona-primary, #4a6741);
+    }
+
+    .contact-settings-quiet-note {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--color-text-muted, #9B8B7F);
+      line-height: 1.4;
+    }
+
+    .contact-settings-timezone {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: rgba(74, 103, 65, 0.05);
+      border-radius: var(--radius-md, 8px);
+      font-size: 12px;
+      color: var(--color-text-secondary, #6B5B4F);
+    }
+
+    .contact-settings-timezone svg {
+      width: 14px;
+      height: 14px;
+      color: var(--persona-primary, #4a6741);
+    }
   `;
   document.head.appendChild(style);
 }
@@ -521,6 +695,48 @@ function render(): void {
             Your info is only used for caring check-ins. You can update your outreach preferences anytime, and we'll never spam you or share your data.
           </p>
         </div>
+
+        <!-- Quiet Hours Section -->
+        <div class="contact-settings-section">
+          <div class="contact-settings-section-header">
+            <div class="contact-settings-section-title">
+              ${ICONS.moon}
+              Quiet Hours
+            </div>
+            <button 
+              type="button" 
+              class="contact-settings-toggle ${state.contactInfo.quietHoursEnabled !== false ? 'active' : ''}"
+              id="quiet-hours-toggle"
+              aria-pressed="${state.contactInfo.quietHoursEnabled !== false}"
+              aria-label="Toggle quiet hours"
+            >
+              <span class="contact-settings-toggle-knob"></span>
+            </button>
+          </div>
+          
+          <div class="contact-settings-time-row ${state.contactInfo.quietHoursEnabled !== false ? 'enabled' : ''}">
+            <span class="contact-settings-time-label">Don't call</span>
+            <select class="contact-settings-time-select" id="quiet-start">
+              ${generateTimeOptions(state.contactInfo.quietHoursStart || '22:00')}
+            </select>
+            <span class="contact-settings-time-label">until</span>
+            <select class="contact-settings-time-select" id="quiet-end">
+              ${generateTimeOptions(state.contactInfo.quietHoursEnd || '08:00')}
+            </select>
+          </div>
+          
+          <p class="contact-settings-quiet-note">
+            I'll respect your quiet hours and won't call or text during sleep time. 
+            Urgent check-ins may still come through.
+          </p>
+          
+          ${state.contactInfo.timezone ? `
+            <div class="contact-settings-timezone">
+              ${ICONS.globe}
+              <span>Detected timezone: ${formatTimezone(state.contactInfo.timezone)}</span>
+            </div>
+          ` : ''}
+        </div>
       </form>
     </div>
     
@@ -564,6 +780,33 @@ function bindEvents(): void {
     }
   });
 
+  // Quiet hours toggle
+  const quietToggle = modalContainer.querySelector('#quiet-hours-toggle');
+  quietToggle?.addEventListener('click', () => {
+    const isEnabled = state.contactInfo.quietHoursEnabled !== false;
+    state.contactInfo.quietHoursEnabled = !isEnabled;
+    
+    // Update toggle appearance
+    quietToggle.classList.toggle('active', !isEnabled);
+    quietToggle.setAttribute('aria-pressed', String(!isEnabled));
+    
+    // Update time row enabled state
+    const timeRow = modalContainer?.querySelector('.contact-settings-time-row');
+    timeRow?.classList.toggle('enabled', !isEnabled);
+  });
+
+  // Quiet hours time selects
+  const quietStart = modalContainer.querySelector('#quiet-start') as HTMLSelectElement;
+  const quietEnd = modalContainer.querySelector('#quiet-end') as HTMLSelectElement;
+  
+  quietStart?.addEventListener('change', (e) => {
+    state.contactInfo.quietHoursStart = (e.target as HTMLSelectElement).value;
+  });
+  
+  quietEnd?.addEventListener('change', (e) => {
+    state.contactInfo.quietHoursEnd = (e.target as HTMLSelectElement).value;
+  });
+
   // Escape key
   document.addEventListener('keydown', handleEscape);
 }
@@ -580,9 +823,11 @@ function handleEscape(e: KeyboardEvent): void {
 
 async function loadContactInfo(): Promise<void> {
   state.isLoading = true;
+  const userId = localStorage.getItem('ferni_user_id') || 'default';
 
   try {
-    const response = await fetch('/api/outreach/context?userId=default');
+    // Load contact info
+    const response = await fetch(`/api/outreach/context?userId=${userId}`);
     const data = await response.json();
 
     if (data.success && data.context?.personal) {
@@ -594,8 +839,30 @@ async function loadContactInfo(): Promise<void> {
         emailVerified: data.context.personal.emailVerified,
       };
     }
+    
+    // Load user preferences (timezone, quiet hours)
+    try {
+      const prefsResponse = await fetch(`/api/user/preferences?userId=${userId}`);
+      const prefsData = await prefsResponse.json();
+      
+      if (prefsData.success && prefsData.preferences) {
+        state.contactInfo.timezone = prefsData.preferences.timezone;
+        state.contactInfo.quietHoursStart = prefsData.preferences.quietHoursStart;
+        state.contactInfo.quietHoursEnd = prefsData.preferences.quietHoursEnd;
+        state.contactInfo.quietHoursEnabled = true; // Enabled by default
+      }
+    } catch (prefsError) {
+      log.debug({ prefsError }, 'Could not load preferences, using defaults');
+      // Use detected timezone as fallback
+      state.contactInfo.timezone = getUserTimezone();
+      state.contactInfo.quietHoursStart = '22:00';
+      state.contactInfo.quietHoursEnd = '08:00';
+      state.contactInfo.quietHoursEnabled = true;
+    }
   } catch (error) {
     log.error({ error }, 'Failed to load contact info');
+    // Still show detected timezone
+    state.contactInfo.timezone = getUserTimezone();
   } finally {
     state.isLoading = false;
     render();
@@ -608,6 +875,7 @@ async function handleSave(): Promise<void> {
   state.success = undefined;
   render();
 
+  const userId = localStorage.getItem('ferni_user_id') || 'default';
   const phoneInput = modalContainer?.querySelector('#phone-input') as HTMLInputElement;
   const emailInput = modalContainer?.querySelector('#email-input') as HTMLInputElement;
   const nameInput = modalContainer?.querySelector('#name-input') as HTMLInputElement;
@@ -616,36 +884,66 @@ async function handleSave(): Promise<void> {
   const email = emailInput?.value.trim();
   const preferredName = nameInput?.value.trim();
 
-  try {
-    await fetch('/api/outreach/context', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: 'default',
-        context: {
-          // Include existing context fields
-        },
-      }),
-    });
+  // Get quiet hours values
+  const quietHoursStart = state.contactInfo.quietHoursStart || '22:00';
+  const quietHoursEnd = state.contactInfo.quietHoursEnd || '08:00';
+  const quietHoursEnabled = state.contactInfo.quietHoursEnabled !== false;
 
-    // Also update the user's personal info
+  try {
+    // Save contact info
     const personalResponse = await fetch('/api/user/contact', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-User-Id': userId,
+      },
       body: JSON.stringify({
+        userId,
         phone,
         email,
         preferredName,
+        timezone: state.contactInfo.timezone || getUserTimezone(),
       }),
     });
 
-    if (personalResponse.ok) {
-      state.contactInfo = { ...state.contactInfo, phone, email, preferredName };
-      state.success = 'Contact info saved! I\'ll use this to stay in touch.';
-      log.info('Contact info saved');
-    } else {
-      throw new Error('Failed to save');
+    if (!personalResponse.ok) {
+      throw new Error('Failed to save contact info');
     }
+
+    // Save quiet hours preferences (only if enabled)
+    if (quietHoursEnabled) {
+      const prefsResponse = await fetch('/api/user/preferences', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-Id': userId,
+        },
+        body: JSON.stringify({
+          userId,
+          timezone: state.contactInfo.timezone || getUserTimezone(),
+          quietHoursStart,
+          quietHoursEnd,
+        }),
+      });
+
+      if (!prefsResponse.ok) {
+        log.warn('Failed to save quiet hours preferences');
+      }
+    }
+
+    state.contactInfo = { 
+      ...state.contactInfo, 
+      phone, 
+      email, 
+      preferredName,
+      quietHoursStart,
+      quietHoursEnd,
+      quietHoursEnabled,
+    };
+    state.success = quietHoursEnabled 
+      ? `Saved! I'll respect your quiet hours (${formatHour(parseInt(quietHoursStart))} - ${formatHour(parseInt(quietHoursEnd))}).`
+      : 'Contact info saved! I\'ll use this to stay in touch.';
+    log.info({ quietHoursEnabled, quietHoursStart, quietHoursEnd }, 'Contact info and preferences saved');
   } catch (error) {
     state.error = 'Something went wrong. Please try again.';
     log.error({ error }, 'Failed to save contact info');

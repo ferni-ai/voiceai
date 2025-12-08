@@ -172,18 +172,14 @@ export function detectNewBoundary(
   const profile = getOrCreateProfile(userId);
 
   // 1. Check for explicit boundary statements
-  const isExplicit = EXPLICIT_BOUNDARY_PATTERNS.some((pattern) =>
-    pattern.test(lower)
-  );
+  const isExplicit = EXPLICIT_BOUNDARY_PATTERNS.some((pattern) => pattern.test(lower));
 
   if (isExplicit) {
     const topic = context.currentTopic || context.recentTopic || extractTopic(lower);
     if (!topic) return null;
 
     // Check if boundary already exists
-    const existing = profile.boundaries.find(
-      (b) => b.topic.toLowerCase() === topic.toLowerCase()
-    );
+    const existing = profile.boundaries.find((b) => b.topic.toLowerCase() === topic.toLowerCase());
     if (existing) {
       existing.strength = 'absolute'; // Reinforce
       return existing;
@@ -207,17 +203,13 @@ export function detectNewBoundary(
   }
 
   // 2. Check for distress-inferred boundary
-  const showsDistress = DISTRESS_INDICATORS.some((pattern) =>
-    pattern.test(lower)
-  );
+  const showsDistress = DISTRESS_INDICATORS.some((pattern) => pattern.test(lower));
 
   if (showsDistress && context.emotionIntensity && context.emotionIntensity > 0.7) {
     const topic = context.currentTopic || context.recentTopic;
     if (!topic) return null;
 
-    const existing = profile.boundaries.find(
-      (b) => b.topic.toLowerCase() === topic.toLowerCase()
-    );
+    const existing = profile.boundaries.find((b) => b.topic.toLowerCase() === topic.toLowerCase());
     if (existing) return null; // Already tracking
 
     const boundary: Boundary = {
@@ -379,8 +371,7 @@ export function isTopicOffLimits(userId: string, topic: string): boolean {
     (b) =>
       b.strength === 'absolute' &&
       !b.userReopened &&
-      (b.topic.toLowerCase() === lower ||
-        b.relatedTerms.some((t) => lower.includes(t)))
+      (b.topic.toLowerCase() === lower || b.relatedTerms.some((t) => lower.includes(t)))
   );
 }
 
@@ -401,9 +392,7 @@ export function recordUserReopened(userId: string, topic: string): void {
 
   const lower = topic.toLowerCase();
   const boundary = profile.boundaries.find(
-    (b) =>
-      b.topic.toLowerCase() === lower ||
-      b.relatedTerms.some((t) => lower.includes(t))
+    (b) => b.topic.toLowerCase() === lower || b.relatedTerms.some((t) => lower.includes(t))
   );
 
   if (boundary) {
@@ -505,4 +494,3 @@ export default {
   exportBoundaries,
   importBoundaries,
 };
-

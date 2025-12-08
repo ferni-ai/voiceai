@@ -141,7 +141,7 @@ export function formatSMSMessage(
   // Check if truncation needed
   let truncated = false;
   if (formattedBody.length > maxChars) {
-    formattedBody = formattedBody.slice(0, maxChars - 3) + '...';
+    formattedBody = `${formattedBody.slice(0, maxChars - 3)}...`;
     truncated = true;
   }
 
@@ -204,7 +204,10 @@ export async function sendSMS(message: SMSMessage): Promise<SMSDeliveryResult> {
     });
 
     if (truncated) {
-      log.warn({ userId: message.userId, originalLength: message.body.length }, 'Message truncated for SMS');
+      log.warn(
+        { userId: message.userId, originalLength: message.body.length },
+        'Message truncated for SMS'
+      );
     }
 
     // Prepare Twilio message options
@@ -319,9 +322,7 @@ export async function sendSMSWithRetry(
 /**
  * Send bulk SMS messages
  */
-export async function sendBulkSMS(
-  messages: SMSMessage[]
-): Promise<Map<string, SMSDeliveryResult>> {
+export async function sendBulkSMS(messages: SMSMessage[]): Promise<Map<string, SMSDeliveryResult>> {
   const results = new Map<string, SMSDeliveryResult>();
 
   // Process in batches of 10
@@ -329,7 +330,7 @@ export async function sendBulkSMS(
   for (let i = 0; i < messages.length; i += batchSize) {
     const batch = messages.slice(i, i + batchSize);
     const batchResults = await Promise.all(
-      batch.map((msg) => sendSMS(msg).then((r) => [msg.outreachId, r] as const))
+      batch.map(async (msg) => sendSMS(msg).then((r) => [msg.outreachId, r] as const))
     );
 
     for (const [id, result] of batchResults) {
@@ -467,4 +468,3 @@ export const smsDelivery = {
   format: formatSMSMessage,
   shortenLinks,
 };
-

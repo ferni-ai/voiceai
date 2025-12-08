@@ -304,10 +304,7 @@ function createWin(
 /**
  * Detect and store stated intentions
  */
-export function detectIntention(
-  userId: string,
-  userMessage: string
-): PendingIntention | null {
+export function detectIntention(userId: string, userMessage: string): PendingIntention | null {
   const profile = getOrCreateProfile(userId);
 
   for (const pattern of INTENTION_PATTERNS) {
@@ -342,10 +339,7 @@ export function detectIntention(
         profile.pendingIntentions = profile.pendingIntentions.slice(-20);
       }
 
-      log.debug(
-        { userId, intention: intentionText },
-        '📋 Intention recorded'
-      );
+      log.debug({ userId, intention: intentionText }, '📋 Intention recorded');
 
       return intention;
     }
@@ -363,9 +357,7 @@ function extractCompletionKeywords(intention: string): string[] {
 
   // Get meaningful words
   const meaningful = words.filter(
-    (w) =>
-      w.length > 3 &&
-      !['that', 'this', 'with', 'them', 'about', 'just', 'really'].includes(w)
+    (w) => w.length > 3 && !['that', 'this', 'with', 'them', 'about', 'just', 'really'].includes(w)
   );
 
   keywords.push(...meaningful.slice(0, 5));
@@ -374,7 +366,16 @@ function extractCompletionKeywords(intention: string): string[] {
   const verbs = ['call', 'email', 'text', 'talk', 'ask', 'send', 'finish', 'start'];
   for (const verb of verbs) {
     if (intention.toLowerCase().includes(verb)) {
-      keywords.push(`called`, `emailed`, `texted`, `talked`, `asked`, `sent`, `finished`, `started`);
+      keywords.push(
+        `called`,
+        `emailed`,
+        `texted`,
+        `talked`,
+        `asked`,
+        `sent`,
+        `finished`,
+        `started`
+      );
     }
   }
 
@@ -406,17 +407,12 @@ function parseTargetTime(timeRef: string): Date {
 /**
  * Generate a celebration for an uncelebrated win
  */
-export function generateCelebration(
-  userId: string,
-  win?: SmallWin
-): CelebrationOpportunity | null {
+export function generateCelebration(userId: string, win?: SmallWin): CelebrationOpportunity | null {
   const profile = profiles.get(userId);
   if (!profile) return null;
 
   // If no win provided, find an uncelebrated one
-  const targetWin =
-    win ||
-    profile.wins.find((w) => !w.celebrated && isRecent(w.timestamp, 30));
+  const targetWin = win || profile.wins.find((w) => !w.celebrated && isRecent(w.timestamp, 30));
 
   if (!targetWin) return null;
 
@@ -441,12 +437,12 @@ function createCelebration(
   const celebrations: Record<SmallWin['type'], Record<string, string[]>> = {
     followed_through: {
       enthusiastic: [
-        'You did it! You actually did it! That\'s huge!',
-        'Wait - you followed through on that? That\'s amazing!',
+        "You did it! You actually did it! That's huge!",
+        "Wait - you followed through on that? That's amazing!",
       ],
       understated: [
         'Hey, you did that thing. That matters.',
-        'You followed through. That\'s not nothing.',
+        "You followed through. That's not nothing.",
       ],
       reflective: [
         'You did what you said you would. That says something about who you are.',
@@ -455,41 +451,32 @@ function createCelebration(
     },
     courage_moment: {
       enthusiastic: [
-        'That took guts! I\'m genuinely impressed!',
-        'You did the scary thing! That\'s brave!',
+        "That took guts! I'm genuinely impressed!",
+        "You did the scary thing! That's brave!",
       ],
-      understated: [
-        'That wasn\'t easy. Good for you.',
-        'Doing scared is still doing. Well done.',
-      ],
+      understated: ["That wasn't easy. Good for you.", 'Doing scared is still doing. Well done.'],
       reflective: [
-        'Courage isn\'t the absence of fear. It\'s doing it anyway. Like you just did.',
-        'You chose discomfort over regret. That\'s growth.',
+        "Courage isn't the absence of fear. It's doing it anyway. Like you just did.",
+        "You chose discomfort over regret. That's growth.",
       ],
     },
     self_care: {
       enthusiastic: [
         'Yes! Taking care of yourself! I love to see it!',
-        'Self-care for the win! That\'s what I\'m talking about!',
+        "Self-care for the win! That's what I'm talking about!",
       ],
       understated: [
         'Good. You needed that.',
-        'Taking care of yourself isn\'t selfish. It\'s necessary.',
+        "Taking care of yourself isn't selfish. It's necessary.",
       ],
       reflective: [
-        'Prioritizing yourself is a skill. You\'re getting better at it.',
-        'You recognized what you needed and honored it. That\'s wisdom.',
+        "Prioritizing yourself is a skill. You're getting better at it.",
+        "You recognized what you needed and honored it. That's wisdom.",
       ],
     },
     boundary_held: {
-      enthusiastic: [
-        'You held that line! That\'s powerful!',
-        'Boundaries! Yes! So proud of you!',
-      ],
-      understated: [
-        'You held your ground. That\'s hard.',
-        'Boundaries protected. Well done.',
-      ],
+      enthusiastic: ["You held that line! That's powerful!", 'Boundaries! Yes! So proud of you!'],
+      understated: ["You held your ground. That's hard.", 'Boundaries protected. Well done.'],
       reflective: [
         'Every time you hold a boundary, you teach people how to treat you.',
         'That boundary is a gift you gave yourself.',
@@ -498,7 +485,7 @@ function createCelebration(
     hard_conversation: {
       enthusiastic: [
         'You had THE conversation! That takes so much courage!',
-        'Wow, you actually talked to them! That\'s huge!',
+        "Wow, you actually talked to them! That's huge!",
       ],
       understated: [
         'Hard conversations are hard. You had it anyway.',
@@ -506,30 +493,25 @@ function createCelebration(
       ],
       reflective: [
         'Difficult conversations are bridges. You chose connection over comfort.',
-        'Speaking your truth, even when it\'s hard, is how trust is built.',
+        "Speaking your truth, even when it's hard, is how trust is built.",
       ],
     },
     showed_up: {
-      enthusiastic: [
-        'You showed up! Even when you didn\'t want to! That\'s everything!',
-      ],
-      understated: [
-        'Showing up is half the battle. You won it.',
-        'You were there. That counts.',
-      ],
+      enthusiastic: ["You showed up! Even when you didn't want to! That's everything!"],
+      understated: ['Showing up is half the battle. You won it.', 'You were there. That counts.'],
       reflective: [
-        'Showing up when it\'s hard is how you prove things to yourself.',
+        "Showing up when it's hard is how you prove things to yourself.",
         'Presence is a gift. You gave it.',
       ],
     },
     tried_new_thing: {
       enthusiastic: [
-        'You tried something new! That\'s amazing!',
+        "You tried something new! That's amazing!",
         'Comfort zone? Expanded! Love it!',
       ],
       understated: [
         'New things are uncomfortable. You did it anyway.',
-        'You tried. That\'s more than most.',
+        "You tried. That's more than most.",
       ],
       reflective: [
         'Growth lives outside the comfort zone. You visited.',
@@ -538,37 +520,30 @@ function createCelebration(
     },
     asked_for_help: {
       enthusiastic: [
-        'You asked for help! That\'s so strong!',
+        "You asked for help! That's so strong!",
         'Reaching out takes courage! Proud of you!',
       ],
       understated: [
         'Asking for help is strength, not weakness.',
-        'You reached out. That\'s hard for a lot of people.',
+        "You reached out. That's hard for a lot of people.",
       ],
       reflective: [
-        'The bravest thing you can do is admit you can\'t do it alone.',
+        "The bravest thing you can do is admit you can't do it alone.",
         'Connection requires vulnerability. You chose it.',
       ],
     },
     let_it_go: {
-      enthusiastic: [
-        'You let it go! Freedom! That\'s beautiful!',
-      ],
-      understated: [
-        'Letting go is hard. You did it.',
-        'You released it. That takes strength.',
-      ],
+      enthusiastic: ["You let it go! Freedom! That's beautiful!"],
+      understated: ['Letting go is hard. You did it.', 'You released it. That takes strength.'],
       reflective: [
         'Holding on is easy. Letting go is the real work.',
         'Some things can only be solved by releasing them.',
       ],
     },
     effort_made: {
-      enthusiastic: [
-        'You tried! The outcome doesn\'t define the effort!',
-      ],
+      enthusiastic: ["You tried! The outcome doesn't define the effort!"],
       understated: [
-        'You made the effort. That\'s what matters.',
+        "You made the effort. That's what matters.",
         'Trying is the win. Outcomes are just information.',
       ],
       reflective: [
@@ -579,8 +554,7 @@ function createCelebration(
   };
 
   const options = celebrations[win.type]?.[preference] ||
-    celebrations[win.type]?.understated ||
-    ['That\'s worth acknowledging.'];
+    celebrations[win.type]?.understated || ["That's worth acknowledging."];
 
   const text = options[Math.floor(Math.random() * options.length)];
 
@@ -596,16 +570,8 @@ function createCelebration(
  * Get celebration intensity based on win type
  */
 function getIntensity(type: SmallWin['type']): 'big' | 'medium' | 'small' {
-  const bigWins: SmallWin['type'][] = [
-    'courage_moment',
-    'hard_conversation',
-    'boundary_held',
-  ];
-  const mediumWins: SmallWin['type'][] = [
-    'followed_through',
-    'self_care',
-    'asked_for_help',
-  ];
+  const bigWins: Array<SmallWin['type']> = ['courage_moment', 'hard_conversation', 'boundary_held'];
+  const mediumWins: Array<SmallWin['type']> = ['followed_through', 'self_care', 'asked_for_help'];
 
   if (bigWins.includes(type)) return 'big';
   if (mediumWins.includes(type)) return 'medium';
@@ -711,4 +677,3 @@ export default {
   exportSmallWinsProfile,
   importSmallWinsProfile,
 };
-

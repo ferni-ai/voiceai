@@ -80,9 +80,7 @@ const crossSessionReflectionBuilder: ContextBuilder = {
     if (moments.length === 0) return injections;
 
     // Filter to moments from previous sessions
-    const previousSessionMoments = moments.filter(
-      (m) => m.sessionId !== services.sessionId
-    );
+    const previousSessionMoments = moments.filter((m) => m.sessionId !== services.sessionId);
 
     if (previousSessionMoments.length === 0) return injections;
 

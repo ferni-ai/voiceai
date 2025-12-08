@@ -13,10 +13,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import {
-  getAgentEvolution,
-  type PersonaExperiment,
-} from '../../intelligence/agent-evolution.js';
+import { getAgentEvolution, type PersonaExperiment } from '../../intelligence/agent-evolution.js';
 import {
   sendExperimentConclusionAlert,
   getBanditVariant,
@@ -59,7 +56,7 @@ export interface SessionExperimentState {
   /** Accumulated metrics for this session */
   metrics: {
     engagementScores: number[];
-    satisfactionSignals: ('positive' | 'neutral' | 'negative')[];
+    satisfactionSignals: Array<'positive' | 'neutral' | 'negative'>;
     conversationDepth: number;
     turnCount: number;
   };
@@ -152,9 +149,7 @@ export function setSessionUserProfile(
 /**
  * Get experiment state for a session
  */
-export function getSessionExperimentState(
-  sessionId: string
-): SessionExperimentState | undefined {
+export function getSessionExperimentState(sessionId: string): SessionExperimentState | undefined {
   return sessionStates.get(sessionId);
 }
 
@@ -357,9 +352,7 @@ function detectBreakthroughQuestions(
 /**
  * Get breakthrough questions for the session
  */
-export function getBreakthroughQuestions(
-  sessionId: string
-): BreakthroughQuestion[] {
+export function getBreakthroughQuestions(sessionId: string): BreakthroughQuestion[] {
   const state = sessionStates.get(sessionId);
   return state?.breakthroughQuestions || [];
 }
@@ -387,9 +380,7 @@ function recordSessionMetricsToExperiments(sessionId: string): void {
         state.metrics.engagementScores.length
       : 0.5;
 
-  const positiveSignals = state.metrics.satisfactionSignals.filter(
-    (s) => s === 'positive'
-  ).length;
+  const positiveSignals = state.metrics.satisfactionSignals.filter((s) => s === 'positive').length;
   const totalSignals = state.metrics.satisfactionSignals.length;
   const satisfactionRate = totalSignals > 0 ? positiveSignals / totalSignals : 0.5;
 
@@ -433,10 +424,9 @@ function calculateZScore(
 ): number {
   if (controlN < 2 || treatmentN < 2) return 0;
 
-  const pooledMean = (controlMean * controlN + treatmentMean * treatmentN) / (controlN + treatmentN);
-  const pooledStdErr = Math.sqrt(
-    pooledMean * (1 - pooledMean) * (1 / controlN + 1 / treatmentN)
-  );
+  const pooledMean =
+    (controlMean * controlN + treatmentMean * treatmentN) / (controlN + treatmentN);
+  const pooledStdErr = Math.sqrt(pooledMean * (1 - pooledMean) * (1 / controlN + 1 / treatmentN));
 
   if (pooledStdErr === 0) return 0;
 
@@ -452,8 +442,9 @@ function zScoreToConfidence(zScore: number): number {
 
   // Using the approximation for CDF
   const t = 1 / (1 + 0.2316419 * absZ);
-  const d = 0.3989423 * Math.exp(-absZ * absZ / 2);
-  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  const d = 0.3989423 * Math.exp((-absZ * absZ) / 2);
+  const p =
+    d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
 
   return zScore >= 0 ? 1 - p : p;
 }
@@ -525,7 +516,8 @@ function checkExperimentConclusion(experimentId: string, personaId: string): voi
     // Persist to Firestore and send alerts
     void (async () => {
       try {
-        const { saveAgentEvolutionToFirestore } = await import('../../intelligence/agent-evolution.js');
+        const { saveAgentEvolutionToFirestore } =
+          await import('../../intelligence/agent-evolution.js');
         await saveAgentEvolutionToFirestore();
         getLogger().debug({ experimentId }, 'Experiment conclusion persisted to Firestore');
 
@@ -647,4 +639,3 @@ export default {
   getRunningExperiments,
   getExperimentResults,
 };
-

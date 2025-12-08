@@ -14,30 +14,23 @@
  * @module VoiceAgentIntegration
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import type { VoiceSketch } from '../../types/user-profile.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 import {
-  startIdentitySession,
-  processMessage,
-  processAudioForAuth,
   checkOperationPermission,
   endIdentitySession,
   generateIdentityContextForLLM,
+  processAudioForAuth,
+  processMessage,
+  startIdentitySession,
   type IdentityContext,
 } from './identity-orchestrator.js';
 
-import {
-  detectMagicMoment,
-  type MagicMomentAnalysis,
-} from './human-first-2fa.js';
+import { type MagicMomentAnalysis } from './human-first-2fa.js';
 
 import { sendSMS } from '../communication-service.js';
-import {
-  createVerificationCode,
-  verifyCode,
-  getVerificationStatus,
-} from './verification-store.js';
+import { createVerificationCode, getVerificationStatus, verifyCode } from './verification-store.js';
 
 const log = getLogger().child({ module: 'VoiceAgentIntegration' });
 
@@ -478,7 +471,7 @@ export async function startPhoneVerification(
 
     return {
       success: true,
-      agentPrompt: "I just texted you a quick code - can you read it back to me when you get it?",
+      agentPrompt: 'I just texted you a quick code - can you read it back to me when you get it?',
     };
   } catch (error) {
     log.error({ error, sessionId }, 'Failed to start phone verification');
@@ -500,7 +493,7 @@ async function checkForVerificationCode(
 ): Promise<{ verified: boolean; message: string } | null> {
   // Check if user has a pending verification code
   const status = await getVerificationStatus(session.userId);
-  
+
   if (!status?.hasPendingCode) {
     return null;
   }
@@ -512,7 +505,7 @@ async function checkForVerificationCode(
   }
 
   const providedCode = codeMatch[1];
-  
+
   // Verify using persistent store
   const result = await verifyCode(session.userId, providedCode);
 
@@ -534,7 +527,7 @@ async function checkForVerificationCode(
     case 'expired':
       return {
         verified: false,
-        message: "That code expired. Want me to send you a new one?",
+        message: 'That code expired. Want me to send you a new one?',
       };
     case 'max_attempts':
       return {
@@ -574,7 +567,7 @@ function buildPhoneAskContext(result: {
     '',
     'DO NOT:',
     '- Use corporate language like "provide your number"',
-    '- Sound like you\'re collecting data',
+    "- Sound like you're collecting data",
     '- Be pushy if they decline',
     '',
     'DO:',
@@ -613,4 +606,3 @@ export default {
   canPerformSensitiveOperation,
   startPhoneVerification,
 };
-

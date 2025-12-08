@@ -8,10 +8,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { getLogger } from '../utils/safe-logger.js';
-import {
-  isCalendarConfigured,
-  deleteUserTokens,
-} from '../services/google-calendar-oauth.js';
+import { isCalendarConfigured, deleteUserTokens } from '../services/google-calendar-oauth.js';
 import {
   getCalendarBusyProfile,
   syncCalendarToOutreach,
@@ -220,4 +217,3 @@ export async function handleCalendarRoutes(
 }
 
 export default handleCalendarRoutes;
-

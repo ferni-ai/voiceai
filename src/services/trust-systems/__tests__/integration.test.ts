@@ -70,7 +70,12 @@ describe('Trust Systems Integration', () => {
       const starters = generateStarters({
         userId: testUserId,
         upcomingEvents: [
-          { id: 'test-event', description: 'Job interview', date: tomorrow, type: 'appointment' as const }
+          {
+            id: 'test-event',
+            description: 'Job interview',
+            date: tomorrow,
+            type: 'appointment' as const,
+          },
         ],
       });
 
@@ -230,4 +235,3 @@ describe('Trust Systems Integration', () => {
     });
   });
 });
-

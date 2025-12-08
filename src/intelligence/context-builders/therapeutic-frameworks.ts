@@ -76,8 +76,7 @@ async function buildTherapeuticFrameworksContext(
   for (const part of result.contextParts) {
     // Determine priority based on what we found
     const isHighPriority =
-      result.primaryRecommendation === 'dbt_skill' ||
-      (analysis?.emotion?.intensity || 0) > 0.7;
+      result.primaryRecommendation === 'dbt_skill' || (analysis?.emotion?.intensity || 0) > 0.7;
 
     const injection = isHighPriority
       ? createStandardInjection('therapeutic_framework', part)
@@ -119,4 +118,3 @@ export { buildTherapeuticFrameworksContext };
 export default {
   buildTherapeuticFrameworksContext,
 };
-

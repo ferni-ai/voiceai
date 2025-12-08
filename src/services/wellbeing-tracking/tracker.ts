@@ -45,18 +45,29 @@ const snapshots = new Map<string, WellbeingSnapshot[]>();
 /**
  * Patterns for detecting wellbeing signals from text.
  */
-const DETECTION_PATTERNS: Record<WellbeingDimension, {
-  positive: Array<{ pattern: RegExp; value: number; confidence: number }>;
-  negative: Array<{ pattern: RegExp; value: number; confidence: number }>;
-}> = {
+const DETECTION_PATTERNS: Record<
+  WellbeingDimension,
+  {
+    positive: Array<{ pattern: RegExp; value: number; confidence: number }>;
+    negative: Array<{ pattern: RegExp; value: number; confidence: number }>;
+  }
+> = {
   mood: {
     positive: [
-      { pattern: /\b(great|amazing|wonderful|fantastic|excellent)\b/i, value: 0.9, confidence: 0.7 },
+      {
+        pattern: /\b(great|amazing|wonderful|fantastic|excellent)\b/i,
+        value: 0.9,
+        confidence: 0.7,
+      },
       { pattern: /\b(good|happy|pleased|content|fine)\b/i, value: 0.7, confidence: 0.6 },
       { pattern: /\b(okay|alright|decent|not bad)\b/i, value: 0.5, confidence: 0.5 },
     ],
     negative: [
-      { pattern: /\b(terrible|awful|horrible|miserable|devastated)\b/i, value: -0.9, confidence: 0.7 },
+      {
+        pattern: /\b(terrible|awful|horrible|miserable|devastated)\b/i,
+        value: -0.9,
+        confidence: 0.7,
+      },
       { pattern: /\b(bad|sad|down|low|unhappy|depressed)\b/i, value: -0.7, confidence: 0.6 },
       { pattern: /\b(meh|blah|not great|could be better)\b/i, value: -0.3, confidence: 0.5 },
     ],
@@ -64,11 +75,19 @@ const DETECTION_PATTERNS: Record<WellbeingDimension, {
 
   energy: {
     positive: [
-      { pattern: /\b(energized|energetic|pumped|wired|ready to go)\b/i, value: 0.9, confidence: 0.7 },
+      {
+        pattern: /\b(energized|energetic|pumped|wired|ready to go)\b/i,
+        value: 0.9,
+        confidence: 0.7,
+      },
       { pattern: /\b(good energy|feeling strong|rested)\b/i, value: 0.7, confidence: 0.6 },
     ],
     negative: [
-      { pattern: /\b(exhausted|drained|wiped out|burnt out|depleted)\b/i, value: 0.1, confidence: 0.7 },
+      {
+        pattern: /\b(exhausted|drained|wiped out|burnt out|depleted)\b/i,
+        value: 0.1,
+        confidence: 0.7,
+      },
       { pattern: /\b(tired|fatigued|low energy|sluggish)\b/i, value: 0.3, confidence: 0.6 },
       { pattern: /\b(a bit tired|kind of tired)\b/i, value: 0.4, confidence: 0.5 },
     ],
@@ -80,8 +99,16 @@ const DETECTION_PATTERNS: Record<WellbeingDimension, {
       { pattern: /\b(want to|looking forward|can't wait)\b/i, value: 0.7, confidence: 0.6 },
     ],
     negative: [
-      { pattern: /\b(no motivation|can't be bothered|don't care|what's the point)\b/i, value: 0.1, confidence: 0.7 },
-      { pattern: /\b(unmotivated|not feeling it|hard to get started)\b/i, value: 0.3, confidence: 0.6 },
+      {
+        pattern: /\b(no motivation|can't be bothered|don't care|what's the point)\b/i,
+        value: 0.1,
+        confidence: 0.7,
+      },
+      {
+        pattern: /\b(unmotivated|not feeling it|hard to get started)\b/i,
+        value: 0.3,
+        confidence: 0.6,
+      },
       { pattern: /\b(just going through the motions)\b/i, value: 0.2, confidence: 0.6 },
     ],
   },
@@ -91,30 +118,54 @@ const DETECTION_PATTERNS: Record<WellbeingDimension, {
       { pattern: /\b(calm|peaceful|relaxed|at ease|not worried)\b/i, value: 0.1, confidence: 0.6 },
     ],
     negative: [
-      { pattern: /\b(terrified|panicking|freaking out|can't stop worrying)\b/i, value: 0.9, confidence: 0.7 },
+      {
+        pattern: /\b(terrified|panicking|freaking out|can't stop worrying)\b/i,
+        value: 0.9,
+        confidence: 0.7,
+      },
       { pattern: /\b(anxious|worried|stressed|nervous|on edge)\b/i, value: 0.7, confidence: 0.6 },
-      { pattern: /\b(a little worried|kind of anxious|slightly stressed)\b/i, value: 0.4, confidence: 0.5 },
+      {
+        pattern: /\b(a little worried|kind of anxious|slightly stressed)\b/i,
+        value: 0.4,
+        confidence: 0.5,
+      },
     ],
   },
 
   sleepQuality: {
     positive: [
-      { pattern: /\b(slept great|slept well|good sleep|rested|8 hours)\b/i, value: 0.9, confidence: 0.7 },
+      {
+        pattern: /\b(slept great|slept well|good sleep|rested|8 hours)\b/i,
+        value: 0.9,
+        confidence: 0.7,
+      },
       { pattern: /\b(decent sleep|okay sleep|fine sleep)\b/i, value: 0.6, confidence: 0.5 },
     ],
     negative: [
       { pattern: /\b(insomnia|didn't sleep|can't sleep|no sleep)\b/i, value: 0.1, confidence: 0.7 },
-      { pattern: /\b(slept badly|terrible sleep|restless|tossed and turned)\b/i, value: 0.2, confidence: 0.6 },
+      {
+        pattern: /\b(slept badly|terrible sleep|restless|tossed and turned)\b/i,
+        value: 0.2,
+        confidence: 0.6,
+      },
       { pattern: /\b(not enough sleep|only.*hours|woke up tired)\b/i, value: 0.3, confidence: 0.5 },
     ],
   },
 
   loneliness: {
     positive: [
-      { pattern: /\b(connected|supported|loved|surrounded by|good friends)\b/i, value: 0.1, confidence: 0.6 },
+      {
+        pattern: /\b(connected|supported|loved|surrounded by|good friends)\b/i,
+        value: 0.1,
+        confidence: 0.6,
+      },
     ],
     negative: [
-      { pattern: /\b(completely alone|no one|nobody understands|isolated)\b/i, value: 0.9, confidence: 0.7 },
+      {
+        pattern: /\b(completely alone|no one|nobody understands|isolated)\b/i,
+        value: 0.9,
+        confidence: 0.7,
+      },
       { pattern: /\b(lonely|alone|disconnected|no friends)\b/i, value: 0.7, confidence: 0.6 },
       { pattern: /\b(haven't seen anyone|been by myself)\b/i, value: 0.5, confidence: 0.5 },
     ],
@@ -122,11 +173,19 @@ const DETECTION_PATTERNS: Record<WellbeingDimension, {
 
   hopefulness: {
     positive: [
-      { pattern: /\b(hopeful|optimistic|things will get better|looking up)\b/i, value: 0.8, confidence: 0.7 },
+      {
+        pattern: /\b(hopeful|optimistic|things will get better|looking up)\b/i,
+        value: 0.8,
+        confidence: 0.7,
+      },
       { pattern: /\b(excited for the future|good things coming)\b/i, value: 0.9, confidence: 0.6 },
     ],
     negative: [
-      { pattern: /\b(hopeless|no point|what's the point|never get better)\b/i, value: 0.1, confidence: 0.8 },
+      {
+        pattern: /\b(hopeless|no point|what's the point|never get better)\b/i,
+        value: 0.1,
+        confidence: 0.8,
+      },
       { pattern: /\b(pessimistic|don't see a way|stuck forever)\b/i, value: 0.2, confidence: 0.7 },
       { pattern: /\b(hard to see|don't know if)\b/i, value: 0.4, confidence: 0.5 },
     ],
@@ -135,9 +194,7 @@ const DETECTION_PATTERNS: Record<WellbeingDimension, {
   // Simplified patterns for remaining dimensions
   moodStability: { positive: [], negative: [] },
   physicalTension: {
-    positive: [
-      { pattern: /\b(relaxed|loose|calm body)\b/i, value: 0.1, confidence: 0.6 },
-    ],
+    positive: [{ pattern: /\b(relaxed|loose|calm body)\b/i, value: 0.1, confidence: 0.6 }],
     negative: [
       { pattern: /\b(tense|tight|clenched|headache|body aches)\b/i, value: 0.7, confidence: 0.6 },
     ],
@@ -145,18 +202,34 @@ const DETECTION_PATTERNS: Record<WellbeingDimension, {
   socialSatisfaction: { positive: [], negative: [] },
   meaningfulness: {
     positive: [
-      { pattern: /\b(meaningful|purpose|matters|making a difference)\b/i, value: 0.8, confidence: 0.6 },
+      {
+        pattern: /\b(meaningful|purpose|matters|making a difference)\b/i,
+        value: 0.8,
+        confidence: 0.6,
+      },
     ],
     negative: [
-      { pattern: /\b(pointless|meaningless|empty|going through motions)\b/i, value: 0.2, confidence: 0.6 },
+      {
+        pattern: /\b(pointless|meaningless|empty|going through motions)\b/i,
+        value: 0.2,
+        confidence: 0.6,
+      },
     ],
   },
   selfCareLevel: {
     positive: [
-      { pattern: /\b(taking care of myself|self-care|exercise|eating well)\b/i, value: 0.8, confidence: 0.6 },
+      {
+        pattern: /\b(taking care of myself|self-care|exercise|eating well)\b/i,
+        value: 0.8,
+        confidence: 0.6,
+      },
     ],
     negative: [
-      { pattern: /\b(neglecting|not taking care|skipping meals|not exercising)\b/i, value: 0.2, confidence: 0.6 },
+      {
+        pattern: /\b(neglecting|not taking care|skipping meals|not exercising)\b/i,
+        value: 0.2,
+        confidence: 0.6,
+      },
     ],
   },
 };
@@ -269,11 +342,11 @@ export function detectWellbeingSignals(
 /**
  * Map detected emotion to wellbeing signal.
  */
-function mapEmotionToWellbeing(
-  emotion: string,
-  intensity: number
-): WellbeingSignal | null {
-  const emotionMappings: Record<string, { dimension: WellbeingDimension; direction: 'positive' | 'negative' }> = {
+function mapEmotionToWellbeing(emotion: string, intensity: number): WellbeingSignal | null {
+  const emotionMappings: Record<
+    string,
+    { dimension: WellbeingDimension; direction: 'positive' | 'negative' }
+  > = {
     joy: { dimension: 'mood', direction: 'positive' },
     happy: { dimension: 'mood', direction: 'positive' },
     excited: { dimension: 'energy', direction: 'positive' },
@@ -291,11 +364,12 @@ function mapEmotionToWellbeing(
   const mapping = emotionMappings[emotion.toLowerCase()];
   if (!mapping) return null;
 
-  const value = mapping.direction === 'positive'
-    ? 0.5 + (intensity * 0.5)
-    : mapping.dimension === 'worry' || mapping.dimension === 'loneliness'
-      ? intensity
-      : 0.5 - (intensity * 0.5);
+  const value =
+    mapping.direction === 'positive'
+      ? 0.5 + intensity * 0.5
+      : mapping.dimension === 'worry' || mapping.dimension === 'loneliness'
+        ? intensity
+        : 0.5 - intensity * 0.5;
 
   return {
     dimension: mapping.dimension,
@@ -397,7 +471,8 @@ function updateBaseline(profile: WellbeingProfile, userSnapshots: WellbeingSnaps
   // Calculate rolling average of dimensions
   const dimensionSums: Partial<Record<WellbeingDimension, { sum: number; count: number }>> = {};
 
-  for (const snapshot of userSnapshots.slice(-30)) { // Last 30 snapshots
+  for (const snapshot of userSnapshots.slice(-30)) {
+    // Last 30 snapshots
     for (const [dim, value] of Object.entries(snapshot.dimensions)) {
       const dimension = dim as WellbeingDimension;
       if (!dimensionSums[dimension]) {
@@ -516,24 +591,28 @@ function checkForAlerts(profile: WellbeingProfile, snapshot: WellbeingSnapshot):
     snapshot.dimensions.hopefulness !== undefined &&
     snapshot.dimensions.hopefulness < 0.3
   ) {
-    alerts.push(createAlert(
-      profile.userId,
-      'depression_risk',
-      'concern',
-      'Low mood combined with low hopefulness detected',
-      snapshot.signals.filter((s) => s.dimension === 'mood' || s.dimension === 'hopefulness'),
-    ));
+    alerts.push(
+      createAlert(
+        profile.userId,
+        'depression_risk',
+        'concern',
+        'Low mood combined with low hopefulness detected',
+        snapshot.signals.filter((s) => s.dimension === 'mood' || s.dimension === 'hopefulness')
+      )
+    );
   }
 
   // Check for anxiety spike
   if (snapshot.dimensions.worry !== undefined && snapshot.dimensions.worry > 0.8) {
-    alerts.push(createAlert(
-      profile.userId,
-      'anxiety_spike',
-      'watch',
-      'High anxiety/worry levels detected',
-      snapshot.signals.filter((s) => s.dimension === 'worry'),
-    ));
+    alerts.push(
+      createAlert(
+        profile.userId,
+        'anxiety_spike',
+        'watch',
+        'High anxiety/worry levels detected',
+        snapshot.signals.filter((s) => s.dimension === 'worry')
+      )
+    );
   }
 
   // Check for burnout trajectory
@@ -543,31 +622,33 @@ function checkForAlerts(profile: WellbeingProfile, snapshot: WellbeingSnapshot):
     snapshot.dimensions.motivation !== undefined &&
     snapshot.dimensions.motivation < 0.3
   ) {
-    alerts.push(createAlert(
-      profile.userId,
-      'burnout_trajectory',
-      'concern',
-      'Low energy combined with low motivation - possible burnout trajectory',
-      snapshot.signals.filter((s) => s.dimension === 'energy' || s.dimension === 'motivation'),
-    ));
+    alerts.push(
+      createAlert(
+        profile.userId,
+        'burnout_trajectory',
+        'concern',
+        'Low energy combined with low motivation - possible burnout trajectory',
+        snapshot.signals.filter((s) => s.dimension === 'energy' || s.dimension === 'motivation')
+      )
+    );
   }
 
   // Check for isolation
   if (snapshot.dimensions.loneliness !== undefined && snapshot.dimensions.loneliness > 0.7) {
-    alerts.push(createAlert(
-      profile.userId,
-      'isolation_pattern',
-      'watch',
-      'High loneliness/isolation indicated',
-      snapshot.signals.filter((s) => s.dimension === 'loneliness'),
-    ));
+    alerts.push(
+      createAlert(
+        profile.userId,
+        'isolation_pattern',
+        'watch',
+        'High loneliness/isolation indicated',
+        snapshot.signals.filter((s) => s.dimension === 'loneliness')
+      )
+    );
   }
 
   // Add new alerts (avoid duplicates)
   for (const alert of alerts) {
-    const existing = profile.alerts.find(
-      (a) => a.type === alert.type && a.status === 'active'
-    );
+    const existing = profile.alerts.find((a) => a.type === alert.type && a.status === 'active');
     if (!existing) {
       profile.alerts.push(alert);
       log.warn(
@@ -618,41 +699,49 @@ function getAlertRecommendations(
     case 'depression_risk':
       recommendations.push(
         { target: 'ferni', action: 'Increase warmth and validation', priority: 'high' },
-        { target: 'user', action: 'Small wins matter - celebrate any forward movement', priority: 'medium' },
-        { target: 'ferni', action: 'Gently check on basic self-care', priority: 'medium' },
+        {
+          target: 'user',
+          action: 'Small wins matter - celebrate any forward movement',
+          priority: 'medium',
+        },
+        { target: 'ferni', action: 'Gently check on basic self-care', priority: 'medium' }
       );
       if (severity === 'urgent') {
-        recommendations.push(
-          { target: 'professional', action: 'Consider suggesting professional support', priority: 'high' },
-        );
+        recommendations.push({
+          target: 'professional',
+          action: 'Consider suggesting professional support',
+          priority: 'high',
+        });
       }
       break;
 
     case 'anxiety_spike':
       recommendations.push(
         { target: 'ferni', action: 'Offer grounding or breathing exercises', priority: 'high' },
-        { target: 'user', action: 'Remember: this feeling will pass', priority: 'medium' },
+        { target: 'user', action: 'Remember: this feeling will pass', priority: 'medium' }
       );
       break;
 
     case 'burnout_trajectory':
       recommendations.push(
-        { target: 'ferni', action: 'Explore what\'s draining them', priority: 'high' },
-        { target: 'user', action: 'What\'s one thing you could take off your plate?', priority: 'medium' },
+        { target: 'ferni', action: "Explore what's draining them", priority: 'high' },
+        {
+          target: 'user',
+          action: "What's one thing you could take off your plate?",
+          priority: 'medium',
+        }
       );
       break;
 
     case 'isolation_pattern':
       recommendations.push(
         { target: 'ferni', action: 'Be extra present and connected', priority: 'high' },
-        { target: 'user', action: 'Even small connections count', priority: 'medium' },
+        { target: 'user', action: 'Even small connections count', priority: 'medium' }
       );
       break;
 
     default:
-      recommendations.push(
-        { target: 'ferni', action: 'Monitor and support', priority: 'medium' },
-      );
+      recommendations.push({ target: 'ferni', action: 'Monitor and support', priority: 'medium' });
   }
 
   return recommendations;
@@ -672,7 +761,7 @@ export function getWellbeingProfile(userId: string): WellbeingProfile | null {
 /**
  * Get recent snapshots for a user.
  */
-export function getRecentSnapshots(userId: string, limit: number = 20): WellbeingSnapshot[] {
+export function getRecentSnapshots(userId: string, limit = 20): WellbeingSnapshot[] {
   const userSnapshots = snapshots.get(userId) || [];
   return userSnapshots.slice(-limit);
 }
@@ -813,4 +902,3 @@ export interface WellbeingSummary {
   activeAlerts: number;
   daysTracked: number;
 }
-

@@ -113,8 +113,20 @@ interface MetricsStore {
   sessions: Set<string>;
   activeSessions: Set<string>;
   cacheAttempts: Array<{ hit: boolean; intent: string; latencyMs: number; timestamp: number }>;
-  turnPredictions: Array<{ predicted: boolean; actual: boolean; confidence: number; silenceMs: number; timestamp: number }>;
-  laughterDetections: Array<{ detected: boolean; confirmed: boolean; confidence: number; type: string; timestamp: number }>;
+  turnPredictions: Array<{
+    predicted: boolean;
+    actual: boolean;
+    confidence: number;
+    silenceMs: number;
+    timestamp: number;
+  }>;
+  laughterDetections: Array<{
+    detected: boolean;
+    confirmed: boolean;
+    confidence: number;
+    type: string;
+    timestamp: number;
+  }>;
   latencies: number[];
   featureUsage: Map<string, { enabled: number; triggered: number }>;
 }
@@ -281,11 +293,7 @@ export function recordLatency(sessionId: string, feature: string, latencyMs: num
 /**
  * Record feature usage
  */
-export function recordFeatureUsage(
-  sessionId: string,
-  feature: string,
-  triggered: boolean
-): void {
+export function recordFeatureUsage(sessionId: string, feature: string, triggered: boolean): void {
   const current = store.featureUsage.get(feature) || { enabled: 0, triggered: 0 };
   current.enabled++;
   if (triggered) {
@@ -305,8 +313,8 @@ export function recordFeatureUsage(
  */
 export function getCacheMetrics(): CacheMetrics {
   const attempts = store.cacheAttempts;
-  const hits = attempts.filter(a => a.hit);
-  const misses = attempts.filter(a => !a.hit);
+  const hits = attempts.filter((a) => a.hit);
+  const misses = attempts.filter((a) => !a.hit);
 
   // Intent breakdown
   const intentBreakdown: Record<string, { hits: number; misses: number }> = {};
@@ -321,12 +329,10 @@ export function getCacheMetrics(): CacheMetrics {
     }
   }
 
-  const avgHitLatency = hits.length > 0
-    ? hits.reduce((sum, h) => sum + h.latencyMs, 0) / hits.length
-    : 0;
-  const avgMissLatency = misses.length > 0
-    ? misses.reduce((sum, m) => sum + m.latencyMs, 0) / misses.length
-    : 0;
+  const avgHitLatency =
+    hits.length > 0 ? hits.reduce((sum, h) => sum + h.latencyMs, 0) / hits.length : 0;
+  const avgMissLatency =
+    misses.length > 0 ? misses.reduce((sum, m) => sum + m.latencyMs, 0) / misses.length : 0;
 
   // Estimated latency savings (assume 150ms per hit)
   const latencySavings = hits.length * 150;
@@ -348,16 +354,18 @@ export function getCacheMetrics(): CacheMetrics {
  */
 export function getTurnPredictionMetrics(): TurnPredictionMetrics {
   const predictions = store.turnPredictions;
-  const correct = predictions.filter(p => p.predicted === p.actual);
-  const falseTakeTurns = predictions.filter(p => p.predicted && !p.actual);
-  const missedTurns = predictions.filter(p => !p.predicted && p.actual);
+  const correct = predictions.filter((p) => p.predicted === p.actual);
+  const falseTakeTurns = predictions.filter((p) => p.predicted && !p.actual);
+  const missedTurns = predictions.filter((p) => !p.predicted && p.actual);
 
-  const avgConfidence = predictions.length > 0
-    ? predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length
-    : 0;
-  const avgSilence = predictions.length > 0
-    ? predictions.reduce((sum, p) => sum + p.silenceMs, 0) / predictions.length
-    : 0;
+  const avgConfidence =
+    predictions.length > 0
+      ? predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length
+      : 0;
+  const avgSilence =
+    predictions.length > 0
+      ? predictions.reduce((sum, p) => sum + p.silenceMs, 0) / predictions.length
+      : 0;
 
   return {
     totalPredictions: predictions.length,
@@ -374,9 +382,9 @@ export function getTurnPredictionMetrics(): TurnPredictionMetrics {
  * Get laughter detection metrics
  */
 export function getLaughterMetrics(): LaughterMetrics {
-  const detections = store.laughterDetections.filter(d => d.detected);
-  const confirmed = detections.filter(d => d.confirmed);
-  const falsePositives = detections.filter(d => !d.confirmed);
+  const detections = store.laughterDetections.filter((d) => d.detected);
+  const confirmed = detections.filter((d) => d.confirmed);
+  const falsePositives = detections.filter((d) => !d.confirmed);
 
   // Type breakdown
   const typeBreakdown: Record<string, number> = {};
@@ -384,9 +392,10 @@ export function getLaughterMetrics(): LaughterMetrics {
     typeBreakdown[detection.type] = (typeBreakdown[detection.type] || 0) + 1;
   }
 
-  const avgConfidence = detections.length > 0
-    ? detections.reduce((sum, d) => sum + d.confidence, 0) / detections.length
-    : 0;
+  const avgConfidence =
+    detections.length > 0
+      ? detections.reduce((sum, d) => sum + d.confidence, 0) / detections.length
+      : 0;
 
   return {
     totalDetections: detections.length,
@@ -407,7 +416,7 @@ export function getLatencyPercentiles(): { p50: number; p90: number; p95: number
   }
 
   const sorted = [...store.latencies].sort((a, b) => a - b);
-  const percentile = (p: number) => sorted[Math.floor(sorted.length * p / 100)] || 0;
+  const percentile = (p: number) => sorted[Math.floor((sorted.length * p) / 100)] || 0;
 
   return {
     p50: percentile(50),
@@ -468,4 +477,3 @@ export function resetMetrics(): void {
   store.featureUsage.clear();
   log.info('📊 Metrics reset');
 }
-

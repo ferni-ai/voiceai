@@ -17,7 +17,7 @@ That's why we built Ferni.
 
 ## What Makes Ferni Different
 
-Ferni isn't another chatbot. It's a team of six AI specialists who work together to help you navigate life's challenges:
+Ferni is six brilliant minds that remember your whole story. A team who shows up at 2am with the same presence as noon:
 
 - **Ferni** coordinates everything—asking questions that unlock insight
 - **Nayan** brings decades of wisdom for the long game

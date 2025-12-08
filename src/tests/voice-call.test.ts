@@ -126,7 +126,14 @@ describe('Voice Call Service', () => {
     });
 
     it('should accept any valid persona ID without throwing', async () => {
-      const personas = ['ferni', 'alex-chen', 'maya-santos', 'peter-john', 'jordan-taylor', 'nayan-patel'];
+      const personas = [
+        'ferni',
+        'alex-chen',
+        'maya-santos',
+        'peter-john',
+        'jordan-taylor',
+        'nayan-patel',
+      ];
 
       for (const personaId of personas) {
         // Should not throw for any valid persona
@@ -277,7 +284,14 @@ describe('XML Character Handling', () => {
 
 describe('Better Than Human - Voice Call Quality', () => {
   it('should support all team personas', () => {
-    const teamPersonas = ['ferni', 'alex-chen', 'maya-santos', 'peter-john', 'jordan-taylor', 'nayan-patel'];
+    const teamPersonas = [
+      'ferni',
+      'alex-chen',
+      'maya-santos',
+      'peter-john',
+      'jordan-taylor',
+      'nayan-patel',
+    ];
 
     for (const personaId of teamPersonas) {
       const displayName = getPersonaDisplayName(personaId);

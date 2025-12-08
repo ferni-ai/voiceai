@@ -52,7 +52,7 @@ interface CartesiaAudioResponse {
  */
 export async function generatePersonaVoice(
   text: string,
-  personaId: string = 'ferni'
+  personaId = 'ferni'
 ): Promise<Buffer | null> {
   if (!CARTESIA_API_KEY) {
     getLogger().warn({}, 'Cartesia API key not configured');
@@ -127,8 +127,12 @@ async function uploadAudioToGCS(audioBuffer: Buffer, filename: string): Promise<
   try {
     // Dynamic import to avoid loading GCS in environments where it's not needed
     const gcs = await import('@google-cloud/storage');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Storage = (gcs as any).Storage || (gcs as any).default?.Storage;
+
+    interface GcsModule {
+      Storage?: new () => any;
+      default?: { Storage?: new () => any };
+    }
+    const Storage = (gcs as GcsModule).Storage || (gcs as GcsModule).default?.Storage;
     if (!Storage) {
       getLogger().debug({}, 'GCS Storage class not found');
       return null;
@@ -212,7 +216,7 @@ export interface PersonaCallOptions {
 export async function callWithPersonaVoice(
   toPhone: string,
   message: string,
-  personaId: string = 'ferni',
+  personaId = 'ferni',
   options?: PersonaCallOptions
 ): Promise<{ success: boolean; message: string; callSid?: string; usedCartesiaVoice?: boolean }> {
   const logger = getLogger();
@@ -256,7 +260,10 @@ export async function callWithPersonaVoice(
         usedCartesiaVoice = true;
       } else {
         // GCS not available - fallback
-        logger.info({ personaId }, `Generated ${firstName} voice audio, but GCS hosting not available`);
+        logger.info(
+          { personaId },
+          `Generated ${firstName} voice audio, but GCS hosting not available`
+        );
 
         if (options?.fallbackToTwilioVoice !== false) {
           twiml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -312,8 +319,13 @@ export async function callWithPersonaVoice(
 
     if (response.ok) {
       const data = (await response.json()) as { sid: string };
-      const voiceInfo = usedCartesiaVoice ? `(using ${firstName}'s Cartesia voice)` : '(using Twilio fallback voice)';
-      logger.info({ callSid: data.sid, usedCartesiaVoice, personaId }, `✅ Call initiated ${voiceInfo}`);
+      const voiceInfo = usedCartesiaVoice
+        ? `(using ${firstName}'s Cartesia voice)`
+        : '(using Twilio fallback voice)';
+      logger.info(
+        { callSid: data.sid, usedCartesiaVoice, personaId },
+        `✅ Call initiated ${voiceInfo}`
+      );
       return {
         success: true,
         message: `Calling ${e164Phone} now! ${voiceInfo}`,

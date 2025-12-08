@@ -113,10 +113,7 @@ const EMAIL_SUBJECTS = {
 /**
  * Deliver via push notification
  */
-export async function deliverPush(
-  item: OutreachItem,
-  pushToken: string
-): Promise<DeliveryResult> {
+export async function deliverPush(item: OutreachItem, pushToken: string): Promise<DeliveryResult> {
   const template = PUSH_TEMPLATES[item.type] || PUSH_TEMPLATES.thinking_of_you;
 
   const payload: PushPayload = {
@@ -165,9 +162,7 @@ export async function deliverPush(
           link: `https://app.ferni.ai/?notification=${item.id}`,
         },
       },
-      data: Object.fromEntries(
-        Object.entries(payload.data || {}).map(([k, v]) => [k, String(v)])
-      ),
+      data: Object.fromEntries(Object.entries(payload.data || {}).map(([k, v]) => [k, String(v)])),
     });
 
     log.info({ userId: item.userId, messageId: response }, '📱 Push sent');
@@ -215,8 +210,8 @@ export async function deliverEmail(
     appointment_reminder: (n, p) => `${p} here - quick reminder`,
   };
 
-  const subject = subjectTemplates[item.type]?.(name, firstName)
-    || `Hey ${name}, ${firstName} here`;
+  const subject =
+    subjectTemplates[item.type]?.(name, firstName) || `Hey ${name}, ${firstName} here`;
 
   const payload: EmailPayload = {
     to: email,
@@ -231,7 +226,10 @@ export async function deliverEmail(
     const sent = await sendEmailViaSendgrid(payload);
 
     if (sent) {
-      log.info({ userId: item.userId, email: maskEmail(email), personaId: persona }, '📧 Email sent');
+      log.info(
+        { userId: item.userId, email: maskEmail(email), personaId: persona },
+        '📧 Email sent'
+      );
       return {
         success: true,
         channel: 'email',
@@ -259,10 +257,7 @@ export async function deliverEmail(
 /**
  * Deliver via SMS
  */
-export async function deliverSms(
-  item: OutreachItem,
-  phone: string
-): Promise<DeliveryResult> {
+export async function deliverSms(item: OutreachItem, phone: string): Promise<DeliveryResult> {
   // Keep SMS short and sweet
   const body = truncateForSms(item.message);
 
@@ -308,14 +303,14 @@ export async function deliverSms(
 export async function deliverVoice(
   item: OutreachItem,
   phone: string,
-  personaId: string = 'ferni'
+  personaId = 'ferni'
 ): Promise<DeliveryResult> {
   try {
     // Use the voice call service with Cartesia TTS
     const { callWithPersonaVoice } = await import('../voice-call.js');
 
     const result = await callWithPersonaVoice(phone, item.message, personaId, {
-      fallbackToTwilioVoice: true
+      fallbackToTwilioVoice: true,
     });
 
     if (result.success) {
@@ -462,16 +457,16 @@ function getPushTitle(item: OutreachItem): string {
 
 // Persona brand colors for emails
 const PERSONA_COLORS: Record<string, string> = {
-  ferni: '#4a6741',      // Sage green
+  ferni: '#4a6741', // Sage green
   'maya-santos': '#a67a6a', // Warm terracotta
-  'alex-chen': '#5a6b8a',   // Professional blue
-  'peter-john': '#3a6b73',  // Teal
+  'alex-chen': '#5a6b8a', // Professional blue
+  'peter-john': '#3a6b73', // Teal
   'jordan-taylor': '#c4856a', // Warm coral
-  'nayan-patel': '#7a6b8a',  // Calm purple
-  'jack-b': '#9a7b5a',      // Warm brown
+  'nayan-patel': '#7a6b8a', // Calm purple
+  'jack-b': '#9a7b5a', // Warm brown
 };
 
-function generateEmailHtml(item: OutreachItem, name: string, personaId: string = 'ferni'): string {
+function generateEmailHtml(item: OutreachItem, name: string, personaId = 'ferni'): string {
   const accentColor = PERSONA_COLORS[personaId] || PERSONA_COLORS.ferni;
   const displayName = getPersonaDisplayName(personaId);
   const firstName = displayName.split(' ')[0];
@@ -597,7 +592,7 @@ function generateEmailHtml(item: OutreachItem, name: string, personaId: string =
 
 function truncateForSms(message: string, maxLength = 160): string {
   if (message.length <= maxLength) return message;
-  return message.slice(0, maxLength - 3) + '...';
+  return `${message.slice(0, maxLength - 3)}...`;
 }
 
 function maskEmail(email: string): string {
@@ -712,7 +707,7 @@ async function sendSmsViaTwilio(payload: SmsPayload): Promise<boolean> {
 
   try {
     const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-    
+
     const response = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
       {
@@ -755,4 +750,3 @@ export default {
   deliverSms,
   deliverToUser,
 };
-

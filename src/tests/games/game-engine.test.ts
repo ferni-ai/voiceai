@@ -159,7 +159,7 @@ describe('Game Types', () => {
     'mood-dj-challenge',
   ];
 
-  gameTypes.forEach(gameType => {
+  gameTypes.forEach((gameType) => {
     it(`should support ${gameType}`, async () => {
       const welcomeMessage = await engine.startGame(gameType as any);
       expect(typeof welcomeMessage).toBe('string');

@@ -243,7 +243,8 @@ export type {
 // TASK FLOW BUILDERS
 // ============================================================================
 
-import { IntelligentTask, IntelligentTaskGroup, type TaskContext } from './intelligent-task.js';
+import type { IntelligentTask } from './intelligent-task.js';
+import { IntelligentTaskGroup, type TaskContext } from './intelligent-task.js';
 import { EmotionalSupportTask, CheckInTask } from './support-tasks.js';
 import { FollowUpTask, GoodbyeTask, DeepDiveTask } from './relationship-tasks.js';
 import { WisdomSharingTask, GoalSettingTask, FearAddressingTask } from './advice-tasks.js';
@@ -278,12 +279,15 @@ export function createIntelligentOnboardingFlow(context?: TaskContext): Intellig
     skipIfDistressed: false, // Always do this
   });
 
-  group.add(() => new SituationAssessmentTask() as unknown as InstanceType<typeof IntelligentTask>, {
-    id: 'situation',
-    description: 'Understanding what brought them here',
-    priority: 3,
-    skipIfDistressed: true, // Skip if they need support
-  });
+  group.add(
+    () => new SituationAssessmentTask() as unknown as InstanceType<typeof IntelligentTask>,
+    {
+      id: 'situation',
+      description: 'Understanding what brought them here',
+      priority: 3,
+      skipIfDistressed: true, // Skip if they need support
+    }
+  );
 
   group.add(() => new GoalsTask() as unknown as InstanceType<typeof IntelligentTask>, {
     id: 'goals',

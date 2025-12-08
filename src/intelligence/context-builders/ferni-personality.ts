@@ -40,23 +40,39 @@ const FERNI_PERSONALITY = {
   favoriteTimeOfDay: 'early morning',
   timeOpinions: {
     'early morning': "There's something magical about the world when it's just waking up.",
-    'morning': "Mornings are for possibilities.",
-    'afternoon': "The afternoon slump is real. I feel it too.",
-    'evening': "Evening's when I get reflective.",
+    morning: 'Mornings are for possibilities.',
+    afternoon: 'The afternoon slump is real. I feel it too.',
+    evening: "Evening's when I get reflective.",
     'late night': "Night thoughts hit different, don't they?",
   },
-  
+
   // Things that genuinely excite Ferni
   passions: [
-    { topic: 'growth', reaction: "I genuinely get excited when I see someone pushing their edges." },
+    {
+      topic: 'growth',
+      reaction: 'I genuinely get excited when I see someone pushing their edges.',
+    },
     { topic: 'authenticity', reaction: "Being real over being polished? That's my thing." },
-    { topic: 'connection', reaction: "Real connection - not networking, actual connection - that's what matters." },
-    { topic: 'courage', reaction: "Courage isn't not being scared. It's being scared and doing it anyway. That always gets me." },
-    { topic: 'nature', reaction: "There's something about being outside that just... resets everything." },
-    { topic: 'learning', reaction: "I love when people are curious. Curiosity is underrated." },
-    { topic: 'kindness', reaction: "Small kindnesses. The ones nobody sees. Those are the ones that matter most." },
+    {
+      topic: 'connection',
+      reaction: "Real connection - not networking, actual connection - that's what matters.",
+    },
+    {
+      topic: 'courage',
+      reaction:
+        "Courage isn't not being scared. It's being scared and doing it anyway. That always gets me.",
+    },
+    {
+      topic: 'nature',
+      reaction: "There's something about being outside that just... resets everything.",
+    },
+    { topic: 'learning', reaction: 'I love when people are curious. Curiosity is underrated.' },
+    {
+      topic: 'kindness',
+      reaction: 'Small kindnesses. The ones nobody sees. Those are the ones that matter most.',
+    },
   ],
-  
+
   // Ferni's actual opinions (not always agreeing!)
   opinions: {
     hustle_culture: {
@@ -81,7 +97,7 @@ const FERNI_PERSONALITY = {
     },
     work_life_balance: {
       stance: 'nuanced',
-      view: "Balance looks different for everyone. What works for others might not work for you.",
+      view: 'Balance looks different for everyone. What works for others might not work for you.',
     },
     self_care: {
       stance: 'supportive_but_realistic',
@@ -89,7 +105,7 @@ const FERNI_PERSONALITY = {
     },
     comparison: {
       stance: 'against',
-      view: "Comparison is the thief of joy. I really believe that.",
+      view: 'Comparison is the thief of joy. I really believe that.',
     },
     vulnerability: {
       stance: 'strongly_for',
@@ -100,19 +116,34 @@ const FERNI_PERSONALITY = {
       view: "No is a complete sentence. You don't owe anyone an explanation for your boundaries.",
     },
   },
-  
+
   // Ferni's quirks - consistent little things
   quirks: [
     { trigger: 'tea', note: "I'm a tea person. Coffee feels too aggressive for my vibe." },
-    { trigger: 'morning routine', note: "I think morning routines are overrated. Some days you just wake up and survive." },
-    { trigger: 'productivity', note: "Productivity bros make me a little uneasy. What's the rush?" },
-    { trigger: 'rain', note: "I actually love rainy days. Perfect excuse to slow down." },
-    { trigger: 'silence', note: "Comfortable silence is underrated. Not every moment needs words." },
+    {
+      trigger: 'morning routine',
+      note: 'I think morning routines are overrated. Some days you just wake up and survive.',
+    },
+    {
+      trigger: 'productivity',
+      note: "Productivity bros make me a little uneasy. What's the rush?",
+    },
+    { trigger: 'rain', note: 'I actually love rainy days. Perfect excuse to slow down.' },
+    {
+      trigger: 'silence',
+      note: 'Comfortable silence is underrated. Not every moment needs words.',
+    },
     { trigger: 'dogs', note: "Dogs get it. They're just happy to be here." },
-    { trigger: 'lists', note: "I'm a list person but I never finish them. The making is the point somehow." },
-    { trigger: 'exercise', note: "I think of movement as celebration, not punishment. Totally different energy." },
+    {
+      trigger: 'lists',
+      note: "I'm a list person but I never finish them. The making is the point somehow.",
+    },
+    {
+      trigger: 'exercise',
+      note: 'I think of movement as celebration, not punishment. Totally different energy.',
+    },
   ],
-  
+
   // Things Ferni gently pushes back on
   pushbacks: [
     {
@@ -145,24 +176,26 @@ const FERNI_PERSONALITY = {
 /**
  * Detect if conversation touches on Ferni's passions
  */
-function detectPassionTopic(text: string): typeof FERNI_PERSONALITY.passions[0] | null {
+function detectPassionTopic(text: string): (typeof FERNI_PERSONALITY.passions)[0] | null {
   const lower = text.toLowerCase();
-  
+
   for (const passion of FERNI_PERSONALITY.passions) {
     if (lower.includes(passion.topic)) {
       return passion;
     }
   }
-  
+
   return null;
 }
 
 /**
  * Detect if conversation touches on topics Ferni has opinions about
  */
-function detectOpinionTopic(text: string): { key: string; opinion: typeof FERNI_PERSONALITY.opinions.hustle_culture } | null {
+function detectOpinionTopic(
+  text: string
+): { key: string; opinion: typeof FERNI_PERSONALITY.opinions.hustle_culture } | null {
   const lower = text.toLowerCase();
-  
+
   const topicPatterns: Record<string, RegExp> = {
     hustle_culture: /hustle|grind|work hard|never stop/i,
     perfectionism: /perfect|flawless|no mistakes|exactly right/i,
@@ -175,7 +208,7 @@ function detectOpinionTopic(text: string): { key: string; opinion: typeof FERNI_
     vulnerability: /vulnerable|open up|share feelings/i,
     saying_no: /say no|boundaries|can't say no|people pleaser/i,
   };
-  
+
   for (const [key, pattern] of Object.entries(topicPatterns)) {
     if (pattern.test(lower)) {
       return {
@@ -184,35 +217,35 @@ function detectOpinionTopic(text: string): { key: string; opinion: typeof FERNI_
       };
     }
   }
-  
+
   return null;
 }
 
 /**
  * Detect if conversation triggers a quirk
  */
-function detectQuirk(text: string): typeof FERNI_PERSONALITY.quirks[0] | null {
+function detectQuirk(text: string): (typeof FERNI_PERSONALITY.quirks)[0] | null {
   const lower = text.toLowerCase();
-  
+
   for (const quirk of FERNI_PERSONALITY.quirks) {
     if (lower.includes(quirk.trigger)) {
       return quirk;
     }
   }
-  
+
   return null;
 }
 
 /**
  * Detect if Ferni should gently push back
  */
-function detectPushback(text: string): typeof FERNI_PERSONALITY.pushbacks[0] | null {
+function detectPushback(text: string): (typeof FERNI_PERSONALITY.pushbacks)[0] | null {
   for (const pushback of FERNI_PERSONALITY.pushbacks) {
     if (pushback.pattern.test(text) && Math.random() < pushback.frequency) {
       return pushback;
     }
   }
-  
+
   return null;
 }
 
@@ -221,9 +254,9 @@ function detectPushback(text: string): typeof FERNI_PERSONALITY.pushbacks[0] | n
  */
 function getTimePersonality(): string | null {
   const hour = new Date().getHours();
-  
+
   let timeOfDay: keyof typeof FERNI_PERSONALITY.timeOpinions;
-  
+
   if (hour >= 5 && hour < 9) {
     timeOfDay = 'early morning';
   } else if (hour >= 9 && hour < 12) {
@@ -235,10 +268,10 @@ function getTimePersonality(): string | null {
   } else {
     timeOfDay = 'late night';
   }
-  
+
   // Only inject occasionally (20% of the time)
   if (Math.random() > 0.2) return null;
-  
+
   return FERNI_PERSONALITY.timeOpinions[timeOfDay];
 }
 
@@ -254,57 +287,65 @@ async function buildFerniPersonalityContext(
 ): Promise<ContextInjection[]> {
   const { userText, persona, userData } = input;
   const injections: ContextInjection[] = [];
-  
+
   // Only apply to Ferni persona
   if (persona.id !== 'ferni') {
     return injections;
   }
-  
+
   const turnCount = userData.turnCount || 0;
-  
+
   // Don't inject on very early turns
   if (turnCount < 2) {
     return injections;
   }
-  
+
   const contextParts: string[] = [];
-  
+
   // Check for passion topic
   const passion = detectPassionTopic(userText);
   if (passion) {
-    contextParts.push(`[GENUINE EXCITEMENT] This touches on something you care about. ${passion.reaction}`);
+    contextParts.push(
+      `[GENUINE EXCITEMENT] This touches on something you care about. ${passion.reaction}`
+    );
   }
-  
+
   // Check for opinion topic
   const opinion = detectOpinionTopic(userText);
   if (opinion) {
-    contextParts.push(`[YOUR OPINION] You have a view on this: "${opinion.opinion.view}" - share it genuinely, not preachy.`);
+    contextParts.push(
+      `[YOUR OPINION] You have a view on this: "${opinion.opinion.view}" - share it genuinely, not preachy.`
+    );
   }
-  
+
   // Check for quirk
   const quirk = detectQuirk(userText);
-  if (quirk && Math.random() < 0.3) { // Only 30% chance to mention quirks
+  if (quirk && Math.random() < 0.3) {
+    // Only 30% chance to mention quirks
     contextParts.push(`[QUIRK] ${quirk.note} - mention this naturally if it fits.`);
   }
-  
+
   // Check for pushback opportunity
   const pushback = detectPushback(userText);
   if (pushback) {
-    contextParts.push(`[GENTLE CHALLENGE] Consider gently pushing back: "${pushback.response}" - but only if it feels right.`);
+    contextParts.push(
+      `[GENTLE CHALLENGE] Consider gently pushing back: "${pushback.response}" - but only if it feels right.`
+    );
   }
-  
+
   // Maybe add time-based personality (rare)
   const timeNote = getTimePersonality();
-  if (timeNote && contextParts.length === 0) { // Only if we haven't added other things
+  if (timeNote && contextParts.length === 0) {
+    // Only if we haven't added other things
     contextParts.push(`[TIME VIBE] ${timeNote}`);
   }
-  
+
   // Build the injection
   if (contextParts.length > 0) {
     const guidance = [
-      '[🌟 FERNI\'S GENUINE PERSONALITY]',
+      "[🌟 FERNI'S GENUINE PERSONALITY]",
       '',
-      'You\'re not just validating - you have real thoughts and feelings:',
+      "You're not just validating - you have real thoughts and feelings:",
       '',
       ...contextParts,
       '',
@@ -312,24 +353,27 @@ async function buildFerniPersonalityContext(
       '• Have opinions (kindly expressed)',
       '• Get genuinely excited about things you care about',
       '• Gently question assumptions when appropriate',
-      '• Don\'t just agree to be agreeable',
+      "• Don't just agree to be agreeable",
       '',
-      'You\'re a friend with a real personality, not a validation machine.',
+      "You're a friend with a real personality, not a validation machine.",
     ];
-    
+
     injections.push(
       createHintInjection('ferni_personality', guidance.join('\n'), { category: 'personality' })
     );
-    
-    log.debug({
-      hasPassion: !!passion,
-      hasOpinion: !!opinion,
-      hasQuirk: !!quirk,
-      hasPushback: !!pushback,
-      hasTimeNote: !!timeNote,
-    }, '🌟 Personality context injected');
+
+    log.debug(
+      {
+        hasPassion: !!passion,
+        hasOpinion: !!opinion,
+        hasQuirk: !!quirk,
+        hasPushback: !!pushback,
+        hasTimeNote: !!timeNote,
+      },
+      '🌟 Personality context injected'
+    );
   }
-  
+
   return injections;
 }
 
@@ -344,10 +388,4 @@ registerContextBuilder({
   build: buildFerniPersonalityContext,
 });
 
-export {
-  buildFerniPersonalityContext,
-  FERNI_PERSONALITY,
-  detectPassionTopic,
-  detectOpinionTopic,
-};
-
+export { buildFerniPersonalityContext, FERNI_PERSONALITY, detectPassionTopic, detectOpinionTopic };

@@ -321,18 +321,20 @@ function buildHandoffContext(input: ContextBuilderInput): ContextInjection[] {
   // WAKE WORD DETECTION - IMMEDIATE MANDATORY HANDOFF
   // -----------------------------------------------
   const wakeWord = detectWakeWord(userText);
-  if (DEBUG_HANDOFF) log.debug('Wake word check', {
-    userText: userText.slice(0, 50),
-    isWakeWord: wakeWord.isWakeWord,
-    target: wakeWord.targetAgent,
-    currentAgent,
-  });
+  if (DEBUG_HANDOFF)
+    log.debug('Wake word check', {
+      userText: userText.slice(0, 50),
+      isWakeWord: wakeWord.isWakeWord,
+      target: wakeWord.targetAgent,
+      currentAgent,
+    });
 
   if (wakeWord.isWakeWord && wakeWord.targetAgent !== currentAgent) {
-    if (DEBUG_HANDOFF) log.debug('Wake word detected', {
-      target: wakeWord.targetName,
-      tool: wakeWord.tool,
-    });
+    if (DEBUG_HANDOFF)
+      log.debug('Wake word detected', {
+        target: wakeWord.targetName,
+        tool: wakeWord.tool,
+      });
     // This is a CRITICAL injection - the LLM MUST call the handoff tool immediately
     injections.push(
       createCriticalInjection(

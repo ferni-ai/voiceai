@@ -55,7 +55,7 @@ export interface PersonalBaseline {
   confidence: number; // 0-1
   establishedAt: Date;
   lastUpdated: Date;
-  
+
   // Emotional baselines (how THEY sound when feeling X)
   emotionalProfiles: EmotionalVoiceProfile[];
 }
@@ -209,8 +209,8 @@ function calculateBaseline(userId: string, samples: VoiceSample[]): void {
   };
 
   // Calculate confidence based on sample count and variance
-  const confidence = Math.min(1, samples.length / 50) * 0.7 +
-    (1 - calculateVarianceScore(chars)) * 0.3;
+  const confidence =
+    Math.min(1, samples.length / 50) * 0.7 + (1 - calculateVarianceScore(chars)) * 0.3;
 
   const existing = userBaselines.get(userId);
 
@@ -252,11 +252,19 @@ function updateEmotionalProfile(
   const alpha = 0.3; // Learning rate
   profile.sampleCount++;
 
-  const keys: (keyof VoiceCharacteristics)[] = [
-    'pitchMean', 'pitchRange', 'pitchVariability',
-    'energyMean', 'energyRange', 'energyVariability',
-    'speakingRate', 'pauseFrequency', 'pauseDuration',
-    'breathiness', 'tension', 'clarity',
+  const keys: Array<keyof VoiceCharacteristics> = [
+    'pitchMean',
+    'pitchRange',
+    'pitchVariability',
+    'energyMean',
+    'energyRange',
+    'energyVariability',
+    'speakingRate',
+    'pauseFrequency',
+    'pauseDuration',
+    'breathiness',
+    'tension',
+    'clarity',
   ];
 
   for (const key of keys) {
@@ -266,15 +274,12 @@ function updateEmotionalProfile(
     if (current === undefined) {
       profile.characteristics[key] = newValue;
     } else {
-      (profile.characteristics as Record<string, number>)[key] = 
+      (profile.characteristics as Record<string, number>)[key] =
         current * (1 - alpha) + newValue * alpha;
     }
   }
 
-  profile.confidence = Math.min(
-    1,
-    profile.sampleCount / EMOTIONAL_PROFILE_MIN_SAMPLES
-  );
+  profile.confidence = Math.min(1, profile.sampleCount / EMOTIONAL_PROFILE_MIN_SAMPLES);
 }
 
 // ============================================================================
@@ -304,11 +309,19 @@ export function analyzeDeviation(
   const samples = voiceSamples.get(userId) || [];
   const significantFactors: SignificantFactor[] = [];
 
-  const keys: (keyof VoiceCharacteristics)[] = [
-    'pitchMean', 'pitchRange', 'pitchVariability',
-    'energyMean', 'energyRange', 'energyVariability',
-    'speakingRate', 'pauseFrequency', 'pauseDuration',
-    'breathiness', 'tension', 'clarity',
+  const keys: Array<keyof VoiceCharacteristics> = [
+    'pitchMean',
+    'pitchRange',
+    'pitchVariability',
+    'energyMean',
+    'energyRange',
+    'energyVariability',
+    'speakingRate',
+    'pauseFrequency',
+    'pauseDuration',
+    'breathiness',
+    'tension',
+    'clarity',
   ];
 
   for (const key of keys) {
@@ -332,12 +345,17 @@ export function analyzeDeviation(
   }
 
   // Calculate overall magnitude
-  const magnitude = significantFactors.length > 0
-    ? Math.min(1, average(significantFactors.map((f) => f.deviation)) / 3)
-    : 0;
+  const magnitude =
+    significantFactors.length > 0
+      ? Math.min(1, average(significantFactors.map((f) => f.deviation)) / 3)
+      : 0;
 
   // Determine direction
-  const direction = determineDirection(significantFactors, baseline.characteristics, currentCharacteristics);
+  const direction = determineDirection(
+    significantFactors,
+    baseline.characteristics,
+    currentCharacteristics
+  );
 
   // Generate interpretation
   const possibleMeaning = generateInterpretation(
@@ -482,8 +500,12 @@ export function getVoiceEvolution(
 
   const changes: VoiceChange[] = [];
 
-  const keys: (keyof VoiceCharacteristics)[] = [
-    'pitchMean', 'energyMean', 'speakingRate', 'tension', 'clarity',
+  const keys: Array<keyof VoiceCharacteristics> = [
+    'pitchMean',
+    'energyMean',
+    'speakingRate',
+    'tension',
+    'clarity',
   ];
 
   for (const key of keys) {
@@ -556,9 +578,7 @@ export function getFamiliarityScore(userId: string): {
   }
 
   const score = baseline.confidence;
-  const emotionalProfileCount = baseline.emotionalProfiles.filter(
-    (p) => p.confidence > 0.5
-  ).length;
+  const emotionalProfileCount = baseline.emotionalProfiles.filter((p) => p.confidence > 0.5).length;
 
   let level: 'stranger' | 'acquaintance' | 'familiar' | 'well_known' = 'stranger';
   let description = "I'm still learning your voice";
@@ -612,7 +632,7 @@ function calculateStdDev(values: number[]): number {
 
 function calculateVarianceScore(chars: VoiceCharacteristics[]): number {
   // Lower variance = more consistent baseline = higher score
-  const keys: (keyof VoiceCharacteristics)[] = ['pitchMean', 'energyMean', 'speakingRate'];
+  const keys: Array<keyof VoiceCharacteristics> = ['pitchMean', 'energyMean', 'speakingRate'];
   const variances = keys.map((k) => {
     const values = chars.map((c) => c[k]);
     const avg = average(values);
@@ -700,4 +720,3 @@ export default {
   detectVoiceMention,
   generateVoiceContext,
 };
-

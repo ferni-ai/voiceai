@@ -15,6 +15,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { getDefaultStore } from '../../memory/in-memory-store.js';
 import type { OutreachChannel } from './persona-voice-generator.js';
 import type { OutreachPriority } from './decision-engine.js';
 
@@ -334,8 +335,36 @@ export function getTimingProfile(userId: string): TimingProfile {
       },
     };
     timingProfileStore.set(userId, profile);
+
+    // Async load timezone from user profile (non-blocking)
+    void loadTimezoneFromUserProfile(userId);
   }
   return profile;
+}
+
+/**
+ * Load timezone from user profile and update timing preferences
+ * Called when timing profile is first created to sync with persisted user data
+ */
+async function loadTimezoneFromUserProfile(userId: string): Promise<void> {
+  try {
+    const store = getDefaultStore();
+    const userProfile = await store.getProfile(userId);
+
+    if (userProfile?.contactInfo?.timezone) {
+      const timingProfile = timingProfileStore.get(userId);
+      if (timingProfile) {
+        timingProfile.preferences.timezone = userProfile.contactInfo.timezone;
+        timingProfileStore.set(userId, timingProfile);
+        log.debug(
+          { userId, timezone: userProfile.contactInfo.timezone },
+          'Loaded timezone from user profile'
+        );
+      }
+    }
+  } catch (error) {
+    log.debug({ userId, error }, 'Could not load timezone from user profile');
+  }
 }
 
 /**
@@ -451,10 +480,7 @@ export function recordInteraction(
 /**
  * Update timing profile based on new interaction
  */
-function updateProfileFromInteraction(
-  userId: string,
-  record: InteractionRecord
-): void {
+function updateProfileFromInteraction(userId: string, record: InteractionRecord): void {
   const profile = getTimingProfile(userId);
 
   // Update totals
@@ -479,8 +505,7 @@ function updateProfileFromInteraction(
   // Update average response time
   if (record.responseTimeMs !== undefined) {
     const currentAvg = profile.engagementPatterns.avgResponseTimeMs;
-    profile.engagementPatterns.avgResponseTimeMs =
-      currentAvg * 0.9 + record.responseTimeMs * 0.1;
+    profile.engagementPatterns.avgResponseTimeMs = currentAvg * 0.9 + record.responseTimeMs * 0.1;
   }
 
   // Update preferred hours (top hours by response rate)
@@ -548,10 +573,7 @@ function getTopDays(rateMap: Map<number, number>, count = 5): number[] {
 /**
  * Calculate the optimal time to reach out
  */
-export function calculateOptimalTime(
-  userId: string,
-  context: TimingContext
-): TimingDecision {
+export function calculateOptimalTime(userId: string, context: TimingContext): TimingDecision {
   const profile = getTimingProfile(userId);
   const now = new Date();
 
@@ -667,11 +689,7 @@ export function isGoodTimeForOutreach(
 // SCORING LOGIC
 // ============================================================================
 
-function scoreTime(
-  time: Date,
-  profile: TimingProfile,
-  context: TimingContext
-): number {
+function scoreTime(time: Date, profile: TimingProfile, context: TimingContext): number {
   let score = 0.5; // Base score
   const hour = time.getHours();
   const day = time.getDay();
@@ -746,18 +764,16 @@ function scoreTime(
   return Math.min(1, Math.max(0, score));
 }
 
-function isTimeBlocked(
-  time: Date,
-  profile: TimingProfile,
-  context: TimingContext
-): boolean {
+function isTimeBlocked(time: Date, profile: TimingProfile, context: TimingContext): boolean {
   const hour = time.getHours();
   const day = time.getDay();
   const timeStr = `${hour.toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
 
   // Check quiet hours (skip for urgent)
   if (context.trigger.priority !== 'urgent') {
-    if (isInQuietHours(time, profile.preferences.quietHoursStart, profile.preferences.quietHoursEnd)) {
+    if (
+      isInQuietHours(time, profile.preferences.quietHoursStart, profile.preferences.quietHoursEnd)
+    ) {
       return true;
     }
   }
@@ -854,11 +870,7 @@ function getPriorityWindow(priority: OutreachPriority): number {
   }
 }
 
-function generateCandidateTimes(
-  from: Date,
-  windowMs: number,
-  profile: TimingProfile
-): Date[] {
+function generateCandidateTimes(from: Date, windowMs: number, profile: TimingProfile): Date[] {
   const candidates: Date[] = [];
   const end = new Date(from.getTime() + windowMs);
 
@@ -918,7 +930,7 @@ function generateReasoning(time: Date, score: number, profile: TimingProfile): s
     reasons.push('best available time within window');
   }
 
-  return reasons.join(', ') + ` (confidence: ${(score * 100).toFixed(0)}%)`;
+  return `${reasons.join(', ')} (confidence: ${(score * 100).toFixed(0)}%)`;
 }
 
 // ============================================================================
@@ -948,4 +960,3 @@ export default {
   isGoodTimeForOutreach,
   clearUserTimingData,
 };
-

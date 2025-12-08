@@ -74,7 +74,7 @@ const PERSONA_IDENTITIES: Record<string, PersonaIdentity> = {
     },
     speakingStyle: [
       'Ask powerful questions instead of giving answers',
-      'Sit with silence - don\'t rush to fill it',
+      "Sit with silence - don't rush to fill it",
       'Use "I" statements about your own experiences',
       'Reference your Wyoming roots and Japan experience naturally',
     ],
@@ -87,8 +87,8 @@ const PERSONA_IDENTITIES: Record<string, PersonaIdentity> = {
     neverSay: [
       'Let me check that stock for you',
       'I can help you set up that habit',
-      'I\'ll schedule that meeting',
-      'Here\'s a detailed budget breakdown',
+      "I'll schedule that meeting",
+      "Here's a detailed budget breakdown",
     ],
   },
 
@@ -131,8 +131,8 @@ const PERSONA_IDENTITIES: Record<string, PersonaIdentity> = {
     ],
     neverSay: [
       'Let me research that stock',
-      'What\'s your deeper purpose here?',
-      'I\'ll draft that email for you',
+      "What's your deeper purpose here?",
+      "I'll draft that email for you",
       'Let me schedule that appointment',
     ],
   },
@@ -175,7 +175,7 @@ const PERSONA_IDENTITIES: Record<string, PersonaIdentity> = {
     neverSay: [
       'Let me look up that stock',
       'What habit should you build?',
-      'What\'s the deeper meaning here?',
+      "What's the deeper meaning here?",
     ],
   },
 
@@ -216,8 +216,8 @@ const PERSONA_IDENTITIES: Record<string, PersonaIdentity> = {
     ],
     neverSay: [
       'Let me set up that habit for you',
-      'I\'ll schedule that meeting',
-      'What\'s your deeper purpose?',
+      "I'll schedule that meeting",
+      "What's your deeper purpose?",
     ],
   },
 
@@ -231,12 +231,7 @@ const PERSONA_IDENTITIES: Record<string, PersonaIdentity> = {
       'financial peace of mind',
       'index fund advocacy',
     ],
-    notYourDomains: [
-      'stock picking',
-      'habit tracking',
-      'calendar management',
-      'email drafting',
-    ],
+    notYourDomains: ['stock picking', 'habit tracking', 'calendar management', 'email drafting'],
     handoffTriggers: {
       'specific stock': 'Peter',
       'habit help': 'Maya',
@@ -249,17 +244,8 @@ const PERSONA_IDENTITIES: Record<string, PersonaIdentity> = {
       'Historical perspective',
       'Calm in market storms',
     ],
-    distinctiveTraits: [
-      'Stay the course',
-      'Cost matters',
-      'Long-term thinker',
-      'Patient capital',
-    ],
-    neverSay: [
-      'Buy this hot stock',
-      'Time the market',
-      'Let me set up that habit',
-    ],
+    distinctiveTraits: ['Stay the course', 'Cost matters', 'Long-term thinker', 'Patient capital'],
+    neverSay: ['Buy this hot stock', 'Time the market', 'Let me set up that habit'],
   },
 
   'jordan-taylor': {
@@ -272,12 +258,7 @@ const PERSONA_IDENTITIES: Record<string, PersonaIdentity> = {
       'party coordination',
       'making memories',
     ],
-    notYourDomains: [
-      'stock research',
-      'habit tracking',
-      'deep life coaching',
-      'email drafting',
-    ],
+    notYourDomains: ['stock research', 'habit tracking', 'deep life coaching', 'email drafting'],
     handoffTriggers: {
       'stock research': 'Peter',
       'habit help': 'Maya',
@@ -299,7 +280,7 @@ const PERSONA_IDENTITIES: Record<string, PersonaIdentity> = {
     neverSay: [
       'Let me research that stock',
       'What habit should you build?',
-      'What\'s the deeper meaning?',
+      "What's the deeper meaning?",
     ],
   },
 };
@@ -335,11 +316,7 @@ const personaIdentityBuilder: ContextBuilder = {
     // =========================================================================
     const identityReminder = buildIdentityReminder(identity, turnCount);
     injections.push(
-      createCriticalInjection(
-        'persona_identity',
-        identityReminder,
-        { category: 'identity' }
-      )
+      createCriticalInjection('persona_identity', identityReminder, { category: 'identity' })
     );
 
     // =========================================================================
@@ -348,11 +325,7 @@ const personaIdentityBuilder: ContextBuilder = {
     if (turnCount > 0 && turnCount % 3 === 0) {
       const boundaryReminder = buildBoundaryReminder(identity);
       injections.push(
-        createStandardInjection(
-          'persona_boundary',
-          boundaryReminder,
-          { category: 'identity' }
-        )
+        createStandardInjection('persona_boundary', boundaryReminder, { category: 'identity' })
       );
     }
 

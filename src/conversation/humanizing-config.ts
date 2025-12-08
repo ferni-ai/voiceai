@@ -136,6 +136,15 @@ export interface HumanizingConfig {
   };
 }
 
+/** Internal config type that includes context modifiers from persona bundles */
+interface InternalHumanizingConfig extends HumanizingConfig {
+  _contextModifiers?: {
+    serious_topics_reduction?: number;
+    personal_sharing_warmth_boost?: number;
+    high_emotion_breathing_boost?: number;
+  };
+}
+
 // ============================================================================
 // DEFAULT CONFIGURATION
 // ============================================================================
@@ -530,7 +539,7 @@ export function registerBundleHumanization(
   // Apply context modifiers (stored separately, used by SSML integration)
   if (bundleConfig.context_modifiers) {
     // Store these in a way that can be retrieved later
-    (config as any)._contextModifiers = bundleConfig.context_modifiers;
+    (config as InternalHumanizingConfig)._contextModifiers = bundleConfig.context_modifiers;
   }
 
   personaConfigs.set(personaId, config);
@@ -565,7 +574,7 @@ export function getPersonaContextModifiers(personaId: string): {
   personal_sharing_warmth_boost?: number;
   high_emotion_breathing_boost?: number;
 } {
-  const personaOverrides = personaConfigs.get(personaId) as any;
+  const personaOverrides = personaConfigs.get(personaId) as InternalHumanizingConfig | undefined;
   return (
     personaOverrides?._contextModifiers || {
       serious_topics_reduction: 0.5,

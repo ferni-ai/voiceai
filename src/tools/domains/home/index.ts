@@ -102,7 +102,9 @@ const remindHomeMaintenanceDef: ToolDefinition = {
     return llm.tool({
       description: 'Provide home maintenance reminders based on season and timing.',
       parameters: z.object({
-        season: z.enum(['spring', 'summer', 'fall', 'winter']).describe('Current or upcoming season'),
+        season: z
+          .enum(['spring', 'summer', 'fall', 'winter'])
+          .describe('Current or upcoming season'),
         homeType: z.enum(['house', 'condo', 'apartment', 'other']).optional(),
       }),
       execute: async ({ season, homeType }) => {
@@ -117,19 +119,25 @@ const remindHomeMaintenanceDef: ToolDefinition = {
         }
 
         response += `**High Priority:**\n`;
-        tasks.filter(t => t.priority === 'high').forEach(task => {
-          response += `☐ ${task.task} (${task.frequency})\n`;
-        });
+        tasks
+          .filter((t) => t.priority === 'high')
+          .forEach((task) => {
+            response += `☐ ${task.task} (${task.frequency})\n`;
+          });
 
         response += `\n**Medium Priority:**\n`;
-        tasks.filter(t => t.priority === 'medium').forEach(task => {
-          response += `☐ ${task.task} (${task.frequency})\n`;
-        });
+        tasks
+          .filter((t) => t.priority === 'medium')
+          .forEach((task) => {
+            response += `☐ ${task.task} (${task.frequency})\n`;
+          });
 
         response += `\n**Lower Priority:**\n`;
-        tasks.filter(t => t.priority === 'low').forEach(task => {
-          response += `☐ ${task.task} (${task.frequency})\n`;
-        });
+        tasks
+          .filter((t) => t.priority === 'low')
+          .forEach((task) => {
+            response += `☐ ${task.task} (${task.frequency})\n`;
+          });
 
         response += `\n---\n\n`;
         response += `**Year-Round Reminders:**\n`;
@@ -156,7 +164,9 @@ const trackRepairDef: ToolDefinition = {
     return llm.tool({
       description: 'Help track home repairs needed or completed.',
       parameters: z.object({
-        action: z.enum(['log-needed', 'log-completed', 'list', 'prioritize']).describe('What to do'),
+        action: z
+          .enum(['log-needed', 'log-completed', 'list', 'prioritize'])
+          .describe('What to do'),
         repair: z.string().optional().describe('Description of repair'),
         urgency: z.enum(['urgent', 'soon', 'eventually']).optional(),
         notes: z.string().optional(),
@@ -305,10 +315,19 @@ const organizeSpaceDef: ToolDefinition = {
     return llm.tool({
       description: 'Help organize a specific space or area.',
       parameters: z.object({
-        space: z.enum([
-          'closet', 'kitchen', 'bathroom', 'garage', 'office',
-          'kids-room', 'living-room', 'pantry', 'other',
-        ]).describe('Space to organize'),
+        space: z
+          .enum([
+            'closet',
+            'kitchen',
+            'bathroom',
+            'garage',
+            'office',
+            'kids-room',
+            'living-room',
+            'pantry',
+            'other',
+          ])
+          .describe('Space to organize'),
         goals: z.array(z.string()).optional().describe('Goals for the space'),
       }),
       execute: async ({ space, goals }) => {
@@ -318,7 +337,8 @@ const organizeSpaceDef: ToolDefinition = {
         if (goals?.length) response += `**Goals:** ${goals.join(', ')}\n\n`;
 
         const spaceTips: Record<string, string> = {
-          closet: `**Closet Organization:**\n\n` +
+          closet:
+            `**Closet Organization:**\n\n` +
             `• Group similar items (all shirts together, etc.)\n` +
             `• Use vertical space (shelf dividers, hooks)\n` +
             `• Put frequently used items at eye level\n` +
@@ -326,7 +346,8 @@ const organizeSpaceDef: ToolDefinition = {
             `• Clear floor space if possible\n` +
             `• Consider: matching hangers, shelf dividers, door organizers`,
 
-          kitchen: `**Kitchen Organization:**\n\n` +
+          kitchen:
+            `**Kitchen Organization:**\n\n` +
             `• Zone your kitchen (cooking, prep, storage, cleaning)\n` +
             `• Most-used items in easiest-to-reach spots\n` +
             `• Clear counters = calmer kitchen\n` +
@@ -334,7 +355,8 @@ const organizeSpaceDef: ToolDefinition = {
             `• Lazy susans for corner cabinets\n` +
             `• Consider: pull-out organizers, shelf risers, container systems`,
 
-          pantry: `**Pantry Organization:**\n\n` +
+          pantry:
+            `**Pantry Organization:**\n\n` +
             `• Group by category (baking, snacks, canned goods)\n` +
             `• FIFO: First In, First Out for expiring items\n` +
             `• Clear containers make contents visible\n` +
@@ -342,7 +364,8 @@ const organizeSpaceDef: ToolDefinition = {
             `• Keep inventory of staples\n` +
             `• Consider: tiered shelves, door organizers, bins`,
 
-          office: `**Office Organization:**\n\n` +
+          office:
+            `**Office Organization:**\n\n` +
             `• Clear desk = clearer mind\n` +
             `• Papers: File, Action, or Trash (no "maybe" pile)\n` +
             `• Cable management (ties, boxes, under-desk)\n` +
@@ -350,7 +373,8 @@ const organizeSpaceDef: ToolDefinition = {
             `• Designated inbox area\n` +
             `• Consider: desk drawer organizers, filing system, cord management`,
 
-          garage: `**Garage Organization:**\n\n` +
+          garage:
+            `**Garage Organization:**\n\n` +
             `• Use wall space (pegboards, wall systems)\n` +
             `• Zone by activity (tools, sports, garden)\n` +
             `• Ceiling storage for seasonal items\n` +
@@ -359,12 +383,14 @@ const organizeSpaceDef: ToolDefinition = {
             `• Consider: wall mount systems, overhead storage, tool organization`,
         };
 
-        response += spaceTips[space] || `**General Organization Principles:**\n` +
-          `• Everything should have a "home"\n` +
-          `• Group like with like\n` +
-          `• Most used = most accessible\n` +
-          `• Contain items in bins, baskets, dividers\n` +
-          `• Label to maintain the system\n`;
+        response +=
+          spaceTips[space] ||
+          `**General Organization Principles:**\n` +
+            `• Everything should have a "home"\n` +
+            `• Group like with like\n` +
+            `• Most used = most accessible\n` +
+            `• Contain items in bins, baskets, dividers\n` +
+            `• Label to maintain the system\n`;
 
         response += `\n---\n\n`;
 
@@ -397,7 +423,9 @@ const planMoveDef: ToolDefinition = {
     return llm.tool({
       description: 'Help plan a residential move.',
       parameters: z.object({
-        timeUntilMove: z.enum(['1-week', '2-weeks', '1-month', '2-months', 'more']).describe('Time until move'),
+        timeUntilMove: z
+          .enum(['1-week', '2-weeks', '1-month', '2-months', 'more'])
+          .describe('Time until move'),
         moveType: z.enum(['local', 'long-distance', 'international']).describe('Type of move'),
         situation: z.enum(['renting', 'selling', 'buying']).optional(),
       }),
@@ -496,7 +524,7 @@ const assessEmergencyPreparednessDef: ToolDefinition = {
 
         if (focus === 'supplies' || focus === 'all') {
           response += `**📦 Emergency Supplies:**\n\n`;
-          EMERGENCY_PREP_CHECKLIST.supplies.forEach(item => {
+          EMERGENCY_PREP_CHECKLIST.supplies.forEach((item) => {
             response += `☐ ${item}\n`;
           });
           response += `\n`;
@@ -504,7 +532,7 @@ const assessEmergencyPreparednessDef: ToolDefinition = {
 
         if (focus === 'documents' || focus === 'all') {
           response += `**📄 Important Documents:**\n\n`;
-          EMERGENCY_PREP_CHECKLIST.documents.forEach(item => {
+          EMERGENCY_PREP_CHECKLIST.documents.forEach((item) => {
             response += `☐ ${item}\n`;
           });
           response += `\n_Store copies in waterproof container or upload to secure cloud storage_\n\n`;
@@ -512,7 +540,7 @@ const assessEmergencyPreparednessDef: ToolDefinition = {
 
         if (focus === 'planning' || focus === 'all') {
           response += `**📋 Emergency Planning:**\n\n`;
-          EMERGENCY_PREP_CHECKLIST.planning.forEach(item => {
+          EMERGENCY_PREP_CHECKLIST.planning.forEach((item) => {
             response += `☐ ${item}\n`;
           });
           response += `\n`;
@@ -628,7 +656,9 @@ const manageContractorDef: ToolDefinition = {
     return llm.tool({
       description: 'Help with finding and managing home contractors.',
       parameters: z.object({
-        phase: z.enum(['finding', 'vetting', 'contracting', 'during-project', 'issues']).describe('Project phase'),
+        phase: z
+          .enum(['finding', 'vetting', 'contracting', 'during-project', 'issues'])
+          .describe('Project phase'),
         projectType: z.string().optional().describe('Type of project'),
       }),
       execute: async ({ phase, projectType }) => {
@@ -638,7 +668,8 @@ const manageContractorDef: ToolDefinition = {
         if (projectType) response += `**Project:** ${projectType}\n\n`;
 
         const phaseAdvice: Record<string, string> = {
-          finding: `**Finding Good Contractors:**\n\n` +
+          finding:
+            `**Finding Good Contractors:**\n\n` +
             `• Ask neighbors and friends for referrals\n` +
             `• Check local community groups/Nextdoor\n` +
             `• Look for specialists in your type of project\n` +
@@ -651,7 +682,8 @@ const manageContractorDef: ToolDefinition = {
             `• Pressure to decide immediately\n` +
             `• Won't provide references`,
 
-          vetting: `**Vetting Contractors:**\n\n` +
+          vetting:
+            `**Vetting Contractors:**\n\n` +
             `**Questions to ask:**\n` +
             `• How long have you been in business?\n` +
             `• Are you licensed and insured? (Verify!)\n` +
@@ -667,7 +699,8 @@ const manageContractorDef: ToolDefinition = {
             `• Online reviews (multiple sources)\n` +
             `• References (actually call them)`,
 
-          contracting: `**The Contract:**\n\n` +
+          contracting:
+            `**The Contract:**\n\n` +
             `**Must include:**\n` +
             `• Detailed scope of work\n` +
             `• Materials specifications\n` +
@@ -683,7 +716,8 @@ const manageContractorDef: ToolDefinition = {
             `• Hold final 10-15% until fully complete\n` +
             `• Pay by check or card for records`,
 
-          'during-project': `**During the Project:**\n\n` +
+          'during-project':
+            `**During the Project:**\n\n` +
             `• Document everything (photos, notes)\n` +
             `• Communicate in writing when possible\n` +
             `• Ask questions if something seems wrong\n` +
@@ -692,7 +726,8 @@ const manageContractorDef: ToolDefinition = {
             `• Be available for decisions\n` +
             `• Be respectful but firm about expectations`,
 
-          issues: `**Handling Problems:**\n\n` +
+          issues:
+            `**Handling Problems:**\n\n` +
             `**First steps:**\n` +
             `• Address directly with contractor\n` +
             `• Document the issue in writing\n` +
@@ -744,10 +779,6 @@ const homeTools: ToolDefinition[] = [
 // EXPORTS
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'home',
-  homeTools
-);
+export const { getToolDefinitions, domain, definitions } = createDomainExport('home', homeTools);
 
 export default getToolDefinitions;
-

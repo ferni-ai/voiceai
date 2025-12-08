@@ -55,15 +55,19 @@ export async function handleGetPredictions(
           )
         : ((profile.stats as AnyRecord)?.predictionAccuracy as number) || 0;
 
-    sendJSONCached(res, {
-      predictions,
-      stats: {
-        totalPredictions: ((profile.stats as AnyRecord)?.totalPredictions as number) || 0,
-        averageAccuracy: avgAccuracy,
-        pendingCount: validPredictions.filter((p) => !p.completedAt).length,
-        expiredCount: predictions.filter((p) => p.status === 'expired').length,
+    sendJSONCached(
+      res,
+      {
+        predictions,
+        stats: {
+          totalPredictions: ((profile.stats as AnyRecord)?.totalPredictions as number) || 0,
+          averageAccuracy: avgAccuracy,
+          pendingCount: validPredictions.filter((p) => !p.completedAt).length,
+          expiredCount: predictions.filter((p) => p.status === 'expired').length,
+        },
       },
-    }, 60);
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get predictions');
     sendError(res, API_ERRORS.PREDICTIONS_FETCH_FAILED, 500);

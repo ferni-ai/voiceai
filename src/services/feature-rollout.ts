@@ -469,9 +469,9 @@ export class FeatureRolloutService {
       try {
         const result = await Promise.race([
           check.check(featureId, context),
-          new Promise<ValidationResult>((_, reject) =>
-            setTimeout(() => reject(new Error('Check timeout')), check.timeoutMs || 10000)
-          ),
+          new Promise<ValidationResult>((_, reject) => {
+            setTimeout(() => reject(new Error('Check timeout')), check.timeoutMs || 10000);
+          }),
         ]);
 
         state.validationResults.push({

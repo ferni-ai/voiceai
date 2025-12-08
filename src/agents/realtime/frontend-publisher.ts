@@ -111,7 +111,7 @@ export interface CelebrationMessage extends BaseMessage {
 
 /**
  * Music state message
- * 
+ *
  * States:
  * - 'playing' = Music actively playing
  * - 'ducking' = Agent speaking over music (DJ fade-down)
@@ -210,7 +210,7 @@ export class FrontendPublisher {
    * Check if connected and ready to send
    */
   isConnected(): boolean {
-    return !!(this.room?.localParticipant);
+    return !!this.room?.localParticipant;
   }
 
   // ============================================================================
@@ -251,7 +251,9 @@ export class FrontendPublisher {
             { type: message.type, attempt: attempt + 1, error: String(error) },
             `Send failed, retrying in ${delay}ms...`
           );
-          await new Promise((resolve) => setTimeout(resolve, delay));
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, delay);
+          });
         } else {
           this.logger.error(
             { type: message.type, attempts: attempt + 1, error: String(error) },
@@ -348,11 +350,7 @@ export class FrontendPublisher {
   /**
    * Send emotion update to frontend
    */
-  async sendEmotion(
-    emotion: string,
-    confidence: number,
-    intensity: number
-  ): Promise<boolean> {
+  async sendEmotion(emotion: string, confidence: number, intensity: number): Promise<boolean> {
     // Only send if confidence is meaningful
     if (confidence < 0.5) {
       return false;
@@ -412,9 +410,20 @@ export class FrontendPublisher {
   async sendCelebrationEvents(
     injections: Array<{ category: string; content: string }>
   ): Promise<void> {
-    const celebrationConfigs: Record<string, { celebrationType: string; effect: 'fireworks' | 'sparkles'; message?: string }> = {
-      milestone: { celebrationType: 'milestone', effect: 'fireworks', message: '🎆 Milestone achieved!' },
-      achievement: { celebrationType: 'achievement', effect: 'fireworks', message: '🎆 Great achievement!' },
+    const celebrationConfigs: Record<
+      string,
+      { celebrationType: string; effect: 'fireworks' | 'sparkles'; message?: string }
+    > = {
+      milestone: {
+        celebrationType: 'milestone',
+        effect: 'fireworks',
+        message: '🎆 Milestone achieved!',
+      },
+      achievement: {
+        celebrationType: 'achievement',
+        effect: 'fireworks',
+        message: '🎆 Great achievement!',
+      },
       aha_moment: { celebrationType: 'aha_moment', effect: 'sparkles' },
       good_news: { celebrationType: 'good_news', effect: 'sparkles' },
     };
@@ -433,7 +442,7 @@ export class FrontendPublisher {
 
   /**
    * Send music state update to frontend
-   * 
+   *
    * States:
    * - 'playing' = Music actively playing
    * - 'ducking' = Agent speaking over music (DJ fade-down)
@@ -446,7 +455,7 @@ export class FrontendPublisher {
   async sendMusicState(
     state: 'playing' | 'ducking' | 'fading' | 'changing' | 'paused' | 'stopped' | 'idle',
     track?: { name: string; artist?: string },
-    isAmbient: boolean = false
+    isAmbient = false
   ): Promise<boolean> {
     diag.state('Music state', { state, track: track?.name, isAmbient });
 
@@ -465,7 +474,9 @@ export class FrontendPublisher {
   /**
    * Send engagement data to frontend
    */
-  async sendEngagementData(data: Omit<EngagementDataMessage, 'type' | 'timestamp'>): Promise<boolean> {
+  async sendEngagementData(
+    data: Omit<EngagementDataMessage, 'type' | 'timestamp'>
+  ): Promise<boolean> {
     return this.send<EngagementDataMessage>({
       type: 'engagement_data',
       ...data,
@@ -494,10 +505,9 @@ export class FrontendPublisher {
         timestamp: Date.now(),
       });
 
-      await this.room.localParticipant.publishData(
-        new TextEncoder().encode(message),
-        { reliable: true }
-      );
+      await this.room.localParticipant.publishData(new TextEncoder().encode(message), {
+        reliable: true,
+      });
 
       if (this.config.verbose) {
         this.logger.debug({ type }, 'Generic message sent to frontend');
@@ -530,7 +540,10 @@ export function getFrontendPublisher(): FrontendPublisher {
 /**
  * Initialize the FrontendPublisher with a room
  */
-export function initializeFrontendPublisher(room: RoomRef, config?: PublisherConfig): FrontendPublisher {
+export function initializeFrontendPublisher(
+  room: RoomRef,
+  config?: PublisherConfig
+): FrontendPublisher {
   if (!publisherInstance) {
     publisherInstance = new FrontendPublisher(room, config);
   } else {
@@ -545,4 +558,3 @@ export function initializeFrontendPublisher(room: RoomRef, config?: PublisherCon
 export function resetFrontendPublisher(): void {
   publisherInstance = null;
 }
-

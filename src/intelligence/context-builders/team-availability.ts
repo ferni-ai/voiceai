@@ -248,4 +248,3 @@ registerContextBuilder({
 });
 
 export { buildTeamAvailabilityContext };
-

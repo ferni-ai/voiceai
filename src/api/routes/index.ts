@@ -16,22 +16,45 @@ export { handleGetConversations, handleConversationsRoutes } from './conversatio
 export { handleGetUserAnalytics, handleAnalyticsRoutes } from './analytics.js';
 
 // Predictions routes
-export { handleGetPredictions, handleUpdatePredictionActuals, handlePredictionsRoutes } from './predictions.js';
+export {
+  handleGetPredictions,
+  handleUpdatePredictionActuals,
+  handlePredictionsRoutes,
+} from './predictions.js';
 
 // Rituals routes
-export { handleGetRituals, handleCreateRitual, handleDeleteRitual, handleCompleteRitual, handleRitualsRoutes } from './rituals.js';
+export {
+  handleGetRituals,
+  handleCreateRitual,
+  handleDeleteRitual,
+  handleCompleteRitual,
+  handleRitualsRoutes,
+} from './rituals.js';
 
 // Memories routes
-export { handleGetCognitiveMemories, handleDeleteMemory, handleMemoriesRoutes } from './memories.js';
+export {
+  handleGetCognitiveMemories,
+  handleDeleteMemory,
+  handleMemoriesRoutes,
+} from './memories.js';
 
 // Team routes
 export { handleGetHuddles, handleTeamRoutes } from './team.js';
 
 // Data export/delete routes
-export { handleGetExportCategories, handleExportData, handleDeleteAllData, handleDataRoutes } from './data.js';
+export {
+  handleGetExportCategories,
+  handleExportData,
+  handleDeleteAllData,
+  handleDataRoutes,
+} from './data.js';
 
 // Relationship routes
 export { handleGetRelationshipProgress, handleRelationshipRoutes } from './relationship.js';
 
 // Sky Check routes (daily check-in / emotional weather)
-export { handleRecordSkyCheck, handleGetSkyCheckHistory, handleSkyCheckRoutes } from './sky-check.js';
+export {
+  handleRecordSkyCheck,
+  handleGetSkyCheckHistory,
+  handleSkyCheckRoutes,
+} from './sky-check.js';

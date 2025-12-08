@@ -68,14 +68,20 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Maya',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
 }
 
 // Helper to execute tools that need the second context argument
-function executeWithContext(tool: { execute: Function }, params: Record<string, unknown>, ctx: ToolContext) {
+function executeWithContext(
+  tool: { execute: Function },
+  params: Record<string, unknown>,
+  ctx: ToolContext
+) {
   return tool.execute(params, { ctx });
 }
 
@@ -109,31 +115,31 @@ describe('Health Domain Tools', () => {
     });
 
     it('should have logExercise tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'logExercise');
+      const tool = toolDefinitions.find((t) => t.id === 'logExercise');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('health');
     });
 
     it('should have suggestWorkout tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'suggestWorkout');
+      const tool = toolDefinitions.find((t) => t.id === 'suggestWorkout');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('health');
     });
 
     it('should have trackFitnessGoal tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'trackFitnessGoal');
+      const tool = toolDefinitions.find((t) => t.id === 'trackFitnessGoal');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('health');
     });
 
     it('should have coachOnNutrition tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'coachOnNutrition');
+      const tool = toolDefinitions.find((t) => t.id === 'coachOnNutrition');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('health');
     });
 
     it('should have analyzeSleepPattern tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'analyzeSleepPattern');
+      const tool = toolDefinitions.find((t) => t.id === 'analyzeSleepPattern');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('health');
     });
@@ -145,15 +151,19 @@ describe('Health Domain Tools', () => {
 
   describe('logExercise', () => {
     it('should log cardio exercise', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'logExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'logExercise');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        activityType: 'cardio',
-        activityName: 'Running',
-        durationMinutes: 30,
-        intensity: 'moderate',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          activityType: 'cardio',
+          activityName: 'Running',
+          durationMinutes: 30,
+          intensity: 'moderate',
+        },
+        mockContext
+      );
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -163,41 +173,53 @@ describe('Health Domain Tools', () => {
     });
 
     it('should log strength exercise', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'logExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'logExercise');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        activityType: 'strength',
-        durationMinutes: 45,
-        intensity: 'vigorous',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          activityType: 'strength',
+          durationMinutes: 45,
+          intensity: 'vigorous',
+        },
+        mockContext
+      );
 
       expect(result).toContain('Exercise Logged');
       expect(result).toContain('strength');
     });
 
     it('should include calorie estimate when intensity is provided', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'logExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'logExercise');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        activityType: 'cardio',
-        durationMinutes: 30,
-        intensity: 'moderate',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          activityType: 'cardio',
+          durationMinutes: 30,
+          intensity: 'moderate',
+        },
+        mockContext
+      );
 
       expect(result).toContain('calorie');
     });
 
     it('should include how they feel when provided', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'logExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'logExercise');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        activityType: 'yoga',
-        durationMinutes: 60,
-        howTheyFeel: 'Relaxed and centered',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          activityType: 'yoga',
+          durationMinutes: 60,
+          howTheyFeel: 'Relaxed and centered',
+        },
+        mockContext
+      );
 
       expect(result).toContain('Relaxed and centered');
     });
@@ -209,7 +231,7 @@ describe('Health Domain Tools', () => {
 
   describe('suggestWorkout', () => {
     it('should suggest workout for low energy', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'suggestWorkout');
+      const toolDef = toolDefinitions.find((t) => t.id === 'suggestWorkout');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -224,7 +246,7 @@ describe('Health Domain Tools', () => {
     });
 
     it('should suggest workout for high energy', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'suggestWorkout');
+      const toolDef = toolDefinitions.find((t) => t.id === 'suggestWorkout');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -244,39 +266,51 @@ describe('Health Domain Tools', () => {
 
   describe('trackFitnessGoal', () => {
     it('should help set a fitness goal', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackFitnessGoal');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackFitnessGoal');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'set',
-        goalType: 'exercise-frequency',
-        goalDescription: 'Exercise 3 times per week',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'set',
+          goalType: 'exercise-frequency',
+          goalDescription: 'Exercise 3 times per week',
+        },
+        mockContext
+      );
 
       expect(result).toContain('Goal');
       expect(result).toContain('Exercise 3 times per week');
     });
 
     it('should celebrate goal achievement', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackFitnessGoal');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackFitnessGoal');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'celebrate',
-        goalDescription: 'Run a 5K',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'celebrate',
+          goalDescription: 'Run a 5K',
+        },
+        mockContext
+      );
 
       expect(result).toContain('Achievement');
     });
 
     it('should check goal progress', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackFitnessGoal');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackFitnessGoal');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'check',
-        currentProgress: 'Completed 2 of 3 workouts this week',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'check',
+          currentProgress: 'Completed 2 of 3 workouts this week',
+        },
+        mockContext
+      );
 
       expect(result).toContain('Progress');
     });
@@ -288,7 +322,7 @@ describe('Health Domain Tools', () => {
 
   describe('coachOnNutrition', () => {
     it('should provide general nutrition guidance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coachOnNutrition');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coachOnNutrition');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -301,14 +335,16 @@ describe('Health Domain Tools', () => {
     });
 
     it('should provide hydration guidance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'coachOnNutrition');
+      const toolDef = toolDefinitions.find((t) => t.id === 'coachOnNutrition');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
         topic: 'hydration',
       });
 
-      expect(result.toLowerCase().includes('water') || result.toLowerCase().includes('hydrat')).toBe(true);
+      expect(
+        result.toLowerCase().includes('water') || result.toLowerCase().includes('hydrat')
+      ).toBe(true);
     });
   });
 
@@ -318,7 +354,7 @@ describe('Health Domain Tools', () => {
 
   describe('analyzeSleepPattern', () => {
     it('should analyze sleep pattern', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'analyzeSleepPattern');
+      const toolDef = toolDefinitions.find((t) => t.id === 'analyzeSleepPattern');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -334,7 +370,7 @@ describe('Health Domain Tools', () => {
 
   describe('suggestSleepHygiene', () => {
     it('should suggest sleep hygiene improvements', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'suggestSleepHygiene');
+      const toolDef = toolDefinitions.find((t) => t.id === 'suggestSleepHygiene');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -353,7 +389,7 @@ describe('Health Domain Tools', () => {
 
   describe('logSymptom', () => {
     it('should log a symptom', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'logSymptom');
+      const toolDef = toolDefinitions.find((t) => t.id === 'logSymptom');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -373,7 +409,7 @@ describe('Health Domain Tools', () => {
 
   describe('assessEnergyLevel', () => {
     it('should assess energy level', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'assessEnergyLevel');
+      const toolDef = toolDefinitions.find((t) => t.id === 'assessEnergyLevel');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -393,13 +429,17 @@ describe('Health Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'logExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'logExercise');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        activityType: 'cardio',
-        durationMinutes: 30,
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          activityType: 'cardio',
+          durationMinutes: 30,
+        },
+        mockContext
+      );
 
       expect(result).not.toContain('TODO');
       expect(result).not.toContain('placeholder');
@@ -407,17 +447,20 @@ describe('Health Domain Tools', () => {
     });
 
     it('should include encouraging messaging', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'logExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'logExercise');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        activityType: 'strength',
-        durationMinutes: 45,
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          activityType: 'strength',
+          durationMinutes: 45,
+        },
+        mockContext
+      );
 
       // Should have positive/encouraging language
       expect(result.length).toBeGreaterThan(100);
     });
   });
 });
-

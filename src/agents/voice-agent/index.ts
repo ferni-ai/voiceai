@@ -1,11 +1,11 @@
 /**
  * Voice Agent Module Index
- * 
+ *
  * Re-exports voice agent components for cleaner imports.
  */
 
 // Types
-export * from './types.js';
+export type * from './types.js';
 
 // Session utilities (to be added)
 // export * from './session-setup.js';
@@ -46,7 +46,7 @@ export function isRealUserName(name: string | undefined): boolean {
  */
 export function parsePersonaFromMetadata(metadata: string | undefined): string | null {
   if (!metadata) return null;
-  
+
   try {
     const parsed = JSON.parse(metadata);
     return parsed.persona_id || parsed.personaId || null;
@@ -58,11 +58,12 @@ export function parsePersonaFromMetadata(metadata: string | undefined): string |
 /**
  * Parse user info from job metadata
  */
-export function parseUserFromMetadata(
-  metadata: string | undefined
-): { userId?: string; userName?: string } {
+export function parseUserFromMetadata(metadata: string | undefined): {
+  userId?: string;
+  userName?: string;
+} {
   if (!metadata) return {};
-  
+
   try {
     const parsed = JSON.parse(metadata);
     return {
@@ -73,4 +74,3 @@ export function parseUserFromMetadata(
     return {};
   }
 }
-

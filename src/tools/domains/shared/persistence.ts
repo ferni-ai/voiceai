@@ -32,12 +32,7 @@ export interface ToolCtxWithUserData {
     keyMoments?: string[];
     topics?: string[];
     services?: {
-      captureInsight?: (
-        type: string,
-        source: string,
-        insight: string,
-        confidence: number
-      ) => void;
+      captureInsight?: (type: string, source: string, insight: string, confidence: number) => void;
       learningEngine?: {
         captureExternalKeyMoment: (moment: {
           id: string;
@@ -95,10 +90,7 @@ export interface TrackedItemData {
  * Persist an insight to the learning engine
  * Use for facts, preferences, and learnings about the user
  */
-export function persistInsight(
-  toolCtx: ToolCtxWithUserData,
-  insight: InsightData
-): boolean {
+export function persistInsight(toolCtx: ToolCtxWithUserData, insight: InsightData): boolean {
   const { services } = toolCtx.userData ?? {};
 
   if (!services?.captureInsight) {
@@ -124,10 +116,7 @@ export function persistInsight(
     );
     return true;
   } catch (error) {
-    getLogger().error(
-      { error, domain: insight.domain },
-      'Failed to persist insight'
-    );
+    getLogger().error({ error, domain: insight.domain }, 'Failed to persist insight');
     return false;
   }
 }
@@ -136,10 +125,7 @@ export function persistInsight(
  * Persist a key moment to the learning engine
  * Use for significant events, milestones, decisions, breakthroughs
  */
-export function persistKeyMoment(
-  toolCtx: ToolCtxWithUserData,
-  moment: KeyMomentData
-): boolean {
+export function persistKeyMoment(toolCtx: ToolCtxWithUserData, moment: KeyMomentData): boolean {
   const userData = toolCtx.userData ?? {};
   const { services } = userData;
 
@@ -173,10 +159,7 @@ export function persistKeyMoment(
     );
     return true;
   } catch (error) {
-    getLogger().error(
-      { error, domain: moment.domain },
-      'Failed to persist key moment'
-    );
+    getLogger().error({ error, domain: moment.domain }, 'Failed to persist key moment');
     return false;
   }
 }
@@ -185,12 +168,8 @@ export function persistKeyMoment(
  * Persist a tracked item (exercise, job application, etc.)
  * Wraps as insight with structured data
  */
-export function persistTrackedItem(
-  toolCtx: ToolCtxWithUserData,
-  item: TrackedItemData
-): boolean {
-  const confidence =
-    item.importance === 'high' ? 0.9 : item.importance === 'medium' ? 0.7 : 0.5;
+export function persistTrackedItem(toolCtx: ToolCtxWithUserData, item: TrackedItemData): boolean {
+  const confidence = item.importance === 'high' ? 0.9 : item.importance === 'medium' ? 0.7 : 0.5;
 
   return persistInsight(toolCtx, {
     domain: item.domain,
@@ -253,4 +232,3 @@ export default {
   addToSessionContext,
   queryPastKnowledge,
 };
-

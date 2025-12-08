@@ -40,7 +40,9 @@ function extractPatternsFromProfile(profile: AnyRecord | null): Pattern[] {
     };
     patterns.push({
       id: 'comm_style',
-      pattern: styleDescriptions[profile.communicationStyle as string] || `Prefers ${profile.communicationStyle} communication`,
+      pattern:
+        styleDescriptions[profile.communicationStyle as string] ||
+        `Prefers ${profile.communicationStyle} communication`,
       frequency: totalConvos,
       examples: [],
       category: 'communication',
@@ -84,9 +86,10 @@ function extractPatternsFromProfile(profile: AnyRecord | null): Pattern[] {
     const totalMins = profile.totalMinutesTalked as number;
     const hours = Math.floor(totalMins / 60);
     const mins = totalMins % 60;
-    const timeStr = hours > 0
-      ? `${hours} hour${hours > 1 ? 's' : ''}${mins > 0 ? ` and ${mins} minutes` : ''}`
-      : `${mins} minutes`;
+    const timeStr =
+      hours > 0
+        ? `${hours} hour${hours > 1 ? 's' : ''}${mins > 0 ? ` and ${mins} minutes` : ''}`
+        : `${mins} minutes`;
     patterns.push({
       id: 'time_together',
       pattern: `We've spent about ${timeStr} in conversation`,
@@ -139,27 +142,29 @@ export async function handleGetCognitiveMemories(
         userProfile as unknown as Parameters<typeof extractLearnedMemories>[0]
       );
       profileMemories = (profileData.memories || []).map((m) => ({
-        id: (m as AnyRecord).id as string || '',
-        type: (m as AnyRecord).type as string || 'fact',
-        content: (m as AnyRecord).content as string || '',
+        id: ((m as AnyRecord).id as string) || '',
+        type: ((m as AnyRecord).type as string) || 'fact',
+        content: ((m as AnyRecord).content as string) || '',
         confidence: ((m as AnyRecord).confidence as number) ?? 0.7,
-        source: (m as AnyRecord).source as string || 'profile',
-        learnedAt: (m as AnyRecord).learnedAt as string || new Date().toISOString(),
+        source: ((m as AnyRecord).source as string) || 'profile',
+        learnedAt: ((m as AnyRecord).learnedAt as string) || new Date().toISOString(),
         personaId: (m as AnyRecord).personaId as string,
-        sourceType: (m as AnyRecord).sourceType as string || 'profile',
+        sourceType: ((m as AnyRecord).sourceType as string) || 'profile',
       }));
       profilePatterns = (profileData.patterns || []).map((p) => ({
-        id: (p as AnyRecord).id as string || '',
-        pattern: (p as AnyRecord).pattern as string || '',
+        id: ((p as AnyRecord).id as string) || '',
+        pattern: ((p as AnyRecord).pattern as string) || '',
         frequency: ((p as AnyRecord).frequency as number) ?? 1,
-        examples: (p as AnyRecord).examples as string[] || [],
-        category: (p as AnyRecord).category as string || 'general',
+        examples: ((p as AnyRecord).examples as string[]) || [],
+        category: ((p as AnyRecord).category as string) || 'general',
       }));
     }
 
     // Deduplicate
     const seenContent = new Set(personaMemories.map((m) => m.content.toLowerCase()));
-    const uniqueProfileMemories = profileMemories.filter((m) => !seenContent.has(m.content.toLowerCase()));
+    const uniqueProfileMemories = profileMemories.filter(
+      (m) => !seenContent.has(m.content.toLowerCase())
+    );
 
     const allMemories = [...personaMemories, ...uniqueProfileMemories];
     allMemories.sort((a, b) => {
@@ -176,9 +181,16 @@ export async function handleGetCognitiveMemories(
     });
 
     const totalInteractions = (userProfile?.totalConversations as number) || 0;
-    const knowledgeScore = Math.min(100, Math.round(allMemories.length * 3 + totalInteractions * 2 + uniquePatterns.length * 5));
+    const knowledgeScore = Math.min(
+      100,
+      Math.round(allMemories.length * 3 + totalInteractions * 2 + uniquePatterns.length * 5)
+    );
 
-    sendJSONCached(res, { memories: allMemories, patterns: uniquePatterns, totalInteractions, knowledgeScore }, 60);
+    sendJSONCached(
+      res,
+      { memories: allMemories, patterns: uniquePatterns, totalInteractions, knowledgeScore },
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get cognitive memories');
     sendJSON(res, { memories: [], patterns: [], totalInteractions: 0, knowledgeScore: 0 }, 500);

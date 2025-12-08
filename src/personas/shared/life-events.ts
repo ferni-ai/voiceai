@@ -411,7 +411,9 @@ export function convertFromUserProfileEvent(event: UserProfileLifeEvent): LifeEv
     type: typeMap[event.type] || 'custom',
     date: event.date || new Date(),
     description: event.title || event.description,
-    recurring: ['birthday', 'anniversary', 'work_anniversary', 'memorial'].includes(typeMap[event.type]),
+    recurring: ['birthday', 'anniversary', 'work_anniversary', 'memorial'].includes(
+      typeMap[event.type]
+    ),
     context: event.description,
   };
 }

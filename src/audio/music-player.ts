@@ -586,7 +586,9 @@ export class CallMusicPlayer {
 
     // Wait for DJ transition moment (agent speaks during this)
     // 1.5 seconds is enough for a quick DJ callout
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 1500);
+    });
 
     // Stop the current track (quick fade handled by the short wait above)
     if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
@@ -765,10 +767,7 @@ export class CallMusicPlayer {
       return outputPath;
     } catch (error) {
       // Log but don't fail - fall back to raw audio
-      getLogger().warn(
-        { error, inputPath },
-        '🎧 Failed to apply DJ fade-out - using raw audio'
-      );
+      getLogger().warn({ error, inputPath }, '🎧 Failed to apply DJ fade-out - using raw audio');
       return inputPath;
     }
   }

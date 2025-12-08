@@ -183,21 +183,14 @@ export function setBaseline(metricId: string, value: number): void {
 /**
  * Record satisfaction rating
  */
-export function recordSatisfactionRating(
-  userId: string,
-  rating: number,
-  context?: string
-): void {
+export function recordSatisfactionRating(userId: string, rating: number, context?: string): void {
   recordMetricValue('user_satisfaction', rating, userId, { context });
 }
 
 /**
  * Record session duration
  */
-export function recordSessionDuration(
-  userId: string,
-  durationMs: number
-): void {
+export function recordSessionDuration(userId: string, durationMs: number): void {
   recordMetricValue('session_duration', durationMs, userId);
 }
 
@@ -227,10 +220,7 @@ export function recordDetectionAccuracy(
 /**
  * Get summary for a specific metric
  */
-export function getMetricSummary(
-  metricId: string,
-  periodDays: number = 30
-): MetricSummary | null {
+export function getMetricSummary(metricId: string, periodDays = 30): MetricSummary | null {
   const metric = VALIDATION_METRICS.find((m) => m.id === metricId);
   if (!metric) return null;
 
@@ -273,12 +263,10 @@ export function getMetricSummary(
 /**
  * Get summaries for all metrics
  */
-export function getAllMetricSummaries(
-  periodDays: number = 30
-): MetricSummary[] {
-  return VALIDATION_METRICS
-    .map((m) => getMetricSummary(m.id, periodDays))
-    .filter((s): s is MetricSummary => s !== null);
+export function getAllMetricSummaries(periodDays = 30): MetricSummary[] {
+  return VALIDATION_METRICS.map((m) => getMetricSummary(m.id, periodDays)).filter(
+    (s): s is MetricSummary => s !== null
+  );
 }
 
 /**
@@ -315,7 +303,7 @@ export function getValidationStatus(): {
       if (metric) {
         recommendations.push(
           `${metric.name}: Current ${summary.current.toFixed(2)} ${metric.unit}, ` +
-          `target ${metric.target} ${metric.unit}. Delta: ${summary.deltaPercent.toFixed(1)}%`
+            `target ${metric.target} ${metric.unit}. Delta: ${summary.deltaPercent.toFixed(1)}%`
         );
       }
     }
@@ -365,13 +353,11 @@ export function getABTestResult(testId: string): ABTestResult | null {
   const results = abTestResults.get(testId);
   if (!results) return null;
 
-  const conversionRateA = results.a.length > 0
-    ? results.a.reduce((a, b) => a + b, 0) / results.a.length
-    : 0;
+  const conversionRateA =
+    results.a.length > 0 ? results.a.reduce((a, b) => a + b, 0) / results.a.length : 0;
 
-  const conversionRateB = results.b.length > 0
-    ? results.b.reduce((a, b) => a + b, 0) / results.b.length
-    : 0;
+  const conversionRateB =
+    results.b.length > 0 ? results.b.reduce((a, b) => a + b, 0) / results.b.length : 0;
 
   // Simple significance calculation (would use proper stats lib in production)
   const minSamples = 100;
@@ -445,7 +431,7 @@ export function recordUserFeedback(
 /**
  * Get feedback summary
  */
-export function getFeedbackSummary(periodDays: number = 30): {
+export function getFeedbackSummary(periodDays = 30): {
   avgRating: number;
   totalFeedback: number;
   positivePercent: number;
@@ -505,4 +491,3 @@ export default {
   recordUserFeedback,
   getFeedbackSummary,
 };
-

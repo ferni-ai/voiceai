@@ -42,7 +42,7 @@ export interface Exercise {
   name: string;
   description: string;
   category: 'grounding' | 'breathing' | 'relaxation' | 'awareness';
-  duration: 'short' | 'medium' | 'long';  // < 2min, 2-5min, > 5min
+  duration: 'short' | 'medium' | 'long'; // < 2min, 2-5min, > 5min
   intensity: 'gentle' | 'moderate' | 'intense';
 
   /** When to suggest this exercise */
@@ -74,9 +74,9 @@ export interface ExerciseResult {
 }
 
 export type NervousSystemState =
-  | 'ventral_vagal'   // Safe, social, connected (parasympathetic)
-  | 'sympathetic'     // Fight/flight, anxious, angry
-  | 'dorsal_vagal';   // Shutdown, frozen, dissociated
+  | 'ventral_vagal' // Safe, social, connected (parasympathetic)
+  | 'sympathetic' // Fight/flight, anxious, angry
+  | 'dorsal_vagal'; // Shutdown, frozen, dissociated
 
 // ============================================================================
 // GROUNDING EXERCISES
@@ -101,7 +101,8 @@ export const FIVE_SENSES_GROUNDING: Exercise = {
     {
       instruction: 'Look around and name 5 things you can see',
       durationMs: 15000,
-      voiceGuidance: "Let's ground together. Look around you and name five things you can see. Take your time.",
+      voiceGuidance:
+        "Let's ground together. Look around you and name five things you can see. Take your time.",
       ssml: `<speak>
         <prosody rate="slow" pitch="-5%">
           Let's ground together. 
@@ -117,7 +118,8 @@ export const FIVE_SENSES_GROUNDING: Exercise = {
     {
       instruction: 'Notice 4 things you can physically feel',
       durationMs: 12000,
-      voiceGuidance: "Now notice four things you can physically feel right now. The chair under you. Your feet on the floor. Anything touching your skin.",
+      voiceGuidance:
+        'Now notice four things you can physically feel right now. The chair under you. Your feet on the floor. Anything touching your skin.',
       ssml: `<speak>
         <prosody rate="slow" pitch="-5%">
           Now notice four things you can physically feel right now.
@@ -131,7 +133,8 @@ export const FIVE_SENSES_GROUNDING: Exercise = {
     {
       instruction: 'Listen for 3 sounds around you',
       durationMs: 10000,
-      voiceGuidance: "Listen for three sounds around you. They can be close or far away. Just notice them.",
+      voiceGuidance:
+        'Listen for three sounds around you. They can be close or far away. Just notice them.',
       ssml: `<speak>
         <prosody rate="slow" pitch="-5%">
           Listen for three sounds around you.
@@ -145,7 +148,7 @@ export const FIVE_SENSES_GROUNDING: Exercise = {
     {
       instruction: 'Notice 2 things you can smell',
       durationMs: 8000,
-      voiceGuidance: "Take a breath and notice two things you can smell. Even subtle things count.",
+      voiceGuidance: 'Take a breath and notice two things you can smell. Even subtle things count.',
       ssml: `<speak>
         <prosody rate="slow" pitch="-5%">
           Take a breath and notice two things you can smell.
@@ -158,7 +161,8 @@ export const FIVE_SENSES_GROUNDING: Exercise = {
     {
       instruction: 'Notice 1 thing you can taste',
       durationMs: 6000,
-      voiceGuidance: "Finally, notice one thing you can taste. Whatever is in your mouth right now.",
+      voiceGuidance:
+        'Finally, notice one thing you can taste. Whatever is in your mouth right now.',
       ssml: `<speak>
         <prosody rate="slow" pitch="-5%">
           Finally, notice one thing you can taste.
@@ -191,22 +195,26 @@ export const PHYSICAL_GROUNDING: Exercise = {
     {
       instruction: 'Press your feet firmly into the floor',
       durationMs: 8000,
-      voiceGuidance: "Press your feet firmly into the floor. Feel the ground holding you. You're safe. You're here.",
+      voiceGuidance:
+        "Press your feet firmly into the floor. Feel the ground holding you. You're safe. You're here.",
     },
     {
       instruction: 'Squeeze your hands into fists, then release',
       durationMs: 10000,
-      voiceGuidance: "Now make fists with your hands. Squeeze tight... and release. Notice the difference between tension and relaxation.",
+      voiceGuidance:
+        'Now make fists with your hands. Squeeze tight... and release. Notice the difference between tension and relaxation.',
     },
     {
       instruction: 'Hold something cold or textured',
       durationMs: 10000,
-      voiceGuidance: "If you can, hold something cold or textured. Ice, a cold glass, anything with a strong sensation. Let it anchor you.",
+      voiceGuidance:
+        'If you can, hold something cold or textured. Ice, a cold glass, anything with a strong sensation. Let it anchor you.',
     },
     {
       instruction: 'Name where you are out loud',
       durationMs: 8000,
-      voiceGuidance: "Say out loud where you are right now. The date. The time. Your name. You're here. You're safe.",
+      voiceGuidance:
+        "Say out loud where you are right now. The date. The time. Your name. You're here. You're safe.",
     },
   ],
 
@@ -236,25 +244,25 @@ export const BOX_BREATHING: Exercise = {
     {
       instruction: 'Inhale for 4 seconds',
       durationMs: 4000,
-      voiceGuidance: "Breathe in... 2... 3... 4...",
+      voiceGuidance: 'Breathe in... 2... 3... 4...',
       ssml: `<speak><prosody rate="x-slow">Breathe in <break time="1s"/> 2 <break time="1s"/> 3 <break time="1s"/> 4</prosody></speak>`,
     },
     {
       instruction: 'Hold for 4 seconds',
       durationMs: 4000,
-      voiceGuidance: "Hold... 2... 3... 4...",
+      voiceGuidance: 'Hold... 2... 3... 4...',
       ssml: `<speak><prosody rate="x-slow">Hold <break time="1s"/> 2 <break time="1s"/> 3 <break time="1s"/> 4</prosody></speak>`,
     },
     {
       instruction: 'Exhale for 4 seconds',
       durationMs: 4000,
-      voiceGuidance: "Breathe out... 2... 3... 4...",
+      voiceGuidance: 'Breathe out... 2... 3... 4...',
       ssml: `<speak><prosody rate="x-slow">Breathe out <break time="1s"/> 2 <break time="1s"/> 3 <break time="1s"/> 4</prosody></speak>`,
     },
     {
       instruction: 'Hold empty for 4 seconds',
       durationMs: 4000,
-      voiceGuidance: "Hold... 2... 3... 4...",
+      voiceGuidance: 'Hold... 2... 3... 4...',
       ssml: `<speak><prosody rate="x-slow">Hold <break time="1s"/> 2 <break time="1s"/> 3 <break time="1s"/> 4</prosody></speak>`,
     },
   ],
@@ -274,26 +282,26 @@ export const RELAXING_BREATH: Exercise = {
   duration: 'short',
   intensity: 'gentle',
 
-  triggers: ['anxious', 'can\'t sleep', 'need to calm down', 'racing heart'],
+  triggers: ['anxious', "can't sleep", 'need to calm down', 'racing heart'],
   notFor: [],
 
   steps: [
     {
       instruction: 'Inhale through nose for 4 seconds',
       durationMs: 4000,
-      voiceGuidance: "Breathe in through your nose... 2... 3... 4...",
+      voiceGuidance: 'Breathe in through your nose... 2... 3... 4...',
       ssml: `<speak><prosody rate="slow">Breathe in through your nose <break time="1s"/> 2 <break time="1s"/> 3 <break time="1s"/> 4</prosody></speak>`,
     },
     {
       instruction: 'Hold for 7 seconds',
       durationMs: 7000,
-      voiceGuidance: "Hold... 2... 3... 4... 5... 6... 7...",
+      voiceGuidance: 'Hold... 2... 3... 4... 5... 6... 7...',
       ssml: `<speak><prosody rate="slow">Hold <break time="1s"/> 2 <break time="1s"/> 3 <break time="1s"/> 4 <break time="1s"/> 5 <break time="1s"/> 6 <break time="1s"/> 7</prosody></speak>`,
     },
     {
       instruction: 'Exhale through mouth for 8 seconds',
       durationMs: 8000,
-      voiceGuidance: "Now breathe out through your mouth... slow and steady... let it all go...",
+      voiceGuidance: 'Now breathe out through your mouth... slow and steady... let it all go...',
       ssml: `<speak><prosody rate="x-slow">Now breathe out through your mouth <break time="2s"/> slow and steady <break time="2s"/> let it all go</prosody></speak>`,
     },
   ],
@@ -320,18 +328,20 @@ export const PHYSIOLOGICAL_SIGH: Exercise = {
     {
       instruction: 'Double inhale through nose',
       durationMs: 3000,
-      voiceGuidance: "Take a deep breath in through your nose... and then one more quick breath in on top...",
+      voiceGuidance:
+        'Take a deep breath in through your nose... and then one more quick breath in on top...',
       ssml: `<speak><prosody rate="medium">Take a deep breath in through your nose <break time="500ms"/> and then one more quick breath in on top</prosody></speak>`,
     },
     {
       instruction: 'Long exhale through mouth',
       durationMs: 6000,
-      voiceGuidance: "Now let it all out through your mouth... slow and complete...",
+      voiceGuidance: 'Now let it all out through your mouth... slow and complete...',
       ssml: `<speak><prosody rate="slow">Now let it all out through your mouth <break time="1s"/> slow and complete</prosody></speak>`,
     },
   ],
 
-  closing: "That's a physiological sigh. One or two of those can genuinely shift your nervous system. Better?",
+  closing:
+    "That's a physiological sigh. One or two of those can genuinely shift your nervous system. Better?",
 };
 
 // ============================================================================
@@ -379,7 +389,7 @@ export function selectExercise(context: {
   }
 
   // For sleep or need to calm down
-  if (emotion === 'can\'t sleep' || context.triggers?.includes('sleep')) {
+  if (emotion === "can't sleep" || context.triggers?.includes('sleep')) {
     return RELAXING_BREATH;
   }
 
@@ -421,12 +431,7 @@ export function generateVoiceGuidance(
     includeClosing?: boolean;
   }
 ): VoiceGuidance {
-  const {
-    rounds = 1,
-    pace = 'normal',
-    includeIntro = true,
-    includeClosing = true,
-  } = options || {};
+  const { rounds = 1, pace = 'normal', includeIntro = true, includeClosing = true } = options || {};
 
   const parts: VoiceGuidancePart[] = [];
 
@@ -509,10 +514,16 @@ export function detectNervousSystemState(signals: {
   speechRate?: number;
   keywords?: string[];
 }): NervousSystemState {
-  const { emotion, emotionIntensity = 0.5, voiceTension = 0.5, speechRate, keywords = [] } = signals;
+  const {
+    emotion,
+    emotionIntensity = 0.5,
+    voiceTension = 0.5,
+    speechRate,
+    keywords = [],
+  } = signals;
 
   // Check for dorsal vagal (shutdown)
-  const shutdownKeywords = ['numb', 'frozen', 'can\'t move', 'disconnected', 'empty', 'nothing'];
+  const shutdownKeywords = ['numb', 'frozen', "can't move", 'disconnected', 'empty', 'nothing'];
   if (keywords.some((k) => shutdownKeywords.includes(k.toLowerCase()))) {
     return 'dorsal_vagal';
   }
@@ -537,19 +548,9 @@ export function detectNervousSystemState(signals: {
 export function getStateInterventions(state: NervousSystemState): string[] {
   switch (state) {
     case 'sympathetic':
-      return [
-        'physiological_sigh',
-        'box_breathing',
-        'relaxing_breath',
-        'physical_grounding',
-      ];
+      return ['physiological_sigh', 'box_breathing', 'relaxing_breath', 'physical_grounding'];
     case 'dorsal_vagal':
-      return [
-        'physical_grounding',
-        'five_senses',
-        'gentle movement',
-        'social connection',
-      ];
+      return ['physical_grounding', 'five_senses', 'gentle movement', 'social connection'];
     case 'ventral_vagal':
       return []; // Already regulated
   }
@@ -605,10 +606,7 @@ export function recordExerciseComplete(
     result.helpfulnessRating = helpfulnessRating;
     result.stateAfter = stateAfter;
 
-    log.debug(
-      { userId, exerciseId, helpfulness: helpfulnessRating },
-      '✅ Exercise completed'
-    );
+    log.debug({ userId, exerciseId, helpfulness: helpfulnessRating }, '✅ Exercise completed');
   }
 }
 
@@ -656,4 +654,3 @@ export {
   RELAXING_BREATH as relaxingBreath,
   PHYSIOLOGICAL_SIGH as physiologicalSigh,
 };
-

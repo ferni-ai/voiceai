@@ -268,7 +268,6 @@ export function createConversationTools() {
         // This changes the disconnect button to a warm "Goodbye" button
         // TODO: Move getFrontendPublisher to services layer to fix architecture violation
         try {
-          // eslint-disable-next-line @typescript-eslint/no-restricted-imports -- Temporary until publisher moved to services
           const { getFrontendPublisher } = await import('../agents/realtime/index.js');
           const publisher = getFrontendPublisher();
           if (publisher.isConnected()) {

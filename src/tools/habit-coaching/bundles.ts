@@ -602,6 +602,7 @@ export function getBundleCoreHabits(key: string): HabitBundleItem[] {
 export function getBundleEnhancements(key: string): HabitBundleItem[] {
   const bundle = HABIT_BUNDLES[key];
   if (!bundle) return [];
-  return bundle.habits.filter((h) => h.priority === 'enhancement').sort((a, b) => a.order - b.order);
+  return bundle.habits
+    .filter((h) => h.priority === 'enhancement')
+    .sort((a, b) => a.order - b.order);
 }
-

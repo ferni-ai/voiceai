@@ -41,7 +41,7 @@ const log = createLogger({ module: 'DistortionDetector' });
 const userProfiles = new Map<string, ANTProfile>();
 
 /** Recent detections per user (for deduplication) */
-const recentDetections = new Map<string, { type: CognitiveDistortion; timestamp: Date }[]>();
+const recentDetections = new Map<string, Array<{ type: CognitiveDistortion; timestamp: Date }>>();
 
 // ============================================================================
 // DISTORTION PATTERNS DATABASE
@@ -306,7 +306,7 @@ export const DISTORTION_PATTERNS: Record<CognitiveDistortion, DistortionMetadata
       "that doesn't count",
       'it was just luck',
       'anyone could do that',
-      "they were just being nice",
+      'they were just being nice',
       "they didn't mean it",
       "it's not a big deal",
       'they have to say that',
@@ -561,16 +561,19 @@ export const DISTORTION_PATTERNS: Record<CognitiveDistortion, DistortionMetadata
  * Gentle challenges and reframes for each distortion type.
  * These are designed to invite curiosity, not lecture.
  */
-const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
-  gentleChallenges: string[];
-  reframes: string[];
-  validations: string[];
-}> = {
+const RESPONSE_TEMPLATES: Record<
+  CognitiveDistortion,
+  {
+    gentleChallenges: string[];
+    reframes: string[];
+    validations: string[];
+  }
+> = {
   catastrophizing: {
     gentleChallenges: [
       "What's the evidence that the absolute worst will happen?",
       "What's the most likely outcome, if you had to bet on it?",
-      "If the worst happened, what would you actually do? Could you cope?",
+      'If the worst happened, what would you actually do? Could you cope?',
       "When you've worried like this before, how often did the worst case actually happen?",
     ],
     reframes: [
@@ -588,9 +591,9 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
   mind_reading: {
     gentleChallenges: [
       "What's the actual evidence they think that?",
-      "Have they said that directly, or are you interpreting?",
+      'Have they said that directly, or are you interpreting?',
       'Is there another explanation for their behavior?',
-      "What would you need to see to change your mind about what they think?",
+      'What would you need to see to change your mind about what they think?',
     ],
     reframes: [
       "People's reactions are often about their own stuff, not about you.",
@@ -600,16 +603,16 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
     validations: [
       "It's natural to wonder what people think.",
       'Social anxiety can make us hyper-attuned to perceived judgment.',
-      "I understand wanting to know where you stand with people.",
+      'I understand wanting to know where you stand with people.',
     ],
   },
 
   all_or_nothing: {
     gentleChallenges: [
-      "Is there a middle ground between perfect and failure?",
+      'Is there a middle ground between perfect and failure?',
       "What would 'good enough' look like here?",
-      "If a friend did this, would you call it a total failure?",
-      "On a scale of 1-10, where does this actually fall?",
+      'If a friend did this, would you call it a total failure?',
+      'On a scale of 1-10, where does this actually fall?',
     ],
     reframes: [
       'Most of life happens in the gray area between perfect and terrible.',
@@ -625,10 +628,10 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
 
   fortune_telling: {
     gentleChallenges: [
-      "What makes you certain it will go that way?",
-      "Have you been wrong about predictions like this before?",
+      'What makes you certain it will go that way?',
+      'Have you been wrong about predictions like this before?',
       "What if it doesn't go the way you're predicting?",
-      "What evidence would change your prediction?",
+      'What evidence would change your prediction?',
     ],
     reframes: [
       "The future isn't written yet—uncertainty goes both ways.",
@@ -645,9 +648,9 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
   personalization: {
     gentleChallenges: [
       'What other factors contributed to this outcome?',
-      "How much control did you actually have?",
+      'How much control did you actually have?',
       'If a friend was in this situation, would you blame them entirely?',
-      "What part of this was actually in your power?",
+      'What part of this was actually in your power?',
     ],
     reframes: [
       "Other people's choices are their responsibility, not yours.",
@@ -666,7 +669,7 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
       "Is 'always' or 'never' literally true, or does it feel that way?",
       'Can you think of any exceptions?',
       "What's different about this time versus other times?",
-      "If you looked at the data, what would the pattern actually show?",
+      'If you looked at the data, what would the pattern actually show?',
     ],
     reframes: [
       "One experience—even a few—doesn't define a pattern forever.",
@@ -676,15 +679,15 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
     validations: [
       "When something keeps happening, it's natural to see a pattern.",
       'Repeated disappointments are genuinely hard.',
-      "I understand why it feels like this always happens.",
+      'I understand why it feels like this always happens.',
     ],
   },
 
   mental_filtering: {
     gentleChallenges: [
       'What were the positive parts that your mind is skipping over?',
-      "If you had to name three things that went well, what would they be?",
-      "What would someone who loves you notice about this situation?",
+      'If you had to name three things that went well, what would they be?',
+      'What would someone who loves you notice about this situation?',
       'Is the negative part getting more attention than it deserves?',
     ],
     reframes: [
@@ -703,18 +706,18 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
     gentleChallenges: [
       'What if the compliment/success was actually true?',
       "Why doesn't this count, but negative things do?",
-      "What would it mean if you let this positive thing count?",
+      'What would it mean if you let this positive thing count?',
       'Would you dismiss this if it happened to someone you respect?',
     ],
     reframes: [
-      "You deserve to take in the good things, not just the hard ones.",
+      'You deserve to take in the good things, not just the hard ones.',
       "Accepting a compliment isn't arrogant - it's accurate.",
       'Success is still success, even if it felt easier than expected.',
     ],
     validations: [
-      "It can be uncomfortable to accept praise.",
+      'It can be uncomfortable to accept praise.',
       'I hear that this feels different to you than it looks from outside.',
-      "Imposter feelings are really common, especially for capable people.",
+      'Imposter feelings are really common, especially for capable people.',
     ],
   },
 
@@ -723,7 +726,7 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
       "Where does this 'should' come from?",
       "Is this standard one you'd hold a friend to?",
       "What would happen if you replaced 'should' with 'could' or 'would like to'?",
-      "Who decided this was the rule?",
+      'Who decided this was the rule?',
     ],
     reframes: [
       "'Should' often comes from old rules that may not fit anymore.",
@@ -742,7 +745,7 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
       'Is feeling something the same as it being true?',
       "What's the evidence outside of how you feel?",
       'Have you felt this way before when it turned out not to be true?',
-      "If you felt differently tomorrow, would the facts change?",
+      'If you felt differently tomorrow, would the facts change?',
     ],
     reframes: [
       "Feelings are real and valid, but they're not always accurate reporters of reality.",
@@ -752,19 +755,19 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
     validations: [
       'That feeling sounds really strong right now.',
       "It makes sense you'd feel that way given what happened.",
-      "I hear how painful this feels.",
+      'I hear how painful this feels.',
     ],
   },
 
   labeling: {
     gentleChallenges: [
-      "Is one event enough to define who you are?",
-      "What would you call a friend who did the same thing?",
-      "Does this label capture all of who you are?",
+      'Is one event enough to define who you are?',
+      'What would you call a friend who did the same thing?',
+      'Does this label capture all of who you are?',
       'Would the people who know you best agree with that label?',
     ],
     reframes: [
-      "You are more than any single moment or mistake.",
+      'You are more than any single moment or mistake.',
       'Behavior is something you do, not something you are.',
       'Labels are shortcuts that miss the complexity of who you actually are.',
     ],
@@ -784,13 +787,13 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
     ],
     reframes: [
       'This is hard, but it may not be as big as it feels right now.',
-      "Strong emotions can make things seem larger than they are.",
+      'Strong emotions can make things seem larger than they are.',
       "Just because something feels huge doesn't mean it is.",
     ],
     validations: [
       'It clearly feels really big to you right now.',
       'In the moment, this is weighing heavily.',
-      "I hear how overwhelming this feels.",
+      'I hear how overwhelming this feels.',
     ],
   },
 
@@ -798,8 +801,8 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
     gentleChallenges: [
       'If your best friend did this, would you minimize it?',
       'What does it say about you that you achieved this?',
-      "Why are you more comfortable dismissing this than accepting it?",
-      "What would change if you let yourself feel good about this?",
+      'Why are you more comfortable dismissing this than accepting it?',
+      'What would change if you let yourself feel good about this?',
     ],
     reframes: [
       'Your achievements count, even if they felt easy.',
@@ -808,8 +811,8 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
     ],
     validations: [
       'I hear you not wanting to make a big deal of it.',
-      "It can feel uncomfortable to acknowledge success.",
-      "Modesty is one thing, but you did do this.",
+      'It can feel uncomfortable to acknowledge success.',
+      'Modesty is one thing, but you did do this.',
     ],
   },
 
@@ -817,8 +820,8 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
     gentleChallenges: [
       "What's the actual evidence for that conclusion?",
       'Is there another way to interpret this?',
-      "What would you need to know to be sure?",
-      "Have you jumped to conclusions before that turned out wrong?",
+      'What would you need to know to be sure?',
+      'Have you jumped to conclusions before that turned out wrong?',
     ],
     reframes: [
       "There might be information you don't have yet.",
@@ -845,9 +848,9 @@ const RESPONSE_TEMPLATES: Record<CognitiveDistortion, {
       "Blame explains the past but doesn't fix the future.",
     ],
     validations: [
-      "It sounds like you feel really wronged.",
-      "Being hurt by others is genuinely painful.",
-      "I hear how frustrated you are with them.",
+      'It sounds like you feel really wronged.',
+      'Being hurt by others is genuinely painful.',
+      'I hear how frustrated you are with them.',
     ],
   },
 };
@@ -980,15 +983,10 @@ export function detectDistortions(
         detectedAt: new Date(),
 
         // Therapeutic response
-        gentleChallenge: templates.gentleChallenges[
-          Math.floor(Math.random() * templates.gentleChallenges.length)
-        ],
-        reframe: templates.reframes[
-          Math.floor(Math.random() * templates.reframes.length)
-        ],
-        validation: templates.validations[
-          Math.floor(Math.random() * templates.validations.length)
-        ],
+        gentleChallenge:
+          templates.gentleChallenges[Math.floor(Math.random() * templates.gentleChallenges.length)],
+        reframe: templates.reframes[Math.floor(Math.random() * templates.reframes.length)],
+        validation: templates.validations[Math.floor(Math.random() * templates.validations.length)],
 
         // Context
         topic: context?.topic,
@@ -1145,7 +1143,7 @@ export function getANTProfile(userId: string): ANTProfile | null {
 /**
  * Get the top distortions for a user.
  */
-export function getTopDistortions(userId: string, limit: number = 3): CognitiveDistortion[] {
+export function getTopDistortions(userId: string, limit = 3): CognitiveDistortion[] {
   const profile = userProfiles.get(userId);
   if (!profile) return [];
 
@@ -1205,7 +1203,4 @@ export function getAllDistortionTypes(): CognitiveDistortion[] {
 // EXPORTS
 // ============================================================================
 
-export {
-  RESPONSE_TEMPLATES,
-};
-
+export { RESPONSE_TEMPLATES };

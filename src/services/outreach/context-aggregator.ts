@@ -144,7 +144,16 @@ export interface EmotionRecord {
 
 export interface LifeEvent {
   id: string;
-  type: 'appointment' | 'celebration' | 'deadline' | 'travel' | 'social' | 'health' | 'work' | 'family' | 'other';
+  type:
+    | 'appointment'
+    | 'celebration'
+    | 'deadline'
+    | 'travel'
+    | 'social'
+    | 'health'
+    | 'work'
+    | 'family'
+    | 'other';
   description: string;
   date: Date;
   importance: 'low' | 'medium' | 'high';
@@ -430,9 +439,7 @@ export function addOpenLoop(userId: string, loop: Omit<OpenLoop, 'id'>): string 
  */
 export function resolveOpenLoop(userId: string, loopId: string): void {
   const context = getUserContext(userId);
-  context.conversations.openLoops = context.conversations.openLoops.filter(
-    (l) => l.id !== loopId
-  );
+  context.conversations.openLoops = context.conversations.openLoops.filter((l) => l.id !== loopId);
   context.updatedAt = new Date();
   contextStore.set(userId, context);
 }
@@ -515,10 +522,7 @@ function calculateEmotionalTrend(
 /**
  * Add a life event
  */
-export function addLifeEvent(
-  userId: string,
-  event: Omit<LifeEvent, 'id'>
-): string {
+export function addLifeEvent(userId: string, event: Omit<LifeEvent, 'id'>): string {
   const context = getUserContext(userId);
   const id = `event_${Date.now()}`;
 
@@ -548,10 +552,7 @@ export function addLifeEvent(
 /**
  * Add an ongoing life situation
  */
-export function addOngoingEvent(
-  userId: string,
-  event: Omit<LifeEvent, 'id'>
-): string {
+export function addOngoingEvent(userId: string, event: Omit<LifeEvent, 'id'>): string {
   const context = getUserContext(userId);
   const id = `ongoing_${Date.now()}`;
 
@@ -695,9 +696,7 @@ function updateRelationshipStage(context: UserLifeContext): void {
   const { totalConversations, significantMoments, startDate } = context.relationship;
 
   // Calculate days since first conversation
-  const daysSinceStart = startDate
-    ? (Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    : 0;
+  const daysSinceStart = startDate ? (Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24) : 0;
 
   // Determine stage based on multiple factors
   if (totalConversations >= 50 && daysSinceStart >= 30 && significantMoments.length >= 5) {
@@ -736,9 +735,7 @@ export function getContextForOutreach(userId: string): {
   return {
     emotionalState: context.emotional.currentState,
     emotionalTrend: context.emotional.emotionalTrend,
-    recentTopics: context.conversations.topicsDiscussed
-      .slice(0, 5)
-      .map((t) => t.topic),
+    recentTopics: context.conversations.topicsDiscussed.slice(0, 5).map((t) => t.topic),
     activeCommitments: context.commitments.active.map((c) => c.what),
     recentWins: context.progress.recentWins.slice(0, 3).map((w) => w.description),
     currentStruggles: context.progress.currentStruggles.map((s) => s.description),
@@ -934,4 +931,3 @@ export default {
   clearUserContext,
   pruneOldData,
 };
-

@@ -73,21 +73,21 @@ export interface MomentumProfile {
   wins: TrackedWin[];
   streaks: WinStreak[];
   themes: WinTheme[];
-  
+
   // Momentum metrics
   momentumScore: number; // 0-100
   momentumTrend: 'building' | 'stable' | 'declining';
-  
+
   // Effort tracking
   consistencyScore: number; // 0-100
   totalWins: number;
   winsThisWeek: number;
   winsThisMonth: number;
-  
+
   // Special states
   comebackDetected: boolean;
   breakthroughMoment: boolean;
-  
+
   lastUpdated: Date;
 }
 
@@ -136,46 +136,49 @@ export function recordWin(
   win: Omit<TrackedWin, 'id' | 'detectedAt' | 'celebrated'>
 ): TrackedWin {
   const profile = getOrCreateProfile(userId);
-  
+
   const trackedWin: TrackedWin = {
     ...win,
     id: `win-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     detectedAt: new Date(),
     celebrated: false,
   };
-  
+
   profile.wins.push(trackedWin);
   profile.totalWins++;
-  
+
   // Update counts
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  
-  profile.winsThisWeek = profile.wins.filter(w => w.detectedAt >= weekAgo).length;
-  profile.winsThisMonth = profile.wins.filter(w => w.detectedAt >= monthAgo).length;
-  
+
+  profile.winsThisWeek = profile.wins.filter((w) => w.detectedAt >= weekAgo).length;
+  profile.winsThisMonth = profile.wins.filter((w) => w.detectedAt >= monthAgo).length;
+
   // Update streaks
   updateStreaks(profile, trackedWin);
-  
+
   // Update themes
   updateThemes(profile);
-  
+
   // Calculate momentum
   calculateMomentum(profile);
-  
+
   // Check for special states
   detectSpecialStates(profile);
-  
+
   profile.lastUpdated = new Date();
-  
-  log.info({
-    userId,
-    winId: trackedWin.id,
-    type: trackedWin.type,
-    momentum: profile.momentumScore,
-  }, '🎯 Win recorded');
-  
+
+  log.info(
+    {
+      userId,
+      winId: trackedWin.id,
+      type: trackedWin.type,
+      momentum: profile.momentumScore,
+    },
+    '🎯 Win recorded'
+  );
+
   return trackedWin;
 }
 
@@ -185,23 +188,21 @@ export function recordWin(
 function updateStreaks(profile: MomentumProfile, win: TrackedWin): void {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   // Daily streak
-  let dailyStreak = profile.streaks.find(
-    s => s.type === 'daily' && s.active
-  );
-  
+  let dailyStreak = profile.streaks.find((s) => s.type === 'daily' && s.active);
+
   if (dailyStreak) {
     const lastWinDay = new Date(
       dailyStreak.lastWinDate.getFullYear(),
       dailyStreak.lastWinDate.getMonth(),
       dailyStreak.lastWinDate.getDate()
     );
-    
+
     const daysSinceLastWin = Math.floor(
       (today.getTime() - lastWinDay.getTime()) / (24 * 60 * 60 * 1000)
     );
-    
+
     if (daysSinceLastWin === 0) {
       // Same day, don't increment
     } else if (daysSinceLastWin === 1) {
@@ -215,7 +216,7 @@ function updateStreaks(profile: MomentumProfile, win: TrackedWin): void {
       dailyStreak = undefined;
     }
   }
-  
+
   if (!dailyStreak) {
     profile.streaks.push({
       id: `streak-daily-${Date.now()}`,
@@ -227,21 +228,21 @@ function updateStreaks(profile: MomentumProfile, win: TrackedWin): void {
       celebrated: false,
     });
   }
-  
+
   // Type-specific streak
-  let typeStreak = profile.streaks.find(
-    s => s.type === 'type_specific' && s.winType === win.type && s.active
+  const typeStreak = profile.streaks.find(
+    (s) => s.type === 'type_specific' && s.winType === win.type && s.active
   );
-  
+
   if (typeStreak) {
     typeStreak.count++;
     typeStreak.lastWinDate = now;
   } else {
     // Check if there was a previous inactive streak of this type
     const prevStreak = profile.streaks.find(
-      s => s.type === 'type_specific' && s.winType === win.type && !s.active
+      (s) => s.type === 'type_specific' && s.winType === win.type && !s.active
     );
-    
+
     if (prevStreak) {
       // Start fresh
       profile.streaks.push({
@@ -276,30 +277,33 @@ function updateStreaks(profile: MomentumProfile, win: TrackedWin): void {
 function updateThemes(profile: MomentumProfile): void {
   const typeCounts = new Map<WinType, number>();
   const recentWins = profile.wins.slice(-50); // Last 50 wins
-  
+
   for (const win of recentWins) {
     typeCounts.set(win.type, (typeCounts.get(win.type) || 0) + 1);
   }
-  
+
   const total = recentWins.length || 1;
-  
-  profile.themes = Array.from(typeCounts.entries()).map(([type, count]) => {
-    const prevTheme = profile.themes.find(t => t.type === type);
-    const prevPercentage = prevTheme?.percentage || 0;
-    const newPercentage = (count / total) * 100;
-    
-    let trend: 'increasing' | 'stable' | 'decreasing' = 'stable';
-    if (newPercentage > prevPercentage + 5) trend = 'increasing';
-    else if (newPercentage < prevPercentage - 5) trend = 'decreasing';
-    
-    return {
-      type,
-      count,
-      percentage: newPercentage,
-      trend,
-      lastSeen: profile.wins.filter(w => w.type === type).slice(-1)[0]?.detectedAt || new Date(),
-    };
-  }).sort((a, b) => b.count - a.count);
+
+  profile.themes = Array.from(typeCounts.entries())
+    .map(([type, count]) => {
+      const prevTheme = profile.themes.find((t) => t.type === type);
+      const prevPercentage = prevTheme?.percentage || 0;
+      const newPercentage = (count / total) * 100;
+
+      let trend: 'increasing' | 'stable' | 'decreasing' = 'stable';
+      if (newPercentage > prevPercentage + 5) trend = 'increasing';
+      else if (newPercentage < prevPercentage - 5) trend = 'decreasing';
+
+      return {
+        type,
+        count,
+        percentage: newPercentage,
+        trend,
+        lastSeen:
+          profile.wins.filter((w) => w.type === type).slice(-1)[0]?.detectedAt || new Date(),
+      };
+    })
+    .sort((a, b) => b.count - a.count);
 }
 
 /**
@@ -307,30 +311,30 @@ function updateThemes(profile: MomentumProfile): void {
  */
 function calculateMomentum(profile: MomentumProfile): void {
   const now = Date.now();
-  
+
   // Recent wins with decay
   let score = 0;
   const weekMs = 7 * 24 * 60 * 60 * 1000;
-  
+
   for (const win of profile.wins) {
     const age = now - win.detectedAt.getTime();
-    const decayFactor = Math.max(0, 1 - (age / (4 * weekMs))); // Full decay over 4 weeks
+    const decayFactor = Math.max(0, 1 - age / (4 * weekMs)); // Full decay over 4 weeks
     const typeWeight = MOMENTUM_WEIGHTS[win.type] || 1;
     const difficultyBonus = win.difficulty === 'hard' ? 1.3 : win.difficulty === 'medium' ? 1.1 : 1;
-    
+
     score += 5 * typeWeight * difficultyBonus * decayFactor;
   }
-  
+
   // Streak bonuses
   for (const streak of profile.streaks) {
     if (streak.active && streak.count >= 3) {
       score += streak.count * 2;
     }
   }
-  
+
   // Cap at 100
   profile.momentumScore = Math.min(100, Math.round(score));
-  
+
   // Determine trend
   // Would compare to previous score in production
   if (profile.winsThisWeek > 3) {
@@ -349,19 +353,19 @@ function detectSpecialStates(profile: MomentumProfile): void {
   // Comeback detection - wins after period of none
   const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const threeWeeksAgo = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000);
-  
-  const recentWins = profile.wins.filter(w => w.detectedAt >= twoWeeksAgo).length;
+
+  const recentWins = profile.wins.filter((w) => w.detectedAt >= twoWeeksAgo).length;
   const priorWins = profile.wins.filter(
-    w => w.detectedAt >= threeWeeksAgo && w.detectedAt < twoWeeksAgo
+    (w) => w.detectedAt >= threeWeeksAgo && w.detectedAt < twoWeeksAgo
   ).length;
-  
+
   profile.comebackDetected = priorWins === 0 && recentWins >= 2;
-  
+
   // Breakthrough - multiple wins of a difficult type
   const hardWinsRecent = profile.wins.filter(
-    w => w.detectedAt >= twoWeeksAgo && w.difficulty === 'hard'
+    (w) => w.detectedAt >= twoWeeksAgo && w.difficulty === 'hard'
   ).length;
-  
+
   profile.breakthroughMoment = hardWinsRecent >= 3;
 }
 
@@ -370,7 +374,7 @@ function detectSpecialStates(profile: MomentumProfile): void {
  */
 function getOrCreateProfile(userId: string): MomentumProfile {
   let profile = momentumProfiles.get(userId);
-  
+
   if (!profile) {
     profile = {
       userId,
@@ -389,7 +393,7 @@ function getOrCreateProfile(userId: string): MomentumProfile {
     };
     momentumProfiles.set(userId, profile);
   }
-  
+
   return profile;
 }
 
@@ -403,9 +407,9 @@ function getOrCreateProfile(userId: string): MomentumProfile {
 export function generateCelebrations(userId: string): CelebrationSuggestion[] {
   const profile = momentumProfiles.get(userId);
   if (!profile) return [];
-  
+
   const suggestions: CelebrationSuggestion[] = [];
-  
+
   // Streak milestones
   for (const streak of profile.streaks) {
     if (streak.active && !streak.celebrated) {
@@ -422,7 +426,7 @@ export function generateCelebrations(userId: string): CelebrationSuggestion[] {
       }
     }
   }
-  
+
   // Momentum celebration
   if (profile.momentumScore >= 70 && profile.momentumTrend === 'building') {
     suggestions.push({
@@ -432,7 +436,7 @@ export function generateCelebrations(userId: string): CelebrationSuggestion[] {
       ssml: generateSSML("You're really building something here. I can feel the momentum.", 'warm'),
     });
   }
-  
+
   // Comeback celebration
   if (profile.comebackDetected) {
     suggestions.push({
@@ -442,7 +446,7 @@ export function generateCelebrations(userId: string): CelebrationSuggestion[] {
       ssml: generateSSML("I've noticed you're back at it. That takes real strength.", 'caring'),
     });
   }
-  
+
   // Breakthrough celebration
   if (profile.breakthroughMoment) {
     suggestions.push({
@@ -452,7 +456,7 @@ export function generateCelebrations(userId: string): CelebrationSuggestion[] {
       ssml: generateSSML("Something's shifting. You're tackling the hard stuff now.", 'excited'),
     });
   }
-  
+
   // Theme celebration
   const topTheme = profile.themes[0];
   if (topTheme && topTheme.count >= 5 && topTheme.trend === 'increasing') {
@@ -463,7 +467,7 @@ export function generateCelebrations(userId: string): CelebrationSuggestion[] {
       ssml: generateSSML(getThemeMessage(topTheme.type, topTheme.count), 'warm'),
     });
   }
-  
+
   return suggestions;
 }
 
@@ -472,40 +476,26 @@ export function generateCelebrations(userId: string): CelebrationSuggestion[] {
  */
 function getStreakMessage(streak: WinStreak): string {
   const messages: Record<number, string[]> = {
-    3: [
-      "Three in a row! You're on a roll.",
-      "That's three! Momentum is building.",
-    ],
-    5: [
-      "Five wins! You're really getting somewhere.",
-      "A five-win streak - that's no accident.",
-    ],
-    7: [
-      "A full week of wins! That's incredible.",
-      "Seven! You're making this a habit.",
-    ],
+    3: ["Three in a row! You're on a roll.", "That's three! Momentum is building."],
+    5: ["Five wins! You're really getting somewhere.", "A five-win streak - that's no accident."],
+    7: ["A full week of wins! That's incredible.", "Seven! You're making this a habit."],
     10: [
-      "Double digits! This is becoming who you are.",
-      "Ten wins in a row - you should be proud.",
+      'Double digits! This is becoming who you are.',
+      'Ten wins in a row - you should be proud.',
     ],
     14: [
-      "Two weeks of wins! This is transformation.",
+      'Two weeks of wins! This is transformation.',
       "Fourteen! You're not the same person you were.",
     ],
     21: [
-      "Three weeks! They say it takes 21 days to build a habit.",
+      'Three weeks! They say it takes 21 days to build a habit.',
       "Twenty-one. This isn't a streak anymore - it's you.",
     ],
-    30: [
-      "A whole month! You've changed.",
-      "Thirty days. Look how far you've come.",
-    ],
+    30: ["A whole month! You've changed.", "Thirty days. Look how far you've come."],
   };
-  
-  const options = messages[streak.count] || [
-    `${streak.count} wins! That's remarkable.`,
-  ];
-  
+
+  const options = messages[streak.count] || [`${streak.count} wins! That's remarkable.`];
+
   return options[Math.floor(Math.random() * options.length)];
 }
 
@@ -526,7 +516,7 @@ function getThemeMessage(type: WinType, count: number): string {
     consistency: `${count} days of consistency. You're building something real.`,
     breakthrough: `${count} breakthroughs. You're transforming.`,
   };
-  
+
   return messages[type] || `${count} wins of this type. You're making progress.`;
 }
 
@@ -539,9 +529,9 @@ function generateSSML(text: string, mood: 'excited' | 'warm' | 'caring'): string
     warm: { rate: '95%', pitch: '-2%' },
     caring: { rate: '90%', pitch: '-3%' },
   };
-  
+
   const p = prosody[mood];
-  
+
   return `<speak>
     <prosody rate="${p.rate}" pitch="${p.pitch}">
       ${text}
@@ -566,8 +556,8 @@ export function getMomentumProfile(userId: string): MomentumProfile | null {
 export function getActiveStreaks(userId: string): WinStreak[] {
   const profile = momentumProfiles.get(userId);
   if (!profile) return [];
-  
-  return profile.streaks.filter(s => s.active);
+
+  return profile.streaks.filter((s) => s.active);
 }
 
 /**
@@ -576,23 +566,23 @@ export function getActiveStreaks(userId: string): WinStreak[] {
 export function getMomentumSummary(userId: string): string | null {
   const profile = momentumProfiles.get(userId);
   if (!profile || profile.totalWins === 0) return null;
-  
+
   const parts: string[] = [];
-  
+
   // Momentum state
   if (profile.momentumScore >= 70) {
     parts.push(`Strong momentum (${profile.momentumScore}%)`);
   } else if (profile.momentumScore >= 40) {
     parts.push(`Building momentum (${profile.momentumScore}%)`);
   }
-  
+
   // Active streaks
-  const activeStreaks = profile.streaks.filter(s => s.active && s.count >= 3);
+  const activeStreaks = profile.streaks.filter((s) => s.active && s.count >= 3);
   if (activeStreaks.length > 0) {
     const best = activeStreaks.sort((a, b) => b.count - a.count)[0];
     parts.push(`${best.count}-win streak`);
   }
-  
+
   // Special states
   if (profile.comebackDetected) {
     parts.push('comeback mode');
@@ -600,12 +590,12 @@ export function getMomentumSummary(userId: string): string | null {
   if (profile.breakthroughMoment) {
     parts.push('breakthrough period');
   }
-  
+
   // Top theme
   if (profile.themes.length > 0 && profile.themes[0].trend === 'increasing') {
     parts.push(`focus: ${formatWinType(profile.themes[0].type)}`);
   }
-  
+
   return parts.length > 0 ? parts.join(' • ') : null;
 }
 
@@ -632,18 +622,15 @@ function formatWinType(type: WinType): string {
 /**
  * Mark celebration as shown
  */
-export function markCelebrationShown(
-  userId: string,
-  streakId?: string
-): void {
+export function markCelebrationShown(userId: string, streakId?: string): void {
   const profile = momentumProfiles.get(userId);
   if (!profile) return;
-  
+
   if (streakId) {
-    const streak = profile.streaks.find(s => s.id === streakId);
+    const streak = profile.streaks.find((s) => s.id === streakId);
     if (streak) streak.celebrated = true;
   }
-  
+
   // Reset special states after celebrating
   profile.comebackDetected = false;
   profile.breakthroughMoment = false;
@@ -661,4 +648,3 @@ export default {
   getMomentumSummary,
   markCelebrationShown,
 };
-

@@ -45,10 +45,7 @@ export { bundleToPersonaConfig } from './adapter.js';
 export { convertLegacyToBundle, generateManifest } from './converter.js';
 
 // Runtime Engine
-export {
-  BundleRuntimeEngine,
-  createBundleRuntime,
-} from './runtime.js';
+export { BundleRuntimeEngine, createBundleRuntime } from './runtime.js';
 export type { BundleRuntimeState } from './runtime.js';
 
 // ============================================================================

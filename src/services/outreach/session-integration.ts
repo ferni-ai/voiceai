@@ -60,7 +60,7 @@ const COMMITMENT_PATTERNS = [
 ];
 
 // Timeframe indicators
-const TIMEFRAME_PATTERNS: { pattern: RegExp; days: number }[] = [
+const TIMEFRAME_PATTERNS: Array<{ pattern: RegExp; days: number }> = [
   { pattern: /tomorrow|by tomorrow/i, days: 1 },
   { pattern: /this week|by (the )?end of (the )?week/i, days: 7 },
   { pattern: /next week/i, days: 7 },
@@ -164,7 +164,7 @@ function mapToContextEmotionalState(state: DetectedEmotionalState): ContextEmoti
   }
 }
 
-const EMOTION_PATTERNS: { state: DetectedEmotionalState; patterns: RegExp[] }[] = [
+const EMOTION_PATTERNS: Array<{ state: DetectedEmotionalState; patterns: RegExp[] }> = [
   {
     state: 'excited',
     patterns: [
@@ -182,17 +182,11 @@ const EMOTION_PATTERNS: { state: DetectedEmotionalState; patterns: RegExp[] }[] 
   },
   {
     state: 'stressed',
-    patterns: [
-      /stressed|pressure|deadline|overwhelmed by work/i,
-      /too much to do|can't keep up/i,
-    ],
+    patterns: [/stressed|pressure|deadline|overwhelmed by work/i, /too much to do|can't keep up/i],
   },
   {
     state: 'anxious',
-    patterns: [
-      /anxious|worried|nervous|afraid|scared/i,
-      /can't stop thinking|what if|uncertain/i,
-    ],
+    patterns: [/anxious|worried|nervous|afraid|scared/i, /can't stop thinking|what if|uncertain/i],
   },
   { state: 'sad', patterns: [/sad|down|blue|depressed|unhappy/i, /feeling low|not myself/i] },
   {
@@ -235,9 +229,7 @@ const STRUGGLE_PATTERNS = [
   /need help with/i,
 ];
 
-function extractWinsAndStruggles(
-  text: string
-): { wins: string[]; struggles: string[] } {
+function extractWinsAndStruggles(text: string): { wins: string[]; struggles: string[] } {
   const wins: string[] = [];
   const struggles: string[] = [];
 
@@ -449,4 +441,3 @@ export {
   type ExtractedCommitment,
   type DetectedEmotionalState as EmotionalState, // Export as EmotionalState for backward compatibility
 };
-

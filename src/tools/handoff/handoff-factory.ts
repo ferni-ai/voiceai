@@ -222,7 +222,7 @@ export async function createHandoffTools(currentAgentId?: string): Promise<Hando
 
 /**
  * Filter tools to exclude the current agent's own tool.
- * 
+ *
  * FIXED: Previously team members could ONLY hand off to coordinator.
  * Now all agents can hand off to any other agent (peer-to-peer handoffs).
  * The persona manifest's "required" tools list determines what handoffs
@@ -242,7 +242,7 @@ function filterToolsForAgent(toolSet: HandoffToolSet, currentAgentId: string): H
   }
 
   getLogger().debug(
-    { currentAgentId, availableHandoffs: filteredTools.map(t => t.name) },
+    { currentAgentId, availableHandoffs: filteredTools.map((t) => t.name) },
     'Filtered handoff tools for agent'
   );
 
@@ -391,9 +391,17 @@ export async function buildHandoffTools(
       execute: async ({ reason, context_summary }, runContext) => {
         // Get user profile from RUNTIME context (available when tool is executed)
         // This is the key change - we get fresh user data at execution time, not build time
-        const runtimeUserProfile = (runContext as { ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } } })
-          ?.ctx?.userData?.services?.userProfile || userProfile || null;
-        const runtimeTier = (runtimeUserProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || subscriptionTier;
+        const runtimeUserProfile =
+          (
+            runContext as {
+              ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } };
+            }
+          )?.ctx?.userData?.services?.userProfile ||
+          userProfile ||
+          null;
+        const runtimeTier =
+          (runtimeUserProfile?.subscription?.tier as 'free' | 'friend' | 'partner') ||
+          subscriptionTier;
 
         // Use the generic executor with runtime user context for unlock validation
         const result = await executeHandoff(def.agentId, reason, {
@@ -427,9 +435,14 @@ Use when user asks: "Who's on your team?", "What specialists do you have?", "Who
     parameters: z.object({}),
     execute: async (_params, runContext) => {
       // Get user profile from RUNTIME context
-      const runtimeUserProfile = (runContext as { ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } } })
-        ?.ctx?.userData?.services?.userProfile || userProfile || null;
-      const runtimeTier = (runtimeUserProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || subscriptionTier;
+      const runtimeUserProfile =
+        (runContext as { ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } } })
+          ?.ctx?.userData?.services?.userProfile ||
+        userProfile ||
+        null;
+      const runtimeTier =
+        (runtimeUserProfile?.subscription?.tier as 'free' | 'friend' | 'partner') ||
+        subscriptionTier;
 
       const allAgents = await AgentRegistry.getAllAgents();
       const coordinator = await AgentRegistry.getCoordinator();
@@ -448,19 +461,23 @@ Use when user asks: "Who's on your team?", "What specialists do you have?", "Who
         } else {
           // Show locked members with teaser
           const memberInfo = TEAM_MEMBERS.find(
-            (m) => m.memberId.replace(/-/g, '_') === agent.id.replace(/-/g, '_') ||
-                   m.memberId === agent.id ||
-                   m.displayName.toLowerCase() === agent.name.toLowerCase()
+            (m) =>
+              m.memberId.replace(/-/g, '_') === agent.id.replace(/-/g, '_') ||
+              m.memberId === agent.id ||
+              m.displayName.toLowerCase() === agent.name.toLowerCase()
           );
           if (memberInfo) {
-            teamIntro += `🔒 **???** - ${memberInfo.teaserMessage || 'Someone special you\'ll meet as we get to know each other better.'}\n\n`;
+            teamIntro += `🔒 **???** - ${memberInfo.teaserMessage || "Someone special you'll meet as we get to know each other better."}\n\n`;
           }
         }
       }
 
       // Add hint about unlocking more members
       const lockedCount = allAgents.filter(
-        (a) => !a.isCoordinator && a.enabled && !isTeamMemberUnlocked(a.id, runtimeUserProfile, runtimeTier)
+        (a) =>
+          !a.isCoordinator &&
+          a.enabled &&
+          !isTeamMemberUnlocked(a.id, runtimeUserProfile, runtimeTier)
       ).length;
 
       if (lockedCount > 0) {

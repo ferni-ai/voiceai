@@ -250,7 +250,7 @@ export async function resetGlobalServices(): Promise<void> {
   // Shutdown proactive outreach system
   try {
     const { shutdownOutreachSystem } = await import('./outreach/index.js');
-    await shutdownOutreachSystem();
+    shutdownOutreachSystem();
   } catch {
     // Non-critical
   }

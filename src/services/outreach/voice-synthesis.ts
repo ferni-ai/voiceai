@@ -292,7 +292,7 @@ function buildVoicemailScript(
 ): string {
   const name = userName || 'there';
   const shortMessage =
-    originalMessage.length > 80 ? originalMessage.substring(0, 80) + '...' : originalMessage;
+    originalMessage.length > 80 ? `${originalMessage.substring(0, 80)}...` : originalMessage;
 
   const scripts: Record<string, string> = {
     ferni: `Hey ${name}! It's Ferni. I was thinking about you and wanted to check in about ${context}. ${shortMessage}. No rush to call back - I'll send you a text so you can respond when you have time. Take care of yourself!`,
@@ -386,7 +386,7 @@ export async function cleanupOldVoiceMessages(maxAgeDays = 7): Promise<number> {
     let deleted = 0;
     for (const file of files) {
       const [metadata] = await file.getMetadata();
-      const timeCreated = metadata.timeCreated;
+      const { timeCreated } = metadata;
       if (!timeCreated) continue;
       const created = new Date(timeCreated);
 
@@ -418,4 +418,3 @@ export const voiceSynthesis = {
 };
 
 export default voiceSynthesis;
-

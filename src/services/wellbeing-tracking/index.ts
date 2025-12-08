@@ -35,10 +35,7 @@ export type {
   WellbeingTrackingConfig,
 } from './types.js';
 
-export {
-  ALL_DIMENSIONS,
-  DEFAULT_CONFIG,
-} from './types.js';
+export { ALL_DIMENSIONS, DEFAULT_CONFIG } from './types.js';
 
 // ============================================================================
 // TRACKER
@@ -165,7 +162,7 @@ function buildWellbeingLLMContext(
   // Trend context
   if (summary && summary.trend === 'declining') {
     parts.push('[📉 WELLBEING TREND]');
-    parts.push('This user\'s wellbeing has been declining. Be extra warm and supportive.');
+    parts.push("This user's wellbeing has been declining. Be extra warm and supportive.");
     parts.push('');
   }
 
@@ -187,4 +184,3 @@ export interface WellbeingProcessResult {
   summary: ReturnType<typeof getWellbeingSummary>;
   llmContext: string | null;
 }
-

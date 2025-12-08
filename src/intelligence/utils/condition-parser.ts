@@ -17,6 +17,8 @@
  * - Any code execution
  */
 
+import { getLogger } from '../../utils/safe-logger.js';
+
 export interface ConditionContext {
   userEmotion?: string;
   topic?: string;
@@ -90,7 +92,7 @@ function evaluateSingleCondition(condition: string, context: ConditionContext): 
   }
 
   // Invalid condition - log warning and return false (fail safe)
-  console.warn(`[ConditionParser] Invalid condition syntax: "${condition}"`);
+  getLogger().warn({ condition }, 'Invalid condition syntax');
   return false;
 }
 
@@ -145,4 +147,3 @@ export default {
   buildConditionFromContext,
   describeCondition,
 };
-

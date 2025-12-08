@@ -71,7 +71,7 @@ export async function playGameSound(
 
   try {
     const result = await playSessionSound(sessionType);
-    
+
     if (result.played) {
       log.debug({ type }, '🔊 Played game sound effect');
     }
@@ -98,8 +98,8 @@ export async function playGameSound(
  */
 export async function getGameFeedback(
   isCorrect: boolean,
-  isHighScore: boolean = false,
-  baseMessage: string = ''
+  isHighScore = false,
+  baseMessage = ''
 ): Promise<string> {
   let prefix = '';
 
@@ -114,7 +114,7 @@ export async function getGameFeedback(
     prefix = result.verbalFallback || getVerbalSoundEffect('wrong');
   }
 
-  return prefix + ' ' + baseMessage;
+  return `${prefix} ${baseMessage}`;
 }
 
 /**

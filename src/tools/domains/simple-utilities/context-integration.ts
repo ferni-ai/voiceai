@@ -1,12 +1,12 @@
 /**
  * Context Integration for Simple Utilities
- * 
+ *
  * Connects utilities to what Ferni already knows about the user:
  * - Life events and milestones
  * - Goals and habits
  * - Travel plans
  * - Relationships and important dates
- * 
+ *
  * This transforms generic utilities into personalized help:
  * "90 days from now" → "90 days - that's right before your marathon!"
  */
@@ -25,14 +25,14 @@ export interface LifeContext {
     type: 'milestone' | 'event' | 'deadline' | 'celebration';
     linkedGoal?: string;
   }>;
-  
+
   // From goals
   activeGoals: Array<{
     name: string;
     targetDate?: Date;
     category: string;
   }>;
-  
+
   // From relationships/memory
   importantPeople: Array<{
     name: string;
@@ -41,14 +41,14 @@ export interface LifeContext {
     anniversary?: Date;
     timezone?: string;
   }>;
-  
+
   // From travel/calendar
   travelPlans: Array<{
     destination: string;
     startDate: Date;
     endDate: Date;
   }>;
-  
+
   // From habits
   activeRoutines: Array<{
     name: string;
@@ -72,35 +72,35 @@ export async function loadLifeContext(userId: string): Promise<LifeContext> {
     travelPlans: [],
     activeRoutines: [],
   };
-  
+
   try {
     // Try to load from life-planning service
     await loadLifePlanningContext(userId, context);
   } catch (err) {
     getLogger().debug({ err }, 'Could not load life-planning context');
   }
-  
+
   try {
     // Try to load from memory service
     await loadMemoryContext(userId, context);
   } catch (err) {
     getLogger().debug({ err }, 'Could not load memory context');
   }
-  
+
   try {
     // Try to load from habits service
     await loadHabitsContext(userId, context);
   } catch (err) {
     getLogger().debug({ err }, 'Could not load habits context');
   }
-  
+
   return context;
 }
 
 async function loadLifePlanningContext(userId: string, context: LifeContext): Promise<void> {
   try {
     const { getActiveGoals, getUpcomingMilestones } = await import('../../goal-management.js');
-    
+
     // Load active goals
     const activeGoals = getActiveGoals(userId);
     for (const goal of activeGoals) {
@@ -110,7 +110,7 @@ async function loadLifePlanningContext(userId: string, context: LifeContext): Pr
         category: goal.category,
       });
     }
-    
+
     // Load upcoming milestones
     const milestones = getUpcomingMilestones(userId, 90);
     for (const milestone of milestones) {
@@ -129,14 +129,17 @@ async function loadLifePlanningContext(userId: string, context: LifeContext): Pr
 async function loadMemoryContext(userId: string, context: LifeContext): Promise<void> {
   try {
     const { semanticSearch } = await import('../../../memory/semantic-rag.js');
-    
+
     // Search for important people/relationships
-    const peopleResults = await semanticSearch('important people family friends relationships birthday anniversary', {
-      userId,
-      topK: 20,
-      minScore: 0.4,
-    });
-    
+    const peopleResults = await semanticSearch(
+      'important people family friends relationships birthday anniversary',
+      {
+        userId,
+        topK: 20,
+        minScore: 0.4,
+      }
+    );
+
     for (const result of peopleResults) {
       // Extract person names from content
       const personMatch = result.content.match(
@@ -144,7 +147,7 @@ async function loadMemoryContext(userId: string, context: LifeContext): Promise<
       );
       if (personMatch) {
         const name = personMatch[1];
-        if (!context.importantPeople.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+        if (!context.importantPeople.find((p) => p.name.toLowerCase() === name.toLowerCase())) {
           context.importantPeople.push({
             name,
             relationship: 'contact',
@@ -156,14 +159,14 @@ async function loadMemoryContext(userId: string, context: LifeContext): Promise<
         }
       }
     }
-    
+
     // Search for travel plans
     const travelResults = await semanticSearch('trip travel vacation flight going to visiting', {
       userId,
       topK: 10,
       minScore: 0.4,
     });
-    
+
     for (const result of travelResults) {
       const destMatch = result.content.match(
         /(?:trip|travel|going|flying|visiting)\s+(?:to\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/
@@ -189,7 +192,10 @@ async function loadMemoryContext(userId: string, context: LifeContext): Promise<
  * Extract a date from text near a keyword
  */
 function extractDate(text: string, keyword: string): Date | undefined {
-  const regex = new RegExp(`${keyword}[^.]*?(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}|\\w+\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s+\\d{4})?)`, 'i');
+  const regex = new RegExp(
+    `${keyword}[^.]*?(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}|\\w+\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s+\\d{4})?)`,
+    'i'
+  );
   const match = text.match(regex);
   if (match?.[1]) {
     const parsed = new Date(match[1]);
@@ -204,9 +210,9 @@ async function loadHabitsContext(userId: string, context: LifeContext): Promise<
   try {
     // Dynamic import
     const habitsModule = await import('../../habits.js');
-    
+
     const habits = habitsModule.getUserHabits(userId);
-    
+
     for (const habit of habits) {
       // Only add active habits
       if (habit.isActive !== false) {
@@ -236,19 +242,19 @@ export function enrichCountdownWithContext(
   lifeContext: LifeContext
 ): string | null {
   // Check if this date is near any known events
-  const nearbyEvents = lifeContext.upcomingEvents.filter(event => {
+  const nearbyEvents = lifeContext.upcomingEvents.filter((event) => {
     const eventDays = Math.ceil(
       (event.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
     );
     return Math.abs(eventDays - daysUntil) <= 3; // Within 3 days
   });
-  
+
   if (nearbyEvents.length > 0) {
     const event = nearbyEvents[0];
     const daysDiff = Math.ceil(
       (targetDate.getTime() - event.date.getTime()) / (1000 * 60 * 60 * 24)
     );
-    
+
     if (daysDiff === 0) {
       return `That's the same day as ${event.name}!`;
     } else if (daysDiff > 0) {
@@ -257,40 +263,37 @@ export function enrichCountdownWithContext(
       return `That's ${Math.abs(daysDiff)} day${Math.abs(daysDiff) !== 1 ? 's' : ''} before ${event.name}!`;
     }
   }
-  
+
   // Check if near any goals
-  const nearbyGoals = lifeContext.activeGoals.filter(goal => {
+  const nearbyGoals = lifeContext.activeGoals.filter((goal) => {
     if (!goal.targetDate) return false;
     const goalDays = Math.ceil(
       (goal.targetDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
     );
     return Math.abs(goalDays - daysUntil) <= 7;
   });
-  
+
   if (nearbyGoals.length > 0) {
     const goal = nearbyGoals[0];
     return `Right around when you're targeting ${goal.name}!`;
   }
-  
+
   return null;
 }
 
 /**
  * Enrich a timezone lookup with relationship context
  */
-export function enrichTimezoneWithContext(
-  city: string,
-  lifeContext: LifeContext
-): string | null {
+export function enrichTimezoneWithContext(city: string, lifeContext: LifeContext): string | null {
   const cityLower = city.toLowerCase();
-  
+
   // Check if we know someone in that timezone/city
   for (const person of lifeContext.importantPeople) {
     if (person.timezone?.toLowerCase().includes(cityLower)) {
       return `That's where ${person.name} is!`;
     }
   }
-  
+
   // Check travel plans
   for (const trip of lifeContext.travelPlans) {
     if (trip.destination.toLowerCase().includes(cityLower)) {
@@ -302,7 +305,7 @@ export function enrichTimezoneWithContext(
       }
     }
   }
-  
+
   return null;
 }
 
@@ -316,16 +319,15 @@ export function enrichTimerWithContext(
 ): string | null {
   // Check if this matches a known routine
   for (const routine of lifeContext.activeRoutines) {
-    if (routine.linkedTimer && 
-        Math.abs(routine.linkedTimer.minutes - minutes) < 1) {
+    if (routine.linkedTimer && Math.abs(routine.linkedTimer.minutes - minutes) < 1) {
       return `Your ${routine.name} routine timer`;
     }
-    
+
     if (label && routine.name.toLowerCase().includes(label.toLowerCase())) {
       return `Part of your ${routine.name} habit`;
     }
   }
-  
+
   return null;
 }
 
@@ -334,28 +336,26 @@ export function enrichTimerWithContext(
  */
 export function getUpcomingBirthdays(
   lifeContext: LifeContext,
-  withinDays: number = 30
+  withinDays = 30
 ): Array<{ name: string; relationship: string; daysUntil: number }> {
   const now = new Date();
   const currentYear = now.getFullYear();
   const birthdays: Array<{ name: string; relationship: string; daysUntil: number }> = [];
-  
+
   for (const person of lifeContext.importantPeople) {
     if (!person.birthday) continue;
-    
+
     // Get this year's birthday
     const birthday = new Date(person.birthday);
     birthday.setFullYear(currentYear);
-    
+
     // If already passed, get next year's
     if (birthday < now) {
       birthday.setFullYear(currentYear + 1);
     }
-    
-    const daysUntil = Math.ceil(
-      (birthday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    
+
+    const daysUntil = Math.ceil((birthday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
     if (daysUntil <= withinDays) {
       birthdays.push({
         name: person.name,
@@ -364,7 +364,7 @@ export function getUpcomingBirthdays(
       });
     }
   }
-  
+
   return birthdays.sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
@@ -373,27 +373,25 @@ export function getUpcomingBirthdays(
  */
 export function getUpcomingAnniversaries(
   lifeContext: LifeContext,
-  withinDays: number = 30
+  withinDays = 30
 ): Array<{ name: string; daysUntil: number; years: number }> {
   const now = new Date();
   const currentYear = now.getFullYear();
   const anniversaries: Array<{ name: string; daysUntil: number; years: number }> = [];
-  
+
   for (const person of lifeContext.importantPeople) {
     if (!person.anniversary) continue;
-    
+
     const anniversary = new Date(person.anniversary);
     const startYear = anniversary.getFullYear();
     anniversary.setFullYear(currentYear);
-    
+
     if (anniversary < now) {
       anniversary.setFullYear(currentYear + 1);
     }
-    
-    const daysUntil = Math.ceil(
-      (anniversary.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    
+
+    const daysUntil = Math.ceil((anniversary.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
     if (daysUntil <= withinDays) {
       const years = anniversary.getFullYear() - startYear;
       anniversaries.push({
@@ -403,7 +401,7 @@ export function getUpcomingAnniversaries(
       });
     }
   }
-  
+
   return anniversaries.sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
@@ -419,4 +417,3 @@ export default {
   getUpcomingBirthdays,
   getUpcomingAnniversaries,
 };
-

@@ -270,7 +270,7 @@ async function getFCMAccessToken(): Promise<string> {
     throw new Error(`Failed to get FCM token: ${response.status}`);
   }
 
-  const data = await response.json() as { access_token: string; expires_in: number };
+  const data = (await response.json()) as { access_token: string; expires_in: number };
   fcmAccessToken = data.access_token;
   tokenExpiry = new Date(Date.now() + (data.expires_in - 60) * 1000);
 
@@ -280,11 +280,7 @@ async function getFCMAccessToken(): Promise<string> {
 /**
  * Sign JWT for service account authentication
  */
-async function signJWT(
-  header: object,
-  payload: object,
-  privateKey: string
-): Promise<string> {
+async function signJWT(header: object, payload: object, privateKey: string): Promise<string> {
   const crypto = await import('crypto');
 
   const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
@@ -433,7 +429,7 @@ async function sendToToken(
     {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(message),
@@ -441,7 +437,9 @@ async function sendToToken(
   );
 
   if (!response.ok) {
-    const errorBody = await response.json() as { error?: { message?: string; details?: Array<{ errorCode?: string }> } };
+    const errorBody = (await response.json()) as {
+      error?: { message?: string; details?: Array<{ errorCode?: string }> };
+    };
     const errorCode = errorBody.error?.details?.[0]?.errorCode;
 
     let failureReason: PushDeliveryResult['failureReason'] = 'unknown';
@@ -458,7 +456,7 @@ async function sendToToken(
     };
   }
 
-  const data = await response.json() as { name: string };
+  const data = (await response.json()) as { name: string };
   return {
     success: true,
     messageId: data.name,
@@ -478,7 +476,7 @@ export async function sendBulkPushNotifications(
   for (let i = 0; i < notifications.length; i += concurrencyLimit) {
     const batch = notifications.slice(i, i + concurrencyLimit);
     const batchResults = await Promise.all(
-      batch.map((n) => sendPushNotification(n).then((r) => [n.userId, r] as const))
+      batch.map(async (n) => sendPushNotification(n).then((r) => [n.userId, r] as const))
     );
 
     for (const [userId, result] of batchResults) {
@@ -511,7 +509,7 @@ export function generatePersonaNotification(
         title: "Hey! How'd it go? 🌱",
         body: context.topic
           ? `Checking in on ${context.topic}. Would love to hear how it went!`
-          : "Just wanted to check in on that thing you were working on!",
+          : 'Just wanted to check in on that thing you were working on!',
       },
       celebration: {
         title: 'Amazing! 🎉',
@@ -533,15 +531,13 @@ export function generatePersonaNotification(
     maya: {
       commitment: {
         title: 'Routine check! ✨',
-        body: context.topic
-          ? `How did ${context.topic} go?`
-          : 'Checking in on your habits today!',
+        body: context.topic ? `How did ${context.topic} go?` : 'Checking in on your habits today!',
       },
       celebration: {
         title: "You're crushing it! 💪",
         body: context.topic
           ? `${context.topic} - another win for you!`
-          : "Look at you go! Small wins add up!",
+          : 'Look at you go! Small wins add up!',
       },
       thinking_of_you: {
         title: 'Good morning! ☀️',
@@ -554,7 +550,7 @@ export function generatePersonaNotification(
     },
     jordan: {
       commitment: {
-        title: "Event check-in! 📅",
+        title: 'Event check-in! 📅',
         body: context.topic
           ? `How's the planning for ${context.topic} going?`
           : 'Checking in on your upcoming event!',
@@ -693,4 +689,3 @@ export const pushNotifications = {
   clearOldRecords,
   clearInactiveTokens,
 };
-

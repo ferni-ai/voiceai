@@ -135,14 +135,17 @@ export function recordGuess(
 
   gameMemory.updatedAt = new Date();
 
-  log.debug({ 
-    item, 
-    guessTimeMs, 
-    correct, 
-    genre, 
-    decade,
-    streak: gameMemory.currentStreak,
-  }, '🧠 Recorded guess timing');
+  log.debug(
+    {
+      item,
+      guessTimeMs,
+      correct,
+      genre,
+      decade,
+      streak: gameMemory.currentStreak,
+    },
+    '🧠 Recorded guess timing'
+  );
 
   return gameMemory;
 }
@@ -157,9 +160,8 @@ function updateAffinity(
   guessTimeMs: number,
   correct: boolean
 ): void {
-  const affinities = type === 'genre' 
-    ? (gameMemory.genreAffinities ||= {})
-    : (gameMemory.decadeAffinities ||= {});
+  const affinities =
+    type === 'genre' ? (gameMemory.genreAffinities ||= {}) : (gameMemory.decadeAffinities ||= {});
 
   const existing = affinities[category];
 
@@ -170,8 +172,8 @@ function updateAffinity(
       existing.correctGuesses++;
       // Rolling average for guess time (only count correct guesses)
       existing.avgGuessTimeMs = Math.round(
-        (existing.avgGuessTimeMs * (existing.correctGuesses - 1) + guessTimeMs) / 
-        existing.correctGuesses
+        (existing.avgGuessTimeMs * (existing.correctGuesses - 1) + guessTimeMs) /
+          existing.correctGuesses
       );
     }
     existing.successRate = existing.correctGuesses / existing.totalAttempts;
@@ -196,10 +198,10 @@ function updateAffinity(
 function calculateAffinityScore(affinity: AffinityScore): number {
   // Weight: 60% accuracy, 40% speed
   const accuracyScore = affinity.successRate * 60;
-  
+
   // Speed score: 5000ms or faster = 40 points, 15000ms+ = 0 points
-  const speedScore = Math.max(0, 40 - ((affinity.avgGuessTimeMs - 5000) / 250));
-  
+  const speedScore = Math.max(0, 40 - (affinity.avgGuessTimeMs - 5000) / 250);
+
   return Math.round(Math.min(100, Math.max(0, accuracyScore + speedScore)));
 }
 
@@ -209,16 +211,14 @@ function calculateAffinityScore(affinity: AffinityScore): number {
 export function getTopAffinities(
   gameMemory: GameMemory,
   type: 'genre' | 'decade',
-  limit: number = 3
+  limit = 3
 ): AffinityScore[] {
-  const affinities = type === 'genre' 
-    ? gameMemory.genreAffinities 
-    : gameMemory.decadeAffinities;
+  const affinities = type === 'genre' ? gameMemory.genreAffinities : gameMemory.decadeAffinities;
 
   if (!affinities) return [];
 
   return Object.values(affinities)
-    .filter(a => a.totalAttempts >= 3) // Need enough data
+    .filter((a) => a.totalAttempts >= 3) // Need enough data
     .sort((a, b) => b.affinityScore - a.affinityScore)
     .slice(0, limit);
 }
@@ -229,16 +229,14 @@ export function getTopAffinities(
 export function getWeakAreas(
   gameMemory: GameMemory,
   type: 'genre' | 'decade',
-  limit: number = 3
+  limit = 3
 ): AffinityScore[] {
-  const affinities = type === 'genre' 
-    ? gameMemory.genreAffinities 
-    : gameMemory.decadeAffinities;
+  const affinities = type === 'genre' ? gameMemory.genreAffinities : gameMemory.decadeAffinities;
 
   if (!affinities) return [];
 
   return Object.values(affinities)
-    .filter(a => a.totalAttempts >= 3)
+    .filter((a) => a.totalAttempts >= 3)
     .sort((a, b) => a.affinityScore - b.affinityScore)
     .slice(0, limit);
 }
@@ -256,17 +254,18 @@ export function analyzeDifficulty(
   currentRound: number
 ): DifficultyRecommendation {
   const currentMultiplier = gameMemory.adaptiveDifficultyMultiplier || 1.0;
-  
+
   // Count recent performance (last 5 results)
   const recent = recentResults.slice(-5);
-  const correctCount = recent.filter(r => r.correct).length;
+  const correctCount = recent.filter((r) => r.correct).length;
   const avgPoints = recent.reduce((sum, r) => sum + r.pointsEarned, 0) / recent.length;
 
   // Check timing trends
   const recentTimings = gameMemory.recentGuessTimings?.slice(0, 5) || [];
-  const avgGuessTime = recentTimings.length > 0
-    ? recentTimings.reduce((sum, t) => sum + t.guessTimeMs, 0) / recentTimings.length
-    : 8000;
+  const avgGuessTime =
+    recentTimings.length > 0
+      ? recentTimings.reduce((sum, t) => sum + t.guessTimeMs, 0) / recentTimings.length
+      : 8000;
 
   // CRUSHING IT: Make it harder
   if (correctCount >= 4 && avgGuessTime < 5000) {
@@ -314,7 +313,7 @@ function getHarderMessage(round: number): string {
 
 function getEasierMessage(): string {
   const messages = [
-    "Let me try something you might know better...",
+    'Let me try something you might know better...',
     "Here's one you'll probably recognize...",
     "Don't worry, this next one's a classic...",
     "Let's build that confidence back up...",
@@ -336,7 +335,7 @@ export function checkMilestones(
   guessTimeMs?: number
 ): MilestoneEvent | null {
   const existingMilestones = gameMemory.milestones || [];
-  const achieved = new Set(existingMilestones.map(m => m.type));
+  const achieved = new Set(existingMilestones.map((m) => m.type));
 
   let newMilestone: GameMilestone | null = null;
 
@@ -432,52 +431,43 @@ export function checkMilestones(
 function getMilestoneCelebration(milestone: GameMilestone): string {
   const celebrations: Record<string, string[]> = {
     first_game: [
-      "🎉 Your first music game! Welcome to the party!",
+      '🎉 Your first music game! Welcome to the party!',
       "🎵 First game down! You're officially one of us now!",
     ],
     first_perfect_round: [
-      "✨ PERFECT ROUND! You nailed every single one!",
-      "🌟 Flawless! That was a perfect round!",
+      '✨ PERFECT ROUND! You nailed every single one!',
+      '🌟 Flawless! That was a perfect round!',
     ],
     ten_games: [
       "🎮 10 games! You're becoming a regular! I'm learning your taste...",
-      "🎯 Double digits! 10 games played. Your musical DNA is taking shape!",
+      '🎯 Double digits! 10 games played. Your musical DNA is taking shape!',
     ],
     fifty_games: [
       "🏆 50 GAMES! You're a music game veteran! I know your taste better than Spotify now.",
-      "👑 Fifty games! At this point, YOU should be quizzing ME!",
+      '👑 Fifty games! At this point, YOU should be quizzing ME!',
     ],
     fastest_guess: [
       `⚡ LIGHTNING FAST! ${milestone.context} That's your fastest guess EVER!`,
       `🚀 SPEED DEMON! ${milestone.context} New personal record!`,
     ],
-    streak_five: [
-      "🔥 FIVE IN A ROW! You're on fire!",
-      "💫 5 streak! The hot hand is REAL!",
-    ],
+    streak_five: ["🔥 FIVE IN A ROW! You're on fire!", '💫 5 streak! The hot hand is REAL!'],
     streak_ten: [
-      "🔥🔥🔥 TEN IN A ROW!!! Are you some kind of music oracle?!",
-      "💥 10 STREAK! UNSTOPPABLE! How do you DO that?!",
+      '🔥🔥🔥 TEN IN A ROW!!! Are you some kind of music oracle?!',
+      '💥 10 STREAK! UNSTOPPABLE! How do you DO that?!',
     ],
-    high_score_beaten: [
-      "🏅 NEW HIGH SCORE! You beat your personal best!",
-    ],
-    genre_master: [
-      "🎸 You've mastered this genre! I'm officially impressed.",
-    ],
-    decade_specialist: [
-      "📅 You really know your decades! Expert status unlocked.",
-    ],
-    music_savant: [
-      "🎹 MUSIC SAVANT! Your musical knowledge is genuinely impressive.",
-    ],
+    high_score_beaten: ['🏅 NEW HIGH SCORE! You beat your personal best!'],
+    genre_master: ["🎸 You've mastered this genre! I'm officially impressed."],
+    decade_specialist: ['📅 You really know your decades! Expert status unlocked.'],
+    music_savant: ['🎹 MUSIC SAVANT! Your musical knowledge is genuinely impressive.'],
   };
 
-  const options = celebrations[milestone.type] || ["🎉 Achievement unlocked!"];
+  const options = celebrations[milestone.type] || ['🎉 Achievement unlocked!'];
   return options[Math.floor(Math.random() * options.length)];
 }
 
-function getMilestoneSoundEffect(type: string): 'fanfare' | 'sparkle' | 'applause' | 'record_scratch' {
+function getMilestoneSoundEffect(
+  type: string
+): 'fanfare' | 'sparkle' | 'applause' | 'record_scratch' {
   switch (type) {
     case 'fastest_guess':
     case 'streak_ten':
@@ -506,10 +496,10 @@ export function analyzeMusicalPersonality(gameMemory: GameMemory): PersonalityIn
   // Check for nostalgic trait (picks emotional songs in Desert Island)
   if (gameMemory.desertIslandPicks && gameMemory.desertIslandPicks.length > 0) {
     const emotionalKeywords = ['love', 'heart', 'dream', 'forever', 'miss', 'remember'];
-    const emotionalCount = gameMemory.desertIslandPicks.filter(
-      song => emotionalKeywords.some(kw => song.toLowerCase().includes(kw))
+    const emotionalCount = gameMemory.desertIslandPicks.filter((song) =>
+      emotionalKeywords.some((kw) => song.toLowerCase().includes(kw))
     ).length;
-    
+
     if (emotionalCount >= 2) {
       traits.push({
         trait: 'nostalgic',
@@ -524,13 +514,15 @@ export function analyzeMusicalPersonality(gameMemory: GameMemory): PersonalityIn
   const timings = gameMemory.recentGuessTimings || [];
   if (timings.length >= 10) {
     const avgTime = timings.reduce((sum, t) => sum + t.guessTimeMs, 0) / timings.length;
-    const accuracy = timings.filter(t => t.correct).length / timings.length;
+    const accuracy = timings.filter((t) => t.correct).length / timings.length;
 
     if (avgTime < 5000 && accuracy > 0.6) {
       traits.push({
         trait: 'quick_ear',
         confidence: Math.min(1, (1 - avgTime / 10000) * accuracy),
-        evidence: [`Average guess time: ${(avgTime / 1000).toFixed(1)}s with ${Math.round(accuracy * 100)}% accuracy`],
+        evidence: [
+          `Average guess time: ${(avgTime / 1000).toFixed(1)}s with ${Math.round(accuracy * 100)}% accuracy`,
+        ],
         updatedAt: new Date(),
       });
     } else if (avgTime > 8000 && accuracy > 0.8) {
@@ -560,8 +552,9 @@ export function analyzeMusicalPersonality(gameMemory: GameMemory): PersonalityIn
   // Check for eclectic taste
   const decadeAffinities = Object.values(gameMemory.decadeAffinities || {});
   if (genreAffinities.length >= 4 && decadeAffinities.length >= 3) {
-    const allHaveDecentScore = [...genreAffinities, ...decadeAffinities]
-      .every(a => a.affinityScore >= 40);
+    const allHaveDecentScore = [...genreAffinities, ...decadeAffinities].every(
+      (a) => a.affinityScore >= 40
+    );
     if (allHaveDecentScore) {
       traits.push({
         trait: 'eclectic',
@@ -596,11 +589,11 @@ function getTraitInsight(trait: MusicalPersonalityTrait): string {
     ],
     quick_ear: [
       "You've got a lightning-fast ear! I bet you're the one who always names the song first at parties.",
-      "Your recognition speed is impressive. Do you have musical training, or is this just natural talent?",
+      'Your recognition speed is impressive. Do you have musical training, or is this just natural talent?',
     ],
     thoughtful: [
       "You take your time, but you're almost always right. Quality over speed - that's a good philosophy.",
-      "I notice you think before you answer. And it pays off - your accuracy is really high!",
+      'I notice you think before you answer. And it pays off - your accuracy is really high!',
     ],
     genre_loyal: [
       `You really know your favorite genres inside and out. That deep knowledge is showing!`,
@@ -611,14 +604,12 @@ function getTraitInsight(trait: MusicalPersonalityTrait): string {
       "I love how you appreciate all kinds of music. That's increasingly rare!",
     ],
     decade_specialist: [
-      "You really know your era! Were these your formative years, or do you just love the music?",
+      'You really know your era! Were these your formative years, or do you just love the music?',
     ],
-    adventurous: [
-      "You're open to anything! I love that adventurous spirit with music.",
-    ],
+    adventurous: ["You're open to anything! I love that adventurous spirit with music."],
   };
 
-  const options = insightMap[trait.trait] || ["You have interesting musical taste!"];
+  const options = insightMap[trait.trait] || ['You have interesting musical taste!'];
   return options[Math.floor(Math.random() * options.length)];
 }
 
@@ -630,7 +621,7 @@ export function getPersonalityComment(gameMemory: GameMemory): string | null {
   if (traits.length === 0) return null;
 
   // Pick a random trait with decent confidence
-  const strongTraits = traits.filter(t => t.confidence >= 0.6);
+  const strongTraits = traits.filter((t) => t.confidence >= 0.6);
   if (strongTraits.length === 0) return null;
 
   const trait = strongTraits[Math.floor(Math.random() * strongTraits.length)];
@@ -680,7 +671,7 @@ export function getConversationCallback(gameMemory: GameMemory): string | null {
 
   // Check for recent hints (within last hour)
   const recentHints = hints.filter(
-    h => Date.now() - new Date(h.mentionedAt).getTime() < 60 * 60 * 1000
+    (h) => Date.now() - new Date(h.mentionedAt).getTime() < 60 * 60 * 1000
   );
   if (recentHints.length === 0) return null;
 
@@ -717,14 +708,14 @@ export function getSongSelectionContext(gameMemory: GameMemory): SongSelectionCo
   // Get conversation hints
   const hints = gameMemory.conversationMusicHints || [];
   const recentHints = hints
-    .filter(h => Date.now() - new Date(h.mentionedAt).getTime() < 60 * 60 * 1000)
-    .map(h => h.topic);
+    .filter((h) => Date.now() - new Date(h.mentionedAt).getTime() < 60 * 60 * 1000)
+    .map((h) => h.topic);
 
   return {
-    strongGenres: topGenres.map(a => a.category),
-    weakGenres: weakGenres.map(a => a.category),
-    strongDecades: topDecades.map(a => a.category),
-    weakDecades: weakDecades.map(a => a.category),
+    strongGenres: topGenres.map((a) => a.category),
+    weakGenres: weakGenres.map((a) => a.category),
+    strongDecades: topDecades.map((a) => a.category),
+    weakDecades: weakDecades.map((a) => a.category),
     conversationHints: recentHints,
     difficulty,
   };
@@ -768,9 +759,8 @@ export function getMusicalDNAMessage(gameMemory: GameMemory): string | null {
   }
 
   if (messages.length === 0) return null;
-  
+
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
 // All functions are exported inline with their declarations above
-

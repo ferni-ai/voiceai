@@ -9,8 +9,16 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import { smsDelivery, type SMSDeliveryResult, type DeliveryRecord as SMSRecord } from './sms-delivery.js';
-import { emailDelivery, type EmailDeliveryResult, type EmailDeliveryRecord } from './email-delivery.js';
+import {
+  smsDelivery,
+  type SMSDeliveryResult,
+  type DeliveryRecord as SMSRecord,
+} from './sms-delivery.js';
+import {
+  emailDelivery,
+  type EmailDeliveryResult,
+  type EmailDeliveryRecord,
+} from './email-delivery.js';
 
 const log = getLogger().child({ module: 'delivery-tracker' });
 
@@ -273,10 +281,7 @@ async function processDeliveryItem(item: DeliveryQueueItem): Promise<void> {
         deliveryQueue.push(item);
         sortQueue();
         record.status = 'queued';
-        log.warn(
-          { id: item.id, retryCount: record.retryCount, backoffMs },
-          'Retrying delivery'
-        );
+        log.warn({ id: item.id, retryCount: record.retryCount, backoffMs }, 'Retrying delivery');
       } else {
         record.status = 'failed';
         log.error(
@@ -387,7 +392,11 @@ export function updateDeliveryStatus(
 /**
  * Mark delivery as responded
  */
-export function markResponded(userId: string, channel: DeliveryChannel, responseTimeMs?: number): void {
+export function markResponded(
+  userId: string,
+  channel: DeliveryChannel,
+  responseTimeMs?: number
+): void {
   // Find most recent delivery to this user on this channel
   const userRecords = Array.from(deliveryRecords.values())
     .filter((r) => r.userId === userId && r.channel === channel && r.status !== 'failed')
@@ -399,10 +408,7 @@ export function markResponded(userId: string, channel: DeliveryChannel, response
     record.respondedAt = new Date();
     deliveryRecords.set(record.id, record);
 
-    log.info(
-      { id: record.id, userId, channel, responseTimeMs },
-      '💬 User responded to outreach'
-    );
+    log.info({ id: record.id, userId, channel, responseTimeMs }, '💬 User responded to outreach');
   }
 }
 
@@ -484,10 +490,7 @@ export function cancelQueuedDelivery(id: string): boolean {
 /**
  * Calculate delivery statistics
  */
-export function calculateDeliveryStats(
-  userId?: string,
-  sinceDate?: Date
-): DeliveryStats {
+export function calculateDeliveryStats(userId?: string, sinceDate?: Date): DeliveryStats {
   let records = Array.from(deliveryRecords.values());
 
   if (userId) {
@@ -606,4 +609,3 @@ export const deliveryTracker = {
   clearOldRecords,
   shutdown: shutdownDeliveryTracker,
 };
-

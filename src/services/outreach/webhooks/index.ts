@@ -86,4 +86,3 @@ export function initializeWebhooks(config: WebhooksConfig): void {
   initialized = true;
   log.info('✅ Webhook handlers initialized');
 }
-

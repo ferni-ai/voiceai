@@ -10,15 +10,15 @@
 // ============================================================================
 
 export type GameType =
-  | 'name-that-tune'      // Guess the song from a clip
-  | 'one-word-song'       // User says word, find a song with it
-  | 'finish-the-lyric'    // Complete the song lyric
-  | 'this-or-that'        // Pick favorite between two songs
+  | 'name-that-tune' // Guess the song from a clip
+  | 'one-word-song' // User says word, find a song with it
+  | 'finish-the-lyric' // Complete the song lyric
+  | 'this-or-that' // Pick favorite between two songs
   | 'desert-island-discs' // Pick 5 songs for a desert island
-  | 'decade-challenge'    // Guess what decade a song is from
-  | 'mood-dj-challenge'   // Describe mood, agent finds song
-  | 'song-dedication'     // Dedicate a song to someone
-  | 'music-trivia';       // Music knowledge questions
+  | 'decade-challenge' // Guess what decade a song is from
+  | 'mood-dj-challenge' // Describe mood, agent finds song
+  | 'song-dedication' // Dedicate a song to someone
+  | 'music-trivia'; // Music knowledge questions
 
 export type GameStatus = 'idle' | 'active' | 'paused' | 'completed';
 
@@ -278,13 +278,16 @@ export interface GameHistory {
   /** Games played this session */
   sessionGames: GameSession[];
   /** All-time stats by game type */
-  allTimeStats: Record<GameType, {
-    gamesPlayed: number;
-    highScore: number;
-    totalScore: number;
-    averageScore: number;
-    lastPlayed: number;
-  }>;
+  allTimeStats: Record<
+    GameType,
+    {
+      gamesPlayed: number;
+      highScore: number;
+      totalScore: number;
+      averageScore: number;
+      lastPlayed: number;
+    }
+  >;
 }
 
 // ============================================================================
@@ -293,30 +296,29 @@ export interface GameHistory {
 
 export interface IGameEngine {
   /** Get current game state */
-  getState(): GameState;
-  
-  /** Start a new game */
-  startGame(gameType: GameType, config?: Record<string, unknown>): Promise<string>;
-  
-  /** Submit an answer/action */
-  submitAnswer(answer: string): Promise<GameResult>;
-  
-  /** Get a hint */
-  getHint(): string | null;
-  
-  /** Skip current round */
-  skipRound(): Promise<GameResult>;
-  
-  /** End the current game */
-  endGame(): GameSession;
-  
-  /** Pause the game */
-  pauseGame(): void;
-  
-  /** Resume the game */
-  resumeGame(): void;
-  
-  /** Get game history */
-  getHistory(): GameHistory;
-}
+  getState: () => GameState;
 
+  /** Start a new game */
+  startGame: (gameType: GameType, config?: Record<string, unknown>) => Promise<string>;
+
+  /** Submit an answer/action */
+  submitAnswer: (answer: string) => Promise<GameResult>;
+
+  /** Get a hint */
+  getHint: () => string | null;
+
+  /** Skip current round */
+  skipRound: () => Promise<GameResult>;
+
+  /** End the current game */
+  endGame: () => GameSession;
+
+  /** Pause the game */
+  pauseGame: () => void;
+
+  /** Resume the game */
+  resumeGame: () => void;
+
+  /** Get game history */
+  getHistory: () => GameHistory;
+}

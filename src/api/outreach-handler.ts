@@ -6,29 +6,29 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { handleCorsPreflightIfNeeded } from './helpers.js';
-import { sendJsonResponse, parseRequestBody } from './utils.js';
-import { getLogger } from '../utils/safe-logger.js';
 import {
+  calculateOptimalTime,
+  cancelOutreach,
+  getChannelProfile,
+  getConversationalCallService,
   getOutreachDecisionEngine,
+  getOutreachHistory,
+  getPendingOutreach,
+  getTimingProfile,
+  getUserContext,
+  registerUserForOutreach,
   triggerOutreach,
+  triggerThinkingOfYou,
   updateOutreachPreferences,
   updateUserContext,
-  registerUserForOutreach,
-  getPendingOutreach,
-  getOutreachHistory,
-  cancelOutreach,
-  triggerThinkingOfYou,
-  getConversationalCallService,
-  getTimingProfile,
-  getChannelProfile,
-  getUserContext,
-  calculateOptimalTime,
-  type OutreachTriggerType,
   type OutreachPriority,
+  type OutreachTriggerType,
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
+import { getLogger } from '../utils/safe-logger.js';
+import { handleCorsPreflightIfNeeded } from './helpers.js';
 import { handleOutreachWebhookRoutes } from './outreach-webhook-routes.js';
+import { parseRequestBody, sendJsonResponse } from './utils.js';
 
 const log = getLogger().child({ module: 'outreach-handler' });
 
@@ -115,8 +115,8 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/preferences
     if (route === '/preferences' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { userId, preferences } = body as { 
-        userId: string; 
+      const { userId, preferences } = body as {
+        userId: string;
         preferences: {
           preferredChannel?: 'sms' | 'email' | 'call';
           disabledChannels?: Array<'sms' | 'email' | 'call'>;
@@ -634,8 +634,12 @@ export async function handleOutreachRoutes(
 
         // Send via Twilio
         const { textUser } = await import('../tools/proactive-outreach.js');
-        await textUser(phone, `Your Ferni code is ${code}. Just making sure it's really you! 💚`, 'ferni');
-        
+        await textUser(
+          phone,
+          `Your Ferni code is ${code}. Just making sure it's really you! 💚`,
+          'ferni'
+        );
+
         log.info({ phone: phone.slice(-4), expiresAt }, 'Sent verification code');
         sendJsonResponse(res, 200, { success: true, message: 'Verification code sent' });
       } catch (error) {

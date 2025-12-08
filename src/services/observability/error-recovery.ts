@@ -149,7 +149,11 @@ export function recordFallback(
   reason: string,
   context?: { userId?: string; sessionId?: string }
 ): void {
-  const errorId = recordError(`Fallback: ${fromService} -> ${toService}: ${reason}`, 'api', context);
+  const errorId = recordError(
+    `Fallback: ${fromService} -> ${toService}: ${reason}`,
+    'api',
+    context
+  );
 
   recordRecovery(errorId, 'fallback', 0);
 
@@ -166,7 +170,17 @@ export function getSnapshot(): ErrorSnapshot {
   const last5Min = errorEvents.filter((e) => e.timestamp > now - 5 * 60 * 1000);
 
   // By category
-  const categories: ErrorCategory[] = ['network', 'api', 'llm', 'tts', 'stt', 'memory', 'handoff', 'auth', 'unknown'];
+  const categories: ErrorCategory[] = [
+    'network',
+    'api',
+    'llm',
+    'tts',
+    'stt',
+    'memory',
+    'handoff',
+    'auth',
+    'unknown',
+  ];
   const errorsByCategory: Record<ErrorCategory, number> = {} as Record<ErrorCategory, number>;
   const errorRateByCategory: Record<ErrorCategory, number> = {} as Record<ErrorCategory, number>;
 
@@ -204,7 +218,9 @@ export function getSnapshot(): ErrorSnapshot {
   for (let i = 0; i < 12; i++) {
     const windowStart = now - (i + 1) * 5 * 60 * 1000;
     const windowEnd = now - i * 5 * 60 * 1000;
-    const count = errorEvents.filter((e) => e.timestamp >= windowStart && e.timestamp < windowEnd).length;
+    const count = errorEvents.filter(
+      (e) => e.timestamp >= windowStart && e.timestamp < windowEnd
+    ).length;
     const timeWindow = `${i * 5}-${(i + 1) * 5}min ago`;
     clusters.push({ timeWindow, count });
   }

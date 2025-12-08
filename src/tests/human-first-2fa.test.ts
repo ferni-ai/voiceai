@@ -88,7 +88,7 @@ describe('Human-First 2FA', () => {
     });
 
     it('detects first deep convo based on context', () => {
-      const result = detectMagicMoment("This has been really helpful, thank you", {
+      const result = detectMagicMoment('This has been really helpful, thank you', {
         turnCount: 10,
         emotionalIntensity: 0.8,
       });
@@ -131,7 +131,9 @@ describe('Human-First 2FA', () => {
 
       expect(result.suggestedAsk).toBeDefined();
       // Script should be caring - check for warm language
-      expect(result.suggestedAsk?.toLowerCase()).toMatch(/check in|here for you|tomorrow|follow up|thinking about/);
+      expect(result.suggestedAsk?.toLowerCase()).toMatch(
+        /check in|here for you|tomorrow|follow up|thinking about/
+      );
     });
 
     it('provides gentle script for loneliness', () => {
@@ -398,4 +400,3 @@ describe('Human-First 2FA', () => {
     });
   });
 });
-

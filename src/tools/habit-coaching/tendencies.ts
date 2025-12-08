@@ -116,4 +116,3 @@ export function getTendencyAvoid(tendency: FourTendency): readonly string[] {
 export function getTendencyMotivation(tendency: FourTendency): string {
   return FOUR_TENDENCIES_STRATEGIES[tendency].motivationTip;
 }
-

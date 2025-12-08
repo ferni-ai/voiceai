@@ -28,13 +28,13 @@ const log = getLogger().child({ module: 'AmbientAwareness' });
  * Detected environment type
  */
 export type EnvironmentType =
-  | 'quiet_room'      // Low background noise, clear audio
-  | 'office'          // Moderate ambient, occasional typing/talking
-  | 'coffee_shop'     // High ambient, conversations, music
-  | 'outdoors'        // Wind, traffic, variable noise
-  | 'car'             // Road noise, engine, consistent hum
-  | 'public_transit'  // Announcements, engine, crowd
-  | 'noisy'           // Generic high noise
+  | 'quiet_room' // Low background noise, clear audio
+  | 'office' // Moderate ambient, occasional typing/talking
+  | 'coffee_shop' // High ambient, conversations, music
+  | 'outdoors' // Wind, traffic, variable noise
+  | 'car' // Road noise, engine, consistent hum
+  | 'public_transit' // Announcements, engine, crowd
+  | 'noisy' // Generic high noise
   | 'unknown';
 
 /**
@@ -45,15 +45,15 @@ export interface AmbientAnalysisResult {
   environment: EnvironmentType;
   /** Confidence in detection (0-1) */
   confidence: number;
-  
+
   /** Background noise level (0-1, where 0 = silent, 1 = very noisy) */
   noiseLevel: number;
   /** Signal-to-noise ratio estimate (higher = clearer speech) */
   snrEstimate: number;
-  
+
   /** Detected background elements */
   backgroundElements: BackgroundElement[];
-  
+
   /** Recommendations for agent behavior */
   recommendations: AmbientRecommendations;
 }
@@ -62,7 +62,16 @@ export interface AmbientAnalysisResult {
  * Detected background sound element
  */
 export interface BackgroundElement {
-  type: 'music' | 'conversation' | 'traffic' | 'typing' | 'tv' | 'wind' | 'rain' | 'baby_crying' | 'unknown';
+  type:
+    | 'music'
+    | 'conversation'
+    | 'traffic'
+    | 'typing'
+    | 'tv'
+    | 'wind'
+    | 'rain'
+    | 'baby_crying'
+    | 'unknown';
   confidence: number;
   /** Is this element persistent or intermittent? */
   persistent: boolean;
@@ -117,20 +126,16 @@ export class AmbientAwarenessService {
 
   // Spectral analysis buffers
   private spectralHistory: Array<{
-    lowBand: number;   // 0-500 Hz (bass, rumble)
-    midBand: number;   // 500-2000 Hz (speech fundamentals)
-    highBand: number;  // 2000-8000 Hz (sibilants, consonants)
+    lowBand: number; // 0-500 Hz (bass, rumble)
+    midBand: number; // 500-2000 Hz (speech fundamentals)
+    highBand: number; // 2000-8000 Hz (sibilants, consonants)
   }> = [];
 
   /**
    * Process an audio frame for ambient analysis
    * Call this with each audio frame (can be same stream as STT)
    */
-  processFrame(
-    data: Int16Array | Float32Array,
-    sampleRate: number,
-    isSpeech: boolean
-  ): void {
+  processFrame(data: Int16Array | Float32Array, sampleRate: number, isSpeech: boolean): void {
     this.frameCount++;
 
     // Calculate energy
@@ -170,10 +175,7 @@ export class AmbientAwarenessService {
     const now = Date.now();
 
     // Return cached if recent
-    if (
-      this.lastAnalysis &&
-      now - this.lastAnalysisTime < AMBIENT_CONFIG.UPDATE_INTERVAL_MS
-    ) {
+    if (this.lastAnalysis && now - this.lastAnalysisTime < AMBIENT_CONFIG.UPDATE_INTERVAL_MS) {
       return this.lastAnalysis;
     }
 
@@ -226,10 +228,7 @@ export class AmbientAwarenessService {
     const noiseLevel = Math.min(1, noiseFloor / AMBIENT_CONFIG.NOISY_THRESHOLD);
 
     // Detect environment type
-    const { environment, confidence } = this.classifyEnvironment(
-      noiseFloor,
-      snrEstimate
-    );
+    const { environment, confidence } = this.classifyEnvironment(noiseFloor, snrEstimate);
 
     // Detect background elements
     const backgroundElements = this.detectBackgroundElements();
@@ -378,8 +377,7 @@ export class AmbientAwarenessService {
 
     // Environment-specific acknowledgments (used sparingly)
     if (environment === 'car' && !recommendations.acknowledgment) {
-      recommendations.acknowledgment =
-        "Sounds like you're on the road. I'll keep it brief.";
+      recommendations.acknowledgment = "Sounds like you're on the road. I'll keep it brief.";
     }
 
     // Background music detected
@@ -543,4 +541,3 @@ export function resetAmbientAwareness(sessionId: string): void {
 export function resetAllAmbientAwareness(): void {
   sessionInstances.clear();
 }
-

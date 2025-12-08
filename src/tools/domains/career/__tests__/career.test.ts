@@ -68,14 +68,20 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Jordan',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
 }
 
 // Helper to execute tools that need the second context argument
-function executeWithContext(tool: { execute: Function }, params: Record<string, unknown>, ctx: ToolContext) {
+function executeWithContext(
+  tool: { execute: Function },
+  params: Record<string, unknown>,
+  ctx: ToolContext
+) {
   return tool.execute(params, { ctx });
 }
 
@@ -109,25 +115,25 @@ describe('Career Domain Tools', () => {
     });
 
     it('should have trackJobApplication tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'trackJobApplication');
+      const tool = toolDefinitions.find((t) => t.id === 'trackJobApplication');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('career');
     });
 
     it('should have practiceInterview tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'practiceInterview');
+      const tool = toolDefinitions.find((t) => t.id === 'practiceInterview');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('career');
     });
 
     it('should have researchSalary tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'researchSalary');
+      const tool = toolDefinitions.find((t) => t.id === 'researchSalary');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('career');
     });
 
     it('should have assessBurnout tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'assessBurnout');
+      const tool = toolDefinitions.find((t) => t.id === 'assessBurnout');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('career');
     });
@@ -139,15 +145,19 @@ describe('Career Domain Tools', () => {
 
   describe('trackJobApplication', () => {
     it('should add a new job application', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackJobApplication');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackJobApplication');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'add',
-        company: 'Tech Corp',
-        role: 'Software Engineer',
-        status: 'applied',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'add',
+          company: 'Tech Corp',
+          role: 'Software Engineer',
+          status: 'applied',
+        },
+        mockContext
+      );
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
@@ -157,43 +167,55 @@ describe('Career Domain Tools', () => {
     });
 
     it('should update application status to interview', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackJobApplication');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackJobApplication');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'update',
-        company: 'Tech Corp',
-        status: 'interview-scheduled',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'update',
+          company: 'Tech Corp',
+          status: 'interview-scheduled',
+        },
+        mockContext
+      );
 
       expect(result).toContain('Updated');
       expect(result).toContain('interview');
     });
 
     it('should celebrate job offer', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackJobApplication');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackJobApplication');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'update',
-        company: 'Dream Company',
-        role: 'Senior Developer',
-        status: 'offer',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'update',
+          company: 'Dream Company',
+          role: 'Senior Developer',
+          status: 'offer',
+        },
+        mockContext
+      );
 
       expect(result).toContain('Congratulations');
       expect(result).toContain('offer');
     });
 
     it('should handle rejection compassionately', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackJobApplication');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackJobApplication');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'update',
-        company: 'Some Company',
-        status: 'rejected',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'update',
+          company: 'Some Company',
+          status: 'rejected',
+        },
+        mockContext
+      );
 
       expect(result).toContain('Rejection');
       // Should have supportive messaging
@@ -201,12 +223,16 @@ describe('Career Domain Tools', () => {
     });
 
     it('should provide job search statistics', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackJobApplication');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackJobApplication');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'stats',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'stats',
+        },
+        mockContext
+      );
 
       expect(result).toContain('Statistics');
     });
@@ -218,7 +244,7 @@ describe('Career Domain Tools', () => {
 
   describe('practiceInterview', () => {
     it('should provide behavioral interview practice', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'practiceInterview');
+      const toolDef = toolDefinitions.find((t) => t.id === 'practiceInterview');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -232,7 +258,7 @@ describe('Career Domain Tools', () => {
     });
 
     it('should provide technical interview practice', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'practiceInterview');
+      const toolDef = toolDefinitions.find((t) => t.id === 'practiceInterview');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -244,7 +270,7 @@ describe('Career Domain Tools', () => {
     });
 
     it('should provide case interview practice', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'practiceInterview');
+      const toolDef = toolDefinitions.find((t) => t.id === 'practiceInterview');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -262,7 +288,7 @@ describe('Career Domain Tools', () => {
 
   describe('prepareSTARStories', () => {
     it('should help prepare STAR stories', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'prepareSTARStories');
+      const toolDef = toolDefinitions.find((t) => t.id === 'prepareSTARStories');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -281,7 +307,7 @@ describe('Career Domain Tools', () => {
 
   describe('researchSalary', () => {
     it('should provide salary research guidance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'researchSalary');
+      const toolDef = toolDefinitions.find((t) => t.id === 'researchSalary');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -301,7 +327,7 @@ describe('Career Domain Tools', () => {
 
   describe('assessBurnout', () => {
     it('should assess mild burnout symptoms', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'assessBurnout');
+      const toolDef = toolDefinitions.find((t) => t.id === 'assessBurnout');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -314,7 +340,7 @@ describe('Career Domain Tools', () => {
     });
 
     it('should assess moderate burnout with recommendations', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'assessBurnout');
+      const toolDef = toolDefinitions.find((t) => t.id === 'assessBurnout');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -327,7 +353,7 @@ describe('Career Domain Tools', () => {
     });
 
     it('should flag severe burnout and recommend professional help', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'assessBurnout');
+      const toolDef = toolDefinitions.find((t) => t.id === 'assessBurnout');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -348,7 +374,7 @@ describe('Career Domain Tools', () => {
 
   describe('setWorkBoundary', () => {
     it('should help set work boundaries', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'setWorkBoundary');
+      const toolDef = toolDefinitions.find((t) => t.id === 'setWorkBoundary');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -368,7 +394,7 @@ describe('Career Domain Tools', () => {
 
   describe('identifySkillGaps', () => {
     it('should identify skill gaps', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'identifySkillGaps');
+      const toolDef = toolDefinitions.find((t) => t.id === 'identifySkillGaps');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -388,7 +414,7 @@ describe('Career Domain Tools', () => {
 
   describe('planCareerTransition', () => {
     it('should help plan career transition', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'planCareerTransition');
+      const toolDef = toolDefinitions.find((t) => t.id === 'planCareerTransition');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -408,14 +434,18 @@ describe('Career Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackJobApplication');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackJobApplication');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'add',
-        company: 'Test Corp',
-        role: 'Engineer',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'add',
+          company: 'Test Corp',
+          role: 'Engineer',
+        },
+        mockContext
+      );
 
       expect(result).not.toContain('TODO');
       expect(result).not.toContain('placeholder');
@@ -423,23 +453,24 @@ describe('Career Domain Tools', () => {
     });
 
     it('should provide actionable next steps', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackJobApplication');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackJobApplication');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        action: 'add',
-        company: 'Great Company',
-        role: 'Designer',
-        status: 'applied',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          action: 'add',
+          company: 'Great Company',
+          role: 'Designer',
+          status: 'applied',
+        },
+        mockContext
+      );
 
       // Should include next steps or recommendations
-      const hasNextSteps = 
-        result.includes('follow-up') || 
-        result.includes('research') || 
-        result.includes('Next');
+      const hasNextSteps =
+        result.includes('follow-up') || result.includes('research') || result.includes('Next');
       expect(hasNextSteps).toBe(true);
     });
   });
 });
-

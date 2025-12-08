@@ -34,10 +34,12 @@ import { getPersonaDisplayName, getCanonicalPersonaId } from '../personas/voice-
 async function makePhoneCall(
   phone: string,
   message: string,
-  personaId: string = 'ferni'
+  personaId = 'ferni'
 ): Promise<{ success: boolean; callSid?: string; error?: string }> {
   try {
-    const result = await callWithPersonaVoice(phone, message, personaId, { fallbackToTwilioVoice: true });
+    const result = await callWithPersonaVoice(phone, message, personaId, {
+      fallbackToTwilioVoice: true,
+    });
     if (result.success) {
       return { success: true, callSid: result.callSid };
     }
@@ -278,7 +280,10 @@ export async function callUser(
       return { success: false, error: result.error };
     }
 
-    getLogger().info({ userId, personaId: canonicalPersonaId, callSid: result.callSid }, '📞 Call initiated to user');
+    getLogger().info(
+      { userId, personaId: canonicalPersonaId, callSid: result.callSid },
+      '📞 Call initiated to user'
+    );
     return { success: true, callSid: result.callSid };
   } catch (error) {
     getLogger().error({ error, userId, personaId }, 'Failed to call user');
@@ -322,7 +327,12 @@ export async function scheduleText(
     });
 
     getLogger().info(
-      { userId, reminderId: reminder.id, personaId: canonicalId, scheduledFor: scheduledFor.toISOString() },
+      {
+        userId,
+        reminderId: reminder.id,
+        personaId: canonicalId,
+        scheduledFor: scheduledFor.toISOString(),
+      },
       '📅 Text scheduled'
     );
 
@@ -367,7 +377,12 @@ export async function scheduleEmail(
     });
 
     getLogger().info(
-      { userId, reminderId: reminder.id, personaId: canonicalId, scheduledFor: scheduledFor.toISOString() },
+      {
+        userId,
+        reminderId: reminder.id,
+        personaId: canonicalId,
+        scheduledFor: scheduledFor.toISOString(),
+      },
       '📅 Email scheduled'
     );
 
@@ -411,7 +426,12 @@ export async function scheduleCall(
     });
 
     getLogger().info(
-      { userId, reminderId: reminder.id, personaId: canonicalId, scheduledFor: scheduledFor.toISOString() },
+      {
+        userId,
+        reminderId: reminder.id,
+        personaId: canonicalId,
+        scheduledFor: scheduledFor.toISOString(),
+      },
       '📅 Call scheduled'
     );
 

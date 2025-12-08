@@ -14,6 +14,7 @@
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { appState } from '../state/app.state.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('SubscriptionUI');
 
@@ -405,20 +406,7 @@ async function handleUpgrade(tier: string): Promise<void> {
 }
 
 function showToast(message: string): void {
-  // Simple toast - could integrate with existing toast system
-  const toast = document.createElement('div');
-  toast.className = 'subscription-toast';
-  toast.textContent = message;
-  document.body.appendChild(toast);
-
-  requestAnimationFrame(() => {
-    toast.classList.add('subscription-toast--visible');
-  });
-
-  setTimeout(() => {
-    toast.classList.remove('subscription-toast--visible');
-    setTimeout(() => toast.remove(), DURATION.SLOW);
-  }, 3000);
+  toast.info(message);
 }
 
 // ============================================================================
@@ -796,28 +784,6 @@ function injectStyles(): void {
       font-size: 0.875rem;
       color: var(--color-text-muted, #7a6f63);
       margin: 0;
-    }
-    
-    /* Toast */
-    .subscription-toast {
-      position: fixed;
-      bottom: var(--space-6, 24px);
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: var(--color-text-primary, #2C2520);
-      color: white;
-      padding: var(--space-3, 12px) var(--space-6, 24px);
-      border-radius: var(--radius-lg, 12px);
-      font-size: 0.875rem;
-      box-shadow: var(--shadow-lg);
-      opacity: 0;
-      transition: all ${DURATION.SLOW}ms ${EASING.SPRING};
-      z-index: var(--z-notification);
-    }
-    
-    .subscription-toast--visible {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
     }
     
     /* Dark Theme */

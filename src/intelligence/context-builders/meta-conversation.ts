@@ -75,7 +75,7 @@ function detectQuieterThanUsual(
 
   if (avgWordsThisSession < expectedWords * 0.6 && avgWordsThisSession > 0) {
     const reflections = [
-      "You seem a bit quieter today than usual. Everything okay?",
+      'You seem a bit quieter today than usual. Everything okay?',
       "I've noticed you're being more brief today. No pressure—just checking in.",
       "You seem more reserved today. I'm here if you want to talk, or we can just keep it light.",
     ];
@@ -108,7 +108,7 @@ function detectEnergyChange(
     return {
       type: 'energy_change',
       observation: 'User energy significantly higher than historical pattern',
-      reflection: "You seem more energized today! Something good happening?",
+      reflection: 'You seem more energized today! Something good happening?',
       confidence: 0.75,
     };
   }
@@ -118,7 +118,7 @@ function detectEnergyChange(
     return {
       type: 'energy_change',
       observation: 'User energy significantly lower than historical pattern',
-      reflection: "You seem a bit low energy today. How are you really doing?",
+      reflection: 'You seem a bit low energy today. How are you really doing?',
       confidence: 0.7,
     };
   }
@@ -191,7 +191,8 @@ function detectOpeningUp(
     return {
       type: 'opening_up',
       observation: `Emotional intensity ${emotionalIntensity.toFixed(2)} vs historical avg ${avgHistoricalIntensity.toFixed(2)}`,
-      reflection: "Thank you for sharing that with me. I can tell this is something you don't talk about lightly.",
+      reflection:
+        "Thank you for sharing that with me. I can tell this is something you don't talk about lightly.",
       confidence: 0.75,
     };
   }

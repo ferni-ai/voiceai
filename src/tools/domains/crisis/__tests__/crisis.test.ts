@@ -52,7 +52,9 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Ferni',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
@@ -88,25 +90,25 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should have provideCrisisResources tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const tool = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('crisis');
     });
 
     it('should have guideGroundingExercise tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'guideGroundingExercise');
+      const tool = toolDefinitions.find((t) => t.id === 'guideGroundingExercise');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('crisis');
     });
 
     it('should have deEscalateAnxiety tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'deEscalateAnxiety');
+      const tool = toolDefinitions.find((t) => t.id === 'deEscalateAnxiety');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('crisis');
     });
 
     it('should have createSafetyPlan tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'createSafetyPlan');
+      const tool = toolDefinitions.find((t) => t.id === 'createSafetyPlan');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('crisis');
     });
@@ -118,7 +120,7 @@ describe('Crisis Domain Tools', () => {
 
   describe('provideCrisisResources', () => {
     it('should return resources for suicide-self-harm crisis', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       expect(toolDef).toBeDefined();
 
       const tool = toolDef!.create(mockContext);
@@ -134,7 +136,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should return resources for mental-health crisis', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -147,7 +149,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should return resources for domestic-violence crisis', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -160,7 +162,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should return resources for substance-abuse crisis', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -172,7 +174,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should return resources for veteran-crisis', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -184,7 +186,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should return resources for lgbtq-crisis', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -196,7 +198,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should handle all crisis types without errors', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       const tool = toolDef!.create(mockContext);
 
       const crisisTypes = [
@@ -225,7 +227,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should always include compassionate messaging', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -236,8 +238,8 @@ describe('Crisis Domain Tools', () => {
       // Should have supportive language
       expect(
         result.includes("don't have to face this alone") ||
-        result.includes("here with you") ||
-        result.includes("care about you")
+          result.includes('here with you') ||
+          result.includes('care about you')
       ).toBe(true);
     });
   });
@@ -248,7 +250,7 @@ describe('Crisis Domain Tools', () => {
 
   describe('guideGroundingExercise', () => {
     it('should guide 5-4-3-2-1 grounding exercise', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'guideGroundingExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'guideGroundingExercise');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -263,7 +265,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should guide box-breathing exercise', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'guideGroundingExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'guideGroundingExercise');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -276,7 +278,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should add safety check for severe intensity', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'guideGroundingExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'guideGroundingExercise');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -288,7 +290,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should handle all grounding techniques', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'guideGroundingExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'guideGroundingExercise');
       const tool = toolDef!.create(mockContext);
 
       const techniques = [
@@ -318,7 +320,7 @@ describe('Crisis Domain Tools', () => {
 
   describe('createSafetyPlan', () => {
     it('should create safety plan with all components', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'createSafetyPlan');
+      const toolDef = toolDefinitions.find((t) => t.id === 'createSafetyPlan');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -331,7 +333,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should include professional contacts section', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'createSafetyPlan');
+      const toolDef = toolDefinitions.find((t) => t.id === 'createSafetyPlan');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -351,7 +353,7 @@ describe('Crisis Domain Tools', () => {
 
   describe('Error Handling', () => {
     it('provideCrisisResources should return fallback on error', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       expect(toolDef).toBeDefined();
 
       // The tool has built-in error handling that always returns helpful resources
@@ -368,7 +370,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('guideGroundingExercise should return fallback on error', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'guideGroundingExercise');
+      const toolDef = toolDefinitions.find((t) => t.id === 'guideGroundingExercise');
       const tool = toolDef!.create(mockContext);
 
       // Using valid technique
@@ -389,7 +391,7 @@ describe('Crisis Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -404,7 +406,7 @@ describe('Crisis Domain Tools', () => {
     });
 
     it('should have valid phone number formats', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'provideCrisisResources');
+      const toolDef = toolDefinitions.find((t) => t.id === 'provideCrisisResources');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -495,11 +497,10 @@ describe('Crisis Hotline Verification', () => {
 
     Object.entries(VERIFIED_HOTLINES).forEach(([number, info]) => {
       // Parse the verification date (add time to avoid timezone issues)
-      const verifiedDate = new Date(info.verified + 'T12:00:00');
+      const verifiedDate = new Date(`${info.verified}T12:00:00`);
       // This test will start failing when hotlines need re-verification
       // Update the VERIFIED_HOTLINES object after verifying numbers are still active
       expect(verifiedDate.getTime()).toBeGreaterThan(oneYearAgo.getTime());
     });
   });
 });
-

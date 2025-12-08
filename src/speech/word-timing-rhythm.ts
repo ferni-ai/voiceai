@@ -370,7 +370,7 @@ export function analyzePhseRhythm(
  */
 export function generateRhythmSsml(
   userRhythm: PhraseRhythm,
-  personaDefaultPacing: number = 150 // WPM
+  personaDefaultPacing = 150 // WPM
 ): RhythmSsmlAdjustments {
   // Calculate rate adjustment
   const pacingRatio = userRhythm.pacing / personaDefaultPacing;

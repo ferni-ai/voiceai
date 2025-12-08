@@ -38,6 +38,8 @@ export interface VoiceHumanizationFlags {
   enableEmotionalContagion: boolean;
   /** Enable enhanced voice fingerprinting */
   enableEnhancedVoiceFingerprinting: boolean;
+  /** Enable voice authentication (enrollment, verification, identification) */
+  enableVoiceAuthentication: boolean;
 
   // Phase 4: Advanced Audio Intelligence
   /** Enable FFT-based spectral analysis */
@@ -86,7 +88,8 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   // Phase 3: Enable by default (new)
   enableRhythmMirroring: true,
   enableEmotionalContagion: true,
-  enableEnhancedVoiceFingerprinting: false, // Not yet implemented
+  enableEnhancedVoiceFingerprinting: true, // Uses ferni-speaker native module
+  enableVoiceAuthentication: true, // Enable voice enrollment & verification
 
   // Phase 4: Advanced Audio Intelligence - MONITORING ONLY
   enableFftAnalysis: true,
@@ -95,9 +98,9 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   enableWordTimingRhythm: true,
 
   // Phase 5: Preemptive - MONITORING ONLY (don't use cached responses yet)
-  enableResponseAnticipation: true,  // Track but don't use
-  useCachedResponses: false,         // Just monitor
-  cacheConfidenceThreshold: 0.7,     // 70% confidence required
+  enableResponseAnticipation: true, // Track but don't use
+  useCachedResponses: false, // Just monitor
+  cacheConfidenceThreshold: 0.7, // 70% confidence required
 
   // Rollout: 100% by default
   rolloutPercentage: 100,
@@ -122,6 +125,7 @@ const STAGING_FLAGS: VoiceHumanizationFlags = {
 const DEVELOPMENT_FLAGS: VoiceHumanizationFlags = {
   ...DEFAULT_FLAGS,
   enableEnhancedVoiceFingerprinting: true,
+  enableVoiceAuthentication: true,
   enableVerboseLogging: true,
   rolloutPercentage: 100,
   useCachedResponses: true, // Test everything in dev
@@ -168,7 +172,7 @@ function applyEnvironmentOverrides(): void {
   const overrides: Partial<VoiceHumanizationFlags> = {};
 
   // Boolean flags
-  const boolFlags: (keyof VoiceHumanizationFlags)[] = [
+  const boolFlags: Array<keyof VoiceHumanizationFlags> = [
     'enableProsodyTurnPrediction',
     'enableMicroInterruptions',
     'enableEmotionalArcTts',
@@ -177,6 +181,7 @@ function applyEnvironmentOverrides(): void {
     'enableRhythmMirroring',
     'enableEmotionalContagion',
     'enableEnhancedVoiceFingerprinting',
+    'enableVoiceAuthentication',
     'enableFftAnalysis',
     'enableEnhancedTurnPrediction',
     'enableMultiSignalLaughter',
@@ -251,11 +256,11 @@ export function isFeatureEnabled(
  */
 export function isEnabledForSession(sessionId: string): boolean {
   const flags = getFlags();
-  
+
   if (flags.rolloutPercentage >= 100) {
     return true;
   }
-  
+
   if (flags.rolloutPercentage <= 0) {
     return false;
   }
@@ -268,7 +273,9 @@ export function isEnabledForSession(sessionId: string): boolean {
 /**
  * Get flags for a specific session (with rollout check)
  */
-export function getSessionFlags(sessionId: string): VoiceHumanizationFlags & { isEnabled: boolean } {
+export function getSessionFlags(
+  sessionId: string
+): VoiceHumanizationFlags & { isEnabled: boolean } {
   const flags = getFlags();
   const isEnabled = isEnabledForSession(sessionId);
 
@@ -284,6 +291,7 @@ export function getSessionFlags(sessionId: string): VoiceHumanizationFlags & { i
       enableRhythmMirroring: false,
       enableEmotionalContagion: false,
       enableEnhancedVoiceFingerprinting: false,
+      enableVoiceAuthentication: false,
       isEnabled: false,
     };
   }
@@ -325,9 +333,14 @@ export function resetFlags(): void {
 // CONVENIENCE EXPORTS
 // ============================================================================
 
-export {
-  DEFAULT_FLAGS,
-  STAGING_FLAGS,
-  DEVELOPMENT_FLAGS,
-};
+export { DEFAULT_FLAGS, STAGING_FLAGS, DEVELOPMENT_FLAGS };
 
+/**
+ * Direct access to current flags (auto-initializes if needed)
+ * Use this for simple flag checks without calling getFlags()
+ */
+export const voiceHumanizationFlags = new Proxy({} as VoiceHumanizationFlags, {
+  get(_target, prop: keyof VoiceHumanizationFlags) {
+    return getFlags()[prop];
+  },
+});

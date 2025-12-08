@@ -429,7 +429,7 @@ export function getFeatureFlags() {
         percentage: flag.rolloutPercentage || 0,
       }),
     updateFlag: async (id: string, updates: Partial<FeatureFlag>) => {
-      setFlag(id as TrustFlagId, {
+      await setFlag(id as TrustFlagId, {
         enabled: updates.enabled || false,
         percentage: updates.rolloutPercentage || updates.percentage || 0,
       });

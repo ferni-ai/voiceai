@@ -228,11 +228,6 @@ export interface CachedModules {
   formatContextForPrompt:
     | typeof import('../../intelligence/context-builders/index.js').formatContextForPrompt
     | null;
-  checkForEasterEgg:
-    | typeof import('../../personas/easter-eggs.js').checkForEasterEgg
-    | null;
-  getTaskManager:
-    | typeof import('../../tasks/task-manager.js').getTaskManager
-    | null;
+  checkForEasterEgg: typeof import('../../personas/easter-eggs.js').checkForEasterEgg | null;
+  getTaskManager: typeof import('../../tasks/task-manager.js').getTaskManager | null;
 }
-

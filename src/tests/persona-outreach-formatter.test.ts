@@ -163,7 +163,11 @@ describe('SMS Formatting', () => {
     const messageWithEmojis = 'Great job! 🎉 You did it! 🌟 Amazing! ✨';
     const result = formatSmsMessage('ferni', messageWithEmojis, {});
     // Count emojis in result - should not exceed persona's max
-    const emojiCount = (result.message.match(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu) || []).length;
+    const emojiCount = (
+      result.message.match(
+        /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu
+      ) || []
+    ).length;
     // Ferni's config has max 1 emoji, but we don't strip existing ones
     expect(emojiCount).toBeGreaterThanOrEqual(3); // Original emojis preserved
   });
@@ -200,7 +204,12 @@ describe('Email Formatting', () => {
   });
 
   it('should include persona signature from config', () => {
-    const result = formatEmailMessage('maya-santos', 'Progress Update', 'Your streak is going strong!', {});
+    const result = formatEmailMessage(
+      'maya-santos',
+      'Progress Update',
+      'Your streak is going strong!',
+      {}
+    );
     expect(result.signature).toContain('Maya');
   });
 

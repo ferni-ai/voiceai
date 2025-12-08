@@ -43,16 +43,16 @@ export class GameEngine implements IGameEngine {
   private personaId: string;
   private userId: string | null = null;
   private gameImplementation: IGameImplementation | null = null;
-  
+
   // ✨ "More than human" tracking
   private gameMemory: GameMemory | null = null;
-  private roundStartTime: number = 0;
+  private roundStartTime = 0;
   private recentResults: GameResult[] = [];
   private pendingMilestone: MilestoneEvent | null = null;
   private pendingDifficultyMessage: string | null = null;
   private pendingPersonalityInsight: string | null = null;
 
-  constructor(personaId: string = 'ferni') {
+  constructor(personaId = 'ferni') {
     this.personaId = personaId;
     this.state = this.createInitialState();
     this.history = {
@@ -81,15 +81,18 @@ export class GameEngine implements IGameEngine {
    */
   async initializeForUser(userId: string): Promise<void> {
     this.userId = userId;
-    
+
     try {
       const { loadGameMemory } = await import('./game-store.js');
       this.gameMemory = await loadGameMemory(userId);
-      log.info({ 
-        userId, 
-        totalGames: this.gameMemory.totalGamesPlayed,
-        bestStreak: this.gameMemory.bestStreak,
-      }, '🎮 Game memory loaded for user');
+      log.info(
+        {
+          userId,
+          totalGames: this.gameMemory.totalGamesPlayed,
+          bestStreak: this.gameMemory.bestStreak,
+        },
+        '🎮 Game memory loaded for user'
+      );
     } catch (error) {
       log.warn({ error, userId }, '🎮 Failed to load game memory, using empty');
       const { createEmptyGameMemory } = await import('./game-persistence.js');
@@ -102,7 +105,7 @@ export class GameEngine implements IGameEngine {
    */
   async flushToStorage(): Promise<void> {
     if (!this.userId) return;
-    
+
     try {
       const { forceSaveGameMemory } = await import('./game-store.js');
       await forceSaveGameMemory(this.userId);
@@ -157,13 +160,13 @@ export class GameEngine implements IGameEngine {
 
     // Get the game implementation
     this.gameImplementation = await this.getGameImplementation(gameType);
-    
+
     if (!this.gameImplementation) {
       throw new Error(`Unknown game type: ${gameType}`);
     }
 
     // Initialize game state
-    const { initialState, totalRounds, welcomeMessage } = 
+    const { initialState, totalRounds, welcomeMessage } =
       await this.gameImplementation.initialize(config);
 
     this.state = {
@@ -204,14 +207,14 @@ export class GameEngine implements IGameEngine {
       return {
         correct: false,
         pointsEarned: 0,
-        feedback: "No game is currently active. Want to play something?",
+        feedback: 'No game is currently active. Want to play something?',
         gameOver: true,
       };
     }
 
     // ✨ Calculate guess timing
     const guessTimeMs = Date.now() - this.roundStartTime;
-    
+
     this.state.lastActivityAt = Date.now();
 
     // Let the game implementation evaluate the answer
@@ -226,13 +229,8 @@ export class GameEngine implements IGameEngine {
       const songData = this.state.gameData as { currentSong?: { name: string } };
       const songName = songData.currentSong?.name || answer;
       // Could extract genre/decade from game data in future
-      this.gameMemory = recordGuess(
-        this.gameMemory,
-        songName,
-        guessTimeMs,
-        result.correct
-      );
-      
+      this.gameMemory = recordGuess(this.gameMemory, songName, guessTimeMs, result.correct);
+
       // 🔴 PERSISTENCE: Update musical DNA in storage
       if (this.userId) {
         void this.persistMusicalDNA(songName, guessTimeMs, result.correct);
@@ -250,12 +248,7 @@ export class GameEngine implements IGameEngine {
 
     // ✨ Check for milestones
     if (this.gameMemory && this.state.gameType) {
-      const milestone = checkMilestones(
-        this.gameMemory,
-        this.state.gameType,
-        result,
-        guessTimeMs
-      );
+      const milestone = checkMilestones(this.gameMemory, this.state.gameType, result, guessTimeMs);
       if (milestone) {
         this.pendingMilestone = milestone;
         // Prepend milestone celebration to feedback
@@ -271,7 +264,7 @@ export class GameEngine implements IGameEngine {
         this.recentResults,
         this.state.currentRound
       );
-      
+
       if (difficultyRec.speakToUser && difficultyRec.message) {
         this.pendingDifficultyMessage = difficultyRec.message;
         this.gameMemory.adaptiveDifficultyMultiplier = difficultyRec.multiplier;
@@ -291,11 +284,11 @@ export class GameEngine implements IGameEngine {
       result.gameOver = true;
       result.finalScore = this.state.score;
       this.state.status = 'completed';
-      
+
       // Update high score
       if (this.state.score > this.state.highScore) {
         this.state.highScore = this.state.score;
-        
+
         // ✨ High score milestone
         if (this.gameMemory && this.state.gameType) {
           const existing = this.history.allTimeStats[this.state.gameType];
@@ -305,25 +298,28 @@ export class GameEngine implements IGameEngine {
         }
       }
 
-      log.info({ 
-        gameType: this.state.gameType, 
-        finalScore: this.state.score,
-        rounds: this.state.currentRound,
-      }, '🎮 Game completed');
+      log.info(
+        {
+          gameType: this.state.gameType,
+          finalScore: this.state.score,
+          rounds: this.state.currentRound,
+        },
+        '🎮 Game completed'
+      );
     } else {
       // Move to next round
       this.state.currentRound++;
-      
+
       // ✨ Reset round timer for next guess
       this.roundStartTime = Date.now();
-      
+
       // Let game implementation set up next round
       const nextRoundData = await this.gameImplementation.setupNextRound(
         this.state.gameData,
         this.state.currentRound
       );
       this.state.gameData = nextRoundData;
-      
+
       // ✨ Add any pending messages to feedback
       if (this.pendingDifficultyMessage) {
         result.feedback = `${result.feedback}\n\n${this.pendingDifficultyMessage}`;
@@ -351,7 +347,7 @@ export class GameEngine implements IGameEngine {
       return {
         correct: false,
         pointsEarned: 0,
-        feedback: "No game is currently active.",
+        feedback: 'No game is currently active.',
         gameOver: true,
       };
     }
@@ -381,7 +377,7 @@ export class GameEngine implements IGameEngine {
       gameType: this.state.gameType!,
       score: this.state.score,
       roundsPlayed: this.state.currentRound,
-      durationSeconds: this.state.startedAt 
+      durationSeconds: this.state.startedAt
         ? Math.round((Date.now() - this.state.startedAt) / 1000)
         : 0,
       playedAt: Date.now(),
@@ -406,7 +402,7 @@ export class GameEngine implements IGameEngine {
     // Reset state
     this.state = this.createInitialState();
     this.gameImplementation = null;
-    
+
     // ✨ Reset "more than human" tracking
     this.recentResults = [];
     this.pendingMilestone = null;
@@ -423,7 +419,7 @@ export class GameEngine implements IGameEngine {
    */
   private async persistGameCompletion(session: GameSession): Promise<void> {
     if (!this.userId || !this.gameMemory) return;
-    
+
     try {
       const { recordGameCompletion } = await import('./game-store.js');
       await recordGameCompletion(
@@ -434,9 +430,15 @@ export class GameEngine implements IGameEngine {
         session.durationSeconds,
         session.personaId
       );
-      log.debug({ userId: this.userId, gameType: session.gameType }, '🎮 Game persisted to Firestore');
+      log.debug(
+        { userId: this.userId, gameType: session.gameType },
+        '🎮 Game persisted to Firestore'
+      );
     } catch (error) {
-      log.warn({ error, userId: this.userId }, '🎮 Failed to persist game - will retry on session end');
+      log.warn(
+        { error, userId: this.userId },
+        '🎮 Failed to persist game - will retry on session end'
+      );
     }
   }
 
@@ -452,7 +454,7 @@ export class GameEngine implements IGameEngine {
     decade?: string
   ): Promise<void> {
     if (!this.userId) return;
-    
+
     try {
       const { updateMusicalDNA } = await import('./game-store.js');
       await updateMusicalDNA(this.userId, item, guessTimeMs, correct, genre, decade);
@@ -542,7 +544,7 @@ export class GameEngine implements IGameEngine {
 
   private updateAllTimeStats(session: GameSession): void {
     const existing = this.history.allTimeStats[session.gameType];
-    
+
     if (existing) {
       existing.gamesPlayed++;
       existing.totalScore += session.score;
@@ -588,30 +590,30 @@ export class GameEngine implements IGameEngine {
 
 export interface IGameImplementation {
   /** Initialize the game and return initial state */
-  initialize(config?: Record<string, unknown>): Promise<{
+  initialize: (config?: Record<string, unknown>) => Promise<{
     initialState: Record<string, unknown>;
     totalRounds: number;
     welcomeMessage: string;
   }>;
 
   /** Evaluate an answer */
-  evaluateAnswer(
+  evaluateAnswer: (
     answer: string,
     gameData: Record<string, unknown>,
     round: number
-  ): Promise<GameResult>;
+  ) => Promise<GameResult>;
 
   /** Set up the next round */
-  setupNextRound(
+  setupNextRound: (
     gameData: Record<string, unknown>,
     nextRound: number
-  ): Promise<Record<string, unknown>>;
+  ) => Promise<Record<string, unknown>>;
 
   /** Get a hint */
-  getHint(gameData: Record<string, unknown>): string | null;
+  getHint: (gameData: Record<string, unknown>) => string | null;
 
   /** Handle skip */
-  handleSkip(gameData: Record<string, unknown>): Promise<GameResult>;
+  handleSkip: (gameData: Record<string, unknown>) => Promise<GameResult>;
 }
 
 // ============================================================================
@@ -635,4 +637,3 @@ export function resetGameEngine(): void {
   }
   gameEngineInstance = null;
 }
-

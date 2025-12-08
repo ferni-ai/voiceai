@@ -128,9 +128,9 @@ export function diagnoseHabitFailure(
         'The brain resists tasks that seem effortful. Making the habit tiny bypasses this resistance.',
       fixes: [
         'Make it ridiculously small (2 min or less)',
-        "Focus ONLY on starting, not completing",
-        "Remove all friction before the habit",
-        "Stack it onto something you already do",
+        'Focus ONLY on starting, not completing',
+        'Remove all friction before the habit',
+        'Stack it onto something you already do',
       ],
       reframe: 'Your only job is to START. Even 30 seconds counts.',
       nextStep: 'What would a 2-minute version of this habit look like?',
@@ -140,7 +140,7 @@ export function diagnoseHabitFailure(
       explanation:
         "You can start but can't sustain because the reward isn't immediate or satisfying enough.",
       science:
-        'Habits need immediate rewards to stick. Delayed benefits (health, success) don\'t motivate the habit-forming part of your brain.',
+        "Habits need immediate rewards to stick. Delayed benefits (health, success) don't motivate the habit-forming part of your brain.",
       fixes: [
         'Add an immediate reward after the habit',
         'Create a tiny celebration (fist pump, "yes!")',
@@ -157,8 +157,8 @@ export function diagnoseHabitFailure(
       science:
         'Habits are cue-dependent. Without a consistent trigger, the behavior stays in conscious effort territory.',
       fixes: [
-        "Attach to an existing habit (habit stacking)",
-        "Make the cue obvious and unavoidable",
+        'Attach to an existing habit (habit stacking)',
+        'Make the cue obvious and unavoidable',
         'Same time, same place every day',
         'Use implementation intentions: "When X happens, I will Y"',
       ],
@@ -168,7 +168,7 @@ export function diagnoseHabitFailure(
         : 'What existing habit could you stack this onto?',
     },
     hate_it: {
-      issue: 'The habit doesn\'t match your values or personality',
+      issue: "The habit doesn't match your values or personality",
       explanation:
         "You're forcing yourself to do something that doesn't align with who you are or how you work.",
       science:
@@ -186,14 +186,15 @@ export function diagnoseHabitFailure(
       issue: 'The habit has no environmental support',
       explanation:
         "You want to do the habit but it's not on your mental radar. Out of sight, out of mind.",
-      science: 'Our environment shapes our behavior more than willpower. Design your space for success.',
+      science:
+        'Our environment shapes our behavior more than willpower. Design your space for success.',
       fixes: [
-        'Put visual reminders where you\'ll see them',
+        "Put visual reminders where you'll see them",
         'Set up the environment the night before',
         'Use phone reminders strategically',
         'Make the habit visible and obvious',
       ],
-      reframe: "Your environment should make the habit easy to remember.",
+      reframe: 'Your environment should make the habit easy to remember.',
       nextStep: "What visual reminder could you put where you'll see it?",
     },
   };
@@ -342,9 +343,11 @@ export function analyzeMoodPatterns(moodLogs: MoodLog[]): MoodPatterns {
     const eveningAvg = calculateMoodScore(eveningMoods);
 
     if (morningAvg > eveningAvg + 0.5) {
-      insights.push("You tend to feel better in the mornings - schedule important tasks then.");
+      insights.push('You tend to feel better in the mornings - schedule important tasks then.');
     } else if (eveningAvg > morningAvg + 0.5) {
-      insights.push('Your mood improves as the day goes on - build momentum with easy morning tasks.');
+      insights.push(
+        'Your mood improves as the day goes on - build momentum with easy morning tasks.'
+      );
     }
   }
 
@@ -398,7 +401,7 @@ export function getEncouragement(avgStreak: number, wins: number): string {
   } else if (avgStreak > 7) {
     return "You're building real momentum. Keep showing up!";
   } else if (avgStreak > 0) {
-    return 'Every streak starts at one. You\'re on your way!';
+    return "Every streak starts at one. You're on your way!";
   } else {
     return 'This is where change begins. One day at a time.';
   }
@@ -411,11 +414,7 @@ export function getEncouragement(avgStreak: number, wins: number): string {
 /**
  * Get tips based on current mood and energy
  */
-export function getMoodBasedTip(
-  mood: string,
-  energy: string,
-  _timeOfDay: string
-): string {
+export function getMoodBasedTip(mood: string, energy: string, _timeOfDay: string): string {
   if (energy === 'depleted' || mood === 'struggling') {
     return 'Low energy day - do only essential habits at their tiniest version. Rest is productive too.';
   }
@@ -458,4 +457,3 @@ export function checkChallengeMilestones(day: number, completedDays: number): st
   if (completedDays === 21) return "21-day streak! You're unstoppable!";
   return null;
 }
-

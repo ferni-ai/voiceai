@@ -231,11 +231,16 @@ export function getSnapshot(): PersonaHealthSnapshot {
     const pKnowledge = recentKnowledge.filter((e) => e.personaId === personaId);
     const pVoice = recentVoice.filter((e) => e.personaId === personaId);
 
-    const loadScore = pLoads.length === 0 ? 100 : (pLoads.filter((e) => e.success).length / pLoads.length) * 100;
+    const loadScore =
+      pLoads.length === 0 ? 100 : (pLoads.filter((e) => e.success).length / pLoads.length) * 100;
     const knowledgeScore =
-      pKnowledge.length === 0 ? 100 : (pKnowledge.filter((e) => e.success).length / pKnowledge.length) * 100;
+      pKnowledge.length === 0
+        ? 100
+        : (pKnowledge.filter((e) => e.success).length / pKnowledge.length) * 100;
     const voiceScore =
-      pVoice.length === 0 ? 100 : (pVoice.filter((e) => e.quality !== 'failed').length / pVoice.length) * 100;
+      pVoice.length === 0
+        ? 100
+        : (pVoice.filter((e) => e.quality !== 'failed').length / pVoice.length) * 100;
 
     const healthScore = Math.round((loadScore + knowledgeScore + voiceScore) / 3);
     personaHealthScores[personaId] = healthScore;

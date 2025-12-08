@@ -475,7 +475,9 @@ describe('Better Than Human - Outreach Quality', () => {
     // Users should be able to choose their preferred contact method
     const methods = ['voice', 'sms', 'push', 'any'];
     for (const method of methods) {
-      setUserPreferences(`method-${method}`, { preferredMethod: method as 'voice' | 'sms' | 'push' | 'any' });
+      setUserPreferences(`method-${method}`, {
+        preferredMethod: method as 'voice' | 'sms' | 'push' | 'any',
+      });
       expect(getUserPreferences(`method-${method}`).preferredMethod).toBe(method);
     }
   });

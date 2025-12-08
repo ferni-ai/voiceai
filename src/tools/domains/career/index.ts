@@ -19,7 +19,11 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { persistTrackedItem, persistKeyMoment, type ToolCtxWithUserData } from '../shared/persistence.js';
+import {
+  persistTrackedItem,
+  persistKeyMoment,
+  type ToolCtxWithUserData,
+} from '../shared/persistence.js';
 import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
 
@@ -29,82 +33,130 @@ import { z } from 'zod';
 
 const INTERVIEW_QUESTIONS = {
   behavioral: [
-    { question: "Tell me about a time you faced a significant challenge at work.", hint: "Use STAR: Situation, Task, Action, Result" },
-    { question: "Describe a situation where you had to work with a difficult colleague.", hint: "Focus on your approach and resolution" },
-    { question: "Give me an example of when you showed leadership.", hint: "Leadership can be informal - influence without authority" },
-    { question: "Tell me about a time you failed and what you learned.", hint: "Show self-awareness and growth" },
-    { question: "Describe your most significant professional accomplishment.", hint: "Quantify impact if possible" },
-    { question: "Tell me about a time you had to make a decision with incomplete information.", hint: "Show judgment and decision-making process" },
-    { question: "Describe a situation where you had to persuade someone.", hint: "Focus on understanding their perspective first" },
+    {
+      question: 'Tell me about a time you faced a significant challenge at work.',
+      hint: 'Use STAR: Situation, Task, Action, Result',
+    },
+    {
+      question: 'Describe a situation where you had to work with a difficult colleague.',
+      hint: 'Focus on your approach and resolution',
+    },
+    {
+      question: 'Give me an example of when you showed leadership.',
+      hint: 'Leadership can be informal - influence without authority',
+    },
+    {
+      question: 'Tell me about a time you failed and what you learned.',
+      hint: 'Show self-awareness and growth',
+    },
+    {
+      question: 'Describe your most significant professional accomplishment.',
+      hint: 'Quantify impact if possible',
+    },
+    {
+      question: 'Tell me about a time you had to make a decision with incomplete information.',
+      hint: 'Show judgment and decision-making process',
+    },
+    {
+      question: 'Describe a situation where you had to persuade someone.',
+      hint: 'Focus on understanding their perspective first',
+    },
   ],
   culture_fit: [
-    { question: "Why are you interested in this role?", hint: "Connect your goals to what the role offers" },
-    { question: "What kind of work environment do you thrive in?", hint: "Be honest - fit matters for both sides" },
-    { question: "How do you handle feedback?", hint: "Show you're coachable and growth-oriented" },
-    { question: "Where do you see yourself in 5 years?", hint: "Show ambition while being realistic" },
-    { question: "What motivates you?", hint: "Be authentic - this reveals values" },
-    { question: "Why are you leaving your current role?", hint: "Stay positive, focus on what you're moving toward" },
+    {
+      question: 'Why are you interested in this role?',
+      hint: 'Connect your goals to what the role offers',
+    },
+    {
+      question: 'What kind of work environment do you thrive in?',
+      hint: 'Be honest - fit matters for both sides',
+    },
+    { question: 'How do you handle feedback?', hint: "Show you're coachable and growth-oriented" },
+    {
+      question: 'Where do you see yourself in 5 years?',
+      hint: 'Show ambition while being realistic',
+    },
+    { question: 'What motivates you?', hint: 'Be authentic - this reveals values' },
+    {
+      question: 'Why are you leaving your current role?',
+      hint: "Stay positive, focus on what you're moving toward",
+    },
   ],
   technical: [
-    { question: "Walk me through your experience with [skill].", hint: "Use specific examples and projects" },
-    { question: "How do you stay current in your field?", hint: "Show continuous learning" },
-    { question: "Describe a technical problem you solved.", hint: "Walk through your problem-solving process" },
+    {
+      question: 'Walk me through your experience with [skill].',
+      hint: 'Use specific examples and projects',
+    },
+    { question: 'How do you stay current in your field?', hint: 'Show continuous learning' },
+    {
+      question: 'Describe a technical problem you solved.',
+      hint: 'Walk through your problem-solving process',
+    },
   ],
 };
 
 const BURNOUT_ASSESSMENT = {
   symptoms: {
-    exhaustion: { weight: 3, description: "Physical and emotional exhaustion that doesn't improve with rest" },
-    cynicism: { weight: 3, description: "Detachment, negativity about work, colleagues, or career" },
+    exhaustion: {
+      weight: 3,
+      description: "Physical and emotional exhaustion that doesn't improve with rest",
+    },
+    cynicism: {
+      weight: 3,
+      description: 'Detachment, negativity about work, colleagues, or career',
+    },
     inefficacy: { weight: 2, description: "Feeling ineffective or that your work doesn't matter" },
-    sleep_issues: { weight: 2, description: "Trouble sleeping due to work thoughts or stress" },
-    physical_symptoms: { weight: 2, description: "Headaches, illness, physical tension from work stress" },
-    dread: { weight: 3, description: "Persistent dread about going to work" },
-    isolation: { weight: 1, description: "Withdrawing from colleagues and work relationships" },
-    concentration: { weight: 1, description: "Difficulty focusing or completing tasks" },
+    sleep_issues: { weight: 2, description: 'Trouble sleeping due to work thoughts or stress' },
+    physical_symptoms: {
+      weight: 2,
+      description: 'Headaches, illness, physical tension from work stress',
+    },
+    dread: { weight: 3, description: 'Persistent dread about going to work' },
+    isolation: { weight: 1, description: 'Withdrawing from colleagues and work relationships' },
+    concentration: { weight: 1, description: 'Difficulty focusing or completing tasks' },
   },
   levels: {
     mild: {
       threshold: 4,
-      description: "Early burnout signs - time to intervene",
+      description: 'Early burnout signs - time to intervene',
       recommendations: [
-        "Set firm end-of-day boundaries starting today",
-        "Take your full lunch break away from work",
-        "Schedule one restorative activity this week",
-        "Delegate or postpone one non-essential task",
+        'Set firm end-of-day boundaries starting today',
+        'Take your full lunch break away from work',
+        'Schedule one restorative activity this week',
+        'Delegate or postpone one non-essential task',
       ],
     },
     moderate: {
       threshold: 8,
-      description: "Significant burnout - needs attention",
+      description: 'Significant burnout - needs attention',
       recommendations: [
-        "Have a conversation with your manager about workload",
-        "Take PTO if possible, even just a long weekend",
+        'Have a conversation with your manager about workload',
+        'Take PTO if possible, even just a long weekend',
         "Evaluate what's sustainable long-term",
-        "Consider talking to a therapist about stress management",
+        'Consider talking to a therapist about stress management',
       ],
     },
     severe: {
       threshold: 12,
-      description: "Severe burnout - your health is at risk",
+      description: 'Severe burnout - your health is at risk',
       recommendations: [
-        "This is your body telling you something needs to change",
-        "Speak with a therapist or counselor",
-        "Consider medical leave if available",
-        "Evaluate whether this job is sustainable for you",
+        'This is your body telling you something needs to change',
+        'Speak with a therapist or counselor',
+        'Consider medical leave if available',
+        'Evaluate whether this job is sustainable for you',
       ],
     },
   },
 };
 
 const SALARY_NEGOTIATION_TIPS = [
-  "Never give the first number if you can avoid it",
-  "Research thoroughly - know the market rate for your role, location, and experience",
-  "Consider total compensation: base, bonus, equity, benefits, flexibility",
-  "Practice saying your number out loud - it should feel comfortable",
-  "Silence is powerful - make your ask and wait",
-  "Have a walk-away number in mind",
-  "Get the offer in writing before accepting",
+  'Never give the first number if you can avoid it',
+  'Research thoroughly - know the market rate for your role, location, and experience',
+  'Consider total compensation: base, bonus, equity, benefits, flexibility',
+  'Practice saying your number out loud - it should feel comfortable',
+  'Silence is powerful - make your ask and wait',
+  'Have a walk-away number in mind',
+  'Get the offer in writing before accepting',
   "Express enthusiasm while negotiating - it's not adversarial",
 ];
 
@@ -194,8 +246,12 @@ const clarifyCareerGoalsDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user clarify and articulate their career goals.',
       parameters: z.object({
-        timeHorizon: z.enum(['1-year', '3-year', '5-year', '10-year', 'unsure']).describe('Time horizon'),
-        clarity: z.enum(['no-idea', 'vague', 'somewhat-clear', 'clear']).describe('Current clarity level'),
+        timeHorizon: z
+          .enum(['1-year', '3-year', '5-year', '10-year', 'unsure'])
+          .describe('Time horizon'),
+        clarity: z
+          .enum(['no-idea', 'vague', 'somewhat-clear', 'clear'])
+          .describe('Current clarity level'),
         values: z.array(z.string()).optional().describe('Career values if known'),
       }),
       execute: async ({ timeHorizon, clarity, values }) => {
@@ -268,7 +324,10 @@ const identifySkillGapsDef: ToolDefinition = {
         currentSkills: z.array(z.string()).optional().describe('Skills they already have'),
       }),
       execute: async ({ currentRole, targetRole, currentSkills }) => {
-        getLogger().info({ agentId: ctx.agentId, currentRole, targetRole }, 'Identifying skill gaps');
+        getLogger().info(
+          { agentId: ctx.agentId, currentRole, targetRole },
+          'Identifying skill gaps'
+        );
 
         let response = `**Skill Gap Analysis**\n\n`;
 
@@ -334,15 +393,18 @@ const trackJobApplicationDef: ToolDefinition = {
         action: z.enum(['add', 'update', 'review', 'stats']).describe('What to do'),
         company: z.string().optional().describe('Company name'),
         role: z.string().optional().describe('Role title'),
-        status: z.enum([
-          'applied',
-          'phone-screen',
-          'interview-scheduled',
-          'interviewed',
-          'offer',
-          'rejected',
-          'withdrawn',
-        ]).optional().describe('Application status'),
+        status: z
+          .enum([
+            'applied',
+            'phone-screen',
+            'interview-scheduled',
+            'interviewed',
+            'offer',
+            'rejected',
+            'withdrawn',
+          ])
+          .optional()
+          .describe('Application status'),
         notes: z.string().optional().describe('Notes about the application'),
       }),
       execute: async ({ action, company, role, status, notes }, { ctx: toolCtx }) => {
@@ -352,7 +414,10 @@ const trackJobApplicationDef: ToolDefinition = {
           : null;
 
         try {
-          getLogger().info({ agentId: ctx.agentId, action, company, status }, 'Tracking job application');
+          getLogger().info(
+            { agentId: ctx.agentId, action, company, status },
+            'Tracking job application'
+          );
 
           // Persist job application data
           if (action === 'add' || action === 'update') {
@@ -360,7 +425,8 @@ const trackJobApplicationDef: ToolDefinition = {
               domain: 'career',
               itemType: 'job_application',
               item: { company, role, status: status || 'applied', notes, action },
-              importance: status === 'offer' || status === 'interview-scheduled' ? 'high' : 'medium',
+              importance:
+                status === 'offer' || status === 'interview-scheduled' ? 'high' : 'medium',
             });
           }
 
@@ -377,58 +443,58 @@ const trackJobApplicationDef: ToolDefinition = {
 
           let response = '';
 
-        if (action === 'add') {
-          response = `**Application Logged** ✅\n\n`;
-          response += `**Company:** ${company || 'Not specified'}\n`;
-          response += `**Role:** ${role || 'Not specified'}\n`;
-          response += `**Status:** ${status || 'applied'}\n`;
-          if (notes) response += `**Notes:** ${notes}\n`;
-          response += `\n---\n\n`;
-          response += `**Next steps to consider:**\n`;
-          response += `- Set a follow-up reminder for 1-2 weeks if no response\n`;
-          response += `- Research the company more deeply for interviews\n`;
-          response += `- Connect with current employees on LinkedIn\n\n`;
-          response += `Good luck! Would you like to prepare for a potential interview?`;
-        } else if (action === 'update') {
-          response = `**Application Updated**\n\n`;
-          if (company) response += `**Company:** ${company}\n`;
-          if (status) response += `**New Status:** ${status}\n`;
-          if (notes) response += `**Notes:** ${notes}\n`;
+          if (action === 'add') {
+            response = `**Application Logged** ✅\n\n`;
+            response += `**Company:** ${company || 'Not specified'}\n`;
+            response += `**Role:** ${role || 'Not specified'}\n`;
+            response += `**Status:** ${status || 'applied'}\n`;
+            if (notes) response += `**Notes:** ${notes}\n`;
+            response += `\n---\n\n`;
+            response += `**Next steps to consider:**\n`;
+            response += `- Set a follow-up reminder for 1-2 weeks if no response\n`;
+            response += `- Research the company more deeply for interviews\n`;
+            response += `- Connect with current employees on LinkedIn\n\n`;
+            response += `Good luck! Would you like to prepare for a potential interview?`;
+          } else if (action === 'update') {
+            response = `**Application Updated**\n\n`;
+            if (company) response += `**Company:** ${company}\n`;
+            if (status) response += `**New Status:** ${status}\n`;
+            if (notes) response += `**Notes:** ${notes}\n`;
 
-          if (status === 'interview-scheduled' || status === 'phone-screen') {
-            response += `\n---\n\n`;
-            response += `🎉 Great news! Would you like to:\n`;
-            response += `- Practice interview questions?\n`;
-            response += `- Research the company together?\n`;
-            response += `- Prepare your STAR stories?\n`;
-          } else if (status === 'offer') {
-            response += `\n---\n\n`;
-            response += `🎉 Congratulations on the offer! Would you like help:\n`;
-            response += `- Evaluating the offer?\n`;
-            response += `- Preparing for negotiation?\n`;
-          } else if (status === 'rejected') {
-            response += `\n---\n\n`;
-            response += `Rejection is disappointing, but it's part of the process. Every "no" brings you closer to the right "yes."\n\n`;
-            response += `Consider:\n`;
-            response += `- Asking for feedback if appropriate\n`;
-            response += `- Reflecting on what you could improve\n`;
-            response += `- Keeping the door open for future opportunities\n`;
+            if (status === 'interview-scheduled' || status === 'phone-screen') {
+              response += `\n---\n\n`;
+              response += `🎉 Great news! Would you like to:\n`;
+              response += `- Practice interview questions?\n`;
+              response += `- Research the company together?\n`;
+              response += `- Prepare your STAR stories?\n`;
+            } else if (status === 'offer') {
+              response += `\n---\n\n`;
+              response += `🎉 Congratulations on the offer! Would you like help:\n`;
+              response += `- Evaluating the offer?\n`;
+              response += `- Preparing for negotiation?\n`;
+            } else if (status === 'rejected') {
+              response += `\n---\n\n`;
+              response += `Rejection is disappointing, but it's part of the process. Every "no" brings you closer to the right "yes."\n\n`;
+              response += `Consider:\n`;
+              response += `- Asking for feedback if appropriate\n`;
+              response += `- Reflecting on what you could improve\n`;
+              response += `- Keeping the door open for future opportunities\n`;
+            }
+          } else if (action === 'review') {
+            response = `**Application Review**\n\n`;
+            response += `I'd be happy to review your applications. What would you like to know?\n\n`;
+            response += `- Status of a specific application?\n`;
+            response += `- Applications needing follow-up?\n`;
+            response += `- Overall application statistics?\n`;
+          } else {
+            response = `**Job Search Statistics**\n\n`;
+            response += `Let me help you track your progress.\n\n`;
+            response += `**Typical job search metrics:**\n`;
+            response += `- Applications to interviews: ~10-20%\n`;
+            response += `- Interviews to offers: ~10-25%\n`;
+            response += `- This means ~40-100 applications for an offer (varies by field)\n\n`;
+            response += `Job searching is a numbers game, but quality matters too. Are you customizing applications or applying broadly?`;
           }
-        } else if (action === 'review') {
-          response = `**Application Review**\n\n`;
-          response += `I'd be happy to review your applications. What would you like to know?\n\n`;
-          response += `- Status of a specific application?\n`;
-          response += `- Applications needing follow-up?\n`;
-          response += `- Overall application statistics?\n`;
-        } else {
-          response = `**Job Search Statistics**\n\n`;
-          response += `Let me help you track your progress.\n\n`;
-          response += `**Typical job search metrics:**\n`;
-          response += `- Applications to interviews: ~10-20%\n`;
-          response += `- Interviews to offers: ~10-25%\n`;
-          response += `- This means ~40-100 applications for an offer (varies by field)\n\n`;
-          response += `Job searching is a numbers game, but quality matters too. Are you customizing applications or applying broadly?`;
-        }
 
           tracker?.success({ action, status });
           return response;
@@ -452,18 +518,26 @@ const suggestJobSearchStrategyDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user develop an effective job search strategy.',
       parameters: z.object({
-        currentStatus: z.enum(['employed', 'unemployed', 'soon-leaving']).describe('Current employment status'),
+        currentStatus: z
+          .enum(['employed', 'unemployed', 'soon-leaving'])
+          .describe('Current employment status'),
         urgency: z.enum(['urgent', 'active', 'passive']).describe('How urgent the search'),
-        challenge: z.enum([
-          'not-getting-interviews',
-          'not-getting-offers',
-          'dont-know-what-i-want',
-          'changing-fields',
-          'general-strategy',
-        ]).optional().describe('Main challenge'),
+        challenge: z
+          .enum([
+            'not-getting-interviews',
+            'not-getting-offers',
+            'dont-know-what-i-want',
+            'changing-fields',
+            'general-strategy',
+          ])
+          .optional()
+          .describe('Main challenge'),
       }),
       execute: async ({ currentStatus, urgency, challenge }) => {
-        getLogger().info({ agentId: ctx.agentId, currentStatus, urgency, challenge }, 'Suggesting job search strategy');
+        getLogger().info(
+          { agentId: ctx.agentId, currentStatus, urgency, challenge },
+          'Suggesting job search strategy'
+        );
 
         let response = `**Job Search Strategy**\n\n`;
         response += `Status: ${currentStatus} | Urgency: ${urgency}\n\n`;
@@ -558,13 +632,9 @@ const practiceInterviewDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user practice interview questions through role-play.',
       parameters: z.object({
-        interviewType: z.enum([
-          'behavioral',
-          'technical',
-          'culture-fit',
-          'case',
-          'executive',
-        ]).describe('Type of interview'),
+        interviewType: z
+          .enum(['behavioral', 'technical', 'culture-fit', 'case', 'executive'])
+          .describe('Type of interview'),
         role: z.string().optional().describe('Role interviewing for'),
         mode: z.enum(['single-question', 'full-practice', 'feedback']).default('single-question'),
         previousAnswer: z.string().optional().describe('Their previous answer to get feedback on'),
@@ -591,8 +661,14 @@ const practiceInterviewDef: ToolDefinition = {
           response += `- End with what you learned or would do differently\n\n`;
           response += `Would you like to try again or practice a different question?`;
         } else {
-          const questions = INTERVIEW_QUESTIONS[interviewType === 'behavioral' ? 'behavioral' : 
-                          interviewType === 'culture-fit' ? 'culture_fit' : 'technical'];
+          const questions =
+            INTERVIEW_QUESTIONS[
+              interviewType === 'behavioral'
+                ? 'behavioral'
+                : interviewType === 'culture-fit'
+                  ? 'culture_fit'
+                  : 'technical'
+            ];
           const randomQ = questions[Math.floor(Math.random() * questions.length)];
 
           response = `**Interview Practice: ${interviewType}**\n\n`;
@@ -627,16 +703,18 @@ const prepareSTARStoriesDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user develop strong STAR stories for behavioral interviews.',
       parameters: z.object({
-        storyType: z.enum([
-          'leadership',
-          'challenge',
-          'conflict',
-          'failure',
-          'achievement',
-          'teamwork',
-          'influence',
-          'initiative',
-        ]).describe('Type of story to develop'),
+        storyType: z
+          .enum([
+            'leadership',
+            'challenge',
+            'conflict',
+            'failure',
+            'achievement',
+            'teamwork',
+            'influence',
+            'initiative',
+          ])
+          .describe('Type of story to develop'),
         roughIdea: z.string().optional().describe('Their rough story idea'),
       }),
       execute: async ({ storyType, roughIdea }) => {
@@ -645,14 +723,22 @@ const prepareSTARStoriesDef: ToolDefinition = {
         let response = `**Developing Your ${storyType.charAt(0).toUpperCase() + storyType.slice(1)} Story**\n\n`;
 
         const prompts: Record<string, string> = {
-          leadership: "Think of a time you led others - formally or informally. This could be leading a project, mentoring someone, or rallying a team around a goal.",
-          challenge: "Recall a significant professional challenge you faced. What obstacle seemed difficult or impossible?",
-          conflict: "Think of a time you navigated disagreement or conflict with a colleague. How did you handle it?",
-          failure: "Remember a time you failed or made a significant mistake. What happened and what did you learn?",
-          achievement: "What's your proudest professional accomplishment? What did you achieve that had real impact?",
-          teamwork: "Think of a successful team effort where your contribution was important. What was your role?",
-          influence: "When did you persuade someone or change someone's mind? What was your approach?",
-          initiative: "When did you go beyond your job description or see something that needed doing and do it?",
+          leadership:
+            'Think of a time you led others - formally or informally. This could be leading a project, mentoring someone, or rallying a team around a goal.',
+          challenge:
+            'Recall a significant professional challenge you faced. What obstacle seemed difficult or impossible?',
+          conflict:
+            'Think of a time you navigated disagreement or conflict with a colleague. How did you handle it?',
+          failure:
+            'Remember a time you failed or made a significant mistake. What happened and what did you learn?',
+          achievement:
+            "What's your proudest professional accomplishment? What did you achieve that had real impact?",
+          teamwork:
+            'Think of a successful team effort where your contribution was important. What was your role?',
+          influence:
+            "When did you persuade someone or change someone's mind? What was your approach?",
+          initiative:
+            'When did you go beyond your job description or see something that needed doing and do it?',
         };
 
         response += `${prompts[storyType]}\n\n`;
@@ -772,13 +858,9 @@ const rolePlayNegotiationDef: ToolDefinition = {
     return llm.tool({
       description: 'Practice salary negotiation through role-play.',
       parameters: z.object({
-        scenario: z.enum([
-          'initial-offer',
-          'counter-offer',
-          'multiple-offers',
-          'promotion',
-          'tips-only',
-        ]).describe('Negotiation scenario'),
+        scenario: z
+          .enum(['initial-offer', 'counter-offer', 'multiple-offers', 'promotion', 'tips-only'])
+          .describe('Negotiation scenario'),
         theirOffer: z.number().optional().describe('The offer they received'),
         theirTarget: z.number().optional().describe('Their target number'),
       }),
@@ -854,7 +936,9 @@ const createLearningPathDef: ToolDefinition = {
       parameters: z.object({
         skill: z.string().describe('Skill to develop'),
         currentLevel: z.enum(['beginner', 'intermediate', 'advanced']).describe('Current level'),
-        timeAvailable: z.enum(['1-hour-week', '5-hours-week', '10-plus-hours']).describe('Time available'),
+        timeAvailable: z
+          .enum(['1-hour-week', '5-hours-week', '10-plus-hours'])
+          .describe('Time available'),
         learningStyle: z.enum(['reading', 'video', 'hands-on', 'courses', 'mix']).optional(),
       }),
       execute: async ({ skill, currentLevel, timeAvailable, learningStyle }) => {
@@ -928,12 +1012,9 @@ const expandNetworkDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user strategically expand their professional network.',
       parameters: z.object({
-        goal: z.enum([
-          'job-search',
-          'career-advice',
-          'industry-knowledge',
-          'general-expansion',
-        ]).describe('Networking goal'),
+        goal: z
+          .enum(['job-search', 'career-advice', 'industry-knowledge', 'general-expansion'])
+          .describe('Networking goal'),
         currentNetworkSize: z.enum(['small', 'medium', 'large']).optional(),
         comfort: z.enum(['comfortable', 'uncomfortable', 'very-uncomfortable']).optional(),
       }),
@@ -1009,16 +1090,20 @@ const assessBurnoutDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user recognize and address signs of burnout.',
       parameters: z.object({
-        symptoms: z.array(z.enum([
-          'exhaustion',
-          'cynicism',
-          'inefficacy',
-          'sleep_issues',
-          'physical_symptoms',
-          'dread',
-          'isolation',
-          'concentration',
-        ])).describe('Symptoms experienced'),
+        symptoms: z
+          .array(
+            z.enum([
+              'exhaustion',
+              'cynicism',
+              'inefficacy',
+              'sleep_issues',
+              'physical_symptoms',
+              'dread',
+              'isolation',
+              'concentration',
+            ])
+          )
+          .describe('Symptoms experienced'),
         duration: z.enum(['days', 'weeks', 'months']).describe('How long symptoms have persisted'),
         workHours: z.number().optional().describe('Average hours worked per week'),
       }),
@@ -1026,7 +1111,7 @@ const assessBurnoutDef: ToolDefinition = {
         getLogger().info({ agentId: ctx.agentId, symptoms, duration }, 'Assessing burnout');
 
         let score = 0;
-        symptoms.forEach(s => {
+        symptoms.forEach((s) => {
           const symptomData = BURNOUT_ASSESSMENT.symptoms[s];
           if (symptomData) score += symptomData.weight;
         });
@@ -1037,7 +1122,7 @@ const assessBurnoutDef: ToolDefinition = {
 
         let response = `**Burnout Assessment**\n\n`;
         response += `**Symptoms identified:**\n`;
-        symptoms.forEach(s => {
+        symptoms.forEach((s) => {
           const symptomData = BURNOUT_ASSESSMENT.symptoms[s];
           if (symptomData) {
             response += `- ${s}: ${symptomData.description}\n`;
@@ -1063,7 +1148,7 @@ const assessBurnoutDef: ToolDefinition = {
         response += `${levelData.description}\n\n`;
 
         response += `**Recommendations:**\n`;
-        levelData.recommendations.forEach(r => {
+        levelData.recommendations.forEach((r) => {
           response += `- ${r}\n`;
         });
 
@@ -1094,14 +1179,9 @@ const setWorkBoundaryDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user establish and maintain healthy work boundaries.',
       parameters: z.object({
-        boundaryArea: z.enum([
-          'hours',
-          'availability',
-          'workload',
-          'meetings',
-          'communication',
-          'emotional',
-        ]).describe('What area to address'),
+        boundaryArea: z
+          .enum(['hours', 'availability', 'workload', 'meetings', 'communication', 'emotional'])
+          .describe('What area to address'),
         currentSituation: z.string().optional().describe('Current situation'),
         fear: z.string().optional().describe('What they fear about setting this boundary'),
       }),
@@ -1115,7 +1195,8 @@ const setWorkBoundaryDef: ToolDefinition = {
         }
 
         const boundaryAdvice: Record<string, string> = {
-          hours: `**Setting Hours Boundaries:**\n\n` +
+          hours:
+            `**Setting Hours Boundaries:**\n\n` +
             `- Define your work hours and communicate them\n` +
             `- Set a firm stop time and create a shutdown ritual\n` +
             `- Remove work apps from personal phone (or use Focus modes)\n` +
@@ -1123,14 +1204,16 @@ const setWorkBoundaryDef: ToolDefinition = {
             `- Take your full lunch break\n\n` +
             `**Script:** "I'm generally available [hours]. For anything outside those hours, I'll respond the next business day unless it's truly urgent."`,
 
-          availability: `**Setting Availability Boundaries:**\n\n` +
+          availability:
+            `**Setting Availability Boundaries:**\n\n` +
             `- You don't need to be always-on\n` +
             `- Set response time expectations (e.g., 24 hours for email)\n` +
             `- Use calendar blocks for focus time\n` +
             `- It's okay to not respond immediately\n\n` +
             `**Script:** "I batch my email twice a day so I can focus on deep work. I'll get back to you within 24 hours, or call if it's urgent."`,
 
-          workload: `**Setting Workload Boundaries:**\n\n` +
+          workload:
+            `**Setting Workload Boundaries:**\n\n` +
             `- You can say no, or "not now"\n` +
             `- Ask for priorities when everything is "urgent"\n` +
             `- Negotiate deadlines\n` +
@@ -1140,7 +1223,8 @@ const setWorkBoundaryDef: ToolDefinition = {
             `- "Given my current workload, I can do this by [realistic date]. Does that work?"\n` +
             `- "I don't have capacity for this right now. Let's discuss priorities."`,
 
-          meetings: `**Setting Meeting Boundaries:**\n\n` +
+          meetings:
+            `**Setting Meeting Boundaries:**\n\n` +
             `- Not every meeting needs you\n` +
             `- Block focus time on your calendar\n` +
             `- Ask for agendas before accepting\n` +
@@ -1150,7 +1234,8 @@ const setWorkBoundaryDef: ToolDefinition = {
             `- "I have a conflict but happy to be looped in via notes."\n` +
             `- "I block [day/time] for focus work. Can we find another slot?"`,
 
-          communication: `**Setting Communication Boundaries:**\n\n` +
+          communication:
+            `**Setting Communication Boundaries:**\n\n` +
             `- Different channels for different urgencies\n` +
             `- Set expectations for response times\n` +
             `- Protect off-hours from work communication\n\n` +
@@ -1159,7 +1244,8 @@ const setWorkBoundaryDef: ToolDefinition = {
             `- Same-day: Slack/Teams\n` +
             `- Not urgent: Email`,
 
-          emotional: `**Setting Emotional Boundaries:**\n\n` +
+          emotional:
+            `**Setting Emotional Boundaries:**\n\n` +
             `- Not everyone's emotions are your responsibility\n` +
             `- It's okay to not absorb others' stress\n` +
             `- Your manager's mood isn't your job to manage\n` +
@@ -1198,20 +1284,25 @@ const planCareerTransitionDef: ToolDefinition = {
     return llm.tool({
       description: 'Help user plan and navigate a career transition.',
       parameters: z.object({
-        transitionType: z.enum([
-          'new-industry',
-          'new-function',
-          'entrepreneurship',
-          'return-to-workforce',
-          'downshift',
-          'upshift',
-        ]).describe('Type of transition'),
+        transitionType: z
+          .enum([
+            'new-industry',
+            'new-function',
+            'entrepreneurship',
+            'return-to-workforce',
+            'downshift',
+            'upshift',
+          ])
+          .describe('Type of transition'),
         currentState: z.string().optional().describe('Current situation'),
         targetState: z.string().optional().describe('Where they want to go'),
         timeline: z.enum(['asap', '6-months', '1-year', '2-plus-years']).optional(),
       }),
       execute: async ({ transitionType, currentState, targetState, timeline }) => {
-        getLogger().info({ agentId: ctx.agentId, transitionType, timeline }, 'Planning career transition');
+        getLogger().info(
+          { agentId: ctx.agentId, transitionType, timeline },
+          'Planning career transition'
+        );
 
         let response = `**Career Transition Planning**\n\n`;
         response += `Transition type: ${transitionType}\n`;
@@ -1324,4 +1415,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

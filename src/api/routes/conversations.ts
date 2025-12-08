@@ -25,7 +25,8 @@ export async function handleGetConversations(
   try {
     const limit = parsePositiveInt(parsedUrl.searchParams.get('limit'), 50, 500);
 
-    const { getConversationHistoryService } = await import('../../services/conversation-history.js');
+    const { getConversationHistoryService } =
+      await import('../../services/conversation-history.js');
     const historyService = getConversationHistoryService();
     const data = await historyService.getHistory(userId, limit);
 

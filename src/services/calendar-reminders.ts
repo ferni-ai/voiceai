@@ -9,14 +9,9 @@
  * Integrates with Google Calendar OAuth and proactive outreach.
  */
 
+import { canReachUser, scheduleText } from '../tools/proactive-outreach.js';
 import { getLogger } from '../utils/safe-logger.js';
-import {
-  scheduleText,
-  scheduleEmail,
-  getUserContactInfo,
-  canReachUser,
-} from '../tools/proactive-outreach.js';
-import { getPreferences, canSendOutreach } from './outreach-intelligence.js';
+import { canSendOutreach, getPreferences } from './outreach-intelligence.js';
 
 // ============================================================================
 // TYPES
@@ -363,14 +358,91 @@ export async function checkAndSendReminders(): Promise<{
 // ============================================================================
 
 /**
- * Sync events from Google Calendar (placeholder for OAuth integration)
+ * Sync events from Google Calendar using OAuth tokens
+ * Fetches upcoming events and adds them to the local event store
  */
-export async function syncFromGoogleCalendar(userId: string, accessToken: string): Promise<number> {
-  // This would use the google-calendar-oauth service
-  // For now, returns 0 as it needs the OAuth flow to be complete
+export async function syncFromGoogleCalendar(
+  userId: string,
+  accessToken?: string
+): Promise<number> {
+  try {
+    const { getValidAccessToken, getEvents, isCalendarConfigured } =
+      await import('./google-calendar-oauth.js');
 
-  getLogger().info({ userId }, '📅 Google Calendar sync requested (needs OAuth)');
-  return 0;
+    // Check if user has calendar configured
+    const configured = await isCalendarConfigured(userId);
+    if (!configured && !accessToken) {
+      getLogger().debug({ userId }, '📅 Calendar not configured for user');
+      return 0;
+    }
+
+    // Get a valid access token (either provided or from stored tokens)
+    const token = accessToken || (await getValidAccessToken(userId));
+    if (!token) {
+      getLogger().debug({ userId }, '📅 No valid calendar access token');
+      return 0;
+    }
+
+    // Fetch events for the next 30 days
+    const now = new Date();
+    const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const googleEvents = await getEvents(token, 'primary', now, thirtyDaysLater, 100);
+
+    let syncedCount = 0;
+    for (const gEvent of googleEvents) {
+      if (!gEvent.id || !gEvent.summary) continue;
+
+      // Convert Google Calendar event to our format
+      const startTime = gEvent.start.dateTime || gEvent.start.date;
+      const endTime = gEvent.end.dateTime || gEvent.end.date;
+
+      if (!startTime || !endTime) continue;
+
+      const event: CalendarEvent = {
+        id: `gcal_${gEvent.id}`,
+        userId,
+        title: gEvent.summary,
+        description: gEvent.description,
+        location: gEvent.location,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        isAllDay: !gEvent.start.dateTime, // All-day events only have 'date'
+        reminders: [
+          {
+            id: `gcal_${gEvent.id}_reminder`,
+            eventId: `gcal_${gEvent.id}`,
+            type: 'pre_event' as const,
+            minutesBefore: 30,
+            sent: false,
+          },
+        ],
+        source: 'google',
+      };
+
+      // Add or update in store
+      const userEvents = eventStore.get(userId) || [];
+      const existingIndex = userEvents.findIndex((e) => e.id === event.id);
+
+      if (existingIndex >= 0) {
+        userEvents[existingIndex] = event;
+      } else {
+        userEvents.push(event);
+        syncedCount++;
+      }
+
+      eventStore.set(userId, userEvents);
+    }
+
+    getLogger().info(
+      { userId, syncedCount, totalEvents: googleEvents.length },
+      '📅 Google Calendar synced'
+    );
+    return syncedCount;
+  } catch (error) {
+    getLogger().error({ error: String(error), userId }, '📅 Google Calendar sync failed');
+    return 0;
+  }
 }
 
 // ============================================================================

@@ -45,8 +45,8 @@ export interface UserAnalytics {
   responseRate: number;
   avgResponseTime: number;
   preferredChannel: 'sms' | 'email' | 'call';
-  bestTimeSlots: { hour: number; dayOfWeek: number; responseRate: number }[];
-  effectiveTriggers: { type: OutreachTriggerType; rate: number }[];
+  bestTimeSlots: Array<{ hour: number; dayOfWeek: number; responseRate: number }>;
+  effectiveTriggers: Array<{ type: OutreachTriggerType; rate: number }>;
   preferredPersona: string;
   lastUpdated: Date;
 }
@@ -65,9 +65,9 @@ export interface GlobalAnalytics {
 // STATE
 // ============================================================================
 
-const outreachEvents: Map<string, OutreachEvent[]> = new Map();
-const responseEvents: Map<string, ResponseEvent[]> = new Map();
-const userAnalyticsCache: Map<string, UserAnalytics> = new Map();
+const outreachEvents = new Map<string, OutreachEvent[]>();
+const responseEvents = new Map<string, ResponseEvent[]>();
+const userAnalyticsCache = new Map<string, UserAnalytics>();
 let globalAnalyticsCache: GlobalAnalytics | null = null;
 
 // ============================================================================
@@ -93,7 +93,7 @@ export function recordOutreachEvent(
     skipReason: decision.skipReason,
   };
 
-  const userId = decision.trigger.userId;
+  const { userId } = decision.trigger;
   const userEvents = outreachEvents.get(userId) || [];
   userEvents.push(event);
   outreachEvents.set(userId, userEvents);
@@ -102,7 +102,10 @@ export function recordOutreachEvent(
   userAnalyticsCache.delete(userId);
   globalAnalyticsCache = null;
 
-  log.debug({ eventId: event.id, userId, channel, triggerType: event.triggerType }, 'Recorded outreach event');
+  log.debug(
+    { eventId: event.id, userId, channel, triggerType: event.triggerType },
+    'Recorded outreach event'
+  );
 
   return event.id;
 }
@@ -136,7 +139,10 @@ export function recordResponseEvent(params: {
   userAnalyticsCache.delete(params.userId);
   globalAnalyticsCache = null;
 
-  log.debug({ outreachId: params.outreachId, responseType: params.responseType }, 'Recorded response event');
+  log.debug(
+    { outreachId: params.outreachId, responseType: params.responseType },
+    'Recorded response event'
+  );
 }
 
 // ============================================================================
@@ -165,9 +171,7 @@ export function calculateUserAnalytics(userId: string): UserAnalytics {
 
   // Calculate response rate
   const respondedEvents = sentEvents.filter(
-    (e) =>
-      responseMap.has(e.id) &&
-      responseMap.get(e.id)?.responseType !== 'no_response'
+    (e) => responseMap.has(e.id) && responseMap.get(e.id)?.responseType !== 'no_response'
   );
   const responseRate = sentEvents.length > 0 ? respondedEvents.length / sentEvents.length : 0;
 
@@ -176,9 +180,7 @@ export function calculateUserAnalytics(userId: string): UserAnalytics {
     .filter((r) => r.responseTime !== undefined)
     .map((r) => r.responseTime!);
   const avgResponseTime =
-    responseTimes.length > 0
-      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-      : 0;
+    responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : 0;
 
   // Find preferred channel
   const channelStats: Record<string, { sent: number; responded: number }> = {};
@@ -203,7 +205,7 @@ export function calculateUserAnalytics(userId: string): UserAnalytics {
   });
 
   // Find best time slots
-  const timeSlotStats: Map<string, { sent: number; responded: number }> = new Map();
+  const timeSlotStats = new Map<string, { sent: number; responded: number }>();
   sentEvents.forEach((e) => {
     const hour = e.timestamp.getHours();
     const dayOfWeek = e.timestamp.getDay();
@@ -295,7 +297,10 @@ export function calculateUserAnalytics(userId: string): UserAnalytics {
  */
 export function calculateGlobalAnalytics(): GlobalAnalytics {
   // Check cache
-  if (globalAnalyticsCache && Date.now() - globalAnalyticsCache.lastUpdated.getTime() < 5 * 60 * 1000) {
+  if (
+    globalAnalyticsCache &&
+    Date.now() - globalAnalyticsCache.lastUpdated.getTime() < 5 * 60 * 1000
+  ) {
     return globalAnalyticsCache;
   }
 
@@ -404,8 +409,9 @@ export function getRecommendations(userId: string): {
 
   const suggestedChannel = hasEnoughUserData
     ? userStats.preferredChannel
-    : (Object.entries(globalStats.channelPerformance)
-        .sort(([, a], [, b]) => b.rate - a.rate)[0]?.[0] as 'sms' | 'email' | 'call') || 'sms';
+    : (Object.entries(globalStats.channelPerformance).sort(
+        ([, a], [, b]) => b.rate - a.rate
+      )[0]?.[0] as 'sms' | 'email' | 'call') || 'sms';
 
   const suggestedTime =
     hasEnoughUserData && userStats.bestTimeSlots.length > 0
@@ -419,8 +425,9 @@ export function getRecommendations(userId: string): {
 
   const suggestedPersona = hasEnoughUserData
     ? userStats.preferredPersona
-    : Object.entries(globalStats.personaPerformance)
-        .sort(([, a], [, b]) => b.rate - a.rate)[0]?.[0] || 'ferni';
+    : Object.entries(globalStats.personaPerformance).sort(
+        ([, a], [, b]) => b.rate - a.rate
+      )[0]?.[0] || 'ferni';
 
   return {
     suggestedChannel,
@@ -467,8 +474,7 @@ export function predictResponseLikelihood(params: {
   const personaRate = globalStats.personaPerformance[personaId]?.rate || 0.3;
 
   // Weighted average
-  const prediction =
-    channelStats * 0.3 + triggerRate * 0.3 + timeRate * 0.2 + personaRate * 0.2;
+  const prediction = channelStats * 0.3 + triggerRate * 0.3 + timeRate * 0.2 + personaRate * 0.2;
 
   return Math.min(1, Math.max(0, prediction));
 }
@@ -574,4 +580,3 @@ export const analytics = {
 };
 
 export default analytics;
-

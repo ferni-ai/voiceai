@@ -1,0 +1,45 @@
+[package]
+name = "ferni-speaker"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance speaker embedding extraction using ECAPA-TDNN"
+license = "MIT"
+repository = "https://github.com/sethdford/ferni-speaker"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# NAPI bindings for Node.js
+napi = { version = "2", default-features = false, features = ["napi9", "async"] }
+napi-derive = "2"
+
+# ML inference
+tract-onnx = "0.21"
+
+# Numerical computing
+ndarray = "0.15"
+
+# FFT for mel spectrogram
+rustfft = "6.2"
+
+# Parallel processing
+rayon = "1.10"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+[build-dependencies]
+napi-build = "2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+strip = true
+
+[profile.release-small]
+inherits = "release"
+opt-level = "z"
+

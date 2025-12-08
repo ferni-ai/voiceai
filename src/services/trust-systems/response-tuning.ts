@@ -30,19 +30,19 @@ export type RelationshipStage = 'new' | 'building' | 'established' | 'deep' | 'f
 export interface ResponseStyle {
   /** How directly to communicate (0 = gentle, 1 = straightforward) */
   directness: number;
-  
+
   /** How much vulnerability to show (0 = reserved, 1 = open) */
   vulnerability: number;
-  
+
   /** How much to challenge vs support (0 = supportive, 1 = challenging) */
   challenge: number;
-  
+
   /** How playful vs serious (0 = serious, 1 = playful) */
   humor: number;
-  
+
   /** How deep to go (0 = surface, 1 = deep) */
   depth: number;
-  
+
   /** Overall emotional warmth (0 = professional, 1 = warm) */
   warmth: number;
 }
@@ -212,7 +212,7 @@ export function calculateResponseStyle(context: TuningContext): ResponseStyle {
   }
 
   // Clamp all values to 0-1
-  for (const key of Object.keys(baseStyle) as (keyof ResponseStyle)[]) {
+  for (const key of Object.keys(baseStyle) as Array<keyof ResponseStyle>) {
     baseStyle[key] = Math.max(0, Math.min(1, baseStyle[key]));
   }
 
@@ -307,7 +307,7 @@ function generateAvoidances(style: ResponseStyle, context: TuningContext): strin
   }
 
   if (style.humor < 0.3) {
-    avoidances.push("Avoid jokes or light-hearted comments");
+    avoidances.push('Avoid jokes or light-hearted comments');
   }
 
   if (context.isCrisis) {
@@ -370,29 +370,29 @@ function generateExamplePhrases(style: ResponseStyle, context: TuningContext): s
 
   // Opening phrases
   if (style.warmth > 0.8) {
-    phrases.push("I hear you.");
-    phrases.push("That makes so much sense.");
+    phrases.push('I hear you.');
+    phrases.push('That makes so much sense.');
   }
   if (style.directness > 0.6) {
     phrases.push("Here's what I'm noticing...");
-    phrases.push("Let me be real with you...");
+    phrases.push('Let me be real with you...');
   }
   if (style.directness < 0.4) {
     phrases.push("I'm wondering if...");
-    phrases.push("What comes up for me is...");
+    phrases.push('What comes up for me is...');
   }
 
   // Challenge phrases (only if appropriate)
   if (style.challenge > 0.5 && !context.isCrisis) {
-    phrases.push("Have you considered...");
+    phrases.push('Have you considered...');
     phrases.push("I'm curious - what if...");
-    phrases.push("Can I offer a different perspective?");
+    phrases.push('Can I offer a different perspective?');
   }
 
   // Vulnerability phrases
   if (style.vulnerability > 0.6) {
-    phrases.push("That really lands for me.");
-    phrases.push("I feel that.");
+    phrases.push('That really lands for me.');
+    phrases.push('I feel that.');
   }
 
   return phrases;
@@ -483,11 +483,7 @@ export function checkResponseAlignment(
 
   // Check directness
   if (guidance.style.directness < 0.4) {
-    const directPatterns = [
-      /\byou must\b/i,
-      /\byou have to\b/i,
-      /\bthe answer is\b/i,
-    ];
+    const directPatterns = [/\byou must\b/i, /\byou have to\b/i, /\bthe answer is\b/i];
     for (const pattern of directPatterns) {
       if (pattern.test(response)) {
         issues.push('Response may be too direct');
@@ -512,4 +508,3 @@ export default {
   formatGuidanceForLLM,
   checkResponseAlignment,
 };
-

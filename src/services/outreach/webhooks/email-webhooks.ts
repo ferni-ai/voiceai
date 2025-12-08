@@ -145,10 +145,7 @@ export function validateSendGridSignature(
       .update(timestampPayload)
       .digest('base64');
 
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
   } catch (error) {
     log.error({ error }, 'SendGrid signature validation error');
     return false;
@@ -176,10 +173,7 @@ export function validateResendSignature(
       .update(signedPayload)
       .digest('base64');
 
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
   } catch (error) {
     log.error({ error }, 'Resend signature validation error');
     return false;
@@ -278,13 +272,7 @@ export async function handleResendWebhook(
   rawPayload?: string
 ): Promise<{ success: boolean }> {
   // Validate signature in production
-  if (
-    signature &&
-    webhookId &&
-    timestamp &&
-    rawPayload &&
-    process.env.NODE_ENV === 'production'
-  ) {
+  if (signature && webhookId && timestamp && rawPayload && process.env.NODE_ENV === 'production') {
     const isValid = validateResendSignature(rawPayload, signature, webhookId, timestamp);
     if (!isValid) {
       log.warn('Invalid Resend webhook signature');
@@ -350,7 +338,10 @@ async function processEmailEvent(event: EmailTrackingEvent): Promise<void> {
   recentEvents.set(`${event.messageId}-${event.event}`, event);
 
   // Map event type to delivery status
-  const statusMap: Record<EmailTrackingEvent['event'], 'delivered' | 'opened' | 'clicked' | 'bounced' | 'failed'> = {
+  const statusMap: Record<
+    EmailTrackingEvent['event'],
+    'delivered' | 'opened' | 'clicked' | 'bounced' | 'failed'
+  > = {
     delivered: 'delivered',
     opened: 'opened',
     clicked: 'clicked',
@@ -406,10 +397,7 @@ async function processEmailEvent(event: EmailTrackingEvent): Promise<void> {
 /**
  * Generate open tracking pixel URL
  */
-export function generateOpenTrackingPixel(
-  messageId: string,
-  baseUrl: string
-): string {
+export function generateOpenTrackingPixel(messageId: string, baseUrl: string): string {
   return `${baseUrl}/api/outreach/webhooks/email/open?mid=${encodeURIComponent(messageId)}`;
 }
 
@@ -491,9 +479,7 @@ export function getRecentEvents(limit = 100): EmailTrackingEvent[] {
  * Get events for a specific message
  */
 export function getMessageEvents(messageId: string): EmailTrackingEvent[] {
-  return Array.from(recentEvents.values()).filter(
-    (e) => e.messageId === messageId
-  );
+  return Array.from(recentEvents.values()).filter((e) => e.messageId === messageId);
 }
 
 /**
@@ -533,4 +519,3 @@ export const emailWebhooks = {
   getMessageEvents,
   clearOldEvents,
 };
-

@@ -888,9 +888,8 @@ Actions:
 
         // Lazy import to avoid circular deps
         const { getEngagementStore } = await import('../../../services/engagement-store.js');
-        const { getEngagementDataSender } = await import(
-          '../../../services/engagement-data-sender.js'
-        );
+        const { getEngagementDataSender } =
+          await import('../../../services/engagement-data-sender.js');
 
         if (action === 'make-predictions') {
           return {
@@ -1023,8 +1022,7 @@ Actions:
           return {
             response:
               `Actuals recorded! <break time="300ms"/>\n\n` +
-              `${analysis.join('\n')}\n\n` +
-              accuracyResponse,
+              `${analysis.join('\n')}\n\n${accuracyResponse}`,
             accuracy: result.accuracy,
             predictionId: targetId,
             resolved: true,

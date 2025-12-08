@@ -50,53 +50,55 @@ function detectLengthSignals(
   analysis: ContextBuilderInput['analysis']
 ): LengthSignals {
   const wordCount = userText.split(/\s+/).length;
-  const userMessageLength: 'short' | 'medium' | 'long' = 
-    wordCount < 10 ? 'short' : 
-    wordCount < 50 ? 'medium' : 'long';
-  
+  const userMessageLength: 'short' | 'medium' | 'long' =
+    wordCount < 10 ? 'short' : wordCount < 50 ? 'medium' : 'long';
+
   const lower = userText.toLowerCase();
-  
+
   return {
     isVenting: Boolean(
       analysis?.emotion?.isVenting ||
-      (analysis?.emotion?.intensity && analysis.emotion.intensity > 0.7 &&
-       analysis?.emotion?.valence === 'negative')
+      (analysis?.emotion?.intensity &&
+        analysis.emotion.intensity > 0.7 &&
+        analysis?.emotion?.valence === 'negative')
     ),
-    
+
     isProcessing: Boolean(
       analysis?.emotion?.isProcessing ||
       lower.includes('i think') ||
       lower.includes("i'm trying to") ||
       lower.includes('working through')
     ),
-    
+
     isExcitedSharing: Boolean(
       analysis?.emotion?.primary === 'joy' ||
       analysis?.emotion?.primary === 'excitement' ||
-      (analysis?.emotion?.intensity && analysis.emotion.intensity > 0.6 &&
-       analysis?.emotion?.valence === 'positive')
+      (analysis?.emotion?.intensity &&
+        analysis.emotion.intensity > 0.6 &&
+        analysis?.emotion?.valence === 'positive')
     ),
-    
+
     needsAcknowledgment: Boolean(
       lower.endsWith('right?') ||
       lower.endsWith('you know?') ||
       lower.includes('i just') ||
       lower.includes('guess what')
     ),
-    
+
     askingDeepQuestion: Boolean(
       analysis?.intent?.isQuestion &&
       (lower.includes('what do you think') ||
-       lower.includes('how do i') ||
-       lower.includes('what should') ||
-       lower.includes('help me understand'))
+        lower.includes('how do i') ||
+        lower.includes('what should') ||
+        lower.includes('help me understand'))
     ),
-    
+
     justSharedSomethingBig: Boolean(
       userMessageLength === 'long' &&
-      (analysis?.emotion?.intensity && analysis.emotion.intensity > 0.5)
+      analysis?.emotion?.intensity &&
+      analysis.emotion.intensity > 0.5
     ),
-    
+
     userMessageLength,
   };
 }
@@ -109,32 +111,32 @@ function determineResponseLength(signals: LengthSignals): ResponseLength {
   if (signals.isVenting) {
     return 'minimal';
   }
-  
+
   // When they're processing - brief. Let them think.
   if (signals.isProcessing) {
     return 'brief';
   }
-  
+
   // When they're excited sharing - brief encouragements, let them have the floor
   if (signals.isExcitedSharing && signals.userMessageLength !== 'short') {
     return 'brief';
   }
-  
+
   // When they just need acknowledgment - just acknowledge!
   if (signals.needsAcknowledgment) {
     return 'minimal';
   }
-  
+
   // When they just shared something big - pause, acknowledge briefly first
   if (signals.justSharedSomethingBig) {
     return 'brief';
   }
-  
+
   // When asking a deep question - okay to elaborate
   if (signals.askingDeepQuestion) {
     return 'elaborate';
   }
-  
+
   // Default to normal
   return 'normal';
 }
@@ -143,11 +145,14 @@ function determineResponseLength(signals: LengthSignals): ResponseLength {
 // RESPONSE LENGTH GUIDANCE
 // ============================================================================
 
-const LENGTH_GUIDANCE: Record<ResponseLength, {
-  description: string;
-  examples: string[];
-  maxSentences: string;
-}> = {
+const LENGTH_GUIDANCE: Record<
+  ResponseLength,
+  {
+    description: string;
+    examples: string[];
+    maxSentences: string;
+  }
+> = {
   minimal: {
     description: 'Just a few words. Hold space. Less is more.',
     examples: [
@@ -160,7 +165,7 @@ const LENGTH_GUIDANCE: Record<ResponseLength, {
     ],
     maxSentences: '1-2 sentences max, or even just a word/sound',
   },
-  
+
   brief: {
     description: 'A sentence or two. Acknowledge, then give them room.',
     examples: [
@@ -170,13 +175,13 @@ const LENGTH_GUIDANCE: Record<ResponseLength, {
     ],
     maxSentences: '2-3 sentences',
   },
-  
+
   normal: {
     description: 'A paragraph. Balanced engagement.',
     examples: [],
     maxSentences: '4-6 sentences',
   },
-  
+
   elaborate: {
     description: 'Can go deeper if needed, but stay focused.',
     examples: [],
@@ -191,25 +196,23 @@ const LENGTH_GUIDANCE: Record<ResponseLength, {
 /**
  * Build response length guidance
  */
-async function buildResponseLengthContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildResponseLengthContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, analysis, userData } = input;
   const injections: ContextInjection[] = [];
-  
+
   // Detect signals
   const signals = detectLengthSignals(userText, analysis);
-  
+
   // Determine ideal length
   const length = determineResponseLength(signals);
-  
+
   // Only inject guidance for non-normal lengths
   if (length === 'normal') {
     return injections;
   }
-  
+
   const guidance = LENGTH_GUIDANCE[length];
-  
+
   const lines: string[] = [
     `[📏 RESPONSE LENGTH: ${length.toUpperCase()}]`,
     '',
@@ -217,7 +220,7 @@ async function buildResponseLengthContext(
     '',
     `Target: ${guidance.maxSentences}`,
   ];
-  
+
   if (guidance.examples.length > 0) {
     lines.push('');
     lines.push('Examples of appropriate responses:');
@@ -225,47 +228,48 @@ async function buildResponseLengthContext(
       lines.push(`• ${example}`);
     }
   }
-  
+
   // Add context-specific guidance
   if (signals.isVenting) {
     lines.push('');
-    lines.push('⚠️ They\'re venting. DO NOT:');
+    lines.push("⚠️ They're venting. DO NOT:");
     lines.push('• Give advice');
     lines.push('• Try to fix it');
     lines.push('• Share your own similar experience');
     lines.push('');
     lines.push('DO: Hold space. Let them feel heard. Brief acknowledgments.');
   }
-  
+
   if (signals.isProcessing) {
     lines.push('');
-    lines.push('💭 They\'re processing. Give them room to think.');
+    lines.push("💭 They're processing. Give them room to think.");
     lines.push('Brief reflections, then let them continue.');
   }
-  
+
   if (signals.isExcitedSharing) {
     lines.push('');
-    lines.push('🎉 They\'re excited! Let them have the spotlight.');
+    lines.push("🎉 They're excited! Let them have the spotlight.");
     lines.push('Enthusiastic but brief encouragements.');
   }
-  
-  injections.push(
-    createHintInjection('response_length', lines.join('\n'), { category: 'pacing' })
-  );
-  
-  log.debug({
-    length,
-    signals: {
-      venting: signals.isVenting,
-      processing: signals.isProcessing,
-      excited: signals.isExcitedSharing,
-      acknowledgment: signals.needsAcknowledgment,
-      deepQuestion: signals.askingDeepQuestion,
-      bigShare: signals.justSharedSomethingBig,
-      messageLength: signals.userMessageLength,
+
+  injections.push(createHintInjection('response_length', lines.join('\n'), { category: 'pacing' }));
+
+  log.debug(
+    {
+      length,
+      signals: {
+        venting: signals.isVenting,
+        processing: signals.isProcessing,
+        excited: signals.isExcitedSharing,
+        acknowledgment: signals.needsAcknowledgment,
+        deepQuestion: signals.askingDeepQuestion,
+        bigShare: signals.justSharedSomethingBig,
+        messageLength: signals.userMessageLength,
+      },
     },
-  }, '📏 Response length guidance');
-  
+    '📏 Response length guidance'
+  );
+
   return injections;
 }
 
@@ -281,4 +285,3 @@ registerContextBuilder({
 });
 
 export { buildResponseLengthContext, detectLengthSignals, determineResponseLength };
-

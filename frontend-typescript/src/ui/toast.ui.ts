@@ -1,15 +1,22 @@
 /**
  * Toast Notification UI
- * 
- * Warm, human toast notifications that feel like gentle updates
- * rather than interruptions.
- * 
+ *
+ * Small, cute, centered pill toasts that feel like gentle whispers
+ * rather than interruptions. Inspired by iOS/macOS subtle notifications.
+ *
+ * DESIGN PHILOSOPHY:
+ * - Centered at bottom (not a corner)
+ * - Pill-shaped, compact
+ * - Single line, no icons
+ * - Quick in, quick out
+ * - Unobtrusive but noticeable
+ *
  * @module @ferni/toast
  */
 
-import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { HapticsService } from '../services/haptics.service.js';
+import { getHapticsService } from '../services/haptics.service.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('ToastUI');
 
@@ -17,404 +24,236 @@ const log = createLogger('ToastUI');
 // TYPES
 // ============================================================================
 
-export type ToastType = 'info' | 'success' | 'warning' | 'error' | 'persona';
+export type ToastType = 'info' | 'success' | 'warning' | 'error';
 
 export interface ToastConfig {
-  type: ToastType;
-  title?: string;
+  type?: ToastType;
   message: string;
-  duration?: number;        // ms, 0 = persistent
-  dismissible?: boolean;
-  icon?: string;            // Lucide icon name or custom SVG
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-  personaId?: string;       // For persona-themed toasts
+  duration?: number; // ms, default 2500
 }
 
 interface ActiveToast {
   id: string;
   element: HTMLElement;
-  config: ToastConfig;
   timeout?: ReturnType<typeof setTimeout>;
 }
 
 // ============================================================================
-// ICONS (Lucide-style SVGs)
+// TYPE COLORS - Subtle, brand-aligned
 // ============================================================================
 
-const TOAST_ICONS: Record<string, string> = {
-  info: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
-  success: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
-  warning: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
-  error: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`,
-  close: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`,
-};
-
-// ============================================================================
-// TYPE STYLES
-// ============================================================================
-
-const TYPE_COLORS: Record<ToastType, { bg: string; border: string; icon: string; text: string }> = {
+const TYPE_COLORS: Record<ToastType, { bg: string; text: string }> = {
   info: {
-    bg: 'var(--color-background-elevated, #FFFDFB)',
-    border: 'var(--color-border, #d4cfc7)',
-    icon: 'var(--color-text-secondary, #70605a)',
-    text: 'var(--color-text-primary, #2C2520)',
+    bg: 'var(--persona-primary, #4a6741)',
+    text: 'white',
   },
   success: {
-    bg: 'rgba(74, 103, 65, 0.08)',
-    border: 'rgba(74, 103, 65, 0.2)',
-    icon: '#4a6741',
-    text: 'var(--color-text-primary, #2C2520)',
+    bg: 'var(--persona-primary, #4a6741)',
+    text: 'white',
   },
   warning: {
-    bg: 'rgba(184, 149, 106, 0.08)',
-    border: 'rgba(184, 149, 106, 0.2)',
-    icon: '#b8956a',
-    text: 'var(--color-text-primary, #2C2520)',
+    bg: 'var(--color-warning, #b8956a)',
+    text: 'white',
   },
   error: {
-    bg: 'rgba(166, 90, 82, 0.08)',
-    border: 'rgba(166, 90, 82, 0.2)',
-    icon: '#a65a52',
-    text: 'var(--color-text-primary, #2C2520)',
-  },
-  persona: {
-    bg: 'var(--color-background-elevated, #FFFDFB)',
-    border: 'var(--persona-primary, #4a6741)',
-    icon: 'var(--persona-primary, #4a6741)',
-    text: 'var(--color-text-primary, #2C2520)',
+    bg: 'var(--color-destructive, #a65a52)',
+    text: 'white',
   },
 };
 
 // ============================================================================
-// TOAST MANAGER
+// TOAST MANAGER - Simple & Clean
 // ============================================================================
 
 export class ToastManager {
-  private container: HTMLElement | null = null;
-  private toasts: Map<string, ActiveToast> = new Map();
+  private activeToast: ActiveToast | null = null;
+  private queue: ToastConfig[] = [];
   private idCounter: number = 0;
-  private maxVisible: number = 3;
-  private haptics = HapticsService.getInstance();
-  
+  private haptics = getHapticsService();
+  private styleElement: HTMLStyleElement | null = null;
+
   constructor() {
     this.cleanupOrphanedElements();
-    this.createContainer();
+    this.injectStyles();
     log.debug('ToastManager initialized');
   }
-  
+
   // ==========================================================================
-  // LIFECYCLE
+  // CLEANUP
   // ==========================================================================
-  
+
   private cleanupOrphanedElements(): void {
-    document.querySelectorAll('.ferni-toast-container').forEach(el => el.remove());
+    document.querySelectorAll('.ferni-toast').forEach((el) => el.remove());
   }
-  
-  private createContainer(): void {
-    this.container = document.createElement('div');
-    this.container.className = 'ferni-toast-container';
-    this.container.setAttribute('role', 'region');
-    this.container.setAttribute('aria-label', 'Notifications');
-    
-    Object.assign(this.container.style, {
-      position: 'fixed',
-      bottom: 'var(--space-6, 24px)',
-      right: 'var(--space-6, 24px)',
-      display: 'flex',
-      flexDirection: 'column-reverse',
-      gap: 'var(--space-3, 12px)',
-      zIndex: '9999',
-      pointerEvents: 'none',
-      maxWidth: '400px',
-      width: 'calc(100vw - 48px)',
-    });
-    
-    document.body.appendChild(this.container);
+
+  // ==========================================================================
+  // STYLES
+  // ==========================================================================
+
+  private injectStyles(): void {
+    if (document.getElementById('ferni-toast-styles')) return;
+
+    this.styleElement = document.createElement('style');
+    this.styleElement.id = 'ferni-toast-styles';
+    this.styleElement.textContent = `
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(20px) scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0) scale(1);
+        }
+      }
+      
+      @keyframes toast-out {
+        from {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0) scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-10px) scale(0.95);
+        }
+      }
+    `;
+    document.head.appendChild(this.styleElement);
   }
-  
+
   // ==========================================================================
   // PUBLIC API
   // ==========================================================================
-  
+
   /**
    * Show a toast notification
    */
   show(config: ToastConfig): string {
+    // If there's already a toast, queue this one
+    if (this.activeToast) {
+      this.queue.push(config);
+      return `queued-${this.idCounter}`;
+    }
+
+    return this.displayToast(config);
+  }
+
+  private displayToast(config: ToastConfig): string {
     const id = `toast-${++this.idCounter}`;
-    
-    // Remove oldest if at max
-    if (this.toasts.size >= this.maxVisible) {
-      const oldest = this.toasts.values().next().value;
-      if (oldest) {
-        this.dismiss(oldest.id);
-      }
-    }
-    
+    const type = config.type || 'info';
+    const colors = TYPE_COLORS[type];
+
+    // Remove any existing toasts
+    this.cleanupOrphanedElements();
+
     // Create toast element
-    const element = this.createToastElement(id, config);
-    
-    // Add to container
-    this.container?.appendChild(element);
-    
-    // Animate in
-    this.animateIn(element);
-    
-    // Auto dismiss
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    const duration = config.duration ?? 4000;
-    if (duration > 0) {
-      timeout = setTimeout(() => this.dismiss(id), duration);
-    }
-    
-    // Track toast
-    this.toasts.set(id, { id, element, config, timeout });
-    
+    const toast = document.createElement('div');
+    toast.className = `ferni-toast ferni-toast--${type}`;
+    toast.textContent = config.message;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'polite');
+
+    Object.assign(toast.style, {
+      position: 'fixed',
+      bottom: '100px', // Above roster
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: colors.bg,
+      color: colors.text,
+      // Explicit small values - cute & compact
+      padding: '6px 14px',
+      borderRadius: '100px',
+      fontSize: '12px',
+      fontFamily: 'var(--font-body, system-ui)',
+      fontWeight: '500',
+      letterSpacing: '0.01em',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      zIndex: '10001',
+      animation: `toast-in ${DURATION.SLOW}ms ${EASING.SPRING}`,
+      whiteSpace: 'nowrap',
+      maxWidth: 'calc(100vw - 48px)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    });
+
+    document.body.appendChild(toast);
+
     // Haptic feedback
-    this.playHaptic(config.type);
-    
-    log.debug('Toast shown', { id, type: config.type });
-    
+    this.playHaptic(type);
+
+    // Auto dismiss
+    const duration = config.duration ?? 2500;
+    const timeout = setTimeout(() => this.dismiss(id), duration);
+
+    // Track toast
+    this.activeToast = { id, element: toast, timeout };
+
+    log.debug('Toast shown', { id, type, message: config.message });
+
     return id;
   }
-  
+
   /**
-   * Dismiss a toast
+   * Dismiss the active toast
    */
-  async dismiss(id: string): Promise<void> {
-    const toast = this.toasts.get(id);
-    if (!toast) return;
-    
+  dismiss(id: string): void {
+    if (!this.activeToast || this.activeToast.id !== id) return;
+
+    const { element, timeout } = this.activeToast;
+
     // Clear timeout
-    if (toast.timeout) {
-      clearTimeout(toast.timeout);
-    }
-    
+    if (timeout) clearTimeout(timeout);
+
     // Animate out
-    await this.animateOut(toast.element);
-    
-    // Remove from DOM
-    toast.element.remove();
-    
-    // Remove from map
-    this.toasts.delete(id);
-    
+    element.style.animation = `toast-out ${DURATION.NORMAL}ms ${EASING.STANDARD} forwards`;
+
+    setTimeout(() => {
+      element.remove();
+      this.activeToast = null;
+
+      // Show next in queue
+      if (this.queue.length > 0) {
+        const next = this.queue.shift()!;
+        this.displayToast(next);
+      }
+    }, DURATION.NORMAL);
+
     log.debug('Toast dismissed', { id });
   }
-  
+
   /**
-   * Dismiss all toasts
+   * Dismiss all toasts and clear queue
    */
-  async dismissAll(): Promise<void> {
-    const dismissPromises = Array.from(this.toasts.keys()).map(id => this.dismiss(id));
-    await Promise.all(dismissPromises);
+  dismissAll(): void {
+    this.queue = [];
+    if (this.activeToast) {
+      this.dismiss(this.activeToast.id);
+    }
   }
-  
+
   /**
    * Quick toast helpers
    */
-  info(message: string, title?: string): string {
-    return this.show({ type: 'info', message, title });
+  info(message: string): string {
+    return this.show({ type: 'info', message });
   }
-  
-  success(message: string, title?: string): string {
-    return this.show({ type: 'success', message, title });
+
+  success(message: string): string {
+    return this.show({ type: 'success', message });
   }
-  
-  warning(message: string, title?: string): string {
-    return this.show({ type: 'warning', message, title });
+
+  warning(message: string): string {
+    return this.show({ type: 'warning', message });
   }
-  
-  error(message: string, title?: string): string {
-    return this.show({ type: 'error', message, title, duration: 6000 });
+
+  error(message: string): string {
+    return this.show({ type: 'error', message, duration: 4000 });
   }
-  
-  /**
-   * Persona-themed toast
-   */
-  fromPersona(personaId: string, message: string, title?: string): string {
-    return this.show({ type: 'persona', message, title, personaId });
-  }
-  
-  // ==========================================================================
-  // ELEMENT CREATION
-  // ==========================================================================
-  
-  private createToastElement(id: string, config: ToastConfig): HTMLElement {
-    const colors = TYPE_COLORS[config.type];
-    
-    const toast = document.createElement('div');
-    toast.className = `ferni-toast ferni-toast--${config.type}`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'polite');
-    toast.dataset.toastId = id;
-    
-    Object.assign(toast.style, {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 'var(--space-3, 12px)',
-      padding: 'var(--space-4, 16px)',
-      background: colors.bg,
-      border: `1px solid ${colors.border}`,
-      borderRadius: 'var(--radius-lg, 12px)',
-      boxShadow: 'var(--shadow-lg)',
-      fontFamily: 'var(--font-body)',
-      pointerEvents: 'auto',
-      opacity: '0',
-      transform: 'translateX(100%) scale(0.95)',
-      maxWidth: '100%',
-    });
-    
-    // Icon
-    const iconHtml = config.icon || TOAST_ICONS[config.type] || TOAST_ICONS.info;
-    const iconContainer = document.createElement('div');
-    iconContainer.className = 'toast-icon';
-    iconContainer.innerHTML = iconHtml;
-    iconContainer.style.color = colors.icon;
-    iconContainer.style.flexShrink = '0';
-    iconContainer.style.marginTop = '2px';
-    toast.appendChild(iconContainer);
-    
-    // Content
-    const content = document.createElement('div');
-    content.className = 'toast-content';
-    content.style.flex = '1';
-    content.style.minWidth = '0';
-    
-    if (config.title) {
-      const title = document.createElement('div');
-      title.className = 'toast-title';
-      title.textContent = config.title;
-      Object.assign(title.style, {
-        fontWeight: '600',
-        fontSize: '14px',
-        color: colors.text,
-        marginBottom: '2px',
-      });
-      content.appendChild(title);
-    }
-    
-    const message = document.createElement('div');
-    message.className = 'toast-message';
-    message.textContent = config.message;
-    Object.assign(message.style, {
-      fontSize: '14px',
-      lineHeight: '1.4',
-      color: 'var(--color-text-secondary, #70605a)',
-    });
-    content.appendChild(message);
-    
-    // Action button
-    if (config.action) {
-      const actionBtn = document.createElement('button');
-      actionBtn.className = 'toast-action';
-      actionBtn.textContent = config.action.label;
-      Object.assign(actionBtn.style, {
-        marginTop: 'var(--space-2, 8px)',
-        padding: '6px 12px',
-        background: 'transparent',
-        border: `1px solid ${colors.border}`,
-        borderRadius: 'var(--radius-full, 9999px)',
-        fontSize: '13px',
-        fontWeight: '500',
-        color: colors.icon,
-        cursor: 'pointer',
-        transition: `all ${DURATION.FAST}ms ${EASING.STANDARD}`,
-      });
-      
-      actionBtn.addEventListener('mouseenter', () => {
-        actionBtn.style.background = colors.bg;
-        actionBtn.style.borderColor = colors.icon;
-      });
-      
-      actionBtn.addEventListener('mouseleave', () => {
-        actionBtn.style.background = 'transparent';
-        actionBtn.style.borderColor = colors.border;
-      });
-      
-      actionBtn.addEventListener('click', () => {
-        config.action?.onClick();
-        this.dismiss(id);
-      });
-      
-      content.appendChild(actionBtn);
-    }
-    
-    toast.appendChild(content);
-    
-    // Close button
-    if (config.dismissible !== false) {
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'toast-close';
-      closeBtn.innerHTML = TOAST_ICONS.close;
-      closeBtn.setAttribute('aria-label', 'Dismiss notification');
-      
-      Object.assign(closeBtn.style, {
-        padding: '4px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: 'var(--radius-sm, 4px)',
-        color: 'var(--color-text-muted, #9a8a7a)',
-        cursor: 'pointer',
-        flexShrink: '0',
-        transition: `all ${DURATION.FAST}ms ${EASING.STANDARD}`,
-      });
-      
-      closeBtn.addEventListener('mouseenter', () => {
-        closeBtn.style.color = 'var(--color-text-primary, #2C2520)';
-        closeBtn.style.background = 'var(--color-background-secondary, #f5f1e8)';
-      });
-      
-      closeBtn.addEventListener('mouseleave', () => {
-        closeBtn.style.color = 'var(--color-text-muted, #9a8a7a)';
-        closeBtn.style.background = 'transparent';
-      });
-      
-      closeBtn.addEventListener('click', () => this.dismiss(id));
-      
-      toast.appendChild(closeBtn);
-    }
-    
-    return toast;
-  }
-  
-  // ==========================================================================
-  // ANIMATIONS
-  // ==========================================================================
-  
-  private async animateIn(element: HTMLElement): Promise<void> {
-    return new Promise(resolve => {
-      element.animate([
-        { opacity: 0, transform: 'translateX(100%) scale(0.95)' },
-        { opacity: 1, transform: 'translateX(0) scale(1)' },
-      ], {
-        duration: DURATION.SLOW,
-        easing: EASING.SPRING,
-        fill: 'forwards',
-      }).onfinish = () => resolve();
-    });
-  }
-  
-  private async animateOut(element: HTMLElement): Promise<void> {
-    return new Promise(resolve => {
-      element.animate([
-        { opacity: 1, transform: 'translateX(0) scale(1)' },
-        { opacity: 0, transform: 'translateX(100%) scale(0.95)' },
-      ], {
-        duration: DURATION.NORMAL,
-        easing: EASING.STANDARD,
-        fill: 'forwards',
-      }).onfinish = () => resolve();
-    });
-  }
-  
+
   // ==========================================================================
   // HAPTICS
   // ==========================================================================
-  
+
   private playHaptic(type: ToastType): void {
     switch (type) {
       case 'success':
@@ -430,15 +269,14 @@ export class ToastManager {
         this.haptics.play('softTap');
     }
   }
-  
+
   // ==========================================================================
   // CLEANUP
   // ==========================================================================
-  
+
   destroy(): void {
     this.dismissAll();
-    this.container?.remove();
-    this.container = null;
+    this.styleElement?.remove();
     log.debug('ToastManager destroyed');
   }
 }
@@ -464,17 +302,30 @@ export function resetToastManager(): void {
 }
 
 // ============================================================================
-// CONVENIENCE EXPORTS
+// CONVENIENCE EXPORTS - Simple API
 // ============================================================================
+
+export const toastInfo = (message: string) => getToastManager().info(message);
+export const toastSuccess = (message: string) => getToastManager().success(message);
+export const toastWarning = (message: string) => getToastManager().warning(message);
+export const toastError = (message: string) => getToastManager().error(message);
 
 export const showToast = (config: ToastConfig) => getToastManager().show(config);
 export const dismissToast = (id: string) => getToastManager().dismiss(id);
 export const dismissAllToasts = () => getToastManager().dismissAll();
+
+// Simple object API
 export const toast = {
-  info: (message: string, title?: string) => getToastManager().info(message, title),
-  success: (message: string, title?: string) => getToastManager().success(message, title),
-  warning: (message: string, title?: string) => getToastManager().warning(message, title),
-  error: (message: string, title?: string) => getToastManager().error(message, title),
-  fromPersona: (personaId: string, message: string, title?: string) => 
-    getToastManager().fromPersona(personaId, message, title),
+  info: toastInfo,
+  success: toastSuccess,
+  warning: toastWarning,
+  error: toastError,
+  show: showToast,
+  dismiss: dismissToast,
+  dismissAll: dismissAllToasts,
 };
+
+// Expose on window for testing in dev
+if (typeof window !== 'undefined') {
+  (window as unknown as { ferniToast: typeof toast }).ferniToast = toast;
+}

@@ -47,7 +47,12 @@ const log = createLogger({ module: 'OutreachIntegration' });
 export interface OutreachItem {
   id: string;
   userId: string;
-  type: 'thinking_of_you' | 'celebration' | 'growth_reflection' | 'habit_check' | 'appointment_reminder';
+  type:
+    | 'thinking_of_you'
+    | 'celebration'
+    | 'growth_reflection'
+    | 'habit_check'
+    | 'appointment_reminder';
   priority: 'high' | 'medium' | 'low';
   message: string;
   ssml: string;
@@ -213,7 +218,10 @@ export function queueGrowthReflection(userId: string, reflection: GrowthReflecti
   userQueue.push(item);
   outreachQueue.set(userId, userQueue);
 
-  log.debug({ userId, itemId: item.id, type: 'growth_reflection', personaId }, '📬 Queued growth reflection');
+  log.debug(
+    { userId, itemId: item.id, type: 'growth_reflection', personaId },
+    '📬 Queued growth reflection'
+  );
 
   return item;
 }
@@ -395,13 +403,15 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
     }
 
     // Determine which persona should deliver this outreach
-    const personaId = item.personaId || routeToPersona(item.type, {
-      topic: item.metadata?.triggerContext as string | undefined,
-    });
+    const personaId =
+      item.personaId ||
+      routeToPersona(item.type, {
+        topic: item.metadata?.triggerContext as string | undefined,
+      });
 
     // Build format context from profile and item metadata
     const formatContext: FormatContext = {
-      userName: profile.firstName as string | undefined || profile.name as string | undefined,
+      userName: (profile.firstName as string | undefined) || (profile.name as string | undefined),
       topic: item.metadata?.triggerContext as string | undefined,
       habit: item.metadata?.habit as string | undefined,
       appointment: item.metadata?.appointment as string | undefined,
@@ -484,7 +494,13 @@ async function sendMessage(item: OutreachItem, method: 'voice' | 'sms' | 'push')
 
         if (result.success) {
           log.info(
-            { userId: item.userId, method: 'voice', personaId, callSid: result.callSid, usedCartesiaVoice: result.usedCartesiaVoice },
+            {
+              userId: item.userId,
+              method: 'voice',
+              personaId,
+              callSid: result.callSid,
+              usedCartesiaVoice: result.usedCartesiaVoice,
+            },
             '📞 Voice call initiated'
           );
           return true;

@@ -34,17 +34,21 @@ export async function handleGetRituals(
     const streaks = await store.getAllStreaks(userId);
     const weatherHistory = await store.getWeatherHistory(userId, 30);
 
-    sendJSONCached(res, {
-      activeRituals: (profile.activeRituals as string[]) || [],
-      streaks,
-      weatherHistory,
-      preferences: profile.preferences,
-      stats: {
-        totalRitualDays: profile.totalRitualDays,
-        longestOverallStreak: profile.longestOverallStreak,
-        totalSkyChecks: ((profile.stats as AnyRecord)?.totalSkyChecks as number) || 0,
+    sendJSONCached(
+      res,
+      {
+        activeRituals: (profile.activeRituals as string[]) || [],
+        streaks,
+        weatherHistory,
+        preferences: profile.preferences,
+        stats: {
+          totalRitualDays: profile.totalRitualDays,
+          longestOverallStreak: profile.longestOverallStreak,
+          totalSkyChecks: ((profile.stats as AnyRecord)?.totalSkyChecks as number) || 0,
+        },
       },
-    }, 60);
+      60
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get rituals');
     sendError(res, API_ERRORS.RITUALS_FETCH_FAILED, 500);
@@ -153,7 +157,11 @@ export async function handleCompleteRitual(
     const lastCompleted = (streak.lastCompletedAt as string)?.split('T')[0];
 
     if (lastCompleted === today) {
-      sendJSON(res, { success: true, message: 'Already completed today', streak: streak.currentStreak });
+      sendJSON(res, {
+        success: true,
+        message: 'Already completed today',
+        streak: streak.currentStreak,
+      });
       return;
     }
 
@@ -166,13 +174,20 @@ export async function handleCompleteRitual(
     } else {
       if ((streak.currentStreak as number) > 0 && !wasNeverCompleted) {
         const history = ((streak.streakHistory as AnyRecord[]) || []).slice();
-        history.push({ endedAt: streak.lastCompletedAt, length: streak.currentStreak, reason: 'missed_day' });
+        history.push({
+          endedAt: streak.lastCompletedAt,
+          length: streak.currentStreak,
+          reason: 'missed_day',
+        });
         streak.streakHistory = history;
       }
       streak.currentStreak = 1;
     }
 
-    streak.longestStreak = Math.max((streak.longestStreak as number) || 0, streak.currentStreak as number);
+    streak.longestStreak = Math.max(
+      (streak.longestStreak as number) || 0,
+      streak.currentStreak as number
+    );
     streak.totalCompletions = ((streak.totalCompletions as number) || 0) + 1;
     streak.lastCompletedAt = new Date().toISOString();
 
@@ -188,25 +203,34 @@ export async function handleCompleteRitual(
 
     const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
     profile.totalRitualDays = ((profile.totalRitualDays as number) || 0) + 1;
-    profile.longestOverallStreak = Math.max((profile.longestOverallStreak as number) || 0, streak.currentStreak as number);
+    profile.longestOverallStreak = Math.max(
+      (profile.longestOverallStreak as number) || 0,
+      streak.currentStreak as number
+    );
     profile.lastEngagementAt = new Date().toISOString();
     await store.saveProfile(profile as Parameters<typeof store.saveProfile>[0]);
 
     log.info({ ritualId, streak: streak.currentStreak, userId }, 'Ritual completed');
 
     const isMilestone = MILESTONES.includes(streak.currentStreak as number);
-    const isPersonalBest = streak.currentStreak === streak.longestStreak && (streak.currentStreak as number) > 1;
+    const isPersonalBest =
+      streak.currentStreak === streak.longestStreak && (streak.currentStreak as number) > 1;
 
     sendJSON(res, {
       success: true,
       streak: streak.currentStreak,
       longestStreak: streak.longestStreak,
       totalCompletions: streak.totalCompletions,
-      celebration: isMilestone || isPersonalBest ? {
-        type: isMilestone ? 'milestone' : 'personal_best',
-        milestone: streak.currentStreak,
-        message: isMilestone ? getMilestoneMessage(streak.currentStreak as number) : `New personal best: ${streak.currentStreak} days!`,
-      } : null,
+      celebration:
+        isMilestone || isPersonalBest
+          ? {
+              type: isMilestone ? 'milestone' : 'personal_best',
+              milestone: streak.currentStreak,
+              message: isMilestone
+                ? getMilestoneMessage(streak.currentStreak as number)
+                : `New personal best: ${streak.currentStreak} days!`,
+            }
+          : null,
     });
   } catch (err) {
     log.error({ error: err, ritualId }, 'Failed to complete ritual');

@@ -59,41 +59,25 @@ const STAGE_CONFIGS: Record<RolloutStage, StageConfig> = {
     stage: 'internal',
     percentage: 0, // Only via overrides
     minDays: 3,
-    criteria: [
-      'No critical bugs',
-      'All tests passing',
-      'Team approval',
-    ],
+    criteria: ['No critical bugs', 'All tests passing', 'Team approval'],
   },
   alpha: {
     stage: 'alpha',
     percentage: 1,
     minDays: 3,
-    criteria: [
-      'Error rate < 1%',
-      'No user-reported issues',
-      'Latency < 500ms',
-    ],
+    criteria: ['Error rate < 1%', 'No user-reported issues', 'Latency < 500ms'],
   },
   beta: {
     stage: 'beta',
     percentage: 10,
     minDays: 5,
-    criteria: [
-      'Error rate < 0.5%',
-      'User feedback positive',
-      'No data corruption',
-    ],
+    criteria: ['Error rate < 0.5%', 'User feedback positive', 'No data corruption'],
   },
   general: {
     stage: 'general',
     percentage: 50,
     minDays: 7,
-    criteria: [
-      'Error rate < 0.1%',
-      'Metrics stable for 3 days',
-      'No rollback needed',
-    ],
+    criteria: ['Error rate < 0.1%', 'Metrics stable for 3 days', 'No rollback needed'],
   },
   full: {
     stage: 'full',
@@ -305,7 +289,7 @@ function hashUserId(userId: string): number {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     const char = userId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return Math.abs(hash % 100);
@@ -325,4 +309,3 @@ export default {
   getAllStageConfigs,
   isUserInRollout,
 };
-

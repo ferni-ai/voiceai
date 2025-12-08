@@ -58,3 +58,53 @@ export {
   EXCITEMENT_CELEBRATION_ARC,
 } from './story-arcs.js';
 
+// ============================================================================
+// NARRATIVE BRIDGE (App Integration)
+// ============================================================================
+
+export {
+  initNarrativeBridge,
+  disposeNarrativeBridge,
+  triggerTestBeat,
+  triggerTestArc,
+  getSessionStats,
+  isNarrativeBridgeInitialized,
+} from './narrative-bridge.js';
+
+// ============================================================================
+// EMOTION ANALYZER
+// ============================================================================
+
+export {
+  EmotionAnalyzer,
+  getEmotionAnalyzer,
+  resetEmotionAnalyzer,
+  analyzeText,
+  getCurrentEmotion,
+  startEmotionAnalysis,
+  stopEmotionAnalysis,
+  type EmotionCategory,
+  type DetectedEmotion,
+  type EmotionAnalyzerConfig,
+} from './emotion-analyzer.js';
+
+// ============================================================================
+// STORY TRACKER (Cross-Session)
+// ============================================================================
+
+export {
+  StoryTracker,
+  getStoryTracker,
+  resetStoryTracker,
+  recordSession,
+  recordMilestone,
+  recordMoment,
+  getJourney,
+  isFirstLaunch,
+  type StoryJourney,
+  type StoryMilestone,
+  type MemorableMoment,
+  type ArcProgress,
+  type EmotionalJourney,
+} from './story-tracker.js';
+

@@ -19,9 +19,11 @@ FROM node:${NODE_VERSION}-slim AS base
 WORKDIR /app
 
 # Install common system dependencies
+# ffmpeg is needed for DJ-style audio fade-out processing
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 

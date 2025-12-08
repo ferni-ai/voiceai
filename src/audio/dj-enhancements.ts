@@ -46,7 +46,7 @@ const COUNTDOWN_PHRASES = {
     jack: [
       'This one is almost done... let it sink in.',
       'Coming to a close... take what resonates.',
-      "Nearly there... sometimes the ending is the best part.",
+      'Nearly there... sometimes the ending is the best part.',
     ],
     peter: [
       'Approximately 30 seconds remaining on this track.',
@@ -76,64 +76,24 @@ const COUNTDOWN_PHRASES = {
       'Here comes the ending...',
       "Almost there... how'd you like this one?",
     ],
-    jack: [
-      'Let it wash over you...',
-      'The final notes...',
-      'Breathe it in...',
-    ],
-    peter: [
-      '15 seconds remaining.',
-      'Track conclusion imminent.',
-      'Preparing for transition.',
-    ],
-    maya: [
-      "Here we go, almost done!",
-      'Get ready for the next one!',
-      'Final stretch!',
-    ],
-    alex: [
-      'Concluding momentarily.',
-      'Transition approaching.',
-      'Nearly complete.',
-    ],
+    jack: ['Let it wash over you...', 'The final notes...', 'Breathe it in...'],
+    peter: ['15 seconds remaining.', 'Track conclusion imminent.', 'Preparing for transition.'],
+    maya: ['Here we go, almost done!', 'Get ready for the next one!', 'Final stretch!'],
+    alex: ['Concluding momentarily.', 'Transition approaching.', 'Nearly complete.'],
     jordan: [
       'Here comes the drop... into the next song!',
-      "5, 4, 3... just kidding, 15 seconds!",
+      '5, 4, 3... just kidding, 15 seconds!',
       'Building up to the transition!',
     ],
   },
 
   fiveSeconds: {
-    ferni: [
-      'And... that was lovely.',
-      'Beautiful.',
-      'Hope you enjoyed that one.',
-    ],
-    jack: [
-      'And so it ends... for now.',
-      'Until the music returns.',
-      'Well played.',
-    ],
-    peter: [
-      'Track complete.',
-      'Playback concluded.',
-      'End of selection.',
-    ],
-    maya: [
-      'And done! What a ride!',
-      'Boom! Nailed it!',
-      "That was fire, right?",
-    ],
-    alex: [
-      'Selection complete.',
-      'Concluded successfully.',
-      'Track finished.',
-    ],
-    jordan: [
-      'Aaand scene!',
-      'That was a vibe!',
-      'Drop the mic!',
-    ],
+    ferni: ['And... that was lovely.', 'Beautiful.', 'Hope you enjoyed that one.'],
+    jack: ['And so it ends... for now.', 'Until the music returns.', 'Well played.'],
+    peter: ['Track complete.', 'Playback concluded.', 'End of selection.'],
+    maya: ['And done! What a ride!', 'Boom! Nailed it!', 'That was fire, right?'],
+    alex: ['Selection complete.', 'Concluded successfully.', 'Track finished.'],
+    jordan: ['Aaand scene!', 'That was a vibe!', 'Drop the mic!'],
   },
 };
 
@@ -148,9 +108,9 @@ export function getCountdownPhrase(
   const phrases = COUNTDOWN_PHRASES[moment];
 
   // Find matching persona or default to ferni
-  const personaKey = Object.keys(phrases).find((key) =>
-    normalizedId.includes(key)
-  ) as keyof typeof phrases || 'ferni';
+  const personaKey =
+    (Object.keys(phrases).find((key) => normalizedId.includes(key)) as keyof typeof phrases) ||
+    'ferni';
 
   const personaPhrases = phrases[personaKey];
   return personaPhrases[Math.floor(Math.random() * personaPhrases.length)];
@@ -304,9 +264,7 @@ export const PERSONA_DJ_STYLES: Record<string, PersonaDJStyle> = {
  */
 export function getPersonaDJStyle(personaId: string): PersonaDJStyle {
   const normalizedId = personaId.toLowerCase().replace(/[^a-z]/g, '');
-  const matchingKey = Object.keys(PERSONA_DJ_STYLES).find((key) =>
-    normalizedId.includes(key)
-  );
+  const matchingKey = Object.keys(PERSONA_DJ_STYLES).find((key) => normalizedId.includes(key));
   return PERSONA_DJ_STYLES[matchingKey || 'ferni'];
 }
 
@@ -317,7 +275,7 @@ const PERSONA_MUSIC_INTROS: Record<string, string[]> = {
   ferni: [
     "Here's something I think you'll love...",
     'Let me set the mood...',
-    "How about a little music?",
+    'How about a little music?',
     "I've got just the thing...",
     'Music time!',
   ],
@@ -337,18 +295,18 @@ const PERSONA_MUSIC_INTROS: Record<string, string[]> = {
     "Let's gooo! Energy incoming!",
     'Time to pump it up!',
     'Okay but this song SLAPS!',
-    "Get ready to vibe!",
+    'Get ready to vibe!',
   ],
   alex: [
-    "Allow me to set the appropriate atmosphere.",
+    'Allow me to set the appropriate atmosphere.',
     "I've prepared something suitable.",
     'For your listening pleasure.',
     'A refined selection.',
   ],
   jordan: [
-    "DJ Jordan in the house!",
+    'DJ Jordan in the house!',
     'Drop the beat!',
-    "Party mode: ACTIVATED!",
+    'Party mode: ACTIVATED!',
     "This one's gonna be good!",
   ],
   nayan: [
@@ -364,9 +322,7 @@ const PERSONA_MUSIC_INTROS: Record<string, string[]> = {
  */
 export function getPersonaMusicIntro(personaId: string): string {
   const normalizedId = personaId.toLowerCase().replace(/[^a-z]/g, '');
-  const matchingKey = Object.keys(PERSONA_MUSIC_INTROS).find((key) =>
-    normalizedId.includes(key)
-  );
+  const matchingKey = Object.keys(PERSONA_MUSIC_INTROS).find((key) => normalizedId.includes(key));
   const intros = PERSONA_MUSIC_INTROS[matchingKey || 'ferni'];
   return intros[Math.floor(Math.random() * intros.length)];
 }
@@ -443,7 +399,7 @@ export class ThinkingMusicController {
 
     // Schedule thinking music start
     this.startTimer = setTimeout(() => {
-      this.startThinkingMusic();
+      void this.startThinkingMusic();
     }, this.config.startDelay);
 
     log.debug('Thinking music scheduled', {
@@ -628,7 +584,7 @@ export interface EmotionMusicMapping {
 const EMOTION_MUSIC_MAP: Record<string, EmotionMusicMapping> = {
   sad: {
     genres: ['acoustic', 'piano', 'indie folk'],
-    offerPhrase: "Want me to put on something soothing? Sometimes music helps...",
+    offerPhrase: 'Want me to put on something soothing? Sometimes music helps...',
     searchQueries: ['comforting acoustic', 'gentle piano', 'healing music'],
     tempo: 'slow',
   },
@@ -640,7 +596,7 @@ const EMOTION_MUSIC_MAP: Record<string, EmotionMusicMapping> = {
   },
   happy: {
     genres: ['pop', 'indie', 'feel-good'],
-    offerPhrase: "I love that energy! Want some music to match?",
+    offerPhrase: 'I love that energy! Want some music to match?',
     searchQueries: ['feel good hits', 'happy music', 'upbeat pop'],
     tempo: 'upbeat',
   },
@@ -652,7 +608,7 @@ const EMOTION_MUSIC_MAP: Record<string, EmotionMusicMapping> = {
   },
   tired: {
     genres: ['chill', 'lo-fi', 'soft'],
-    offerPhrase: "Sounds like you could use some chill background music...",
+    offerPhrase: 'Sounds like you could use some chill background music...',
     searchQueries: ['relaxing chill', 'wind down music', 'soft acoustic'],
     tempo: 'slow',
   },
@@ -670,7 +626,7 @@ const EMOTION_MUSIC_MAP: Record<string, EmotionMusicMapping> = {
   },
   neutral: {
     genres: ['indie', 'acoustic', 'mixed'],
-    offerPhrase: "How about some music to set the mood?",
+    offerPhrase: 'How about some music to set the mood?',
     searchQueries: ['good vibes', 'easy listening', 'background music'],
     tempo: 'medium',
   },
@@ -704,7 +660,8 @@ export function getEmotionMusicOffer(
     offer = `Oooh, I know just what you need! ${mapping.offerPhrase}`;
   }
 
-  const searchQuery = mapping.searchQueries[Math.floor(Math.random() * mapping.searchQueries.length)];
+  const searchQuery =
+    mapping.searchQueries[Math.floor(Math.random() * mapping.searchQueries.length)];
 
   return { offer, searchQuery };
 }
@@ -776,22 +733,9 @@ export function getGameMusicConfig(gameType: string): GameMusicConfig {
  * Game music event phrases
  */
 const GAME_MUSIC_PHRASES = {
-  gameStart: [
-    "Let's get this game going! 🎮",
-    'Game time! Ready?',
-    'Here we go!',
-  ],
-  correctAnswer: [
-    'Yes! Nice one!',
-    'You got it!',
-    "That's right!",
-    'Boom! Correct!',
-  ],
-  wrongAnswer: [
-    "Ooh, not quite!",
-    "Almost! It's okay!",
-    'Good try! Next one!',
-  ],
+  gameStart: ["Let's get this game going! 🎮", 'Game time! Ready?', 'Here we go!'],
+  correctAnswer: ['Yes! Nice one!', 'You got it!', "That's right!", 'Boom! Correct!'],
+  wrongAnswer: ['Ooh, not quite!', "Almost! It's okay!", 'Good try! Next one!'],
   highScore: [
     "NEW HIGH SCORE! You're amazing!",
     'Incredible! A new record!',
@@ -800,7 +744,7 @@ const GAME_MUSIC_PHRASES = {
   gameEnd: [
     'Great game! That was fun!',
     'And that wraps it up! How did that feel?',
-    "Game over! You did great!",
+    'Game over! You did great!',
   ],
 };
 
@@ -929,10 +873,10 @@ export class SessionFlowManager {
     }
 
     if (parts.length === 0) {
-      return "It was nice spending time with you.";
+      return 'It was nice spending time with you.';
     }
 
-    return parts.join(', ') + '.';
+    return `${parts.join(', ')}.`;
   }
 
   /**
@@ -1237,7 +1181,10 @@ export class DJEnhancementController {
       });
     }
 
-    log.debug('DJ enhancements tracking track start', { track: track.name, persona: this.personaId });
+    log.debug('DJ enhancements tracking track start', {
+      track: track.name,
+      persona: this.personaId,
+    });
   }
 
   /**
@@ -1344,4 +1291,3 @@ export default {
   SessionFlowManager,
   MusicMemoryManager,
 };
-

@@ -87,7 +87,10 @@ const trackCreativeProjectDef: ToolDefinition = {
         challenge: z.string().optional().describe('Current challenge'),
       }),
       execute: async ({ action, projectName, medium, update, challenge }) => {
-        getLogger().info({ agentId: ctx.agentId, action, projectName }, 'Tracking creative project');
+        getLogger().info(
+          { agentId: ctx.agentId, action, projectName },
+          'Tracking creative project'
+        );
 
         let response = '';
 
@@ -248,13 +251,16 @@ const exploreNewHobbyDef: ToolDefinition = {
       parameters: z.object({
         currentInterests: z.array(z.string()).optional().describe('Current interests'),
         constraints: z.array(z.string()).optional().describe('Constraints (budget, space, time)'),
-        seeking: z.enum(['relaxation', 'challenge', 'social', 'physical', 'creative', 'any']).optional(),
+        seeking: z
+          .enum(['relaxation', 'challenge', 'social', 'physical', 'creative', 'any'])
+          .optional(),
       }),
       execute: async ({ currentInterests, constraints, seeking }) => {
         getLogger().info({ agentId: ctx.agentId, seeking }, 'Exploring new hobby');
 
         let response = `**Exploring New Hobbies**\n\n`;
-        if (currentInterests?.length) response += `**Current interests:** ${currentInterests.join(', ')}\n`;
+        if (currentInterests?.length)
+          response += `**Current interests:** ${currentInterests.join(', ')}\n`;
         if (seeking) response += `**Seeking:** ${seeking}\n`;
         if (constraints?.length) response += `**Constraints:** ${constraints.join(', ')}\n`;
         response += `\n---\n\n`;
@@ -295,12 +301,14 @@ const suggestHobbyBasedOnInterestsDef: ToolDefinition = {
     return llm.tool({
       description: 'Suggest hobbies based on personality and preferences.',
       parameters: z.object({
-        preferences: z.object({
-          alone_or_social: z.enum(['alone', 'social', 'both']),
-          indoor_or_outdoor: z.enum(['indoor', 'outdoor', 'both']),
-          physical_or_mental: z.enum(['physical', 'mental', 'both']),
-          structured_or_freeform: z.enum(['structured', 'freeform', 'both']),
-        }).describe('Preferences'),
+        preferences: z
+          .object({
+            alone_or_social: z.enum(['alone', 'social', 'both']),
+            indoor_or_outdoor: z.enum(['indoor', 'outdoor', 'both']),
+            physical_or_mental: z.enum(['physical', 'mental', 'both']),
+            structured_or_freeform: z.enum(['structured', 'freeform', 'both']),
+          })
+          .describe('Preferences'),
         budget: z.enum(['free', 'low', 'medium', 'any']).optional(),
         timePerWeek: z.string().optional(),
       }),
@@ -324,15 +332,30 @@ const suggestHobbyBasedOnInterestsDef: ToolDefinition = {
 
         if (preferences.alone_or_social === 'alone' && preferences.indoor_or_outdoor === 'indoor') {
           if (preferences.physical_or_mental === 'mental') {
-            suggestions.push('Writing/journaling', 'Learning an instrument', 'Coding projects', 'Puzzles/strategy games');
+            suggestions.push(
+              'Writing/journaling',
+              'Learning an instrument',
+              'Coding projects',
+              'Puzzles/strategy games'
+            );
           } else {
             suggestions.push('Yoga', 'Home workouts', 'Indoor climbing');
           }
         } else if (preferences.alone_or_social === 'social') {
           if (preferences.indoor_or_outdoor === 'outdoor') {
-            suggestions.push('Hiking groups', 'Team sports', 'Running clubs', 'Outdoor photography clubs');
+            suggestions.push(
+              'Hiking groups',
+              'Team sports',
+              'Running clubs',
+              'Outdoor photography clubs'
+            );
           } else {
-            suggestions.push('Board game groups', 'Book clubs', 'Improv classes', 'Cooking classes');
+            suggestions.push(
+              'Board game groups',
+              'Book clubs',
+              'Improv classes',
+              'Cooking classes'
+            );
           }
         }
 
@@ -376,15 +399,17 @@ const navigateCreativeBlockDef: ToolDefinition = {
     return llm.tool({
       description: 'Help overcome creative blocks and resistance.',
       parameters: z.object({
-        blockType: z.enum([
-          'blank-page',
-          'perfectionism',
-          'comparison',
-          'fear-of-judgment',
-          'lost-motivation',
-          'stuck-on-project',
-          'general',
-        ]).describe('Type of creative block'),
+        blockType: z
+          .enum([
+            'blank-page',
+            'perfectionism',
+            'comparison',
+            'fear-of-judgment',
+            'lost-motivation',
+            'stuck-on-project',
+            'general',
+          ])
+          .describe('Type of creative block'),
         project: z.string().optional().describe('Related project'),
       }),
       execute: async ({ blockType, project }) => {
@@ -660,4 +685,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

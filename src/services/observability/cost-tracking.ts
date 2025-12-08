@@ -120,7 +120,10 @@ export function recordLLMCost(
   });
 
   trimEvents();
-  log.debug({ model, tokens: inputTokens + outputTokens, cost: cost.toFixed(6) }, 'LLM cost recorded');
+  log.debug(
+    { model, tokens: inputTokens + outputTokens, cost: cost.toFixed(6) },
+    'LLM cost recorded'
+  );
 }
 
 export function recordTTSCost(
@@ -228,13 +231,18 @@ export function getSnapshot(): CostSnapshot {
   }
 
   // Usage
-  const tokensUsed = costEvents.filter((e) => e.service === 'llm').reduce((sum, e) => sum + e.units, 0);
-  const charactersSpoken = costEvents.filter((e) => e.service === 'tts').reduce((sum, e) => sum + e.units, 0);
+  const tokensUsed = costEvents
+    .filter((e) => e.service === 'llm')
+    .reduce((sum, e) => sum + e.units, 0);
+  const charactersSpoken = costEvents
+    .filter((e) => e.service === 'tts')
+    .reduce((sum, e) => sum + e.units, 0);
   const minutesTranscribed =
     costEvents.filter((e) => e.service === 'stt').reduce((sum, e) => sum + e.units, 0) / 60;
 
   // Unique sessions
-  const uniqueSessions = new Set(costEvents.filter((e) => e.sessionId).map((e) => e.sessionId)).size;
+  const uniqueSessions = new Set(costEvents.filter((e) => e.sessionId).map((e) => e.sessionId))
+    .size;
   const costPerSession = uniqueSessions > 0 ? totalCost / uniqueSessions : 0;
 
   // Cost per minute (based on last hour)

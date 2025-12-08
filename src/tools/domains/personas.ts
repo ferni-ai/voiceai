@@ -3,7 +3,7 @@
  *
  * Barrel export for domain-specific tools (agent-agnostic):
  * - Communication tools
- * - Financial habits tools  
+ * - Financial habits tools
  * - Event planning tools
  * - Persona memory tools
  */

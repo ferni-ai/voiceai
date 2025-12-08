@@ -34,7 +34,7 @@ export interface UnsaidSignal {
     | 'permission_seeking' // Wants to share but needs encouragement
     | 'unfinished_thought' // Started something, didn't finish
     | 'minimizing_pain' // Downplaying something significant
-    | 'false_closure' // "It's fine now" when it clearly isn't;
+    | 'false_closure'; // "It's fine now" when it clearly isn't;
 
   /** What we detected */
   observation: string;
@@ -112,7 +112,7 @@ const FINE_MASKS = [
   "it's not a big deal",
   "i'm over it",
   "i don't care anymore",
-  "it is what it is",
+  'it is what it is',
   "i've moved on",
 ];
 
@@ -120,11 +120,11 @@ const FINE_MASKS = [
 const PERMISSION_SEEKERS = [
   'can i tell you something',
   'is it okay if',
-  'i don\'t know if i should say this',
+  "i don't know if i should say this",
   'this might sound',
-  'you\'ll probably think',
-  'i\'ve never told anyone',
-  'promise you won\'t',
+  "you'll probably think",
+  "i've never told anyone",
+  "promise you won't",
   "i don't want to burden you",
   'i know this is silly but',
   'this is going to sound stupid',
@@ -301,15 +301,12 @@ function detectEmotionalMismatch(
   // Check if context suggests otherwise
   const hasHeavyTopic = HEAVY_TOPIC_INDICATORS.some(
     (topic) =>
-      lower.includes(topic) ||
-      context.recentTopics?.some((t) => t.toLowerCase().includes(topic))
+      lower.includes(topic) || context.recentTopics?.some((t) => t.toLowerCase().includes(topic))
   );
 
   const emotionMismatch =
     context.detectedEmotion &&
-    ['sad', 'anxious', 'angry', 'hurt', 'scared', 'frustrated'].includes(
-      context.detectedEmotion
-    ) &&
+    ['sad', 'anxious', 'angry', 'hurt', 'scared', 'frustrated'].includes(context.detectedEmotion) &&
     (context.emotionIntensity || 0) > 0.5;
 
   if (hasHeavyTopic || emotionMismatch) {
@@ -329,7 +326,7 @@ function detectEmotionalMismatch(
 
     return {
       type: 'emotional_mismatch',
-      observation: 'Said they\'re fine but context suggests otherwise',
+      observation: "Said they're fine but context suggests otherwise",
       underlying: context.detectedEmotion || 'suppressed emotion',
       confidence: hasHeavyTopic && emotionMismatch ? 0.9 : 0.7,
       approach: 'create_space',
@@ -363,11 +360,11 @@ function detectTopicAvoidance(
   const avoidancePhrases = [
     "i don't want to talk about",
     "let's not",
-    "can we change",
+    'can we change',
     "i'd rather not",
-    "not right now",
-    "maybe later",
-    "some other time",
+    'not right now',
+    'maybe later',
+    'some other time',
   ];
 
   const isAvoiding = avoidancePhrases.some((phrase) => lower.includes(phrase));
@@ -419,14 +416,12 @@ function detectDeflection(
     topicBeforeThis?: string;
   }
 ): UnsaidSignal | null {
-  const matchedPattern = DEFLECTION_PATTERNS.find((pattern) =>
-    pattern.test(lower)
-  );
+  const matchedPattern = DEFLECTION_PATTERNS.find((pattern) => pattern.test(lower));
 
   if (!matchedPattern) return null;
 
   const phrases = [
-    "I noticed you changed the subject. We can talk about that if you want, or not. Either way.",
+    'I noticed you changed the subject. We can talk about that if you want, or not. Either way.',
     "We can move on, but if you want to come back to that later, I'm here.",
     "I'll follow your lead. Just know that topic is safe with me if you ever want to revisit it.",
   ];
@@ -447,21 +442,16 @@ function detectDeflection(
 /**
  * Detect when someone is seeking permission to share
  */
-function detectPermissionSeeking(
-  lower: string,
-  original: string
-): UnsaidSignal | null {
-  const isSeekingPermission = PERMISSION_SEEKERS.some((phrase) =>
-    lower.includes(phrase)
-  );
+function detectPermissionSeeking(lower: string, original: string): UnsaidSignal | null {
+  const isSeekingPermission = PERMISSION_SEEKERS.some((phrase) => lower.includes(phrase));
 
   if (!isSeekingPermission) return null;
 
   const phrases = [
     "Of course you can tell me. I'm listening.",
-    "You can tell me anything. No judgment here.",
+    'You can tell me anything. No judgment here.',
     "I'm here. Take your time.",
-    "Whatever it is, I want to hear it.",
+    'Whatever it is, I want to hear it.',
     "You don't need permission with me. Go ahead.",
   ];
 
@@ -497,15 +487,13 @@ function detectUnfinishedThought(
     /it's (nothing|stupid)/i,
   ];
 
-  const isUnfinished = unfinishedIndicators.some((pattern) =>
-    pattern.test(message)
-  );
+  const isUnfinished = unfinishedIndicators.some((pattern) => pattern.test(message));
 
   if (!isUnfinished) return null;
 
   const phrases = [
     "You started to say something. I'd like to hear it, if you want to share.",
-    "I caught that. What were you going to say?",
+    'I caught that. What were you going to say?',
     "It's not nothing. What's on your mind?",
     "I'm curious what you were about to say. No pressure though.",
   ];
@@ -533,15 +521,12 @@ function detectMinimizing(
     emotionIntensity?: number;
   }
 ): UnsaidSignal | null {
-  const isMinimizing = MINIMIZING_PATTERNS.some((pattern) =>
-    pattern.test(lower)
-  );
+  const isMinimizing = MINIMIZING_PATTERNS.some((pattern) => pattern.test(lower));
 
   if (!isMinimizing) return null;
 
   // More significant if emotion intensity is high but they're minimizing
-  const significantMinimizing =
-    context.emotionIntensity && context.emotionIntensity > 0.6;
+  const significantMinimizing = context.emotionIntensity && context.emotionIntensity > 0.6;
 
   if (!significantMinimizing) return null;
 
@@ -584,9 +569,7 @@ export function getAvoidedTopics(userId: string): string[] {
   const profile = userProfiles.get(userId);
   if (!profile) return [];
 
-  return profile.avoidedTopics
-    .filter((t) => t.avoidanceCount >= 2)
-    .map((t) => t.topic);
+  return profile.avoidedTopics.filter((t) => t.avoidanceCount >= 2).map((t) => t.topic);
 }
 
 /**
@@ -597,8 +580,7 @@ export function shouldAvoidTopic(userId: string, topic: string): boolean {
   if (!profile) return false;
 
   return profile.avoidedTopics.some(
-    (t) =>
-      t.topic.toLowerCase() === topic.toLowerCase() && t.avoidanceCount >= 2
+    (t) => t.topic.toLowerCase() === topic.toLowerCase() && t.avoidanceCount >= 2
   );
 }
 
@@ -627,4 +609,3 @@ export default {
   shouldAvoidTopic,
   recordDidShare,
 };
-

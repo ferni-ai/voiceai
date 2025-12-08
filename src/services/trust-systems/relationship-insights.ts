@@ -33,10 +33,10 @@ export interface InsightsReport {
   generatedAt: Date;
   periodStart: Date;
   periodEnd: Date;
-  
+
   // Summary
   summary: ReportSummary;
-  
+
   // Sections
   conversations: ConversationInsights;
   growth: GrowthInsights;
@@ -44,10 +44,10 @@ export interface InsightsReport {
   wins: WinsInsights;
   challenges: ChallengeInsights;
   relationship: RelationshipInsights;
-  
+
   // Forward looking
   lookingAhead: LookingAhead;
-  
+
   // Shareable format
   shareableText?: string;
   shareableForTherapist?: string;
@@ -191,10 +191,7 @@ const reportData = new Map<string, ReportData>();
 /**
  * Record session data for reports
  */
-export function recordSessionData(
-  userId: string,
-  session: SessionData
-): void {
+export function recordSessionData(userId: string, session: SessionData): void {
   const data = getOrCreateReportData(userId);
   data.sessions.push(session);
 
@@ -206,10 +203,7 @@ export function recordSessionData(
 /**
  * Record emotion data
  */
-export function recordEmotionData(
-  userId: string,
-  emotion: EmotionData
-): void {
+export function recordEmotionData(userId: string, emotion: EmotionData): void {
   const data = getOrCreateReportData(userId);
   data.emotions.push(emotion);
 
@@ -239,10 +233,7 @@ export function recordTopicData(
 /**
  * Record win data
  */
-export function recordWinData(
-  userId: string,
-  win: WinData
-): void {
+export function recordWinData(userId: string, win: WinData): void {
   const data = getOrCreateReportData(userId);
   data.wins.push(win);
 
@@ -253,10 +244,7 @@ export function recordWinData(
 /**
  * Record growth observation
  */
-export function recordGrowthData(
-  userId: string,
-  growth: GrowthData
-): void {
+export function recordGrowthData(userId: string, growth: GrowthData): void {
   const data = getOrCreateReportData(userId);
   data.growth.push(growth);
 
@@ -286,10 +274,7 @@ function getOrCreateReportData(userId: string): ReportData {
 /**
  * Generate insights report
  */
-export function generateReport(
-  userId: string,
-  period: ReportPeriod
-): InsightsReport {
+export function generateReport(userId: string, period: ReportPeriod): InsightsReport {
   const data = getOrCreateReportData(userId);
   const now = new Date();
 
@@ -313,13 +298,7 @@ export function generateReport(
   const lookingAhead = generateLookingAhead(themes, challenges, growth);
 
   // Generate summary
-  const summary = generateSummary(
-    conversations,
-    growth,
-    wins,
-    challenges,
-    period
-  );
+  const summary = generateSummary(conversations, growth, wins, challenges, period);
 
   const report: InsightsReport = {
     id: `report-${userId}-${period}-${Date.now()}`,
@@ -349,12 +328,15 @@ export function generateReport(
   if (history.length > 12) history.shift();
   reportHistory.set(userId, history);
 
-  log.info({
-    userId,
-    period,
-    sessions: conversations.totalSessions,
-    wins: wins.totalWins,
-  }, '📊 Insights report generated');
+  log.info(
+    {
+      userId,
+      period,
+      sessions: conversations.totalSessions,
+      wins: wins.totalWins,
+    },
+    '📊 Insights report generated'
+  );
 
   return report;
 }
@@ -370,9 +352,8 @@ function generateConversationInsights(
   const totalSessions = sessions.length;
   const totalMinutes = sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
   const avgSessionLength = totalSessions > 0 ? totalMinutes / totalSessions : 0;
-  const longestSession = sessions.length > 0
-    ? Math.max(...sessions.map((s) => s.durationMinutes))
-    : 0;
+  const longestSession =
+    sessions.length > 0 ? Math.max(...sessions.map((s) => s.durationMinutes)) : 0;
 
   // Find most active day
   const dayCounts: Record<string, number> = {};
@@ -381,8 +362,7 @@ function generateConversationInsights(
     const day = dayNames[session.date.getDay()];
     dayCounts[day] = (dayCounts[day] || 0) + 1;
   }
-  const mostActiveDay = Object.entries(dayCounts)
-    .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+  const mostActiveDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
   // Find most active time
   const hourCounts: Record<string, number> = {};
@@ -391,17 +371,12 @@ function generateConversationInsights(
     const timeSlot = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
     hourCounts[timeSlot] = (hourCounts[timeSlot] || 0) + 1;
   }
-  const mostActiveTime = Object.entries(hourCounts)
-    .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+  const mostActiveTime = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
   // Compare to previous period
   const periodDays = { week: 7, month: 30, quarter: 90, year: 365 };
-  const previousPeriodStart = new Date(
-    Date.now() - periodDays[period] * 2 * 24 * 60 * 60 * 1000
-  );
-  const previousPeriodEnd = new Date(
-    Date.now() - periodDays[period] * 24 * 60 * 60 * 1000
-  );
+  const previousPeriodStart = new Date(Date.now() - periodDays[period] * 2 * 24 * 60 * 60 * 1000);
+  const previousPeriodEnd = new Date(Date.now() - periodDays[period] * 24 * 60 * 60 * 1000);
   const previousSessions = allData.sessions.filter(
     (s) => s.date >= previousPeriodStart && s.date < previousPeriodEnd
   );
@@ -427,10 +402,7 @@ function generateConversationInsights(
 /**
  * Generate growth insights
  */
-function generateGrowthInsights(
-  growthData: GrowthData[],
-  sessions: SessionData[]
-): GrowthInsights {
+function generateGrowthInsights(growthData: GrowthData[], sessions: SessionData[]): GrowthInsights {
   // Group by area
   const areaMap = new Map<string, GrowthData[]>();
   for (const g of growthData) {
@@ -454,8 +426,11 @@ function generateGrowthInsights(
 
   // Identify breakthroughs (significant observations)
   const breakthroughs: Breakthrough[] = growthData
-    .filter((g) => g.observation.toLowerCase().includes('breakthrough') ||
-      g.observation.toLowerCase().includes('first time'))
+    .filter(
+      (g) =>
+        g.observation.toLowerCase().includes('breakthrough') ||
+        g.observation.toLowerCase().includes('first time')
+    )
     .slice(-3)
     .map((g) => ({
       description: g.observation,
@@ -477,10 +452,7 @@ function generateGrowthInsights(
 /**
  * Generate theme insights
  */
-function generateThemeInsights(
-  topics: TopicData[],
-  sessions: SessionData[]
-): ThemeInsights {
+function generateThemeInsights(topics: TopicData[], sessions: SessionData[]): ThemeInsights {
   // Sort by frequency
   const sortedTopics = [...topics].sort((a, b) => b.frequency - a.frequency);
 
@@ -518,9 +490,7 @@ function generateWinsInsights(wins: WinData[]): WinsInsights {
   const totalWins = wins.length;
 
   // Find biggest win (most recent high-impact)
-  const biggestWin = wins.length > 0
-    ? wins[wins.length - 1]?.description
-    : undefined;
+  const biggestWin = wins.length > 0 ? wins[wins.length - 1]?.description : undefined;
 
   // Calculate streak (consecutive days with wins)
   let winStreak = 0;
@@ -568,8 +538,8 @@ function generateChallengeInsights(
   emotions: EmotionData[]
 ): ChallengeInsights {
   // Find challenging emotions
-  const challengingEmotions = emotions.filter(
-    (e) => ['anxious', 'sad', 'overwhelmed', 'stressed', 'angry'].includes(e.emotion)
+  const challengingEmotions = emotions.filter((e) =>
+    ['anxious', 'sad', 'overwhelmed', 'stressed', 'angry'].includes(e.emotion)
   );
 
   // Extract main challenges from session topics
@@ -626,11 +596,12 @@ function generateLookingAhead(
     ...growth.growthAreas.filter((g) => g.progress === 'emerging').map((g) => g.area),
   ].slice(0, 3);
 
-  const encouragement = growth.growthScore >= 60
-    ? "You're making real progress. Keep going!"
-    : growth.growthScore >= 30
-    ? "Every step forward counts. You're doing great."
-    : "Remember, growth isn't always visible. You're showing up, and that matters.";
+  const encouragement =
+    growth.growthScore >= 60
+      ? "You're making real progress. Keep going!"
+      : growth.growthScore >= 30
+        ? "Every step forward counts. You're doing great."
+        : "Remember, growth isn't always visible. You're showing up, and that matters.";
 
   return {
     focusAreas,
@@ -722,7 +693,9 @@ function generateShareableText(report: InsightsReport): string {
     lines.push('');
   }
 
-  lines.push(`💬 ${report.conversations.totalSessions} conversations, ${report.conversations.totalMinutes} minutes`);
+  lines.push(
+    `💬 ${report.conversations.totalSessions} conversations, ${report.conversations.totalMinutes} minutes`
+  );
   lines.push('');
   lines.push(report.lookingAhead.encouragement);
 
@@ -735,7 +708,9 @@ function generateShareableText(report: InsightsReport): string {
 function generateTherapistSummary(report: InsightsReport): string {
   const lines: string[] = [];
 
-  lines.push(`Report Period: ${report.periodStart.toDateString()} - ${report.periodEnd.toDateString()}`);
+  lines.push(
+    `Report Period: ${report.periodStart.toDateString()} - ${report.periodEnd.toDateString()}`
+  );
   lines.push('');
 
   lines.push('ENGAGEMENT:');
@@ -782,10 +757,7 @@ export function getReportHistory(userId: string): InsightsReport[] {
 /**
  * Get latest report
  */
-export function getLatestReport(
-  userId: string,
-  period?: ReportPeriod
-): InsightsReport | null {
+export function getLatestReport(userId: string, period?: ReportPeriod): InsightsReport | null {
   const history = reportHistory.get(userId) || [];
 
   if (period) {
@@ -823,4 +795,3 @@ export default {
   getLatestReport,
   isReportDue,
 };
-

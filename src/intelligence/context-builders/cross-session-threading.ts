@@ -18,10 +18,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import {
-  getCrossSessionThreader,
-  type OpenThread,
-} from '../cross-session-threader.js';
+import { getCrossSessionThreader, type OpenThread } from '../cross-session-threader.js';
 
 // ============================================================================
 // CONTEXT BUILDER
@@ -196,4 +193,3 @@ registerContextBuilder({
 });
 
 export { buildCrossSessionThreadingContext };
-

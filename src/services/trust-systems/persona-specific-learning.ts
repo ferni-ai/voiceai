@@ -1,18 +1,18 @@
 /**
  * Persona-Specific Learning
- * 
+ *
  * Phase 5: Each persona learns and remembers differently
- * 
+ *
  * Philosophy:
  * - Each persona has their own "memory" of the user
  * - Ferni (main coach) has the deepest knowledge
  * - Specialist personas (Maya, Peter, etc.) learn domain-specific things
  * - Transfer learning shares relevant insights between personas
  * - Relationship dynamics vary per persona
- * 
+ *
  * PERSONAS:
  * - Ferni: Life coach, deep emotional understanding
- * - Jack: Sage mentor, wisdom and philosophy  
+ * - Jack: Sage mentor, wisdom and philosophy
  * - Peter: Research, analytical insights
  * - Alex: Communications, social dynamics
  * - Maya: Habits & routines, behavioral patterns
@@ -29,7 +29,7 @@ export type PersonaId = 'ferni' | 'jack' | 'peter' | 'alex' | 'maya' | 'jordan' 
 export interface PersonaMemory {
   personaId: PersonaId;
   userId: string;
-  
+
   // Interaction history with this persona
   interactions: {
     totalConversations: number;
@@ -37,10 +37,10 @@ export interface PersonaMemory {
     lastInteraction: Date | null;
     firstInteraction: Date | null;
   };
-  
+
   // What this persona has learned
   domainKnowledge: DomainKnowledge;
-  
+
   // Relationship with this specific persona
   rapport: {
     comfortLevel: number; // 0-1
@@ -49,20 +49,17 @@ export interface PersonaMemory {
     topicsDiscussed: string[];
     avoidedTopics: string[];
   };
-  
+
   // Persona-specific observations
   observations: PersonaObservation[];
-  
+
   // Transfer learning: what to share with other personas
   shareable: ShareableInsight[];
-  
+
   lastUpdated: Date;
 }
 
-export interface DomainKnowledge {
-  // Domain varies by persona
-  [key: string]: unknown;
-}
+export type DomainKnowledge = Record<string, unknown>;
 
 export interface PersonaObservation {
   id: string;
@@ -87,13 +84,16 @@ export interface ShareableInsight {
 // PERSONA DEFINITIONS
 // ============================================================================
 
-const PERSONA_DOMAINS: Record<PersonaId, {
-  name: string;
-  specialty: string;
-  learnsAbout: string[];
-  sharesInsights: PersonaId[];
-  receivesFrom: PersonaId[];
-}> = {
+const PERSONA_DOMAINS: Record<
+  PersonaId,
+  {
+    name: string;
+    specialty: string;
+    learnsAbout: string[];
+    sharesInsights: PersonaId[];
+    receivesFrom: PersonaId[];
+  }
+> = {
   ferni: {
     name: 'Ferni',
     specialty: 'Life coaching & emotional support',
@@ -111,14 +111,26 @@ const PERSONA_DOMAINS: Record<PersonaId, {
   peter: {
     name: 'Peter',
     specialty: 'Research & analytical thinking',
-    learnsAbout: ['interests', 'learning_style', 'curiosities', 'knowledge_gaps', 'research_topics'],
+    learnsAbout: [
+      'interests',
+      'learning_style',
+      'curiosities',
+      'knowledge_gaps',
+      'research_topics',
+    ],
     sharesInsights: ['ferni', 'maya'],
     receivesFrom: ['ferni'],
   },
   alex: {
     name: 'Alex',
     specialty: 'Communications & social dynamics',
-    learnsAbout: ['communication_style', 'relationships', 'social_challenges', 'networking', 'conflicts'],
+    learnsAbout: [
+      'communication_style',
+      'relationships',
+      'social_challenges',
+      'networking',
+      'conflicts',
+    ],
     sharesInsights: ['ferni', 'jordan'],
     receivesFrom: ['ferni', 'jordan'],
   },
@@ -162,7 +174,7 @@ function getMemoryKey(userId: string, personaId: PersonaId): string {
 function getOrCreateMemory(userId: string, personaId: PersonaId): PersonaMemory {
   const key = getMemoryKey(userId, personaId);
   let memory = personaMemories.get(key);
-  
+
   if (!memory) {
     memory = {
       personaId,
@@ -187,7 +199,7 @@ function getOrCreateMemory(userId: string, personaId: PersonaId): PersonaMemory 
     };
     personaMemories.set(key, memory);
   }
-  
+
   return memory;
 }
 
@@ -220,7 +232,7 @@ export function recordPersonaInteraction(
   topicsDiscussed: string[]
 ): void {
   const memory = getOrCreateMemory(userId, personaId);
-  
+
   // Update interaction stats
   memory.interactions.totalConversations += 1;
   memory.interactions.totalMinutes += durationMinutes;
@@ -228,18 +240,18 @@ export function recordPersonaInteraction(
   if (!memory.interactions.firstInteraction) {
     memory.interactions.firstInteraction = new Date();
   }
-  
+
   // Track topics
   for (const topic of topicsDiscussed) {
     if (!memory.rapport.topicsDiscussed.includes(topic)) {
       memory.rapport.topicsDiscussed.push(topic);
     }
   }
-  
+
   // Increase rapport with interaction
   memory.rapport.comfortLevel = Math.min(1, memory.rapport.comfortLevel + 0.02);
   memory.rapport.trustLevel = Math.min(1, memory.rapport.trustLevel + 0.01);
-  
+
   memory.lastUpdated = new Date();
 }
 
@@ -258,7 +270,7 @@ export function learnDomainKnowledge(
 ): void {
   const memory = getOrCreateMemory(userId, personaId);
   const personaDef = PERSONA_DOMAINS[personaId];
-  
+
   // Only learn if it's relevant to this persona
   if (personaDef.learnsAbout.includes(domain) || personaDef.learnsAbout.includes('everything')) {
     memory.domainKnowledge[domain] = knowledge;
@@ -290,10 +302,10 @@ export function recordPersonaObservation(
   personaId: PersonaId,
   type: string,
   observation: string,
-  confidence: number = 0.7
+  confidence = 0.7
 ): PersonaObservation {
   const memory = getOrCreateMemory(userId, personaId);
-  
+
   const obs: PersonaObservation = {
     id: `obs_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     date: new Date(),
@@ -302,21 +314,21 @@ export function recordPersonaObservation(
     confidence,
     sharedWithOthers: false,
   };
-  
+
   memory.observations.push(obs);
-  
+
   // Keep only recent observations (last 100)
   if (memory.observations.length > 100) {
     memory.observations = memory.observations.slice(-100);
   }
-  
+
   memory.lastUpdated = new Date();
-  
+
   // Check if this should be shared
   if (confidence >= 0.7) {
     maybeCreateShareableInsight(userId, personaId, obs);
   }
-  
+
   return obs;
 }
 
@@ -330,10 +342,10 @@ export function getPersonaObservations(
 ): PersonaObservation[] {
   const memory = getPersonaMemory(userId, personaId);
   if (!memory) return [];
-  
-  const observations = memory.observations;
+
+  const { observations } = memory;
   if (type) {
-    return observations.filter(o => o.type === type);
+    return observations.filter((o) => o.type === type);
   }
   return observations;
 }
@@ -352,7 +364,7 @@ function maybeCreateShareableInsight(
 ): void {
   const personaDef = PERSONA_DOMAINS[fromPersonaId];
   if (personaDef.sharesInsights.length === 0) return;
-  
+
   // Map observation types to insight types
   const typeMap: Record<string, ShareableInsight['insightType']> = {
     preference: 'preference',
@@ -361,9 +373,9 @@ function maybeCreateShareableInsight(
     growth: 'milestone',
     context: 'context',
   };
-  
+
   const insightType = typeMap[observation.type] || 'context';
-  
+
   const insight: ShareableInsight = {
     id: `insight_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     fromPersona: fromPersonaId,
@@ -373,12 +385,12 @@ function maybeCreateShareableInsight(
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
   };
-  
+
   // Add to originating persona's memory
   const memory = getOrCreateMemory(userId, fromPersonaId);
   memory.shareable.push(insight);
   observation.sharedWithOthers = true;
-  
+
   // Share with relevant personas
   for (const targetPersonaId of personaDef.sharesInsights) {
     receiveSharedInsight(userId, targetPersonaId, insight);
@@ -395,13 +407,13 @@ function receiveSharedInsight(
 ): void {
   const memory = getOrCreateMemory(userId, personaId);
   const personaDef = PERSONA_DOMAINS[personaId];
-  
+
   // Only receive if this persona is configured to receive from the source
   if (!personaDef.receivesFrom.includes(insight.fromPersona)) return;
-  
+
   // Avoid duplicates
-  if (memory.shareable.some(s => s.id === insight.id)) return;
-  
+  if (memory.shareable.some((s) => s.id === insight.id)) return;
+
   // Add with proper attribution
   memory.shareable.push({
     ...insight,
@@ -412,17 +424,15 @@ function receiveSharedInsight(
 /**
  * Get insights shared with a persona
  */
-export function getSharedInsights(
-  userId: string,
-  personaId: PersonaId
-): ShareableInsight[] {
+export function getSharedInsights(userId: string, personaId: PersonaId): ShareableInsight[] {
   const memory = getPersonaMemory(userId, personaId);
   if (!memory) return [];
-  
+
   const now = new Date();
-  return memory.shareable.filter(s => 
-    s.fromPersona !== personaId && // Not from self
-    (!s.expiresAt || s.expiresAt > now) // Not expired
+  return memory.shareable.filter(
+    (s) =>
+      s.fromPersona !== personaId && // Not from self
+      (!s.expiresAt || s.expiresAt > now) // Not expired
   );
 }
 
@@ -444,27 +454,29 @@ export function updatePersonaRapport(
   }
 ): void {
   const memory = getOrCreateMemory(userId, personaId);
-  
+
   if (update.comfortDelta !== undefined) {
-    memory.rapport.comfortLevel = Math.max(0, Math.min(1, 
-      memory.rapport.comfortLevel + update.comfortDelta
-    ));
+    memory.rapport.comfortLevel = Math.max(
+      0,
+      Math.min(1, memory.rapport.comfortLevel + update.comfortDelta)
+    );
   }
-  
+
   if (update.trustDelta !== undefined) {
-    memory.rapport.trustLevel = Math.max(0, Math.min(1,
-      memory.rapport.trustLevel + update.trustDelta
-    ));
+    memory.rapport.trustLevel = Math.max(
+      0,
+      Math.min(1, memory.rapport.trustLevel + update.trustDelta)
+    );
   }
-  
+
   if (update.preferredTone) {
     memory.rapport.preferredTone = update.preferredTone;
   }
-  
+
   if (update.avoidTopic && !memory.rapport.avoidedTopics.includes(update.avoidTopic)) {
     memory.rapport.avoidedTopics.push(update.avoidTopic);
   }
-  
+
   memory.lastUpdated = new Date();
 }
 
@@ -481,14 +493,17 @@ export function getPersonaCommunicationStyle(
   verbosity: 'concise' | 'moderate' | 'detailed';
 } {
   const memory = getPersonaMemory(userId, personaId);
-  
+
   // Default styles per persona
-  const defaults: Record<PersonaId, {
-    tone: string;
-    formality: number;
-    emoji: boolean;
-    verbosity: 'concise' | 'moderate' | 'detailed';
-  }> = {
+  const defaults: Record<
+    PersonaId,
+    {
+      tone: string;
+      formality: number;
+      emoji: boolean;
+      verbosity: 'concise' | 'moderate' | 'detailed';
+    }
+  > = {
     ferni: { tone: 'warm', formality: 0.3, emoji: true, verbosity: 'moderate' },
     jack: { tone: 'wise', formality: 0.5, emoji: false, verbosity: 'detailed' },
     peter: { tone: 'analytical', formality: 0.6, emoji: false, verbosity: 'detailed' },
@@ -497,11 +512,11 @@ export function getPersonaCommunicationStyle(
     jordan: { tone: 'organized', formality: 0.4, emoji: true, verbosity: 'concise' },
     nayan: { tone: 'insightful', formality: 0.4, emoji: false, verbosity: 'moderate' },
   };
-  
+
   const base = defaults[personaId];
-  
+
   if (!memory) return base;
-  
+
   // Adjust based on learned preferences
   return {
     tone: memory.rapport.preferredTone || base.tone,
@@ -518,18 +533,15 @@ export function getPersonaCommunicationStyle(
 /**
  * Build context about the user for a specific persona
  */
-export function buildPersonaContext(
-  userId: string,
-  personaId: PersonaId
-): string {
+export function buildPersonaContext(userId: string, personaId: PersonaId): string {
   const memory = getPersonaMemory(userId, personaId);
   const sharedInsights = getSharedInsights(userId, personaId);
   const personaDef = PERSONA_DOMAINS[personaId];
-  
+
   const lines: string[] = [];
-  
+
   lines.push(`## What ${personaDef.name} knows about this user\n`);
-  
+
   // Relationship status
   if (memory) {
     lines.push(`### Our history`);
@@ -537,17 +549,17 @@ export function buildPersonaContext(
     lines.push(`- Time together: ${Math.round(memory.interactions.totalMinutes)} minutes`);
     lines.push(`- Comfort level: ${Math.round(memory.rapport.comfortLevel * 100)}%`);
     lines.push(`- Trust level: ${Math.round(memory.rapport.trustLevel * 100)}%`);
-    
+
     if (memory.rapport.preferredTone) {
       lines.push(`- They prefer a ${memory.rapport.preferredTone} tone with me`);
     }
-    
+
     if (memory.rapport.avoidedTopics.length > 0) {
       lines.push(`- Topics to avoid: ${memory.rapport.avoidedTopics.join(', ')}`);
     }
-    
+
     lines.push('');
-    
+
     // Domain knowledge
     const domainKeys = Object.keys(memory.domainKnowledge);
     if (domainKeys.length > 0) {
@@ -562,7 +574,7 @@ export function buildPersonaContext(
       }
       lines.push('');
     }
-    
+
     // Recent observations
     const recentObs = memory.observations.slice(-5);
     if (recentObs.length > 0) {
@@ -573,7 +585,7 @@ export function buildPersonaContext(
       lines.push('');
     }
   }
-  
+
   // Shared insights from other personas
   if (sharedInsights.length > 0) {
     lines.push(`### What my colleagues shared with me`);
@@ -583,7 +595,7 @@ export function buildPersonaContext(
     }
     lines.push('');
   }
-  
+
   return lines.join('\n');
 }
 
@@ -596,7 +608,7 @@ export function buildPersonaContext(
  */
 export function exportPersonaMemories(userId: string): Record<PersonaId, unknown> {
   const result: Partial<Record<PersonaId, unknown>> = {};
-  
+
   for (const personaId of Object.keys(PERSONA_DOMAINS) as PersonaId[]) {
     const memory = getPersonaMemory(userId, personaId);
     if (memory) {
@@ -607,11 +619,11 @@ export function exportPersonaMemories(userId: string): Record<PersonaId, unknown
           lastInteraction: memory.interactions.lastInteraction?.toISOString(),
           firstInteraction: memory.interactions.firstInteraction?.toISOString(),
         },
-        observations: memory.observations.map(o => ({
+        observations: memory.observations.map((o) => ({
           ...o,
           date: o.date.toISOString(),
         })),
-        shareable: memory.shareable.map(s => ({
+        shareable: memory.shareable.map((s) => ({
           ...s,
           createdAt: s.createdAt.toISOString(),
           expiresAt: s.expiresAt?.toISOString(),
@@ -620,31 +632,28 @@ export function exportPersonaMemories(userId: string): Record<PersonaId, unknown
       };
     }
   }
-  
+
   return result as Record<PersonaId, unknown>;
 }
 
 /**
  * Import persona memories from Firestore
  */
-export function importPersonaMemories(
-  userId: string,
-  data: Record<string, unknown>
-): void {
+export function importPersonaMemories(userId: string, data: Record<string, unknown>): void {
   for (const [personaId, memoryData] of Object.entries(data)) {
     if (!PERSONA_DOMAINS[personaId as PersonaId]) continue;
-    
+
     const md = memoryData as Record<string, unknown>;
     const interactions = md.interactions as Record<string, unknown>;
-    
+
     const memory: PersonaMemory = {
       personaId: personaId as PersonaId,
       userId,
       interactions: {
         totalConversations: (interactions?.totalConversations as number) || 0,
         totalMinutes: (interactions?.totalMinutes as number) || 0,
-        lastInteraction: interactions?.lastInteraction 
-          ? new Date(interactions.lastInteraction as string) 
+        lastInteraction: interactions?.lastInteraction
+          ? new Date(interactions.lastInteraction as string)
           : null,
         firstInteraction: interactions?.firstInteraction
           ? new Date(interactions.firstInteraction as string)
@@ -658,18 +667,18 @@ export function importPersonaMemories(
         topicsDiscussed: [],
         avoidedTopics: [],
       },
-      observations: ((md.observations as Array<Record<string, unknown>>) || []).map(o => ({
+      observations: ((md.observations as Array<Record<string, unknown>>) || []).map((o) => ({
         ...o,
         date: new Date(o.date as string),
       })) as PersonaObservation[],
-      shareable: ((md.shareable as Array<Record<string, unknown>>) || []).map(s => ({
+      shareable: ((md.shareable as Array<Record<string, unknown>>) || []).map((s) => ({
         ...s,
         createdAt: new Date(s.createdAt as string),
         expiresAt: s.expiresAt ? new Date(s.expiresAt as string) : null,
       })) as ShareableInsight[],
       lastUpdated: md.lastUpdated ? new Date(md.lastUpdated as string) : new Date(),
     };
-    
+
     personaMemories.set(getMemoryKey(userId, personaId as PersonaId), memory);
   }
 }
@@ -694,4 +703,3 @@ export const personaLearning = {
   importMemories: importPersonaMemories,
   PERSONA_DOMAINS,
 };
-

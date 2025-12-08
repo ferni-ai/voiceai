@@ -99,9 +99,7 @@ function detectGoalDiscussion(text: string): {
 /**
  * Build behavioral economics context for the current turn.
  */
-async function buildBehavioralEconContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildBehavioralEconContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, services, userProfile } = input;
   const userId = services?.userId;
 
@@ -126,11 +124,12 @@ async function buildBehavioralEconContext(
   const beContext = buildBehavioralEconomicsContext(userId, {
     goal: goalDetection.goal,
     barrier: goalDetection.barrier,
-    hasIntention: intentions.some((i) => 
-      goalDetection.goal && i.goal.toLowerCase().includes(goalDetection.goal.toLowerCase())
+    hasIntention: intentions.some(
+      (i) => goalDetection.goal && i.goal.toLowerCase().includes(goalDetection.goal.toLowerCase())
     ),
-    hasCommitment: commitments.some((c) =>
-      goalDetection.goal && c.commitment.toLowerCase().includes(goalDetection.goal.toLowerCase())
+    hasCommitment: commitments.some(
+      (c) =>
+        goalDetection.goal && c.commitment.toLowerCase().includes(goalDetection.goal.toLowerCase())
     ),
   });
 
@@ -172,4 +171,3 @@ export { buildBehavioralEconContext };
 export default {
   buildBehavioralEconContext,
 };
-

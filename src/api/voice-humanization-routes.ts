@@ -47,10 +47,12 @@ export async function handleVoiceHumanizationRoutes(
   };
 
   // Helper to read request body
-  const readBody = (): Promise<Record<string, unknown>> => {
+  const readBody = async (): Promise<Record<string, unknown>> => {
     return new Promise((resolve, reject) => {
       let body = '';
-      req.on('data', chunk => { body += chunk; });
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
       req.on('end', () => {
         try {
           resolve(body ? JSON.parse(body) : {});
@@ -87,14 +89,26 @@ export async function handleVoiceHumanizationRoutes(
     // POST /api/voice-humanization/flags
     if (pathname === '/api/voice-humanization/flags' && method === 'POST') {
       const body = await readBody();
-      
+
       const validKeys = [
-        'enableProsodyTurnPrediction', 'enableMicroInterruptions', 'enableEmotionalArcTts',
-        'enableLaughterDetection', 'enableAmbientAwareness', 'enableRhythmMirroring',
-        'enableEmotionalContagion', 'enableEnhancedVoiceFingerprinting',
-        'enableFftAnalysis', 'enableEnhancedTurnPrediction', 'enableMultiSignalLaughter',
-        'enableWordTimingRhythm', 'enableResponseAnticipation', 'useCachedResponses',
-        'cacheConfidenceThreshold', 'rolloutPercentage', 'enableVerboseLogging', 'enableMetrics',
+        'enableProsodyTurnPrediction',
+        'enableMicroInterruptions',
+        'enableEmotionalArcTts',
+        'enableLaughterDetection',
+        'enableAmbientAwareness',
+        'enableRhythmMirroring',
+        'enableEmotionalContagion',
+        'enableEnhancedVoiceFingerprinting',
+        'enableFftAnalysis',
+        'enableEnhancedTurnPrediction',
+        'enableMultiSignalLaughter',
+        'enableWordTimingRhythm',
+        'enableResponseAnticipation',
+        'useCachedResponses',
+        'cacheConfidenceThreshold',
+        'rolloutPercentage',
+        'enableVerboseLogging',
+        'enableMetrics',
       ];
 
       const sanitizedUpdates: Partial<VoiceHumanizationFlags> = {};
@@ -182,7 +196,7 @@ export function registerVoiceHumanizationRoutes(router: Router): void {
   router.post('/voice-humanization/flags', (req: Request, res: Response) => {
     try {
       const updates = req.body as Partial<VoiceHumanizationFlags>;
-      
+
       // Validate updates
       const validKeys = [
         'enableProsodyTurnPrediction',
@@ -208,7 +222,9 @@ export function registerVoiceHumanizationRoutes(router: Router): void {
       const sanitizedUpdates: Partial<VoiceHumanizationFlags> = {};
       for (const key of Object.keys(updates)) {
         if (validKeys.includes(key)) {
-          (sanitizedUpdates as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key];
+          (sanitizedUpdates as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[
+            key
+          ];
         }
       }
 
@@ -250,4 +266,3 @@ export function registerVoiceHumanizationRoutes(router: Router): void {
 
   log.info('🎤 Voice humanization routes registered');
 }
-

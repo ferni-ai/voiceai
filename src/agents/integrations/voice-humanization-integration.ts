@@ -61,11 +61,8 @@ export interface IntegrationContext {
 
 export interface IntegrationResult {
   /** Process streaming transcription word-by-word */
-  processStreamingWord: (
-    word: string,
-    isAgentSpeaking: boolean
-  ) => MicroInterruptionResult;
-  
+  processStreamingWord: (word: string, isAgentSpeaking: boolean) => MicroInterruptionResult;
+
   /** Process completed user utterance */
   processUtterance: (
     text: string,
@@ -76,22 +73,22 @@ export interface IntegrationResult {
       topicWeight?: 'light' | 'medium' | 'heavy';
     }
   ) => EnhancedTurnPrediction;
-  
+
   /** Enhance SSML before TTS */
   enhanceSsml: (text: string) => string;
-  
+
   /** Record turn completion */
   recordTurn: () => void;
-  
+
   /** Process audio frame for laughter/prosody */
   processAudioFrame: (
     prosody: ProsodyFeatures,
     durationMs: number
   ) => LaughterDetectionResult | null;
-  
+
   /** Get current TTS adjustments */
   getTtsAdjustments: () => EmotionalTtsAdjustments;
-  
+
   /** Cleanup */
   cleanup: () => void;
 }
@@ -116,14 +113,12 @@ export const DEFAULT_CONFIG: VoiceHumanizationConfig = {
  * Initialize voice humanization integration for a session
  * Returns handlers to hook into voice agent events
  */
-export function initializeVoiceHumanization(
-  context: IntegrationContext
-): IntegrationResult {
+export function initializeVoiceHumanization(context: IntegrationContext): IntegrationResult {
   const { sessionId, personaId, config, handlers, emotionalArcTracker } = context;
-  
+
   // Get or create service instance
   const service = getVoiceHumanizationService(sessionId);
-  
+
   log.info(
     {
       sessionId,
@@ -148,7 +143,7 @@ export function initializeVoiceHumanization(
   // ==========================================================================
   // STREAMING WORD PROCESSOR (for micro-interruptions)
   // ==========================================================================
-  
+
   const processStreamingWord = (
     word: string,
     isAgentSpeaking: boolean
@@ -164,19 +159,19 @@ export function initializeVoiceHumanization(
     }
 
     const result = service.detectMicroInterruption(word, isAgentSpeaking);
-    
+
     // Call handler if interruption detected
     if (result.detected && result.shouldStopAgent && handlers.onMicroInterruption) {
       handlers.onMicroInterruption(result);
     }
-    
+
     return result;
   };
 
   // ==========================================================================
   // UTTERANCE PROCESSOR (for turn prediction with prosody)
   // ==========================================================================
-  
+
   const processUtterance = (
     text: string,
     voiceEmotion: VoiceEmotionResult | null,
@@ -215,7 +210,7 @@ export function initializeVoiceHumanization(
   // ==========================================================================
   // SSML ENHANCER (applies emotional adjustments)
   // ==========================================================================
-  
+
   const enhanceSsml = (text: string): string => {
     if (!config.enableEmotionalAdjustments) {
       return text;
@@ -240,7 +235,7 @@ export function initializeVoiceHumanization(
 
     // Apply adjustments to SSML
     let enhanced = service.applyEmotionalSsml(text, lastTtsAdjustments);
-    
+
     // Call custom handler if provided
     if (handlers.beforeTts) {
       enhanced = handlers.beforeTts(enhanced, lastTtsAdjustments);
@@ -252,7 +247,7 @@ export function initializeVoiceHumanization(
   // ==========================================================================
   // AUDIO FRAME PROCESSOR (for laughter detection)
   // ==========================================================================
-  
+
   const processAudioFrame = (
     prosody: ProsodyFeatures,
     durationMs: number
@@ -262,18 +257,18 @@ export function initializeVoiceHumanization(
     }
 
     const result = service.detectLaughter(prosody, durationMs);
-    
+
     if (result.isLaughing && handlers.onLaughterDetected) {
       handlers.onLaughterDetected(result);
     }
-    
+
     return result;
   };
 
   // ==========================================================================
   // UTILITY FUNCTIONS
   // ==========================================================================
-  
+
   const recordTurn = () => {
     service.recordTurn();
   };
@@ -290,7 +285,7 @@ export function initializeVoiceHumanization(
   // ==========================================================================
   // RETURN INTEGRATION HANDLERS
   // ==========================================================================
-  
+
   return {
     processStreamingWord,
     processUtterance,
@@ -358,16 +353,12 @@ export function getLaughterResponseSsml(
 /**
  * Generate opening SSML based on emotional state
  */
-export function getEmotionalOpeningSsml(
-  arc: EmotionalArc | null,
-  sessionId: string
-): string {
+export function getEmotionalOpeningSsml(arc: EmotionalArc | null, sessionId: string): string {
   const service = getVoiceHumanizationService(sessionId);
   const adjustments = service.getEmotionalTtsAdjustments(arc);
-  
+
   if (adjustments.openingPauseMs >= 150) {
     return `<break time="${adjustments.openingPauseMs}ms"/>`;
   }
   return '';
 }
-

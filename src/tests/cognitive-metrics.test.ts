@@ -225,7 +225,9 @@ describe('timeCognitiveOperation', () => {
 
   it('should time an async operation', async () => {
     const result = await timeCognitiveOperation('contextBuildTime', async () => {
-      await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
       return 'result';
     });
 

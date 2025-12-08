@@ -470,9 +470,7 @@ export function getMessageAdjustment(
 
   // Add references we can use
   if (tone.canReferenceHistory && profile.memory.sharedReferences.length > 0) {
-    adjustment.addedReferences.push(
-      ...profile.memory.sharedReferences.slice(-3)
-    );
+    adjustment.addedReferences.push(...profile.memory.sharedReferences.slice(-3));
   }
 
   // Add tone modifiers
@@ -491,10 +489,7 @@ export function getMessageAdjustment(
   return adjustment;
 }
 
-function generateGreeting(
-  stage: RelationshipStage,
-  tone: ToneAdjustment
-): string {
+function generateGreeting(stage: RelationshipStage, tone: ToneAdjustment): string {
   switch (stage) {
     case 'new':
       return tone.shouldAskPermission
@@ -581,10 +576,7 @@ export function adaptMessage(
   // Add nickname if appropriate
   if (adjustment.nameUsage === 'nickname' && profile.memory.nicknames.length > 0) {
     const nickname = profile.memory.nicknames[0];
-    adapted = adapted.replace(
-      new RegExp(`\\b${context.userName}\\b`, 'g'),
-      nickname
-    );
+    adapted = adapted.replace(new RegExp(`\\b${context.userName}\\b`, 'g'), nickname);
   }
 
   // Adjust formality
@@ -601,16 +593,20 @@ export function adaptMessage(
   // Add or remove emoji based on preference
   if (tone.emojiLevel === 'none') {
     // Remove emoji
-    // eslint-disable-next-line no-misleading-character-class
-    adapted = adapted.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+
+    adapted = adapted.replace(
+      /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu,
+      ''
+    );
   }
 
   // Add permission language for new relationships
-  if (tone.shouldAskPermission && !adapted.toLowerCase().includes('hope') && !adapted.toLowerCase().includes('okay')) {
-    adapted = adapted.replace(
-      /^(.*?)([.!?])/,
-      '$1 - I hope this is okay to share.$2'
-    );
+  if (
+    tone.shouldAskPermission &&
+    !adapted.toLowerCase().includes('hope') &&
+    !adapted.toLowerCase().includes('okay')
+  ) {
+    adapted = adapted.replace(/^(.*?)([.!?])/, '$1 - I hope this is okay to share.$2');
   }
 
   return adapted.trim();
@@ -626,10 +622,7 @@ export function getRandomReference(userId: string): string | null {
     return null;
   }
 
-  const references = [
-    ...profile.memory.insideJokes,
-    ...profile.memory.sharedReferences,
-  ];
+  const references = [...profile.memory.insideJokes, ...profile.memory.sharedReferences];
 
   if (references.length === 0) {
     return null;
@@ -736,4 +729,3 @@ export default {
   canDoAction,
   clearRelationshipData,
 };
-

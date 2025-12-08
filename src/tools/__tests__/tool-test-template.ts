@@ -75,7 +75,9 @@ describe('ToolName', () => {
     it('should execute successfully with valid input', async () => {
       // Arrange
       const context = createMockContext();
-      const input = { /* tool parameters */ };
+      const input = {
+        /* tool parameters */
+      };
 
       // Act
       // const result = await yourTool.execute(input, context);
@@ -132,7 +134,7 @@ describe('ToolName', () => {
     it('should return error result on service failure', async () => {
       // Mock a service failure
       // vi.mocked(someService).mockRejectedValueOnce(new Error('Service unavailable'));
-      
+
       // const result = await yourTool.execute({ ... }, context);
       // expect(result.success).toBe(false);
       // expect(result.error).toContain('Service');
@@ -187,4 +189,3 @@ function createMockError(error: string): { success: false; error: string } {
 async function flushPromises(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
-

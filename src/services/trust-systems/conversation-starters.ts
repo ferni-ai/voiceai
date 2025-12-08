@@ -108,30 +108,30 @@ const TEMPLATES: Record<StarterType, string[]> = {
   follow_up: [
     "Hey! I've been wondering - how did {topic} go?",
     "So... {topic}. How'd that turn out?",
-    "I remembered you had {topic} coming up. How was it?",
+    'I remembered you had {topic} coming up. How was it?',
     "Tell me about {topic}! I've been curious.",
-    "Last time you mentioned {topic}. What happened?",
+    'Last time you mentioned {topic}. What happened?',
   ],
 
   callback: [
-    "You know what I was just thinking about? That time you said {callback}.",
-    "Remember when you told me about {callback}? That stuck with me.",
+    'You know what I was just thinking about? That time you said {callback}.',
+    'Remember when you told me about {callback}? That stuck with me.',
     "Something reminded me of {callback}. How's that going?",
-    "I keep thinking about what you said - {callback}.",
+    'I keep thinking about what you said - {callback}.',
   ],
 
   celebration: [
-    "I have a feeling {event} went really well! Tell me everything.",
-    "I bet you absolutely crushed {event}!",
+    'I have a feeling {event} went really well! Tell me everything.',
+    'I bet you absolutely crushed {event}!',
     "So... {event}. I'm guessing good news?",
     "I've been excited to hear about {event}!",
   ],
 
   gentle_check_in: [
-    "Hey. Just wanted to check in. How are you really doing?",
-    "Been thinking about you. Everything okay?",
-    "No agenda today - just wanted to hear your voice.",
-    "How are you? And I mean really.",
+    'Hey. Just wanted to check in. How are you really doing?',
+    'Been thinking about you. Everything okay?',
+    'No agenda today - just wanted to hear your voice.',
+    'How are you? And I mean really.',
     "Just checking in. What's on your mind lately?",
   ],
 
@@ -143,17 +143,17 @@ const TEMPLATES: Record<StarterType, string[]> = {
 
   random_warmth: [
     "Hey! Just glad you're here.",
-    "You know what? I appreciate you.",
-    "No specific reason for reaching out - just wanted to connect.",
+    'You know what? I appreciate you.',
+    'No specific reason for reaching out - just wanted to connect.',
     "It's good to hear from you.",
     "I've been looking forward to talking.",
   ],
 
   time_sensitive: [
-    "{event} is coming up soon! How are you feeling about it?",
+    '{event} is coming up soon! How are you feeling about it?',
     "With {event} around the corner, what's on your mind?",
-    "I know {event} is approaching. Anything you want to talk through?",
-    "Big day coming up - {event}. Ready for it?",
+    'I know {event} is approaching. Anything you want to talk through?',
+    'Big day coming up - {event}. Ready for it?',
   ],
 
   milestone: [
@@ -220,7 +220,10 @@ export function generateStarters(context: UserContext): ConversationStarter[] {
   }
 
   // 6. Gentle check-in if last session had emotional content
-  if (context.lastEmotionalState && ['sad', 'anxious', 'stressed', 'overwhelmed'].includes(context.lastEmotionalState)) {
+  if (
+    context.lastEmotionalState &&
+    ['sad', 'anxious', 'stressed', 'overwhelmed'].includes(context.lastEmotionalState)
+  ) {
     const checkInStarter = generateGentleCheckIn(context);
     if (checkInStarter) starters.push(checkInStarter);
   }
@@ -293,10 +296,7 @@ function generateFollowUpStarter(
 /**
  * Generate celebration starter
  */
-function generateCelebrationStarter(
-  win: string,
-  context: UserContext
-): ConversationStarter | null {
+function generateCelebrationStarter(win: string, context: UserContext): ConversationStarter | null {
   const template = selectTemplate('celebration');
   const text = template.replace('{event}', win);
 
@@ -348,8 +348,7 @@ function generateCallbackStarter(
 ): ConversationStarter | null {
   // Don't use callbacks too frequently
   if (moment.lastUsed) {
-    const daysSinceLastUse =
-      (Date.now() - moment.lastUsed.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceLastUse = (Date.now() - moment.lastUsed.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceLastUse < 14) return null; // Wait 2 weeks between uses
   }
 
@@ -426,8 +425,7 @@ function selectBestCallback(
   // Filter out recently used
   const usable = moments.filter((m) => {
     if (!m.lastUsed) return true;
-    const daysSinceUse =
-      (Date.now() - m.lastUsed.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSinceUse = (Date.now() - m.lastUsed.getTime()) / (1000 * 60 * 60 * 24);
     return daysSinceUse >= 14;
   });
 
@@ -507,7 +505,7 @@ export function generateGreeting(context: UserContext): {
   } else if (timeSinceLastSession > 7) {
     greeting = name
       ? `Hey ${name}! Been a bit - I've been thinking about you.`
-      : "Hey! Been a little while - good to reconnect.";
+      : 'Hey! Been a little while - good to reconnect.';
   } else if (timeSinceLastSession > 1) {
     greeting = name ? `Hey ${name}! Good to have you back.` : 'Hey! Welcome back.';
   } else {
@@ -518,8 +516,7 @@ export function generateGreeting(context: UserContext): {
   const starter = getBestStarter(context);
 
   // Combine greeting with starter if it's high-priority
-  const fullGreeting =
-    starter.priority >= 6 ? `${greeting} ${starter.text}` : greeting;
+  const fullGreeting = starter.priority >= 6 ? `${greeting} ${starter.text}` : greeting;
 
   return {
     greeting: fullGreeting,
@@ -538,4 +535,3 @@ export default {
   markStarterUsed,
   generateGreeting,
 };
-

@@ -41,6 +41,8 @@ import { handoffService } from '../services/index.js';
 import { engagementService } from '../services/index.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { setWrappingUp } from '../state/app.state.js';
+// 🎬 Pixar Emotions - Advanced avatar expressions
+import { pixarEmotions } from '../ui/pixar-emotions.ui.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -165,20 +167,24 @@ export function handleDataMessage(message: DataMessage): void {
 /**
  * Handle celebration events from the agent.
  * Zen aesthetic: warmth and breathing, not explosions.
+ * 🎬 Enhanced with Pixar emotions for character expressiveness.
  */
 export function handleCelebration(event: CelebrationEvent): void {
-  // Milestone/achievement - warm acknowledgement
+  // Milestone/achievement - warm acknowledgement with held pose
   if (event.celebrationType === 'milestone' || event.celebrationType === 'achievement') {
     celebrationsUI.warmthGlow({ intensity: 'warm' });
     delightService.haptic('light');
     waveformUI.celebrate();
+
+    // 🎬 Pixar: Held pose at peak excitement
+    pixarEmotions.heldPose('excited', 600);
 
     if (event.message) {
       celebrationsUI.celebrateMilestone(event.message);
     }
   }
 
-  // Aha moment / good news - gentle recognition
+  // Aha moment / good news - double-take for surprise, then delight
   if (event.celebrationType === 'aha_moment' || event.celebrationType === 'good_news') {
     celebrationsUI.gentleBounce();
     celebrationsUI.warmthGlow({ intensity: 'gentle' });
@@ -187,12 +193,21 @@ export function handleCelebration(event: CelebrationEvent): void {
     presenceUI.bounce();
     // Flash encouraging emotion for aha moments
     presenceUI.flashEmotion('encouraging', 800);
+
+    // 🎬 Pixar: Double-take for "aha!" moments (like WALL-E noticing something)
+    if (event.celebrationType === 'aha_moment') {
+      pixarEmotions.doubleTake();
+    } else {
+      // Good news: delighted expression with sparkle
+      pixarEmotions.delight();
+    }
   }
 }
 
 /**
  * Handle emotion events from voice prosody analysis.
  * Updates waveform particles to reflect detected user emotion.
+ * 🎬 Enhanced with Pixar eye lid expressions for empathetic response.
  */
 export function handleEmotion(event: EmotionEvent): void {
   // Lower threshold (40%) for more responsive emotion display
@@ -228,14 +243,203 @@ export function handleEmotion(event: EmotionEvent): void {
   } else {
     presenceUI.setSpeakingIntensity('normal');
   }
+
+  // 🎬 Pixar Emotions: Respond to user's emotional state with eye lid expressions
+  // Only trigger for strong emotions (high confidence + intensity)
+  if (event.confidence > 0.6 && event.intensity > 0.5) {
+    triggerPixarEmotionResponse(event.emotion, event.intensity);
+  }
+}
+
+/**
+ * 🎬 Trigger appropriate Pixar eye lid expression based on detected user emotion.
+ * The avatar responds empathetically to show it understands.
+ */
+function triggerPixarEmotionResponse(emotion: EmotionEvent['emotion'], intensity: number): void {
+  // Map user emotions to empathetic avatar responses
+  // When user is happy → avatar shows delight (mirroring)
+  // When user is sad → avatar shows empathy (support)
+  // When user is anxious → avatar shows calm (grounding)
+  
+  switch (emotion) {
+    case 'happy':
+      // Mirror their joy
+      if (intensity > 0.7) {
+        pixarEmotions.delight();
+      } else {
+        pixarEmotions.happy(800);
+      }
+      break;
+
+    case 'excited':
+      // Share their excitement
+      pixarEmotions.excited();
+      break;
+
+    case 'sad':
+      // Show empathetic understanding (soft, supportive expression)
+      pixarEmotions.empathy();
+      break;
+
+    case 'anxious':
+      // Show calm, grounding presence
+      // Don't mirror anxiety - show steady supportiveness
+      pixarEmotions.setExpression('empathetic', 300, 2000);
+      break;
+
+    case 'frustrated':
+      // Show understanding but stay grounded
+      // Slight head tilt shows "I hear you"
+      pixarEmotions.curious();
+      break;
+
+    case 'calm':
+      // Match their peaceful energy
+      pixarEmotions.setExpression('empathetic', 400, 1500);
+      break;
+
+    case 'neutral':
+    default:
+      // Return to neutral (no dramatic reaction needed)
+      // Let existing expressions fade naturally
+      break;
+  }
 }
 
 /**
  * Handle expression events from agents.
- * (Emoji morphing disabled for now - may revisit later)
+ * 🎬 Re-enabled with Pixar eye lid expressions!
+ * Agent can now request specific avatar expressions for emphasis.
+ * 
+ * The agent sends an emoji which we map to Pixar expressions.
  */
-export function handleExpression(_event: ExpressionEvent): void {
-  // Future: could show emoji in UI or trigger visual effect
+export function handleExpression(event: ExpressionEvent): void {
+  // Map agent emoji/expression requests to Pixar emotions
+  // Can be emoji like "😊" or text like "happy" 
+  const expressionType = (event.emoji || '').toLowerCase();
+  
+  log.debug('Expression event:', expressionType);
+  
+  // Handle various expression types the agent might send
+  // Supports both text keywords AND emoji characters
+  switch (expressionType) {
+    // Positive expressions (text + emoji)
+    case 'happy':
+    case 'joy':
+    case 'smile':
+    case '😊':
+    case '😄':
+    case '🙂':
+      pixarEmotions.happy(800);
+      break;
+      
+    case 'excited':
+    case 'enthusiasm':
+    case '🎉':
+    case '🥳':
+      pixarEmotions.excited();
+      break;
+      
+    case 'delight':
+    case 'delighted':
+    case '✨':
+    case '🌟':
+      pixarEmotions.delight();
+      break;
+      
+    // Thinking/curious expressions  
+    case 'thinking':
+    case 'pondering':
+    case 'considering':
+    case '🤔':
+    case '💭':
+      pixarEmotions.lookAwayThinking(2000);
+      break;
+      
+    case 'curious':
+    case 'interested':
+    case 'intrigued':
+    case '🧐':
+      pixarEmotions.curious();
+      break;
+      
+    // Surprise expressions
+    case 'surprised':
+    case 'wow':
+    case 'amazed':
+    case '😮':
+    case '😲':
+    case '🤯':
+      pixarEmotions.surprise();
+      break;
+      
+    case 'doubletake':
+    case 'waitwhat':
+    case '👀':
+      pixarEmotions.doubleTake();
+      break;
+      
+    // Empathetic expressions
+    case 'empathy':
+    case 'understanding':
+    case 'compassion':
+    case '🫂':
+    case '💙':
+      pixarEmotions.empathy();
+      break;
+      
+    case 'sad':
+    case 'concerned':
+    case '😢':
+    case '😔':
+      pixarEmotions.sad();
+      break;
+      
+    case 'worried':
+    case 'concern':
+    case '😟':
+    case '😰':
+      pixarEmotions.worry();
+      break;
+      
+    // Skeptical/questioning
+    case 'skeptical':
+    case 'hmm':
+    case 'really':
+    case '🤨':
+      pixarEmotions.skeptical();
+      break;
+      
+    // Sleepy/tired
+    case 'sleepy':
+    case 'tired':
+    case 'yawn':
+    case '😴':
+    case '🥱':
+      pixarEmotions.sleepy();
+      break;
+      
+    // Love/appreciation
+    case 'love':
+    case 'heart':
+    case '❤️':
+    case '💕':
+      pixarEmotions.delight();
+      break;
+      
+    // Lightbulb/idea moment
+    case 'idea':
+    case 'lightbulb':
+    case '💡':
+      pixarEmotions.doubleTake(); // "Aha!" moment
+      break;
+      
+    default:
+      // Unknown expression - log but don't error
+      if (expressionType) {
+        log.debug('Unknown expression type:', expressionType);
+      }
+  }
 }
 
 /**
@@ -370,9 +574,10 @@ export function handleEngagementTrigger(event: EngagementTriggerEvent): void {
 /**
  * Handle wrap-up events from the agent.
  * This signals that the conversation is ending and UI should adapt.
+ * 🎬 Enhanced with Pixar farewell expressions.
  * 
  * - Disconnect button becomes more prominent ("Goodbye" style)
- * - Avatar shows warm farewell animation
+ * - Avatar shows warm farewell animation with emotional expression
  * - Waveform softens
  */
 export function handleWrapUp(event: WrapUpEvent): void {
@@ -384,22 +589,34 @@ export function handleWrapUp(event: WrapUpEvent): void {
   // Play the farewell animation
   presenceUI.farewell();
   
+  // 🎬 Pixar: Show appropriate emotional expression for farewell
+  // Warm farewell with soft, happy expression that lingers
+  pixarEmotions.setExpression('happy', 400, 0); // Hold until conversation ends
+  
   // Warm visual feedback based on sentiment
   switch (event.sentiment) {
     case 'warm':
       celebrationsUI.warmthGlow({ intensity: 'gentle' });
       presenceUI.setVoiceEmotion('happy');
+      // 🎬 Extra warmth: gentle sparkle
+      pixarEmotions.delightSparkle();
       break;
     case 'encouraging':
       presenceUI.setVoiceEmotion('encouraging');
       presenceUI.nod(); // Affirming nod
+      // 🎬 Supportive held pose
+      pixarEmotions.heldPose('happy', 400);
       break;
     case 'thoughtful':
       presenceUI.setVoiceEmotion('thoughtful');
+      // 🎬 Gentle thinking expression (like "I'm here if you need me")
+      pixarEmotions.setExpression('empathetic', 400, 0);
       break;
     case 'caring':
       presenceUI.setVoiceEmotion('empathetic');
       celebrationsUI.warmthGlow({ intensity: 'warm' });
+      // 🎬 Soft, caring expression
+      pixarEmotions.empathy();
       break;
   }
   

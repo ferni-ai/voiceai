@@ -224,13 +224,22 @@ function getDefaultConfig(personaId: string): OutreachVoiceConfig {
     channel_styles: {
       sms: { length: 'short', tone: 'friendly', sentences: [1, 3] },
       email: { length: 'medium', tone: 'friendly', signature: `Best,\n${displayName}` },
-      call: { length: 'medium', opening: `Hey! It's ${displayName}.`, tone: 'warm', pacing: 'natural' },
+      call: {
+        length: 'medium',
+        opening: `Hey! It's ${displayName}.`,
+        tone: 'warm',
+        pacing: 'natural',
+      },
       voicemail: { length: 'brief', tone: 'warm' },
     },
     trigger_templates: {},
     relationship_adaptations: {
       new: { formality: 'friendly', opening_style: 'Hi {name}!', closing_style: 'Take care!' },
-      building: { formality: 'friendly', opening_style: 'Hey {name}!', closing_style: 'Talk soon!' },
+      building: {
+        formality: 'friendly',
+        opening_style: 'Hey {name}!',
+        closing_style: 'Talk soon!',
+      },
       established: { formality: 'casual', opening_style: 'Hey!', closing_style: '👋' },
       deep: { formality: 'casual', opening_style: 'Hey!', closing_style: '❤️' },
     },
@@ -284,7 +293,7 @@ function maybeAddEmoji(config: OutreachVoiceConfig, currentEmojiCount: number): 
     return '';
   }
 
-  const frequency = config.emoji_usage.frequency;
+  const { frequency } = config.emoji_usage;
   let addProbability = 0;
 
   switch (frequency) {
@@ -302,7 +311,7 @@ function maybeAddEmoji(config: OutreachVoiceConfig, currentEmojiCount: number): 
   }
 
   if (Math.random() < addProbability && config.emoji_usage.preferred.length > 0) {
-    return ' ' + pickRandom(config.emoji_usage.preferred);
+    return ` ${pickRandom(config.emoji_usage.preferred)}`;
   }
 
   return '';
@@ -311,10 +320,7 @@ function maybeAddEmoji(config: OutreachVoiceConfig, currentEmojiCount: number): 
 /**
  * Get the greeting for a persona based on relationship stage
  */
-export function getPersonaGreeting(
-  personaId: string,
-  context: FormatContext = {}
-): string {
+export function getPersonaGreeting(personaId: string, context: FormatContext = {}): string {
   const config = getOutreachVoiceConfig(personaId);
   const stage = context.relationshipStage || 'building';
   const adaptation = config.relationship_adaptations[stage];
@@ -329,10 +335,7 @@ export function getPersonaGreeting(
 /**
  * Get the closing for a persona based on relationship stage
  */
-export function getPersonaClosing(
-  personaId: string,
-  context: FormatContext = {}
-): string {
+export function getPersonaClosing(personaId: string, context: FormatContext = {}): string {
   const config = getOutreachVoiceConfig(personaId);
   const stage = context.relationshipStage || 'building';
   const adaptation = config.relationship_adaptations[stage];
@@ -359,7 +362,8 @@ export function formatSmsMessage(
   const closing = getPersonaClosing(personaId, context);
 
   // Count existing emojis in message
-  const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
+  const emojiRegex =
+    /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
   const existingEmojis = (message.match(emojiRegex) || []).length;
   const emoji = maybeAddEmoji(config, existingEmojis);
 
@@ -437,7 +441,8 @@ export function formatVoicemailMessage(
   const firstName = displayName.split(' ')[0];
 
   const greeting = `Hey ${context.userName || 'there'}! It's ${firstName}.`;
-  const closing = vmStyle.always_include || "I'll send you a text so you can respond when you have time.";
+  const closing =
+    vmStyle.always_include || "I'll send you a text so you can respond when you have time.";
 
   const fullMessage = `${greeting} ${message} ${closing}`;
 
@@ -525,33 +530,9 @@ const PERSONA_SPECIALTIES: Record<string, string[]> = {
     'communication',
     'work',
   ],
-  'peter-john': [
-    'finance',
-    'investment',
-    'budget',
-    'savings',
-    'money',
-    'retirement',
-    'portfolio',
-  ],
-  'jordan-taylor': [
-    'career',
-    'job',
-    'interview',
-    'networking',
-    'promotion',
-    'resume',
-    'linkedin',
-  ],
-  'nayan-patel': [
-    'mindfulness',
-    'stress',
-    'anxiety',
-    'calm',
-    'breathing',
-    'sleep',
-    'relaxation',
-  ],
+  'peter-john': ['finance', 'investment', 'budget', 'savings', 'money', 'retirement', 'portfolio'],
+  'jordan-taylor': ['career', 'job', 'interview', 'networking', 'promotion', 'resume', 'linkedin'],
+  'nayan-patel': ['mindfulness', 'stress', 'anxiety', 'calm', 'breathing', 'sleep', 'relaxation'],
 };
 
 /**
@@ -589,10 +570,7 @@ export function routeToPersona(
     }
   }
 
-  log.debug(
-    { outreachType, searchTerms, bestMatch, bestScore },
-    'Routed outreach to persona'
-  );
+  log.debug({ outreachType, searchTerms, bestMatch, bestScore }, 'Routed outreach to persona');
 
   return bestMatch;
 }

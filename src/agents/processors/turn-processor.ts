@@ -17,28 +17,31 @@
  */
 
 import type { llm } from '@livekit/agents';
-import { diag } from '../../services/diagnostic-logger.js';
-import { getCurrentAgent, getAgentContext, updateUserContextForHandoff } from '../../tools/handoff/index.js';
 import type { ContextUserData } from '../../intelligence/context-builders/index.js';
+import { diag } from '../../services/diagnostic-logger.js';
+import {
+  getAgentContext,
+  getCurrentAgent,
+  updateUserContextForHandoff,
+} from '../../tools/handoff/index.js';
 import type {
-  TurnContext,
-  TurnAnalysisResult,
-  ContextBuildResult,
+  BundleRuntimeContext,
+  CachedModules,
   ContextInjection,
   EmotionalState,
-  ResponseGuidance,
   IdentityContext,
-  BundleRuntimeContext,
+  ResponseGuidance,
+  TurnAnalysisResult,
+  TurnContext,
   TurnProcessorResult,
-  CachedModules,
 } from './types.js';
 
 // Conversation engines (singletons)
 import {
+  getConversationHumanizer,
   getEmotionalArcTracker,
   getResponseDynamicsEngine,
   getStoryTimingEngine,
-  getConversationHumanizer,
 } from '../../conversation/index.js';
 
 // Humanizing context
@@ -46,8 +49,8 @@ import {
   buildHumanizingContext,
   formatHumanizingForPrompt,
   getHumanizingSummary,
-  shouldMoodShift,
   getMoodShift,
+  shouldMoodShift,
   type HumanizingResult,
 } from '../../intelligence/context-builders/humanizing.js';
 
@@ -63,25 +66,24 @@ import {
 } from '../../intelligence/context-builders/conversation-humanizing.js';
 
 // Response naturalness
-import { getResponseEnhancements, resetCatchphraseTracking } from '../../speech/response-naturalness.js';
+import { getResponseEnhancements } from '../../speech/response-naturalness.js';
 
 // Emotion matching
-import { getEmotionModulation, getEmotionGuidance } from '../../speech/emotion-matching.js';
+import { getEmotionGuidance } from '../../speech/emotion-matching.js';
 
 // Voice-text mismatch detection ("better than human" - detect incongruence)
 import {
+  buildMismatchGuidance,
   detectMismatch,
   recordMismatchInsight,
-  buildMismatchGuidance,
   type MismatchResult,
 } from '../../intelligence/voice-text-mismatch.js';
 
 // Cross-persona insight sharing
 import {
+  acknowledgeInsight,
   buildInsightContext,
   getInsightsToSurface,
-  acknowledgeInsight,
-  type InsightForPersona,
 } from '../../services/cross-persona-insights.js';
 
 // Personal theme tracking (prevents "always talks about Wyoming")
@@ -162,10 +164,7 @@ function analyzeMessage(ctx: TurnContext): TurnAnalysisResult {
 /**
  * Update conversation state manager with analysis results
  */
-function updateConversationState(
-  ctx: TurnContext,
-  analysisResult: TurnAnalysisResult
-): void {
+function updateConversationState(ctx: TurnContext, analysisResult: TurnAnalysisResult): void {
   const { userData, userText } = ctx;
   const { analysis, currentTopic } = analysisResult;
 
@@ -177,7 +176,10 @@ function updateConversationState(
   convState.incrementTurn();
 
   // Update emotional context
-  const emotionMap: Record<string, 'happy' | 'excited' | 'calm' | 'anxious' | 'frustrated' | 'sad' | 'confused' | 'grateful'> = {
+  const emotionMap: Record<
+    string,
+    'happy' | 'excited' | 'calm' | 'anxious' | 'frustrated' | 'sad' | 'confused' | 'grateful'
+  > = {
     happy: 'happy',
     excited: 'excited',
     content: 'calm',
@@ -224,9 +226,19 @@ function updateConversationState(
 
   // Check for wrap-up signals
   const wrapUpPhrases = [
-    'gotta go', 'have to go', 'need to go', 'i should go',
-    'bye', 'goodbye', 'see you', 'talk later', 'later',
-    "that's all", "that's it", "i'm done", 'thanks for',
+    'gotta go',
+    'have to go',
+    'need to go',
+    'i should go',
+    'bye',
+    'goodbye',
+    'see you',
+    'talk later',
+    'later',
+    "that's all",
+    "that's it",
+    "i'm done",
+    'thanks for',
   ];
 
   if (wrapUpPhrases.some((phrase) => userText.toLowerCase().includes(phrase))) {
@@ -294,19 +306,19 @@ function buildEmotionalState(
   const transitionPhrase = emotionalArc.getTransitionPhrase();
 
   // Get emotion guidance for voice emotion mirroring
-  const emotionModulation = userData.emotionModulation;
+  const { emotionModulation } = userData;
   const emotionalGuidance = emotionModulation ? getEmotionGuidance(emotionModulation) : null;
 
   // "Better than human" - detect when voice contradicts words
   // (e.g., "I'm fine" + trembling voice)
   const mismatch = detectMismatch(userText, userData.voiceEmotion || null, analysis.emotion);
-  
+
   // Combine guidance if there's a mismatch
   let combinedGuidance = emotionalResponse.guidance || emotionalGuidance || undefined;
   if (mismatch.hasMismatch && mismatch.confidence > 0.5) {
     const mismatchGuidance = buildMismatchGuidance(mismatch);
     if (mismatchGuidance) {
-      combinedGuidance = combinedGuidance 
+      combinedGuidance = combinedGuidance
         ? `${combinedGuidance}\n\n${mismatchGuidance}`
         : mismatchGuidance;
     }
@@ -371,18 +383,23 @@ function buildResponseGuidance(
 
   // Story timing
   let storyOpportunity: ResponseGuidance['storyOpportunity'];
-  
+
   // Get the full emotional arc from the tracker for story timing
   const emotionalArc = getEmotionalArcTracker();
   const fullArc = emotionalArc.getArc();
-  
+
   const storyContext = {
     turnCount: userData.turnCount || 0,
     conversationDurationMs: Date.now() - services.sessionStartTime,
     lastStoryTurn: userData.lastStoryTurn,
     storiesToldThisSession: userData.storiesShared || [],
     emotionalArc: fullArc, // Use the full EmotionalArc object
-    userEngagement: analysis.emotion.intensity > 0.6 ? 'high' as const : analysis.emotion.intensity < 0.3 ? 'low' as const : 'medium' as const,
+    userEngagement:
+      analysis.emotion.intensity > 0.6
+        ? ('high' as const)
+        : analysis.emotion.intensity < 0.3
+          ? ('low' as const)
+          : ('medium' as const),
     userPacing: responseDynamics.getPacingAnalysis().userPacing,
     currentTopic,
     recentTopics: analysis.topics.detected,
@@ -523,21 +540,32 @@ function buildHumanizingContextForTurn(
 
   try {
     const userProfileRelationshipStage = services.userProfile?.relationshipStage;
-    const previousRelationshipStage = userData.previousRelationshipStage;
+    const { previousRelationshipStage } = userData;
 
     const humanizingContext = {
       persona,
       bundleRuntime,
       voiceEmotion: userData.voiceEmotion || null,
-      textEmotion: analysis.emotion ? {
-        primary: analysis.emotion.primary,
-        confidence: analysis.emotion.confidence || 0.7,
-        valence: analysis.emotion.valence || 'neutral',
-        distressLevel: analysis.emotion.distressLevel,
-        intensity: analysis.emotion.intensity || 0.5,
-        markers: analysis.emotion.markers || [],
-        suggestedTone: (analysis.emotion.suggestedTone || 'neutral') as 'warm' | 'gentle' | 'enthusiastic' | 'calm' | 'serious' | 'friendly' | 'reassuring' | 'informative' | 'measured',
-      } : null,
+      textEmotion: analysis.emotion
+        ? {
+            primary: analysis.emotion.primary,
+            confidence: analysis.emotion.confidence || 0.7,
+            valence: analysis.emotion.valence || 'neutral',
+            distressLevel: analysis.emotion.distressLevel,
+            intensity: analysis.emotion.intensity || 0.5,
+            markers: analysis.emotion.markers || [],
+            suggestedTone: (analysis.emotion.suggestedTone || 'neutral') as
+              | 'warm'
+              | 'gentle'
+              | 'enthusiastic'
+              | 'calm'
+              | 'serious'
+              | 'friendly'
+              | 'reassuring'
+              | 'informative'
+              | 'measured',
+          }
+        : null,
       userMessage: userText,
       currentTopic,
       recentTopics: analysis.topics.detected,
@@ -590,14 +618,18 @@ function buildHumanizingContextForTurn(
     }
 
     // Check for mood shift
-    const topicWeight = analysis.emotion.distressLevel > 0.6
-      ? 'heavy' as const
-      : analysis.emotion.distressLevel > 0.3
-        ? 'medium' as const
-        : 'light' as const;
+    const topicWeight =
+      analysis.emotion.distressLevel > 0.6
+        ? ('heavy' as const)
+        : analysis.emotion.distressLevel > 0.3
+          ? ('medium' as const)
+          : ('light' as const);
 
     if (shouldMoodShift(result.mood, analysis.emotion.primary, topicWeight)) {
-      const newMoodState = getMoodShift(result.mood.state, `${analysis.emotion.primary}_${topicWeight}`);
+      const newMoodState = getMoodShift(
+        result.mood.state,
+        `${analysis.emotion.primary}_${topicWeight}`
+      );
       ctx.logger.info(
         { from: result.mood.state, to: newMoodState, reason: topicWeight },
         '🌤️ Mood shifting'
@@ -657,7 +689,8 @@ function processBundleRuntime(
 
   // Mode transition
   if (newMode !== previousMode) {
-    result.modeTransitionPhrase = bundleRuntime.getModeTransitionPhrase(previousMode, newMode) || undefined;
+    result.modeTransitionPhrase =
+      bundleRuntime.getModeTransitionPhrase(previousMode, newMode) || undefined;
 
     // Sync to userData
     if (userData?.bundleRuntimeState) {
@@ -669,18 +702,42 @@ function processBundleRuntime(
   // Check situational responses
   const lowerText = userText.toLowerCase();
 
-  const celebrationKeywords = ['promotion', 'got the job', 'engaged', 'married', 'pregnant', 'retired', 'graduated', 'paid off'];
-  const condolenceKeywords = ['died', 'passed away', 'cancer', 'lost my', 'funeral', 'divorce', 'laid off', 'fired'];
+  const celebrationKeywords = [
+    'promotion',
+    'got the job',
+    'engaged',
+    'married',
+    'pregnant',
+    'retired',
+    'graduated',
+    'paid off',
+  ];
+  const condolenceKeywords = [
+    'died',
+    'passed away',
+    'cancer',
+    'lost my',
+    'funeral',
+    'divorce',
+    'laid off',
+    'fired',
+  ];
 
   for (const keyword of celebrationKeywords) {
     if (lowerText.includes(keyword)) {
-      const situation = keyword.includes('job') ? 'job_promotion'
-        : keyword.includes('engaged') ? 'engagement'
-        : keyword.includes('pregnant') ? 'baby_news'
-        : keyword.includes('retired') ? 'retirement'
-        : keyword.includes('graduated') ? 'graduation'
-        : keyword.includes('paid off') ? 'paid_off_debt'
-        : 'general_good_news';
+      const situation = keyword.includes('job')
+        ? 'job_promotion'
+        : keyword.includes('engaged')
+          ? 'engagement'
+          : keyword.includes('pregnant')
+            ? 'baby_news'
+            : keyword.includes('retired')
+              ? 'retirement'
+              : keyword.includes('graduated')
+                ? 'graduation'
+                : keyword.includes('paid off')
+                  ? 'paid_off_debt'
+                  : 'general_good_news';
 
       const response = bundleRuntime.getSituationalResponse('celebrations', situation);
       if (response) {
@@ -697,11 +754,16 @@ function processBundleRuntime(
 
   for (const keyword of condolenceKeywords) {
     if (lowerText.includes(keyword)) {
-      const situation = (keyword.includes('died') || keyword.includes('passed')) ? 'death_family_member'
-        : keyword.includes('cancer') ? 'health_diagnosis'
-        : keyword.includes('divorce') ? 'divorce_breakup'
-        : (keyword.includes('laid off') || keyword.includes('fired')) ? 'job_loss'
-        : 'general_loss';
+      const situation =
+        keyword.includes('died') || keyword.includes('passed')
+          ? 'death_family_member'
+          : keyword.includes('cancer')
+            ? 'health_diagnosis'
+            : keyword.includes('divorce')
+              ? 'divorce_breakup'
+              : keyword.includes('laid off') || keyword.includes('fired')
+                ? 'job_loss'
+                : 'general_loss';
 
       const response = bundleRuntime.getSituationalResponse('condolences', situation);
       if (response) {
@@ -849,7 +911,8 @@ async function buildContextInjections(
 
     // Humor calibration
     if (userData.lastResponseHadHumor) {
-      const userLaughed = userData.voiceEmotion?.primary === 'happy' && userData.voiceEmotion?.confidence > 0.6;
+      const userLaughed =
+        userData.voiceEmotion?.primary === 'happy' && userData.voiceEmotion?.confidence > 0.6;
       services.humorCalibration.analyzeReaction(userText, userLaughed);
       userData.lastResponseHadHumor = false;
     }
@@ -858,9 +921,13 @@ async function buildContextInjections(
       const humorContent = [
         `[HUMOR OK]`,
         responseGuidance.humor.type ? `Try ${responseGuidance.humor.type} humor.` : '',
-        responseGuidance.humor.avoid?.length ? `Avoid: ${responseGuidance.humor.avoid.join(', ')}` : '',
-      ].filter(Boolean).join(' ');
-      
+        responseGuidance.humor.avoid?.length
+          ? `Avoid: ${responseGuidance.humor.avoid.join(', ')}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+
       injections.push({
         category: 'humor',
         content: humorContent,
@@ -930,8 +997,17 @@ async function buildContextInjections(
 
   // 8b. Cross-persona insights (team intelligence)
   try {
-    const personaId = persona.id as 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan' | 'jack';
-    const insightContext = buildInsightContext(services.userId || 'anonymous', personaId, { maxInsights: 3 });
+    const personaId = persona.id as
+      | 'ferni'
+      | 'maya'
+      | 'peter'
+      | 'alex'
+      | 'jordan'
+      | 'nayan'
+      | 'jack';
+    const insightContext = buildInsightContext(services.userId || 'anonymous', personaId, {
+      maxInsights: 3,
+    });
     if (insightContext) {
       injections.push({
         category: 'team_insights',
@@ -943,7 +1019,9 @@ async function buildContextInjections(
     // Acknowledge insights we're using
     const insightsToSurface = getInsightsToSurface(services.userId || 'anonymous', personaId, 2);
     for (const item of insightsToSurface) {
-      void acknowledgeInsight(services.userId || 'anonymous', item.insight.id, personaId).catch(() => {});
+      void acknowledgeInsight(services.userId || 'anonymous', item.insight.id, personaId).catch(
+        () => {}
+      );
     }
   } catch {
     // Non-fatal
@@ -976,16 +1054,22 @@ async function buildContextInjections(
       userText,
       analysis,
       services,
-      userData: { ...userData, keyMoments: userData.keyMoments?.map((s) => ({ summary: s, timestamp: new Date() })) },
+      userData: {
+        ...userData,
+        keyMoments: userData.keyMoments?.map((s) => ({ summary: s, timestamp: new Date() })),
+      },
       userProfile: services.userProfile,
       persona,
       bundleRuntime,
       personaId: persona.id,
       turnNumber: userData.turnCount || 0,
-      wasPersonalSharing: (analysis.emotion.distressLevel ?? 0) > 0.5 || analysis.emotion.intensity > 0.7,
+      wasPersonalSharing:
+        (analysis.emotion.distressLevel ?? 0) > 0.5 || analysis.emotion.intensity > 0.7,
     };
 
-    const convHumanizingInjections = buildConversationHumanizingContext(conversationHumanizingInput);
+    const convHumanizingInjections = buildConversationHumanizingContext(
+      conversationHumanizingInput
+    );
     if (convHumanizingInjections.length > 0) {
       const prompt = formatConversationHumanizingForPrompt(convHumanizingInjections);
       if (prompt) {
@@ -1004,12 +1088,14 @@ async function buildContextInjections(
   if (bundleRuntimeContext) {
     if (bundleRuntimeContext.modeTransitionPhrase) {
       const mode = bundleRuntime?.getCurrentMode();
-      const modeGuidance = mode ? [
-        `[PERSONA MODE: ${bundleRuntimeContext.currentMode.toUpperCase()}]`,
-        `Style: ${mode.description}`,
-        `Response length: ${mode.response_length}`,
-        `Behaviors: ${mode.behaviors.join(', ')}`,
-      ].join('\n') : '';
+      const modeGuidance = mode
+        ? [
+            `[PERSONA MODE: ${bundleRuntimeContext.currentMode.toUpperCase()}]`,
+            `Style: ${mode.description}`,
+            `Response length: ${mode.response_length}`,
+            `Behaviors: ${mode.behaviors.join(', ')}`,
+          ].join('\n')
+        : '';
 
       injections.push({
         category: 'mode_transition',
@@ -1020,10 +1106,11 @@ async function buildContextInjections(
 
     if (bundleRuntimeContext.situationalResponse) {
       const sr = bundleRuntimeContext.situationalResponse;
-      const content = sr.type === 'celebration'
-        ? `[CELEBRATION DETECTED: ${sr.situation}]\nUse this celebratory tone: "${sr.response}"`
-        : `[SENSITIVE MOMENT: ${sr.situation}]\nRespond with care: "${sr.response}"\nAVOID phrases like: ${sr.avoidPhrases?.join(', ') || ''}`;
-      
+      const content =
+        sr.type === 'celebration'
+          ? `[CELEBRATION DETECTED: ${sr.situation}]\nUse this celebratory tone: "${sr.response}"`
+          : `[SENSITIVE MOMENT: ${sr.situation}]\nRespond with care: "${sr.response}"\nAVOID phrases like: ${sr.avoidPhrases?.join(', ') || ''}`;
+
       injections.push({
         category: 'situational_response',
         content,
@@ -1050,7 +1137,8 @@ async function buildContextInjections(
     isQuestion: userText.includes('?'),
     isFollowUp: turnCount > 0,
     isGreeting: turnCount === 0,
-    isPositiveMoment: analysis.emotion.primary === 'joy' || analysis.emotion.primary === 'anticipation',
+    isPositiveMoment:
+      analysis.emotion.primary === 'joy' || analysis.emotion.primary === 'anticipation',
   });
 
   if (enhancements.prefix) {
@@ -1137,8 +1225,19 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // 4b. Record mismatch as cross-persona insight if significant
   if (emotionalState.mismatch?.hasMismatch && emotionalState.mismatch.confidence > 0.5) {
-    const personaId = ctx.persona.id as 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan' | 'jack';
-    void recordMismatchInsight(services.userId || 'anonymous', personaId, emotionalState.mismatch).catch(() => {
+    const personaId = ctx.persona.id as
+      | 'ferni'
+      | 'maya'
+      | 'peter'
+      | 'alex'
+      | 'jordan'
+      | 'nayan'
+      | 'jack';
+    void recordMismatchInsight(
+      services.userId || 'anonymous',
+      personaId,
+      emotionalState.mismatch
+    ).catch(() => {
       // Non-critical - don't block on insight recording
     });
   }
@@ -1151,31 +1250,30 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // - Phone numbers/emails in user message (auto-saves them)
   // - Magic moments (emotional highs perfect for phone ask)
   // - Verification codes (if user is verifying)
-  let identityMessageResult: {
-    shouldAskForPhone?: boolean;
-    contactDetected?: boolean;
-    verificationResult?: { verified: boolean; message: string };
-    llmContextUpdate?: string;
-  } | undefined;
-  
+  let identityMessageResult:
+    | {
+        shouldAskForPhone?: boolean;
+        contactDetected?: boolean;
+        verificationResult?: { verified: boolean; message: string };
+        llmContextUpdate?: string;
+      }
+    | undefined;
+
   try {
-    const { onUserMessage } = await import('../../services/trust-and-identity/voice-agent-integration.js');
+    const { onUserMessage } =
+      await import('../../services/trust-and-identity/voice-agent-integration.js');
     const emotionalIntensity = emotionalState.intensity ?? 0.5;
-    
-    identityMessageResult = await onUserMessage(
-      services.sessionId,
-      userText,
-      emotionalIntensity
-    );
-    
+
+    identityMessageResult = await onUserMessage(services.sessionId, userText, emotionalIntensity);
+
     if (identityMessageResult.contactDetected) {
       diag.user('📱 Contact info detected and saved');
     }
-    
+
     if (identityMessageResult.shouldAskForPhone) {
       diag.user('✨ Magic moment detected - phone ask pending');
     }
-    
+
     if (identityMessageResult.verificationResult) {
       diag.user('🔐 Verification code processed', {
         verified: identityMessageResult.verificationResult.verified,
@@ -1218,7 +1316,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
         priority: 100, // High priority
       });
     }
-    
+
     // If contact info was detected in their message
     if (identityMessageResult.contactDetected) {
       injections.push({
@@ -1227,7 +1325,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
         priority: 50, // Medium priority
       });
     }
-    
+
     // Note: Phone ask injection happens in voice-agent.ts via getResponseModification()
     // because it needs to be injected AFTER turn processing, right before the response
   }
@@ -1270,12 +1368,14 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       newShareTags: humanizingResult.usedTags,
       spontaneousShareCount: humanizingResult.spontaneousShare ? 1 : 0,
       currentMood: humanizingResult.mood.state,
-      storiesTold: humanizingResult.spontaneousShare?.type === 'micro_story'
-        ? humanizingResult.spontaneousShare.tags
-        : undefined,
-      hotTakesShared: humanizingResult.spontaneousShare?.type === 'hot_take'
-        ? humanizingResult.spontaneousShare.tags
-        : undefined,
+      storiesTold:
+        humanizingResult.spontaneousShare?.type === 'micro_story'
+          ? humanizingResult.spontaneousShare.tags
+          : undefined,
+      hotTakesShared:
+        humanizingResult.spontaneousShare?.type === 'hot_take'
+          ? humanizingResult.spontaneousShare.tags
+          : undefined,
       innerWorldRevealed: humanizingResult.innerWorldContent?.map((c) => ({
         type: c.type,
         content: c.content,
@@ -1332,18 +1432,13 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
  *
  * Call this after processTurn() to add all context injections to the chat.
  */
-export function injectTurnContext(
-  turnCtx: llm.ChatContext,
-  result: TurnProcessorResult
-): void {
+export function injectTurnContext(turnCtx: llm.ChatContext, result: TurnProcessorResult): void {
   const { injections } = result.context;
 
   if (injections.length === 0) return;
 
   // Combine all injection content
-  const combinedContent = injections
-    .map((inj) => inj.content)
-    .join('\n\n');
+  const combinedContent = injections.map((inj) => inj.content).join('\n\n');
 
   turnCtx.addMessage({
     role: 'user',
@@ -1364,4 +1459,3 @@ export function getCelebrationEvents(
     .filter((inj) => celebrationCategories.includes(inj.category))
     .map((inj) => ({ category: inj.category, content: inj.content }));
 }
-

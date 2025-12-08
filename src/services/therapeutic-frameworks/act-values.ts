@@ -14,11 +14,7 @@
  * @module TherapeuticFrameworks/ACTValues
  */
 
-import type {
-  ACTValue,
-  ValueDomain,
-  CommittedAction,
-} from './types.js';
+import type { ACTValue, ValueDomain, CommittedAction } from './types.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ACTValues' });
@@ -41,7 +37,7 @@ export const VALUES_QUESTIONS: Record<ValueDomain, string[]> = {
   relationships: [
     'What kind of friend do you want to be?',
     "When you're at your best with the people you love, what are you like?",
-    "If your closest friend described you at your best, what would they say?",
+    'If your closest friend described you at your best, what would they say?',
     'What would you want people who know you well to say at your 80th birthday?',
   ],
   work: [
@@ -54,7 +50,7 @@ export const VALUES_QUESTIONS: Record<ValueDomain, string[]> = {
     'Why does your health matter to you? What does being healthy let you do?',
     "When you're taking care of yourself, what does that look like?",
     'What does a body you feel good in mean to you?',
-    "How do you want to feel in your body as you age?",
+    'How do you want to feel in your body as you age?',
   ],
   growth: [
     'What do you want to learn or get better at? Why?',
@@ -71,7 +67,7 @@ export const VALUES_QUESTIONS: Record<ValueDomain, string[]> = {
   spirituality: [
     'What gives your life meaning?',
     'What experiences have made you feel connected to something larger?',
-    "When do you feel most at peace?",
+    'When do you feel most at peace?',
     'What do you hope your life stands for?',
   ],
   community: [
@@ -95,7 +91,15 @@ export const VALUE_EXAMPLES: Record<ValueDomain, string[]> = {
   relationships: ['Connection', 'Loyalty', 'Honesty', 'Presence', 'Support', 'Intimacy', 'Trust'],
   work: ['Excellence', 'Impact', 'Creativity', 'Collaboration', 'Growth', 'Service', 'Mastery'],
   health: ['Vitality', 'Self-care', 'Balance', 'Strength', 'Energy', 'Longevity', 'Rest'],
-  growth: ['Learning', 'Curiosity', 'Challenge', 'Wisdom', 'Improvement', 'Resilience', 'Expansion'],
+  growth: [
+    'Learning',
+    'Curiosity',
+    'Challenge',
+    'Wisdom',
+    'Improvement',
+    'Resilience',
+    'Expansion',
+  ],
   leisure: ['Joy', 'Play', 'Creativity', 'Adventure', 'Rest', 'Expression', 'Fun'],
   spirituality: ['Meaning', 'Peace', 'Connection', 'Gratitude', 'Presence', 'Faith', 'Purpose'],
   community: ['Service', 'Justice', 'Contribution', 'Belonging', 'Generosity', 'Activism', 'Care'],
@@ -344,10 +348,7 @@ export function getPendingActions(userId: string): CommittedAction[] {
 /**
  * Check if a proposed action aligns with user's values.
  */
-export function checkValuesAlignment(
-  userId: string,
-  proposedAction: string
-): ValuesAlignment {
+export function checkValuesAlignment(userId: string, proposedAction: string): ValuesAlignment {
   const values = getUserValues(userId);
 
   if (values.length === 0) {
@@ -356,7 +357,8 @@ export function checkValuesAlignment(
       alignedValues: [],
       misalignedValues: [],
       alignmentScore: null,
-      suggestion: 'We haven\'t explored your values yet. Want to take a few minutes to think about what matters most to you?',
+      suggestion:
+        "We haven't explored your values yet. Want to take a few minutes to think about what matters most to you?",
     };
   }
 
@@ -368,19 +370,14 @@ export function checkValuesAlignment(
   for (const value of values) {
     // Simple keyword matching for now
     // TODO: Use semantic similarity
-    if (
-      actionLower.includes(value.value.toLowerCase()) ||
-      actionLower.includes(value.domain)
-    ) {
+    if (actionLower.includes(value.value.toLowerCase()) || actionLower.includes(value.domain)) {
       alignedValues.push(value.value);
     }
   }
 
   // Calculate alignment score
   const topValues = getTopValues(userId, 3);
-  const alignsWithTop = topValues.some((v) =>
-    actionLower.includes(v.value.toLowerCase())
-  );
+  const alignsWithTop = topValues.some((v) => actionLower.includes(v.value.toLowerCase()));
 
   const alignmentScore = alignsWithTop ? 0.8 : alignedValues.length > 0 ? 0.5 : 0.3;
 
@@ -496,17 +493,19 @@ export function buildValuesContext(userId: string): string | null {
   const topValues = getTopValues(userId, 5);
   const pendingActions = getPendingActions(userId);
 
-  const lines: string[] = [
-    '[💎 THEIR VALUES]',
-    '',
-  ];
+  const lines: string[] = ['[💎 THEIR VALUES]', ''];
 
   if (topValues.length > 0) {
     lines.push('What matters most to them:');
     for (const v of topValues) {
       let line = `• ${v.value} (${v.domain})`;
       if (v.currentAlignment !== undefined) {
-        const aligned = v.currentAlignment >= 7 ? '✓ living it' : v.currentAlignment >= 4 ? '~ working on it' : '⚠ gap';
+        const aligned =
+          v.currentAlignment >= 7
+            ? '✓ living it'
+            : v.currentAlignment >= 4
+              ? '~ working on it'
+              : '⚠ gap';
         line += ` [${aligned}]`;
       }
       lines.push(line);
@@ -528,4 +527,3 @@ export function buildValuesContext(userId: string): string | null {
 }
 
 // All constants are exported at their definitions above
-

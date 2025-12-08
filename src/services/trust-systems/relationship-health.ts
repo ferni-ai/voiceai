@@ -73,7 +73,12 @@ export interface HealthTrend {
 
 export interface RelationshipMilestone {
   id: string;
-  type: 'first_callback' | 'boundary_respected' | 'growth_noticed' | 'deep_share' | 'trust_level_up';
+  type:
+    | 'first_callback'
+    | 'boundary_respected'
+    | 'growth_noticed'
+    | 'deep_share'
+    | 'trust_level_up';
   description: string;
   achievedAt: Date;
   score: number;
@@ -84,13 +89,13 @@ export interface RelationshipMilestone {
 // ============================================================================
 
 const FACTOR_WEIGHTS: Record<string, number> = {
-  boundaryRespect: 0.20, // 20% - Critical for trust
+  boundaryRespect: 0.2, // 20% - Critical for trust
   emotionalAttunement: 0.18, // 18% - Core to connection
   growthAcknowledgment: 0.15, // 15% - Shows we notice
   callbackSuccess: 0.12, // 12% - Shared history matters
   outreachReception: 0.12, // 12% - Proactive care
   sessionDepth: 0.13, // 13% - Meaningful conversations
-  consistency: 0.10, // 10% - Regular engagement
+  consistency: 0.1, // 10% - Regular engagement
 };
 
 // ============================================================================
@@ -194,8 +199,7 @@ export function calculateGrowthAcknowledgment(
 
   // Big bonus for sharing and it landing well
   if (metrics.growthReflectionsShared > 0) {
-    const wellReceivedRate =
-      metrics.reflectionsReceivedWell / metrics.growthReflectionsShared;
+    const wellReceivedRate = metrics.reflectionsReceivedWell / metrics.growthReflectionsShared;
     score += wellReceivedRate * 40;
   }
 
@@ -240,7 +244,7 @@ export function calculateOutreachReception(
   const ignoreRate = metrics.outreachIgnored / metrics.outreachSent;
 
   // Good engagement = high score, ignoring = lower
-  let score = 50 + engagementRate * 50 - ignoreRate * 20;
+  const score = 50 + engagementRate * 50 - ignoreRate * 20;
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }
@@ -296,8 +300,7 @@ export function calculateConsistency(
   }
 
   const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
-  const gapVariance =
-    gaps.reduce((sum, g) => sum + Math.pow(g - avgGap, 2), 0) / gaps.length;
+  const gapVariance = gaps.reduce((sum, g) => sum + Math.pow(g - avgGap, 2), 0) / gaps.length;
 
   // Consistent, regular engagement = higher score
   // Too long gaps or irregular = lower
@@ -442,8 +445,7 @@ function calculateFactorTrend(
   if (!history || history.length < 3) return 'stable';
 
   // Compare current to average of last 5
-  const recentAvg =
-    history.slice(-5).reduce((a, b) => a + b, 0) / Math.min(history.length, 5);
+  const recentAvg = history.slice(-5).reduce((a, b) => a + b, 0) / Math.min(history.length, 5);
 
   const diff = currentScore - recentAvg;
 
@@ -503,9 +505,7 @@ function generateAlerts(
   // Check for declining factors
   for (const factor of factors) {
     if (factor.trend === 'declining' && factor.score < 40) {
-      const existingAlert = existingAlerts.find(
-        (a) => a.factor === factor.name && !a.acknowledged
-      );
+      const existingAlert = existingAlerts.find((a) => a.factor === factor.name && !a.acknowledged);
 
       if (!existingAlert) {
         alerts.push({
@@ -545,7 +545,7 @@ function generateAlerts(
 function getAlertMessage(factor: string, score: number): string {
   const messages: Record<string, string> = {
     boundaryRespect: 'Some boundaries may have been crossed',
-    emotionalAttunement: "Missing emotional cues more often",
+    emotionalAttunement: 'Missing emotional cues more often',
     growthAcknowledgment: "Haven't noticed growth patterns recently",
     callbackSuccess: 'Callbacks not landing well lately',
     outreachReception: 'Check-ins being ignored more often',
@@ -718,4 +718,3 @@ export default {
   calculateSessionDepth,
   calculateConsistency,
 };
-

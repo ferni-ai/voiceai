@@ -40,7 +40,8 @@ export interface ExperimentAlertConfig {
 }
 
 const DEFAULT_ALERT_CONFIG: ExperimentAlertConfig = {
-  slackWebhookUrl: process.env.SLACK_EXPERIMENTS_WEBHOOK_URL || process.env.SLACK_ALERTS_WEBHOOK_URL,
+  slackWebhookUrl:
+    process.env.SLACK_EXPERIMENTS_WEBHOOK_URL || process.env.SLACK_ALERTS_WEBHOOK_URL,
   emailRecipients: process.env.EXPERIMENT_ALERT_EMAILS?.split(',').filter(Boolean),
   alertOnConclusion: true,
   alertOnSignificance: true,
@@ -67,7 +68,8 @@ export async function sendExperimentConclusionAlert(
 ): Promise<void> {
   if (!alertConfig.alertOnConclusion) return;
 
-  const improvement = experiment.metrics.engagement.treatment - experiment.metrics.engagement.control;
+  const improvement =
+    experiment.metrics.engagement.treatment - experiment.metrics.engagement.control;
   const improvementPct = (improvement * 100).toFixed(1);
   const confidencePct = ((experiment.winnerConfidence || 0) * 100).toFixed(0);
 
@@ -153,7 +155,7 @@ async function sendEmailAlert(message: Record<string, unknown>): Promise<void> {
   if (!alertConfig.emailRecipients?.length) return;
 
   try {
-    const { sendEmail } = await import('../communication/service.js');
+    const { sendEmail } = await import('../communication-service.js');
 
     const subject = `🧪 ${message.title}`;
     const body = `
@@ -178,7 +180,10 @@ This is an automated alert from Ferni's A/B testing system.
       await sendEmail(recipient, subject, body, false);
     }
 
-    logger.info({ recipients: alertConfig.emailRecipients }, '📧 Email alerts sent for experiment conclusion');
+    logger.info(
+      { recipients: alertConfig.emailRecipients },
+      '📧 Email alerts sent for experiment conclusion'
+    );
   } catch (error) {
     logger.warn({ error: String(error) }, 'Failed to send email alert');
   }
@@ -405,15 +410,19 @@ export function getBanditVariant(
 /**
  * Thompson Sampling: Sample from posterior and pick the higher one
  */
-function thompsonSampling(engagement: PersonaExperiment['metrics']['engagement']): 'control' | 'treatment' {
+function thompsonSampling(
+  engagement: PersonaExperiment['metrics']['engagement']
+): 'control' | 'treatment' {
   const priorAlpha = 1;
   const priorBeta = 1;
 
   const controlAlpha = priorAlpha + Math.round(engagement.control * engagement.controlN);
-  const controlBeta = priorBeta + engagement.controlN - Math.round(engagement.control * engagement.controlN);
+  const controlBeta =
+    priorBeta + engagement.controlN - Math.round(engagement.control * engagement.controlN);
 
   const treatmentAlpha = priorAlpha + Math.round(engagement.treatment * engagement.treatmentN);
-  const treatmentBeta = priorBeta + engagement.treatmentN - Math.round(engagement.treatment * engagement.treatmentN);
+  const treatmentBeta =
+    priorBeta + engagement.treatmentN - Math.round(engagement.treatment * engagement.treatmentN);
 
   const controlSample = betaSample(controlAlpha, controlBeta);
   const treatmentSample = betaSample(treatmentAlpha, treatmentBeta);
@@ -424,14 +433,15 @@ function thompsonSampling(engagement: PersonaExperiment['metrics']['engagement']
 /**
  * Upper Confidence Bound: Pick arm with highest optimistic estimate
  */
-function upperConfidenceBound(engagement: PersonaExperiment['metrics']['engagement']): 'control' | 'treatment' {
+function upperConfidenceBound(
+  engagement: PersonaExperiment['metrics']['engagement']
+): 'control' | 'treatment' {
   const totalN = engagement.controlN + engagement.treatmentN;
   if (totalN === 0) return Math.random() < 0.5 ? 'control' : 'treatment';
 
   // UCB1 formula: mean + sqrt(2 * ln(total) / arm_pulls)
   const controlUCB =
-    engagement.control +
-    Math.sqrt((2 * Math.log(totalN + 1)) / Math.max(1, engagement.controlN));
+    engagement.control + Math.sqrt((2 * Math.log(totalN + 1)) / Math.max(1, engagement.controlN));
 
   const treatmentUCB =
     engagement.treatment +
@@ -505,10 +515,7 @@ export function scheduleExperiment(
     logger.info('Experiment schedule checker started');
   }
 
-  logger.info(
-    { experimentId, schedule },
-    '📅 Experiment scheduled'
-  );
+  logger.info({ experimentId, schedule }, '📅 Experiment scheduled');
 }
 
 /**
@@ -579,10 +586,15 @@ async function checkSchedules(): Promise<void> {
         experiment.endedAt = new Date();
 
         // Determine winner
-        const diff = experiment.metrics.engagement.treatment - experiment.metrics.engagement.control;
-        experiment.winner = Math.abs(diff) > 0.02 ? (diff > 0 ? 'treatment' : 'control') : 'inconclusive';
+        const diff =
+          experiment.metrics.engagement.treatment - experiment.metrics.engagement.control;
+        experiment.winner =
+          Math.abs(diff) > 0.02 ? (diff > 0 ? 'treatment' : 'control') : 'inconclusive';
 
-        logger.info({ experimentId, personaId, winner: experiment.winner }, '📅 Scheduled experiment ended');
+        logger.info(
+          { experimentId, personaId, winner: experiment.winner },
+          '📅 Scheduled experiment ended'
+        );
 
         await sendExperimentConclusionAlert(experiment, personaId);
 
@@ -781,16 +793,14 @@ export function getSegmentAnalysis(experimentId: string): SegmentResult[] {
       continue; // Need minimum samples
     }
 
-    const controlMean =
-      data.control.scores.reduce((a, b) => a + b, 0) / data.control.n;
-    const treatmentMean =
-      data.treatment.scores.reduce((a, b) => a + b, 0) / data.treatment.n;
+    const controlMean = data.control.scores.reduce((a, b) => a + b, 0) / data.control.n;
+    const treatmentMean = data.treatment.scores.reduce((a, b) => a + b, 0) / data.treatment.n;
     const improvement = treatmentMean - controlMean;
 
     // Calculate p-value using two-sample z-test
     const pooledStdErr = Math.sqrt(
-      (variance(data.control.scores) / data.control.n) +
-        (variance(data.treatment.scores) / data.treatment.n)
+      variance(data.control.scores) / data.control.n +
+        variance(data.treatment.scores) / data.treatment.n
     );
     const zScore = pooledStdErr > 0 ? improvement / pooledStdErr : 0;
     const pValue = 2 * (1 - normalCDF(Math.abs(zScore))); // Two-tailed
@@ -869,4 +879,3 @@ export default {
   recordSegmentMetric,
   getSegmentAnalysis,
 };
-

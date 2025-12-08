@@ -55,37 +55,40 @@ Use when user says things like:
 - "Can we play a music game?"`,
       domain: 'games',
       tags: ['games', 'music', 'interactive', 'fun'],
-      create: (ctx: ToolContext) => llm.tool({
-        description: 'Start a music game',
-        parameters: z.object({
-          gameType: z.enum([
-            'name-that-tune',
-            'one-word-song',
-            'desert-island-discs',
-            'this-or-that',
-            'mood-dj-challenge',
-          ]).describe('Which game to play'),
-          rounds: z.number().optional().describe('Number of rounds (default varies by game)'),
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'Start a music game',
+          parameters: z.object({
+            gameType: z
+              .enum([
+                'name-that-tune',
+                'one-word-song',
+                'desert-island-discs',
+                'this-or-that',
+                'mood-dj-challenge',
+              ])
+              .describe('Which game to play'),
+            rounds: z.number().optional().describe('Number of rounds (default varies by game)'),
+          }),
+          execute: async ({ gameType, rounds }) => {
+            try {
+              const personaId = ctx.agentId || 'ferni';
+              const gameEngine = getGameEngine(personaId);
+
+              const config = rounds ? { rounds } : undefined;
+              const welcomeMessage = await gameEngine.startGame(
+                gameType as GameType,
+                config as Record<string, unknown>
+              );
+
+              log.info({ gameType, personaId }, '🎮 Game started');
+              return welcomeMessage;
+            } catch (error) {
+              log.error({ error, gameType }, '🎮 Failed to start game');
+              return `I couldn't start that game right now. Want to try a different one?`;
+            }
+          },
         }),
-        execute: async ({ gameType, rounds }) => {
-          try {
-            const personaId = ctx.agentId || 'ferni';
-            const gameEngine = getGameEngine(personaId);
-            
-            const config = rounds ? { rounds } : undefined;
-            const welcomeMessage = await gameEngine.startGame(
-              gameType as GameType,
-              config as Record<string, unknown>
-            );
-            
-            log.info({ gameType, personaId }, '🎮 Game started');
-            return welcomeMessage;
-          } catch (error) {
-            log.error({ error, gameType }, '🎮 Failed to start game');
-            return `I couldn't start that game right now. Want to try a different one?`;
-          }
-        },
-      }),
     },
 
     {
@@ -102,40 +105,41 @@ Use when:
 - User rates your song pick (1-5)`,
       domain: 'games',
       tags: ['games', 'answer', 'interactive'],
-      create: (ctx: ToolContext) => llm.tool({
-        description: 'Submit answer in current game',
-        parameters: z.object({
-          answer: z.string().describe('The user\'s answer, choice, or input'),
-        }),
-        execute: async ({ answer }) => {
-          const personaId = ctx.agentId || 'ferni';
-          const gameEngine = getGameEngine(personaId);
-          
-          if (!gameEngine.isGameActive()) {
-            return "We're not playing a game right now. Want to start one?";
-          }
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'Submit answer in current game',
+          parameters: z.object({
+            answer: z.string().describe("The user's answer, choice, or input"),
+          }),
+          execute: async ({ answer }) => {
+            const personaId = ctx.agentId || 'ferni';
+            const gameEngine = getGameEngine(personaId);
 
-          try {
-            const result = await gameEngine.submitAnswer(answer);
-            
-            let response = result.feedback;
-            
-            if (result.gameOver) {
-              response += `\n\n🏆 Game Over! Final score: ${result.finalScore} points!`;
-              
-              const state = gameEngine.getState();
-              if (result.finalScore && result.finalScore >= state.highScore) {
-                response += `\n🎉 That's a new high score!`;
-              }
+            if (!gameEngine.isGameActive()) {
+              return "We're not playing a game right now. Want to start one?";
             }
-            
-            return response;
-          } catch (error) {
-            log.error({ error }, '🎮 Failed to submit answer');
-            return "Something went wrong. Try your answer again?";
-          }
-        },
-      }),
+
+            try {
+              const result = await gameEngine.submitAnswer(answer);
+
+              let response = result.feedback;
+
+              if (result.gameOver) {
+                response += `\n\n🏆 Game Over! Final score: ${result.finalScore} points!`;
+
+                const state = gameEngine.getState();
+                if (result.finalScore && result.finalScore >= state.highScore) {
+                  response += `\n🎉 That's a new high score!`;
+                }
+              }
+
+              return response;
+            } catch (error) {
+              log.error({ error }, '🎮 Failed to submit answer');
+              return 'Something went wrong. Try your answer again?';
+            }
+          },
+        }),
     },
 
     {
@@ -145,21 +149,22 @@ Use when:
 Use when user says "hint", "help", "I don't know", or seems stuck.`,
       domain: 'games',
       tags: ['games', 'hint', 'help'],
-      create: (ctx: ToolContext) => llm.tool({
-        description: 'Get a hint for the current game',
-        parameters: z.object({}),
-        execute: async () => {
-          const personaId = ctx.agentId || 'ferni';
-          const gameEngine = getGameEngine(personaId);
-          
-          if (!gameEngine.isGameActive()) {
-            return "We're not playing a game right now!";
-          }
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'Get a hint for the current game',
+          parameters: z.object({}),
+          execute: async () => {
+            const personaId = ctx.agentId || 'ferni';
+            const gameEngine = getGameEngine(personaId);
 
-          const hint = gameEngine.getHint();
-          return hint || "I don't have any more hints! Take your best guess!";
-        },
-      }),
+            if (!gameEngine.isGameActive()) {
+              return "We're not playing a game right now!";
+            }
+
+            const hint = gameEngine.getHint();
+            return hint || "I don't have any more hints! Take your best guess!";
+          },
+        }),
     },
 
     {
@@ -169,26 +174,27 @@ Use when user says "hint", "help", "I don't know", or seems stuck.`,
 Use when user says "skip", "pass", "next", or wants to move on.`,
       domain: 'games',
       tags: ['games', 'skip', 'next'],
-      create: (ctx: ToolContext) => llm.tool({
-        description: 'Skip the current round',
-        parameters: z.object({}),
-        execute: async () => {
-          const personaId = ctx.agentId || 'ferni';
-          const gameEngine = getGameEngine(personaId);
-          
-          if (!gameEngine.isGameActive()) {
-            return "We're not playing a game right now!";
-          }
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'Skip the current round',
+          parameters: z.object({}),
+          execute: async () => {
+            const personaId = ctx.agentId || 'ferni';
+            const gameEngine = getGameEngine(personaId);
 
-          try {
-            const result = await gameEngine.skipRound();
-            return result.feedback;
-          } catch (error) {
-            log.error({ error }, '🎮 Failed to skip round');
-            return "Couldn't skip that round. Try again?";
-          }
-        },
-      }),
+            if (!gameEngine.isGameActive()) {
+              return "We're not playing a game right now!";
+            }
+
+            try {
+              const result = await gameEngine.skipRound();
+              return result.feedback;
+            } catch (error) {
+              log.error({ error }, '🎮 Failed to skip round');
+              return "Couldn't skip that round. Try again?";
+            }
+          },
+        }),
     },
 
     {
@@ -198,21 +204,22 @@ Use when user says "skip", "pass", "next", or wants to move on.`,
 Use when user says "stop", "quit", "end game", or wants to do something else.`,
       domain: 'games',
       tags: ['games', 'end', 'quit'],
-      create: (ctx: ToolContext) => llm.tool({
-        description: 'End the current game',
-        parameters: z.object({}),
-        execute: async () => {
-          const personaId = ctx.agentId || 'ferni';
-          const gameEngine = getGameEngine(personaId);
-          
-          if (!gameEngine.isGameActive()) {
-            return "We're not playing a game right now!";
-          }
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'End the current game',
+          parameters: z.object({}),
+          execute: async () => {
+            const personaId = ctx.agentId || 'ferni';
+            const gameEngine = getGameEngine(personaId);
 
-          const session = gameEngine.endGame();
-          return `Game over! You scored ${session.score} points in ${session.roundsPlayed} rounds.\n\nWant to play again or do something else?`;
-        },
-      }),
+            if (!gameEngine.isGameActive()) {
+              return "We're not playing a game right now!";
+            }
+
+            const session = gameEngine.endGame();
+            return `Game over! You scored ${session.score} points in ${session.roundsPlayed} rounds.\n\nWant to play again or do something else?`;
+          },
+        }),
     },
 
     // ========================================
@@ -225,24 +232,27 @@ Use when user says "stop", "quit", "end game", or wants to do something else.`,
 Use when user asks "what's the score?", "what round?", "how am I doing?"`,
       domain: 'games',
       tags: ['games', 'status', 'score'],
-      create: (ctx: ToolContext) => llm.tool({
-        description: 'Get current game status',
-        parameters: z.object({}),
-        execute: async () => {
-          const personaId = ctx.agentId || 'ferni';
-          const gameEngine = getGameEngine(personaId);
-          const state = gameEngine.getState();
-          
-          if (state.status === 'idle') {
-            return "We're not playing a game right now. Want to start one?";
-          }
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'Get current game status',
+          parameters: z.object({}),
+          execute: async () => {
+            const personaId = ctx.agentId || 'ferni';
+            const gameEngine = getGameEngine(personaId);
+            const state = gameEngine.getState();
 
-          return `🎮 Current Game: ${state.gameType}\n` +
-            `📊 Score: ${state.score} points\n` +
-            `🔄 Round: ${state.currentRound} of ${state.totalRounds}\n` +
-            `🏆 High Score: ${state.highScore}`;
-        },
-      }),
+            if (state.status === 'idle') {
+              return "We're not playing a game right now. Want to start one?";
+            }
+
+            return (
+              `🎮 Current Game: ${state.gameType}\n` +
+              `📊 Score: ${state.score} points\n` +
+              `🔄 Round: ${state.currentRound} of ${state.totalRounds}\n` +
+              `🏆 High Score: ${state.highScore}`
+            );
+          },
+        }),
     },
 
     {
@@ -252,26 +262,29 @@ Use when user asks "what's the score?", "what round?", "how am I doing?"`,
 Use when user asks "how many games have I played?", "what's my best score?"`,
       domain: 'games',
       tags: ['games', 'history', 'stats'],
-      create: (ctx: ToolContext) => llm.tool({
-        description: 'Get game history and stats',
-        parameters: z.object({}),
-        execute: async () => {
-          const personaId = ctx.agentId || 'ferni';
-          const gameEngine = getGameEngine(personaId);
-          const history = gameEngine.getHistory();
-          
-          if (history.sessionGames.length === 0) {
-            return "You haven't played any games this session! Want to start one?";
-          }
+      create: (ctx: ToolContext) =>
+        llm.tool({
+          description: 'Get game history and stats',
+          parameters: z.object({}),
+          execute: async () => {
+            const personaId = ctx.agentId || 'ferni';
+            const gameEngine = getGameEngine(personaId);
+            const history = gameEngine.getHistory();
 
-          const sessionSummary = history.sessionGames
-            .map(g => `• ${g.gameType}: ${g.score} points`)
-            .join('\n');
+            if (history.sessionGames.length === 0) {
+              return "You haven't played any games this session! Want to start one?";
+            }
 
-          return `🎮 Games This Session:\n${sessionSummary}\n\n` +
-            `Total games: ${history.sessionGames.length}`;
-        },
-      }),
+            const sessionSummary = history.sessionGames
+              .map((g) => `• ${g.gameType}: ${g.score} points`)
+              .join('\n');
+
+            return (
+              `🎮 Games This Session:\n${sessionSummary}\n\n` +
+              `Total games: ${history.sessionGames.length}`
+            );
+          },
+        }),
     },
 
     {
@@ -281,40 +294,43 @@ Use when user asks "how many games have I played?", "what's my best score?"`,
 Use proactively during lulls or when user seems like they want to do something fun.`,
       domain: 'games',
       tags: ['games', 'suggest', 'proactive'],
-      create: (_ctx: ToolContext) => llm.tool({
-        description: 'Suggest a game based on mood',
-        parameters: z.object({
-          context: z.enum(['energetic', 'relaxed', 'competitive', 'creative', 'social']).optional()
-            .describe('The vibe/context for the suggestion'),
-        }),
-        execute: async ({ context }) => {
-          const suggestions: Record<string, { game: string; pitch: string }> = {
-            energetic: {
-              game: 'name-that-tune',
-              pitch: "How about Name That Tune? Let's test your music knowledge!",
-            },
-            relaxed: {
-              game: 'desert-island-discs',
-              pitch: "Want to play Desert Island Discs? Pick 5 songs you'd bring to an island.",
-            },
-            competitive: {
-              game: 'name-that-tune',
-              pitch: "Feeling competitive? Let's do Name That Tune and see your high score!",
-            },
-            creative: {
-              game: 'mood-dj-challenge',
-              pitch: "Try Mood DJ Challenge! Describe a scenario and I'll find the perfect song.",
-            },
-            social: {
-              game: 'this-or-that',
-              pitch: "Let's play This or That! I'll play two songs, you pick your favorite.",
-            },
-          };
+      create: (_ctx: ToolContext) =>
+        llm.tool({
+          description: 'Suggest a game based on mood',
+          parameters: z.object({
+            context: z
+              .enum(['energetic', 'relaxed', 'competitive', 'creative', 'social'])
+              .optional()
+              .describe('The vibe/context for the suggestion'),
+          }),
+          execute: async ({ context }) => {
+            const suggestions: Record<string, { game: string; pitch: string }> = {
+              energetic: {
+                game: 'name-that-tune',
+                pitch: "How about Name That Tune? Let's test your music knowledge!",
+              },
+              relaxed: {
+                game: 'desert-island-discs',
+                pitch: "Want to play Desert Island Discs? Pick 5 songs you'd bring to an island.",
+              },
+              competitive: {
+                game: 'name-that-tune',
+                pitch: "Feeling competitive? Let's do Name That Tune and see your high score!",
+              },
+              creative: {
+                game: 'mood-dj-challenge',
+                pitch: "Try Mood DJ Challenge! Describe a scenario and I'll find the perfect song.",
+              },
+              social: {
+                game: 'this-or-that',
+                pitch: "Let's play This or That! I'll play two songs, you pick your favorite.",
+              },
+            };
 
-          const suggestion = suggestions[context || 'relaxed'] || suggestions.relaxed;
-          return suggestion.pitch;
-        },
-      }),
+            const suggestion = suggestions[context || 'relaxed'] || suggestions.relaxed;
+            return suggestion.pitch;
+          },
+        }),
     },
   ];
 }
@@ -325,12 +341,8 @@ Use proactively during lulls or when user seems like they want to do something f
 
 const gamesTools: ToolDefinition[] = createGameToolDefinitions();
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'games',
-  gamesTools
-);
+export const { getToolDefinitions, domain, definitions } = createDomainExport('games', gamesTools);
 
 export { createGameToolDefinitions };
 
 export default getToolDefinitions;
-

@@ -94,15 +94,15 @@ export function getMusicGameImplementation(
 class NameThatTuneGame implements IGameImplementation {
   private personaId: string;
   private djStyle: ReturnType<typeof getDJStyle>;
-  
+
   // Dynamic song bank loaded from iTunes
   private songBank: GameTrack[] = [];
-  private currentSongIndex: number = 0;
-  
+  private currentSongIndex = 0;
+
   // ✨ Intelligence context
   private selectionContext: SongSelectionContext | null = null;
-  private correctInARow: number = 0;
-  private wrongInARow: number = 0;
+  private correctInARow = 0;
+  private wrongInARow = 0;
 
   constructor(personaId: string) {
     this.personaId = personaId;
@@ -115,23 +115,23 @@ class NameThatTuneGame implements IGameImplementation {
     welcomeMessage: string;
   }> {
     const rounds = (config?.rounds as number) || 5;
-    
+
     // ✨ Get intelligence context for smart song selection
     if (sharedGameMemory) {
       this.selectionContext = getSongSelectionContext(sharedGameMemory);
       log.debug({ context: this.selectionContext }, '🧠 Got song selection context');
     }
-    
+
     // 🎵 ACTUALLY LOAD SONGS from iTunes!
     log.info({ rounds }, '🎮 Loading Name That Tune songs from iTunes...');
     this.songBank = await getRandomGameSongs(rounds + 3); // Extra in case some fail
-    
+
     if (this.songBank.length === 0) {
       log.warn('🎮 No songs loaded, game may not work properly');
     } else {
       log.info({ count: this.songBank.length }, '🎮 Songs loaded for Name That Tune');
     }
-    
+
     // Pick first song
     const firstSong = this.songBank[0] || {
       name: 'Bohemian Rhapsody',
@@ -170,23 +170,23 @@ class NameThatTuneGame implements IGameImplementation {
   ): Promise<GameResult> {
     const data = gameData as unknown as NameThatTuneData;
     const normalized = answer.toLowerCase().trim();
-    
+
     // 🎵 Stop the music for the reveal!
     await fadeOutGameTrack(1500);
-    
+
     // Check if answer matches song or artist
-    const isCorrect = data.acceptableAnswers.some(
-      acceptable => normalized.includes(acceptable.toLowerCase())
+    const isCorrect = data.acceptableAnswers.some((acceptable) =>
+      normalized.includes(acceptable.toLowerCase())
     );
 
     if (isCorrect) {
       // ✨ Track streak for richer feedback
       this.correctInARow++;
       this.wrongInARow = 0;
-      
-      const points = Math.max(100 - (data.hintsUsed * 25), 25);
+
+      const points = Math.max(100 - data.hintsUsed * 25, 25);
       let feedback = this.getCorrectFeedback(data.currentSong!);
-      
+
       // ✨ Add streak-aware commentary
       if (this.correctInARow === 3) {
         feedback = `🔥 Three in a row! ${feedback}`;
@@ -195,7 +195,7 @@ class NameThatTuneGame implements IGameImplementation {
       } else if (this.correctInARow >= 7) {
         feedback = `🔥🔥🔥 ${this.correctInARow} streak! Are you a DJ?! ${feedback}`;
       }
-      
+
       // ✨ Occasionally add musical DNA insight
       if (sharedGameMemory && round >= 3 && Math.random() < 0.15) {
         const dnaMessage = getMusicalDNAMessage(sharedGameMemory);
@@ -203,7 +203,7 @@ class NameThatTuneGame implements IGameImplementation {
           feedback = `${feedback}\n\n💭 ${dnaMessage}`;
         }
       }
-      
+
       return {
         correct: true,
         pointsEarned: points,
@@ -215,15 +215,15 @@ class NameThatTuneGame implements IGameImplementation {
     // ✨ Track misses for encouraging feedback
     this.wrongInARow++;
     this.correctInARow = 0;
-    
+
     let feedback = this.getWrongFeedback(data.currentSong!);
-    
+
     // ✨ Add encouraging words if struggling
     if (this.wrongInARow >= 3) {
       const encouragements = [
         "Don't worry, I'll find you something you might know better next...",
         "These are tricky ones! Let's try a different vibe.",
-        "Hang in there! Music knowledge is like a muscle.",
+        'Hang in there! Music knowledge is like a muscle.',
       ];
       feedback = `${feedback}\n\n${encouragements[Math.floor(Math.random() * encouragements.length)]}`;
     }
@@ -242,17 +242,17 @@ class NameThatTuneGame implements IGameImplementation {
     nextRound: number
   ): Promise<Record<string, unknown>> {
     const data = gameData as unknown as NameThatTuneData;
-    
+
     // Pick next song from our loaded bank
     this.currentSongIndex++;
     const nextSong = this.songBank[this.currentSongIndex] || this.songBank[0];
-    
+
     // 🎵 ACTUALLY PLAY the next song!
     if (nextSong.previewUrl && isMusicAvailable()) {
       log.info({ song: nextSong.name }, '🎮 Playing next Name That Tune song');
       await playGameTrack(nextSong);
     }
-    
+
     const newData: NameThatTuneData = {
       ...data,
       currentSong: {
@@ -264,14 +264,14 @@ class NameThatTuneGame implements IGameImplementation {
       hintsUsed: 0,
       playedSongs: [...data.playedSongs, nextSong.name],
     };
-    
+
     return newData as unknown as Record<string, unknown>;
   }
 
   getHint(gameData: Record<string, unknown>): string | null {
     const data = gameData as unknown as NameThatTuneData;
     const currentSong = this.songBank[this.currentSongIndex];
-    
+
     if (data.hintsUsed === 0) {
       data.hintsUsed++;
       // Try to determine decade from song bank
@@ -282,16 +282,16 @@ class NameThatTuneGame implements IGameImplementation {
       const firstLetter = data.currentSong!.artist[0];
       return `Another hint: The artist's name starts with "${firstLetter}"!`;
     }
-    
-    return "No more hints! Take your best guess!";
+
+    return 'No more hints! Take your best guess!';
   }
 
   async handleSkip(gameData: Record<string, unknown>): Promise<GameResult> {
     const data = gameData as unknown as NameThatTuneData;
-    
+
     // Stop the music
     stopGameTrack();
-    
+
     return {
       correct: false,
       pointsEarned: 0,
@@ -337,7 +337,7 @@ class NameThatTuneGame implements IGameImplementation {
 
     const styleIntros = intros[this.djStyle.style] || intros.warm;
     let message = styleIntros[Math.floor(Math.random() * styleIntros.length)];
-    
+
     // ✨ Add "we played before" memory context
     if (sharedGameMemory) {
       const stats = sharedGameMemory.gameStats['name-that-tune'];
@@ -355,7 +355,7 @@ class NameThatTuneGame implements IGameImplementation {
           message = `${memoryNote}\n\n${message}`;
         }
       }
-      
+
       // ✨ Add musical DNA insight for returning players
       if (stats && stats.gamesPlayed >= 5) {
         const dnaMessage = getMusicalDNAMessage(sharedGameMemory);
@@ -364,7 +364,7 @@ class NameThatTuneGame implements IGameImplementation {
         }
       }
     }
-    
+
     // 🎵 ACTUALLY PLAY the first song!
     if (firstSong.previewUrl && isMusicAvailable()) {
       log.info({ song: firstSong.name }, '🎮 Playing first Name That Tune song');
@@ -373,7 +373,7 @@ class NameThatTuneGame implements IGameImplementation {
     } else {
       message += `\n\n🎵 Here comes the first song! What is it?`;
     }
-    
+
     return message;
   }
 
@@ -391,35 +391,29 @@ class NameThatTuneGame implements IGameImplementation {
         `<break time="100ms"/>That's it! "${song.name}" by ${song.artist}. Well done!`,
         `<break time="100ms"/>Correct! ${song.artist} with "${song.name}". Nice!`,
       ],
-      playful: [
-        `<emotion value="happy"/>Ding ding ding! "${song.name}"! You're good at this!`,
-      ],
+      playful: [`<emotion value="happy"/>Ding ding ding! "${song.name}"! You're good at this!`],
     };
 
     const styleFeedbacks = feedbacks[this.djStyle.style] || feedbacks.warm;
-    return styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)] + 
-      `\n\n🎵 Ready for the next one?`;
+    return `${
+      styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)]
+    }\n\n🎵 Ready for the next one?`;
   }
 
   private getWrongFeedback(song: { name: string; artist: string }): string {
     const feedbacks: Record<string, string[]> = {
-      hype: [
-        `<break time="100ms"/>Ooh, not quite! That was "${song.name}" by ${song.artist}!`,
-      ],
-      chill: [
-        `<break time="150ms"/>Nope. That was ${song.artist} - "${song.name}".`,
-      ],
+      hype: [`<break time="100ms"/>Ooh, not quite! That was "${song.name}" by ${song.artist}!`],
+      chill: [`<break time="150ms"/>Nope. That was ${song.artist} - "${song.name}".`],
       warm: [
         `<break time="100ms"/>Close! It was "${song.name}" by ${song.artist}. Good try though!`,
       ],
-      playful: [
-        `<break time="100ms"/>Aww! It was "${song.name}"! Tricky one!`,
-      ],
+      playful: [`<break time="100ms"/>Aww! It was "${song.name}"! Tricky one!`],
     };
 
     const styleFeedbacks = feedbacks[this.djStyle.style] || feedbacks.warm;
-    return styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)] +
-      `\n\n🎵 Let's try another!`;
+    return `${
+      styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)]
+    }\n\n🎵 Let's try another!`;
   }
 }
 
@@ -461,10 +455,7 @@ class OneWordSongGame implements IGameImplementation {
     };
   }
 
-  async evaluateAnswer(
-    answer: string,
-    gameData: Record<string, unknown>,
-  ): Promise<GameResult> {
+  async evaluateAnswer(answer: string, gameData: Record<string, unknown>): Promise<GameResult> {
     const data = gameData as unknown as OneWordSongData;
     const word = answer.toLowerCase().trim();
 
@@ -514,9 +505,7 @@ class OneWordSongGame implements IGameImplementation {
     };
   }
 
-  async setupNextRound(
-    gameData: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+  async setupNextRound(gameData: Record<string, unknown>): Promise<Record<string, unknown>> {
     const data = gameData as unknown as OneWordSongData;
     return {
       ...data,
@@ -566,23 +555,18 @@ class OneWordSongGame implements IGameImplementation {
 
   private getFoundFeedback(word: string, song: { name: string; artist: string }): string {
     const feedbacks: Record<string, string[]> = {
-      hype: [
-        `<emotion value="happy"/>"${word}"? Easy! Here's "${song.name}" by ${song.artist}!`,
-      ],
-      chill: [
-        `<break time="100ms"/>"${word}"... got one. "${song.name}" by ${song.artist}.`,
-      ],
+      hype: [`<emotion value="happy"/>"${word}"? Easy! Here's "${song.name}" by ${song.artist}!`],
+      chill: [`<break time="100ms"/>"${word}"... got one. "${song.name}" by ${song.artist}.`],
       warm: [
         `<break time="100ms"/>"${word}"! Nice choice. Here's "${song.name}" by ${song.artist}!`,
       ],
-      playful: [
-        `<emotion value="happy"/>"${word}"?! Oh I got you! "${song.name}"!`,
-      ],
+      playful: [`<emotion value="happy"/>"${word}"?! Oh I got you! "${song.name}"!`],
     };
 
     const styleFeedbacks = feedbacks[this.djStyle.style] || feedbacks.warm;
-    return styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)] +
-      '\n\n🎵 Playing now! Give me another word when you\'re ready!';
+    return `${
+      styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)]
+    }\n\n🎵 Playing now! Give me another word when you're ready!`;
   }
 
   private getNotFoundFeedback(word: string): string {
@@ -603,12 +587,12 @@ class DesertIslandDiscsGame implements IGameImplementation {
   private djStyle: ReturnType<typeof getDJStyle>;
 
   private prompts = [
-    "If you could only listen to 5 songs for the rest of your life on a desert island, what would they be?",
+    'If you could only listen to 5 songs for the rest of your life on a desert island, what would they be?',
     "What's your first pick? A song that you could listen to forever?",
     "What's your second song? Maybe something that means a lot to you?",
     "Third song - what's a track that never gets old for you?",
     "Fourth pick! We're almost there. What's essential?",
-    "Last one! Your fifth and final desert island song. Make it count!",
+    'Last one! Your fifth and final desert island song. Make it count!',
   ];
 
   constructor(personaId: string) {
@@ -640,19 +624,19 @@ class DesertIslandDiscsGame implements IGameImplementation {
     round: number
   ): Promise<GameResult> {
     const data = gameData as unknown as DesertIslandDiscsData;
-    
+
     // User is telling us a song - try to find and play it!
     const songName = answer.trim();
-    
+
     // 🎵 Search for and play the song they picked!
     const result = await searchSong(songName);
-    
+
     if (result.found && result.track) {
       data.pickedSongs.push({
         name: result.track.name,
         artist: result.track.artist,
       });
-      
+
       // Play a clip of their pick!
       if (result.track.previewUrl && isMusicAvailable()) {
         log.info({ song: result.track.name }, '🎮 Playing Desert Island pick');
@@ -669,16 +653,16 @@ class DesertIslandDiscsGame implements IGameImplementation {
 
     if (isLastPick) {
       stopGameTrack();
-      
+
       // ✨ Save Desert Island picks to memory - these are meaningful!
       if (sharedGameMemory) {
-        sharedGameMemory.desertIslandPicks = data.pickedSongs.map(s => 
+        sharedGameMemory.desertIslandPicks = data.pickedSongs.map((s) =>
           s.artist ? `${s.name} by ${s.artist}` : s.name
         );
         sharedGameMemory.updatedAt = new Date();
         log.info({ picks: sharedGameMemory.desertIslandPicks }, '🏝️ Saved Desert Island picks');
       }
-      
+
       return {
         correct: true,
         pointsEarned: 100,
@@ -709,10 +693,10 @@ class DesertIslandDiscsGame implements IGameImplementation {
 
   getHint(): string | null {
     const hints = [
-      "Think about songs that have been with you through important moments.",
+      'Think about songs that have been with you through important moments.',
       "What song would you want to hear when you're happy? When you're sad?",
-      "Is there a song that reminds you of someone special?",
-      "What song makes you feel most like yourself?",
+      'Is there a song that reminds you of someone special?',
+      'What song makes you feel most like yourself?',
     ];
     return hints[Math.floor(Math.random() * hints.length)];
   }
@@ -721,7 +705,7 @@ class DesertIslandDiscsGame implements IGameImplementation {
     return {
       correct: false,
       pointsEarned: 0,
-      feedback: "Take your time! This is a big decision. What song comes to mind?",
+      feedback: 'Take your time! This is a big decision. What song comes to mind?',
       gameOver: false,
     };
   }
@@ -747,7 +731,7 @@ class DesertIslandDiscsGame implements IGameImplementation {
 
     const styleIntros = intros[this.djStyle.style] || intros.warm;
     let message = styleIntros[Math.floor(Math.random() * styleIntros.length)];
-    
+
     // ✨ Reference previous picks if they've played before
     if (sharedGameMemory?.desertIslandPicks && sharedGameMemory.desertIslandPicks.length > 0) {
       const previousPicks = sharedGameMemory.desertIslandPicks.slice(0, 2);
@@ -759,24 +743,18 @@ class DesertIslandDiscsGame implements IGameImplementation {
       const reminder = reminderPhrases[Math.floor(Math.random() * reminderPhrases.length)];
       message = `${reminder}\n\n${message}`;
     }
-    
+
     return message;
   }
 
   private getPickFeedback(songName: string, pickNumber: number): string {
     const feedbacks: Record<string, string[]> = {
-      hype: [
-        `<emotion value="happy"/>"${songName}"! Great choice! ${5 - pickNumber} more to go!`,
-      ],
-      chill: [
-        `<break time="100ms"/>"${songName}". Nice. ${5 - pickNumber} left.`,
-      ],
+      hype: [`<emotion value="happy"/>"${songName}"! Great choice! ${5 - pickNumber} more to go!`],
+      chill: [`<break time="100ms"/>"${songName}". Nice. ${5 - pickNumber} left.`],
       warm: [
         `<break time="100ms"/>"${songName}" - I love it! ${5 - pickNumber} more picks. What's next?`,
       ],
-      playful: [
-        `<emotion value="happy"/>"${songName}"! Yes! ${5 - pickNumber} to go!`,
-      ],
+      playful: [`<emotion value="happy"/>"${songName}"! Yes! ${5 - pickNumber} to go!`],
     };
 
     const styleFeedbacks = feedbacks[this.djStyle.style] || feedbacks.warm;
@@ -784,8 +762,10 @@ class DesertIslandDiscsGame implements IGameImplementation {
   }
 
   private getFinalFeedback(songs: Array<{ name: string; artist?: string }>): string {
-    const songList = songs.map((s, i) => `${i + 1}. ${s.name}${s.artist ? ` by ${s.artist}` : ''}`).join('\n');
-    
+    const songList = songs
+      .map((s, i) => `${i + 1}. ${s.name}${s.artist ? ` by ${s.artist}` : ''}`)
+      .join('\n');
+
     const outros: Record<string, string[]> = {
       hype: [
         `<emotion value="happy"/>Your Desert Island Playlist:\n${songList}\n\nThat's a FIRE playlist! You'd survive in style!`,
@@ -817,10 +797,10 @@ class DesertIslandDiscsGame implements IGameImplementation {
 class ThisOrThatGame implements IGameImplementation {
   private personaId: string;
   private djStyle: ReturnType<typeof getDJStyle>;
-  
+
   // Will be loaded dynamically
   private matchups: Array<{ songA: GameTrack; songB: GameTrack }> = [];
-  private currentMatchupIndex: number = 0;
+  private currentMatchupIndex = 0;
 
   // Fallback matchups if dynamic loading fails
   private fallbackMatchups = [
@@ -843,37 +823,43 @@ class ThisOrThatGame implements IGameImplementation {
   }> {
     // 🎵 Load matchups from iTunes
     log.info('🎮 Loading This or That matchups from iTunes...');
-    
+
     for (const fallback of this.fallbackMatchups) {
       const resultA = await searchSong(fallback.songA);
       const resultB = await searchSong(fallback.songB);
-      
+
       if (resultA.found && resultA.track && resultB.found && resultB.track) {
         this.matchups.push({
           songA: resultA.track,
           songB: resultB.track,
         });
       }
-      
+
       // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 100);
+      });
     }
-    
+
     log.info({ count: this.matchups.length }, '🎮 Loaded This or That matchups');
-    
+
     const firstMatchup = this.matchups[0];
-    
+
     const initialState: ThisOrThatData = {
-      songA: firstMatchup ? {
-        name: firstMatchup.songA.name,
-        artist: firstMatchup.songA.artist,
-        previewUrl: firstMatchup.songA.previewUrl,
-      } : null,
-      songB: firstMatchup ? {
-        name: firstMatchup.songB.name,
-        artist: firstMatchup.songB.artist,
-        previewUrl: firstMatchup.songB.previewUrl,
-      } : null,
+      songA: firstMatchup
+        ? {
+            name: firstMatchup.songA.name,
+            artist: firstMatchup.songA.artist,
+            previewUrl: firstMatchup.songA.previewUrl,
+          }
+        : null,
+      songB: firstMatchup
+        ? {
+            name: firstMatchup.songB.name,
+            artist: firstMatchup.songB.artist,
+            previewUrl: firstMatchup.songB.previewUrl,
+          }
+        : null,
       choices: [],
     };
 
@@ -891,22 +877,28 @@ class ThisOrThatGame implements IGameImplementation {
   ): Promise<GameResult> {
     const data = gameData as unknown as ThisOrThatData;
     const choice = answer.toLowerCase().trim();
-    
+
     // Stop current playback
     stopGameTrack();
-    
+
     let chosen: 'A' | 'B';
-    if (choice.includes('a') || choice.includes('first') || 
-        (data.songA && choice.includes(data.songA.name.toLowerCase()))) {
+    if (
+      choice.includes('a') ||
+      choice.includes('first') ||
+      (data.songA && choice.includes(data.songA.name.toLowerCase()))
+    ) {
       chosen = 'A';
-    } else if (choice.includes('b') || choice.includes('second') || 
-               (data.songB && choice.includes(data.songB.name.toLowerCase()))) {
+    } else if (
+      choice.includes('b') ||
+      choice.includes('second') ||
+      (data.songB && choice.includes(data.songB.name.toLowerCase()))
+    ) {
       chosen = 'B';
     } else {
       return {
         correct: false,
         pointsEarned: 0,
-        feedback: "Just say A or B! Or the song name. Which one do you prefer?",
+        feedback: 'Just say A or B! Or the song name. Which one do you prefer?',
         gameOver: false,
       };
     }
@@ -933,9 +925,9 @@ class ThisOrThatGame implements IGameImplementation {
   ): Promise<Record<string, unknown>> {
     const data = gameData as unknown as ThisOrThatData;
     this.currentMatchupIndex++;
-    
+
     const nextMatchup = this.matchups[this.currentMatchupIndex];
-    
+
     if (!nextMatchup) {
       return data as unknown as Record<string, unknown>;
     }
@@ -957,7 +949,7 @@ class ThisOrThatGame implements IGameImplementation {
         previewUrl: nextMatchup.songB.previewUrl,
       },
     };
-    
+
     return newData as unknown as Record<string, unknown>;
   }
 
@@ -975,22 +967,26 @@ class ThisOrThatGame implements IGameImplementation {
     };
   }
 
-  private async getWelcomeMessage(firstMatchup?: { songA: GameTrack; songB: GameTrack }): Promise<string> {
+  private async getWelcomeMessage(firstMatchup?: {
+    songA: GameTrack;
+    songB: GameTrack;
+  }): Promise<string> {
     let message = `<break time="150ms"/>This or That! I'll play two songs, you pick your favorite. Simple!\n\n`;
-    
+
     if (firstMatchup) {
-      message += `First matchup:\n` +
+      message +=
+        `First matchup:\n` +
         `A) "${firstMatchup.songA.name}" by ${firstMatchup.songA.artist}\n` +
         `B) "${firstMatchup.songB.name}" by ${firstMatchup.songB.artist}\n\n`;
-      
+
       // Play first song
       if (isMusicAvailable()) {
         await this.playBothSongs(firstMatchup);
       }
-      
+
       message += `Which one?`;
     }
-    
+
     return message;
   }
 
@@ -999,11 +995,13 @@ class ThisOrThatGame implements IGameImplementation {
     if (matchup.songA.previewUrl && isMusicAvailable()) {
       await playGameTrack(matchup.songA);
       // Let it play for 8 seconds
-      await new Promise(resolve => setTimeout(resolve, 8000));
-      
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 8000);
+      });
+
       // Quick fade and switch to B
       await fadeOutGameTrack(500);
-      
+
       if (matchup.songB.previewUrl) {
         await playGameTrack(matchup.songB);
       }
@@ -1012,23 +1010,16 @@ class ThisOrThatGame implements IGameImplementation {
 
   private getChoiceFeedback(song: { name: string; artist: string }): string {
     const feedbacks: Record<string, string[]> = {
-      hype: [
-        `<emotion value="happy"/>"${song.name}"! Good taste!`,
-      ],
-      chill: [
-        `<break time="100ms"/>"${song.name}". Solid pick.`,
-      ],
-      warm: [
-        `<break time="100ms"/>"${song.name}" - nice choice!`,
-      ],
-      playful: [
-        `<emotion value="happy"/>Ooh "${song.name}"! I respect it!`,
-      ],
+      hype: [`<emotion value="happy"/>"${song.name}"! Good taste!`],
+      chill: [`<break time="100ms"/>"${song.name}". Solid pick.`],
+      warm: [`<break time="100ms"/>"${song.name}" - nice choice!`],
+      playful: [`<emotion value="happy"/>Ooh "${song.name}"! I respect it!`],
     };
 
     const styleFeedbacks = feedbacks[this.djStyle.style] || feedbacks.warm;
-    return styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)] + 
-      `\n\n🎵 Next matchup coming up!`;
+    return `${
+      styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)]
+    }\n\n🎵 Next matchup coming up!`;
   }
 }
 
@@ -1068,12 +1059,9 @@ class MoodDJChallengeGame implements IGameImplementation {
     };
   }
 
-  async evaluateAnswer(
-    answer: string,
-    gameData: Record<string, unknown>,
-  ): Promise<GameResult> {
+  async evaluateAnswer(answer: string, gameData: Record<string, unknown>): Promise<GameResult> {
     const data = gameData as unknown as MoodDJChallengeData;
-    
+
     // If we're waiting for a rating
     if (data.pickedSong && data.userRating === null) {
       const rating = parseInt(answer);
@@ -1107,7 +1095,7 @@ class MoodDJChallengeGame implements IGameImplementation {
     // User is describing a mood - 🎵 ACTUALLY SEARCH for a matching song!
     const mood = answer.trim();
     log.info({ mood }, '🎮 Searching for mood-matching song');
-    
+
     const result = await searchSongForMood(mood);
 
     if (!result.found || !result.track) {
@@ -1141,9 +1129,7 @@ class MoodDJChallengeGame implements IGameImplementation {
     };
   }
 
-  async setupNextRound(
-    gameData: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+  async setupNextRound(gameData: Record<string, unknown>): Promise<Record<string, unknown>> {
     const data = gameData as unknown as MoodDJChallengeData;
     return {
       ...data,
@@ -1177,9 +1163,11 @@ class MoodDJChallengeGame implements IGameImplementation {
   }
 
   private getWelcomeMessage(): string {
-    return `<break time="150ms"/>Mood DJ Challenge! Describe a mood or scenario, and I'll find the perfect song.\n\n` +
+    return (
+      `<break time="150ms"/>Mood DJ Challenge! Describe a mood or scenario, and I'll find the perfect song.\n\n` +
       `Then rate my pick from 1 to 5!\n\n` +
-      `What's the mood?`;
+      `What's the mood?`
+    );
   }
 
   private getSongPickFeedback(mood: string, song: { name: string; artist: string }): string {
@@ -1187,17 +1175,16 @@ class MoodDJChallengeGame implements IGameImplementation {
       hype: [
         `<emotion value="happy"/>"${mood}"? Oh I got this! Here's "${song.name}" by ${song.artist}!`,
       ],
-      chill: [
-        `<break time="100ms"/>"${mood}"... "${song.name}" by ${song.artist}. How'd I do?`,
-      ],
+      chill: [`<break time="100ms"/>"${mood}"... "${song.name}" by ${song.artist}. How'd I do?`],
       warm: [
         `<break time="100ms"/>For "${mood}"... I'm thinking "${song.name}" by ${song.artist}.`,
       ],
     };
 
     const styleFeedbacks = feedbacks[this.djStyle.style] || feedbacks.warm;
-    return styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)] +
-      `\n\n🎵 Playing now! Rate my pick 1-5!`;
+    return `${
+      styleFeedbacks[Math.floor(Math.random() * styleFeedbacks.length)]
+    }\n\n🎵 Playing now! Rate my pick 1-5!`;
   }
 
   private getRatingFeedback(rating: number): string {

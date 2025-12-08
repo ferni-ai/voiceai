@@ -140,11 +140,11 @@ import {
 } from '../services/cognitive-session-hooks.js';
 
 // 🎧 DJ Integration - Radio show experience (intros, outros, music moments)
-import { djIntegration, getDJIntegration } from './dj-integration.js';
+import { getDJIntegration } from './dj-integration.js';
 
 // 🎧 DJ Booth - Audio-level orchestration (ducking, fading, timing)
 // This handles the "sound engineering" while DJ Integration handles "what to say"
-import { initializeDJBooth, getDJBooth, resetDJBooth, type DJBooth } from '../audio/index.js';
+import { getDJBooth, initializeDJBooth, resetDJBooth, type DJBooth } from '../audio/index.js';
 
 // Conversation State - Shared context for human-level tool orchestration
 import {
@@ -194,11 +194,11 @@ import {
 } from '../conversation/index.js';
 
 // Voice Humanization - prosody-aware turn prediction, micro-interruptions, emotional arc TTS
+import { getVoiceHumanizationService } from '../speech/voice-humanization.js';
 import {
   quickSetupVoiceHumanization,
   type IntegrationResult as VoiceHumanizationIntegration,
 } from './integrations/voice-humanization-integration.js';
-import { getVoiceHumanizationService } from '../speech/voice-humanization.js';
 
 // Ambient Sound Awareness - detect noisy environments
 import { getAmbientAwarenessService } from '../speech/ambient-awareness.js';
@@ -214,29 +214,40 @@ import { getEmotionalContagionService } from '../speech/emotional-contagion.js';
 import { getFFTAnalyzer, resetFFTAnalyzer } from '../speech/fft-analyzer.js';
 
 // Enhanced turn prediction with phrase boundary detection
-import { getEnhancedTurnPredictor, resetEnhancedTurnPredictor } from '../speech/enhanced-turn-prediction.js';
+import {
+  getEnhancedTurnPredictor,
+  resetEnhancedTurnPredictor,
+} from '../speech/enhanced-turn-prediction.js';
 
 // Multi-signal laughter detection (~85% accuracy)
-import { getMultiSignalLaughterDetector, resetMultiSignalLaughterDetector } from '../speech/multi-signal-laughter.js';
+import {
+  getMultiSignalLaughterDetector,
+  resetMultiSignalLaughterDetector,
+} from '../speech/multi-signal-laughter.js';
 
 // Word-timing rhythm mirroring
-import { getWordTimingRhythmService, resetWordTimingRhythmService } from '../speech/word-timing-rhythm.js';
+import {
+  getWordTimingRhythmService,
+  resetWordTimingRhythmService,
+} from '../speech/word-timing-rhythm.js';
 
 // Response anticipation / pattern caching (preemptive workaround)
-import { getResponseAnticipationService, resetResponseAnticipationService } from '../speech/response-anticipation.js';
+import {
+  getResponseAnticipationService,
+  resetResponseAnticipationService,
+} from '../speech/response-anticipation.js';
 
 // Feature flags for gradual rollout
-import { getSessionFlags, isFeatureEnabled, initializeFlags } from '../config/voice-humanization-flags.js';
+import { getSessionFlags, initializeFlags } from '../config/voice-humanization-flags.js';
 
 // Metrics collection
 import {
-  recordSessionStart,
-  recordSessionEnd,
   recordCacheAttempt,
-  recordTurnPrediction,
-  recordLaughterDetection,
-  recordLatency,
   recordFeatureUsage,
+  recordLatency,
+  recordLaughterDetection,
+  recordSessionEnd,
+  recordSessionStart,
 } from '../services/voice-humanization-metrics.js';
 
 // Conversation humanizing context builder (speech naturalization, active listening, memory callbacks)
@@ -677,7 +688,7 @@ class VoiceAgent extends voice.Agent<UserData> {
             if (sessionId) {
               try {
                 const voiceHumanService = getVoiceHumanizationService(sessionId);
-                
+
                 // 1. Laughter response - if user was laughing, acknowledge warmly
                 const laughterDetected = userData?.detectedLaughter;
                 if (laughterDetected?.isLaughing && laughterDetected.confidence > 0.7) {
@@ -702,31 +713,39 @@ class VoiceAgent extends voice.Agent<UserData> {
                     emotionalArcCurrent.getArc(),
                     voiceEmotion.primary
                   );
-                  
+
                   // Apply momentum-based prosody adjustments
                   if (hints.prosody.speedAdjust !== 0 || hints.prosody.volumeAdjust !== 1.0) {
                     const rate = Math.round((1 + hints.prosody.speedAdjust) * 100);
-                    const volume = hints.prosody.volumeAdjust > 1.05 ? 'loud' : 
-                                   hints.prosody.volumeAdjust < 0.95 ? 'soft' : 'medium';
-                    
+                    const volume =
+                      hints.prosody.volumeAdjust > 1.05
+                        ? 'loud'
+                        : hints.prosody.volumeAdjust < 0.95
+                          ? 'soft'
+                          : 'medium';
+
                     if (!taggedText.includes('<prosody')) {
                       taggedText = `<prosody rate="${rate}%" volume="${volume}">${taggedText}</prosody>`;
                     }
                   }
-                  
+
                   // Add warmth at closing if appropriate
                   if (hints.closingWarmth && taggedText.match(/[.!?]$/)) {
                     // Soften ending with pause
                     taggedText = taggedText.replace(/([.!?])$/, '<break time="100ms"/>$1');
                   }
-                  
+
                   // Record this utterance for momentum tracking
                   contagionService.recordUtterance({
                     emotion: voiceEmotion.primary || 'neutral',
                     valence: voiceEmotion.valence || 0,
                     arousal: voiceEmotion.arousal || 0.5,
-                    warmth: voiceEmotion.arousal > 0.6 ? 'high' : 
-                            voiceEmotion.arousal > 0.4 ? 'medium' : 'low',
+                    warmth:
+                      voiceEmotion.arousal > 0.6
+                        ? 'high'
+                        : voiceEmotion.arousal > 0.4
+                          ? 'medium'
+                          : 'low',
                     wasSupporting: voiceEmotion.stressLevel > 0.5,
                   });
                 }
@@ -751,7 +770,7 @@ class VoiceAgent extends voice.Agent<UserData> {
                   try {
                     const wordTimingService = getWordTimingRhythmService(sessionId);
                     const ssmlAdjustments = wordTimingService.getCurrentAdjustments();
-                    
+
                     // Apply rate adjustment if learned rhythm differs significantly
                     if (ssmlAdjustments.rate !== 1.0 && !taggedText.includes('<prosody')) {
                       const ratePercent = Math.round(ssmlAdjustments.rate * 100);
@@ -759,11 +778,14 @@ class VoiceAgent extends voice.Agent<UserData> {
                         taggedText = `<prosody rate="${ratePercent}%">${taggedText}</prosody>`;
                       }
                     }
-                    
+
                     // Apply micro-pause pattern if user has staccato style
                     if (ssmlAdjustments.addMicroPauses && ssmlAdjustments.microPauseDuration > 0) {
                       const microMs = ssmlAdjustments.microPauseDuration;
-                      taggedText = taggedText.replace(/([,;])\s+/g, `$1<break time="${microMs}ms"/> `);
+                      taggedText = taggedText.replace(
+                        /([,;])\s+/g,
+                        `$1<break time="${microMs}ms"/> `
+                      );
                     }
                   } catch (wtErr) {
                     // Word timing is non-critical
@@ -771,7 +793,10 @@ class VoiceAgent extends voice.Agent<UserData> {
                 }
               } catch (humanErr) {
                 // Voice humanization is non-blocking
-                agent.logger.debug({ error: String(humanErr) }, 'Voice humanization TTS adjustment failed');
+                agent.logger.debug(
+                  { error: String(humanErr) },
+                  'Voice humanization TTS adjustment failed'
+                );
               }
             }
 
@@ -840,19 +865,22 @@ class VoiceAgent extends voice.Agent<UserData> {
           if (sessionId && voiceEmotion.prosody) {
             try {
               const voiceHumanService = getVoiceHumanizationService(sessionId);
-              
+
               // 1. Detect laughter from prosody features
               const laughterResult = voiceHumanService.detectLaughter(
                 voiceEmotion.prosody,
                 voiceEmotion.prosody.utteranceDuration || 0
               );
-              
+
               if (laughterResult.isLaughing) {
-                log().debug({
-                  laughType: laughterResult.laughType,
-                  confidence: laughterResult.confidence,
-                }, '😄 Laughter detected from prosody');
-                
+                log().debug(
+                  {
+                    laughType: laughterResult.laughType,
+                    confidence: laughterResult.confidence,
+                  },
+                  '😄 Laughter detected from prosody'
+                );
+
                 // Store for response enhancement
                 if (userData) {
                   userData.detectedLaughter = laughterResult;
@@ -880,13 +908,16 @@ class VoiceAgent extends voice.Agent<UserData> {
                   const ambient = ambientService.getAnalysis();
                   userData.ambientEnvironment = ambient.environment;
                   userData.ambientNoiseLevel = ambient.noiseLevel;
-                  
+
                   // Log if environment changed significantly
                   if (ambient.recommendations.offerToPause) {
-                    log().debug({ 
-                      environment: ambient.environment,
-                      noiseLevel: ambient.noiseLevel 
-                    }, '🔊 Noisy environment detected');
+                    log().debug(
+                      {
+                        environment: ambient.environment,
+                        noiseLevel: ambient.noiseLevel,
+                      },
+                      '🔊 Noisy environment detected'
+                    );
                   }
                 }
               } catch (ambientErr) {
@@ -897,7 +928,7 @@ class VoiceAgent extends voice.Agent<UserData> {
               // ADVANCED VOICE HUMANIZATION (Phase 7+)
               // ============================================================
               const advFlags = getSessionFlags(sessionId);
-              
+
               // 1. Multi-signal laughter detection (~85% accuracy)
               if (advFlags.enableMultiSignalLaughter) {
                 try {
@@ -906,20 +937,23 @@ class VoiceAgent extends voice.Agent<UserData> {
                     recentAgentText: userData?.lastAgentResponse || undefined,
                     emotionalArc: voiceEmotion.primary,
                   });
-                  
+
                   const laughterResult = laughterDetector.detect(
                     voiceEmotion.prosody,
                     undefined, // FFT spectral features (if available)
                     voiceEmotion.prosody.utteranceDuration || 0
                   );
-                  
+
                   if (laughterResult.isLaughter && laughterResult.confidence > 0.6) {
-                    log().debug({
-                      laughType: laughterResult.laughType,
-                      socialFunction: laughterResult.socialFunction,
-                      confidence: laughterResult.confidence.toFixed(2),
-                    }, '😂 Multi-signal laughter detected');
-                    
+                    log().debug(
+                      {
+                        laughType: laughterResult.laughType,
+                        socialFunction: laughterResult.socialFunction,
+                        confidence: laughterResult.confidence.toFixed(2),
+                      },
+                      '😂 Multi-signal laughter detected'
+                    );
+
                     // Record metrics
                     if (advFlags.enableMetrics) {
                       recordLaughterDetection(
@@ -930,24 +964,26 @@ class VoiceAgent extends voice.Agent<UserData> {
                         laughterResult.laughType
                       );
                     }
-                    
+
                     // Store for response adjustment
                     // Map multi-signal laugh types to basic laugh types
-                    const basicLaughType = (laughterResult.laughType === 'nervous' || 
-                                           laughterResult.laughType === 'polite')
-                      ? 'unknown' as const
-                      : laughterResult.laughType;
-                    
+                    const basicLaughType =
+                      laughterResult.laughType === 'nervous' ||
+                      laughterResult.laughType === 'polite'
+                        ? ('unknown' as const)
+                        : laughterResult.laughType;
+
                     if (userData) {
                       userData.detectedLaughter = {
                         isLaughing: true,
                         confidence: laughterResult.confidence,
                         laughType: basicLaughType,
-                        suggestedResponse: laughterResult.suggestedResponse.type === 'join' 
-                          ? 'join_in' 
-                          : laughterResult.suggestedResponse.type === 'acknowledge' 
-                            ? 'acknowledge' 
-                            : 'smile',
+                        suggestedResponse:
+                          laughterResult.suggestedResponse.type === 'join'
+                            ? 'join_in'
+                            : laughterResult.suggestedResponse.type === 'acknowledge'
+                              ? 'acknowledge'
+                              : 'smile',
                       };
                     }
                   }
@@ -960,17 +996,17 @@ class VoiceAgent extends voice.Agent<UserData> {
               if (advFlags.enableWordTimingRhythm && userData?.lastUserMessage) {
                 try {
                   const rhythmService = getWordTimingRhythmService(sessionId);
-                  rhythmService.processUtterance(
-                    userData.lastUserMessage,
-                    voiceEmotion.prosody
-                  );
+                  rhythmService.processUtterance(userData.lastUserMessage, voiceEmotion.prosody);
                   // Rhythm adjustments will be applied in transcriptionNode
                 } catch (rhythmErr) {
                   // Non-critical
                 }
               }
             } catch (e) {
-              log().debug({ error: String(e) }, 'Voice humanization prosody hook failed (non-blocking)');
+              log().debug(
+                { error: String(e) },
+                'Voice humanization prosody hook failed (non-blocking)'
+              );
             }
           }
 
@@ -1323,9 +1359,10 @@ class VoiceAgent extends voice.Agent<UserData> {
       // If a magic moment was detected, inject the phone ask guidance
       // ================================================================
       try {
-        const { getResponseModification } = await import('../services/trust-and-identity/voice-agent-integration.js');
+        const { getResponseModification } =
+          await import('../services/trust-and-identity/voice-agent-integration.js');
         const phoneAskMod = getResponseModification(services.sessionId);
-        
+
         if (phoneAskMod.injectPhoneAsk && phoneAskMod.script) {
           // Add phone ask guidance to the LLM context
           turnCtx.addMessage({
@@ -1343,7 +1380,7 @@ IMPORTANT:
 - If they decline, accept gracefully and move on
 - Don't repeat if already asked this session`,
           });
-          
+
           diag.session('📱 Phone ask injected', {
             momentType: phoneAskMod.momentType,
             tone: phoneAskMod.tone,
@@ -1637,18 +1674,20 @@ export default defineAgent({
           // and natural phone collection throughout the session
           // ===============================================
           try {
-            const { onSessionStart } = await import('../services/trust-and-identity/voice-agent-integration.js');
+            const { onSessionStart } =
+              await import('../services/trust-and-identity/voice-agent-integration.js');
             const identityResult = await onSessionStart(sessionId, metadata, null);
-            
+
             diag.session('🔐 Identity session started', {
               trustLevel: identityResult.identityContext.trustLevel,
               hasPhone: identityResult.identityContext.hasPhone,
               voiceConfidence: identityResult.identityContext.voiceConfidence,
               relationshipStage: identityResult.identityContext.relationshipStage,
             });
-            
+
             // Store identity context in metadata for later use
-            (metadata as Record<string, unknown>).__identityContext = identityResult.identityContext;
+            (metadata as Record<string, unknown>).__identityContext =
+              identityResult.identityContext;
           } catch (identityErr) {
             diag.warn('Identity session start failed (non-fatal)', { error: String(identityErr) });
           }
@@ -1906,7 +1945,7 @@ export default defineAgent({
       // ===============================================
       const emotionalArcTracker = getEmotionalArcTracker();
       let voiceHumanization: VoiceHumanizationIntegration | null = null;
-      
+
       try {
         voiceHumanization = quickSetupVoiceHumanization(
           sessionId,
@@ -2392,7 +2431,7 @@ export default defineAgent({
             event.transcript,
             isAgentSpeaking
           );
-          
+
           if (microInterrupt.shouldStopAgent) {
             diag.state('🛑 Micro-interrupt triggered', {
               trigger: microInterrupt.trigger,
@@ -2411,11 +2450,11 @@ export default defineAgent({
           try {
             const anticipator = getResponseAnticipationService(sessionId);
             const startTime = Date.now();
-            
+
             const anticipation = anticipator.anticipate(event.transcript);
-            
+
             const latencyMs = Date.now() - startTime;
-            
+
             if (anticipation && anticipation.confidence > 0.5) {
               // Record metrics
               if (antFlags.enableMetrics) {
@@ -2427,7 +2466,7 @@ export default defineAgent({
                 );
                 recordLatency(sessionId, 'anticipation', latencyMs);
               }
-              
+
               // Log the anticipation (monitoring mode)
               diag.state('⚡ Response anticipation', {
                 intent: anticipation.intent,
@@ -2438,10 +2477,12 @@ export default defineAgent({
               });
 
               // If using cached responses (not just monitoring) and high confidence
-              if (antFlags.useCachedResponses && 
-                  anticipation.isComplete && 
-                  anticipation.confidence >= antFlags.cacheConfidenceThreshold &&
-                  event.isFinal) {
+              if (
+                antFlags.useCachedResponses &&
+                anticipation.isComplete &&
+                anticipation.confidence >= antFlags.cacheConfidenceThreshold &&
+                event.isFinal
+              ) {
                 const cached = anticipator.getCompleteResponse();
                 if (cached) {
                   diag.state('⚡ CACHE HIT - Would use cached response', {
@@ -2460,7 +2501,7 @@ export default defineAgent({
 
         if (event.isFinal && event.transcript) {
           userData.turnCount = (userData.turnCount || 0) + 1;
-          
+
           // Record turn in voice humanization for rhythm learning
           if (voiceHumanization) {
             voiceHumanization.recordTurn();
@@ -2706,7 +2747,8 @@ export default defineAgent({
                   ? {
                       artist: services.userProfile.musicMemory.lastPlayedArtist || 'Unknown',
                       track: services.userProfile.musicMemory.lastPlayedTrack,
-                      timestamp: services.userProfile.musicMemory.updatedAt?.getTime() || Date.now(),
+                      timestamp:
+                        services.userProfile.musicMemory.updatedAt?.getTime() || Date.now(),
                     }
                   : undefined,
               }
@@ -2912,33 +2954,33 @@ export default defineAgent({
                 appreciationTimer = setInterval(() => {
                   void (async () => {
                     try {
-                    const { getMusicAppreciationComment, getMusicElementAppreciation } =
-                      await import('../services/dj-service.js');
+                      const { getMusicAppreciationComment, getMusicElementAppreciation } =
+                        await import('../services/dj-service.js');
 
-                    // 30% chance of appreciation comment every 15-25 seconds
-                    const now = Date.now();
-                    const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
-                    const timeSinceLastAppreciation = lastAppreciationTime
-                      ? (now - lastAppreciationTime) / 1000
-                      : timeSinceStart;
+                      // 30% chance of appreciation comment every 15-25 seconds
+                      const now = Date.now();
+                      const timeSinceStart = (now - (musicPlaybackStartTime || now)) / 1000;
+                      const timeSinceLastAppreciation = lastAppreciationTime
+                        ? (now - lastAppreciationTime) / 1000
+                        : timeSinceStart;
 
-                    // Only appreciate if enough time has passed and we're still playing
-                    if (timeSinceLastAppreciation > 15 && Math.random() < 0.3) {
-                      // Randomly choose between general appreciation or element-specific
-                      const comment =
-                        Math.random() < 0.7
-                          ? getMusicAppreciationComment(sessionPersona.id, track)
-                          : getMusicElementAppreciation(sessionPersona.id);
+                      // Only appreciate if enough time has passed and we're still playing
+                      if (timeSinceLastAppreciation > 15 && Math.random() < 0.3) {
+                        // Randomly choose between general appreciation or element-specific
+                        const comment =
+                          Math.random() < 0.7
+                            ? getMusicAppreciationComment(sessionPersona.id, track)
+                            : getMusicElementAppreciation(sessionPersona.id);
 
-                      if (comment) {
-                        diag.state('🎧 DJ appreciation comment', {
-                          comment: comment.slice(0, 50),
-                          timeSinceStart: Math.round(timeSinceStart),
-                        });
-                        session.say(comment, { allowInterruptions: true });
-                        lastAppreciationTime = now;
+                        if (comment) {
+                          diag.state('🎧 DJ appreciation comment', {
+                            comment: comment.slice(0, 50),
+                            timeSinceStart: Math.round(timeSinceStart),
+                          });
+                          session.say(comment, { allowInterruptions: true });
+                          lastAppreciationTime = now;
+                        }
                       }
-                    }
                     } catch (e) {
                       diag.warn('Failed to generate appreciation', { error: String(e) });
                     }
@@ -3487,7 +3529,7 @@ export default defineAgent({
       // ===============================================
       initializeFlags(); // Initialize feature flags
       const voiceFlags = getSessionFlags(sessionId);
-      
+
       if (voiceFlags.enableMetrics) {
         recordSessionStart(sessionId);
         diag.session('📊 Voice humanization metrics enabled');
@@ -3916,7 +3958,9 @@ export default defineAgent({
                 voiceHumanization.cleanup();
                 diag.session('🎤 Voice humanization cleaned up');
               } catch (vhErr) {
-                diag.warn('🎤 Voice humanization cleanup failed (non-fatal)', { error: String(vhErr) });
+                diag.warn('🎤 Voice humanization cleanup failed (non-fatal)', {
+                  error: String(vhErr),
+                });
               }
             }
 
@@ -3924,18 +3968,18 @@ export default defineAgent({
             try {
               // Record session end in metrics
               recordSessionEnd(sessionId);
-              
+
               // Reset all advanced services
               resetFFTAnalyzer(sessionId);
               resetEnhancedTurnPredictor(sessionId);
               resetMultiSignalLaughterDetector(sessionId);
               resetWordTimingRhythmService(sessionId);
               resetResponseAnticipationService(sessionId);
-              
+
               diag.session('🎤 Advanced voice humanization services cleaned up');
             } catch (advVhErr) {
-              diag.warn('🎤 Advanced voice humanization cleanup failed (non-fatal)', { 
-                error: String(advVhErr) 
+              diag.warn('🎤 Advanced voice humanization cleanup failed (non-fatal)', {
+                error: String(advVhErr),
               });
             }
 
@@ -4008,11 +4052,14 @@ export default defineAgent({
             // Cleanup identity tracking and save any pending state
             // ================================================================
             try {
-              const { onSessionEnd } = await import('../services/trust-and-identity/voice-agent-integration.js');
+              const { onSessionEnd } =
+                await import('../services/trust-and-identity/voice-agent-integration.js');
               await onSessionEnd(sessionId);
               diag.session('🔐 Identity session ended');
             } catch (identityEndErr) {
-              diag.warn('Identity session end failed (non-fatal)', { error: String(identityEndErr) });
+              diag.warn('Identity session end failed (non-fatal)', {
+                error: String(identityEndErr),
+              });
             }
 
             diag.session('Session cleanup complete');

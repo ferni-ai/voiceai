@@ -7,6 +7,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('GamePicker');
 
@@ -422,35 +423,12 @@ class GamePickerUI {
    * Show a toast notification
    */
   private showToast(message: string, type: 'success' | 'error'): void {
-    // eslint-disable-next-line no-console
-    console.log('🎮🎮🎮 TOAST:', message, type);
     log.info({ message, type }, '🎮 Showing toast');
-    
-    // Remove any existing toasts
-    document.querySelectorAll('.game-toast').forEach(el => el.remove());
-    
-    const toast = document.createElement('div');
-    toast.className = `game-toast game-toast--${type}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    // Log what we created
-    // eslint-disable-next-line no-console
-    console.log('🎮🎮🎮 TOAST CREATED:', toast.className, toast.textContent);
-    
-    // Force reflow before adding visible class
-    void toast.offsetWidth;
-    
-    requestAnimationFrame(() => {
-      toast.classList.add('game-toast--visible');
-      // eslint-disable-next-line no-console
-      console.log('🎮🎮🎮 TOAST VISIBLE:', toast.classList.toString());
-    });
-    
-    setTimeout(() => {
-      toast.classList.remove('game-toast--visible');
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    if (type === 'success') {
+      toast.success(message);
+    } else {
+      toast.error(message);
+    }
   }
 
   /**
@@ -681,35 +659,6 @@ class GamePickerUI {
         font-size: 13px;
         color: var(--color-text-muted, #9A8B7A);
         margin: 0;
-      }
-      
-      /* Toast */
-      .game-toast {
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        padding: var(--space-3, 12px) var(--space-6, 24px);
-        border-radius: var(--radius-full, 50px);
-        font-size: 14px;
-        font-weight: 500;
-        color: white;
-        opacity: 0;
-        transition: all ${DURATION.SLOW}ms ${EASING.SPRING};
-        z-index: 10000;
-      }
-      
-      .game-toast--visible {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-      
-      .game-toast--success {
-        background: var(--persona-primary, #4a6741);
-      }
-      
-      .game-toast--error {
-        background: var(--color-destructive, #c54b4b);
       }
       
       /* Dark theme */

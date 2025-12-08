@@ -14,12 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type {
-  CognitiveDistortion,
-  ANTInstance,
-  ANTProfile,
-  DistortionDetection,
-} from './types.js';
+import type { CognitiveDistortion, ANTInstance, ANTProfile, DistortionDetection } from './types.js';
 
 const log = createLogger({ module: 'ANTTracker' });
 
@@ -178,7 +173,8 @@ function updateProfileAggregates(profile: ANTProfile, instance: ANTInstance): vo
 
   // Update reframe success rate
   if (instance.userResponse) {
-    const isSuccess = instance.userResponse === 'receptive' || instance.userResponse === 'breakthrough';
+    const isSuccess =
+      instance.userResponse === 'receptive' || instance.userResponse === 'breakthrough';
     profile.reframeSuccessRate = profile.reframeSuccessRate * 0.9 + (isSuccess ? 0.1 : 0);
   }
 
@@ -188,7 +184,7 @@ function updateProfileAggregates(profile: ANTProfile, instance: ANTInstance): vo
 /**
  * Calculate the top N most common distortions.
  */
-function calculateTopDistortions(profile: ANTProfile, limit: number = 3): CognitiveDistortion[] {
+function calculateTopDistortions(profile: ANTProfile, limit = 3): CognitiveDistortion[] {
   return [...profile.byDistortion.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
@@ -280,8 +276,7 @@ function analyzeTimePatterns(profile: ANTProfile): PatternInsight | null {
   if (totalCount < 10) return null;
 
   // Find peak time
-  const peakTime = Object.entries(timeCounts)
-    .sort((a, b) => b[1] - a[1])[0];
+  const peakTime = Object.entries(timeCounts).sort((a, b) => b[1] - a[1])[0];
 
   if (!peakTime || peakTime[1] < totalCount * 0.4) return null;
 
@@ -314,8 +309,7 @@ function analyzeDayPatterns(profile: ANTProfile): PatternInsight | null {
   if (totalCount < 10) return null;
 
   // Find peak day
-  const peakDay = Object.entries(dayCounts)
-    .sort((a, b) => b[1] - a[1])[0];
+  const peakDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0];
 
   if (!peakDay || Number(peakDay[1]) < totalCount * 0.25) return null;
 
@@ -417,11 +411,11 @@ function calculateTrend(instances: ANTInstance[]): PatternInsight | null {
   if (change <= -20) {
     trend = 'improving';
     message = `Your negative thought patterns have decreased by ${Math.abs(Math.round(change))}% this week!`;
-    actionable = 'Keep doing what you\'re doing. The work is paying off.';
+    actionable = "Keep doing what you're doing. The work is paying off.";
   } else if (change >= 20) {
     trend = 'declining';
     message = `Your negative thought patterns have increased ${Math.round(change)}% this week`;
-    actionable = 'Be extra gentle with yourself. Consider what\'s been weighing on you.';
+    actionable = "Be extra gentle with yourself. Consider what's been weighing on you.";
   } else {
     trend = 'stable';
     message = 'Your thought patterns have been relatively stable this week';
@@ -476,7 +470,7 @@ export function getANTProfile(userId: string): ANTProfile | null {
 /**
  * Get recent ANT instances for a user.
  */
-export function getRecentANTs(userId: string, limit: number = 20): ANTInstance[] {
+export function getRecentANTs(userId: string, limit = 20): ANTInstance[] {
   const instances = antInstances.get(userId) || [];
   return instances.slice(-limit);
 }
@@ -536,4 +530,3 @@ export interface PatternInsight {
   trend?: 'improving' | 'stable' | 'declining';
   changePercent?: number;
 }
-

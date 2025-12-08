@@ -21,9 +21,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 describe('Cognitive Intelligence', () => {
   describe('Distortion Detection', () => {
     it('should detect catastrophizing', async () => {
-      const { detectDistortions } = await import(
-        '../services/cognitive-intelligence/distortion-detector.js'
-      );
+      const { detectDistortions } =
+        await import('../services/cognitive-intelligence/distortion-detector.js');
 
       const detections = detectDistortions(
         'user-test-1',
@@ -36,9 +35,8 @@ describe('Cognitive Intelligence', () => {
     });
 
     it('should detect all-or-nothing thinking', async () => {
-      const { detectDistortions } = await import(
-        '../services/cognitive-intelligence/distortion-detector.js'
-      );
+      const { detectDistortions } =
+        await import('../services/cognitive-intelligence/distortion-detector.js');
 
       const detections = detectDistortions(
         'user-test-2',
@@ -51,9 +49,8 @@ describe('Cognitive Intelligence', () => {
     });
 
     it('should detect mind reading', async () => {
-      const { detectDistortions } = await import(
-        '../services/cognitive-intelligence/distortion-detector.js'
-      );
+      const { detectDistortions } =
+        await import('../services/cognitive-intelligence/distortion-detector.js');
 
       const detections = detectDistortions(
         'user-test-3',
@@ -66,13 +63,12 @@ describe('Cognitive Intelligence', () => {
     });
 
     it('should detect overgeneralization', async () => {
-      const { detectDistortions } = await import(
-        '../services/cognitive-intelligence/distortion-detector.js'
-      );
+      const { detectDistortions } =
+        await import('../services/cognitive-intelligence/distortion-detector.js');
 
       const detections = detectDistortions(
         'user-test-4',
-        "This always happens to me. I never get anything right.",
+        'This always happens to me. I never get anything right.',
         {}
       );
 
@@ -81,13 +77,12 @@ describe('Cognitive Intelligence', () => {
     });
 
     it('should not detect distortions in neutral speech', async () => {
-      const { detectDistortions } = await import(
-        '../services/cognitive-intelligence/distortion-detector.js'
-      );
+      const { detectDistortions } =
+        await import('../services/cognitive-intelligence/distortion-detector.js');
 
       const detections = detectDistortions(
         'user-test-5',
-        "I had a pretty good day at work. We finished the project on time.",
+        'I had a pretty good day at work. We finished the project on time.',
         {}
       );
 
@@ -97,14 +92,13 @@ describe('Cognitive Intelligence', () => {
 
   describe('Socratic Engine', () => {
     it('should generate questions for detected distortions', async () => {
-      const { generateSocraticDialogue } = await import(
-        '../services/cognitive-intelligence/socratic-engine.js'
-      );
+      const { generateSocraticDialogue } =
+        await import('../services/cognitive-intelligence/socratic-engine.js');
 
       const dialogue = generateSocraticDialogue({
         userId: 'user-test-6',
         distortion: 'catastrophizing',
-        triggerThought: "Everything is going to fall apart",
+        triggerThought: 'Everything is going to fall apart',
         questionsAsked: [],
         emotionalState: 'anxious',
         emotionalIntensity: 0.6,
@@ -122,9 +116,8 @@ describe('Cognitive Intelligence', () => {
 
   describe('Unified API', () => {
     it('should build complete cognitive intelligence context', async () => {
-      const { buildCognitiveIntelligenceContext } = await import(
-        '../services/cognitive-intelligence/index.js'
-      );
+      const { buildCognitiveIntelligenceContext } =
+        await import('../services/cognitive-intelligence/index.js');
 
       const result = buildCognitiveIntelligenceContext(
         'user-test-7',
@@ -151,9 +144,7 @@ describe('Cognitive Intelligence', () => {
 describe('Wellbeing Tracking', () => {
   describe('Signal Detection', () => {
     it('should detect sleep-related signals', async () => {
-      const { detectWellbeingSignals } = await import(
-        '../services/wellbeing-tracking/tracker.js'
-      );
+      const { detectWellbeingSignals } = await import('../services/wellbeing-tracking/tracker.js');
 
       const signals = detectWellbeingSignals(
         "I've had insomnia and can't sleep at all this week.",
@@ -165,9 +156,7 @@ describe('Wellbeing Tracking', () => {
     });
 
     it('should detect mood-related signals', async () => {
-      const { detectWellbeingSignals } = await import(
-        '../services/wellbeing-tracking/tracker.js'
-      );
+      const { detectWellbeingSignals } = await import('../services/wellbeing-tracking/tracker.js');
 
       const signals = detectWellbeingSignals(
         "I've been feeling really down lately. Nothing brings me joy anymore.",
@@ -179,9 +168,7 @@ describe('Wellbeing Tracking', () => {
     });
 
     it('should detect energy-related signals', async () => {
-      const { detectWellbeingSignals } = await import(
-        '../services/wellbeing-tracking/tracker.js'
-      );
+      const { detectWellbeingSignals } = await import('../services/wellbeing-tracking/tracker.js');
 
       const signals = detectWellbeingSignals(
         "I'm exhausted all the time. No energy for anything.",
@@ -195,9 +182,7 @@ describe('Wellbeing Tracking', () => {
 
   describe('Unified API', () => {
     it('should process message for wellbeing and return result', async () => {
-      const { processForWellbeing } = await import(
-        '../services/wellbeing-tracking/index.js'
-      );
+      const { processForWellbeing } = await import('../services/wellbeing-tracking/index.js');
 
       const result = processForWellbeing(
         'user-test-wb-1',
@@ -217,9 +202,8 @@ describe('Wellbeing Tracking', () => {
 describe('Somatic Intelligence', () => {
   describe('Exercise Selection', () => {
     it('should select physiological sigh for high distress', async () => {
-      const { selectExercise, PHYSIOLOGICAL_SIGH } = await import(
-        '../services/somatic-intelligence/index.js'
-      );
+      const { selectExercise, PHYSIOLOGICAL_SIGH } =
+        await import('../services/somatic-intelligence/index.js');
 
       const exercise = selectExercise({
         emotionIntensity: 0.9,
@@ -230,9 +214,7 @@ describe('Somatic Intelligence', () => {
     });
 
     it('should select grounding for panic', async () => {
-      const { selectExercise } = await import(
-        '../services/somatic-intelligence/index.js'
-      );
+      const { selectExercise } = await import('../services/somatic-intelligence/index.js');
 
       const exercise = selectExercise({
         emotion: 'panic',
@@ -243,9 +225,7 @@ describe('Somatic Intelligence', () => {
     });
 
     it('should select breathing for anxiety', async () => {
-      const { selectExercise } = await import(
-        '../services/somatic-intelligence/index.js'
-      );
+      const { selectExercise } = await import('../services/somatic-intelligence/index.js');
 
       const exercise = selectExercise({
         emotion: 'anxious',
@@ -258,9 +238,8 @@ describe('Somatic Intelligence', () => {
 
   describe('Nervous System Detection', () => {
     it('should detect sympathetic activation', async () => {
-      const { detectNervousSystemState } = await import(
-        '../services/somatic-intelligence/index.js'
-      );
+      const { detectNervousSystemState } =
+        await import('../services/somatic-intelligence/index.js');
 
       const state = detectNervousSystemState({
         emotion: 'anxious',
@@ -271,9 +250,8 @@ describe('Somatic Intelligence', () => {
     });
 
     it('should detect dorsal vagal shutdown', async () => {
-      const { detectNervousSystemState } = await import(
-        '../services/somatic-intelligence/index.js'
-      );
+      const { detectNervousSystemState } =
+        await import('../services/somatic-intelligence/index.js');
 
       const state = detectNervousSystemState({
         keywords: ['numb', 'frozen'],
@@ -285,9 +263,8 @@ describe('Somatic Intelligence', () => {
 
   describe('Voice Guidance', () => {
     it('should generate voice guidance for exercise', async () => {
-      const { generateVoiceGuidance, BOX_BREATHING } = await import(
-        '../services/somatic-intelligence/index.js'
-      );
+      const { generateVoiceGuidance, BOX_BREATHING } =
+        await import('../services/somatic-intelligence/index.js');
 
       const guidance = generateVoiceGuidance(BOX_BREATHING, { rounds: 2 });
 
@@ -305,12 +282,11 @@ describe('Somatic Intelligence', () => {
 describe('Therapeutic Frameworks', () => {
   describe('ACT Values', () => {
     it('should detect values in speech', async () => {
-      const { detectValuesInSpeech } = await import(
-        '../services/therapeutic-frameworks/act-values.js'
-      );
+      const { detectValuesInSpeech } =
+        await import('../services/therapeutic-frameworks/act-values.js');
 
       const detected = detectValuesInSpeech(
-        "I really value honesty and being there for my family.",
+        'I really value honesty and being there for my family.',
         {}
       );
 
@@ -318,9 +294,8 @@ describe('Therapeutic Frameworks', () => {
     });
 
     it('should record and retrieve user values', async () => {
-      const { recordValue, getUserValues } = await import(
-        '../services/therapeutic-frameworks/act-values.js'
-      );
+      const { recordValue, getUserValues } =
+        await import('../services/therapeutic-frameworks/act-values.js');
 
       recordValue('user-test-act-1', 'Growth', 'growth', {
         meaning: 'Always learning and improving',
@@ -333,9 +308,8 @@ describe('Therapeutic Frameworks', () => {
     });
 
     it('should generate values prompts', async () => {
-      const { generateValuesPrompt } = await import(
-        '../services/therapeutic-frameworks/act-values.js'
-      );
+      const { generateValuesPrompt } =
+        await import('../services/therapeutic-frameworks/act-values.js');
 
       const prompt = generateValuesPrompt('user-test-act-2', {});
       expect(prompt.length).toBeGreaterThan(0);
@@ -344,9 +318,8 @@ describe('Therapeutic Frameworks', () => {
 
   describe('ACT Defusion', () => {
     it('should select appropriate defusion technique', async () => {
-      const { selectDefusionTechnique } = await import(
-        '../services/therapeutic-frameworks/act-defusion.js'
-      );
+      const { selectDefusionTechnique } =
+        await import('../services/therapeutic-frameworks/act-defusion.js');
 
       const technique = selectDefusionTechnique({
         thought: "I'm such a failure",
@@ -357,9 +330,8 @@ describe('Therapeutic Frameworks', () => {
     });
 
     it('should have complete defusion library', async () => {
-      const { getAllDefusionTechniques } = await import(
-        '../services/therapeutic-frameworks/act-defusion.js'
-      );
+      const { getAllDefusionTechniques } =
+        await import('../services/therapeutic-frameworks/act-defusion.js');
 
       const techniques = getAllDefusionTechniques();
       expect(techniques.length).toBeGreaterThanOrEqual(5);
@@ -368,9 +340,7 @@ describe('Therapeutic Frameworks', () => {
 
   describe('DBT Skills', () => {
     it('should select TIPP for crisis', async () => {
-      const { selectDBTSkill } = await import(
-        '../services/therapeutic-frameworks/dbt-skills.js'
-      );
+      const { selectDBTSkill } = await import('../services/therapeutic-frameworks/dbt-skills.js');
 
       const skill = selectDBTSkill({
         emotionIntensity: 0.95,
@@ -381,9 +351,7 @@ describe('Therapeutic Frameworks', () => {
     });
 
     it('should select STOP for impulsive situations', async () => {
-      const { selectDBTSkill } = await import(
-        '../services/therapeutic-frameworks/dbt-skills.js'
-      );
+      const { selectDBTSkill } = await import('../services/therapeutic-frameworks/dbt-skills.js');
 
       const skill = selectDBTSkill({
         keywords: ['about to send this text'],
@@ -393,17 +361,14 @@ describe('Therapeutic Frameworks', () => {
     });
 
     it('should have complete DBT skill library', async () => {
-      const { ALL_DBT_SKILLS } = await import(
-        '../services/therapeutic-frameworks/dbt-skills.js'
-      );
+      const { ALL_DBT_SKILLS } = await import('../services/therapeutic-frameworks/dbt-skills.js');
 
       expect(Object.keys(ALL_DBT_SKILLS).length).toBeGreaterThanOrEqual(10);
     });
 
     it('should have voice guidance for skills', async () => {
-      const { DISTRESS_TOLERANCE_SKILLS } = await import(
-        '../services/therapeutic-frameworks/dbt-skills.js'
-      );
+      const { DISTRESS_TOLERANCE_SKILLS } =
+        await import('../services/therapeutic-frameworks/dbt-skills.js');
 
       expect(DISTRESS_TOLERANCE_SKILLS.tipp.voiceGuidance).toBeDefined();
       expect(DISTRESS_TOLERANCE_SKILLS.tipp.voiceGuidance.length).toBeGreaterThan(0);
@@ -412,12 +377,11 @@ describe('Therapeutic Frameworks', () => {
 
   describe('Motivational Interviewing', () => {
     it('should detect change talk', async () => {
-      const { detectChangeTalk } = await import(
-        '../services/therapeutic-frameworks/motivational-interviewing.js'
-      );
+      const { detectChangeTalk } =
+        await import('../services/therapeutic-frameworks/motivational-interviewing.js');
 
       const instances = detectChangeTalk(
-        "I really want to start exercising. I know I can do it if I try.",
+        'I really want to start exercising. I know I can do it if I try.',
         'exercise'
       );
 
@@ -427,22 +391,18 @@ describe('Therapeutic Frameworks', () => {
     });
 
     it('should detect sustain talk', async () => {
-      const { detectSustainTalk } = await import(
-        '../services/therapeutic-frameworks/motivational-interviewing.js'
-      );
+      const { detectSustainTalk } =
+        await import('../services/therapeutic-frameworks/motivational-interviewing.js');
 
-      const result = detectSustainTalk(
-        "I can't do this. It's too hard and nothing works anyway."
-      );
+      const result = detectSustainTalk("I can't do this. It's too hard and nothing works anyway.");
 
       expect(result.detected).toBe(true);
       expect(result.patterns.length).toBeGreaterThan(0);
     });
 
     it('should generate appropriate OARS response', async () => {
-      const { generateOARSResponse, detectChangeTalk } = await import(
-        '../services/therapeutic-frameworks/motivational-interviewing.js'
-      );
+      const { generateOARSResponse, detectChangeTalk } =
+        await import('../services/therapeutic-frameworks/motivational-interviewing.js');
 
       const changeTalk = detectChangeTalk(
         "I've decided to start meditating every day.",
@@ -458,9 +418,8 @@ describe('Therapeutic Frameworks', () => {
 
   describe('Unified API', () => {
     it('should build complete therapeutic context', async () => {
-      const { buildTherapeuticContext } = await import(
-        '../services/therapeutic-frameworks/index.js'
-      );
+      const { buildTherapeuticContext } =
+        await import('../services/therapeutic-frameworks/index.js');
 
       const result = buildTherapeuticContext(
         'user-test-tf-1',
@@ -484,9 +443,8 @@ describe('Therapeutic Frameworks', () => {
 describe('Behavioral Economics', () => {
   describe('Implementation Intentions', () => {
     it('should create implementation intention', async () => {
-      const { createImplementationIntention, getImplementationIntentions } = await import(
-        '../services/behavioral-economics/index.js'
-      );
+      const { createImplementationIntention, getImplementationIntentions } =
+        await import('../services/behavioral-economics/index.js');
 
       const intention = createImplementationIntention(
         'user-test-be-1',
@@ -503,9 +461,8 @@ describe('Behavioral Economics', () => {
     });
 
     it('should assess specificity', async () => {
-      const { createImplementationIntention } = await import(
-        '../services/behavioral-economics/index.js'
-      );
+      const { createImplementationIntention } =
+        await import('../services/behavioral-economics/index.js');
 
       const vague = createImplementationIntention(
         'user-test-be-2',
@@ -528,25 +485,19 @@ describe('Behavioral Economics', () => {
 
   describe('Commitment Devices', () => {
     it('should create and retrieve commitment device', async () => {
-      const { createCommitmentDevice, getActiveCommitments } = await import(
-        '../services/behavioral-economics/index.js'
-      );
+      const { createCommitmentDevice, getActiveCommitments } =
+        await import('../services/behavioral-economics/index.js');
 
-      createCommitmentDevice(
-        'user-test-be-4',
-        'Go to gym 3x this week',
-        'social',
-        { witnesses: ['accountability partner'] }
-      );
+      createCommitmentDevice('user-test-be-4', 'Go to gym 3x this week', 'social', {
+        witnesses: ['accountability partner'],
+      });
 
       const active = getActiveCommitments('user-test-be-4');
       expect(active.length).toBeGreaterThan(0);
     });
 
     it('should suggest commitment devices', async () => {
-      const { suggestCommitmentDevice } = await import(
-        '../services/behavioral-economics/index.js'
-      );
+      const { suggestCommitmentDevice } = await import('../services/behavioral-economics/index.js');
 
       const suggestions = suggestCommitmentDevice('exercise more');
       expect(suggestions.length).toBeGreaterThan(0);
@@ -556,9 +507,7 @@ describe('Behavioral Economics', () => {
 
   describe('Loss Framing', () => {
     it('should apply loss framing to goals', async () => {
-      const { applyLossFraming } = await import(
-        '../services/behavioral-economics/index.js'
-      );
+      const { applyLossFraming } = await import('../services/behavioral-economics/index.js');
 
       const lossFramed = applyLossFraming('get more energy');
       expect(lossFramed).toContain('losing');
@@ -567,14 +516,10 @@ describe('Behavioral Economics', () => {
 
   describe('Temptation Bundling', () => {
     it('should suggest temptation bundles', async () => {
-      const { suggestTemptationBundles } = await import(
-        '../services/behavioral-economics/index.js'
-      );
+      const { suggestTemptationBundles } =
+        await import('../services/behavioral-economics/index.js');
 
-      const bundles = suggestTemptationBundles(
-        ['exercise'],
-        ['listen to podcasts']
-      );
+      const bundles = suggestTemptationBundles(['exercise'], ['listen to podcasts']);
 
       expect(bundles.length).toBeGreaterThan(0);
     });
@@ -582,9 +527,7 @@ describe('Behavioral Economics', () => {
 
   describe('Friction Audit', () => {
     it('should audit friction for common goals', async () => {
-      const { auditFriction } = await import(
-        '../services/behavioral-economics/index.js'
-      );
+      const { auditFriction } = await import('../services/behavioral-economics/index.js');
 
       const audit = auditFriction('exercise regularly');
       expect(audit.barriers.length).toBeGreaterThan(0);
@@ -601,14 +544,13 @@ describe('Integration', () => {
   describe('Context Builder Registration', () => {
     it('should have context builder system available', async () => {
       // Import the core functions
-      const { buildConversationContext, getRegisteredBuilders } = await import(
-        '../intelligence/context-builders/index.js'
-      );
+      const { buildConversationContext, getRegisteredBuilders } =
+        await import('../intelligence/context-builders/index.js');
 
       // Core functions should be available
       expect(typeof buildConversationContext).toBe('function');
       expect(typeof getRegisteredBuilders).toBe('function');
-      
+
       // The system should be able to process context
       // (builders are lazy-loaded on first use)
     });
@@ -616,9 +558,8 @@ describe('Integration', () => {
 
   describe('End-to-End Context Building', () => {
     it('should build context for distressed user', async () => {
-      const { buildConversationContext } = await import(
-        '../intelligence/context-builders/index.js'
-      );
+      const { buildConversationContext } =
+        await import('../intelligence/context-builders/index.js');
 
       const mockInput = {
         userText: "I'm panicking. Everything is falling apart and I can't breathe.",
@@ -668,17 +609,19 @@ describe('Integration', () => {
 
       // The base buildConversationContext provides emotional support for needsSupport/high distress
       // It may produce critical injections based on the emotional state
-      expect(injections.some((i) => 
-        i.content.toLowerCase().includes('support') || 
-        i.content.toLowerCase().includes('empathetic') ||
-        i.priority === 'critical'
-      )).toBe(true);
+      expect(
+        injections.some(
+          (i) =>
+            i.content.toLowerCase().includes('support') ||
+            i.content.toLowerCase().includes('empathetic') ||
+            i.priority === 'critical'
+        )
+      ).toBe(true);
     });
 
     it('should build context for goal-setting conversation', async () => {
-      const { buildConversationContext } = await import(
-        '../intelligence/context-builders/index.js'
-      );
+      const { buildConversationContext } =
+        await import('../intelligence/context-builders/index.js');
 
       const mockInput = {
         userText: "I want to start exercising but I can't seem to stick with it.",
@@ -732,16 +675,15 @@ describe('Integration', () => {
 
 describe('Better-Than-Human Capabilities', () => {
   it('should have perfect memory of cognitive patterns', async () => {
-    const { detectDistortions, getANTProfile } = await import(
-      '../services/cognitive-intelligence/distortion-detector.js'
-    );
+    const { detectDistortions, getANTProfile } =
+      await import('../services/cognitive-intelligence/distortion-detector.js');
 
     const userId = 'user-memory-test';
 
     // First detection
     detectDistortions(userId, "I'm a total failure", {});
-    detectDistortions(userId, "Everything I do turns out bad", {});
-    detectDistortions(userId, "I always mess things up", {});
+    detectDistortions(userId, 'Everything I do turns out bad', {});
+    detectDistortions(userId, 'I always mess things up', {});
 
     const profile = getANTProfile(userId);
 
@@ -751,9 +693,7 @@ describe('Better-Than-Human Capabilities', () => {
   });
 
   it('should be consistent in framework application', async () => {
-    const { selectDBTSkill } = await import(
-      '../services/therapeutic-frameworks/dbt-skills.js'
-    );
+    const { selectDBTSkill } = await import('../services/therapeutic-frameworks/dbt-skills.js');
 
     // Same input should always give same output
     const input = { emotionIntensity: 0.95, goal: 'survive_crisis' as const };
@@ -767,20 +707,25 @@ describe('Better-Than-Human Capabilities', () => {
   });
 
   it('should track wellbeing across sessions', async () => {
-    const { recordSnapshot, getWellbeingProfile, getRecentSnapshots } = await import(
-      '../services/wellbeing-tracking/tracker.js'
-    );
+    const { recordSnapshot, getWellbeingProfile, getRecentSnapshots } =
+      await import('../services/wellbeing-tracking/tracker.js');
 
     const userId = 'user-wellbeing-track';
 
     // Record multiple snapshots
-    recordSnapshot(userId, [
-      { dimension: 'mood', signal: 'feeling down', direction: 'negative', confidence: 0.8 },
-    ], 'detected', {});
+    recordSnapshot(
+      userId,
+      [{ dimension: 'mood', signal: 'feeling down', direction: 'negative', confidence: 0.8 }],
+      'detected',
+      {}
+    );
 
-    recordSnapshot(userId, [
-      { dimension: 'mood', signal: 'a bit better today', direction: 'positive', confidence: 0.7 },
-    ], 'detected', {});
+    recordSnapshot(
+      userId,
+      [{ dimension: 'mood', signal: 'a bit better today', direction: 'positive', confidence: 0.7 }],
+      'detected',
+      {}
+    );
 
     // Check profile
     const profile = getWellbeingProfile(userId);
@@ -792,15 +737,12 @@ describe('Better-Than-Human Capabilities', () => {
   });
 
   it('should integrate multiple frameworks seamlessly', async () => {
-    const { buildTherapeuticContext } = await import(
-      '../services/therapeutic-frameworks/index.js'
-    );
-    const { buildBehavioralEconomicsContext } = await import(
-      '../services/behavioral-economics/index.js'
-    );
+    const { buildTherapeuticContext } = await import('../services/therapeutic-frameworks/index.js');
+    const { buildBehavioralEconomicsContext } =
+      await import('../services/behavioral-economics/index.js');
 
     const userId = 'user-integration-test';
-    const userText = "I want to change but I keep failing. It feels hopeless.";
+    const userText = 'I want to change but I keep failing. It feels hopeless.';
 
     const therapeuticContext = buildTherapeuticContext(userId, userText, {
       relationshipStage: 'established',
@@ -816,4 +758,3 @@ describe('Better-Than-Human Capabilities', () => {
     expect(therapeuticContext.hasContext || !!beContext).toBe(true);
   });
 });
-

@@ -103,7 +103,7 @@ export interface CallbackOpportunity {
 const OPINION_INDICATORS = [
   'i hate when',
   'i love when',
-  'i can\'t stand',
+  "i can't stand",
   'nothing worse than',
   'best thing ever',
   'worst thing ever',
@@ -120,7 +120,7 @@ const STORY_INDICATORS = [
   'there was this',
   'i remember when',
   'so this happened',
-  'you won\'t believe',
+  "you won't believe",
   'true story',
   'this is embarrassing but',
   'okay so',
@@ -128,12 +128,12 @@ const STORY_INDICATORS = [
 
 /** Quirk/preference indicators */
 const QUIRK_INDICATORS = [
-  'i\'m the kind of person who',
-  'i\'m someone who',
-  'i\'ve always been',
+  "i'm the kind of person who",
+  "i'm someone who",
+  "i've always been",
   'people always say i',
-  'i know it\'s weird but',
-  'don\'t judge me but',
+  "i know it's weird but",
+  "don't judge me but",
   'guilty pleasure',
 ];
 
@@ -260,9 +260,7 @@ function extractTriggers(message: string): string[] {
   // Extract nouns and key phrases
   const words = lower.split(/\s+/);
   const meaningful = words.filter(
-    (w) =>
-      w.length > 4 &&
-      !['about', 'really', 'always', 'never', 'think', 'would'].includes(w)
+    (w) => w.length > 4 && !['about', 'really', 'always', 'never', 'think', 'would'].includes(w)
   );
 
   triggers.push(...meaningful.slice(0, 5));
@@ -273,10 +271,7 @@ function extractTriggers(message: string): string[] {
 /**
  * Generate callback suggestions based on moment type
  */
-function generateCallbackSuggestions(
-  type: SharedMoment['type'],
-  content: string
-): string[] {
+function generateCallbackSuggestions(type: SharedMoment['type'], content: string): string[] {
   const templates: Record<string, string[]> = {
     opinion: [
       `I know how you feel about that... [laughter]`,
@@ -288,27 +283,11 @@ function generateCallbackSuggestions(
       `This reminds me of that story you told me...`,
       `I feel like you've been here before.`,
     ],
-    phrase: [
-      `As you would say...`,
-      `To quote a wise person I know...`,
-    ],
-    quirk: [
-      `That's very you.`,
-      `Classic.`,
-      `I would expect nothing less.`,
-    ],
-    preference: [
-      `I remembered you feel strongly about this.`,
-      `Knowing your preferences...`,
-    ],
-    running_gag: [
-      `Here we go again... [laughter]`,
-      `You knew I was going to say something.`,
-    ],
-    callback_moment: [
-      `Remember when...`,
-      `Speaking of which...`,
-    ],
+    phrase: [`As you would say...`, `To quote a wise person I know...`],
+    quirk: [`That's very you.`, `Classic.`, `I would expect nothing less.`],
+    preference: [`I remembered you feel strongly about this.`, `Knowing your preferences...`],
+    running_gag: [`Here we go again... [laughter]`, `You knew I was going to say something.`],
+    callback_moment: [`Remember when...`, `Speaking of which...`],
   };
 
   return templates[type] || templates.callback_moment;
@@ -358,8 +337,7 @@ export function findCallbackOpportunity(
 
     // Penalize recent callbacks
     if (moment.lastCallback) {
-      const hoursSince =
-        (Date.now() - moment.lastCallback.getTime()) / (1000 * 60 * 60);
+      const hoursSince = (Date.now() - moment.lastCallback.getTime()) / (1000 * 60 * 60);
       if (hoursSince < 24) relevance -= 0.3;
     }
 
@@ -459,10 +437,7 @@ export function recordCallbackUsed(
 /**
  * Check if something has become a running gag
  */
-export function detectRunningGag(
-  userId: string,
-  topic: string
-): SharedMoment | null {
+export function detectRunningGag(userId: string, topic: string): SharedMoment | null {
   const profile = profiles.get(userId);
   if (!profile) return null;
 
@@ -520,7 +495,7 @@ export function recordCharacterTrait(
   userId: string,
   trait: string,
   example: string,
-  canTease: boolean = true
+  canTease = true
 ): void {
   const profile = getOrCreateProfile(userId);
 
@@ -568,9 +543,7 @@ export function getSharedMoments(userId: string): SharedMoment[] {
 /**
  * Export profile for persistence
  */
-export function exportInsideJokesProfile(
-  userId: string
-): InsideJokesProfile | null {
+export function exportInsideJokesProfile(userId: string): InsideJokesProfile | null {
   return profiles.get(userId) || null;
 }
 
@@ -600,4 +573,3 @@ export default {
   exportInsideJokesProfile,
   importInsideJokesProfile,
 };
-

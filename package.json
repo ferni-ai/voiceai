@@ -161,13 +161,16 @@
     "@sendgrid/mail": "^8.1.6",
     "@sentry/node": "^10.29.0",
     "dotenv": "^16.4.0",
+    "firebase-admin": "^13.6.0",
     "ioredis": "^5.8.2",
     "livekit-client": "^2.16.0",
     "livekit-server-sdk": "^2.14.2",
     "pg": "^8.16.3",
     "stripe": "^20.0.0",
-    "twilio": "^5.10.7",
-    "firebase-admin": "^13.6.0"
+    "twilio": "^5.10.7"
+  },
+  "optionalDependencies": {
+    "ferni-speaker": "github:sethdford/ferni-speaker#v0.1.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.0",

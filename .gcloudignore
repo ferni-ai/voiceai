@@ -42,6 +42,10 @@ reference/
 /frontend-typescript/dist
 /functions/dist
 
+# Test coverage
+coverage/
+.nyc_output/
+
 # Cursor
 .cursor
 

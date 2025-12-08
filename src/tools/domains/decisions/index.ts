@@ -41,23 +41,25 @@ const DECISION_FRAMEWORKS = {
       'Which choice will you regret NOT making?',
       'What would you tell your younger self to do?',
     ],
-    insight: 'Jeff Bezos used this to decide to start Amazon. Our biggest regrets are usually things we didn\'t do.',
+    insight:
+      "Jeff Bezos used this to decide to start Amazon. Our biggest regrets are usually things we didn't do.",
   },
-  'reversibility': {
+  reversibility: {
     name: 'Reversibility Test',
     description: 'Is this a one-way door or two-way door?',
     questions: [
-      'If this doesn\'t work out, can you reverse it or recover?',
-      'What\'s the cost of being wrong?',
+      "If this doesn't work out, can you reverse it or recover?",
+      "What's the cost of being wrong?",
       'Is this a decision you can iterate on, or is it final?',
     ],
-    insight: 'Two-way doors (reversible decisions) can be made quickly. One-way doors (irreversible) deserve more deliberation.',
+    insight:
+      'Two-way doors (reversible decisions) can be made quickly. One-way doors (irreversible) deserve more deliberation.',
   },
   'pre-mortem': {
     name: 'Pre-Mortem Analysis',
     description: 'Imagine it failed - why?',
     questions: [
-      'It\'s one year from now and this decision was a disaster. What happened?',
+      "It's one year from now and this decision was a disaster. What happened?",
       'What are the most likely reasons for failure?',
       'What warning signs might you have ignored?',
     ],
@@ -71,7 +73,7 @@ const DECISION_FRAMEWORKS = {
       'How does each option align with each value?',
       'Which option best honors what you care about most?',
     ],
-    insight: 'When you\'re clear on values, many decisions become obvious.',
+    insight: "When you're clear on values, many decisions become obvious.",
   },
 };
 
@@ -91,16 +93,18 @@ const frameMajorDecisionDef: ToolDefinition = {
       description: 'Help user frame and structure a major decision with clarity.',
       parameters: z.object({
         decision: z.string().describe('The decision they are facing'),
-        category: z.enum([
-          'career',
-          'relationship',
-          'location',
-          'financial',
-          'education',
-          'health',
-          'family',
-          'life-direction',
-        ]).describe('Category of decision'),
+        category: z
+          .enum([
+            'career',
+            'relationship',
+            'location',
+            'financial',
+            'education',
+            'health',
+            'family',
+            'life-direction',
+          ])
+          .describe('Category of decision'),
         timeline: z.string().optional().describe('When decision needs to be made'),
         stakeholders: z.array(z.string()).optional().describe('Who else is affected'),
       }),
@@ -165,13 +169,9 @@ const walkThroughDecisionFrameworkDef: ToolDefinition = {
     return llm.tool({
       description: 'Walk user through a specific decision-making framework.',
       parameters: z.object({
-        framework: z.enum([
-          '10-10-10',
-          'regret-minimization',
-          'reversibility',
-          'pre-mortem',
-          'values-first',
-        ]).describe('Framework to use'),
+        framework: z
+          .enum(['10-10-10', 'regret-minimization', 'reversibility', 'pre-mortem', 'values-first'])
+          .describe('Framework to use'),
         decision: z.string().describe('The decision being considered'),
         options: z.array(z.string()).optional().describe('Options being considered'),
       }),
@@ -185,7 +185,7 @@ const walkThroughDecisionFrameworkDef: ToolDefinition = {
         response += `**Your decision:** ${decision}\n`;
         if (options?.length) {
           response += `**Options:**\n`;
-          options.forEach((opt, i) => response += `- ${String.fromCharCode(65 + i)}: ${opt}\n`);
+          options.forEach((opt, i) => (response += `- ${String.fromCharCode(65 + i)}: ${opt}\n`));
         }
         response += `\n---\n\n`;
 
@@ -235,7 +235,7 @@ const analyzeProsAndConsDef: ToolDefinition = {
 
         response += `**✅ PROS** (Benefits, advantages, positives)\n\n`;
         if (knownPros?.length) {
-          knownPros.forEach(pro => response += `• ${pro}\n`);
+          knownPros.forEach((pro) => (response += `• ${pro}\n`));
           response += `\n`;
         }
         response += `_Questions to surface more pros:_\n`;
@@ -246,7 +246,7 @@ const analyzeProsAndConsDef: ToolDefinition = {
 
         response += `**❌ CONS** (Costs, risks, negatives)\n\n`;
         if (knownCons?.length) {
-          knownCons.forEach(con => response += `• ${con}\n`);
+          knownCons.forEach((con) => (response += `• ${con}\n`));
           response += `\n`;
         }
         response += `_Questions to surface more cons:_\n`;
@@ -293,13 +293,13 @@ const scoreOptionsDef: ToolDefinition = {
         let response = `**Weighted Decision Matrix**\n\n`;
         response += `**Decision:** ${decision}\n\n`;
         response += `**Options:**\n`;
-        options.forEach((opt, i) => response += `${i + 1}. ${opt}\n`);
+        options.forEach((opt, i) => (response += `${i + 1}. ${opt}\n`));
         response += `\n---\n\n`;
 
         response += `**Step 1: Define Your Criteria**\n\n`;
         if (criteria?.length) {
           response += `Your criteria:\n`;
-          criteria.forEach(c => response += `- ${c}\n`);
+          criteria.forEach((c) => (response += `- ${c}\n`));
         } else {
           response += `What factors matter for this decision? Common ones include:\n`;
           response += `- Financial impact\n`;
@@ -364,7 +364,7 @@ const assessRiskDef: ToolDefinition = {
 
         if (identifiedRisks?.length) {
           response += `**Identified risks:**\n`;
-          identifiedRisks.forEach(r => response += `- ${r}\n`);
+          identifiedRisks.forEach((r) => (response += `- ${r}\n`));
           response += `\n`;
         }
 
@@ -462,9 +462,9 @@ const checkValuesAlignmentDef: ToolDefinition = {
           response += `---\n\n`;
 
           response += `**Alignment Analysis:**\n\n`;
-          options.forEach(option => {
+          options.forEach((option) => {
             response += `**${option}:**\n`;
-            values.forEach(value => {
+            values.forEach((value) => {
               response += `- ${value}: How does this option honor or conflict with this value?\n`;
             });
             response += `\n`;
@@ -504,16 +504,16 @@ const prepareSecondOpinionQuestionsDef: ToolDefinition = {
       parameters: z.object({
         decision: z.string().describe('The decision'),
         whoToAsk: z.array(z.string()).optional().describe('Who they plan to consult'),
-        whatTheyNeed: z.enum([
-          'perspective',
-          'expertise',
-          'emotional-support',
-          'challenge',
-          'validation',
-        ]).optional().describe('What they need from the conversation'),
+        whatTheyNeed: z
+          .enum(['perspective', 'expertise', 'emotional-support', 'challenge', 'validation'])
+          .optional()
+          .describe('What they need from the conversation'),
       }),
       execute: async ({ decision, whoToAsk, whatTheyNeed }) => {
-        getLogger().info({ agentId: ctx.agentId, whatTheyNeed }, 'Preparing second opinion questions');
+        getLogger().info(
+          { agentId: ctx.agentId, whatTheyNeed },
+          'Preparing second opinion questions'
+        );
 
         let response = `**Getting Useful Input on Your Decision**\n\n`;
         response += `**Decision:** ${decision}\n`;
@@ -657,4 +657,3 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export default getToolDefinitions;
-

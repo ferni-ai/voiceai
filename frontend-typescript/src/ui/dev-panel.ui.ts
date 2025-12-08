@@ -49,6 +49,14 @@ import {
   showFirstLaunchExperience,
 } from './soul.ui.js';
 
+// Pixar emotions system
+import {
+  initPixarEmotions,
+  pixarEmotions,
+  type AdvancedReaction,
+  type EmotionalExpression,
+} from './pixar-emotions.ui.js';
+
 // Weather effects
 import {
   getCurrentSeason,
@@ -61,6 +69,15 @@ import {
 
 // Ferni Moments - Pixar-style character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
+
+// Narrative System - Story beats and arcs
+import {
+  getJourney,
+  getSessionStats,
+  triggerTestArc,
+  triggerTestBeat,
+  type StoryBeat,
+} from '../narrative/index.js';
 
 const log = createLogger('DevPanel');
 
@@ -220,10 +237,12 @@ function cleanupOrphanedElements(): void {
 }
 
 function showDevIndicator(): void {
-  const indicator = document.createElement('div');
+  const indicator = document.createElement('button');
   indicator.className = 'dev-indicator';
+  indicator.type = 'button';
   indicator.innerHTML = `${ICONS.code} DEV`;
   indicator.title = 'Click to open dev panel (or Cmd/Ctrl+Shift+D)';
+  indicator.setAttribute('aria-label', 'Open dev panel');
   indicator.addEventListener('click', togglePanel);
   document.body.appendChild(indicator);
 }
@@ -631,72 +650,116 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
-      <!-- 🎭 Ferni Moments - Character Expressions -->
+      <!-- 🎬 NEW: Pixar Emotions - Advanced Eye Lid Expressions -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">🎬 Pixar Emotions</h3>
+        <p class="dev-section__desc">Eye lid expressions & advanced reactions</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Eye Lid Expressions</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="happy" title="Squinted, warm">😊 Happy</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="delighted" title="Happy + sparkle">✨ Delighted</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="surprised" title="Wide eyes">😲 Surprised</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="curious" title="Head tilt">🤔 Curious</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="skeptical" title="One brow up">🤨 Skeptical</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="worried" title="Angled brows">😟 Worried</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="sad" title="Droopy lids">😢 Sad</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="sleepy" title="Heavy lids">😴 Sleepy</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="thinking" title="Looking away">💭 Thinking</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="empathetic" title="Soft understanding">🫂 Empathetic</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="excited" title="Wide + sparkle">🎉 Excited</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar" data-pixar-expr="neutral" title="Reset to neutral">😐 Neutral</button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Advanced Reactions</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="doubleTake" title="Look away → snap back">👀 Double-Take</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="heldPose" title="Hold at peak emotion">⏸️ Held Pose</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="lookAway" title="Thinking look away">🔄 Look Away</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="nervousEnergy" title="Fidget trembles">😰 Nervous</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar-react" data-pixar-react="delightSparkle" title="Eye sparkle effect">💫 Sparkle</button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Text-to-Icon Morph</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--pixar-morph" data-morph="lightbulb" title="Morph to idea icon">💡 Idea Morph</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar-morph" data-morph="heart" title="Morph to heart">❤️ Heart Morph</button>
+            <button class="dev-expression-btn dev-expression-btn--pixar-morph" data-morph="sparkles" title="Morph to sparkles">✨ Sparkle Morph</button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Ferni Moments - Character Expressions -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.heart} Ferni Moments</h3>
-        <p class="dev-section__desc">Pixar-style character expressions & reactions</p>
+        <p class="dev-section__desc">Pixar-style character expressions (Lucide icons)</p>
         
         <div class="dev-subsection">
           <span class="dev-label">Emotional</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="celebration" title="Celebration">🎉</button>
-            <button class="dev-expression-btn" data-moment="warmGlow" title="Warm glow">✨</button>
-            <button class="dev-expression-btn" data-moment="lightbulb" title="Aha moment">💡</button>
-            <button class="dev-expression-btn" data-moment="hearts" title="Hearts">❤️</button>
-            <button class="dev-expression-btn" data-moment="thinking" title="Thinking">🤔</button>
+            <button class="dev-expression-btn" data-moment="celebration" title="Celebration">Celebrate</button>
+            <button class="dev-expression-btn" data-moment="warmGlow" title="Warm glow">Glow</button>
+            <button class="dev-expression-btn" data-moment="lightbulb" title="Aha moment">Idea</button>
+            <button class="dev-expression-btn" data-moment="hearts" title="Hearts">Hearts</button>
+            <button class="dev-expression-btn" data-moment="thinking" title="Thinking">Think</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Time of Day</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="coffee" title="Morning coffee">☕</button>
-            <button class="dev-expression-btn" data-moment="sunshine" title="Sunshine">☀️</button>
-            <button class="dev-expression-btn" data-moment="cozy" title="Cozy evening">🕯️</button>
-            <button class="dev-expression-btn" data-moment="moonlight" title="Moonlight">🌙</button>
-            <button class="dev-expression-btn" data-moment="sleepy" title="Sleepy">😴</button>
+            <button class="dev-expression-btn" data-moment="coffee" title="Morning coffee">Coffee</button>
+            <button class="dev-expression-btn" data-moment="sunshine" title="Sunshine">Sun</button>
+            <button class="dev-expression-btn" data-moment="cozy" title="Cozy evening">Cozy</button>
+            <button class="dev-expression-btn" data-moment="moonlight" title="Moonlight">Moon</button>
+            <button class="dev-expression-btn" data-moment="sleepy" title="Sleepy">Sleepy</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Contextual</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="musicNotes" title="Music">♪</button>
-            <button class="dev-expression-btn" data-moment="sparkle" title="Sparkle">✨</button>
-            <button class="dev-expression-btn" data-moment="books" title="Books/learning">📚</button>
-            <button class="dev-expression-btn" data-moment="growing" title="Growth">🌱</button>
+            <button class="dev-expression-btn" data-moment="musicNotes" title="Music">Music</button>
+            <button class="dev-expression-btn" data-moment="sparkle" title="Sparkle">Sparkle</button>
+            <button class="dev-expression-btn" data-moment="books" title="Books/learning">Books</button>
+            <button class="dev-expression-btn" data-moment="growing" title="Growth">Grow</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Connection</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="wave" title="Wave hello">👋</button>
-            <button class="dev-expression-btn" data-moment="nod" title="Nod">😊</button>
-            <button class="dev-expression-btn" data-moment="headTilt" title="Curious tilt">🤨</button>
-            <button class="dev-expression-btn" data-moment="highFive" title="High five">✋</button>
-            <button class="dev-expression-btn" data-moment="fistBump" title="Fist bump">👊</button>
+            <button class="dev-expression-btn" data-moment="wave" title="Wave hello">Wave</button>
+            <button class="dev-expression-btn" data-moment="nod" title="Nod">Nod</button>
+            <button class="dev-expression-btn" data-moment="headTilt" title="Curious tilt">Tilt</button>
+            <button class="dev-expression-btn" data-moment="highFive" title="High five">Hi-Five</button>
+            <button class="dev-expression-btn" data-moment="fistBump" title="Fist bump">Bump</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Milestones</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="birthday" title="Birthday">🎂</button>
-            <button class="dev-expression-btn" data-moment="streakFire" title="Streak fire">🔥</button>
-            <button class="dev-expression-btn" data-moment="trophy" title="Trophy">🏆</button>
-            <button class="dev-expression-btn" data-moment="levelUp" title="Level up">⬆️</button>
+            <button class="dev-expression-btn" data-moment="birthday" title="Birthday">Birthday</button>
+            <button class="dev-expression-btn" data-moment="streakFire" title="Streak fire">Streak</button>
+            <button class="dev-expression-btn" data-moment="trophy" title="Trophy">Trophy</button>
+            <button class="dev-expression-btn" data-moment="levelUp" title="Level up">Level Up</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Human Touches</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn" data-moment="yawn" title="Yawn">🥱</button>
-            <button class="dev-expression-btn" data-moment="stretch" title="Stretch">🙆</button>
-            <button class="dev-expression-btn" data-moment="breathe" title="Deep breath">😌</button>
-            <button class="dev-expression-btn" data-moment="shiver" title="Cold/shiver">🥶</button>
-            <button class="dev-expression-btn" data-moment="fan" title="Hot/fan">🥵</button>
+            <button class="dev-expression-btn" data-moment="yawn" title="Yawn">Yawn</button>
+            <button class="dev-expression-btn" data-moment="stretch" title="Stretch">Stretch</button>
+            <button class="dev-expression-btn" data-moment="breathe" title="Deep breath">Breathe</button>
+            <button class="dev-expression-btn" data-moment="shiver" title="Cold/shiver">Shiver</button>
+            <button class="dev-expression-btn" data-moment="fan" title="Hot/fan">Hot</button>
           </div>
         </div>
       </section>
@@ -1628,6 +1691,141 @@ function createPanel(): HTMLElement {
           </div>
         </div>
       </section>
+      
+      <!-- 🎬 Narrative System -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.heart} Narrative System</h3>
+        <p class="dev-section__desc">Test story beats, arcs, and emotional journeys</p>
+        
+        <div class="dev-narrative-stats" id="dev-narrative-stats">
+          <div class="dev-info-grid">
+            <div class="dev-info">
+              <span class="dev-info__label">Sessions</span>
+              <span class="dev-info__value" id="narrative-sessions">0</span>
+            </div>
+            <div class="dev-info">
+              <span class="dev-info__label">Streak</span>
+              <span class="dev-info__value" id="narrative-streak">0</span>
+            </div>
+            <div class="dev-info">
+              <span class="dev-info__label">Turn Count</span>
+              <span class="dev-info__value" id="narrative-turns">0</span>
+            </div>
+            <div class="dev-info">
+              <span class="dev-info__label">Speaking</span>
+              <span class="dev-info__value" id="narrative-speaking">-</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Journey Beats</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="first_launch" title="First launch">
+              🌟 First Launch
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="welcome_back" title="Welcome back">
+              👋 Welcome Back
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="streak_continues" title="Streak">
+              🔥 Streak
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="connected" title="Connected">
+              ✨ Connected
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Conversation Flow</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_starts_speaking" title="User speaking">
+              🗣️ User Speaks
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="thinking" title="Thinking">
+              🤔 Thinking
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="ferni_starts_speaking" title="Ferni speaking">
+              💬 Ferni Speaks
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="long_pause" title="Long pause">
+              ⏸️ Long Pause
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Emotional Moments</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="empathy_moment" title="Empathy">
+              💙 Empathy
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_vulnerable" title="Vulnerable">
+              🫂 Vulnerable
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_frustrated" title="Frustrated">
+              😤 Frustrated
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_sad" title="Sad">
+              😢 Sad
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Achievements</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="small_win" title="Small win">
+              ⭐ Small Win
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="big_win" title="Big win">
+              🏆 Big Win
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="breakthrough" title="Breakthrough">
+              💡 Breakthrough
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="milestone_reached" title="Milestone">
+              🎯 Milestone
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Team & Special</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="persona_introduced" title="Persona intro">
+              🎭 Persona Intro
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="team_unlock" title="Team unlock">
+              🔓 Team Unlock
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="birthday" title="Birthday">
+              🎂 Birthday
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="morning_greeting" title="Morning">
+              ☀️ Morning
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Story Arcs</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--arc" data-arc="breakthrough" title="Breakthrough arc">
+              💡 Breakthrough Arc
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--arc" data-arc="deep_conversation" title="Deep conversation">
+              🫂 Deep Convo Arc
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--arc" data-arc="goal_completion" title="Goal completion">
+              🎯 Goal Complete Arc
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--arc" data-arc="frustration_support" title="Frustration support">
+              💙 Support Arc
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
     
     <div class="dev-panel__footer">
@@ -1710,8 +1908,62 @@ function createPanel(): HTMLElement {
     });
   });
 
+  // 🎬 Pixar Emotions - Eye Lid Expressions
+  container.querySelectorAll('[data-pixar-expr]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const expr = (btn as HTMLElement).dataset.pixarExpr as EmotionalExpression;
+      if (expr) {
+        triggerPixarExpression(expr);
+      }
+    });
+  });
+
+  // 🎬 Pixar Emotions - Advanced Reactions
+  container.querySelectorAll('[data-pixar-react]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const react = (btn as HTMLElement).dataset.pixarReact as AdvancedReaction;
+      if (react) {
+        triggerPixarReaction(react);
+      }
+    });
+  });
+
+  // 🎬 Pixar Emotions - Text-to-Icon Morph
+  container.querySelectorAll('[data-morph]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const morph = (btn as HTMLElement).dataset.morph;
+      if (morph) {
+        triggerPixarMorph(morph);
+      }
+    });
+  });
+
   // 👁️ Ferni Eye - DISABLED (keeping just zen blink)
   // Eye peek-through animations removed for simpler, calmer UX
+
+  // 🎬 Narrative story beat buttons
+  container.querySelectorAll('[data-beat]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const beat = (btn as HTMLElement).dataset.beat as StoryBeat;
+      if (beat) {
+        log.info('Triggering narrative beat:', beat);
+        triggerTestBeat(beat);
+        updateNarrativeStats();
+      }
+    });
+  });
+
+  // 🎬 Narrative story arc buttons
+  container.querySelectorAll('[data-arc]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const arc = (btn as HTMLElement).dataset.arc;
+      if (arc) {
+        log.info('Triggering narrative arc:', arc);
+        triggerTestArc(arc);
+        updateNarrativeStats();
+      }
+    });
+  });
 
   // 🎭 Ferni Moments buttons
   container.querySelectorAll('[data-moment]').forEach((btn) => {
@@ -2163,31 +2415,24 @@ async function requestGameStart(gameType: string): Promise<void> {
 }
 
 /**
- * Simple toast notification
+ * Simple toast notification - uses centralized toast system
  */
 function showToast(message: string, type: 'info' | 'success' | 'error' = 'info'): void {
-  const toast = document.createElement('div');
-  toast.className = `dev-toast dev-toast--${type}`;
-  toast.textContent = message;
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${type === 'error' ? 'var(--color-destructive)' : 'var(--persona-primary)'};
-    color: white;
-    padding: var(--space-3) var(--space-6);
-    border-radius: var(--radius-full);
-    font-size: 14px;
-    z-index: 10001;
-    animation: toast-in 0.3s ease-out;
-  `;
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.animation = 'toast-out 0.3s ease-in forwards';
-    setTimeout(() => toast.remove(), 300);
-  }, 2500);
+  // Import dynamically to avoid circular deps
+  import('./toast.ui.js')
+    .then(({ toast }) => {
+      if (type === 'success') {
+        toast.success(message);
+      } else if (type === 'error') {
+        toast.error(message);
+      } else {
+        toast.info(message);
+      }
+    })
+    .catch(() => {
+      // Fallback if import fails
+      log.warn('Toast import failed, using fallback');
+    });
 }
 
 function quickUnlockAll(): void {
@@ -2411,6 +2656,37 @@ async function handleOutreachAction(action: string): Promise<void> {
   } catch (error) {
     log.error({ error, action }, 'Outreach action failed');
     setStatus(`Error: ${error instanceof Error ? error.message : 'Unknown'}`, true);
+  }
+}
+
+// ============================================================================
+// NARRATIVE SYSTEM STATS
+// ============================================================================
+
+function updateNarrativeStats(): void {
+  try {
+    const stats = getSessionStats();
+    const journey = getJourney();
+
+    const sessionsEl = document.getElementById('narrative-sessions');
+    const streakEl = document.getElementById('narrative-streak');
+    const turnsEl = document.getElementById('narrative-turns');
+    const speakingEl = document.getElementById('narrative-speaking');
+
+    if (sessionsEl) sessionsEl.textContent = journey.totalSessions.toString();
+    if (streakEl) streakEl.textContent = journey.currentStreak.toString();
+    if (turnsEl) turnsEl.textContent = stats.turns.toString();
+    if (speakingEl) {
+      if (stats.isFerniSpeaking) {
+        speakingEl.textContent = '🗣️ Ferni';
+      } else if (stats.isUserSpeaking) {
+        speakingEl.textContent = '👤 User';
+      } else {
+        speakingEl.textContent = '—';
+      }
+    }
+  } catch (error) {
+    log.debug('Could not update narrative stats:', error);
   }
 }
 
@@ -2671,6 +2947,89 @@ function triggerExpression(expression: string): void {
 
 // Disabled: Eye animations removed - keeping just zen blink
 // function triggerFerniEye() { ... }
+
+// ============================================================================
+// 🎬 PIXAR EMOTIONS - Eye Lid Expressions & Advanced Reactions
+// ============================================================================
+
+/**
+ * Trigger a Pixar eye lid expression.
+ */
+function triggerPixarExpression(expression: EmotionalExpression): void {
+  // Initialize if not already done
+  initPixarEmotions();
+
+  // Set the expression with hold for demo purposes
+  const holdDuration = expression === 'neutral' ? 0 : DURATION.CELEBRATION;
+  pixarEmotions.setExpression(expression, DURATION.SLOW, holdDuration);
+
+  log.info({ expression }, 'Triggered Pixar expression');
+}
+
+/**
+ * Trigger a Pixar advanced reaction.
+ */
+function triggerPixarReaction(reaction: AdvancedReaction): void {
+  // Initialize if not already done
+  initPixarEmotions();
+
+  switch (reaction) {
+    case 'doubleTake':
+      pixarEmotions.doubleTake();
+      break;
+    case 'heldPose':
+      pixarEmotions.heldPose('happy', DURATION.SLOW);
+      break;
+    case 'lookAway':
+      pixarEmotions.lookAwayThinking(2000);
+      break;
+    case 'nervousEnergy':
+      pixarEmotions.nervousEnergy(1500);
+      break;
+    case 'delightSparkle':
+      pixarEmotions.delightSparkle();
+      break;
+    default:
+      log.warn({ reaction }, 'Unknown Pixar reaction');
+  }
+
+  log.info({ reaction }, 'Triggered Pixar reaction');
+}
+
+/**
+ * Trigger a Pixar text-to-icon morph.
+ */
+async function triggerPixarMorph(iconType: string): Promise<void> {
+  // Initialize if not already done
+  initPixarEmotions();
+
+  // Define icon SVGs (using Lucide-style icons)
+  const icons: Record<string, string> = {
+    lightbulb:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
+    heart:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+    sparkles:
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+  };
+
+  const iconSvg = icons[iconType];
+  if (!iconSvg) {
+    log.warn({ iconType }, 'Unknown icon type for morph');
+    return;
+  }
+
+  // Morph text → icon
+  const iconElement = await pixarEmotions.morphTextToIcon(iconSvg, DURATION.MODERATE);
+
+  // Hold the icon visible
+  await new Promise((resolve) => setTimeout(resolve, DURATION.CELEBRATION));
+
+  // Morph icon → text
+  await pixarEmotions.morphIconToText(iconElement);
+
+  log.info({ iconType }, 'Completed Pixar morph');
+}
 
 function triggerMusicAction(action: string): void {
   switch (action) {
@@ -3365,37 +3724,29 @@ function triggerMessage(message: string): void {
 }
 
 function triggerToast(toastType: string): void {
-  import('./toast.ui.js')
-    .then(({ toastSuccess, toastError, toastInfo, toastWarning }) => {
+  // Use the cute white whisper toast near the avatar
+  import('./message.ui.js')
+    .then(({ showMessage }) => {
       switch (toastType) {
         case 'success':
-          toastSuccess('Great job! Task completed successfully.');
+          showMessage('Great job!', 'success', 2500);
           break;
         case 'error':
-          toastError('Something went wrong. Please try again.');
+          showMessage('Something went wrong.', 'error', 3500);
           break;
         case 'info':
-          toastInfo("Here's some helpful information for you.");
+          showMessage("Here's some info.", 'info', 2500);
           break;
         case 'warning':
-          toastWarning('Warning: Please check your input.');
+          showMessage('Please check your input.', 'warning', 3000);
           break;
         default:
           log.warn({ toastType }, 'Unknown toast type');
       }
-      log.info({ toastType }, 'Triggered toast');
+      log.info({ toastType }, 'Triggered whisper toast');
     })
     .catch(() => {
-      // Fallback to message UI
-      import('./message.ui.js')
-        .then(({ showMessage }) => {
-          showMessage(
-            toastType === 'success' ? 'Success!' : toastType === 'error' ? 'Error!' : 'Info'
-          );
-        })
-        .catch(() => {
-          log.warn('Toast/Message UI not available');
-        });
+      log.warn('Message UI not available');
     });
 }
 
@@ -4765,6 +5116,33 @@ function injectStyles(): void {
     .dev-expression-btn--wrap-up.dev-expression-btn--reset:hover {
       background: rgba(128, 128, 128, 0.25);
       border-color: rgba(128, 128, 128, 0.4);
+    }
+    
+    /* Narrative Buttons (story beats - warm gold) */
+    .dev-expression-btn--narrative {
+      background: rgba(255, 215, 100, 0.15);
+      border-color: rgba(255, 215, 100, 0.25);
+      color: #ffd764;
+    }
+    .dev-expression-btn--narrative:hover {
+      background: rgba(255, 215, 100, 0.25);
+      border-color: rgba(255, 215, 100, 0.4);
+    }
+    
+    /* Arc Buttons (story arcs - teal) */
+    .dev-expression-btn--arc {
+      background: rgba(100, 200, 200, 0.15);
+      border-color: rgba(100, 200, 200, 0.25);
+      color: #64c8c8;
+    }
+    .dev-expression-btn--arc:hover {
+      background: rgba(100, 200, 200, 0.25);
+      border-color: rgba(100, 200, 200, 0.4);
+    }
+    
+    /* Narrative Stats Grid */
+    .dev-narrative-stats {
+      margin-bottom: var(--space-3, 12px);
     }
     
     /* Dashboard Links */

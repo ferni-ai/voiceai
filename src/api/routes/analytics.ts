@@ -58,7 +58,9 @@ export async function handleGetUserAnalytics(
     const dayCompletions: Record<string, number> = {};
     streaks.forEach((s) => {
       if (s.lastCompletedAt) {
-        const day = new Date(s.lastCompletedAt as string).toLocaleDateString('en-US', { weekday: 'long' });
+        const day = new Date(s.lastCompletedAt as string).toLocaleDateString('en-US', {
+          weekday: 'long',
+        });
         dayCompletions[day] = (dayCompletions[day] || 0) + 1;
       }
     });
@@ -66,28 +68,46 @@ export async function handleGetUserAnalytics(
 
     // Mood trends
     const moodTrends = weatherHistory.slice(0, 14).map((w) => {
-      const weather = typeof w.weather === 'object'
-        ? (w.weather as { primary?: string; energy?: string })
-        : { primary: w.weather as string, energy: 'medium' };
-      return { date: w.date, mood: weather.primary || 'cloudy', energy: weather.energy || 'medium' };
+      const weather =
+        typeof w.weather === 'object'
+          ? (w.weather as { primary?: string; energy?: string })
+          : { primary: w.weather as string, energy: 'medium' };
+      return {
+        date: w.date,
+        mood: weather.primary || 'cloudy',
+        energy: weather.energy || 'medium',
+      };
     });
 
     const moodMap: Record<string, number> = {
-      sunny: 5, 'partly-cloudy': 4, cloudy: 3, rainy: 2, stormy: 1, foggy: 2, rainbow: 5,
+      sunny: 5,
+      'partly-cloudy': 4,
+      cloudy: 3,
+      rainy: 2,
+      stormy: 1,
+      foggy: 2,
+      rainbow: 5,
     };
     const moodValues = moodTrends.map((m) => moodMap[m.mood] || 3);
-    const averageMood = moodValues.length > 0 ? moodValues.reduce((sum, v) => sum + v, 0) / moodValues.length : 3;
+    const averageMood =
+      moodValues.length > 0 ? moodValues.reduce((sum, v) => sum + v, 0) / moodValues.length : 3;
 
-    const sortedStreaks = [...streaks].sort((a, b) => ((b.longestStreak as number) || 0) - ((a.longestStreak as number) || 0));
+    const sortedStreaks = [...streaks].sort(
+      (a, b) => ((b.longestStreak as number) || 0) - ((a.longestStreak as number) || 0)
+    );
     const mostConsistentRitual = (sortedStreaks[0]?.ritualId as string) || null;
 
     const improvementAreas: string[] = [];
-    const inconsistentRituals = streaks.filter((s) => (s.currentStreak as number) === 0 && (s.totalCompletions as number) > 0);
+    const inconsistentRituals = streaks.filter(
+      (s) => (s.currentStreak as number) === 0 && (s.totalCompletions as number) > 0
+    );
     if (inconsistentRituals.length > 0) {
       improvementAreas.push('Some rituals could use more consistency');
     }
     if (moodTrends.filter((m) => m.energy === 'low').length > moodTrends.length / 2) {
-      improvementAreas.push('Energy levels have been low - consider reviewing sleep or exercise habits');
+      improvementAreas.push(
+        'Energy levels have been low - consider reviewing sleep or exercise habits'
+      );
     }
 
     const analytics = {
@@ -105,12 +125,22 @@ export async function handleGetUserAnalytics(
     sendJSONCached(res, analytics, 60);
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get user analytics');
-    sendJSON(res, {
-      error: 'Failed to get analytics',
-      totalDays: 0, totalRituals: 0, currentLongestStreak: 0,
-      averageMood: 0, predictionAccuracy: null, moodTrends: [],
-      bestDay: null, mostConsistentRitual: null, improvementAreas: [],
-    }, 500);
+    sendJSON(
+      res,
+      {
+        error: 'Failed to get analytics',
+        totalDays: 0,
+        totalRituals: 0,
+        currentLongestStreak: 0,
+        averageMood: 0,
+        predictionAccuracy: null,
+        moodTrends: [],
+        bestDay: null,
+        mostConsistentRitual: null,
+        improvementAreas: [],
+      },
+      500
+    );
   }
 }
 

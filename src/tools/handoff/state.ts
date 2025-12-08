@@ -131,7 +131,7 @@ export function setCurrentAgent(agent: AgentId): void {
   const canonical = toCanonicalId(agent);
   const previousAgent = currentAgent;
   currentAgent = canonical;
-  
+
   // FIX BUG: Clear stale identity cache to prevent identity confusion
   // (e.g., Alex thinking he's Nayan because old context was cached)
   if (cachedAgentContext && cachedAgentContext.agentId !== canonical) {
@@ -141,10 +141,10 @@ export function setCurrentAgent(agent: AgentId): void {
     );
     cachedAgentContext = null;
   }
-  
+
   // Pre-fetch new agent context in background for faster subsequent lookups
   void fetchAgentContextAsync(canonical);
-  
+
   getLogger().info({ agent, canonical, previousAgent }, 'Active agent changed');
 }
 

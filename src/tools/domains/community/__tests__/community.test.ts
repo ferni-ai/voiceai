@@ -54,13 +54,19 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Peter',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
 }
 
-function executeWithContext(tool: { execute: Function }, params: Record<string, unknown>, ctx: ToolContext) {
+function executeWithContext(
+  tool: { execute: Function },
+  params: Record<string, unknown>,
+  ctx: ToolContext
+) {
   return tool.execute(params, { ctx });
 }
 
@@ -90,19 +96,19 @@ describe('Community & Impact Domain Tools', () => {
     });
 
     it('should have findVolunteerOpportunity tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'findVolunteerOpportunity');
+      const tool = toolDefinitions.find((t) => t.id === 'findVolunteerOpportunity');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('community');
     });
 
     it('should have trackVolunteerHours tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'trackVolunteerHours');
+      const tool = toolDefinitions.find((t) => t.id === 'trackVolunteerHours');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('community');
     });
 
     it('should have planCharitableGiving tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'planCharitableGiving');
+      const tool = toolDefinitions.find((t) => t.id === 'planCharitableGiving');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('community');
     });
@@ -110,7 +116,7 @@ describe('Community & Impact Domain Tools', () => {
 
   describe('findVolunteerOpportunity', () => {
     it('should find volunteer opportunities', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'findVolunteerOpportunity');
+      const toolDef = toolDefinitions.find((t) => t.id === 'findVolunteerOpportunity');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -127,15 +133,19 @@ describe('Community & Impact Domain Tools', () => {
 
   describe('trackVolunteerHours', () => {
     it('should track volunteer hours', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackVolunteerHours');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackVolunteerHours');
       const tool = toolDef!.create(mockContext);
 
-      const result = await executeWithContext(tool, {
-        organization: 'Local Food Bank',
-        activity: 'Sorting donations',
-        hours: 4,
-        impact: 'Helped sort 200 lbs of food',
-      }, mockContext);
+      const result = await executeWithContext(
+        tool,
+        {
+          organization: 'Local Food Bank',
+          activity: 'Sorting donations',
+          hours: 4,
+          impact: 'Helped sort 200 lbs of food',
+        },
+        mockContext
+      );
 
       expect(result).toBeDefined();
       expect(result).toContain('Food Bank');
@@ -144,7 +154,7 @@ describe('Community & Impact Domain Tools', () => {
 
   describe('planCharitableGiving', () => {
     it('should help plan charitable giving', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'planCharitableGiving');
+      const toolDef = toolDefinitions.find((t) => t.id === 'planCharitableGiving');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -159,7 +169,7 @@ describe('Community & Impact Domain Tools', () => {
 
   describe('alignGivingWithValues', () => {
     it('should align giving with values', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'alignGivingWithValues');
+      const toolDef = toolDefinitions.find((t) => t.id === 'alignGivingWithValues');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -173,7 +183,7 @@ describe('Community & Impact Domain Tools', () => {
 
   describe('findCommunityGroup', () => {
     it('should find community groups', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'findCommunityGroup');
+      const toolDef = toolDefinitions.find((t) => t.id === 'findCommunityGroup');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -187,7 +197,7 @@ describe('Community & Impact Domain Tools', () => {
 
   describe('engageCivically', () => {
     it('should help with civic engagement', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'engageCivically');
+      const toolDef = toolDefinitions.find((t) => t.id === 'engageCivically');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -201,7 +211,7 @@ describe('Community & Impact Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'findVolunteerOpportunity');
+      const toolDef = toolDefinitions.find((t) => t.id === 'findVolunteerOpportunity');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -214,7 +224,7 @@ describe('Community & Impact Domain Tools', () => {
     });
 
     it('should provide meaningful impact guidance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'planCharitableGiving');
+      const toolDef = toolDefinitions.find((t) => t.id === 'planCharitableGiving');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -227,4 +237,3 @@ describe('Community & Impact Domain Tools', () => {
     });
   });
 });
-

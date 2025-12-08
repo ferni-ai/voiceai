@@ -74,9 +74,7 @@ async function ensureMemoryIndex(
   // 1. Never built
   // 2. Turn count crossed refresh interval
   // 3. Profile was updated since last build
-  const shouldRebuild =
-    lastBuild === 0 ||
-    turnCount - lastBuild >= INDEX_REFRESH_INTERVAL;
+  const shouldRebuild = lastBuild === 0 || turnCount - lastBuild >= INDEX_REFRESH_INTERVAL;
 
   if (shouldRebuild) {
     try {
@@ -170,10 +168,7 @@ async function getPrimingMemories(
 /**
  * Format retrieved memories for LLM context injection
  */
-function formatMemoriesForContext(
-  memories: RetrievedMemory[],
-  isSessionStart: boolean
-): string {
+function formatMemoriesForContext(memories: RetrievedMemory[], isSessionStart: boolean): string {
   if (memories.length === 0) return '';
 
   const lines: string[] = [];
@@ -210,7 +205,7 @@ function formatMemoriesForContext(
     lines.push('💡 Commitments should be referenced naturally, not forced.');
     lines.push('   Example: "Hey, I wanted to follow up on that thing we discussed..."');
   } else {
-    lines.push('💡 Reference these naturally IF relevant, don\'t force it.');
+    lines.push("💡 Reference these naturally IF relevant, don't force it.");
     lines.push('   Example: "That reminds me of when you mentioned..."');
   }
 
@@ -231,7 +226,9 @@ function generateCallbackSuggestions(memories: RetrievedMemory[]): string[] {
     } else if (item.personMentioned) {
       suggestions.push(`Reference: "How's ${item.personMentioned} doing?"`);
     } else if (item.type === 'moment') {
-      suggestions.push(`Callback: "Remember when you told me about ${item.topics?.[0] || 'that'}..."`);
+      suggestions.push(
+        `Callback: "Remember when you told me about ${item.topics?.[0] || 'that'}..."`
+      );
     }
   }
 
@@ -245,9 +242,7 @@ function generateCallbackSuggestions(memories: RetrievedMemory[]): string[] {
 /**
  * Build advanced memory context for the current turn
  */
-async function buildAdvancedMemoryContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildAdvancedMemoryContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, services, userData, userProfile, persona } = input;
   const userId = services?.userId;
 
@@ -272,11 +267,7 @@ async function buildAdvancedMemoryContext(
 
   if (isSessionStart) {
     // Get priming memories for session start
-    memories = await getPrimingMemories(
-      userId,
-      persona?.id || 'ferni',
-      sessionCount
-    );
+    memories = await getPrimingMemories(userId, persona?.id || 'ferni', sessionCount);
   } else {
     // Get memories relevant to current user text
     memories = await retrieveRelevantMemories(userId, userText, input);
@@ -297,13 +288,7 @@ async function buildAdvancedMemoryContext(
   const injections: ContextInjection[] = [];
 
   // Main memory context
-  injections.push(
-    createHintInjection(
-      'advanced_memory',
-      contextContent,
-      { category: 'memory' }
-    )
-  );
+  injections.push(createHintInjection('advanced_memory', contextContent, { category: 'memory' }));
 
   // Add callback suggestions if we have strong matches
   if (memories.some((m) => m.score > 0.6)) {
@@ -363,4 +348,3 @@ export default {
   retrieveRelevantMemories,
   getPrimingMemories,
 };
-

@@ -122,9 +122,7 @@ const userAssignments = new Map<string, Record<string, 'control' | 'treatment'>>
 /**
  * Track a trust system event
  */
-export function trackEvent(
-  event: Omit<TrustEvent, 'id' | 'timestamp'>
-): TrustEvent {
+export function trackEvent(event: Omit<TrustEvent, 'id' | 'timestamp'>): TrustEvent {
   const fullEvent: TrustEvent = {
     ...event,
     id: `evt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -146,9 +144,7 @@ export function trackEvent(
   dailyMetrics.set(dateKey, dayMetrics);
 
   // Fire and forget persistence
-  void persistEvent(fullEvent).catch((e) =>
-    log.debug({ error: e }, 'Event persistence failed')
-  );
+  void persistEvent(fullEvent).catch((e) => log.debug({ error: e }, 'Event persistence failed'));
 
   return fullEvent;
 }
@@ -263,10 +259,7 @@ export function calculateUserMetrics(
   endDate: Date = new Date()
 ): Partial<TrustMetrics> {
   const userEvents = recentEvents.filter(
-    (e) =>
-      e.userId === userId &&
-      e.timestamp >= startDate &&
-      e.timestamp <= endDate
+    (e) => e.userId === userId && e.timestamp >= startDate && e.timestamp <= endDate
   );
 
   const detections: Record<string, number> = {};
@@ -286,8 +279,7 @@ export function calculateUserMetrics(
         actedOn[event.system] = (actedOn[event.system] || 0) + 1;
         break;
       case 'positive_outcome':
-        positiveResponses[event.system] =
-          (positiveResponses[event.system] || 0) + 1;
+        positiveResponses[event.system] = (positiveResponses[event.system] || 0) + 1;
         break;
     }
   }
@@ -323,9 +315,7 @@ export function getAggregateMetrics(
   bySystem: Record<string, Record<string, number>>;
   topPerformers: Array<{ system: string; effectiveness: number }>;
 } {
-  const events = recentEvents.filter(
-    (e) => e.timestamp >= startDate && e.timestamp <= endDate
-  );
+  const events = recentEvents.filter((e) => e.timestamp >= startDate && e.timestamp <= endDate);
 
   const bySystem: Record<string, Record<string, number>> = {};
 
@@ -333,8 +323,7 @@ export function getAggregateMetrics(
     if (!bySystem[event.system]) {
       bySystem[event.system] = {};
     }
-    bySystem[event.system][event.eventType] =
-      (bySystem[event.system][event.eventType] || 0) + 1;
+    bySystem[event.system][event.eventType] = (bySystem[event.system][event.eventType] || 0) + 1;
   }
 
   // Calculate effectiveness per system
@@ -372,10 +361,7 @@ export function createABTest(config: Omit<ABTestConfig, 'results'>): void {
 /**
  * Get user's test assignment
  */
-export function getTestAssignment(
-  userId: string,
-  testId: string
-): 'control' | 'treatment' | null {
+export function getTestAssignment(userId: string, testId: string): 'control' | 'treatment' | null {
   const test = activeTests.get(testId);
   if (!test || (test.endDate && test.endDate < new Date())) {
     return null;
@@ -389,8 +375,7 @@ export function getTestAssignment(
 
   // Assign deterministically based on userId hash
   const hash = simpleHash(userId + testId);
-  const assignment =
-    hash % 100 < test.treatmentPercentage * 100 ? 'treatment' : 'control';
+  const assignment = hash % 100 < test.treatmentPercentage * 100 ? 'treatment' : 'control';
 
   userTests[testId] = assignment;
   userAssignments.set(userId, userTests);
@@ -401,10 +386,7 @@ export function getTestAssignment(
 /**
  * Check if feature is enabled for user (for A/B tests)
  */
-export function isFeatureEnabled(
-  userId: string,
-  testId: string
-): boolean {
+export function isFeatureEnabled(userId: string, testId: string): boolean {
   const assignment = getTestAssignment(userId, testId);
   return assignment === 'treatment';
 }
@@ -443,7 +425,7 @@ export function getHealthCheck(): {
   recentEventCount: number;
 } {
   const systems: Record<string, { active: boolean; lastEvent?: Date }> = {};
-  const systemNames: TrustEvent['system'][] = [
+  const systemNames: Array<TrustEvent['system']> = [
     'reading_between_lines',
     'boundary_memory',
     'growth_reflection',
@@ -491,9 +473,7 @@ export function exportAnalytics(
   metrics: ReturnType<typeof getAggregateMetrics>;
   health: ReturnType<typeof getHealthCheck>;
 } {
-  const events = recentEvents.filter(
-    (e) => e.timestamp >= startDate && e.timestamp <= endDate
-  );
+  const events = recentEvents.filter((e) => e.timestamp >= startDate && e.timestamp <= endDate);
 
   return {
     events,
@@ -521,4 +501,3 @@ export default {
   getHealthCheck,
   exportAnalytics,
 };
-

@@ -1,9 +1,9 @@
 /**
  * Proactive Hooks for Simple Utilities
- * 
+ *
  * Don't wait to be asked - offer help at the right moment.
  * This is what makes Ferni feel like a friend who anticipates your needs.
- * 
+ *
  * HOOK TRIGGERS:
  * 1. Time of day - "It's 3pm, want your usual tea timer?"
  * 2. Topic detection - "Sounds like you're cooking, need conversions?"
@@ -40,7 +40,7 @@ export interface ProactiveOffer {
 }
 
 // Track what we've offered to avoid repetition
-const recentOffers = new Map<string, { offer: string; timestamp: Date }[]>();
+const recentOffers = new Map<string, Array<{ offer: string; timestamp: Date }>>();
 
 // ============================================================================
 // PROACTIVE EVALUATION
@@ -50,26 +50,24 @@ const recentOffers = new Map<string, { offer: string; timestamp: Date }[]>();
  * Evaluate all proactive hooks and return offers
  * Call this at conversation start and periodically during long conversations
  */
-export async function evaluateProactiveHooks(
-  context: ProactiveContext
-): Promise<ProactiveOffer[]> {
+export async function evaluateProactiveHooks(context: ProactiveContext): Promise<ProactiveOffer[]> {
   const offers: ProactiveOffer[] = [];
   const { userId, currentTime } = context;
-  
+
   // Dedupe - don't offer same thing twice in a session
   const userOffers = recentOffers.get(userId) || [];
   const recentOfferMessages = new Set(
     userOffers
-      .filter(o => currentTime.getTime() - o.timestamp.getTime() < 30 * 60 * 1000)
-      .map(o => o.offer)
+      .filter((o) => currentTime.getTime() - o.timestamp.getTime() < 30 * 60 * 1000)
+      .map((o) => o.offer)
   );
-  
+
   // 1. Time-of-day timer suggestions
   const timerOffer = await evaluateTimerHook(userId, currentTime);
   if (timerOffer && !recentOfferMessages.has(timerOffer.message)) {
     offers.push(timerOffer);
   }
-  
+
   // 2. Topic-based conversion offers
   if (context.conversationTopics || context.recentUserInput) {
     const conversionOffer = evaluateConversionHook(
@@ -80,7 +78,7 @@ export async function evaluateProactiveHooks(
       offers.push(conversionOffer);
     }
   }
-  
+
   // 3. Travel planning timezone help
   if (context.travelPlans?.length) {
     const timezoneOffer = evaluateTimezoneHook(userId, context.travelPlans);
@@ -88,7 +86,7 @@ export async function evaluateProactiveHooks(
       offers.push(timezoneOffer);
     }
   }
-  
+
   // 4. Countdown milestones
   const milestones = await getUpcomingMilestones(userId);
   for (const milestone of milestones) {
@@ -106,7 +104,7 @@ export async function evaluateProactiveHooks(
       }
     }
   }
-  
+
   // 5. Life event proximity
   if (context.lifeEvents?.length) {
     const eventOffers = evaluateLifeEventHooks(context.lifeEvents, currentTime);
@@ -116,7 +114,7 @@ export async function evaluateProactiveHooks(
       }
     }
   }
-  
+
   // 6. Pattern-based suggestions from intelligence layer
   const patternSuggestions = getProactiveSuggestions(userId);
   for (const suggestion of patternSuggestions) {
@@ -128,17 +126,17 @@ export async function evaluateProactiveHooks(
       });
     }
   }
-  
+
   // Record offers to avoid repetition
-  const newOffers = offers.map(o => ({ offer: o.message, timestamp: currentTime }));
+  const newOffers = offers.map((o) => ({ offer: o.message, timestamp: currentTime }));
   recentOffers.set(userId, [...userOffers.slice(-10), ...newOffers]);
-  
+
   // Sort by priority
   offers.sort((a, b) => {
     const priorityOrder = { high: 0, normal: 1, low: 2 };
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
-  
+
   return offers;
 }
 
@@ -156,24 +154,26 @@ async function evaluateTimerHook(
   const patterns = getUserPatterns(userId);
   const prefs = await loadUtilityPreferences(userId);
   const hour = currentTime.getHours();
-  
+
   // Determine current time of day
-  const timeOfDay = hour >= 5 && hour < 12 ? 'morning'
-    : hour >= 12 && hour < 17 ? 'afternoon'
-    : hour >= 17 && hour < 21 ? 'evening'
-    : 'night';
-  
+  const timeOfDay =
+    hour >= 5 && hour < 12
+      ? 'morning'
+      : hour >= 12 && hour < 17
+        ? 'afternoon'
+        : hour >= 17 && hour < 21
+          ? 'evening'
+          : 'night';
+
   // Look for usual timer at this time
-  const usualTimer = prefs.timers.usual.find(
-    t => t.timeOfDay === timeOfDay && t.count >= 3
-  ) || patterns.patterns.commonTimerDurations.find(
-    t => t.usualTime === timeOfDay && t.count >= 3
-  );
-  
+  const usualTimer =
+    prefs.timers.usual.find((t) => t.timeOfDay === timeOfDay && t.count >= 3) ||
+    patterns.patterns.commonTimerDurations.find((t) => t.usualTime === timeOfDay && t.count >= 3);
+
   if (usualTimer) {
     const label = usualTimer.label || 'timer';
-    const minutes = usualTimer.minutes;
-    
+    const { minutes } = usualTimer;
+
     return {
       type: 'timer',
       message: `Want me to set your usual ${minutes}-minute ${label}?`,
@@ -182,26 +182,33 @@ async function evaluateTimerHook(
       priority: 'low',
     };
   }
-  
+
   return null;
 }
 
 /**
  * Evaluate conversion hook - detect cooking/baking context
  */
-function evaluateConversionHook(
-  topics: string[],
-  recentInput?: string
-): ProactiveOffer | null {
+function evaluateConversionHook(topics: string[], recentInput?: string): ProactiveOffer | null {
   const cookingKeywords = [
-    'cooking', 'baking', 'recipe', 'ingredient', 'dinner', 'lunch',
-    'breakfast', 'meal', 'food', 'kitchen', 'oven', 'stove'
+    'cooking',
+    'baking',
+    'recipe',
+    'ingredient',
+    'dinner',
+    'lunch',
+    'breakfast',
+    'meal',
+    'food',
+    'kitchen',
+    'oven',
+    'stove',
   ];
-  
+
   const combined = [...topics, recentInput || ''].join(' ').toLowerCase();
-  
-  const isCooking = cookingKeywords.some(k => combined.includes(k));
-  
+
+  const isCooking = cookingKeywords.some((k) => combined.includes(k));
+
   if (isCooking) {
     return {
       type: 'conversion',
@@ -209,7 +216,7 @@ function evaluateConversionHook(
       priority: 'low',
     };
   }
-  
+
   return null;
 }
 
@@ -221,12 +228,10 @@ function evaluateTimezoneHook(
   travelPlans: Array<{ destination: string; startDate: Date }>
 ): ProactiveOffer | null {
   const now = new Date();
-  
+
   for (const plan of travelPlans) {
-    const daysUntil = Math.ceil(
-      (plan.startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    
+    const daysUntil = Math.ceil((plan.startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
     if (daysUntil <= 7 && daysUntil > 0) {
       return {
         type: 'timezone',
@@ -237,21 +242,23 @@ function evaluateTimezoneHook(
       };
     }
   }
-  
+
   return null;
 }
 
 /**
  * Evaluate countdown hook - celebrate milestones
  */
-function evaluateCountdownHook(
-  milestone: { event: string; daysRemaining: number; targetDate: Date }
-): ProactiveOffer | null {
+function evaluateCountdownHook(milestone: {
+  event: string;
+  daysRemaining: number;
+  targetDate: Date;
+}): ProactiveOffer | null {
   const { event, daysRemaining } = milestone;
-  
+
   let message: string;
   let priority: ProactiveOffer['priority'] = 'normal';
-  
+
   if (daysRemaining === 0) {
     message = `🎉 Today's the day - it's ${event}!`;
     priority = 'high';
@@ -267,7 +274,7 @@ function evaluateCountdownHook(
   } else {
     return null;
   }
-  
+
   return {
     type: 'countdown',
     message,
@@ -283,12 +290,12 @@ function evaluateLifeEventHooks(
   currentTime: Date
 ): ProactiveOffer[] {
   const offers: ProactiveOffer[] = [];
-  
+
   for (const event of events) {
     const daysUntil = Math.ceil(
       (event.date.getTime() - currentTime.getTime()) / (1000 * 60 * 60 * 24)
     );
-    
+
     // Anniversaries and birthdays
     if (event.type === 'anniversary' || event.type === 'birthday') {
       if (daysUntil === 7) {
@@ -312,7 +319,7 @@ function evaluateLifeEventHooks(
       }
     }
   }
-  
+
   return offers;
 }
 
@@ -333,22 +340,22 @@ export async function getProactiveOpener(
     currentTime: new Date(),
     ...context,
   };
-  
+
   const offers = await evaluateProactiveHooks(fullContext);
-  
+
   if (offers.length === 0) {
     return null;
   }
-  
+
   // Get highest priority offer
   const topOffer = offers[0];
-  
+
   // Log that we're making a proactive suggestion
   getLogger().info(
     { userId, offerType: topOffer.type, priority: topOffer.priority },
     'Proactive utility suggestion'
   );
-  
+
   return topOffer.message;
 }
 
@@ -363,17 +370,17 @@ export async function shouldInjectProactiveSuggestion(
   // Only inject during natural pauses
   if (conversationTurnCount < 3) return null; // Too early
   if (lastActivityMinutes < 2) return null; // Too recent
-  
+
   const context: ProactiveContext = {
     userId,
     currentTime: new Date(),
   };
-  
+
   const offers = await evaluateProactiveHooks(context);
-  
+
   // Only inject high-priority offers mid-conversation
-  const highPriority = offers.find(o => o.priority === 'high');
-  
+  const highPriority = offers.find((o) => o.priority === 'high');
+
   return highPriority?.message || null;
 }
 
@@ -389,22 +396,22 @@ export async function runDailyProactiveChecks(
   userIds: string[]
 ): Promise<Map<string, ProactiveOffer[]>> {
   const results = new Map<string, ProactiveOffer[]>();
-  
+
   for (const userId of userIds) {
     try {
       const context: ProactiveContext = {
         userId,
         currentTime: new Date(),
       };
-      
+
       const offers = await evaluateProactiveHooks(context);
-      
+
       // Only keep high/normal priority for daily checks
-      const significantOffers = offers.filter(o => o.priority !== 'low');
-      
+      const significantOffers = offers.filter((o) => o.priority !== 'low');
+
       if (significantOffers.length > 0) {
         results.set(userId, significantOffers);
-        
+
         // Trigger voice callbacks for milestones
         for (const offer of significantOffers) {
           if (offer.type === 'countdown' && offer.priority === 'high') {
@@ -419,7 +426,7 @@ export async function runDailyProactiveChecks(
       getLogger().error({ err, userId }, 'Failed daily proactive check');
     }
   }
-  
+
   return results;
 }
 
@@ -433,4 +440,3 @@ export default {
   shouldInjectProactiveSuggestion,
   runDailyProactiveChecks,
 };
-

@@ -1,6 +1,6 @@
 /**
  * Voice Agent Types
- * 
+ *
  * Type definitions specific to the voice agent.
  */
 
@@ -70,14 +70,14 @@ export interface RoomReference {
  * Startup diagnostic logging
  */
 export interface DiagnosticLogger {
-  section(message: string): void;
-  prewarm(message: string, data?: Record<string, unknown>): void;
-  session(message: string, data?: Record<string, unknown>): void;
-  entry(message: string, data?: Record<string, unknown>): void;
-  user(message: string, data?: Record<string, unknown>): void;
-  warn(message: string, data?: Record<string, unknown>): void;
-  error(message: string, data?: Record<string, unknown>): void;
-  debug(message: string, data?: Record<string, unknown>): void;
+  section: (message: string) => void;
+  prewarm: (message: string, data?: Record<string, unknown>) => void;
+  session: (message: string, data?: Record<string, unknown>) => void;
+  entry: (message: string, data?: Record<string, unknown>) => void;
+  user: (message: string, data?: Record<string, unknown>) => void;
+  warn: (message: string, data?: Record<string, unknown>) => void;
+  error: (message: string, data?: Record<string, unknown>) => void;
+  debug: (message: string, data?: Record<string, unknown>) => void;
 }
 
 /**
@@ -85,12 +85,11 @@ export interface DiagnosticLogger {
  */
 export interface HealthCheckResult {
   status: 'ok' | 'degraded' | 'error';
-  services: {
+  services: Array<{
     name: string;
     status: 'ok' | 'error';
     latency?: number;
-  }[];
+  }>;
   uptime: number;
   version: string;
 }
-

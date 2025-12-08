@@ -2,14 +2,14 @@
  * 🎮 Games Service
  *
  * Interactive music games for engaging conversations and building trust.
- * 
+ *
  * ## Available Games
  * - **Name That Tune**: Guess the song from a clip
  * - **One Word Song**: Say a word, find a song with that word
  * - **Desert Island Discs**: Pick 5 songs for a desert island
  * - **This or That**: Choose between two songs
  * - **Mood DJ Challenge**: Describe a mood, pick a matching song
- * 
+ *
  * ## Architecture
  * ```
  * GameEngine (lifecycle) → Music Games (implementations)
@@ -18,33 +18,33 @@
  *                       → Game Intelligence (DNA, milestones)
  *                       → Game Analytics (usage tracking)
  * ```
- * 
+ *
  * ## Quick Start
  * ```typescript
  * import { getGameEngine, trackGameStart } from './services/games';
- * 
+ *
  * // Get engine
  * const engine = getGameEngine('ferni');
- * 
+ *
  * // Initialize for user (loads persisted data)
  * await engine.initializeForUser(userId);
- * 
+ *
  * // Start a game
  * const result = await engine.startGame('name-that-tune');
- * 
+ *
  * // Track analytics
  * trackGameStart(userId, 'name-that-tune', 'ferni');
  * ```
- * 
+ *
  * ## Documentation
  * See `/docs/features/MUSIC-GAMES.md` for full documentation.
- * 
+ *
  * @module services/games
  * @see {@link file:///docs/features/MUSIC-GAMES.md} Full documentation
  */
 
 // Types
-export * from './types.js';
+export type * from './types.js';
 
 // Game Engine - import first so we can use it locally
 import { GameEngine, getGameEngine, resetGameEngine } from './game-engine.js';
@@ -152,25 +152,25 @@ export {
   recordGuess,
   getTopAffinities,
   getWeakAreas,
-  
+
   // Adaptive difficulty
   analyzeDifficulty,
-  
+
   // Milestone detection
   checkMilestones,
-  
+
   // Musical personality
   analyzeMusicalPersonality,
   getPersonalityComment,
-  
+
   // Conversation callbacks
   storeConversationHint,
   getConversationCallback,
-  
+
   // Song selection intelligence
   getSongSelectionContext,
   getMusicalDNAMessage,
-  
+
   // Types
   type DifficultyRecommendation,
   type MilestoneEvent,
@@ -187,7 +187,7 @@ export {
   generateMusicInsights,
   getConversationalInsight,
   getGameSuggestion,
-  
+
   // Types
   type MusicInsights,
   type PersonalitySummary,
@@ -206,21 +206,21 @@ export {
   // Loading
   loadGameMemory,
   loadMusicMemory,
-  
+
   // Saving
   saveGameMemory,
   saveMusicMemory,
   forceSaveGameMemory,
-  
+
   // Quick access
   getCachedGameMemory,
   updateCachedGameMemory,
   clearCache,
-  
+
   // Convenience
   recordGameCompletion,
   updateMusicalDNA,
-  
+
   // Shutdown
   shutdown as shutdownGameStore,
 } from './game-store.js';
@@ -238,13 +238,13 @@ export {
   trackAnswer,
   trackDashboardOpen,
   trackProactiveOffer,
-  
+
   // Getters
   getAnalyticsSummary,
   getUserEvents,
   getGameTypeBreakdown,
   resetAnalytics,
-  
+
   // Types
   type GameEvent,
   type GameEventType,

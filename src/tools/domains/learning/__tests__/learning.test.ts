@@ -49,7 +49,9 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Jordan',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
@@ -81,19 +83,19 @@ describe('Learning & Education Domain Tools', () => {
     });
 
     it('should have setLearningGoal tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'setLearningGoal');
+      const tool = toolDefinitions.find((t) => t.id === 'setLearningGoal');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('learning');
     });
 
     it('should have trackLearningProgress tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'trackLearningProgress');
+      const tool = toolDefinitions.find((t) => t.id === 'trackLearningProgress');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('learning');
     });
 
     it('should have overcomeLearningBlock tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'overcomeLearningBlock');
+      const tool = toolDefinitions.find((t) => t.id === 'overcomeLearningBlock');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('learning');
     });
@@ -101,7 +103,7 @@ describe('Learning & Education Domain Tools', () => {
 
   describe('setLearningGoal', () => {
     it('should set a learning goal for a new skill', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'setLearningGoal');
+      const toolDef = toolDefinitions.find((t) => t.id === 'setLearningGoal');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -116,7 +118,7 @@ describe('Learning & Education Domain Tools', () => {
     });
 
     it('should set a goal for language learning', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'setLearningGoal');
+      const toolDef = toolDefinitions.find((t) => t.id === 'setLearningGoal');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -130,7 +132,7 @@ describe('Learning & Education Domain Tools', () => {
 
   describe('trackLearningProgress', () => {
     it('should track learning progress', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'trackLearningProgress');
+      const toolDef = toolDefinitions.find((t) => t.id === 'trackLearningProgress');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -144,7 +146,7 @@ describe('Learning & Education Domain Tools', () => {
 
   describe('overcomeLearningBlock', () => {
     it('should help overcome learning blockers', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'overcomeLearningBlock');
+      const toolDef = toolDefinitions.find((t) => t.id === 'overcomeLearningBlock');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -156,7 +158,7 @@ describe('Learning & Education Domain Tools', () => {
     });
 
     it('should help with motivation issues', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'overcomeLearningBlock');
+      const toolDef = toolDefinitions.find((t) => t.id === 'overcomeLearningBlock');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -170,7 +172,7 @@ describe('Learning & Education Domain Tools', () => {
 
   describe('recommendResource', () => {
     it('should recommend learning resources', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'recommendResource');
+      const toolDef = toolDefinitions.find((t) => t.id === 'recommendResource');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -184,7 +186,7 @@ describe('Learning & Education Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'setLearningGoal');
+      const toolDef = toolDefinitions.find((t) => t.id === 'setLearningGoal');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -197,7 +199,7 @@ describe('Learning & Education Domain Tools', () => {
     });
 
     it('should provide structured learning guidance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'setLearningGoal');
+      const toolDef = toolDefinitions.find((t) => t.id === 'setLearningGoal');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -210,4 +212,3 @@ describe('Learning & Education Domain Tools', () => {
     });
   });
 });
-

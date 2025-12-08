@@ -1,308 +1,160 @@
 ---
-layout: false
+layout: layouts/story-brand.njk
 title: Page Not Found
-description: Oops! This page doesn't exist. Let's get you back on track.
+description: The page you're looking for doesn't exist. Let's get you back on track.
 permalink: /404.html
 ---
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title }} — {{ site.name }}</title>
-  <meta name="description" content="{{ description }}">
-  <meta name="theme-color" content="#faf8f5">
-  <meta name="robots" content="noindex, nofollow">
-  
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234a6741' rx='20' width='100' height='100'/><text x='50' y='68' font-family='system-ui' font-size='48' font-weight='bold' fill='white' text-anchor='middle'>FN</text></svg>">
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="/css/tokens.css">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: var(--font-body);
-      background: var(--color-bg-primary);
-      color: var(--color-text-primary);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: var(--space-6);
-      text-align: center;
-    }
-    
-    .container {
-      max-width: 540px;
-    }
-    
-    /* Animated Avatar with Pixar-style personality */
-    .avatar {
-      width: 120px;
-      height: 120px;
-      background: linear-gradient(135deg, var(--color-ferni-secondary), var(--color-ferni));
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto var(--space-8);
-      box-shadow: 
-        0 20px 40px var(--color-ferni-glow),
-        0 0 0 4px rgba(74, 103, 65, 0.1);
-      animation: float 4s ease-in-out infinite;
-      position: relative;
-    }
-    
-    .avatar::before {
-      content: '';
-      position: absolute;
-      inset: -8px;
-      border-radius: 50%;
-      background: radial-gradient(circle, var(--color-ferni-glow) 0%, transparent 70%);
-      animation: pulse 3s ease-in-out infinite;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
-    }
-    
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 0.5; }
-      50% { transform: scale(1.1); opacity: 0.8; }
-    }
-    
-    .avatar-face {
-      position: relative;
-    }
-    
-    .avatar-eyes {
-      display: flex;
-      gap: var(--space-4);
-      margin-bottom: var(--space-2);
-    }
-    
-    .eye {
-      width: 12px;
-      height: 12px;
-      background: white;
-      border-radius: 50%;
-      animation: look 3s ease-in-out infinite;
-    }
-    
-    .eye:nth-child(2) {
-      animation-delay: 0.1s;
-    }
-    
-    @keyframes look {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-3px); }
-      75% { transform: translateX(3px); }
-    }
-    
-    .avatar-mouth {
-      width: 20px;
-      height: 10px;
-      border: 3px solid white;
-      border-top: none;
-      border-radius: 0 0 20px 20px;
-      margin: 0 auto;
-    }
-    
-    .error-code {
-      font-family: var(--font-display);
-      font-size: var(--text-display-xl, 96px);
-      font-weight: 800;
-      color: var(--color-accent);
-      line-height: 1;
-      margin-bottom: var(--space-4);
-      letter-spacing: var(--tracking-hero, -0.04em);
-    }
-    
-    h1 {
-      font-family: var(--font-display);
-      font-size: var(--text-h1, 32px);
-      font-weight: 700;
-      color: var(--color-text-primary);
-      margin-bottom: var(--space-4);
-    }
-    
-    .message {
-      font-size: var(--text-body-lg, 18px);
-      color: var(--color-text-secondary);
-      line-height: 1.6;
-      margin-bottom: var(--space-10);
-    }
-    
-    .actions {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-3);
-      align-items: center;
-    }
-    
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-2);
-      padding: var(--space-4) var(--space-8);
-      font-family: var(--font-body);
-      font-size: var(--text-button-md, 16px);
-      font-weight: 600;
-      text-decoration: none;
-      border-radius: var(--radius-lg);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      cursor: pointer;
-      border: none;
-    }
-    
-    .btn-primary {
-      background: var(--color-accent);
-      color: white;
-      box-shadow: 0 4px 12px var(--color-accent-glow);
-    }
-    
-    .btn-primary:hover {
-      background: var(--color-accent-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px var(--color-accent-glow);
-    }
-    
-    .btn-ghost {
-      background: transparent;
-      color: var(--color-text-secondary);
-    }
-    
-    .btn-ghost:hover {
-      color: var(--color-accent);
-      background: var(--color-accent-subtle);
-    }
-    
-    .suggestions {
-      margin-top: var(--space-12);
-      padding-top: var(--space-8);
-      border-top: 1px solid var(--color-border-subtle);
-    }
-    
-    .suggestions h2 {
-      font-family: var(--font-display);
-      font-size: var(--text-label, 12px);
-      font-weight: 600;
-      color: var(--color-text-muted);
-      text-transform: uppercase;
-      letter-spacing: var(--tracking-widest, 0.1em);
-      margin-bottom: var(--space-4);
-    }
-    
-    .suggestion-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
-      justify-content: center;
-    }
-    
-    .suggestion-link {
-      padding: var(--space-2) var(--space-5);
-      background: var(--color-bg-elevated);
-      color: var(--color-text-secondary);
-      text-decoration: none;
-      border-radius: var(--radius-md);
-      font-size: var(--text-caption, 14px);
-      font-weight: 500;
-      border: 1px solid var(--color-border-subtle);
-      transition: all 0.2s ease;
-    }
-    
-    .suggestion-link:hover {
-      background: white;
-      color: var(--color-accent);
-      border-color: var(--color-accent);
-      transform: translateY(-1px);
-    }
-    
-    /* Background decoration */
-    .bg-decoration {
-      position: fixed;
-      pointer-events: none;
-      opacity: 0.03;
-    }
-    
-    .bg-decoration-1 {
-      top: 10%;
-      left: 5%;
-      width: 300px;
-      height: 300px;
-      background: var(--color-accent);
-      border-radius: 50%;
-      filter: blur(80px);
-    }
-    
-    .bg-decoration-2 {
-      bottom: 10%;
-      right: 5%;
-      width: 400px;
-      height: 400px;
-      background: var(--color-accent);
-      border-radius: 50%;
-      filter: blur(100px);
-    }
-  </style>
-</head>
-<body>
-  <div class="bg-decoration bg-decoration-1"></div>
-  <div class="bg-decoration bg-decoration-2"></div>
-  
-  <div class="container">
-    <div class="avatar">
-      <div class="avatar-face">
-        <div class="avatar-eyes">
-          <div class="eye"></div>
-          <div class="eye"></div>
-        </div>
-        <div class="avatar-mouth"></div>
-      </div>
-    </div>
-    
-    <div class="error-code">404</div>
-    <h1>Hmm, I can't find that page</h1>
-    <p class="message">
-      Even the best conversations take unexpected turns. 
-      Let's get you back to familiar ground.
-    </p>
-    
-    <div class="actions">
-      <a href="/" class="btn btn-primary">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-        Go Home
-      </a>
-      <a href="{{ site.appUrl }}" class="btn btn-ghost">
-        Open the App Instead
-      </a>
-    </div>
-    
-    <div class="suggestions">
-      <h2>Popular Pages</h2>
-      <div class="suggestion-links">
-        <a href="/" class="suggestion-link">Home</a>
-        <a href="/team/" class="suggestion-link">Meet the Team</a>
-        <a href="/pricing/" class="suggestion-link">Pricing</a>
-        <a href="/contact/" class="suggestion-link">Contact</a>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
 
+<main id="main-content" class="error-page">
+  <section class="section error-hero">
+    <div class="container">
+      <div class="error-hero__content">
+        
+        {# Ferni Avatar - Looking confused/curious #}
+        <div class="hero-ferni hero-ferni--confused" aria-hidden="true">
+          <div class="hero-ferni__glow"></div>
+          <div class="hero-ferni__ring hero-ferni__ring--outer"></div>
+          <div class="hero-ferni__ring hero-ferni__ring--inner"></div>
+          <div class="hero-ferni__orb">
+            <span class="hero-ferni__text">?</span>
+          </div>
+        </div>
+        
+        <h1 class="error-hero__headline">Lost in thought?</h1>
+        <p class="error-hero__subhead">
+          The page you're looking for doesn't exist. But that's okay—even the best journeys have unexpected turns.
+        </p>
+        
+        <div class="error-hero__cta">
+          <a href="/" class="btn btn--primary btn--lg">
+            Go Home
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary btn--lg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Talk to Ferni
+          </a>
+        </div>
+        
+        <div class="error-hero__suggestions">
+          <p class="error-hero__suggestions-label">Maybe try one of these:</p>
+          <div class="error-hero__links">
+            <a href="/#team" class="error-hero__link">Meet the Team</a>
+            <a href="/#pricing" class="error-hero__link">View Pricing</a>
+            <a href="/#faq" class="error-hero__link">Read FAQs</a>
+            <a href="/blog/" class="error-hero__link">Read Blog</a>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </section>
+</main>
+
+<style>
+.error-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-paper-cream);
+}
+
+.error-hero {
+  text-align: center;
+  padding: var(--space-20) 0;
+}
+
+.error-hero__content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.error-hero .hero-ferni {
+  margin-bottom: var(--space-8);
+}
+
+.error-hero .hero-ferni--confused {
+  animation: confused-tilt 3s ease-in-out infinite;
+}
+
+@keyframes confused-tilt {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+.error-hero .hero-ferni__text {
+  font-size: var(--text-h1);
+}
+
+.error-hero__headline {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  font-weight: 800;
+  color: var(--color-natural-ink);
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.02em;
+}
+
+.error-hero__subhead {
+  font-size: var(--text-lg);
+  color: var(--color-stone);
+  margin-bottom: var(--space-8);
+  line-height: 1.6;
+}
+
+.error-hero__cta {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-12);
+}
+
+.error-hero__suggestions {
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-sand);
+}
+
+.error-hero__suggestions-label {
+  font-size: var(--text-sm);
+  color: var(--color-stone);
+  margin-bottom: var(--space-4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.error-hero__links {
+  display: flex;
+  gap: var(--space-6);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-hero__link {
+  color: var(--color-ferni-green);
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.error-hero__link:hover {
+  color: var(--color-forest-green);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .error-hero__headline {
+    font-size: var(--text-h1);
+  }
+  
+  .error-hero__cta {
+    flex-direction: column;
+  }
+  
+  .error-hero__links {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+}
+</style>

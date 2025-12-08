@@ -84,7 +84,7 @@ describe('VoiceHumanizationService', () => {
   describe('Micro-Interruption Detection', () => {
     it('should detect "wait" as immediate stop signal', () => {
       const result = service.detectMicroInterruption('wait', true);
-      
+
       expect(result.detected).toBe(true);
       expect(result.trigger).toBe('wait');
       expect(result.urgency).toBe('immediate');
@@ -93,7 +93,7 @@ describe('VoiceHumanizationService', () => {
 
     it('should detect "hold on" as immediate stop signal', () => {
       const result = service.detectMicroInterruption('hold on', true);
-      
+
       expect(result.detected).toBe(true);
       expect(result.trigger).toBe('hold on');
       expect(result.shouldStopAgent).toBe(true);
@@ -101,7 +101,7 @@ describe('VoiceHumanizationService', () => {
 
     it('should detect "actually" as immediate stop signal', () => {
       const result = service.detectMicroInterruption('actually', true);
-      
+
       expect(result.detected).toBe(true);
       expect(result.trigger).toBe('actually');
       expect(result.shouldStopAgent).toBe(true);
@@ -109,28 +109,28 @@ describe('VoiceHumanizationService', () => {
 
     it('should detect "yeah but" pattern as interruption', () => {
       const result = service.detectMicroInterruption('yeah but', true);
-      
+
       expect(result.detected).toBe(true);
       expect(result.shouldStopAgent).toBe(true);
     });
 
     it('should detect "no, that\'s not" pattern as interruption', () => {
       const result = service.detectMicroInterruption("no, that's not what I meant", true);
-      
+
       expect(result.detected).toBe(true);
       expect(result.shouldStopAgent).toBe(true);
     });
 
     it('should not detect interruption when agent is not speaking', () => {
       const result = service.detectMicroInterruption('wait', false);
-      
+
       expect(result.detected).toBe(false);
       expect(result.shouldStopAgent).toBe(false);
     });
 
     it('should detect "but" as soft interruption (no immediate stop)', () => {
       const result = service.detectMicroInterruption('but', true);
-      
+
       expect(result.detected).toBe(true);
       expect(result.urgency).toBe('soon');
       expect(result.shouldStopAgent).toBe(false);
@@ -138,7 +138,7 @@ describe('VoiceHumanizationService', () => {
 
     it('should not flag normal speech as interruption', () => {
       const result = service.detectMicroInterruption('I really appreciate that', true);
-      
+
       expect(result.detected).toBe(false);
     });
   });
@@ -150,14 +150,14 @@ describe('VoiceHumanizationService', () => {
   describe('Laughter Detection', () => {
     it('should detect laughter with high energy bursts and short duration', () => {
       const prosody = createMockProsody({
-        energyPeaks: 10,          // Many energy bursts
-        pitchVariance: 50,        // High pitch variation
-        energyMean: -10,          // Loud
-        utteranceDuration: 1000,  // Short duration
+        energyPeaks: 10, // Many energy bursts
+        pitchVariance: 50, // High pitch variation
+        energyMean: -10, // Loud
+        utteranceDuration: 1000, // Short duration
       });
 
       const result = service.detectLaughter(prosody, 1000);
-      
+
       expect(result.isLaughing).toBe(true);
       expect(result.confidence).toBeGreaterThan(0.5);
     });
@@ -170,7 +170,7 @@ describe('VoiceHumanizationService', () => {
       });
 
       const result = service.detectLaughter(prosody, 5000);
-      
+
       expect(result.isLaughing).toBe(false);
     });
 
@@ -183,7 +183,7 @@ describe('VoiceHumanizationService', () => {
       });
 
       const chuckleResult = service.detectLaughter(chuckleProsody, 400);
-      
+
       // Hearty laugh: longer, louder
       const heartyProsody = createMockProsody({
         energyPeaks: 15,
@@ -193,7 +193,7 @@ describe('VoiceHumanizationService', () => {
       });
 
       const heartyResult = service.detectLaughter(heartyProsody, 1500);
-      
+
       // Both should be detected but with different types
       if (chuckleResult.isLaughing) {
         expect(chuckleResult.suggestedResponse).toBe('smile');
@@ -212,7 +212,7 @@ describe('VoiceHumanizationService', () => {
       });
 
       const result = service.detectLaughter(prosody, 1000);
-      
+
       if (result.isLaughing) {
         const response = service.getLaughterResponse(result, 'ferni');
         expect(response).not.toBeNull();
@@ -231,7 +231,7 @@ describe('VoiceHumanizationService', () => {
       });
 
       const adjustments = service.getEmotionalTtsAdjustments(arc);
-      
+
       expect(adjustments.openingPauseMs).toBeGreaterThanOrEqual(300);
       expect(adjustments.warmth).toBe('high');
       expect(adjustments.addBreaths).toBe(true);
@@ -243,7 +243,7 @@ describe('VoiceHumanizationService', () => {
       });
 
       const adjustments = service.getEmotionalTtsAdjustments(arc);
-      
+
       expect(adjustments.speedAdjust).toBeLessThan(0);
       expect(adjustments.warmth).toBe('high');
       expect(adjustments.ssmlEmotion).toBe('empathetic');
@@ -255,7 +255,7 @@ describe('VoiceHumanizationService', () => {
       });
 
       const adjustments = service.getEmotionalTtsAdjustments(arc);
-      
+
       expect(adjustments.openingPauseMs).toBeGreaterThanOrEqual(350);
       expect(adjustments.addBreaths).toBe(true);
     });
@@ -267,7 +267,7 @@ describe('VoiceHumanizationService', () => {
       });
 
       const adjustments = service.getEmotionalTtsAdjustments(arc);
-      
+
       expect(adjustments.speedAdjust).toBeGreaterThanOrEqual(0);
     });
 
@@ -277,7 +277,7 @@ describe('VoiceHumanizationService', () => {
       });
 
       const adjustments = service.getEmotionalTtsAdjustments(arc);
-      
+
       expect(adjustments.warmth).toBe('high');
       expect(adjustments.addBreaths).toBe(true);
     });
@@ -289,9 +289,9 @@ describe('VoiceHumanizationService', () => {
       });
 
       const adjustments = service.getEmotionalTtsAdjustments(arc);
-      const text = "I hear you. That sounds really hard.";
+      const text = 'I hear you. That sounds really hard.';
       const enhanced = service.applyEmotionalSsml(text, adjustments);
-      
+
       expect(enhanced).toContain('<break');
       expect(enhanced.length).toBeGreaterThan(text.length);
     });
@@ -304,10 +304,10 @@ describe('VoiceHumanizationService', () => {
   describe('Speech Rhythm Analysis', () => {
     it('should build rhythm profile from utterance', () => {
       const profile = service.updateRhythmProfile(
-        "I really appreciate that. It means a lot to me.",
+        'I really appreciate that. It means a lot to me.',
         3000
       );
-      
+
       expect(profile.avgPhraseLength).toBeGreaterThan(0);
       expect(profile.pattern).toBeDefined();
       expect(profile.confidence).toBeGreaterThan(0);
@@ -316,10 +316,10 @@ describe('VoiceHumanizationService', () => {
     it('should detect staccato pattern for short phrases with pauses', () => {
       // Short phrases, long pauses
       const profile = service.updateRhythmProfile(
-        "Yes. No. Maybe.",
+        'Yes. No. Maybe.',
         5000 // Long duration for short text
       );
-      
+
       // Pattern detection depends on phrase/pause ratio
       expect(['staccato', 'measured', 'varied']).toContain(profile.pattern);
     });
@@ -329,16 +329,16 @@ describe('VoiceHumanizationService', () => {
         "I've been thinking about what you said and I really appreciate how you put that into perspective for me because it helped me understand the situation better",
         5000
       );
-      
+
       expect(['flowing', 'varied']).toContain(profile.pattern);
     });
 
     it('should provide rhythm mirroring adjustments', () => {
       // Set up rhythm profile
-      service.updateRhythmProfile("Short. Sentences. Here.", 3000);
-      
+      service.updateRhythmProfile('Short. Sentences. Here.', 3000);
+
       const adjustments = service.getRhythmMirroringAdjustments();
-      
+
       expect(adjustments.pauseMultiplier).toBeDefined();
       expect(adjustments.phraseBreakMs).toBeDefined();
     });
@@ -351,20 +351,20 @@ describe('VoiceHumanizationService', () => {
   describe('State Management', () => {
     it('should track turn count', () => {
       expect(service.getState().turnCount).toBe(0);
-      
+
       service.recordTurn();
       service.recordTurn();
       service.recordTurn();
-      
+
       expect(service.getState().turnCount).toBe(3);
     });
 
     it('should track interruption patterns', () => {
       service.detectMicroInterruption('wait', true);
       service.detectMicroInterruption('hold on', true);
-      
+
       const patterns = service.getInterruptionPatterns();
-      
+
       expect(patterns.length).toBe(2);
       expect(patterns[0].trigger).toBe('wait');
       expect(patterns[1].trigger).toBe('hold on');
@@ -373,9 +373,9 @@ describe('VoiceHumanizationService', () => {
     it('should reset state correctly', () => {
       service.recordTurn();
       service.detectMicroInterruption('wait', true);
-      
+
       service.reset();
-      
+
       expect(service.getState().turnCount).toBe(0);
       expect(service.getInterruptionPatterns().length).toBe(0);
     });
@@ -389,26 +389,25 @@ describe('VoiceHumanizationService', () => {
     it('should return same instance for same session', () => {
       const service1 = getVoiceHumanizationService('session-a');
       const service2 = getVoiceHumanizationService('session-a');
-      
+
       expect(service1).toBe(service2);
     });
 
     it('should return different instances for different sessions', () => {
       const service1 = getVoiceHumanizationService('session-a');
       const service2 = getVoiceHumanizationService('session-b');
-      
+
       expect(service1).not.toBe(service2);
     });
 
     it('should reset specific session', () => {
       const service1 = getVoiceHumanizationService('session-a');
       service1.recordTurn();
-      
+
       resetVoiceHumanization('session-a');
-      
+
       const service2 = getVoiceHumanizationService('session-a');
       expect(service2.getState().turnCount).toBe(0);
     });
   });
 });
-

@@ -137,7 +137,10 @@ export async function initiateConversationalCall(
     session.callSid = call.sid;
     activeSessions.set(call.sid, session);
 
-    log.info({ callSid: call.sid, toPhone, personaId, roomName }, '📞 Initiated conversational call');
+    log.info(
+      { callSid: call.sid, toPhone, personaId, roomName },
+      '📞 Initiated conversational call'
+    );
 
     return {
       success: true,
@@ -255,11 +258,11 @@ function getVoicemailMessage(personaId: string, originalMessage: string): string
   // Generate a short, warm voicemail message
   const intros: Record<string, string> = {
     ferni: "Hey! It's Ferni. Just wanted to reach out",
-    maya: "Hi! Maya here. Quick check-in",
-    peter: "Hey! Peter here. Had something to share",
+    maya: 'Hi! Maya here. Quick check-in',
+    peter: 'Hey! Peter here. Had something to share',
     alex: "Hi! It's Alex. Quick heads up",
-    jordan: "Hey! Jordan here. Exciting news",
-    nayan: "Hello, friend. Nayan here",
+    jordan: 'Hey! Jordan here. Exciting news',
+    nayan: 'Hello, friend. Nayan here',
   };
 
   const intro = intros[personaId] || intros.ferni;
@@ -275,9 +278,8 @@ function getVoicemailMessage(personaId: string, originalMessage: string): string
   const closing = closings[personaId] || closings.ferni;
 
   // Keep voicemail short - truncate the original message
-  const shortMessage = originalMessage.length > 100 
-    ? originalMessage.substring(0, 100) + '...'
-    : originalMessage;
+  const shortMessage =
+    originalMessage.length > 100 ? `${originalMessage.substring(0, 100)}...` : originalMessage;
 
   return `${intro}. ${shortMessage}. ${closing}`;
 }
@@ -289,7 +291,11 @@ function getVoicemailMessage(personaId: string, originalMessage: string): string
 /**
  * Handle Twilio call status updates
  */
-export function handleCallStatus(callSid: string, status: string, details?: Record<string, unknown>): void {
+export function handleCallStatus(
+  callSid: string,
+  status: string,
+  details?: Record<string, unknown>
+): void {
   const session = activeSessions.get(callSid);
   if (!session) {
     log.warn({ callSid, status }, 'Received status for unknown call');
@@ -317,7 +323,9 @@ export function handleCallStatus(callSid: string, status: string, details?: Reco
   if (newStatus === 'completed' || newStatus === 'failed') {
     session.endedAt = new Date();
     if (session.connectedAt) {
-      session.duration = Math.round((session.endedAt.getTime() - session.connectedAt.getTime()) / 1000);
+      session.duration = Math.round(
+        (session.endedAt.getTime() - session.connectedAt.getTime()) / 1000
+      );
     }
   }
 
@@ -347,9 +355,10 @@ export function handleMachineDetection(
     return { isVoicemail: false };
   }
 
-  const isVoicemail = answeredBy === 'machine_end_other' || 
-                      answeredBy === 'machine_end_beep' || 
-                      answeredBy === 'machine_end_silence';
+  const isVoicemail =
+    answeredBy === 'machine_end_other' ||
+    answeredBy === 'machine_end_beep' ||
+    answeredBy === 'machine_end_silence';
 
   session.voicemailDetected = isVoicemail;
   activeSessions.set(callSid, session);
@@ -477,4 +486,3 @@ export const sipBridge = {
 };
 
 export default sipBridge;
-

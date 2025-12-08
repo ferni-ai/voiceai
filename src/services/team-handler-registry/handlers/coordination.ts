@@ -37,7 +37,10 @@ async function getFirestore(): Promise<FirestoreType | null> {
     getLogger().info('Team coordination Firestore initialized');
     return db;
   } catch (error) {
-    getLogger().warn({ error }, 'Firestore not available for team coordination, using in-memory only');
+    getLogger().warn(
+      { error },
+      'Firestore not available for team coordination, using in-memory only'
+    );
     return null;
   }
 }
@@ -68,10 +71,15 @@ async function loadTeamStatus(): Promise<void> {
       const snapshot = await firestore.collection(TEAM_STATUS_COLLECTION).get();
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        teamStatus.set(doc.id as AgentId, {
-          ...data,
-          lastActivity: data.lastActivity?.toDate?.() || (data.lastActivity ? new Date(data.lastActivity) : undefined),
-        } as TeamMemberStatus);
+        teamStatus.set(
+          doc.id as AgentId,
+          {
+            ...data,
+            lastActivity:
+              data.lastActivity?.toDate?.() ||
+              (data.lastActivity ? new Date(data.lastActivity) : undefined),
+          } as TeamMemberStatus
+        );
       }
       getLogger().debug({ count: snapshot.size }, 'Loaded team status from Firestore');
     } catch (err) {
@@ -88,10 +96,16 @@ async function saveTeamMemberStatus(agentId: AgentId, status: TeamMemberStatus):
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      await firestore.collection(TEAM_STATUS_COLLECTION).doc(agentId).set({
-        ...status,
-        updatedAt: new Date(),
-      }, { merge: true });
+      await firestore
+        .collection(TEAM_STATUS_COLLECTION)
+        .doc(agentId)
+        .set(
+          {
+            ...status,
+            updatedAt: new Date(),
+          },
+          { merge: true }
+        );
     } catch (err) {
       getLogger().warn({ err, agentId }, 'Failed to save team member status');
     }

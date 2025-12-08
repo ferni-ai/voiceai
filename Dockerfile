@@ -30,10 +30,11 @@ FROM node:20-slim AS production
 
 WORKDIR /app
 
-# Install CA certificates and other dependencies needed by native modules
+# Install CA certificates, ffmpeg (for DJ audio fade-out), and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 

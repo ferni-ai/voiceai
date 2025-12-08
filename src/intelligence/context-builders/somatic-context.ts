@@ -46,17 +46,17 @@ const DISTRESS_THRESHOLD = 0.65;
 const SOMATIC_TRIGGER_KEYWORDS = [
   'panic',
   'panicking',
-  'can\'t breathe',
+  "can't breathe",
   'freaking out',
   'heart racing',
-  'can\'t calm down',
+  "can't calm down",
   'overwhelmed',
   'spiraling',
   'losing it',
   'need to calm down',
   'so stressed',
-  'can\'t relax',
-  'can\'t sleep',
+  "can't relax",
+  "can't sleep",
   'tense',
   'anxious',
   'help me calm down',
@@ -75,9 +75,7 @@ const recentSuggestions = new Map<string, { timestamp: Date; exerciseId: string 
 /**
  * Build somatic awareness context for the current turn.
  */
-async function buildSomaticContext(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildSomaticContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, services, analysis } = input;
   const userId = services?.userId;
 
@@ -154,11 +152,7 @@ async function buildSomaticContext(
 /**
  * Check if somatic intervention should be suggested.
  */
-function checkSomaticTriggers(
-  text: string,
-  emotion?: string,
-  emotionIntensity?: number
-): boolean {
+function checkSomaticTriggers(text: string, emotion?: string, emotionIntensity?: number): boolean {
   // Check for trigger keywords
   for (const keyword of SOMATIC_TRIGGER_KEYWORDS) {
     if (text.includes(keyword)) {
@@ -211,7 +205,9 @@ function buildSomaticInjection(
   if (intensity > 0.8 || state === 'sympathetic') {
     lines.push('[🆘 SOMATIC INTERVENTION OPPORTUNITY]');
     lines.push('');
-    lines.push('This person\'s nervous system is activated. Consider offering a grounding or breathing exercise.');
+    lines.push(
+      "This person's nervous system is activated. Consider offering a grounding or breathing exercise."
+    );
   } else {
     lines.push('[🧘 SOMATIC SUPPORT AVAILABLE]');
     lines.push('');
@@ -222,9 +218,9 @@ function buildSomaticInjection(
 
   // State description
   const stateDescriptions: Record<NervousSystemState, string> = {
-    sympathetic: 'They\'re in fight-or-flight mode (sympathetic activation). Long exhales help.',
+    sympathetic: "They're in fight-or-flight mode (sympathetic activation). Long exhales help.",
     dorsal_vagal: 'They may be in shutdown mode. Gentle grounding and movement help.',
-    ventral_vagal: 'They\'re regulated. No intervention needed.',
+    ventral_vagal: "They're regulated. No intervention needed.",
   };
   lines.push(`Nervous System: ${stateDescriptions[state]}`);
   lines.push('');
@@ -232,16 +228,22 @@ function buildSomaticInjection(
   // Suggested exercise
   lines.push(`Suggested Exercise: ${exercise.name}`);
   lines.push(`Description: ${exercise.description}`);
-  lines.push(`Duration: ${exercise.duration === 'short' ? '< 2 minutes' : exercise.duration === 'medium' ? '2-5 minutes' : '> 5 minutes'}`);
+  lines.push(
+    `Duration: ${exercise.duration === 'short' ? '< 2 minutes' : exercise.duration === 'medium' ? '2-5 minutes' : '> 5 minutes'}`
+  );
   lines.push('');
 
   // How to offer
   lines.push('HOW TO OFFER:');
   if (intensity > 0.8) {
-    lines.push('• Don\'t ask, gently lead: "Let\'s do something that might help. Breathe with me..."');
+    lines.push(
+      '• Don\'t ask, gently lead: "Let\'s do something that might help. Breathe with me..."'
+    );
   } else {
-    lines.push('• Offer gently: "Would you like to try a quick breathing exercise? It might help."');
-    lines.push('• If they decline, that\'s okay. Don\'t push.');
+    lines.push(
+      '• Offer gently: "Would you like to try a quick breathing exercise? It might help."'
+    );
+    lines.push("• If they decline, that's okay. Don't push.");
   }
   lines.push('');
 
@@ -286,4 +288,3 @@ export { buildSomaticContext };
 export default {
   buildSomaticContext,
 };
-

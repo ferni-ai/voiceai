@@ -132,7 +132,9 @@ export interface HandoffPersona {
  * Convert PersonaConfig to HandoffPersona format
  * Adapts the new persona system to the handoff handler's expected format
  */
-function toHandoffPersona(persona: import('../../personas/types.js').PersonaConfig): HandoffPersona {
+function toHandoffPersona(
+  persona: import('../../personas/types.js').PersonaConfig
+): HandoffPersona {
   const isCoach = persona.id === 'ferni';
   return {
     id: persona.id,
@@ -416,7 +418,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           // DJ Booth not available - that's fine
         }
 
-        await new Promise((resolve) => setTimeout(resolve, transitionDelayMs));
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, transitionDelayMs);
+        });
 
         // STEP 3: Switch the voice with retry logic
         // FIX BUG #47: Added retry mechanism for failed voice switches
@@ -448,7 +452,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           } catch (voiceSwitchErr) {
             if (attempt < MAX_VOICE_SWITCH_RETRIES) {
               diag.warn(`Voice switch failed (attempt ${attempt + 1}), retrying in 100ms...`);
-              await new Promise((resolve) => setTimeout(resolve, 100));
+              await new Promise<void>((resolve) => {
+                setTimeout(resolve, 100);
+              });
             } else {
               diag.error(`Voice switch failed after ${MAX_VOICE_SWITCH_RETRIES + 1} attempts`);
               throw voiceSwitchErr;
@@ -515,7 +521,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
               { error: String(sendErr), attempt: sendAttempts },
               'Retrying handoff_complete send...'
             );
-            await new Promise((resolve) => setTimeout(resolve, 100 * sendAttempts));
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, 100 * sendAttempts);
+            });
           }
         }
 
@@ -524,14 +532,14 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           try {
             let finalGreeting = greeting;
             const shouldUseDJEntrance = Math.random() < 0.4;
-            
+
             if (shouldUseDJEntrance && prevPersona?.id) {
               // 🎧 DJ Integration: Get "Guest DJ" entrance phrase
               // This creates the radio show feel: "Ferni got me excited. What are we doing?"
               try {
                 const dj = getDJIntegration();
                 dj.setPersona(persona.id);
-                
+
                 const entrance = dj.getArrivingEntrance(prevPersona.id, persona.id);
                 if (entrance) {
                   // Use DJ entrance instead of generic greeting
@@ -547,7 +555,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
                 }
               }
             }
-            
+
             // NOTE: Removed 150ms delay - voice is already switched, speak immediately!
             session.say(finalGreeting, { allowInterruptions: true });
             diag.entry(`🎤 ${persona.name} greeting spoken: "${finalGreeting.slice(0, 50)}..."`);

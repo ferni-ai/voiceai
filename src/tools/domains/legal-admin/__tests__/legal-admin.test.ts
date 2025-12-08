@@ -49,7 +49,9 @@ function createMockContext(): ToolContext {
     agentDisplayName: 'Jordan',
     services: {
       has: () => false,
-      get: () => { throw new Error('Service not available'); },
+      get: () => {
+        throw new Error('Service not available');
+      },
       getOptional: () => undefined,
     },
   };
@@ -81,19 +83,19 @@ describe('Legal & Administrative Domain Tools', () => {
     });
 
     it('should have organizeDocuments tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'organizeDocuments');
+      const tool = toolDefinitions.find((t) => t.id === 'organizeDocuments');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('legal-admin');
     });
 
     it('should have promptEstatePlanning tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'promptEstatePlanning');
+      const tool = toolDefinitions.find((t) => t.id === 'promptEstatePlanning');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('legal-admin');
     });
 
     it('should have reviewInsuranceCoverage tool', () => {
-      const tool = toolDefinitions.find(t => t.id === 'reviewInsuranceCoverage');
+      const tool = toolDefinitions.find((t) => t.id === 'reviewInsuranceCoverage');
       expect(tool).toBeDefined();
       expect(tool?.domain).toBe('legal-admin');
     });
@@ -101,7 +103,7 @@ describe('Legal & Administrative Domain Tools', () => {
 
   describe('organizeDocuments', () => {
     it('should help organize documents', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'organizeDocuments');
+      const toolDef = toolDefinitions.find((t) => t.id === 'organizeDocuments');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -114,7 +116,7 @@ describe('Legal & Administrative Domain Tools', () => {
     });
 
     it('should organize medical documents', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'organizeDocuments');
+      const toolDef = toolDefinitions.find((t) => t.id === 'organizeDocuments');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -127,7 +129,7 @@ describe('Legal & Administrative Domain Tools', () => {
 
   describe('promptEstatePlanning', () => {
     it('should prompt estate planning basics', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'promptEstatePlanning');
+      const toolDef = toolDefinitions.find((t) => t.id === 'promptEstatePlanning');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -135,11 +137,15 @@ describe('Legal & Administrative Domain Tools', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.toLowerCase().includes('estate') || result.toLowerCase().includes('will') || result.toLowerCase().includes('plan')).toBe(true);
+      expect(
+        result.toLowerCase().includes('estate') ||
+          result.toLowerCase().includes('will') ||
+          result.toLowerCase().includes('plan')
+      ).toBe(true);
     });
 
     it('should provide guidance for complex situations', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'promptEstatePlanning');
+      const toolDef = toolDefinitions.find((t) => t.id === 'promptEstatePlanning');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -152,7 +158,7 @@ describe('Legal & Administrative Domain Tools', () => {
 
   describe('reviewInsuranceCoverage', () => {
     it('should help review insurance coverage', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'reviewInsuranceCoverage');
+      const toolDef = toolDefinitions.find((t) => t.id === 'reviewInsuranceCoverage');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -164,7 +170,7 @@ describe('Legal & Administrative Domain Tools', () => {
     });
 
     it('should review life insurance', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'reviewInsuranceCoverage');
+      const toolDef = toolDefinitions.find((t) => t.id === 'reviewInsuranceCoverage');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -178,7 +184,7 @@ describe('Legal & Administrative Domain Tools', () => {
 
   describe('prepareForTaxSeason', () => {
     it('should help prepare for taxes', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'prepareForTaxSeason');
+      const toolDef = toolDefinitions.find((t) => t.id === 'prepareForTaxSeason');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -191,7 +197,7 @@ describe('Legal & Administrative Domain Tools', () => {
 
   describe('Content Validation', () => {
     it('should not contain placeholder text', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'organizeDocuments');
+      const toolDef = toolDefinitions.find((t) => t.id === 'organizeDocuments');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -203,7 +209,7 @@ describe('Legal & Administrative Domain Tools', () => {
     });
 
     it('should include appropriate disclaimers', async () => {
-      const toolDef = toolDefinitions.find(t => t.id === 'promptEstatePlanning');
+      const toolDef = toolDefinitions.find((t) => t.id === 'promptEstatePlanning');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -215,4 +221,3 @@ describe('Legal & Administrative Domain Tools', () => {
     });
   });
 });
-

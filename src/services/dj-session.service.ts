@@ -469,7 +469,7 @@ class DJSessionService {
     });
 
     // Stop any thinking music
-    this.stopThinkingMusic();
+    void this.stopThinkingMusic();
 
     const personaId = context?.personaId || this.currentContext?.personaId || 'ferni';
 
@@ -717,7 +717,9 @@ class DJSessionService {
     for (let i = 0; i < steps; i++) {
       const newVolume = startVolume * (1 - (i + 1) / steps);
       player.setVolume(Math.max(0, newVolume));
-      await new Promise((resolve) => setTimeout(resolve, stepDelay));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, stepDelay);
+      });
     }
 
     player.stop();
