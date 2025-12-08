@@ -11,8 +11,9 @@
 
 import type { EngagementEvent, EngagementTriggerEvent } from '../types/events.js';
 import { isEngagementMessage, isEngagementTriggerMessage } from '../types/events.js';
-import type { EngagementData } from '../ui/engagement.ui.js';
+import type { EngagementData, EmotionalWeatherData } from '../ui/engagement.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { apiGet } from '../utils/api.js';
 
 const log = createLogger('Engagement');
 
@@ -142,11 +143,17 @@ class EngagementService {
       return this.cachedData;
     }
 
-    // Try REST API
+    // Try REST API with proper auth headers
     try {
-      const response = await fetch(`/api/rituals?userId=${encodeURIComponent(userId)}`);
-      if (response.ok) {
-        const data = await response.json();
+      const result = await apiGet<{
+        streaks?: Array<Record<string, unknown>>;
+        weatherHistory?: Array<Record<string, unknown>>;
+        stats?: Record<string, unknown>;
+        lastEngagementAt?: string;
+      }>('/api/rituals', { userId });
+      
+      if (result.ok && result.data) {
+        const data = result.data;
         
         // Transform to EngagementData format
         const engagementData: EngagementData = {
@@ -160,24 +167,30 @@ class EngagementService {
             dueToday: this.isDueToday(s.lastCompletedAt as string | null),
           })),
           weatherHistory: (data.weatherHistory || []).map((w: Record<string, unknown>) => ({
-            primary: (w.weather as Record<string, string>)?.primary || 'cloudy',
-            energy: (w.weather as Record<string, string>)?.energy || 'medium',
+            primary: ((w.weather as Record<string, string>)?.primary || 'cloudy') as EmotionalWeatherData['primary'],
+            energy: ((w.weather as Record<string, string>)?.energy || 'medium') as EmotionalWeatherData['energy'],
             note: w.weather ? (w.weather as Record<string, string>).note : undefined,
             recordedAt: w.date as string,
           })),
           stats: {
-            totalRitualDays: data.stats?.totalRitualDays || 0,
-            longestOverallStreak: data.stats?.longestOverallStreak || 0,
+            totalRitualDays: (data.stats?.totalRitualDays as number) || 0,
+            longestOverallStreak: (data.stats?.longestOverallStreak as number) || 0,
             currentActiveStreaks: data.streaks?.filter((s: Record<string, unknown>) => (s.currentStreak as number) > 0).length || 0,
-            predictionAccuracy: data.stats?.predictionAccuracy,
-            teamHuddlesAttended: data.stats?.teamHuddlesAttended || 0,
+            predictionAccuracy: data.stats?.predictionAccuracy as number | undefined,
+            teamHuddlesAttended: (data.stats?.teamHuddlesAttended as number) || 0,
           },
           lastEngagementAt: data.lastEngagementAt || null,
         };
 
         this.cachedData = engagementData;
         this.callbacks.onEngagementUpdate?.(engagementData);
+        log.info('Loaded engagement data from API', { 
+          streaks: engagementData.ritualStreaks.length,
+          weather: engagementData.weatherHistory.length,
+        });
         return engagementData;
+      } else {
+        log.warn('API returned error', { error: result.error, status: result.status });
       }
     } catch (err) {
       log.warn('Failed to fetch engagement data from API', err);
@@ -221,11 +234,14 @@ class EngagementService {
       return this.cachedPredictions;
     }
 
-    // Try REST API
+    // Try REST API with proper auth headers
     try {
-      const response = await fetch(`/api/predictions?userId=${encodeURIComponent(userId)}`);
-      if (response.ok) {
-        const data = await response.json();
+      const result = await apiGet<{
+        predictions?: Array<Record<string, unknown>>;
+      }>('/api/predictions', { userId });
+      
+      if (result.ok && result.data) {
+        const data = result.data;
         // Transform from StoredPrediction to PredictionData format
         const predictions: PredictionData[] = (data.predictions || []).map((p: Record<string, unknown>) => ({
           id: p.id as string,

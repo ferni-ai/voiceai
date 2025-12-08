@@ -154,6 +154,7 @@ export interface SpotifyStateEvent {
  * - 'playing' = Music actively playing
  * - 'ducking' = Agent speaking over music (DJ fade-down)
  * - 'fading'  = Track ending soon (~5 seconds left)
+ * - 'changing' = DJ crossfade - switching to a new track
  * - 'paused'  = Playback paused
  * - 'stopped' = Playback stopped
  * - 'idle'    = No music loaded
@@ -163,6 +164,7 @@ export type MusicPlaybackState =
   | 'playing'
   | 'ducking'
   | 'fading'
+  | 'changing'
   | 'paused'
   | 'stopped';
 
@@ -547,6 +549,38 @@ export function isEngagementTriggerMessage(data: unknown): data is EngagementTri
 }
 
 // ============================================================================
+// WRAP-UP EVENTS (conversation ending)
+// ============================================================================
+
+/**
+ * Wrap-up sentiment types.
+ */
+export type WrapUpSentiment = 'warm' | 'encouraging' | 'thoughtful' | 'caring';
+
+/**
+ * Event fired when the agent is wrapping up the conversation.
+ * This signals the UI to prepare for goodbye (prominent disconnect button, etc.)
+ */
+export interface WrapUpEvent {
+  readonly type: 'wrap_up';
+  readonly sentiment: WrapUpSentiment;
+  readonly message?: string;
+  readonly timestamp: number;
+}
+
+/**
+ * Type guard for wrap-up messages.
+ */
+export function isWrapUpMessage(data: unknown): data is WrapUpEvent {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as Record<string, unknown>)['type'] === 'wrap_up'
+  );
+}
+
+// ============================================================================
 // AGGREGATED EVENT TYPES
 // ============================================================================
 
@@ -564,7 +598,8 @@ export type AppEvent =
   | CelebrationEvent
   | ExpressionEvent
   | EngagementEvent
-  | EngagementTriggerEvent;
+  | EngagementTriggerEvent
+  | WrapUpEvent;
 
 /**
  * Event type discriminator.

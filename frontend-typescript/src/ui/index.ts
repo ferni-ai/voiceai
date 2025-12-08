@@ -250,6 +250,42 @@ export {
   toggleProgressPanel as toggleRelationshipProgress,
 } from './relationship-progress.ui.js';
 
+// Trust Journey UI - "Better Than Human" relationship visualization
+export {
+  trustJourneyUI,
+  initTrustJourneyUI,
+  showTrustJourney,
+  hideTrustJourney,
+  toggleTrustJourney,
+} from './trust-journey.ui.js';
+
+// Outreach Preferences UI - User controls for proactive check-ins
+export {
+  outreachPreferencesUI,
+  initOutreachPreferencesUI,
+  showOutreachPreferences,
+  hideOutreachPreferences,
+  setOutreachPreferencesCallbacks,
+} from './outreach-preferences.ui.js';
+export type { OutreachPreferences, OutreachPreferencesCallbacks } from './outreach-preferences.ui.js';
+
+// Trust Analytics Dashboard - Admin monitoring view
+export {
+  trustAnalyticsUI,
+  initTrustAnalyticsUI,
+  showTrustAnalytics,
+  hideTrustAnalytics,
+  setTrustAnalyticsCallbacks,
+} from './trust-analytics.ui.js';
+export type { TrustMetrics, SystemHealth, ABTestResult, TrustAnalyticsData, TrustAnalyticsCallbacks } from './trust-analytics.ui.js';
+
+// Trust Dashboard - Consolidated trust features UI (Phases 12-29)
+export {
+  initTrustDashboardUI,
+  showTrustDashboard,
+  hideTrustDashboard,
+} from './trust-dashboard.ui.js';
+
 // Notification Settings UI
 export {
   getNotificationSettingsUI,

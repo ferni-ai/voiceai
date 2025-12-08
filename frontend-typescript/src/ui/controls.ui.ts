@@ -115,11 +115,20 @@ function setupSubscriptions(): void {
   // Connection state changes
   appState.subscribe('connection', (state) => {
     updateButtonVisibility(state);
+    // Reset wrap-up state on disconnect
+    if (state === 'disconnected') {
+      updateWrapUpState(false);
+    }
   });
 
   // Mute state changes
   appState.subscribe('isMuted', (muted) => {
     updateMuteButton(muted);
+  });
+
+  // Wrap-up state changes (agent saying goodbye)
+  appState.subscribe('isWrappingUp', (isWrappingUp) => {
+    updateWrapUpState(isWrappingUp);
   });
 }
 
@@ -190,6 +199,46 @@ function updateMuteButton(muted: boolean): void {
   } else {
     removeClass(elements.muteBtn, 'muted');
     elements.muteBtn.setAttribute('aria-pressed', 'false');
+  }
+}
+
+/**
+ * Update UI when agent is wrapping up the conversation.
+ * Makes the disconnect button more prominent and inviting.
+ */
+function updateWrapUpState(isWrappingUp: boolean): void {
+  if (!elements?.disconnectBtn) return;
+  
+  if (isWrappingUp) {
+    // Add wrap-up styling - warm, inviting goodbye state
+    addClass(elements.disconnectBtn, 'btn-wrap-up');
+    
+    // Update button text to be warmer
+    const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+    if (textSpan) {
+      textSpan.textContent = 'Goodbye';
+    } else {
+      // Fallback for buttons without .btn-text
+      elements.disconnectBtn.setAttribute('data-wrap-up-text', 'Goodbye');
+    }
+    
+    // Add pulsing attention animation
+    addClass(elements.disconnectBtn, 'btn-attention');
+    
+    // Update aria label for accessibility
+    elements.disconnectBtn.setAttribute('aria-label', 'End conversation - Goodbye');
+  } else {
+    // Reset to normal disconnect state
+    removeClass(elements.disconnectBtn, 'btn-wrap-up');
+    removeClass(elements.disconnectBtn, 'btn-attention');
+    
+    // Reset button text
+    const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+    if (textSpan) {
+      textSpan.textContent = 'End';
+    }
+    elements.disconnectBtn.removeAttribute('data-wrap-up-text');
+    elements.disconnectBtn.setAttribute('aria-label', 'End conversation');
   }
 }
 

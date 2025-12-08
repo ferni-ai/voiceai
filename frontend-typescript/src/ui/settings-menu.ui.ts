@@ -46,6 +46,11 @@ export interface SettingsMenuUICallbacks {
   onNotificationSettingsClick?: () => void;
   onSpotifyClick?: () => void;
   onTeamHuddleClick?: () => void;
+  onTrustJourneyClick?: () => void;
+  onMusicDashboardClick?: () => void;
+  onPlayGamesClick?: () => void;
+  onOutreachScheduleClick?: () => void;
+  onContactSettingsClick?: () => void;
   onClose?: () => void;
 }
 
@@ -69,6 +74,8 @@ const ICONS = {
   bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
   music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
 };
 
 // ============================================================================
@@ -294,6 +301,7 @@ class SettingsMenuUI {
           <section class="settings-menu__section">
             <h3>Your Journey</h3>
             ${this.renderMenuItem('relationship', ICONS.heart, 'Journey with Ferni')}
+            ${this.renderMenuItem('trust-journey', ICONS.sparkles, 'Trust & Growth')}
             ${this.renderMenuItem('history', ICONS.history, 'Conversation History')}
             ${this.renderMenuItem('analytics', ICONS.analytics, 'Progress Analytics')}
             ${this.renderMenuItem('predictions', ICONS.target, 'Prediction Accuracy')}
@@ -302,7 +310,13 @@ class SettingsMenuUI {
           <section class="settings-menu__section">
             <h3>Insights</h3>
             ${this.renderMenuItem('cognitive', ICONS.brain, 'What I\'ve Learned')}
+            ${this.renderMenuItem('music-dashboard', ICONS.music, 'Musical You')}
             ${this.renderMenuItem('team', ICONS.team, 'Team Huddles')}
+          </section>
+          
+          <section class="settings-menu__section">
+            <h3>Fun</h3>
+            ${this.renderMenuItem('play-games', ICONS.sparkles, 'Play Music Games')}
           </section>
 
           <section class="settings-menu__section">
@@ -314,6 +328,8 @@ class SettingsMenuUI {
             ${this.renderMenuItem('ritual', ICONS.ritual, 'Create a Practice')}
             ${this.renderMenuItem('theme', ICONS.theme, 'Toggle Theme')}
             ${this.renderMenuItem('notifications', ICONS.bell, 'Notifications')}
+            ${this.renderMenuItem('outreach-schedule', ICONS.calendar, 'Upcoming Check-ins')}
+            ${this.renderMenuItem('contact-settings', ICONS.heart, 'Contact Info')}
           </section>
 
           <section class="settings-menu__section">
@@ -386,6 +402,21 @@ class SettingsMenuUI {
         break;
       case 'spotify':
         this.callbacks.onSpotifyClick?.();
+        break;
+      case 'trust-journey':
+        this.callbacks.onTrustJourneyClick?.();
+        break;
+      case 'music-dashboard':
+        this.callbacks.onMusicDashboardClick?.();
+        break;
+      case 'play-games':
+        this.callbacks.onPlayGamesClick?.();
+        break;
+      case 'outreach-schedule':
+        this.callbacks.onOutreachScheduleClick?.();
+        break;
+      case 'contact-settings':
+        this.callbacks.onContactSettingsClick?.();
         break;
     }
   }

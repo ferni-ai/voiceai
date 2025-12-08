@@ -17,7 +17,13 @@ import {
 } from './theme/index.js';
 
 // State
-import { appState, setAudioState, setSelectedPersona, setUserName } from './state/app.state.js';
+import {
+  appState,
+  setAudioState,
+  setSelectedPersona,
+  setUserName,
+  setWrappingUp,
+} from './state/app.state.js';
 
 // Services
 import { delightService } from './services/delight.service.js';
@@ -57,7 +63,8 @@ import { initMicroInteractions, microInteractionsUI } from './ui/micro-interacti
 // import { keyboardUI, initKeyboardUI } from './ui/keyboard.ui.js'; // Disabled for now
 import { avatarFeedback, initAvatarFeedback } from './ui/avatar-feedback.ui.js';
 import { connectionQualityUI, initConnectionQualityUI } from './ui/connection-quality.ui.js';
-import { initFerniEye } from './ui/ferni-eye.ui.js';
+// Disabled: Eye animations removed - keeping just zen blink
+// import { initFerniEye } from './ui/ferni-eye.ui.js';
 import { greetingUI } from './ui/greeting.ui.js';
 import { initMoodUI, moodUI } from './ui/mood.ui.js';
 import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
@@ -109,6 +116,14 @@ import {
   initRelationshipProgressUI,
   showProgressPanel as showRelationshipProgress,
 } from './ui/relationship-progress.ui.js';
+// Trust Journey UI - "Better Than Human" relationship visualization
+import {
+  initTrustJourneyUI,
+  showTrustJourney,
+} from './ui/trust-journey.ui.js';
+// Music Dashboard UI - "Musical You" insights
+import { musicDashboard } from './ui/music-dashboard.ui.js';
+import { showGamePicker } from './ui/game-picker.ui.js';
 import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 // Push Notifications
 import { initPushNotifications } from './services/push-notifications.service.js';
@@ -116,6 +131,10 @@ import {
   initNotificationSettingsUI,
   showNotificationSettings,
 } from './ui/notification-settings.ui.js';
+// Outreach Schedule UI
+import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
+// Contact Settings UI
+import { openContactSettings } from './ui/contact-settings.ui.js';
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
@@ -485,6 +504,9 @@ class VoiceAIApp {
     // Reset audio state
     setAudioState('idle');
 
+    // Reset wrap-up state (conversation is over)
+    setWrappingUp(false);
+
     // Update delight state
     delightService.onDisconnect();
 
@@ -685,7 +707,8 @@ class VoiceAIApp {
     this.safeInit('EasterEggsUI', () => initEasterEggsUI());
     this.safeInit('MoodUI', () => initMoodUI());
     this.safeInit('AvatarFeedback', () => initAvatarFeedback()); // ✨ For music dancing!
-    this.safeInit('FerniEye', () => initFerniEye()); // 👁️ Pixar-style eye peek-throughs!
+    // Disabled: Eye peek-throughs removed - keeping just the zen blink
+    // this.safeInit('FerniEye', () => initFerniEye());
     // 🌨️ Weather Effects - Seasonal ambient atmosphere (snow, rain, leaves, fireflies)
     // Available via dev panel - not auto-started to keep things subtle
     this.safeInit('WeatherEffects', () => {
@@ -824,6 +847,7 @@ class VoiceAIApp {
     this.safeInit('PersonaTransitionUI', () => initPersonaTransitionUI());
     this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
+    this.safeInit('TrustJourneyUI', () => initTrustJourneyUI());
 
     // 📋 Settings Menu - Central navigation hub
     this.safeInit('SettingsMenuUI', () => {
@@ -840,6 +864,11 @@ class VoiceAIApp {
         onNotificationSettingsClick: () => showNotificationSettings(),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
         onTeamHuddleClick: () => showTeamHuddle(),
+        onTrustJourneyClick: () => void showTrustJourney(),
+        onMusicDashboardClick: () => void musicDashboard.show(),
+        onPlayGamesClick: () => showGamePicker(),
+        onOutreachScheduleClick: () => void openOutreachSchedule(),
+        onContactSettingsClick: () => void openContactSettings(),
       });
 
       // Wire up Spotify state changes to menu
@@ -929,8 +958,8 @@ class VoiceAIApp {
     // Set up team huddle callback for data message handlers
     setShowTeamHuddleCallback(() => showTeamHuddle());
 
-    // 📊 Load demo data for testing (when not connected to backend)
-    this.loadDemoEngagementData();
+    // 📊 Load engagement data (API first, demo fallback in dev)
+    void this.loadEngagementData();
     // Agent particles disabled for cleaner professional UI
     // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
 
@@ -1047,44 +1076,64 @@ class VoiceAIApp {
   }
 
   /**
-   * Load engagement data - uses demo data in development, real data in production.
+   * Load engagement data - tries API first, falls back to demo in development.
    *
-   * PRODUCTION BEHAVIOR:
-   * - In development: Loads demo data for UI testing
-   * - In production: Skips demo data, waits for real data from backend
+   * BEHAVIOR:
+   * - Always tries API first (using X-User-Id header for auth)
+   * - In development: Falls back to demo data if API fails/returns empty
+   * - In production: Shows empty state if API fails (no demo data)
    */
-  private loadDemoEngagementData(): void {
-    // Only load demo data in development or when explicitly enabled
-    if (!shouldUseDemoData()) {
-      log.info('Production mode - skipping demo data, will use real backend data');
-      disableDemoData();
-      return;
+  private async loadEngagementData(): Promise<void> {
+    const userId = localStorage.getItem('ferni_user_id');
+    
+    // Try API first
+    if (userId) {
+      try {
+        const data = await engagementService.fetchEngagementData(userId);
+        if (data && (data.ritualStreaks.length > 0 || data.weatherHistory.length > 0)) {
+          log.info('Loaded engagement data from API', { 
+            streaks: data.ritualStreaks.length,
+            weather: data.weatherHistory.length,
+          });
+          getEngagementUI().update(data);
+          
+          // Update badges from real data
+          const dueCount = data.ritualStreaks.filter((s) => s.dueToday).length;
+          engagementTriggerUI.updateBadges({ ritualsdue: dueCount });
+          
+          disableDemoData();
+          return;
+        }
+      } catch (err) {
+        log.warn('Failed to load engagement data from API', err);
+      }
     }
+    
+    // Fall back to demo data in development only
+    if (shouldUseDemoData()) {
+      log.debug('No API data available - loading demo data (development mode)');
+      enableDemoData();
+      
+      const demoData = getDemoEngagementData();
+      getEngagementUI().update(demoData);
 
-    // Enable demo data mode
-    enableDemoData();
+      const dueCount = demoData.ritualStreaks.filter((s) => s.dueToday).length;
+      engagementTriggerUI.updateBadges({ ritualsdue: dueCount });
 
-    // Load demo data into engagement panel
-    const demoData = getDemoEngagementData();
-    getEngagementUI().update(demoData);
+      const demoPredictions = getDemoPredictions();
+      const pendingCount = demoPredictions.filter((p) => p.status === 'pending').length;
+      engagementTriggerUI.updateBadges({ predictionsReady: pendingCount });
 
-    // Update badge counts from demo data
-    const dueCount = demoData.ritualStreaks.filter((s) => s.dueToday).length;
-    engagementTriggerUI.updateBadges({ ritualsdue: dueCount });
-
-    // Load demo predictions
-    const demoPredictions = getDemoPredictions();
-    const pendingCount = demoPredictions.filter((p) => p.status === 'pending').length;
-    engagementTriggerUI.updateBadges({ predictionsReady: pendingCount });
-
-    getPredictionsUI().update({
-      predictions: demoPredictions,
-      accuracy: 78, // From demo data
-      totalResolved: demoPredictions.filter((p) => p.status === 'resolved').length,
-      currentStreak: 4,
-    });
-
-    log.debug('Demo engagement data loaded (development mode)');
+      getPredictionsUI().update({
+        predictions: demoPredictions,
+        accuracy: 78,
+        totalResolved: demoPredictions.filter((p) => p.status === 'resolved').length,
+        currentStreak: 4,
+      });
+    } else {
+      log.info('No engagement data available - showing empty state');
+      disableDemoData();
+    }
   }
 
   /**

@@ -30,7 +30,6 @@
 import type { PersonaConfig, PersonaId } from '../types/persona.js';
 import { ALL_PERSONA_IDS } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
-import { isDevelopment } from '../utils/environment.js';
 
 const log = createLogger('Marketplace');
 
@@ -197,10 +196,8 @@ type MarketplaceSource = 'proxy' | 'local' | 'github';
  * Development uses local files, production uses the proxy.
  */
 function getMarketplaceSource(): MarketplaceSource {
-  if (isDevelopment()) {
-    return 'local';
-  }
-  // Production uses proxy for secure access to private repos
+  // Always use proxy - local voiceai-agents files have been removed
+  // to consolidate the codebase. The proxy backend handles all marketplace requests.
   return 'proxy';
 }
 

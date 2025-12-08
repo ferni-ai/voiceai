@@ -91,8 +91,6 @@ let eyeTrackingFrame: number | null = null;
 
 // Blinking - Like a human, the avatar blinks periodically
 let blinkTimeoutId: ReturnType<typeof setTimeout> | null = null;
-const BLINK_INTERVAL_MIN = 2000;  // Min time between blinks (ms)
-const BLINK_INTERVAL_MAX = 6000;  // Max time between blinks (ms)
 const BLINK_DURATION = 150;       // How long the blink takes
 
 // Micro-idle movements - Subtle random shifts that feel alive
@@ -447,55 +445,52 @@ function updateBreathingAnimation(): void {
 }
 
 // ============================================================================
-// HUMAN-LIKE BLINKING - Periodic natural blinks
+// ZEN BLINKING - Context-aware, not random
 // ============================================================================
 
-/**
- * Start the human-like blinking behavior.
- * 
- * Why this matters for brand:
- * - "Human" is one of our 5 brand attributes
- * - Small details like blinking make the avatar feel alive
- * - Random timing feels natural, not robotic
- */
-function startBlinking(): void {
-  // Check for reduced motion
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  
-  const scheduleBlink = () => {
-    const delay = BLINK_INTERVAL_MIN + Math.random() * (BLINK_INTERVAL_MAX - BLINK_INTERVAL_MIN);
-    
-    blinkTimeoutId = setTimeout(() => {
-      performBlink();
-      scheduleBlink();
-    }, delay);
-  };
-  
-  scheduleBlink();
-}
+// Track last blink time to prevent rapid blinking
+let lastBlinkTime = 0;
+const MIN_BLINK_INTERVAL = 1500; // At least 1.5s between blinks
 
 /**
- * Perform a single blink animation.
- * The avatar briefly dims/scales vertically like closing eyes.
+ * Perform a zen blink animation.
+ * The whole avatar squashes vertically - like closing eyes.
+ * 
+ * Called at natural pause points:
+ * - When agent stops speaking (thinking pause)
+ * - When starting to listen (acknowledgment)
+ * 
+ * NOT random intervals - intentional and meaningful.
  */
 function performBlink(): void {
   if (!avatarElement || !avatarContainer) return;
   
+  // Check for reduced motion
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  
   // Don't blink while speaking (looks unnatural)
   if (isSpeaking) return;
   
-  // Subtle vertical squash + slight dim = blink illusion
+  // Prevent rapid blinking
+  const now = Date.now();
+  if (now - lastBlinkTime < MIN_BLINK_INTERVAL) return;
+  lastBlinkTime = now;
+  
+  // Zen blink - whole avatar squashes flat then springs back
   avatarElement.animate([
-    { filter: 'brightness(1)', transform: 'scaleY(1)' },
-    { filter: 'brightness(0.92)', transform: 'scaleY(0.97)' },
-    { filter: 'brightness(0.88)', transform: 'scaleY(0.95)' },
-    { filter: 'brightness(0.92)', transform: 'scaleY(0.97)' },
-    { filter: 'brightness(1)', transform: 'scaleY(1)' },
+    { transform: 'scaleY(1) scaleX(1)' },
+    { transform: 'scaleY(0.15) scaleX(1.08)', offset: 0.4 },  // Quick close
+    { transform: 'scaleY(1.02) scaleX(0.99)', offset: 0.85 }, // Slight overshoot
+    { transform: 'scaleY(1) scaleX(1)' },
   ], {
     duration: BLINK_DURATION,
-    easing: 'ease-in-out',
-    composite: 'add',
+    easing: EASING.GENTLE,
   });
+}
+
+// Deprecated - no longer using random interval blinking
+function startBlinking(): void {
+  // Now context-aware - blinks triggered by state changes
 }
 
 function stopBlinking(): void {
@@ -506,7 +501,7 @@ function stopBlinking(): void {
 }
 
 /**
- * Trigger an immediate blink (for reactions).
+ * Trigger an immediate blink (for manual testing or reactions).
  */
 export function blink(): void {
   performBlink();
@@ -712,6 +707,12 @@ export function setSpeaking(speaking: boolean): void {
   // Update breathing intensity when speaking state changes
   if (wasSpeaking !== speaking) {
     updateBreathingAnimation();
+    
+    // 🎬 Zen blink when stopping speaking (natural pause moment)
+    if (wasSpeaking && !speaking) {
+      // Small delay so it feels like end of thought, not interruption
+      setTimeout(() => performBlink(), 200);
+    }
   }
   
   // Update glow state
@@ -729,6 +730,11 @@ export function setListening(listening: boolean): void {
   // Update breathing intensity when listening state changes
   if (wasListening !== listening) {
     updateBreathingAnimation();
+    
+    // 🎬 Zen blink when starting to listen (acknowledging user)
+    if (!wasListening && listening) {
+      performBlink();
+    }
     
     // 🎬 Pixar attentive lean-in when user starts speaking
     if (listening) {
@@ -1052,6 +1058,77 @@ export function attentiveLean(): void {
 }
 
 // ============================================================================
+// 🌅 FAREWELL ANIMATION - Warm goodbye
+// ============================================================================
+
+/**
+ * Farewell animation - warm, gentle goodbye motion.
+ * 
+ * Like a friend giving you a warm smile and nod before parting.
+ * Combines a gentle bow/nod with a warm glow that lingers.
+ * 
+ * Pixar Principles:
+ * - ANTICIPATION: Slight pause before the farewell
+ * - STAGING: Clear, warm gesture
+ * - APPEAL: Leaves user with positive feeling
+ */
+export function farewell(): void {
+  if (!avatarContainer || !avatarElement) return;
+  
+  // Check for reduced motion
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Just do a simple glow for reduced motion users
+    avatarElement.animate([
+      { filter: 'brightness(1)', offset: 0 },
+      { filter: 'brightness(1.1)', offset: 0.5 },
+      { filter: 'brightness(1)', offset: 1 },
+    ], {
+      duration: DURATION.CELEBRATION,
+      easing: EASING.GENTLE,
+    });
+    return;
+  }
+  
+  // Warm farewell gesture - like a gentle bow/nod of acknowledgment
+  const farewellKeyframes: Keyframe[] = [
+    // Start position
+    { transform: 'translateY(0) scale(1) rotate(0deg)', offset: 0 },
+    // Anticipation - slight rise (like taking a breath)
+    { transform: 'translateY(-2px) scale(1.02) rotate(0deg)', offset: 0.1 },
+    // Gentle bow with warmth
+    { transform: 'translateY(4px) scale(0.98) rotate(2deg)', offset: 0.3 },
+    // Hold the bow briefly
+    { transform: 'translateY(3px) scale(0.985) rotate(1.5deg)', offset: 0.45 },
+    // Begin rising with grace
+    { transform: 'translateY(0) scale(1) rotate(0.5deg)', offset: 0.7 },
+    // Settle with warmth
+    { transform: 'translateY(-1px) scale(1.01) rotate(0deg)', offset: 0.85 },
+    // Return to neutral
+    { transform: 'translateY(0) scale(1) rotate(0deg)', offset: 1 },
+  ];
+  
+  avatarContainer.animate(farewellKeyframes, {
+    duration: DURATION.CELEBRATION + DURATION.SLOW, // ~1100ms - deliberate and warm
+    easing: EASING.GENTLE,
+    fill: 'forwards',
+    composite: 'add',
+  });
+  
+  // Warm golden glow that lingers
+  avatarElement.animate([
+    { filter: 'brightness(1) saturate(1)', offset: 0 },
+    { filter: 'brightness(1.12) saturate(1.15)', offset: 0.3 },
+    { filter: 'brightness(1.15) saturate(1.2)', offset: 0.5 },
+    { filter: 'brightness(1.1) saturate(1.1)', offset: 0.75 },
+    { filter: 'brightness(1.05) saturate(1.05)', offset: 1 },
+  ], {
+    duration: DURATION.CELEBRATION + DURATION.SLOW,
+    easing: EASING.GENTLE,
+    fill: 'forwards',
+  });
+}
+
+// ============================================================================
 // CLEANUP
 // ============================================================================
 
@@ -1111,6 +1188,8 @@ export const presenceUI = {
   curiousTilt,
   joy,
   attentiveLean,
+  // 🌅 Farewell
+  farewell,
   // 🆕 Human-like behaviors
   blink,
   // Cleanup

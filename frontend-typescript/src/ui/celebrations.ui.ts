@@ -101,20 +101,20 @@ function injectCelebrationStyles(): void {
       70% { transform: translateY(1px) scale(0.99); }
     }
 
-    /* Connection warmth - understanding spreads outward */
+    /* Connection warmth - subtle scale effect */
     .connection-warmth {
       animation: connection-spread var(--duration-glacial, 1500ms) var(--ease-expo-out) forwards;
     }
 
     @keyframes connection-spread {
       0% { 
-        box-shadow: 0 0 0 0 var(--persona-glow, rgba(212, 168, 74, 0.4));
+        transform: scale(1);
       }
       50% { 
-        box-shadow: 0 0 40px 10px var(--persona-glow, rgba(212, 168, 74, 0.3));
+        transform: scale(1.02);
       }
       100% { 
-        box-shadow: 0 0 0 0 transparent;
+        transform: scale(1);
       }
     }
 

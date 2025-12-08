@@ -44,6 +44,9 @@ export interface AppState {
   
   /** Whether user is muted */
   readonly isMuted: boolean;
+  
+  /** Whether the agent is wrapping up the conversation */
+  readonly isWrappingUp: boolean;
 }
 
 // ============================================================================
@@ -153,6 +156,7 @@ function createInitialState(): AppState {
     deviceId: persisted.deviceId ?? generateDeviceId(),
     currentMessage: null,
     isMuted: false,
+    isWrappingUp: false,
   };
 }
 
@@ -358,5 +362,12 @@ export function setAudioState(state: AudioState): void {
  */
 export function getDeviceId(): string {
   return appState.getState().deviceId;
+}
+
+/**
+ * Set wrap-up state (agent is saying goodbye).
+ */
+export function setWrappingUp(isWrappingUp: boolean): void {
+  appState.set('isWrappingUp', isWrappingUp);
 }
 

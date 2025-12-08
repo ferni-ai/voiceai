@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { apiPost, apiDelete, getUserId } from '../utils/api.js';
 import type { CustomRitual } from '../ui/ritual-builder.ui.js';
 
 const log = createLogger('Rituals');
@@ -35,7 +36,6 @@ export interface RitualsServiceCallbacks {
 // ============================================================================
 
 const STORAGE_KEY = 'ferni_user_rituals';
-const USER_ID_KEY = 'ferni_user_id';
 
 // ============================================================================
 // RITUALS SERVICE
@@ -279,26 +279,18 @@ class RitualsService {
   // BACKEND SYNC
   // ============================================================================
 
-  private getUserId(): string | null {
-    return localStorage.getItem(USER_ID_KEY);
-  }
-
   private async syncToBackend(ritual: SavedRitual): Promise<void> {
-    const userId = this.getUserId();
+    const userId = getUserId();
     if (!userId) {
       log.debug('No user ID, skipping backend sync');
       return;
     }
 
     try {
-      const response = await fetch('/api/rituals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, ritual }),
-      });
+      const result = await apiPost('/api/rituals', { ritual });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      if (!result.ok) {
+        throw new Error(result.error || 'Sync failed');
       }
 
       log.debug('Ritual synced to backend', { id: ritual.id });
@@ -309,16 +301,14 @@ class RitualsService {
   }
 
   private async deleteFromBackend(ritualId: string): Promise<void> {
-    const userId = this.getUserId();
+    const userId = getUserId();
     if (!userId) return;
 
     try {
-      const response = await fetch(`/api/rituals/${ritualId}?userId=${userId}`, {
-        method: 'DELETE',
-      });
+      const result = await apiDelete(`/api/rituals/${ritualId}`);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      if (!result.ok) {
+        throw new Error(result.error || 'Delete failed');
       }
 
       log.debug('Ritual deleted from backend', { id: ritualId });
@@ -331,7 +321,7 @@ class RitualsService {
    * Sync all rituals to backend (for initial sync or recovery)
    */
   async syncAllToBackend(): Promise<void> {
-    const userId = this.getUserId();
+    const userId = getUserId();
     if (!userId) return;
 
     const rituals = this.getAllRituals();

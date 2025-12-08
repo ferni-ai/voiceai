@@ -34,7 +34,8 @@ import {
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
-import { ferniEye } from './ferni-eye.ui.js';
+// Disabled: Eye animations removed - keeping just zen blink
+// import { ferniEye } from './ferni-eye.ui.js';
 import { presenceUI } from './presence.ui.js';
 import { teamUnlockCelebration } from './team-unlock-celebration.ui.js';
 
@@ -79,23 +80,41 @@ const isDevEnvironment = (): boolean => {
 };
 
 // Admin key for production dev panel access
-// Set via: localStorage.setItem('ferni_admin_key', 'your-secret-key')
-// Or URL: ?dev=your-secret-key
-// Configure via VITE_DEV_PANEL_KEY environment variable, or defaults to 'ferni2024'
-const ADMIN_KEY_HASH = (() => {
+// Configure via environment variables:
+//   VITE_DEV_PANEL_KEY  - The secret key required for access (default: 'ferni2024')
+//   VITE_DEV_PANEL_AUTO - Set to 'true' to auto-enable dev panel (for admin deployments)
+const getEnvConfig = () => {
   try {
-    const env = (import.meta as { env?: { VITE_DEV_PANEL_KEY?: string } }).env;
-    return env?.VITE_DEV_PANEL_KEY || 'ferni2024';
+    const env = (
+      import.meta as {
+        env?: {
+          VITE_DEV_PANEL_KEY?: string;
+          VITE_DEV_PANEL_AUTO?: string;
+        };
+      }
+    ).env;
+    return {
+      adminKey: env?.VITE_DEV_PANEL_KEY || 'ferni2024',
+      autoEnable: env?.VITE_DEV_PANEL_AUTO === 'true',
+    };
   } catch {
-    return 'ferni2024';
+    return { adminKey: 'ferni2024', autoEnable: false };
   }
-})();
+};
+
+const ENV_CONFIG = getEnvConfig();
 
 const checkAdminAccess = (): boolean => {
+  // Auto-enable if VITE_DEV_PANEL_AUTO=true is set in .env
+  // Useful for admin/staging deployments where you always want dev tools
+  if (ENV_CONFIG.autoEnable) {
+    return true;
+  }
+
   // Check URL parameter with key
   const urlParams = new URLSearchParams(window.location.search);
   const urlKey = urlParams.get('dev');
-  if (urlKey && urlKey === ADMIN_KEY_HASH) {
+  if (urlKey && urlKey === ENV_CONFIG.adminKey) {
     // Store it so they don't need to pass it every time
     localStorage.setItem('ferni_admin_key', urlKey);
     return true;
@@ -103,7 +122,7 @@ const checkAdminAccess = (): boolean => {
 
   // Check stored admin key
   const storedKey = localStorage.getItem('ferni_admin_key');
-  if (storedKey === ADMIN_KEY_HASH) {
+  if (storedKey === ENV_CONFIG.adminKey) {
     return true;
   }
 
@@ -146,6 +165,9 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
   eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+  target:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
 };
 
 // ============================================================================
@@ -423,6 +445,32 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
+      <!-- 🎮 Music Games -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">🎮 Music Games</h3>
+        <p class="dev-section__desc">Test music games and dashboard</p>
+        <div class="dev-actions">
+          <button class="dev-action-btn dev-action-btn--primary" data-game="dashboard">
+            📊 Musical You Dashboard
+          </button>
+          <button class="dev-action-btn" data-game="name-that-tune">
+            🎵 Name That Tune
+          </button>
+          <button class="dev-action-btn" data-game="one-word-song">
+            💬 One Word Song
+          </button>
+          <button class="dev-action-btn" data-game="desert-island">
+            🏝️ Desert Island Discs
+          </button>
+          <button class="dev-action-btn" data-game="this-or-that">
+            ⚡ This or That
+          </button>
+          <button class="dev-action-btn" data-game="mood-dj">
+            🎧 Mood DJ Challenge
+          </button>
+        </div>
+      </section>
+      
       <!-- 🌟 Soul & Delight -->
       <section class="dev-section dev-section--soul">
         <h3 class="dev-section__title">${ICONS.eye} Soul & Delight</h3>
@@ -533,6 +581,9 @@ function createPanel(): HTMLElement {
           <button class="dev-expression-btn" data-expression="settle" title="For calming">
             😌 Settle
           </button>
+          <button class="dev-expression-btn" data-expression="blink" title="Zen blink">
+            👁️ Blink
+          </button>
         </div>
         <div class="dev-expression-buttons" style="margin-top: 8px;">
           <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="success" title="Success feedback">
@@ -566,38 +617,6 @@ function createPanel(): HTMLElement {
           </button>
           <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="surprise" title="Pop for wow moments">
             😲 Surprise
-          </button>
-        </div>
-        
-        <!-- 👁️ Ferni Awareness - Three testable styles -->
-        <p class="dev-section__desc" style="margin-top: 12px;">Awareness Styles (test which feels right)</p>
-        <div class="dev-expression-buttons" style="margin-bottom: 8px;">
-          <button class="dev-expression-btn dev-expression-btn--style" data-awareness-style="pupil" title="Simple pupil + catchlight (Pixar lamp)">
-            ⚫ Pupil
-          </button>
-          <button class="dev-expression-btn dev-expression-btn--style" data-awareness-style="sparkle" title="Just a sparkle (ultra minimal)">
-            ✨ Sparkle
-          </button>
-          <button class="dev-expression-btn dev-expression-btn--style" data-awareness-style="glow" title="Orb glow changes (no eye)">
-            🌟 Glow
-          </button>
-        </div>
-        <p class="dev-section__desc">Trigger Animations</p>
-        <div class="dev-expression-buttons">
-          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="peek" title="Awareness appears, looks around, disappears">
-            👁️ Peek
-          </button>
-          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="wink" title="Playful wink (pupil mode only)">
-            😉 Wink
-          </button>
-          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="curious" title="Curious look">
-            🤔 Curious
-          </button>
-          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="show" title="Show (stays visible)">
-            👀 Show
-          </button>
-          <button class="dev-expression-btn dev-expression-btn--eye" data-eye="hide" title="Hide">
-            🙈 Hide
           </button>
         </div>
       </section>
@@ -763,6 +782,28 @@ function createPanel(): HTMLElement {
             </button>
             <button class="dev-expression-btn dev-expression-btn--thinking" data-thinking="stop" title="Insight achieved">
               💡 Stop (with insight)
+            </button>
+          </div>
+        </div>
+        
+        <!-- 🌅 Conversation Flow -->
+        <div class="dev-subsection">
+          <span class="dev-label">Conversation Flow</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="warm" title="Warm goodbye">
+              👋 Warm Goodbye
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="encouraging" title="Encouraging farewell">
+              💪 Encouraging
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="thoughtful" title="Thoughtful goodbye">
+              🤔 Thoughtful
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="caring" title="Caring goodbye">
+              💙 Caring
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--wrap-up dev-expression-btn--reset" data-wrap-up="reset" title="Reset wrap-up state">
+              ↺ Reset
             </button>
           </div>
         </div>
@@ -1417,6 +1458,166 @@ function createPanel(): HTMLElement {
           </div>
         </div>
       </section>
+      
+      <!-- 📤 Proactive Outreach Testing -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.send} Proactive Outreach</h3>
+        <p class="dev-section__desc">Test proactive outreach channels and triggers</p>
+        
+        <div class="dev-outreach-status" id="dev-outreach-status">
+          <div class="dev-outreach-status-row">
+            <span>Status:</span>
+            <span id="outreach-status-value">Ready</span>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Test Channels</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-sms" title="Send test SMS">
+              📱 Test SMS
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-email" title="Send test email">
+              📧 Test Email
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-call" title="Make test call">
+              📞 Test Call
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Trigger Types</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-commitment" title="Commitment check-in">
+              📋 Commitment
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-emotional" title="Emotional support">
+              💙 Emotional
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-celebration" title="Celebration">
+              🎉 Celebration
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-thinking" title="Thinking of you">
+              💭 Thinking of You
+            </button>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">View Data</span>
+          <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-pending" title="View pending outreach">
+              📋 Pending
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-history" title="View outreach history">
+              📜 History
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-context" title="View user context">
+              🧠 Context
+            </button>
+            <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-timing" title="View timing patterns">
+              ⏰ Timing
+            </button>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 📊 Dashboards & Tools -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.target} Dashboards & Tools</h3>
+        <p class="dev-section__desc">Quick access to all monitoring dashboards</p>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Core Dashboards</span>
+          <div class="dev-dashboard-links">
+            <a class="dev-dashboard-link" href="/analytics-dashboard.html" target="_blank" title="Analytics Dashboard">
+              📈 Analytics
+            </a>
+            <a class="dev-dashboard-link" href="/metrics-dashboard.html" target="_blank" title="Metrics Dashboard">
+              📊 Metrics
+            </a>
+            <a class="dev-dashboard-link" href="/ux-dashboard.html" target="_blank" title="UX Dashboard">
+              🎨 UX
+            </a>
+            <a class="dev-dashboard-link" href="/error-dashboard.html" target="_blank" title="Error Dashboard">
+              ⚠️ Errors
+            </a>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">AI & Voice</span>
+          <div class="dev-dashboard-links">
+            <a class="dev-dashboard-link" href="/llm-dashboard.html" target="_blank" title="LLM Dashboard">
+              🤖 LLM
+            </a>
+            <a class="dev-dashboard-link" href="/voice-presence-dashboard.html" target="_blank" title="Voice Presence Dashboard">
+              🎙️ Voice
+            </a>
+            <a class="dev-dashboard-link" href="/persona-dashboard.html" target="_blank" title="Persona Dashboard">
+              🎭 Personas
+            </a>
+            <a class="dev-dashboard-link" href="/cognitive-dashboard.html" target="_blank" title="Cognitive Dashboard">
+              🧠 Cognitive
+            </a>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Infrastructure</span>
+          <div class="dev-dashboard-links">
+            <a class="dev-dashboard-link" href="/connection-dashboard.html" target="_blank" title="Connection Dashboard">
+              📶 Connection
+            </a>
+            <a class="dev-dashboard-link" href="/memory-dashboard.html" target="_blank" title="Memory Dashboard">
+              💾 Memory
+            </a>
+            <a class="dev-dashboard-link" href="/cost-dashboard.html" target="_blank" title="Cost Dashboard">
+              💰 Costs
+            </a>
+            <a class="dev-dashboard-link" href="/dora-dashboard.html" target="_blank" title="DORA Metrics">
+              🚀 DORA
+            </a>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Features & Tools</span>
+          <div class="dev-dashboard-links">
+            <a class="dev-dashboard-link" href="/handoff-dashboard.html" target="_blank" title="Handoff Dashboard">
+              🤝 Handoffs
+            </a>
+            <a class="dev-dashboard-link" href="/outreach-dashboard.html" target="_blank" title="Outreach Dashboard">
+              📤 Outreach
+            </a>
+            <a class="dev-dashboard-link" href="/tools-dashboard.html" target="_blank" title="Tools Dashboard">
+              🔧 Tools
+            </a>
+            <a class="dev-dashboard-link" href="/experiments-dashboard.html" target="_blank" title="Experiments">
+              🧪 Experiments
+            </a>
+            <a class="dev-dashboard-link" href="/feature-flags.html" target="_blank" title="Feature Flags">
+              🚩 Feature Flags
+            </a>
+          </div>
+        </div>
+        
+        <div class="dev-subsection">
+          <span class="dev-label">Admin & Utilities</span>
+          <div class="dev-dashboard-links">
+            <a class="dev-dashboard-link" href="/admin.html" target="_blank" title="Admin Panel">
+              ⚙️ Admin
+            </a>
+            <a class="dev-dashboard-link" href="/observability-hub.html" target="_blank" title="Observability Hub">
+              👁️ Observability
+            </a>
+            <a class="dev-dashboard-link" href="/animation-playground.html" target="_blank" title="Animation Playground">
+              🎬 Animations
+            </a>
+          </div>
+        </div>
+      </section>
     </div>
     
     <div class="dev-panel__footer">
@@ -1499,30 +1700,8 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 👁️ Ferni Eye style buttons
-  container.querySelectorAll('[data-awareness-style]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const style = (btn as HTMLElement).dataset.awarenessStyle;
-      if (style) {
-        ferniEye.setStyle(style as 'pupil' | 'sparkle' | 'glow');
-        // Update active state visually
-        container.querySelectorAll('[data-awareness-style]').forEach((b) => {
-          b.classList.toggle('active', (b as HTMLElement).dataset.awarenessStyle === style);
-        });
-        log.info({ style }, '🎨 Awareness style changed');
-      }
-    });
-  });
-
-  // 👁️ Ferni Eye action buttons
-  container.querySelectorAll('[data-eye]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const action = (btn as HTMLElement).dataset.eye;
-      if (action) {
-        triggerFerniEye(action as 'peek' | 'wink' | 'curious' | 'show' | 'hide');
-      }
-    });
-  });
+  // 👁️ Ferni Eye - DISABLED (keeping just zen blink)
+  // Eye peek-through animations removed for simpler, calmer UX
 
   // 🎭 Ferni Moments buttons
   container.querySelectorAll('[data-moment]').forEach((btn) => {
@@ -1540,6 +1719,14 @@ function createPanel(): HTMLElement {
     btn.addEventListener('click', () => {
       const action = (btn as HTMLElement).dataset.roster;
       handleRosterAction(action!);
+    });
+  });
+
+  // 🎮 Game buttons
+  container.querySelectorAll('[data-game]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const game = (btn as HTMLElement).dataset.game;
+      void handleGameAction(game!);
     });
   });
 
@@ -1580,6 +1767,14 @@ function createPanel(): HTMLElement {
     btn.addEventListener('click', () => {
       const thinking = (btn as HTMLElement).dataset.thinking;
       triggerThinking(thinking!);
+    });
+  });
+
+  // 🌅 Wrap-up buttons (conversation ending)
+  container.querySelectorAll('[data-wrap-up]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const wrapUp = (btn as HTMLElement).dataset.wrapUp;
+      triggerWrapUp(wrapUp!);
     });
   });
 
@@ -1774,6 +1969,14 @@ function createPanel(): HTMLElement {
     });
   });
 
+  // 📤 Outreach buttons
+  container.querySelectorAll('[data-outreach]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const outreach = (btn as HTMLElement).dataset.outreach;
+      handleOutreachAction(outreach!);
+    });
+  });
+
   return container;
 }
 
@@ -1881,6 +2084,105 @@ function handleRosterAction(action: string): void {
   refreshPanel();
 }
 
+/**
+ * 🎮 Handle game button actions
+ */
+async function handleGameAction(action: string): Promise<void> {
+  switch (action) {
+    case 'dashboard':
+      // Open Musical You dashboard
+      try {
+        const { showMusicDashboard } = await import('./music-dashboard.ui.js');
+        showMusicDashboard();
+        log.info('📊 Opened Musical You dashboard');
+      } catch (e) {
+        log.error('Failed to open music dashboard:', e);
+      }
+      break;
+      
+    case 'name-that-tune':
+    case 'one-word-song':
+    case 'desert-island':
+    case 'this-or-that':
+    case 'mood-dj':
+      // Request game start via voice agent
+      await requestGameStart(action);
+      break;
+  }
+}
+
+/**
+ * Request game start via data channel to voice agent
+ */
+async function requestGameStart(gameType: string): Promise<void> {
+  // Map UI action to game type
+  const gameTypeMap: Record<string, string> = {
+    'name-that-tune': 'name-that-tune',
+    'one-word-song': 'one-word-song',
+    'desert-island': 'desert-island-discs',
+    'this-or-that': 'this-or-that',
+    'mood-dj': 'mood-dj-challenge',
+  };
+
+  const mappedType = gameTypeMap[gameType] || gameType;
+  
+  try {
+    const { connectionService } = await import('../services/connection.service.js');
+    const room = connectionService.getRoom();
+    
+    if (!room?.localParticipant) {
+      showToast('Not connected to voice session', 'error');
+      return;
+    }
+
+    // Send game start request via data channel
+    const message = JSON.stringify({
+      type: 'game_start_request',
+      gameType: mappedType,
+      timestamp: Date.now(),
+    });
+
+    await room.localParticipant.publishData(
+      new TextEncoder().encode(message),
+      { reliable: true }
+    );
+    
+    log.info({ gameType: mappedType }, '🎮 Sent game start request');
+    showToast(`Starting ${gameType.replace(/-/g, ' ')}...`, 'info');
+  } catch (error) {
+    log.error({ error, gameType }, '🎮 Failed to send game start request');
+    showToast('Failed to start game - try voice command', 'error');
+  }
+}
+
+/**
+ * Simple toast notification
+ */
+function showToast(message: string, type: 'info' | 'success' | 'error' = 'info'): void {
+  const toast = document.createElement('div');
+  toast.className = `dev-toast dev-toast--${type}`;
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: ${type === 'error' ? 'var(--color-destructive)' : 'var(--persona-primary)'};
+    color: white;
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    z-index: 10001;
+    animation: toast-in 0.3s ease-out;
+  `;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'toast-out 0.3s ease-in forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
 function quickUnlockAll(): void {
   setTierOverride('partner');
   setStageOverride('deep-partnership');
@@ -1931,6 +2233,176 @@ function triggerHandoff(personaId: string): void {
     })
   );
   log.info({ personaId }, 'Triggered handoff');
+}
+
+// ============================================================================
+// OUTREACH TESTING ACTIONS
+// ============================================================================
+
+async function handleOutreachAction(action: string): Promise<void> {
+  const statusEl = document.getElementById('outreach-status-value');
+  const setStatus = (text: string, isError = false) => {
+    if (statusEl) {
+      statusEl.textContent = text;
+      statusEl.style.color = isError ? 'var(--color-error)' : 'var(--color-success)';
+    }
+  };
+
+  // Get userId from app state (or use dev default)
+  const userId = appState.getState().deviceId || 'dev-user';
+
+  log.info({ action }, 'Outreach action triggered');
+  setStatus('Processing...');
+
+  try {
+    switch (action) {
+      // Test channels
+      case 'test-sms':
+        setStatus('📱 Sending test SMS...');
+        const smsRes = await fetch('/api/outreach/test/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            channel: 'sms',
+            message: 'Hey! This is a test message from Ferni dev panel 🌱',
+          }),
+        });
+        setStatus(smsRes.ok ? '✓ SMS sent!' : '✕ SMS failed', !smsRes.ok);
+        break;
+
+      case 'test-email':
+        setStatus('📧 Sending test email...');
+        const emailRes = await fetch('/api/outreach/test/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            channel: 'email',
+            subject: 'Test from Ferni 🌱',
+            message: 'Hey! This is a test email from the Ferni dev panel. Just making sure everything is connected!',
+          }),
+        });
+        setStatus(emailRes.ok ? '✓ Email sent!' : '✕ Email failed', !emailRes.ok);
+        break;
+
+      case 'test-call':
+        setStatus('📞 Making test call...');
+        const callRes = await fetch('/api/outreach/test/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            channel: 'call',
+            message: 'Hey! This is Ferni calling from the dev panel. Just a quick test to make sure calls are working!',
+          }),
+        });
+        setStatus(callRes.ok ? '✓ Call initiated!' : '✕ Call failed', !callRes.ok);
+        break;
+
+      // Trigger types
+      case 'trigger-commitment':
+        const commitRes = await fetch('/api/outreach/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            type: 'commitment_check',
+            priority: 'medium',
+            reason: 'Dev panel test - commitment check',
+            commitment: 'your morning workout',
+          }),
+        });
+        setStatus(commitRes.ok ? '✓ Commitment trigger created!' : '✕ Failed', !commitRes.ok);
+        break;
+
+      case 'trigger-emotional':
+        const emotionRes = await fetch('/api/outreach/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            type: 'emotional_support',
+            priority: 'high',
+            reason: 'Dev panel test - emotional support',
+          }),
+        });
+        setStatus(emotionRes.ok ? '✓ Emotional trigger created!' : '✕ Failed', !emotionRes.ok);
+        break;
+
+      case 'trigger-celebration':
+        const celebRes = await fetch('/api/outreach/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            type: 'celebration',
+            priority: 'medium',
+            reason: 'Dev panel test - celebration',
+            milestone: 'completing an amazing day',
+          }),
+        });
+        setStatus(celebRes.ok ? '✓ Celebration trigger created!' : '✕ Failed', !celebRes.ok);
+        break;
+
+      case 'trigger-thinking':
+        const toyRes = await fetch('/api/outreach/thinking-of-you', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            trigger: 'random_kindness',
+            reason: 'Dev panel test',
+          }),
+        });
+        setStatus(toyRes.ok ? '✓ Thinking-of-you triggered!' : '✕ Failed', !toyRes.ok);
+        break;
+
+      // View data
+      case 'view-pending':
+        const pendingRes = await fetch(`/api/outreach/pending?userId=${userId}`);
+        const pendingData = await pendingRes.json();
+        log.info({ pending: pendingData }, '📋 Pending outreach');
+        // eslint-disable-next-line no-console
+        console.log('📋 Pending Outreach:', pendingData);
+        setStatus(`${pendingData.count || 0} pending (see console)`);
+        break;
+
+      case 'view-history':
+        const historyRes = await fetch(`/api/outreach/history?userId=${userId}&limit=10`);
+        const historyData = await historyRes.json();
+        log.info({ history: historyData }, '📜 Outreach history');
+        // eslint-disable-next-line no-console
+        console.log('📜 Outreach History:', historyData);
+        setStatus(`${historyData.count || 0} in history (see console)`);
+        break;
+
+      case 'view-context':
+        const contextRes = await fetch(`/api/outreach/context?userId=${userId}`);
+        const contextData = await contextRes.json();
+        log.info({ context: contextData }, '🧠 User context');
+        // eslint-disable-next-line no-console
+        console.log('🧠 User Context:', contextData);
+        setStatus('Context loaded (see console)');
+        break;
+
+      case 'view-timing':
+        const timingRes = await fetch(`/api/outreach/timing?userId=${userId}`);
+        const timingData = await timingRes.json();
+        log.info({ timing: timingData }, '⏰ Timing patterns');
+        // eslint-disable-next-line no-console
+        console.log('⏰ Timing Patterns:', timingData);
+        setStatus('Timing loaded (see console)');
+        break;
+
+      default:
+        log.warn({ action }, 'Unknown outreach action');
+        setStatus('Unknown action', true);
+    }
+  } catch (error) {
+    log.error({ error, action }, 'Outreach action failed');
+    setStatus(`Error: ${error instanceof Error ? error.message : 'Unknown'}`, true);
+  }
 }
 
 // ============================================================================
@@ -2167,6 +2639,11 @@ function triggerExpression(expression: string): void {
       );
       break;
 
+    case 'blink':
+      // Zen blink - whole avatar squashes flat then springs back
+      presenceUI.blink();
+      break;
+
     case 'success':
       avatarFeedback.success('Great job!');
       break;
@@ -2183,29 +2660,8 @@ function triggerExpression(expression: string): void {
   log.info({ expression }, 'Triggered avatar expression');
 }
 
-/**
- * Trigger Ferni Eye actions - Pixar-style peek-through
- */
-function triggerFerniEye(action: 'peek' | 'wink' | 'curious' | 'show' | 'hide'): void {
-  switch (action) {
-    case 'peek':
-      ferniEye.peek();
-      break;
-    case 'wink':
-      ferniEye.wink();
-      break;
-    case 'curious':
-      ferniEye.curious();
-      break;
-    case 'show':
-      ferniEye.show();
-      break;
-    case 'hide':
-      ferniEye.hide();
-      break;
-  }
-  log.info({ action }, '👁️ Ferni Eye action triggered');
-}
+// Disabled: Eye animations removed - keeping just zen blink
+// function triggerFerniEye() { ... }
 
 function triggerMusicAction(action: string): void {
   switch (action) {
@@ -2402,6 +2858,35 @@ function triggerThinking(thinking: string): void {
     presenceUI.setVoiceEmotion('neutral');
     log.info('Stopped thinking mode (with insight)');
   }
+}
+
+// ============================================================================
+// 🌅 WRAP-UP - Test conversation ending flow
+// ============================================================================
+
+function triggerWrapUp(sentiment: string): void {
+  // Import dynamically to avoid circular deps
+  import('../state/app.state.js').then(({ setWrappingUp }) => {
+    import('../app/data-message-handlers.js').then(({ handleWrapUp }) => {
+      if (sentiment === 'reset') {
+        // Reset wrap-up state
+        setWrappingUp(false);
+        presenceUI.setVoiceEmotion('neutral');
+        log.info('Reset wrap-up state');
+        return;
+      }
+
+      // Simulate receiving a wrap_up message from the agent
+      const wrapUpEvent = {
+        type: 'wrap_up' as const,
+        sentiment: sentiment as 'warm' | 'encouraging' | 'thoughtful' | 'caring',
+        timestamp: Date.now(),
+      };
+
+      handleWrapUp(wrapUpEvent);
+      log.info(`Triggered wrap-up: ${sentiment}`);
+    });
+  });
 }
 
 // ============================================================================
@@ -4251,6 +4736,58 @@ function injectStyles(): void {
     .dev-expression-btn--thinking:hover {
       background: rgba(180, 100, 255, 0.25);
       border-color: rgba(180, 100, 255, 0.4);
+    }
+    
+    /* Wrap-up Buttons (warm golden) */
+    .dev-expression-btn--wrap-up {
+      background: rgba(184, 149, 106, 0.15);
+      border-color: rgba(184, 149, 106, 0.25);
+      color: #b8956a;
+    }
+    .dev-expression-btn--wrap-up:hover {
+      background: rgba(184, 149, 106, 0.25);
+      border-color: rgba(184, 149, 106, 0.4);
+    }
+    .dev-expression-btn--wrap-up.dev-expression-btn--reset {
+      background: rgba(128, 128, 128, 0.15);
+      border-color: rgba(128, 128, 128, 0.25);
+      color: #a0a0a0;
+    }
+    .dev-expression-btn--wrap-up.dev-expression-btn--reset:hover {
+      background: rgba(128, 128, 128, 0.25);
+      border-color: rgba(128, 128, 128, 0.4);
+    }
+    
+    /* Dashboard Links */
+    .dev-dashboard-links {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    
+    .dev-dashboard-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: rgba(74, 103, 65, 0.1);
+      border: 1px solid rgba(74, 103, 65, 0.2);
+      border-radius: 6px;
+      color: var(--color-text-secondary, #a0a0a0);
+      text-decoration: none;
+      font-size: 12px;
+      transition: all 0.2s ease;
+    }
+    
+    .dev-dashboard-link:hover {
+      background: rgba(74, 103, 65, 0.2);
+      border-color: rgba(74, 103, 65, 0.4);
+      color: var(--color-text-primary, #e0e0e0);
+      transform: translateY(-1px);
+    }
+    
+    .dev-dashboard-link:active {
+      transform: translateY(0);
     }
     
     /* Dramatic Animation Buttons */

@@ -13,6 +13,7 @@ import type {
   MoodEvent,
   MusicEvent,
   EngagementTriggerEvent,
+  WrapUpEvent,
 } from '../types/events.js';
 import {
   isCelebrationMessage,
@@ -21,6 +22,7 @@ import {
   isMoodMessage,
   isMusicMessage,
   isEngagementTriggerMessage,
+  isWrapUpMessage,
 } from '../types/events.js';
 
 import { createLogger } from '../utils/logger.js';
@@ -38,6 +40,7 @@ import { moodService } from '../services/index.js';
 import { handoffService } from '../services/index.js';
 import { engagementService } from '../services/index.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
+import { setWrappingUp } from '../state/app.state.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -103,6 +106,12 @@ export function handleDataMessage(message: DataMessage): void {
   // Try to process as engagement trigger
   if (isEngagementTriggerMessage(message)) {
     handleEngagementTrigger(message);
+    return;
+  }
+
+  // Try to process as wrap-up signal (conversation ending)
+  if (isWrapUpMessage(message)) {
+    handleWrapUp(message);
     return;
   }
 
@@ -272,6 +281,15 @@ export function handleMusic(event: MusicEvent): void {
     }
 
     log.debug('Music playing:', event.trackName);
+  } else if (event.state === 'changing') {
+    // 🎧 DJ Crossfade - switching tracks smoothly!
+    // Brief fading effect during the transition
+    avatarFeedback.fading();
+    
+    // Subtle haptic for track change
+    delightService.haptic('light');
+    
+    log.debug('Music changing - DJ crossfade in progress');
   } else if (event.state === 'ducking') {
     // Agent speaking over music - subtle the pulse
     avatarFeedback.ducking();
@@ -325,5 +343,50 @@ export function handleEngagementTrigger(event: EngagementTriggerEvent): void {
   // For high-priority triggers, show a subtle message
   if (event.priority === 'high' && event.message) {
     messageUI.show(event.message, 'info', 4000);
+  }
+}
+
+/**
+ * Handle wrap-up events from the agent.
+ * This signals that the conversation is ending and UI should adapt.
+ * 
+ * - Disconnect button becomes more prominent ("Goodbye" style)
+ * - Avatar shows warm farewell animation
+ * - Waveform softens
+ */
+export function handleWrapUp(event: WrapUpEvent): void {
+  log.info('Wrap-up signal received:', event.sentiment);
+  
+  // Set state - this triggers UI updates across the app
+  setWrappingUp(true);
+  
+  // Play the farewell animation
+  presenceUI.farewell();
+  
+  // Warm visual feedback based on sentiment
+  switch (event.sentiment) {
+    case 'warm':
+      celebrationsUI.warmthGlow({ intensity: 'gentle' });
+      presenceUI.setVoiceEmotion('happy');
+      break;
+    case 'encouraging':
+      presenceUI.setVoiceEmotion('encouraging');
+      presenceUI.nod(); // Affirming nod
+      break;
+    case 'thoughtful':
+      presenceUI.setVoiceEmotion('thoughtful');
+      break;
+    case 'caring':
+      presenceUI.setVoiceEmotion('empathetic');
+      celebrationsUI.warmthGlow({ intensity: 'warm' });
+      break;
+  }
+  
+  // Gentle haptic for the goodbye moment
+  delightService.haptic('light');
+  
+  // If there's a custom message, show it briefly
+  if (event.message) {
+    messageUI.show(event.message, 'info', 3000);
   }
 }
