@@ -1,0 +1,273 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Motion Tokens",
+    "description": "Animation timing, easing, and choreography definitions",
+    "version": "1.0.0"
+  },
+  
+  "duration": {
+    "micro": {
+      "value": 50,
+      "unit": "ms",
+      "description": "Immediate feedback, imperceptible"
+    },
+    "fast": {
+      "value": 100,
+      "unit": "ms",
+      "description": "Hover states, focus rings"
+    },
+    "normal": {
+      "value": 200,
+      "unit": "ms",
+      "description": "Standard UI transitions"
+    },
+    "slow": {
+      "value": 300,
+      "unit": "ms",
+      "description": "Deliberate, noticeable moves"
+    },
+    "moderate": {
+      "value": 400,
+      "unit": "ms",
+      "description": "Panel slides, page transitions"
+    },
+    "deliberate": {
+      "value": 500,
+      "unit": "ms",
+      "description": "Emphasis, important changes"
+    },
+    "dramatic": {
+      "value": 600,
+      "unit": "ms",
+      "description": "Celebrations, major events"
+    },
+    "celebration": {
+      "value": 800,
+      "unit": "ms",
+      "description": "Full celebration sequences"
+    },
+    "glacial": {
+      "value": 1500,
+      "unit": "ms",
+      "description": "Ambient, background effects"
+    }
+  },
+  
+  "easing": {
+    "standard": {
+      "value": "cubic-bezier(0.4, 0.0, 0.2, 1)",
+      "description": "Material standard deceleration"
+    },
+    "accelerate": {
+      "value": "cubic-bezier(0.4, 0.0, 1, 1)",
+      "description": "Elements leaving the screen"
+    },
+    "decelerate": {
+      "value": "cubic-bezier(0.0, 0.0, 0.2, 1)",
+      "description": "Elements entering the screen"
+    },
+    "sharp": {
+      "value": "cubic-bezier(0.4, 0.0, 0.6, 1)",
+      "description": "Quick, decisive movements"
+    },
+    "spring": {
+      "value": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      "description": "Pixar-style bounce with overshoot"
+    },
+    "springGentle": {
+      "value": "cubic-bezier(0.34, 1.2, 0.64, 1)",
+      "description": "Subtle spring, less bounce"
+    },
+    "expoOut": {
+      "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "description": "Dramatic exit deceleration"
+    },
+    "gentle": {
+      "value": "cubic-bezier(0.25, 0.1, 0.25, 1)",
+      "description": "Organic, natural easing"
+    },
+    "anticipate": {
+      "value": "cubic-bezier(0.38, -0.4, 0.88, 0.65)",
+      "description": "Wind-up before action"
+    },
+    "bounce": {
+      "value": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+      "description": "Strong bounce effect"
+    },
+    "elastic": {
+      "value": "cubic-bezier(0.5, 1.8, 0.5, 0.8)",
+      "description": "Elastic snap effect"
+    }
+  },
+  
+  "stagger": {
+    "fast": {
+      "value": 30,
+      "unit": "ms",
+      "description": "Quick cascade, list items"
+    },
+    "normal": {
+      "value": 50,
+      "unit": "ms",
+      "description": "Standard stagger delay"
+    },
+    "slow": {
+      "value": 80,
+      "unit": "ms",
+      "description": "Deliberate cascade"
+    },
+    "dramatic": {
+      "value": 120,
+      "unit": "ms",
+      "description": "Pronounced reveal"
+    }
+  },
+  
+  "presets": {
+    "buttonPress": {
+      "duration": "fast",
+      "easing": "spring",
+      "scale": { "from": 1, "to": 0.95 }
+    },
+    "buttonHover": {
+      "duration": "fast",
+      "easing": "gentle",
+      "scale": { "from": 1, "to": 1.02 }
+    },
+    "cardHover": {
+      "duration": "normal",
+      "easing": "gentle",
+      "translateY": { "from": 0, "to": -4 }
+    },
+    "modalEnter": {
+      "duration": "slow",
+      "easing": "spring",
+      "scale": { "from": 0.9, "to": 1 },
+      "opacity": { "from": 0, "to": 1 }
+    },
+    "modalExit": {
+      "duration": "normal",
+      "easing": "accelerate",
+      "scale": { "from": 1, "to": 0.95 },
+      "opacity": { "from": 1, "to": 0 }
+    },
+    "slideInRight": {
+      "duration": "moderate",
+      "easing": "expoOut",
+      "translateX": { "from": "100%", "to": 0 }
+    },
+    "slideOutRight": {
+      "duration": "slow",
+      "easing": "accelerate",
+      "translateX": { "from": 0, "to": "100%" }
+    },
+    "fadeIn": {
+      "duration": "normal",
+      "easing": "decelerate",
+      "opacity": { "from": 0, "to": 1 }
+    },
+    "fadeOut": {
+      "duration": "fast",
+      "easing": "accelerate",
+      "opacity": { "from": 1, "to": 0 }
+    },
+    "toastEnter": {
+      "duration": "slow",
+      "easing": "spring",
+      "translateY": { "from": 16, "to": 0 },
+      "opacity": { "from": 0, "to": 1 }
+    },
+    "toastExit": {
+      "duration": "normal",
+      "easing": "accelerate",
+      "translateY": { "from": 0, "to": -8 },
+      "opacity": { "from": 1, "to": 0 }
+    },
+    "celebration": {
+      "duration": "celebration",
+      "easing": "spring",
+      "scale": { "from": 0.8, "to": 1 }
+    },
+    "confettiDrop": {
+      "duration": "glacial",
+      "easing": "decelerate"
+    },
+    "breathe": {
+      "duration": 5000,
+      "easing": "gentle",
+      "scale": { "from": 1, "to": 1.02 },
+      "repeat": "infinite",
+      "direction": "alternate"
+    },
+    "pulse": {
+      "duration": "dramatic",
+      "easing": "gentle",
+      "scale": { "from": 1, "to": 1.15 },
+      "opacity": { "from": 1, "to": 0.8 }
+    },
+    "shake": {
+      "duration": "moderate",
+      "easing": "elastic",
+      "translateX": [0, -10, 10, -5, 5, 0]
+    },
+    "bounce": {
+      "duration": "slow",
+      "easing": "bounce",
+      "translateY": [0, -20, 0, -10, 0]
+    }
+  },
+  
+  "personaModifiers": {
+    "ferni": {
+      "timingMultiplier": 1.0,
+      "easingPreference": "gentle",
+      "description": "Balanced, warm pacing"
+    },
+    "jack": {
+      "timingMultiplier": 1.2,
+      "easingPreference": "gentle",
+      "description": "Slower, more deliberate"
+    },
+    "peter": {
+      "timingMultiplier": 0.85,
+      "easingPreference": "spring",
+      "description": "Quick, energetic"
+    },
+    "alex": {
+      "timingMultiplier": 1.0,
+      "easingPreference": "standard",
+      "description": "Balanced, professional"
+    },
+    "maya": {
+      "timingMultiplier": 0.95,
+      "easingPreference": "standard",
+      "description": "Efficient, organized"
+    },
+    "jordan": {
+      "timingMultiplier": 0.8,
+      "easingPreference": "spring",
+      "description": "Fast, celebratory"
+    },
+    "nayan": {
+      "timingMultiplier": 1.1,
+      "easingPreference": "gentle",
+      "description": "Thoughtful, measured"
+    }
+  },
+  
+  "reducedMotion": {
+    "description": "Simplified animations for users who prefer reduced motion",
+    "replacements": {
+      "spring": "standard",
+      "bounce": "standard",
+      "elastic": "standard",
+      "anticipate": "standard"
+    },
+    "maxDuration": 200,
+    "disableStagger": true,
+    "disableTransforms": ["scale", "rotate"],
+    "allowedTransforms": ["opacity", "translateY"]
+  }
+}
+

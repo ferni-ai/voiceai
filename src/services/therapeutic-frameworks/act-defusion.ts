@@ -320,9 +320,5 @@ export function buildDefusionContext(
   return lines.join('\n');
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export { DEFUSION_TECHNIQUES };
+// All constants are exported at their definitions above
 

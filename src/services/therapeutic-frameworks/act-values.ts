@@ -527,12 +527,5 @@ export function buildValuesContext(userId: string): string | null {
   return lines.join('\n');
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export {
-  VALUES_QUESTIONS,
-  VALUE_EXAMPLES,
-};
+// All constants are exported at their definitions above
 

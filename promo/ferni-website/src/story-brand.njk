@@ -19,9 +19,10 @@ description: Six AI specialists who actually listen, remember everything, and he
     </a>
     
     <ul class="nav__links">
+      <li><a href="#how-it-works" class="nav__link">How It Works</a></li>
       <li><a href="#team" class="nav__link">Team</a></li>
-      <li><a href="#features" class="nav__link">Features</a></li>
       <li><a href="#pricing" class="nav__link">Pricing</a></li>
+      <li><a href="#faq" class="nav__link">FAQ</a></li>
     </ul>
     
     <a href="{{ site.appUrl }}" class="nav__cta">
@@ -66,6 +67,12 @@ description: Six AI specialists who actually listen, remember everything, and he
       </div>
       
     </div>
+  </div>
+  
+  {# Scroll indicator #}
+  <div class="scroll-indicator">
+    <div class="scroll-indicator__mouse"></div>
+    <span>Scroll to explore</span>
   </div>
 </section>
 
@@ -284,13 +291,68 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
+{# HOW IT WORKS - VISUAL STEPS #}
+<section class="section how-it-works" id="how-it-works">
+  <div class="container">
+    <div class="section__header reveal">
+      <p class="section__eyebrow">Getting Started</p>
+      <h2 class="section__title">Three ways to connect</h2>
+      <p class="section__subtitle">No downloads. No accounts required. Start talking in seconds.</p>
+    </div>
+    
+    <div class="steps reveal-stagger">
+      <div class="step">
+        <div class="step__number">1</div>
+        <div class="step__content">
+          <div class="step__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
+          <h3 class="step__title">Call</h3>
+          <p class="step__description">Dial <strong>{{ site.phone }}</strong> from any phone. No app needed. Just talk naturally like you would with a friend.</p>
+          <a href="tel:{{ site.phoneRaw }}" class="step__link">Call now →</a>
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step__number">2</div>
+        <div class="step__content">
+          <div class="step__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h3 class="step__title">Text</h3>
+          <p class="step__description">Send a message to the same number. Perfect for quiet moments or when you need to organize your thoughts first.</p>
+          <a href="sms:{{ site.phoneRaw }}" class="step__link">Send a text →</a>
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step__number">3</div>
+        <div class="step__content">
+          <div class="step__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <h3 class="step__title">Web App</h3>
+          <p class="step__description">Open the app on any device. Voice, text, or video—your choice. See your history and track progress.</p>
+          <a href="{{ site.appUrl }}" class="step__link">Open app →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 {# FEATURES #}
 <section class="section features" id="features">
   <div class="container">
     <div class="section__header reveal">
-      <p class="section__eyebrow">How It Works</p>
-      <h2 class="section__title">As easy as calling a friend</h2>
-      <p class="section__subtitle">No app required. Just call, text, or use the web.</p>
+      <p class="section__eyebrow">Why Ferni Works</p>
+      <h2 class="section__title">Built different</h2>
+      <p class="section__subtitle">The features that make Ferni feel more human than AI.</p>
     </div>
     
     <div class="features-grid reveal-stagger">
@@ -299,7 +361,7 @@ description: Six AI specialists who actually listen, remember everything, and he
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         </div>
         <h3 class="feature__title">Voice-First</h3>
-        <p class="feature__description">Call {{ site.phone }} anytime. No app, no login—just natural conversation.</p>
+        <p class="feature__description">Call {{ site.phone }} anytime. No app, no login—just natural conversation that flows like talking to a friend.</p>
       </div>
       
       <div class="feature">
@@ -307,7 +369,7 @@ description: Six AI specialists who actually listen, remember everything, and he
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </div>
         <h3 class="feature__title">Infinite Memory</h3>
-        <p class="feature__description">Ferni remembers every conversation—your context, your goals, your story.</p>
+        <p class="feature__description">Ferni remembers every conversation—your context, your goals, your story. No repeating yourself.</p>
       </div>
       
       <div class="feature">
@@ -315,7 +377,31 @@ description: Six AI specialists who actually listen, remember everything, and he
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
         <h3 class="feature__title">Always Available</h3>
-        <p class="feature__description">24/7, 365 days. Whether it's 2am anxiety or a lunch break check-in.</p>
+        <p class="feature__description">24/7, 365 days. Whether it's 2am anxiety or a lunch break check-in. We're here when you need us.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3 class="feature__title">Six Specialists</h3>
+        <p class="feature__description">Each team member brings unique expertise. Ferni connects you to the right one based on what you're facing.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3 class="feature__title">Private & Secure</h3>
+        <p class="feature__description">Your conversations are encrypted. We don't sell data. You can export or delete anytime. Trust is everything.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3 class="feature__title">Tracks Progress</h3>
+        <p class="feature__description">See how you're growing. Weekly insights, mood patterns, goal tracking—the data that helps you understand yourself.</p>
       </div>
     </div>
   </div>
@@ -584,30 +670,156 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </footer>
 
+{# Floating Mobile CTA #}
+<div class="mobile-cta" id="mobileCta">
+  <div class="mobile-cta__inner">
+    <a href="{{ site.appUrl }}" class="btn btn--primary">
+      Start Free
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      Call
+    </a>
+  </div>
+</div>
+
 <script>
 (function() {
-  // Nav scroll
+  'use strict';
+  
+  // ========== Nav scroll effect ==========
   const nav = document.getElementById('nav');
+  const scrollIndicator = document.querySelector('.scroll-indicator');
+  
   window.addEventListener('scroll', () => {
-    nav.classList.toggle('is-scrolled', window.scrollY > 50);
+    const scrolled = window.scrollY > 50;
+    nav.classList.toggle('is-scrolled', scrolled);
+    
+    // Hide scroll indicator after scrolling
+    if (scrollIndicator) {
+      scrollIndicator.style.opacity = scrolled ? '0' : '1';
+    }
   });
   
-  // Reveal
+  // ========== Reveal animations ==========
   const reveals = document.querySelectorAll('.reveal, .reveal-stagger');
-  const observer = new IntersectionObserver((entries) => {
+  const revealObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) entry.target.classList.add('is-visible');
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+      }
     });
   }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-  reveals.forEach(el => observer.observe(el));
+  reveals.forEach(el => revealObserver.observe(el));
   
-  // Smooth scroll
+  // ========== Smooth scroll for anchor links ==========
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener('click', e => {
+      const href = a.getAttribute('href');
+      if (href === '#') return;
       e.preventDefault();
-      document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+      const target = document.querySelector(href);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+        // Update active nav link
+        document.querySelectorAll('.nav__link').forEach(link => {
+          link.classList.toggle('is-active', link.getAttribute('href') === href);
+        });
+      }
     });
   });
+  
+  // ========== Mobile CTA visibility ==========
+  const mobileCta = document.getElementById('mobileCta');
+  const hero = document.querySelector('.hero');
+  const footer = document.querySelector('.footer');
+  
+  if (mobileCta && hero) {
+    const ctaObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        // Show CTA when hero is out of view
+        if (entry.target === hero) {
+          mobileCta.classList.toggle('is-visible', !entry.isIntersecting);
+        }
+        // Hide CTA when footer is visible
+        if (entry.target === footer && entry.isIntersecting) {
+          mobileCta.classList.remove('is-visible');
+        }
+      });
+    }, { threshold: 0 });
+    
+    ctaObserver.observe(hero);
+    if (footer) ctaObserver.observe(footer);
+  }
+  
+  // ========== Animated stat counters ==========
+  const stats = document.querySelectorAll('.stat__value');
+  const animatedStats = new Map();
+  
+  function animateCounter(el, target, suffix = '') {
+    const duration = 2000;
+    const start = performance.now();
+    const startValue = 0;
+    
+    function update(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(startValue + (target - startValue) * eased);
+      
+      el.textContent = current.toLocaleString() + suffix;
+      
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      }
+    }
+    
+    requestAnimationFrame(update);
+  }
+  
+  const statObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !animatedStats.has(entry.target)) {
+        animatedStats.set(entry.target, true);
+        const text = entry.target.textContent;
+        
+        // Parse different stat formats
+        if (text.includes('K+')) {
+          animateCounter(entry.target, 10, 'K+');
+        } else if (text.includes('ms')) {
+          const el = entry.target;
+          el.textContent = '<500ms';
+        } else if (text === '∞') {
+          // Keep infinity as is
+        } else if (text.includes('/')) {
+          // Keep 24/7 as is
+        }
+      }
+    });
+  }, { threshold: 0.5 });
+  
+  stats.forEach(stat => statObserver.observe(stat));
+  
+  // ========== Active nav link on scroll ==========
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav__link');
+  
+  const sectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(link => {
+          link.classList.toggle('is-active', link.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-100px 0px -50% 0px' });
+  
+  sections.forEach(section => sectionObserver.observe(section));
+  
 })();
 </script>
 

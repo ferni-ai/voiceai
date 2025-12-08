@@ -14,3 +14,13 @@ export * from './engagement.service.js';
 export * from './engagement-demo-data.js';
 export * from './relationship-stage.service.js';
 export * from './push-notifications.service.js';
+
+// ============================================================================
+// 🌟 BRAND SYSTEM - World-class multi-sensory experience
+// ============================================================================
+
+export * from './brand-system.js';
+export * from './ferni-audio.service.js';
+export * from './haptics.service.js';
+export * from './glow-controller.service.js';
+export * from './ritual-engine.service.js';

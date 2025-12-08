@@ -1,0 +1,248 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "name": "Ferni Ritual Tokens",
+    "description": "Brand ritual definitions and configurations",
+    "version": "1.0.0"
+  },
+  
+  "rituals": {
+    "app_wake": {
+      "id": "app_wake",
+      "name": "Morning Wake",
+      "description": "The app breathing to life for the first time today",
+      "trigger": "first_daily_open",
+      "cooldown": 3600000,
+      "priority": 10,
+      "steps": [
+        { "type": "glow", "action": "startBreathing", "delay": 0 },
+        { "type": "audio", "action": "system.startup", "delay": 100 },
+        { "type": "haptic", "action": "warmWelcome", "delay": 200 }
+      ],
+      "emotion": "welcoming",
+      "personalization": {
+        "timeOfDay": true,
+        "userName": true
+      }
+    },
+    
+    "connection_established": {
+      "id": "connection_established",
+      "name": "We're Connected",
+      "description": "Voice connection successfully established",
+      "trigger": "livekit_connected",
+      "priority": 20,
+      "steps": [
+        { "type": "audio", "action": "system.connectionSuccess", "delay": 0 },
+        { "type": "glow", "action": "pulse", "params": { "intensity": 1.2 }, "delay": 50 },
+        { "type": "haptic", "action": "presence", "delay": 100 }
+      ],
+      "emotion": "reassuring"
+    },
+    
+    "first_words": {
+      "id": "first_words",
+      "name": "You're Heard",
+      "description": "First user speech detected in session",
+      "trigger": "user_speech_start",
+      "priority": 15,
+      "steps": [
+        { "type": "glow", "action": "setListening", "delay": 0 },
+        { "type": "haptic", "action": "softTap", "delay": 50 }
+      ],
+      "emotion": "attentive"
+    },
+    
+    "persona_entrance": {
+      "id": "persona_entrance",
+      "name": "A Friend Arrives",
+      "description": "New persona activated",
+      "trigger": "persona_switch",
+      "priority": 25,
+      "steps": [
+        { "type": "glow", "action": "switchPersona", "delay": 0 },
+        { "type": "audio", "action": "persona.{personaId}", "delay": 100 },
+        { "type": "haptic", "action": "persona_signature", "delay": 150 }
+      ],
+      "emotion": "introducing",
+      "personaSpecific": true
+    },
+    
+    "small_win": {
+      "id": "small_win",
+      "name": "Small Victory",
+      "description": "Quick acknowledgment of achievement",
+      "trigger": "achievement_small",
+      "priority": 5,
+      "steps": [
+        { "type": "audio", "action": "celebration.small", "delay": 0 },
+        { "type": "haptic", "action": "success", "delay": 50 },
+        { "type": "glow", "action": "celebrate", "params": { "duration": 600 }, "delay": 0 },
+        { "type": "visual", "action": "celebration", "params": { "type": "small_win" }, "delay": 100 }
+      ],
+      "emotion": "proud"
+    },
+    
+    "big_win": {
+      "id": "big_win",
+      "name": "Major Achievement",
+      "description": "Significant accomplishment celebration",
+      "trigger": "achievement_major",
+      "priority": 30,
+      "steps": [
+        { "type": "audio", "action": "celebration.big", "delay": 0 },
+        { "type": "haptic", "action": "celebration", "delay": 0 },
+        { "type": "glow", "action": "celebrate", "params": { "duration": 1200 }, "delay": 0 },
+        { "type": "visual", "action": "celebration", "params": { "type": "big_win", "showConfetti": true }, "delay": 100 }
+      ],
+      "emotion": "ecstatic"
+    },
+    
+    "streak": {
+      "id": "streak",
+      "name": "Consistency Streak",
+      "description": "Consecutive day milestone",
+      "trigger": "streak_milestone",
+      "priority": 20,
+      "steps": [
+        { "type": "audio", "action": "celebration.streak", "delay": 0 },
+        { "type": "haptic", "action": "success", "delay": 0 },
+        { "type": "glow", "action": "celebrate", "params": { "duration": 800 }, "delay": 0 },
+        { "type": "visual", "action": "streak", "delay": 100 }
+      ],
+      "emotion": "impressed",
+      "milestones": [3, 7, 14, 30, 60, 100, 365]
+    },
+    
+    "team_unlock": {
+      "id": "team_unlock",
+      "name": "New Friend",
+      "description": "Team member becomes available",
+      "trigger": "persona_unlocked",
+      "priority": 35,
+      "steps": [
+        { "type": "audio", "action": "celebration.teamUnlock", "delay": 0 },
+        { "type": "haptic", "action": "celebration", "delay": 0 },
+        { "type": "glow", "action": "celebrate", "params": { "duration": 1500 }, "delay": 0 },
+        { "type": "visual", "action": "celebration", "params": { "type": "team_unlock", "showConfetti": true }, "delay": 200 }
+      ],
+      "emotion": "welcoming"
+    },
+    
+    "deep_moment": {
+      "id": "deep_moment",
+      "name": "Breakthrough",
+      "description": "Emotional or cognitive breakthrough moment",
+      "trigger": "emotional_breakthrough",
+      "priority": 40,
+      "steps": [
+        { "type": "haptic", "action": "empathy", "delay": 0 },
+        { "type": "glow", "action": "pulse", "params": { "intensity": 0.8, "duration": 2000 }, "delay": 0 },
+        { "type": "audio", "action": "notification.gentle", "delay": 500 }
+      ],
+      "emotion": "supportive",
+      "subtle": true
+    },
+    
+    "thinking_of_you": {
+      "id": "thinking_of_you",
+      "name": "I Thought of You",
+      "description": "Proactive no-agenda outreach",
+      "trigger": "proactive_outreach",
+      "priority": 8,
+      "cooldown": 86400000,
+      "steps": [
+        { "type": "audio", "action": "notification.thinkingOfYou", "delay": 0 },
+        { "type": "haptic", "action": "gentleNudge", "delay": 100 },
+        { "type": "glow", "action": "pulse", "params": { "intensity": 0.6 }, "delay": 0 }
+      ],
+      "emotion": "caring",
+      "optOut": true
+    },
+    
+    "session_end": {
+      "id": "session_end",
+      "name": "Until Next Time",
+      "description": "Graceful session conclusion",
+      "trigger": "session_ending",
+      "priority": 15,
+      "steps": [
+        { "type": "audio", "action": "system.sessionEnd", "delay": 0 },
+        { "type": "haptic", "action": "goodbye", "delay": 300 },
+        { "type": "glow", "action": "fadeOut", "params": { "duration": 1500 }, "delay": 0 }
+      ],
+      "emotion": "grateful"
+    }
+  },
+  
+  "triggers": {
+    "first_daily_open": {
+      "description": "First app open of the day",
+      "condition": "lastOpenDate < today"
+    },
+    "livekit_connected": {
+      "description": "Voice connection established",
+      "event": "ferni:connected"
+    },
+    "user_speech_start": {
+      "description": "User begins speaking",
+      "event": "ferni:user-speech-start"
+    },
+    "persona_switch": {
+      "description": "Active persona changes",
+      "event": "ferni:switch-persona"
+    },
+    "achievement_small": {
+      "description": "Small accomplishment",
+      "event": "ferni:small-win"
+    },
+    "achievement_major": {
+      "description": "Major accomplishment",
+      "event": "ferni:big-win"
+    },
+    "streak_milestone": {
+      "description": "Streak milestone reached",
+      "event": "ferni:streak"
+    },
+    "persona_unlocked": {
+      "description": "New persona available",
+      "event": "ferni:team-unlock"
+    },
+    "emotional_breakthrough": {
+      "description": "Deep emotional moment",
+      "event": "ferni:deep-moment"
+    },
+    "proactive_outreach": {
+      "description": "System-initiated contact",
+      "event": "ferni:thinking-of-you"
+    },
+    "session_ending": {
+      "description": "Conversation wrapping up",
+      "event": "ferni:session-ending"
+    }
+  },
+  
+  "preferences": {
+    "haptics": {
+      "enabled": true,
+      "intensityLevel": "normal",
+      "options": ["off", "subtle", "normal", "strong"]
+    },
+    "sounds": {
+      "enabled": true,
+      "volume": 0.8,
+      "categories": {
+        "system": true,
+        "celebration": true,
+        "notification": true,
+        "ambient": true
+      }
+    },
+    "visualEffects": {
+      "confetti": true,
+      "glowEffects": true,
+      "reducedMotion": false
+    }
+  }
+}
+

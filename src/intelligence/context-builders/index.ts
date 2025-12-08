@@ -468,6 +468,8 @@ async function ensureBuildersLoaded(): Promise<void> {
       import('./cognitive-distortions.js'), // Detect cognitive distortions, Socratic intervention
       import('./somatic-context.js'), // Grounding & breathing when distressed
       import('./wellbeing-context.js'), // Continuous wellbeing tracking & alerts
+      import('./therapeutic-frameworks.js'), // ACT, DBT, MI frameworks
+      import('./behavioral-economics.js'), // Implementation intentions, commitment devices
     ]);
 
     getLogger().info(`Context builders loaded: ${builders.size} registered`);

@@ -154,8 +154,8 @@ export const TIPP_SKILL: DBTSkill = {
   acronymMeaning: {
     T: 'Temperature - cold water on face',
     I: 'Intense exercise',
-    P: 'Paced breathing',
-    P: 'Paired muscle relaxation',
+    P1: 'Paced breathing',
+    P2: 'Paired muscle relaxation',
   },
   whenToUse: ['crisis', 'panic', 'extreme emotion', "can't calm down"],
   steps: [
