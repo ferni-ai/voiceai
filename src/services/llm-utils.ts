@@ -14,6 +14,23 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { getCircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
+
+// ============================================================================
+// CIRCUIT BREAKERS
+// ============================================================================
+
+const googleAICircuitBreaker = getCircuitBreaker('google-ai', {
+  failureThreshold: 3,
+  resetTimeout: 30000, // 30 seconds
+  successThreshold: 2,
+});
+
+const openAICircuitBreaker = getCircuitBreaker('openai', {
+  failureThreshold: 3,
+  resetTimeout: 30000, // 30 seconds
+  successThreshold: 2,
+});
 
 // ============================================================================
 // TYPES
@@ -57,6 +74,12 @@ async function getGoogleAIClient(): Promise<unknown> {
  * Call Google AI (Gemini) for supplementary analysis
  */
 async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
+  // Check circuit breaker first
+  if (!googleAICircuitBreaker.canRequest()) {
+    getLogger().debug('Google AI circuit breaker is open, skipping request');
+    return null;
+  }
+
   try {
     const client = await getGoogleAIClient();
     if (!client) return null;
@@ -69,23 +92,26 @@ async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promi
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const response = await (
-        client as {
-          models: {
-            generateContent: (params: {
-              model: string;
-              contents: string;
-              config: { maxOutputTokens: number; temperature: number };
-            }) => Promise<{ text: string }>;
-          };
-        }
-      ).models.generateContent({
-        model: 'gemini-1.5-flash',
-        contents: prompt,
-        config: {
-          maxOutputTokens: maxTokens,
-          temperature,
-        },
+      const response = await googleAICircuitBreaker.execute(async () => {
+        const result = await (
+          client as {
+            models: {
+              generateContent: (params: {
+                model: string;
+                contents: string;
+                config: { maxOutputTokens: number; temperature: number };
+              }) => Promise<{ text: string }>;
+            };
+          }
+        ).models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: prompt,
+          config: {
+            maxOutputTokens: maxTokens,
+            temperature,
+          },
+        });
+        return result;
       });
 
       clearTimeout(timeoutId);
@@ -94,6 +120,10 @@ async function callGoogleAI(prompt: string, options: LLMCallOptions = {}): Promi
       clearTimeout(timeoutId);
       if ((error as Error).name === 'AbortError') {
         getLogger().debug('LLM call timed out');
+        return null;
+      }
+      if (error instanceof CircuitOpenError) {
+        getLogger().debug('Google AI circuit breaker opened');
         return null;
       }
       throw error;
@@ -129,6 +159,12 @@ async function getOpenAIClient(): Promise<unknown> {
 }
 
 async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
+  // Check circuit breaker first
+  if (!openAICircuitBreaker.canRequest()) {
+    getLogger().debug('OpenAI circuit breaker is open, skipping request');
+    return null;
+  }
+
   try {
     const client = await getOpenAIClient();
     if (!client) return null;
@@ -136,24 +172,26 @@ async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise
     const { maxTokens = 500, temperature = 0.3, timeout = 5000 } = options;
 
     const response = await Promise.race([
-      (
-        client as {
-          chat: {
-            completions: {
-              create: (params: {
-                model: string;
-                messages: Array<{ role: string; content: string }>;
-                max_tokens: number;
-                temperature: number;
-              }) => Promise<{ choices: Array<{ message: { content: string } }> }>;
+      openAICircuitBreaker.execute(async () => {
+        return (
+          client as {
+            chat: {
+              completions: {
+                create: (params: {
+                  model: string;
+                  messages: Array<{ role: string; content: string }>;
+                  max_tokens: number;
+                  temperature: number;
+                }) => Promise<{ choices: Array<{ message: { content: string } }> }>;
+              };
             };
-          };
-        }
-      ).chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: maxTokens,
-        temperature,
+          }
+        ).chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: maxTokens,
+          temperature,
+        });
       }),
       new Promise<null>((resolve) => {
         setTimeout(() => resolve(null), timeout);
@@ -163,6 +201,10 @@ async function callOpenAI(prompt: string, options: LLMCallOptions = {}): Promise
     if (!response) return null;
     return response.choices[0]?.message?.content || null;
   } catch (error) {
+    if (error instanceof CircuitOpenError) {
+      getLogger().debug('OpenAI circuit breaker opened');
+      return null;
+    }
     getLogger().debug({ error: String(error) }, 'OpenAI call failed');
     return null;
   }

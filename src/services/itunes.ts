@@ -8,9 +8,17 @@
  */
 
 import { createLogger, getLogger } from '../utils/safe-logger.js';
+import { getCircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
 
 const log = createLogger({ module: 'iTunes' });
 const DEBUG_ITUNES = process.env.DEBUG_ITUNES === 'true';
+
+// Circuit breaker for iTunes API
+const itunesCircuitBreaker = getCircuitBreaker('itunes-api', {
+  failureThreshold: 3,
+  resetTimeout: 30000, // 30 seconds
+  successThreshold: 2,
+});
 
 // ============================================================================
 // TYPES
@@ -65,29 +73,39 @@ const ITUNES_API_BASE = 'https://itunes.apple.com';
 export async function searchItunes(query: string, limit = 5): Promise<iTunesSearchResult> {
   const url = `${ITUNES_API_BASE}/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=${limit}`;
 
+  // Check circuit breaker first
+  if (!itunesCircuitBreaker.canRequest()) {
+    log.debug({ query }, 'iTunes circuit breaker is open, skipping request');
+    return { resultCount: 0, results: [] };
+  }
+
   if (DEBUG_ITUNES) log.debug('searchItunes called', { query, limit, url });
   log.info({ query, limit }, 'iTunes API searching');
 
   try {
-    if (DEBUG_ITUNES) log.debug('Making fetch request', { url });
-    const response = await fetch(url);
-
-    if (DEBUG_ITUNES)
-      log.debug('Response received', {
-        status: response.status,
-        ok: response.ok,
+    const data = await itunesCircuitBreaker.execute(async () => {
+      if (DEBUG_ITUNES) log.debug('Making fetch request', { url });
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       });
-    getLogger().info(
-      { status: response.status, ok: response.ok },
-      '🎵 [iTunes API] Response received'
-    );
 
-    if (!response.ok) {
-      log.error({ status: response.status }, 'iTunes API HTTP error');
-      throw new Error(`iTunes API error: ${response.status}`);
-    }
+      if (DEBUG_ITUNES)
+        log.debug('Response received', {
+          status: response.status,
+          ok: response.ok,
+        });
+      getLogger().info(
+        { status: response.status, ok: response.ok },
+        '🎵 [iTunes API] Response received'
+      );
 
-    const data = (await response.json()) as iTunesSearchResult;
+      if (!response.ok) {
+        log.error({ status: response.status }, 'iTunes API HTTP error');
+        throw new Error(`iTunes API error: ${response.status}`);
+      }
+
+      return (await response.json()) as iTunesSearchResult;
+    });
 
     if (DEBUG_ITUNES)
       log.debug('Results received', {
@@ -109,6 +127,10 @@ export async function searchItunes(query: string, limit = 5): Promise<iTunesSear
 
     return data;
   } catch (error) {
+    if (error instanceof CircuitOpenError) {
+      log.debug({ query }, 'iTunes circuit breaker opened');
+      return { resultCount: 0, results: [] };
+    }
     log.error({ error, query, url }, 'iTunes API exception');
     return { resultCount: 0, results: [] };
   }

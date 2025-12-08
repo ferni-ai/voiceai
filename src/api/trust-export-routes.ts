@@ -13,6 +13,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
+import { createLogger } from '../utils/safe-logger.js';
+import { rateLimit } from './auth-middleware.js';
 import {
   getActiveBoundaries,
   getGrowthPatterns,
@@ -22,6 +24,8 @@ import {
   getDueMoments,
   loadTrustProfiles,
 } from '../services/trust-systems/index.js';
+
+const log = createLogger({ module: 'TrustExport' });
 
 // ============================================================================
 // TYPES
@@ -322,6 +326,11 @@ export async function handleTrustExportRoutes(
     return false;
   }
 
+  // Apply rate limiting (30 requests per minute - exports are heavier)
+  if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000, keyPrefix: 'trust-export' })) {
+    return true; // Rate limited
+  }
+
   const userId = getUserIdFromRequest(req, parsedUrl);
   if (!userId) {
     sendError(res, 'User ID required', 401);
@@ -334,7 +343,7 @@ export async function handleTrustExportRoutes(
       sendJson(res, data);
       return true;
     } catch (err) {
-      console.error('[TrustExport] Error building export:', err);
+      log.error({ error: err }, 'Error building export');
       sendError(res, 'Failed to build export', 500);
       return true;
     }
@@ -348,7 +357,7 @@ export async function handleTrustExportRoutes(
       sendCsv(res, csv, filename);
       return true;
     } catch (err) {
-      console.error('[TrustExport] Error building CSV:', err);
+      log.error({ error: err }, 'Error building CSV');
       sendError(res, 'Failed to build CSV export', 500);
       return true;
     }
@@ -366,7 +375,7 @@ export async function handleTrustExportRoutes(
       res.end(summary);
       return true;
     } catch (err) {
-      console.error('[TrustExport] Error building summary:', err);
+      log.error({ error: err }, 'Error building summary');
       sendError(res, 'Failed to build summary', 500);
       return true;
     }

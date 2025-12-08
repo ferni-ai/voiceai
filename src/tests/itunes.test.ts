@@ -58,7 +58,10 @@ describe('iTunes Service', () => {
       const { searchItunes } = await import('../services/itunes.js');
       const result = await searchItunes('Taylor Swift Shake It Off');
 
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('itunes.apple.com/search'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('itunes.apple.com/search'),
+        expect.objectContaining({ signal: expect.anything() })
+      );
       expect(result.resultCount).toBe(2);
       expect(result.results[0].trackName).toBe('Shake It Off');
       expect(result.results[0].previewUrl).toBe('https://example.com/preview.m4a');
@@ -336,6 +339,9 @@ describe('Music Tools Integration', () => {
     const result = await playViaItunes('test song');
 
     // Should indicate iTunes was used (via preview message)
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('itunes.apple.com'));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('itunes.apple.com'),
+      expect.objectContaining({ signal: expect.anything() })
+    );
   });
 });

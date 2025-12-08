@@ -483,6 +483,17 @@ export class ThinkingMusicController {
     return this.isPlaying;
   }
 
+  /**
+   * Called externally when ambient/thinking music ends naturally
+   * This ensures isPlaying flag is properly reset even when track completes
+   */
+  onMusicEnded(): void {
+    this.clearTimers();
+    this.isPlaying = false;
+    this.currentVolume = 0;
+    log.debug('Thinking music ended naturally - state reset');
+  }
+
   private async startThinkingMusic(): Promise<void> {
     const player = getMusicPlayer();
 

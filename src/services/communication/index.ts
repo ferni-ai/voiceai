@@ -4,6 +4,7 @@
  * @module services/communication
  */
 
-export * from './service.js';
+// Re-export from the main communication service file
+export * from '../communication-service.js';
 export * from './contacts.js';
 export * from './contact-onboarding.js';

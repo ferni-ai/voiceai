@@ -14,6 +14,9 @@
  */
 
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'CrossDeviceSync' });
 
 // ============================================================================
 // TYPES
@@ -114,7 +117,7 @@ function emitSyncEvent(event: SyncEvent): void {
     try {
       listener(event);
     } catch (err) {
-      console.error('[CrossDeviceSync] Listener error:', err);
+      log.error({ error: err }, 'Listener error');
     }
   }
 }
@@ -133,9 +136,9 @@ export function startRealTimeSync(
   // On server, we don't maintain persistent listeners
   // Instead, data is loaded on-demand via loadTrustProfiles
   // This function returns a no-op cleanup for API compatibility
-  console.log(`[CrossDeviceSync] Sync initialized for user ${userId}`);
+  log.debug({ userId }, 'Sync initialized');
   return () => {
-    console.log(`[CrossDeviceSync] Sync stopped for user ${userId}`);
+    log.debug({ userId }, 'Sync stopped');
   };
 }
 
@@ -143,7 +146,7 @@ export function startRealTimeSync(
  * Stop listening for a user
  */
 export function stopRealTimeSync(userId: string): void {
-  console.log(`[CrossDeviceSync] Stopping sync for user ${userId}`);
+  log.debug({ userId }, 'Stopping sync');
 }
 
 /**
@@ -208,7 +211,7 @@ async function performWrite(
       details: { systemId, version: currentVersion + 1 },
     });
   } catch (err) {
-    console.error('[CrossDeviceSync] Write failed:', err);
+    log.error({ error: err, userId, systemId }, 'Write failed');
     throw err;
   }
 }
@@ -252,7 +255,7 @@ async function flushPendingWrites(userId: string): Promise<void> {
       details: { flushedCount: pendingUpdates.size },
     });
   } catch (err) {
-    console.error('[CrossDeviceSync] Flush failed:', err);
+    log.error({ error: err, userId }, 'Flush failed');
   }
 }
 
@@ -315,7 +318,7 @@ export async function detectSessionContinuity(userId: string): Promise<SessionCo
       wasInterrupted: !!wasInterrupted,
     };
   } catch (err) {
-    console.error('[CrossDeviceSync] Failed to detect continuity:', err);
+    log.error({ error: err, userId }, 'Failed to detect continuity');
     return {
       previousDevice: null,
       previousSessionEnd: null,
@@ -345,7 +348,7 @@ export async function updateSessionState(
       gracefulEnd: isEnding,
     });
   } catch (err) {
-    console.error('[CrossDeviceSync] Failed to update session state:', err);
+    log.error({ error: err, userId }, 'Failed to update session state');
   }
 }
 

@@ -32,6 +32,10 @@ type PlayHandle = ReturnType<InstanceType<typeof BackgroundAudioPlayer>['play']>
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // ============================================================================
 // TYPES
@@ -157,6 +161,9 @@ export class CallMusicPlayer {
   // Timer for mid-song moments
   private midSongMomentTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // 🎧 Whether ffmpeg is available for DJ-style audio fade-out
+  private ffmpegAvailable = false;
+
   // Track current mood for mood-aware offers
   private currentUserMood: string | undefined;
 
@@ -198,8 +205,12 @@ export class CallMusicPlayer {
     });
 
     this.state.isInitialized = true;
+
+    // Check if ffmpeg is available for DJ-style audio fade-out
+    this.ffmpegAvailable = await this.checkFfmpegAvailability();
+
     getLogger().info(
-      { hasAgentSession: !!agentSession },
+      { hasAgentSession: !!agentSession, ffmpegAvailable: this.ffmpegAvailable },
       'Music player initialized with BackgroundAudioPlayer'
     );
   }
@@ -420,9 +431,9 @@ export class CallMusicPlayer {
       if (DEBUG_MUSIC) log.debug('Stopping any current playback');
       this.stop();
 
-      // Download the audio file
+      // Download the audio file (with DJ fade-out baked in)
       if (DEBUG_MUSIC) log.debug('Downloading audio', { url });
-      const audioPath = await this.downloadAudio(url, track.name);
+      const audioPath = await this.downloadAudio(url, track.name, track.duration);
       if (DEBUG_MUSIC)
         log.debug('Download result', {
           success: audioPath ? 'SUCCESS' : 'FAILED',
@@ -570,8 +581,8 @@ export class CallMusicPlayer {
     );
 
     // Pre-download the new track while the DJ transition happens
-    // This reduces latency - the new track is ready to go!
-    const downloadPromise = this.downloadAudio(url, track.name);
+    // This reduces latency - the new track is ready to go! (with DJ fade-out baked in)
+    const downloadPromise = this.downloadAudio(url, track.name, track.duration);
 
     // Wait for DJ transition moment (agent speaks during this)
     // 1.5 seconds is enough for a quick DJ callout
@@ -662,8 +673,13 @@ export class CallMusicPlayer {
 
   /**
    * Download audio from URL to temp file
+   * @param durationMs - Track duration for fade-out calculation (default 30s for Spotify previews)
    */
-  private async downloadAudio(url: string, trackName: string): Promise<string | null> {
+  private async downloadAudio(
+    url: string,
+    trackName: string,
+    durationMs = 30000
+  ): Promise<string | null> {
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -675,17 +691,100 @@ export class CallMusicPlayer {
 
       // Generate filename from track name (sanitized)
       const safeName = trackName.replace(/[^a-z0-9]/gi, '_').slice(0, 30);
-      const filename = `${safeName}_${Date.now()}.mp3`;
-      const filepath = path.join(this.tempDir, filename);
+      const timestamp = Date.now();
+      const rawFilename = `${safeName}_${timestamp}_raw.mp3`;
+      const rawFilepath = path.join(this.tempDir, rawFilename);
 
       // Write to temp file
-      fs.writeFileSync(filepath, Buffer.from(buffer));
+      fs.writeFileSync(rawFilepath, Buffer.from(buffer));
 
-      getLogger().debug({ filepath, size: buffer.byteLength }, 'Audio downloaded');
-      return filepath;
+      getLogger().debug({ rawFilepath, size: buffer.byteLength }, 'Audio downloaded');
+
+      // 🎧 DJ-STYLE FADE OUT: Apply fade-out to the last 5 seconds using ffmpeg
+      // This makes the track ending feel natural and intentional
+      const fadedFilepath = await this.applyAudioFadeOut(rawFilepath, durationMs);
+
+      // Clean up the raw file if we successfully faded it
+      if (fadedFilepath && fadedFilepath !== rawFilepath) {
+        this.cleanupTempFile(rawFilepath);
+        return fadedFilepath;
+      }
+
+      // Fallback to raw file if fade failed
+      return rawFilepath;
     } catch (error) {
       getLogger().error({ error }, 'Failed to download audio');
       return null;
+    }
+  }
+
+  /**
+   * 🎧 Apply a DJ-style fade-out to the audio using ffmpeg
+   *
+   * Creates that professional radio feel where tracks smoothly fade out
+   * instead of ending abruptly. The fade happens in the last 5 seconds.
+   *
+   * @param inputPath - Path to the raw audio file
+   * @param durationMs - Track duration in milliseconds
+   * @returns Path to the faded audio file, or input path if fade fails
+   */
+  private async applyAudioFadeOut(inputPath: string, durationMs: number): Promise<string> {
+    // Skip if ffmpeg not available (checked once at startup)
+    if (!this.ffmpegAvailable) {
+      return inputPath;
+    }
+
+    try {
+      const durationSec = durationMs / 1000;
+      const fadeOutDuration = 5; // 5 seconds of fade-out
+      const fadeOutStart = Math.max(durationSec - fadeOutDuration, 0);
+
+      // Generate output filename
+      const outputPath = inputPath.replace('_raw.mp3', '_faded.mp3');
+
+      // ffmpeg command: apply audio fade-out for the last 5 seconds
+      // -y = overwrite output, -loglevel error = quiet mode, -af = audio filter
+      const ffmpegCmd = `ffmpeg -y -loglevel error -i "${inputPath}" -af "afade=t=out:st=${fadeOutStart}:d=${fadeOutDuration}" "${outputPath}"`;
+
+      if (DEBUG_MUSIC) {
+        log.debug('🎧 Applying DJ fade-out', {
+          inputPath,
+          outputPath,
+          fadeOutStart,
+          fadeOutDuration,
+        });
+      }
+
+      await execAsync(ffmpegCmd);
+
+      getLogger().debug(
+        { outputPath, fadeStart: fadeOutStart, fadeDuration: fadeOutDuration },
+        '🎧 DJ fade-out applied successfully'
+      );
+
+      return outputPath;
+    } catch (error) {
+      // Log but don't fail - fall back to raw audio
+      getLogger().warn(
+        { error, inputPath },
+        '🎧 Failed to apply DJ fade-out - using raw audio'
+      );
+      return inputPath;
+    }
+  }
+
+  /**
+   * Check if ffmpeg is available on this system
+   */
+  private async checkFfmpegAvailability(): Promise<boolean> {
+    try {
+      await execAsync('ffmpeg -version');
+      return true;
+    } catch {
+      getLogger().info(
+        '🎧 ffmpeg not available - DJ fade-out will be skipped (audio will end abruptly)'
+      );
+      return false;
     }
   }
 
@@ -751,11 +850,23 @@ export class CallMusicPlayer {
         void this.playFromUrl(nextTrack.previewUrl, nextTrack);
       }
     } else {
-      // No more tracks
+      // 🎧 FIX: Save track info BEFORE clearing for proper notification
+      // This ensures DJ Booth and frontend receive the track that just ended
+      const endedTrack = this.state.currentTrack;
+      const wasAmbient = this.state.isAmbientMode;
+
+      // No more tracks - clear state
       this.state.isPlaying = false;
       this.state.currentTrack = null;
+      this.state.isAmbientMode = false;
       this.currentPlayHandle = null;
+      this.currentAudioPath = null;
       getLogger().debug('Queue empty - playback complete');
+
+      // ✨ Notify with preserved track info so DJ Booth can speak proper outros
+      if (this.onMusicStateChangeCallback) {
+        this.onMusicStateChangeCallback('stopped', endedTrack, wasAmbient);
+      }
     }
   }
 

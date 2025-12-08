@@ -16,6 +16,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { getMusicPlayer, type MusicTrack, type MusicState } from './music-player.js';
 import {
   getDJOutroPhrase,
+  getDJTrackChangePhrase,
   getMidSongMomentPhrase,
   getMusicStoppedPhrase,
 } from './ambient-music.js';
@@ -26,6 +27,10 @@ import {
   type MusicPreferences,
   type DJEnhancementController,
 } from './dj-enhancements.js';
+import {
+  getMusicAppreciationComment,
+  getReadTheRoomAction,
+} from '../services/dj-service.js';
 
 const log = getLogger();
 
@@ -359,10 +364,32 @@ export class DJBooth {
         break;
 
       case 'stopped':
+        // Track ended - record in DJ Enhancements for music history
+        if (track && !isAmbient) {
+          // wasSkipped = true if we jumped straight from 'playing' (user stopped it)
+          // wasSkipped = false if we came from 'fading' (natural ending)
+          const wasSkipped = prevState === 'playing';
+          this.djEnhancements?.onTrackEnd(track, wasSkipped);
+
+          if (wasSkipped) {
+            // Unexpected stop while playing - speak a phrase
+            this.onMusicUnexpectedStop(false);
+          }
+        }
+
+        // 🎧 FIX: Notify ThinkingMusicController when ambient/thinking music ends naturally
+        // This ensures isPlaying flag is properly reset
+        if (isAmbient && this.djEnhancements?.thinkingMusic.isThinkingMusicPlaying()) {
+          this.djEnhancements.thinkingMusic.onMusicEnded();
+        }
+
+        this.clearScheduledMoments();
+        break;
+
       case 'paused':
         if (prevState === 'playing' && !isAmbient) {
-          // Unexpected stop - check current state for pause vs stop
-          this.onMusicUnexpectedStop(state === 'paused');
+          // User paused - just acknowledge, don't record as ended
+          this.onMusicUnexpectedStop(true);
         }
         this.clearScheduledMoments();
         break;
@@ -522,7 +549,6 @@ export class DJBooth {
       case 'appreciation':
         // Only if enough time has passed since last one
         if (Date.now() - this.lastAppreciationTime > 15000) {
-          const { getMusicAppreciationComment } = require('../services/dj-service.js');
           phrase = getMusicAppreciationComment(this.config.personaId, track);
           if (phrase) {
             this.lastAppreciationTime = Date.now();
@@ -532,7 +558,6 @@ export class DJBooth {
 
       case 'check-in':
         if (Date.now() - this.lastCheckInTime > 50000) {
-          const { getReadTheRoomAction } = require('../services/dj-service.js');
           const timePlaying = this.state.musicStartTime
             ? (Date.now() - this.state.musicStartTime) / 1000
             : 0;
@@ -579,8 +604,6 @@ export class DJBooth {
 
     log.info('🎧 Track changing - speaking transition', { from: currentTrack.name });
 
-    // Import dynamically to avoid circular dependency
-    const { getDJTrackChangePhrase } = require('./ambient-music.js');
     const transition = getDJTrackChangePhrase(
       { name: currentTrack.name, artist: currentTrack.artist },
       undefined,
@@ -591,7 +614,7 @@ export class DJBooth {
   }
 
   /**
-   * Music stopped unexpectedly
+   * Music stopped or paused unexpectedly
    */
   private onMusicUnexpectedStop(wasPaused: boolean): void {
     log.info('🎧 Music stopped unexpectedly', { wasPaused });
@@ -599,8 +622,7 @@ export class DJBooth {
     const phrase = getMusicStoppedPhrase(this.config.personaId, wasPaused);
     this.config.speakCallback(phrase, { allowInterruptions: true });
 
-    // Restore volume
-    this.fadeToVolume(VOLUME.NORMAL, TIMING.RESTORE_MS);
+    // Note: No volume restore needed - music has already stopped
   }
 
   /**

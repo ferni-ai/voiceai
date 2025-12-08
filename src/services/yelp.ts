@@ -16,8 +16,16 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import { getConfig } from '../config/environment.js';
+import { getCircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
 
 const YELP_API_BASE = 'https://api.yelp.com/v3';
+
+// Circuit breaker for Yelp API
+const yelpCircuitBreaker = getCircuitBreaker('yelp-api', {
+  failureThreshold: 3,
+  resetTimeout: 60000, // 1 minute
+  successThreshold: 2,
+});
 
 // ============================================================================
 // TYPES
@@ -126,6 +134,12 @@ async function yelpFetch<T>(
     return null;
   }
 
+  // Check circuit breaker first
+  if (!yelpCircuitBreaker.canRequest()) {
+    getLogger().debug('Yelp circuit breaker is open, skipping request');
+    return null;
+  }
+
   try {
     const url = new URL(`${YELP_API_BASE}${endpoint}`);
 
@@ -137,31 +151,39 @@ async function yelpFetch<T>(
       });
     }
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: 'application/json',
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as {
-        error?: { code?: string; description?: string };
-      };
-      getLogger().warn(
-        {
-          status: response.status,
-          error: errorData.error,
-          endpoint,
+    const response = await yelpCircuitBreaker.execute(async () => {
+      const res = await fetch(url.toString(), {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Accept: 'application/json',
         },
-        'Yelp API error'
-      );
-      return null;
-    }
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!res.ok) {
+        const errorData = (await res.json().catch(() => ({}))) as {
+          error?: { code?: string; description?: string };
+        };
+        getLogger().warn(
+          {
+            status: res.status,
+            error: errorData.error,
+            endpoint,
+          },
+          'Yelp API error'
+        );
+        throw new Error(`Yelp API error: ${res.status}`);
+      }
+
+      return res;
+    });
 
     return (await response.json()) as T;
   } catch (error) {
+    if (error instanceof CircuitOpenError) {
+      getLogger().debug('Yelp circuit breaker opened');
+      return null;
+    }
     getLogger().error({ error, endpoint }, 'Yelp API request failed');
     return null;
   }

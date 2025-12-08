@@ -26,6 +26,7 @@ import {
   calculateOptimalTime,
   type OutreachTriggerType,
   type OutreachPriority,
+  type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { handleOutreachWebhookRoutes } from './outreach-webhook-routes.js';
 
@@ -111,7 +112,17 @@ export async function handleOutreachRoutes(
     // POST /api/outreach/preferences
     if (route === '/preferences' && method === 'POST') {
       const body = await parseRequestBody(req);
-      const { userId, preferences } = body as { userId: string; preferences: any };
+      const { userId, preferences } = body as { 
+        userId: string; 
+        preferences: {
+          preferredChannel?: 'sms' | 'email' | 'call';
+          disabledChannels?: Array<'sms' | 'email' | 'call'>;
+          quietHours?: { start: number; end: number };
+          timezone?: string;
+          maxOutreachPerDay?: number;
+          maxOutreachPerWeek?: number;
+        };
+      };
 
       if (!userId) {
         sendJsonResponse(res, 400, { success: false, error: 'userId is required' });
@@ -236,7 +247,7 @@ export async function handleOutreachRoutes(
         return true;
       }
 
-      await triggerThinkingOfYou(userId, trigger as any, reason);
+      await triggerThinkingOfYou(userId, trigger as ThinkingOfYouTrigger | undefined, reason);
       sendJsonResponse(res, 200, {
         success: true,
         message: 'Thinking-of-you outreach triggered',

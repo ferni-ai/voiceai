@@ -14,6 +14,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
+import { createLogger } from '../utils/safe-logger.js';
+import { rateLimit } from './auth-middleware.js';
 import {
   getActiveBoundaries,
   getGrowthPatterns,
@@ -24,6 +26,8 @@ import {
   loadTrustProfiles,
   calculateUserMetrics,
 } from '../services/trust-systems/index.js';
+
+const log = createLogger({ module: 'TrustJourney' });
 
 // ============================================================================
 // TYPES
@@ -194,6 +198,11 @@ export async function handleTrustJourneyRoutes(
     return false;
   }
 
+  // Apply rate limiting (60 requests per minute)
+  if (rateLimit(req, res, { maxRequests: 60, windowMs: 60000, keyPrefix: 'trust-journey' })) {
+    return true; // Rate limited
+  }
+
   const userId = getUserIdFromRequest(req, parsedUrl);
   if (!userId) {
     sendError(res, 'User ID required', 401);
@@ -206,7 +215,7 @@ export async function handleTrustJourneyRoutes(
       sendJson(res, journey);
       return true;
     } catch (err) {
-      console.error('[TrustJourney] Error building journey:', err);
+      log.error({ error: err }, 'Error building journey');
       sendError(res, 'Failed to build trust journey', 500);
       return true;
     }
@@ -222,7 +231,7 @@ export async function handleTrustJourneyRoutes(
       });
       return true;
     } catch (err) {
-      console.error('[TrustJourney] Error building summary:', err);
+      log.error({ error: err }, 'Error building summary');
       sendError(res, 'Failed to build trust summary', 500);
       return true;
     }
@@ -238,7 +247,7 @@ export async function handleTrustJourneyRoutes(
       });
       return true;
     } catch (err) {
-      console.error('[TrustJourney] Error building timeline:', err);
+      log.error({ error: err }, 'Error building timeline');
       sendError(res, 'Failed to build timeline', 500);
       return true;
     }
@@ -258,7 +267,7 @@ export async function handleTrustJourneyRoutes(
       });
       return true;
     } catch (err) {
-      console.error('[TrustJourney] Error calculating metrics:', err);
+      log.error({ error: err }, 'Error calculating metrics');
       sendError(res, 'Failed to calculate metrics', 500);
       return true;
     }

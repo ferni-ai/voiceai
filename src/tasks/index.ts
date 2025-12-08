@@ -243,7 +243,7 @@ export type {
 // TASK FLOW BUILDERS
 // ============================================================================
 
-import { IntelligentTaskGroup, type TaskContext } from './intelligent-task.js';
+import { IntelligentTask, IntelligentTaskGroup, type TaskContext } from './intelligent-task.js';
 import { EmotionalSupportTask, CheckInTask } from './support-tasks.js';
 import { FollowUpTask, GoodbyeTask, DeepDiveTask } from './relationship-tasks.js';
 import { WisdomSharingTask, GoalSettingTask, FearAddressingTask } from './advice-tasks.js';
@@ -263,7 +263,9 @@ export function createIntelligentOnboardingFlow(context?: TaskContext): Intellig
   group.setSupportTask(() => new EmotionalSupportTask());
 
   // Add tasks with intelligent options
-  group.add(() => new WelcomeTask() as any, {
+  // Note: Type assertion needed because IntelligentTaskGroup expects a generic task interface
+  // that these specific task types satisfy at runtime but TypeScript can't verify statically
+  group.add(() => new WelcomeTask() as unknown as InstanceType<typeof IntelligentTask>, {
     id: 'welcome',
     description: 'Warm greeting and getting to know the user',
     priority: 1,
@@ -276,14 +278,14 @@ export function createIntelligentOnboardingFlow(context?: TaskContext): Intellig
     skipIfDistressed: false, // Always do this
   });
 
-  group.add(() => new SituationAssessmentTask() as any, {
+  group.add(() => new SituationAssessmentTask() as unknown as InstanceType<typeof IntelligentTask>, {
     id: 'situation',
     description: 'Understanding what brought them here',
     priority: 3,
     skipIfDistressed: true, // Skip if they need support
   });
 
-  group.add(() => new GoalsTask() as any, {
+  group.add(() => new GoalsTask() as unknown as InstanceType<typeof IntelligentTask>, {
     id: 'goals',
     description: 'Exploring their goals',
     priority: 4,

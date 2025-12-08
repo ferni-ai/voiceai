@@ -172,7 +172,8 @@ class NowPlayingUI {
     this.container.classList.remove(
       'now-playing--ducking',
       'now-playing--fading',
-      'now-playing--paused'
+      'now-playing--paused',
+      'now-playing--changing'
     );
 
     // Add current state class
@@ -184,6 +185,11 @@ class NowPlayingUI {
       case 'fading':
         this.container.classList.add('now-playing--fading');
         this.fadeWaveform();
+        break;
+      case 'changing':
+        // DJ crossfade in progress - show subtle transition animation
+        this.container.classList.add('now-playing--changing');
+        this.crossfadeWaveform();
         break;
       case 'paused':
         this.container.classList.add('now-playing--paused');
@@ -211,7 +217,7 @@ class NowPlayingUI {
     styles.textContent = `
       .now-playing {
         position: fixed;
-        bottom: calc(var(--space-6) + 80px);
+        top: calc(var(--space-6) + 60px);
         left: 50%;
         transform: translateX(-50%);
         z-index: 100;
@@ -345,6 +351,25 @@ class NowPlayingUI {
         height: 4px !important;
       }
       
+      /* State: Changing (DJ crossfade) */
+      .now-playing--changing {
+        animation: now-playing-crossfade 1.5s ease-in-out;
+      }
+      
+      .now-playing--changing .now-playing__bar {
+        animation: now-playing-bar-crossfade 0.4s ease-in-out infinite alternate;
+      }
+      
+      @keyframes now-playing-crossfade {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+      
+      @keyframes now-playing-bar-crossfade {
+        0% { transform: scaleY(1); }
+        100% { transform: scaleY(0.6); }
+      }
+      
       /* Ambient music indicator */
       .now-playing--ambient .now-playing__icon {
         background: var(--color-background-muted);
@@ -368,6 +393,7 @@ class NowPlayingUI {
       /* Mobile adjustments */
       @media (max-width: 480px) {
         .now-playing {
+          top: calc(var(--space-4) + 48px);
           left: var(--space-4);
           right: var(--space-4);
           transform: none;
@@ -518,6 +544,28 @@ class NowPlayingUI {
       };
 
       const newIntervalId = setInterval(animate, 80);
+      (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval =
+        newIntervalId;
+    });
+  }
+
+  private crossfadeWaveform(): void {
+    // DJ crossfade animation - quick pulse while switching tracks
+    this.waveformBars.forEach((bar, index) => {
+      const intervalId = (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })
+        ._animInterval;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+
+      const animate = () => {
+        const phase = (Date.now() / 200 + index * 0.8) % (Math.PI * 2);
+        const height = 6 + Math.sin(phase) * 6; // Quick pulse
+        bar.style.height = `${height}px`;
+        bar.style.opacity = '0.7';
+      };
+
+      const newIntervalId = setInterval(animate, 40); // Faster animation
       (bar as HTMLElement & { _animInterval?: ReturnType<typeof setInterval> })._animInterval =
         newIntervalId;
     });

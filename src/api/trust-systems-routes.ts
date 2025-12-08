@@ -18,6 +18,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
+import { rateLimit } from './auth-middleware.js';
 
 // Trust Systems imports
 import {
@@ -117,6 +118,16 @@ export async function handleTrustSystemsRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
+  // Only handle /api/trust/* routes (but not trust-journey or trust-export)
+  if (!pathname.startsWith('/api/trust/')) {
+    return false;
+  }
+
+  // Apply rate limiting (100 requests per minute)
+  if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, keyPrefix: 'trust-systems' })) {
+    return true; // Rate limited
+  }
+
   const method = req.method || 'GET';
   const query = parsedUrl.searchParams;
   const userId = getUserId(req, query);

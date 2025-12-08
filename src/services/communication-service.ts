@@ -125,6 +125,7 @@ export async function sendEmail(
         subject: sanitizedSubject,
         content: [{ type: isHtml ? 'text/html' : 'text/plain', value: sanitizedBody }],
       }),
+      signal: AbortSignal.timeout(15000), // 15 second timeout
     });
 
     if (!response.ok) {
@@ -177,6 +178,7 @@ export async function sendSMS(to: string, message: string): Promise<string> {
         From: TWILIO_PHONE_NUMBER,
         Body: sanitizedMessage,
       }),
+      signal: AbortSignal.timeout(15000), // 15 second timeout
     });
 
     if (!response.ok) {
