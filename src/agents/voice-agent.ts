@@ -200,6 +200,45 @@ import {
 } from './integrations/voice-humanization-integration.js';
 import { getVoiceHumanizationService } from '../speech/voice-humanization.js';
 
+// Ambient Sound Awareness - detect noisy environments
+import { getAmbientAwarenessService } from '../speech/ambient-awareness.js';
+
+// Emotional Contagion - prosody continuity across utterances
+import { getEmotionalContagionService } from '../speech/emotional-contagion.js';
+
+// ============================================================================
+// ADVANCED VOICE HUMANIZATION (Phase 7+)
+// ============================================================================
+
+// FFT-based spectral analysis for better ambient/laughter detection
+import { getFFTAnalyzer, resetFFTAnalyzer } from '../speech/fft-analyzer.js';
+
+// Enhanced turn prediction with phrase boundary detection
+import { getEnhancedTurnPredictor, resetEnhancedTurnPredictor } from '../speech/enhanced-turn-prediction.js';
+
+// Multi-signal laughter detection (~85% accuracy)
+import { getMultiSignalLaughterDetector, resetMultiSignalLaughterDetector } from '../speech/multi-signal-laughter.js';
+
+// Word-timing rhythm mirroring
+import { getWordTimingRhythmService, resetWordTimingRhythmService } from '../speech/word-timing-rhythm.js';
+
+// Response anticipation / pattern caching (preemptive workaround)
+import { getResponseAnticipationService, resetResponseAnticipationService } from '../speech/response-anticipation.js';
+
+// Feature flags for gradual rollout
+import { getSessionFlags, isFeatureEnabled, initializeFlags } from '../config/voice-humanization-flags.js';
+
+// Metrics collection
+import {
+  recordSessionStart,
+  recordSessionEnd,
+  recordCacheAttempt,
+  recordTurnPrediction,
+  recordLaughterDetection,
+  recordLatency,
+  recordFeatureUsage,
+} from '../services/voice-humanization-metrics.js';
+
 // Conversation humanizing context builder (speech naturalization, active listening, memory callbacks)
 
 // Engagement System - Real-time engagement data and conversation triggers
@@ -631,6 +670,86 @@ class VoiceAgent extends voice.Agent<UserData> {
               taggedText = `<break time="200ms"/>${taggedText}`;
             }
 
+            // ============================================================
+            // VOICE HUMANIZATION: Laughter Response, Contagion, Rhythm
+            // ============================================================
+            const sessionId = userData?.services?.sessionId;
+            if (sessionId) {
+              try {
+                const voiceHumanService = getVoiceHumanizationService(sessionId);
+                
+                // 1. Laughter response - if user was laughing, acknowledge warmly
+                const laughterDetected = userData?.detectedLaughter;
+                if (laughterDetected?.isLaughing && laughterDetected.confidence > 0.7) {
+                  // Add warmth at start for shared moment
+                  if (!taggedText.includes('<laugh>') && !taggedText.startsWith('<break')) {
+                    taggedText = `<break time="100ms"/>${taggedText}`;
+                  }
+                  // Clear the laughter flag so we don't keep responding
+                  if (userData) {
+                    userData.detectedLaughter = undefined;
+                  }
+                  agent.logger.debug('😄 Adjusted response for laughter moment');
+                }
+
+                // 2. Emotional contagion - maintain prosody continuity
+                const contagionService = getEmotionalContagionService(sessionId);
+                const voiceEmotion = userData?.voiceEmotion;
+                if (voiceEmotion) {
+                  // Get continuity hints for next utterance based on emotional momentum
+                  const emotionalArcCurrent = getEmotionalArcTracker();
+                  const hints = contagionService.getContinuityHints(
+                    emotionalArcCurrent.getArc(),
+                    voiceEmotion.primary
+                  );
+                  
+                  // Apply momentum-based prosody adjustments
+                  if (hints.prosody.speedAdjust !== 0 || hints.prosody.volumeAdjust !== 1.0) {
+                    const rate = Math.round((1 + hints.prosody.speedAdjust) * 100);
+                    const volume = hints.prosody.volumeAdjust > 1.05 ? 'loud' : 
+                                   hints.prosody.volumeAdjust < 0.95 ? 'soft' : 'medium';
+                    
+                    if (!taggedText.includes('<prosody')) {
+                      taggedText = `<prosody rate="${rate}%" volume="${volume}">${taggedText}</prosody>`;
+                    }
+                  }
+                  
+                  // Add warmth at closing if appropriate
+                  if (hints.closingWarmth && taggedText.match(/[.!?]$/)) {
+                    // Soften ending with pause
+                    taggedText = taggedText.replace(/([.!?])$/, '<break time="100ms"/>$1');
+                  }
+                  
+                  // Record this utterance for momentum tracking
+                  contagionService.recordUtterance({
+                    emotion: voiceEmotion.primary || 'neutral',
+                    valence: voiceEmotion.valence || 0,
+                    arousal: voiceEmotion.arousal || 0.5,
+                    warmth: voiceEmotion.arousal > 0.6 ? 'high' : 
+                            voiceEmotion.arousal > 0.4 ? 'medium' : 'low',
+                    wasSupporting: voiceEmotion.stressLevel > 0.5,
+                  });
+                }
+
+                // 3. Rhythm mirroring - adjust pacing to match user's speech style
+                const rhythmAdjustments = voiceHumanService.getRhythmMirroringAdjustments();
+                // pauseMultiplier > 1 means user has longer pauses (staccato)
+                if (rhythmAdjustments.pauseMultiplier > 1.1 && !taggedText.includes('<break')) {
+                  // Add micro-pauses for staccato speakers
+                  taggedText = taggedText.replace(/([,])\s+/g, '$1<break time="100ms"/> ');
+                }
+                // phraseBreakMs affects pause at phrase boundaries
+                if (rhythmAdjustments.phraseBreakMs !== 200) {
+                  // Non-default phrase break - mirror the rhythm
+                  const breakMs = Math.min(500, Math.max(100, rhythmAdjustments.phraseBreakMs));
+                  taggedText = taggedText.replace(/([.!?])\s+/g, `$1<break time="${breakMs}ms"/> `);
+                }
+              } catch (humanErr) {
+                // Voice humanization is non-blocking
+                agent.logger.debug({ error: String(humanErr) }, 'Voice humanization TTS adjustment failed');
+              }
+            }
+
             controller.enqueue(taggedText);
           }
         } finally {
@@ -697,7 +816,7 @@ class VoiceAgent extends voice.Agent<UserData> {
             try {
               const voiceHumanService = getVoiceHumanizationService(sessionId);
               
-              // Detect laughter from prosody features
+              // 1. Detect laughter from prosody features
               const laughterResult = voiceHumanService.detectLaughter(
                 voiceEmotion.prosody,
                 voiceEmotion.prosody.utteranceDuration || 0
@@ -713,6 +832,40 @@ class VoiceAgent extends voice.Agent<UserData> {
                 if (userData) {
                   userData.detectedLaughter = laughterResult;
                 }
+              }
+
+              // 2. Update speech rhythm profile for mirroring
+              // This helps agent match user's staccato vs flowing patterns
+              if (userData?.lastUserMessage) {
+                voiceHumanService.updateRhythmProfile(
+                  userData.lastUserMessage,
+                  voiceEmotion.prosody.utteranceDuration || 2000
+                );
+              }
+
+              // 3. Ambient awareness - process audio for environment detection
+              try {
+                const ambientService = getAmbientAwarenessService(sessionId);
+                // Process prosody as ambient indicator (simplified)
+                // Full implementation would process raw frames
+                const isSpeech = voiceEmotion.prosody.speakingRatio > 0.5;
+                // Note: We'd need raw Int16Array for full analysis
+                // For now, track noise level from prosody
+                if (userData) {
+                  const ambient = ambientService.getAnalysis();
+                  userData.ambientEnvironment = ambient.environment;
+                  userData.ambientNoiseLevel = ambient.noiseLevel;
+                  
+                  // Log if environment changed significantly
+                  if (ambient.recommendations.offerToPause) {
+                    log().debug({ 
+                      environment: ambient.environment,
+                      noiseLevel: ambient.noiseLevel 
+                    }, '🔊 Noisy environment detected');
+                  }
+                }
+              } catch (ambientErr) {
+                // Ambient awareness is non-critical
               }
             } catch (e) {
               log().debug({ error: String(e) }, 'Voice humanization prosody hook failed (non-blocking)');
@@ -3114,6 +3267,66 @@ export default defineAgent({
       });
 
       // ===============================================
+      // STEP 8a: INITIALIZE ADVANCED VOICE HUMANIZATION
+      // ===============================================
+      initializeFlags(); // Initialize feature flags
+      const voiceFlags = getSessionFlags(sessionId);
+      
+      if (voiceFlags.enableMetrics) {
+        recordSessionStart(sessionId);
+        diag.session('📊 Voice humanization metrics enabled');
+      }
+
+      // Initialize response anticipation for monitoring
+      if (voiceFlags.enableResponseAnticipation) {
+        const anticipator = getResponseAnticipationService(sessionId);
+        anticipator.setPersona(sessionPersona.id);
+        recordFeatureUsage(sessionId, 'responseAnticipation', true);
+        diag.session('⚡ Response anticipation initialized (monitoring mode)', {
+          useCachedResponses: voiceFlags.useCachedResponses,
+        });
+      }
+
+      // Initialize enhanced turn prediction
+      if (voiceFlags.enableEnhancedTurnPrediction) {
+        getEnhancedTurnPredictor(sessionId); // Pre-initialize
+        recordFeatureUsage(sessionId, 'enhancedTurnPrediction', true);
+        diag.session('🎯 Enhanced turn prediction initialized');
+      }
+
+      // Initialize multi-signal laughter detection
+      if (voiceFlags.enableMultiSignalLaughter) {
+        const laughterDetector = getMultiSignalLaughterDetector(sessionId);
+        laughterDetector.updateContext({ conversationPhase: 'greeting' });
+        recordFeatureUsage(sessionId, 'multiSignalLaughter', true);
+        diag.session('😂 Multi-signal laughter detection initialized');
+      }
+
+      // Initialize word-timing rhythm service
+      if (voiceFlags.enableWordTimingRhythm) {
+        getWordTimingRhythmService(sessionId); // Pre-initialize
+        recordFeatureUsage(sessionId, 'wordTimingRhythm', true);
+        diag.session('🎵 Word-timing rhythm service initialized');
+      }
+
+      // Initialize FFT analyzer
+      if (voiceFlags.enableFftAnalysis) {
+        getFFTAnalyzer(sessionId); // Pre-initialize
+        recordFeatureUsage(sessionId, 'fftAnalysis', true);
+        diag.session('📊 FFT spectral analyzer initialized');
+      }
+
+      diag.session('🎤 Advanced voice humanization ready', {
+        flags: {
+          fft: voiceFlags.enableFftAnalysis,
+          turnPrediction: voiceFlags.enableEnhancedTurnPrediction,
+          laughter: voiceFlags.enableMultiSignalLaughter,
+          rhythm: voiceFlags.enableWordTimingRhythm,
+          anticipation: voiceFlags.enableResponseAnticipation,
+        },
+      });
+
+      // ===============================================
       // STEP 8b: LISTEN FOR FRONTEND HANDOFF REQUESTS
       // ===============================================
       // When user clicks a persona in the UI, handle it seamlessly
@@ -3489,6 +3702,25 @@ export default defineAgent({
               } catch (vhErr) {
                 diag.warn('🎤 Voice humanization cleanup failed (non-fatal)', { error: String(vhErr) });
               }
+            }
+
+            // 🎤 Advanced Voice Humanization: Clean up all services
+            try {
+              // Record session end in metrics
+              recordSessionEnd(sessionId);
+              
+              // Reset all advanced services
+              resetFFTAnalyzer(sessionId);
+              resetEnhancedTurnPredictor(sessionId);
+              resetMultiSignalLaughterDetector(sessionId);
+              resetWordTimingRhythmService(sessionId);
+              resetResponseAnticipationService(sessionId);
+              
+              diag.session('🎤 Advanced voice humanization services cleaned up');
+            } catch (advVhErr) {
+              diag.warn('🎤 Advanced voice humanization cleanup failed (non-fatal)', { 
+                error: String(advVhErr) 
+              });
             }
 
             // Save trust profiles (boundaries, growth, callbacks, etc.)

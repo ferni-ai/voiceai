@@ -8,13 +8,12 @@ description: Six AI specialists who actually listen, remember everything, and he
 <nav class="nav" id="nav">
   <div class="nav__inner">
     <a href="/" class="nav__logo">
-      <svg class="nav__logo-mark" viewBox="0 0 100 100" width="36" height="36">
-        <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-        <circle cx="50" cy="50" r="18" fill="white"/>
-        <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-        <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-        <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-      </svg>
+      <div class="ferni-avatar ferni-avatar--sm">
+        <div class="ferni-avatar__ring"></div>
+        <div class="ferni-avatar__orb">
+          <span class="ferni-avatar__text">FE</span>
+        </div>
+      </div>
       <span class="nav__logo-text">Ferni</span>
     </a>
     
@@ -37,7 +36,9 @@ description: Six AI specialists who actually listen, remember everything, and he
   <div class="container">
     <div class="hero__content">
       
-      <p class="hero__eyebrow">Your AI Life Coach</p>
+      <div class="hero__eyebrow-wrap">
+        <span class="hero__eyebrow">Your AI Life Coach</span>
+      </div>
       
       <h1 class="hero__headline">
         Better than <span class="hero__headline-accent">human.</span>
@@ -128,14 +129,11 @@ description: Six AI specialists who actually listen, remember everything, and he
       <div class="showcase__phone-screen">
         <div class="showcase__app">
           <div class="showcase__app-header">
-            <div class="showcase__app-avatar">
-              <svg viewBox="0 0 100 100" width="100%" height="100%">
-                <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-                <circle cx="50" cy="50" r="18" fill="white"/>
-                <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-                <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-                <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-              </svg>
+            <div class="ferni-avatar ferni-avatar--md">
+              <div class="ferni-avatar__ring"></div>
+              <div class="ferni-avatar__orb">
+                <span class="ferni-avatar__text">FE</span>
+              </div>
             </div>
             <div class="showcase__app-name">Ferni</div>
             <div class="showcase__app-status">● Online</div>
@@ -270,14 +268,11 @@ description: Six AI specialists who actually listen, remember everything, and he
       {% for member in site.team %}
       <div class="team-card">
         {% if member.name == "Ferni" %}
-        <div class="team-card__avatar team-card__avatar--logo">
-          <svg viewBox="0 0 100 100" width="100%" height="100%">
-            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-            <circle cx="50" cy="50" r="18" fill="white"/>
-            <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-            <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-            <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-          </svg>
+        <div class="ferni-avatar ferni-avatar--lg">
+          <div class="ferni-avatar__ring"></div>
+          <div class="ferni-avatar__orb">
+            <span class="ferni-avatar__text">FE</span>
+          </div>
         </div>
         {% else %}
         <div class="team-card__avatar" style="background: {{ member.color }};">{{ member.initials }}</div>
@@ -620,13 +615,12 @@ description: Six AI specialists who actually listen, remember everything, and he
     <div class="footer__grid">
       <div class="footer__brand">
         <a href="/" class="footer__logo">
-          <svg class="nav__logo-mark" viewBox="0 0 100 100" width="36" height="36">
-            <circle cx="50" cy="50" r="45" fill="#4a6741"/>
-            <circle cx="50" cy="50" r="18" fill="white"/>
-            <circle cx="50" cy="50" r="12" fill="#5a8060"/>
-            <circle cx="50" cy="50" r="6" fill="#2c2520"/>
-            <circle cx="47" cy="47" r="2" fill="white" opacity="0.9"/>
-          </svg>
+          <div class="ferni-avatar ferni-avatar--sm">
+            <div class="ferni-avatar__ring"></div>
+            <div class="ferni-avatar__orb">
+              <span class="ferni-avatar__text">FE</span>
+            </div>
+          </div>
           <span class="nav__logo-text">Ferni</span>
         </a>
         <p class="footer__tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p>

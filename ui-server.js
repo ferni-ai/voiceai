@@ -47,6 +47,9 @@ import { handleMonitoringRoutes } from './dist/api/monitoring-routes.js';
 // Relationship Health Dashboard routes
 import { relationshipHealthRoutes } from './dist/api/routes/relationship-health-routes.js';
 
+// Voice Humanization routes (metrics, feature flags)
+import { handleVoiceHumanizationRoutes } from './dist/api/voice-humanization-routes.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -447,6 +450,12 @@ const server = http.createServer(async (req, res) => {
     // Monitoring routes (P11)
     if (pathname.startsWith('/api/monitoring')) {
       const handled = await handleMonitoringRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // Voice Humanization routes (metrics, feature toggles, dashboard)
+    if (pathname.startsWith('/api/voice-humanization')) {
+      const handled = await handleVoiceHumanizationRoutes(req, res, pathname);
       if (handled) return;
     }
   } catch (err) {

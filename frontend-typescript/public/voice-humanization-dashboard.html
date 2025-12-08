@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Humanization Dashboard | Ferni</title>
+  <link rel="icon" href="/design-system/assets/favicons/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --color-bg: #1a1614;
+      --color-bg-elevated: #252220;
+      --color-bg-card: #2d2925;
+      --color-text: #f5f1e8;
+      --color-text-secondary: #a89f94;
+      --color-accent: #4a6741;
+      --color-accent-light: #5a7a51;
+      --color-success: #4a6741;
+      --color-warning: #c4856a;
+      --color-error: #a85a5a;
+      --color-info: #3a6b73;
+      --radius: 12px;
+      --shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header h1::before {
+      content: '🎤';
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--color-bg-elevated);
+      border-radius: 20px;
+      font-size: 14px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--color-bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .metric-label {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .metric-row:last-child {
+      border-bottom: none;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--color-bg-elevated);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--color-accent);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-fill.warning {
+      background: var(--color-warning);
+    }
+
+    .progress-fill.error {
+      background: var(--color-error);
+    }
+
+    .toggle-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .toggle-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--color-bg-elevated);
+      border-radius: 8px;
+    }
+
+    .toggle-label {
+      font-size: 14px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 48px;
+      height: 26px;
+      cursor: pointer;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--color-bg);
+      border-radius: 13px;
+      transition: background 0.3s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--color-text-secondary);
+      border-radius: 50%;
+      transition: transform 0.3s, background 0.3s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--color-accent);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(22px);
+      background: var(--color-text);
+    }
+
+    .chart-container {
+      height: 200px;
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      padding-top: 20px;
+    }
+
+    .chart-bar {
+      flex: 1;
+      background: var(--color-accent);
+      border-radius: 4px 4px 0 0;
+      min-height: 4px;
+      transition: height 0.3s ease;
+    }
+
+    .chart-bar:hover {
+      background: var(--color-accent-light);
+    }
+
+    .intent-breakdown {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .intent-tag {
+      padding: 6px 12px;
+      background: var(--color-bg-elevated);
+      border-radius: 16px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .intent-count {
+      background: var(--color-accent);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--color-accent);
+      color: var(--color-text);
+    }
+
+    .btn-primary:hover {
+      background: var(--color-accent-light);
+    }
+
+    .btn-secondary {
+      background: var(--color-bg-elevated);
+      color: var(--color-text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-bg);
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .last-updated {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      padding-top: 16px;
+    }
+
+    .latency-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .latency-item {
+      text-align: center;
+      padding: 16px;
+      background: var(--color-bg-elevated);
+      border-radius: 8px;
+    }
+
+    .latency-value {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .latency-label {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .latency-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Voice Humanization Dashboard</h1>
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      <span id="session-count">0 active sessions</span>
+    </div>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="grid">
+    <!-- Cache Performance -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⚡ Response Anticipation</span>
+      </div>
+      <div class="metric-value" id="cache-hit-rate">0%</div>
+      <div class="metric-label">Cache Hit Rate</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="cache-progress" style="width: 0%"></div>
+      </div>
+      <div class="metric-row">
+        <span>Total Attempts</span>
+        <strong id="cache-attempts">0</strong>
+      </div>
+      <div class="metric-row">
+        <span>Hits / Misses</span>
+        <strong><span id="cache-hits">0</span> / <span id="cache-misses">0</span></strong>
+      </div>
+      <div class="metric-row">
+        <span>Latency Saved</span>
+        <strong id="latency-saved">0ms</strong>
+      </div>
+      <div class="intent-breakdown" id="intent-breakdown"></div>
+    </div>
+
+    <!-- Turn Prediction -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🎯 Turn Prediction</span>
+      </div>
+      <div class="metric-value" id="turn-accuracy">0%</div>
+      <div class="metric-label">Prediction Accuracy</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="turn-progress" style="width: 0%"></div>
+      </div>
+      <div class="metric-row">
+        <span>Total Predictions</span>
+        <strong id="turn-total">0</strong>
+      </div>
+      <div class="metric-row">
+        <span>False Take-Turns</span>
+        <strong id="turn-false">0</strong>
+      </div>
+      <div class="metric-row">
+        <span>Missed Turns</span>
+        <strong id="turn-missed">0</strong>
+      </div>
+      <div class="metric-row">
+        <span>Avg Confidence</span>
+        <strong id="turn-confidence">0%</strong>
+      </div>
+    </div>
+
+    <!-- Laughter Detection -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">😂 Laughter Detection</span>
+      </div>
+      <div class="metric-value" id="laughter-precision">0%</div>
+      <div class="metric-label">Detection Precision</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="laughter-progress" style="width: 0%"></div>
+      </div>
+      <div class="metric-row">
+        <span>Total Detections</span>
+        <strong id="laughter-total">0</strong>
+      </div>
+      <div class="metric-row">
+        <span>Confirmed</span>
+        <strong id="laughter-confirmed">0</strong>
+      </div>
+      <div class="metric-row">
+        <span>False Positives</span>
+        <strong id="laughter-false">0</strong>
+      </div>
+      <div class="intent-breakdown" id="laughter-types"></div>
+    </div>
+  </div>
+
+  <!-- Latency Percentiles -->
+  <h2 class="section-title">📊 Latency Percentiles</h2>
+  <div class="card" style="margin-bottom: 32px;">
+    <div class="latency-grid">
+      <div class="latency-item">
+        <div class="latency-value" id="latency-p50">0ms</div>
+        <div class="latency-label">P50</div>
+      </div>
+      <div class="latency-item">
+        <div class="latency-value" id="latency-p90">0ms</div>
+        <div class="latency-label">P90</div>
+      </div>
+      <div class="latency-item">
+        <div class="latency-value" id="latency-p95">0ms</div>
+        <div class="latency-label">P95</div>
+      </div>
+      <div class="latency-item">
+        <div class="latency-value" id="latency-p99">0ms</div>
+        <div class="latency-label">P99</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature Toggles -->
+  <h2 class="section-title">🚩 Feature Toggles</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Foundation Features</span>
+      </div>
+      <div class="toggle-group" id="foundation-toggles"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Audio Intelligence</span>
+      </div>
+      <div class="toggle-group" id="audio-toggles"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Advanced Features</span>
+      </div>
+      <div class="toggle-group" id="advanced-toggles"></div>
+    </div>
+  </div>
+
+  <div class="actions" style="justify-content: center;">
+    <button class="btn btn-primary" onclick="refreshData()">Refresh Data</button>
+    <button class="btn btn-secondary" onclick="resetMetrics()">Reset Metrics</button>
+    <button class="btn btn-secondary" onclick="resetFlags()">Reset Flags</button>
+  </div>
+
+  <div class="last-updated">
+    Last updated: <span id="last-updated">Never</span>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+    
+    // Feature toggle definitions
+    const featureGroups = {
+      foundation: [
+        { key: 'enableProsodyTurnPrediction', label: 'Prosody Turn Prediction' },
+        { key: 'enableMicroInterruptions', label: 'Micro-Interruptions' },
+        { key: 'enableEmotionalArcTts', label: 'Emotional Arc TTS' },
+      ],
+      audio: [
+        { key: 'enableLaughterDetection', label: 'Laughter Detection' },
+        { key: 'enableAmbientAwareness', label: 'Ambient Awareness' },
+        { key: 'enableFftAnalysis', label: 'FFT Analysis' },
+        { key: 'enableMultiSignalLaughter', label: 'Multi-Signal Laughter' },
+      ],
+      advanced: [
+        { key: 'enableRhythmMirroring', label: 'Rhythm Mirroring' },
+        { key: 'enableEmotionalContagion', label: 'Emotional Contagion' },
+        { key: 'enableEnhancedTurnPrediction', label: 'Enhanced Turn Prediction' },
+        { key: 'enableWordTimingRhythm', label: 'Word Timing Rhythm' },
+        { key: 'enableResponseAnticipation', label: 'Response Anticipation' },
+        { key: 'useCachedResponses', label: 'Use Cached Responses' },
+      ],
+    };
+
+    let currentFlags = {};
+
+    // Render toggles
+    function renderToggles(groupId, features) {
+      const container = document.getElementById(groupId);
+      container.innerHTML = features.map(f => `
+        <div class="toggle-item">
+          <span class="toggle-label">${f.label}</span>
+          <label class="toggle-switch">
+            <input type="checkbox" 
+                   id="toggle-${f.key}" 
+                   ${currentFlags[f.key] ? 'checked' : ''} 
+                   onchange="toggleFeature('${f.key}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      `).join('');
+    }
+
+    // Update dashboard with data
+    function updateDashboard(data) {
+      // Session count
+      document.getElementById('session-count').textContent = 
+        `${data.activeSessionCount} active / ${data.sessionCount} total sessions`;
+
+      // Cache metrics
+      const hitRate = (data.cache.hitRate * 100).toFixed(1);
+      document.getElementById('cache-hit-rate').textContent = `${hitRate}%`;
+      document.getElementById('cache-progress').style.width = `${hitRate}%`;
+      document.getElementById('cache-attempts').textContent = data.cache.totalAttempts;
+      document.getElementById('cache-hits').textContent = data.cache.cacheHits;
+      document.getElementById('cache-misses').textContent = data.cache.cacheMisses;
+      document.getElementById('latency-saved').textContent = `${data.cache.latencySavingsMs}ms`;
+
+      // Intent breakdown
+      const intents = Object.entries(data.cache.intentBreakdown || {});
+      document.getElementById('intent-breakdown').innerHTML = intents.map(([intent, counts]) => `
+        <span class="intent-tag">
+          ${intent}
+          <span class="intent-count">${counts.hits}/${counts.hits + counts.misses}</span>
+        </span>
+      `).join('');
+
+      // Turn prediction
+      const turnAcc = (data.turnPrediction.accuracy * 100).toFixed(1);
+      document.getElementById('turn-accuracy').textContent = `${turnAcc}%`;
+      document.getElementById('turn-progress').style.width = `${turnAcc}%`;
+      document.getElementById('turn-total').textContent = data.turnPrediction.totalPredictions;
+      document.getElementById('turn-false').textContent = data.turnPrediction.falseTakeTurns;
+      document.getElementById('turn-missed').textContent = data.turnPrediction.missedTurns;
+      document.getElementById('turn-confidence').textContent = 
+        `${(data.turnPrediction.avgConfidence * 100).toFixed(0)}%`;
+
+      // Laughter
+      const laughPrec = (data.laughter.precision * 100).toFixed(1);
+      document.getElementById('laughter-precision').textContent = `${laughPrec}%`;
+      document.getElementById('laughter-progress').style.width = `${laughPrec}%`;
+      document.getElementById('laughter-total').textContent = data.laughter.totalDetections;
+      document.getElementById('laughter-confirmed').textContent = data.laughter.confirmedLaughter;
+      document.getElementById('laughter-false').textContent = data.laughter.falsePositives;
+
+      // Laughter types
+      const types = Object.entries(data.laughter.typeBreakdown || {});
+      document.getElementById('laughter-types').innerHTML = types.map(([type, count]) => `
+        <span class="intent-tag">${type} <span class="intent-count">${count}</span></span>
+      `).join('');
+
+      // Latency percentiles
+      document.getElementById('latency-p50').textContent = `${data.latencyPercentiles.p50}ms`;
+      document.getElementById('latency-p90').textContent = `${data.latencyPercentiles.p90}ms`;
+      document.getElementById('latency-p95').textContent = `${data.latencyPercentiles.p95}ms`;
+      document.getElementById('latency-p99').textContent = `${data.latencyPercentiles.p99}ms`;
+
+      // Update timestamp
+      document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+    }
+
+    // Fetch and update
+    async function refreshData() {
+      try {
+        // Get dashboard data
+        const dashRes = await fetch(`${API_BASE}/voice-humanization/dashboard`);
+        const dashData = await dashRes.json();
+        if (dashData.success) {
+          updateDashboard(dashData.data);
+        }
+
+        // Get flags
+        const flagsRes = await fetch(`${API_BASE}/voice-humanization/flags`);
+        const flagsData = await flagsRes.json();
+        if (flagsData.success) {
+          currentFlags = flagsData.data;
+          renderToggles('foundation-toggles', featureGroups.foundation);
+          renderToggles('audio-toggles', featureGroups.audio);
+          renderToggles('advanced-toggles', featureGroups.advanced);
+        }
+      } catch (err) {
+        console.error('Failed to refresh data:', err);
+      }
+    }
+
+    // Toggle feature
+    async function toggleFeature(key, enabled) {
+      try {
+        const res = await fetch(`${API_BASE}/voice-humanization/flags`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [key]: enabled }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          currentFlags = data.data;
+        }
+      } catch (err) {
+        console.error('Failed to toggle feature:', err);
+        // Revert toggle
+        document.getElementById(`toggle-${key}`).checked = !enabled;
+      }
+    }
+
+    // Reset metrics
+    async function resetMetrics() {
+      if (!confirm('Are you sure you want to reset all metrics?')) return;
+      try {
+        await fetch(`${API_BASE}/voice-humanization/metrics/reset`, { method: 'POST' });
+        refreshData();
+      } catch (err) {
+        console.error('Failed to reset metrics:', err);
+      }
+    }
+
+    // Reset flags
+    async function resetFlags() {
+      if (!confirm('Are you sure you want to reset all flags to defaults?')) return;
+      try {
+        await fetch(`${API_BASE}/voice-humanization/flags/reset`, { method: 'POST' });
+        refreshData();
+      } catch (err) {
+        console.error('Failed to reset flags:', err);
+      }
+    }
+
+    // Initial load
+    refreshData();
+
+    // Auto-refresh every 5 seconds
+    setInterval(refreshData, 5000);
+  </script>
+</body>
+</html>
+

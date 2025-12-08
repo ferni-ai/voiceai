@@ -79,6 +79,11 @@ export interface UserData {
   // Voice humanization - laughter detection
   detectedLaughter?: LaughterDetectionResult;
 
+  // Voice humanization - ambient awareness
+  // Maps to EnvironmentType from ambient-awareness.ts
+  ambientEnvironment?: 'quiet_room' | 'office' | 'coffee_shop' | 'outdoors' | 'car' | 'public_transit' | 'noisy' | 'unknown';
+  ambientNoiseLevel?: number; // 0-1 scale
+
   // Conversation context for humanization
   lastUserMessage?: string;
   lastAgentResponse?: string; // For response quality tracking

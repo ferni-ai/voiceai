@@ -39,11 +39,31 @@ export interface VoiceHumanizationFlags {
   /** Enable enhanced voice fingerprinting */
   enableEnhancedVoiceFingerprinting: boolean;
 
+  // Phase 4: Advanced Audio Intelligence
+  /** Enable FFT-based spectral analysis */
+  enableFftAnalysis: boolean;
+  /** Enable enhanced turn prediction with phrase boundaries */
+  enableEnhancedTurnPrediction: boolean;
+  /** Enable multi-signal laughter detection */
+  enableMultiSignalLaughter: boolean;
+  /** Enable word-timing rhythm mirroring */
+  enableWordTimingRhythm: boolean;
+
+  // Phase 5: Preemptive Generation
+  /** Enable response anticipation/pattern caching */
+  enableResponseAnticipation: boolean;
+  /** Actually use cached responses (vs just monitoring) */
+  useCachedResponses: boolean;
+  /** Minimum confidence to use cached response (0-1) */
+  cacheConfidenceThreshold: number;
+
   // Rollout controls
   /** Percentage of sessions to enable (0-100) */
   rolloutPercentage: number;
   /** Enable verbose logging for debugging */
   enableVerboseLogging: boolean;
+  /** Enable metrics collection */
+  enableMetrics: boolean;
 }
 
 // ============================================================================
@@ -68,9 +88,21 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   enableEmotionalContagion: true,
   enableEnhancedVoiceFingerprinting: false, // Not yet implemented
 
+  // Phase 4: Advanced Audio Intelligence - MONITORING ONLY
+  enableFftAnalysis: true,
+  enableEnhancedTurnPrediction: true,
+  enableMultiSignalLaughter: true,
+  enableWordTimingRhythm: true,
+
+  // Phase 5: Preemptive - MONITORING ONLY (don't use cached responses yet)
+  enableResponseAnticipation: true,  // Track but don't use
+  useCachedResponses: false,         // Just monitor
+  cacheConfidenceThreshold: 0.7,     // 70% confidence required
+
   // Rollout: 100% by default
   rolloutPercentage: 100,
   enableVerboseLogging: false,
+  enableMetrics: true,
 };
 
 /**
@@ -80,6 +112,8 @@ const STAGING_FLAGS: VoiceHumanizationFlags = {
   ...DEFAULT_FLAGS,
   enableVerboseLogging: true,
   rolloutPercentage: 100,
+  useCachedResponses: true, // Test cached responses in staging
+  cacheConfidenceThreshold: 0.6,
 };
 
 /**
@@ -90,6 +124,8 @@ const DEVELOPMENT_FLAGS: VoiceHumanizationFlags = {
   enableEnhancedVoiceFingerprinting: true,
   enableVerboseLogging: true,
   rolloutPercentage: 100,
+  useCachedResponses: true, // Test everything in dev
+  cacheConfidenceThreshold: 0.5,
 };
 
 // ============================================================================
@@ -141,7 +177,14 @@ function applyEnvironmentOverrides(): void {
     'enableRhythmMirroring',
     'enableEmotionalContagion',
     'enableEnhancedVoiceFingerprinting',
+    'enableFftAnalysis',
+    'enableEnhancedTurnPrediction',
+    'enableMultiSignalLaughter',
+    'enableWordTimingRhythm',
+    'enableResponseAnticipation',
+    'useCachedResponses',
     'enableVerboseLogging',
+    'enableMetrics',
   ];
 
   for (const flag of boolFlags) {

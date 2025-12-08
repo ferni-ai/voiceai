@@ -24,3 +24,5 @@ export * from './ferni-audio.service.js';
 export * from './haptics.service.js';
 export * from './glow-controller.service.js';
 export * from './ritual-engine.service.js';
+export * from './avatar-state.service.js';
+export * from './voice-analyzer.service.js';
