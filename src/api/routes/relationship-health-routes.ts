@@ -200,7 +200,7 @@ export async function handleGetHealthDashboard(
     );
   } catch (error) {
     log.error({ error, userId }, 'Failed to get health dashboard');
-    sendError(res, 500, 'Failed to retrieve relationship health');
+    sendError(res, 'Failed to retrieve relationship health', 500);
   }
 }
 
@@ -239,7 +239,7 @@ export async function handleGetHealthSummary(
     });
   } catch (error) {
     log.error({ error, userId }, 'Failed to get health summary');
-    sendError(res, 500, 'Failed to retrieve health summary');
+    sendError(res, 'Failed to retrieve health summary', 500);
   }
 }
 
@@ -259,7 +259,7 @@ export async function handleAcknowledgeAlert(
     const body = await parseRequestBody<{ alertId: string }>(req);
     
     if (!body?.alertId) {
-      sendError(res, 400, 'alertId is required');
+      sendError(res, 'alertId is required', 400);
       return;
     }
 
@@ -269,11 +269,11 @@ export async function handleAcknowledgeAlert(
       sendSuccess(res, { acknowledged: true });
       log.info({ userId, alertId: body.alertId }, 'Alert acknowledged');
     } else {
-      sendError(res, 404, 'Alert not found');
+      sendError(res, 'Alert not found', 404);
     }
   } catch (error) {
     log.error({ error, userId }, 'Failed to acknowledge alert');
-    sendError(res, 500, 'Failed to acknowledge alert');
+    sendError(res, 'Failed to acknowledge alert', 500);
   }
 }
 
@@ -325,7 +325,7 @@ export async function handleRecalculateHealth(
       factorScores.sessionDepth = calculateSessionDepth(userId, body.metrics.sessionDepth);
     }
     if (body?.metrics?.consistency) {
-      const sessionDates = body.metrics.consistency.sessionDates.map(d => new Date(d));
+      const sessionDates = body.metrics.consistency.sessionDates.map((d: string) => new Date(d));
       factorScores.consistency = calculateConsistency(userId, { 
         sessionDates, 
         expectedCadenceDays: body.metrics.consistency.expectedCadenceDays 
@@ -359,7 +359,7 @@ export async function handleRecalculateHealth(
     log.info({ userId, newScore: healthScore.overallScore }, 'Health score recalculated');
   } catch (error) {
     log.error({ error, userId }, 'Failed to recalculate health');
-    sendError(res, 500, 'Failed to recalculate health');
+    sendError(res, 'Failed to recalculate health', 500);
   }
 }
 
@@ -382,7 +382,7 @@ export async function handleRecordMilestone(
     }>(req);
 
     if (!body?.type || !body?.description) {
-      sendError(res, 400, 'type and description are required');
+      sendError(res, 'type and description are required', 400);
       return;
     }
 
@@ -392,7 +392,7 @@ export async function handleRecordMilestone(
     log.info({ userId, type: body.type }, 'Milestone recorded');
   } catch (error) {
     log.error({ error, userId }, 'Failed to record milestone');
-    sendError(res, 500, 'Failed to record milestone');
+    sendError(res, 'Failed to record milestone', 500);
   }
 }
 
@@ -413,7 +413,7 @@ export async function handleExportHealthData(
     sendSuccess(res, data);
   } catch (error) {
     log.error({ error, userId }, 'Failed to export health data');
-    sendError(res, 500, 'Failed to export health data');
+    sendError(res, 'Failed to export health data', 500);
   }
 }
 

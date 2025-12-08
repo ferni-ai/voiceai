@@ -41,6 +41,9 @@ import { handleFeatureFlagsRoutes } from './dist/api/feature-flags-routes.js';
 // Monitoring routes (P11)
 import { handleMonitoringRoutes } from './dist/api/monitoring-routes.js';
 
+// Relationship Health Dashboard routes
+import { relationshipHealthRoutes } from './dist/api/routes/relationship-health-routes.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -411,6 +414,12 @@ const server = http.createServer(async (req, res) => {
     // Trust Systems consolidated routes (Phases 12-29)
     if (pathname.startsWith('/api/trust/')) {
       const handled = await handleTrustSystemsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+    
+    // Relationship Health Dashboard routes
+    if (pathname.startsWith('/api/relationship/')) {
+      const handled = await relationshipHealthRoutes(req, res);
       if (handled) return;
     }
     

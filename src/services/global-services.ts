@@ -11,6 +11,7 @@ import { setGlobalStore } from './user-identification.js';
 import type { GlobalServices } from './types.js';
 import { validateAndLog, type StartupCapabilities } from './startup-validation.js';
 import { stopAllAutoSaves } from './intelligence-persistence.js';
+import { initializeUnifiedPersistence, shutdownUnifiedPersistence } from './trust-systems/unified-persistence.js';
 
 // ============================================================================
 // GLOBAL STATE
@@ -134,6 +135,14 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       getLogger().warn({ error }, 'Team handlers initialization skipped');
     }
 
+    // Initialize unified trust persistence (single source of truth for all trust data)
+    try {
+      initializeUnifiedPersistence();
+      getLogger().info('🔒 Unified trust persistence initialized');
+    } catch (error) {
+      getLogger().warn({ error }, 'Unified trust persistence init skipped (non-critical)');
+    }
+
     getLogger().info('Voice AI services initialized successfully');
     return globalServices;
   } catch (error) {
@@ -215,9 +224,17 @@ export function getGlobalServicesSync(): GlobalServices | null {
 /**
  * Reset global services (for testing)
  */
-export function resetGlobalServices(): void {
+export async function resetGlobalServices(): Promise<void> {
   // Stop all auto-saves before resetting
   stopAllAutoSaves();
+  
+  // Flush and shutdown unified trust persistence
+  try {
+    await shutdownUnifiedPersistence();
+  } catch {
+    // Non-critical
+  }
+  
   globalServices = null;
   personaIndexed = false;
   startupCapabilities = null;

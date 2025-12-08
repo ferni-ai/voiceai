@@ -18,6 +18,12 @@ import type { SpeechCharacteristics } from '../personas/types.js';
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from './realtime-memory.js';
 
+// Cross-persona insights - load team intelligence for new sessions
+import { loadInsights as loadCrossPersonaInsights } from './cross-persona-insights.js';
+
+// Unified persistence - session lifecycle hooks
+import { onSessionStartUnified, onSessionEndUnified } from './trust-systems/unified-persistence.js';
+
 // Memory imports
 import {
   getHistoryTracker,
@@ -223,6 +229,21 @@ export async function createSessionServices(
       } catch (error) {
         getLogger().warn({ error, userId: validatedUserId }, 'Failed to load intelligence state');
       }
+    }
+
+    // Load cross-persona insights (team intelligence)
+    try {
+      await loadCrossPersonaInsights(validatedUserId);
+      getLogger().debug({ userId: validatedUserId }, '💡 Loaded cross-persona insights');
+    } catch {
+      // Non-critical
+    }
+
+    // Initialize unified trust persistence for this session
+    try {
+      await onSessionStartUnified(validatedUserId, sessionId);
+    } catch {
+      // Non-critical
     }
   } else if (userId) {
     getLogger().warn(
@@ -1502,6 +1523,15 @@ export async function createSessionServices(
             { error: String(error), userId: validatedUserId },
             'Failed to end realtime conversation (non-blocking)'
           );
+        }
+      }
+
+      // Flush unified trust persistence for this user
+      if (validatedUserId) {
+        try {
+          await onSessionEndUnified(validatedUserId);
+        } catch {
+          // Non-critical
         }
       }
 

@@ -13,8 +13,14 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import type { VoiceEmotionResult } from '../speech/audio-prosody.js';
-import { detectEmotion, type EmotionResult } from '../services/emotion-detection.js';
+import { detectEmotion } from '../services/emotion-detection.js';
 import { recordInsight, type PersonaId } from '../services/cross-persona-insights.js';
+
+// Minimal emotion result type for mismatch detection (compatible with both emotion-detector and emotion-detection)
+interface MinimalEmotionResult {
+  primary: string;
+  confidence: number;
+}
 
 const log = createLogger({ module: 'VoiceTextMismatch' });
 
@@ -98,7 +104,7 @@ const MASKING_PHRASES = [
 export function detectMismatch(
   userText: string,
   voiceEmotion: VoiceEmotionResult | null,
-  textEmotion?: EmotionResult
+  textEmotion?: MinimalEmotionResult
 ): MismatchResult {
   // If no voice emotion, can't detect mismatch
   if (!voiceEmotion || voiceEmotion.confidence < 0.4) {

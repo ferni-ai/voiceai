@@ -21,9 +21,35 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestore } from '../global-services.js';
+import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 const log = createLogger({ module: 'UnifiedTrustPersistence' });
+
+// Module-level Firestore instance (lazy initialized)
+let db: FirestoreType | null = null;
+
+/**
+ * Get Firestore connection (lazy initialized)
+ */
+async function getFirestore(): Promise<FirestoreType | null> {
+  if (db) return db;
+
+  try {
+    const { Firestore } = await import('@google-cloud/firestore');
+    db = new Firestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    });
+    log.info('Unified trust persistence Firestore initialized');
+    return db;
+  } catch (error) {
+    log.warn(
+      { error },
+      'Firestore not available for unified persistence'
+    );
+    return null;
+  }
+}
 
 // ============================================================================
 // TYPES

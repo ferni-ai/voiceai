@@ -135,7 +135,7 @@ export async function getCalendarBusyProfile(userId: string): Promise<CalendarBu
   }
 
   // Check if calendar is configured
-  if (!isCalendarConfigured()) {
+  if (!(await isCalendarConfigured(userId))) {
     return createEmptyProfile(userId);
   }
 
@@ -180,7 +180,7 @@ export async function getCalendarBusyProfile(userId: string): Promise<CalendarBu
     }
 
     // Get actual events for more detail
-    const events = await getEvents(accessToken, now, endOfTomorrow, 'primary');
+    const events = await getEvents(accessToken, 'primary', now, endOfTomorrow);
     
     // Enrich busy slots with event names
     for (const slot of busySlots) {

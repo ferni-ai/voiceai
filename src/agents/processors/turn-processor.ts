@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Turn Processor
  *
@@ -68,6 +67,22 @@ import { getResponseEnhancements, resetCatchphraseTracking } from '../../speech/
 
 // Emotion matching
 import { getEmotionModulation, getEmotionGuidance } from '../../speech/emotion-matching.js';
+
+// Voice-text mismatch detection ("better than human" - detect incongruence)
+import {
+  detectMismatch,
+  recordMismatchInsight,
+  buildMismatchGuidance,
+  type MismatchResult,
+} from '../../intelligence/voice-text-mismatch.js';
+
+// Cross-persona insight sharing
+import {
+  buildInsightContext,
+  getInsightsToSurface,
+  acknowledgeInsight,
+  type InsightForPersona,
+} from '../../services/cross-persona-insights.js';
 
 // Personal theme tracking (prevents "always talks about Wyoming")
 import { extractPersonalThemes } from '../session/session-state.js';
@@ -260,12 +275,13 @@ async function checkEasterEggs(
 
 /**
  * Build emotional state from analysis and voice emotion
+ * Now includes voice-text mismatch detection for "better than human" emotional intelligence
  */
 function buildEmotionalState(
   ctx: TurnContext,
   analysisResult: TurnAnalysisResult
-): EmotionalState {
-  const { userData } = ctx;
+): EmotionalState & { mismatch?: MismatchResult } {
+  const { userData, userText } = ctx;
   const { analysis } = analysisResult;
 
   const emotionalArc = getEmotionalArcTracker();
@@ -281,13 +297,29 @@ function buildEmotionalState(
   const emotionModulation = userData.emotionModulation;
   const emotionalGuidance = emotionModulation ? getEmotionGuidance(emotionModulation) : null;
 
+  // "Better than human" - detect when voice contradicts words
+  // (e.g., "I'm fine" + trembling voice)
+  const mismatch = detectMismatch(userText, userData.voiceEmotion || null, analysis.emotion);
+  
+  // Combine guidance if there's a mismatch
+  let combinedGuidance = emotionalResponse.guidance || emotionalGuidance || undefined;
+  if (mismatch.hasMismatch && mismatch.confidence > 0.5) {
+    const mismatchGuidance = buildMismatchGuidance(mismatch);
+    if (mismatchGuidance) {
+      combinedGuidance = combinedGuidance 
+        ? `${combinedGuidance}\n\n${mismatchGuidance}`
+        : mismatchGuidance;
+    }
+  }
+
   return {
     primary: analysis.emotion.primary,
     intensity: analysis.emotion.intensity || 0.5,
     distressLevel: analysis.emotion.distressLevel || 0,
     trajectory: arc.trajectory,
-    responseGuidance: emotionalResponse.guidance || emotionalGuidance || undefined,
+    responseGuidance: combinedGuidance,
     transitionPhrase: transitionPhrase || undefined,
+    mismatch: mismatch.hasMismatch ? mismatch : undefined,
   };
 }
 
@@ -896,6 +928,27 @@ async function buildContextInjections(
     });
   }
 
+  // 8b. Cross-persona insights (team intelligence)
+  try {
+    const personaId = persona.id as 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan' | 'jack';
+    const insightContext = buildInsightContext(services.userId || 'anonymous', personaId, { maxInsights: 3 });
+    if (insightContext) {
+      injections.push({
+        category: 'team_insights',
+        content: insightContext,
+        priority: 31,
+      });
+    }
+
+    // Acknowledge insights we're using
+    const insightsToSurface = getInsightsToSurface(services.userId || 'anonymous', personaId, 2);
+    for (const item of insightsToSurface) {
+      void acknowledgeInsight(services.userId || 'anonymous', item.insight.id, personaId).catch(() => {});
+    }
+  } catch {
+    // Non-fatal
+  }
+
   // 9. Story opportunity
   if (responseGuidance.storyOpportunity) {
     injections.push({
@@ -1079,8 +1132,16 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // 3. Check easter eggs
   const easterEgg = await checkEasterEggs(ctx, turnCtx);
 
-  // 4. Build emotional state
+  // 4. Build emotional state (includes voice-text mismatch detection)
   const emotionalState = buildEmotionalState(ctx, analysisResult);
+
+  // 4b. Record mismatch as cross-persona insight if significant
+  if (emotionalState.mismatch?.hasMismatch && emotionalState.mismatch.confidence > 0.5) {
+    const personaId = ctx.persona.id as 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan' | 'jack';
+    void recordMismatchInsight(services.userId || 'anonymous', personaId, emotionalState.mismatch).catch(() => {
+      // Non-critical - don't block on insight recording
+    });
+  }
 
   // 5. Build response guidance
   const responseGuidance = buildResponseGuidance(ctx, analysisResult, emotionalState);
