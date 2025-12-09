@@ -73,8 +73,10 @@ import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 // Marketplace UI
 import { marketplaceUI } from './ui/marketplace.ui.js';
-// Admin UI
+// Admin UI (legacy - kept for backward compatibility)
 import { initAdminDashboard, injectAdminStyles } from './ui/admin.ui.js';
+// New Unified Admin Portal
+import { initAdminPortal } from './admin/index.js';
 // Engagement UI
 import { engagementTriggerUI, initEngagementTriggerUI } from './ui/engagement-trigger.ui.js';
 import { getEngagementUI, initializeEngagementUI } from './ui/engagement.ui.js';
@@ -578,24 +580,29 @@ class VoiceAIApp {
 
   /**
    * Initialize admin dashboard (alternate route).
+   * Uses the new unified Admin Portal for centralized management.
    */
   private async initializeAdmin(): Promise<void> {
-    log.info('Initializing Admin Dashboard...');
+    log.info('Initializing Admin Portal...');
 
-    // Clear the main app content and show admin container
-    const appContent = document.getElementById('app') || document.body;
-    appContent.innerHTML = `
-      <div id="adminDashboard" style="min-height: 100vh; background: #0d0d1a; color: #fff;"></div>
-      <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: #4a6741; text-decoration: none; font-size: 0.875rem;">
-        ← Back to App
-      </a>
-    `;
-
-    // Inject admin styles
-    injectAdminStyles();
-
-    // Initialize the admin dashboard
-    await initAdminDashboard();
+    // Check for legacy admin route (backwards compatibility)
+    const useLegacyAdmin = window.location.search.includes('legacy');
+    
+    if (useLegacyAdmin) {
+      // Legacy admin dashboard (for backward compatibility)
+      const appContent = document.getElementById('app') || document.body;
+      appContent.innerHTML = `
+        <div id="adminDashboard" style="min-height: 100vh; background: #0d0d1a; color: #fff;"></div>
+        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: #4a6741; text-decoration: none; font-size: 0.875rem;">
+          ← Back to App
+        </a>
+      `;
+      injectAdminStyles();
+      await initAdminDashboard();
+    } else {
+      // New unified Admin Portal
+      await initAdminPortal();
+    }
 
     this.isInitialized = true;
   }

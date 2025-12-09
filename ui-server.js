@@ -74,6 +74,9 @@ import {
 // Rate limiting and auth for sensitive endpoints
 import { rateLimit, requireAdmin, requireAuth } from './dist/api/auth-middleware.js';
 
+// API v1 Routes (new unified admin API)
+import { handleV1Routes } from './dist/api/v1/index.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -424,10 +427,22 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ============================================================================
+  // API V1 ROUTES (new unified admin API)
+  // ============================================================================
+  try {
+    if (pathname.startsWith('/api/v1/')) {
+      const handled = await handleV1Routes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+  } catch (err) {
+    console.error('❌ API v1 route error:', err);
+  }
+
+  // ============================================================================
   // FEATURE FLAGS, DORA, VOICE PRESENCE, OBSERVABILITY ROUTES
   // ============================================================================
   try {
-    // Feature flags
+    // Feature flags (legacy - also available at /api/v1/admin/flags)
     if (pathname.startsWith('/api/flags')) {
       const handled = await handleFeatureFlagRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
