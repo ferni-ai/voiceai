@@ -2,13 +2,21 @@
  * Design System Section
  *
  * Animation and visual token preview for the admin portal.
- * Migrated from docs/emotion-mood-dashboard.html
+ * Brand-compliant implementation using Lucide icons.
  *
  * @module DesignSystemSection
  */
 
 import { createLogger } from '../../utils/logger.js';
 import { DURATION, EASING, ANIMATION_PRESET } from '../../config/animation-constants.js';
+import {
+  ICON_TEAM,
+  ICON_HISTORY,
+  ICON_DESIGN_SYSTEM,
+  ICON_CHART,
+  ICON_LEAF,
+  iconSm,
+} from '../icons.js';
 
 const log = createLogger('DesignSystemSection');
 
@@ -23,34 +31,36 @@ export async function render(): Promise<string> {
       <!-- Live Avatar Demo -->
       <div class="admin-card design-avatar">
         <h2 class="admin-section-title">
-          <span>🎭</span> Live Avatar
+          <span class="admin-icon">${iconSm(ICON_TEAM)}</span>
+          Live Avatar
         </h2>
         <div class="avatar-demo">
           <div class="demo-avatar" id="demoAvatar">
             <div class="demo-avatar-glow"></div>
             <div class="demo-avatar-ring"></div>
-            <span>🌿</span>
+            <span class="demo-avatar-icon">${iconSm(ICON_LEAF)}</span>
           </div>
           <p class="avatar-state">Current: <strong id="avatarState">neutral</strong></p>
         </div>
         <div class="avatar-controls">
-          <button class="demo-btn" data-emotion="happy">😊 Happy</button>
-          <button class="demo-btn" data-emotion="thinking">🤔 Thinking</button>
-          <button class="demo-btn" data-emotion="excited">🎉 Excited</button>
-          <button class="demo-btn" data-emotion="calm">😌 Calm</button>
+          <button class="demo-btn" data-emotion="happy">Happy</button>
+          <button class="demo-btn" data-emotion="thinking">Thinking</button>
+          <button class="demo-btn" data-emotion="excited">Excited</button>
+          <button class="demo-btn" data-emotion="calm">Calm</button>
         </div>
         <div class="avatar-reactions">
-          <button class="demo-btn demo-btn--small" data-reaction="nod">👍 Nod</button>
-          <button class="demo-btn demo-btn--small" data-reaction="shake">👎 Shake</button>
-          <button class="demo-btn demo-btn--small" data-reaction="bounce">🎊 Bounce</button>
-          <button class="demo-btn demo-btn--small" data-reaction="pulse">💗 Pulse</button>
+          <button class="demo-btn demo-btn--small" data-reaction="nod">Nod</button>
+          <button class="demo-btn demo-btn--small" data-reaction="shake">Shake</button>
+          <button class="demo-btn demo-btn--small" data-reaction="bounce">Bounce</button>
+          <button class="demo-btn demo-btn--small" data-reaction="pulse">Pulse</button>
         </div>
       </div>
 
       <!-- Timing Constants -->
       <div class="admin-card design-timing">
         <h2 class="admin-section-title">
-          <span>⏱️</span> Timing Constants
+          <span class="admin-icon">${iconSm(ICON_HISTORY)}</span>
+          Timing Constants
         </h2>
         <div class="timing-list">
           ${renderTimingItem('MICRO', DURATION.MICRO, 'Immediate feedback')}
@@ -67,22 +77,24 @@ export async function render(): Promise<string> {
       <!-- Persona Colors -->
       <div class="admin-card design-colors">
         <h2 class="admin-section-title">
-          <span>🎨</span> Persona Colors
+          <span class="admin-icon">${iconSm(ICON_DESIGN_SYSTEM)}</span>
+          Persona Colors
         </h2>
         <div class="colors-grid">
-          ${renderColorSwatch('Ferni', '#4a6741', '#3d5a35')}
-          ${renderColorSwatch('Jack', '#9a7b5a', '#7d6348')}
-          ${renderColorSwatch('Peter', '#3a6b73', '#2d5359')}
-          ${renderColorSwatch('Alex', '#5a6b8a', '#4a5a73')}
-          ${renderColorSwatch('Maya', '#a67a6a', '#8a635a')}
-          ${renderColorSwatch('Jordan', '#c4856a', '#a86d55')}
+          ${renderColorSwatch('Ferni', 'var(--persona-primary, #4a6741)', 'var(--persona-secondary, #3d5a35)')}
+          ${renderColorSwatch('Jack', 'var(--persona-jack, #9a7b5a)', '#7d6348')}
+          ${renderColorSwatch('Peter', 'var(--persona-peter, #3a6b73)', '#2d5359')}
+          ${renderColorSwatch('Alex', 'var(--persona-alex, #5a6b8a)', '#4a5a73')}
+          ${renderColorSwatch('Maya', 'var(--persona-maya, #a67a6a)', '#8a635a')}
+          ${renderColorSwatch('Jordan', 'var(--persona-jordan, #c4856a)', '#a86d55')}
         </div>
       </div>
 
       <!-- Easing Curves -->
       <div class="admin-card design-easing">
         <h2 class="admin-section-title">
-          <span>📈</span> Easing Curves
+          <span class="admin-icon">${iconSm(ICON_CHART)}</span>
+          Easing Curves
         </h2>
         <div class="easing-list">
           ${renderEasingItem('Standard', EASING.STANDARD, 'Material standard deceleration')}
@@ -97,7 +109,8 @@ export async function render(): Promise<string> {
       <!-- Animation Presets -->
       <div class="admin-card design-presets">
         <h2 class="admin-section-title">
-          <span>✨</span> Animation Presets
+          <span class="admin-icon">${iconSm(ICON_DESIGN_SYSTEM)}</span>
+          Animation Presets
         </h2>
         <div class="presets-grid">
           <button class="preset-demo" data-preset="buttonPress">
@@ -159,10 +172,26 @@ export async function render(): Promise<string> {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2rem;
         position: relative;
         animation: breathe 5s infinite;
-        transition: background-color 500ms ease;
+        transition: background-color var(--duration-deliberate, ${DURATION.DELIBERATE}ms) var(--ease-standard, ${EASING.STANDARD});
+      }
+
+      .demo-avatar-icon {
+        display: flex;
+        color: white;
+      }
+
+      .demo-avatar-icon svg {
+        width: 40px;
+        height: 40px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .demo-avatar {
+          animation: none;
+          transition: none;
+        }
       }
 
       .demo-avatar-ring {
@@ -182,6 +211,13 @@ export async function render(): Promise<string> {
         animation: glowPulse 5s infinite;
       }
 
+      @media (prefers-reduced-motion: reduce) {
+        .demo-avatar-ring,
+        .demo-avatar-glow {
+          animation: none;
+        }
+      }
+
       @keyframes breathe {
         0%, 100% { transform: scale(1); }
         35% { transform: scale(1.012) translateY(-1.5px); }
@@ -198,10 +234,10 @@ export async function render(): Promise<string> {
         50% { opacity: 0.5; }
       }
 
-      .demo-avatar.nod { animation: nod 0.6s ease; }
-      .demo-avatar.shake { animation: shake 0.5s ease; }
-      .demo-avatar.bounce { animation: bounce 0.8s ${EASING.SPRING}; }
-      .demo-avatar.pulse { animation: pulse 0.7s ease; }
+      .demo-avatar.nod { animation: nod 0.6s var(--ease-standard, ${EASING.STANDARD}); }
+      .demo-avatar.shake { animation: shake 0.5s var(--ease-standard, ${EASING.STANDARD}); }
+      .demo-avatar.bounce { animation: bounce 0.8s var(--ease-spring, ${EASING.SPRING}); }
+      .demo-avatar.pulse { animation: pulse 0.7s var(--ease-standard, ${EASING.STANDARD}); }
 
       @keyframes nod {
         0% { transform: translateY(0); }
@@ -248,18 +284,29 @@ export async function render(): Promise<string> {
 
       .demo-btn {
         padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.05));
+        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-md, 8px);
         color: var(--color-text-primary, #faf6f0);
         font-family: inherit;
         font-size: 0.875rem;
         cursor: pointer;
-        transition: all 150ms ease;
+        transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .demo-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
+      }
+
+      .demo-btn:focus-visible {
+        outline: 2px solid var(--persona-primary, #4a6741);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .demo-btn {
+          transition: none;
+        }
       }
 
       .demo-btn--small {
@@ -291,7 +338,7 @@ export async function render(): Promise<string> {
       .timing-bar {
         flex: 1;
         height: 8px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
         border-radius: 4px;
         overflow: hidden;
       }
@@ -300,7 +347,13 @@ export async function render(): Promise<string> {
         height: 100%;
         background: var(--persona-primary, #4a6741);
         border-radius: 4px;
-        transition: width 300ms ease;
+        transition: width var(--duration-slow, ${DURATION.SLOW}ms) var(--ease-standard, ${EASING.STANDARD});
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .timing-fill {
+          transition: none;
+        }
       }
 
       .timing-value,
@@ -336,7 +389,7 @@ export async function render(): Promise<string> {
         flex-direction: column;
         gap: var(--space-2, 0.5rem);
         padding: var(--space-3, 0.75rem);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border-radius: var(--radius-md, 8px);
         text-align: center;
       }
@@ -382,19 +435,33 @@ export async function render(): Promise<string> {
         flex-direction: column;
         gap: var(--space-1, 0.25rem);
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
         border-radius: var(--radius-md, 8px);
         color: var(--color-text-primary, #faf6f0);
         font-family: inherit;
         cursor: pointer;
-        transition: all 150ms ease;
+        transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
         text-align: center;
       }
 
       .preset-demo:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.08));
         transform: translateY(-2px);
+      }
+
+      .preset-demo:focus-visible {
+        outline: 2px solid var(--persona-primary, #4a6741);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .preset-demo {
+          transition: none;
+        }
+        .preset-demo:hover {
+          transform: none;
+        }
       }
 
       .preset-name {
@@ -445,10 +512,9 @@ function renderColorSwatch(name: string, primary: string, secondary: string): st
         <div class="swatch-secondary" style="background: ${secondary};"></div>
       </div>
       <span class="swatch-name">${name}</span>
-      <span class="swatch-values">${primary} / ${secondary}</span>
+      <span class="swatch-values">${primary.includes('var(') ? 'CSS var' : primary}</span>
     </div>
   `;
 }
 
 export default { render };
-

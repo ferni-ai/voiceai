@@ -2,12 +2,27 @@
  * API Docs Section
  *
  * API documentation and testing interface for the admin portal.
- * Migrated from docs/developer-portal.html
+ * Brand-compliant implementation using Lucide icons.
  *
  * @module ApiDocsSection
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { DURATION, EASING } from '../../config/animation-constants.js';
+import {
+  ICON_EXTERNAL,
+  ICON_FLAGS,
+  ICON_HEALTH,
+  ICON_AGENTS,
+  ICON_TRUST,
+  ICON_LOCK,
+  ICON_SPEAKER,
+  ICON_EVALOPS,
+  ICON_USER,
+  ICON_CODE,
+  ICON_SEND,
+  iconSm,
+} from '../icons.js';
 
 const log = createLogger('ApiDocsSection');
 
@@ -37,23 +52,24 @@ export async function render(): Promise<string> {
       <!-- Quick Links -->
       <div class="admin-card api-quick-links">
         <h2 class="admin-section-title">
-          <span>🔗</span> Quick Links
+          <span class="admin-icon">${iconSm(ICON_EXTERNAL)}</span>
+          Quick Links
         </h2>
         <div class="quick-links-grid">
           <a href="/api/v1/admin/flags" target="_blank" class="quick-link">
-            <span class="quick-link-icon">🚩</span>
+            <span class="quick-link-icon">${iconSm(ICON_FLAGS)}</span>
             <span class="quick-link-text">Feature Flags API</span>
           </a>
           <a href="/health" target="_blank" class="quick-link">
-            <span class="quick-link-icon">🏥</span>
+            <span class="quick-link-icon">${iconSm(ICON_HEALTH)}</span>
             <span class="quick-link-text">Health Check</span>
           </a>
           <a href="/api/agents" target="_blank" class="quick-link">
-            <span class="quick-link-icon">🤖</span>
+            <span class="quick-link-icon">${iconSm(ICON_AGENTS)}</span>
             <span class="quick-link-text">Agents API</span>
           </a>
           <a href="/api/trust-journey/summary?userId=demo" target="_blank" class="quick-link">
-            <span class="quick-link-icon">💚</span>
+            <span class="quick-link-icon">${iconSm(ICON_TRUST)}</span>
             <span class="quick-link-text">Trust API</span>
           </a>
         </div>
@@ -65,7 +81,8 @@ export async function render(): Promise<string> {
       <!-- Try It Out -->
       <div class="admin-card api-tester">
         <h2 class="admin-section-title">
-          <span>🧪</span> API Tester
+          <span class="admin-icon">${iconSm(ICON_CODE)}</span>
+          API Tester
         </h2>
         <div class="tester-form">
           <div class="tester-row">
@@ -83,6 +100,7 @@ export async function render(): Promise<string> {
               value="/health"
             >
             <button class="admin-btn admin-btn--primary" data-action="send-request">
+              <span class="admin-icon">${iconSm(ICON_SEND)}</span>
               Send
             </button>
           </div>
@@ -119,21 +137,38 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
         border-radius: var(--radius-md, 8px);
         color: var(--color-text-primary, #faf6f0);
         text-decoration: none;
-        transition: all 150ms ease;
+        transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .quick-link:hover {
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
         border-color: var(--persona-primary, #4a6741);
       }
 
+      .quick-link:focus-visible {
+        outline: 2px solid var(--persona-primary, #4a6741);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .quick-link {
+          transition: none;
+        }
+      }
+
       .quick-link-icon {
-        font-size: 1.25rem;
+        display: flex;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .quick-link-icon svg {
+        width: 20px;
+        height: 20px;
       }
 
       .quick-link-text {
@@ -156,14 +191,25 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
-        background: rgba(255, 255, 255, 0.02);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.02));
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
-        transition: all 150ms ease;
+        transition: background var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .api-endpoint:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.05));
+      }
+
+      .api-endpoint:focus-visible {
+        outline: 2px solid var(--persona-primary, #4a6741);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .api-endpoint {
+          transition: none;
+        }
       }
 
       .api-method {
@@ -197,7 +243,7 @@ export async function render(): Promise<string> {
         font-size: 0.625rem;
         padding: 0.125rem 0.375rem;
         border-radius: var(--radius-sm, 4px);
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
         color: var(--color-text-muted, #756A5E);
       }
 
@@ -221,22 +267,24 @@ export async function render(): Promise<string> {
       .tester-method {
         padding: var(--space-3, 0.75rem);
         background: var(--color-background, #1a1612);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-md, 8px);
         color: var(--color-text-primary, #faf6f0);
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.875rem;
+        transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .tester-url {
         flex: 1;
         padding: var(--space-3, 0.75rem);
         background: var(--color-background, #1a1612);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-md, 8px);
         color: var(--color-text-primary, #faf6f0);
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.875rem;
+        transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .tester-url:focus,
@@ -245,21 +293,35 @@ export async function render(): Promise<string> {
         border-color: var(--persona-primary, #4a6741);
       }
 
+      @media (prefers-reduced-motion: reduce) {
+        .tester-url,
+        .tester-method {
+          transition: none;
+        }
+      }
+
       .tester-body {
         width: 100%;
         padding: var(--space-3, 0.75rem);
         background: var(--color-background, #1a1612);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-md, 8px);
         color: var(--color-text-primary, #faf6f0);
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.8125rem;
         resize: vertical;
+        transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .tester-body:focus {
         outline: none;
         border-color: var(--persona-primary, #4a6741);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .tester-body {
+          transition: none;
+        }
       }
 
       .tester-response {
@@ -295,7 +357,8 @@ function renderCategory(category: ApiCategory): string {
   return `
     <div class="admin-card api-category">
       <h2 class="admin-section-title">
-        <span>${category.icon}</span> ${category.name}
+        <span class="admin-icon">${iconSm(category.icon)}</span>
+        ${category.name}
       </h2>
       <div class="api-endpoints">
         ${category.endpoints.map(e => renderEndpoint(e)).join('')}
@@ -306,7 +369,7 @@ function renderCategory(category: ApiCategory): string {
 
 function renderEndpoint(endpoint: ApiEndpoint): string {
   return `
-    <div class="api-endpoint" data-path="${endpoint.path}" data-method="${endpoint.method}">
+    <div class="api-endpoint" data-path="${endpoint.path}" data-method="${endpoint.method}" tabindex="0" role="button">
       <span class="api-method api-method--${endpoint.method}">${endpoint.method}</span>
       <span class="api-path">${endpoint.path}</span>
       <span class="api-desc">${endpoint.description}</span>
@@ -319,7 +382,7 @@ function getApiCategories(): ApiCategory[] {
   return [
     {
       name: 'Admin',
-      icon: '🔒',
+      icon: ICON_LOCK,
       endpoints: [
         { method: 'GET', path: '/api/v1/admin/flags', description: 'List all feature flags', auth: 'admin' },
         { method: 'GET', path: '/api/v1/admin/flags/:id', description: 'Get specific flag', auth: 'admin' },
@@ -331,7 +394,7 @@ function getApiCategories(): ApiCategory[] {
     },
     {
       name: 'Agents',
-      icon: '🤖',
+      icon: ICON_AGENTS,
       endpoints: [
         { method: 'GET', path: '/api/agents', description: 'List all enabled agents', auth: 'none' },
         { method: 'GET', path: '/api/agents/:id', description: 'Get agent by ID', auth: 'none' },
@@ -342,7 +405,7 @@ function getApiCategories(): ApiCategory[] {
     },
     {
       name: 'Voice Authentication',
-      icon: '🎤',
+      icon: ICON_SPEAKER,
       endpoints: [
         { method: 'GET', path: '/api/voice/status', description: 'System status & capabilities', auth: 'user' },
         { method: 'POST', path: '/api/voice/enroll/start', description: 'Begin enrollment session', auth: 'user' },
@@ -354,7 +417,7 @@ function getApiCategories(): ApiCategory[] {
     },
     {
       name: 'Trust',
-      icon: '💚',
+      icon: ICON_TRUST,
       endpoints: [
         { method: 'GET', path: '/api/trust-journey/summary', description: 'Get trust journey summary', auth: 'user' },
         { method: 'GET', path: '/api/trust/analytics/metrics', description: 'Get trust metrics', auth: 'admin' },
@@ -364,7 +427,7 @@ function getApiCategories(): ApiCategory[] {
     },
     {
       name: 'EvalOps',
-      icon: '🎯',
+      icon: ICON_EVALOPS,
       endpoints: [
         { method: 'GET', path: '/api/evalops/health', description: 'System health & metrics', auth: 'user' },
         { method: 'GET', path: '/api/evalops/metrics', description: 'Evaluation metrics', auth: 'user' },
@@ -375,7 +438,7 @@ function getApiCategories(): ApiCategory[] {
     },
     {
       name: 'User',
-      icon: '👤',
+      icon: ICON_USER,
       endpoints: [
         { method: 'GET', path: '/api/relationship/progress', description: 'Get relationship progress', auth: 'user' },
         { method: 'GET', path: '/api/habits', description: 'Get user habits', auth: 'user' },
@@ -388,4 +451,3 @@ function getApiCategories(): ApiCategory[] {
 }
 
 export default { render };
-

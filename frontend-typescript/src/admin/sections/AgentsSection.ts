@@ -2,14 +2,28 @@
  * Agents Section
  *
  * Agent management interface for the admin portal.
- * Wraps the existing admin.ui.ts functionality.
+ * Brand-compliant implementation using Lucide icons.
  *
  * @module AgentsSection
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { DURATION, EASING } from '../../config/animation-constants.js';
 import { fetchAgents, type ApiAgent } from '../../services/agents.service.js';
 import { getColorsFromApiOrGenerate } from '../../config/persona-colors.js';
+import {
+  ICON_CROWN,
+  ICON_TEAM,
+  ICON_PACKAGE,
+  ICON_SEARCH,
+  ICON_PLUS,
+  ICON_EDIT,
+  ICON_SPEAKER,
+  ICON_GRIP,
+  ICON_USER,
+  ICON_WARNING,
+  iconSm,
+} from '../icons.js';
 
 const log = createLogger('AgentsSection');
 
@@ -45,10 +59,12 @@ export async function render(): Promise<string> {
         </div>
         <div class="agents-header-actions">
           <button class="admin-btn" data-action="validate-all">
-            🔍 Validate All
+            <span class="admin-icon">${iconSm(ICON_SEARCH)}</span>
+            Validate All
           </button>
           <button class="admin-btn admin-btn--primary" data-action="create-agent">
-            + Create Agent
+            <span class="admin-icon">${iconSm(ICON_PLUS)}</span>
+            Create Agent
           </button>
         </div>
       </div>
@@ -57,7 +73,8 @@ export async function render(): Promise<string> {
       ${coordinator ? `
         <div class="admin-card agents-coordinator">
           <h2 class="admin-section-title">
-            <span>👑</span> Coordinator
+            <span class="admin-icon">${iconSm(ICON_CROWN)}</span>
+            Coordinator
           </h2>
           ${renderAgentCard(coordinator, true)}
         </div>
@@ -66,7 +83,8 @@ export async function render(): Promise<string> {
       <!-- Team Members -->
       <div class="admin-card agents-team">
         <h2 class="admin-section-title">
-          <span>👥</span> Team Members
+          <span class="admin-icon">${iconSm(ICON_TEAM)}</span>
+          Team Members
           <span class="section-hint">Drag to reorder</span>
         </h2>
         <div class="agents-list" id="agentsList">
@@ -77,13 +95,14 @@ export async function render(): Promise<string> {
       <!-- Templates -->
       <div class="admin-card agents-templates">
         <h2 class="admin-section-title">
-          <span>📦</span> Available Templates
+          <span class="admin-icon">${iconSm(ICON_PACKAGE)}</span>
+          Available Templates
         </h2>
         <div class="templates-grid">
-          ${renderTemplate('basic', '👤', 'Basic', 'General-purpose agent')}
-          ${renderTemplate('sage', '🧙', 'Sage', 'Wise, thoughtful advisor')}
-          ${renderTemplate('specialist', '🎯', 'Specialist', 'Domain expert')}
-          ${renderTemplate('coordinator', '🎭', 'Coordinator', 'Team coordinator')}
+          ${renderTemplate('basic', ICON_USER, 'Basic', 'General-purpose agent')}
+          ${renderTemplate('sage', ICON_CROWN, 'Sage', 'Wise, thoughtful advisor')}
+          ${renderTemplate('specialist', ICON_SEARCH, 'Specialist', 'Domain expert')}
+          ${renderTemplate('coordinator', ICON_TEAM, 'Coordinator', 'Team coordinator')}
         </div>
       </div>
     </div>
@@ -129,14 +148,14 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-4, 1rem);
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
         border-radius: var(--radius-md, 8px);
-        transition: all 150ms ease;
+        transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .agent-card:hover {
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
         border-color: var(--agent-color, rgba(255, 255, 255, 0.1));
       }
 
@@ -148,11 +167,23 @@ export async function render(): Promise<string> {
         border-left: 3px solid var(--agent-color, var(--persona-primary, #4a6741));
       }
 
+      @media (prefers-reduced-motion: reduce) {
+        .agent-card {
+          transition: none;
+        }
+      }
+
       .agent-drag {
         cursor: grab;
         color: var(--color-text-muted, #756A5E);
-        font-size: 1rem;
         user-select: none;
+        display: flex;
+        align-items: center;
+      }
+
+      .agent-drag svg {
+        width: 16px;
+        height: 16px;
       }
 
       .agent-avatar {
@@ -188,16 +219,40 @@ export async function render(): Promise<string> {
       }
 
       .agent-action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
         background: transparent;
         border: none;
-        font-size: 1.125rem;
+        border-radius: var(--radius-sm, 4px);
+        color: var(--color-text-secondary, #a89a8c);
         cursor: pointer;
         opacity: 0.6;
-        transition: opacity 150ms ease;
+        transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .agent-action-btn:hover {
         opacity: 1;
+        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      .agent-action-btn:focus-visible {
+        outline: 2px solid var(--persona-primary, #4a6741);
+        outline-offset: 2px;
+      }
+
+      .agent-action-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .agent-action-btn {
+          transition: none;
+        }
       }
 
       .templates-grid {
@@ -211,20 +266,46 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
         border-radius: var(--radius-md, 8px);
         cursor: pointer;
-        transition: all 150ms ease;
+        transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .template-card:hover {
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
         transform: translateY(-2px);
       }
 
+      .template-card:focus-visible {
+        outline: 2px solid var(--persona-primary, #4a6741);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .template-card {
+          transition: none;
+        }
+        .template-card:hover {
+          transform: none;
+        }
+      }
+
       .template-icon {
-        font-size: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.08));
+        border-radius: var(--radius-md, 8px);
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .template-icon svg {
+        width: 24px;
+        height: 24px;
       }
 
       .template-info {
@@ -254,7 +335,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
       style="--agent-color: ${colors.primary};"
       draggable="${!isCoordinator}"
     >
-      ${!isCoordinator ? '<span class="agent-drag">⋮⋮</span>' : ''}
+      ${!isCoordinator ? `<span class="agent-drag">${iconSm(ICON_GRIP)}</span>` : ''}
       <div class="agent-avatar" style="background: ${colors.gradient};">
         ${agent.initials}
       </div>
@@ -264,10 +345,10 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
       </div>
       <div class="agent-actions">
         <button class="agent-action-btn" data-action="edit" data-agent-id="${agent.id}" title="Edit">
-          ✏️
+          ${iconSm(ICON_EDIT)}
         </button>
         <button class="agent-action-btn" data-action="preview-voice" data-agent-id="${agent.id}" title="Preview Voice">
-          🔊
+          ${iconSm(ICON_SPEAKER)}
         </button>
         ${!isCoordinator ? `
           <label class="admin-toggle">
@@ -287,7 +368,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
 
 function renderTemplate(id: string, icon: string, name: string, desc: string): string {
   return `
-    <div class="template-card" data-template="${id}">
+    <div class="template-card" data-template="${id}" tabindex="0" role="button">
       <span class="template-icon">${icon}</span>
       <div class="template-info">
         <div class="template-name">${name}</div>
@@ -300,7 +381,7 @@ function renderTemplate(id: string, icon: string, name: string, desc: string): s
 function renderError(message: string): string {
   return `
     <div class="admin-error">
-      <div class="admin-error-icon">⚠️</div>
+      <div class="admin-error-icon">${ICON_WARNING}</div>
       <h2>Failed to Load Agents</h2>
       <p class="admin-error-details">${message}</p>
       <button class="admin-btn admin-btn--primary" onclick="window.location.reload()">
@@ -311,4 +392,3 @@ function renderError(message: string): string {
 }
 
 export default { render };
-

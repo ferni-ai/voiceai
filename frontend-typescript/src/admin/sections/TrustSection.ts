@@ -2,11 +2,26 @@
  * Trust Section
  *
  * Trust system analytics and monitoring for the admin portal.
+ * Brand-compliant implementation using Lucide icons.
  *
  * @module TrustSection
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { DURATION, EASING } from '../../config/animation-constants.js';
+import {
+  ICON_TEAM,
+  ICON_TRUST,
+  ICON_HANDOFF,
+  ICON_CROWN,
+  ICON_DATABASE,
+  ICON_CHART,
+  ICON_HISTORY,
+  ICON_TREND_UP,
+  ICON_EVALOPS,
+  ICON_SUCCESS,
+  iconSm,
+} from '../icons.js';
 
 const log = createLogger('TrustSection');
 
@@ -30,22 +45,22 @@ export async function render(): Promise<string> {
       <!-- Quick Stats -->
       <div class="admin-grid trust-stats">
         <div class="admin-card trust-stat">
-          <div class="trust-stat-icon">👥</div>
+          <div class="trust-stat-icon">${iconSm(ICON_TEAM)}</div>
           <div class="trust-stat-value">${metrics.totalProfiles}</div>
           <div class="trust-stat-label">Trust Profiles</div>
         </div>
         <div class="admin-card trust-stat">
-          <div class="trust-stat-icon">💚</div>
+          <div class="trust-stat-icon">${iconSm(ICON_TRUST)}</div>
           <div class="trust-stat-value">${metrics.avgTrustScore}%</div>
           <div class="trust-stat-label">Avg Trust Score</div>
         </div>
         <div class="admin-card trust-stat">
-          <div class="trust-stat-icon">🤝</div>
+          <div class="trust-stat-icon">${iconSm(ICON_HANDOFF)}</div>
           <div class="trust-stat-value">${metrics.activeRelationships}</div>
           <div class="trust-stat-label">Active Relationships</div>
         </div>
         <div class="admin-card trust-stat">
-          <div class="trust-stat-icon">🏆</div>
+          <div class="trust-stat-icon">${iconSm(ICON_CROWN)}</div>
           <div class="trust-stat-value">${metrics.milestonesReached}</div>
           <div class="trust-stat-label">Milestones Reached</div>
         </div>
@@ -54,7 +69,8 @@ export async function render(): Promise<string> {
       <!-- Trust Systems -->
       <div class="admin-card trust-systems">
         <h2 class="admin-section-title">
-          <span>🧠</span> Trust Systems
+          <span class="admin-icon">${iconSm(ICON_DATABASE)}</span>
+          Trust Systems
         </h2>
         <div class="systems-grid">
           ${renderTrustSystem('reading-between-lines', 'Reading Between Lines', 'Detects what\'s NOT being said', true)}
@@ -69,28 +85,30 @@ export async function render(): Promise<string> {
       <!-- Relationship Stages -->
       <div class="admin-card trust-stages">
         <h2 class="admin-section-title">
-          <span>📈</span> Relationship Stage Distribution
+          <span class="admin-icon">${iconSm(ICON_CHART)}</span>
+          Relationship Stage Distribution
         </h2>
         <div class="stages-chart">
-          ${renderStageBar('First Meeting', 15, '#a89a8c')}
-          ${renderStageBar('Getting Started', 28, '#9a7b5a')}
-          ${renderStageBar('Building Trust', 32, '#4a6741')}
-          ${renderStageBar('Established', 18, '#3a6b73')}
-          ${renderStageBar('Deep Partnership', 7, '#C4A265')}
+          ${renderStageBar('First Meeting', 15, 'var(--color-text-secondary, #a89a8c)')}
+          ${renderStageBar('Getting Started', 28, 'var(--persona-jack, #9a7b5a)')}
+          ${renderStageBar('Building Trust', 32, 'var(--persona-primary, #4a6741)')}
+          ${renderStageBar('Established', 18, 'var(--persona-peter, #3a6b73)')}
+          ${renderStageBar('Deep Partnership', 7, 'var(--color-accent, #C4A265)')}
         </div>
       </div>
 
       <!-- Recent Trust Events -->
       <div class="admin-card trust-events">
         <h2 class="admin-section-title">
-          <span>📜</span> Recent Trust Events
+          <span class="admin-icon">${iconSm(ICON_HISTORY)}</span>
+          Recent Trust Events
         </h2>
         <div class="events-list">
-          ${renderTrustEvent('💚', 'user_abc reached "Building Trust" stage', '10 min ago')}
-          ${renderTrustEvent('🎯', 'Boundary detected and respected for user_xyz', '25 min ago')}
-          ${renderTrustEvent('🏆', 'Small win celebrated: user_123 completed morning routine', '1 hour ago')}
-          ${renderTrustEvent('😊', 'Inside joke reference successful with user_456', '2 hours ago')}
-          ${renderTrustEvent('📈', 'Growth reflection triggered for user_789', '3 hours ago')}
+          ${renderTrustEvent(ICON_TRUST, 'user_abc reached "Building Trust" stage', '10 min ago')}
+          ${renderTrustEvent(ICON_EVALOPS, 'Boundary detected and respected for user_xyz', '25 min ago')}
+          ${renderTrustEvent(ICON_CROWN, 'Small win celebrated: user_123 completed morning routine', '1 hour ago')}
+          ${renderTrustEvent(ICON_SUCCESS, 'Inside joke reference successful with user_456', '2 hours ago')}
+          ${renderTrustEvent(ICON_TREND_UP, 'Growth reflection triggered for user_789', '3 hours ago')}
         </div>
       </div>
     </div>
@@ -118,8 +136,16 @@ export async function render(): Promise<string> {
       }
 
       .trust-stat-icon {
-        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         margin-bottom: var(--space-2, 0.5rem);
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .trust-stat-icon svg {
+        width: 24px;
+        height: 24px;
       }
 
       .trust-stat-value {
@@ -148,9 +174,20 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border-radius: var(--radius-md, 8px);
         border-left: 3px solid var(--system-color, var(--color-text-muted, #756A5E));
+        transition: background var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
+      }
+
+      .system-item:hover {
+        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.05));
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .system-item {
+          transition: none;
+        }
       }
 
       .system-item--active {
@@ -184,7 +221,7 @@ export async function render(): Promise<string> {
       }
 
       .system-status--inactive {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
         color: var(--color-text-secondary, #a89a8c);
       }
 
@@ -209,7 +246,7 @@ export async function render(): Promise<string> {
       .stage-bar-bg {
         flex: 1;
         height: 24px;
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.05));
         border-radius: var(--radius-md, 8px);
         overflow: hidden;
       }
@@ -221,7 +258,13 @@ export async function render(): Promise<string> {
         justify-content: flex-end;
         padding-right: var(--space-2, 0.5rem);
         border-radius: var(--radius-md, 8px);
-        transition: width 500ms ease;
+        transition: width var(--duration-deliberate, ${DURATION.DELIBERATE}ms) var(--ease-standard, ${EASING.STANDARD});
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .stage-bar-fill {
+          transition: none;
+        }
       }
 
       .stage-percent {
@@ -241,12 +284,19 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
-        background: rgba(255, 255, 255, 0.02);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.02));
         border-radius: var(--radius-md, 8px);
       }
 
       .event-icon {
-        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .event-icon svg {
+        width: 16px;
+        height: 16px;
       }
 
       .event-text {
@@ -292,7 +342,7 @@ function renderStageBar(name: string, percent: number, color: string): string {
 function renderTrustEvent(icon: string, text: string, time: string): string {
   return `
     <div class="event-item">
-      <span class="event-icon">${icon}</span>
+      <span class="event-icon">${iconSm(icon)}</span>
       <span class="event-text">${text}</span>
       <span class="event-time">${time}</span>
     </div>
@@ -318,4 +368,3 @@ async function fetchTrustMetrics(): Promise<TrustMetrics> {
 }
 
 export default { render };
-

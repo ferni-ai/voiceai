@@ -2,11 +2,26 @@
  * Flags Section
  *
  * Feature flag management for the admin portal.
+ * Brand-compliant implementation using Lucide icons.
  *
  * @module FlagsSection
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { DURATION, EASING } from '../../config/animation-constants.js';
+import {
+  ICON_SUCCESS,
+  ICON_ERROR,
+  ICON_REFRESH,
+  ICON_TRUST,
+  ICON_SPEAKER,
+  ICON_EVALOPS,
+  ICON_TEAM,
+  ICON_SETTINGS,
+  ICON_FLAGS,
+  ICON_SEARCH,
+  iconSm,
+} from '../icons.js';
 
 const log = createLogger('FlagsSection');
 
@@ -33,23 +48,26 @@ export async function render(): Promise<string> {
       <!-- Actions -->
       <div class="flags-actions">
         <div class="flags-search">
+          <span class="flags-search-icon">${iconSm(ICON_SEARCH)}</span>
           <input 
             type="text" 
             placeholder="Search flags..." 
             class="flags-search-input"
             id="flagsSearch"
-            oninput="filterFlags(this.value)"
           >
         </div>
         <div class="flags-action-btns">
           <button class="admin-btn" data-action="enable-all-flags">
-            ✅ Enable All
+            <span class="admin-icon">${iconSm(ICON_SUCCESS)}</span>
+            Enable All
           </button>
           <button class="admin-btn" data-action="disable-all-flags">
-            ⛔ Disable All
+            <span class="admin-icon">${iconSm(ICON_ERROR)}</span>
+            Disable All
           </button>
           <button class="admin-btn" data-action="reset-flags">
-            🔄 Reset to Defaults
+            <span class="admin-icon">${iconSm(ICON_REFRESH)}</span>
+            Reset to Defaults
           </button>
         </div>
       </div>
@@ -58,7 +76,8 @@ export async function render(): Promise<string> {
       ${Object.entries(categories).map(([category, categoryFlags]) => `
         <div class="admin-card flags-category">
           <h2 class="admin-section-title">
-            <span>${getCategoryIcon(category)}</span> ${category}
+            <span class="admin-icon">${iconSm(getCategoryIcon(category))}</span>
+            ${category}
             <span class="category-count">${categoryFlags.length} flags</span>
           </h2>
           <div class="flags-list">
@@ -86,17 +105,35 @@ export async function render(): Promise<string> {
       .flags-search {
         flex: 1;
         max-width: 400px;
+        position: relative;
+      }
+
+      .flags-search-icon {
+        position: absolute;
+        left: var(--space-3, 0.75rem);
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--color-text-muted, #756A5E);
+        display: flex;
+        pointer-events: none;
+      }
+
+      .flags-search-icon svg {
+        width: 16px;
+        height: 16px;
       }
 
       .flags-search-input {
         width: 100%;
         padding: var(--space-3, 0.75rem);
+        padding-left: calc(var(--space-3, 0.75rem) * 2 + 16px);
         background: var(--color-background-elevated, #2c2520);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-md, 8px);
         color: var(--color-text-primary, #faf6f0);
         font-size: 0.9375rem;
         font-family: inherit;
+        transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .flags-search-input::placeholder {
@@ -106,6 +143,12 @@ export async function render(): Promise<string> {
       .flags-search-input:focus {
         outline: none;
         border-color: var(--persona-primary, #4a6741);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .flags-search-input {
+          transition: none;
+        }
       }
 
       .flags-action-btns {
@@ -131,17 +174,23 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-4, 1rem);
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border-radius: var(--radius-md, 8px);
-        transition: all 150ms ease;
+        transition: background var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .flag-item:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.05));
       }
 
       .flag-item--disabled {
         opacity: 0.6;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .flag-item {
+          transition: none;
+        }
       }
 
       .flag-info {
@@ -165,7 +214,7 @@ export async function render(): Promise<string> {
         font-size: 0.6875rem;
         color: var(--color-text-muted, #756A5E);
         padding: 0.125rem 0.375rem;
-        background: rgba(255, 255, 255, 0.05);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.05));
         border-radius: var(--radius-sm, 4px);
       }
 
@@ -194,18 +243,25 @@ export async function render(): Promise<string> {
       .flag-percentage-input {
         width: 60px;
         padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
+        border: 1px solid var(--admin-border-default, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-sm, 4px);
         color: var(--color-text-primary, #faf6f0);
         font-family: var(--font-mono, 'JetBrains Mono', monospace);
         font-size: 0.8125rem;
         text-align: center;
+        transition: border-color var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .flag-percentage-input:focus {
         outline: none;
         border-color: var(--persona-primary, #4a6741);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .flag-percentage-input {
+          transition: none;
+        }
       }
     </style>
   `;
@@ -253,14 +309,14 @@ function renderFlagItem(flag: FeatureFlag): string {
 
 function getCategoryIcon(category: string): string {
   const icons: Record<string, string> = {
-    'Trust': '💚',
-    'Voice': '🎤',
-    'EvalOps': '🎯',
-    'Engagement': '🤝',
-    'Experimental': '🧪',
-    'System': '⚙️',
+    'Trust': ICON_TRUST,
+    'Voice': ICON_SPEAKER,
+    'EvalOps': ICON_EVALOPS,
+    'Engagement': ICON_TEAM,
+    'Experimental': ICON_SETTINGS,
+    'System': ICON_SETTINGS,
   };
-  return icons[category] || '🚩';
+  return icons[category] || ICON_FLAGS;
 }
 
 function groupByCategory(flags: FeatureFlag[]): Record<string, FeatureFlag[]> {
@@ -320,4 +376,3 @@ async function fetchFlags(): Promise<FeatureFlag[]> {
 }
 
 export default { render };
-

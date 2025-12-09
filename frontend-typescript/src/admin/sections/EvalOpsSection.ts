@@ -2,12 +2,26 @@
  * EvalOps Section
  *
  * Evaluation operations dashboard for the admin portal.
- * Monitors persona voice consistency and response quality.
+ * Brand-compliant implementation using Lucide icons.
  *
  * @module EvalOpsSection
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { DURATION, EASING } from '../../config/animation-constants.js';
+import {
+  ICON_CHART,
+  ICON_SUCCESS,
+  ICON_FLAGS,
+  ICON_TEAM,
+  ICON_ZAP,
+  ICON_EVALOPS,
+  ICON_SEARCH,
+  ICON_EXTERNAL,
+  ICON_SETTINGS,
+  ICON_WARNING,
+  iconSm,
+} from '../icons.js';
 
 const log = createLogger('EvalOpsSection');
 
@@ -42,22 +56,22 @@ export async function render(): Promise<string> {
       <!-- Quick Stats -->
       <div class="admin-grid evalops-stats">
         <div class="admin-card evalops-stat">
-          <div class="evalops-stat-icon">📊</div>
+          <div class="evalops-stat-icon">${iconSm(ICON_CHART)}</div>
           <div class="evalops-stat-value">${metrics.totalEvaluations}</div>
           <div class="evalops-stat-label">Total Evaluations</div>
         </div>
         <div class="admin-card evalops-stat">
-          <div class="evalops-stat-icon">✅</div>
+          <div class="evalops-stat-icon">${iconSm(ICON_SUCCESS)}</div>
           <div class="evalops-stat-value evalops-stat-value--success">${metrics.passRate}%</div>
           <div class="evalops-stat-label">Pass Rate</div>
         </div>
         <div class="admin-card evalops-stat">
-          <div class="evalops-stat-icon">🚩</div>
+          <div class="evalops-stat-icon">${iconSm(ICON_FLAGS)}</div>
           <div class="evalops-stat-value evalops-stat-value--warning">${metrics.flaggedResponses}</div>
           <div class="evalops-stat-label">Flagged Responses</div>
         </div>
         <div class="admin-card evalops-stat">
-          <div class="evalops-stat-icon">🎭</div>
+          <div class="evalops-stat-icon">${iconSm(ICON_TEAM)}</div>
           <div class="evalops-stat-value">${metrics.avgVoiceConsistency}%</div>
           <div class="evalops-stat-label">Voice Consistency</div>
         </div>
@@ -66,17 +80,21 @@ export async function render(): Promise<string> {
       <!-- Actions -->
       <div class="admin-card evalops-actions">
         <h2 class="admin-section-title">
-          <span>⚡</span> Quick Actions
+          <span class="admin-icon">${iconSm(ICON_ZAP)}</span>
+          Quick Actions
         </h2>
         <div class="evalops-actions-grid">
           <button class="admin-btn admin-btn--primary" data-action="run-suite">
-            🎯 Run Test Suite
+            <span class="admin-icon">${iconSm(ICON_EVALOPS)}</span>
+            Run Test Suite
           </button>
           <button class="admin-btn" data-action="quick-check">
-            🔍 Quick Voice Check
+            <span class="admin-icon">${iconSm(ICON_SEARCH)}</span>
+            Quick Voice Check
           </button>
           <button class="admin-btn" data-action="export-report">
-            📤 Export Report
+            <span class="admin-icon">${iconSm(ICON_EXTERNAL)}</span>
+            Export Report
           </button>
         </div>
         <p class="evalops-last-run">
@@ -87,7 +105,8 @@ export async function render(): Promise<string> {
       <!-- Evaluation Dimensions -->
       <div class="admin-card evalops-dimensions">
         <h2 class="admin-section-title">
-          <span>📐</span> Evaluation Dimensions
+          <span class="admin-icon">${iconSm(ICON_CHART)}</span>
+          Evaluation Dimensions
         </h2>
         <div class="dimensions-grid">
           ${renderDimension('Persona Voice', 94, 'Does this sound like the character?')}
@@ -103,13 +122,14 @@ export async function render(): Promise<string> {
       <!-- Flagged Responses -->
       <div class="admin-card evalops-flagged">
         <h2 class="admin-section-title">
-          <span>🚩</span> Flagged Responses
+          <span class="admin-icon">${iconSm(ICON_FLAGS)}</span>
+          Flagged Responses
           <span class="section-badge">${flagged.length}</span>
         </h2>
         <div class="flagged-list">
           ${flagged.length > 0 
             ? flagged.map(f => renderFlaggedItem(f)).join('')
-            : '<p class="flagged-empty">No flagged responses. All clear! 🎉</p>'
+            : '<p class="flagged-empty">No flagged responses. All clear!</p>'
           }
         </div>
       </div>
@@ -117,7 +137,8 @@ export async function render(): Promise<string> {
       <!-- Feature Flags -->
       <div class="admin-card evalops-flags">
         <h2 class="admin-section-title">
-          <span>🎚️</span> EvalOps Settings
+          <span class="admin-icon">${iconSm(ICON_SETTINGS)}</span>
+          EvalOps Settings
         </h2>
         <div class="flags-list">
           ${renderFlagToggle('evalops', 'EvalOps Enabled', 'Master toggle for evaluation system', true)}
@@ -152,8 +173,16 @@ export async function render(): Promise<string> {
       }
 
       .evalops-stat-icon {
-        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         margin-bottom: var(--space-2, 0.5rem);
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .evalops-stat-icon svg {
+        width: 24px;
+        height: 24px;
       }
 
       .evalops-stat-value {
@@ -198,7 +227,7 @@ export async function render(): Promise<string> {
 
       .dimension-item {
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -225,7 +254,7 @@ export async function render(): Promise<string> {
 
       .dimension-bar {
         height: 4px;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
         border-radius: 2px;
         overflow: hidden;
         margin-bottom: var(--space-2, 0.5rem);
@@ -234,7 +263,13 @@ export async function render(): Promise<string> {
       .dimension-bar-fill {
         height: 100%;
         border-radius: 2px;
-        transition: width 300ms ease;
+        transition: width var(--duration-slow, ${DURATION.SLOW}ms) var(--ease-standard, ${EASING.STANDARD});
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dimension-bar-fill {
+          transition: none;
+        }
       }
 
       .dimension-desc {
@@ -263,13 +298,20 @@ export async function render(): Promise<string> {
         align-items: flex-start;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border-left: 3px solid var(--color-semantic-warning, #d4a84b);
         border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0;
       }
 
       .flagged-icon {
-        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        color: var(--color-semantic-warning, #d4a84b);
+      }
+
+      .flagged-icon svg {
+        width: 20px;
+        height: 20px;
       }
 
       .flagged-content {
@@ -291,7 +333,7 @@ export async function render(): Promise<string> {
       .flagged-dimension {
         font-size: 0.75rem;
         padding: 0.125rem 0.375rem;
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-sm, 4px);
       }
 
@@ -322,7 +364,7 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-4, 1rem);
         padding: var(--space-3, 0.75rem);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -368,7 +410,7 @@ function renderDimension(name: string, score: number, desc: string): string {
 function renderFlaggedItem(item: FlaggedResponse): string {
   return `
     <div class="flagged-item" data-id="${item.id}">
-      <span class="flagged-icon">⚠️</span>
+      <span class="flagged-icon">${iconSm(ICON_WARNING)}</span>
       <div class="flagged-content">
         <div class="flagged-header">
           <span class="flagged-persona">${item.personaId}</span>
@@ -389,7 +431,7 @@ function renderFlagToggle(id: string, name: string, desc: string, enabled: boole
         <div class="flag-desc">${desc}</div>
       </div>
       <label class="admin-toggle">
-        <input type="checkbox" ${enabled ? 'checked' : ''} data-flag-id="${id}">
+        <input type="checkbox" ${enabled ? 'checked' : ''} data-flag-id="${id}" data-action="toggle">
         <span class="admin-toggle-slider"></span>
       </label>
     </div>
@@ -447,4 +489,3 @@ async function fetchFlaggedResponses(): Promise<FlaggedResponse[]> {
 }
 
 export default { render };
-

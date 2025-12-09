@@ -351,6 +351,9 @@ export function initAdminEvents(): void {
   portal.addEventListener('change', handleAdminChange);
   portal.addEventListener('input', handleAdminInput);
   
+  // Set up avatar demo handlers for design system section
+  setupAvatarDemoHandlers();
+  
   log.debug('Admin events initialized');
 }
 
@@ -462,7 +465,116 @@ async function handleAdminInput(e: Event): Promise<void> {
         }
       }, 500);
     }
+    return;
   }
+  
+  // Flags search (filter list)
+  if (target.matches('#flagsSearch')) {
+    const searchTerm = target.value.toLowerCase();
+    const flagItems = document.querySelectorAll('.flag-item');
+    
+    flagItems.forEach((item: Element) => {
+      const flagId = item.getAttribute('data-flag')?.toLowerCase() || '';
+      const flagName = item.querySelector('.flag-name')?.textContent?.toLowerCase() || '';
+      const isMatch = flagId.includes(searchTerm) || flagName.includes(searchTerm);
+      (item as HTMLElement).style.display = isMatch ? '' : 'none';
+    });
+  }
+}
+
+// ============================================================================
+// DESIGN SYSTEM AVATAR DEMO HANDLERS
+// ============================================================================
+
+function setupAvatarDemoHandlers(): void {
+  const portal = document.getElementById('adminPortal');
+  if (!portal) return;
+  
+  // Emotion buttons
+  portal.querySelectorAll('[data-emotion]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const emotion = btn.getAttribute('data-emotion');
+      const avatar = document.getElementById('demoAvatar');
+      const stateEl = document.getElementById('avatarState');
+      
+      if (avatar && emotion) {
+        // Update state display
+        if (stateEl) stateEl.textContent = emotion;
+        
+        // Update avatar color based on emotion
+        const colors: Record<string, string> = {
+          happy: 'var(--color-semantic-success, #4a6741)',
+          thinking: 'var(--persona-peter, #3a6b73)',
+          excited: 'var(--color-semantic-warning, #d4a84b)',
+          calm: 'var(--persona-maya, #a67a6a)',
+        };
+        avatar.style.background = colors[emotion] || 'var(--persona-primary, #4a6741)';
+      }
+    });
+  });
+  
+  // Reaction buttons
+  portal.querySelectorAll('[data-reaction]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const reaction = btn.getAttribute('data-reaction');
+      const avatar = document.getElementById('demoAvatar');
+      
+      if (avatar && reaction) {
+        // Remove any existing reaction classes
+        avatar.classList.remove('nod', 'shake', 'bounce', 'pulse');
+        
+        // Force reflow for animation restart
+        void avatar.offsetWidth;
+        
+        // Add the reaction class
+        avatar.classList.add(reaction);
+        
+        // Remove after animation completes
+        setTimeout(() => {
+          avatar.classList.remove(reaction);
+        }, 1000);
+      }
+    });
+  });
+  
+  // Animation preset buttons
+  portal.querySelectorAll('[data-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const preset = btn.getAttribute('data-preset');
+      const element = btn as HTMLElement;
+      
+      // Apply animation based on preset
+      switch (preset) {
+        case 'buttonPress':
+          element.animate([
+            { transform: 'scale(1)' },
+            { transform: 'scale(0.95)' },
+            { transform: 'scale(1)' },
+          ], { duration: 150, easing: 'ease-out' });
+          break;
+        case 'celebration':
+          element.animate([
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.1) rotate(5deg)' },
+            { transform: 'scale(0.95) rotate(-5deg)' },
+            { transform: 'scale(1)' },
+          ], { duration: 600, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+          break;
+        case 'fadeIn':
+          element.animate([
+            { opacity: 0 },
+            { opacity: 1 },
+          ], { duration: 300, easing: 'ease-out' });
+          break;
+        case 'slideUp':
+          element.animate([
+            { transform: 'translateY(10px)', opacity: 0 },
+            { transform: 'translateY(0)', opacity: 1 },
+          ], { duration: 300, easing: 'ease-out' });
+          break;
+      }
+    });
+  });
 }
 
 export default {

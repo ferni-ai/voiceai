@@ -2,12 +2,22 @@
  * Diagnostics Section
  *
  * System diagnostics and handoff monitoring for the admin portal.
- * Migrated from public/dashboards/handoff-diagnostics.html
+ * Brand-compliant implementation using Lucide icons.
  *
  * @module DiagnosticsSection
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { DURATION, EASING } from '../../config/animation-constants.js';
+import {
+  ICON_HANDOFF,
+  ICON_HISTORY,
+  ICON_HEALTH,
+  ICON_SUCCESS,
+  ICON_ERROR,
+  ICON_ARROW_RIGHT,
+  iconSm,
+} from '../icons.js';
 
 const log = createLogger('DiagnosticsSection');
 
@@ -62,7 +72,8 @@ export async function render(): Promise<string> {
       <!-- Handoff Flow Diagram -->
       <div class="admin-card diagnostics-flow">
         <h2 class="admin-section-title">
-          <span>🔄</span> Handoff Flow
+          <span class="admin-icon">${iconSm(ICON_HANDOFF)}</span>
+          Handoff Flow
         </h2>
         <div class="flow-diagram">
           ${renderFlowDiagram()}
@@ -72,7 +83,8 @@ export async function render(): Promise<string> {
       <!-- Recent Handoffs -->
       <div class="admin-card diagnostics-events">
         <h2 class="admin-section-title">
-          <span>📜</span> Recent Handoffs
+          <span class="admin-icon">${iconSm(ICON_HISTORY)}</span>
+          Recent Handoffs
         </h2>
         <table class="admin-table">
           <thead>
@@ -94,7 +106,8 @@ export async function render(): Promise<string> {
       <!-- System Health -->
       <div class="admin-card diagnostics-health">
         <h2 class="admin-section-title">
-          <span>🏥</span> System Components
+          <span class="admin-icon">${iconSm(ICON_HEALTH)}</span>
+          System Components
         </h2>
         <div class="health-grid">
           ${renderHealthItem('LiveKit', 'healthy', '99.9% uptime')}
@@ -166,10 +179,21 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-2, 0.5rem);
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border: 2px solid var(--node-color, rgba(255, 255, 255, 0.1));
         border-radius: var(--radius-lg, 12px);
         min-width: 100px;
+        transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
+      }
+
+      .flow-node:hover {
+        background: var(--admin-surface-hover, rgba(255, 255, 255, 0.06));
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .flow-node {
+          transition: none;
+        }
       }
 
       .flow-node-avatar {
@@ -190,8 +214,14 @@ export async function render(): Promise<string> {
       }
 
       .flow-arrow {
-        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
         color: var(--color-text-muted, #756A5E);
+      }
+
+      .flow-arrow svg {
+        width: 20px;
+        height: 20px;
       }
 
       .handoff-status {
@@ -202,6 +232,11 @@ export async function render(): Promise<string> {
         border-radius: var(--radius-full, 9999px);
         font-size: 0.75rem;
         font-weight: 500;
+      }
+
+      .handoff-status svg {
+        width: 12px;
+        height: 12px;
       }
 
       .handoff-status--success {
@@ -225,7 +260,7 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border-radius: var(--radius-md, 8px);
       }
 
@@ -233,7 +268,13 @@ export async function render(): Promise<string> {
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        animation: pulse 2s infinite;
+        animation: diagnostics-pulse 2s infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .health-indicator {
+          animation: none;
+        }
       }
 
       .health-indicator--healthy {
@@ -251,7 +292,7 @@ export async function render(): Promise<string> {
         box-shadow: 0 0 8px var(--color-semantic-error, #c44536);
       }
 
-      @keyframes pulse {
+      @keyframes diagnostics-pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
       }
@@ -282,7 +323,7 @@ function renderFlowDiagram(): string {
   ];
 
   return personas.map((p, i) => `
-    ${i > 0 ? '<span class="flow-arrow">→</span>' : ''}
+    ${i > 0 ? `<span class="flow-arrow">${iconSm(ICON_ARROW_RIGHT)}</span>` : ''}
     <div class="flow-node" style="--node-color: ${p.color};">
       <div class="flow-node-avatar" style="background: ${p.color};">
         ${p.name.slice(0, 2).toUpperCase()}
@@ -293,6 +334,8 @@ function renderFlowDiagram(): string {
 }
 
 function renderHandoffRow(event: HandoffEvent): string {
+  const statusIcon = event.status === 'success' ? iconSm(ICON_SUCCESS) : iconSm(ICON_ERROR);
+  
   return `
     <tr>
       <td>${event.from}</td>
@@ -301,7 +344,7 @@ function renderHandoffRow(event: HandoffEvent): string {
       <td>${event.duration}ms</td>
       <td>
         <span class="handoff-status handoff-status--${event.status}">
-          ${event.status === 'success' ? '✓' : '✗'} ${event.status}
+          ${statusIcon} ${event.status}
         </span>
       </td>
       <td>${event.timestamp}</td>
@@ -368,4 +411,3 @@ async function fetchRecentHandoffs(): Promise<HandoffEvent[]> {
 }
 
 export default { render };
-

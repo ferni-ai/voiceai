@@ -2,11 +2,29 @@
  * Dashboard Section
  *
  * Admin dashboard overview with system health and quick stats.
+ * Brand-compliant implementation using Lucide icons.
  *
  * @module DashboardSection
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { DURATION, EASING } from '../../config/animation-constants.js';
+import {
+  ICON_HEALTH,
+  ICON_ZAP,
+  ICON_HISTORY,
+  ICON_SEARCH,
+  ICON_EVALOPS,
+  ICON_FLAGS,
+  ICON_DELETE,
+  ICON_AGENTS,
+  ICON_SUCCESS,
+  ICON_TREND_UP,
+  ICON_TREND_DOWN,
+  ICON_TRUST,
+  ICON_USER,
+  iconSm,
+} from '../icons.js';
 
 const log = createLogger('DashboardSection');
 
@@ -40,7 +58,8 @@ export async function render(): Promise<string> {
       <!-- System Health Card -->
       <div class="admin-card dashboard-health">
         <h2 class="admin-section-title">
-          <span>🏥</span> System Health
+          <span class="admin-icon">${iconSm(ICON_HEALTH)}</span>
+          System Health
         </h2>
         <div class="health-status health-status--${health.status}">
           <span class="health-indicator"></span>
@@ -70,23 +89,24 @@ export async function render(): Promise<string> {
       <!-- Quick Actions -->
       <div class="admin-card dashboard-actions">
         <h2 class="admin-section-title">
-          <span>⚡</span> Quick Actions
+          <span class="admin-icon">${iconSm(ICON_ZAP)}</span>
+          Quick Actions
         </h2>
         <div class="quick-actions-grid">
           <button class="quick-action" data-action="validate-agents">
-            <span class="quick-action-icon">🔍</span>
+            <span class="quick-action-icon">${iconSm(ICON_SEARCH)}</span>
             <span class="quick-action-text">Validate Agents</span>
           </button>
           <button class="quick-action" data-action="run-evalops">
-            <span class="quick-action-icon">🎯</span>
+            <span class="quick-action-icon">${iconSm(ICON_EVALOPS)}</span>
             <span class="quick-action-text">Run EvalOps Suite</span>
           </button>
           <button class="quick-action" data-action="refresh-flags">
-            <span class="quick-action-icon">🚩</span>
+            <span class="quick-action-icon">${iconSm(ICON_FLAGS)}</span>
             <span class="quick-action-text">Refresh Flags</span>
           </button>
           <button class="quick-action" data-action="clear-cache">
-            <span class="quick-action-icon">🗑️</span>
+            <span class="quick-action-icon">${iconSm(ICON_DELETE)}</span>
             <span class="quick-action-text">Clear Cache</span>
           </button>
         </div>
@@ -95,7 +115,8 @@ export async function render(): Promise<string> {
       <!-- Recent Activity -->
       <div class="admin-card dashboard-activity">
         <h2 class="admin-section-title">
-          <span>📜</span> Recent Activity
+          <span class="admin-icon">${iconSm(ICON_HISTORY)}</span>
+          Recent Activity
         </h2>
         <div class="activity-list">
           ${renderActivityItems()}
@@ -131,7 +152,7 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
         border-radius: var(--radius-md, 8px);
         margin-bottom: var(--space-4, 1rem);
       }
@@ -140,7 +161,13 @@ export async function render(): Promise<string> {
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        animation: pulse 2s infinite;
+        animation: dashboard-pulse 2s infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .health-indicator {
+          animation: none;
+        }
       }
 
       .health-status--healthy .health-indicator {
@@ -158,7 +185,7 @@ export async function render(): Promise<string> {
         box-shadow: 0 0 8px var(--color-semantic-error, #c44536);
       }
 
-      @keyframes pulse {
+      @keyframes dashboard-pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
       }
@@ -204,7 +231,7 @@ export async function render(): Promise<string> {
 
       .stat-card {
         background: var(--color-background-elevated, #2c2520);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-5, 1.25rem);
         text-align: center;
@@ -226,6 +253,10 @@ export async function render(): Promise<string> {
       }
 
       .stat-change {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-1, 0.25rem);
         font-size: 0.75rem;
         margin-top: var(--space-1, 0.25rem);
       }
@@ -233,6 +264,11 @@ export async function render(): Promise<string> {
       .stat-change--up { color: var(--color-semantic-success, #4a6741); }
       .stat-change--down { color: var(--color-semantic-error, #c44536); }
       .stat-change--neutral { color: var(--color-text-secondary, #a89a8c); }
+
+      .stat-change svg {
+        width: 12px;
+        height: 12px;
+      }
 
       .quick-actions-grid {
         display: grid;
@@ -246,23 +282,45 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-2, 0.5rem);
         padding: var(--space-4, 1rem);
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.03));
+        border: 1px solid var(--admin-border-subtle, rgba(255, 255, 255, 0.05));
         border-radius: var(--radius-md, 8px);
         color: var(--color-text-primary, #faf6f0);
         font-family: inherit;
         cursor: pointer;
-        transition: all 150ms ease;
+        transition: all var(--duration-fast, ${DURATION.FAST}ms) var(--ease-standard, ${EASING.STANDARD});
       }
 
       .quick-action:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.1);
+        background: var(--admin-surface-active, rgba(255, 255, 255, 0.08));
+        border-color: var(--admin-border-hover, rgba(255, 255, 255, 0.1));
         transform: translateY(-2px);
       }
 
+      .quick-action:focus-visible {
+        outline: 2px solid var(--persona-primary, #4a6741);
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .quick-action {
+          transition: none;
+        }
+        .quick-action:hover {
+          transform: none;
+        }
+      }
+
       .quick-action-icon {
-        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .quick-action-icon svg {
+        width: 24px;
+        height: 24px;
       }
 
       .quick-action-text {
@@ -281,12 +339,20 @@ export async function render(): Promise<string> {
         align-items: center;
         gap: var(--space-3, 0.75rem);
         padding: var(--space-3, 0.75rem);
-        background: rgba(255, 255, 255, 0.02);
+        background: var(--admin-surface-subtle, rgba(255, 255, 255, 0.02));
         border-radius: var(--radius-md, 8px);
       }
 
       .activity-icon {
-        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .activity-icon svg {
+        width: 16px;
+        height: 16px;
       }
 
       .activity-text {
@@ -303,13 +369,19 @@ export async function render(): Promise<string> {
 }
 
 function renderStatCard(stat: QuickStat): string {
+  const trendIcon = stat.trend === 'up' 
+    ? iconSm(ICON_TREND_UP)
+    : stat.trend === 'down'
+    ? iconSm(ICON_TREND_DOWN)
+    : '';
+    
   return `
     <div class="stat-card">
       <div class="stat-value">${stat.value}</div>
       <div class="stat-label">${stat.label}</div>
       ${stat.change ? `
         <div class="stat-change stat-change--${stat.trend || 'neutral'}">
-          ${stat.trend === 'up' ? '↑' : stat.trend === 'down' ? '↓' : ''}
+          ${trendIcon}
           ${stat.change}
         </div>
       ` : ''}
@@ -319,16 +391,16 @@ function renderStatCard(stat: QuickStat): string {
 
 function renderActivityItems(): string {
   const activities = [
-    { icon: '🤖', text: 'Agent "ferni" validated successfully', time: '2 min ago' },
-    { icon: '🚩', text: 'Feature flag "evalops" enabled', time: '15 min ago' },
-    { icon: '🎯', text: 'EvalOps suite completed (98% pass rate)', time: '1 hour ago' },
-    { icon: '👤', text: 'New user enrolled voice profile', time: '2 hours ago' },
-    { icon: '💚', text: 'Trust score milestone: user_123 reached "Established"', time: '3 hours ago' },
+    { icon: ICON_AGENTS, text: 'Agent "ferni" validated successfully', time: '2 min ago' },
+    { icon: ICON_FLAGS, text: 'Feature flag "evalops" enabled', time: '15 min ago' },
+    { icon: ICON_EVALOPS, text: 'EvalOps suite completed (98% pass rate)', time: '1 hour ago' },
+    { icon: ICON_USER, text: 'New user enrolled voice profile', time: '2 hours ago' },
+    { icon: ICON_TRUST, text: 'Trust score milestone: user_123 reached "Established"', time: '3 hours ago' },
   ];
 
   return activities.map(a => `
     <div class="activity-item">
-      <span class="activity-icon">${a.icon}</span>
+      <span class="activity-icon">${iconSm(a.icon)}</span>
       <span class="activity-text">${a.text}</span>
       <span class="activity-time">${a.time}</span>
     </div>
@@ -385,4 +457,3 @@ async function fetchQuickStats(): Promise<QuickStat[]> {
 }
 
 export default { render };
-
