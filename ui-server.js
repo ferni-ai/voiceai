@@ -61,6 +61,10 @@ import { handleUserRoutes } from './dist/api/user-routes.js';
 // Habit persistence routes (CRUD, completions, streaks)
 import { handleHabitRoutes } from './dist/api/habit-routes.js';
 
+// EvalOps - Quality evaluation system (LLM-as-judge, voice fingerprints, test scenarios)
+// NOTE: Temporarily disabled - evalops module is WIP with TypeScript errors
+// import { handleEvalOpsRoutes } from './dist/api/evalops-handler.js';
+
 // Subscription routes (Stripe checkout, billing portal, usage tracking)
 import {
   handleSubscriptionRequest,
@@ -530,6 +534,13 @@ const server = http.createServer(async (req, res) => {
       const handled = await handleHabitRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
+
+    // EvalOps - Quality evaluation system
+    // NOTE: Temporarily disabled - evalops module is WIP with TypeScript errors
+    // if (pathname.startsWith('/api/evalops')) {
+    //   const handled = await handleEvalOpsRoutes(req, res, pathname, parsedUrl);
+    //   if (handled) return;
+    // }
 
     // Subscription routes (Stripe checkout, billing portal, usage tracking)
     if (isSubscriptionRoute(pathname)) {
