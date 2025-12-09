@@ -802,7 +802,7 @@ function addStyles(): void {
       width: 32px;
       height: 32px;
       border: 3px solid var(--color-border);
-      border-top-color: var(--persona-primary);
+      border-top-color: var(--color-text-secondary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -978,7 +978,7 @@ function addStyles(): void {
     .prompt-category, .media-intent {
       font-size: 0.75rem;
       text-transform: uppercase;
-      color: var(--persona-primary);
+      color: var(--color-text-secondary);
       font-weight: 600;
     }
     
@@ -1044,7 +1044,7 @@ function addStyles(): void {
       padding: var(--space-1) var(--space-3);
       background: var(--persona-tint);
       border-radius: var(--radius-full);
-      color: var(--persona-primary);
+      color: var(--color-text-secondary);
       font-size: 0.85rem;
     }
     

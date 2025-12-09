@@ -152,7 +152,7 @@ const STYLES = `
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: var(--persona-primary, #4a6741);
+  color: var(--color-text-secondary);
 }
 
 .outreach-schedule-title {

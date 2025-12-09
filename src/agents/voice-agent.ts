@@ -3207,6 +3207,15 @@ export default defineAgent({
       const frontendPublisher = initializeFrontendPublisher(ctx.room);
       diag.state('Frontend publisher initialized');
 
+      // Initialize frontend signal service for lower layers
+      const { initFrontendSignal } = await import('../services/frontend-signal.js');
+      initFrontendSignal(async (type, data) => {
+        const publisher = getFrontendPublisher();
+        if (publisher.isConnected()) {
+          await publisher.sendData(type, data ?? {});
+        }
+      });
+
       // ===============================================
       // STEP 6b: INITIALIZE ENGAGEMENT DATA SENDER
       // ===============================================

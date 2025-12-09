@@ -391,7 +391,7 @@ function injectStyles(): void {
     }
 
     .calendar-privacy-icon {
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
       flex-shrink: 0;
     }
 

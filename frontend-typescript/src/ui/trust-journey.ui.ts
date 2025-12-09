@@ -604,7 +604,7 @@ function injectStyles(): void {
       width: 48px;
       height: 48px;
       border: 3px solid var(--color-background-tertiary, #E8E0D5);
-      border-top-color: var(--persona-primary, #4a6741);
+      border-top-color: var(--color-text-secondary);
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin-bottom: var(--space-4, 16px);

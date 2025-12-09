@@ -446,7 +446,7 @@ function renderTeamNarrative(): string {
 
 /**
  * Render agent cards HTML (without the grid wrapper)
- * All agents show "Coming Soon" and are disabled for now
+ * Shows install/uninstall buttons based on installation status
  * 
  * Uses CSS custom properties for colors - allows design system to control appearance
  */
@@ -455,9 +455,18 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
     const initials = agent.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
     // Use CSS variables via data-persona attribute - gradient comes from design system
     const gradient = getPersonaGradient(agent.id);
+    
+    // Determine state classes and button
+    const stateClass = agent.isInstalled ? 'installed' : '';
+    const badgeHtml = agent.isInstalled 
+      ? '<span class="agent-badge installed">Installed</span>' 
+      : '';
+    const buttonHtml = agent.isInstalled
+      ? `<button class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
+      : `<button class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
 
     return `
-    <article class="marketplace-agent coming-soon" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem">
+    <article class="marketplace-agent ${stateClass}" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem">
       <div class="agent-header">
         <div class="agent-avatar" style="background: ${gradient};">
           ${initials}
@@ -466,7 +475,7 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
           <h3 class="agent-name">${agent.name}</h3>
           <span class="agent-category">${getCategoryLabel(agent.category)}</span>
         </div>
-        <span class="agent-badge coming-soon-badge">Coming Soon</span>
+        ${badgeHtml}
       </div>
       <p class="agent-description">${agent.short_description}</p>
       <div class="agent-tags">
@@ -474,9 +483,7 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       </div>
       <footer class="agent-footer">
         <span class="agent-author">by ${agent.author}</span>
-        <button class="agent-action coming-soon-btn" disabled>
-          Coming Soon
-        </button>
+        ${buttonHtml}
       </footer>
     </article>
     `;
@@ -1548,7 +1555,7 @@ function getMarketplaceStyles(): string {
 
     [data-theme="zen"] .marketplace-tab.active {
       background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-text-secondary);
       color: white;
     }
 
@@ -1563,7 +1570,7 @@ function getMarketplaceStyles(): string {
     }
 
     [data-theme="zen"] .marketplace-search-input:focus {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-text-secondary);
     }
 
     [data-theme="zen"] .marketplace-category-select {
@@ -1584,7 +1591,7 @@ function getMarketplaceStyles(): string {
 
     [data-theme="zen"] .marketplace-spinner {
       border-color: rgba(44, 37, 32, 0.1);
-      border-top-color: var(--persona-primary, #4a6741);
+      border-top-color: var(--color-text-secondary);
     }
 
     [data-theme="zen"] .marketplace-agent {
@@ -1598,7 +1605,7 @@ function getMarketplaceStyles(): string {
     }
 
     [data-theme="zen"] .marketplace-agent.installed {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-text-secondary);
       background: rgba(74, 103, 65, 0.06);
     }
 

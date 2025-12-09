@@ -134,7 +134,7 @@ const STYLES = `
     font-weight: 600;
     letter-spacing: 1px;
     text-transform: uppercase;
-    color: var(--persona-primary, #4a6741);
+    color: var(--color-text-secondary);
   }
 
   .outreach-prefs-title {
@@ -274,7 +274,7 @@ const STYLES = `
   }
 
   .outreach-prefs-channel--selected {
-    border-color: var(--persona-primary, #4a6741);
+    border-color: var(--color-text-secondary);
     background: rgba(74, 103, 65, 0.08);
   }
 
@@ -293,7 +293,7 @@ const STYLES = `
 
   .outreach-prefs-channel--selected .outreach-prefs-channel-check {
     background: var(--persona-primary, #4a6741);
-    border-color: var(--persona-primary, #4a6741);
+    border-color: var(--color-text-secondary);
   }
 
   .outreach-prefs-channel-check svg {
@@ -328,7 +328,7 @@ const STYLES = `
     min-width: 40px;
     text-align: right;
     font-weight: 600;
-    color: var(--persona-primary, #4a6741);
+    color: var(--color-text-secondary);
   }
 
   .outreach-prefs-slider {
@@ -378,7 +378,7 @@ const STYLES = `
 
   .outreach-prefs-time-input:focus {
     outline: none;
-    border-color: var(--persona-primary, #4a6741);
+    border-color: var(--color-text-secondary);
   }
 
   .outreach-prefs-time-label {
@@ -412,9 +412,9 @@ const STYLES = `
   }
 
   .outreach-prefs-day--selected {
-    border-color: var(--persona-primary, #4a6741);
+    border-color: var(--color-text-secondary);
     background: rgba(74, 103, 65, 0.08);
-    color: var(--persona-primary, #4a6741);
+    color: var(--color-text-secondary);
   }
 
   /* Footer */

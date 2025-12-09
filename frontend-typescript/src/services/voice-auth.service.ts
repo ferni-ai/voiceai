@@ -86,7 +86,6 @@ export interface ContinuousAuthStatus {
  * Audio recorder for voice enrollment/verification.
  */
 class VoiceRecorder {
-  private mediaRecorder: MediaRecorder | null = null;
   private audioContext: AudioContext | null = null;
   private stream: MediaStream | null = null;
   private chunks: Float32Array[] = [];
@@ -371,7 +370,6 @@ class VoiceAuthService {
 
       // Record for specified duration with progress updates
       const startTime = Date.now();
-      const durationMs = durationSeconds * 1000;
 
       await new Promise<void>((resolve) => {
         const updateProgress = () => {

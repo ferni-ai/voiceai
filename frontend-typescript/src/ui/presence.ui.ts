@@ -125,6 +125,9 @@ export function initPresenceUI(): void {
   startBlinking();
   startMicroIdleMovements();
   
+  // 🚀 Ferni EQ: Listen for breath sync events
+  document.addEventListener('ferni:breath-sync', handleBreathSync as EventListener);
+  log.debug('🚀 Ferni EQ breath sync listener initialized');
 }
 
 // ============================================================================
@@ -1165,6 +1168,89 @@ export function dispose(): void {
 }
 
 // ============================================================================
+// 🚀 FERNI EQ: BREATH SYNCHRONIZATION
+// ============================================================================
+
+/**
+ * Custom breath duration override (0 = use default)
+ * Set by breath sync to match user's breathing rate
+ */
+let customBreathDuration = 0;
+
+/**
+ * Handle breath sync events from Ferni EQ system
+ * Adjusts avatar breathing to mirror user's breath rate (calming effect)
+ */
+function handleBreathSync(event: CustomEvent<{ rate: number; depth?: string }>): void {
+  const { rate, depth } = event.detail;
+  
+  // Rate is in breaths per minute, convert to ms per breath cycle
+  // Ferni breathes slightly slower than user for calming effect
+  const targetDuration = Math.round(60000 / rate);
+  
+  // Clamp to reasonable range (2s - 10s per breath)
+  customBreathDuration = Math.max(2000, Math.min(10000, targetDuration));
+  
+  // Apply depth modifier to CSS custom property
+  const depthScale = depth === 'deep' ? 1.5 : depth === 'shallow' ? 0.5 : 1;
+  document.documentElement.style.setProperty('--breath-depth-scale', String(depthScale));
+  
+  // Restart breathing animation with new duration
+  restartBreathingWithCustomDuration();
+  
+  log.debug('🚀 Ferni EQ breath sync applied', { rate, targetDuration: customBreathDuration, depth });
+}
+
+/**
+ * Get breathing duration, considering custom override from breath sync
+ */
+function getEffectiveBreathDuration(): number {
+  if (customBreathDuration > 0) {
+    return customBreathDuration;
+  }
+  return getBreathingDuration();
+}
+
+/**
+ * Restart breathing animation with custom duration
+ * Called when breath sync adjusts the rate
+ */
+function restartBreathingWithCustomDuration(): void {
+  if (!avatarContainer || !breathingAnimation) return;
+  
+  // Get current playback state
+  const currentTime = breathingAnimation.currentTime;
+  const currentDuration = breathingAnimation.effect?.getComputedTiming().duration;
+  
+  if (currentDuration && typeof currentTime === 'number') {
+    // Calculate phase (0-1) in current cycle
+    const phase = (currentTime % (currentDuration as number)) / (currentDuration as number);
+    
+    // Cancel current animation
+    breathingAnimation.cancel();
+    
+    // Restart with new duration at same phase (smooth transition)
+    const newDuration = getEffectiveBreathDuration();
+    startBreathingAnimation();
+    
+    // Jump to same phase position
+    if (breathingAnimation) {
+      breathingAnimation.currentTime = phase * newDuration;
+    }
+  }
+}
+
+/**
+ * Reset breath sync to default
+ */
+export function resetBreathSync(): void {
+  customBreathDuration = 0;
+  document.documentElement.style.removeProperty('--breath-depth-scale');
+  startBreathingAnimation();
+  log.debug('🚀 Ferni EQ breath sync reset to default');
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -1192,6 +1278,8 @@ export const presenceUI = {
   farewell,
   // 🆕 Human-like behaviors
   blink,
+  // 🚀 Ferni EQ: Breath sync
+  resetBreathSync,
   // Cleanup
   dispose,
 };

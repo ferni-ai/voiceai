@@ -13,7 +13,7 @@
  *
  * Set up Cloud Scheduler to trigger every 15 minutes:
  *   gcloud scheduler jobs create pubsub outreach-check \
- *     --schedule="*/15 * * * *" \
+ *     --schedule="0/15 * * * *" \
  *     --topic=outreach-trigger \
  *     --message-body="{}" \
  *     --time-zone="America/New_York" \

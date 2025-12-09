@@ -198,7 +198,7 @@ function injectStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
       margin-bottom: 4px;
     }
 
@@ -293,7 +293,7 @@ function injectStyles(): void {
 
     .contact-settings-input:focus {
       outline: none;
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-text-secondary);
       box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
     }
 
@@ -308,7 +308,7 @@ function injectStyles(): void {
       align-items: center;
       gap: 4px;
       font-size: 12px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
     }
 
     .contact-settings-verified svg {
@@ -324,7 +324,7 @@ function injectStyles(): void {
       background: transparent;
       border: 1px solid var(--persona-primary, #4a6741);
       border-radius: var(--radius-md, 8px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
       cursor: pointer;
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
@@ -379,7 +379,7 @@ function injectStyles(): void {
       flex-shrink: 0;
       width: 20px;
       height: 20px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
     }
 
     .contact-settings-privacy-text {
@@ -444,7 +444,7 @@ function injectStyles(): void {
       padding: 12px 16px;
       background: rgba(74, 103, 65, 0.1);
       border-radius: var(--radius-md, 8px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
       font-size: 13px;
       margin-bottom: 16px;
       display: flex;
@@ -483,7 +483,7 @@ function injectStyles(): void {
     .contact-settings-section-title svg {
       width: 18px;
       height: 18px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
     }
 
     .contact-settings-toggle {
@@ -551,7 +551,7 @@ function injectStyles(): void {
 
     .contact-settings-time-select:focus {
       outline: none;
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-text-secondary);
     }
 
     .contact-settings-quiet-note {
@@ -576,7 +576,7 @@ function injectStyles(): void {
     .contact-settings-timezone svg {
       width: 14px;
       height: 14px;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
     }
   `;
   document.head.appendChild(style);

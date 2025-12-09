@@ -317,7 +317,7 @@ class NowPlayingUI {
         
         background: var(--persona-tint, rgba(74, 103, 65, 0.1));
         border-radius: var(--radius-lg);
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
       }
       
       .now-playing__icon svg {
@@ -445,7 +445,7 @@ class NowPlayingUI {
         display: none;
         width: 20px;
         height: 20px;
-        color: var(--persona-primary, #a67a6a);
+        color: var(--color-text-secondary);
         opacity: 0;
         transition: opacity var(--duration-normal) ease-out;
         cursor: help;

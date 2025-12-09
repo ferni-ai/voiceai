@@ -635,5 +635,25 @@ export function getMayaFinancialStore(): MayaFinancialStore {
   return mayaFinancialStoreInstance;
 }
 
+/**
+ * Initialize the Maya Financial Store (for lifecycle management)
+ */
+export async function initializeMayaFinancialStore(): Promise<void> {
+  const store = getMayaFinancialStore();
+  await store.initialize();
+  getLogger().info('Maya Financial Store initialized');
+}
+
+/**
+ * Shutdown the Maya Financial Store (for lifecycle management)
+ */
+export async function shutdownMayaFinancialStore(): Promise<void> {
+  if (mayaFinancialStoreInstance) {
+    // Note: No explicit shutdown needed - just clear the instance
+    mayaFinancialStoreInstance = null;
+    getLogger().info('Maya Financial Store shutdown');
+  }
+}
+
 // Export the store class for testing
 export { MayaFinancialStore };

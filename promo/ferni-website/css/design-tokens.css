@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: npm run sync:promo
- * Generated: 2025-12-09T01:42:08.584Z
+ * Generated: 2025-12-09T10:32:41.326Z
  */
 
 :root {
@@ -59,6 +59,10 @@
   --color-ferni-secondary: #3d5a35;
   --color-ferni-glow: rgba(74, 103, 65, 0.28);
 
+  --color-jack: #9a7b5a;
+  --color-jack-secondary: #7d6348;
+  --color-jack-glow: rgba(154, 123, 90, 0.28);
+
   --color-peter: #3a6b73;
   --color-peter-secondary: #2d5359;
   --color-peter-glow: rgba(58, 107, 115, 0.28);
@@ -74,6 +78,10 @@
   --color-jordan: #c4856a;
   --color-jordan-secondary: #a86d55;
   --color-jordan-glow: rgba(196, 133, 106, 0.28);
+
+  --color-nayan: #8a7a6a;
+  --color-nayan-secondary: #736559;
+  --color-nayan-glow: rgba(138, 122, 106, 0.28);
 
   /* ============================================
      SPACING

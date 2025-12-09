@@ -482,7 +482,7 @@ function getStyles(): string {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--persona-primary);
+      color: var(--color-text-secondary);
     }
 
     .outreach-settings-title {
@@ -609,7 +609,7 @@ function getStyles(): string {
 
     .outreach-settings-switch input:checked + .outreach-settings-slider {
       background: var(--persona-primary);
-      border-color: var(--persona-primary);
+      border-color: var(--color-text-secondary);
     }
 
     .outreach-settings-switch input:checked + .outreach-settings-slider::before {
@@ -644,7 +644,7 @@ function getStyles(): string {
     }
 
     .outreach-settings-channel input:checked + .outreach-settings-channel-content {
-      border-color: var(--persona-primary);
+      border-color: var(--color-text-secondary);
       background: var(--persona-tint);
     }
 
@@ -683,7 +683,7 @@ function getStyles(): string {
     }
 
     .outreach-settings-frequency-option.selected .outreach-settings-frequency-content {
-      border-color: var(--persona-primary);
+      border-color: var(--color-text-secondary);
       background: var(--persona-tint);
     }
 
@@ -766,7 +766,7 @@ function getStyles(): string {
     }
 
     .outreach-settings-type input:checked + .outreach-settings-type-content {
-      border-color: var(--persona-primary);
+      border-color: var(--color-text-secondary);
       background: var(--persona-tint);
     }
 

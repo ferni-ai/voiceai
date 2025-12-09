@@ -92,7 +92,7 @@ description: Six brilliant minds that remember your whole story, hear what you'r
 <body class="bg-paper text-ink font-body antialiased overflow-x-hidden">
   
   <!-- Skip Link for Accessibility -->
-  <a href="#main-content" data-skip-link class="sr-only focus:not-sr-only">Skip to main content</a>
+  <a href="#main-content" data-skip-link class="skip-link">Skip to main content</a>
   
   <!-- Scroll Progress Indicator -->
   <div id="scroll-progress" class="scroll-progress fixed top-0 left-0 h-[3px] z-[9999] w-0 bg-gradient-to-r from-ferni via-peter to-ferni"></div>
@@ -171,7 +171,7 @@ description: Six brilliant minds that remember your whole story, hear what you'r
          HERO SECTION
          Bold, cinematic, emotional
          ═══════════════════════════════════════════════════════════════════════════ -->
-    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20" data-hero-section>
       <!-- Background -->
       <div class="absolute inset-0 bg-gradient-to-b from-paper-sand via-paper to-paper-cream"></div>
       
@@ -202,9 +202,9 @@ description: Six brilliant minds that remember your whole story, hear what you'r
           <!-- Main Orb -->
           <div class="absolute inset-0 rounded-full bg-gradient-to-br from-ferni-light via-ferni to-ferni-dark shadow-[0_10px_40px_rgba(74,103,65,0.35)] group cursor-pointer" data-breathe>
             <!-- FE Initials (visible by default) -->
-            <span class="absolute inset-0 flex items-center justify-center font-display font-bold text-white text-4xl lg:text-5xl group-hover:opacity-0 transition-opacity duration-300" style="text-shadow: 0 2px 4px rgba(0,0,0,0.15);">FE</span>
-            <!-- Waveform (visible on hover) -->
-            <div class="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <span class="absolute inset-0 flex items-center justify-center font-display font-bold text-white text-4xl lg:text-5xl group-hover:opacity-0 transition-opacity duration-300" style="text-shadow: 0 2px 4px rgba(0,0,0,0.15);" data-fe-initials>FE</span>
+            <!-- Waveform (visible on hover and during awakening) -->
+            <div class="absolute inset-0 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300" data-waveform>
               <span class="w-1 h-4 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite;"></span>
               <span class="w-1 h-7 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite 0.05s;"></span>
               <span class="w-1 h-10 bg-white/90 rounded-full waveform-speaking" style="animation: wave-speaking 0.5s ease-in-out infinite 0.1s;"></span>
@@ -217,30 +217,30 @@ description: Six brilliant minds that remember your whole story, hear what you'r
           
           <!-- Orbiting personas -->
           <div class="absolute inset-[-50%] persona-orbit">
-            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-peter text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110">PJ</div>
-            <div class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-maya text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110">MS</div>
-            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-alex text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110">AC</div>
-            <div class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-jordan text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110">JT</div>
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-peter text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110" data-persona-orb="peter">PJ</div>
+            <div class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-maya text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110" data-persona-orb="maya">MS</div>
+            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-alex text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110" data-persona-orb="alex">AC</div>
+            <div class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-jordan text-white flex items-center justify-center text-xs font-bold shadow-lg persona-counter transition-transform hover:scale-110" data-persona-orb="jordan">JT</div>
           </div>
         </div>
         
         <!-- Eyebrow -->
-        <p class="text-eyebrow uppercase tracking-widest text-ferni mb-6 animate-fade-in-up opacity-0 stagger-1">
+        <p class="text-eyebrow uppercase tracking-widest text-ferni mb-6" data-hero-eyebrow>
           Better than human.
         </p>
         
         <!-- Headline -->
-        <h1 class="font-display text-display-2xl text-ink mb-8 animate-fade-in-up opacity-0 stagger-2">
+        <h1 class="font-display text-display-2xl text-ink mb-8" data-hero-headline>
           Finally, someone<br class="hidden sm:block"> who <span class="text-gradient-alive">gets it.</span>
         </h1>
         
         <!-- Subheadline -->
-        <p class="text-body-xl text-ink-muted max-w-2xl mx-auto mb-12 animate-fade-in-up opacity-0 stagger-3">
+        <p class="text-body-xl text-ink-muted max-w-2xl mx-auto mb-12" data-hero-subhead>
           Six brilliant minds that remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon.
         </p>
         
         <!-- CTAs -->
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up opacity-0 stagger-4">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16" data-hero-ctas>
           <a href="https://app.ferni.ai" class="btn-magnetic group inline-flex items-center gap-3 px-8 py-4 bg-ferni hover:bg-ferni-dark text-white font-semibold text-lg rounded-full shadow-xl shadow-ferni/25 hover:shadow-2xl hover:shadow-ferni/35 hover:-translate-y-1 active:translate-y-0 transition-all duration-300">
             Start Free
             <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>

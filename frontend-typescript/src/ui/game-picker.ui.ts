@@ -497,7 +497,7 @@ class GamePickerUI {
         font-weight: 600;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
         margin-bottom: var(--space-2, 8px);
       }
       
@@ -571,7 +571,7 @@ class GamePickerUI {
       
       .game-card:hover {
         background: var(--color-background-hover, #E8E2DA);
-        border-color: var(--persona-primary, #4a6741);
+        border-color: var(--color-text-secondary);
         transform: translateX(4px);
       }
       
@@ -593,7 +593,7 @@ class GamePickerUI {
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
       }
       
       .game-card__icon svg {
@@ -645,7 +645,7 @@ class GamePickerUI {
       
       .game-card:hover .game-card__arrow {
         transform: translateX(4px);
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
       }
       
       /* Footer */
@@ -700,8 +700,8 @@ class GamePickerUI {
       
       .game-picker__help-btn:hover {
         background: var(--color-background-subtle, #F5F1E8);
-        color: var(--persona-primary, #4a6741);
-        border-color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
+        border-color: var(--color-text-secondary);
       }
       
       /* Help Modal */
@@ -766,7 +766,7 @@ class GamePickerUI {
       }
       
       .game-help-modal__icon {
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
       }
       
       .game-help-modal__icon svg {
@@ -795,7 +795,7 @@ class GamePickerUI {
       }
       
       .game-help-section__icon {
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
         display: flex;
         align-items: center;
       }
@@ -835,7 +835,7 @@ class GamePickerUI {
       }
       
       .game-help-tip__icon {
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
         flex-shrink: 0;
         display: flex;
       }

@@ -16,9 +16,13 @@
  * - Preferred contact method (SMS vs email vs call)
  * - Engagement patterns (daily, weekly, sporadic)
  * - Topics that resonate (what they respond to)
+ *
+ * PERSISTENCE: All outreach data persists to Firestore via the unified
+ * persistence layer to survive server restarts.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 import {
   scheduleText,
   scheduleEmail,
@@ -104,7 +108,7 @@ export interface EngagementPattern {
 }
 
 // ============================================================================
-// STORAGE
+// STORAGE (In-memory caches backed by Firestore persistence)
 // ============================================================================
 
 const commitmentStore = new Map<string, Commitment[]>();
@@ -114,6 +118,128 @@ const engagementStore = new Map<string, EngagementPattern>();
 const sentOutreachLog = new Map<string, Array<{ date: Date; trigger: OutreachTrigger }>>();
 
 // ============================================================================
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface OutreachUserData {
+  commitments: Commitment[];
+  opportunities: OutreachOpportunity[];
+  preferences: UserOutreachPreferences;
+  engagement: EngagementPattern | null;
+  sentLog: Array<{ date: string; trigger: OutreachTrigger }>;
+  updatedAt: string;
+}
+
+// ============================================================================
+// PERSISTENCE STORES
+// ============================================================================
+
+let persistenceStore: PersistenceStore<OutreachUserData> | null = null;
+let isInitialized = false;
+
+/**
+ * Initialize persistence for outreach intelligence
+ */
+export async function initializeOutreachPersistence(): Promise<void> {
+  if (isInitialized) return;
+
+  persistenceStore = createPersistenceStore<OutreachUserData>({
+    collection: 'outreach_data',
+    syncIntervalMs: 10000, // Sync every 10 seconds
+    maxPendingChanges: 30,
+  });
+
+  isInitialized = true;
+  getLogger().info('Outreach intelligence persistence initialized');
+}
+
+/**
+ * Load user's outreach data from persistence
+ */
+async function loadUserData(userId: string): Promise<void> {
+  if (!persistenceStore) return;
+
+  try {
+    const data = await persistenceStore.load(userId);
+    if (!data) return;
+
+    // Rehydrate commitments
+    if (data.commitments?.length > 0) {
+      commitmentStore.set(userId, data.commitments.map(c => ({
+        ...c,
+        when: new Date(c.when),
+        checkInTime: new Date(c.checkInTime),
+      })));
+    }
+
+    // Rehydrate opportunities
+    if (data.opportunities?.length > 0) {
+      opportunityStore.set(userId, data.opportunities.map(o => ({
+        ...o,
+        suggestedTime: new Date(o.suggestedTime),
+        expiresAt: o.expiresAt ? new Date(o.expiresAt) : undefined,
+      })));
+    }
+
+    // Rehydrate preferences
+    if (data.preferences) {
+      preferencesStore.set(userId, data.preferences);
+    }
+
+    // Rehydrate engagement
+    if (data.engagement) {
+      engagementStore.set(userId, {
+        ...data.engagement,
+        lastInteraction: new Date(data.engagement.lastInteraction),
+      });
+    }
+
+    // Rehydrate sent log
+    if (data.sentLog?.length > 0) {
+      sentOutreachLog.set(userId, data.sentLog.map(l => ({
+        date: new Date(l.date),
+        trigger: l.trigger,
+      })));
+    }
+
+    getLogger().debug({ userId }, 'Loaded outreach data from persistence');
+  } catch (error) {
+    getLogger().warn({ error, userId }, 'Failed to load outreach data');
+  }
+}
+
+/**
+ * Persist user's outreach data to Firestore
+ */
+function persistUserData(userId: string): void {
+  if (!persistenceStore) return;
+
+  const data: OutreachUserData = {
+    commitments: commitmentStore.get(userId) || [],
+    opportunities: opportunityStore.get(userId) || [],
+    preferences: preferencesStore.get(userId) || DEFAULT_PREFERENCES,
+    engagement: engagementStore.get(userId) || null,
+    sentLog: (sentOutreachLog.get(userId) || []).map(l => ({
+      date: l.date.toISOString(),
+      trigger: l.trigger,
+    })),
+    updatedAt: new Date().toISOString(),
+  };
+
+  persistenceStore.set(userId, data);
+}
+
+/**
+ * Shutdown outreach persistence (flush all pending data)
+ */
+export async function shutdownOutreachPersistence(): Promise<void> {
+  if (persistenceStore) {
+    await persistenceStore.flush();
+    getLogger().info('Outreach intelligence persistence shutdown complete');
+  }
+}
+
+// ============================================================================
 // CLEANUP FUNCTIONS (Prevent Memory Leaks)
 // ============================================================================
 
@@ -121,12 +247,18 @@ const sentOutreachLog = new Map<string, Array<{ date: Date; trigger: OutreachTri
  * Clear all outreach data for a specific user.
  * Call this when a user session ends or user is deleted.
  */
-export function clearUserOutreachData(userId: string): void {
+export async function clearUserOutreachData(userId: string): Promise<void> {
   commitmentStore.delete(userId);
   opportunityStore.delete(userId);
   preferencesStore.delete(userId);
   engagementStore.delete(userId);
   sentOutreachLog.delete(userId);
+
+  // Also clear from persistence
+  if (persistenceStore) {
+    await persistenceStore.delete(userId);
+  }
+
   getLogger().debug({ userId }, 'Cleared outreach data for user');
 }
 
@@ -140,6 +272,10 @@ export function clearAllOutreachData(): void {
   preferencesStore.clear();
   engagementStore.clear();
   sentOutreachLog.clear();
+
+  // Also clear persistence caches
+  persistenceStore?.clearAllCaches();
+
   getLogger().info('Cleared all outreach data');
 }
 
@@ -328,6 +464,9 @@ export function extractCommitments(
   if (commitments.length > 0) {
     const existing = commitmentStore.get(userId) || [];
     commitmentStore.set(userId, [...existing, ...commitments]);
+
+    // Persist to Firestore
+    persistUserData(userId);
   }
 
   return commitments;
@@ -423,6 +562,11 @@ export async function detectOutreachOpportunities(
   userId: string,
   agentId: string = AgentRole.COACH
 ): Promise<OutreachOpportunity[]> {
+  // Load from persistence if not in memory
+  if (!commitmentStore.has(userId) && persistenceStore) {
+    await loadUserData(userId);
+  }
+
   const opportunities: OutreachOpportunity[] = [];
   const prefs = getPreferences(userId);
   const now = new Date();
@@ -567,6 +711,9 @@ export function setPreferences(userId: string, prefs: Partial<UserOutreachPrefer
   const existing = getPreferences(userId);
   preferencesStore.set(userId, { ...existing, ...prefs });
 
+  // Persist to Firestore
+  persistUserData(userId);
+
   // Also sync timezone to contact info
   if (prefs.timezone) {
     void (async () => {
@@ -659,6 +806,9 @@ function logOutreach(userId: string, trigger: OutreachTrigger): void {
   const log = sentOutreachLog.get(userId) || [];
   log.push({ date: new Date(), trigger });
   sentOutreachLog.set(userId, log);
+
+  // Persist to Firestore
+  persistUserData(userId);
 }
 
 // ============================================================================
@@ -711,6 +861,9 @@ export function recordInteraction(
       topicsEngaged: [],
     });
   }
+
+  // Persist to Firestore
+  persistUserData(userId);
 }
 
 // ============================================================================
@@ -862,6 +1015,10 @@ export async function analyzeConversationForOutreach(
 // ============================================================================
 
 export default {
+  // Persistence lifecycle
+  initializeOutreachPersistence,
+  shutdownOutreachPersistence,
+
   // Commitment tracking
   extractCommitments,
 

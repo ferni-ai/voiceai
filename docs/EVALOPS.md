@@ -7,6 +7,63 @@
 
 ---
 
+## 🚀 Quick Start
+
+### Dashboard UI
+Press `Cmd/Ctrl+Shift+E` or click **🎯 EvalOps** in the Dev Panel → Dashboards section.
+
+### Feature Flags
+EvalOps is controlled via feature flags (see `data/feature-flags.json` or `GET /api/evalops/flags`):
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `evalops` | `true` | Master toggle |
+| `evalops-auto-sampling` | `true` | Sample conversations automatically |
+| `evalops-voice-checks` | `true` | Heuristic voice consistency |
+| `evalops-llm-evaluation` | `false` | Full LLM-as-judge (costs API tokens) |
+| `evalops-scheduled-suites` | `false` | Daily test suite runs |
+| `evalops-alerting` | `true` | Alert on flagged responses |
+| `evalops-sample-rate` | `5%` | Percentage of convos to evaluate |
+
+### API Endpoints Summary
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/evalops/health` | System health + metrics |
+| `GET /api/evalops/flags` | Get feature flags |
+| `PUT /api/evalops/flags` | Update feature flags |
+| `GET /api/evalops/metrics` | Evaluation metrics |
+| `GET /api/evalops/evaluations` | Recent evaluations |
+| `GET /api/evalops/evaluations/flagged` | Flagged responses |
+| `POST /api/evalops/evaluate` | Full LLM evaluation |
+| `POST /api/evalops/quick-check` | Quick voice check |
+| `GET /api/evalops/fingerprints` | Persona fingerprints |
+| `GET /api/evalops/scenarios` | Test scenarios |
+| `POST /api/evalops/run-suite` | Run test suite |
+
+### Integration Hook
+```typescript
+import { evalopsHook } from './services/evalops';
+
+// After each AI response
+await evalopsHook.afterTurn(
+  sessionId,
+  personaId,
+  userMessage,
+  aiResponse,
+  {
+    conversationHistory,
+    userProfile,
+    trustContext,
+    emotionalContext,
+    turnNumber,
+    isNewUser,
+    hasUserReportedIssue,
+  }
+);
+```
+
+---
+
 ## Overview
 
 EvalOps is Ferni's evaluation operations system that measures whether personas actually behave as designed. It bridges the gap between beautiful architecture and verified behavior.
@@ -362,10 +419,18 @@ src/services/evalops/
 ├── types.ts                 # Type definitions
 ├── persona-fingerprints.ts  # Voice fingerprints for each persona
 ├── response-evaluator.ts    # LLM-as-judge evaluator
-└── test-scenarios.ts        # Automated test scenarios
+├── test-scenarios.ts        # Automated test scenarios
+└── automation.ts            # E2E automation hooks, feature flags, metrics
 
 src/api/
-└── evalops-routes.ts        # API endpoints
+├── evalops-routes.ts        # Express Router API (deprecated)
+└── evalops-handler.ts       # Raw HTTP handler (used by ui-server.js)
+
+frontend-typescript/src/ui/
+└── evalops-dashboard.ui.ts  # Dashboard UI component
+
+data/
+└── feature-flags.json       # Feature flag configuration
 
 docs/
 └── EVALOPS.md               # This documentation
@@ -373,19 +438,175 @@ docs/
 
 ---
 
-## Future Roadmap
+## Automation System
 
-### Phase 2: Continuous Monitoring
-- [ ] Real-time evaluation sampling in production
-- [ ] Automated alerts for voice drift
-- [ ] Weekly persona health reports
+### Conversation Hooks
 
-### Phase 3: A/B Testing Framework
+Integrate EvalOps into your conversation pipeline:
+
+```typescript
+import { evalopsHook } from './services/evalops';
+
+// After generating AI response
+const evaluation = await evalopsHook.afterTurn(
+  sessionId,      // Unique session ID
+  personaId,      // 'ferni', 'peter-john', etc.
+  userMessage,    // User's message
+  aiResponse,     // AI's generated response
+  {
+    conversationHistory,  // Previous messages
+    userProfile,          // User info if available
+    trustContext,         // Boundaries, wins, etc.
+    emotionalContext,     // Detected emotions
+    turnNumber,           // Current turn
+    isNewUser,            // First conversation?
+    hasUserReportedIssue, // User complained?
+  }
+);
+
+if (evaluation?.flagged) {
+  // Handle flagged response
+  console.log('Response flagged:', evaluation.flagReasons);
+}
+```
+
+### Quick Voice Check
+
+Lightweight check (no LLM call):
+
+```typescript
+const { score, status, issues } = evalopsHook.quickVoiceCheck('ferni', response);
+// score: 0-100
+// status: 'healthy' | 'warning' | 'critical'
+// issues: ['Anti-patterns detected: ...']
+```
+
+### Alert on Flagged Responses
+
+```typescript
+// Register alert handler
+evalopsHook.onFlagged(async (evaluation) => {
+  await slack.send(`⚠️ Flagged response for ${evaluation.personaId}`);
+  await db.flagged.insert(evaluation);
+});
+```
+
+### Metrics
+
+```typescript
+const metrics = evalopsHook.getMetrics();
+console.log({
+  totalEvaluations: metrics.totalEvaluations,
+  flaggedResponses: metrics.flaggedResponses,
+  averageScore: metrics.averageScore,
+});
+```
+
+---
+
+## Feature Flags API
+
+### Get Flags
+```bash
+curl https://app.ferni.ai/api/evalops/flags \
+  -H "x-admin-key: dev-mode"
+```
+
+### Update Flags
+```bash
+curl -X PUT https://app.ferni.ai/api/evalops/flags \
+  -H "Content-Type: application/json" \
+  -H "x-admin-key: dev-mode" \
+  -d '{
+    "enabled": true,
+    "autoSampling": true,
+    "llmEvaluation": false,
+    "sampleRateOverride": 10
+  }'
+```
+
+### Available Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `enabled` | boolean | `true` | Master switch |
+| `autoSampling` | boolean | `true` | Auto-sample conversations |
+| `voiceChecks` | boolean | `true` | Heuristic voice checks |
+| `llmEvaluation` | boolean | `false` | Full LLM evaluation |
+| `scheduledSuites` | boolean | `false` | Daily test runs |
+| `alerting` | boolean | `true` | Alert on flagged |
+| `sampleRateOverride` | number | `null` | Override sample rate |
+| `enabledPersonas` | string[] | `[]` | Restrict to personas |
+
+---
+
+## Dashboard UI
+
+### Opening the Dashboard
+
+**Method 1:** Keyboard shortcut
+- Mac: `Cmd+Shift+E`
+- Windows: `Ctrl+Shift+E`
+
+**Method 2:** Dev Panel
+1. Open Dev Panel (`Cmd/Ctrl+Shift+D`)
+2. Scroll to "Dashboards & Tools"
+3. Click "🎯 EvalOps"
+
+### Dashboard Tabs
+
+| Tab | Content |
+|-----|---------|
+| **Overview** | Health scores, passing scenarios, flagged count |
+| **Personas** | Per-persona voice health and fingerprint details |
+| **Scenarios** | Test scenario results by category |
+| **Flagged** | Responses that need human review |
+| **Config** | Toggle features, adjust sample rate |
+
+### Programmatic Access
+
+```typescript
+// Show dashboard
+window.evalopsDashboard.show();
+
+// Hide dashboard
+window.evalopsDashboard.hide();
+
+// Refresh data
+window.evalopsDashboard.refresh();
+
+// Quick check
+await window.evalopsDashboard.runQuickCheck('ferni', 'response text');
+```
+
+---
+
+## Implementation Status
+
+### ✅ Phase 1: Core System (Complete)
+- [x] LLM-as-Judge response evaluator
+- [x] Persona voice fingerprints (all 6 personas)
+- [x] Test scenario framework (30+ scenarios)
+- [x] API endpoints
+- [x] Dashboard UI
+- [x] Feature flag integration
+- [x] Conversation hooks for automation
+- [x] Metrics tracking
+
+### 🔄 Phase 2: E2E Integration (In Progress)
+- [x] Automation hooks (`evalopsHook.afterTurn`)
+- [x] Feature flags for gradual rollout
+- [x] Dashboard with real-time data
+- [ ] Integration into voice agent pipeline
+- [ ] Scheduled test suite runs (daily)
+- [ ] Slack/Discord alerting for flagged responses
+
+### 📋 Phase 3: A/B Testing Framework
 - [ ] Test prompt variations
 - [ ] Compare persona configurations
 - [ ] Statistical significance calculation
 
-### Phase 4: Self-Improvement
+### 📋 Phase 4: Self-Improvement
 - [ ] Automatic prompt tuning based on evaluation feedback
 - [ ] Persona-specific fine-tuning recommendations
 - [ ] Regression detection and prevention
@@ -398,9 +619,39 @@ EvalOps transforms "we think personas are good" into "we know personas are good 
 
 **Start with:**
 1. Run `quickHealthCheck()` on responses in development
-2. Wire up `/api/evalops/quick-check` for manual testing
-3. Run critical scenarios in CI/CD
-4. Gradually enable sampling in production
+2. Open Dashboard (`Cmd/Ctrl+Shift+E`) to monitor quality
+3. Wire up `evalopsHook.afterTurn()` in your conversation pipeline
+4. Run critical scenarios in CI/CD
+5. Gradually increase sampling in production
+
+**Deployment Checklist:**
+- [ ] API routes registered in `ui-server.js` ✅
+- [ ] Feature flags configured in `data/feature-flags.json` ✅
+- [ ] Dashboard accessible via dev panel ✅
+- [ ] Automation hooks available ✅
 
 **Key insight:** The gap between architecture and behavior is where quality lives. EvalOps closes that gap.
+
+---
+
+## Verification
+
+### Health Check
+```bash
+curl https://app.ferni.ai/api/evalops/health \
+  -H "x-admin-key: dev-mode"
+```
+
+### Quick Voice Test
+```bash
+curl -X POST https://app.ferni.ai/api/evalops/quick-check \
+  -H "Content-Type: application/json" \
+  -H "x-admin-key: dev-mode" \
+  -d '{
+    "response": "Stay the course. What about this feels hard?",
+    "persona_id": "ferni"
+  }'
+```
+
+Expected: `{"success":true,"score":85,"status":"healthy","issues":[]}`
 

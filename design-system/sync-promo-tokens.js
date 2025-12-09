@@ -28,8 +28,12 @@ const CONFIG = {
   sourceTypography: path.join(__dirname, 'tokens/typography.json'),
   sourceAnimation: path.join(__dirname, 'tokens/animation.json'),
 
-  // Output: promo/ferni-website/css/design-tokens.css
-  outputFile: path.join(PROJECT_ROOT, 'promo/ferni-website/css/design-tokens.css'),
+  // Output files (multiple destinations for consistency)
+  outputs: [
+    path.join(PROJECT_ROOT, 'promo/ferni-website/css/design-tokens.css'),
+    path.join(PROJECT_ROOT, 'promo/ferni-website/src/css/_tokens.css'),
+    path.join(PROJECT_ROOT, 'brand/ferni-design-tokens.css'),
+  ],
 };
 
 // ============================================================================
@@ -240,11 +244,19 @@ function build() {
     '}',
   ];
 
-  // Write output
-  fs.writeFileSync(CONFIG.outputFile, output.join('\n'));
-  console.log(`  ✅ Generated: ${CONFIG.outputFile}`);
+  // Write to all output destinations
+  const content = output.join('\n');
+  for (const outputFile of CONFIG.outputs) {
+    // Ensure directory exists
+    const dir = path.dirname(outputFile);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(outputFile, content);
+    console.log(`  ✅ Generated: ${outputFile}`);
+  }
 
-  console.log('\n✅ Promo website tokens synced!\n');
+  console.log('\n✅ All token files synced!\n');
 }
 
 build();

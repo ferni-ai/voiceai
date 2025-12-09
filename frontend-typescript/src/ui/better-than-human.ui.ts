@@ -91,8 +91,16 @@ const concernState: ConcernState = {
 /**
  * Micro-expressions last 40-150ms - below conscious perception but
  * affecting how the user *feels* about Ferni's emotional authenticity.
+ * 
+ * These are the "Better than Human" subliminal trust builders.
+ * Real humans display micro-expressions that reveal true emotions.
+ * By replicating this, Ferni feels genuine without users knowing why.
  */
 const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
+  // =========================================================================
+  // RECOGNITION & CONNECTION
+  // =========================================================================
+  
   // Recognition flash when user mentions something familiar
   recognition: {
     expression: 'curious',
@@ -100,6 +108,26 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     intensity: 0.4,
     probability: 0.7,
   },
+  
+  // Memory callback - when something triggers shared history
+  memory_spark: {
+    expression: 'remembering',
+    duration: 100,
+    intensity: 0.5,
+    probability: 0.8,
+  },
+  
+  // Inside joke recognition - brief knowing look
+  insider: {
+    expression: 'warm',
+    duration: 90,
+    intensity: 0.4,
+    probability: 0.75,
+  },
+  
+  // =========================================================================
+  // CONCERN & CARE
+  // =========================================================================
   
   // Brief concern flash before empathy kicks in
   concern_flash: {
@@ -109,12 +137,40 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     probability: 0.8,
   },
   
+  // Protective instinct - when sensing vulnerability
+  protective: {
+    expression: 'attentive',
+    duration: 70,
+    intensity: 0.35,
+    probability: 0.7,
+  },
+  
+  // "I noticed that" - catching something unsaid
+  noticing: {
+    expression: 'noticing',
+    duration: 80,
+    intensity: 0.4,
+    probability: 0.65,
+  },
+  
+  // =========================================================================
+  // POSITIVE EMOTIONS
+  // =========================================================================
+  
   // Micro-delight when user achieves something
   delight_flash: {
     expression: 'pleased',
     duration: 100,
     intensity: 0.5,
     probability: 0.9,
+  },
+  
+  // Pride on behalf of user
+  pride_flash: {
+    expression: 'proud',
+    duration: 110,
+    intensity: 0.45,
+    probability: 0.85,
   },
   
   // Tiny warmth pulse during connection
@@ -125,12 +181,60 @@ const MICRO_EXPRESSIONS: Record<string, MicroExpression> = {
     probability: 0.6,
   },
   
+  // =========================================================================
+  // CURIOSITY & ENGAGEMENT
+  // =========================================================================
+  
   // Brief surprise/interest at unexpected content
   interest_flash: {
     expression: 'curious',
     duration: 70,
     intensity: 0.4,
     probability: 0.5,
+  },
+  
+  // "Tell me more" lean-in
+  curious_lean: {
+    expression: 'curiousLean',
+    duration: 130,
+    intensity: 0.5,
+    probability: 0.6,
+  },
+  
+  // Processing something complex/deep
+  contemplation: {
+    expression: 'contemplative',
+    duration: 140,
+    intensity: 0.35,
+    probability: 0.55,
+  },
+  
+  // =========================================================================
+  // UNDERSTANDING & VALIDATION
+  // =========================================================================
+  
+  // "I get it" moment
+  understanding: {
+    expression: 'warm',
+    duration: 85,
+    intensity: 0.4,
+    probability: 0.7,
+  },
+  
+  // Validation pulse - "that makes sense"
+  validation: {
+    expression: 'encouraging',
+    duration: 95,
+    intensity: 0.35,
+    probability: 0.65,
+  },
+  
+  // Moment of insight recognition
+  aha_flash: {
+    expression: 'pleased',
+    duration: 90,
+    intensity: 0.5,
+    probability: 0.8,
   },
 };
 
@@ -200,6 +304,12 @@ export function playMicroExpression(type: keyof typeof MICRO_EXPRESSIONS): void 
 /**
  * Trigger micro-expression based on detected content.
  * Call this from speech analysis.
+ * 
+ * Enhanced for "Better than Human" with nuanced detection:
+ * - Achievement recognition → pride/delight
+ * - Insight moments → aha flash
+ * - Vulnerable shares → protective/warmth
+ * - Deep processing → contemplation
  */
 export function detectAndTriggerMicroExpression(content: {
   transcript?: string;
@@ -207,34 +317,79 @@ export function detectAndTriggerMicroExpression(content: {
   intensity?: number;
   isNewTopic?: boolean;
   mentionedMemory?: boolean;
+  hasAchievement?: boolean;
+  hasInsight?: boolean;
+  isVulnerable?: boolean;
+  isProcessingDeep?: boolean;
 }): void {
-  // Recognition when topic is familiar
-  if (content.mentionedMemory) {
-    playMicroExpression('recognition');
+  // Priority 1: Vulnerable sharing - show protective care
+  if (content.isVulnerable) {
+    playMicroExpression('protective');
+    // Follow up with warmth after brief delay
+    setTimeout(() => playMicroExpression('warmth_pulse'), 200);
     return;
   }
   
-  // Concern flash for emotional content
-  if (content.tone === 'negative' || content.tone === 'emotional') {
+  // Priority 2: Achievement - show genuine pride
+  if (content.hasAchievement) {
+    playMicroExpression('pride_flash');
+    // Sometimes follow with delight
+    if (Math.random() < 0.4) {
+      setTimeout(() => playMicroExpression('delight_flash'), 150);
+    }
+    return;
+  }
+  
+  // Priority 3: Insight moment - show recognition
+  if (content.hasInsight) {
+    playMicroExpression('aha_flash');
+    return;
+  }
+  
+  // Priority 4: Deep processing - show contemplation
+  if (content.isProcessingDeep) {
+    playMicroExpression('contemplation');
+    return;
+  }
+  
+  // Priority 5: Memory callback - recognition
+  if (content.mentionedMemory) {
+    playMicroExpression('memory_spark');
+    return;
+  }
+  
+  // Priority 6: Emotional content - show concern
+  if (content.tone === 'emotional') {
+    playMicroExpression('noticing');
+    return;
+  }
+  
+  // Priority 7: Negative tone - show concern
+  if (content.tone === 'negative') {
     playMicroExpression('concern_flash');
     return;
   }
   
-  // Interest flash for new topics
+  // Priority 8: New topic - show interest
   if (content.isNewTopic) {
-    playMicroExpression('interest_flash');
+    playMicroExpression('curious_lean');
     return;
   }
   
-  // Delight for positive achievements
+  // Priority 9: High intensity positive - delight
   if (content.tone === 'positive' && content.intensity && content.intensity > 0.6) {
     playMicroExpression('delight_flash');
     return;
   }
   
-  // Random warmth during positive conversation
-  if (content.tone === 'positive' && Math.random() < 0.2) {
-    playMicroExpression('warmth_pulse');
+  // Priority 10: General positive - occasional warmth
+  if (content.tone === 'positive' && Math.random() < 0.25) {
+    const warmExpressions = ['warmth_pulse', 'understanding', 'validation'] as const;
+    const index = Math.floor(Math.random() * warmExpressions.length);
+    const choice = warmExpressions[index];
+    if (choice) {
+      playMicroExpression(choice);
+    }
   }
 }
 
@@ -735,3 +890,9 @@ export const beyondPixarUI = ferni;
 export const initBeyondPixarUI = initFerniEQ;
 export const beyondPixar = ferni;
 export const initBeyondPixar = initFerniEQ;
+
+// Expose to window for easy browser console testing
+// Usage: window.__ferniEQ.playMicroExpression('recognition')
+if (typeof window !== 'undefined') {
+  (window as unknown as { __ferniEQ: typeof ferni }).__ferniEQ = ferni;
+}

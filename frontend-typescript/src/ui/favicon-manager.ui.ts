@@ -59,9 +59,10 @@ let originalFavicon: string | null = null;
 let breathePhase = 0;
 const pupilOffset = { x: 0, y: 0 };
 let glowIntensity = 0.3;
+let lastFaviconUpdate = 0;
 
 const CONFIG: FaviconConfig = {
-  animationInterval: 100,
+  animationInterval: 100,  // Throttle favicon updates to 10fps (100ms)
   preferCanvas: true,
   debug: false,
 };
@@ -201,22 +202,26 @@ export function clearNotificationBadge(): void {
 function startAnimationLoop(): void {
   if (animationFrame) return;
 
-  const animate = (): void => {
-    // Update animation phases
+  const animate = (timestamp: number): void => {
+    // Update animation phases (still smooth internally)
     breathePhase += 0.02;
     updatePupilWander();
     updateGlowIntensity();
 
-    // Render
-    if (ctx) {
+    // Throttle actual favicon updates to CONFIG.animationInterval (100ms = 10fps)
+    // This prevents hammering the DOM/browser with favicon updates
+    const shouldUpdateFavicon = timestamp - lastFaviconUpdate >= CONFIG.animationInterval;
+    
+    if (ctx && shouldUpdateFavicon) {
       renderFavicon();
+      lastFaviconUpdate = timestamp;
     }
 
     animationFrame = requestAnimationFrame(animate);
   };
 
   animationFrame = requestAnimationFrame(animate);
-  log.debug('Animation loop started');
+  log.debug('Animation loop started (throttled to 10fps favicon updates)');
 }
 
 function updatePupilWander(): void {

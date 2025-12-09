@@ -614,11 +614,12 @@ export function setExpression(
   if (!config) return;
   
   // Create timeline with anticipation
-  expressionTimeline = gsap.timeline();
+  const tl = gsap.timeline();
+  expressionTimeline = tl;
   
   // Anticipation phase - slight opposite movement
   if (prevExpression !== 'neutral' || expression !== 'neutral') {
-    expressionTimeline.to([lidTop, lidBottom], {
+    tl.to([lidTop, lidBottom], {
       scaleY: 0.95,
       duration: toSeconds(DURATION.MICRO),
       ease: 'power2.in',
@@ -626,14 +627,14 @@ export function setExpression(
   }
   
   // Main expression transition
-  expressionTimeline.to(lidTop, {
+  tl.to(lidTop, {
     attr: { d: config.topPath },
     scaleY: 1,
     duration: toSeconds(duration),
     ease: 'elastic.out(1, 0.7)',
   }, toSeconds(DURATION.MICRO));
   
-  expressionTimeline.to(lidBottom, {
+  tl.to(lidBottom, {
     attr: { d: config.bottomPath },
     scaleY: 1,
     duration: toSeconds(duration),
@@ -641,14 +642,14 @@ export function setExpression(
   }, toSeconds(DURATION.MICRO));
   
   // Brow animations (for asymmetric expressions)
-  expressionTimeline.to(browLeft, {
+  tl.to(browLeft, {
     opacity: config.browLeftOpacity,
     y: config.browLeftY ?? 15,
     duration: toSeconds(duration * 0.8),
     ease: 'power2.out',
   }, toSeconds(DURATION.MICRO));
   
-  expressionTimeline.to(browRight, {
+  tl.to(browRight, {
     opacity: config.browRightOpacity,
     y: config.browRightY ?? 15,
     duration: toSeconds(duration * 0.8),
@@ -662,7 +663,7 @@ export function setExpression(
   
   // Return to neutral after hold
   if (hold > 0) {
-    expressionTimeline.call(() => {
+    tl.call(() => {
       setExpression('neutral', DURATION.SLOW);
     }, [], `+=${toSeconds(hold)}`);
   }
@@ -694,11 +695,11 @@ export function playRealization(): void {
   // Cancel any existing reaction
   if (reactionTimeline) reactionTimeline.kill();
   
-  reactionTimeline = gsap.timeline();
+  const tl = gsap.timeline();
+  reactionTimeline = tl;
   
   // Phase 1: Quick look away (processing)
-  reactionTimeline
-    .to(avatarContainer, {
+  tl.to(avatarContainer, {
       rotation: -6,
       x: -4,
       duration: toSeconds(DURATION.FAST),
@@ -750,11 +751,11 @@ export function playHeldPose(
   
   if (reactionTimeline) reactionTimeline.kill();
   
-  reactionTimeline = gsap.timeline();
+  const tl = gsap.timeline();
+  reactionTimeline = tl;
   
   // Anticipation squash
-  reactionTimeline
-    .to(avatarContainer, {
+  tl.to(avatarContainer, {
       scaleY: 0.94,
       scaleX: 1.04,
       y: 2,
@@ -811,11 +812,11 @@ export function playContemplation(duration: number = 2000): void {
   // Set contemplative expression
   setExpression('contemplative', DURATION.NORMAL);
   
-  reactionTimeline = gsap.timeline();
+  const tl = gsap.timeline();
+  reactionTimeline = tl;
   
   // Drift up and to the side (thinking pose)
-  reactionTimeline
-    .to(avatarContainer, {
+  tl.to(avatarContainer, {
       rotation: 4,
       x: 2,
       y: -1,
@@ -866,11 +867,11 @@ export function playNoticing(duration: number = 1200): void {
   
   setExpression('noticing', DURATION.FAST);
   
-  reactionTimeline = gsap.timeline();
+  const tl = gsap.timeline();
+  reactionTimeline = tl;
   
   // Subtle attentive shift
-  reactionTimeline
-    .to(avatarContainer, {
+  tl.to(avatarContainer, {
       rotation: -2,
       x: -1,
       scale: 1.015,
@@ -1000,7 +1001,7 @@ export async function morphTextToIcon(iconSvg: string, _duration: number = 600):
       justify-content: center;
       opacity: 0;
       transform: scale(0);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
       pointer-events: none;
     `;
     const svg = iconContainer.querySelector('svg');

@@ -935,6 +935,7 @@ const server = http.createServer(async (req, res) => {
   let marketplaceRegistryCacheTime = 0;
 
   // Proxy for marketplace registry (keeps GitHub token server-side)
+  // Falls back to local marketplace-agents/ folder if no token is set
   if (pathname === '/api/marketplace/registry') {
     const now = Date.now();
 
@@ -949,15 +950,40 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // If no GitHub token, try to read from local marketplace-agents folder
     if (!GITHUB_MARKETPLACE_TOKEN) {
-      console.warn('⚠️ GITHUB_MARKETPLACE_TOKEN not set - marketplace proxy disabled');
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          error: 'Marketplace not configured',
-          message: 'GITHUB_MARKETPLACE_TOKEN environment variable not set',
-        })
-      );
+      try {
+        const localRegistryPath = path.join(process.cwd(), 'marketplace-agents', 'registry.json');
+        if (fs.existsSync(localRegistryPath)) {
+          const localRegistry = JSON.parse(fs.readFileSync(localRegistryPath, 'utf-8'));
+          
+          // Cache and return
+          marketplaceRegistryCache = localRegistry;
+          marketplaceRegistryCacheTime = now;
+          
+          console.log(`✅ Marketplace: Loaded local registry with ${localRegistry.agents?.length || 0} agents`);
+          
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=300',
+            'X-Source': 'local',
+          });
+          res.end(JSON.stringify(localRegistry));
+          return;
+        }
+      } catch (localErr) {
+        console.warn('⚠️ Could not read local marketplace registry:', localErr.message);
+      }
+      
+      // No local file either - return empty registry
+      console.warn('⚠️ No GITHUB_MARKETPLACE_TOKEN and no local registry - returning empty marketplace');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        version: '0.0.0',
+        updated_at: new Date().toISOString(),
+        agents: [],
+        categories: [],
+      }));
       return;
     }
 
@@ -1007,13 +1033,37 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Proxy for individual agent manifests
+  // Falls back to local marketplace-agents/ folder if no token is set
   if (pathname.startsWith('/api/marketplace/agents/') && pathname.endsWith('/manifest')) {
     const agentId = pathname.replace('/api/marketplace/agents/', '').replace('/manifest', '');
 
+    // If no GitHub token, try to read from local marketplace-agents folder
     if (!GITHUB_MARKETPLACE_TOKEN) {
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Marketplace not configured' }));
-      return;
+      try {
+        const localManifestPath = path.join(process.cwd(), 'marketplace-agents', 'agents', agentId, 'persona.manifest.json');
+        if (fs.existsSync(localManifestPath)) {
+          const localManifest = JSON.parse(fs.readFileSync(localManifestPath, 'utf-8'));
+          
+          console.log(`✅ Marketplace: Loaded local manifest for ${agentId}`);
+          
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'X-Source': 'local',
+          });
+          res.end(JSON.stringify(localManifest));
+          return;
+        }
+        
+        // Not found locally
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Agent manifest not found: ${agentId}` }));
+        return;
+      } catch (localErr) {
+        console.warn(`⚠️ Could not read local manifest for ${agentId}:`, localErr.message);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to read local manifest', message: localErr.message }));
+        return;
+      }
     }
 
     try {
@@ -1068,7 +1118,24 @@ const server = http.createServer(async (req, res) => {
     try {
       // Dynamic import to use ES modules
       const { AgentRegistry } = await import('./dist/personas/registry/unified-registry.js');
-      const agents = await AgentRegistry.getEnabledAgents();
+      let agents = await AgentRegistry.getEnabledAgents();
+      
+      // Load disabled agents from config
+      const configPath = path.join(process.cwd(), 'data', 'agent-config.json');
+      let disabledAgents = [];
+      try {
+        if (fs.existsSync(configPath)) {
+          const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+          disabledAgents = config.disabledAgents || [];
+        }
+      } catch (configErr) {
+        console.warn('Could not read agent config:', configErr.message);
+      }
+      
+      // Filter out disabled agents (but never disable the coordinator)
+      if (disabledAgents.length > 0) {
+        agents = agents.filter(a => a.isCoordinator || !disabledAgents.includes(a.id));
+      }
 
       // Transform agents for UI consumption
       const uiAgents = agents.map((agent) => ({
@@ -1134,8 +1201,32 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Get a single agent by ID/alias
-  if (pathname.startsWith('/api/agents/') && req.method === 'GET') {
+  // GET /api/agents/config - Get agent configuration (disabled agents list)
+  // Must come BEFORE the single agent route to not be caught by it
+  if (pathname === '/api/agents/config' && req.method === 'GET') {
+    try {
+      const configPath = path.join(process.cwd(), 'data', 'agent-config.json');
+      let config = { disabledAgents: [] };
+      
+      if (fs.existsSync(configPath)) {
+        config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      }
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        disabledAgents: config.disabledAgents || [],
+        timestamp: new Date().toISOString(),
+      }));
+    } catch (err) {
+      console.error('❌ Failed to read agent config:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to read config', message: err.message }));
+    }
+    return;
+  }
+
+  // Get a single agent by ID/alias (excludes special paths like /config, /validate)
+  if (pathname.startsWith('/api/agents/') && req.method === 'GET' && !pathname.includes('/config') && !pathname.includes('/validate')) {
     const agentId = pathname.replace('/api/agents/', '');
 
     try {
@@ -1195,6 +1286,7 @@ const server = http.createServer(async (req, res) => {
     });
 
   // POST /api/agents/:id/enable - Enable or disable an agent
+  // Persists to data/agent-config.json for production use
   if (pathname.match(/^\/api\/agents\/[^/]+\/enable$/) && req.method === 'POST') {
     // Rate limit: 10 enable/disable per minute per IP
     if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
@@ -1205,13 +1297,44 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const { enabled } = await parseJsonBody(req);
-
-      // For now, we store enabled state in memory
-      // In production, this would update a config file or database
-      console.log(`${enabled ? '✅ Enabling' : '❌ Disabling'} agent: ${agentId}`);
-
-      // Clear caches to reflect the change
-      agentsCacheData = null;
+      
+      // Persist to config file
+      const configPath = path.join(process.cwd(), 'data', 'agent-config.json');
+      let config = { disabledAgents: [] };
+      
+      // Load existing config
+      try {
+        if (fs.existsSync(configPath)) {
+          config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        }
+      } catch (readErr) {
+        console.warn('Could not read agent config, creating new one');
+      }
+      
+      // Ensure array exists
+      if (!Array.isArray(config.disabledAgents)) {
+        config.disabledAgents = [];
+      }
+      
+      // Update disabled agents list
+      if (enabled) {
+        // Remove from disabled list
+        config.disabledAgents = config.disabledAgents.filter(id => id !== agentId);
+      } else {
+        // Add to disabled list (if not already there)
+        if (!config.disabledAgents.includes(agentId)) {
+          config.disabledAgents.push(agentId);
+        }
+      }
+      
+      // Save config
+      const dataDir = path.join(process.cwd(), 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+      
+      console.log(`${enabled ? '✅ Enabling' : '❌ Disabling'} agent: ${agentId} (persisted to ${configPath})`);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -1220,6 +1343,7 @@ const server = http.createServer(async (req, res) => {
           agentId,
           enabled,
           message: `Agent ${agentId} ${enabled ? 'enabled' : 'disabled'}`,
+          persisted: true,
         })
       );
     } catch (err) {
@@ -1245,9 +1369,6 @@ const server = http.createServer(async (req, res) => {
 
       // In production, this would update the bundle's persona.manifest.json
       // For now, we log the update and acknowledge it
-
-      // Clear cache
-      agentsCacheData = null;
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -1281,9 +1402,6 @@ const server = http.createServer(async (req, res) => {
 
       // In production, this would update team-config.ts or a database
       // For now, we acknowledge the request
-
-      // Clear cache
-      agentsCacheData = null;
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(

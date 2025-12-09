@@ -15,7 +15,8 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { appState } from '../state/app.state.js';
+// Note: appState imported for future use with evalops state sync
+import type { AppState as _AppState } from '../state/app.state.js';
 
 const log = createLogger('EvalOpsDashboard');
 
@@ -472,7 +473,7 @@ function renderPersonasTab(): string {
 }
 
 function renderScenariosTab(): string {
-  const categories = [...new Set(state.scenarioResults.map(s => s.category))];
+  const categories = Array.from(new Set(state.scenarioResults.map(s => s.category)));
   
   return `
     <div class="evalops-scenarios">
@@ -693,8 +694,7 @@ function attachContentListeners(): void {
 
   // Config toggles
   contentEl.querySelectorAll('[data-config]').forEach(el => {
-    const configKey = el.getAttribute('data-config') as keyof EvalConfig;
-    
+    // Note: data-config attribute available for future per-key toggle handling
     if (el instanceof HTMLInputElement && el.type === 'checkbox') {
       el.addEventListener('change', () => {
         toggleEvaluation(el.checked);
@@ -940,7 +940,7 @@ function injectStyles(): void {
     
     .tab-btn.active {
       background: var(--color-background-elevated, white);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
       font-weight: 500;
       box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
     }
@@ -1100,7 +1100,7 @@ function injectStyles(): void {
     }
     
     .action-btn:hover {
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-text-secondary);
       background: var(--persona-tint, rgba(74, 103, 65, 0.1));
     }
     
@@ -1200,7 +1200,7 @@ function injectStyles(): void {
     
     .config-input input[type="range"] {
       width: 150px;
-      accent-color: var(--persona-primary, #4a6741);
+      accent-color: var(--color-text-secondary);
     }
     
     .range-value {
@@ -1224,7 +1224,7 @@ function injectStyles(): void {
       width: 32px;
       height: 32px;
       border: 3px solid var(--color-border, #ccc);
-      border-top-color: var(--persona-primary, #4a6741);
+      border-top-color: var(--color-text-secondary);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }

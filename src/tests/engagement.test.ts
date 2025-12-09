@@ -301,8 +301,8 @@ describe('TeamEngagementService', () => {
   });
 
   describe('Team Huddles', () => {
-    it('should generate team huddles', () => {
-      const huddle = service.generateTeamHuddle('test-user-huddle', null, 'weekly');
+    it('should generate team huddles', async () => {
+      const huddle = await service.generateTeamHuddle('test-user-huddle', null, 'weekly');
 
       expect(huddle).toBeDefined();
       expect(huddle.intro).toBeDefined();
@@ -310,15 +310,15 @@ describe('TeamEngagementService', () => {
       expect(huddle.outro).toBeDefined();
     });
 
-    it('should include Ferni in all huddles', () => {
-      const huddle = service.generateTeamHuddle('test-user-huddle-2', null, 'weekly');
+    it('should include Ferni in all huddles', async () => {
+      const huddle = await service.generateTeamHuddle('test-user-huddle-2', null, 'weekly');
 
       const ferniComment = huddle.comments.find((c) => c.personaId === 'ferni');
       expect(ferniComment).toBeDefined();
     });
 
-    it('should include 3-4 personas total in huddles', () => {
-      const huddle = service.generateTeamHuddle('test-user-huddle-3', null, 'weekly');
+    it('should include 3-4 personas total in huddles', async () => {
+      const huddle = await service.generateTeamHuddle('test-user-huddle-3', null, 'weekly');
 
       expect(huddle.comments.length).toBeGreaterThanOrEqual(3);
       expect(huddle.comments.length).toBeLessThanOrEqual(4);
@@ -351,14 +351,14 @@ describe('TeamEngagementService', () => {
   });
 
   describe('Persona Evolution Stories', () => {
-    it('should return unlocked evolution events', () => {
-      const events = service.getUnlockedEvolutions('test-user-evolutions', null, 'ferni');
+    it('should return unlocked evolution events', async () => {
+      const events = await service.getUnlockedEvolutions('test-user-evolutions', null, 'ferni');
 
       expect(Array.isArray(events)).toBe(true);
     });
 
-    it('should filter by persona when specified', () => {
-      const events = service.getUnlockedEvolutions('test-user-evolutions-2', null, 'alex-chen');
+    it('should filter by persona when specified', async () => {
+      const events = await service.getUnlockedEvolutions('test-user-evolutions-2', null, 'alex-chen');
 
       for (const event of events) {
         expect(event.personaId).toBe('alex-chen');

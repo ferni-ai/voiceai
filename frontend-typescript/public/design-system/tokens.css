@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2025-12-08T03:31:44.240Z
+ * Build: 2025-12-09T10:32:40.370Z
  */
 
 /* ========================================
@@ -166,8 +166,17 @@
   --persona-tint: rgba(74, 103, 65, 0.06);
 }
 
-/* Persona: peter-lynch */
-[data-persona="peter-lynch"] {
+/* Persona: jack */
+[data-persona="jack"] {
+  --persona-primary: #9a7b5a;
+  --persona-secondary: #7d6348;
+  --persona-text: #ffffff;
+  --persona-glow: rgba(154, 123, 90, 0.28);
+  --persona-tint: rgba(154, 123, 90, 0.06);
+}
+
+/* Persona: peter */
+[data-persona="peter"] {
   --persona-primary: #3a6b73;
   --persona-secondary: #2d5359;
   --persona-text: #ffffff;
@@ -175,8 +184,8 @@
   --persona-tint: rgba(58, 107, 115, 0.06);
 }
 
-/* Persona: alex-chen */
-[data-persona="alex-chen"] {
+/* Persona: alex */
+[data-persona="alex"] {
   --persona-primary: #5a6b8a;
   --persona-secondary: #4a5a73;
   --persona-text: #ffffff;
@@ -184,8 +193,8 @@
   --persona-tint: rgba(90, 107, 138, 0.06);
 }
 
-/* Persona: maya-santos */
-[data-persona="maya-santos"] {
+/* Persona: maya */
+[data-persona="maya"] {
   --persona-primary: #a67a6a;
   --persona-secondary: #8a635a;
   --persona-text: #ffffff;
@@ -193,8 +202,8 @@
   --persona-tint: rgba(166, 122, 106, 0.06);
 }
 
-/* Persona: jordan-taylor */
-[data-persona="jordan-taylor"] {
+/* Persona: jordan */
+[data-persona="jordan"] {
   --persona-primary: #c4856a;
   --persona-secondary: #a86d55;
   --persona-text: #ffffff;
@@ -202,36 +211,13 @@
   --persona-tint: rgba(196, 133, 106, 0.06);
 }
 
-/* ========================================
-   EXTERNAL AI CO-FOUNDERS
-   Claude (Anthropic), Gemini (Google), GPT (OpenAI)
-   ======================================== */
-
-/* Persona: claude (Anthropic) - Warm terracotta/coral */
-[data-persona="claude"] {
-  --persona-primary: #cc785c;
-  --persona-secondary: #b86346;
+/* Persona: nayan */
+[data-persona="nayan"] {
+  --persona-primary: #8a7a6a;
+  --persona-secondary: #736559;
   --persona-text: #ffffff;
-  --persona-glow: rgba(204, 120, 92, 0.35);
-  --persona-tint: rgba(204, 120, 92, 0.08);
-}
-
-/* Persona: gemini (Google) - Sapphire blue */
-[data-persona="gemini"] {
-  --persona-primary: #4285F4;
-  --persona-secondary: #3367d6;
-  --persona-text: #ffffff;
-  --persona-glow: rgba(66, 133, 244, 0.35);
-  --persona-tint: rgba(66, 133, 244, 0.08);
-}
-
-/* Persona: gpt (OpenAI) - Teal green */
-[data-persona="gpt"] {
-  --persona-primary: #10A37F;
-  --persona-secondary: #0d8a6a;
-  --persona-text: #ffffff;
-  --persona-glow: rgba(16, 163, 127, 0.35);
-  --persona-tint: rgba(16, 163, 127, 0.08);
+  --persona-glow: rgba(138, 122, 106, 0.28);
+  --persona-tint: rgba(138, 122, 106, 0.06);
 }
 
 /* ========================================
@@ -929,11 +915,6 @@
 }
 :root {
   --gradient-persona-glow: radial-gradient(circle at 50% 50%, var(--persona-glow) 0%, transparent 60%);
-  
-  /* External AI Co-Founder Gradients */
-  --gradient-claude: linear-gradient(135deg, #b86346 0%, #cc785c 100%);
-  --gradient-gemini: linear-gradient(135deg, #3367d6 0%, #4285F4 100%);
-  --gradient-gpt: linear-gradient(135deg, #0d8a6a 0%, #10A37F 100%);
 }
 
 /* Glow Effects */

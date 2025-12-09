@@ -47,6 +47,10 @@ import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
 import { getMusicAudioController } from '../services/music-audio.controller.js';
 // Connection service - for music track expectation
 import { connectionService } from '../services/index.js';
+// 🚀 Ferni EQ - Superhuman emotional intelligence
+import { ferni } from '../ui/better-than-human.ui.js';
+// Tone detection for micro-expressions
+import { analyzeForMicroExpression, detectAnticipatedTone, estimateEnergyFromText } from '../utils/tone-detection.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -146,6 +150,12 @@ export function handleDataMessage(message: DataMessage): void {
       // Track user message for conversation history
       if (typeof message['text'] === 'string') {
         conversationTracker.addMessage('user', message['text']);
+        
+        // 🚀 Ferni EQ: Trigger micro-expressions based on user transcript content
+        // This enables subliminal trust-building through authentic reactions
+        const microParams = analyzeForMicroExpression(message['text']);
+        ferni.detectAndTriggerMicroExpression(microParams);
+        log.debug('🚀 Micro-expression analysis', { tone: microParams.tone, intensity: microParams.intensity });
       }
       break;
 
@@ -163,8 +173,124 @@ export function handleDataMessage(message: DataMessage): void {
         conversationTracker.addTopic(message['topic']);
       }
       break;
+    
+    case 'voice_prosody':
+      // 🚀 Ferni EQ: Voice prosody data for concern detection & breath sync
+      handleVoiceProsody(message as VoiceProsodyEvent);
+      break;
+    
+    case 'partial_transcript':
+      // 🚀 Ferni EQ: Partial transcript for anticipation - "reading the future"
+      handlePartialTranscript(message as PartialTranscriptEvent);
+      break;
 
     default:
+  }
+}
+
+// ============================================================================
+// PARTIAL TRANSCRIPT HANDLER - Ferni EQ "Reading the Future"
+// ============================================================================
+
+/**
+ * Partial transcript event from backend
+ */
+interface PartialTranscriptEvent extends DataMessage {
+  type: 'partial_transcript';
+  text: string;
+  isFinal: boolean;
+}
+
+/**
+ * Handle partial transcript for anticipation
+ * 
+ * This enables the "Better than Human" capability of anticipating
+ * emotions before the user finishes speaking.
+ */
+function handlePartialTranscript(event: PartialTranscriptEvent): void {
+  const { text } = event;
+  
+  // Skip very short partials
+  if (text.length < 15) return;
+  
+  // Detect anticipated tone from partial speech
+  const tone = detectAnticipatedTone(text);
+  const energy = estimateEnergyFromText(text);
+  
+  // Trigger anticipation
+  ferni.anticipateEmotion({
+    transcript: text,
+    tone,
+    energy,
+  });
+  
+  log.debug('🔮 Anticipation from partial:', { tone, energy, textLength: text.length });
+}
+
+// ============================================================================
+// VOICE PROSODY HANDLER - Ferni EQ "Better Than Human"
+// ============================================================================
+
+/**
+ * Voice prosody event from backend audio analysis
+ */
+interface VoiceProsodyEvent extends DataMessage {
+  type: 'voice_prosody';
+  stressLevel: number;
+  anxietyMarkers: boolean;
+  valence: number;
+  arousal: number;
+  dominance: number;
+  pitchVariance?: number;
+  pauseDuration?: number;
+  speechRate?: number;
+  voiceQuality?: number;
+  breathiness?: number;
+}
+
+/**
+ * Handle voice prosody data from backend for Ferni EQ concern detection
+ * 
+ * This enables "Better than Human" emotional intelligence by:
+ * 1. Detecting voice strain/breaking for concern response
+ * 2. Tracking pause patterns for breath synchronization
+ * 3. Mapping stress levels to empathetic expressions
+ */
+function handleVoiceProsody(event: VoiceProsodyEvent): void {
+  log.debug('🚀 Voice prosody received', {
+    stressLevel: event.stressLevel,
+    anxietyMarkers: event.anxietyMarkers,
+    valence: event.valence,
+  });
+  
+  // Map backend prosody to concern detection parameters
+  const concernParams: Parameters<typeof ferni.analyzeConcern>[0] = {
+    // Voice strain is indicated by high stress + low valence
+    voiceStrain: event.stressLevel,
+    
+    // Voice breaking is indicated by high stress + anxiety markers
+    voiceBreaking: event.stressLevel > 0.7 && event.anxietyMarkers,
+    
+    // Pause frequency indicates processing difficulty
+    pauseFrequency: event.pauseDuration !== undefined 
+      ? Math.min(1, event.pauseDuration / 1000) // Normalize to 0-1
+      : undefined,
+    
+    // Sighing indicated by low speech rate + breathiness
+    sighing: (event.breathiness !== undefined && event.breathiness > 0.6) ||
+             (event.speechRate !== undefined && event.speechRate < 0.3),
+  };
+  
+  // Run concern detection
+  const concernLevel = ferni.analyzeConcern(concernParams);
+  
+  if (concernLevel !== 'none') {
+    log.info('🚀 Ferni EQ concern detected', { concernLevel, stressLevel: event.stressLevel });
+  }
+  
+  // Track pause duration for breath sync
+  if (event.pauseDuration !== undefined && event.pauseDuration > 200) {
+    ferni.detectUserBreathRate([event.pauseDuration]);
   }
 }
 

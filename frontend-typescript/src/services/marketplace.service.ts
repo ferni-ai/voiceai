@@ -38,7 +38,8 @@ const log = createLogger('Marketplace');
 // ============================================================================
 
 /**
- * Raw registry entry from GitHub (matches actual repo format)
+ * Raw registry entry from GitHub/local (matches actual repo format)
+ * Supports both nested marketplace format and flat format
  */
 interface RawRegistryAgent {
   id: string;
@@ -49,7 +50,21 @@ interface RawRegistryAgent {
   license: 'free' | 'premium' | 'enterprise';
   category: string;
   tags: string[];
-  path: string;
+  path?: string;
+  // Flat format (used in registry.json)
+  display_name?: string;
+  short_description?: string;
+  icon?: string;
+  colors?: {
+    primary?: string;
+    secondary?: string;
+    gradient?: string;
+    glow?: string;
+  };
+  downloads?: number;
+  rating?: number;
+  featured?: boolean;
+  // Nested marketplace format (legacy)
   requirements?: {
     voice_id_env?: string;
     min_platform_version?: string;
@@ -59,6 +74,12 @@ interface RawRegistryAgent {
     featured?: boolean;
     downloads?: number;
     rating?: number;
+    colors?: {
+      primary?: string;
+      secondary?: string;
+      gradient?: string;
+      glow?: string;
+    };
   };
 }
 
@@ -252,34 +273,37 @@ const FALLBACK_COLORS = { primary: '#4a6741', secondary: '#3d5a35' };
 
 /**
  * Normalize a raw registry agent to our UI format
+ * Handles both flat format (from registry.json) and nested marketplace format
  */
 function normalizeAgent(raw: RawRegistryAgent): MarketplaceAgent {
-  const colors = DEFAULT_AGENT_COLORS[raw.id] || FALLBACK_COLORS;
-  const primaryColor = colors.primary;
-  const secondaryColor = colors.secondary;
+  // Get colors from flat format, nested format, or defaults
+  const rawColors = raw.colors || raw.marketplace?.colors;
+  const colors = rawColors || DEFAULT_AGENT_COLORS[raw.id] || FALLBACK_COLORS;
+  const primaryColor = colors.primary || FALLBACK_COLORS.primary;
+  const secondaryColor = colors.secondary || FALLBACK_COLORS.secondary;
   
   return {
     id: raw.id,
     name: raw.name,
-    display_name: raw.name,
+    display_name: raw.display_name || raw.name,
     description: raw.description,
-    short_description: raw.description.split('.')[0] + '.',
+    short_description: raw.short_description || raw.description.split('.')[0] + '.',
     category: raw.category,
-    tags: raw.tags,
-    icon: raw.marketplace?.icon || '🤖',
+    tags: raw.tags || [],
+    icon: raw.icon || raw.marketplace?.icon || '🤖',
     version: raw.version,
     author: raw.author,
     license: raw.license,
     colors: {
       primary: primaryColor,
       secondary: secondaryColor,
-      gradient: `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`,
-      glow: `rgba(${hexToRgb(primaryColor)}, 0.3)`,
+      gradient: ('gradient' in colors && colors.gradient) || `linear-gradient(135deg, ${secondaryColor}, ${primaryColor})`,
+      glow: ('glow' in colors && colors.glow) || `rgba(${hexToRgb(primaryColor)}, 0.3)`,
     },
-    path: raw.path,
-    featured: raw.marketplace?.featured,
-    downloads: raw.marketplace?.downloads,
-    rating: raw.marketplace?.rating,
+    path: raw.path || `agents/${raw.id}`,
+    featured: raw.featured || raw.marketplace?.featured,
+    downloads: raw.downloads || raw.marketplace?.downloads,
+    rating: raw.rating || raw.marketplace?.rating,
   };
 }
 

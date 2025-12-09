@@ -266,15 +266,13 @@ export function createConversationTools() {
 
         // 🌅 Signal the frontend that we're wrapping up
         // This changes the disconnect button to a warm "Goodbye" button
-        // TODO: Move getFrontendPublisher to services layer to fix architecture violation
         try {
-          const { getFrontendPublisher } = await import('../agents/realtime/index.js');
-          const publisher = getFrontendPublisher();
-          if (publisher.isConnected()) {
-            await publisher.sendData('wrap_up', {
-              sentiment,
-              // Don't include the message - let the frontend handle UI
-            });
+          const { sendFrontendSignal } = await import('../services/frontend-signal.js');
+          const sent = await sendFrontendSignal('wrap_up', {
+            sentiment,
+            // Don't include the message - let the frontend handle UI
+          });
+          if (sent) {
             getLogger().info('Sent wrap_up signal to frontend');
           }
         } catch (e) {

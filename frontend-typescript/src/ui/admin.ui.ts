@@ -694,7 +694,7 @@ export function injectAdminStyles(): void {
 
     .admin-btn--primary {
       background: var(--persona-primary, #4a6741);
-      border-color: var(--persona-primary, #4a6741);
+      border-color: var(--color-text-secondary);
     }
 
     .admin-btn--danger {

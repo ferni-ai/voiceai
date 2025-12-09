@@ -6,7 +6,7 @@
  */
 
 export type ThemeName = 'midnight' | 'zen';
-export type PersonaId = '_description' | 'ferni' | 'peter-lynch' | 'alex-chen' | 'maya-santos' | 'jordan-taylor';
+export type PersonaId = '_description' | 'ferni' | 'jack' | 'peter' | 'alex' | 'maya' | 'jordan' | 'nayan';
 
 export interface ThemeMeta {
   name: string;
@@ -27,7 +27,7 @@ export const THEMES: Record<ThemeName, ThemeMeta> = {
   }
 };
 
-export const PERSONA_IDS: PersonaId[] = ["_description","ferni","peter-lynch","alex-chen","maya-santos","jordan-taylor"];
+export const PERSONA_IDS: PersonaId[] = ["_description","ferni","jack","peter","alex","maya","jordan","nayan"];
 
 // ============================================================================
 // PIXAR ANIMATION CONSTANTS

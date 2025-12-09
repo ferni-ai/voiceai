@@ -85,6 +85,23 @@ export function disposeNarrativeBridge(): void {
   isInitialized = false;
 }
 
+/**
+ * Get debug state for narrative bridge (dev tools)
+ */
+export function getNarrativeBridgeDebugState(): {
+  lastSpeechTime: number;
+  isFerniSpeaking: boolean;
+  isUserSpeaking: boolean;
+  turnCount: number;
+} {
+  return {
+    lastSpeechTime,
+    isFerniSpeaking,
+    isUserSpeaking,
+    turnCount,
+  };
+}
+
 // ============================================================================
 // CONNECTION EVENTS
 // ============================================================================

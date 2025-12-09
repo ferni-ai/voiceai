@@ -22,6 +22,10 @@ import {
 } from './services/index.js';
 import { initializeFromBundles, listPersonas } from './personas/index.js';
 import { initializeTeamHandlers, shutdownTools } from './tools/index.js';
+import {
+  initializeAllPersistence,
+  shutdownAllPersistence,
+} from './services/persistence/lifecycle.js';
 
 // ============================================================================
 // STATE
@@ -139,6 +143,15 @@ export async function startup(): Promise<AppConfig> {
     logger.warn(`Tool usage analytics init failed (non-fatal): ${error}`);
   }
 
+  // Initialize all persistence services (unified persistence layer)
+  logger.info('Initializing persistence services...');
+  try {
+    await initializeAllPersistence();
+    logger.info('✓ Persistence services ready');
+  } catch (error) {
+    logger.warn(`Persistence initialization failed (non-fatal): ${error}`);
+  }
+
   initialized = true;
   logger.info('✅ Voice AI ready!');
 
@@ -190,6 +203,15 @@ export async function shutdown(): Promise<void> {
       logger.info('✓ Tool usage analytics flushed');
     } catch (error) {
       logger.warn(`Tool usage analytics flush failed (non-fatal): ${error}`);
+    }
+
+    // Shutdown all persistence services (flush all pending data)
+    logger.info('Shutting down persistence services...');
+    try {
+      await shutdownAllPersistence();
+      logger.info('✓ Persistence services shut down');
+    } catch (error) {
+      logger.warn(`Persistence shutdown failed (non-fatal): ${error}`);
     }
 
     // Cleanup team handlers and tool services

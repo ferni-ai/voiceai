@@ -131,7 +131,15 @@
       "tint": "rgba(74, 103, 65, 0.06)",
       "_note": "Deep sage green - grounding, wise, natural leader"
     },
-    "peter-lynch": {
+    "jack": {
+      "primary": "#9a7b5a",
+      "secondary": "#7d6348",
+      "text": "#ffffff",
+      "glow": "rgba(154, 123, 90, 0.28)",
+      "tint": "rgba(154, 123, 90, 0.06)",
+      "_note": "Warm cedar brown - experienced, comforting, wise"
+    },
+    "peter": {
       "primary": "#3a6b73",
       "secondary": "#2d5359",
       "text": "#ffffff",
@@ -139,7 +147,7 @@
       "tint": "rgba(58, 107, 115, 0.06)",
       "_note": "Ocean teal - depth, discovery, research"
     },
-    "alex-chen": {
+    "alex": {
       "primary": "#5a6b8a",
       "secondary": "#4a5a73",
       "text": "#ffffff",
@@ -147,7 +155,7 @@
       "tint": "rgba(90, 107, 138, 0.06)",
       "_note": "Soft indigo - clarity, flow, communication"
     },
-    "maya-santos": {
+    "maya": {
       "primary": "#a67a6a",
       "secondary": "#8a635a",
       "text": "#ffffff",
@@ -155,13 +163,21 @@
       "tint": "rgba(166, 122, 106, 0.06)",
       "_note": "Dusty terracotta - nurturing, warmth, habits"
     },
-    "jordan-taylor": {
+    "jordan": {
       "primary": "#c4856a",
       "secondary": "#a86d55",
       "text": "#ffffff",
       "glow": "rgba(196, 133, 106, 0.28)",
       "tint": "rgba(196, 133, 106, 0.06)",
       "_note": "Warm sunset coral - celebration, joy, events"
+    },
+    "nayan": {
+      "primary": "#8a7a6a",
+      "secondary": "#736559",
+      "text": "#ffffff",
+      "glow": "rgba(138, 122, 106, 0.28)",
+      "tint": "rgba(138, 122, 106, 0.06)",
+      "_note": "Warm stone gray - synthesis, wisdom, premium"
     }
   }
 }

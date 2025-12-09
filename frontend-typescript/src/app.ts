@@ -814,7 +814,7 @@ class VoiceAIApp {
         log.info('🚀 Ferni EQ gentle check-in triggered', { level, triggers });
         
         // Show visual acknowledgment that Ferni noticed
-        avatarFeedback.empathy();
+        avatarFeedback.react('empathy');
         
         // Optional: Show a subtle message to indicate Ferni cares
         // We don't want to be intrusive, just present

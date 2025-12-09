@@ -14,14 +14,13 @@
  * @module VoiceEnrollmentUI
  */
 
-import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
+import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
 import {
   getVoiceAuthService,
   type EnrollmentProgress,
   type VoiceProfile,
-  type VoiceAuthStatus,
 } from '../services/voice-auth.service.js';
 
 const log = createLogger('VoiceEnrollmentUI');
@@ -77,6 +76,17 @@ let progress: EnrollmentProgress | null = null;
 let audioLevel = 0;
 let animationFrame: number | null = null;
 let options: VoiceEnrollmentOptions = {};
+
+/**
+ * Get current enrollment UI state (for dev tools)
+ */
+export function getEnrollmentDebugState(): {
+  currentState: EnrollmentState;
+  audioLevel: number;
+  progress: EnrollmentProgress | null;
+} {
+  return { currentState, audioLevel, progress };
+}
 
 // ============================================================================
 // ENROLLMENT PROMPTS - Different phrases for each sample
@@ -169,7 +179,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
       margin-bottom: 4px;
     }
     
@@ -343,7 +353,7 @@ function injectStyles(): void {
       font-size: 32px;
       font-weight: 300;
       font-family: var(--font-mono, 'JetBrains Mono', monospace);
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
       margin-bottom: 24px;
       opacity: 0;
       transition: opacity ${DURATION.NORMAL}ms ${EASING.STANDARD};
@@ -498,7 +508,7 @@ function injectStyles(): void {
     .voice-enrollment-stat-value {
       font-size: 24px;
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-secondary);
     }
     
     .voice-enrollment-stat-label {

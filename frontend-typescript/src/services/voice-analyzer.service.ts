@@ -4,10 +4,15 @@
  * Real-time audio analysis for synesthesia effects.
  * Extracts amplitude, frequency, and speech patterns for visual sync.
  * 
+ * Enhanced for Ferni EQ:
+ * - Dispatches pause events for active listening (nodding)
+ * - Tracks pause patterns for breath synchronization
+ * 
  * @module @ferni/voice-analyzer
  */
 
 import { createLogger } from '../utils/logger.js';
+import { dispatchUserSpeechPause } from './speech-event-dispatcher.js';
 
 const log = createLogger('VoiceAnalyzer');
 
@@ -91,6 +96,12 @@ export class VoiceAnalyzer {
   private smoothedAmplitude: number = 0;
   private lastSpeechTime: number = 0;
   private speechHistory: boolean[] = [];
+  
+  // 🚀 Ferni EQ: Pause detection for active listening
+  private wasSpeaking: boolean = false;
+  private pauseStartTime: number = 0;
+  private lastPauseDispatchTime: number = 0;
+  private static readonly MIN_PAUSE_INTERVAL = 1500; // Don't dispatch pauses faster than this
   
   // Callbacks
   private callbacks: Set<VoiceCallback> = new Set();
@@ -288,8 +299,43 @@ export class VoiceAnalyzer {
       silenceDuration,
     };
     
+    // 🚀 Ferni EQ: Detect pauses for active listening
+    this.detectAndDispatchPauses(isSpeaking, now);
+    
     // Notify callbacks
     this.notifyCallbacks();
+  }
+  
+  /**
+   * 🚀 Ferni EQ: Detect speech pauses and dispatch events
+   * Pauses during speech trigger active listening responses (nodding)
+   */
+  private detectAndDispatchPauses(isSpeaking: boolean, now: number): void {
+    // Transition: Speaking → Not Speaking (potential pause start)
+    if (this.wasSpeaking && !isSpeaking) {
+      this.pauseStartTime = now;
+    }
+    
+    // Transition: Not Speaking → Speaking (pause ended)
+    if (!this.wasSpeaking && isSpeaking && this.pauseStartTime > 0) {
+      const pauseDuration = now - this.pauseStartTime;
+      
+      // Only dispatch meaningful pauses (200ms - 5000ms)
+      // Also respect minimum interval to avoid spamming
+      if (
+        pauseDuration >= 200 &&
+        pauseDuration <= 5000 &&
+        now - this.lastPauseDispatchTime >= VoiceAnalyzer.MIN_PAUSE_INTERVAL
+      ) {
+        dispatchUserSpeechPause(pauseDuration);
+        this.lastPauseDispatchTime = now;
+      }
+      
+      this.pauseStartTime = 0;
+    }
+    
+    // Update speaking state
+    this.wasSpeaking = isSpeaking;
   }
   
   private calculateAmplitude(): number {

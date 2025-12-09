@@ -285,18 +285,19 @@ const accentColor = getCSSVar('--color-accent-primary');
 
 ## Personas
 
-Each persona has unique accent colors:
+Each persona has unique accent colors (earthy, zen-inspired palette):
 
-| Persona | Primary | Use Case |
-|---------|---------|----------|
-| ferni | Purple (#8b5cf6) | Life Coach |
-| jack-bogle | Gold (#c8a45c) | Sage Mentor |
-| peter-lynch | Green (#22c55e) | Research |
-| alex-chen | Blue (#3b82f6) | Appointments |
-| maya-santos | Pink (#f472b6) | Travel |
-| jordan-taylor | Orange (#fb923c) | Life Planning |
+| Persona | Primary | Description | Use Case |
+|---------|---------|-------------|----------|
+| ferni | Sage Green (#4a6741) | Deep sage - grounding, wise | Life Coach |
+| jack | Cedar Brown (#9a7b5a) | Warm cedar - experienced, comforting | Wisdom Mentor |
+| peter | Ocean Teal (#3a6b73) | Deep teal - discovery, depth | Research |
+| alex | Soft Indigo (#5a6b8a) | Calm blue - clarity, flow | Communications |
+| maya | Terracotta (#a67a6a) | Dusty rose - nurturing, warmth | Habits/Routines |
+| jordan | Sunset Coral (#c4856a) | Warm coral - celebration, joy | Events/Planning |
+| nayan | Stone Gray (#8a7a6a) | Neutral - synthesis, wisdom | Premium Advisor |
 
-Set persona: `<body data-persona="jack-bogle">`
+Set persona: `<body data-persona="jack">` or `<body data-persona="ferni">`
 
 ## Premium Features
 

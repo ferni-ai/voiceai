@@ -606,7 +606,7 @@ class MusicDashboardUI {
       .music-dashboard__icon {
         width: 28px;
         height: 28px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
       }
 
       .music-dashboard__title {
@@ -670,7 +670,7 @@ class MusicDashboardUI {
       .music-dashboard__section-icon {
         width: 18px;
         height: 18px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
       }
 
       /* Personality Section */
@@ -693,7 +693,7 @@ class MusicDashboardUI {
       .music-dashboard__personality-icon {
         width: 32px;
         height: 32px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
         flex-shrink: 0;
       }
 
@@ -792,7 +792,7 @@ class MusicDashboardUI {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: 1.5rem;
         font-weight: 700;
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
       }
 
       .music-dashboard__stat-label {
@@ -839,7 +839,7 @@ class MusicDashboardUI {
       .music-dashboard__affinity-score {
         font-weight: 700;
         font-size: 0.9rem;
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
       }
 
       .music-dashboard__affinity--growth .music-dashboard__affinity-score {
@@ -1043,7 +1043,7 @@ class MusicDashboardUI {
       .music-dashboard__error-icon {
         width: 64px;
         height: 64px;
-        color: var(--persona-primary, #4a6741);
+        color: var(--color-text-secondary);
         margin-bottom: var(--space-4, 16px);
         opacity: 0.5;
       }
@@ -1093,7 +1093,7 @@ class MusicDashboardUI {
         width: 40px;
         height: 40px;
         border: 3px solid var(--color-border-subtle, rgba(0, 0, 0, 0.08));
-        border-top-color: var(--persona-primary, #4a6741);
+        border-top-color: var(--color-text-secondary);
         border-radius: 50%;
         animation: music-dashboard-spin 1s linear infinite;
         margin-bottom: var(--space-4, 16px);

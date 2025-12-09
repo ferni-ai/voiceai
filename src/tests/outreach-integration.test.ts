@@ -300,6 +300,13 @@ describe('getDueItems', () => {
 describe('canSendOutreach', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock time to noon (12:00) to avoid quiet hours (22:00 - 08:00)
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-06-15T12:00:00'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should allow outreach by default', () => {

@@ -1975,6 +1975,14 @@ function createPanel(): HTMLElement {
     });
   });
 
+  // Dashboard link buttons (buttons styled as links with data-action)
+  container.querySelectorAll('button.dev-dashboard-link[data-action]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = (btn as HTMLElement).dataset.action;
+      if (action) handleAction(action);
+    });
+  });
+
   // Soul buttons
   container.querySelectorAll('.dev-soul-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -2502,6 +2510,22 @@ function handleAction(action: string): void {
     case 'trigger-upgrade':
       triggerUpgradeModal();
       break;
+    case 'open-evalops':
+      openEvalOpsDashboard();
+      break;
+  }
+}
+
+/**
+ * Open EvalOps dashboard
+ */
+async function openEvalOpsDashboard(): Promise<void> {
+  try {
+    const { showEvalOpsDashboard } = await import('./evalops-dashboard.ui.js');
+    showEvalOpsDashboard();
+    log.info('🎯 Opened EvalOps dashboard');
+  } catch (e) {
+    log.error('Failed to open EvalOps dashboard:', e);
   }
 }
 
@@ -2787,9 +2811,10 @@ async function handleOutreachAction(action: string): Promise<void> {
           setStatus(`✕ ${callResult.error || 'Call failed'}${hint}`, true);
         }
         break;
+      }
 
       // Trigger types
-      case 'trigger-commitment':
+      case 'trigger-commitment': {
         const commitRes = await fetch('/api/outreach/trigger', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2803,8 +2828,9 @@ async function handleOutreachAction(action: string): Promise<void> {
         });
         setStatus(commitRes.ok ? '✓ Commitment trigger created!' : '✕ Failed', !commitRes.ok);
         break;
+      }
 
-      case 'trigger-emotional':
+      case 'trigger-emotional': {
         const emotionRes = await fetch('/api/outreach/trigger', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2817,8 +2843,9 @@ async function handleOutreachAction(action: string): Promise<void> {
         });
         setStatus(emotionRes.ok ? '✓ Emotional trigger created!' : '✕ Failed', !emotionRes.ok);
         break;
+      }
 
-      case 'trigger-celebration':
+      case 'trigger-celebration': {
         const celebRes = await fetch('/api/outreach/trigger', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2832,8 +2859,9 @@ async function handleOutreachAction(action: string): Promise<void> {
         });
         setStatus(celebRes.ok ? '✓ Celebration trigger created!' : '✕ Failed', !celebRes.ok);
         break;
+      }
 
-      case 'trigger-thinking':
+      case 'trigger-thinking': {
         const toyRes = await fetch('/api/outreach/thinking-of-you', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2845,9 +2873,10 @@ async function handleOutreachAction(action: string): Promise<void> {
         });
         setStatus(toyRes.ok ? '✓ Thinking-of-you triggered!' : '✕ Failed', !toyRes.ok);
         break;
+      }
 
       // View data
-      case 'view-pending':
+      case 'view-pending': {
         const pendingRes = await fetch(`/api/outreach/pending?userId=${userId}`);
         const pendingData = await pendingRes.json();
         log.info({ pending: pendingData }, '📋 Pending outreach');
@@ -2855,8 +2884,9 @@ async function handleOutreachAction(action: string): Promise<void> {
         console.log('📋 Pending Outreach:', pendingData);
         setStatus(`${pendingData.count || 0} pending (see console)`);
         break;
+      }
 
-      case 'view-history':
+      case 'view-history': {
         const historyRes = await fetch(`/api/outreach/history?userId=${userId}&limit=10`);
         const historyData = await historyRes.json();
         log.info({ history: historyData }, '📜 Outreach history');
@@ -2864,8 +2894,9 @@ async function handleOutreachAction(action: string): Promise<void> {
         console.log('📜 Outreach History:', historyData);
         setStatus(`${historyData.count || 0} in history (see console)`);
         break;
+      }
 
-      case 'view-context':
+      case 'view-context': {
         const contextRes = await fetch(`/api/outreach/context?userId=${userId}`);
         const contextData = await contextRes.json();
         log.info({ context: contextData }, '🧠 User context');
@@ -2873,8 +2904,9 @@ async function handleOutreachAction(action: string): Promise<void> {
         console.log('🧠 User Context:', contextData);
         setStatus('Context loaded (see console)');
         break;
+      }
 
-      case 'view-timing':
+      case 'view-timing': {
         const timingRes = await fetch(`/api/outreach/timing?userId=${userId}`);
         const timingData = await timingRes.json();
         log.info({ timing: timingData }, '⏰ Timing patterns');
@@ -2882,6 +2914,7 @@ async function handleOutreachAction(action: string): Promise<void> {
         console.log('⏰ Timing Patterns:', timingData);
         setStatus('Timing loaded (see console)');
         break;
+      }
 
       default:
         log.warn({ action }, 'Unknown outreach action');

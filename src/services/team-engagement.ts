@@ -10,10 +10,14 @@
  *   - Seasonal Events: Special moments tied to calendar
  *   - Anniversary Celebrations: Marking user milestones
  *   - Cross-Persona Banter: Characters referencing each other
+ *
+ * PERSISTENCE: All team engagement data is persisted to Firestore via the
+ * unified persistence layer to survive server restarts.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 
 // ============================================================================
 // TYPES
@@ -901,6 +905,17 @@ export function getHandoffBanter(fromPersonaId: string, toPersonaId: string): st
 }
 
 // ============================================================================
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface TeamEngagementData {
+  huddles: TeamHuddle[];
+  sharedEvolutions: string[];
+  anniversaries: UserAnniversary[];
+  updatedAt: string;
+}
+
+// ============================================================================
 // TEAM ENGAGEMENT SERVICE
 // ============================================================================
 
@@ -909,18 +924,106 @@ export class TeamEngagementService {
   private sharedEvolutions = new Map<string, string[]>(); // userId -> eventIds shared
   private userAnniversaries = new Map<string, UserAnniversary[]>();
 
+  // Persistence store
+  private persistenceStore: PersistenceStore<TeamEngagementData> | null = null;
+  private initialized = false;
+
+  /**
+   * Initialize persistence
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    this.persistenceStore = createPersistenceStore<TeamEngagementData>({
+      collection: 'team_engagement',
+      syncIntervalMs: 15000, // Sync every 15 seconds
+      maxPendingChanges: 20,
+    });
+
+    this.initialized = true;
+    getLogger().info('Team engagement service initialized with persistence');
+  }
+
+  /**
+   * Load user data from persistence
+   */
+  private async loadUserData(userId: string): Promise<void> {
+    if (!this.persistenceStore) return;
+
+    try {
+      const data = await this.persistenceStore.load(userId);
+      if (!data) return;
+
+      // Rehydrate huddles
+      if (data.huddles?.length > 0) {
+        this.huddles.set(userId, data.huddles.map(h => ({
+          ...h,
+          scheduledAt: new Date(h.scheduledAt),
+        })));
+      }
+
+      // Rehydrate shared evolutions
+      if (data.sharedEvolutions?.length > 0) {
+        this.sharedEvolutions.set(userId, data.sharedEvolutions);
+      }
+
+      // Rehydrate anniversaries
+      if (data.anniversaries?.length > 0) {
+        this.userAnniversaries.set(userId, data.anniversaries.map(a => ({
+          ...a,
+          date: new Date(a.date),
+        })));
+      }
+
+      getLogger().debug({ userId }, 'Loaded team engagement data from persistence');
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to load team engagement data');
+    }
+  }
+
+  /**
+   * Persist user data to Firestore
+   */
+  private persistUserData(userId: string): void {
+    if (!this.persistenceStore) return;
+
+    const data: TeamEngagementData = {
+      huddles: this.huddles.get(userId) || [],
+      sharedEvolutions: this.sharedEvolutions.get(userId) || [],
+      anniversaries: this.userAnniversaries.get(userId) || [],
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.persistenceStore.set(userId, data);
+  }
+
+  /**
+   * Shutdown (flush all pending data)
+   */
+  async shutdown(): Promise<void> {
+    if (this.persistenceStore) {
+      await this.persistenceStore.flush();
+      getLogger().info('Team engagement service shutdown complete');
+    }
+  }
+
   /**
    * Generate a team huddle for a user
    */
-  generateTeamHuddle(
+  async generateTeamHuddle(
     userId: string,
     profile: UserProfile | null,
     type: TeamHuddle['type'] = 'weekly'
-  ): {
+  ): Promise<{
     intro: string;
     comments: Array<{ personaId: string; comment: string }>;
     outro: string;
-  } {
+  }> {
+    // Load from persistence if not in memory
+    if (!this.huddles.has(userId)) {
+      await this.loadUserData(userId);
+    }
+
     const scripts = TEAM_HUDDLE_SCRIPTS;
     const intro = scripts.weekly.intro[Math.floor(Math.random() * scripts.weekly.intro.length)];
     const outro = scripts.weekly.outro[Math.floor(Math.random() * scripts.weekly.outro.length)];
@@ -980,6 +1083,9 @@ export class TeamEngagementService {
     userHuddles.push(huddle);
     this.huddles.set(userId, userHuddles);
 
+    // Persist to Firestore
+    this.persistUserData(userId);
+
     getLogger().info(
       { userId, type, participants: huddle.participants.length },
       '👥 Team huddle generated'
@@ -1001,11 +1107,16 @@ export class TeamEngagementService {
   /**
    * Get unlocked evolution events for a user
    */
-  getUnlockedEvolutions(
+  async getUnlockedEvolutions(
     userId: string,
     profile: UserProfile | null,
     personaId?: string
-  ): PersonaEvolutionEvent[] {
+  ): Promise<PersonaEvolutionEvent[]> {
+    // Load from persistence if not in memory
+    if (!this.sharedEvolutions.has(userId)) {
+      await this.loadUserData(userId);
+    }
+
     const sharedIds = this.sharedEvolutions.get(userId) || [];
     const eligible: PersonaEvolutionEvent[] = [];
 
@@ -1063,6 +1174,9 @@ export class TeamEngagementService {
     if (!sharedIds.includes(eventId)) {
       sharedIds.push(eventId);
       this.sharedEvolutions.set(userId, sharedIds);
+
+      // Persist to Firestore
+      this.persistUserData(userId);
     }
   }
 
@@ -1254,12 +1368,24 @@ let teamEngagementService: TeamEngagementService | null = null;
 export function getTeamEngagementService(): TeamEngagementService {
   if (!teamEngagementService) {
     teamEngagementService = new TeamEngagementService();
+    // Initialize persistence in background
+    void teamEngagementService.initialize();
   }
   return teamEngagementService;
 }
 
 export function resetTeamEngagementService(): void {
   teamEngagementService = null;
+}
+
+/**
+ * Shutdown team engagement service (call on app shutdown)
+ */
+export async function shutdownTeamEngagementService(): Promise<void> {
+  if (teamEngagementService) {
+    await teamEngagementService.shutdown();
+    teamEngagementService = null;
+  }
 }
 
 export default TeamEngagementService;

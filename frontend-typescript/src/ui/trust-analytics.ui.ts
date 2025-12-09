@@ -278,7 +278,7 @@ const STYLES = `
   .trust-analytics-metric-value {
     font-size: 28px;
     font-weight: 700;
-    color: var(--persona-primary, #4a6741);
+    color: var(--color-text-secondary);
     margin-bottom: var(--space-1, 4px);
   }
 
@@ -342,7 +342,7 @@ const STYLES = `
 
   .trust-analytics-ab-significance--high {
     background: rgba(74, 103, 65, 0.15);
-    color: #4a6741;
+    color: var(--color-text-secondary);
   }
 
   .trust-analytics-ab-significance--low {
@@ -380,7 +380,7 @@ const STYLES = `
   }
 
   .trust-analytics-ab-variant--winner .trust-analytics-ab-variant-rate {
-    color: var(--persona-primary, #4a6741);
+    color: var(--color-text-secondary);
   }
 
   /* Trend Chart (simple CSS bars) */

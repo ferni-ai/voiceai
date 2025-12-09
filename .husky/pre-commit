@@ -50,6 +50,21 @@ npx tsx scripts/code-quality-check.ts 2>/dev/null || {
 }
 
 # =============================================================================
+# DESIGN SYSTEM VALIDATION
+# =============================================================================
+echo ""
+echo "🎨 Design system checks..."
+
+# Check for token drift (warns but doesn't block)
+node design-system/check-drift.js 2>/dev/null || {
+  echo ""
+  echo "  ⚠ Token drift detected (non-blocking)"
+  echo "  Run 'npm run tokens:sync' to fix"
+}
+
+echo "  ✓ Design system checks passed"
+
+# =============================================================================
 # FRONTEND VALIDATION
 # =============================================================================
 echo ""

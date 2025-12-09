@@ -125,6 +125,52 @@ export {
 } from './test-scenarios.js';
 
 // ============================================================================
+// AUTOMATION & HOOKS
+// ============================================================================
+
+export {
+  // Feature flags
+  getEvalOpsFlags,
+  setEvalOpsFlags,
+  isEvalOpsEnabledForPersona,
+  type EvalOpsFeatureFlags,
+  
+  // Metrics
+  getEvalMetrics,
+  resetEvalMetrics,
+  
+  // Evaluation storage
+  getRecentEvaluations,
+  getFlaggedEvaluations,
+  
+  // Alerting
+  onFlaggedResponse,
+  
+  // Conversation hooks
+  afterTurn,
+  quickVoiceCheck,
+  evalopsHook,
+  
+  // Scheduled suites
+  runScheduledSuite,
+  getSuiteResults,
+  startScheduledEvaluation,
+  stopScheduledEvaluation,
+} from './automation.js';
+
+// ============================================================================
+// VOICE AGENT INTEGRATION
+// ============================================================================
+
+export {
+  evaluateAgentResponse,
+  recordUserMessage,
+  getLastEvaluation,
+  getSessionEvalStats,
+  onSessionEnd,
+} from './voice-agent-integration.js';
+
+// ============================================================================
 // CONVENIENCE FUNCTIONS
 // ============================================================================
 

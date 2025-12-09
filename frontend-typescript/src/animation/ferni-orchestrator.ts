@@ -215,10 +215,11 @@ export class FerniOrchestrator {
     // Kill existing
     this.breathingTL?.kill();
     
-    this.breathingTL = gsap.timeline({ repeat: -1 });
+    const tl = gsap.timeline({ repeat: -1 });
+    this.breathingTL = tl;
     
     // Inhale - stretch vertically, compress horizontally (squash & stretch)
-    this.breathingTL.to(this.elements.container, {
+    tl.to(this.elements.container, {
       scaleY: depth,
       scaleX: 2 - depth, // Inverse for volume preservation
       duration: breathDuration / 2,
@@ -226,7 +227,7 @@ export class FerniOrchestrator {
     });
     
     // Exhale - return with slight overshoot (follow-through)
-    this.breathingTL.to(this.elements.container, {
+    tl.to(this.elements.container, {
       scaleY: 1,
       scaleX: 1,
       duration: breathDuration / 2,
@@ -247,19 +248,20 @@ export class FerniOrchestrator {
     // Kill existing
     this.glowTL?.kill();
     
-    this.glowTL = gsap.timeline({ repeat: -1 });
+    const tl = gsap.timeline({ repeat: -1 });
+    this.glowTL = tl;
     
     // Glow pulses slightly out of phase with breathing
     const pulseDuration = (60 / emotion.breathing.rate) * 1.23; // Golden ratio offset
     
-    this.glowTL.to(this.elements.glow, {
+    tl.to(this.elements.glow, {
       opacity: glowIntensity * 0.7,
       scale: 1.05,
       duration: pulseDuration / 2,
       ease: FERNI_EASE.breathe,
     });
     
-    this.glowTL.to(this.elements.glow, {
+    tl.to(this.elements.glow, {
       opacity: glowIntensity,
       scale: 1,
       duration: pulseDuration / 2,
@@ -278,9 +280,10 @@ export class FerniOrchestrator {
     this.ringTL?.kill();
     
     // Gentle continuous rotation
-    this.ringTL = gsap.timeline({ repeat: -1 });
+    const tl = gsap.timeline({ repeat: -1 });
+    this.ringTL = tl;
     
-    this.ringTL.to(this.elements.ring, {
+    tl.to(this.elements.ring, {
       rotation: 360,
       duration: 20 * this.currentEmotion.movement.speed,
       ease: 'none',

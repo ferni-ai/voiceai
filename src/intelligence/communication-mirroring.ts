@@ -10,9 +10,13 @@
  * - Question style preferences
  *
  * This creates subconscious rapport by speaking "their language"
+ *
+ * PERSISTENCE: Communication style data is persisted to Firestore via the
+ * unified persistence layer to survive server restarts and improve over sessions.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { createPersistenceStore, type PersistenceStore } from '../services/persistence/index.js';
 
 // ============================================================================
 // TYPES
@@ -122,15 +126,69 @@ const COLLOQUIALISM_PATTERNS = [
 ];
 
 // ============================================================================
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface CommunicationStyleData {
+  samples: MessageSample[];
+  detectedPhrases: Record<string, number>;
+  calculatedStyle: CommunicationStyle | null;
+  updatedAt: string;
+}
+
+// ============================================================================
 // COMMUNICATION MIRRORING ENGINE
 // ============================================================================
 
 export class CommunicationMirroringEngine {
   private samples: MessageSample[] = [];
   private detectedPhrases = new Map<string, number>();
+  private userId: string;
+  private persistenceStore: PersistenceStore<CommunicationStyleData> | null = null;
+  private loaded = false;
 
-  constructor() {
+  constructor(userId?: string, persistenceStore?: PersistenceStore<CommunicationStyleData>) {
+    this.userId = userId || 'unknown';
+    this.persistenceStore = persistenceStore || null;
     getLogger().debug('CommunicationMirroringEngine initialized');
+  }
+
+  /**
+   * Load persisted communication style data
+   */
+  async loadFromPersistence(): Promise<void> {
+    if (this.loaded || !this.persistenceStore) return;
+
+    try {
+      const data = await this.persistenceStore.load(this.userId);
+      if (data) {
+        this.samples = data.samples.map(s => ({
+          ...s,
+          timestamp: new Date(s.timestamp),
+        }));
+        this.detectedPhrases = new Map(Object.entries(data.detectedPhrases));
+        getLogger().debug({ userId: this.userId }, 'Loaded communication style from persistence');
+      }
+      this.loaded = true;
+    } catch (error) {
+      getLogger().warn({ error, userId: this.userId }, 'Failed to load communication style');
+    }
+  }
+
+  /**
+   * Persist communication style data to Firestore
+   */
+  private persist(): void {
+    if (!this.persistenceStore) return;
+
+    const data: CommunicationStyleData = {
+      samples: this.samples,
+      detectedPhrases: Object.fromEntries(this.detectedPhrases),
+      calculatedStyle: this.calculateStyle(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.persistenceStore.set(this.userId, data);
   }
 
   // ============================================================================
@@ -140,7 +198,12 @@ export class CommunicationMirroringEngine {
   /**
    * Analyze a user message and update style profile
    */
-  analyzeMessage(message: string): void {
+  async analyzeMessage(message: string): Promise<void> {
+    // Ensure data is loaded from persistence
+    if (!this.loaded) {
+      await this.loadFromPersistence();
+    }
+
     const sample = this.extractFeatures(message);
     this.samples.push(sample);
 
@@ -151,6 +214,9 @@ export class CommunicationMirroringEngine {
 
     // Track common phrases
     this.extractPhrases(message);
+
+    // Persist to Firestore
+    this.persist();
 
     getLogger().debug(
       {
@@ -509,18 +575,56 @@ interface MessageSample {
 }
 
 // ============================================================================
-// SINGLETON
+// SINGLETON & PERSISTENCE
 // ============================================================================
 
 const engines = new Map<string, CommunicationMirroringEngine>();
+let globalPersistenceStore: PersistenceStore<CommunicationStyleData> | null = null;
+let isInitialized = false;
+
+/**
+ * Initialize communication mirroring persistence
+ */
+export async function initializeCommunicationMirroringPersistence(): Promise<void> {
+  if (isInitialized) return;
+
+  globalPersistenceStore = createPersistenceStore<CommunicationStyleData>({
+    collection: 'communication_style',
+    syncIntervalMs: 30000, // Sync every 30 seconds
+    maxPendingChanges: 50,
+  });
+
+  isInitialized = true;
+  getLogger().info('Communication mirroring persistence initialized');
+}
+
+/**
+ * Shutdown communication mirroring persistence
+ */
+export async function shutdownCommunicationMirroringPersistence(): Promise<void> {
+  if (globalPersistenceStore) {
+    await globalPersistenceStore.flush();
+    getLogger().info('Communication mirroring persistence shutdown complete');
+  }
+}
 
 export function getCommunicationMirroring(userId: string): CommunicationMirroringEngine {
   if (!engines.has(userId)) {
-    engines.set(userId, new CommunicationMirroringEngine());
+    engines.set(userId, new CommunicationMirroringEngine(userId, globalPersistenceStore || undefined));
   }
   return engines.get(userId)!;
 }
 
 export function removeCommunicationMirroring(userId: string): void {
   engines.delete(userId);
+}
+
+/**
+ * Clear all communication mirroring data for a user
+ */
+export async function clearCommunicationMirroringData(userId: string): Promise<void> {
+  engines.delete(userId);
+  if (globalPersistenceStore) {
+    await globalPersistenceStore.delete(userId);
+  }
 }

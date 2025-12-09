@@ -12,11 +12,15 @@
  * - Celebration messages
  * - Challenge day prompts
  * - Weekly reflection nudges
+ *
+ * PERSISTENCE: Scheduled notifications and user preferences are persisted to
+ * Firestore via the unified persistence layer to survive server restarts.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 
 import { EventEmitter } from 'events';
+import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 import { createReminder, type ScheduledReminder } from './reminder-scheduler.js';
 import { getProductivityStore } from './productivity-store.js';
 import { getMayaGamificationStore } from './maya-gamification-store.js';
@@ -95,6 +99,16 @@ const MESSAGE_TEMPLATES: Record<MayaNotificationType, (data: Record<string, unkn
 };
 
 // ============================================================================
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface MayaNotificationData {
+  scheduledNotifications: Record<string, ScheduledReminder>;
+  preferences: MayaNotificationPreferences;
+  updatedAt: string;
+}
+
+// ============================================================================
 // MAYA NOTIFICATION SERVICE
 // ============================================================================
 
@@ -103,6 +117,9 @@ class MayaNotificationService extends EventEmitter {
   private userPreferences = new Map<string, MayaNotificationPreferences>();
   private checkInterval: NodeJS.Timeout | null = null;
 
+  // Persistence
+  private persistenceStore: PersistenceStore<MayaNotificationData> | null = null;
+
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
@@ -110,18 +127,97 @@ class MayaNotificationService extends EventEmitter {
   async initialize(): Promise<void> {
     getLogger().info({}, '🌱 Maya Notification Service initializing...');
 
+    // Initialize persistence store
+    this.persistenceStore = createPersistenceStore<MayaNotificationData>({
+      collection: 'maya_notifications',
+      syncIntervalMs: 15000, // Sync every 15 seconds
+      maxPendingChanges: 30,
+    });
+
     // Start the proactive check loop
     this.startProactiveCheckLoop();
 
-    getLogger().info({}, '🌱 Maya Notification Service ready');
+    getLogger().info({}, '🌱 Maya Notification Service ready with persistence');
   }
 
-  shutdown(): void {
+  async shutdown(): Promise<void> {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
+
+    // Flush all pending persistence
+    if (this.persistenceStore) {
+      await this.persistenceStore.flush();
+    }
+
     getLogger().info({}, '🌱 Maya Notification Service shut down');
+  }
+
+  /**
+   * Load user data from persistence
+   */
+  private async loadUserData(userId: string): Promise<void> {
+    if (!this.persistenceStore) return;
+
+    try {
+      const data = await this.persistenceStore.load(userId);
+      if (!data) return;
+
+      // Rehydrate scheduled notifications
+      if (data.scheduledNotifications) {
+        for (const [id, reminder] of Object.entries(data.scheduledNotifications)) {
+          // Only load pending notifications
+          if (reminder.status === 'pending') {
+            const scheduledFor = new Date(reminder.scheduledFor);
+            if (scheduledFor > new Date()) {
+              this.scheduledNotifications.set(id, {
+                ...reminder,
+                scheduledFor,
+              });
+            }
+          }
+        }
+      }
+
+      // Rehydrate preferences
+      if (data.preferences) {
+        this.userPreferences.set(userId, data.preferences);
+      }
+
+      getLogger().debug({ userId }, 'Loaded Maya notification data from persistence');
+    } catch (error) {
+      getLogger().warn({ error, userId }, 'Failed to load Maya notification data');
+    }
+  }
+
+  /**
+   * Persist user data to Firestore
+   */
+  private persistUserData(userId: string): void {
+    if (!this.persistenceStore) return;
+
+    // Collect notifications for this user
+    const notifications: Record<string, ScheduledReminder> = {};
+    for (const [id, reminder] of this.scheduledNotifications.entries()) {
+      if (reminder.userId === userId) {
+        notifications[id] = reminder;
+      }
+    }
+
+    const data: MayaNotificationData = {
+      scheduledNotifications: notifications,
+      preferences: this.userPreferences.get(userId) || {
+        userId,
+        enabled: true,
+        preferredMethod: 'sms',
+        enabledTypes: ['habit_reminder', 'streak_at_risk', 'streak_celebration'],
+        frequency: 'daily',
+      },
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.persistenceStore.set(userId, data);
   }
 
   // ============================================================================
@@ -133,7 +229,14 @@ class MayaNotificationService extends EventEmitter {
     const cached = this.userPreferences.get(userId);
     if (cached) return cached;
 
-    // Load from productivity store
+    // Try to load from persistence
+    if (this.persistenceStore && !this.userPreferences.has(userId)) {
+      await this.loadUserData(userId);
+      const fromPersistence = this.userPreferences.get(userId);
+      if (fromPersistence) return fromPersistence;
+    }
+
+    // Load from productivity store (legacy)
     const store = getProductivityStore();
     const prefs = store.getUserPreference(userId, 'mayaNotificationPrefs') as
       | MayaNotificationPreferences
@@ -168,8 +271,12 @@ class MayaNotificationService extends EventEmitter {
 
     this.userPreferences.set(userId, updated);
 
+    // Persist to legacy store
     const store = getProductivityStore();
     store.setUserPreference(userId, 'mayaNotificationPrefs', updated);
+
+    // Persist to new persistence layer
+    this.persistUserData(userId);
 
     getLogger().info(
       { userId, enabled: updated.enabled },
@@ -237,6 +344,9 @@ class MayaNotificationService extends EventEmitter {
     });
 
     this.scheduledNotifications.set(reminder.id, reminder);
+
+    // Persist to Firestore
+    this.persistUserData(request.userId);
 
     getLogger().info(
       {
@@ -581,9 +691,9 @@ export async function initializeMayaNotificationService(): Promise<MayaNotificat
   return service;
 }
 
-export function shutdownMayaNotificationService(): void {
+export async function shutdownMayaNotificationService(): Promise<void> {
   if (serviceInstance) {
-    serviceInstance.shutdown();
+    await serviceInstance.shutdown();
     serviceInstance = null;
   }
 }

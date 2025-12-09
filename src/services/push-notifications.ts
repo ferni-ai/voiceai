@@ -3,10 +3,14 @@
  *
  * Handles sending push notifications to users via Web Push and APNs/FCM.
  * Supports scheduled notifications, ritual reminders, and engagement triggers.
+ *
+ * PERSISTENCE: Subscriptions and scheduled notifications are persisted to Firestore
+ * via the unified persistence layer to survive server restarts.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 import { AgentRole } from '../personas/index.js';
+import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 
 // Web-push module interface (optional dependency)
 interface WebPushModule {
@@ -143,6 +147,18 @@ const STREAK_MILESTONE_MESSAGES: Record<number, string> = {
 };
 
 // ============================================================================
+// PERSISTENCE TYPES
+// ============================================================================
+
+interface UserSubscriptionsData {
+  subscriptions: PushSubscription[];
+}
+
+interface ScheduledNotificationsData {
+  notifications: Record<string, ScheduledNotification>;
+}
+
+// ============================================================================
 // PUSH NOTIFICATIONS SERVICE
 // ============================================================================
 
@@ -151,11 +167,29 @@ class PushNotificationsBackendService {
   private scheduledNotifications = new Map<string, ScheduledNotification>();
   private initialized = false;
 
+  // Persistence stores
+  private subscriptionStore: PersistenceStore<UserSubscriptionsData> | null = null;
+  private scheduledStore: PersistenceStore<ScheduledNotificationsData> | null = null;
+
   /**
-   * Initialize the service with VAPID keys
+   * Initialize the service with VAPID keys and persistence
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
+
+    // Initialize persistence stores
+    this.subscriptionStore = createPersistenceStore<UserSubscriptionsData>({
+      collection: 'push_subscriptions',
+      syncIntervalMs: 10000, // Sync every 10 seconds
+      maxPendingChanges: 50,
+    });
+
+    this.scheduledStore = createPersistenceStore<ScheduledNotificationsData>({
+      collection: 'scheduled_notifications',
+      useRootCollection: true, // Use root collection for easier querying
+      syncIntervalMs: 5000,
+      maxPendingChanges: 100,
+    });
 
     // Load web-push module lazily
     const wp = await loadWebPush();
@@ -173,23 +207,67 @@ class PushNotificationsBackendService {
       getLogger().warn('VAPID keys not configured, push notifications disabled');
     }
 
+    // Rehydrate scheduled notifications from persistence
+    await this.rehydrateScheduledNotifications();
+
     this.initialized = true;
+    getLogger().info('Push notifications service initialized with persistence');
+  }
+
+  /**
+   * Rehydrate scheduled notifications from Firestore
+   */
+  private async rehydrateScheduledNotifications(): Promise<void> {
+    try {
+      // Load the global scheduled notifications
+      const data = await this.scheduledStore?.load('global');
+      if (data?.notifications) {
+        for (const [id, notification] of Object.entries(data.notifications)) {
+          // Only load pending notifications that haven't expired
+          if (notification.status === 'pending') {
+            const scheduledFor = new Date(notification.scheduledFor);
+            if (scheduledFor > new Date()) {
+              this.scheduledNotifications.set(id, {
+                ...notification,
+                scheduledFor,
+              });
+            }
+          }
+        }
+        getLogger().info(
+          { count: this.scheduledNotifications.size },
+          'Rehydrated scheduled notifications from persistence'
+        );
+      }
+    } catch (error) {
+      getLogger().warn({ error }, 'Failed to rehydrate scheduled notifications');
+    }
   }
 
   /**
    * Register a push subscription for a user
    */
   async registerSubscription(subscription: PushSubscription): Promise<void> {
-    const userSubs = this.subscriptions.get(subscription.userId) || [];
+    // Load existing subscriptions from persistence if not in memory
+    let userSubs = this.subscriptions.get(subscription.userId);
+    if (!userSubs) {
+      const persisted = await this.subscriptionStore?.get(subscription.userId);
+      userSubs = persisted?.subscriptions || [];
+      this.subscriptions.set(subscription.userId, userSubs);
+    }
 
     // Check if subscription already exists
     const exists = userSubs.some((s) => s.endpoint === subscription.endpoint);
     if (!exists) {
       userSubs.push(subscription);
       this.subscriptions.set(subscription.userId, userSubs);
+
+      // Persist to Firestore
+      this.subscriptionStore?.set(subscription.userId, { subscriptions: userSubs });
+
       getLogger().info(
         { userId: subscription.userId, platform: subscription.platform },
-        'Push subscription registered'
+        'Push subscription registered and persisted'
       );
     }
   }
@@ -198,13 +276,21 @@ class PushNotificationsBackendService {
    * Remove a push subscription
    */
   async removeSubscription(userId: string, endpoint: string): Promise<void> {
-    const userSubs = this.subscriptions.get(userId) || [];
+    // Load from persistence if not in memory
+    let userSubs = this.subscriptions.get(userId);
+    if (!userSubs) {
+      const persisted = await this.subscriptionStore?.get(userId);
+      userSubs = persisted?.subscriptions || [];
+    }
+
     const filtered = userSubs.filter((s) => s.endpoint !== endpoint);
 
     if (filtered.length > 0) {
       this.subscriptions.set(userId, filtered);
+      this.subscriptionStore?.set(userId, { subscriptions: filtered });
     } else {
       this.subscriptions.delete(userId);
+      await this.subscriptionStore?.delete(userId);
     }
 
     getLogger().info({ userId }, 'Push subscription removed');
@@ -214,7 +300,16 @@ class PushNotificationsBackendService {
    * Send a push notification to a user
    */
   async sendNotification(userId: string, payload: PushNotificationPayload): Promise<boolean> {
-    const userSubs = this.subscriptions.get(userId);
+    // Load from persistence if not in memory
+    let userSubs = this.subscriptions.get(userId);
+    if (!userSubs) {
+      const persisted = await this.subscriptionStore?.get(userId);
+      userSubs = persisted?.subscriptions;
+      if (userSubs) {
+        this.subscriptions.set(userId, userSubs);
+      }
+    }
+
     if (!userSubs || userSubs.length === 0) {
       getLogger().debug({ userId }, 'No subscriptions for user');
       return false;
@@ -288,9 +383,29 @@ class PushNotificationsBackendService {
     };
 
     this.scheduledNotifications.set(id, notification);
-    getLogger().info({ userId, id, scheduledFor }, 'Notification scheduled');
+
+    // Persist scheduled notifications
+    await this.persistScheduledNotifications();
+
+    getLogger().info({ userId, id, scheduledFor }, 'Notification scheduled and persisted');
 
     return id;
+  }
+
+  /**
+   * Persist all scheduled notifications to Firestore
+   */
+  private async persistScheduledNotifications(): Promise<void> {
+    const notifications: Record<string, ScheduledNotification> = {};
+    for (const [id, notification] of this.scheduledNotifications.entries()) {
+      notifications[id] = {
+        ...notification,
+        scheduledFor: notification.scheduledFor instanceof Date
+          ? notification.scheduledFor
+          : new Date(notification.scheduledFor),
+      };
+    }
+    this.scheduledStore?.set('global', { notifications });
   }
 
   /**
@@ -300,6 +415,7 @@ class PushNotificationsBackendService {
     const notification = this.scheduledNotifications.get(id);
     if (notification && notification.status === 'pending') {
       notification.status = 'cancelled';
+      await this.persistScheduledNotifications();
       return true;
     }
     return false;
@@ -310,20 +426,32 @@ class PushNotificationsBackendService {
    */
   async processScheduledNotifications(): Promise<void> {
     const now = new Date();
+    let processed = false;
 
     for (const [id, notification] of this.scheduledNotifications) {
       if (notification.status !== 'pending') continue;
 
-      if (notification.scheduledFor <= now) {
+      const scheduledFor = notification.scheduledFor instanceof Date
+        ? notification.scheduledFor
+        : new Date(notification.scheduledFor);
+
+      if (scheduledFor <= now) {
         try {
           await this.sendNotification(notification.userId, notification.payload);
           notification.status = 'sent';
+          processed = true;
           getLogger().info({ id }, 'Scheduled notification sent');
         } catch (error) {
           notification.status = 'failed';
+          processed = true;
           getLogger().error({ error, id }, 'Failed to send scheduled notification');
         }
       }
+    }
+
+    // Persist changes if any notifications were processed
+    if (processed) {
+      await this.persistScheduledNotifications();
     }
   }
 
@@ -458,12 +586,14 @@ class PushNotificationsBackendService {
    * Clear all data for a specific user.
    * Call when user is deleted or session ends.
    */
-  clearUserData(userId: string): void {
+  async clearUserData(userId: string): Promise<void> {
     this.subscriptions.delete(userId);
+    await this.subscriptionStore?.delete(userId);
+
     // Cancel all scheduled notifications for this user
     for (const [id, notification] of this.scheduledNotifications.entries()) {
       if (notification.userId === userId) {
-        void this.cancelScheduledNotification(id);
+        await this.cancelScheduledNotification(id);
       }
     }
     getLogger().debug({ userId }, 'Cleared push notification data for user');
@@ -473,12 +603,16 @@ class PushNotificationsBackendService {
    * Clear all subscriptions and scheduled notifications.
    * Useful for testing or system reset.
    */
-  clearAll(): void {
+  async clearAll(): Promise<void> {
     this.subscriptions.clear();
+    this.subscriptionStore?.clearAllCaches();
+
     // Cancel all scheduled notifications
     for (const id of this.scheduledNotifications.keys()) {
-      void this.cancelScheduledNotification(id);
+      await this.cancelScheduledNotification(id);
     }
+    this.scheduledStore?.clearAllCaches();
+
     getLogger().info('Cleared all push notification data');
   }
 
@@ -486,6 +620,11 @@ class PushNotificationsBackendService {
    * Get memory usage statistics for monitoring.
    */
   getStats(): { subscriptions: number; scheduledNotifications: number; totalUsers: number } {
+    const persistenceStats = {
+      subscriptionStore: this.subscriptionStore?.getStats() || { cached: 0, dirty: 0 },
+      scheduledStore: this.scheduledStore?.getStats() || { cached: 0, dirty: 0 },
+    };
+
     return {
       subscriptions: Array.from(this.subscriptions.values()).reduce(
         (sum, arr) => sum + arr.length,
@@ -493,7 +632,21 @@ class PushNotificationsBackendService {
       ),
       scheduledNotifications: this.scheduledNotifications.size,
       totalUsers: this.subscriptions.size,
+      ...persistenceStats,
     };
+  }
+
+  /**
+   * Shutdown the service (flush all pending data)
+   */
+  async shutdown(): Promise<void> {
+    getLogger().info('Shutting down push notifications service...');
+
+    // Flush all pending persistence
+    await this.subscriptionStore?.flush();
+    await this.scheduledStore?.flush();
+
+    getLogger().info('Push notifications service shutdown complete');
   }
 }
 
@@ -514,9 +667,19 @@ export function getPushNotificationsService(): PushNotificationsBackendService {
 /**
  * Reset the singleton instance (for testing)
  */
-export function resetPushNotificationsService(): void {
+export async function resetPushNotificationsService(): Promise<void> {
   if (instance) {
-    instance.clearAll();
+    await instance.clearAll();
+    instance = null;
+  }
+}
+
+/**
+ * Shutdown the push notifications service (call on app shutdown)
+ */
+export async function shutdownPushNotificationsService(): Promise<void> {
+  if (instance) {
+    await instance.shutdown();
     instance = null;
   }
 }

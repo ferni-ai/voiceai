@@ -61,7 +61,7 @@ export interface EngagementOpportunity {
 /**
  * Build complete engagement context for a conversation turn
  */
-export function buildEngagementContext(
+export async function buildEngagementContext(
   userId: string,
   profile: UserProfile | null,
   personaId: string,
@@ -72,7 +72,7 @@ export function buildEngagementContext(
     includeTeam?: boolean;
     includeSeasonal?: boolean;
   }
-): EngagementContext {
+): Promise<EngagementContext> {
   const {
     includeRituals = true,
     includeMemory = true,
@@ -123,7 +123,7 @@ export function buildEngagementContext(
   // 4. Check for persona evolution stories (deeper in conversation)
   let hasEvolutionStory = false;
   if (includeTeam && turnCount >= 5 && profile) {
-    const evolutionOpportunity = checkEvolutionOpportunity(userId, profile, personaId);
+    const evolutionOpportunity = await checkEvolutionOpportunity(userId, profile, personaId);
     if (evolutionOpportunity) {
       opportunities.push(evolutionOpportunity);
       hasEvolutionStory = true;
@@ -272,13 +272,13 @@ function checkAnniversaryOpportunity(
   return null;
 }
 
-function checkEvolutionOpportunity(
+async function checkEvolutionOpportunity(
   userId: string,
   profile: UserProfile | null,
   personaId: string
-): EngagementOpportunity | null {
+): Promise<EngagementOpportunity | null> {
   const service = getTeamEngagementService();
-  const unlockedEvents = service.getUnlockedEvolutions(userId, profile, personaId);
+  const unlockedEvents = await service.getUnlockedEvolutions(userId, profile, personaId);
 
   if (unlockedEvents.length === 0) return null;
 
@@ -286,6 +286,7 @@ function checkEvolutionOpportunity(
   if (Math.random() > 0.15) return null;
 
   const event = unlockedEvents[Math.floor(Math.random() * unlockedEvents.length)];
+  if (!event) return null;
 
   return {
     type: 'persona_evolution',
@@ -360,13 +361,13 @@ function shouldOfferTeamHuddle(profile: UserProfile | null): boolean {
 /**
  * Enhance a standard greeting with engagement elements
  */
-export function enhanceGreetingWithEngagement(
+export async function enhanceGreetingWithEngagement(
   baseGreeting: string,
   userId: string,
   profile: UserProfile | null,
   personaId: string
-): string {
-  const context = buildEngagementContext(userId, profile, personaId, 1);
+): Promise<string> {
+  const context = await buildEngagementContext(userId, profile, personaId, 1);
 
   if (context.opportunities.length === 0) {
     return baseGreeting;
@@ -410,7 +411,7 @@ async function buildEngagementContextBuilder(
   }
 
   // Build engagement context
-  const context = buildEngagementContext(userId, input.userProfile, personaId, turnCount);
+  const context = await buildEngagementContext(userId, input.userProfile, personaId, turnCount);
 
   // Add opportunities as injections
   if (context.opportunities.length > 0) {
