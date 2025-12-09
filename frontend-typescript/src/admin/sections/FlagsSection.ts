@@ -37,17 +37,18 @@ export async function render(): Promise<string> {
             type="text" 
             placeholder="Search flags..." 
             class="flags-search-input"
-            data-action="search"
+            id="flagsSearch"
+            oninput="filterFlags(this.value)"
           >
         </div>
         <div class="flags-action-btns">
-          <button class="admin-btn" data-action="enable-all">
+          <button class="admin-btn" data-action="enable-all-flags">
             ✅ Enable All
           </button>
-          <button class="admin-btn" data-action="disable-all">
+          <button class="admin-btn" data-action="disable-all-flags">
             ⛔ Disable All
           </button>
-          <button class="admin-btn" data-action="reset">
+          <button class="admin-btn" data-action="reset-flags">
             🔄 Reset to Defaults
           </button>
         </div>

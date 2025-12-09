@@ -19,6 +19,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { initAdminEvents, cleanupAdminEvents } from './admin-events.js';
 
 const log = createLogger('AdminPortal');
 
@@ -143,6 +144,9 @@ export async function initAdminPortal(): Promise<void> {
   // Attach event listeners
   attachEventListeners();
 
+  // Initialize admin event handlers (API interactions)
+  initAdminEvents();
+
   // Load initial section
   await loadSection(state.activeSection);
 
@@ -154,6 +158,9 @@ export async function initAdminPortal(): Promise<void> {
  * Destroy the admin portal and cleanup
  */
 export function destroyAdminPortal(): void {
+  // Cleanup event handlers first
+  cleanupAdminEvents();
+  
   const portal = document.getElementById('adminPortal');
   if (portal) {
     portal.remove();

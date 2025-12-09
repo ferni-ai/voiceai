@@ -9,3 +9,15 @@
 export { initAdminPortal, destroyAdminPortal, adminPortalState, ADMIN_SECTIONS } from './AdminPortal.js';
 export type { AdminSection } from './AdminPortal.js';
 
+// Event handlers for programmatic access
+export {
+  toggleFlag,
+  toggleAgent,
+  validateAgents,
+  enableAllFlags,
+  disableAllFlags,
+  resetFlags,
+  runQuickAction,
+  sendApiRequest,
+} from './admin-events.js';
+
