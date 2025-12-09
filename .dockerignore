@@ -13,8 +13,19 @@ apps/
 ferni-speaker-build/
 promo/
 functions/
-design-system/src/
+# Design system - only keep dist/
+design-system/.storybook/
+design-system/assets/
+design-system/choreography/
 design-system/node_modules/
+design-system/preview/
+design-system/stories/
+design-system/tests/
+design-system/tokens/
+design-system/*.js
+design-system/*.ts
+design-system/*.json
+design-system/*.md
 
 # Node modules (rebuilt in Docker)
 node_modules/

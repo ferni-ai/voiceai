@@ -36,12 +36,21 @@ promo/
 # Firebase functions (106MB) - separate deployment
 functions/
 
-# Design system source (105MB) - only need dist/
-design-system/src/
+# Design system (105MB total) - only keep dist/ (196KB)
+# Explicitly exclude each subdir except dist
+design-system/.storybook/
+design-system/assets/
+design-system/choreography/
 design-system/node_modules/
+design-system/preview/
+design-system/stories/
+design-system/tests/
+design-system/tokens/
+# Exclude root files
+design-system/*.js
 design-system/*.ts
 design-system/*.json
-!design-system/dist/
+design-system/*.md
 
 # ===================
 # NODE MODULES (always rebuilt)
