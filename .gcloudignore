@@ -14,6 +14,13 @@
 # ============================================================================
 
 # ===================
+# WORK IN PROGRESS (not ready for production)
+# ===================
+# EvalOps is WIP - has TypeScript errors, exclude until ready
+src/services/evalops/
+src/api/evalops-routes.ts
+
+# ===================
 # LARGE DIRECTORIES - EXCLUDE THESE FIRST
 # ===================
 

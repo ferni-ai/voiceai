@@ -4,6 +4,10 @@
 # Mirrors .gcloudignore for local Docker builds
 # ============================================================================
 
+# Work in progress (not ready for production)
+src/services/evalops/
+src/api/evalops-routes.ts
+
 # Large directories
 apps/
 ferni-speaker-build/
