@@ -105,12 +105,12 @@ export async function handleAdminAgentsRoutes(
     // LIST ALL AGENTS
     // ========================================================================
     if (subPath === '/' && method === 'GET') {
-      let agents = await AgentRegistry.getEnabledAgents();
+      const registryAgents = await AgentRegistry.getEnabledAgents();
       
-      // If no agents, return hardcoded fallback
-      if (!agents || agents.length === 0) {
-        agents = getFallbackAgents();
-      }
+      // If no agents, return hardcoded fallback (simplified agent list for UI)
+      const agents = (registryAgents && registryAgents.length > 0)
+        ? registryAgents
+        : getFallbackAgents();
       
       sendJSON(res, {
         agents,
