@@ -809,9 +809,8 @@
   </div>
 
   <script>
-    const API_BASE = window.location.hostname === 'localhost' 
-      ? 'http://localhost:8080'
-      : '';
+    // Always use relative URLs - ui-server.js now provides these endpoints
+    const API_BASE = '';
 
     let currentTheme = 'midnight';
 

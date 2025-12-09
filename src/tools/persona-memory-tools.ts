@@ -14,7 +14,7 @@
  * See also: tools/shared/persona-memory-factory.ts for utilities and registry
  */
 
-import { llm, log } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import {
@@ -694,6 +694,118 @@ Alex tracks when people are available and their scheduling quirks.`,
 }
 
 // ============================================================================
+// SHARED MEMORY MANAGEMENT TOOLS
+// ============================================================================
+
+const logger = getLogger().child({ module: 'MemoryTools' });
+
+/**
+ * Create universal memory management tools available to all personas.
+ * These allow users to update, delete, and manage their stored memories.
+ */
+export function createMemoryManagementTools() {
+  return {
+    forgetThisAboutMe: llm.tool({
+      description: `Delete/forget a specific memory. Use when user wants to remove something you remember about them.
+Examples: "Forget that I like Target", "Delete my savings goal", "Remove that from my watchlist"`,
+      parameters: z.object({
+        searchTerm: z.string().describe('What to search for and forget'),
+        persona: z
+          .enum(['jack-b', 'nayan-patel', 'peter-john', 'spend-save', 'event-planner', 'comm-specialist'])
+          .describe('Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'),
+      }),
+      execute: async ({ searchTerm, persona }, { ctx }) => {
+        const userId = getUserId({ ctx });
+
+        const memory = await findMemory(userId, persona, searchTerm);
+        if (!memory) {
+          return `I couldn't find anything matching "${searchTerm}" in my memory. Could you be more specific about what you'd like me to forget?`;
+        }
+
+        const success = await forget(memory.id);
+        if (success) {
+          logger.info({ userId, memoryId: memory.id, name: memory.name }, 'Memory deleted by user request');
+          return `Done! I've forgotten about "${memory.name}". Your data, your choice. 🗑️`;
+        } else {
+          return `I had trouble forgetting that. Please try again or let me know if this keeps happening.`;
+        }
+      },
+    }),
+
+    updateWhatYouKnow: llm.tool({
+      description: `Update an existing memory with new information.
+Examples: "Update my savings goal to $10,000", "Change Netflix to $15.99/month"`,
+      parameters: z.object({
+        searchTerm: z.string().describe('What memory to update'),
+        persona: z
+          .enum(['jack-b', 'nayan-patel', 'peter-john', 'spend-save', 'event-planner', 'comm-specialist'])
+          .describe('Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'),
+        updates: z.object({
+          name: z.string().optional().describe('New name'),
+          details: z.string().optional().describe('New details'),
+          sentiment: z.enum(['positive', 'negative', 'neutral']).optional(),
+        }),
+      }),
+      execute: async ({ searchTerm, persona, updates }, { ctx }) => {
+        const userId = getUserId({ ctx });
+
+        const memory = await findMemory(userId, persona, searchTerm);
+        if (!memory) {
+          return `I couldn't find anything matching "${searchTerm}". Would you like me to remember something new instead?`;
+        }
+
+        const updated = await updateMemory(memory.id, updates);
+        if (updated) {
+          // Touch the memory to update its timestamp
+          await touchMemory(memory.id);
+          logger.info({ userId, memoryId: memory.id, updates }, 'Memory updated by user request');
+          return `Updated! "${memory.name}" ${updates.name ? `is now "${updates.name}"` : 'has been updated'}. ✨`;
+        } else {
+          return `I had trouble updating that. Please try again.`;
+        }
+      },
+    }),
+
+    showAllPeterKnowledge: llm.tool({
+      description: `Show all Peter's knowledge about companies and stocks the user knows.
+Use when user asks about their full stock/company knowledge base.`,
+      parameters: z.object({
+        type: z.enum(['all', 'watchlist', 'company', 'ten_bagger']).default('all'),
+      }),
+      execute: async ({ type }, { ctx }) => {
+        const userId = getUserId({ ctx });
+
+        const memories = await getPeterMemories(userId, type === 'all' ? undefined : type);
+
+        if (memories.length === 0) {
+          return `We haven't tracked any companies yet! Start by adding companies you know - remember, invest in what you know! 📊`;
+        }
+
+        const tenBaggers = memories.filter((m) => m.type === 'ten_bagger');
+        const watchlist = memories.filter((m) => m.type === 'watchlist');
+        const companies = memories.filter((m) => m.type === 'company');
+
+        let response = `**Your Investment Knowledge Base:**\n\n`;
+
+        if (tenBaggers.length > 0) {
+          response += `🚀 **Potential Ten-Baggers:**\n${tenBaggers.map((m) => `• ${m.ticker || m.name} - ${m.reason || 'Big potential!'}`).join('\n')}\n\n`;
+        }
+
+        if (watchlist.length > 0) {
+          response += `👀 **Watchlist (${watchlist.length}):**\n${watchlist.slice(0, 10).map((m) => `• ${m.ticker ? `${m.ticker}` : m.name}${m.reason ? ` - ${m.reason}` : ''}`).join('\n')}\n\n`;
+        }
+
+        if (companies.length > 0) {
+          response += `🏢 **Companies You Know (${companies.length}):**\n${companies.slice(0, 10).map((m) => `• ${m.name}${m.reason ? ` - ${m.reason}` : ''}`).join('\n')}\n\n`;
+        }
+
+        return response + `_Remember: The best investments come from knowing what you own!_`;
+      },
+    }),
+  };
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -704,4 +816,5 @@ export default {
   createMayaMemoryTools,
   createJordanMemoryTools,
   createAlexMemoryTools,
+  createMemoryManagementTools,
 };

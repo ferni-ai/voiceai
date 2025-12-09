@@ -28,10 +28,14 @@ import {
   identifySpeaker,
   type VoiceProfile,
   type VerificationResult,
-  type IdentificationResult as VoiceIdResult,
   ContinuousAuthenticator,
 } from '../voice-enrollment.js';
-import { loadVoiceProfile, saveVoiceProfile } from '../voice-profile-store.js';
+import {
+  loadVoiceProfile,
+  saveVoiceProfile,
+  loadAllVoiceProfiles,
+  recordVerification,
+} from '../voice-profile-store.js';
 
 // Trust and Contact imports
 import {
@@ -45,11 +49,7 @@ import {
   type MagicMomentAnalysis,
   type OperationSensitivity,
 } from './human-first-2fa.js';
-import {
-  processMessageForOnboarding,
-  detectContactInfo,
-  completeOnboarding,
-} from '../contact-onboarding.js';
+import { detectContactInfo, completeOnboarding } from '../contact-onboarding.js';
 
 const log = getLogger().child({ module: 'IdentityOrchestrator' });
 
@@ -112,6 +112,11 @@ export interface IdentitySession {
   currentTrustLevel: TrustLevel;
   voiceConfidence: number;
   continuousAuth?: ContinuousAuthenticator;
+  voiceProfile?: VoiceProfile;
+
+  // Initial voice verification state
+  initialVerificationDone: boolean;
+  initialVerificationResult?: VerificationResult;
 
   // Contact collection state
   hasAskedForPhone: boolean;
@@ -124,6 +129,7 @@ export interface IdentitySession {
   // Voice enrollment state
   voiceSamplesCollected: number;
   shouldEnrollVoice: boolean;
+  newVoiceSamples: Float32Array[];
 
   // Session metrics
   turnCount: number;
@@ -164,10 +170,12 @@ export async function startIdentitySession(
 
   // Step 4: Get voice profile for continuous auth
   let continuousAuth: ContinuousAuthenticator | undefined;
+  let voiceProfile: VoiceProfile | undefined;
   if (authContext.voiceEnrolled) {
-    const voiceProfile = await loadVoiceProfile(identification.userId);
-    if (voiceProfile) {
-      continuousAuth = new ContinuousAuthenticator(voiceProfile);
+    const loadedProfile = await loadVoiceProfile(identification.userId);
+    if (loadedProfile) {
+      voiceProfile = loadedProfile;
+      continuousAuth = new ContinuousAuthenticator(loadedProfile);
     }
   }
 
@@ -180,9 +188,12 @@ export async function startIdentitySession(
     currentTrustLevel: trustState.level,
     voiceConfidence: authContext.voiceConfidence,
     continuousAuth,
+    voiceProfile,
+    initialVerificationDone: false,
     hasAskedForPhone: false,
     voiceSamplesCollected: 0,
     shouldEnrollVoice: authContext.shouldEnrollVoice,
+    newVoiceSamples: [],
     turnCount: 0,
     lastEmotionalIntensity: 0,
   };
@@ -312,22 +323,131 @@ export async function processAudioForAuth(
   verified: boolean;
   confidence: number;
   speakerChanged: boolean;
+  identifiedUserId?: string;
 }> {
   const session = activeSessions.get(sessionId);
-  if (!session?.continuousAuth) {
+  if (!session) {
     return { verified: false, confidence: 0, speakerChanged: false };
   }
 
+  // Step 1: If we have a voice profile but haven't done initial verification, do it now
+  if (session.voiceProfile && !session.initialVerificationDone) {
+    const verificationResult = await verifyUser(audio, session.voiceProfile);
+    session.initialVerificationDone = true;
+    session.initialVerificationResult = verificationResult;
+
+    // Record the verification attempt
+    await recordVerification(session.userId, verificationResult.verified);
+
+    if (verificationResult.verified) {
+      session.voiceConfidence = verificationResult.confidence;
+      log.info(
+        {
+          sessionId,
+          userId: session.userId,
+          confidence: verificationResult.confidence,
+        },
+        '🔊 Initial voice verification successful'
+      );
+    } else {
+      log.warn(
+        {
+          sessionId,
+          userId: session.userId,
+          confidence: verificationResult.confidence,
+          reason: verificationResult.reason,
+        },
+        '⚠️ Initial voice verification failed'
+      );
+    }
+
+    return {
+      verified: verificationResult.verified,
+      confidence: verificationResult.confidence,
+      speakerChanged: false,
+    };
+  }
+
+  // Step 2: If no continuous authenticator, try to identify the speaker
+  if (!session.continuousAuth) {
+    // Try speaker identification from all enrolled profiles
+    const allProfiles = await loadAllVoiceProfiles({ limit: 50 });
+    if (allProfiles.length > 0) {
+      const identificationResult = await identifySpeaker(audio, allProfiles);
+
+      if (identificationResult.identified && identificationResult.userId) {
+        log.info(
+          {
+            sessionId,
+            identifiedUserId: identificationResult.userId,
+            confidence: identificationResult.confidence,
+          },
+          '🔊 Speaker identified from voice'
+        );
+
+        // If identified user differs from session user, this could be a household member
+        if (identificationResult.userId !== session.userId) {
+          return {
+            verified: false,
+            confidence: identificationResult.confidence,
+            speakerChanged: true,
+            identifiedUserId: identificationResult.userId,
+          };
+        }
+
+        session.voiceConfidence = identificationResult.confidence;
+        return {
+          verified: true,
+          confidence: identificationResult.confidence,
+          speakerChanged: false,
+          identifiedUserId: identificationResult.userId,
+        };
+      }
+    }
+
+    // Collect sample for potential enrollment
+    if (session.shouldEnrollVoice) {
+      session.newVoiceSamples.push(audio);
+      session.voiceSamplesCollected++;
+      log.debug(
+        { sessionId, sampleCount: session.voiceSamplesCollected },
+        'Collected voice sample for enrollment'
+      );
+    }
+
+    return { verified: false, confidence: 0, speakerChanged: false };
+  }
+
+  // Step 3: Use continuous authenticator for ongoing verification
   const status = await session.continuousAuth.processAudioChunk(audio);
 
   // Update session voice confidence
   session.voiceConfidence = status.confidence;
 
+  // Collect sample for profile updates
+  if (status.status === 'verified' && session.newVoiceSamples.length < 10) {
+    session.newVoiceSamples.push(audio);
+    session.voiceSamplesCollected++;
+  }
+
   // Check for speaker change
   if (status.status === 'speaker_changed') {
     log.warn({ sessionId, userId: session.userId }, '⚠️ Speaker change detected!');
 
-    // Could trigger re-verification here
+    // Try to identify the new speaker
+    const allProfiles = await loadAllVoiceProfiles({ limit: 50 });
+    if (allProfiles.length > 0) {
+      const identificationResult = await identifySpeaker(audio, allProfiles);
+      if (identificationResult.identified) {
+        return {
+          verified: false,
+          confidence: status.confidence,
+          speakerChanged: true,
+          identifiedUserId: identificationResult.userId,
+        };
+      }
+    }
+
     return {
       verified: false,
       confidence: status.confidence,
@@ -412,10 +532,75 @@ export async function endIdentitySession(sessionId: string): Promise<void> {
     '🎭 Ending identity session'
   );
 
-  // If we should enroll voice and collected enough samples, save
-  if (session.shouldEnrollVoice && session.voiceSamplesCollected >= 5) {
-    // Voice enrollment happens automatically via the voice enrollment service
-    log.info({ userId: session.userId }, 'Voice enrollment data collected');
+  // Save updated voice profile if we have samples
+  if (session.voiceProfile && session.newVoiceSamples.length > 0) {
+    try {
+      // Import updateProfile to add new samples to existing profile
+      const { updateProfile } = await import('../voice-enrollment.js');
+      const { extractSpeakerEmbedding } = await import('../voice-memory-enhanced.js');
+
+      // Convert audio samples to enrollment samples
+      const newSamples = [];
+      for (const audio of session.newVoiceSamples.slice(0, 5)) {
+        const embedding = await extractSpeakerEmbedding(audio);
+        if (embedding) {
+          newSamples.push({
+            embedding: Array.from(embedding.vector),
+            collectedAt: new Date(),
+            durationMs: (audio.length / 16000) * 1000,
+            quality: { confidence: embedding.confidence },
+          });
+        }
+      }
+
+      if (newSamples.length > 0) {
+        const updatedProfile = await updateProfile(session.voiceProfile, newSamples);
+        await saveVoiceProfile(updatedProfile);
+        log.info(
+          {
+            userId: session.userId,
+            newSamples: newSamples.length,
+            totalSamples: updatedProfile.metadata.sampleCount,
+          },
+          '🔊 Voice profile updated with session samples'
+        );
+      }
+    } catch (error) {
+      log.error({ error, userId: session.userId }, 'Failed to update voice profile');
+      // Non-critical - don't throw
+    }
+  }
+
+  // If we should enroll voice and collected enough samples, create new profile
+  if (!session.voiceProfile && session.shouldEnrollVoice && session.voiceSamplesCollected >= 5) {
+    try {
+      const {
+        startEnrollmentSession,
+        addEnrollmentSample,
+        completeEnrollment,
+      } = await import('../voice-enrollment.js');
+
+      const enrollmentSession = startEnrollmentSession(session.userId, { requiredSamples: 5 });
+
+      for (const audio of session.newVoiceSamples.slice(0, 5)) {
+        await addEnrollmentSample(enrollmentSession, audio);
+      }
+
+      const result = await completeEnrollment(enrollmentSession);
+      if (result.success && result.profile) {
+        await saveVoiceProfile(result.profile);
+        log.info(
+          {
+            userId: session.userId,
+            qualityScore: result.profile.qualityScore,
+          },
+          '🔊 New voice profile created from session samples'
+        );
+      }
+    } catch (error) {
+      log.error({ error, userId: session.userId }, 'Failed to create voice profile');
+      // Non-critical - don't throw
+    }
   }
 
   activeSessions.delete(sessionId);

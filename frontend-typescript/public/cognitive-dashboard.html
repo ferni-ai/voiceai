@@ -1044,8 +1044,12 @@
     // WebSocket for real-time updates, HTTP fallback
     // ========================================
     
-    const API_BASE = 'http://localhost:8080/api/cognitive';
-    const WS_URL = 'ws://localhost:8080/ws/cognitive';
+    // Use relative URLs - ui-server.js now provides these endpoints
+    const API_BASE = '/api/cognitive';
+    // WebSocket not available in production - will fall back to HTTP polling
+    const WS_URL = window.location.hostname === 'localhost' 
+      ? 'ws://localhost:8080/ws/cognitive'
+      : null;
     let isConnected = false;
     let demoMode = false;
     let ws = null;
@@ -1157,6 +1161,13 @@
     
     function connectWebSocket() {
       if (demoMode) return;
+      
+      // Skip WebSocket if not available (production) - use HTTP polling
+      if (!WS_URL) {
+        console.log('WebSocket not available in production, using HTTP polling');
+        startPolling();
+        return;
+      }
       
       try {
         ws = new WebSocket(WS_URL);

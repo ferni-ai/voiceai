@@ -255,6 +255,97 @@ async function recordConversationUsage(ctx: RequestContext): Promise<ResponseCon
 }
 
 /**
+ * POST /api/subscription/upgrade
+ * Admin endpoint to manually upgrade a user (dev mode only)
+ */
+async function createAdminUpgrade(ctx: RequestContext): Promise<ResponseContext> {
+  const body = ctx.body as {
+    device_id?: string;
+    userId?: string;
+    tier?: 'free' | 'friend' | 'partner';
+    admin_key?: string;
+  };
+
+  // Allow 'dev-mode' key in development, or check ADMIN_KEY in production
+  const adminKey = process.env.ADMIN_KEY || 'dev-mode';
+  const isDev = process.env.NODE_ENV !== 'production' || body.admin_key === 'dev-mode';
+  
+  if (!isDev && body.admin_key !== adminKey) {
+    return {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Unauthorized' },
+    };
+  }
+
+  const userId = body.userId || body.device_id;
+  if (!userId || !body.tier) {
+    return {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'userId/device_id and tier are required' },
+    };
+  }
+
+  try {
+    // Import and use the store to update subscription
+    const { getStore } = await import('../memory/store-factory.js');
+    const { createDefaultSubscription } = await import('../types/subscription.js');
+    
+    const store = await getStore();
+    let profile = await store.getProfile(userId);
+    
+    if (!profile) {
+      // Create a minimal profile for new users using proper interface
+      const { createUserProfile } = await import('../types/user-profile.js');
+      profile = createUserProfile(userId);
+      profile.subscription = createDefaultSubscription();
+    }
+
+    // Update subscription tier
+    const subscription = profile.subscription ?? createDefaultSubscription();
+    subscription.tier = body.tier;
+    subscription.status = 'active';
+    subscription.lastSyncedAt = new Date();
+    
+    // Reset usage for upgrades
+    if (body.tier !== 'free') {
+      subscription.monthlyUsage = {
+        period: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
+        conversationCount: 0,
+        minutesTalked: 0,
+        lastUpdated: new Date(),
+      };
+    }
+
+    await store.saveProfile({
+      ...profile,
+      subscription,
+      updatedAt: new Date(),
+    });
+
+    log.info({ userId, tier: body.tier }, 'Admin upgrade completed');
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: { 
+        success: true, 
+        message: `Upgraded to ${body.tier}`,
+        tier: body.tier,
+      },
+    };
+  } catch (error) {
+    log.error({ error: String(error), userId }, 'Admin upgrade failed');
+    return {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Failed to upgrade' },
+    };
+  }
+}
+
+/**
  * POST /api/subscription/webhook
  * Handle Stripe webhook events
  */
@@ -354,17 +445,34 @@ async function getConfig(): Promise<ResponseContext> {
 // ROUTER
 // ============================================================================
 
+/**
+ * Routes support both /subscription/* and /api/subscription/* for flexibility
+ * Frontend uses /subscription/*, firebase rewrites use /subscription/**
+ */
 const routes: Record<string, Record<string, RouteHandler>> = {
   GET: {
+    // With /api prefix (for API consistency)
     '/api/subscription/status': getStatus,
     '/api/subscription/can-start': checkCanStart,
     '/api/subscription/config': getConfig,
+    // Without /api prefix (frontend calls these directly)
+    '/subscription/status': getStatus,
+    '/subscription/can-start': checkCanStart,
+    '/subscription/config': getConfig,
   },
   POST: {
+    // With /api prefix
     '/api/subscription/checkout': createCheckout,
     '/api/subscription/portal': createBillingPortal,
     '/api/subscription/record-conversation': recordConversationUsage,
     '/api/subscription/webhook': handleStripeWebhook,
+    '/api/subscription/upgrade': createAdminUpgrade,
+    // Without /api prefix (frontend calls these directly)
+    '/subscription/checkout': createCheckout,
+    '/subscription/portal': createBillingPortal,
+    '/subscription/record-conversation': recordConversationUsage,
+    '/subscription/webhook': handleStripeWebhook,
+    '/subscription/upgrade': createAdminUpgrade,
   },
 };
 
@@ -380,9 +488,10 @@ export function routeSubscriptionRequest(ctx: RequestContext): RouteHandler | nu
 
 /**
  * Check if a path is a subscription API route
+ * Matches both /subscription/* and /api/subscription/*
  */
 export function isSubscriptionRoute(pathname: string): boolean {
-  return pathname.startsWith('/api/subscription/');
+  return pathname.startsWith('/subscription/') || pathname.startsWith('/api/subscription/');
 }
 
 /**

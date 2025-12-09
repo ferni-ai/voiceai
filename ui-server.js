@@ -6,6 +6,7 @@
 import 'dotenv/config';
 import fs from 'fs';
 import http from 'http';
+import zlib from 'zlib';
 import { AccessToken, AgentDispatchClient, RoomServiceClient } from 'livekit-server-sdk';
 import path from 'path';
 
@@ -19,6 +20,7 @@ import { handleDiagnosticsRoutes } from './dist/api/handoff-diagnostics.js';
 import { handleDORARoutes } from './dist/api/dora-routes.js';
 import { handleObservabilityRoutes } from './dist/api/observability-routes.js';
 import { handleVoicePresenceRoutes } from './dist/api/voice-presence-routes.js';
+import { handleDashboardMetricsRoutes } from './dist/api/dashboard-metrics-routes.js';
 
 // Proactive Outreach API routes
 import { handleOutreachRoutes } from './dist/api/outreach-handler.js';
@@ -345,8 +347,9 @@ function getMimeType(filePath) {
 
 /**
  * Serve static files from frontend-typescript/dist directory
+ * With gzip compression for supported content types
  */
-function serveStaticFile(filePath, res) {
+function serveStaticFile(filePath, res, req) {
   const fullPath = path.join(process.cwd(), 'frontend-typescript', 'dist', filePath);
 
   // Security: prevent directory traversal
@@ -358,16 +361,70 @@ function serveStaticFile(filePath, res) {
     return;
   }
 
-  fs.readFile(fullPath, (err, data) => {
-    if (err) {
+  // Optimization: Use streams instead of readFile for better memory usage
+  // Also add Cache-Control headers for production performance
+  fs.stat(fullPath, (err, stats) => {
+    if (err || !stats.isFile()) {
       res.writeHead(404);
       res.end('Not Found');
       return;
     }
 
     const mimeType = getMimeType(filePath);
-    res.writeHead(200, { 'Content-Type': mimeType });
-    res.end(data);
+    
+    // Cache strategy:
+    // - Assets (in /assets/): Immutable, cache for 1 year
+    // - Others (HTML, root files): Revalidate immediately
+    const isAsset = filePath.includes('/assets/');
+    const cacheControl = isAsset 
+      ? 'public, max-age=31536000, immutable' 
+      : 'public, max-age=0, must-revalidate';
+
+    // Check if client accepts gzip and content is compressible
+    const acceptEncoding = req?.headers?.['accept-encoding'] || '';
+    const shouldCompress = acceptEncoding.includes('gzip') && 
+      (mimeType.startsWith('text/') || 
+       mimeType === 'application/javascript' || 
+       mimeType === 'application/json' ||
+       mimeType === 'image/svg+xml');
+
+    const headers = { 
+      'Content-Type': mimeType,
+      'Cache-Control': cacheControl,
+      'Vary': 'Accept-Encoding'
+    };
+
+    if (shouldCompress) {
+      headers['Content-Encoding'] = 'gzip';
+      res.writeHead(200, headers);
+      
+      const stream = fs.createReadStream(fullPath);
+      const gzip = zlib.createGzip({ level: 6 }); // Balance speed vs compression
+      stream.pipe(gzip).pipe(res);
+      
+      stream.on('error', (error) => {
+        console.error(`❌ Stream error for ${filePath}:`, error);
+        if (!res.headersSent) {
+          res.writeHead(500);
+          res.end('Internal Server Error');
+        }
+      });
+    } else {
+      // No compression - send raw with Content-Length
+      headers['Content-Length'] = stats.size;
+      res.writeHead(200, headers);
+
+      const stream = fs.createReadStream(fullPath);
+      stream.pipe(res);
+      
+      stream.on('error', (error) => {
+        console.error(`❌ Stream error for ${filePath}:`, error);
+        if (!res.headersSent) {
+          res.writeHead(500);
+          res.end('Internal Server Error');
+        }
+      });
+    }
   });
 }
 
@@ -456,6 +513,12 @@ const server = http.createServer(async (req, res) => {
     // Observability
     if (pathname.startsWith('/api/observability')) {
       const handled = await handleObservabilityRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Dashboard metrics (for HTML dashboards - /api/metrics/*, /api/cognitive/*)
+    if (pathname.startsWith('/api/metrics') || pathname.startsWith('/api/cognitive')) {
+      const handled = await handleDashboardMetricsRoutes(req, res, pathname);
       if (handled) return;
     }
 
@@ -659,7 +722,7 @@ const server = http.createServer(async (req, res) => {
 
   // Serve Plaid Link page
   if (pathname === '/link-account') {
-    serveStaticFile('plaid-link.html', res);
+    serveStaticFile('plaid-link.html', res, req);
     return;
   }
 
@@ -928,6 +991,97 @@ const server = http.createServer(async (req, res) => {
         deviceId: spotifyWebDeviceId,
       })
     );
+    return;
+  }
+
+  // ============================================================================
+  // MUSIC STATUS API - For dev panel diagnostics
+  // ============================================================================
+
+  // Music player status - returns info about music system readiness
+  // Note: The actual music player runs in the voice agent, not UI server
+  // This provides what we can check from UI server (Spotify, iTunes availability)
+  if (pathname === '/api/music/status' && method === 'GET') {
+    const refreshToken = getSpotifyRefreshToken();
+    const isSpotifyConfigured = !!(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET);
+    const isSpotifyLinked = !!(refreshToken && isSpotifyConfigured);
+
+    // Check iTunes API availability
+    let itunesAvailable = false;
+    try {
+      const itunesCheck = await fetch(
+        'https://itunes.apple.com/search?term=test&limit=1&media=music',
+        { signal: AbortSignal.timeout(3000) }
+      );
+      itunesAvailable = itunesCheck.ok;
+    } catch {
+      itunesAvailable = false;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        // Note: Music player runs in voice agent, not UI server
+        // These are the checks we can do from here
+        initialized: false, // Can only check in voice agent
+        isPlaying: false,
+        currentTrack: null,
+        volume: 0.25,
+        isDucked: false,
+        isAmbient: false,
+        queueLength: 0,
+        itunesAvailable,
+        spotifyStatus: {
+          configured: isSpotifyConfigured,
+          linked: isSpotifyLinked,
+          accessToken: false, // Would need to try refresh to check
+          deviceConnected: !!spotifyWebDeviceId,
+        },
+        note: 'Music player runs in voice agent. This shows API availability only.',
+      })
+    );
+    return;
+  }
+
+  // Test iTunes API - search for a track
+  if (pathname === '/api/music/test-itunes' && method === 'POST') {
+    try {
+      const testQuery = 'Beatles Yesterday';
+      const response = await fetch(
+        `https://itunes.apple.com/search?term=${encodeURIComponent(testQuery)}&limit=1&media=music`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+
+      if (!response.ok) {
+        throw new Error(`iTunes API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      const track = data.results?.[0];
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          success: true,
+          track: track
+            ? {
+                name: track.trackName,
+                artist: track.artistName,
+                previewUrl: track.previewUrl?.slice(0, 50) + '...',
+                hasPreview: !!track.previewUrl,
+              }
+            : null,
+        })
+      );
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          success: false,
+          error: err.message,
+        })
+      );
+    }
     return;
   }
 
@@ -1775,13 +1929,13 @@ const server = http.createServer(async (req, res) => {
 
   // Serve static files
   if (pathname === '/' || pathname === '') {
-    serveStaticFile('index.html', res);
+    serveStaticFile('index.html', res, req);
     return;
   }
 
   // Serve admin page (same SPA, JS handles routing)
   if (pathname === '/admin') {
-    serveStaticFile('index.html', res);
+    serveStaticFile('index.html', res, req);
     return;
   }
 
@@ -1796,7 +1950,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Serve other static files
-  serveStaticFile(pathname, res);
+  serveStaticFile(pathname, res, req);
 });
 
 server.listen(PORT, '0.0.0.0', () => {

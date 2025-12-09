@@ -726,7 +726,7 @@ export async function pruneMemorySystem(
         );
       }
     } catch (error) {
-      getLogger().debug('Vector pruning skipped (store not available)');
+      getLogger().debug({ error: String(error) }, 'Vector pruning skipped (store not available)');
     }
 
     result.spaceSavedEstimate = formatBytes(bytesRemoved);
