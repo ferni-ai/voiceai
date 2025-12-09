@@ -96,6 +96,17 @@ import { initLogoExpressions, hookIntoAvatarFeedback as hookLogoFeedback } from 
 import { initCelebrationService } from './services/celebration.service.js';
 // Ferni EQ - Superhuman emotional intelligence ("Better than Human")
 import { initFerniEQ } from './ui/better-than-human.ui.js';
+// Speech Event Dispatcher - Critical foundation for Ferni EQ
+import {
+  initSpeechEventDispatcher,
+  dispatchUserSpeechStart,
+  dispatchUserSpeechEnd,
+  dispatchAgentSpeechStart,
+  dispatchAgentSpeechEnd,
+  dispatchThinking,
+} from './services/speech-event-dispatcher.js';
+// Mood Context - Time-based persona mood for "Better than Human"
+import { initMoodContext } from './services/mood-context.service.js';
 // Demo data for testing without backend
 import {
   disableDemoData,
@@ -186,7 +197,10 @@ import { initMagneticHover } from './ui/magnetic-hover.ui.js';
 // 🌟 Soul System - The living presence that makes people fall in love
 import { initSoul } from './ui/soul.ui.js';
 // 🧪 Soul test utilities (available as window.testSoul in dev)
-import './ui/soul.test.js';
+// NOTE: Test file imported dynamically to avoid build errors
+if (import.meta.env.DEV) {
+  void import('./ui/soul.test.js');
+}
 
 // 🛠️ Dev Panel - Testing & validation tools
 import { initDevPanel } from './ui/dev-panel.ui.js';
@@ -783,10 +797,39 @@ class VoiceAIApp {
       // Now you can call: celebrationService.smallWin(), .bigWin(), etc.
     });
     
+    // 🎤 Speech Event Dispatcher - Foundation for Ferni EQ (MUST be before FerniEQ)
+    this.safeInit('SpeechEventDispatcher', () => {
+      initSpeechEventDispatcher();
+      // Dispatches: ferni:user-speech-start/end/pause, ferni:agent-speech-start/end
+    });
+    
     // 🚀 Ferni EQ - Superhuman emotional intelligence ("Better than Human")
     this.safeInit('FerniEQ', () => {
       initFerniEQ();
       // Micro-expressions, breath sync, active listening, concern detection
+      
+      // Set up gentle check-in handler for significant concern detection
+      document.addEventListener('ferni:gentle-checkin', ((e: CustomEvent) => {
+        const { level, triggers } = e.detail || {};
+        log.info('🚀 Ferni EQ gentle check-in triggered', { level, triggers });
+        
+        // Show visual acknowledgment that Ferni noticed
+        avatarFeedback.empathy();
+        
+        // Optional: Show a subtle message to indicate Ferni cares
+        // We don't want to be intrusive, just present
+        if (level === 'significant') {
+          messageUI.show("I'm here with you.", 'info', 3000);
+        }
+      }) as EventListener);
+    });
+    
+    // 🌅 Mood Context - Time-based persona mood
+    this.safeInit('MoodContext', () => {
+      initMoodContext();
+      // Applies CSS classes: mood-early-morning, mood-morning, etc.
+      // Sets energy modifier for animations
+      // Handles special dates like tsunami anniversary
     });
     
     // 🎬 Animation Orchestrator - Character-quality coordinated animations
@@ -1346,9 +1389,13 @@ class VoiceAIApp {
         if (state === 'connecting') {
           thinkingUI.show('Connecting');
           waveformUI.setThinking(true);
+          // 🚀 Ferni EQ: Dispatch thinking state
+          dispatchThinking(true);
         } else if (state === 'connected') {
           thinkingUI.hide();
           waveformUI.setThinking(false);
+          // 🚀 Ferni EQ: Dispatch thinking state
+          dispatchThinking(false);
         } else if (state === 'disconnected') {
           presenceUI.setConnected(false);
           connectionQualityUI.hide();
@@ -1395,6 +1442,9 @@ class VoiceAIApp {
         
         // 🎚️ Duck music when agent is speaking
         getMusicAudioController().duckForAgent();
+        
+        // 🚀 Ferni EQ: Dispatch agent speech start
+        dispatchAgentSpeechStart();
       },
 
       onAudioTrackEnd: (_participantId) => {
@@ -1407,6 +1457,9 @@ class VoiceAIApp {
         
         // 🎚️ Unduck music when agent stops speaking
         getMusicAudioController().unduckForAgent();
+        
+        // 🚀 Ferni EQ: Dispatch agent speech end
+        dispatchAgentSpeechEnd();
       },
       
       // 🎚️ Music track detected - attach for ducking control
@@ -1438,8 +1491,12 @@ class VoiceAIApp {
         const controller = getMusicAudioController();
         if (isActive) {
           controller.duckForUser();
+          // 🚀 Ferni EQ: Dispatch user speech start
+          dispatchUserSpeechStart();
         } else {
           controller.unduckForUser();
+          // 🚀 Ferni EQ: Dispatch user speech end
+          dispatchUserSpeechEnd();
         }
       },
 
