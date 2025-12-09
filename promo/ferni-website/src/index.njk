@@ -6,13 +6,22 @@ description: Six brilliant minds that remember your whole story, hear what you'r
 <html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{{ title }}</title>
   <meta name="description" content="{{ description }}">
   
-  <!-- Fonts - Plus Jakarta Sans (Variable) + Inter -->
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://ferni.ai/">
+  
+  <!-- Resource Hints for Performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link rel="dns-prefetch" href="https://app.ferni.ai">
+  <link rel="preload" href="/css/styles.css" as="style">
+  <link rel="preload" href="/js/better-than-human.js" as="script">
+  
+  <!-- Fonts - Plus Jakarta Sans (Variable) + Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   
   <!-- Tailwind CSS -->
@@ -924,16 +933,20 @@ description: Six brilliant minds that remember your whole story, hear what you'r
   </button>
   
   
-  <!-- Better Than Human Interactions -->
+  <!-- Core Interactions -->
+  <script src="/js/utilities.js"></script>
   <script src="/js/better-than-human.js"></script>
-  <!-- Apple-Level Interactions -->
   <script src="/js/apple-interactions.js"></script>
-  <!-- Hero Animations -->
-  <script src="/js/hero-animations.js"></script>
-  <!-- FAQ Accordion -->
-  <script src="/js/faq-accordion.js"></script>
-  <!-- Accessibility -->
-  <script src="/js/accessibility.js"></script>
+  
+  <!-- Feature Scripts (loaded async for performance) -->
+  <script src="/js/hero-animations.js" async></script>
+  <script src="/js/faq-accordion.js" async></script>
+  <script src="/js/accessibility.js" async></script>
+  <script src="/js/advanced-motion.js" async></script>
+  <script src="/js/forms-enhanced.js" async></script>
+  <script src="/js/images-enhanced.js" async></script>
+  <script src="/js/pricing-enhanced.js" async></script>
+  <script src="/js/responsive-touch.js" async></script>
   
   <!-- Service Worker Registration -->
   <script>

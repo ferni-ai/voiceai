@@ -72,6 +72,17 @@ import {
 // Ferni Moments - Character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
 
+// Real Ambient Effects - Canvas-based particles and aurora
+import {
+  initAmbientEffects,
+  startParticles,
+  stopParticles,
+  startAurora,
+  stopAurora,
+  addVignette,
+  removeVignette,
+} from './ambient-effects.ui.js';
+
 // Narrative System - Story beats and arcs
 import {
   getJourney,
@@ -1633,6 +1644,9 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">Test Channels</span>
           <div class="dev-expression-buttons">
+            <button class="dev-expression-btn dev-expression-btn--outreach dev-expression-btn--primary" data-outreach="check-config" title="Check if phone/email is configured">
+              🔍 Check Config
+            </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-sms" title="Send test SMS">
               📱 Test SMS
             </button>
@@ -1759,6 +1773,9 @@ function createPanel(): HTMLElement {
             <a class="dev-dashboard-link" href="/feature-flags.html" target="_blank" title="Feature Flags">
               🚩 Feature Flags
             </a>
+            <button class="dev-dashboard-link" data-action="open-evalops" title="EvalOps Dashboard (Cmd+Shift+E)">
+              🎯 EvalOps
+            </button>
           </div>
         </div>
         
@@ -2663,6 +2680,16 @@ async function handleOutreachAction(action: string): Promise<void> {
     }
   };
 
+  // Helper to parse response and extract error message
+  const parseResponse = async (res: Response): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const data = await res.json();
+      return { success: data.success ?? res.ok, error: data.error };
+    } catch {
+      return { success: res.ok, error: res.ok ? undefined : 'Request failed' };
+    }
+  };
+
   // Get userId from app state (or use dev default)
   const userId = appState.getState().deviceId || 'dev-user';
 
@@ -2671,8 +2698,32 @@ async function handleOutreachAction(action: string): Promise<void> {
 
   try {
     switch (action) {
+      // Check channel config first
+      case 'check-config': {
+        setStatus('🔍 Checking config...');
+        const configRes = await fetch(`/api/outreach/contact?userId=${userId}`);
+        const config = await configRes.json();
+        if (!configRes.ok) {
+          setStatus('❌ No contact info configured', true);
+          log.info('No contact info for user. Set via /api/outreach/contact');
+          // eslint-disable-next-line no-console
+          console.log('💡 To set contact info, POST to /api/outreach/contact with:', {
+            userId,
+            phone: '+1234567890',
+            email: 'user@example.com',
+          });
+        } else {
+          const { phone, email } = config;
+          const parts = [];
+          if (phone) parts.push(`📱 ${phone}`);
+          if (email) parts.push(`📧 ${email}`);
+          setStatus(parts.length ? `✓ ${parts.join(' | ')}` : '❌ No channels', !parts.length);
+        }
+        break;
+      }
+
       // Test channels
-      case 'test-sms':
+      case 'test-sms': {
         setStatus('📱 Sending test SMS...');
         const smsRes = await fetch('/api/outreach/test/send', {
           method: 'POST',
@@ -2683,10 +2734,17 @@ async function handleOutreachAction(action: string): Promise<void> {
             message: 'Hey! This is a test message from Ferni dev panel 🌱',
           }),
         });
-        setStatus(smsRes.ok ? '✓ SMS sent!' : '✕ SMS failed', !smsRes.ok);
+        const smsResult = await parseResponse(smsRes);
+        if (smsResult.success) {
+          setStatus('✓ SMS sent!');
+        } else {
+          const hint = smsResult.error?.includes('phone') ? ' (Set phone first)' : '';
+          setStatus(`✕ ${smsResult.error || 'SMS failed'}${hint}`, true);
+        }
         break;
+      }
 
-      case 'test-email':
+      case 'test-email': {
         setStatus('📧 Sending test email...');
         const emailRes = await fetch('/api/outreach/test/send', {
           method: 'POST',
@@ -2699,10 +2757,17 @@ async function handleOutreachAction(action: string): Promise<void> {
               'Hey! This is a test email from the Ferni dev panel. Just making sure everything is connected!',
           }),
         });
-        setStatus(emailRes.ok ? '✓ Email sent!' : '✕ Email failed', !emailRes.ok);
+        const emailResult = await parseResponse(emailRes);
+        if (emailResult.success) {
+          setStatus('✓ Email sent!');
+        } else {
+          const hint = emailResult.error?.includes('email') ? ' (Set email first)' : '';
+          setStatus(`✕ ${emailResult.error || 'Email failed'}${hint}`, true);
+        }
         break;
+      }
 
-      case 'test-call':
+      case 'test-call': {
         setStatus('📞 Making test call...');
         const callRes = await fetch('/api/outreach/test/send', {
           method: 'POST',
@@ -2714,7 +2779,13 @@ async function handleOutreachAction(action: string): Promise<void> {
               'Hey! This is Ferni calling from the dev panel. Just a quick test to make sure calls are working!',
           }),
         });
-        setStatus(callRes.ok ? '✓ Call initiated!' : '✕ Call failed', !callRes.ok);
+        const callResult = await parseResponse(callRes);
+        if (callResult.success) {
+          setStatus('✓ Call initiated!');
+        } else {
+          const hint = callResult.error?.includes('phone') ? ' (Set phone first)' : '';
+          setStatus(`✕ ${callResult.error || 'Call failed'}${hint}`, true);
+        }
         break;
 
       // Trigger types
@@ -4418,8 +4489,34 @@ function triggerStreakCelebration(days: number): void {
 let networkSimulation: string = 'excellent';
 let latencySimulation: number = 0;
 
+// Store settings in window for other modules to access
+declare global {
+  interface Window {
+    __devNetwork?: {
+      quality: string;
+      latency: number;
+      packetLoss: number;
+    };
+    __devFetch?: typeof fetch;
+    __originalFetch?: typeof fetch;
+  }
+}
+
 function setNetworkSimulation(network: string): void {
   networkSimulation = network;
+
+  // Initialize dev network settings
+  window.__devNetwork = window.__devNetwork || { quality: 'excellent', latency: 0, packetLoss: 0 };
+  window.__devNetwork.quality = network;
+
+  // Set packet loss simulation based on network quality
+  const packetLossMap: Record<string, number> = {
+    excellent: 0,
+    good: 0.01,    // 1% packet loss
+    poor: 0.1,     // 10% packet loss
+    offline: 1,    // 100% packet loss (offline)
+  };
+  window.__devNetwork.packetLoss = packetLossMap[network] || 0;
 
   // Dispatch event for connection quality UI
   window.dispatchEvent(
@@ -4428,34 +4525,94 @@ function setNetworkSimulation(network: string): void {
     })
   );
 
+  // If offline, simulate disconnection
+  if (network === 'offline') {
+    window.dispatchEvent(new CustomEvent('ferni:simulate-disconnect'));
+  }
+
   // Visual feedback
   switch (network) {
     case 'excellent':
       avatarFeedback.success('Excellent connection');
       break;
     case 'good':
-      avatarFeedback.info('Good connection');
+      avatarFeedback.info('Good connection (1% packet loss)');
       break;
     case 'poor':
-      avatarFeedback.warning('Poor connection');
+      avatarFeedback.warning('Poor connection (10% packet loss)');
       break;
     case 'offline':
-      avatarFeedback.error('Offline mode');
+      avatarFeedback.error('Offline mode (simulated)');
       avatarFeedback.disconnected();
       break;
   }
 
-  log.info({ network }, 'Set network simulation');
+  log.info({ network, packetLoss: window.__devNetwork.packetLoss }, 'Set network simulation');
 }
 
 function setLatencySimulation(latency: number): void {
   latencySimulation = latency;
 
-  // Store in window for other components to check
-  (window as unknown as Record<string, number>).__devLatency = latency;
+  // Initialize dev network settings
+  window.__devNetwork = window.__devNetwork || { quality: 'excellent', latency: 0, packetLoss: 0 };
+  window.__devNetwork.latency = latency;
 
-  avatarFeedback.info(`Latency: ${latency}ms`);
+  // Install fetch wrapper if latency > 0 and not already installed
+  if (latency > 0 && !window.__devFetch) {
+    installDevFetchWrapper();
+  } else if (latency === 0 && window.__devFetch) {
+    uninstallDevFetchWrapper();
+  }
+
+  avatarFeedback.info(`Latency: ${latency}ms${latency > 0 ? ' (affects API calls)' : ''}`);
   log.info({ latency }, 'Set latency simulation');
+}
+
+/**
+ * Install a fetch wrapper that adds simulated latency to all API calls.
+ * Only active in dev mode with latency > 0.
+ */
+function installDevFetchWrapper(): void {
+  if (window.__devFetch) return; // Already installed
+
+  // Save original fetch
+  window.__originalFetch = window.fetch;
+
+  // Create wrapper that adds delay
+  window.__devFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const latency = window.__devNetwork?.latency || 0;
+    const packetLoss = window.__devNetwork?.packetLoss || 0;
+
+    // Simulate packet loss
+    if (packetLoss > 0 && Math.random() < packetLoss) {
+      log.debug({ latency, packetLoss }, 'Simulating packet loss');
+      throw new Error('Network request failed (simulated packet loss)');
+    }
+
+    // Add latency delay
+    if (latency > 0) {
+      await new Promise(resolve => setTimeout(resolve, latency));
+    }
+
+    // Call original fetch
+    return window.__originalFetch!(input, init);
+  };
+
+  // Replace global fetch
+  window.fetch = window.__devFetch;
+  log.info('Dev fetch wrapper installed (latency simulation active)');
+}
+
+/**
+ * Remove the dev fetch wrapper and restore original fetch.
+ */
+function uninstallDevFetchWrapper(): void {
+  if (window.__originalFetch) {
+    window.fetch = window.__originalFetch;
+    window.__devFetch = undefined;
+    window.__originalFetch = undefined;
+    log.info('Dev fetch wrapper removed');
+  }
 }
 
 // Export for other modules
@@ -4465,6 +4622,14 @@ export function getNetworkSimulation(): string {
 
 export function getLatencySimulation(): number {
   return latencySimulation;
+}
+
+/**
+ * Check if dev network simulation should fail a request (for packet loss).
+ */
+export function shouldSimulateNetworkFailure(): boolean {
+  const packetLoss = window.__devNetwork?.packetLoss || 0;
+  return packetLoss > 0 && Math.random() < packetLoss;
 }
 
 // ============================================================================
@@ -4597,28 +4762,64 @@ const ambientStates: Record<string, boolean> = {
   aurora: false,
 };
 
+// Ensure ambient effects are initialized
+let ambientEffectsInitialized = false;
+
+function ensureAmbientEffectsInitialized(): void {
+  if (!ambientEffectsInitialized) {
+    initAmbientEffects();
+    ambientEffectsInitialized = true;
+  }
+}
+
 function toggleAmbientEffect(effect: string): void {
+  ensureAmbientEffectsInitialized();
+  
   switch (effect) {
     case 'particles':
       ambientStates.particles = !ambientStates.particles;
-      document.body.classList.toggle('ambient-particles', ambientStates.particles);
-      log.info({ particles: ambientStates.particles }, 'Toggled particles');
+      if (ambientStates.particles) {
+        startParticles();
+        log.info('Real particle system started');
+      } else {
+        stopParticles();
+        log.info('Particle system stopped');
+      }
       break;
     case 'glow':
       ambientStates.glow = !ambientStates.glow;
-      document.body.classList.toggle('ambient-glow', ambientStates.glow);
-      log.info({ glow: ambientStates.glow }, 'Toggled glow');
+      if (ambientStates.glow) {
+        addVignette();
+        log.info('Vignette glow started');
+      } else {
+        removeVignette();
+        log.info('Vignette glow stopped');
+      }
       break;
     case 'aurora':
       ambientStates.aurora = !ambientStates.aurora;
-      document.body.classList.toggle('ambient-aurora', ambientStates.aurora);
-      log.info({ aurora: ambientStates.aurora }, 'Toggled aurora');
+      if (ambientStates.aurora) {
+        startAurora();
+        log.info('Aurora canvas effect started');
+      } else {
+        stopAurora();
+        log.info('Aurora canvas effect stopped');
+      }
       break;
     case 'off':
-      Object.keys(ambientStates).forEach((key) => {
-        ambientStates[key] = false;
-        document.body.classList.remove(`ambient-${key}`);
-      });
+      // Stop all real effects
+      if (ambientStates.particles) {
+        stopParticles();
+        ambientStates.particles = false;
+      }
+      if (ambientStates.glow) {
+        removeVignette();
+        ambientStates.glow = false;
+      }
+      if (ambientStates.aurora) {
+        stopAurora();
+        ambientStates.aurora = false;
+      }
       log.info('All ambient effects off');
       break;
     default:

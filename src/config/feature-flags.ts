@@ -114,6 +114,26 @@ export interface FeatureFlags {
   };
 
   /**
+   * EvalOps - Quality evaluation features
+   */
+  evalops: {
+    /** Master switch for EvalOps */
+    enabled: boolean;
+    /** Automatic sampling of conversations */
+    autoSampling: boolean;
+    /** Voice consistency checks (cheap, heuristic) */
+    voiceChecks: boolean;
+    /** Full LLM-as-judge evaluation */
+    llmEvaluation: boolean;
+    /** Scheduled test suite runs */
+    scheduledSuites: boolean;
+    /** Alert on flagged responses */
+    alerting: boolean;
+    /** Sample rate percentage (0-100) */
+    sampleRate: number;
+  };
+
+  /**
    * Life Coach Domain features - new coaching tool domains
    */
   lifeCoachDomains: {
@@ -185,6 +205,15 @@ const DEFAULT_FLAGS: FeatureFlags = {
     email: true,
     pushNotifications: true,
   },
+  evalops: {
+    enabled: true,
+    autoSampling: true,
+    voiceChecks: true,
+    llmEvaluation: false, // Start with heuristic-only
+    scheduledSuites: false,
+    alerting: true,
+    sampleRate: 5, // 5% sampling by default
+  },
   lifeCoachDomains: {
     enabled: true,
     crisis: true, // ALWAYS enabled for safety
@@ -237,6 +266,15 @@ const ENV_MAPPINGS: Record<string, string> = {
   ENABLE_GOOGLE_CALENDAR: 'integrations.googleCalendar',
   ENABLE_EMAIL: 'integrations.email',
   ENABLE_PUSH_NOTIFICATIONS: 'integrations.pushNotifications',
+
+  // EvalOps
+  EVALOPS_ENABLED: 'evalops.enabled',
+  EVALOPS_AUTO_SAMPLING: 'evalops.autoSampling',
+  EVALOPS_VOICE_CHECKS: 'evalops.voiceChecks',
+  EVALOPS_LLM_EVALUATION: 'evalops.llmEvaluation',
+  EVALOPS_SCHEDULED_SUITES: 'evalops.scheduledSuites',
+  EVALOPS_ALERTING: 'evalops.alerting',
+  EVALOPS_SAMPLE_RATE: 'evalops.sampleRate',
 
   // Life Coach Domains
   LIFE_COACH_DOMAINS_ENABLED: 'lifeCoachDomains.enabled',
@@ -440,6 +478,41 @@ export function getEnabledDebugCategories(): Array<keyof FeatureFlags['debug']> 
   return (Object.keys(flags.debug) as Array<keyof FeatureFlags['debug']>).filter(
     (key) => flags.debug[key]
   );
+}
+
+// ============================================================================
+// EVALOPS HELPERS
+// ============================================================================
+
+/**
+ * Check if EvalOps is enabled
+ */
+export function isEvalOpsEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.evalops.enabled;
+}
+
+/**
+ * Check if a specific EvalOps feature is enabled
+ */
+export function isEvalOpsFeatureEnabled(feature: keyof FeatureFlags['evalops']): boolean {
+  const flags = getFeatureFlags();
+  if (!flags.evalops.enabled) return false;
+  
+  if (feature === 'sampleRate') {
+    return flags.evalops.sampleRate > 0;
+  }
+  
+  return flags.evalops[feature] === true;
+}
+
+/**
+ * Get EvalOps sample rate
+ */
+export function getEvalOpsSampleRate(): number {
+  const flags = getFeatureFlags();
+  if (!flags.evalops.enabled) return 0;
+  return flags.evalops.sampleRate;
 }
 
 // ============================================================================

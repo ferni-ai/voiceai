@@ -910,7 +910,494 @@ textarea:-webkit-autofill {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   26. PRINT STYLES
+   26. TYPOGRAPHY REFINEMENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Optical kerning for headlines */
+.text-display-2xl,
+.text-display-xl,
+h1, h2 {
+  font-feature-settings: "kern" 1, "liga" 1;
+  letter-spacing: -0.02em;
+  text-rendering: optimizeLegibility;
+}
+
+/* Hanging punctuation */
+.hanging-punctuation {
+  hanging-punctuation: first allow-end last;
+}
+
+/* Proper quotes */
+blockquote::before {
+  content: '"';
+  position: absolute;
+  left: -0.5em;
+  top: -0.2em;
+  font-size: 3em;
+  color: rgba(74, 103, 65, 0.2);
+  font-family: Georgia, serif;
+}
+
+/* Vertical rhythm system */
+.rhythm > * + * {
+  margin-top: 1.5em;
+}
+
+.rhythm-tight > * + * {
+  margin-top: 1em;
+}
+
+.rhythm-loose > * + * {
+  margin-top: 2em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   27. GLASS CARD VARIANT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.card-glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 4px 24px rgba(44, 37, 32, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.card-glass-dark {
+  background: rgba(26, 21, 18, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   28. REALISTIC SHADOW CASCADE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.shadow-cascade {
+  box-shadow: 
+    0 1px 2px rgba(44, 37, 32, 0.02),
+    0 2px 4px rgba(44, 37, 32, 0.02),
+    0 4px 8px rgba(44, 37, 32, 0.02),
+    0 8px 16px rgba(44, 37, 32, 0.02),
+    0 16px 32px rgba(44, 37, 32, 0.02),
+    0 32px 64px rgba(44, 37, 32, 0.02);
+}
+
+.shadow-cascade-hover:hover {
+  box-shadow: 
+    0 1px 2px rgba(44, 37, 32, 0.03),
+    0 2px 4px rgba(44, 37, 32, 0.03),
+    0 4px 8px rgba(44, 37, 32, 0.03),
+    0 8px 16px rgba(44, 37, 32, 0.03),
+    0 16px 32px rgba(44, 37, 32, 0.03),
+    0 32px 64px rgba(44, 37, 32, 0.03),
+    0 48px 96px rgba(44, 37, 32, 0.02);
+  transform: translateY(-4px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   29. TIME-AWARE AMBIENT WARMTH
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* These classes are toggled by JS based on time of day */
+.time-dawn {
+  --ambient-warmth: rgba(255, 200, 150, 0.05);
+  --ambient-tint: rgba(255, 180, 120, 0.03);
+}
+
+.time-noon {
+  --ambient-warmth: rgba(255, 250, 240, 0.02);
+  --ambient-tint: transparent;
+}
+
+.time-dusk {
+  --ambient-warmth: rgba(255, 150, 100, 0.08);
+  --ambient-tint: rgba(200, 100, 80, 0.04);
+}
+
+.time-night {
+  --ambient-warmth: rgba(100, 120, 180, 0.05);
+  --ambient-tint: rgba(60, 80, 140, 0.03);
+}
+
+.ambient-aware {
+  background-image: 
+    linear-gradient(var(--ambient-warmth, transparent), var(--ambient-tint, transparent));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   30. PERSONA PAGE TINTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.persona-tint-ferni {
+  background-image: linear-gradient(
+    135deg,
+    rgba(74, 103, 65, 0.03) 0%,
+    transparent 50%
+  );
+}
+
+.persona-tint-peter {
+  background-image: linear-gradient(
+    135deg,
+    rgba(58, 107, 115, 0.03) 0%,
+    transparent 50%
+  );
+}
+
+.persona-tint-alex {
+  background-image: linear-gradient(
+    135deg,
+    rgba(90, 107, 138, 0.03) 0%,
+    transparent 50%
+  );
+}
+
+.persona-tint-maya {
+  background-image: linear-gradient(
+    135deg,
+    rgba(166, 122, 106, 0.03) 0%,
+    transparent 50%
+  );
+}
+
+.persona-tint-jordan {
+  background-image: linear-gradient(
+    135deg,
+    rgba(196, 133, 106, 0.03) 0%,
+    transparent 50%
+  );
+}
+
+.persona-tint-nayan {
+  background-image: linear-gradient(
+    135deg,
+    rgba(138, 122, 106, 0.03) 0%,
+    transparent 50%
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   31. 2AM SECTION ENHANCEMENTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.breathing-glow {
+  animation: breathingGlow 4s ease-in-out infinite;
+}
+
+@keyframes breathingGlow {
+  0%, 100% {
+    box-shadow: 
+      0 0 30px rgba(74, 103, 65, 0.3),
+      0 0 60px rgba(74, 103, 65, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 0 50px rgba(74, 103, 65, 0.5),
+      0 0 100px rgba(74, 103, 65, 0.2);
+  }
+}
+
+.calm-waves {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 1200 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,60 C300,100 600,20 900,60 C1200,100 1200,60 1200,60 L1200,120 L0,120 Z' fill='rgba(74,103,65,0.1)'/%3E%3C/svg%3E");
+  background-size: cover;
+  animation: calmWave 8s ease-in-out infinite;
+}
+
+@keyframes calmWave {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-50px); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   32. FOOTER BACKGROUND PATTERN
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.footer-pattern {
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(74, 103, 65, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(166, 122, 106, 0.03) 0%, transparent 50%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   33. STICKY CTA AFTER HERO
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sticky-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: rgba(250, 248, 245, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(44, 37, 32, 0.05);
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 50;
+}
+
+.sticky-cta.visible {
+  transform: translateY(0);
+}
+
+@media (min-width: 768px) {
+  .sticky-cta {
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   34. CARD ENTRANCE ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.card-enter-left {
+  animation: cardEnterLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.card-enter-right {
+  animation: cardEnterRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.card-enter-bottom {
+  animation: cardEnterBottom 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cardEnterLeft {
+  from { opacity: 0; transform: translateX(-60px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes cardEnterRight {
+  from { opacity: 0; transform: translateX(60px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes cardEnterBottom {
+  from { opacity: 0; transform: translateY(60px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   35. CONFETTI CELEBRATION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  animation: confettiFall 1s ease-out forwards;
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   36. 8-POINT GRID SYSTEM
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* 8pt grid base */
+  --grid-unit: 8px;
+  
+  /* Grid-aligned spacing */
+  --space-1: calc(var(--grid-unit) * 1);   /* 8px */
+  --space-2: calc(var(--grid-unit) * 2);   /* 16px */
+  --space-3: calc(var(--grid-unit) * 3);   /* 24px */
+  --space-4: calc(var(--grid-unit) * 4);   /* 32px */
+  --space-5: calc(var(--grid-unit) * 5);   /* 40px */
+  --space-6: calc(var(--grid-unit) * 6);   /* 48px */
+  --space-8: calc(var(--grid-unit) * 8);   /* 64px */
+  --space-10: calc(var(--grid-unit) * 10); /* 80px */
+  --space-12: calc(var(--grid-unit) * 12); /* 96px */
+  --space-16: calc(var(--grid-unit) * 16); /* 128px */
+  --space-20: calc(var(--grid-unit) * 20); /* 160px */
+}
+
+/* Grid utility classes */
+.grid-8 { gap: var(--space-1); }
+.grid-16 { gap: var(--space-2); }
+.grid-24 { gap: var(--space-3); }
+.grid-32 { gap: var(--space-4); }
+.grid-48 { gap: var(--space-6); }
+.grid-64 { gap: var(--space-8); }
+
+/* Section padding (grid-aligned) */
+.section-sm { padding: var(--space-6) 0; }
+.section-md { padding: var(--space-10) 0; }
+.section-lg { padding: var(--space-16) 0; }
+.section-xl { padding: var(--space-20) 0; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   37. MA BREATHING ROOM (間)
+   Japanese-inspired intentional white space
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Section breathing classes */
+.ma-breath { margin-bottom: 8px; }
+.ma-pause { margin-bottom: 13px; }
+.ma-rest { margin-bottom: 21px; }
+.ma-silence { margin-bottom: 34px; }
+.ma-meditation { margin-bottom: 55px; }
+.ma-contemplation { margin-bottom: 89px; }
+.ma-vastness { margin-bottom: 144px; }
+
+/* Section spacing using Fibonacci-based Ma */
+section + section {
+  padding-top: 89px; /* ma-contemplation */
+}
+
+.dark-section + .light-section,
+.light-section + .dark-section {
+  padding-top: 144px; /* ma-vastness for dramatic transitions */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   38. CONTAINER MAX-WIDTHS
+   Optimal reading widths for different content types
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.container-text {
+  max-width: 65ch; /* Optimal reading length */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+
+.container-content {
+  max-width: 85ch; /* Content with images */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+
+.container-wide {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+.container-full {
+  max-width: 1920px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   39. CLS OPTIMIZATION
+   Prevent layout shift with explicit dimensions
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Reserve space for images before load */
+img, video {
+  aspect-ratio: attr(width) / attr(height);
+  height: auto;
+}
+
+/* Font display optimization */
+@font-face {
+  font-display: swap;
+}
+
+/* Skeleton placeholder dimensions */
+.skeleton-card {
+  min-height: 300px;
+}
+
+.skeleton-avatar {
+  width: 64px;
+  height: 64px;
+}
+
+.skeleton-text {
+  height: 1em;
+}
+
+/* Reserve header space */
+body {
+  padding-top: 80px; /* Height of fixed nav */
+}
+
+/* Prevent flash of unstyled content */
+.fouc-prevention {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.loaded .fouc-prevention {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   40. PERSONA PAGES STYLING
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.persona-hero {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.persona-avatar-large {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: bold;
+  font-size: 3rem;
+  color: white;
+  animation: personaEntrance 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes personaEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.persona-ferni .persona-avatar-large { background: linear-gradient(135deg, #5a7751, #4a6741, #3d5a35); }
+.persona-peter .persona-avatar-large { background: linear-gradient(135deg, #4a7b83, #3a6b73, #2d5359); }
+.persona-alex .persona-avatar-large { background: linear-gradient(135deg, #6a7b9a, #5a6b8a, #4a5a73); }
+.persona-maya .persona-avatar-large { background: linear-gradient(135deg, #b68a7a, #a67a6a, #8a635a); }
+.persona-jordan .persona-avatar-large { background: linear-gradient(135deg, #d4957a, #c4856a, #a86d55); }
+.persona-nayan .persona-avatar-large { background: linear-gradient(135deg, #9a8a7a, #8a7a6a, #6d5f52); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   41. PRINT STYLES
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media print {

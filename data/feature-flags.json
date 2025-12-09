@@ -190,5 +190,76 @@
     "category": "simple-utilities",
     "createdAt": "2025-12-08T00:00:00.000Z",
     "updatedAt": "2025-12-08T00:00:00.000Z"
+  },
+  {
+    "id": "evalops",
+    "name": "EvalOps (Master)",
+    "description": "Master toggle for all quality evaluation features",
+    "type": "boolean",
+    "enabled": true,
+    "category": "evalops",
+    "createdAt": "2025-12-09T00:00:00.000Z",
+    "updatedAt": "2025-12-09T00:00:00.000Z"
+  },
+  {
+    "id": "evalops-auto-sampling",
+    "name": "Auto Sampling",
+    "description": "Automatically sample conversations for quality evaluation",
+    "type": "boolean",
+    "enabled": true,
+    "category": "evalops",
+    "createdAt": "2025-12-09T00:00:00.000Z",
+    "updatedAt": "2025-12-09T00:00:00.000Z"
+  },
+  {
+    "id": "evalops-voice-checks",
+    "name": "Voice Consistency Checks",
+    "description": "Heuristic-based voice consistency checking (cheap)",
+    "type": "boolean",
+    "enabled": true,
+    "category": "evalops",
+    "createdAt": "2025-12-09T00:00:00.000Z",
+    "updatedAt": "2025-12-09T00:00:00.000Z"
+  },
+  {
+    "id": "evalops-llm-evaluation",
+    "name": "LLM-as-Judge Evaluation",
+    "description": "Full LLM-powered evaluation (costs API tokens)",
+    "type": "boolean",
+    "enabled": false,
+    "category": "evalops",
+    "createdAt": "2025-12-09T00:00:00.000Z",
+    "updatedAt": "2025-12-09T00:00:00.000Z"
+  },
+  {
+    "id": "evalops-scheduled-suites",
+    "name": "Scheduled Test Suites",
+    "description": "Run test suites on a schedule (daily)",
+    "type": "boolean",
+    "enabled": false,
+    "category": "evalops",
+    "createdAt": "2025-12-09T00:00:00.000Z",
+    "updatedAt": "2025-12-09T00:00:00.000Z"
+  },
+  {
+    "id": "evalops-alerting",
+    "name": "Flagged Response Alerts",
+    "description": "Alert when responses are flagged for review",
+    "type": "boolean",
+    "enabled": true,
+    "category": "evalops",
+    "createdAt": "2025-12-09T00:00:00.000Z",
+    "updatedAt": "2025-12-09T00:00:00.000Z"
+  },
+  {
+    "id": "evalops-sample-rate",
+    "name": "Sample Rate",
+    "description": "Percentage of conversations to evaluate",
+    "type": "percentage",
+    "enabled": true,
+    "percentage": 5,
+    "category": "evalops",
+    "createdAt": "2025-12-09T00:00:00.000Z",
+    "updatedAt": "2025-12-09T00:00:00.000Z"
   }
 ]
