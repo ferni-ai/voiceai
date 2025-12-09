@@ -19,6 +19,7 @@
 # EvalOps is WIP - has TypeScript errors, exclude until ready
 src/services/evalops/
 src/api/evalops-routes.ts
+src/api/evalops-handler.ts
 
 # ===================
 # LARGE DIRECTORIES - EXCLUDE THESE FIRST

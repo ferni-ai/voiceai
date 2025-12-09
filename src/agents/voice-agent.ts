@@ -628,6 +628,41 @@ class VoiceAgent extends voice.Agent<UserData> {
                 if (userData) {
                   userData.lastAgentResponse = accumulatedText;
 
+                  // ============================================================
+                  // EVALOPS: Evaluate agent response for quality assurance
+                  // Non-blocking - runs in background, errors are caught
+                  // ============================================================
+                  try {
+                    const sessionId = userData.services?.sessionId;
+                    const lastUserMsg = userData.lastUserMessage || '';
+                    
+                    if (sessionId && lastUserMsg) {
+                      // Import dynamically to avoid startup cost
+                      import('../services/evalops/voice-agent-integration.js')
+                        .then(({ evaluateAgentResponse }) => {
+                          evaluateAgentResponse(
+                            sessionId,
+                            agent.persona.id,
+                            lastUserMsg,
+                            accumulatedText,
+                            {
+                              userId: userData.services?.userId,
+                              turnNumber: userData.turnCount || 1,
+                              emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
+                              isNewUser: userData.turnCount === 1,
+                            }
+                          ).catch(() => {
+                            // Non-blocking - silently ignore errors
+                          });
+                        })
+                        .catch(() => {
+                          // Non-blocking - module import failed, skip evaluation
+                        });
+                    }
+                  } catch {
+                    // Non-blocking - EvalOps hook should never crash the agent
+                  }
+
                   // Track if this response contained humor or story for calibration
                   const lowerText = accumulatedText.toLowerCase();
                   const humorIndicators =
@@ -1070,6 +1105,27 @@ class VoiceAgent extends voice.Agent<UserData> {
               })
               .catch((e) =>
                 log().debug({ error: String(e) }, 'Voice emotion publish (non-critical)')
+              ); // Fire and forget
+            
+            // 🚀 FERNI EQ: Send voice prosody data for concern detection & breath sync
+            // This enables "Better than Human" emotional intelligence
+            agent
+              .sendDataMessage('voice_prosody', {
+                stressLevel: voiceEmotion.stressLevel,
+                anxietyMarkers: voiceEmotion.anxietyMarkers,
+                valence: voiceEmotion.valence,
+                arousal: voiceEmotion.arousal,
+                dominance: voiceEmotion.dominance,
+                // Prosody features for breath sync
+                pitchVariance: voiceEmotion.prosody?.pitchVariance,
+                pauseDuration: voiceEmotion.prosody?.pauseDuration,
+                speechRate: voiceEmotion.prosody?.speechRate,
+                // Voice quality indicators for concern detection
+                voiceQuality: voiceEmotion.prosody?.voiceQuality,
+                breathiness: voiceEmotion.prosody?.breathiness,
+              })
+              .catch((e) =>
+                log().debug({ error: String(e) }, 'Voice prosody publish (non-critical)')
               ); // Fire and forget
 
             // 🎭 Update music player with current mood for mood-aware offers

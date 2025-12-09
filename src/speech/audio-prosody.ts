@@ -43,6 +43,7 @@ export interface ProsodyFeatures {
   jitter: number; // Pitch perturbation (trembling)
   shimmer: number; // Amplitude perturbation
   breathiness: number; // Harmonic-to-noise ratio
+  voiceQuality?: 'clear' | 'breathy' | 'strained' | 'trembling'; // Overall voice quality indicator
 
   // Timing
   utteranceDuration: number;
