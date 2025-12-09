@@ -158,7 +158,7 @@ async function checkStreakMilestone(userId: string, streak: Streak): Promise<str
     return undefined;
   }
 
-  const prefs = getPreferences(userId);
+  const _prefs = getPreferences(userId); // TODO: Use prefs to customize message timing
   const messages: Record<number, string> = {
     3: `🔥 3-day streak on ${streak.habitName}! You're building momentum!`,
     7: `🎉 ONE WEEK! You've been crushing ${streak.habitName} for 7 days straight!`,
@@ -444,8 +444,8 @@ function getDeadlineMessage(goal: Goal, daysLeft: number): string {
 /**
  * Check for users who haven't engaged and send nudges
  */
-export async function sendMissedCheckInNudges(maxDaysSinceContact = 3): Promise<number> {
-  // This would integrate with engagement tracking
+export async function sendMissedCheckInNudges(_maxDaysSinceContact = 3): Promise<number> {
+  // TODO: Integrate with engagement tracking to find users who haven't interacted
   // For now, returns 0 as it needs lastInteraction data
   return 0;
 }

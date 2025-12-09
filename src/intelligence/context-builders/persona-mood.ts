@@ -25,14 +25,9 @@ import type { PersonaConfig } from '../../personas/types.js';
 // TYPES
 // ============================================================================
 
-export type MoodState =
-  | 'energized' // High energy, more animated
-  | 'reflective' // Thoughtful, story-heavy
-  | 'playful' // Joking, light-hearted
-  | 'grounded' // Calm, centered, present
-  | 'tired_but_present' // Lower energy but still engaged
-  | 'philosophical' // Deep, big-picture thinking
-  | 'nostalgic'; // Memory-heavy, wistful
+// Re-export from shared types for backwards compatibility
+export type { MoodState } from '../../types/humanizing-types.js';
+import type { MoodState } from '../../types/humanizing-types.js';
 
 export interface PersonaMood {
   state: MoodState;

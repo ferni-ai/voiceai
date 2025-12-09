@@ -5,7 +5,7 @@
 
 import type { AgentId } from '../../services/agent-bus.js';
 import type { PersonaConfig } from '../../personas/types.js';
-import { getPersona } from '../../personas/index.js';
+// NOTE: getPersona is dynamically imported below to avoid circular dependency
 
 /**
  * Data emitted for voiceSwitch events during handoffs.
@@ -28,19 +28,22 @@ export interface HandoffEventData {
  * Create a handoff event data object for emitting voiceSwitch events.
  *
  * @example
- * handoffEvents.emit('voiceSwitch', createHandoffEvent('alex-chen', {
+ * const event = await createHandoffEvent('alex-chen', {
  *   greeting: 'Hey! Alex here.',
  *   previousAgentId: 'ferni'
- * }));
+ * });
+ * handoffEvents.emit('voiceSwitch', event);
  */
-export function createHandoffEvent(
+export async function createHandoffEvent(
   targetId: string,
   options: {
     greeting?: string;
     playSound?: string;
     previousAgentId?: string;
   } = {}
-): HandoffEventData {
+): Promise<HandoffEventData> {
+  // Dynamic import to avoid circular dependency through personas/index
+  const { getPersona } = await import('../../personas/index.js');
   const persona = getPersona(targetId);
   if (!persona) {
     throw new Error(`Cannot create handoff event: persona "${targetId}" not found`);

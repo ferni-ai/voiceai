@@ -373,7 +373,7 @@ export async function executeHandoff(
 
   // Emit voiceSwitch event
   // FIX BUG: Add logging to trace event emission
-  const eventData = createHandoffEvent(canonicalTargetId, {
+  const eventData = await createHandoffEvent(canonicalTargetId, {
     greeting,
     playSound: options.playSound,
     previousAgentId: previousAgent,

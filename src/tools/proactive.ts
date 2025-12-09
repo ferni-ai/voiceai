@@ -13,7 +13,8 @@
 import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
-import type { SessionServices } from '../services/index.js';
+// Import directly from types to avoid circular dependency through services/index
+import type { SessionServices } from '../services/types.js';
 import type { FinancialGoal } from '../types/user-profile.js';
 import { getDefaultStore } from '../memory/index.js';
 

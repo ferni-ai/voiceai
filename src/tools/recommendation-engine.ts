@@ -24,53 +24,26 @@ import { abTestingService, type Experiment, type VariantConfig } from './ab-test
 import { toolRegistry } from './registry/index.js';
 
 // ============================================================================
-// TYPES
+// TYPES - Re-exported from shared types file
 // ============================================================================
 
-export type RecommendationType =
-  | 'create_tool'
-  | 'consolidate_tools'
-  | 'deprecate_tool'
-  | 'run_experiment'
-  | 'improve_tool'
-  | 'add_domain'
-  | 'modify_loading';
+// Re-export types for backwards compatibility
+export type {
+  RecommendationType,
+  Recommendation,
+  Evidence,
+  ImpactAssessment,
+  ImplementationGuide,
+} from '../types/optimization-types.js';
 
-export interface Recommendation {
-  id: string;
-  type: RecommendationType;
-  priority: 'critical' | 'high' | 'medium' | 'low';
-  title: string;
-  description: string;
-  rationale: string;
-  evidence: Evidence[];
-  impact: ImpactAssessment;
-  implementation: ImplementationGuide;
-  createdAt: Date;
-  status: 'pending' | 'approved' | 'rejected' | 'implemented';
-}
-
-export interface Evidence {
-  type: 'usage_data' | 'feedback' | 'pattern' | 'experiment_result';
-  summary: string;
-  dataPoints: number;
-  confidence: number;
-}
-
-export interface ImpactAssessment {
-  userExperience: 'positive' | 'neutral' | 'negative';
-  toolCount: number; // Change in tool count
-  complexity: 'low' | 'medium' | 'high';
-  riskLevel: 'low' | 'medium' | 'high';
-  estimatedBenefit: string;
-}
-
-export interface ImplementationGuide {
-  steps: string[];
-  estimatedEffort: 'hours' | 'days' | 'weeks';
-  requiredChanges: string[];
-  testingStrategy: string;
-}
+// Import types for internal use
+import type {
+  RecommendationType,
+  Recommendation,
+  Evidence,
+  ImpactAssessment,
+  ImplementationGuide,
+} from '../types/optimization-types.js';
 
 export interface ExperimentHypothesis {
   hypothesis: string;

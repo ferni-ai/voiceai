@@ -9,7 +9,8 @@
 
 import { llm, log } from '@livekit/agents';
 import { z } from 'zod';
-import type { SessionServices } from '../services/index.js';
+// Import directly from types to avoid circular dependency through services/index
+import type { SessionServices } from '../services/types.js';
 import { getLogger as getLoggerUtil } from './utils/tool-helpers.js';
 
 const getLogger = () => {

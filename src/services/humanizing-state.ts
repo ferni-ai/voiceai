@@ -11,7 +11,8 @@
 
 import { getLogger } from '../utils/safe-logger.js';
 import type { UserProfile } from '../types/user-profile.js';
-import type { MoodState, RelationshipStage } from '../intelligence/context-builders/humanizing.js';
+// Import from shared types to avoid circular dependency through humanizing.ts
+import type { MoodState, RelationshipStage } from '../types/humanizing-types.js';
 
 // ============================================================================
 // TYPES

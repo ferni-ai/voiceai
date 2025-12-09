@@ -17,7 +17,9 @@
 // TYPES
 // ============================================================================
 
-export type RelationshipStage = 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
+// Re-export from shared types for backwards compatibility
+export type { RelationshipStage, UserProfileRelationshipStage } from '../../types/humanizing-types.js';
+import type { RelationshipStage, UserProfileRelationshipStage } from '../../types/humanizing-types.js';
 
 export interface RelationshipBehaviors {
   stage: RelationshipStage;
@@ -399,12 +401,8 @@ export function getRelationshipTransitionAnnouncement(
 
 /**
  * UserProfile relationship stages (from user-profile.ts)
+ * NOTE: Type is re-exported from ../../types/humanizing-types.js above
  */
-export type UserProfileRelationshipStage =
-  | 'new_acquaintance'
-  | 'getting_to_know'
-  | 'trusted_advisor'
-  | 'old_friend';
 
 /**
  * Map UserProfile relationship stage to Humanizing relationship stage.

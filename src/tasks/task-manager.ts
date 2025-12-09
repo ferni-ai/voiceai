@@ -10,7 +10,8 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import type { ConversationAnalysis } from '../services/index.js';
+// Import directly from types to avoid circular dependency through services/index
+import type { ConversationAnalysis } from '../services/types.js';
 
 // ============================================================================
 // TYPES
