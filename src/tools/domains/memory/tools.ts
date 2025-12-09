@@ -66,7 +66,7 @@ export const rememberAboutUserDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'storage', 'facts'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Store an important fact about the user for future recall. DO NOT read tool output verbatim - respond naturally.',
@@ -136,7 +136,7 @@ export const recallFromMemoryDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'recall', 'history'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Try to recall something from previous conversations with this user. Use when you want to show you remember them or connect to past discussions.',
@@ -195,7 +195,7 @@ export const recallPreviousConversationDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'semantic-search', 'history'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Search your memory for relevant past conversations with this user based on a topic or theme.',
@@ -241,7 +241,7 @@ export const rememberImportantFactDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'storage', 'important', 'milestone'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Save a critically important fact that should be remembered forever. Use for life-changing information like major life events, key decisions, or breakthrough moments.',
@@ -348,7 +348,7 @@ export const getRelationshipSummaryDef: ToolDefinition = {
   domain: 'memory',
   tags: ['memory', 'relationship', 'summary'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         "Get a summary of your relationship with this user - how long you've known them, key moments, what you've discussed.",

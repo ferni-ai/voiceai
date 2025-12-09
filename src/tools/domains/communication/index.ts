@@ -126,7 +126,7 @@ function getProactiveOutreachToolDefinitions(): ToolDefinition[] {
     domain: 'communication' as const,
     tags: ['proactive', 'outreach', 'contact', 'reminder'],
     requiredServices: ['twilio', 'sendgrid'] as ExternalService[],
-    create: (ctx: ToolContext) => ({
+    create: (_ctx: ToolContext) => ({
       name: tool.name,
       description: tool.description,
       parameters: tool.parameters,

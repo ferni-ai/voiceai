@@ -37,7 +37,7 @@ const morningSkyCheckDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'ferni', 'daily-ritual', 'emotional-awareness'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Perform Ferni's Morning Sky Check - a 30-second emotional weather report.
 Use this to start conversations with returning users or when they want to check in.`,
@@ -118,7 +118,7 @@ const kintsugiMomentsDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'ferni', 'growth', 'reframing'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Help user reframe a setback or failure as a "kintsugi moment" - finding the gold in the cracks.
 Based on Japanese art of repairing pottery with gold.`,
@@ -184,7 +184,7 @@ const questionOfTheWeekDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'ferni', 'reflection', 'weekly'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Get or answer Ferni's Question of the Week - a deep reflection question that changes weekly.`,
       parameters: z.object({
@@ -264,7 +264,7 @@ const compoundInterestGameDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'maya', 'habits', 'gamification'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Track habits with Maya's cats Compound and Interest. 
 Compound represents slow, steady growth. Interest is chaotic and demanding.
@@ -347,7 +347,7 @@ const tinyBetsDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'maya', 'habits', 'commitment'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Create tiny, low-stakes commitments. User bets they'll do a micro-habit.
 If they miss, Maya offers compassionate reset. Track success rate over time.`,
@@ -411,7 +411,7 @@ const futureSelfLetterDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'jordan', 'time-capsule', 'reflection'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Write a letter to your future self. Jordan seals it and delivers it at the specified time.
 Creates anticipation and a powerful moment when delivered.`,
@@ -485,7 +485,7 @@ const lifePorfolioReviewDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'jordan', 'life-review', 'quarterly'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Quarterly review of all life domains. Rate each area 1-10 and track over time.
 Jordan helps identify where to focus next.`,
@@ -563,7 +563,7 @@ const predictionMarketDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'jordan', 'predictions', 'accountability'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Make predictions about your own life. Jordan tracks accuracy over time.
 Fun way to build self-knowledge about what you'll actually do.`,
@@ -630,7 +630,7 @@ const paradoxOfTheDayDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'nayan', 'wisdom', 'contemplation'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Get today's paradox from Nayan. User can respond or just sit with it.
 Paradoxes stretch the mind and create openings for insight.`,
@@ -700,7 +700,7 @@ const questionBeneathDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'nayan', 'depth', 'exploration'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `When user shares a problem or question, Nayan plays "5 Whys" to find the real question beneath.`,
       parameters: z.object({
@@ -768,7 +768,7 @@ const patternDetectiveDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'peter', 'patterns', 'self-discovery'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Peter shows user their data and asks them to guess the pattern before revealing his analysis.
 Builds self-knowledge and makes data fun.`,
@@ -847,7 +847,7 @@ const weeklyPredictionDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'peter', 'predictions', 'self-knowledge'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `At start of week, user predicts their behavior. At end, Peter compares prediction to reality.
 Builds calibration and self-knowledge over time.
@@ -1046,7 +1046,7 @@ const inboxZeroChallengeDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'alex', 'productivity', 'streaks'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Track daily inbox zero progress. Build streaks. Alex celebrates wins and helps with setbacks.`,
       parameters: z.object({
@@ -1127,7 +1127,7 @@ const sundayPrepGameDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'alex', 'planning', 'weekly'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `5-minute Sunday planning session where Alex helps design the upcoming week.`,
       parameters: z.object({
@@ -1203,7 +1203,7 @@ const teamHuddleDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'team', 'weekly', 'celebration'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Initiate a team huddle where multiple personas comment on user's progress.
 Used for weekly check-ins or special celebrations.`,
@@ -1257,7 +1257,7 @@ const quickChallengesDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'challenges', 'fun', 'quick'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Offer quick, fun challenges that take < 5 minutes.
 Good for breaking routine or adding spontaneity.`,
@@ -1324,7 +1324,7 @@ const reflectionPromptsDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'reflection', 'growth', 'deep-talk'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Offer thoughtful reflection prompts that invite deeper conversation.
 Good for when user wants to go deeper or seems ready for introspection.`,
@@ -1408,7 +1408,7 @@ const streakTrackerDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'streaks', 'gamification', 'motivation'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Check on user's various streaks and celebrate milestones.
 Tracks daily rituals, habits, and engagement patterns.`,
@@ -1509,7 +1509,7 @@ const celebrationMomentDef: ToolDefinition = {
   domain: 'engagement',
   tags: ['engagement', 'celebration', 'achievement', 'joy'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Create a personalized celebration moment for any user achievement.
 Makes wins feel special and memorable.`,

@@ -94,7 +94,7 @@ const findVolunteerOpportunityDef: ToolDefinition = {
   domain: 'community',
   tags: ['community', 'volunteering', 'service'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help find volunteer opportunities that match interests and availability.',
       parameters: z.object({
@@ -158,7 +158,7 @@ const trackVolunteerHoursDef: ToolDefinition = {
   domain: 'community',
   tags: ['community', 'volunteering', 'tracking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help track volunteer hours and activities.',
       parameters: z.object({
@@ -217,7 +217,7 @@ const planCharitableGivingDef: ToolDefinition = {
   domain: 'community',
   tags: ['community', 'giving', 'charity', 'planning'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help develop a thoughtful charitable giving strategy.',
       parameters: z.object({
@@ -291,7 +291,7 @@ const alignGivingWithValuesDef: ToolDefinition = {
   domain: 'community',
   tags: ['community', 'giving', 'values'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help align charitable giving with personal values.',
       parameters: z.object({
@@ -347,7 +347,7 @@ const findCommunityGroupDef: ToolDefinition = {
   domain: 'community',
   tags: ['community', 'connection', 'groups'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help find community groups and organizations to join.',
       parameters: z.object({
@@ -411,7 +411,7 @@ const engageCivicallyDef: ToolDefinition = {
   domain: 'community',
   tags: ['community', 'civic', 'engagement', 'citizenship'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help with civic engagement and participation.',
       parameters: z.object({
@@ -505,7 +505,7 @@ const trackImpactDef: ToolDefinition = {
   domain: 'community',
   tags: ['community', 'impact', 'tracking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help track and acknowledge social impact.',
       parameters: z.object({
@@ -567,7 +567,7 @@ const reflectOnContributionDef: ToolDefinition = {
   domain: 'community',
   tags: ['community', 'reflection', 'contribution'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide reflection on contributions and impact.',
       parameters: z.object({

@@ -28,7 +28,7 @@ const getCurrentContextDef: ToolDefinition = {
   domain: 'awareness',
   tags: ['awareness', 'time', 'context', 'environment'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Get current contextual awareness: time of day, day of week, season, any notable dates, and environmental factors. Use this to make conversation feel grounded and natural.',
@@ -186,7 +186,7 @@ const getUserContextDef: ToolDefinition = {
   domain: 'awareness',
   tags: ['awareness', 'user', 'context', 'relationship'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         "Get context about the current user: how long you've known them, recent topics, emotional patterns, and relationship stage. Essential for personalized, human conversation.",
@@ -263,7 +263,7 @@ const getConversationAwarenessDef: ToolDefinition = {
   domain: 'awareness',
   tags: ['awareness', 'conversation', 'emotional', 'flow'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Get awareness of the current conversation: topics discussed, emotional trajectory, depth of engagement, and natural next directions. Helps maintain conversational coherence.',
@@ -368,7 +368,7 @@ const getTodaySignificanceDef: ToolDefinition = {
   domain: 'awareness',
   tags: ['awareness', 'today', 'special', 'openers'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Get what makes today notable: holidays, observances, historical events, or seasonal significance. Great for natural conversation openers or context.',
@@ -455,7 +455,7 @@ const getProactiveInsightsDef: ToolDefinition = {
   domain: 'awareness',
   tags: ['awareness', 'proactive', 'insights', 'suggestions'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Get proactive suggestions for what might be valuable to discuss based on user context, time, and patterns. Helps agents be thoughtfully proactive without being pushy.',

@@ -77,7 +77,7 @@ function createMockContext(): ToolContext {
 }
 
 // Helper to execute tools that need the second context argument
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 function executeWithContext(
   tool: { execute: (params: Record<string, unknown>, context: { ctx: ToolContext }) => any },
   params: Record<string, unknown>,

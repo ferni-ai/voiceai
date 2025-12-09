@@ -28,7 +28,7 @@ const captureLifeStoryDef: ToolDefinition = {
   domain: 'stories',
   tags: ['stories', 'capture', 'biography'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user capture and preserve a meaningful part of their life story.',
       parameters: z.object({
@@ -121,7 +121,7 @@ const exploreLifeChapterDef: ToolDefinition = {
   domain: 'stories',
   tags: ['stories', 'chapters', 'eras'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user explore and reflect on a specific chapter or era of their life.',
       parameters: z.object({
@@ -163,7 +163,7 @@ const defineLegacyDef: ToolDefinition = {
   domain: 'stories',
   tags: ['stories', 'legacy', 'meaning'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user think deeply about their legacy - what they want to leave behind.',
@@ -214,7 +214,7 @@ const writeEthicalWillDef: ToolDefinition = {
   domain: 'stories',
   tags: ['stories', 'legacy', 'ethical-will'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user write an ethical will - a letter of values, hopes, and wisdom for loved ones.',
@@ -257,7 +257,7 @@ const findNarrativeThreadDef: ToolDefinition = {
   domain: 'stories',
   tags: ['stories', 'narrative', 'themes'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user discover the recurring themes and narrative threads in their life.',
@@ -311,7 +311,7 @@ const rewriteStoryDef: ToolDefinition = {
   domain: 'stories',
   tags: ['stories', 'reframe', 'healing'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user reframe a painful or limiting story into a more empowering narrative.',
@@ -350,7 +350,7 @@ const createTimeCapsuleDef: ToolDefinition = {
   domain: 'stories',
   tags: ['stories', 'time-capsule', 'future'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide creation of a time capsule message.',
       parameters: z.object({
@@ -405,7 +405,7 @@ const familyStoryPromptsDef: ToolDefinition = {
   domain: 'stories',
   tags: ['stories', 'family', 'interview'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Provide prompts for interviewing family members about their stories.',
       parameters: z.object({
@@ -502,7 +502,7 @@ const recordOralHistoryDef: ToolDefinition = {
   domain: 'stories',
   tags: ['stories', 'oral-history', 'preservation'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user in recording and preserving oral history.',
       parameters: z.object({

@@ -171,7 +171,7 @@ const assessCareerSatisfactionDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'assessment', 'satisfaction'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user assess their satisfaction with their current career situation.',
       parameters: z.object({
@@ -242,7 +242,7 @@ const clarifyCareerGoalsDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'goals', 'planning'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user clarify and articulate their career goals.',
       parameters: z.object({
@@ -315,7 +315,7 @@ const identifySkillGapsDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'skills', 'development', 'gaps'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user identify skill gaps between their current state and career goals.',
       parameters: z.object({
@@ -386,7 +386,7 @@ const trackJobApplicationDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'job-search', 'applications', 'tracking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user track their job applications and follow-ups.',
       parameters: z.object({
@@ -514,7 +514,7 @@ const suggestJobSearchStrategyDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'job-search', 'strategy'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user develop an effective job search strategy.',
       parameters: z.object({
@@ -628,7 +628,7 @@ const practiceInterviewDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'interview', 'practice', 'preparation'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user practice interview questions through role-play.',
       parameters: z.object({
@@ -699,7 +699,7 @@ const prepareSTARStoriesDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'interview', 'STAR', 'stories'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user develop strong STAR stories for behavioral interviews.',
       parameters: z.object({
@@ -791,7 +791,7 @@ const researchSalaryDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'salary', 'negotiation', 'research'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user research and understand compensation for salary negotiation.',
       parameters: z.object({
@@ -854,7 +854,7 @@ const rolePlayNegotiationDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'salary', 'negotiation', 'practice'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Practice salary negotiation through role-play.',
       parameters: z.object({
@@ -930,7 +930,7 @@ const createLearningPathDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'learning', 'development', 'skills'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user create a learning path to develop career skills.',
       parameters: z.object({
@@ -1008,7 +1008,7 @@ const expandNetworkDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'networking', 'relationships', 'professional'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user strategically expand their professional network.',
       parameters: z.object({
@@ -1086,7 +1086,7 @@ const assessBurnoutDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'burnout', 'wellness', 'assessment'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user recognize and address signs of burnout.',
       parameters: z.object({
@@ -1175,7 +1175,7 @@ const setWorkBoundaryDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'boundaries', 'work-life', 'balance'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user establish and maintain healthy work boundaries.',
       parameters: z.object({
@@ -1280,7 +1280,7 @@ const planCareerTransitionDef: ToolDefinition = {
   domain: 'career',
   tags: ['career', 'transition', 'pivot', 'change'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user plan and navigate a career transition.',
       parameters: z.object({

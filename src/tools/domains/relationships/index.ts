@@ -15,7 +15,7 @@
 
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
-import { llm, log } from '@livekit/agents';
+import { llm, log as _log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
@@ -30,7 +30,7 @@ const assessRelationshipHealthDef: ToolDefinition = {
   domain: 'relationships',
   tags: ['relationships', 'assessment', 'health'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user reflect on the health of a relationship across dimensions like trust, communication, reciprocity, and emotional safety.',
@@ -86,14 +86,14 @@ const assessRelationshipHealthDef: ToolDefinition = {
   },
 };
 
-const identifyNeglectedRelationshipsDef: ToolDefinition = {
+const _identifyNeglectedRelationshipsDef: ToolDefinition = {
   id: 'identifyNeglectedRelationships',
   name: 'Identify Neglected Relationships',
   description: 'Gently surface relationships that may need attention or reconnection',
   domain: 'relationships',
   tags: ['relationships', 'awareness', 'reconnection'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user recognize relationships they may have unintentionally neglected and explore what reconnection might look like.',
@@ -148,7 +148,7 @@ const suggestConnectionActionDef: ToolDefinition = {
   domain: 'relationships',
   tags: ['relationships', 'nurturing', 'action'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Suggest thoughtful, personalized ways to connect with or show care for someone specific.',
@@ -207,14 +207,14 @@ const suggestConnectionActionDef: ToolDefinition = {
   },
 };
 
-const recordMeaningfulMomentDef: ToolDefinition = {
+const _recordMeaningfulMomentDef: ToolDefinition = {
   id: 'recordMeaningfulMoment',
   name: 'Record Meaningful Moment',
   description: 'Capture a meaningful moment shared with someone to remember and cherish',
   domain: 'relationships',
   tags: ['relationships', 'memory', 'meaningful-moments'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user capture and preserve a meaningful moment shared with someone important.',
@@ -257,7 +257,7 @@ const navigateConflictDef: ToolDefinition = {
   domain: 'relationships',
   tags: ['relationships', 'conflict', 'guidance'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user think through a conflict or tension in a relationship with wisdom and care.',
@@ -299,7 +299,7 @@ const prepareForDifficultConversationDef: ToolDefinition = {
   domain: 'relationships',
   tags: ['relationships', 'communication', 'difficult-conversations'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user prepare for a difficult conversation with clarity, courage, and compassion.',
@@ -342,14 +342,14 @@ const prepareForDifficultConversationDef: ToolDefinition = {
   },
 };
 
-const craftApologyDef: ToolDefinition = {
+const _craftApologyDef: ToolDefinition = {
   id: 'craftApology',
   name: 'Craft Apology',
   description: 'Get help crafting a genuine, effective apology',
   domain: 'relationships',
   tags: ['relationships', 'repair', 'apology'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user craft a genuine apology that takes responsibility and opens the door to repair.',
@@ -394,14 +394,14 @@ const craftApologyDef: ToolDefinition = {
 // COMMUNICATION & EXPRESSION TOOLS
 // ============================================================================
 
-const expressGratitudeDef: ToolDefinition = {
+const _expressGratitudeDef: ToolDefinition = {
   id: 'expressGratitude',
   name: 'Express Gratitude',
   description: 'Get help expressing genuine gratitude to someone important',
   domain: 'relationships',
   tags: ['relationships', 'gratitude', 'expression'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user express genuine gratitude to someone in a way that will be meaningful to them.',
@@ -437,14 +437,14 @@ const expressGratitudeDef: ToolDefinition = {
   },
 };
 
-const checkInOnSomeoneDef: ToolDefinition = {
+const _checkInOnSomeoneDef: ToolDefinition = {
   id: 'checkInOnSomeone',
   name: 'Check In On Someone',
   description: 'Get guidance on how to check in on someone who might be struggling',
   domain: 'relationships',
   tags: ['relationships', 'support', 'check-in'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user check in on someone they are concerned about in a supportive, non-intrusive way.',
@@ -508,7 +508,7 @@ const mapRelationshipCirclesDef: ToolDefinition = {
   domain: 'relationships',
   tags: ['relationships', 'reflection', 'mapping'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user map out their relationship circles - from innermost intimates to outer acquaintances.',
@@ -559,14 +559,14 @@ const mapRelationshipCirclesDef: ToolDefinition = {
   },
 };
 
-const setRelationshipBoundaryDef: ToolDefinition = {
+const _setRelationshipBoundaryDef: ToolDefinition = {
   id: 'setRelationshipBoundary',
   name: 'Set Relationship Boundary',
   description: 'Get help thinking through and setting a healthy boundary',
   domain: 'relationships',
   tags: ['relationships', 'boundaries', 'self-care'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user think through and articulate a healthy boundary in a relationship.',
@@ -605,14 +605,14 @@ const setRelationshipBoundaryDef: ToolDefinition = {
 // LOVE LANGUAGES & COMMUNICATION STYLES
 // ============================================================================
 
-const understandLoveLanguagesDef: ToolDefinition = {
+const _understandLoveLanguagesDef: ToolDefinition = {
   id: 'understandLoveLanguages',
   name: 'Understand Love Languages',
   description: 'Explore how you and others give and receive love',
   domain: 'relationships',
   tags: ['relationships', 'love-languages', 'communication'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user understand love languages and how to better give and receive love.',
@@ -665,14 +665,14 @@ const understandLoveLanguagesDef: ToolDefinition = {
   },
 };
 
-const reconnectAfterTimeDef: ToolDefinition = {
+const _reconnectAfterTimeDef: ToolDefinition = {
   id: 'reconnectAfterTime',
   name: 'Reconnect After Time',
   description: 'Navigate reconnecting with someone after a long absence',
   domain: 'relationships',
   tags: ['relationships', 'reconnection', 'absence'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help navigate reconnecting with someone after significant time apart.',
       parameters: z.object({
@@ -725,7 +725,7 @@ const deepenFriendshipDef: ToolDefinition = {
   domain: 'relationships',
   tags: ['relationships', 'friendship', 'deepening'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user deepen an existing friendship beyond surface-level connection.',
       parameters: z.object({

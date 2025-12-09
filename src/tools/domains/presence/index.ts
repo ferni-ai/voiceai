@@ -14,7 +14,7 @@
 
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
-import { llm, log } from '@livekit/agents';
+import { llm, log as _log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
@@ -29,7 +29,7 @@ const groundInBodyDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'grounding', 'body'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user ground in physical, bodily awareness.',
       parameters: z.object({
@@ -70,7 +70,7 @@ const groundingExerciseDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'grounding', 'exercise'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user through a grounding exercise.',
       parameters: z.object({
@@ -136,7 +136,7 @@ const returnToPresentDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'return', 'now'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user return to the present moment when lost in past or future.',
       parameters: z.object({
@@ -194,7 +194,7 @@ const noticeThisMomentDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'awareness', 'now'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide simple present-moment awareness practice.',
       parameters: z.object({
@@ -261,7 +261,7 @@ const breatheWithMeDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'breathing', 'calm'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user through breathing for presence and calm.',
       parameters: z.object({
@@ -327,7 +327,7 @@ const savorExperienceDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'savoring', 'pleasure'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user in deeply savoring a positive experience.',
       parameters: z.object({
@@ -380,7 +380,7 @@ const slowDownDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'slow', 'pace'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user slow down and be more present.',
       parameters: z.object({
@@ -422,7 +422,7 @@ const recognizeFlowDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'flow', 'awareness'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user recognize and appreciate flow states.',
       parameters: z.object({
@@ -467,7 +467,7 @@ const protectPresenceDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'protection', 'attention'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user protect their presence and attention from fragmentation.',
       parameters: z.object({
@@ -504,7 +504,7 @@ const walkingMeditationDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'walking', 'meditation'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user through a walking meditation.',
       parameters: z.object({
@@ -547,7 +547,7 @@ const mindfulEatingDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'eating', 'mindfulness'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user through mindful eating practice.',
       parameters: z.object({
@@ -601,7 +601,7 @@ const naturePrescriptionDef: ToolDefinition = {
   domain: 'presence',
   tags: ['presence', 'nature', 'wellbeing'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user in using nature for presence and grounding.',
       parameters: z.object({

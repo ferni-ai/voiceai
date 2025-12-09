@@ -88,7 +88,7 @@ const frameMajorDecisionDef: ToolDefinition = {
   domain: 'decisions',
   tags: ['decisions', 'framework', 'clarity'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user frame and structure a major decision with clarity.',
       parameters: z.object({
@@ -165,7 +165,7 @@ const walkThroughDecisionFrameworkDef: ToolDefinition = {
   domain: 'decisions',
   tags: ['decisions', 'framework', 'process'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Walk user through a specific decision-making framework.',
       parameters: z.object({
@@ -215,7 +215,7 @@ const analyzeProsAndConsDef: ToolDefinition = {
   domain: 'decisions',
   tags: ['decisions', 'analysis', 'pros-cons'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user analyze pros and cons of a decision in a structured way.',
       parameters: z.object({
@@ -279,7 +279,7 @@ const scoreOptionsDef: ToolDefinition = {
   domain: 'decisions',
   tags: ['decisions', 'analysis', 'scoring'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user score options based on weighted criteria.',
       parameters: z.object({
@@ -347,7 +347,7 @@ const assessRiskDef: ToolDefinition = {
   domain: 'decisions',
   tags: ['decisions', 'risk', 'analysis'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user assess risks associated with a decision and plan mitigation.',
       parameters: z.object({
@@ -427,7 +427,7 @@ const checkValuesAlignmentDef: ToolDefinition = {
   domain: 'decisions',
   tags: ['decisions', 'values', 'alignment'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user evaluate how decision options align with their values.',
       parameters: z.object({
@@ -498,7 +498,7 @@ const prepareSecondOpinionQuestionsDef: ToolDefinition = {
   domain: 'decisions',
   tags: ['decisions', 'support', 'advice'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user prepare to get useful input from others on their decision.',
       parameters: z.object({
@@ -568,7 +568,7 @@ const reflectOnPastDecisionsDef: ToolDefinition = {
   domain: 'decisions',
   tags: ['decisions', 'reflection', 'learning'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user learn from past decisions to inform current ones.',
       parameters: z.object({

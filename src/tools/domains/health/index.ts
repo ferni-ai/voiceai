@@ -198,7 +198,7 @@ const logExerciseDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'fitness', 'exercise', 'tracking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help user log physical activity. Celebrate their effort and track progress toward goals.',
@@ -293,7 +293,7 @@ const suggestWorkoutDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'fitness', 'workout', 'suggestions'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         "Suggest a workout based on user's current energy level, available time, and goals.",
@@ -368,7 +368,7 @@ const trackFitnessGoalDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'fitness', 'goals', 'tracking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user set and track fitness goals.',
       parameters: z.object({
@@ -467,7 +467,7 @@ const coachOnNutritionDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'nutrition', 'eating', 'coaching'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Provide general nutrition guidance. Not medical or dietary advice - encourage consulting professionals for specific needs.',
@@ -604,7 +604,7 @@ const trackHydrationDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'hydration', 'water', 'tracking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user track their water intake and remind them to stay hydrated.',
       parameters: z.object({
@@ -667,7 +667,7 @@ const analyzeSleepPatternDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'sleep', 'analysis', 'patterns'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user understand their sleep patterns and identify areas for improvement.',
       parameters: z.object({
@@ -788,7 +788,7 @@ const suggestSleepHygieneDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'sleep', 'hygiene', 'tips'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Provide sleep hygiene recommendations for better sleep.',
       parameters: z.object({
@@ -843,7 +843,7 @@ const logSymptomDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'symptoms', 'tracking', 'awareness'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help user log symptoms to track patterns. This is for personal tracking, not medical diagnosis.',
@@ -888,7 +888,7 @@ const prepareForDoctorVisitDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'doctor', 'preparation', 'appointments'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help user prepare for a doctor appointment with questions and information to bring.',
@@ -976,7 +976,7 @@ const remindPreventiveCareDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'preventive', 'screenings', 'reminders'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Provide reminders about preventive health screenings and checkups based on age.',
@@ -1044,7 +1044,7 @@ const assessEnergyLevelDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'energy', 'assessment', 'tracking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user assess their current energy and understand patterns.',
       parameters: z.object({
@@ -1116,7 +1116,7 @@ const suggestEnergyBoostDef: ToolDefinition = {
   domain: 'health',
   tags: ['health', 'energy', 'boost', 'suggestions'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Suggest healthy ways to boost energy levels.',
       parameters: z.object({

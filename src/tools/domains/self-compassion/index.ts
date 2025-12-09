@@ -29,7 +29,7 @@ const practiceSelfKindnessDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'kindness', 'practice'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user through a practice of self-kindness.',
       parameters: z.object({
@@ -70,7 +70,7 @@ const speakToYourselfAsAFriendDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'self-talk', 'reframe'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user speak to themselves with the same kindness they would show a friend.',
@@ -107,7 +107,7 @@ const noticeInnerCriticDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'inner-critic', 'awareness'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user become aware of and understand their inner critic.',
       parameters: z.object({
@@ -142,7 +142,7 @@ const reframeInnerCriticDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'inner-critic', 'reframe'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user reframe harsh inner critic messages into supportive guidance.',
       parameters: z.object({
@@ -180,7 +180,7 @@ const practiceSelfAcceptanceDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'acceptance', 'practice'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user through a practice of self-acceptance.',
       parameters: z.object({
@@ -219,7 +219,7 @@ const embraceImperfectionDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'imperfection', 'humanity'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user embrace imperfection as part of being human.',
       parameters: z.object({
@@ -254,7 +254,7 @@ const enoughnessDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'enoughness', 'worthiness'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user connect with a sense of inherent enoughness.',
       parameters: z.object({
@@ -295,7 +295,7 @@ const celebrateYourselfDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'celebration', 'acknowledgment'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user genuinely celebrate themselves and their qualities.',
       parameters: z.object({
@@ -341,7 +341,7 @@ const giveYourselfCreditDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'credit', 'acknowledgment'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user give themselves credit for things they typically overlook.',
       parameters: z.object({
@@ -376,7 +376,7 @@ const selfCompassionBreakDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'neff', 'practice'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: "Guide through Kristin Neff's self-compassion break practice.",
       parameters: z.object({
@@ -422,7 +422,7 @@ const compassionateLetterDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'letter', 'practice'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user in writing a compassionate letter to themselves.',
       parameters: z.object({
@@ -462,7 +462,7 @@ const bodyImageCompassionDef: ToolDefinition = {
   domain: 'self-compassion',
   tags: ['self-compassion', 'body', 'acceptance'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user practice self-compassion around body image struggles.',
       parameters: z.object({

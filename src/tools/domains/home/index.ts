@@ -98,7 +98,7 @@ const remindHomeMaintenanceDef: ToolDefinition = {
   domain: 'home',
   tags: ['home', 'maintenance', 'reminders'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Provide home maintenance reminders based on season and timing.',
       parameters: z.object({
@@ -160,7 +160,7 @@ const trackRepairDef: ToolDefinition = {
   domain: 'home',
   tags: ['home', 'repairs', 'tracking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help track home repairs needed or completed.',
       parameters: z.object({
@@ -236,7 +236,7 @@ const coachDeclutteringDef: ToolDefinition = {
   domain: 'home',
   tags: ['home', 'organization', 'decluttering'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Coach user through decluttering their space.',
       parameters: z.object({
@@ -311,7 +311,7 @@ const organizeSpaceDef: ToolDefinition = {
   domain: 'home',
   tags: ['home', 'organization', 'space'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help organize a specific space or area.',
       parameters: z.object({
@@ -419,7 +419,7 @@ const planMoveDef: ToolDefinition = {
   domain: 'home',
   tags: ['home', 'moving', 'planning'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help plan a residential move.',
       parameters: z.object({
@@ -509,7 +509,7 @@ const assessEmergencyPreparednessDef: ToolDefinition = {
   domain: 'home',
   tags: ['home', 'emergency', 'safety', 'preparedness'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help assess and improve household emergency preparedness.',
       parameters: z.object({
@@ -580,7 +580,7 @@ const planHomeProjectDef: ToolDefinition = {
   domain: 'home',
   tags: ['home', 'projects', 'planning', 'improvement'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help plan a home improvement project.',
       parameters: z.object({
@@ -652,7 +652,7 @@ const manageContractorDef: ToolDefinition = {
   domain: 'home',
   tags: ['home', 'contractors', 'management'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help with finding and managing home contractors.',
       parameters: z.object({

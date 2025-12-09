@@ -15,7 +15,7 @@
 
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
-import { llm, log } from '@livekit/agents';
+import { llm, log as _log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
@@ -30,7 +30,7 @@ const explorePurposeDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'purpose', 'exploration'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Guide the user through an exploration of their sense of purpose and what gives their life meaning.',
@@ -92,7 +92,7 @@ const alignActionsWithPurposeDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'purpose', 'alignment'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user examine how well their current actions and choices align with their sense of purpose.',
@@ -160,7 +160,7 @@ const clarifyValuesDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'values', 'clarity'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Guide the user through a process of identifying and articulating their core values.',
@@ -224,7 +224,7 @@ const valueConflictResolutionDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'values', 'conflict'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user navigate a situation where two or more of their values are in conflict.',
@@ -269,7 +269,7 @@ const sitWithBigQuestionDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'existential', 'questions'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Create space to sit with a big existential question without needing to resolve it.',
@@ -322,7 +322,7 @@ const exploreMortalityDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'mortality', 'depth'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user explore mortality awareness as a source of meaning and clarity, not just fear.',
@@ -394,7 +394,7 @@ const findMeaningInSufferingDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'suffering', 'growth'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Help the user explore meaning-making around suffering without toxic positivity or minimizing their pain.',
@@ -455,7 +455,7 @@ const spiritualPracticeSupportDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'spiritual', 'practice'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description:
         'Support the user in establishing or deepening spiritual or contemplative practices.',
@@ -526,7 +526,7 @@ const exploreLifePhilosophyDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'philosophy', 'worldview'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user explore different life philosophies and find what resonates.',
       parameters: z.object({
@@ -568,7 +568,7 @@ const createPersonalMissionDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'mission', 'purpose'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Guide the user in crafting a personal mission statement.',
       parameters: z.object({
@@ -638,7 +638,7 @@ const findMeaningInWorkDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'work', 'purpose'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help the user find or create meaning in their work.',
       parameters: z.object({
@@ -703,7 +703,7 @@ const dailyMeaningPracticeDef: ToolDefinition = {
   domain: 'meaning',
   tags: ['meaning', 'daily', 'practice'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help establish daily meaning-making practices.',
       parameters: z.object({

@@ -41,14 +41,14 @@ import {
 } from './pattern-intelligence.js';
 
 // Voice Callbacks - speak to user, don't just log
-import { onTimerComplete, speakDuration } from './voice-callbacks.js';
+import { onTimerComplete, speakDuration as _speakDuration } from './voice-callbacks.js';
 
 // Context Integration - connect to what we know about them
 import {
   loadLifeContext,
-  enrichCountdownWithContext,
+  enrichCountdownWithContext as _enrichCountdownWithContext,
   enrichTimezoneWithContext,
-  enrichTimerWithContext,
+  enrichTimerWithContext as _enrichTimerWithContext,
 } from './context-integration.js';
 
 // Persistence - remember across sessions
@@ -56,8 +56,8 @@ import {
   updateTimerPreferences,
   updateTipPreferences,
   updateTimezonePreferences,
-  trackCountdown,
-  loadPatternsFromFirestore,
+  trackCountdown as _trackCountdown,
+  loadPatternsFromFirestore as _loadPatternsFromFirestore,
 } from './persistence.js';
 
 // Proactive Hooks - anticipate needs
@@ -84,7 +84,7 @@ const calculateTipDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['math', 'tip', 'restaurant', 'money'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Calculate the tip on a bill. Use when someone asks:
 - "What's 20% tip on $47?"
@@ -151,7 +151,7 @@ const splitBillDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['math', 'split', 'money', 'group'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Split a bill between multiple people. Use when someone asks:
 - "Split $150 four ways"
@@ -198,7 +198,7 @@ const calculatePercentageDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['math', 'percentage', 'calculation'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Calculate percentages. Use when someone asks:
 - "What's 15% of 240?"
@@ -248,7 +248,7 @@ const quickMathDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['math', 'calculator', 'arithmetic'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Do quick math calculations. Use for:
 - Basic arithmetic: "What's 247 + 183?"
@@ -300,7 +300,7 @@ const convertUnitsDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['conversion', 'units', 'measurement', 'cooking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Convert between units. Use when someone asks:
 - "How many cups is 500ml?"
@@ -371,7 +371,7 @@ const convertUnitsDef: ToolDefinition = {
         };
 
         // Find which category the units belong to
-        for (const [category, units] of Object.entries(conversions)) {
+        for (const [_category, units] of Object.entries(conversions)) {
           if (from in units && to in units) {
             const baseValue = value * units[from];
             const result = baseValue / units[to];
@@ -399,7 +399,7 @@ const convertTemperatureDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['conversion', 'temperature', 'weather'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Convert temperatures between Fahrenheit and Celsius. Use when someone asks:
 - "What's 72°F in Celsius?"
@@ -455,7 +455,7 @@ const daysUntilDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['date', 'countdown', 'time', 'event'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Calculate how many days until a specific date or event. Use when someone asks:
 - "How many days until Christmas?"
@@ -636,7 +636,7 @@ const dateFromNowDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['date', 'future', 'past', 'calculation'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Calculate what date will be X days/weeks/months from now. Use when someone asks:
 - "What's 90 days from today?"
@@ -690,7 +690,7 @@ const calculateAgeDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['age', 'birthday', 'date', 'years'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Calculate age from a birth year or date. Use when someone asks:
 - "How old am I if I was born in 1987?"
@@ -712,7 +712,7 @@ const calculateAgeDef: ToolDefinition = {
         // Simple age calculation with just year
         if (!birthMonth) {
           const age = currentYear - birthYear;
-          const willTurn = age;
+          const _willTurn = age;
           return `Someone born in ${birthYear} is **${age - 1} or ${age} years old** (depending on whether their birthday has passed this year).`;
         }
 
@@ -761,7 +761,7 @@ const timeInCityDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['timezone', 'time', 'city', 'world'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Get the current time in a city. Use when someone asks:
 - "What time is it in Tokyo?"
@@ -915,7 +915,7 @@ const bestTimeToCallDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['timezone', 'call', 'schedule', 'international'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Find a good time to call someone in another timezone. Use when someone asks:
 - "When should I call someone in Tokyo?"
@@ -1034,7 +1034,7 @@ const flipCoinDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['random', 'coin', 'decision', 'chance'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Flip a coin for a random result. Use when someone asks:
 - "Flip a coin"
@@ -1081,7 +1081,7 @@ const rollDiceDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['random', 'dice', 'game', 'number'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Roll dice for random numbers. Use when someone asks:
 - "Roll a dice"
@@ -1117,7 +1117,7 @@ const pickRandomDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['random', 'pick', 'choice', 'decision'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Pick randomly from options. Use when someone asks:
 - "Pick a number between 1 and 10"
@@ -1152,7 +1152,7 @@ const helpMeDecideDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['decision', 'choice', 'help', 'thinking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Help with decisions beyond random chance. Use when someone needs to think through a choice:
 - "Help me decide between A and B"
@@ -1208,7 +1208,7 @@ const setTimerDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['timer', 'countdown', 'alarm', 'reminder'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Set a simple timer. Use when someone asks:
 - "Set a timer for 5 minutes"
@@ -1313,7 +1313,7 @@ const cancelTimerDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['timer', 'cancel', 'stop'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Cancel an active timer. Use when someone says:
 - "Cancel the timer"
@@ -1348,7 +1348,7 @@ const quickNoteDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['note', 'remember', 'quick', 'temp'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Save a quick note for this session. Use when someone says:
 - "Remember I parked in spot B4"
@@ -1387,7 +1387,7 @@ const recallNoteDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['note', 'recall', 'remember'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Recall quick notes from this session. Use when someone asks:
 - "What did I note about parking?"
@@ -1433,7 +1433,7 @@ const clearNotesDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['note', 'clear', 'delete'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Clear all quick notes from this session.',
       parameters: z.object({}),
@@ -1459,7 +1459,7 @@ const getUtilitySuggestionsDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['proactive', 'suggestion', 'anticipate'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Get proactive suggestions for utilities the user might want.
 This tool is for INTERNAL USE - call it proactively to offer anticipated help.
@@ -1502,7 +1502,7 @@ const checkTimerStatusDef: ToolDefinition = {
   domain: 'simple-utilities',
   tags: ['timer', 'status', 'check'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Check the status of the user's active timer. Use when someone asks:
 - "How much time left on my timer?"

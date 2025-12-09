@@ -55,7 +55,7 @@ Use when user says things like:
 - "Can we play a music game?"`,
       domain: 'games',
       tags: ['games', 'music', 'interactive', 'fun'],
-      create: (ctx: ToolContext) =>
+      create: (_ctx: ToolContext) =>
         llm.tool({
           description: 'Start a music game',
           parameters: z.object({
@@ -105,7 +105,7 @@ Use when:
 - User rates your song pick (1-5)`,
       domain: 'games',
       tags: ['games', 'answer', 'interactive'],
-      create: (ctx: ToolContext) =>
+      create: (_ctx: ToolContext) =>
         llm.tool({
           description: 'Submit answer in current game',
           parameters: z.object({
@@ -149,7 +149,7 @@ Use when:
 Use when user says "hint", "help", "I don't know", or seems stuck.`,
       domain: 'games',
       tags: ['games', 'hint', 'help'],
-      create: (ctx: ToolContext) =>
+      create: (_ctx: ToolContext) =>
         llm.tool({
           description: 'Get a hint for the current game',
           parameters: z.object({}),
@@ -174,7 +174,7 @@ Use when user says "hint", "help", "I don't know", or seems stuck.`,
 Use when user says "skip", "pass", "next", or wants to move on.`,
       domain: 'games',
       tags: ['games', 'skip', 'next'],
-      create: (ctx: ToolContext) =>
+      create: (_ctx: ToolContext) =>
         llm.tool({
           description: 'Skip the current round',
           parameters: z.object({}),
@@ -204,7 +204,7 @@ Use when user says "skip", "pass", "next", or wants to move on.`,
 Use when user says "stop", "quit", "end game", or wants to do something else.`,
       domain: 'games',
       tags: ['games', 'end', 'quit'],
-      create: (ctx: ToolContext) =>
+      create: (_ctx: ToolContext) =>
         llm.tool({
           description: 'End the current game',
           parameters: z.object({}),
@@ -232,7 +232,7 @@ Use when user says "stop", "quit", "end game", or wants to do something else.`,
 Use when user asks "what's the score?", "what round?", "how am I doing?"`,
       domain: 'games',
       tags: ['games', 'status', 'score'],
-      create: (ctx: ToolContext) =>
+      create: (_ctx: ToolContext) =>
         llm.tool({
           description: 'Get current game status',
           parameters: z.object({}),
@@ -262,7 +262,7 @@ Use when user asks "what's the score?", "what round?", "how am I doing?"`,
 Use when user asks "how many games have I played?", "what's my best score?"`,
       domain: 'games',
       tags: ['games', 'history', 'stats'],
-      create: (ctx: ToolContext) =>
+      create: (_ctx: ToolContext) =>
         llm.tool({
           description: 'Get game history and stats',
           parameters: z.object({}),

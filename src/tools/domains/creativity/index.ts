@@ -76,7 +76,7 @@ const trackCreativeProjectDef: ToolDefinition = {
   domain: 'creativity',
   tags: ['creativity', 'projects', 'tracking'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help track creative projects and their progress.',
       parameters: z.object({
@@ -148,7 +148,7 @@ const setCreativeGoalDef: ToolDefinition = {
   domain: 'creativity',
   tags: ['creativity', 'goals', 'planning'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help set meaningful creative goals.',
       parameters: z.object({
@@ -197,7 +197,7 @@ const celebrateCreationDef: ToolDefinition = {
   domain: 'creativity',
   tags: ['creativity', 'celebration', 'acknowledgment'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Celebrate creative work and creation.',
       parameters: z.object({
@@ -245,7 +245,7 @@ const exploreNewHobbyDef: ToolDefinition = {
   domain: 'creativity',
   tags: ['creativity', 'hobbies', 'exploration'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help user explore and discover new hobbies.',
       parameters: z.object({
@@ -297,7 +297,7 @@ const suggestHobbyBasedOnInterestsDef: ToolDefinition = {
   domain: 'creativity',
   tags: ['creativity', 'hobbies', 'suggestions'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Suggest hobbies based on personality and preferences.',
       parameters: z.object({
@@ -395,7 +395,7 @@ const navigateCreativeBlockDef: ToolDefinition = {
   domain: 'creativity',
   tags: ['creativity', 'blocks', 'obstacles'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help overcome creative blocks and resistance.',
       parameters: z.object({
@@ -526,7 +526,7 @@ const findInspirationDef: ToolDefinition = {
   domain: 'creativity',
   tags: ['creativity', 'inspiration', 'ideas'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help find sources of creative inspiration.',
       parameters: z.object({
@@ -598,7 +598,7 @@ const buildCreativeHabitDef: ToolDefinition = {
   domain: 'creativity',
   tags: ['creativity', 'habits', 'practice'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: 'Help build a consistent creative practice.',
       parameters: z.object({

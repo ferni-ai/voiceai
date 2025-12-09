@@ -18,16 +18,16 @@
  * - Leverages tool orchestration for conversation flow
  */
 
-import { llm, log } from '@livekit/agents';
+import { llm, log as _log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import {
   getUserId,
   generateId,
-  formatDate,
+  formatDate as _formatDate,
   progressBar,
-  ordinal,
+  ordinal as _ordinal,
 } from '../../utils/tool-helpers.js';
 import {
   getProductivityStore,
@@ -248,7 +248,7 @@ export const addHabitDef: ToolDefinition = {
   domain: 'habits',
   tags: ['habit', 'tracking', 'create'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Create a new habit to track.
 Use when user wants to:
@@ -329,7 +329,7 @@ export const logHabitDef: ToolDefinition = {
   domain: 'habits',
   tags: ['habit', 'tracking', 'complete'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Mark a habit as done for today.
 Use when user says they did something or completed a habit.`,
@@ -394,7 +394,7 @@ export const getHabitStatsDef: ToolDefinition = {
   domain: 'habits',
   tags: ['habit', 'stats', 'progress'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Show habit statistics and streaks.
 Use when user asks about progress or streaks.`,
@@ -463,7 +463,7 @@ export const getDueHabitsDef: ToolDefinition = {
   domain: 'habits',
   tags: ['habit', 'due', 'today'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Show which habits still need to be done today.
 Use when user asks "what habits do I need to do?" or checks in.`,
@@ -525,7 +525,7 @@ export const getTendencyAdviceDef: ToolDefinition = {
   domain: 'habits',
   tags: ['habit', 'coaching', 'tendencies'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Get habit advice based on the Four Tendencies framework.
 Use when user is struggling with habits or needs personalized strategies.`,
@@ -576,7 +576,7 @@ export const getLifeDomainsDef: ToolDefinition = {
   domain: 'habits',
   tags: ['habit', 'domains', 'organization'],
 
-  create: (ctx: ToolContext): Tool => {
+  create: (_ctx: ToolContext): Tool => {
     return llm.tool({
       description: `Show life domains for organizing habits.
 Use when user wants to explore different areas for improvement.`,
@@ -593,7 +593,7 @@ Use when user wants to explore different areas for improvement.`,
         }
 
         let response = `🌟 **Life Domains for Balanced Growth**\n\n`;
-        for (const [key, info] of Object.entries(LIFE_DOMAINS)) {
+        for (const [_key, info] of Object.entries(LIFE_DOMAINS)) {
           response += `${info.emoji} **${info.name}** - ${info.description}\n`;
         }
         response += `\nWhich area would you like to focus on?`;
