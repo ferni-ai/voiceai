@@ -323,7 +323,11 @@ function renderHealthItem(name: string, status: 'healthy' | 'degraded' | 'down',
 
 async function fetchHandoffMetrics(): Promise<HandoffMetrics> {
   try {
-    const response = await fetch('/api/diagnostics/handoff/metrics');
+    const response = await fetch('/api/v1/admin/diagnostics/handoff/metrics', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
       return await response.json();
     }
@@ -341,7 +345,11 @@ async function fetchHandoffMetrics(): Promise<HandoffMetrics> {
 
 async function fetchRecentHandoffs(): Promise<HandoffEvent[]> {
   try {
-    const response = await fetch('/api/diagnostics/handoff/recent');
+    const response = await fetch('/api/v1/admin/diagnostics/handoff/recent', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
       const data = await response.json();
       return data.events || [];

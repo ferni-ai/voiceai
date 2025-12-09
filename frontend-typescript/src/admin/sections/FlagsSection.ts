@@ -275,10 +275,27 @@ function groupByCategory(flags: FeatureFlag[]): Record<string, FeatureFlag[]> {
 
 async function fetchFlags(): Promise<FeatureFlag[]> {
   try {
-    const response = await fetch('/api/v1/admin/flags');
+    const response = await fetch('/api/v1/admin/flags', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
       const data = await response.json();
-      return data.flags || [];
+      // Merge general flags and trust flags
+      const generalFlags = (data.flags || []).map((f: FeatureFlag) => ({
+        ...f,
+        category: f.category || 'System',
+      }));
+      const trustFlags = Object.entries(data.trustFlags || {}).map(([id, config]) => ({
+        id,
+        name: id.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        description: (config as { enabled?: boolean }).enabled ? 'Enabled' : 'Disabled',
+        enabled: (config as { enabled?: boolean }).enabled || false,
+        percentage: (config as { percentage?: number }).percentage,
+        category: 'Trust',
+      }));
+      return [...generalFlags, ...trustFlags];
     }
   } catch {
     // Fall through to mock data

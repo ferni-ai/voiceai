@@ -15,9 +15,8 @@ import { handleEngagementRoutes } from './dist/api/engagement-routes.js';
 // Diagnostics API routes (handoff metrics, etc.) - requires admin auth
 import { handleDiagnosticsRoutes } from './dist/api/handoff-diagnostics.js';
 
-// Feature flags, DORA metrics, voice presence, observability routes
+// DORA metrics, voice presence, observability routes
 import { handleDORARoutes } from './dist/api/dora-routes.js';
-import { handleFeatureFlagRoutes } from './dist/api/feature-flag-routes.js';
 import { handleObservabilityRoutes } from './dist/api/observability-routes.js';
 import { handleVoicePresenceRoutes } from './dist/api/voice-presence-routes.js';
 
@@ -439,15 +438,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ============================================================================
-  // FEATURE FLAGS, DORA, VOICE PRESENCE, OBSERVABILITY ROUTES
+  // DORA, VOICE PRESENCE, OBSERVABILITY ROUTES
   // ============================================================================
   try {
-    // Feature flags (legacy - also available at /api/v1/admin/flags)
-    if (pathname.startsWith('/api/flags')) {
-      const handled = await handleFeatureFlagRoutes(req, res, pathname, parsedUrl);
-      if (handled) return;
-    }
-
     // DORA metrics
     if (pathname.startsWith('/api/dora')) {
       const handled = await handleDORARoutes(req, res, pathname, parsedUrl);

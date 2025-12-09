@@ -5,11 +5,9 @@
  * All routes require admin authentication.
  *
  * Sub-routes:
- * - /api/v1/admin/flags/*     - Feature flag management
- * - /api/v1/admin/agents/*    - Agent management
- * - /api/v1/admin/monitoring/* - System monitoring
- * - /api/v1/admin/evalops/*   - Evaluation operations
- * - /api/v1/admin/diagnostics/* - Handoff diagnostics
+ * - /api/v1/admin/flags/*       - Feature flag management
+ * - /api/v1/admin/agents/*      - Agent management
+ * - /api/v1/admin/diagnostics/* - System diagnostics & handoff monitoring
  *
  * @module AdminAPIRouter
  */
@@ -18,6 +16,8 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { handleAdminFlagsRoutes } from './flags.js';
+import { handleAdminAgentsRoutes } from './agents.js';
+import { handleAdminDiagnosticsRoutes } from './diagnostics.js';
 
 const log = createLogger({ module: 'AdminAPI' });
 
@@ -47,25 +47,15 @@ export async function handleAdminRoutes(
     return handleAdminFlagsRoutes(req, res, pathname, parsedUrl);
   }
 
-  // Agent management (to be implemented)
-  // if (pathname.startsWith(`${BASE_PATH}/agents`)) {
-  //   return handleAdminAgentsRoutes(req, res, pathname, parsedUrl);
-  // }
+  // Agent management
+  if (pathname.startsWith(`${BASE_PATH}/agents`)) {
+    return handleAdminAgentsRoutes(req, res, pathname, parsedUrl);
+  }
 
-  // Monitoring (to be implemented)
-  // if (pathname.startsWith(`${BASE_PATH}/monitoring`)) {
-  //   return handleAdminMonitoringRoutes(req, res, pathname, parsedUrl);
-  // }
-
-  // EvalOps (to be implemented)
-  // if (pathname.startsWith(`${BASE_PATH}/evalops`)) {
-  //   return handleAdminEvalOpsRoutes(req, res, pathname, parsedUrl);
-  // }
-
-  // Diagnostics (to be implemented)
-  // if (pathname.startsWith(`${BASE_PATH}/diagnostics`)) {
-  //   return handleAdminDiagnosticsRoutes(req, res, pathname, parsedUrl);
-  // }
+  // Diagnostics & Handoff monitoring
+  if (pathname.startsWith(`${BASE_PATH}/diagnostics`)) {
+    return handleAdminDiagnosticsRoutes(req, res, pathname, parsedUrl);
+  }
 
   // Route not matched
   return false;
@@ -75,4 +65,6 @@ export default { handleAdminRoutes };
 
 // Re-export sub-routes for direct access if needed
 export { handleAdminFlagsRoutes } from './flags.js';
+export { handleAdminAgentsRoutes } from './agents.js';
+export { handleAdminDiagnosticsRoutes, recordHandoffEvent } from './diagnostics.js';
 

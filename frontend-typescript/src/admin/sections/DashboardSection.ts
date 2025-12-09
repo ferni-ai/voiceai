@@ -345,14 +345,19 @@ function getHealthText(status: SystemHealth['status']): string {
 
 async function fetchSystemHealth(): Promise<SystemHealth> {
   try {
-    const response = await fetch('/health');
+    const response = await fetch('/api/v1/admin/diagnostics/health', {
+      headers: {
+        'x-admin-key': 'dev-mode',
+      },
+    });
     if (response.ok) {
+      const data = await response.json();
       return {
-        status: 'healthy',
-        uptime: '99.97%',
+        status: data.status || 'healthy',
+        uptime: `${Math.round(data.uptime / 3600)}h`,
         responseTime: 45,
         activeUsers: 127,
-        activeSessions: 34,
+        activeSessions: data.services?.length || 0,
       };
     }
   } catch {
