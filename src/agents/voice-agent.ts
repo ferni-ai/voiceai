@@ -1092,6 +1092,10 @@ class VoiceAgent extends voice.Agent<UserData> {
                 voiceEmotion.primary,
                 voiceEmotion.confidence
               );
+              
+              // 🚀 FERNI EQ: Track current mood globally for "Our Songs" feature
+              // This enables recording songs played during emotional moments
+              (globalThis as unknown as { __ferniCurrentMood?: string }).__ferniCurrentMood = voiceEmotion.primary;
             } catch (e) {
               log().debug({ error: String(e) }, 'Voice emotion recording failed (non-blocking)');
             }
@@ -1706,6 +1710,9 @@ export default defineAgent({
 
           userId = identification.userId;
           identificationSource = identification.source.type;
+
+          // 🚀 FERNI EQ: Track userId globally for trust systems (Our Songs, etc.)
+          (globalThis as unknown as { __ferniCurrentUserId?: string }).__ferniCurrentUserId = userId;
 
           // CRITICAL: Only use REAL names, never placeholders!
           // Priority: 1. Profile name (persistent), 2. Metadata name (if real)
