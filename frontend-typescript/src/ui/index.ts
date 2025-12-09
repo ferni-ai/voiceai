@@ -303,6 +303,14 @@ export {
 } from './voice-enrollment.ui.js';
 export type { VoiceEnrollmentOptions } from './voice-enrollment.ui.js';
 
+// Voice ID Badge
+export {
+  initVoiceIdBadge,
+  updateBadgeStatus as updateVoiceIdBadge,
+  showVerifying as showVoiceIdVerifying,
+  hideVerifying as hideVoiceIdVerifying,
+} from './voice-id-badge.ui.js';
+
 // Types
 export type { ControlCallbacks } from './controls.ui.js';
 export type { ConnectionQuality } from './connection-quality.ui.js';

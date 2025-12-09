@@ -10,12 +10,19 @@ export default defineConfig({
       '@design-system': resolve(__dirname, '../design-system/dist'),
     },
   },
+  // Use global GSAP from CDN instead of bundling npm version
+  // This avoids duplicate instances and plugin registration issues
+  optimizeDeps: {
+    exclude: ['gsap'],
+  },
   server: {
     port: 3004,
     proxy: {
       '/token': 'http://localhost:3001',
       '/token-url': 'http://localhost:3001',
-      '/spotify': 'http://localhost:3001',
+      // Spotify routes - use UI server (3002) which has fallback handling
+      // Token server (3001) has per-user spotify linking, but may not always be running
+      '/spotify': 'http://localhost:3002',
       // Agent routes go to ui-server (which has the registry integration)
       '/api/agents': 'http://localhost:3002',
       // Engagement API routes go to ui-server

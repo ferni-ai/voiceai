@@ -138,8 +138,8 @@ export function initializeUnifiedPersistence(customConfig?: Partial<PersistenceC
   config = { ...DEFAULT_CONFIG, ...customConfig };
 
   // Start batch sync interval
-  syncInterval = setInterval(async () => {
-    await flushPendingChanges();
+  syncInterval = setInterval(() => {
+    void flushPendingChanges();
   }, config.batchSyncIntervalMs);
 
   isInitialized = true;

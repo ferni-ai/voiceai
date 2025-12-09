@@ -82,27 +82,58 @@ description: Six brilliant minds that remember your whole story, hear what you'r
 
 <body class="bg-paper text-ink font-body antialiased overflow-x-hidden">
   
+  <!-- Skip Link for Accessibility -->
+  <a href="#main-content" data-skip-link class="sr-only focus:not-sr-only">Skip to main content</a>
+  
+  <!-- Scroll Progress Indicator -->
+  <div id="scroll-progress" class="scroll-progress fixed top-0 left-0 h-[3px] z-[9999] w-0 bg-gradient-to-r from-ferni via-peter to-ferni"></div>
+  
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Ferni",
+    "url": "https://ferni.ai",
+    "logo": "https://ferni.ai/images/logo.svg",
+    "description": "AI life coaching that remembers your whole story. Six specialists, one conversation.",
+    "telephone": "+1-484-481-3081",
+    "sameAs": ["https://twitter.com/ferniAI"]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "Ferni AI Life Coach",
+    "description": "Six brilliant minds that remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon.",
+    "brand": { "@type": "Brand", "name": "Ferni" },
+    "offers": [
+      { "@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free" },
+      { "@type": "Offer", "price": "9.99", "priceCurrency": "USD", "name": "Friend" },
+      { "@type": "Offer", "price": "19.99", "priceCurrency": "USD", "name": "Partner" }
+    ]
+  }
+  </script>
+  
   <!-- ═══════════════════════════════════════════════════════════════════════════
        NAVIGATION
        ═══════════════════════════════════════════════════════════════════════════ -->
-  <nav class="fixed top-0 left-0 right-0 z-50 transition-all duration-500" id="nav">
+  <nav class="fixed top-0 left-0 right-0 z-50 transition-all duration-500" id="nav" data-smart-header>
     <div class="absolute inset-0 bg-paper/80 backdrop-blur-xl border-b border-ink/5 opacity-0 transition-opacity duration-500" id="nav-bg"></div>
     <div class="relative max-w-7xl mx-auto px-6 lg:px-8">
       <div class="flex items-center justify-between h-20">
         <!-- Logo -->
-        <a href="/" class="flex items-center gap-3 group">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-ferni-light via-ferni to-ferni-dark flex items-center justify-center shadow-glow-soft group-hover:shadow-glow-ferni transition-shadow duration-500">
-            <span class="font-display font-bold text-white text-sm">FN</span>
-          </div>
-          <span class="font-display font-bold text-xl text-ink">Ferni</span>
+        <a href="/" class="group">
+          <span class="font-display font-bold text-2xl text-ink group-hover:text-ferni transition-colors duration-300">Ferni</span>
         </a>
         
         <!-- Desktop Nav -->
         <div class="hidden lg:flex items-center gap-10">
-          <a href="#how-it-works" class="text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">How It Works</a>
-          <a href="#team" class="text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">Your Team</a>
-          <a href="#pricing" class="text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">Pricing</a>
-          <a href="#faq" class="text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">FAQ</a>
+          <a href="#how-it-works" data-nav-link class="nav-link text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">How It Works</a>
+          <a href="#team" data-nav-link class="nav-link text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">Your Team</a>
+          <a href="#pricing" data-nav-link class="nav-link text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">Pricing</a>
+          <a href="#faq" data-nav-link class="nav-link text-ink-muted hover:text-ink transition-colors duration-300 text-sm font-medium">FAQ</a>
         </div>
         
         <!-- CTA -->
@@ -111,7 +142,7 @@ description: Six brilliant minds that remember your whole story, hear what you'r
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/></svg>
             <span class="font-mono">(484) 481-3081</span>
           </a>
-          <a href="https://app.ferni.ai" class="btn-magnetic inline-flex items-center gap-2 px-6 py-3 bg-ferni hover:bg-ferni-dark text-white font-semibold text-sm rounded-full shadow-lg shadow-ferni/20 hover:shadow-xl hover:shadow-ferni/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300">
+          <a href="https://app.ferni.ai" class="btn-magnetic inline-flex items-center gap-2 px-6 py-3 bg-ferni hover:bg-ferni-dark text-white font-semibold text-sm rounded-full shadow-lg shadow-ferni/20 hover:shadow-xl hover:shadow-ferni/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300" data-magnetic data-magnetic-strength="0.2" data-ripple>
             Get Started
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
@@ -146,7 +177,7 @@ description: Six brilliant minds that remember your whole story, hear what you'r
       <div class="relative z-10 max-w-5xl mx-auto px-6 text-center py-20 lg:py-32 hero-content">
         
         <!-- The Orb with personas orbiting -->
-        <div class="relative w-40 h-40 lg:w-52 lg:h-52 mx-auto mb-12 lg:mb-16" data-orb-aware>
+        <div class="relative w-40 h-40 lg:w-52 lg:h-52 mx-auto mb-12 lg:mb-16" data-orb-aware data-hero-orb data-particles>
           
           <!-- Glow effect -->
           <div class="absolute inset-[-40%] bg-ferni/20 rounded-full blur-3xl orb-glow"></div>
@@ -239,7 +270,7 @@ description: Six brilliant minds that remember your whole story, hear what you'r
          THE 2AM MOMENT
          Emotional dark section - the core of our value prop
          ═══════════════════════════════════════════════════════════════════════════ -->
-    <section class="relative overflow-hidden night-section">
+    <section class="relative overflow-hidden night-section" data-night-sky>
       
       <!-- Dark scene - The loneliness -->
       <div class="relative bg-gradient-to-b from-[#0d0a08] via-[#1a1512] to-[#2a2420] text-white py-32 lg:py-48 px-6">
@@ -603,7 +634,7 @@ description: Six brilliant minds that remember your whole story, hear what you'r
         <div class="grid lg:grid-cols-3 gap-8">
           
           <!-- Free -->
-          <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-lg border border-ink/5 hover:border-ink/10 transition-all duration-500">
+          <div class="reveal bg-white rounded-3xl p-8 lg:p-10 shadow-lg border border-ink/5 hover:border-ink/10 transition-all duration-500 hover-spring shadow-cascade" data-tilt data-tilt-max="5">
             <h3 class="font-display text-2xl font-bold text-ink mb-2">Free</h3>
             <div class="mb-6">
               <span class="font-display text-5xl font-bold text-ink">$0</span>
@@ -634,7 +665,7 @@ description: Six brilliant minds that remember your whole story, hear what you'r
           </div>
           
           <!-- Friend (Popular) -->
-          <div class="reveal pricing-popular bg-white rounded-3xl p-8 lg:p-10 shadow-2xl border-2 border-ferni relative lg:-mt-4 lg:-mb-4 lg:scale-105">
+          <div class="reveal pricing-popular bg-white rounded-3xl p-8 lg:p-10 shadow-2xl border-2 border-ferni relative lg:-mt-4 lg:-mb-4 lg:scale-105 card-shine" data-tilt data-tilt-max="8" data-tilt-scale="1.03">
             <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-2 bg-gradient-to-r from-ferni to-ferni-dark text-white text-xs font-bold rounded-full shadow-lg shadow-ferni/30 animate-pulse">
               ⭐ Most Popular
             </div>
@@ -821,9 +852,8 @@ description: Six brilliant minds that remember your whole story, hear what you'r
         
         <!-- Brand -->
         <div>
-          <a href="/" class="inline-flex items-center gap-3 mb-4">
-            <div class="w-9 h-9 rounded-lg bg-ferni text-white flex items-center justify-center text-sm font-bold">FN</div>
-            <span class="font-display font-bold text-xl">Ferni</span>
+          <a href="/" class="inline-block mb-4">
+            <span class="font-display font-bold text-2xl text-ink hover:text-ferni transition-colors">Ferni</span>
           </a>
           <p class="text-sm text-ink-muted">Six specialists, one conversation, infinite memory.</p>
         </div>
@@ -882,9 +912,57 @@ description: Six brilliant minds that remember your whole story, hear what you'r
     </a>
   </div>
   
+  <!-- Back to Top Button -->
+  <button 
+    data-back-to-top
+    class="fixed bottom-24 right-6 md:bottom-8 w-12 h-12 bg-ferni text-white rounded-full shadow-lg shadow-ferni/30 flex items-center justify-center hover:bg-ferni-dark hover:shadow-xl transition-all duration-300 z-40"
+    aria-label="Back to top"
+  >
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M12 19V5M5 12l7-7 7 7"/>
+    </svg>
+  </button>
+  
   
   <!-- Better Than Human Interactions -->
   <script src="/js/better-than-human.js"></script>
+  <!-- Apple-Level Interactions -->
+  <script src="/js/apple-interactions.js"></script>
+  <!-- Hero Animations -->
+  <script src="/js/hero-animations.js"></script>
+  <!-- FAQ Accordion -->
+  <script src="/js/faq-accordion.js"></script>
+  <!-- Accessibility -->
+  <script src="/js/accessibility.js"></script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/js/service-worker.js')
+          .then(reg => console.log('SW registered'))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+  
+  <!-- Scroll Progress Indicator -->
+  <script>
+    (function() {
+      const progress = document.getElementById('scroll-progress');
+      if (!progress) return;
+      
+      function updateProgress() {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const scrollPercent = (scrollTop / docHeight) * 100;
+        progress.style.width = scrollPercent + '%';
+      }
+      
+      window.addEventListener('scroll', updateProgress, { passive: true });
+      updateProgress();
+    })();
+  </script>
   
 </body>
 </html>

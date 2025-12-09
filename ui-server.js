@@ -46,6 +46,9 @@ import { handleMonitoringRoutes } from './dist/api/monitoring-routes.js';
 // Relationship Health Dashboard routes
 import { relationshipHealthRoutes } from './dist/api/routes/relationship-health-routes.js';
 
+// Relationship Progress routes
+import { handleRelationshipRoutes } from './dist/api/routes/relationship.js';
+
 // Voice Humanization routes (metrics, feature flags)
 import { handleVoiceHumanizationRoutes } from './dist/api/voice-humanization-routes.js';
 
@@ -471,6 +474,12 @@ const server = http.createServer(async (req, res) => {
     // Trust Systems consolidated routes (Phases 12-29)
     if (pathname.startsWith('/api/trust/')) {
       const handled = await handleTrustSystemsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Relationship Progress routes (must be before health routes for specificity)
+    if (pathname === '/api/relationship/progress') {
+      const handled = await handleRelationshipRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

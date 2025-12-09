@@ -153,6 +153,8 @@ import {
   initVoiceEnrollmentUI,
   showVoiceEnrollmentModal,
 } from './ui/voice-enrollment.ui.js';
+// Voice ID Badge
+import { initVoiceIdBadge } from './ui/voice-id-badge.ui.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
 // Toast for notifications
@@ -918,6 +920,9 @@ class VoiceAIApp {
 
     // 🔊 Voice Enrollment UI - Learn user's voice
     this.safeInit('VoiceEnrollmentUI', () => initVoiceEnrollmentUI());
+
+    // 🎤 Voice ID Badge - Show enrollment status on avatar
+    this.safeInit('VoiceIdBadge', () => initVoiceIdBadge());
 
     // 📋 Settings Menu - Central navigation hub
     this.safeInit('SettingsMenuUI', () => {

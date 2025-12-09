@@ -109,23 +109,29 @@ export interface CompositeUserProfile {
   lifeStage?: 'young_adult' | 'early_career' | 'mid_career' | 'pre_retirement' | 'retirement';
 }
 
-// Import factory functions for composite profile creation
-import { createUserIdentity as createIdentity } from './identity.js';
-import { createCommunicationProfile as createComm } from './communication.js';
-import { createRelationshipContext as createRel } from './relationship.js';
-import { createFinancialProfile as createFin } from './financial.js';
-import { createConversationMemory as createMem } from './conversation-memory.js';
+// Re-import factory functions for use in createCompositeUserProfile
+// (These are re-exported above, but we need local references for the composite function)
+// eslint-disable-next-line no-duplicate-imports -- Intentional: need local refs after re-export
+import { createUserIdentity } from './identity.js';
+// eslint-disable-next-line no-duplicate-imports -- Intentional: need local refs after re-export
+import { createCommunicationProfile } from './communication.js';
+// eslint-disable-next-line no-duplicate-imports -- Intentional: need local refs after re-export
+import { createRelationshipContext } from './relationship.js';
+// eslint-disable-next-line no-duplicate-imports -- Intentional: need local refs after re-export
+import { createFinancialProfile } from './financial.js';
+// eslint-disable-next-line no-duplicate-imports -- Intentional: need local refs after re-export
+import { createConversationMemory } from './conversation-memory.js';
 
 /**
  * Create a composite user profile
  */
 export function createCompositeUserProfile(id: string, name?: string): CompositeUserProfile {
   return {
-    identity: createIdentity(id, name),
-    communication: createComm(),
-    relationship: createRel(),
-    financial: createFin(),
-    memory: createMem(),
+    identity: createUserIdentity(id, name),
+    communication: createCommunicationProfile(),
+    relationship: createRelationshipContext(),
+    financial: createFinancialProfile(),
+    memory: createConversationMemory(),
   };
 }
 

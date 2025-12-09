@@ -6,6 +6,9 @@
 /* Better than Human - Philosophy-driven enhancements */
 @import './better-than-human.css';
 
+/* Apple-Level Polish - World-class refinements */
+@import './apple-polish.css';
+
 /* Custom base styles */
 @layer base {
   html {

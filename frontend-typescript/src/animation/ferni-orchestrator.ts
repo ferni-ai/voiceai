@@ -21,7 +21,7 @@
  * 8. Exaggeration - Push emotions 10-20% for clarity
  */
 
-import gsap from 'gsap';
+import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { emotionState, type EmotionState, type EmotionId, EMOTIONS } from '../emotion/emotion-state.js';
 

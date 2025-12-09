@@ -5,6 +5,9 @@
  * It initializes the application when the DOM is ready.
  */
 
+// Initialize GSAP plugins early (before any animations)
+import './utils/gsap-setup.js';
+
 // Import and auto-initialize the app
 export { app } from './app.js';
 

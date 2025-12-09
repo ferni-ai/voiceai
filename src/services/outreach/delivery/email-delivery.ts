@@ -633,10 +633,9 @@ export async function sendEmailWithRetry(
     );
 
     return new Promise((resolve) => {
-      const timeout = setTimeout(async () => {
+      const timeout = setTimeout(() => {
         pendingRetries.delete(message.outreachId);
-        const retryResult = await sendEmailWithRetry(message, retryCount + 1);
-        resolve(retryResult);
+        void sendEmailWithRetry(message, retryCount + 1).then(resolve);
       }, delay);
 
       pendingRetries.set(message.outreachId, timeout);

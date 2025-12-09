@@ -58,6 +58,8 @@ import { ReadableStream } from 'node:stream/web';
 import { fileURLToPath } from 'node:url';
 import { TextDecoder, TextEncoder } from 'node:util';
 import { tagTextWithSsmlPersonaAware } from '../ssml/index.js';
+// Voice authentication - speaker change detection (available for future integration)
+import { getSpeakerChangeDetector, type SpeakerChangeEvent } from '../services/voice-speaker-change.js';
 
 // Shared Agent Utilities (used by ALL agents)
 import { SILENCE_THRESHOLDS } from './shared/constants.js';
@@ -1688,6 +1690,40 @@ export default defineAgent({
               identityResult.identityContext;
           } catch (identityErr) {
             diag.warn('Identity session start failed (non-fatal)', { error: String(identityErr) });
+          }
+
+          // ===============================================
+          // VOICE AUTHENTICATION: Initialize speaker change detection
+          // This enables automatic detection when a different person starts speaking
+          // ===============================================
+          try {
+            const speakerChangeDetector = getSpeakerChangeDetector(sessionId);
+            speakerChangeDetector.on('speaker_changed', (event: SpeakerChangeEvent) => {
+              diag.session('👥 Speaker change detected', {
+                previousSpeaker: event.previousSpeakerId,
+                newSpeaker: event.currentSpeakerId,
+                confidence: event.confidence,
+                isNewSpeaker: event.isNewSpeaker,
+              });
+              // Notify frontend of speaker change
+              ctx.room.localParticipant?.publishData(
+                new TextEncoder().encode(
+                  JSON.stringify({
+                    type: 'speaker_changed',
+                    previousSpeakerId: event.previousSpeakerId,
+                    currentSpeakerId: event.currentSpeakerId,
+                    confidence: event.confidence,
+                    isNewSpeaker: event.isNewSpeaker,
+                    timestamp: Date.now(),
+                  })
+                ),
+                { reliable: true }
+              ).catch(() => { /* ignore */ });
+            });
+            speakerChangeDetector.start(userId);
+            diag.session('🎤 Speaker change detection initialized');
+          } catch (speakerChangeErr) {
+            diag.warn('Speaker change detection init failed (non-fatal)', { error: String(speakerChangeErr) });
           }
         }
       } catch (e) {

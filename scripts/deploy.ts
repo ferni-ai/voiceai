@@ -19,8 +19,8 @@
  *   npm run deploy all
  */
 
-import { execSync, spawn } from 'child_process';
-import { existsSync } from 'fs';
+import { execSync, spawn, ChildProcess } from 'child_process';
+import { existsSync, mkdirSync, createWriteStream, WriteStream } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -120,6 +120,55 @@ interface DeployOptions {
   dryRun: boolean;
   skipBuild: boolean;
   verbose: boolean;
+  async: boolean;
+}
+
+// ============================================================================
+// ASYNC DEPLOYMENT HELPERS
+// ============================================================================
+
+const LOGS_DIR = join(PROJECT_ROOT, '.deploy-logs');
+
+function getLogFilePath(target: string): string {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return join(LOGS_DIR, `${target}-${timestamp}.log`);
+}
+
+function ensureLogsDir(): void {
+  if (!existsSync(LOGS_DIR)) {
+    mkdirSync(LOGS_DIR, { recursive: true });
+  }
+}
+
+function spawnAsync(cmd: string, logFile: string): ChildProcess {
+  ensureLogsDir();
+  const logStream = createWriteStream(logFile, { flags: 'a' });
+  
+  // Write header
+  logStream.write(`\n${'='.repeat(60)}\n`);
+  logStream.write(`Deployment started: ${new Date().toISOString()}\n`);
+  logStream.write(`Command: ${cmd}\n`);
+  logStream.write(`${'='.repeat(60)}\n\n`);
+  
+  const child = spawn('bash', ['-c', cmd], {
+    cwd: PROJECT_ROOT,
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  
+  child.stdout?.pipe(logStream);
+  child.stderr?.pipe(logStream);
+  
+  child.on('exit', (code) => {
+    logStream.write(`\n${'='.repeat(60)}\n`);
+    logStream.write(`Deployment finished: ${new Date().toISOString()}\n`);
+    logStream.write(`Exit code: ${code}\n`);
+    logStream.write(`${'='.repeat(60)}\n`);
+    logStream.end();
+  });
+  
+  child.unref();
+  return child;
 }
 
 async function deployAgent(options: DeployOptions): Promise<boolean> {
@@ -131,10 +180,6 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     return true;
   }
 
-  // Build container
-  log.info('Building container image...');
-  exec(`gcloud builds submit --config ${CONFIG.cloudbuildAgent} . --quiet`);
-
   // Build secrets string
   const secrets = [
     'GOOGLE_API_KEY=google-api-key:latest',
@@ -144,24 +189,25 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     'LIVEKIT_API_SECRET=livekit-api-secret:latest',
   ];
 
-  // Check for optional secrets
-  const optionalSecrets = [
-    ['alpha-vantage-key', 'ALPHA_VANTAGE_API_KEY'],
-    ['finnhub-api-key', 'FINNHUB_API_KEY'],
-    ['sendgrid-api-key', 'SENDGRID_API_KEY'],
-  ];
+  // Check for optional secrets (only in sync mode - async skips this)
+  if (!options.async) {
+    const optionalSecrets = [
+      ['alpha-vantage-key', 'ALPHA_VANTAGE_API_KEY'],
+      ['finnhub-api-key', 'FINNHUB_API_KEY'],
+      ['sendgrid-api-key', 'SENDGRID_API_KEY'],
+    ];
 
-  for (const [secretName, envVar] of optionalSecrets) {
-    try {
-      exec(`gcloud secrets describe ${secretName}`, { silent: true });
-      secrets.push(`${envVar}=${secretName}:latest`);
-    } catch {
-      // Secret doesn't exist, skip
+    for (const [secretName, envVar] of optionalSecrets) {
+      try {
+        exec(`gcloud secrets describe ${secretName}`, { silent: true });
+        secrets.push(`${envVar}=${secretName}:latest`);
+      } catch {
+        // Secret doesn't exist, skip
+      }
     }
   }
 
-  // Deploy to Cloud Run
-  log.info('Deploying to Cloud Run...');
+  const buildCmd = `gcloud builds submit --config ${CONFIG.cloudbuildAgent} . --quiet`;
   const deployCmd = [
     `gcloud run deploy ${CONFIG.services.agent}`,
     `--image gcr.io/${CONFIG.projectId}/bogle-voice-agent:latest`,
@@ -177,8 +223,35 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
     `--set-env-vars "NODE_ENV=production,PERSONA_ID=${CONFIG.personaId},GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
     `--set-secrets "${secrets.join(',')}"`,
     '--quiet',
-  ].join(' \\\n  ');
+  ].join(' ');
 
+  if (options.async) {
+    const logFile = getLogFilePath('agent');
+    const fullCmd = `${buildCmd} && ${deployCmd}`;
+    
+    log.info('Starting async deployment...');
+    spawnAsync(fullCmd, logFile);
+    
+    console.log(`
+${colors.green}✓${colors.reset} Agent deployment started in background!
+
+${colors.bold}Monitor progress:${colors.reset}
+  ${colors.cyan}tail -f ${logFile}${colors.reset}
+
+${colors.bold}Or check Cloud Build:${colors.reset}
+  ${colors.cyan}gcloud builds list --limit=1${colors.reset}
+
+${colors.bold}You'll see the deployment in:${colors.reset}
+  ${colors.cyan}https://console.cloud.google.com/cloud-build/builds?project=${CONFIG.projectId}${colors.reset}
+`);
+    return true;
+  }
+
+  // Synchronous deployment (original behavior)
+  log.info('Building container image...');
+  exec(buildCmd);
+
+  log.info('Deploying to Cloud Run...');
   exec(deployCmd);
 
   const url = getServiceUrl(CONFIG.services.agent);
@@ -195,12 +268,8 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     return true;
   }
 
-  // Build container
-  log.info('Building container image...');
-  exec(`gcloud builds submit --config ${CONFIG.cloudbuildUi} . --quiet`);
-
-  // Deploy to Cloud Run
-  log.info('Deploying to Cloud Run...');
+  // Build the full command sequence
+  const buildCmd = `gcloud builds submit --config ${CONFIG.cloudbuildUi} . --quiet`;
   const deployCmd = [
     `gcloud run deploy ${CONFIG.services.ui}`,
     `--image gcr.io/${CONFIG.projectId}/${CONFIG.services.ui}:latest`,
@@ -215,8 +284,35 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     '--set-env-vars "NODE_ENV=production"',
     '--set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest"',
     '--quiet',
-  ].join(' \\\n  ');
+  ].join(' ');
 
+  if (options.async) {
+    const logFile = getLogFilePath('ui');
+    const fullCmd = `${buildCmd} && ${deployCmd}`;
+    
+    log.info('Starting async deployment...');
+    spawnAsync(fullCmd, logFile);
+    
+    console.log(`
+${colors.green}✓${colors.reset} UI deployment started in background!
+
+${colors.bold}Monitor progress:${colors.reset}
+  ${colors.cyan}tail -f ${logFile}${colors.reset}
+
+${colors.bold}Or check Cloud Build:${colors.reset}
+  ${colors.cyan}gcloud builds list --limit=1${colors.reset}
+
+${colors.bold}You'll see the deployment in:${colors.reset}
+  ${colors.cyan}https://console.cloud.google.com/cloud-build/builds?project=${CONFIG.projectId}${colors.reset}
+`);
+    return true;
+  }
+
+  // Synchronous deployment (original behavior)
+  log.info('Building container image...');
+  exec(buildCmd);
+
+  log.info('Deploying to Cloud Run...');
   exec(deployCmd);
 
   const url = getServiceUrl(CONFIG.services.ui);
@@ -574,6 +670,7 @@ ${colors.bold}Targets:${colors.reset}
   ${colors.green}all${colors.reset}        Deploy everything (agent, ui, frontend, landing)
 
 ${colors.bold}Options:${colors.reset}
+  --async       Run deployment in background (don't wait for completion)
   --dry-run     Show what would be deployed without making changes
   --skip-build  Skip local build steps
   --verbose     Show detailed output
@@ -585,9 +682,11 @@ ${colors.bold}Environment Variables:${colors.reset}
   PERSONA_ID        Default persona (default: ferni)
 
 ${colors.bold}Examples:${colors.reset}
-  npm run deploy ui              # Deploy UI only
+  npm run deploy ui              # Deploy UI (wait for completion)
+  npm run deploy:ui:async        # Deploy UI in background (don't wait!)
   npm run deploy all             # Deploy everything
   npm run deploy -- --dry-run ui # Preview UI deployment
+  npm run deploy -- --async ui   # Deploy UI async via flags
   GCP_PROJECT_ID=my-project npm run deploy agent
 `);
 }
@@ -600,6 +699,7 @@ async function main() {
     dryRun: args.includes('--dry-run'),
     skipBuild: args.includes('--skip-build'),
     verbose: args.includes('--verbose'),
+    async: args.includes('--async'),
   };
 
   // Get target (non-option argument)
@@ -662,7 +762,17 @@ ${colors.cyan}╚═════════════════════
       break;
 
     case 'all':
-      success = (await deployAgent(options)) && (await deployUi(options)) && (await deployFrontend(options)) && (await deployLanding(options));
+      if (options.async) {
+        // In async mode, start all deployments in parallel
+        await deployAgent(options);
+        await deployUi(options);
+        await deployFrontend(options);
+        await deployLanding(options);
+        log.info('All deployments started in background');
+        success = true;
+      } else {
+        success = (await deployAgent(options)) && (await deployUi(options)) && (await deployFrontend(options)) && (await deployLanding(options));
+      }
       break;
 
     default:

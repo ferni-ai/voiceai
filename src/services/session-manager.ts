@@ -18,6 +18,9 @@ import type { SpeechCharacteristics } from '../personas/types.js';
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from './realtime-memory.js';
 
+// Voice authentication - household identification
+import { identifyHouseholdSpeaker, getActiveSession, startHouseholdSession } from './voice-household.js';
+
 // Cross-persona insights - load team intelligence for new sessions
 import { loadInsights as loadCrossPersonaInsights } from './cross-persona-insights.js';
 
@@ -578,6 +581,30 @@ export async function createSessionServices(
       getLogger().warn(
         { error: String(error), userId: validatedUserId },
         'Failed to start realtime conversation (falling back to session-end persistence)'
+      );
+    }
+  }
+
+  // ============================================================================
+  // HOUSEHOLD SESSION TRACKING
+  // Start household session for multi-user identification
+  // ============================================================================
+
+  if (validatedUserId) {
+    try {
+      // Start or resume household session
+      const existingSession = getActiveSession(sessionId);
+      if (!existingSession) {
+        startHouseholdSession(sessionId, validatedUserId);
+        getLogger().info(
+          { sessionId, userId: validatedUserId },
+          '👥 Household session started for voice identification'
+        );
+      }
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error) },
+        'Failed to start household session (voice identification unavailable)'
       );
     }
   }

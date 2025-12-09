@@ -187,5 +187,5 @@ function createMockError(error: string): { success: false; error: string } {
  * Wait for async operations to settle
  */
 async function flushPromises(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
 }

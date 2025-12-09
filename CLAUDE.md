@@ -46,20 +46,36 @@ cd frontend-typescript && npm run dev
 **Why 3 servers?** Vite proxies API calls: `/api/*` → UI Server (3002), `/token`, `/spotify/*`, `/subscription/*` → Token Server (3001)
 
 ## 🌐 Production Deployment (Google Cloud Run)
-```bash
-# Deploy UI (frontend + all APIs in one container)
-./scripts/deploy-ui.sh
 
-# Deploy Voice Agent (LiveKit agent only)
-./scripts/deploy-gcp.sh
+**⚠️ ALWAYS use async deployments** to avoid blocking your terminal:
+
+```bash
+# Deploy UI (async - returns immediately)
+npm run deploy:ui:async
+
+# Deploy Voice Agent (async - returns immediately)
+npm run deploy:agent:async
+
+# Monitor progress
+tail -f .deploy-logs/*.log
+gcloud builds list --limit=1
 ```
+
+**Never use blocking deploys** (`npm run deploy:ui`) - they take 3-5 minutes and waste your time.
 
 | Environment | UI Server | Voice Agent | Frontend |
 |-------------|-----------|-------------|----------|
 | **Development** | port 3002 | `npm run dev` | Vite port 3004 |
 | **Production** | `Dockerfile.ui` → Cloud Run | `Dockerfile` → Cloud Run | Built into UI |
 
-**Key files:** `cloudbuild-ui.yaml`, `cloudbuild.yaml`, `Dockerfile.ui`, `Dockerfile`
+| Deploy Command | What it deploys | Blocking? |
+|----------------|-----------------|-----------|
+| `npm run deploy:ui:async` | UI backend APIs | ✅ No (async) |
+| `npm run deploy:agent:async` | Voice agent | ✅ No (async) |
+| `npm run deploy:frontend` | Firebase Hosting | Blocking |
+| `npm run deploy:landing` | Landing page | Blocking |
+
+**Key files:** `cloudbuild-ui.yaml`, `cloudbuild.yaml`, `Dockerfile.ui`, `Dockerfile`, `scripts/deploy.ts`
 
 ## Dev Mode (Testing Subscription & Team Unlocks)
 ```bash

@@ -235,16 +235,15 @@ export function registerShutdownHandlers(): void {
     process.exit(0);
   };
 
-  process.on('SIGTERM', async () => handleShutdown('SIGTERM'));
-  process.on('SIGINT', async () => handleShutdown('SIGINT'));
+  process.on('SIGTERM', () => void handleShutdown('SIGTERM'));
+  process.on('SIGINT', () => void handleShutdown('SIGINT'));
 
-  process.on('uncaughtException', async (error) => {
+  process.on('uncaughtException', (error) => {
     getLogger().error(`Uncaught exception: ${error}`);
-    await shutdown();
-    process.exit(1);
+    void shutdown().finally(() => process.exit(1));
   });
 
-  process.on('unhandledRejection', async (reason) => {
+  process.on('unhandledRejection', (reason) => {
     getLogger().error(`Unhandled rejection: ${reason}`);
     // Don't exit for unhandled rejections, just log
   });

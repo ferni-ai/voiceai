@@ -1246,18 +1246,18 @@ const setTimerDef: ToolDefinition = {
         const timerLabel = label || 'Timer';
 
         // Set the timer with voice callback when complete
-        const timeout = setTimeout(async () => {
+        const timeout = setTimeout(() => {
           activeTimers.delete(userId);
 
           // Trigger voice callback - actually speaks to user!
-          await onTimerComplete(userId, timerLabel, minutes + seconds / 60);
-
-          // Get personalized follow-up message for logging
-          const followUpMsg = getTimerFollowUp(userId);
-          getLogger().info(
-            { userId, label: timerLabel, followUp: followUpMsg },
-            '⏰ Timer finished!'
-          );
+          void onTimerComplete(userId, timerLabel, minutes + seconds / 60).then(() => {
+            // Get personalized follow-up message for logging
+            const followUpMsg = getTimerFollowUp(userId);
+            getLogger().info(
+              { userId, label: timerLabel, followUp: followUpMsg },
+              '⏰ Timer finished!'
+            );
+          });
         }, totalMs);
 
         // Persist timer preference for cross-session learning

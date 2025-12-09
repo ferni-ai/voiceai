@@ -14,6 +14,7 @@ yarn-debug.log*
 yarn-error.log*
 *-logs.txt
 latest-logs.txt
+.deploy-logs/
 
 # Secrets (never commit)
 .livekit-secrets.env

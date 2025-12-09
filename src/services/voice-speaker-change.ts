@@ -114,7 +114,7 @@ export class SpeakerChangeDetector extends EventEmitter {
     
     // Start periodic check
     this.checkInterval = setInterval(() => {
-      this.processAudioBuffer();
+      void this.processAudioBuffer();
     }, this.config.checkIntervalMs);
   }
 

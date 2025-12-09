@@ -276,7 +276,7 @@ describe('Real Appointment Call Flow', () => {
       console.log(`✅ Appointment call initiated - SID: ${data.sid}`);
 
       // Wait and check call status
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 5000); });
 
       const statusResponse = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Calls/${data.sid}.json`,

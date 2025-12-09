@@ -45,7 +45,7 @@
  * - Appeal through warmth
  */
 
-import gsap from 'gsap';
+import { gsap } from '../utils/gsap-setup.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 

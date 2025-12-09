@@ -511,7 +511,7 @@ export function scheduleExperiment(
 
   // Ensure schedule checker is running
   if (!scheduleCheckTimer) {
-    scheduleCheckTimer = setInterval(checkSchedules, 60000); // Check every minute
+    scheduleCheckTimer = setInterval(() => void checkSchedules(), 60000); // Check every minute
     logger.info('Experiment schedule checker started');
   }
 

@@ -26,24 +26,28 @@
 import { getLogger } from '../../utils/safe-logger.js';
 
 import { EventEmitter } from 'events';
-import { getAgentBus, type AgentId, type ToolExecutionRequest, type ToolExecutionResult } from '../agent-bus.js';
-import type {
-  TeamHandlerDefinition,
-  TeamHandlerFunction,
-  HandlerCapability,
-  AgentHandlerConfig,
-  SharedContext,
-  ContextShareHandler,
-  AgentNotification,
-  NotificationHandler,
-  TeamHandlerRegistryEvent,
-  TeamHandlerRegistryEventHandler,
-  TeamHandlerRegistryOptions,
-  RouteRequestOptions,
-
-
+import {
+  getAgentBus,
+  type AgentId,
+  type ToolExecutionRequest,
+  type ToolExecutionResult,
+} from '../agent-bus.js';
+import {
+  validateHandlerDefinition,
+  ALL_HANDLER_CAPABILITIES,
+  type TeamHandlerDefinition,
+  type TeamHandlerFunction,
+  type HandlerCapability,
+  type AgentHandlerConfig,
+  type SharedContext,
+  type ContextShareHandler,
+  type AgentNotification,
+  type NotificationHandler,
+  type TeamHandlerRegistryEvent,
+  type TeamHandlerRegistryEventHandler,
+  type TeamHandlerRegistryOptions,
+  type RouteRequestOptions,
 } from './types.js';
-import { validateHandlerDefinition, ALL_HANDLER_CAPABILITIES } from './types.js';
 
 // ============================================================================
 // TEAM HANDLER REGISTRY CLASS
@@ -613,9 +617,7 @@ export type {
   TeamHandlerRegistryOptions,
   RouteRequestOptions,
 } from './types.js';
-import { validateHandlerDefinition, ALL_HANDLER_CAPABILITIES } from './types.js';
 
 export { ALL_HANDLER_CAPABILITIES, validateHandlerDefinition } from './types.js';
-import { validateHandlerDefinition, ALL_HANDLER_CAPABILITIES } from './types.js';
 
 export default teamHandlerRegistry;

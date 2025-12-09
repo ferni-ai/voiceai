@@ -10,7 +10,8 @@
  * All durations use centralized DURATION constants from animation-constants.ts
  */
 
-import gsap from 'gsap';
+// Import gsap from our setup file to ensure plugins are registered
+import { gsap } from './gsap-setup.js';
 import { DURATION, STAGGER } from '../config/animation-constants.js';
 
 // ============================================================================

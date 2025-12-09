@@ -173,8 +173,8 @@ export async function syncWrite(
       clearTimeout(syncDebounceTimer);
     }
 
-    syncDebounceTimer = setTimeout(async () => {
-      await flushPendingWrites(userId);
+    syncDebounceTimer = setTimeout(() => {
+      void flushPendingWrites(userId);
     }, SYNC_DEBOUNCE_MS);
   }
 }

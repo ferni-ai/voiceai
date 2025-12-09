@@ -146,7 +146,8 @@ export function formatSMSMessage(
   }
 
   // Calculate segments (SMS uses GSM-7 encoding, but emojis use UCS-2)
-  const hasUnicode = /[^\x00-\x7F]/.test(formattedBody);
+  // eslint-disable-next-line no-control-regex -- Intentional: detecting non-ASCII chars
+  const hasUnicode = /[^\u0000-\u007F]/.test(formattedBody);
   const charsPerSegment = hasUnicode ? 70 : 160;
   const segments = Math.ceil(formattedBody.length / charsPerSegment);
 
@@ -306,10 +307,9 @@ export async function sendSMSWithRetry(
 
     // Schedule retry
     return new Promise((resolve) => {
-      const timeout = setTimeout(async () => {
+      const timeout = setTimeout(() => {
         pendingRetries.delete(message.outreachId);
-        const retryResult = await sendSMSWithRetry(message, retryCount + 1);
-        resolve(retryResult);
+        void sendSMSWithRetry(message, retryCount + 1).then(resolve);
       }, delay);
 
       pendingRetries.set(message.outreachId, timeout);
@@ -339,7 +339,7 @@ export async function sendBulkSMS(messages: SMSMessage[]): Promise<Map<string, S
 
     // Rate limiting - wait between batches
     if (i + batchSize < messages.length) {
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise<void>((resolve) => { setTimeout(resolve, 1000); });
     }
   }
 
